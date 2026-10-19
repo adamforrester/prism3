@@ -155,6 +155,8 @@ const MUST_SCAN = ['src/shell/frame.ts', 'src/shell/pages.ts', 'src/shell/theme.
   'src/state/component-catalog-data.ts',
   // S8.2: Components (its levers and its preview) and the preview's Component sets section.
   'src/domains/components.ts', 'src/preview/components.ts', 'src/preview/sections/component-sets.ts',
+  // #2700: the Components page redesign.
+  'src/domains/button-options.ts', 'src/state/component-groups.ts', 'src/state/build-queue.ts', 'src/state/components-page.ts',
   // S12: the start window and its decisions.
   'src/shell/start.ts', 'src/state/start-input.ts'];
 
@@ -836,11 +838,14 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
     const DEPTH_LEVERS = join(SRC, 'domains/depth.ts');
     const dl = scan(DEPTH_LEVERS, readFileSync(DEPTH_LEVERS, 'utf8'));
     ok(dl.depthDirect.length === 0, `src/domains/depth.ts writes nothing into brandState.shadow or brandState.motionPersonality itself${dl.depthDirect.length ? ` — ${dl.depthDirect.slice(0, 3).join(' | ')}: the write belongs in state/depth-motion-input.ts` : ''}`);
-    // `domains/components.ts` (S8.2) under the same visitor: no Button option written onto `brandState` directly, by any
-    // operator or alias; its keyed writes are refused outright in the S8.1/S8.2 arm below (it names no `setPath`).
-    const COMPONENTS_LEVERS = join(SRC, 'domains/components.ts');
-    const cl = scan(COMPONENTS_LEVERS, readFileSync(COMPONENTS_LEVERS, 'utf8'));
-    ok(cl.buttonDirect.length === 0, `src/domains/components.ts writes no Button option onto brandState itself${cl.buttonDirect.length ? ` — ${cl.buttonDirect.slice(0, 3).join(' | ')}: the write belongs in state/button-input.ts` : ''}`);
+    // `domains/button-options.ts` (S8.2's Button options, moved there by #2700) and `domains/components.ts` under the same
+    // visitor: no Button option written onto `brandState` directly, by any operator or alias; their keyed writes are
+    // refused outright in the S8.1/S8.2 arm below (neither names a `setPath`).
+    for (const f of ['domains/button-options.ts', 'domains/components.ts']) {
+      const file = join(SRC, f);
+      const cl = scan(file, readFileSync(file, 'utf8'));
+      ok(cl.buttonDirect.length === 0, `src/${f} writes no Button option onto brandState itself${cl.buttonDirect.length ? ` — ${cl.buttonDirect.slice(0, 3).join(' | ')}: the write belongs in state/button-input.ts` : ''}`);
+    }
     const stale = Object.keys(UNRESOLVED_OK).filter((k) => !seenOk.has(k));
     ok(stale.length === 0, `every UNRESOLVED_OK entry still names a write in src/main.ts${stale.length ? ` — no longer found: ${stale.join(', ')}` : ''}`);
 
@@ -979,32 +984,41 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
   const mainCode = strip(mainSrc);
   const levSrc = readFileSync(join(SRC, 'domains/components.ts'), 'utf8');
   const levCode = strip(levSrc);
+  // #2700: the Button options moved out of the Components levers into their own module, drawn with the Buttons family.
+  const optSrc = readFileSync(join(SRC, 'domains/button-options.ts'), 'utf8');
+  const optCode = strip(optSrc);
   const prevSrc = readFileSync(join(SRC, 'preview/components.ts'), 'utf8');
   const prevCode = strip(prevSrc);
   const setsSrc = readFileSync(join(SRC, 'preview/sections/component-sets.ts'), 'utf8');
   const idx = readFileSync(join(SRC, 'preview/sections/index.ts'), 'utf8');
   ok(/\bbuttonLayoutSection\(/.test(prevCode), 'src/preview/components.ts draws the button specimen through the shared buttonLayoutSection()');
   ok(idx.includes("from './button-layout'"), 'preview/sections/index.ts exports the button specimen from ./button-layout');
-  for (const [file, code] of [['src/main.ts', mainCode], ['src/preview/components.ts', prevCode], ['src/domains/components.ts', levCode]] as const) {
+  for (const [file, code] of [['src/main.ts', mainCode], ['src/preview/components.ts', prevCode], ['src/domains/components.ts', levCode], ['src/domains/button-options.ts', optCode]] as const) {
     const own = /'btnl-(list|row|btn)'|BUTTON_SIZES\s*[:=]/.exec(code);
     ok(!own, `${file} draws no button specimen of its own${own ? ` — it carries "${own[0]}": the specimen belongs in preview/sections/button-layout.ts` : ''}`);
   }
   // Each chip is handed its write from the page's table, and the table names each setter; the slider calls its own.
   for (const [key, setter] of [['buttonIcons', 'setButtonIcons'], ['buttonContentSize', 'setButtonContentSize'], ['buttonLabelWeight', 'setButtonLabelWeight']] as const) {
-    ok(new RegExp(`\\b${key}\\s*:\\s*\\([^)]*\\)\\s*=>\\s*${setter}\\(`).test(levCode), `src/domains/components.ts hands the ${key} chips their write, ${setter}()`);
+    ok(new RegExp(`\\b${key}\\s*:\\s*\\([^)]*\\)\\s*=>\\s*${setter}\\(`).test(optCode), `src/domains/button-options.ts hands the ${key} chips their write, ${setter}()`);
   }
-  ok(/BUTTON_OPTION_WRITES\[key\]\(v\)/.test(levCode), 'src/domains/components.ts hands each Button option chip the write from its table (BUTTON_OPTION_WRITES[key](v))');
-  ok(/\bsetButtonMinWidth\(v\)/.test(levCode), 'src/domains/components.ts writes the minimum width through setButtonMinWidth()');
-  ok(imports(levSrc, 'components.ts').some((i) => i.spec === '../state/button-input'), 'src/domains/components.ts imports its Button option writes from ../state/button-input');
+  ok(/\bWRITES\[key\]\(v\)/.test(optCode), 'src/domains/button-options.ts hands each Button option chip the write from its table (WRITES[key](v))');
+  ok(/\bsetButtonMinWidth\(v\)/.test(optCode), 'src/domains/button-options.ts writes the minimum width through setButtonMinWidth()');
+  ok(imports(optSrc, 'button-options.ts').some((i) => i.spec === '../state/button-input'), 'src/domains/button-options.ts imports its Button option writes from ../state/button-input');
+  ok(!imports(levSrc, 'components.ts').some((i) => i.spec === '../state/button-input'), 'src/domains/components.ts no longer writes Button options (#2700 moved them to domains/button-options.ts)');
   ok(!imports(mainSrc, 'main.ts').some((i) => i.spec === './state/button-input'), 'src/main.ts no longer imports the Button option writes (S8.2 moved them to the Components page)');
-  const generic = /\b(setPath|setModeLever)\(/.exec(levCode);
-  ok(!generic, `src/domains/components.ts writes only through state/button-input.ts${generic ? ` — it calls ${generic[1]}() itself` : ''}`);
+  for (const [file, code] of [['src/domains/components.ts', levCode], ['src/domains/button-options.ts', optCode]] as const) {
+    const generic = /\b(setPath|setModeLever)\(/.exec(code);
+    ok(!generic, `${file} writes only through state/button-input.ts${generic ? ` — it calls ${generic[1]}() itself` : ''}`);
+  }
   // The catalog: no definition, and no projector, in the studio source a web build reads.
-  const DEF_SPECS = /(^|\/)components(\/index)?$|engine\/components\/|anatomy-figma$/;
+  // The engine's definitions (`@prism3/engine/components/index`, or a relative path into the engine's `components/`), or
+  // its projector. Since #2700 the studio has its own `preview/components` module, which is no definition: the pattern
+  // names the engine's folder, so the studio module is not mistaken for one.
+  const DEF_SPECS = /(^|\/)engine\/components(\/|$)|^@prism3\/engine\/components|(^|\/)components\/index$|^\.\.?\/components$|anatomy-figma$/;
   const catSrc = readFileSync(join(SRC, 'state/component-catalog.ts'), 'utf8');
   for (const [file, src] of [['src/main.ts', mainSrc], ['src/state/component-catalog.ts', catSrc],
     ['src/state/component-catalog-data.ts', readFileSync(join(SRC, 'state/component-catalog-data.ts'), 'utf8')],
-    ['src/domains/components.ts', levSrc], ['src/preview/components.ts', prevSrc], ['src/preview/sections/component-sets.ts', setsSrc]] as const) {
+    ['src/domains/components.ts', levSrc], ['src/domains/button-options.ts', optSrc], ['src/preview/components.ts', prevSrc], ['src/preview/sections/component-sets.ts', setsSrc]] as const) {
     const hit = imports(src, file).filter((i) => DEF_SPECS.test(i.spec));
     ok(hit.length === 0, `${file} imports no component definition or projector at run time${hit.length ? ` — line ${hit[0].line}: '${hit[0].spec}' (the web bundle would carry it)` : ''}`);
   }

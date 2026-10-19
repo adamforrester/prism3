@@ -459,8 +459,8 @@ jobs:
           count=$(npx --yes tsx@4 packages/engine/regen.ts --check | grep -oE '[0-9]+ committed artifacts')
           echo "reported: $count"
           case "$count" in
-            "201 committed artifacts") echo "✓ full set covered" ;;
-            *) echo "✗ artifact coverage changed — expected 201. If the set legitimately grew or shrank, update this check in the same PR."; exit 1 ;;
+            "202 committed artifacts") echo "✓ full set covered" ;;
+            *) echo "✗ artifact coverage changed — expected 202. If the set legitimately grew or shrank, update this check in the same PR."; exit 1 ;;
           esac
 
       # The RUNNER's own checks, not a second run of the gates (#789). `verify.ts` is what a contributor
@@ -1045,6 +1045,15 @@ jobs:
       # data; and the page's text tokens clear 4.5:1 in light and dark.
       - name: The ecosystem diagram's data matches the code (#2637)
         run: npx --yes tsx@4 packages/engine/lint-ecosystem.ts
+
+      # #2650 — every release's notes (docs/public/releases/) list exactly the changes git shows between the
+      # fold before it and its own fold, classified by docs/30's rule. Re-derives each diff from the committed
+      # records at both folds with its OWN code, never the generator (release-notes.ts). Fails by name on a
+      # breaking change missing from the notes, a claimed change the diff does not show, a misclassified
+      # item, a sentence that does not say what its kind says, a date git rules out, a page that drifts from
+      # its JSON, the wrong folded notes, or a version from 0.234.0 on with no release. Reads git HISTORY (`git log`, merges never read as folds), covered by the job-level `fetch-depth: 0` above.
+      - name: Release notes match the diff between folds (#2650)
+        run: npx --yes tsx@4 packages/engine/lint-release-notes.ts
 
       # #1123 — the mutation battery for the CLAUDE.md-freshness SessionStart report (#1110), the one
       # `tools/` harness wired into CI. It is NAMED FOR THE DETECTOR, never for this tree, because

@@ -1,6 +1,6 @@
 # Token usage
 
-Where each token is bound: by which component, on which part, and at which variants and states. 246 of 787 emitted tokens are bound by at least one component.
+Where each token is bound: by which component, on which part, and at which variants and states. 247 of 787 emitted tokens are bound by at least one component.
 
 Two sources feed each entry. **Keys** are the binding keys in the component definition. **Parts** are where the design-file projection draws the token; "where" lists the axis values a part is bound at, leaves out any axis bound at every value, and counts the members.
 
@@ -16,7 +16,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 
 ### `border-width.hairline`
 
-Type: dimension. Bound by 19 component(s).
+Type: dimension. Bound by 18 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -35,7 +35,6 @@ Type: dimension. Bound by 19 component(s).
 | password-field | `border-width`, `caret-width` | caret | state: focus-visible (12 of 84) |
 |  |  | caretEnd | state: focus-visible-filled (12 of 84) |
 |  |  | control | every member (84 of 84) |
-| segmented-control | `border-width` | track | every member (3 of 3) |
 | select | `border-width` | control | every member (84 of 84) |
 | tabs | `baseline-height` | baseline | every member (6 of 6) |
 | tag | `unselected.border-width` | container | selection: unselected (30 of 45) |
@@ -46,34 +45,34 @@ Type: dimension. Bound by 19 component(s).
 |  |  | control | every member (84 of 84) |
 |  |  | grip | every member (84 of 84) |
 
-### `border-width.none`
-
-Type: dimension. Bound by 1 component(s).
-
-| Component | Keys | Part | Where |
-|---|---|---|---|
-| segmented-control-segment | `unselected.border-width` | indicator | selection: unselected (15 of 30) |
-
 ### `border-width.thick`
 
-Type: dimension. Bound by 6 component(s).
+Type: dimension. Bound by 5 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | checkbox-control | `border-width` | control | every member (54 of 54) |
 | radio-control | `border-width` | control | every member (30 of 30) |
-| segmented-control-segment | `selected.border-width` | indicator | selection: selected (15 of 30) |
 | switch-control | `border-width` | track | every member (24 of 24) |
 | tab | `indicator-height` | indicator | every member (30 of 30) |
 | tag | `selected.border-width` | container | selection: selected · type: select (15 of 45) |
 
-### `color.background.secondary`
+### `color.background.primary`
 
 Type: color. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| segmented-control-segment | `disabled.fill`, `selected.fill` | indicator | selection: selected (15 of 30) |
+
+### `color.background.secondary`
+
+Type: color. Bound by 2 component(s).
+
+| Component | Keys | Part | Where |
+|---|---|---|---|
 | image-placeholder | `fill` | frame | every member (7 of 7) |
+| segmented-control | `fill` | track | every member (3 of 3) |
 
 ### `color.background.tertiary`
 
@@ -185,23 +184,29 @@ Type: color. Bound by 5 component(s).
 
 ### `color.disabled.border`
 
-Type: color. Bound by 13 component(s).
+Type: color. Bound by 19 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| button | `disabled.border` | container | appearance: outline · inset: default · state: disabled · surface: default (12 of 576) |
+| button-destructive | `disabled.border` | container | appearance: outline · inset: default · state: disabled · surface: default (12 of 576) |
+| button-neutral | `disabled.border` | container | appearance: outline · inset: default · state: disabled · surface: default (12 of 576) |
 | checkbox-control | `disabled.border` | control | selection: unchecked · state: disabled (3 of 54) |
 | counter | `disabled.border` | control | appearance: outline · state: disabled (3 of 18) |
 | flush-icon-button | `disabled.border` | container | shape: round · state: disabled (3 of 30) |
 | flush-icon-button-destructive | `disabled.border` | container | shape: round · state: disabled (3 of 30) |
 | flush-icon-button-neutral | `disabled.border` | container | shape: round · state: disabled (3 of 30) |
+| icon-button | `disabled.border` | container | appearance: outline · state: disabled · surface: default (6 of 216) |
+| icon-button-destructive | `disabled.border` | container | appearance: outline · state: disabled · surface: default (6 of 216) |
+| icon-button-neutral | `disabled.border` | container | appearance: outline · state: disabled · surface: default (6 of 216) |
 | password-field | `disabled.border` | control | state: disabled (12 of 84) |
 | radio-control | `disabled.border` | control | state: disabled (6 of 30) |
-| segmented-control-segment | `disabled.border` | indicator | selection: selected · state: disabled (3 of 30) |
 | select | `disabled.border` | control | state: disabled (12 of 84) |
 | switch-control | `disabled.border`, `disabled.icon.on-fill` | offGlyph | selection: off · state: disabled (2 of 24) |
 |  |  | onGlyph | selection: on · state: disabled (2 of 24) |
 |  |  | track | selection: off · state: disabled (2 of 24) |
 | tab | `disabled.fill` | indicator | selection: selected · state: disabled (3 of 30) |
+| tag | `disabled.border` | container | state: disabled (9 of 45) |
 | text-field | `disabled.border` | control | state: disabled (12 of 84) |
 | textarea | `disabled.border` | control | state: disabled (12 of 84) |
 
@@ -231,28 +236,21 @@ Type: color. Bound by 12 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| button | `disabled.border`, `disabled.icon` | container | appearance: outline · inset: default · state: disabled · surface: default (12 of 576) |
-|  |  | leadingVisual | appearance: outline, text · leading: true · state: disabled · surface: default (18 of 576) |
+| button | `disabled.icon` | leadingVisual | appearance: outline, text · leading: true · state: disabled · surface: default (18 of 576) |
 |  |  | trailingVisual | appearance: outline, text · state: disabled · surface: default · trailing: true (18 of 576) |
-| button-destructive | `disabled.border`, `disabled.icon` | container | appearance: outline · inset: default · state: disabled · surface: default (12 of 576) |
-|  |  | leadingVisual | appearance: outline, text · leading: true · state: disabled · surface: default (18 of 576) |
+| button-destructive | `disabled.icon` | leadingVisual | appearance: outline, text · leading: true · state: disabled · surface: default (18 of 576) |
 |  |  | trailingVisual | appearance: outline, text · state: disabled · surface: default · trailing: true (18 of 576) |
-| button-neutral | `disabled.border`, `disabled.icon` | container | appearance: outline · inset: default · state: disabled · surface: default (12 of 576) |
-|  |  | leadingVisual | appearance: outline, text · leading: true · state: disabled · surface: default (18 of 576) |
+| button-neutral | `disabled.icon` | leadingVisual | appearance: outline, text · leading: true · state: disabled · surface: default (18 of 576) |
 |  |  | trailingVisual | appearance: outline, text · state: disabled · surface: default · trailing: true (18 of 576) |
 | flush-icon-button | `disabled.icon` | icon | state: disabled (6 of 30) |
 | flush-icon-button-destructive | `disabled.icon` | icon | state: disabled (6 of 30) |
 | flush-icon-button-neutral | `disabled.icon` | icon | state: disabled (6 of 30) |
-| icon-button | `disabled.border`, `disabled.icon` | container | appearance: outline · state: disabled · surface: default (6 of 216) |
-|  |  | icon | state: disabled · surface: default (18 of 216) |
-| icon-button-destructive | `disabled.border`, `disabled.icon` | container | appearance: outline · state: disabled · surface: default (6 of 216) |
-|  |  | icon | state: disabled · surface: default (18 of 216) |
-| icon-button-neutral | `disabled.border`, `disabled.icon` | container | appearance: outline · state: disabled · surface: default (6 of 216) |
-|  |  | icon | state: disabled · surface: default (18 of 216) |
+| icon-button | `disabled.icon` | icon | state: disabled · surface: default (18 of 216) |
+| icon-button-destructive | `disabled.icon` | icon | state: disabled · surface: default (18 of 216) |
+| icon-button-neutral | `disabled.icon` | icon | state: disabled · surface: default (18 of 216) |
 | segmented-control-segment | `disabled.icon` | leadingVisual | state: disabled (6 of 30) |
 | tab | `disabled.icon` | leadingVisual | state: disabled (6 of 30) |
-| tag | `disabled.border`, `disabled.icon` | check | selection: selected · state: disabled · type: select (3 of 45) |
-|  |  | container | state: disabled (9 of 45) |
+| tag | `disabled.icon` | check | selection: selected · state: disabled · type: select (3 of 45) |
 |  |  | dismissGlyph | selection: unselected · state: disabled · type: dismissible (3 of 45) |
 |  |  | leadingVisual | state: disabled (9 of 45) |
 
@@ -705,13 +703,12 @@ Type: color. Bound by 4 component(s).
 
 ### `color.interactive.neutral.border.rest`
 
-Type: color. Bound by 5 component(s).
+Type: color. Bound by 4 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | button-neutral | `outline.border` | container | appearance: outline · inset: default · state: focus-visible, pending, rest · surface: default (36 of 576) |
 | icon-button-neutral | `outline.border` | container | appearance: outline · state: focus-visible, pending, rest · surface: default (18 of 216) |
-| segmented-control | `border` | track | every member (3 of 3) |
 | switch-control | `off.border`, `off.indicator` | thumb | selection: off · state: error, focus-visible, hover, pressed, rest (10 of 24) |
 |  |  | track | selection: off · state: focus-visible, rest (4 of 24) |
 | tag | `unselected.border` | container | selection: unselected · state: focus-visible, rest (12 of 45) |
@@ -753,7 +750,7 @@ Type: color. Bound by 6 component(s).
 |  |  | trailingVisual | appearance: outline, text · state: hover · surface: default · trailing: true (18 of 576) |
 | flush-icon-button-neutral | `flush.icon.hover`, `round.icon.hover` | icon | state: hover (6 of 30) |
 | icon-button-neutral | `ghost.icon.hover`, `outline.icon.hover` | icon | appearance: ghost, outline · state: hover · surface: default (12 of 216) |
-| segmented-control-segment | `selected.icon.hover`, `unselected.icon.hover` | leadingVisual | state: hover (6 of 30) |
+| segmented-control-segment | `unselected.icon.hover` | leadingVisual | selection: unselected · state: hover (3 of 30) |
 | tab | `unselected.icon.hover` | leadingVisual | selection: unselected · state: hover (3 of 30) |
 | tag | `selected.icon.hover`, `unselected.icon.hover` | check | selection: selected · state: hover · type: select (3 of 45) |
 |  |  | dismissGlyph | selection: unselected · state: hover · type: dismissible (3 of 45) |
@@ -769,7 +766,7 @@ Type: color. Bound by 6 component(s).
 |  |  | trailingVisual | appearance: outline, text · state: pressed · surface: default · trailing: true (18 of 576) |
 | flush-icon-button-neutral | `flush.icon.pressed`, `round.icon.pressed` | icon | state: pressed (6 of 30) |
 | icon-button-neutral | `ghost.icon.pressed`, `outline.icon.pressed` | icon | appearance: ghost, outline · state: pressed · surface: default (12 of 216) |
-| segmented-control-segment | `selected.icon.pressed`, `unselected.icon.pressed` | leadingVisual | state: pressed (6 of 30) |
+| segmented-control-segment | `unselected.icon.pressed` | leadingVisual | selection: unselected · state: pressed (3 of 30) |
 | tab | `unselected.icon.pressed` | leadingVisual | selection: unselected · state: pressed (3 of 30) |
 | tag | `selected.icon.pressed`, `unselected.icon.pressed` | check | selection: selected · state: pressed · type: select (3 of 45) |
 |  |  | dismissGlyph | selection: unselected · state: pressed · type: dismissible (3 of 45) |
@@ -791,7 +788,7 @@ Type: color. Bound by 7 component(s).
 | flush-icon-button-neutral | `flush.icon`, `round.icon` | icon | state: focus-visible, rest (12 of 30) |
 | icon-button-neutral | `ghost.icon`, `outline.icon` | icon | appearance: ghost, outline · state: focus-visible, rest · surface: default (24 of 216) |
 |  |  | spinner | appearance: ghost, outline · state: pending · surface: default (12 of 216) |
-| segmented-control-segment | `selected.icon`, `unselected.icon` | leadingVisual | state: focus-visible, rest (12 of 30) |
+| segmented-control-segment | `selected.icon`, `unselected.icon` | leadingVisual | state: focus-visible, hover, pressed, rest (18 of 30) |
 | tab | `unselected.icon` | leadingVisual | selection: unselected · state: focus-visible, rest (6 of 30) |
 | tag | `selected.icon`, `unselected.icon` | check | selection: selected · state: focus-visible, rest · type: select (6 of 45) |
 |  |  | dismissGlyph | selection: unselected · state: focus-visible, rest · type: dismissible (6 of 45) |
@@ -845,8 +842,8 @@ Type: color. Bound by 4 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | button-neutral | `outline.label.hover`, `text.label.hover` | label | appearance: outline, text · state: hover · surface: default (36 of 576) |
-| segmented-control-segment | `selected.label.hover`, `unselected.label.hover` | label | state: hover (6 of 30) |
-|  |  | labelReserve | state: hover (6 of 30) |
+| segmented-control-segment | `unselected.label.hover` | label | selection: unselected · state: hover (3 of 30) |
+|  |  | labelReserve | selection: unselected · state: hover (3 of 30) |
 | tab | `unselected.label.hover` | label | selection: unselected · state: hover (3 of 30) |
 |  |  | labelReserve | selection: unselected · state: hover (3 of 30) |
 | tag | `selected.label.hover`, `unselected.label.hover` | label | state: hover (9 of 45) |
@@ -858,8 +855,8 @@ Type: color. Bound by 4 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | button-neutral | `outline.label.pressed`, `text.label.pressed` | label | appearance: outline, text · state: pressed · surface: default (36 of 576) |
-| segmented-control-segment | `selected.label.pressed`, `unselected.label.pressed` | label | state: pressed (6 of 30) |
-|  |  | labelReserve | state: pressed (6 of 30) |
+| segmented-control-segment | `unselected.label.pressed` | label | selection: unselected · state: pressed (3 of 30) |
+|  |  | labelReserve | selection: unselected · state: pressed (3 of 30) |
 | tab | `unselected.label.pressed` | label | selection: unselected · state: pressed (3 of 30) |
 |  |  | labelReserve | selection: unselected · state: pressed (3 of 30) |
 | tag | `selected.label.pressed`, `unselected.label.pressed` | label | state: pressed (9 of 45) |
@@ -872,48 +869,45 @@ Type: color. Bound by 5 component(s).
 |---|---|---|---|
 | accordion | `label` | label | every member (24 of 24) |
 | button-neutral | `outline.label`, `text.label` | label | appearance: outline, text · state: focus-visible, pending, rest · surface: default (108 of 576) |
-| segmented-control-segment | `selected.label`, `unselected.label` | label | state: focus-visible, rest (12 of 30) |
-|  |  | labelReserve | state: focus-visible, rest (12 of 30) |
+| segmented-control-segment | `selected.label`, `unselected.label` | label | state: focus-visible, hover, pressed, rest (18 of 30) |
+|  |  | labelReserve | state: focus-visible, hover, pressed, rest (18 of 30) |
 | tab | `unselected.label` | label | selection: unselected · state: focus-visible, rest (6 of 30) |
 |  |  | labelReserve | selection: unselected · state: focus-visible, rest (6 of 30) |
 | tag | `selected.label`, `unselected.label` | label | state: focus-visible, rest (18 of 45) |
 
 ### `color.interactive.primary.border.hover`
 
-Type: color. Bound by 6 component(s).
+Type: color. Bound by 5 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | button | `outline.border.hover` | container | appearance: outline · inset: default · state: hover · surface: default (12 of 576) |
 | icon-button | `outline.border.hover` | container | appearance: outline · state: hover · surface: default (6 of 216) |
 | radio-control | `checked.border.hover` | control | selection: checked · state: hover (3 of 30) |
-| segmented-control-segment | `selected.border.hover` | indicator | selection: selected · state: hover (3 of 30) |
 | tab | `selected.fill.hover` | indicator | selection: selected · state: hover (3 of 30) |
 | tag | `selected.border.hover` | container | selection: selected · state: hover · type: select (3 of 45) |
 
 ### `color.interactive.primary.border.pressed`
 
-Type: color. Bound by 6 component(s).
+Type: color. Bound by 5 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | button | `outline.border.pressed` | container | appearance: outline · inset: default · state: pressed · surface: default (12 of 576) |
 | icon-button | `outline.border.pressed` | container | appearance: outline · state: pressed · surface: default (6 of 216) |
 | radio-control | `checked.border.pressed` | control | selection: checked · state: pressed (3 of 30) |
-| segmented-control-segment | `selected.border.pressed` | indicator | selection: selected · state: pressed (3 of 30) |
 | tab | `selected.fill.pressed` | indicator | selection: selected · state: pressed (3 of 30) |
 | tag | `selected.border.pressed` | container | selection: selected · state: pressed · type: select (3 of 45) |
 
 ### `color.interactive.primary.border.rest`
 
-Type: color. Bound by 6 component(s).
+Type: color. Bound by 5 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | button | `outline.border` | container | appearance: outline · inset: default · state: focus-visible, pending, rest · surface: default (36 of 576) |
 | icon-button | `outline.border` | container | appearance: outline · state: focus-visible, pending, rest · surface: default (18 of 216) |
 | radio-control | `checked.border` | control | selection: checked · state: focus-visible, rest (6 of 30) |
-| segmented-control-segment | `selected.border` | indicator | selection: selected · state: focus-visible, rest (6 of 30) |
 | tab | `selected.fill` | indicator | selection: selected · state: focus-visible, rest (6 of 30) |
 | tag | `selected.border` | container | selection: selected · state: focus-visible, rest · type: select (6 of 45) |
 
@@ -1034,11 +1028,10 @@ Type: color. Bound by 3 component(s).
 
 ### `color.interactive.primary.subtle-fill.selected`
 
-Type: color. Bound by 2 component(s).
+Type: color. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| segmented-control-segment | `selected.overlay` | indicator | selection: selected · state: focus-visible, hover, pressed, rest (12 of 30) |
 | tag | `selected.overlay` | container | selection: selected · state: focus-visible, hover, pressed, rest · type: select (12 of 45) |
 
 ### `color.interactive.primary.text.hover`
@@ -1079,6 +1072,19 @@ Type: color. Bound by 1 component(s).
 |---|---|---|---|
 | focus-ring | (projection only) | ring | surface: inverse (1 of 2) |
 
+### `color.inverse.disabled.border`
+
+Type: color. Bound by 6 component(s).
+
+| Component | Keys | Part | Where |
+|---|---|---|---|
+| button | (projection only) | container | appearance: outline · inset: default · state: disabled · surface: inverse (12 of 576) |
+| button-destructive | (projection only) | container | appearance: outline · inset: default · state: disabled · surface: inverse (12 of 576) |
+| button-neutral | (projection only) | container | appearance: outline · inset: default · state: disabled · surface: inverse (12 of 576) |
+| icon-button | (projection only) | container | appearance: outline · state: disabled · surface: inverse (6 of 216) |
+| icon-button-destructive | (projection only) | container | appearance: outline · state: disabled · surface: inverse (6 of 216) |
+| icon-button-neutral | (projection only) | container | appearance: outline · state: disabled · surface: inverse (6 of 216) |
+
 ### `color.inverse.disabled.fill`
 
 Type: color. Bound by 6 component(s).
@@ -1098,21 +1104,15 @@ Type: color. Bound by 6 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| button | (projection only) | container | appearance: outline · inset: default · state: disabled · surface: inverse (12 of 576) |
-|  |  | leadingVisual | appearance: outline, text · leading: true · state: disabled · surface: inverse (18 of 576) |
+| button | (projection only) | leadingVisual | appearance: outline, text · leading: true · state: disabled · surface: inverse (18 of 576) |
 |  |  | trailingVisual | appearance: outline, text · state: disabled · surface: inverse · trailing: true (18 of 576) |
-| button-destructive | (projection only) | container | appearance: outline · inset: default · state: disabled · surface: inverse (12 of 576) |
-|  |  | leadingVisual | appearance: outline, text · leading: true · state: disabled · surface: inverse (18 of 576) |
+| button-destructive | (projection only) | leadingVisual | appearance: outline, text · leading: true · state: disabled · surface: inverse (18 of 576) |
 |  |  | trailingVisual | appearance: outline, text · state: disabled · surface: inverse · trailing: true (18 of 576) |
-| button-neutral | (projection only) | container | appearance: outline · inset: default · state: disabled · surface: inverse (12 of 576) |
-|  |  | leadingVisual | appearance: outline, text · leading: true · state: disabled · surface: inverse (18 of 576) |
+| button-neutral | (projection only) | leadingVisual | appearance: outline, text · leading: true · state: disabled · surface: inverse (18 of 576) |
 |  |  | trailingVisual | appearance: outline, text · state: disabled · surface: inverse · trailing: true (18 of 576) |
-| icon-button | (projection only) | container | appearance: outline · state: disabled · surface: inverse (6 of 216) |
-|  |  | icon | state: disabled · surface: inverse (18 of 216) |
-| icon-button-destructive | (projection only) | container | appearance: outline · state: disabled · surface: inverse (6 of 216) |
-|  |  | icon | state: disabled · surface: inverse (18 of 216) |
-| icon-button-neutral | (projection only) | container | appearance: outline · state: disabled · surface: inverse (6 of 216) |
-|  |  | icon | state: disabled · surface: inverse (18 of 216) |
+| icon-button | (projection only) | icon | state: disabled · surface: inverse (18 of 216) |
+| icon-button-destructive | (projection only) | icon | state: disabled · surface: inverse (18 of 216) |
+| icon-button-neutral | (projection only) | icon | state: disabled · surface: inverse (18 of 216) |
 
 ### `color.inverse.disabled.on-fill`
 
@@ -2151,7 +2151,7 @@ Type: dimension. Bound by 22 component(s).
 
 ### `icon.size.lg`
 
-Type: dimension. Bound by 9 component(s).
+Type: dimension. Bound by 6 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2163,13 +2163,8 @@ Type: dimension. Bound by 9 component(s).
 | icon-button-neutral | `size.large.icon` | icon | size: large · state: disabled, focus-visible, hover, pressed, rest (60 of 216) |
 |  |  | spinner | size: large · state: pending (12 of 216) |
 | list-item | `size.large.icon` | icon | size: large · type: icon (1 of 9) |
-| segmented-control-segment | `size.large.icon` | leadingVisual | size: large (10 of 30) |
 | spinner | `size.large` | frame | size: large (1 of 4) |
 |  |  | ring | size: large (1 of 4) |
-| tab | `size.large.icon` | leadingVisual | size: large (10 of 30) |
-| tag | `size.large.icon` | check | selection: selected · size: large · type: select (5 of 45) |
-|  |  | dismissGlyph | selection: unselected · size: large · type: dismissible (5 of 45) |
-|  |  | leadingVisual | size: large (15 of 45) |
 
 ### `icon.size.md`
 
@@ -2205,13 +2200,13 @@ Type: dimension. Bound by 16 component(s).
 | icon-button-neutral | `size.medium.icon` | icon | size: medium · state: disabled, focus-visible, hover, pressed, rest (60 of 216) |
 |  |  | spinner | size: medium · state: pending (12 of 216) |
 | list-item | `size.medium.icon` | icon | size: medium · type: icon (1 of 9) |
-| segmented-control-segment | `size.medium.icon` | leadingVisual | size: medium (10 of 30) |
+| segmented-control-segment | `size.large.icon` | leadingVisual | size: large (10 of 30) |
 | spinner | `size.medium` | frame | size: medium (1 of 4) |
 |  |  | ring | size: medium (1 of 4) |
-| tab | `size.medium.icon` | leadingVisual | size: medium (10 of 30) |
-| tag | `size.medium.icon` | check | selection: selected · size: medium · type: select (5 of 45) |
-|  |  | dismissGlyph | selection: unselected · size: medium · type: dismissible (5 of 45) |
-|  |  | leadingVisual | size: medium (15 of 45) |
+| tab | `size.large.icon` | leadingVisual | size: large (10 of 30) |
+| tag | `size.large.icon` | check | selection: selected · size: large · type: select (5 of 45) |
+|  |  | dismissGlyph | selection: unselected · size: large · type: dismissible (5 of 45) |
+|  |  | leadingVisual | size: large (15 of 45) |
 
 ### `icon.size.sm`
 
@@ -2249,21 +2244,21 @@ Type: dimension. Bound by 20 component(s).
 | link | `size.large.icon` | trailingVisual | size: large · style: standalone (16 of 96) |
 | list-item | `size.small.icon` | icon | size: small · type: icon (1 of 9) |
 | password-field | `icon-size` | leadingVisual | every member (84 of 84) |
-| segmented-control-segment | `size.small.icon` | leadingVisual | size: small (10 of 30) |
+| segmented-control-segment | `size.medium.icon` | leadingVisual | size: medium (10 of 30) |
 | select | `icon-size` | chevron | every member (84 of 84) |
 |  |  | leadingVisual | every member (84 of 84) |
 | spinner | `size.small` | frame | size: small (1 of 4) |
 |  |  | ring | size: small (1 of 4) |
-| tab | `size.small.icon` | leadingVisual | size: small (10 of 30) |
-| tag | `size.small.icon` | check | selection: selected · size: small · type: select (5 of 45) |
-|  |  | dismissGlyph | selection: unselected · size: small · type: dismissible (5 of 45) |
-|  |  | leadingVisual | size: small (15 of 45) |
+| tab | `size.medium.icon` | leadingVisual | size: medium (10 of 30) |
+| tag | `size.medium.icon` | check | selection: selected · size: medium · type: select (5 of 45) |
+|  |  | dismissGlyph | selection: unselected · size: medium · type: dismissible (5 of 45) |
+|  |  | leadingVisual | size: medium (15 of 45) |
 | text-field | `icon-size` | leadingVisual | every member (84 of 84) |
 |  |  | trailingVisual | every member (84 of 84) |
 
 ### `icon.size.xs`
 
-Type: dimension. Bound by 9 component(s).
+Type: dimension. Bound by 12 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2287,8 +2282,13 @@ Type: dimension. Bound by 9 component(s).
 |  |  | message | every member (4 of 4) |
 | icon | `size.x-small` | (not drawn) | — |
 | link | `size.medium.icon`, `size.small.icon` | trailingVisual | size: medium, small · style: standalone (32 of 96) |
+| segmented-control-segment | `size.small.icon` | leadingVisual | size: small (10 of 30) |
 | spinner | `size.x-small` | frame | size: x-small (1 of 4) |
 |  |  | ring | size: x-small (1 of 4) |
+| tab | `size.small.icon` | leadingVisual | size: small (10 of 30) |
+| tag | `size.small.icon` | check | selection: selected · size: small · type: select (5 of 45) |
+|  |  | dismissGlyph | selection: unselected · size: small · type: dismissible (5 of 45) |
+|  |  | leadingVisual | size: small (15 of 45) |
 | textarea | `grip-size` | grip | every member (84 of 84) |
 
 ### `radius.2xl`
@@ -2466,25 +2466,27 @@ Type: dimension. Bound by 18 component(s).
 | button-destructive | `inset.flush` | container | appearance: text · inset: flush (144 of 576) |
 | button-neutral | `inset.flush` | container | appearance: text · inset: flush (144 of 576) |
 | checkbox-group | `gap`, `pad-x` | container | every member (3 of 3) |
+|  |  | items | every member (3 of 3) |
 | checkbox-row | `pad-x` | row | every member (3 of 3) |
 | counter | `ghost.size.large.pad-x`, `ghost.size.medium.pad-x`, `ghost.size.small.pad-x`, `pad-y` | control | every member (18 of 18) |
 |  |  | entry | every member (18 of 18) |
 | dialog | `pad-none` | body | every member (15 of 15) |
-|  |  | footerInline | footer: inline (5 of 15) |
-|  |  | footerStacked | footer: stacked (5 of 15) |
+|  |  | footer | footer: inline, stacked (10 of 15) |
 |  |  | header | every member (15 of 15) |
 |  |  | panel | every member (15 of 15) |
 | divider | `horizontal.inset.pad-block`, `horizontal.inset.pad-end`, `horizontal.middle-inset.pad-block`, `horizontal.none.pad-block`, `horizontal.none.pad-end`, `horizontal.none.pad-start`, `vertical.inset.pad-block`, `vertical.inset.pad-end`, `vertical.inset.pad-start`, `vertical.middle-inset.pad-end`, `vertical.middle-inset.pad-start`, `vertical.none.pad-block`, `vertical.none.pad-end`, `vertical.none.pad-start` | divider | every member (5 of 5) |
 | list-item | `gap` | row | every member (9 of 9) |
 | radio-group | `gap`, `pad-x` | container | every member (3 of 3) |
+|  |  | items | every member (3 of 3) |
 | radio-row | `pad-x` | row | every member (3 of 3) |
-| segmented-control | `track-gap`, `track-pad` | track | every member (3 of 3) |
+| segmented-control | `track-gap`, `track-pad` | items | every member (3 of 3) |
+|  |  | track | every member (3 of 3) |
 | segmented-control-segment | `pad-y`, `reserve-height` | content | every member (30 of 30) |
 |  |  | reserve | every member (30 of 30) |
 | tab | `pad-y`, `reserve-height` | content | every member (30 of 30) |
 |  |  | reserve | every member (30 of 30) |
 | tabs | `gap` | container | every member (6 of 6) |
-|  |  | list | every member (6 of 6) |
+|  |  | items | every member (6 of 6) |
 | tag | `label-row.padding-end`, `pad-y`, `size.large.dismissible.padding-end`, `size.large.select.label-inset`, `size.medium.dismissible.padding-end`, `size.medium.select.label-inset`, `size.small.dismissible.padding-end`, `size.small.select.label-inset` | content | every member (45 of 45) |
 |  |  | labelCheck | every member (45 of 45) |
 
@@ -2533,7 +2535,7 @@ Type: dimension. Bound by 12 component(s).
 
 ### `space.100`
 
-Type: dimension. Bound by 23 component(s).
+Type: dimension. Bound by 24 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2542,16 +2544,17 @@ Type: dimension. Bound by 23 component(s).
 | badge | `status.pad-y` | surface | type: status (10 of 20) |
 | button | `size.large.padding-y`, `size.medium.gap`, `size.medium.padding-y`, `size.small.gap` | container | every member (576 of 576) |
 | button-destructive | `size.large.padding-y`, `size.medium.gap`, `size.medium.padding-y`, `size.small.gap` | container | every member (576 of 576) |
+| button-group | `layout.stacked.gap` | items | layout: stacked (1 of 3) |
 | button-neutral | `size.large.padding-y`, `size.medium.gap`, `size.medium.padding-y`, `size.small.gap` | container | every member (576 of 576) |
 | checkbox-group | `pad-y` | container | every member (3 of 3) |
 | checkbox-row | `size.medium.gap`, `size.small.gap` | row | size: medium, small (2 of 3) |
 | counter | `root-gap`, `size.large.value-pad` | container | every member (18 of 18) |
 |  |  | entry | size: large (6 of 18) |
-| dialog | `footer.stacked.gap`, `title-gap` | footerStacked | footer: stacked (5 of 15) |
-|  |  | titleBox | every member (15 of 15) |
+| dialog | `title-gap` | titleBox | every member (15 of 15) |
 | divider | `vertical.middle-inset.pad-block` | divider | inset: middle-inset · orientation: vertical (1 of 5) |
 | link | `size.large.gap` | container | size: large (32 of 96) |
 | list | `size.small.gap` | container | size: small (3 of 9) |
+|  |  | items | size: small (3 of 9) |
 | password-field | `root-gap`, `size.large.gap`, `size.large.pad-y`, `size.medium.gap`, `size.medium.pad-y`, `size.small.gap` | container | every member (84 of 84) |
 |  |  | content | every member (84 of 84) |
 |  |  | control | every member (84 of 84) |
@@ -2588,11 +2591,12 @@ Type: dimension. Bound by 13 component(s).
 | badge | `status.pad-x` | surface | type: status (10 of 20) |
 | button | `size.large.gap`, `size.medium.padding-x-visual`, `size.small.padding-x-visual` | container | every member (408 of 576) |
 | button-destructive | `size.large.gap`, `size.medium.padding-x-visual`, `size.small.padding-x-visual` | container | every member (408 of 576) |
+| button-group | `layout.fill.gap`, `layout.inline.gap` | items | layout: fill, inline (2 of 3) |
 | button-neutral | `size.large.gap`, `size.medium.padding-x-visual`, `size.small.padding-x-visual` | container | every member (408 of 576) |
 | checkbox-row | `pad-y`, `size.large.gap` | row | every member (3 of 3) |
 | counter | `outline.size.medium.pad-x`, `outline.size.small.pad-x` | control | appearance: outline · size: medium, small (6 of 18) |
-| dialog | `footer.inline.gap` | footerInline | footer: inline (5 of 15) |
 | list | `size.medium.gap` | container | size: medium (3 of 9) |
+|  |  | items | size: medium (3 of 9) |
 | radio-row | `pad-y`, `size.large.gap` | row | every member (3 of 3) |
 | segmented-control-segment | `size.small.padding-x` | content | size: small (10 of 30) |
 | tab | `size.small.padding-x` | content | size: small (10 of 30) |
@@ -2612,12 +2616,12 @@ Type: dimension. Bound by 15 component(s).
 | button-neutral | `size.large.padding-x-visual`, `size.medium.padding-x`, `size.small.padding-x` | container | inset: default (324 of 576) |
 | counter | `outline.size.large.pad-x` | control | appearance: outline · size: large (3 of 18) |
 | dialog | `gap`, `header-gap`, `placement.bottom.pad`, `placement.full.pad` | body | placement: bottom, full · size: medium (6 of 15) |
-|  |  | footerInline | footer: inline · placement: bottom, full · size: medium (2 of 15) |
-|  |  | footerStacked | footer: stacked · placement: bottom, full · size: medium (2 of 15) |
+|  |  | footer | footer: inline, stacked · placement: bottom, full · size: medium (4 of 15) |
 |  |  | header | every member (15 of 15) |
 |  |  | panel | every member (15 of 15) |
 | divider | `horizontal.inset.pad-start`, `horizontal.middle-inset.pad-end`, `horizontal.middle-inset.pad-start` | divider | inset: inset, middle-inset · orientation: horizontal (2 of 5) |
 | list | `size.large.gap` | container | size: large (3 of 9) |
+|  |  | items | size: large (3 of 9) |
 | password-field | `size.medium.pad-x`, `size.small.pad-x` | control | size: medium, small (56 of 84) |
 | segmented-control-segment | `size.medium.padding-x` | content | size: medium (10 of 30) |
 | select | `size.medium.pad-x`, `size.small.pad-x` | control | size: medium, small (56 of 84) |
@@ -2648,8 +2652,7 @@ Type: dimension. Bound by 10 component(s).
 | button-destructive | `size.large.padding-x` | container | inset: default · size: large (108 of 576) |
 | button-neutral | `size.large.padding-x` | container | inset: default · size: large (108 of 576) |
 | dialog | `placement.center.pad` | body | placement: center (9 of 15) |
-|  |  | footerInline | footer: inline · placement: center (3 of 15) |
-|  |  | footerStacked | footer: stacked · placement: center (3 of 15) |
+|  |  | footer | footer: inline, stacked · placement: center (6 of 15) |
 |  |  | header | placement: center (9 of 15) |
 |  |  | panel | placement: center (9 of 15) |
 | list-item | `size.small.marker-column` | markerBox | size: small (3 of 9) |
@@ -2983,33 +2986,39 @@ Every token each component uses. "Declared, not drawn" names tokens the definiti
 
 ### button
 
-61 token(s); 576 design-file member(s).
+63 token(s); 576 design-file member(s).
 
-`border-width.hairline`, `color.border.focus`, `color.disabled.fill`, `color.disabled.icon`, `color.disabled.on-fill`, `color.disabled.text`, `color.interactive.primary.border.hover`, `color.interactive.primary.border.pressed`, `color.interactive.primary.border.rest`, `color.interactive.primary.fill.hover`, `color.interactive.primary.fill.pressed`, `color.interactive.primary.fill.rest`, `color.interactive.primary.icon.hover`, `color.interactive.primary.icon.pressed`, `color.interactive.primary.icon.rest`, `color.interactive.primary.on-fill`, `color.interactive.primary.overlay.hover`, `color.interactive.primary.overlay.pressed`, `color.interactive.primary.text.hover`, `color.interactive.primary.text.pressed`, `color.interactive.primary.text.rest`, `color.inverse.disabled.fill`, `color.inverse.disabled.icon`, `color.inverse.disabled.on-fill`, `color.inverse.disabled.text`, `color.inverse.interactive.primary.border.hover`, `color.inverse.interactive.primary.border.pressed`, `color.inverse.interactive.primary.border.rest`, `color.inverse.interactive.primary.fill.hover`, `color.inverse.interactive.primary.fill.pressed`, `color.inverse.interactive.primary.fill.rest`, `color.inverse.interactive.primary.icon.hover`, `color.inverse.interactive.primary.icon.pressed`, `color.inverse.interactive.primary.icon.rest`, `color.inverse.interactive.primary.on-fill`, `color.inverse.interactive.primary.overlay.hover`, `color.inverse.interactive.primary.overlay.pressed`, `color.inverse.interactive.primary.text.hover`, `color.inverse.interactive.primary.text.pressed`, `color.inverse.interactive.primary.text.rest`, `focus.ring.offset`, `focus.ring.width`, `icon.size.md`, `icon.size.sm`, `icon.size.xs`, `radius.md`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.0`, `space.075`, `space.100`, `space.150`, `space.200`, `space.300`, `type.label.lg.emphasis`, `type.label.lg.emphasis-link`, `type.label.md.emphasis`, `type.label.md.emphasis-link`, `type.label.sm.emphasis`, `type.label.sm.emphasis-link`
+`border-width.hairline`, `color.border.focus`, `color.disabled.border`, `color.disabled.fill`, `color.disabled.icon`, `color.disabled.on-fill`, `color.disabled.text`, `color.interactive.primary.border.hover`, `color.interactive.primary.border.pressed`, `color.interactive.primary.border.rest`, `color.interactive.primary.fill.hover`, `color.interactive.primary.fill.pressed`, `color.interactive.primary.fill.rest`, `color.interactive.primary.icon.hover`, `color.interactive.primary.icon.pressed`, `color.interactive.primary.icon.rest`, `color.interactive.primary.on-fill`, `color.interactive.primary.overlay.hover`, `color.interactive.primary.overlay.pressed`, `color.interactive.primary.text.hover`, `color.interactive.primary.text.pressed`, `color.interactive.primary.text.rest`, `color.inverse.disabled.border`, `color.inverse.disabled.fill`, `color.inverse.disabled.icon`, `color.inverse.disabled.on-fill`, `color.inverse.disabled.text`, `color.inverse.interactive.primary.border.hover`, `color.inverse.interactive.primary.border.pressed`, `color.inverse.interactive.primary.border.rest`, `color.inverse.interactive.primary.fill.hover`, `color.inverse.interactive.primary.fill.pressed`, `color.inverse.interactive.primary.fill.rest`, `color.inverse.interactive.primary.icon.hover`, `color.inverse.interactive.primary.icon.pressed`, `color.inverse.interactive.primary.icon.rest`, `color.inverse.interactive.primary.on-fill`, `color.inverse.interactive.primary.overlay.hover`, `color.inverse.interactive.primary.overlay.pressed`, `color.inverse.interactive.primary.text.hover`, `color.inverse.interactive.primary.text.pressed`, `color.inverse.interactive.primary.text.rest`, `focus.ring.offset`, `focus.ring.width`, `icon.size.md`, `icon.size.sm`, `icon.size.xs`, `radius.md`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.0`, `space.075`, `space.100`, `space.150`, `space.200`, `space.300`, `type.label.lg.emphasis`, `type.label.lg.emphasis-link`, `type.label.md.emphasis`, `type.label.md.emphasis-link`, `type.label.sm.emphasis`, `type.label.sm.emphasis-link`
 
 Declared, not drawn: `color.border.focus`
 
-Drawn, not declared: `color.inverse.disabled.fill`, `color.inverse.disabled.icon`, `color.inverse.disabled.on-fill`, `color.inverse.disabled.text`, `color.inverse.interactive.primary.border.hover`, `color.inverse.interactive.primary.border.pressed`, `color.inverse.interactive.primary.border.rest`, `color.inverse.interactive.primary.fill.hover`, `color.inverse.interactive.primary.fill.pressed`, `color.inverse.interactive.primary.fill.rest`, `color.inverse.interactive.primary.icon.hover`, `color.inverse.interactive.primary.icon.pressed`, `color.inverse.interactive.primary.icon.rest`, `color.inverse.interactive.primary.on-fill`, `color.inverse.interactive.primary.overlay.hover`, `color.inverse.interactive.primary.overlay.pressed`, `color.inverse.interactive.primary.text.hover`, `color.inverse.interactive.primary.text.pressed`, `color.inverse.interactive.primary.text.rest`
+Drawn, not declared: `color.inverse.disabled.border`, `color.inverse.disabled.fill`, `color.inverse.disabled.icon`, `color.inverse.disabled.on-fill`, `color.inverse.disabled.text`, `color.inverse.interactive.primary.border.hover`, `color.inverse.interactive.primary.border.pressed`, `color.inverse.interactive.primary.border.rest`, `color.inverse.interactive.primary.fill.hover`, `color.inverse.interactive.primary.fill.pressed`, `color.inverse.interactive.primary.fill.rest`, `color.inverse.interactive.primary.icon.hover`, `color.inverse.interactive.primary.icon.pressed`, `color.inverse.interactive.primary.icon.rest`, `color.inverse.interactive.primary.on-fill`, `color.inverse.interactive.primary.overlay.hover`, `color.inverse.interactive.primary.overlay.pressed`, `color.inverse.interactive.primary.text.hover`, `color.inverse.interactive.primary.text.pressed`, `color.inverse.interactive.primary.text.rest`
 
 ### button-destructive
 
-61 token(s); 576 design-file member(s).
+63 token(s); 576 design-file member(s).
 
-`border-width.hairline`, `color.border.focus`, `color.disabled.fill`, `color.disabled.icon`, `color.disabled.on-fill`, `color.disabled.text`, `color.interactive.destructive.border.hover`, `color.interactive.destructive.border.pressed`, `color.interactive.destructive.border.rest`, `color.interactive.destructive.fill.hover`, `color.interactive.destructive.fill.pressed`, `color.interactive.destructive.fill.rest`, `color.interactive.destructive.icon.hover`, `color.interactive.destructive.icon.pressed`, `color.interactive.destructive.icon.rest`, `color.interactive.destructive.on-fill`, `color.interactive.destructive.overlay.hover`, `color.interactive.destructive.overlay.pressed`, `color.interactive.destructive.text.hover`, `color.interactive.destructive.text.pressed`, `color.interactive.destructive.text.rest`, `color.inverse.disabled.fill`, `color.inverse.disabled.icon`, `color.inverse.disabled.on-fill`, `color.inverse.disabled.text`, `color.inverse.interactive.destructive.border.hover`, `color.inverse.interactive.destructive.border.pressed`, `color.inverse.interactive.destructive.border.rest`, `color.inverse.interactive.destructive.fill.hover`, `color.inverse.interactive.destructive.fill.pressed`, `color.inverse.interactive.destructive.fill.rest`, `color.inverse.interactive.destructive.icon.hover`, `color.inverse.interactive.destructive.icon.pressed`, `color.inverse.interactive.destructive.icon.rest`, `color.inverse.interactive.destructive.on-fill`, `color.inverse.interactive.destructive.overlay.hover`, `color.inverse.interactive.destructive.overlay.pressed`, `color.inverse.interactive.destructive.text.hover`, `color.inverse.interactive.destructive.text.pressed`, `color.inverse.interactive.destructive.text.rest`, `focus.ring.offset`, `focus.ring.width`, `icon.size.md`, `icon.size.sm`, `icon.size.xs`, `radius.md`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.0`, `space.075`, `space.100`, `space.150`, `space.200`, `space.300`, `type.label.lg.emphasis`, `type.label.lg.emphasis-link`, `type.label.md.emphasis`, `type.label.md.emphasis-link`, `type.label.sm.emphasis`, `type.label.sm.emphasis-link`
+`border-width.hairline`, `color.border.focus`, `color.disabled.border`, `color.disabled.fill`, `color.disabled.icon`, `color.disabled.on-fill`, `color.disabled.text`, `color.interactive.destructive.border.hover`, `color.interactive.destructive.border.pressed`, `color.interactive.destructive.border.rest`, `color.interactive.destructive.fill.hover`, `color.interactive.destructive.fill.pressed`, `color.interactive.destructive.fill.rest`, `color.interactive.destructive.icon.hover`, `color.interactive.destructive.icon.pressed`, `color.interactive.destructive.icon.rest`, `color.interactive.destructive.on-fill`, `color.interactive.destructive.overlay.hover`, `color.interactive.destructive.overlay.pressed`, `color.interactive.destructive.text.hover`, `color.interactive.destructive.text.pressed`, `color.interactive.destructive.text.rest`, `color.inverse.disabled.border`, `color.inverse.disabled.fill`, `color.inverse.disabled.icon`, `color.inverse.disabled.on-fill`, `color.inverse.disabled.text`, `color.inverse.interactive.destructive.border.hover`, `color.inverse.interactive.destructive.border.pressed`, `color.inverse.interactive.destructive.border.rest`, `color.inverse.interactive.destructive.fill.hover`, `color.inverse.interactive.destructive.fill.pressed`, `color.inverse.interactive.destructive.fill.rest`, `color.inverse.interactive.destructive.icon.hover`, `color.inverse.interactive.destructive.icon.pressed`, `color.inverse.interactive.destructive.icon.rest`, `color.inverse.interactive.destructive.on-fill`, `color.inverse.interactive.destructive.overlay.hover`, `color.inverse.interactive.destructive.overlay.pressed`, `color.inverse.interactive.destructive.text.hover`, `color.inverse.interactive.destructive.text.pressed`, `color.inverse.interactive.destructive.text.rest`, `focus.ring.offset`, `focus.ring.width`, `icon.size.md`, `icon.size.sm`, `icon.size.xs`, `radius.md`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.0`, `space.075`, `space.100`, `space.150`, `space.200`, `space.300`, `type.label.lg.emphasis`, `type.label.lg.emphasis-link`, `type.label.md.emphasis`, `type.label.md.emphasis-link`, `type.label.sm.emphasis`, `type.label.sm.emphasis-link`
 
 Declared, not drawn: `color.border.focus`
 
-Drawn, not declared: `color.inverse.disabled.fill`, `color.inverse.disabled.icon`, `color.inverse.disabled.on-fill`, `color.inverse.disabled.text`, `color.inverse.interactive.destructive.border.hover`, `color.inverse.interactive.destructive.border.pressed`, `color.inverse.interactive.destructive.border.rest`, `color.inverse.interactive.destructive.fill.hover`, `color.inverse.interactive.destructive.fill.pressed`, `color.inverse.interactive.destructive.fill.rest`, `color.inverse.interactive.destructive.icon.hover`, `color.inverse.interactive.destructive.icon.pressed`, `color.inverse.interactive.destructive.icon.rest`, `color.inverse.interactive.destructive.on-fill`, `color.inverse.interactive.destructive.overlay.hover`, `color.inverse.interactive.destructive.overlay.pressed`, `color.inverse.interactive.destructive.text.hover`, `color.inverse.interactive.destructive.text.pressed`, `color.inverse.interactive.destructive.text.rest`
+Drawn, not declared: `color.inverse.disabled.border`, `color.inverse.disabled.fill`, `color.inverse.disabled.icon`, `color.inverse.disabled.on-fill`, `color.inverse.disabled.text`, `color.inverse.interactive.destructive.border.hover`, `color.inverse.interactive.destructive.border.pressed`, `color.inverse.interactive.destructive.border.rest`, `color.inverse.interactive.destructive.fill.hover`, `color.inverse.interactive.destructive.fill.pressed`, `color.inverse.interactive.destructive.fill.rest`, `color.inverse.interactive.destructive.icon.hover`, `color.inverse.interactive.destructive.icon.pressed`, `color.inverse.interactive.destructive.icon.rest`, `color.inverse.interactive.destructive.on-fill`, `color.inverse.interactive.destructive.overlay.hover`, `color.inverse.interactive.destructive.overlay.pressed`, `color.inverse.interactive.destructive.text.hover`, `color.inverse.interactive.destructive.text.pressed`, `color.inverse.interactive.destructive.text.rest`
+
+### button-group
+
+2 token(s); 3 design-file member(s).
+
+`space.100`, `space.150`
 
 ### button-neutral
 
-61 token(s); 576 design-file member(s).
+63 token(s); 576 design-file member(s).
 
-`border-width.hairline`, `color.border.focus`, `color.disabled.fill`, `color.disabled.icon`, `color.disabled.on-fill`, `color.disabled.text`, `color.interactive.neutral.border.hover`, `color.interactive.neutral.border.pressed`, `color.interactive.neutral.border.rest`, `color.interactive.neutral.fill.hover`, `color.interactive.neutral.fill.pressed`, `color.interactive.neutral.fill.rest`, `color.interactive.neutral.icon.hover`, `color.interactive.neutral.icon.pressed`, `color.interactive.neutral.icon.rest`, `color.interactive.neutral.on-fill`, `color.interactive.neutral.overlay.hover`, `color.interactive.neutral.overlay.pressed`, `color.interactive.neutral.text.hover`, `color.interactive.neutral.text.pressed`, `color.interactive.neutral.text.rest`, `color.inverse.disabled.fill`, `color.inverse.disabled.icon`, `color.inverse.disabled.on-fill`, `color.inverse.disabled.text`, `color.inverse.interactive.neutral.border.hover`, `color.inverse.interactive.neutral.border.pressed`, `color.inverse.interactive.neutral.border.rest`, `color.inverse.interactive.neutral.fill.hover`, `color.inverse.interactive.neutral.fill.pressed`, `color.inverse.interactive.neutral.fill.rest`, `color.inverse.interactive.neutral.icon.hover`, `color.inverse.interactive.neutral.icon.pressed`, `color.inverse.interactive.neutral.icon.rest`, `color.inverse.interactive.neutral.on-fill`, `color.inverse.interactive.neutral.overlay.hover`, `color.inverse.interactive.neutral.overlay.pressed`, `color.inverse.interactive.neutral.text.hover`, `color.inverse.interactive.neutral.text.pressed`, `color.inverse.interactive.neutral.text.rest`, `focus.ring.offset`, `focus.ring.width`, `icon.size.md`, `icon.size.sm`, `icon.size.xs`, `radius.md`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.0`, `space.075`, `space.100`, `space.150`, `space.200`, `space.300`, `type.label.lg.emphasis`, `type.label.lg.emphasis-link`, `type.label.md.emphasis`, `type.label.md.emphasis-link`, `type.label.sm.emphasis`, `type.label.sm.emphasis-link`
+`border-width.hairline`, `color.border.focus`, `color.disabled.border`, `color.disabled.fill`, `color.disabled.icon`, `color.disabled.on-fill`, `color.disabled.text`, `color.interactive.neutral.border.hover`, `color.interactive.neutral.border.pressed`, `color.interactive.neutral.border.rest`, `color.interactive.neutral.fill.hover`, `color.interactive.neutral.fill.pressed`, `color.interactive.neutral.fill.rest`, `color.interactive.neutral.icon.hover`, `color.interactive.neutral.icon.pressed`, `color.interactive.neutral.icon.rest`, `color.interactive.neutral.on-fill`, `color.interactive.neutral.overlay.hover`, `color.interactive.neutral.overlay.pressed`, `color.interactive.neutral.text.hover`, `color.interactive.neutral.text.pressed`, `color.interactive.neutral.text.rest`, `color.inverse.disabled.border`, `color.inverse.disabled.fill`, `color.inverse.disabled.icon`, `color.inverse.disabled.on-fill`, `color.inverse.disabled.text`, `color.inverse.interactive.neutral.border.hover`, `color.inverse.interactive.neutral.border.pressed`, `color.inverse.interactive.neutral.border.rest`, `color.inverse.interactive.neutral.fill.hover`, `color.inverse.interactive.neutral.fill.pressed`, `color.inverse.interactive.neutral.fill.rest`, `color.inverse.interactive.neutral.icon.hover`, `color.inverse.interactive.neutral.icon.pressed`, `color.inverse.interactive.neutral.icon.rest`, `color.inverse.interactive.neutral.on-fill`, `color.inverse.interactive.neutral.overlay.hover`, `color.inverse.interactive.neutral.overlay.pressed`, `color.inverse.interactive.neutral.text.hover`, `color.inverse.interactive.neutral.text.pressed`, `color.inverse.interactive.neutral.text.rest`, `focus.ring.offset`, `focus.ring.width`, `icon.size.md`, `icon.size.sm`, `icon.size.xs`, `radius.md`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.0`, `space.075`, `space.100`, `space.150`, `space.200`, `space.300`, `type.label.lg.emphasis`, `type.label.lg.emphasis-link`, `type.label.md.emphasis`, `type.label.md.emphasis-link`, `type.label.sm.emphasis`, `type.label.sm.emphasis-link`
 
 Declared, not drawn: `color.border.focus`
 
-Drawn, not declared: `color.inverse.disabled.fill`, `color.inverse.disabled.icon`, `color.inverse.disabled.on-fill`, `color.inverse.disabled.text`, `color.inverse.interactive.neutral.border.hover`, `color.inverse.interactive.neutral.border.pressed`, `color.inverse.interactive.neutral.border.rest`, `color.inverse.interactive.neutral.fill.hover`, `color.inverse.interactive.neutral.fill.pressed`, `color.inverse.interactive.neutral.fill.rest`, `color.inverse.interactive.neutral.icon.hover`, `color.inverse.interactive.neutral.icon.pressed`, `color.inverse.interactive.neutral.icon.rest`, `color.inverse.interactive.neutral.on-fill`, `color.inverse.interactive.neutral.overlay.hover`, `color.inverse.interactive.neutral.overlay.pressed`, `color.inverse.interactive.neutral.text.hover`, `color.inverse.interactive.neutral.text.pressed`, `color.inverse.interactive.neutral.text.rest`
+Drawn, not declared: `color.inverse.disabled.border`, `color.inverse.disabled.fill`, `color.inverse.disabled.icon`, `color.inverse.disabled.on-fill`, `color.inverse.disabled.text`, `color.inverse.interactive.neutral.border.hover`, `color.inverse.interactive.neutral.border.pressed`, `color.inverse.interactive.neutral.border.rest`, `color.inverse.interactive.neutral.fill.hover`, `color.inverse.interactive.neutral.fill.pressed`, `color.inverse.interactive.neutral.fill.rest`, `color.inverse.interactive.neutral.icon.hover`, `color.inverse.interactive.neutral.icon.pressed`, `color.inverse.interactive.neutral.icon.rest`, `color.inverse.interactive.neutral.on-fill`, `color.inverse.interactive.neutral.overlay.hover`, `color.inverse.interactive.neutral.overlay.pressed`, `color.inverse.interactive.neutral.text.hover`, `color.inverse.interactive.neutral.text.pressed`, `color.inverse.interactive.neutral.text.rest`
 
 ### checkbox-control
 
@@ -3041,9 +3050,9 @@ Declared, not drawn: `color.disabled.text`, `size.lg.height`, `size.md.height`, 
 
 ### dialog
 
-13 token(s); 15 design-file member(s).
+12 token(s); 15 design-file member(s).
 
-`color.foreground.primary`, `color.text.primary`, `color.text.secondary`, `radius.2xl`, `radius.none`, `shadow.xl`, `space.0`, `space.100`, `space.150`, `space.200`, `space.300`, `type.body.md.default`, `type.label.lg.emphasis`
+`color.foreground.primary`, `color.text.primary`, `color.text.secondary`, `radius.2xl`, `radius.none`, `shadow.xl`, `space.0`, `space.100`, `space.200`, `space.300`, `type.body.md.default`, `type.label.lg.emphasis`
 
 ### divider
 
@@ -3105,33 +3114,33 @@ Declared, not drawn: `color.icon.brand`, `color.icon.danger`, `color.icon.info`,
 
 ### icon-button
 
-40 token(s); 216 design-file member(s).
+42 token(s); 216 design-file member(s).
 
-`border-width.hairline`, `color.border.focus`, `color.disabled.fill`, `color.disabled.icon`, `color.interactive.primary.border.hover`, `color.interactive.primary.border.pressed`, `color.interactive.primary.border.rest`, `color.interactive.primary.fill.hover`, `color.interactive.primary.fill.pressed`, `color.interactive.primary.fill.rest`, `color.interactive.primary.icon.hover`, `color.interactive.primary.icon.pressed`, `color.interactive.primary.icon.rest`, `color.interactive.primary.on-fill`, `color.interactive.primary.overlay.hover`, `color.interactive.primary.overlay.pressed`, `color.inverse.disabled.fill`, `color.inverse.disabled.icon`, `color.inverse.interactive.primary.border.hover`, `color.inverse.interactive.primary.border.pressed`, `color.inverse.interactive.primary.border.rest`, `color.inverse.interactive.primary.fill.hover`, `color.inverse.interactive.primary.fill.pressed`, `color.inverse.interactive.primary.fill.rest`, `color.inverse.interactive.primary.icon.hover`, `color.inverse.interactive.primary.icon.pressed`, `color.inverse.interactive.primary.icon.rest`, `color.inverse.interactive.primary.on-fill`, `color.inverse.interactive.primary.overlay.hover`, `color.inverse.interactive.primary.overlay.pressed`, `focus.ring.offset`, `focus.ring.width`, `icon.size.lg`, `icon.size.md`, `icon.size.sm`, `radius.md`, `radius.round`, `size.lg.height`, `size.md.height`, `size.sm.height`
+`border-width.hairline`, `color.border.focus`, `color.disabled.border`, `color.disabled.fill`, `color.disabled.icon`, `color.interactive.primary.border.hover`, `color.interactive.primary.border.pressed`, `color.interactive.primary.border.rest`, `color.interactive.primary.fill.hover`, `color.interactive.primary.fill.pressed`, `color.interactive.primary.fill.rest`, `color.interactive.primary.icon.hover`, `color.interactive.primary.icon.pressed`, `color.interactive.primary.icon.rest`, `color.interactive.primary.on-fill`, `color.interactive.primary.overlay.hover`, `color.interactive.primary.overlay.pressed`, `color.inverse.disabled.border`, `color.inverse.disabled.fill`, `color.inverse.disabled.icon`, `color.inverse.interactive.primary.border.hover`, `color.inverse.interactive.primary.border.pressed`, `color.inverse.interactive.primary.border.rest`, `color.inverse.interactive.primary.fill.hover`, `color.inverse.interactive.primary.fill.pressed`, `color.inverse.interactive.primary.fill.rest`, `color.inverse.interactive.primary.icon.hover`, `color.inverse.interactive.primary.icon.pressed`, `color.inverse.interactive.primary.icon.rest`, `color.inverse.interactive.primary.on-fill`, `color.inverse.interactive.primary.overlay.hover`, `color.inverse.interactive.primary.overlay.pressed`, `focus.ring.offset`, `focus.ring.width`, `icon.size.lg`, `icon.size.md`, `icon.size.sm`, `radius.md`, `radius.round`, `size.lg.height`, `size.md.height`, `size.sm.height`
 
 Declared, not drawn: `color.border.focus`
 
-Drawn, not declared: `color.inverse.disabled.fill`, `color.inverse.disabled.icon`, `color.inverse.interactive.primary.border.hover`, `color.inverse.interactive.primary.border.pressed`, `color.inverse.interactive.primary.border.rest`, `color.inverse.interactive.primary.fill.hover`, `color.inverse.interactive.primary.fill.pressed`, `color.inverse.interactive.primary.fill.rest`, `color.inverse.interactive.primary.icon.hover`, `color.inverse.interactive.primary.icon.pressed`, `color.inverse.interactive.primary.icon.rest`, `color.inverse.interactive.primary.on-fill`, `color.inverse.interactive.primary.overlay.hover`, `color.inverse.interactive.primary.overlay.pressed`
+Drawn, not declared: `color.inverse.disabled.border`, `color.inverse.disabled.fill`, `color.inverse.disabled.icon`, `color.inverse.interactive.primary.border.hover`, `color.inverse.interactive.primary.border.pressed`, `color.inverse.interactive.primary.border.rest`, `color.inverse.interactive.primary.fill.hover`, `color.inverse.interactive.primary.fill.pressed`, `color.inverse.interactive.primary.fill.rest`, `color.inverse.interactive.primary.icon.hover`, `color.inverse.interactive.primary.icon.pressed`, `color.inverse.interactive.primary.icon.rest`, `color.inverse.interactive.primary.on-fill`, `color.inverse.interactive.primary.overlay.hover`, `color.inverse.interactive.primary.overlay.pressed`
 
 ### icon-button-destructive
 
-40 token(s); 216 design-file member(s).
+42 token(s); 216 design-file member(s).
 
-`border-width.hairline`, `color.border.focus`, `color.disabled.fill`, `color.disabled.icon`, `color.interactive.destructive.border.hover`, `color.interactive.destructive.border.pressed`, `color.interactive.destructive.border.rest`, `color.interactive.destructive.fill.hover`, `color.interactive.destructive.fill.pressed`, `color.interactive.destructive.fill.rest`, `color.interactive.destructive.icon.hover`, `color.interactive.destructive.icon.pressed`, `color.interactive.destructive.icon.rest`, `color.interactive.destructive.on-fill`, `color.interactive.destructive.overlay.hover`, `color.interactive.destructive.overlay.pressed`, `color.inverse.disabled.fill`, `color.inverse.disabled.icon`, `color.inverse.interactive.destructive.border.hover`, `color.inverse.interactive.destructive.border.pressed`, `color.inverse.interactive.destructive.border.rest`, `color.inverse.interactive.destructive.fill.hover`, `color.inverse.interactive.destructive.fill.pressed`, `color.inverse.interactive.destructive.fill.rest`, `color.inverse.interactive.destructive.icon.hover`, `color.inverse.interactive.destructive.icon.pressed`, `color.inverse.interactive.destructive.icon.rest`, `color.inverse.interactive.destructive.on-fill`, `color.inverse.interactive.destructive.overlay.hover`, `color.inverse.interactive.destructive.overlay.pressed`, `focus.ring.offset`, `focus.ring.width`, `icon.size.lg`, `icon.size.md`, `icon.size.sm`, `radius.md`, `radius.round`, `size.lg.height`, `size.md.height`, `size.sm.height`
+`border-width.hairline`, `color.border.focus`, `color.disabled.border`, `color.disabled.fill`, `color.disabled.icon`, `color.interactive.destructive.border.hover`, `color.interactive.destructive.border.pressed`, `color.interactive.destructive.border.rest`, `color.interactive.destructive.fill.hover`, `color.interactive.destructive.fill.pressed`, `color.interactive.destructive.fill.rest`, `color.interactive.destructive.icon.hover`, `color.interactive.destructive.icon.pressed`, `color.interactive.destructive.icon.rest`, `color.interactive.destructive.on-fill`, `color.interactive.destructive.overlay.hover`, `color.interactive.destructive.overlay.pressed`, `color.inverse.disabled.border`, `color.inverse.disabled.fill`, `color.inverse.disabled.icon`, `color.inverse.interactive.destructive.border.hover`, `color.inverse.interactive.destructive.border.pressed`, `color.inverse.interactive.destructive.border.rest`, `color.inverse.interactive.destructive.fill.hover`, `color.inverse.interactive.destructive.fill.pressed`, `color.inverse.interactive.destructive.fill.rest`, `color.inverse.interactive.destructive.icon.hover`, `color.inverse.interactive.destructive.icon.pressed`, `color.inverse.interactive.destructive.icon.rest`, `color.inverse.interactive.destructive.on-fill`, `color.inverse.interactive.destructive.overlay.hover`, `color.inverse.interactive.destructive.overlay.pressed`, `focus.ring.offset`, `focus.ring.width`, `icon.size.lg`, `icon.size.md`, `icon.size.sm`, `radius.md`, `radius.round`, `size.lg.height`, `size.md.height`, `size.sm.height`
 
 Declared, not drawn: `color.border.focus`
 
-Drawn, not declared: `color.inverse.disabled.fill`, `color.inverse.disabled.icon`, `color.inverse.interactive.destructive.border.hover`, `color.inverse.interactive.destructive.border.pressed`, `color.inverse.interactive.destructive.border.rest`, `color.inverse.interactive.destructive.fill.hover`, `color.inverse.interactive.destructive.fill.pressed`, `color.inverse.interactive.destructive.fill.rest`, `color.inverse.interactive.destructive.icon.hover`, `color.inverse.interactive.destructive.icon.pressed`, `color.inverse.interactive.destructive.icon.rest`, `color.inverse.interactive.destructive.on-fill`, `color.inverse.interactive.destructive.overlay.hover`, `color.inverse.interactive.destructive.overlay.pressed`
+Drawn, not declared: `color.inverse.disabled.border`, `color.inverse.disabled.fill`, `color.inverse.disabled.icon`, `color.inverse.interactive.destructive.border.hover`, `color.inverse.interactive.destructive.border.pressed`, `color.inverse.interactive.destructive.border.rest`, `color.inverse.interactive.destructive.fill.hover`, `color.inverse.interactive.destructive.fill.pressed`, `color.inverse.interactive.destructive.fill.rest`, `color.inverse.interactive.destructive.icon.hover`, `color.inverse.interactive.destructive.icon.pressed`, `color.inverse.interactive.destructive.icon.rest`, `color.inverse.interactive.destructive.on-fill`, `color.inverse.interactive.destructive.overlay.hover`, `color.inverse.interactive.destructive.overlay.pressed`
 
 ### icon-button-neutral
 
-40 token(s); 216 design-file member(s).
+42 token(s); 216 design-file member(s).
 
-`border-width.hairline`, `color.border.focus`, `color.disabled.fill`, `color.disabled.icon`, `color.interactive.neutral.border.hover`, `color.interactive.neutral.border.pressed`, `color.interactive.neutral.border.rest`, `color.interactive.neutral.fill.hover`, `color.interactive.neutral.fill.pressed`, `color.interactive.neutral.fill.rest`, `color.interactive.neutral.icon.hover`, `color.interactive.neutral.icon.pressed`, `color.interactive.neutral.icon.rest`, `color.interactive.neutral.on-fill`, `color.interactive.neutral.overlay.hover`, `color.interactive.neutral.overlay.pressed`, `color.inverse.disabled.fill`, `color.inverse.disabled.icon`, `color.inverse.interactive.neutral.border.hover`, `color.inverse.interactive.neutral.border.pressed`, `color.inverse.interactive.neutral.border.rest`, `color.inverse.interactive.neutral.fill.hover`, `color.inverse.interactive.neutral.fill.pressed`, `color.inverse.interactive.neutral.fill.rest`, `color.inverse.interactive.neutral.icon.hover`, `color.inverse.interactive.neutral.icon.pressed`, `color.inverse.interactive.neutral.icon.rest`, `color.inverse.interactive.neutral.on-fill`, `color.inverse.interactive.neutral.overlay.hover`, `color.inverse.interactive.neutral.overlay.pressed`, `focus.ring.offset`, `focus.ring.width`, `icon.size.lg`, `icon.size.md`, `icon.size.sm`, `radius.md`, `radius.round`, `size.lg.height`, `size.md.height`, `size.sm.height`
+`border-width.hairline`, `color.border.focus`, `color.disabled.border`, `color.disabled.fill`, `color.disabled.icon`, `color.interactive.neutral.border.hover`, `color.interactive.neutral.border.pressed`, `color.interactive.neutral.border.rest`, `color.interactive.neutral.fill.hover`, `color.interactive.neutral.fill.pressed`, `color.interactive.neutral.fill.rest`, `color.interactive.neutral.icon.hover`, `color.interactive.neutral.icon.pressed`, `color.interactive.neutral.icon.rest`, `color.interactive.neutral.on-fill`, `color.interactive.neutral.overlay.hover`, `color.interactive.neutral.overlay.pressed`, `color.inverse.disabled.border`, `color.inverse.disabled.fill`, `color.inverse.disabled.icon`, `color.inverse.interactive.neutral.border.hover`, `color.inverse.interactive.neutral.border.pressed`, `color.inverse.interactive.neutral.border.rest`, `color.inverse.interactive.neutral.fill.hover`, `color.inverse.interactive.neutral.fill.pressed`, `color.inverse.interactive.neutral.fill.rest`, `color.inverse.interactive.neutral.icon.hover`, `color.inverse.interactive.neutral.icon.pressed`, `color.inverse.interactive.neutral.icon.rest`, `color.inverse.interactive.neutral.on-fill`, `color.inverse.interactive.neutral.overlay.hover`, `color.inverse.interactive.neutral.overlay.pressed`, `focus.ring.offset`, `focus.ring.width`, `icon.size.lg`, `icon.size.md`, `icon.size.sm`, `radius.md`, `radius.round`, `size.lg.height`, `size.md.height`, `size.sm.height`
 
 Declared, not drawn: `color.border.focus`
 
-Drawn, not declared: `color.inverse.disabled.fill`, `color.inverse.disabled.icon`, `color.inverse.interactive.neutral.border.hover`, `color.inverse.interactive.neutral.border.pressed`, `color.inverse.interactive.neutral.border.rest`, `color.inverse.interactive.neutral.fill.hover`, `color.inverse.interactive.neutral.fill.pressed`, `color.inverse.interactive.neutral.fill.rest`, `color.inverse.interactive.neutral.icon.hover`, `color.inverse.interactive.neutral.icon.pressed`, `color.inverse.interactive.neutral.icon.rest`, `color.inverse.interactive.neutral.on-fill`, `color.inverse.interactive.neutral.overlay.hover`, `color.inverse.interactive.neutral.overlay.pressed`
+Drawn, not declared: `color.inverse.disabled.border`, `color.inverse.disabled.fill`, `color.inverse.disabled.icon`, `color.inverse.interactive.neutral.border.hover`, `color.inverse.interactive.neutral.border.pressed`, `color.inverse.interactive.neutral.border.rest`, `color.inverse.interactive.neutral.fill.hover`, `color.inverse.interactive.neutral.fill.pressed`, `color.inverse.interactive.neutral.fill.rest`, `color.inverse.interactive.neutral.icon.hover`, `color.inverse.interactive.neutral.icon.pressed`, `color.inverse.interactive.neutral.icon.rest`, `color.inverse.interactive.neutral.on-fill`, `color.inverse.interactive.neutral.overlay.hover`, `color.inverse.interactive.neutral.overlay.pressed`
 
 ### image-placeholder
 
@@ -3189,15 +3198,15 @@ Declared, not drawn: `color.disabled.text`, `size.lg.height`, `size.md.height`, 
 
 ### segmented-control
 
-5 token(s); 3 design-file member(s).
+4 token(s); 3 design-file member(s).
 
-`border-width.hairline`, `color.interactive.neutral.border.rest`, `radius.md`, `space.0`, `space.100`
+`color.background.secondary`, `radius.md`, `space.0`, `space.100`
 
 ### segmented-control-segment
 
-40 token(s); 30 design-file member(s).
+34 token(s); 30 design-file member(s).
 
-`border-width.none`, `border-width.thick`, `color.border.focus`, `color.disabled.border`, `color.disabled.icon`, `color.disabled.text`, `color.interactive.neutral.icon.hover`, `color.interactive.neutral.icon.pressed`, `color.interactive.neutral.icon.rest`, `color.interactive.neutral.overlay.hover`, `color.interactive.neutral.overlay.pressed`, `color.interactive.neutral.text.hover`, `color.interactive.neutral.text.pressed`, `color.interactive.neutral.text.rest`, `color.interactive.primary.border.hover`, `color.interactive.primary.border.pressed`, `color.interactive.primary.border.rest`, `color.interactive.primary.subtle-fill.selected`, `focus.ring.offset`, `focus.ring.width`, `icon.size.lg`, `icon.size.md`, `icon.size.sm`, `radius.sm`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.0`, `space.050`, `space.075`, `space.100`, `space.150`, `space.200`, `space.250`, `type.label.lg.default`, `type.label.lg.emphasis`, `type.label.md.default`, `type.label.md.emphasis`, `type.label.sm.default`, `type.label.sm.emphasis`
+`color.background.primary`, `color.border.focus`, `color.disabled.icon`, `color.disabled.text`, `color.interactive.neutral.icon.hover`, `color.interactive.neutral.icon.pressed`, `color.interactive.neutral.icon.rest`, `color.interactive.neutral.overlay.hover`, `color.interactive.neutral.overlay.pressed`, `color.interactive.neutral.text.hover`, `color.interactive.neutral.text.pressed`, `color.interactive.neutral.text.rest`, `focus.ring.offset`, `focus.ring.width`, `icon.size.md`, `icon.size.sm`, `icon.size.xs`, `radius.sm`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.0`, `space.050`, `space.075`, `space.100`, `space.150`, `space.200`, `space.250`, `type.label.lg.default`, `type.label.lg.emphasis`, `type.label.md.default`, `type.label.md.emphasis`, `type.label.sm.default`, `type.label.sm.emphasis`
 
 Declared, not drawn: `color.border.focus`
 
@@ -3233,7 +3242,7 @@ Declared, not drawn: `color.disabled.text`, `size.md.height`, `size.sm.height`
 
 41 token(s); 30 design-file member(s).
 
-`border-width.thick`, `color.border.focus`, `color.border.secondary`, `color.disabled.border`, `color.disabled.icon`, `color.disabled.text`, `color.interactive.neutral.icon.hover`, `color.interactive.neutral.icon.pressed`, `color.interactive.neutral.icon.rest`, `color.interactive.neutral.text.hover`, `color.interactive.neutral.text.pressed`, `color.interactive.neutral.text.rest`, `color.interactive.primary.border.hover`, `color.interactive.primary.border.pressed`, `color.interactive.primary.border.rest`, `color.interactive.primary.icon.hover`, `color.interactive.primary.icon.pressed`, `color.interactive.primary.icon.rest`, `color.interactive.primary.text.hover`, `color.interactive.primary.text.pressed`, `color.interactive.primary.text.rest`, `focus.ring.offset`, `focus.ring.width`, `icon.size.lg`, `icon.size.md`, `icon.size.sm`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.0`, `space.075`, `space.100`, `space.150`, `space.200`, `space.250`, `type.label.lg.default`, `type.label.lg.emphasis`, `type.label.md.default`, `type.label.md.emphasis`, `type.label.sm.default`, `type.label.sm.emphasis`
+`border-width.thick`, `color.border.focus`, `color.border.secondary`, `color.disabled.border`, `color.disabled.icon`, `color.disabled.text`, `color.interactive.neutral.icon.hover`, `color.interactive.neutral.icon.pressed`, `color.interactive.neutral.icon.rest`, `color.interactive.neutral.text.hover`, `color.interactive.neutral.text.pressed`, `color.interactive.neutral.text.rest`, `color.interactive.primary.border.hover`, `color.interactive.primary.border.pressed`, `color.interactive.primary.border.rest`, `color.interactive.primary.icon.hover`, `color.interactive.primary.icon.pressed`, `color.interactive.primary.icon.rest`, `color.interactive.primary.text.hover`, `color.interactive.primary.text.pressed`, `color.interactive.primary.text.rest`, `focus.ring.offset`, `focus.ring.width`, `icon.size.md`, `icon.size.sm`, `icon.size.xs`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.0`, `space.075`, `space.100`, `space.150`, `space.200`, `space.250`, `type.label.lg.default`, `type.label.lg.emphasis`, `type.label.md.default`, `type.label.md.emphasis`, `type.label.sm.default`, `type.label.sm.emphasis`
 
 Declared, not drawn: `color.border.focus`
 
@@ -3245,9 +3254,9 @@ Declared, not drawn: `color.border.focus`
 
 ### tag
 
-39 token(s); 45 design-file member(s).
+40 token(s); 45 design-file member(s).
 
-`border-width.hairline`, `border-width.thick`, `color.border.focus`, `color.disabled.icon`, `color.disabled.text`, `color.interactive.neutral.border.hover`, `color.interactive.neutral.border.pressed`, `color.interactive.neutral.border.rest`, `color.interactive.neutral.icon.hover`, `color.interactive.neutral.icon.pressed`, `color.interactive.neutral.icon.rest`, `color.interactive.neutral.overlay.hover`, `color.interactive.neutral.overlay.pressed`, `color.interactive.neutral.text.hover`, `color.interactive.neutral.text.pressed`, `color.interactive.neutral.text.rest`, `color.interactive.primary.border.hover`, `color.interactive.primary.border.pressed`, `color.interactive.primary.border.rest`, `color.interactive.primary.subtle-fill.selected`, `focus.ring.offset`, `focus.ring.width`, `icon.size.lg`, `icon.size.md`, `icon.size.sm`, `radius.round`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.0`, `space.025`, `space.050`, `space.075`, `space.100`, `space.150`, `space.200`, `type.label.lg.emphasis`, `type.label.md.emphasis`, `type.label.sm.emphasis`
+`border-width.hairline`, `border-width.thick`, `color.border.focus`, `color.disabled.border`, `color.disabled.icon`, `color.disabled.text`, `color.interactive.neutral.border.hover`, `color.interactive.neutral.border.pressed`, `color.interactive.neutral.border.rest`, `color.interactive.neutral.icon.hover`, `color.interactive.neutral.icon.pressed`, `color.interactive.neutral.icon.rest`, `color.interactive.neutral.overlay.hover`, `color.interactive.neutral.overlay.pressed`, `color.interactive.neutral.text.hover`, `color.interactive.neutral.text.pressed`, `color.interactive.neutral.text.rest`, `color.interactive.primary.border.hover`, `color.interactive.primary.border.pressed`, `color.interactive.primary.border.rest`, `color.interactive.primary.subtle-fill.selected`, `focus.ring.offset`, `focus.ring.width`, `icon.size.md`, `icon.size.sm`, `icon.size.xs`, `radius.round`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.0`, `space.025`, `space.050`, `space.075`, `space.100`, `space.150`, `space.200`, `type.label.lg.emphasis`, `type.label.md.emphasis`, `type.label.sm.emphasis`
 
 Declared, not drawn: `color.border.focus`
 
@@ -3271,19 +3280,18 @@ Declared, not drawn: `color.border.focus`
 
 ## Tokens no component binds
 
-261 semantic token(s) and 280 primitive(s). Primitives (`core.*`) are listed apart — components bind semantic roles, which alias the primitives, so an unbound primitive is expected.
+260 semantic token(s) and 280 primitive(s). Primitives (`core.*`) are listed apart — components bind semantic roles, which alias the primitives, so an unbound primitive is expected.
 
 ### Semantic
 
-- **border-width** — `border-width.heavy`
+- **border-width** — `border-width.heavy`, `border-width.none`
 - **breakpoint** — `breakpoint.2xl`, `breakpoint.lg`, `breakpoint.md`, `breakpoint.sm`, `breakpoint.xl`
-- **color.background** — `color.background.primary`
 - **color.border** — `color.border.brand`
 - **color.field** — `color.field.placeholder`
 - **color.foreground** — `color.foreground.brand`, `color.foreground.brand-subtle`, `color.foreground.tertiary`
 - **color.icon** — `color.icon.brand-subtle`, `color.icon.danger-subtle`, `color.icon.info-subtle`, `color.icon.link.visited`, `color.icon.on-brand`, `color.icon.on-danger`, `color.icon.on-info`, `color.icon.on-success`, `color.icon.on-warning`, `color.icon.success-subtle`, `color.icon.warning-subtle`
 - **color.interactive** — `color.interactive.destructive.fill.focused`, `color.interactive.destructive.fill.selected`, `color.interactive.destructive.overlay.selected`, `color.interactive.neutral.fill.focused`, `color.interactive.neutral.fill.selected`, `color.interactive.neutral.overlay.selected`, `color.interactive.primary.fill.focused`, `color.interactive.primary.overlay.selected`
-- **color.inverse** — `color.inverse.background.primary`, `color.inverse.background.secondary`, `color.inverse.background.tertiary`, `color.inverse.border.brand`, `color.inverse.border.danger`, `color.inverse.border.info`, `color.inverse.border.primary`, `color.inverse.border.secondary`, `color.inverse.border.success`, `color.inverse.border.tertiary`, `color.inverse.border.warning`, `color.inverse.disabled.border`, `color.inverse.field.border.hover`, `color.inverse.field.border.rest`, `color.inverse.field.fill`, `color.inverse.field.placeholder`, `color.inverse.foreground.brand`, `color.inverse.foreground.brand-subtle`, `color.inverse.foreground.danger`, `color.inverse.foreground.danger-subtle`, `color.inverse.foreground.info`, `color.inverse.foreground.info-subtle`, `color.inverse.foreground.primary`, `color.inverse.foreground.secondary`, `color.inverse.foreground.success`, `color.inverse.foreground.success-subtle`, `color.inverse.foreground.warning`, `color.inverse.foreground.warning-subtle`, `color.inverse.icon.brand`, `color.inverse.icon.brand-subtle`, `color.inverse.icon.danger`, `color.inverse.icon.danger-subtle`, `color.inverse.icon.info`, `color.inverse.icon.info-subtle`, `color.inverse.icon.link.visited`, `color.inverse.icon.primary`, `color.inverse.icon.secondary`, `color.inverse.icon.success`, `color.inverse.icon.success-subtle`, `color.inverse.icon.tertiary`, `color.inverse.icon.warning`, `color.inverse.icon.warning-subtle`, `color.inverse.interactive.destructive.fill.focused`, `color.inverse.interactive.destructive.fill.selected`, `color.inverse.interactive.destructive.overlay.selected`, `color.inverse.interactive.neutral.fill.focused`, `color.inverse.interactive.neutral.fill.selected`, `color.inverse.interactive.neutral.overlay.selected`, `color.inverse.interactive.primary.fill.focused`, `color.inverse.interactive.primary.fill.selected`, `color.inverse.interactive.primary.overlay.selected`, `color.inverse.text.brand`, `color.inverse.text.brand-subtle`, `color.inverse.text.danger`, `color.inverse.text.danger-subtle`, `color.inverse.text.info`, `color.inverse.text.info-subtle`, `color.inverse.text.link.visited`, `color.inverse.text.secondary`, `color.inverse.text.success`, `color.inverse.text.success-subtle`, `color.inverse.text.tertiary`, `color.inverse.text.warning`, `color.inverse.text.warning-subtle`
+- **color.inverse** — `color.inverse.background.primary`, `color.inverse.background.secondary`, `color.inverse.background.tertiary`, `color.inverse.border.brand`, `color.inverse.border.danger`, `color.inverse.border.info`, `color.inverse.border.primary`, `color.inverse.border.secondary`, `color.inverse.border.success`, `color.inverse.border.tertiary`, `color.inverse.border.warning`, `color.inverse.field.border.hover`, `color.inverse.field.border.rest`, `color.inverse.field.fill`, `color.inverse.field.placeholder`, `color.inverse.foreground.brand`, `color.inverse.foreground.brand-subtle`, `color.inverse.foreground.danger`, `color.inverse.foreground.danger-subtle`, `color.inverse.foreground.info`, `color.inverse.foreground.info-subtle`, `color.inverse.foreground.primary`, `color.inverse.foreground.secondary`, `color.inverse.foreground.success`, `color.inverse.foreground.success-subtle`, `color.inverse.foreground.warning`, `color.inverse.foreground.warning-subtle`, `color.inverse.icon.brand`, `color.inverse.icon.brand-subtle`, `color.inverse.icon.danger`, `color.inverse.icon.danger-subtle`, `color.inverse.icon.info`, `color.inverse.icon.info-subtle`, `color.inverse.icon.link.visited`, `color.inverse.icon.primary`, `color.inverse.icon.secondary`, `color.inverse.icon.success`, `color.inverse.icon.success-subtle`, `color.inverse.icon.tertiary`, `color.inverse.icon.warning`, `color.inverse.icon.warning-subtle`, `color.inverse.interactive.destructive.fill.focused`, `color.inverse.interactive.destructive.fill.selected`, `color.inverse.interactive.destructive.overlay.selected`, `color.inverse.interactive.neutral.fill.focused`, `color.inverse.interactive.neutral.fill.selected`, `color.inverse.interactive.neutral.overlay.selected`, `color.inverse.interactive.primary.fill.focused`, `color.inverse.interactive.primary.fill.selected`, `color.inverse.interactive.primary.overlay.selected`, `color.inverse.text.brand`, `color.inverse.text.brand-subtle`, `color.inverse.text.danger`, `color.inverse.text.danger-subtle`, `color.inverse.text.info`, `color.inverse.text.info-subtle`, `color.inverse.text.link.visited`, `color.inverse.text.secondary`, `color.inverse.text.success`, `color.inverse.text.success-subtle`, `color.inverse.text.tertiary`, `color.inverse.text.warning`, `color.inverse.text.warning-subtle`
 - **color.scrim** — `color.scrim.default`
 - **color.text** — `color.text.brand`, `color.text.brand-subtle`, `color.text.danger-subtle`, `color.text.info-subtle`, `color.text.link.visited`, `color.text.on-brand`, `color.text.success-subtle`, `color.text.tertiary`, `color.text.warning-subtle`
 - **container** — `container.fluid`, `container.max`

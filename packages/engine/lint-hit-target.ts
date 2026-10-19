@@ -181,7 +181,17 @@ const INNER_TARGETS: Record<string, { key: (size: string) => string; why: string
   'tag.dismiss': { key: (s) => `size.${s}.height`, why: "the dismissible tag's × slot, a square the tag's height (owner, 2026-09-28) — the target itself or a part of a whole-tag target, the owner's open call; it clears the floor either way" },
   // #2317: a NESTED control with no side bound in the host. Its key is the NESTED def's (Button's box height), read
   // through Button's own tokens at the size the host nests it at, so a toggle pointed at a smaller rung fails here.
-  'password-field.toggle': { key: (s) => `size.${s}.height`, why: 'the Show/Hide button, a nested flush text Button at the field\'s size (Q301.3 B): its box height on Button\'s own rung; its width is the code-side flush rule below' },
+  'password-field.toggle': { key: (s) => `size.${s}.height`, why: 'the Show/Hide button, a nested flush text Button, small at every field size (Q301.3 B, Q380 A): its box height on Button\'s own rung; its hit area is the code-side flush rule below' },
+};
+
+// ── A NESTED FLUSH BUTTON SHORTER THAN THE FLOOR (#2804, Q380 A; owner question on #2809, option A) ──────────────
+// Password's Show is a SMALL Button (36 tall) at every field size, in a label row one label line tall (21 / 24 at
+// medium / large), so its Figma box is below the floor by decision. Its floor at medium and large is the code-side
+// 44×44 instead, which the host must state (FLUSH_BUTTON_HOSTS below), AND state ANCHORED: a 44 centered on a 21 or 24px
+// row reaches 3.5 or 2px into the input box, which would put one target over another. The anchor phrase is a literal
+// here, never read off the def (docs/34). A toggle measured AT the floor makes the entry stale by name.
+const CODE_SIDE_NESTED: Record<string, { anchor: RegExp; why: string }> = {
+  'password-field.toggle': { anchor: /bottom edge sits on the label row's bottom edge/, why: 'the 44 reaches up and sideways, never down into the input box' },
 };
 
 // ── HOSTS OF A NESTED FLUSH BUTTON (#2317): a host whose nested Button is flush owes the same code-side hit area ────
@@ -239,10 +249,12 @@ const CODE_SIDE_DOC = [/hit area in code to at least 44×44px at every size/, /:
 // A code-side target's 44×44 hit area reaches past its box, so a host nesting two of them must keep their centers
 // at least 44px apart, or the two areas overlap and one tap lands on both (owner Q296 A, on #2457: "the 44px
 // spacing between two flush icon buttons is center to center"). Per host, the nest parts that are code-side
-// targets, listed both ways against the def's anatomy, and the PAIR whose spacing is measured. Authored here,
-// never read off the def: dropping a part from the anatomy, or nesting a third, fails by name.
-const FLUSH_NESTS: Record<string, { parts: readonly string[]; pair: readonly [string, string]; why: string }> = {
+// targets, listed both ways against the def's anatomy, and the PAIR whose spacing is measured (none for a host that
+// nests one). Authored here, never read off the def: dropping a part from the anatomy, or nesting a third, fails by name.
+const FLUSH_NESTS: Record<string, { parts: readonly string[]; pair?: readonly [string, string]; why: string }> = {
   counter: { parts: ['decrement', 'increment'], pair: ['decrement', 'increment'], why: "the Counter's minus and plus, either side of the value" },
+  // #2808 (Q385 A): the Dialog's close is one code-side target, so there is no second hit area to space it from.
+  dialog: { parts: ['close'], why: "the Dialog's close, the one code-side target in its header" },
 };
 /** The 44px center-to-center spacing, a literal (Q296 A), not FLOOR_PX: a different rule that happens to share the number. */
 const FLUSH_NEST_SPACING_PX = 44;
@@ -278,7 +290,8 @@ const EXCLUDED: Record<string, string> = {
   'veil': 'a media wash overlay, not an interactive control',
   'segmented-control': 'a segmented control\'s track and label — its tap targets are the nested options, which are gated as segmented-control-segment',
   'divider': 'a 1px rule between groups of content, never interactive and never focusable',
-  'dialog': 'a modal panel, never itself a pointer target: its close button and footer buttons are an IconButton.Neutral and Buttons, each measured under its own name (#2609)',
+  'button-group': 'a layout of one to three Buttons, never itself a pointer target: each Button is measured under its own name (#2661)',
+  'dialog': 'a modal panel, never itself a pointer target: its close button and footer buttons are a FlushIconButton.Neutral and Buttons, each measured under its own name (#2609, Q385 A)',
   'list': 'a read list of text items, never interactive and never focusable; a link inside an item is its own control (#2319)',
   'list-item': 'one item of a read list, never interactive and never focusable; a link inside it is its own control (#2319)',
   '_accordion-indicator': 'a decorative glyph inside an Accordion header; the tap target is the header row, gated as accordion',
@@ -458,6 +471,7 @@ failures.push(...selfFails.filter((f) => f.startsWith('markFailures')));
 // (#2427, the Counter's two), so this arm sees INTERACTIVE alone. (#2457 had it see CODE_SIDE_TARGETS as well, which
 // would have demanded an INNER_TARGETS entry the measure loop then skips.)
 failures.push(...markFailures(componentDefs, new Set(Object.keys(INTERACTIVE)), new Set(Object.keys(INNER_TARGETS))));
+for (const id of Object.keys(CODE_SIDE_NESTED)) if (!(id in INNER_TARGETS)) failures.push(`CODE_SIDE_NESTED names '${id}', which INNER_TARGETS does not list — a stale entry.`);
 for (const [id, inner] of Object.entries(INNER_TARGETS)) {
   const [defId, partName] = id.split('.');
   const def = componentDefs.find((d) => d.id === defId);
@@ -482,6 +496,19 @@ for (const [id, inner] of Object.entries(INNER_TARGETS)) {
     const px = Math.min(...got.map((m) => m.px!));
     floorCount++;
     const bad = violation(px, 'floor');
+    const codeSide = CODE_SIDE_NESTED[id];
+    if (codeSide) {
+      // Below the floor by decision: the floor moves to code, so the host must be a stated flush host, stating the
+      // 44×44 rule (checked with FLUSH_BUTTON_HOSTS below) and its anchor in the SAME codeOnly entry.
+      const codeOnly = def.anatomy?.codeOnly ?? [];
+      const flush = nesting?.variant?.inset === 'flush' && FLUSH_BUTTON_HOSTS.has(defId);
+      const anchored = codeOnly.some((e) => !flushRuleGap([e]).length && codeSide.anchor.test(e));
+      rows.push(`${id}/${size} → ${part.nests} ${key} → ${path} = ${px}px in Figma; the floor is the code-side 44×44, anchored (${codeSide.why}) [nested target, code-side]${!bad || !flush || !anchored ? '  ✗' : ''}`);
+      if (!bad) failures.push(`CODE_SIDE_NESTED names '${id}', whose nested box (${px}px) meets the floor — a stale entry; measure it as a nested target.`);
+      else if (!flush) failures.push(`${id}/${size} (${inner.why}, ${path}) ${bad}, and its nested Button is not a flush Button of a FLUSH_BUTTON_HOSTS host — nothing carries the floor in code.`);
+      else if (!anchored) failures.push(`${id}/${size} (${inner.why}, ${path}) ${bad}: no codeOnly entry states the code-side 44×44 together with its anchor (${codeSide.anchor.source}) — ${codeSide.why}.`);
+      continue;
+    }
     rows.push(`${id}/${size} → ${part.nests} ${key} → ${path} = ${px}px (min over ${FLOOR_DENSITIES.join('+')}) [floor, nested target]${bad ? '  ✗' : ''}`);
     if (bad) failures.push(`${id}/${size} (${inner.why}, ${path}) ${bad} on a ${got.find((m) => m.px === px)!.density} brand — a target inside a control must meet the floor too.`);
     continue;
@@ -642,7 +669,8 @@ failures.push(...flushNestFailures(componentDefs, new Set(Object.keys(CODE_SIDE_
     return path ? resolvePx(comfortable.tree, comfortable.root, path) ?? NaN : NaN;
   };
   let measuredPairs = 0;
-  for (const [id, fn] of Object.entries(FLUSH_NESTS)) {
+  const paired = Object.entries(FLUSH_NESTS).flatMap(([id, fn]) => (fn.pair ? [[id, { ...fn, pair: fn.pair }] as const] : []));
+  for (const [id, fn] of paired) {
     const def = componentDefs.find((d) => d.id === id);
     if (!def) continue;   // reported as stale above
     let closest = Infinity;
@@ -667,8 +695,8 @@ failures.push(...flushNestFailures(componentDefs, new Set(Object.keys(CODE_SIDE_
     rows.push(`${id}: ${fn.pair.join(' ↔ ')} at least ${closest}px apart center to center (closest at ${at}, comfortable) [code-side hit areas, ≥ ${FLUSH_NEST_SPACING_PX}px, Q296 A, #2427]${bad ? '  ✗' : ''}`);
     if (bad) failures.push(`${id}: ${fn.pair.join(' and ')} (${fn.why}) are ${closest}px apart center to center at ${at} — below ${FLUSH_NEST_SPACING_PX}px, so their 44×44 code-side hit areas overlap (owner Q296 A). Widen what sits between them.`);
   }
-  if (measuredPairs !== Object.keys(FLUSH_NESTS).length && !failures.length)
-    failures.push(`FLUSH_NESTS lists ${Object.keys(FLUSH_NESTS).length} host(s) and ${measuredPairs} pair(s) were measured — a host measured nowhere asserts nothing.`);
+  if (measuredPairs !== paired.length && !failures.length)
+    failures.push(`FLUSH_NESTS lists ${paired.length} host(s) with a pair and ${measuredPairs} pair(s) were measured — a host measured nowhere asserts nothing.`);
 }
 
 // ── EXCEPTION 1: small size — asserted ACTUALLY below the floor on comfortable (self-justified) ──

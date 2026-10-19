@@ -24,8 +24,8 @@
           "expanded"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
@@ -57,8 +57,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -85,8 +85,8 @@
           "trailing"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
@@ -142,8 +142,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -209,11 +209,11 @@
         },
         {
           "name": "max",
-          "default": "99"
+          "default": 99
         },
         {
           "name": "showZero",
-          "default": "false"
+          "default": false
         },
         {
           "name": "overlap",
@@ -254,8 +254,8 @@
           "text"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ],
         "width": [
@@ -351,8 +351,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -385,8 +385,8 @@
           "text"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ],
         "width": [
@@ -482,11 +482,40 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
+    },
+    {
+      "id": "button-group",
+      "name": "Button.Group",
+      "category": "form",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "layout": [
+          "inline",
+          "stacked",
+          "fill"
+        ]
+      },
+      "props": [
+        {
+          "name": "items"
+        },
+        {
+          "name": "layout",
+          "default": "inline",
+          "values": [
+            "inline",
+            "stacked",
+            "fill"
+          ]
+        }
+      ],
+      "sizes": []
     },
     {
       "id": "button-neutral",
@@ -516,8 +545,8 @@
           "text"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ],
         "width": [
@@ -613,8 +642,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -641,8 +670,8 @@
       ],
       "axes": {
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ],
         "selection": [
@@ -677,8 +706,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -693,14 +722,17 @@
       "projectedStates": [],
       "axes": {
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
       "props": [
         {
           "name": "label"
+        },
+        {
+          "name": "items"
         },
         {
           "name": "value"
@@ -733,8 +765,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -755,8 +787,8 @@
       "projectedStates": [],
       "axes": {
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
@@ -799,8 +831,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -1163,8 +1195,8 @@
           "round"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
@@ -1210,8 +1242,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -1240,8 +1272,8 @@
           "round"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
@@ -1287,8 +1319,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -1317,8 +1349,8 @@
           "round"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
@@ -1364,8 +1396,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -1578,13 +1610,13 @@
       ],
       "axes": {
         "appearance": [
+          "ghost",
           "filled",
-          "outline",
-          "ghost"
+          "outline"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ],
         "shape": [
@@ -1663,8 +1695,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -1692,13 +1724,13 @@
       ],
       "axes": {
         "appearance": [
+          "ghost",
           "filled",
-          "outline",
-          "ghost"
+          "outline"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ],
         "shape": [
@@ -1777,8 +1809,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -1806,13 +1838,13 @@
       ],
       "axes": {
         "appearance": [
+          "ghost",
           "filled",
-          "outline",
-          "ghost"
+          "outline"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ],
         "shape": [
@@ -1891,8 +1923,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -1905,11 +1937,11 @@
       "projectedStates": [],
       "axes": {
         "ratio": [
+          "4:3",
           "2:3",
           "3:4",
           "4:5",
           "1:1",
-          "4:3",
           "3:2",
           "16:9"
         ]
@@ -1957,8 +1989,8 @@
           "default"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ],
         "surface": [
@@ -2008,19 +2040,19 @@
         },
         {
           "name": "isExternal",
-          "default": "false"
+          "default": false
         },
         {
           "name": "asChild",
-          "default": "false"
+          "default": false
         },
         {
           "name": "trailingIcon"
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -2038,8 +2070,8 @@
           "icon"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
@@ -2071,12 +2103,12 @@
           "default": false
         },
         {
-          "name": "children"
+          "name": "items"
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -2094,8 +2126,8 @@
           "icon"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
@@ -2129,8 +2161,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -2280,8 +2312,8 @@
       ],
       "axes": {
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ],
         "selection": [
@@ -2311,8 +2343,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -2327,14 +2359,17 @@
       "projectedStates": [],
       "axes": {
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
       "props": [
         {
           "name": "label"
+        },
+        {
+          "name": "items"
         },
         {
           "name": "value"
@@ -2367,8 +2402,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -2388,8 +2423,8 @@
       "projectedStates": [],
       "axes": {
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
@@ -2414,8 +2449,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -2430,14 +2465,17 @@
       "projectedStates": [],
       "axes": {
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
       "props": [
         {
           "name": "label"
+        },
+        {
+          "name": "items"
         },
         {
           "name": "value"
@@ -2478,12 +2516,12 @@
         },
         {
           "name": "disabled",
-          "default": "false"
+          "default": false
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -2512,8 +2550,8 @@
           "selected"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
@@ -2526,7 +2564,7 @@
         },
         {
           "name": "selected",
-          "default": "false"
+          "default": false
         },
         {
           "name": "leadingIcon"
@@ -2542,12 +2580,12 @@
         },
         {
           "name": "disabled",
-          "default": "false"
+          "default": false
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -2727,8 +2765,8 @@
       ],
       "axes": {
         "size": [
-          "small",
-          "medium"
+          "medium",
+          "small"
         ],
         "selection": [
           "off",
@@ -2760,8 +2798,8 @@
         }
       ],
       "sizes": [
-        "small",
-        "medium"
+        "medium",
+        "small"
       ],
       "sizeDefault": "medium"
     },
@@ -2782,8 +2820,8 @@
       "projectedStates": [],
       "axes": {
         "size": [
-          "small",
-          "medium"
+          "medium",
+          "small"
         ]
       },
       "props": [
@@ -2826,8 +2864,8 @@
         }
       ],
       "sizes": [
-        "small",
-        "medium"
+        "medium",
+        "small"
       ],
       "sizeDefault": "medium"
     },
@@ -2855,8 +2893,8 @@
           "selected"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
@@ -2869,7 +2907,7 @@
         },
         {
           "name": "selected",
-          "default": "false"
+          "default": false
         },
         {
           "name": "leadingIcon"
@@ -2888,12 +2926,12 @@
         },
         {
           "name": "disabled",
-          "default": "false"
+          "default": false
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -2908,8 +2946,8 @@
       "projectedStates": [],
       "axes": {
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ],
         "alignment": [
@@ -2920,6 +2958,9 @@
       "props": [
         {
           "name": "value"
+        },
+        {
+          "name": "items"
         },
         {
           "name": "defaultValue"
@@ -2957,8 +2998,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -2992,8 +3033,8 @@
           "selected"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
@@ -3011,11 +3052,11 @@
         },
         {
           "name": "selected",
-          "default": "false"
+          "default": false
         },
         {
           "name": "showCheck",
-          "default": "true"
+          "default": true
         },
         {
           "name": "onClick"
@@ -3037,16 +3078,16 @@
         },
         {
           "name": "disabled",
-          "default": "false"
+          "default": false
         },
         {
           "name": "readOnly",
-          "default": "false"
+          "default": false
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -3335,8 +3376,8 @@
           "light"
         ],
         "intensity": [
-          "subtle",
           "medium",
+          "subtle",
           "strong"
         ],
         "direction": [
@@ -3435,6 +3476,7 @@
       "kind": "role peers",
       "name": "*.Group",
       "members": [
+        "button-group",
         "checkbox-group",
         "radio-group"
       ],
@@ -3830,6 +3872,18 @@
         ],
         "components": [
           "veil"
+        ]
+      }
+    ],
+    "layout": [
+      {
+        "values": [
+          "fill",
+          "inline",
+          "stacked"
+        ],
+        "components": [
+          "button-group"
         ]
       }
     ],
@@ -4306,7 +4360,7 @@
     "asChild": [
       {
         "id": "link",
-        "default": "false"
+        "default": false
       }
     ],
     "autoComplete": [
@@ -4354,9 +4408,6 @@
       },
       {
         "id": "dialog"
-      },
-      {
-        "id": "list"
       },
       {
         "id": "list-item"
@@ -4509,11 +4560,11 @@
       },
       {
         "id": "segmented-control",
-        "default": "false"
+        "default": false
       },
       {
         "id": "segmented-control-segment",
-        "default": "false"
+        "default": false
       },
       {
         "id": "select",
@@ -4525,11 +4576,11 @@
       },
       {
         "id": "tab",
-        "default": "false"
+        "default": false
       },
       {
         "id": "tag",
-        "default": "false"
+        "default": false
       },
       {
         "id": "text-field",
@@ -4778,7 +4829,7 @@
     "isExternal": [
       {
         "id": "link",
-        "default": "false"
+        "default": false
       }
     ],
     "isInactive": [
@@ -4847,6 +4898,26 @@
       {
         "id": "text-field",
         "default": false
+      }
+    ],
+    "items": [
+      {
+        "id": "button-group"
+      },
+      {
+        "id": "checkbox-group"
+      },
+      {
+        "id": "list"
+      },
+      {
+        "id": "radio-group"
+      },
+      {
+        "id": "segmented-control"
+      },
+      {
+        "id": "tabs"
       }
     ],
     "label": [
@@ -4928,6 +4999,17 @@
         ]
       }
     ],
+    "layout": [
+      {
+        "id": "button-group",
+        "default": "inline",
+        "values": [
+          "inline",
+          "stacked",
+          "fill"
+        ]
+      }
+    ],
     "leadingIcon": [
       {
         "id": "password-field"
@@ -4962,7 +5044,7 @@
     "max": [
       {
         "id": "badge",
-        "default": "99"
+        "default": 99
       },
       {
         "id": "counter"
@@ -5246,7 +5328,7 @@
       },
       {
         "id": "tag",
-        "default": "false"
+        "default": false
       },
       {
         "id": "text-field",
@@ -5315,15 +5397,15 @@
     "selected": [
       {
         "id": "segmented-control-segment",
-        "default": "false"
+        "default": false
       },
       {
         "id": "tab",
-        "default": "false"
+        "default": false
       },
       {
         "id": "tag",
-        "default": "false"
+        "default": false
       }
     ],
     "shape": [
@@ -5379,7 +5461,7 @@
     "showCheck": [
       {
         "id": "tag",
-        "default": "true"
+        "default": true
       }
     ],
     "showCount": [
@@ -5429,7 +5511,7 @@
     "showZero": [
       {
         "id": "badge",
-        "default": "false"
+        "default": false
       }
     ],
     "size": [
@@ -6223,6 +6305,14 @@
     },
     {
       "kind": "state set",
+      "subject": "role peers: *.Group",
+      "components": [
+        "button-group"
+      ],
+      "detail": "button-group differs from the group's common set [rest] — lacks rest"
+    },
+    {
+      "kind": "state set",
       "subject": "substrate: button",
       "components": [
         "flush-icon-button"
@@ -6489,6 +6579,70 @@
     },
     {
       "kind": "size order",
+      "subject": "_accordion-indicator",
+      "components": [
+        "_accordion-indicator"
+      ],
+      "detail": "_accordion-indicator declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "accordion",
+      "components": [
+        "accordion"
+      ],
+      "detail": "accordion declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "button",
+      "components": [
+        "button"
+      ],
+      "detail": "button declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "button-destructive",
+      "components": [
+        "button-destructive"
+      ],
+      "detail": "button-destructive declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "button-neutral",
+      "components": [
+        "button-neutral"
+      ],
+      "detail": "button-neutral declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "checkbox-control",
+      "components": [
+        "checkbox-control"
+      ],
+      "detail": "checkbox-control declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "checkbox-group",
+      "components": [
+        "checkbox-group"
+      ],
+      "detail": "checkbox-group declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "checkbox-row",
+      "components": [
+        "checkbox-row"
+      ],
+      "detail": "checkbox-row declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
       "subject": "counter",
       "components": [
         "counter"
@@ -6505,6 +6659,78 @@
     },
     {
       "kind": "size order",
+      "subject": "flush-icon-button",
+      "components": [
+        "flush-icon-button"
+      ],
+      "detail": "flush-icon-button declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "flush-icon-button-destructive",
+      "components": [
+        "flush-icon-button-destructive"
+      ],
+      "detail": "flush-icon-button-destructive declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "flush-icon-button-neutral",
+      "components": [
+        "flush-icon-button-neutral"
+      ],
+      "detail": "flush-icon-button-neutral declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "icon-button",
+      "components": [
+        "icon-button"
+      ],
+      "detail": "icon-button declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "icon-button-destructive",
+      "components": [
+        "icon-button-destructive"
+      ],
+      "detail": "icon-button-destructive declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "icon-button-neutral",
+      "components": [
+        "icon-button-neutral"
+      ],
+      "detail": "icon-button-neutral declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "link",
+      "components": [
+        "link"
+      ],
+      "detail": "link declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "list",
+      "components": [
+        "list"
+      ],
+      "detail": "list declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "list-item",
+      "components": [
+        "list-item"
+      ],
+      "detail": "list-item declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
       "subject": "password-field",
       "components": [
         "password-field"
@@ -6513,11 +6739,91 @@
     },
     {
       "kind": "size order",
+      "subject": "radio-control",
+      "components": [
+        "radio-control"
+      ],
+      "detail": "radio-control declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "radio-group",
+      "components": [
+        "radio-group"
+      ],
+      "detail": "radio-group declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "radio-row",
+      "components": [
+        "radio-row"
+      ],
+      "detail": "radio-row declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "segmented-control",
+      "components": [
+        "segmented-control"
+      ],
+      "detail": "segmented-control declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "segmented-control-segment",
+      "components": [
+        "segmented-control-segment"
+      ],
+      "detail": "segmented-control-segment declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
       "subject": "select",
       "components": [
         "select"
       ],
       "detail": "select declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "switch-control",
+      "components": [
+        "switch-control"
+      ],
+      "detail": "switch-control declares its sizes as [medium, small], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "switch-row",
+      "components": [
+        "switch-row"
+      ],
+      "detail": "switch-row declares its sizes as [medium, small], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "tab",
+      "components": [
+        "tab"
+      ],
+      "detail": "tab declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "tabs",
+      "components": [
+        "tabs"
+      ],
+      "detail": "tabs declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "tag",
+      "components": [
+        "tag"
+      ],
+      "detail": "tag declares its sizes as [medium, small, large], not smallest first"
     },
     {
       "kind": "size order",

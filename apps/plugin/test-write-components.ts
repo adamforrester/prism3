@@ -2591,7 +2591,8 @@ ok(fmRun.properties.filter((p) => p.indexOf('TEXT') >= 0).length === 1,
 // inline import builds a FRAME wrapping a VECTOR where each row wants an INSTANCE, and fails by name.
 //
 // `size` names the variable both axes bind, with `{size}` standing for the member's own size rung token
-// (`sm`/`md`/`lg`); `px` is a literal glyph size; `inset` is checkbox's 0.8 of its box (#1346), where the
+// (`sm`/`md`/`lg`) and `{size-1}` for the rung one below it (`xs`/`sm`/`md`, Tag's glyph since #2725, owner Q337 A);
+// `px` is a literal glyph size; `inset` is checkbox's 0.8 of its box (#1346), where the
 // part is a frame bound to the box and the instance its one child, named `glyph`.
 {
   type IconRow = { def: string; part: string; icon: string; size?: string; px?: number; inset?: number };
@@ -2603,13 +2604,14 @@ ok(fmRun.properties.filter((p) => p.indexOf('TEXT') >= 0).length === 1,
     { def: 'checkbox-control', part: 'dash', icon: 'icon/minus', size: 'control/size/{size}/height', inset: 0.8 },
     { def: 'switch-control', part: 'onGlyph', icon: 'icon/check', size: 'control/size/{size}/thumb' },
     { def: 'switch-control', part: 'offGlyph', icon: 'icon/close', size: 'control/size/{size}/thumb' },
-    { def: 'tag', part: 'check', icon: 'icon/check', size: 'icon/size/{size}' },
-    { def: 'tag', part: 'dismissGlyph', icon: 'icon/close', size: 'icon/size/{size}' },
+    { def: 'tag', part: 'check', icon: 'icon/check', size: 'icon/size/{size-1}' },
+    { def: 'tag', part: 'dismissGlyph', icon: 'icon/close', size: 'icon/size/{size-1}' },
     { def: 'select', part: 'chevron', icon: 'icon/chevron-down', size: 'icon/size/sm' },
     { def: 'textarea', part: 'grip', icon: 'icon/resize-grip', size: 'icon/size/xs' },
     { def: 'image-placeholder', part: 'marker', icon: 'icon/image', px: 180 },
   ];
   const RUNG: Record<string, string> = { small: 'sm', medium: 'md', large: 'lg' };
+  const RUNG_BELOW: Record<string, string> = { small: 'xs', medium: 'sm', large: 'md' };
   const mainName = (n: Node | undefined): string => String((n as { mainComponent?: { name?: string } } | undefined)?.mainComponent?.name ?? '(not an instance)');
   const boundId = (n: Node, k: string): string => String(((n.boundVariables ?? {}) as Record<string, { id?: string }>)[k]?.id ?? '(unbound)').replace(/^V:/, '');
   const findPart = (n: Node, name: string): Node | undefined => {
@@ -2636,7 +2638,7 @@ ok(fmRun.properties.filter((p) => p.indexOf('TEXT') >= 0).length === 1,
       if (!node) return;
       seen++;
       const size = (plans[i]?.size && RUNG[plans[i].size!]) ?? '';
-      const want = row.size?.replace('{size}', size);
+      const want = row.size?.replace('{size-1}', (plans[i]?.size && RUNG_BELOW[plans[i].size!]) ?? '').replace('{size}', size);
       const inst = row.inset !== undefined ? ((node.children as Node[] | undefined) ?? []).find((c) => c.name === 'glyph') : node;
       if (row.inset !== undefined && node.type !== 'FRAME') bad.push(`${m.name}: the part is a ${node.type}, not the frame that holds the inset icon`);
       if (!inst || inst.type !== 'INSTANCE' || mainName(inst) !== row.icon) {
@@ -3659,6 +3661,149 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const pre = mainSrc.indexOf('await prebuildDependencies(def,');
   const own = mainSrc.indexOf('await buildOne(def, reports, landed)');   // #1750: the call now passes `landed`
   ok(pre >= 0 && own > pre, '#1633 main.ts pre-builds the nests before building the def it was asked for');
+}
+
+// =============================================================================================
+// #2808 (Q386) — NO COMPONENT REQUIRES THE NEUTRAL BUTTON FAMILIES
+// =============================================================================================
+// Owner decision Q386: many teams will not build Button.Neutral or IconButton.Neutral, so no other def may need
+// them. A close or dismiss nests FlushIconButton.Neutral (a subcomponent the plugin builds as a dependency), and a
+// neutral action uses Button.Neutral only as a fallback-only preference the def declares in its own field, never
+// as `nests` (Q363.8 on #2661). This fails BY NAME, per def, on either of two readings that do not share a
+// derivation (`docs/34` shape 2):
+//
+//   · DECLARED — `anatomy.parts[*].nests` straight off the def: the component the def says it nests.
+//   · BUILT — `missingDependencies` over the PROJECTED plans in an empty file: the plugin's own transitive list of
+//     what it builds before the def. It reads `nestTarget`, `swapTarget` and swap overrides off the plan, so it
+//     also sees a requirement the anatomy reaches through a nested def (one level down is still required).
+//
+// A fallback-only reference is not `nests` and not `nestTarget`, so neither reading counts it: that is the
+// declaration Q386 asks for. Floors (shapes 9 and 15): both forbidden ids are registered defs, so renaming one does
+// not empty the gate; every projected def is walked on the BUILT reading, with the count printed and held; and the
+// predicate itself fails a fixture def that nests each forbidden id, so a predicate that matched nothing fails.
+{
+  const FORBIDDEN = ['button-neutral', 'icon-button-neutral'] as const;
+  ok(FORBIDDEN.every((id) => componentDefs.some((d) => d.id === id)),
+    `#2808 the Neutral button families the rule forbids are registered defs (${FORBIDDEN.filter((id) => !componentDefs.some((d) => d.id === id)).join(', ') || 'both found'})`);
+  const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP });
+  const builtNeeds = (def: ComponentDef, defs: readonly ComponentDef[], proj: (d: ComponentDef) => AnatomyPlan[]): string[] =>
+    missingDependencies(def, { defs, project: proj, present: () => false }).map((x) => x.def.id).filter((id) => (FORBIDDEN as readonly string[]).includes(id));
+  const declaredNeeds = (def: ComponentDef): string[] =>
+    Object.entries(def.anatomy?.parts ?? {}).filter(([, p]) => !!p.nests && (FORBIDDEN as readonly string[]).includes(p.nests)).map(([n, p]) => `${n} → ${p.nests}`);
+
+  // THE PREDICATES CAN FAIL: a fixture host nesting each forbidden id is flagged by both readings.
+  for (const id of FORBIDDEN) {
+    const host = { id: 'fixture-host', anatomy: { root: 'x', parts: { x: { kind: 'nest', nests: id } } }, figmaProperties: {} } as unknown as ComponentDef;
+    const target = componentDefs.find((d) => d.id === id)!;
+    const proj = (d: ComponentDef) => (d === host ? [{ root: { nestTarget: id, children: [] } } as unknown as AnatomyPlan] : project(d));
+    ok(declaredNeeds(host).length === 1 && builtNeeds(host, [...componentDefs, host], proj).includes(target.id),
+      `#2808 the gate's predicates flag a fixture def that nests ${id} (declared [${declaredNeeds(host).join(', ')}], built [${builtNeeds(host, [...componentDefs, host], proj).join(', ')}])`);
+  }
+
+  let walked = 0;
+  const unprojected: string[] = [];
+  for (const def of componentDefs) {
+    if ((FORBIDDEN as readonly string[]).includes(def.id)) continue;
+    const declared = declaredNeeds(def);
+    ok(declared.length === 0, `#2808 ${def.id} declares no required nest of a Neutral button family (Q386)${declared.length ? ` — nests ${declared.join(', ')}; nest FlushIconButton.Neutral for a close, or declare Button.Neutral as a fallback-only preference` : ''}`);
+    if (!def.figmaProperties) continue;
+    let built: string[];
+    try { built = builtNeeds(def, componentDefs, project); walked++; } catch (e) { unprojected.push(`${def.id}: ${(e as Error).message.slice(0, 120)}`); continue; }
+    ok(built.length === 0, `#2808 building ${def.id} into an empty file builds no Neutral button family first (Q386)${built.length ? ` — the plugin would build ${built.join(', ')}` : ''}`);
+  }
+  const projected = componentDefs.filter((d) => d.figmaProperties && !(FORBIDDEN as readonly string[]).includes(d.id)).length;
+  ok(walked === projected && unprojected.length === 0,
+    `#2808 the BUILT reading walked every projected def (${walked} of ${projected})${unprojected.length ? ` — not walked: ${unprojected.join('; ')}` : ''}`);
+
+  // #2661 — THE DECLARED FALLBACK-ONLY REFERENCES. A nest's `prefersWhenBuilt` and a slot's `preferredWhenBuilt` are
+  // how a def names a Neutral family without requiring it. Neither reading above counts them, and a native slot's
+  // `preferred` list (which names a missing def as a miss) must not name a forbidden family at all: it goes in
+  // `preferredWhenBuilt`. The fixture proves each predicate tells the two apart: `prefersWhenBuilt` alone is not a
+  // requirement, and the same id in `nests` is.
+  const slotNeeds = (def: ComponentDef): string[] =>
+    Object.entries(def.anatomy?.parts ?? {}).flatMap(([n, p]) => (p.preferred ?? []).filter((id) => (FORBIDDEN as readonly string[]).includes(id)).map((id) => `${n}.preferred → ${id}`));
+  for (const def of componentDefs) {
+    if ((FORBIDDEN as readonly string[]).includes(def.id)) continue;
+    const needs = slotNeeds(def);
+    ok(needs.length === 0, `#2808 ${def.id}'s native slots require no Neutral button family (Q386)${needs.length ? ` — ${needs.join(', ')}; move it to preferredWhenBuilt` : ''}`);
+  }
+  const prefHost = { id: 'fixture-pref', anatomy: { root: 'x', parts: { x: { kind: 'nest', nests: 'button', prefersWhenBuilt: 'button-neutral', nesting: { kind: 'nest-fixed', variant: {} } }, s: { kind: 'box', contentSlot: true, preferred: ['button'], preferredWhenBuilt: ['button-neutral'] } } }, figmaProperties: {} } as unknown as ComponentDef;
+  const prefProj = (d: ComponentDef) => (d === prefHost ? [{ root: { nestTarget: 'button', nestPrefer: 'button-neutral', children: [] } } as unknown as AnatomyPlan] : project(d));
+  const slotHost = { ...prefHost, anatomy: { root: 's', parts: { s: { kind: 'box', contentSlot: true, preferred: ['button-neutral'] } } } } as unknown as ComponentDef;
+  ok(declaredNeeds(prefHost).length === 0 && !builtNeeds(prefHost, [...componentDefs, prefHost], prefProj).length && slotNeeds(prefHost).length === 0 && slotNeeds(slotHost).length === 1,
+    `#2808 #2661 a fallback-only preference is not a requirement on either reading, and the same family in a slot's preferred list is (declared [${declaredNeeds(prefHost).join(', ')}], built [${builtNeeds(prefHost, [...componentDefs, prefHost], prefProj).join(', ')}], slot [${slotNeeds(slotHost).join(', ')}])`);
+  // Q418 — and a HOST's preference for a nested component's default item (`nestItemPrefers`) is the same kind of
+  // reference: the plan field it projects to is not `nestTarget` either reading reads. The fixture nests the group and
+  // prefers Button.Neutral for its Cancel; neither reading counts it, and the same id in `nests` is still counted.
+  const itemHost = { id: 'fixture-item', anatomy: { root: 'x', parts: { x: { kind: 'nest', nests: 'button-group', nestItemPrefers: { cancel: 'button-neutral' }, nesting: { kind: 'nest-fixed', variant: {} } } } }, figmaProperties: {} } as unknown as ComponentDef;
+  const itemProj = (d: ComponentDef) => (d === itemHost ? [{ root: { nestTarget: 'button-group', nestItemPrefer: [{ item: 'cancel', prefer: 'button-neutral', variant: {} }], children: [] } } as unknown as AnatomyPlan] : project(d));
+  ok(declaredNeeds(itemHost).length === 0 && !builtNeeds(itemHost, [...componentDefs, itemHost], itemProj).length,
+    `#2808 #2661 Q418 a host's item preference for Button.Neutral is not a requirement on either reading (declared [${declaredNeeds(itemHost).join(', ')}], built [${builtNeeds(itemHost, [...componentDefs, itemHost], itemProj).join(', ')}])`);
+  // REPRESENTED (shape 15): the corpus declares at least one Neutral fallback, so the arm above reads a real case.
+  const fallbacks = componentDefs.flatMap((d) => Object.entries(d.anatomy?.parts ?? {})
+    .filter(([, p]) => p.prefersWhenBuilt === 'button-neutral' || Object.values(p.nestItemPrefers ?? {}).includes('button-neutral')).map(([n]) => `${d.id}.${n}`));
+  ok(fallbacks.length > 0, `#2808 #2661 the corpus declares Button.Neutral as a fallback-only preference somewhere (${fallbacks.join(', ') || 'nowhere'})`);
+}
+
+// =============================================================================================
+// #2661 (Q363.8 as amended, Q386, Q418) — THE HOST DECIDES THE SECONDARY: DIALOG'S CANCEL IS BUTTON.NEUTRAL ONLY WHEN THE FILE HAS IT
+// =============================================================================================
+// Two themed files, each built the way `main.ts` builds: the def's missing nests first (`prebuildDependencies`), then
+// the def. Button.Group on its own prefers nothing (Q418): in either file every Cancel in the group is an outline
+// primary Button. A Dialog's instance of the group prefers Button.Neutral for its Cancel (`nestItemPrefers`): in the file
+// WITHOUT the Neutral families, building Dialog builds Button.Group and Button but never Button.Neutral, and the footer's
+// Cancel is an outline primary Button, with no nest miss and no slot miss for the families it only prefers; in the file
+// where Button.Neutral was built FIRST, it is an outline Button.Neutral and the slot offers it. Expected owners and lists
+// are LITERALS (docs/34). Mutations: drop the `nestItemPrefer` call from the plugin executor → the Dialog `with
+// Button.Neutral` arm fails; make the group's Cancel prefer Button.Neutral again → the standalone `with Button.Neutral`
+// arm fails; make `nestItemPrefers` project as `nestTarget` → `without` fails (the plugin builds button-neutral first).
+{
+  const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP });
+  const all = componentDefs.flatMap((d) => { try { return project(d); } catch { return []; } });
+  const f = fullFor(all);
+  const byDef = (id: string) => componentDefs.find((d) => d.id === id)!;
+  const flat = (n: Node): Node[] => [n, ...((n.children as Node[] | undefined) ?? []).flatMap(flat)];
+  const CANCEL = ['cancel', 'cancelStacked', 'cancelFill'];
+  for (const withNeutral of [false, true]) {
+    const label = withNeutral ? 'with Button.Neutral built first' : 'without Button.Neutral';
+    const page: Page = { children: [] };
+    const shim = makeShim({ vars: f.vars, styles: f.styles, effects: f.effects, comps: [], liveRoot: true, page, identities: true, nestedItems: true });
+    const order: string[] = [];
+    const misses: string[] = [];
+    const build = async (d: ComponentDef) => { order.push(d.id); const r = await applyComponentPlan(project(d), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents }); misses.push(...r.misses.map((m) => `${d.id}: ${m}`)); return r; };
+    if (withNeutral) { await prebuildDependencies(byDef('button-neutral'), { defs: componentDefs, project, host: shim as any, build }); await build(byDef('button-neutral')); }
+    const neutralBuilds = order.filter((id) => id === 'button-neutral').length;
+    await prebuildDependencies(byDef('dialog'), { defs: componentDefs, project, host: shim as any, build });
+    await build(byDef('dialog'));
+    ok(order.includes('button-group') && order.includes('button') && order.filter((id) => id === 'button-neutral').length === neutralBuilds && order.indexOf('button-group') < order.indexOf('dialog'),
+      `#2661 ${label}: building Dialog builds Button.Group and Button first, and never Button.Neutral (${order.join(', ')})`);
+    const group = page.children.find((c) => c.name === 'button-group' && c.type === 'COMPONENT_SET') as Node | undefined;
+    const cancels = ((group?.children as Node[] | undefined) ?? []).flatMap(flat).filter((n) => n.type === 'INSTANCE' && CANCEL.includes(String(n.name)));
+    const readOwner = (n: Node) => { const m = n.mainComponent as Node | undefined; return { name: n.name, set: String((m?.parent as Node | undefined)?.name ?? ''), member: String(m?.name ?? '') }; };
+    // THE GROUP ON ITS OWN prefers nothing (Q418): its Cancel is the outline primary Button in either file.
+    const wrong = cancels.map(readOwner).filter((x) => x.set !== 'button' || !/appearance=outline/.test(x.member));
+    ok(cancels.length === 3 && wrong.length === 0,
+      `#2661 Q418 ${label}: every Cancel in Button.Group on its own (inline, stacked, fill) is an outline button, whatever the file holds (${cancels.length} found${wrong.length ? `; WRONG: ${wrong.map((w) => `${w.name} → ${w.set}/${w.member}`).join(' | ')}` : ''})`);
+    // DIALOG'S FOOTER: the group instance's Cancel is the host's preference. Read off the built Dialog set, through each
+    // footer's instance of the group.
+    const wantSet = withNeutral ? 'button-neutral' : 'button';
+    const dialogSet = page.children.find((c) => c.name === 'dialog' && c.type === 'COMPONENT_SET') as Node | undefined;
+    const footers = ((dialogSet?.children as Node[] | undefined) ?? []).flatMap(flat).filter((n) => n.type === 'INSTANCE' && ['actionsInline', 'actionsStacked'].includes(String(n.name)));
+    const dlgCancels = footers.flatMap((fi) => ((fi.findAll as (p: (n: Node) => boolean) => Node[])((n) => CANCEL.includes(String(n.name)) && n.type === 'INSTANCE')));
+    const dlgWrong = dlgCancels.map(readOwner).filter((x) => x.set !== wantSet || !/appearance=outline/.test(x.member));
+    const dlgSaves = footers.flatMap((fi) => ((fi.findAll as (p: (n: Node) => boolean) => Node[])((n) => ['save', 'saveStacked'].includes(String(n.name)) && n.type === 'INSTANCE'))).map(readOwner);
+    ok(footers.length >= 2 && dlgCancels.length === footers.length && dlgWrong.length === 0 && dlgSaves.length === footers.length && dlgSaves.every((x) => x.set === 'button' && /appearance=filled/.test(x.member)),
+      `#2661 Q418 ${label}: every Dialog footer's Cancel (${footers.length} footers, ${dlgCancels.length} Cancels) is an outline ${wantSet}, and every Save a filled button${dlgWrong.length ? `; WRONG: ${dlgWrong.map((w) => `${w.name} → ${w.set}/${w.member}`).join(' | ')}` : ''}`);
+    const nestMisses = misses.filter((m) => /\.nest(Target|Variant|Prefer|ItemPrefer) ->|\.preferred -> button-(neutral|destructive)/.test(m));
+    ok(nestMisses.length === 0, `#2661 ${label}: Button.Group and Dialog build with no nest miss and no slot miss for the families they only prefer (${nestMisses.slice(0, 2).join(' | ') || 'none'})`);
+    // THE SLOT OFFERS what the file has: the primary Button always, Button.Neutral only once it is built.
+    const defs = (group?.componentPropertyDefinitions ?? {}) as Record<string, { type?: string; preferredValues?: { key?: string }[] }>;
+    const slot = Object.entries(defs).find(([k, v]) => k.split('#')[0] === 'items' && v.type === 'SLOT')?.[1];
+    const keyName = (k: string): string => String(page.children.find((x) => (x.type === 'COMPONENT_SET' || x.type === 'COMPONENT') && x.key === k)?.name ?? `(${k})`);
+    const offered = (slot?.preferredValues ?? []).map((v) => keyName(String(v.key)));
+    const wantOffered = withNeutral ? ['button', 'button-neutral'] : ['button'];
+    ok(JSON.stringify(offered) === JSON.stringify(wantOffered), `#2661 ${label}: the items slot offers ${wantOffered.join(' and ')} (got ${JSON.stringify(offered)})`);
+  }
 }
 
 // =============================================================================================
@@ -4950,6 +5095,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     ['buttonMinWidthMultiplier', 1], ['buttonMinWidthMultiplier', 4],
     ['buttonTextHover', 'fill'],
     ['controlShape', 'boxed'], ['controlShape', 'hairline'], ['controlShape', 'pill'],
+    // #2695: Field style moves only the field defs' geometry and paints, never the tree.
+    ['fieldStyle', 'underline'],
   ];
   const getIn = (o: any, key: string): unknown => key.split('.').reduce((a, p) => a?.[p], o);
   const setIn = (o: any, key: string, v: unknown): any => {
@@ -4983,6 +5130,47 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 }
 
 // =============================================================================================
+// #2695 — THE UNDERLINE FIELD, built through `materializeForBrand` and read back from the host shim
+// =============================================================================================
+// A brand on "Field style: Underline" builds every field set with the four stroke sides bound apart: top, end and start
+// to `border-width/none`, the bottom to `border-width/hairline` (and `border-width/thick` at focus), read back off the
+// host's own per-side keys. The shim models a literal `strokeWeight` write detaching those bindings (#1266), so an
+// executor whose 1px fallback wrote over them reads back here with no weight bound. Expected names typed from the
+// decisions (Q333). Mutation: drop the per-side keys from either fallback guard in `write-components.ts`.
+{
+  const input = { ...parseDesignMd(readFileSync(new URL('../../packages/engine/examples/nb-redesign.design.md', import.meta.url), 'utf8')).input, fieldStyle: 'underline' } as BrandInput;
+  const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, input), { swapTarget: SWAP });
+  const all = componentDefs.flatMap((d) => { try { return project(d); } catch { return []; } });
+  const f = fullFor(all);
+  const id = (v: unknown): string | null => (v as { id?: string } | undefined)?.id?.replace(/^V:/, '') ?? null;
+  const wrong: string[] = [];
+  const misses: string[] = [];
+  let read = 0;
+  for (const fid of ['text-field', 'password-field', 'select', 'textarea']) {
+    const def = componentDefs.find((d) => d.id === fid)!;
+    const page: Page = { children: [] };
+    const shim = makeShim({ vars: f.vars, styles: f.styles, effects: f.effects, comps: [], liveRoot: true, page });
+    const build = (d: ComponentDef) => applyComponentPlan(project(d), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents });
+    await prebuildDependencies(def, { defs: componentDefs, project, host: shim as any, build });
+    const run = await build(def);
+    misses.push(...run.misses.filter((m) => /stroke/i.test(m)).map((m) => `${fid}: ${m}`));
+    const set = page.children.find((c) => c.type === 'COMPONENT_SET' && c.name === project(def)[0].component) as Node | undefined;
+    for (const m of (set?.children ?? []) as Node[]) {
+      const control = ((m.children as Node[]) ?? []).flatMap(function walk(n: Node): Node[] { return [n, ...((n.children as Node[]) ?? []).flatMap(walk)]; }).find((n) => n.name === 'control');
+      const bv = (control?.boundVariables ?? {}) as Record<string, unknown>;
+      const focus = /state=focus-visible/.test(String(m.name));
+      read++;
+      const got = [id(bv.strokeTopWeight), id(bv.strokeRightWeight), id(bv.strokeBottomWeight), id(bv.strokeLeftWeight)];
+      const want = ['border-width/none', 'border-width/none', focus ? 'border-width/thick' : 'border-width/hairline', 'border-width/none'];
+      if (JSON.stringify(got) !== JSON.stringify(want)) wrong.push(`${fid} ${m.name}: ${got.join(' / ')}`);
+    }
+  }
+  ok(read === 4 * 84 && wrong.length === 0,
+    `#2695 underline fields read back with their per-side weights bound: none / none / hairline (thick at focus) / none, on all ${read} of 336 members (${wrong.slice(0, 3).join('; ') || 'ok'})`);
+  ok(misses.length === 0, `#2695 underline fields: no stroke binding is reported discarded (${misses.slice(0, 3).join('; ') || 'none'})`);
+}
+
+// =============================================================================================
 // #2518 — CENTERED TABS (owner decision Q222 A), read off the built set
 // =============================================================================================
 // At `alignment=center` the tab list sits centered in a bar that spans its placement: the member is BUILT 480 wide
@@ -5009,7 +5197,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const wrongStart: string[] = [];
   let centered = 0, started = 0;
   for (const m of members) {
-    const list = child(m, 'list'); const base = child(m, 'baseline');
+    // The row of tabs is the `items` slot since #2649.
+    const list = child(m, 'items'); const base = child(m, 'baseline');
     const at = String(m.name);
     if (!list || !base) { (at.includes('alignment=center') ? wrongCenter : wrongStart).push(`${at}: no list or baseline`); continue; }
     const W = Number(m.width), lw = Number(list.width), lx = Number(list.x), bw = Number(base.width);
@@ -5080,19 +5269,24 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const child = (m: Node, name: string) => ((m.children as Node[]) ?? []).find((c) => c.name === name);
   const wrong: string[] = [];
   for (const m of members) {
+    // Since #2649 the options sit in the `items` slot, which grows along the track: the slot fills the track less the
+    // track's padding, and the options share the slot less its gaps.
     const track = child(m, 'track');
-    const shown = ((track?.children as Node[]) ?? []).filter((c) => c.visible !== false);
+    const items = track ? child(track, 'items') : undefined;
+    const shown = ((items?.children as Node[]) ?? []).filter((c) => c.visible !== false);
     const widths = shown.map((c) => Number(c.width));
-    const tw = Number(track?.width);
-    // The track's own padding and gaps as the HOST holds them (the shim's placeholder variables, not the def's tokens).
-    const bv = (track?.boundVariables ?? {}) as Record<string, { value?: number }>;
-    const frame = (bv.paddingLeft?.value ?? 0) + (bv.paddingRight?.value ?? 0) + Math.max(0, shown.length - 1) * (bv.itemSpacing?.value ?? 0);
+    const tw = Number(track?.width), iw = Number(items?.width);
+    // The padding and gaps as the HOST holds them (the shim's placeholder variables, not the def's tokens).
+    const tbv = (track?.boundVariables ?? {}) as Record<string, { value?: number }>;
+    const ibv = (items?.boundVariables ?? {}) as Record<string, { value?: number }>;
+    const pad = (tbv.paddingLeft?.value ?? 0) + (tbv.paddingRight?.value ?? 0);
+    const gaps = Math.max(0, shown.length - 1) * (ibv.itemSpacing?.value ?? 0);
     const sum = widths.reduce((a, b) => a + b, 0);
-    if (!track || shown.length !== 3 || new Set(widths).size !== 1 || Math.abs(sum + frame - tw) > 0.5 || shown.some((c) => c.layoutGrow !== 1))
-      wrong.push(`${String(m.name)}: track ${tw} (padding and gaps ${frame}), ${shown.length} shown at ${widths.join('/')} (sum ${sum}), layoutGrow ${shown.map((c) => String(c.layoutGrow)).join('/')}`);
+    if (!track || items?.type !== 'SLOT' || items.layoutGrow !== 1 || Math.abs(iw + pad - tw) > 0.5 || shown.length !== 3 || new Set(widths).size !== 1 || Math.abs(sum + gaps - iw) > 0.5 || shown.some((c) => c.layoutGrow !== 1))
+      wrong.push(`${String(m.name)}: track ${tw} (padding ${pad}), items ${String(items?.type)} ${iw} grow ${String(items?.layoutGrow)}, ${shown.length} shown at ${widths.join('/')} (sum ${sum}, gaps ${gaps}), layoutGrow ${shown.map((c) => String(c.layoutGrow)).join('/')}`);
   }
   ok(members.length === 3 && wrong.length === 0,
-    `segmented control equal widths (Q269.6): at every size the three shown options grow along the track (layoutGrow 1 on the host) and measure the same width, their shares filling the track (${members.length} members${wrong.length ? ` — WRONG: ${wrong.join(' | ')}` : ''})`);
+    `segmented control equal widths (Q269.6): at every size the items slot grows along the track and its three options grow along it (layoutGrow 1 on the host) and measure the same width, their shares filling the track (${members.length} members${wrong.length ? ` — WRONG: ${wrong.join(' | ')}` : ''})`);
 }
 
 if (failed) process.exit(1);

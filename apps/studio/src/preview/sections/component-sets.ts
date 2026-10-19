@@ -1,14 +1,10 @@
-/** The Components preview's Component sets section (UI redesign S8.2; owner decisions G1, G2, G3, G4, G5 and G9, all
- *  A): every set the engine defines, with its one-line summary, its category, how many parts a build writes, the sets
- *  it contains, and the spacing that follows density at the brand's density. In the plugin, a set is chosen here and
- *  built with the build bar's button (in view at the bottom of the preview, C4); each set says how its last build in this
- *  session went (G9, C1). On the web the
- *  list is read-only, with one line saying building needs the plugin.
+/** What each component set says (UI redesign S8.2; owner decisions G1, G3, G4 and G9, all A): its one-line summary, its
+ *  category, the sets it contains, the spacing that follows density at the brand's density, and how its last build in
+ *  this session went (G9, C1). Since #2700 the Components page's focused-family block draws these lines
+ *  (`preview/components.ts`), and the list and the build are the levers pane's (`domains/components.ts`).
  *
- *  TWO HALVES. `setsView` is pure (no DOM, so `test-component-sets.ts` runs it in Node over planted catalogs): what each
- *  entry says, and whether it is OFFERED for building. `componentSetsSection` draws a view. Splitting them is what lets
- *  G4's path be tested while no set is unbuildable (all 26 build today): a planted definition goes through the same
- *  `setsView` the page draws from.
+ *  PURE (no DOM, so `test-component-catalog.ts` runs it in Node over planted catalogs): what each entry says, and
+ *  whether it is OFFERED for building, which is what lets G4's path be tested while no set is unbuildable.
  *
  *  A SET THAT CAN'T BE BUILT (G4 A) is listed, grayed, with its reason, and is not offered: it has no radio, and the
  *  build refuses it (`main.ts`'s `runBuild` asks the catalog again). Its reason is the definition's own `notStandalone`
@@ -22,7 +18,6 @@
 import { densitySpacingStep, type Density } from '@prism3/engine/scale';
 import type { Catalog, CatalogEntry } from '../../state/component-catalog';
 import type { SetBuild } from '../../state/host-session';
-import { el, hook } from './kit';
 
 /** The section's copy. APPROVED (owner, 2026-10-05, #2090; "Build failed" added by C1 A). */
 export const SETS_COPY = {
@@ -96,47 +91,3 @@ export const setsView = (catalog: Catalog, o: {
     last: o.plugin && e.buildable ? (r === 'ok' ? SETS_COPY.built : r === 'issues' ? SETS_COPY.problems : r === 'failed' ? SETS_COPY.failed : SETS_COPY.notBuilt) : null,
   };
 });
-
-/** The set the Build button builds: `want` while it is offered, else the first set offered, else null. */
-export const chosenOf = (view: readonly SetEntryView[], want: string | null): string | null =>
-  view.find((v) => v.offered && v.id === want)?.id ?? view.find((v) => v.offered)?.id ?? null;
-
-/** Draw the list, and in the plugin its radios. `chosen` is the set checked. The Build button and its hints are the
- *  preview's build bar (`preview/components.ts`, owner decision C4 A), which stays in view at the bottom. */
-export const componentSetsSection = (view: readonly SetEntryView[], o: {
-  plugin: boolean; chosen: string | null; densityLabel: string;
-  onChoose: (id: string) => void;
-}): HTMLElement => {
-  const root = hook(el('div', 'cset'), 'component-sets');
-  root.append(hook(el('p', 'cset-note', SETS_COPY.spacingAt(o.densityLabel)), 'component-sets-density'));
-  const list = hook(el(o.plugin ? 'div' : 'ul', 'cset-list'), o.plugin ? 'components-def-picker' : 'component-set-list');
-  if (o.plugin) { list.setAttribute('role', 'radiogroup'); list.setAttribute('aria-label', SETS_COPY.picker); }
-  for (const v of view) {
-    const item = hook(el(o.plugin ? 'div' : 'li', 'cset-item' + (v.offered ? '' : ' cset-off')), 'component-set');
-    item.dataset.set = v.id;
-    item.dataset.offered = String(v.offered);
-    const head = el(o.plugin && v.offered ? 'label' : 'div', 'cset-head');
-    if (o.plugin && v.offered) {
-      const r = hook(el('input', 'cset-radio') as HTMLInputElement, 'components-def-option');
-      r.type = 'radio';
-      r.name = 'p3-build-set';
-      r.value = v.id;
-      r.checked = v.id === o.chosen;
-      r.onchange = () => { if (r.checked) o.onChoose(v.id); };
-      head.append(r);
-    }
-    head.append(hook(el('b', 'cset-name', v.name), 'component-set-name'));
-    if (v.parts) head.append(hook(el('span', 'cset-parts', v.parts), 'component-set-parts'));
-    if (v.last) head.append(hook(el('span', 'cset-last', v.last), 'component-set-last'));
-    item.append(head);
-    const body = el('div', 'cset-body');
-    body.append(el('p', 'cset-summary', v.summary), el('p', 'cset-meta', `${v.category} · ${v.contains}`));
-    if (v.reason) body.append(hook(el('p', 'cset-reason', v.reason), 'component-set-reason'));
-    for (const line of v.spacing) body.append(hook(el('p', 'cset-spacing mono', line), 'component-set-spacing'));
-    item.append(body);
-    list.append(item);
-  }
-  root.append(list);
-  if (!o.plugin) root.append(hook(el('p', 'cset-note', SETS_COPY.web), 'components-web-line'));
-  return root;
-};

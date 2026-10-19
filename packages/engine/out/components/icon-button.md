@@ -65,8 +65,8 @@ The accessible name is a verb naming the action ("Close", "More actions"), never
 
 | Axis | Values | Changes |
 | --- | --- | --- |
-| `appearance` | `filled`, `outline`, `ghost` | at runtime |
-| `size` | `small`, `medium`, `large` | once, when authored |
+| `appearance` | `ghost`, `filled`, `outline` | at runtime |
+| `size` | `medium`, `small`, `large` | once, when authored |
 | `shape` | `square`, `circular` | once, when authored |
 | `surface` | `default`, `inverse` | once, when authored |
 
@@ -96,7 +96,7 @@ The accessible name is a verb naming the action ("Close", "More actions"), never
 
 - **Composes with:** `focus-ring`, `spinner`
 - **Alternative to:** `button`
-- **Planned:** `tooltip`, `button-group`, `menu`, `popover`
+- **Planned:** `tooltip`, `menu`, `popover`
 - **Replaces:**
   - div[role=button] wrapping an icon
   - a \<button> holding only an \<svg> and no accessible name

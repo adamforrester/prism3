@@ -24,7 +24,7 @@
  */
 import type { AxisKind, ComponentDef, NestVariantWhen, PartDef } from './component-schema';
 import { axisKindOf, densitySizeValues, densitySpacingKeys, visibleGapKeys, fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, STATE_GATE, statesOf, whenStates, variantsOf, slotAxisFigmaName, variantAxisFigmaName, swapPart, swapFigmaName, textFigmaName, booleanPartsOf, booleanFigmaName, booleanDefault, figmaVariantCount, figmaAxisNames, isExcludedCoordinate, WEIGHT_INTENTS } from './component-schema';
-import type { ControlShape, ButtonIcons, ButtonContentSize, ButtonLabelWeight, ButtonTextHover, Density } from './scale';
+import type { ControlShape, FieldStyle, ButtonIcons, ButtonContentSize, ButtonLabelWeight, ButtonTextHover, Density } from './scale';
 import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER, densitySpacingStep, ratioMinWidth, spacePx, visibleGapStep } from './scale';
 // #1602 — the weight-role ladder and the default per-category weights, for resolving a component's
 // weight INTENT against a brand's available roles. Value + type imports from `theme.ts`, which imports
@@ -200,6 +200,23 @@ export type FigmaNodePlan = {
    *  miss and builds nothing at all. **A missing shared component is the expected failure of this kind**
    *  — it is the first kind that can fail because of what is absent from the FILE rather than the plan. */
   nestTarget?: string;
+  /** For a `NESTED_INSTANCE` (#2661, owner decisions Q363.8 as amended and Q386): a FALLBACK-ONLY PREFERENCE, the def
+   *  id of a sibling set (`button-neutral`) the instance is made from when the FILE has it, at the same `nestVariant`.
+   *  When the file has no set of that name the instance is made from `nestTarget`, without a miss: the part needs
+   *  `nestTarget` and only prefers this. A set of that name that cannot yield the member (two sets, or no member at
+   *  the coordinate) is a named miss, and the instance falls back the same way.
+   *
+   *  ITS OWN FIELD, never folded into `nestTarget`: `build-deps.ts` reads `nestTarget` to decide what to build first,
+   *  so a preference spelled as a target would make every team build it, which is what Q386 forbids. The read-back
+   *  (`anatomy-readback.ts`, `nestTarget`) accepts an instance of either set. */
+  nestPrefer?: string;
+  /** For a `NESTED_INSTANCE` whose part declares `nestItemPrefers` (#2661, owner decision Q418): the HOST'S PREFERENCE
+   *  for default items of the component it nests, one entry per item. `item` is the layer name of the item's instance
+   *  inside the nested instance, `prefer` the sibling set's def id, and
+   *  `variant` the item's own coordinate, which `prefer` takes too. Each executor resolves `prefer`'s member at that
+   *  coordinate once the nested instance exists and swaps the item to it; a file without the set leaves the item
+   *  as it is, with no miss. Present ONLY when declared, so every other plan is byte-identical. */
+  nestItemPrefer?: readonly NestItemPrefer[];
   /** For a `NESTED_INSTANCE`: WHICH VARIANT of `nestTarget` to nest, when `nestTarget` names a component
    *  SET rather than a plain component (#681). Figma's `InstanceNode.setProperties` shape exactly —
    *  `{ axis: value }` — which is why `PartDef.nesting`'s `variant` is a `Record` and not a string.
@@ -531,6 +548,9 @@ export type FigmaNodePlan = {
   /** For a `CONTENT_SLOT` (#2646): the part's `preferred`, as DEF IDS (each the name of the set it builds). The
    *  executors resolve each to that set's key when they write the SLOT property, and name any that is not built. */
   slotPreferred?: string[];
+  /** For a `CONTENT_SLOT` (#2661): the part's `preferredWhenBuilt`, as DEF IDS. Written with `slotPreferred` when the
+   *  file has the set; a def not built is left out without a miss, because the slot does not need it (Q386). */
+  slotPreferredWhenBuilt?: string[];
   children: FigmaNodePlan[];
 };
 
@@ -585,7 +605,7 @@ export type FigmaPropertyPlan =
   | { name: string; type: 'INSTANCE_SWAP'; swapTarget: string }
   /** A NATIVE SLOT (#2417): no default (Figma refuses one for SLOT), and declared by the slot node itself, which
    *  `createSlot` makes and the combine merges by name. The executors verify it rather than add it. */
-  | { name: string; type: 'SLOT'; slotSettings?: SlotSettingsPlan; preferred?: string[] };
+  | { name: string; type: 'SLOT'; slotSettings?: SlotSettingsPlan; preferred?: string[]; preferredWhenBuilt?: string[] };
 
 export type AnatomyPlan = {
   component: string;
@@ -867,6 +887,9 @@ export const iconComponentName = (glyph: string): string => `${ICON_DEF_ID}/${gl
  *  `mark` and `dash` are each a frame holding one instance named this. */
 export const ICON_INSET_CHILD = 'glyph';
 
+/** One host preference for a default item of a nested component (#2661, Q418) — see `FigmaNodePlan.nestItemPrefer`. */
+export type NestItemPrefer = { item: string; prefer: string; variant: Record<string, string> };
+
 /** One per-instance override on a nested instance (#2645) — see `FigmaNodePlan.nestOverrides`. */
 export type NestOverride = { property: string; type: 'TEXT' | 'INSTANCE_SWAP'; value: string };
 
@@ -949,6 +972,54 @@ const slotPreferredOf = (defId: string, part: string, ids: readonly string[]): s
     if (why) throw new Error(`${defId}: anatomy part '${part}' prefers '${id}', which ${why}`);
   }
   return [...ids];
+};
+
+/**
+ * A nest's FALLBACK-ONLY PREFERENCE (#2661, `PartDef.prefersWhenBuilt`), checked against the registry, which the schema
+ * has no access to. The preferred set must take the very coordinate the part's `nestVariant` names, so both
+ * executors can resolve one member from either set with one coordinate: the same variant axes with the same values,
+ * the same state axis, and every text and swap property the part's `overrides` set. Button.Neutral and Button are
+ * one factory's output, so they agree; a sibling that drifted is refused here, naming the difference, rather than
+ * resolving a coordinate miss in a file that has it.
+ */
+const nestPreferOf = (defId: string, part: string, p: PartDef): string => {
+  const id = p.prefersWhenBuilt!;
+  const want = componentDefs.find((x) => x.id === p.nests);
+  const d = componentDefs.find((x) => x.id === id);
+  const fail = (why: string): never => { throw new Error(`${defId}: anatomy part '${part}' prefers '${id}' when built, which ${why}`); };
+  if (!d) return fail('is not a registered component def');
+  if (!want) return fail(`stands in for '${p.nests}', which is not a registered component def`);
+  if (!d.figmaProperties || d.figmaProperties.emitAsComponents || d.figmaProperties.notStandalone) return fail('does not build one set on its own');
+  const axes = (x: ComponentDef): string => JSON.stringify([
+    ...(x.figmaProperties?.variantAxes ?? []).map((a) => [a, (x.variants as Record<string, readonly string[]>)[a] ?? []]),
+    ...(x.figmaProperties?.slotAxes ?? []).map((sa) => [sa.figmaName ?? sa.name, ['false', 'true']]),
+    ['state', x.figmaProperties?.stateAxis?.values ?? []],
+  ]);
+  if (axes(d) !== axes(want)) return fail(`does not take the coordinates '${p.nests}' takes (${axes(d)} vs ${axes(want)})`);
+  for (const k of Object.keys(p.overrides?.texts ?? {})) if (!d.figmaProperties.texts?.[k]) return fail(`has no text property '${k}' to override`);
+  for (const k of Object.keys(p.overrides?.swaps ?? {})) if (!d.figmaProperties.swaps?.[k]) return fail(`has no swap property '${k}' to override`);
+  return id;
+};
+
+/**
+ * A HOST'S ITEM PREFERENCES (#2661, owner decision Q418, `PartDef.nestItemPrefers`), resolved against the nested def. Each
+ * key names an anatomy part of the nested def: a `nest-fixed` nest of a component, whose instance the host swaps to the
+ * sibling set when the file has it. The sibling is checked by `nestPreferOf` exactly as a part's own `prefersWhenBuilt`
+ * is (same axes, same text and swap properties), so a host's preference and a def's own cannot disagree about what a
+ * sibling must be. THROWS on a part the nested def lacks, on one that is not such a nest, and on the item's own component.
+ */
+const nestItemPrefersOf = (defId: string, part: string, p: PartDef): NestItemPrefer[] => {
+  const nested = componentDefs.find((x) => x.id === p.nests);
+  return Object.entries(p.nestItemPrefers!).map(([item, id]) => {
+    const where = `${defId}: anatomy part '${part}' prefers '${id}' for '${p.nests}' item '${item}'`;
+    const ip = nested?.anatomy?.parts[item];
+    if (!ip) throw new Error(`${where}, which '${p.nests}' has no anatomy part of that name`);
+    if (ip.kind !== 'nest' || !ip.nests || ip.nesting?.kind !== 'nest-fixed' || ip.nesting.follow?.length || ip.nesting.variantWhen)
+      throw new Error(`${where}, which is not a plain 'nest-fixed' nest of a component (no 'follow', no 'variantWhen') — the item's coordinate is the one the preferred set must take`);
+    if (id === ip.nests) throw new Error(`${where}, which is the component the item already is`);
+    nestPreferOf(defId, `${part}.${item}`, { ...ip, prefersWhenBuilt: id });
+    return { item, prefer: id, variant: { ...ip.nesting.variant } };
+  });
 };
 
 const ALIGN: Record<string, 'MIN' | 'CENTER' | 'MAX' | 'BASELINE'> = {
@@ -1097,12 +1168,30 @@ const builtSizeAt = (def: ComponentDef, size: string | undefined, slots: PlanSlo
   return { ...def, anatomy: { ...a, parts } };
 };
 
+/** THE MEMBER'S DIRECTIONS (#2661, `PartDef.directionWhen`): at the axis value a member holds, each box that declares
+ *  a direction per value reads as if its `layout.direction` were that one. Any other coordinate, and a structure-only
+ *  plan, returns the def itself, so its plan is byte-identical. Applied before anything reads the anatomy, as
+ *  `centeredAt` is, so the sizing modes and the fill rules below read the member's own direction. */
+const directionAt = (def: ComponentDef, slots: PlanSlots): ComponentDef => {
+  const a = def.anatomy;
+  if (!a) return def;
+  let parts: typeof a.parts | undefined;
+  for (const [n, p] of Object.entries(a.parts)) {
+    const dw = p.kind === 'box' ? p.directionWhen : undefined;
+    const value = dw ? slots[dw.axis] : undefined;
+    if (!dw || !p.layout || typeof value !== 'string' || !(value in dw.values) || dw.values[value] === p.layout.direction) continue;
+    parts ??= { ...a.parts };
+    parts[n] = { ...p, layout: { ...p.layout, direction: dw.values[value] } };
+  }
+  return parts ? { ...def, anatomy: { ...a, parts } } : def;
+};
+
 export const figmaAnatomyPlan = (
   authored: ComponentDef,
   size: string | undefined,
   slots: PlanSlots = {},
 ): AnatomyPlan => {
-  const def = builtSizeAt(centeredAt(authored, slots), size, slots);
+  const def = builtSizeAt(centeredAt(directionAt(authored, slots), slots), size, slots);
   const a = def.anatomy;
   if (!a) throw new Error(`${def.id}: no anatomy block to project`);
   // A DEF WITH ONE TYPE SCALE HAS NO SIZE COORDINATE (#795), and `undefined` is how it says so.
@@ -1710,6 +1799,15 @@ export const figmaAnatomyPlan = (
       // fallback now stands down when this binding wrote — unconditional it would UNBIND what Figma just
       // accepted, which is the same last-write-wins silence the aspect-ratio unlock exists for.
       if (p.strokeWidth) bound.strokeWeight = varOf(p.strokeWidth);
+      // THE FOUR SIDES APART (#2695, `PartDef.strokeEdges`): the underline field binds each side's weight on its own
+      // per-side key, the keys a scalar `strokeWeight` binding lands on anyway (#1332). Both executors' 1px fallback
+      // stands down when any of them wrote, for the reason it stands down for `strokeWeight`.
+      if (p.strokeEdges) {
+        bound.strokeTopWeight = varOf(p.strokeEdges.top);
+        bound.strokeRightWeight = varOf(p.strokeEdges.right);
+        bound.strokeBottomWeight = varOf(p.strokeEdges.bottom);
+        bound.strokeLeftWeight = varOf(p.strokeEdges.left);
+      }
       // TOP-ONLY padding: the space above a part a boolean hides, so the space hides with it (textarea's
       // message and counter cells). The validator refuses it alongside `padding`, so the two never both write.
       if (p.paddingTop) bound.paddingTop = varOf(p.paddingTop);
@@ -1959,6 +2057,7 @@ export const figmaAnatomyPlan = (
       // A NATIVE SLOT'S CONSTRAINTS (#2646), each preferred id checked against the registry here, where it is known.
       ...(p.contentSlot && p.slotSettings ? { slotSettings: { ...p.slotSettings } } : {}),
       ...(p.contentSlot && p.preferred ? { slotPreferred: slotPreferredOf(def.id, name, p.preferred) } : {}),
+      ...(p.contentSlot && p.preferredWhenBuilt ? { slotPreferredWhenBuilt: slotPreferredOf(def.id, name, p.preferredWhenBuilt) } : {}),
       // THE GEOMETRY, resolved from the vocabulary at projection (#864). A name that no longer resolves
       // THROWS rather than projecting an empty outline, which is the whole reason the def carries a name
       // instead of path data: #864 was four artboards that built without throwing and contained nothing,
@@ -2063,6 +2162,8 @@ export const figmaAnatomyPlan = (
       // large frame, past every icon rung and CONTRACT-free (no token minted).
       ...(p.kind === 'vector' && p.glyphPx !== undefined ? { glyphPx: p.glyphPx } : {}),
       ...((p.kind === 'absolute' || p.kind === 'nest') && p.nests ? { nestTarget: p.nests } : {}),
+      ...(p.kind === 'nest' && p.nests && p.prefersWhenBuilt ? { nestPrefer: nestPreferOf(def.id, name, p) } : {}),
+      ...(p.kind === 'nest' && p.nests && p.nestItemPrefers ? { nestItemPrefer: nestItemPrefersOf(def.id, name, p) } : {}),
       // The def's chosen coordinate — the member the instance starts at. Projected for BOTH `nest-fixed`
       // (the def's final choice) and `nest-exposed` (the DEFAULT, from which the consumer drives the
       // exposed axes — #1330). `swap` has no variants at all and writes no coordinate here. An exposed
@@ -2309,6 +2410,85 @@ export const applyControlShape = (def: ComponentDef, shape: ControlShape): Compo
       (isPillable(def) && ref === ROUNDED_RADIUS_RUNG) || !!fieldRefs?.includes(ref) ? target : ref]),
   );
   return { ...def, tokens };
+};
+
+// ── FIELD STYLE (#2695) ─────────────────────────────────────────────────────────────────────────
+//
+// The brand's field edge (owner Q332 A; the sixteen calls of Q333, each option A): `outline` draws the box,
+// `underline` one line under the value. Materialized into the def BEFORE projection, for `applyControlShape`'s
+// reason: the projector stays a pure function of its def, so every field keeps its member count and coordinates
+// (Q14 A), and a brand switch reaches an existing file through Update (Q16 A). No token is added (Q15 A): every
+// binding below is a rung or role the engine already emits for every brand.
+
+/**
+ * The field family, each def named with the part that draws its frame (the bordered control). Keyed by def id,
+ * `FIELD_CORNER_REFS`'s way, and held complete by `test.ts`: every def that binds the field chrome
+ * (`color.field.fill`) is listed here, so a new field def cannot miss the lever by being left out.
+ */
+export const FIELD_FRAME_PARTS: Readonly<Record<string, string>> = {
+  'text-field': 'control',
+  'password-field': 'control',
+  select: 'control',
+  textarea: 'control',
+};
+
+/**
+ * Materialize a def for the brand's `fieldStyle` lever (#2695). The IDENTITY under `outline` and for any def not in
+ * `FIELD_FRAME_PARTS`: it returns the same object, so every outline plan is byte-identical to before.
+ *
+ * Under `underline`, on the frame part and the keys it names:
+ *   · THE LINE (Q2, Q3, Q7): the four sides bind apart (`strokeEdges`). Top, end and start take `border-width.none`;
+ *     the bottom takes `border-width.hairline`, and `border-width.thick` at every focus-visible state. Drawn inside
+ *     the node, so the thicker line moves no box. The color is the def's own border paint, unchanged: rest, hover,
+ *     focus, the status swaps and read-only all keep their roles (Q9).
+ *   · THE RING (Q3): the nested focus ring's inset takes `focus.ring.offset` (2px), since no side edge now separates
+ *     it from the value.
+ *   · THE EDGES (Q5, Q6, Q10): the inline padding binds `space.0`, so the label, value, message and line share one
+ *     start edge and a trailing glyph (Select's chevron) sits flush with the line's end; the corner binds
+ *     `radius.none`, whatever Control shape chose, so this runs after `applyControlShape`.
+ *   · HOVER (Q4): the overlay wash keys go, so hover changes the line's color only.
+ *   · DISABLED (Q8): the disabled plate goes. With no `disabled.fill`, the projector's disabled ink asks for the
+ *     plain-ground form (`disabled.<slot>`), so each `disabled.<slot>.on-fill` is replaced by it: `disabled.text`
+ *     for the value, `disabled.icon` for a glyph.
+ *   · A CHILD PINNED INTO THE FRAME'S CORNER (Textarea's grip, Q11), or any other absolute child but the ring, takes
+ *     `border-width.thick` as its inset, so it sits above the line even at the 2px focus line.
+ */
+export const applyFieldStyle = (def: ComponentDef, style: FieldStyle): ComponentDef => {
+  if (style === 'outline') return def;
+  const frameName = FIELD_FRAME_PARTS[def.id];
+  const a = def.anatomy;
+  const frame = frameName ? a?.parts[frameName] : undefined;
+  if (!a || !frame) return def;
+  const tokens: Record<string, string> = {};
+  for (const [k, ref] of Object.entries(def.tokens)) {
+    if (k.split('.')[0] === 'overlay' || k === 'disabled.fill') continue;
+    const onFill = /^disabled\.([a-z-]+)\.on-fill$/.exec(k);
+    if (onFill) { tokens[`disabled.${onFill[1]}`] = onFill[1] === 'icon' ? 'color.disabled.icon' : 'color.disabled.text'; continue; }
+    tokens[k] = ref;
+  }
+  if (frame.radius) tokens[frame.radius] = 'radius.none';
+  tokens['underline.pad-x'] = 'space.0';
+  tokens['underline.side'] = 'border-width.none';
+  for (const st of statesOf(def)) tokens[`underline.line.${st}`] = st.startsWith('focus-visible') ? 'border-width.thick' : 'border-width.hairline';
+  const parts: Record<string, PartDef> = { ...a.parts };
+  for (const c of frame.children ?? []) {
+    const child = a.parts[c];
+    if (!child?.inset) continue;
+    if (child.kind === 'absolute' && child.nests === 'focus-ring') tokens[child.inset] = 'focus.ring.offset';
+    else if (child.kind === 'absolute' || child.corner) tokens[child.inset] = 'border-width.thick';
+  }
+  const { strokeWidth: _outline, ...rest } = frame;
+  parts[frameName] = {
+    ...rest,
+    strokeEdges: { top: 'underline.side', right: 'underline.side', bottom: 'underline.line.{state}', left: 'underline.side' },
+    ...(frame.padding ? { padding: {
+      ...frame.padding,
+      inlineLabel: 'underline.pad-x',
+      ...(frame.padding.inlineVisual ? { inlineVisual: 'underline.pad-x' } : {}),
+      ...(frame.padding.inlineEnd ? { inlineEnd: 'underline.pad-x' } : {}),
+    } } : {}),
+  };
+  return { ...def, tokens, anatomy: { ...a, parts } };
 };
 
 // ── BUTTON LAYOUT (#1667) ───────────────────────────────────────────────────────────────────────
@@ -2773,7 +2953,8 @@ export const figmaAnatomySet = (def: ComponentDef, opts: { swapTarget?: string }
   // booleans from `anatomy.parts` rather than strings from `variants`.
   const gridAxes = declared.filter((a) => a !== 'size');
   const gridValues = gridAxes.map((a) => one(variantsOf(def)[a], true));
-  const bools = (name: string): boolean[] => (slotAxes.includes(name) ? [true, false] : [false]);
+  // `false` FIRST (#2752, owner decision Q2 A): the empty slot is the code default, so the member Figma inserts has none.
+  const bools = (name: string): boolean[] => (slotAxes.includes(name) ? [false, true] : [false]);
 
   // The cartesian product of the declared axes, in DECLARATION order — `variantAxes` is the order Figma
   // shows the properties in, and `planSetLayout` derives its grid from the resulting names, so the two
@@ -2795,8 +2976,11 @@ export const figmaAnatomySet = (def: ComponentDef, opts: { swapTarget?: string }
     for (const size of sizes)
       if (!excludedAt(combo, size))
         for (const state of states)
-          for (const leading of bools('leading'))
-            for (const trailing of bools('trailing'))
+          // Trailing OUTER, leading inner (#2752): with `false` first, this order reaches a leading-only member before
+          // a trailing-only one, so `planSetProperties`, which lists properties first-seen, keeps the panel's
+          // `↳ swap leading icon` above `↳ swap trailing icon` (#1380).
+          for (const trailing of bools('trailing'))
+            for (const leading of bools('leading'))
               plans.push(figmaAnatomyPlan(def, size, {
                 leading,
                 trailing,
@@ -2957,7 +3141,7 @@ export const planSetProperties = (plans: AnatomyPlan[]): FigmaPropertyPlan[] => 
     // node declares it (`createSlot`), so this records what the set will hold for the read-back, not a write.
     // Its constraints (#2646) ride the property, and two members declaring the slot two ways is refused as above.
     for (const n of slotNodes(plan.root)) {
-      const prop: FigmaPropertyPlan = { name: n.name, type: 'SLOT', ...(n.slotSettings ? { slotSettings: n.slotSettings } : {}), ...(n.slotPreferred ? { preferred: n.slotPreferred } : {}) };
+      const prop: FigmaPropertyPlan = { name: n.name, type: 'SLOT', ...(n.slotSettings ? { slotSettings: n.slotSettings } : {}), ...(n.slotPreferred ? { preferred: n.slotPreferred } : {}), ...(n.slotPreferredWhenBuilt ? { preferredWhenBuilt: n.slotPreferredWhenBuilt } : {}) };
       const prev = byName.get(prop.name);
       if (prev && JSON.stringify(prev) !== JSON.stringify(prop))
         throw new Error(`planSetProperties: '${prop.name}' is declared two different ways across the set — ${JSON.stringify(prev)} vs ${JSON.stringify(prop)}`);
@@ -3489,6 +3673,44 @@ export const applyNestOverrides = (
 export const applyNestOverridesSrc = (): string => applyNestOverrides.toString();
 
 /**
+ * WRITE A HOST'S ITEM PREFERENCES onto the nested instance it just made (#2661, owner decision Q418). Both executors call
+ * this, so the plugin and the paste payload cannot drift in what they swap or how they say it.
+ *
+ * `resolve(prefer, variant)` is each executor's own `resolveNestMember` over its component sets: `null` when the file has
+ * no set of that name (the item keeps its owner, SILENTLY: the preference is never a requirement), `{ member }` to swap
+ * to, or `{ miss }` for a set that exists and cannot yield the member (two sets, or no member at the coordinate), which is
+ * named once and leaves the item as it is.
+ *
+ * The item is found by its layer NAME among the instance's descendants and must be exactly one INSTANCE: none, or more
+ * than one, is a miss and nothing is swapped (guessing between two is creation order deciding, #656). `swapComponent`
+ * keeps the item's own overrides where the new main has the same properties, which `nestPreferOf` guarantees for the
+ * text and swap properties a def sets.
+ *
+ * Returns the misses WITHOUT the part name, which each caller prefixes. SHIPPED AS SOURCE to the paste payload
+ * (`applyNestItemPrefersSrc`): it closes over nothing, and uses no template literal, no `?.`, no `??`.
+ */
+export const applyNestItemPrefers = (
+  inst: { findAll: (pred: (n: { name?: string; type?: string }) => boolean) => { swapComponent: (c: unknown) => void }[] },
+  prefs: readonly NestItemPrefer[],
+  resolve: (prefer: string, variant: Record<string, string>) => { member?: unknown; miss?: string } | null,
+): string[] => {
+  const out: string[] = [];
+  for (const o of prefs) {
+    const r = resolve(o.prefer, o.variant);
+    if (!r) continue;
+    const h = '.nestItemPrefer -> ' + o.item + ' prefers ' + o.prefer + ' (';
+    if (r.miss !== undefined) { out.push(h + 'in this file, but it did not resolve: ' + r.miss.slice(1) + '; it keeps its default)'); continue; }
+    const it = inst.findAll((x) => x.name === o.item && x.type === 'INSTANCE');
+    if (it.length !== 1) { out.push(h + it.length + ' instances of that name in the nested instance; it keeps its default)'); continue; }
+    try { it[0].swapComponent(r.member); } catch (e) { out.push(h + 'REFUSED: ' + (e as Error).message + ')'); }
+  }
+  return out;
+};
+
+/** `applyNestItemPrefers` as source, for the paste payload. See `nestVariantMissAdviceSrc` for why. */
+export const applyNestItemPrefersSrc = (): string => applyNestItemPrefers.toString();
+
+/**
  * WHAT A MISSING SWAP TARGET ACTUALLY IS, in the message the designer reads (#1212 residue, #1280 PR-C,
  * #1288).
  *
@@ -3772,6 +3994,15 @@ const NEST_OVERRIDES_SLOT = '/*__NEST_OVERRIDES__*/';
 const PAYLOAD_NEST_OVERRIDES = `if(node&&n.nestOverrides)for(const m of applyNestOverrides(node,n.nestOverrides,x=>{const c=compByName.get(x);return c?c.id:null;}))misses.push(n.name+m);`;
 const hasNestOverrides = (n: FigmaNodePlan): boolean => n.nestOverrides !== undefined || n.children.some(hasNestOverrides);
 /**
+ * A HOST'S ITEM PREFERENCES (#2661, Q418), spliced in ONLY for a payload whose plans carry `nestItemPrefer`: the shared
+ * writer's source once at the top, and its call in the nested-instance branch, resolving each preferred set through the
+ * payload's own `resolveNestMember`. The same budget reason as the overrides above. Lockstep with the plugin executor.
+ */
+const NEST_ITEM_PREFER_DEF_SLOT = '/*__NEST_ITEM_PREFER_DEF__*/';
+const NEST_ITEM_PREFER_SLOT = '/*__NEST_ITEM_PREFER__*/';
+const PAYLOAD_NEST_ITEM_PREFER = `if(node&&n.nestItemPrefer)for(const m of applyNestItemPrefers(node,n.nestItemPrefer,(s,v)=>resolveNestMember(compSets,s,v,nestVariantMatch,nestVariantMissAdvice)))misses.push(n.name+m);`;
+const hasNestItemPrefer = (n: FigmaNodePlan): boolean => n.nestItemPrefer !== undefined || n.children.some(hasNestItemPrefer);
+/**
  * THE PINNED ICONS (#1667, "Locked to edges"), spliced in after the flow pass ONLY for a payload whose plans
  * carry a `pin` — the `MIN_LINES_SLOT` budget decision again: unconditional, these lines would ship in every
  * chunk of every set (the #536 probe grid's one-chunk rule, when this was written; see `SET_CHUNK_BYTES` for
@@ -3930,10 +4161,13 @@ const payloadBuildFor = (roots: FigmaNodePlan[]): string =>
     .replace(GRADIENT_CLAIM_SLOT, roots.some(hasGradient) ? PAYLOAD_GRADIENT_CLAIM : '')
     // A function replacer, so the shipped source is inserted as written: a string replacement reads `$` patterns.
     .replace(NEST_OVERRIDES_DEF_SLOT, () => (roots.some(hasNestOverrides) ? 'const applyNestOverrides=' + applyNestOverridesSrc() + ';' : ''))
-    .replace(NEST_OVERRIDES_SLOT, () => (roots.some(hasNestOverrides) ? PAYLOAD_NEST_OVERRIDES : ''));
+    .replace(NEST_OVERRIDES_SLOT, () => (roots.some(hasNestOverrides) ? PAYLOAD_NEST_OVERRIDES : ''))
+    .replace(NEST_ITEM_PREFER_DEF_SLOT, () => (roots.some(hasNestItemPrefer) ? 'const applyNestItemPrefers=' + applyNestItemPrefersSrc() + ';' : ''))
+    .replace(NEST_ITEM_PREFER_SLOT, () => (roots.some(hasNestItemPrefer) ? PAYLOAD_NEST_ITEM_PREFER : ''));
 
 const PAYLOAD_BUILD = `const __expose=[];
 /*__NEST_OVERRIDES_DEF__*/
+/*__NEST_ITEM_PREFER_DEF__*/
 // #2417 — NATIVE SLOTS, queued during the build like the exposures and made by \`__slotsNow\` after each conversion.
 const __slots=[];
 // #1378 — DRAIN THE EXPOSURE QUEUE, called immediately after every \`createComponentFromNode\` and nowhere
@@ -3985,7 +4219,7 @@ const claimDefaults=(node,n,mode,layerOp)=>{
       // A TEXT fill has no neutral value — \`[]\` is invisible text — so an unpainted label is REPORTED.
       if(!P.fills${GRADIENT_CLAIM_SLOT}){if(t==='TEXT')misses.push(where+'.fills -> UNCLAIMED on a TEXT node (reported, not neutralized: [] is invisible text; the def must declare a text paint) — #865');else set('fills',[]);}
       // The weight is gated on the plan's binding (#1228): a literal write after the bind loop UNBINDS it.
-      if(!P.strokes){set('strokes',[]);if(!('strokeWeight' in B))set('strokeWeight',1);set('strokeAlign','INSIDE');}
+      if(!P.strokes){set('strokes',[]);if(!['strokeWeight','strokeTopWeight','strokeRightWeight','strokeBottomWeight','strokeLeftWeight'].some(k=>k in B))set('strokeWeight',1);set('strokeAlign','INSIDE');}
       set('dashPattern',[]);
     }
   }
@@ -4021,12 +4255,17 @@ const build=async(n)=>{
     // NO placeholder frame, and this is the opposite call from INSTANCE_SWAP above deliberately. An
     // unstroked frame in a focus ring's place is invisible and reads as a ring that built fine; a slot's
     // placeholder is a box a designer can still fill. So a missing ring builds NOTHING and says so.
-    const nested=compByName.get(n.nestTarget);
+    // #2661 — A FALLBACK-ONLY PREFERENCE first (\`nestPrefer\`): the sibling set's member at the same coordinate when the
+    // file has that set, else \`nestTarget\` below with no miss. A set of that name that cannot yield the member is named
+    // once the instance is made, and it falls back the same way. Worded byte-identically to the plugin executor's twin.
+    const pre=n.nestPrefer&&n.nestVariant?resolveNestMember(compSets,n.nestPrefer,n.nestVariant,nestVariantMatch,nestVariantMissAdvice):null;
+    const preMember=pre&&!pre.miss?pre.member:null;
+    const nested=preMember?undefined:compByName.get(n.nestTarget);
     // A SET the def named a coordinate in (#681). Checked only when the plain-component lookup missed:
     // a component and a set can share a name, and the component needs no coordinate to be unambiguous.
     // THE SET AND ITS MEMBER, resolved together (#1781): out of the named set's own children, never by member
     // name across the file. null = no set of that name; else a member, or a miss to report and build nothing.
-    const res=!nested&&n.nestVariant?resolveNestMember(compSets,n.nestTarget,n.nestVariant,nestVariantMatch,nestVariantMissAdvice):null;
+    const res=preMember?{member:preMember}:!nested&&n.nestVariant?resolveNestMember(compSets,n.nestTarget,n.nestVariant,nestVariantMatch,nestVariantMissAdvice):null;
     if(res&&res.miss){misses.push(n.name+res.miss);return null;}
     // The MEMBER is instantiated, never the set — Figma has no instance-of-a-set.
     if(res){node=res.member.createInstance();}
@@ -4054,9 +4293,11 @@ const build=async(n)=>{
     // So: collected, and written by \`__exposeNow()\` after \`createComponentFromNode\`. Twin of the plugin
     // executor's collector, and the twin is the point — this half was never gated (#1377), so the plugin's
     // round-trip caught the identical defect here only by reading.
+    if(node&&pre&&pre.miss)misses.push(n.name+'.nestPrefer -> '+n.nestPrefer+' (in this file, but it did not resolve: '+pre.miss.slice(1)+'; made from '+n.nestTarget+' instead)');
     if(node&&n.nestExpose&&n.nestExpose.length)__expose.push(node);
     // #2645 — the per-instance overrides, written now: unlike exposure, \`setProperties\` needs no containing component.
     /*__NEST_OVERRIDES__*/
+    /*__NEST_ITEM_PREFER__*/
     // THE NESTED INSTANCE'S OWN TEXT (#2317), the plugin executor's twin: \`nestTexts\` names what this instance
     // says instead of its set's default, written as an instance override by property name before \`#id\`.
     if(node&&n.nestTexts){const P=node.componentProperties||{},S={};
@@ -4198,6 +4439,7 @@ ${GRADIENT_SLOT}
     const p=paint(n.paints.strokes,'strokes');
     // A stroke variable with no strokeWeight paints nothing visible, so the border appearance would
     // bind correctly and render as no border at all.
+    // A PER-SIDE weight (#2695, \`strokeEdges\`) counts as written too: the literal would overwrite all four sides.
     // GATED ON \`wrote\` (#1266). A part that declares \`strokeWidth\` has \`strokeWeight\` BOUND a few lines
     // up, and a literal assignment after a binding unbinds it — the border would then be the right paint
     // at a hardcoded 1px, re-theming on color and frozen on width. \`wrote\` rather than \`n.bound\`, because
@@ -4214,7 +4456,7 @@ ${GRADIENT_SLOT}
     // The border-box motive is moot on an absolute node anyway: with no auto-layout there is no footprint
     // for the stroke to grow. \`&&node.layoutMode\` so an undefined layoutMode (a non-auto-layout frame) is
     // skipped, not compared true against \`'NONE'\`.
-    if(p){node.strokes=[p];painted.strokes=1;if(!node.strokeWeight&&wrote.indexOf('strokeWeight')<0)node.strokeWeight=1;node.strokeAlign='INSIDE';if('strokesIncludedInLayout' in node&&node.layoutMode&&node.layoutMode!=='NONE')node.strokesIncludedInLayout=false;}
+    if(p){node.strokes=[p];painted.strokes=1;if(!node.strokeWeight&&!['strokeWeight','strokeTopWeight','strokeRightWeight','strokeBottomWeight','strokeLeftWeight'].some(k=>wrote.indexOf(k)>=0))node.strokeWeight=1;node.strokeAlign='INSIDE';if('strokesIncludedInLayout' in node&&node.layoutMode&&node.layoutMode!=='NONE')node.strokesIncludedInLayout=false;}
   }
   if(n.descendantFills){
     // The ink lives on the VECTORs INSIDE the node, never on the node itself — a fill on the wrapper is a
@@ -4459,10 +4701,11 @@ for(const p of PROPS){
  * not clear constraints an earlier paste set and the def has since dropped; the plugin's Update does.
  */
 const PAYLOAD_SLOT_SETTINGS = `// #2646 — NATIVE SLOT CONSTRAINTS on each SLOT property; a preferred def not in this file is named, never dropped.
-for(const p of PROPS){if(p.type!=='SLOT'||(!p.slotSettings&&!p.preferred))continue;const key=propIds.get(p.name);if(!key)continue;
-const pv=[];if(p.preferred&&p.preferred.length){const sets=figma.root.findAllWithCriteria({types:['COMPONENT_SET']});const singles=figma.root.findAllWithCriteria({types:['COMPONENT']});
-for(const id of p.preferred){const asSet=sets.filter(x=>x.name===id);const named=asSet.length?asSet:singles.filter(x=>x.name===id);
+for(const p of PROPS){if(p.type!=='SLOT'||(!p.slotSettings&&!p.preferred&&!p.preferredWhenBuilt))continue;const key=propIds.get(p.name);if(!key)continue;
+const pv=[];const opt=p.preferredWhenBuilt||[];const ids=(p.preferred||[]).concat(opt);if(ids.length){const sets=figma.root.findAllWithCriteria({types:['COMPONENT_SET']});const singles=figma.root.findAllWithCriteria({types:['COMPONENT']});
+for(const id of ids){const asSet=sets.filter(x=>x.name===id);const named=asSet.length?asSet:singles.filter(x=>x.name===id);
 if(named.length===1&&named[0].key){pv.push({type:asSet.length?'COMPONENT_SET':'COMPONENT',key:named[0].key});continue;}
+if(!named.length&&opt.includes(id))continue;
 misses.push(named.length>1?'property '+p.name+'.preferred -> '+id+' (found '+named.length+' components named '+id+'; not offered in the slot. Rename or remove the stale copy, then rebuild)':named.length===1?'property '+p.name+'.preferred -> '+id+' (the set carries no key on this host; not offered in the slot)':'property '+p.name+'.preferred -> '+id+' (not in this file — build '+id+' first, then rebuild this one; until then the slot does not offer it)');}}
 const ss=p.slotSettings||{};const only=ss.allowPreferredValuesOnly===true&&pv.length>0;
 if(ss.allowPreferredValuesOnly&&!only)misses.push('property '+p.name+'.slotSettings.allowPreferredValuesOnly -> WRITTEN false (none of its preferred sets is in this file, and preferred-only with nothing preferred would flag every child)');
@@ -4473,7 +4716,7 @@ const g={minChildren:bs.minChildren!=null?bs.minChildren:null,maxChildren:bs.max
 if(JSON.stringify(g)!==JSON.stringify(w)||JSON.stringify(gk)!==JSON.stringify(pv.map(v=>v.key)))misses.push('property '+p.name+'.slotSettings -> NOT KEPT (wrote '+JSON.stringify(w)+' with '+pv.length+' preferred; the set holds '+JSON.stringify(g)+' with '+gk.length+')');}`;
 /** Does any SLOT property in a set declare constraints (#2646)? Gates `PAYLOAD_SLOT_SETTINGS` into a payload. */
 export const hasSlotConstraints = (props: readonly FigmaPropertyPlan[]): boolean =>
-  props.some((p) => p.type === 'SLOT' && (p.slotSettings !== undefined || p.preferred !== undefined));
+  props.some((p) => p.type === 'SLOT' && (p.slotSettings !== undefined || p.preferred !== undefined || p.preferredWhenBuilt !== undefined));
 
 /**
  * WIRE the part→property references, per member, then read every one back. Expects `set`, `REFS`, `PROPS`
@@ -4731,7 +4974,7 @@ export const CANVAS_FURNITURE: ReadonlySet<string> = new Set([
   'radio-row', 'radio-group', 'switch-control', 'switch-row', 'select', 'veil', 'image-placeholder', 'badge', 'tag', 'tab', 'tabs',
   'divider', '_accordion-indicator', 'accordion', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'list-item',
   'list', 'segmented-control-segment', 'segmented-control', 'link',
-  'dialog', 'password-field', 'counter',
+  'button-group', 'dialog', 'password-field', 'counter',
 ]);
 
 export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {

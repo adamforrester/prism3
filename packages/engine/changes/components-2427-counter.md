@@ -3,7 +3,7 @@ engine: minor
 ---
 Counter, a new component (#2427; owner decisions Q283, Q286 A and the wireframe decisions on #2427, Q287 A on
 #2457): a whole-number quantity between a minus and a plus button, for ecommerce. `appearance: outline | ghost`
-(outline first, Q283.4 A) × `size: medium | small | large` (medium first, the field family's exception, Q283.6 B) ×
+(outline first, Q283.4 A) × `size: medium | small | large` (medium first, Q283.6 B, now every ladder's rule under Q1 B) ×
 `state: rest | focus-visible | disabled` = 18 members, on its own page under Components. The row is 36 / 44 / 56px
 (`size.sm` / `md` / `lg.height`). Outline draws the field's fill and edge (`color.field.fill`,
 `color.field.border.rest`; `color.disabled.border` at disabled) with the glyphs 12 / 12 / 16px inside it; ghost draws
