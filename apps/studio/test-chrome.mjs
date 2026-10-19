@@ -6705,6 +6705,78 @@ console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembe
   } finally { await ctx.close(); }
 }
 
+// 21b. #2832: the reveal anchors to the edited token's own card, and only a move to ANOTHER lever moves the preview.
+//      Editing `foreground.success-subtle` with its card already in view leaves the preview where it is, on every
+//      value change; it used to glide back to the top of the Foreground section on each one.
+//
+//      Mutations this fails by name: the reveal back on the section's top (no `sameLever` early return, no card
+//      target) → `#2832: editing a Subtle foreground fill with its card in view does not move the preview` and
+//      `#2832: a second value change on the same lever leaves the preview where it was`.
+console.log(`\n#2832 — the edit reveal anchors to the token's own card\n${'='.repeat(78)}`);
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    const ROLE = 'foreground.success-subtle';
+    const CARD = `[data-p3="preview-body"] [data-sg-role="${ROLE}"][data-sg-paint="background"]`;
+    /** The card's box and the Foreground section's against the preview body's, and the body's scroll. */
+    const read = (role = ROLE) => page.evaluate((r) => {
+      const body = document.querySelector('[data-p3="preview-body"]');
+      const b = body.getBoundingClientRect();
+      const card = [...body.querySelectorAll('[data-sg-role]')].find((n) => n.dataset.sgRole === r && n.dataset.sgPaint === 'background');
+      const sec = [...body.querySelectorAll('[data-p3="section-title"]')].find((n) => n.textContent === 'Foreground')?.closest('.psec');
+      const c = card?.getBoundingClientRect(), s = sec?.getBoundingClientRect();
+      return { top: Math.round(body.scrollTop), found: !!c && !!s, cardIn: !!c && c.top >= b.top && c.bottom <= b.bottom,
+        secTopAbove: !!s && s.top < b.top, secBottomIn: !!s && s.bottom < b.bottom - 8 };
+    }, role);
+    const settle = () => page.evaluate(() => new Promise((res) => {
+      const b = document.querySelector('[data-p3="preview-body"]');
+      let last = -1, still = 0;
+      const tick = () => { const y = Math.round(b.scrollTop); still = y === last ? still + 1 : 0; last = y; if (still >= 12) res(y); else requestAnimationFrame(tick); };
+      requestAnimationFrame(tick);
+    }));
+    const step = () => hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="step-picker-step"][aria-pressed="false"]').first());
+
+    await goPlace(page, 'color-fills');
+    // The Subtle card in the middle of the view, which puts the end of the Foreground section on screen as well.
+    await page.evaluate((sel) => {
+      const body = document.querySelector('[data-p3="preview-body"]');
+      const r = document.querySelector(sel).getBoundingClientRect(), b = body.getBoundingClientRect();
+      body.scrollTop += r.top - b.top - (b.height - r.height) / 2;
+    }, CARD);
+    const before = await read();
+    ok(before.found && before.cardIn && before.secTopAbove && before.secBottomIn,
+      `#2832: the Subtle success card is in view with the Foreground section partly scrolled past it (${JSON.stringify(before)})`);
+
+    await hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="fill-pick"][data-role="${ROLE}"]`));
+    await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]');
+    ok((await read()).top === before.top, `#2832: opening the picker does not move the preview (scrollTop ${(await read()).top}, was ${before.top})`);
+
+    await step();
+    const after1 = await read(); const settled1 = await settle();
+    ok(after1.cardIn && settled1 === before.top,
+      `#2832: editing a Subtle foreground fill with its card in view does not move the preview (scrollTop ${settled1}, was ${before.top}; card in view ${after1.cardIn})`);
+    await step();
+    await step();
+    const settled2 = await settle();
+    ok(settled2 === before.top && (await read()).cardIn,
+      `#2832: a second value change on the same lever leaves the preview where it was (scrollTop ${settled2}, was ${before.top})`);
+
+    // Another lever whose card is out of view: the preview does move, and the edited card ends in view.
+    await page.keyboard.press('Escape');
+    await page.evaluate(() => { document.querySelector('[data-p3="preview-body"]').scrollTop = 0; });
+    const OTHER = 'foreground.danger-subtle';
+    await hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="fill-pick"][data-role="${OTHER}"]`));
+    await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]');
+    await step();
+    await settle();
+    const moved = await read(OTHER);
+    ok(moved.cardIn && moved.top > 0, `#2832: editing another lever whose card is out of view brings that card into view (scrollTop ${moved.top}; card in view ${moved.cardIn})`);
+    ok(errors.length === 0, `#2832: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `#2832: the case stopped at a step that threw — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
+
 // =============================================================================================
 // 22. The shared styling pass (the owner's QA, evening 2026-10-02: QA-B2, B5, B8, B11, B18, I12, R1), read from the RENDERED layout on both hosts and in both chrome themes.
 //
