@@ -14522,19 +14522,19 @@ arm: {
       const all = (n: any): any[] => [n, ...(n.children ?? []).flatMap(all)];
       // The field family on main (Q332: Text field, Textarea, Select, Password field; Number and Code input are not built).
       const FIELDS = ['password-field', 'select', 'text-field', 'textarea'];
-      // Code input's cell (#2428) paints Text field's chrome, so it binds the field fill, but it joins the field style
-      // lever in #2719, filed and not built: underline leaves it as it is (the identity arm below holds that).
-      const FIELD_FILL_PENDING = ['code-input-cell'];
+      // Code input's cell (#2428; #2719, Q332 A and Q12 A): a field box per character, so the lever reaches it. Its own
+      // arm is below: 28 members on a `state` grid with no `status` axis, so the 84-member loop over FIELDS does not fit it.
+      const FIELD_CELLS = ['code-input-cell'];
       // The field chrome's fill is the field family's own role (the checkbox and radio share the rest border, not this).
       // The Counter's outline borrows the field chrome (#2427, Q283.13 A) but is not a field: the lever leaves it as it is,
       // which the identity arm below holds, until the owner decides whether it follows the field style (asked on #2693).
       const FIELD_FILL_BORROWERS = ['counter'];
       const bindsFieldFill = componentDefs.filter((d) => Object.values(d.tokens).includes('color.field.fill')).map((d) => d.id).sort();
-      ok(JSON.stringify(bindsFieldFill) === JSON.stringify([...FIELDS, ...FIELD_FILL_BORROWERS].sort()),
-        `#2695 reach: the defs that bind the field chrome (color.field.fill) are exactly the field family ${FIELDS.join(', ')} and its named borrowers ${FIELD_FILL_BORROWERS.join(', ')} (got ${bindsFieldFill.join(', ')})`);
-      const notIdentity = componentDefs.filter((d) => applyFieldStyle(d, 'outline') !== d || (!FIELDS.includes(d.id) && applyFieldStyle(d, 'underline') !== d)).map((d) => d.id);
+      ok(JSON.stringify(bindsFieldFill) === JSON.stringify([...FIELDS, ...FIELD_CELLS, ...FIELD_FILL_BORROWERS].sort()),
+        `#2695 reach: the defs that bind the field chrome (color.field.fill) are exactly the field family ${[...FIELDS, ...FIELD_CELLS].join(', ')} and its named borrowers ${FIELD_FILL_BORROWERS.join(', ')} (got ${bindsFieldFill.join(', ')})`);
+      const notIdentity = componentDefs.filter((d) => applyFieldStyle(d, 'outline') !== d || (![...FIELDS, ...FIELD_CELLS].includes(d.id) && applyFieldStyle(d, 'underline') !== d)).map((d) => d.id);
       ok(notIdentity.length === 0, `#2695 identity: outline returns every def unchanged, and underline every non-field def (moved: ${notIdentity.join(', ') || 'none'})`);
-      const moved = FIELDS.filter((id) => applyFieldStyle(def(id), 'underline') === def(id));
+      const moved = [...FIELDS, ...FIELD_CELLS].filter((id) => applyFieldStyle(def(id), 'underline') === def(id));
       ok(moved.length === 0, `#2695 reach: underline rewrites every field def (unmoved: ${moved.join(', ') || 'none'})`);
       ok(validateBrandInput({ ...MINIMAL_BRAND, fieldStyle: 'underline' } as any).length === 0 && validateBrandInput({ ...MINIMAL_BRAND, fieldStyle: 'filled' } as any).length > 0,
         '#2695 input: fieldStyle accepts underline and rejects a value the lever does not offer (filled is later, not now)');
@@ -14612,6 +14612,34 @@ arm: {
         if (c?.bound?.topLeftRadius !== 'radius/none' || c?.bound?.paddingLeft !== 'space/0') shapeCorner.push(`${id} ${shape} ${density}: ${c?.bound?.topLeftRadius}, ${c?.bound?.paddingLeft}`);
       }
       ok(shapeCorner.length === 0, `#2695 Q5/Q6: square and unpadded under every Control shape and density (${shapeCorner.slice(0, 3).join('; ') || 'ok'})`);
+      // #2719 (Q12 A on #2695): CODE INPUT under underline. One bottom line per cell, at Q330's sizes; the row's gaps
+      // unchanged (the field def is untouched); the active cells take the 2px focus line and the ring at the 2px offset;
+      // the error cell's line takes `border.danger`. Expected names typed from the decision, per state, at every size.
+      {
+        const CELL_LINE: Record<string, string> = {
+          rest: 'color/field/border/rest', hover: 'color/field/border/hover', filled: 'color/field/border/rest',
+          'focus-visible': 'color/border/focus', 'focus-visible-filled': 'color/border/focus', error: 'color/border/danger', disabled: 'color/disabled/border',
+        };
+        const SIZE_PX: Record<string, string> = { medium: '48x56', small: '44x44', large: '56x64', xlarge: '68x72' };
+        const off: string[] = [];
+        const under = figmaAnatomySet(applyFieldStyle(def('code-input-cell'), 'underline'));
+        if (under.length !== 28) off.push(`${under.length} members`);
+        for (const p of under) {
+          const st = String(p.coord.state), at = `${p.size}/${st}`;
+          const c = find(p.root, 'cell'), b = c?.bound ?? {};
+          const wantLine = FOCUS.includes(st) ? 'border-width/thick' : 'border-width/hairline';
+          if (b.strokeBottomWeight !== wantLine || b.strokeTopWeight !== 'border-width/none' || b.strokeLeftWeight !== 'border-width/none' || b.strokeRightWeight !== 'border-width/none' || 'strokeWeight' in b)
+            off.push(`${at} line ${b.strokeTopWeight}/${b.strokeRightWeight}/${b.strokeBottomWeight}/${b.strokeLeftWeight}`);
+          if (c?.paints?.strokes !== CELL_LINE[st]) off.push(`${at} color ${c?.paints?.strokes}`);
+          if (!['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'].every((k) => b[k] === 'radius/none')) off.push(`${at} corner ${b.topLeftRadius}`);
+          if (`${c?.placementWidth}x${c?.placementHeight}` !== SIZE_PX[p.size]) off.push(`${at} size ${c?.placementWidth}x${c?.placementHeight}`);
+          if (all(p.root).some((n) => Object.values(n.paints ?? {}).some((v) => /\/overlay\//.test(String(v))))) off.push(`${at} wash`);
+          if (st === 'disabled' && c?.paints?.fills !== undefined) off.push(`${at} plate ${c.paints.fills}`);
+          if (FOCUS.includes(st) !== (find(p.root, 'focusRing')?.absoluteInset === 'focus/ring/offset')) off.push(`${at} ring ${find(p.root, 'focusRing')?.absoluteInset}`);
+        }
+        ok(off.length === 0, `#2719 code-input: under underline each cell draws one bottom line at its Q330 size, 2px with the ring at the 2px offset on the active cells, border.danger in error, no wash, no disabled plate, square (Q12 A) (off: ${off.slice(0, 4).join('; ') || 'none'})`);
+        ok(applyFieldStyle(def('code-input'), 'underline') === def('code-input'), '#2719 code-input: the field itself is unchanged under underline, so the row\'s gaps are (Q12 A)');
+      }
       // Q11: Textarea's grip sits above the line, inset by the 2px focus line's weight; outline keeps the 1px edge.
       const grip = (d: ComponentDef) => find(figmaAnatomyPlan(d, 'medium', { state: 'focus-visible', status: 'default' } as never).root, 'grip')?.cornerInset;
       ok(grip(applyFieldStyle(def('textarea'), 'underline')) === 'border-width/thick' && grip(def('textarea')) === 'border-width/hairline',

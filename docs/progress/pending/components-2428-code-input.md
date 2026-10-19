@@ -22,8 +22,9 @@ Stacked on #2660 (the items-slot pattern, not yet merged), with current `main` m
   the caret, `radius`) and `2xl` on its rung order.
 - **Reactions on a set with no pressed look.** `reactions.ts` planned While pressing only to `pressed`. The cell's def
   names `pressState: 'focus-visible'` (pressing a cell focuses the code input), carried on the plan only where declared,
-  so every other plan's `planStamp` is unchanged. `EXECUTOR_REVISION` is 32, one above main's 31 (`write-components.ts` passes it, and writes the trim).
-- **Default cells per member.** Each member's six cells show its state (`atState`): a fresh insert's picture of that
+  so every other plan's `planStamp` is unchanged. `EXECUTOR_REVISION` is 34, one above main's 33 (`write-components.ts` passes it, and writes the trim).
+- **Default cells per member.** Each member's six cells show its state (`variantWhen` on `state`, which replaced
+  `atState` on main in #2693): a fresh insert's picture of that
   state. A placed field's cells stay the designer's (Q329's accepted trade-off). Status has no nested mechanism, so an
   error member's default cells are not in error.
 - **Active is spelled `focus-visible`.** The closed state vocabulary has no `active`; Text field's names for the same
@@ -34,8 +35,11 @@ Stacked on #2660 (the items-slot pattern, not yet merged), with current `main` m
 - The #1392 paste check builds nest-exposed defs with a stub that keys no component, so a slot's preferred value read
   as a miss. Code input is the first nest-exposed def with a slot; the check now provides each preferred id as a built,
   keyed set, as the real build does.
-- Field style (#2695) merged in #2721; Code input joins it in #2719, already filed. Until then `test.ts`'s field-chrome
-  reach names the cell as binding the field fill without the lever (`FIELD_FILL_PENDING`).
+- **Field style (#2719's Code input half, built here).** Q332 A names Code input a field and #2695's Q12 A sets its
+  underline: one bottom line per cell, gaps unchanged, the 2px focus line and the 2px ring offset on the active cell,
+  `border.danger` in error. The cell joins `FIELD_FRAME_PARTS` (`cell`); `applyFieldStyle` now squares a per-size corner
+  key (`size.{size}.radius`) rather than writing the template as a key. The field def binds no field chrome, so it and
+  its gaps stay as authored. `test.ts` holds the cell's underline per state at every size (`#2719 code-input`).
 
 ### The digit's vertical position (owner QA 2026-10-16; option A on #2789)
 
@@ -50,6 +54,9 @@ Stacked on #2660 (the items-slot pattern, not yet merged), with current `main` m
   (#1567). So `claimDefaults` writes the plan's trim and the #1567 re-apply stands down for a trimmed node, in both
   executors. Both shims now model a style apply writing the style's own `NONE`, so a re-apply over the trim fails
   `#2428 code-input-cell` (plugin), `#2428 paste` (paste) and the round-trip's new `leadingTrim` predicate.
-- **Paste chunks.** `icon-button` packs into 18 chunks, up from 17: the tightest chunk had 15 bytes of slack.
+- **Paste chunks.** The trim adds about 130 B to every chunk's shell. After #2661's own shell growth that put Code
+  input and Dialog over #1798's 37,800 B unit ceiling (Dialog had 76 B left on main). The strip pass now drops leading
+  indentation as well as comments, on the same ground (no literal in the payload spans lines; the gate now also refuses
+  a line ending in a backslash): about 1 KB off every shell. `icon-button` packs into 17 chunks.
 - **Found and filed, not fixed here:** prism3's title font sets old-style figures by default, so several digits drop
   below the baseline (#2814).

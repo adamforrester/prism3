@@ -17,3 +17,8 @@ code's `text-box: trim-both cap alphabetic`). The centered box is then the figur
 metrics. Figma keeps the trim inside the text style, so both executors write the plan's trim in `claimDefaults` and do
 not re-apply the style over it. The trimmed character keeps the style's variable binds and shows no style name. Only
 Code input's cell declares it, and every other plan is byte-identical.
+
+Code input joins the Field style lever (#2719, owner decisions Q332 A and Q12 A on #2695): under `underline` each cell
+draws one bottom line, 2px with the ring at the 2px offset on the active cells and `border.danger` in error, square,
+with no hover wash and no disabled plate. `applyFieldStyle` squares a per-size corner key. Every paste payload also
+drops its leading indentation (about 1 KB per chunk), so the indivisible paste unit stays under #1798's ceiling.

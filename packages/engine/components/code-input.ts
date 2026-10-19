@@ -45,7 +45,8 @@
  * three digits and the active fourth cell. That is a fresh insert's starting point only: a placed field's cells are
  * the designer's, per Q329.
  *
- * Field style (#2695): the Outline / Underline lever is not on main yet (#2721); Code input joins it in #2719.
+ * Field style (#2695; #2719, Q332 A and Q12 A): the cell is in `FIELD_FRAME_PARTS`, so under Underline each cell draws one
+ * bottom line, 2px with the ring at the 2px offset when active and `border.danger` in error. The field's gaps stay.
  */
 import { ComponentDef } from '../component-schema';
 
@@ -189,6 +190,7 @@ export const codeInputCell: ComponentDef = {
       'the character\'s optical centering — its box is trimmed to the cap height and the baseline (`text-box: trim-both cap alphabetic`, Figma\'s vertical trim), so the cell centers the figure itself, whatever the brand font\'s ascender and descender. Where `text-box` is unsupported, the box falls back to the line box, centered.',
       'the character\'s text style in Figma — vertical trim lives inside a Figma text style, so the trimmed character carries the style\'s font family, style and size as variable binds and shows no style name. Code reads the same type role.',
       'fill width — Figma keeps each cell at its size until a designer sets it to fill; code\'s `width="full"` makes every cell `flex: 1 1 0` with `min-inline-size: 32px`, and the height stays the size\'s.',
+      'style — the cell\'s edge is the brand\'s Field style setting, not a prop or a Figma variant: `outline` draws a box around each cell, `underline` one line under each cell. The brand sets it once, every field takes it, and the cell set is built in that style (#2695, #2719).',
       'forced-colors — the borders become system-color borders and the active cell\'s ring a system-color outline, so the active cell still shows.',
     ],
   },

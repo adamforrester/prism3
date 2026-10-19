@@ -2441,6 +2441,9 @@ export const FIELD_FRAME_PARTS: Readonly<Record<string, string>> = {
   'password-field': 'control',
   select: 'control',
   textarea: 'control',
+  // #2719 (Q332 A names Code input a field; Q12 A on #2695): each cell is a field box, so each draws its own line.
+  // The row's gaps belong to `code-input`, which binds no field chrome and stays as authored.
+  'code-input-cell': 'cell',
 };
 
 /**
@@ -2477,7 +2480,11 @@ export const applyFieldStyle = (def: ComponentDef, style: FieldStyle): Component
     if (onFill) { tokens[`disabled.${onFill[1]}`] = onFill[1] === 'icon' ? 'color.disabled.icon' : 'color.disabled.text'; continue; }
     tokens[k] = ref;
   }
-  if (frame.radius) tokens[frame.radius] = 'radius.none';
+  // A per-size corner (`size.{size}.radius`, the Code cell's) squares every size's key, not a literal template key.
+  if (frame.radius?.includes('{')) {
+    const key = new RegExp(`^${frame.radius.replace(/\./g, '\\.').replace(/\{[a-z-]+\}/g, '[^.]+')}$`);
+    for (const k of Object.keys(tokens)) if (key.test(k)) tokens[k] = 'radius.none';
+  } else if (frame.radius) tokens[frame.radius] = 'radius.none';
   tokens['underline.pad-x'] = 'space.0';
   tokens['underline.side'] = 'border-width.none';
   for (const st of statesOf(def)) tokens[`underline.line.${st}`] = st.startsWith('focus-visible') ? 'border-width.thick' : 'border-width.hairline';
