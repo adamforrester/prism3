@@ -16677,6 +16677,19 @@ arm: {
       `#1438 select validates clean as nest-exposed — expose ⊂ field-label's axes, disjoint from follow (${validateComponentDef(select).errors.join('; ')})`);
   }
 
+  // ---- Q399 A: the COUNTER's label is nest-exposed like the fields' (owner-decided, on #2693) ----
+  // EXPECTED typed from the decision, never read off the def: the surface baseline is re-accepted with any change
+  // note, so it does not remember which axes were listed. Mutation: `expose` cut to ['emphasis'], or the label back to
+  // `nest-fixed` → this line.
+  {
+    const n = counter.anatomy?.parts.label?.nesting;
+    const got = n?.kind === 'nest-exposed'
+      ? `expose ${[...n.expose].sort().join(', ')}, follow ${(n.follow ?? []).join(', ')}, emphasis ${n.variant?.emphasis}, weight ${n.variant?.weight}`
+      : `kind ${n?.kind ?? 'MISSING'}`;
+    ok(got === 'expose emphasis, weight, follow size, emphasis secondary, weight regular',
+      `Q399 A counter's label is nest-exposed: exposes [emphasis, weight], follows [size], starts secondary and regular (got ${got})`);
+  }
+
   // #1223 — INTENT IS THE COMPONENT NOW, NOT AN AXIS. The three semantic intents are three components
   // (Button = primary, Destructive Button, Neutral Button), built by one factory. Button carries NO
   // `intent` prop, and hierarchy is still the appearance axis (filled > outline > text).
