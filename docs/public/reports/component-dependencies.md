@@ -12,20 +12,21 @@ Generated from the component definitions and the emission by `packages/engine/em
 |---|---|---|
 | _accordion-indicator | accordion | accordion |
 | badge | tab | tab, tabs |
-| button | dialog, password-field | dialog, password-field |
+| button | button-group, password-field | button-group, dialog, password-field |
+| button-group | dialog | dialog |
 | checkbox-control | checkbox-row | checkbox-group, checkbox-row |
 | checkbox-row | checkbox-group | checkbox-group |
 | divider | accordion, dialog | accordion, dialog |
-| field-label | checkbox-group, password-field, radio-group, segmented-control, select, text-field, textarea | checkbox-group, password-field, radio-group, segmented-control, select, text-field, textarea |
-| field-message | password-field, select, text-field, textarea | password-field, select, text-field, textarea |
-| flush-icon-button-neutral | dialog | dialog |
-| focus-ring | accordion, button, button-destructive, button-neutral, checkbox-control, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, pagination-item, password-field, radio-control, segmented-control-segment, select, switch-control, tab, tag, text-field, textarea | accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, dialog, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, switch-control, switch-row, tab, tabs, tag, text-field, textarea |
+| field-label | checkbox-group, counter, password-field, radio-group, segmented-control, select, text-field, textarea | checkbox-group, counter, password-field, radio-group, segmented-control, select, text-field, textarea |
+| field-message | counter, password-field, select, text-field, textarea | counter, password-field, select, text-field, textarea |
+| flush-icon-button-neutral | counter, dialog | counter, dialog |
+| focus-ring | accordion, button, button-destructive, button-neutral, checkbox-control, counter, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, pagination-item, password-field, radio-control, segmented-control-segment, select, switch-control, tab, tag, text-field, textarea | accordion, button, button-destructive, button-group, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, switch-control, switch-row, tab, tabs, tag, text-field, textarea |
 | list-item | list | list |
 | pagination-item | pagination | pagination |
 | radio-control | radio-row | radio-group, radio-row |
 | radio-row | radio-group | radio-group |
 | segmented-control-segment | segmented-control | segmented-control |
-| spinner | button, button-destructive, button-neutral, icon-button, icon-button-destructive, icon-button-neutral | button, button-destructive, button-neutral, dialog, icon-button, icon-button-destructive, icon-button-neutral, password-field |
+| spinner | button, button-destructive, button-neutral, icon-button, icon-button-destructive, icon-button-neutral | button, button-destructive, button-group, button-neutral, dialog, icon-button, icon-button-destructive, icon-button-neutral, password-field |
 | switch-control | switch-row | switch-row |
 | tab | tabs | tabs |
 
@@ -40,11 +41,13 @@ A component not in this table is nested by nothing; a change to it reaches only 
 | badge | 0 | — | — |
 | button | 1 | focus-ring, spinner | focus-ring, spinner |
 | button-destructive | 1 | focus-ring, spinner | focus-ring, spinner |
+| button-group | 2 | button | button, focus-ring, spinner |
 | button-neutral | 1 | focus-ring, spinner | focus-ring, spinner |
 | checkbox-control | 1 | focus-ring | focus-ring |
 | checkbox-group | 3 | checkbox-row, field-label | checkbox-control, checkbox-row, field-label, focus-ring |
 | checkbox-row | 2 | checkbox-control | checkbox-control, focus-ring |
-| dialog | 2 | button, divider, flush-icon-button-neutral | button, divider, flush-icon-button-neutral, focus-ring, spinner |
+| counter | 2 | field-label, field-message, flush-icon-button-neutral, focus-ring | field-label, field-message, flush-icon-button-neutral, focus-ring |
+| dialog | 3 | button-group, divider, flush-icon-button-neutral | button, button-group, divider, flush-icon-button-neutral, focus-ring, spinner |
 | divider | 0 | — | — |
 | field-label | 0 | — | — |
 | field-message | 0 | — | — |
@@ -93,6 +96,12 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | button | spinner | overlay | spinner | swap | — | — | — |
 | button-destructive | focusRing | absolute | focus-ring | nest-fixed | surface=default | surface | — |
 | button-destructive | spinner | overlay | spinner | swap | — | — | — |
+| button-group | cancel | nest | button | nest-fixed | appearance=outline, size=medium, surface=default, inset=default, state=rest, leading icon=false, trailing icon=false | — | — |
+| button-group | cancelFill | nest | button | nest-fixed | appearance=outline, size=medium, surface=default, inset=default, state=rest, leading icon=false, trailing icon=false | — | — |
+| button-group | cancelStacked | nest | button | nest-fixed | appearance=outline, size=medium, surface=default, inset=default, state=rest, leading icon=false, trailing icon=false | — | — |
+| button-group | save | nest | button | nest-fixed | appearance=filled, size=medium, surface=default, inset=default, state=rest, leading icon=false, trailing icon=false | — | — |
+| button-group | saveFill | nest | button | nest-fixed | appearance=filled, size=medium, surface=default, inset=default, state=rest, leading icon=false, trailing icon=false | — | — |
+| button-group | saveStacked | nest | button | nest-fixed | appearance=filled, size=medium, surface=default, inset=default, state=rest, leading icon=false, trailing icon=false | — | — |
 | button-neutral | focusRing | absolute | focus-ring | nest-fixed | surface=default | surface | — |
 | button-neutral | spinner | overlay | spinner | swap | — | — | — |
 | checkbox-control | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
@@ -101,11 +110,14 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | checkbox-group | row2 | nest | checkbox-row | nest-fixed | size=medium | size | — |
 | checkbox-group | row3 | nest | checkbox-row | nest-fixed | size=medium | size | — |
 | checkbox-row | control | nest | checkbox-control | nest-exposed | selection=unchecked, state=rest | size | selection, state |
-| dialog | cancelInline | nest | button | nest-fixed | appearance=outline, size=medium, surface=default, inset=default, state=rest, leading icon=false, trailing icon=false | — | — |
-| dialog | cancelStacked | nest | button | nest-fixed | appearance=outline, size=medium, surface=default, inset=default, state=rest, leading icon=false, trailing icon=false | — | — |
+| counter | decrement | nest | flush-icon-button-neutral | nest-exposed | shape=flush, size=medium, state=rest | size | state |
+| counter | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
+| counter | increment | nest | flush-icon-button-neutral | nest-exposed | shape=flush, size=medium, state=rest | size | state |
+| counter | label | nest | field-label | nest-fixed | size=medium, emphasis=secondary, weight=regular, state=rest | size | — |
+| counter | message | nest | field-message | nest-fixed | status=default | — | — |
+| dialog | actionsInline | nest | button-group | nest-fixed | layout=inline | — | — |
+| dialog | actionsStacked | nest | button-group | nest-fixed | layout=stacked | — | — |
 | dialog | close | nest | flush-icon-button-neutral | nest-fixed | shape=round, size=medium, state=rest | — | — |
-| dialog | confirmInline | nest | button | nest-fixed | appearance=filled, size=medium, surface=default, inset=default, state=rest, leading icon=false, trailing icon=false | — | — |
-| dialog | confirmStacked | nest | button | nest-fixed | appearance=filled, size=medium, surface=default, inset=default, state=rest, leading icon=false, trailing icon=false | — | — |
 | dialog | footerDivider | nest | divider | nest-fixed | orientation=horizontal, inset=none | — | — |
 | dialog | headerDivider | nest | divider | nest-fixed | orientation=horizontal, inset=none | — | — |
 | flush-icon-button | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |

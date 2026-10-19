@@ -15,8 +15,7 @@ export const USED_BY = {
       "radius.md": [
         "Button",
         "IconButton",
-        "SegmentedControl",
-        "Pagination"
+        "SegmentedControl"
       ],
       "radius.none": [
         "FlushIconButton",
@@ -37,7 +36,8 @@ export const USED_BY = {
         "Select",
         "Badge",
         "SegmentedControl",
-        "PasswordField"
+        "PasswordField",
+        "Counter"
       ]
     },
     pill: {
@@ -49,8 +49,7 @@ export const USED_BY = {
         "IconButton"
       ],
       "radius.md": [
-        "SegmentedControl",
-        "Pagination"
+        "SegmentedControl"
       ],
       "radius.none": [
         "FlushIconButton",
@@ -71,7 +70,8 @@ export const USED_BY = {
         "Select",
         "Badge",
         "SegmentedControl",
-        "PasswordField"
+        "PasswordField",
+        "Counter"
       ]
     },
     boxed: {
@@ -79,8 +79,7 @@ export const USED_BY = {
         "Dialog"
       ],
       "radius.md": [
-        "SegmentedControl",
-        "Pagination"
+        "SegmentedControl"
       ],
       "radius.none": [
         "Button",
@@ -104,7 +103,8 @@ export const USED_BY = {
       "radius.sm": [
         "Badge",
         "SegmentedControl",
-        "PasswordField"
+        "PasswordField",
+        "Counter"
       ]
     },
     hairline: {
@@ -120,8 +120,7 @@ export const USED_BY = {
         "Select"
       ],
       "radius.md": [
-        "SegmentedControl",
-        "Pagination"
+        "SegmentedControl"
       ],
       "radius.none": [
         "FlushIconButton",
@@ -139,7 +138,8 @@ export const USED_BY = {
       "radius.sm": [
         "Badge",
         "SegmentedControl",
-        "PasswordField"
+        "PasswordField",
+        "Counter"
       ]
     }
   },
@@ -157,7 +157,7 @@ export const USED_BY = {
       "Accordion",
       "SegmentedControl",
       "PasswordField",
-      "Pagination"
+      "Counter"
     ],
     "size.md.height": [
       "FocusRing",
@@ -171,7 +171,7 @@ export const USED_BY = {
       "Tab",
       "Divider",
       "SegmentedControl",
-      "Pagination"
+      "Counter"
     ],
     "size.sm.height": [
       "Button",
@@ -183,7 +183,7 @@ export const USED_BY = {
       "Tag",
       "Tab",
       "SegmentedControl",
-      "Pagination"
+      "Counter"
     ]
   },
   buttonSizes: {

@@ -1123,6 +1123,22 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     ]
   },
   {
+    "id": "button-group",
+    "name": "Button.Group",
+    "category": "form",
+    "summary": "One to three buttons laid out together: in a row at the end, stacked, or sharing the width.",
+    "unit": "variants",
+    "spacing": [],
+    "page": "Buttons",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 3,
+    "nests": [
+      "button"
+    ]
+  },
+  {
     "id": "dialog",
     "name": "Dialog",
     "category": "overlay",
@@ -1138,7 +1154,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
       "flush-icon-button-neutral",
       "icon",
       "divider",
-      "button"
+      "button-group"
     ]
   },
   {
@@ -1199,36 +1215,23 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     ]
   },
   {
-    "id": "pagination-item",
-    "name": "Pagination.Item",
-    "category": "navigation",
-    "summary": "A pagination cell: a page, the gap marker, previous or next. The current page is outlined.",
+    "id": "counter",
+    "name": "Counter",
+    "category": "form",
+    "summary": "A whole-number quantity between a minus and a plus button, such as an item count in a bag.",
     "unit": "variants",
     "spacing": [],
-    "page": "Pagination",
+    "page": "Counter",
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 87,
+    "members": 18,
     "nests": [
-      "focus-ring",
-      "icon"
-    ]
-  },
-  {
-    "id": "pagination",
-    "name": "Pagination",
-    "category": "navigation",
-    "summary": "Moves between pages of a long list or set of results, and shows which page is open.",
-    "unit": "variants",
-    "spacing": [],
-    "page": "Pagination",
-    "section": "Components",
-    "buildable": true,
-    "reason": null,
-    "members": 12,
-    "nests": [
-      "pagination-item"
+      "field-label",
+      "flush-icon-button-neutral",
+      "icon",
+      "field-message",
+      "focus-ring"
     ]
   }
 ];

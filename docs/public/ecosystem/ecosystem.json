@@ -312,10 +312,10 @@
           "segmented-control-segment",
           "segmented-control",
           "link",
+          "button-group",
           "dialog",
           "password-field",
-          "pagination-item",
-          "pagination"
+          "counter"
         ]
       }
     },
