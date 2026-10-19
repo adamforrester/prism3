@@ -105,11 +105,11 @@ The numbers are a judgment call to flag in the PR.
 ### Field order
 
 Write the fields in the order the corpus uses, so a reader finds each one where the other defs keep it:
-identity (`id`, `name`, `aliases`, `category`, `status`), `summary`, `description`, `inherits`, then `props`,
-`states`, `variants`, `axisKinds`, the paint declarations (`paintKeys`, `densitySpacing`, `visibleGaps`,
-`weightIntent`), `tokens`, `anatomy`, `figmaProperties`, `accessibility`, `content`, `docs`, `ai`,
-`composition`, `motion` and `notes`. `summary` comes before `description`. Button's factory writes them the
-other way round; do not copy that (#2712). Which keys to write empty is still open there; the one empty
+identity (`id`, `name`, `aliases`, `category`, `status`), `inherits` where the def has one, `summary`,
+`description`, then `props`, `states`, `variants`, `axisKinds`, `weightIntent`, the paint declarations
+(`paintKeys`, `densitySpacing`, `visibleGaps`), `tokens`, `anatomy`, `figmaProperties`, `accessibility`, `content`, `docs`, `ai`,
+`composition`, `motion` and `notes`. `summary` comes before `description`. Button's factory and the Icon
+button factory write them the other way round; do not copy that (#2712). Which keys to write empty is still open there; the one empty
 value that is already a statement is `figmaProperties.booleans` (§6).
 
 ### What ships, and who reads it
@@ -222,8 +222,9 @@ Every part declares a `kind` from a closed vocabulary (`packages/engine/componen
 
 **The root part is named for its role, never `root` and never the component's own id.** A box that
 holds the component's content is `container`; a root that is something more specific takes that
-role's name (a Row's `row`, a switch's `track`, a focus ring's `ring`, a veil's `wash`, a dialog's
-`panel`). Part names are layer names a designer reads in Figma, so they follow the naming table in §6:
+role's name. The list is closed (owner decision Q365): `container`, `row`, `control`, `track`, `label`,
+`message`, `ring`, `glyph`, `frame`, `wash`, `surface`, `panel`. A new role needs an owner decision.
+Part names are layer names a designer reads in Figma, so they follow the naming table in §6:
 pick the name the table or an existing def already gives that job rather than inventing one.
 
 **`anatomy.codeOnly` is required and non-empty** — what will not survive the Figma leg, stated per
@@ -485,24 +486,15 @@ container's geometry?
 So the rule is: **variant axis only when presence drives edge-hugging asymmetric padding; a node-visibility
 boolean otherwise.** Verify which case a new component is in against the actual defs before wiring it.
 
-**Figma's first member is the code default, on every axis** (owner decision Q347). The member a
-designer gets on insert is the one at the top left of the set, and the planner puts the set's first
-member there. So that member carries the code default on every axis: the prop's own `default`, `false` on a
-slot-presence axis, and `rest` on the state axis. Lead each axis with its default and keep the rest of the
-values in their decided order (Icon button leads `appearance` with `ghost`, Veil leads `intensity` with
-`medium`, Image placeholder leads `ratio` with `4:3`). The `#2752 <def>` test in `packages/engine/test.ts`
-checks every def on every axis, reading the expected value from the def's props, never from its
-`variants`. A mismatch passes only as a reasoned exception the test names. Two are recorded today, each
-an open owner question on #2752: the size ladder below, and Button's icon slots, which lead with `true`.
-
-**Axis value order is a decision, and it is fixed (#2501, owner decision Q213).** Sizes run small to
-large; states run in ladder order, for example rest, hover, pressed, pending, focus-visible, disabled (the
-full ladder is `STATE_LADDER` in `packages/engine/test.ts`). The size ladder is the standing exception
-to the rule above: a sized control inserts `small` while its code default is `medium`. Text field,
-textarea, select, password field and dialog keep medium first (Q221 B), so an inserted field stays
-medium. Do not reorder a size axis on your own; the answer waits on the owner. The `#2501 <def>` test in
+**Axis value order is a decision, and it is fixed (#2501, owner decision Q213; sizes and slots by #2752,
+Q1 B and Q2 A).** A size axis leads with medium, the code default, and the rest run small to large, so an
+inserted control is medium. Field label, whose code default is small, is the one named exception. A slot
+presence axis leads with `false`, so the inserted member's slots are empty, as in code. States run in ladder
+order, for example rest, hover, pressed, pending, focus-visible, disabled (the full ladder is `STATE_LADDER`
+in `packages/engine/test.ts`). Figma's default member is the one at the top left of the set on the canvas,
+not the first child, so axis order does not by itself pick the Figma default. The `#2501 <def>` test in
 `packages/engine/test.ts` fails a def that breaks the order, and a size or state the order doesn't know
-fails as unplaced.
+fails as unplaced. The `#2752 <def>` test fails a def whose inserted member does not carry the code default.
 
 **A sparse grid.** A variant set is the full cross product of its axes unless the def says otherwise. When
 one axis value has no meaning at a value of another (Badge's count and dot have no `subtle` emphasis), list
@@ -521,20 +513,26 @@ name is waiting on it: do not copy the older name into a new def.
 
 | Job | Name | Not |
 |---|---|---|
-| the root | named for its role (§2); `container` for a box holding the content | `root`, or the component's own id |
-| the main text | `label` | `text`, `title` |
-| a glyph layer | `<shape>Glyph`: `checkGlyph`, `chevronGlyph`, `closeGlyph` | a bare shape name (`check`, `chevron`), or `mark`, `dash` |
+| the root | one of the 12 roles in §2; `container` for a box holding the content | `root`, or the component's own id |
+| the main text | `label`; Dialog keeps `title` and `description` as the one stated exception | `text`, `title` |
+| a glyph layer | `<shape>Glyph`: `checkGlyph`, `dashGlyph`, `errorGlyph`, `chevronGlyph`, `gripGlyph`, `markerGlyph`, `ringGlyph`; the close glyph stays `dismissGlyph` | a bare shape name (`check`, `chevron`), or `mark`, `dash` |
 | a Row's control cell | `controlCell` | `controlBox`, `trackBox` |
 | repeated children | the native `items` slot, below | numbered parts (`row1`, `tab1`) |
 | a Figma property | lowercase words (`leading icon`) | Title case |
 
-**The `_` prefix marks a part that is not used outside its parent** (owner decisions Q349, Q353, Q355).
-Its id starts with `_`, which Figma reads as private: the part is left out when the library is published.
-The decided set: the Segmented control's segment, `_tab-item` (renamed from `tab`, which reads too close to
-`tabs`), `_list-item` and `_accordion-indicator`; all but the last take the prefix in the sweep.
-A building block that is also placed on its own keeps a plain id: the checkbox and radio controls, the
-focus ring and the field label. Whether a new part is private is a design call: propose it in the
-wireframe.
+**The `_` prefix marks a component that is not used outside its parent** (owner decisions Q349, Q355,
+narrowed by Q394 A). It goes on a component's id, never on a part key. Figma reads it as private and
+leaves the component out of a published library, so it is for a building block no consumer places by
+hand. The decided set is `_accordion-indicator`. Only the checkbox and radio controls are exempt from
+the prefix, and Radio row stays unprefixed too: it is a whole option, not a part.
+
+**A slot's items are unprefixed, and preferred** (owner decision Q394 A, #2831). The tab item, the list
+item and the Segmented control's segment are what designers place into a native slot, and a `_` prefix
+hides them from library publishing, which breaks every consumer file that holds one. They take plain ids
+(`tab-item`, renamed from `tab`, which reads too close to `tabs`, displayed `Tab.Item` to match
+`List.Item`; `list-item`; `segmented-control-segment`) and are named in the slot's `preferred`
+(below). Never rename one to `_…` and back. Whether any other new component is private is a design call:
+propose it in the wireframe.
 
 ### Repeating content: an `items` slot, never a boolean per child (#2660, owner decision Q307)
 
@@ -583,12 +581,13 @@ so a new def fails by name until you add it — or, for a floor list, stays unco
 | `lint-hit-target` | an interactive control in `INTERACTIVE` with the key of its hit-target binding; anything else in `EXCLUDED` with its reason. A def in neither fails. A part inside the control that is, or may be, a target of its own (Tag's × slot) carries `innerTarget: true` in the def and goes in `INNER_TARGETS`; a marked part not listed there, an entry naming an unmarked part, and a nested interactive control not listed there each fail. |
 | `lint-rung-names` | a def with a size axis in `MUST_COVER`. No size axis → `NO_SIZE_AXIS` with the reason (it fails until admitted); a ladder in `props` only → `LADDER_STATED_ONCE`; size reaching only nested parts → `SIZE_BY_FOLLOW_ONLY`. A default that is not the `md` rung is an owner exception (`HOST_DEFAULT_DEFS`, `ICON_OFFSET_DEFS`), not yours to add. |
 | `lint-axis-values` | each (def, axis) pair in `AXIS_VALUE_SETS`: join a set's `defs`, or declare a new set with its `relation` to the canonical one and a reason. Order counts. |
-| `lint-standalone-floor` | a def that projects a Figma set in `MUST_PROJECT`. |
+| `lint-standalone-floor` | a def that projects a Figma set in `MUST_PROJECT`. A projecting def not listed fails. |
 | `lint-paint-placement` | a def with an anatomy in `EXPECT_ANATOMY`; one whose box declares `paintSlots` in `EXPECT_PAINTERS`. Both are closed sets. |
 | `lint-glyph-geometry` | each `vector` part as `<id>.<part>` in `MUST_COVER`; a fixed (non-templated) glyph in `FIXED_GLYPH`, a `glyphScale` in `SCALED_GLYPH`. |
 | `lint-glyph-geometry`, composed or colliding glyphs | a `vector` part whose glyph is not in the icon set (drawn in layers, like the spinner's ring) in `COMPOSED_GLYPH`; a glyph template whose members draw one shape under two names in `DUPLICATE_SHAPES`, with the reason. |
-| `lint-absolute-inset` | a nested focus ring as `<id>.focusRing` in `MUST_COVER` and `MUST_CLEAR_STROKE`. |
+| `lint-absolute-inset` | a nested focus ring as `<id>.focusRing` in `MUST_COVER` and, when it declares a `strokeInset`, `MUST_CLEAR_STROKE`. A part in neither list nor its exemption (`NOT_COVERED`, `NOT_STROKE_CLEARED`) fails. |
 | `lint-paint` admissions | a paint key whose ref legitimately does not carry its axis value in `PROVENANCE_EXCEPTIONS`; an axis whose values are not color families in `NON_FAMILY_AXES`; a bound paint key no projected coordinate reaches in `UNREACHED_EXPLAINED`. Each needs a reason and fails as stale when it stops applying. |
+| `packages/engine/test.ts`, field and gap floors | a def whose `densitySpacing` names a gap in `GAP_KEYS`; a def with an error, warning or success status in `SH_DEFS` (or `SH_EXEMPT` with the reason); a def with a read-only member in `RO_PINNED`. A def missing from these fails. |
 | `packages/engine/test.ts` | nothing for the brief: `KB_BRIEF_CATEGORY` is derived from `schema/kb-briefs.json` (refresh it if the brief is new). A def with a `presentWhen` part in `GATED_EXPECTED`, and a def binding a `size.<size>.control`, `dot` or `track` key in `CONTROL_DEFS`: both are exact-equality lists. |
 | `apps/plugin/src/file-taxonomy.ts` | the def on a page in `TAXONOMY` (§3). |
 

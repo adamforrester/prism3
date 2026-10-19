@@ -1,0 +1,2596 @@
+{
+  "about": "How a Prism3 Figma file is laid out and named: pages, components, icons, native slots, variables and canvas furniture. Generated from the code; do not edit by hand.",
+  "generatedBy": "npx tsx packages/engine/emit-figma-conventions.ts",
+  "checkedBy": "npx tsx packages/engine/emit-figma-conventions.ts --check",
+  "pages": {
+    "rule": "The cover page comes first. Each section is a native page divider, then an empty header page named for the section, then its component pages. A component page's name starts with \"↳ \"; the cover and the section headers have no prefix.",
+    "source": "apps/plugin/src/file-taxonomy.ts#export const TAXONOMY",
+    "cover": "Cover",
+    "prefix": "↳ ",
+    "sections": [
+      {
+        "header": "Foundations",
+        "order": "as listed",
+        "pages": [
+          {
+            "name": "↳ Primitive tokens"
+          },
+          {
+            "name": "↳ Semantic tokens"
+          },
+          {
+            "name": "↳ Icons & assets",
+            "components": [
+              "icon"
+            ]
+          },
+          {
+            "name": "↳ Grids & layouts"
+          }
+        ]
+      },
+      {
+        "header": "Components",
+        "order": "alphabetical",
+        "pages": [
+          {
+            "name": "↳ Buttons",
+            "components": [
+              "button",
+              "button-destructive",
+              "button-neutral",
+              "button-group"
+            ]
+          },
+          {
+            "name": "↳ Icon button",
+            "components": [
+              "icon-button",
+              "icon-button-destructive",
+              "icon-button-neutral"
+            ]
+          },
+          {
+            "name": "↳ Checkbox",
+            "components": [
+              "checkbox-control",
+              "checkbox-row",
+              "checkbox-group"
+            ]
+          },
+          {
+            "name": "↳ Radio",
+            "components": [
+              "radio-control",
+              "radio-row",
+              "radio-group"
+            ]
+          },
+          {
+            "name": "↳ Switch",
+            "components": [
+              "switch-control",
+              "switch-row"
+            ]
+          },
+          {
+            "name": "↳ Select",
+            "components": [
+              "select"
+            ]
+          },
+          {
+            "name": "↳ Text field",
+            "components": [
+              "text-field"
+            ]
+          },
+          {
+            "name": "↳ Password field",
+            "components": [
+              "password-field"
+            ]
+          },
+          {
+            "name": "↳ Textarea",
+            "components": [
+              "textarea"
+            ]
+          },
+          {
+            "name": "↳ Veil",
+            "components": [
+              "veil"
+            ]
+          },
+          {
+            "name": "↳ Badge",
+            "components": [
+              "badge"
+            ]
+          },
+          {
+            "name": "↳ Tag",
+            "components": [
+              "tag"
+            ]
+          },
+          {
+            "name": "↳ Tabs",
+            "components": [
+              "tab",
+              "tabs"
+            ]
+          },
+          {
+            "name": "↳ Segmented control",
+            "components": [
+              "segmented-control-segment",
+              "segmented-control"
+            ]
+          },
+          {
+            "name": "↳ Divider",
+            "components": [
+              "divider"
+            ]
+          },
+          {
+            "name": "↳ Accordion",
+            "components": [
+              "_accordion-indicator",
+              "accordion"
+            ]
+          },
+          {
+            "name": "↳ List",
+            "components": [
+              "list-item",
+              "list"
+            ]
+          },
+          {
+            "name": "↳ Link",
+            "components": [
+              "link"
+            ]
+          },
+          {
+            "name": "↳ Dialog",
+            "components": [
+              "dialog"
+            ]
+          },
+          {
+            "name": "↳ Counter",
+            "components": [
+              "counter"
+            ]
+          }
+        ]
+      },
+      {
+        "header": "Subcomponents",
+        "order": "alphabetical",
+        "pages": [
+          {
+            "name": "↳ Image Placeholder",
+            "components": [
+              "image-placeholder"
+            ]
+          },
+          {
+            "name": "↳ Focus Ring",
+            "components": [
+              "focus-ring"
+            ]
+          },
+          {
+            "name": "↳ Field Label",
+            "components": [
+              "field-label"
+            ]
+          },
+          {
+            "name": "↳ Field Message",
+            "components": [
+              "field-message"
+            ]
+          },
+          {
+            "name": "↳ Flush Icon Button",
+            "components": [
+              "flush-icon-button",
+              "flush-icon-button-destructive",
+              "flush-icon-button-neutral"
+            ]
+          },
+          {
+            "name": "↳ Spinner",
+            "components": [
+              "spinner"
+            ]
+          }
+        ]
+      },
+      {
+        "header": "Sandbox",
+        "order": "as listed",
+        "pages": [
+          {
+            "name": "↳ File Components",
+            "holds": "the file's own template components"
+          }
+        ]
+      }
+    ]
+  },
+  "components": {
+    "rule": "A component set is named for its def id, and each member for its variant values in Figma's `key=value, key=value` form. A def that builds single components names each `<id>/<value>`.",
+    "source": "packages/engine/anatomy-figma.ts#export const planComponentName",
+    "privatePrefix": {
+      "prefix": "_",
+      "rule": "A def id that starts with \"_\" is a building block: it is only ever nested inside another component, and Figma leaves it out of a published library because of the prefix.",
+      "source": "packages/engine/component-schema.ts#optionally led by '_' for a building block"
+    },
+    "placement": {
+      "rule": "A component builds onto the one page its family maps to in the taxonomy. A building block made for one component sits on that component's page. The Subcomponents section holds the parts placed there to be nested or swapped in elsewhere. Section membership is set in the taxonomy, not derived from what nests what.",
+      "source": "apps/plugin/src/file-taxonomy.ts#export const leafForDef"
+    },
+    "codeOnly": {
+      "rule": "An axis or state listed under a component's `codeOnly` exists in code and has no Figma variant; the component doc says why. Code-only props are named in the same doc, not here.",
+      "source": "packages/engine/component-schema.ts#codeOnly: string[]"
+    },
+    "list": [
+      {
+        "id": "icon",
+        "name": "Icon",
+        "figmaName": "icon",
+        "kind": "component set",
+        "page": "↳ Icons & assets",
+        "section": "Foundations",
+        "members": 45,
+        "variantProperties": [
+          {
+            "name": "name",
+            "values": [
+              "arrow-down",
+              "arrow-down-left",
+              "arrow-down-right",
+              "arrow-left",
+              "arrow-right",
+              "arrow-up",
+              "arrow-up-left",
+              "arrow-up-right",
+              "check",
+              "check-circle",
+              "check-circle-filled",
+              "chevron-down",
+              "chevron-left",
+              "chevron-right",
+              "chevron-up",
+              "close",
+              "close-filled",
+              "error-circle",
+              "error-circle-filled",
+              "external-link-filled",
+              "eye",
+              "eye-filled",
+              "eye-off",
+              "eye-off-filled",
+              "FPO-default-icon",
+              "home",
+              "image",
+              "info-circle",
+              "info-circle-filled",
+              "link",
+              "menu",
+              "minus",
+              "minus-filled",
+              "more-horizontal-filled",
+              "more-vertical-filled",
+              "pause-circle",
+              "play-circle",
+              "plus",
+              "plus-circle",
+              "plus-circle-filled",
+              "plus-filled",
+              "resize-grip",
+              "search",
+              "warning-triangle",
+              "warning-triangle-filled"
+            ]
+          }
+        ],
+        "properties": [],
+        "codeOnly": {
+          "axes": [
+            "tone"
+          ]
+        },
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/icon.md"
+      },
+      {
+        "id": "focus-ring",
+        "name": "FocusRing",
+        "figmaName": "focus-ring",
+        "kind": "component set",
+        "page": "↳ Focus Ring",
+        "section": "Subcomponents",
+        "members": 2,
+        "variantProperties": [
+          {
+            "name": "surface",
+            "values": [
+              "default",
+              "inverse"
+            ]
+          }
+        ],
+        "properties": [],
+        "codeOnly": {
+          "axes": [
+            "offset"
+          ]
+        },
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/focus-ring.md"
+      },
+      {
+        "id": "button",
+        "name": "Button",
+        "figmaName": "button",
+        "kind": "component set",
+        "page": "↳ Buttons",
+        "section": "Components",
+        "members": 576,
+        "variantProperties": [
+          {
+            "name": "appearance",
+            "values": [
+              "filled",
+              "outline",
+              "text"
+            ]
+          },
+          {
+            "name": "surface",
+            "values": [
+              "default",
+              "inverse"
+            ]
+          },
+          {
+            "name": "inset",
+            "values": [
+              "default",
+              "flush"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "hover",
+              "pressed",
+              "pending",
+              "focus-visible",
+              "disabled"
+            ]
+          },
+          {
+            "name": "leading icon",
+            "values": [
+              "false",
+              "true"
+            ]
+          },
+          {
+            "name": "trailing icon",
+            "values": [
+              "false",
+              "true"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "label",
+            "type": "TEXT"
+          }
+        ],
+        "codeOnly": {
+          "axes": [
+            "width"
+          ],
+          "states": [
+            "inactive"
+          ]
+        },
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/button.md"
+      },
+      {
+        "id": "button-destructive",
+        "name": "Button.Destructive",
+        "figmaName": "button-destructive",
+        "kind": "component set",
+        "page": "↳ Buttons",
+        "section": "Components",
+        "members": 576,
+        "variantProperties": [
+          {
+            "name": "appearance",
+            "values": [
+              "filled",
+              "outline",
+              "text"
+            ]
+          },
+          {
+            "name": "surface",
+            "values": [
+              "default",
+              "inverse"
+            ]
+          },
+          {
+            "name": "inset",
+            "values": [
+              "default",
+              "flush"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "hover",
+              "pressed",
+              "pending",
+              "focus-visible",
+              "disabled"
+            ]
+          },
+          {
+            "name": "leading icon",
+            "values": [
+              "false",
+              "true"
+            ]
+          },
+          {
+            "name": "trailing icon",
+            "values": [
+              "false",
+              "true"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "label",
+            "type": "TEXT"
+          }
+        ],
+        "codeOnly": {
+          "axes": [
+            "width"
+          ],
+          "states": [
+            "inactive"
+          ]
+        },
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/button-destructive.md"
+      },
+      {
+        "id": "button-neutral",
+        "name": "Button.Neutral",
+        "figmaName": "button-neutral",
+        "kind": "component set",
+        "page": "↳ Buttons",
+        "section": "Components",
+        "members": 576,
+        "variantProperties": [
+          {
+            "name": "appearance",
+            "values": [
+              "filled",
+              "outline",
+              "text"
+            ]
+          },
+          {
+            "name": "surface",
+            "values": [
+              "default",
+              "inverse"
+            ]
+          },
+          {
+            "name": "inset",
+            "values": [
+              "default",
+              "flush"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "hover",
+              "pressed",
+              "pending",
+              "focus-visible",
+              "disabled"
+            ]
+          },
+          {
+            "name": "leading icon",
+            "values": [
+              "false",
+              "true"
+            ]
+          },
+          {
+            "name": "trailing icon",
+            "values": [
+              "false",
+              "true"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "label",
+            "type": "TEXT"
+          }
+        ],
+        "codeOnly": {
+          "axes": [
+            "width"
+          ],
+          "states": [
+            "inactive"
+          ]
+        },
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/button-neutral.md"
+      },
+      {
+        "id": "icon-button",
+        "name": "IconButton",
+        "figmaName": "icon-button",
+        "kind": "component set",
+        "page": "↳ Icon button",
+        "section": "Components",
+        "members": 216,
+        "variantProperties": [
+          {
+            "name": "appearance",
+            "values": [
+              "ghost",
+              "filled",
+              "outline"
+            ]
+          },
+          {
+            "name": "shape",
+            "values": [
+              "square",
+              "circular"
+            ]
+          },
+          {
+            "name": "surface",
+            "values": [
+              "default",
+              "inverse"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "hover",
+              "pressed",
+              "pending",
+              "focus-visible",
+              "disabled"
+            ]
+          }
+        ],
+        "properties": [],
+        "codeOnly": {
+          "states": [
+            "inactive"
+          ]
+        },
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/icon-button.md"
+      },
+      {
+        "id": "icon-button-destructive",
+        "name": "IconButton.Destructive",
+        "figmaName": "icon-button-destructive",
+        "kind": "component set",
+        "page": "↳ Icon button",
+        "section": "Components",
+        "members": 216,
+        "variantProperties": [
+          {
+            "name": "appearance",
+            "values": [
+              "ghost",
+              "filled",
+              "outline"
+            ]
+          },
+          {
+            "name": "shape",
+            "values": [
+              "square",
+              "circular"
+            ]
+          },
+          {
+            "name": "surface",
+            "values": [
+              "default",
+              "inverse"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "hover",
+              "pressed",
+              "pending",
+              "focus-visible",
+              "disabled"
+            ]
+          }
+        ],
+        "properties": [],
+        "codeOnly": {
+          "states": [
+            "inactive"
+          ]
+        },
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/icon-button-destructive.md"
+      },
+      {
+        "id": "icon-button-neutral",
+        "name": "IconButton.Neutral",
+        "figmaName": "icon-button-neutral",
+        "kind": "component set",
+        "page": "↳ Icon button",
+        "section": "Components",
+        "members": 216,
+        "variantProperties": [
+          {
+            "name": "appearance",
+            "values": [
+              "ghost",
+              "filled",
+              "outline"
+            ]
+          },
+          {
+            "name": "shape",
+            "values": [
+              "square",
+              "circular"
+            ]
+          },
+          {
+            "name": "surface",
+            "values": [
+              "default",
+              "inverse"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "hover",
+              "pressed",
+              "pending",
+              "focus-visible",
+              "disabled"
+            ]
+          }
+        ],
+        "properties": [],
+        "codeOnly": {
+          "states": [
+            "inactive"
+          ]
+        },
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/icon-button-neutral.md"
+      },
+      {
+        "id": "flush-icon-button",
+        "name": "FlushIconButton",
+        "figmaName": "flush-icon-button",
+        "kind": "component set",
+        "page": "↳ Flush Icon Button",
+        "section": "Subcomponents",
+        "members": 30,
+        "variantProperties": [
+          {
+            "name": "shape",
+            "values": [
+              "flush",
+              "round"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "hover",
+              "pressed",
+              "focus-visible",
+              "disabled"
+            ]
+          }
+        ],
+        "properties": [],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/flush-icon-button.md"
+      },
+      {
+        "id": "flush-icon-button-destructive",
+        "name": "FlushIconButton.Destructive",
+        "figmaName": "flush-icon-button-destructive",
+        "kind": "component set",
+        "page": "↳ Flush Icon Button",
+        "section": "Subcomponents",
+        "members": 30,
+        "variantProperties": [
+          {
+            "name": "shape",
+            "values": [
+              "flush",
+              "round"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "hover",
+              "pressed",
+              "focus-visible",
+              "disabled"
+            ]
+          }
+        ],
+        "properties": [],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/flush-icon-button-destructive.md"
+      },
+      {
+        "id": "flush-icon-button-neutral",
+        "name": "FlushIconButton.Neutral",
+        "figmaName": "flush-icon-button-neutral",
+        "kind": "component set",
+        "page": "↳ Flush Icon Button",
+        "section": "Subcomponents",
+        "members": 30,
+        "variantProperties": [
+          {
+            "name": "shape",
+            "values": [
+              "flush",
+              "round"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "hover",
+              "pressed",
+              "focus-visible",
+              "disabled"
+            ]
+          }
+        ],
+        "properties": [],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/flush-icon-button-neutral.md"
+      },
+      {
+        "id": "field-label",
+        "name": "FieldLabel",
+        "figmaName": "field-label",
+        "kind": "component set",
+        "page": "↳ Field Label",
+        "section": "Subcomponents",
+        "members": 24,
+        "variantProperties": [
+          {
+            "name": "emphasis",
+            "values": [
+              "secondary",
+              "primary"
+            ]
+          },
+          {
+            "name": "weight",
+            "values": [
+              "regular",
+              "bold"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "small",
+              "medium",
+              "large"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "disabled"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "label",
+            "type": "TEXT"
+          },
+          {
+            "name": "required marker",
+            "type": "TEXT"
+          },
+          {
+            "name": "required",
+            "type": "BOOLEAN"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/field-label.md"
+      },
+      {
+        "id": "field-message",
+        "name": "FieldMessage",
+        "figmaName": "field-message",
+        "kind": "component set",
+        "page": "↳ Field Message",
+        "section": "Subcomponents",
+        "members": 4,
+        "variantProperties": [
+          {
+            "name": "status",
+            "values": [
+              "default",
+              "error",
+              "warning",
+              "success"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "message",
+            "type": "TEXT"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/field-message.md"
+      },
+      {
+        "id": "text-field",
+        "name": "TextField",
+        "figmaName": "text-field",
+        "kind": "component set",
+        "page": "↳ Text field",
+        "section": "Components",
+        "members": 84,
+        "variantProperties": [
+          {
+            "name": "status",
+            "values": [
+              "default",
+              "error",
+              "warning",
+              "success"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "hover",
+              "filled",
+              "focus-visible",
+              "focus-visible-filled",
+              "disabled",
+              "read-only"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "placeholder",
+            "type": "TEXT"
+          },
+          {
+            "name": "value",
+            "type": "TEXT"
+          },
+          {
+            "name": "leading icon",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "trailing icon",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "message",
+            "type": "BOOLEAN"
+          }
+        ],
+        "codeOnly": {
+          "axes": [
+            "style"
+          ],
+          "states": [
+            "pending",
+            "empty"
+          ]
+        },
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/text-field.md"
+      },
+      {
+        "id": "textarea",
+        "name": "Textarea",
+        "figmaName": "textarea",
+        "kind": "component set",
+        "page": "↳ Textarea",
+        "section": "Components",
+        "members": 84,
+        "variantProperties": [
+          {
+            "name": "status",
+            "values": [
+              "default",
+              "error",
+              "warning",
+              "success"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "hover",
+              "filled",
+              "focus-visible",
+              "focus-visible-filled",
+              "disabled",
+              "read-only"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "placeholder",
+            "type": "TEXT"
+          },
+          {
+            "name": "count",
+            "type": "TEXT"
+          },
+          {
+            "name": "value",
+            "type": "TEXT"
+          },
+          {
+            "name": "resize handle",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "message",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "character count",
+            "type": "BOOLEAN"
+          }
+        ],
+        "codeOnly": {
+          "axes": [
+            "style"
+          ],
+          "states": [
+            "pending",
+            "empty"
+          ]
+        },
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/textarea.md"
+      },
+      {
+        "id": "checkbox-control",
+        "name": "Checkbox.Control",
+        "figmaName": "checkbox-control",
+        "kind": "component set",
+        "page": "↳ Checkbox",
+        "section": "Components",
+        "members": 54,
+        "variantProperties": [
+          {
+            "name": "selection",
+            "values": [
+              "unchecked",
+              "checked",
+              "indeterminate"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "hover",
+              "pressed",
+              "focus-visible",
+              "disabled",
+              "error"
+            ]
+          }
+        ],
+        "properties": [],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/checkbox-control.md"
+      },
+      {
+        "id": "checkbox-row",
+        "name": "Checkbox.Row",
+        "figmaName": "checkbox-row",
+        "kind": "component set",
+        "page": "↳ Checkbox",
+        "section": "Components",
+        "members": 3,
+        "variantProperties": [
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "label",
+            "type": "TEXT"
+          }
+        ],
+        "codeOnly": {
+          "states": [
+            "rest",
+            "hover",
+            "pressed",
+            "focus-visible",
+            "disabled",
+            "read-only",
+            "error"
+          ]
+        },
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/checkbox-row.md"
+      },
+      {
+        "id": "checkbox-group",
+        "name": "Checkbox.Group",
+        "figmaName": "checkbox-group",
+        "kind": "component set",
+        "page": "↳ Checkbox",
+        "section": "Components",
+        "members": 3,
+        "variantProperties": [
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          }
+        ],
+        "properties": [],
+        "codeOnly": {
+          "states": [
+            "rest"
+          ]
+        },
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/checkbox-group.md"
+      },
+      {
+        "id": "radio-control",
+        "name": "Radio.Control",
+        "figmaName": "radio-control",
+        "kind": "component set",
+        "page": "↳ Radio",
+        "section": "Components",
+        "members": 30,
+        "variantProperties": [
+          {
+            "name": "selection",
+            "values": [
+              "unchecked",
+              "checked"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "hover",
+              "pressed",
+              "focus-visible",
+              "disabled"
+            ]
+          }
+        ],
+        "properties": [],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/radio-control.md"
+      },
+      {
+        "id": "radio-row",
+        "name": "Radio.Row",
+        "figmaName": "radio-row",
+        "kind": "component set",
+        "page": "↳ Radio",
+        "section": "Components",
+        "members": 3,
+        "variantProperties": [
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "label",
+            "type": "TEXT"
+          }
+        ],
+        "codeOnly": {
+          "states": [
+            "rest",
+            "hover",
+            "pressed",
+            "focus-visible",
+            "disabled",
+            "read-only"
+          ]
+        },
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/radio-row.md"
+      },
+      {
+        "id": "radio-group",
+        "name": "Radio.Group",
+        "figmaName": "radio-group",
+        "kind": "component set",
+        "page": "↳ Radio",
+        "section": "Components",
+        "members": 3,
+        "variantProperties": [
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          }
+        ],
+        "properties": [],
+        "codeOnly": {
+          "states": [
+            "rest"
+          ]
+        },
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/radio-group.md"
+      },
+      {
+        "id": "switch-control",
+        "name": "Switch.Control",
+        "figmaName": "switch-control",
+        "kind": "component set",
+        "page": "↳ Switch",
+        "section": "Components",
+        "members": 24,
+        "variantProperties": [
+          {
+            "name": "selection",
+            "values": [
+              "off",
+              "on"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "hover",
+              "pressed",
+              "focus-visible",
+              "disabled",
+              "error"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "State icon",
+            "type": "BOOLEAN"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/switch-control.md"
+      },
+      {
+        "id": "switch-row",
+        "name": "Switch.Row",
+        "figmaName": "switch-row",
+        "kind": "component set",
+        "page": "↳ Switch",
+        "section": "Components",
+        "members": 2,
+        "variantProperties": [
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "label",
+            "type": "TEXT"
+          }
+        ],
+        "codeOnly": {
+          "states": [
+            "rest",
+            "hover",
+            "pressed",
+            "pending",
+            "focus-visible",
+            "disabled",
+            "read-only",
+            "error"
+          ]
+        },
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/switch-row.md"
+      },
+      {
+        "id": "select",
+        "name": "Select",
+        "figmaName": "select",
+        "kind": "component set",
+        "page": "↳ Select",
+        "section": "Components",
+        "members": 84,
+        "variantProperties": [
+          {
+            "name": "status",
+            "values": [
+              "default",
+              "error",
+              "warning",
+              "success"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "hover",
+              "filled",
+              "focus-visible",
+              "focus-visible-filled",
+              "disabled",
+              "read-only"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "placeholder",
+            "type": "TEXT"
+          },
+          {
+            "name": "value",
+            "type": "TEXT"
+          },
+          {
+            "name": "leading icon",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "message",
+            "type": "BOOLEAN"
+          }
+        ],
+        "codeOnly": {
+          "states": [
+            "pending",
+            "empty"
+          ]
+        },
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/select.md"
+      },
+      {
+        "id": "veil",
+        "name": "Veil",
+        "figmaName": "veil",
+        "kind": "component set",
+        "page": "↳ Veil",
+        "section": "Components",
+        "members": 30,
+        "variantProperties": [
+          {
+            "name": "value",
+            "values": [
+              "dark",
+              "light"
+            ]
+          },
+          {
+            "name": "intensity",
+            "values": [
+              "medium",
+              "subtle",
+              "strong"
+            ]
+          },
+          {
+            "name": "direction",
+            "values": [
+              "full",
+              "from-top",
+              "from-bottom",
+              "from-left",
+              "from-right"
+            ]
+          }
+        ],
+        "properties": [],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/veil.md"
+      },
+      {
+        "id": "image-placeholder",
+        "name": "ImagePlaceholder",
+        "figmaName": "image-placeholder",
+        "kind": "component set",
+        "page": "↳ Image Placeholder",
+        "section": "Subcomponents",
+        "members": 7,
+        "variantProperties": [
+          {
+            "name": "ratio",
+            "values": [
+              "4:3",
+              "2:3",
+              "3:4",
+              "4:5",
+              "1:1",
+              "3:2",
+              "16:9"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "Marker",
+            "type": "BOOLEAN"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/image-placeholder.md"
+      },
+      {
+        "id": "spinner",
+        "name": "Spinner",
+        "figmaName": "spinner",
+        "kind": "component set",
+        "page": "↳ Spinner",
+        "section": "Subcomponents",
+        "members": 4,
+        "variantProperties": [
+          {
+            "name": "size",
+            "values": [
+              "x-small",
+              "small",
+              "medium",
+              "large"
+            ]
+          }
+        ],
+        "properties": [],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/spinner.md"
+      },
+      {
+        "id": "badge",
+        "name": "Badge",
+        "figmaName": "badge",
+        "kind": "component set",
+        "page": "↳ Badge",
+        "section": "Components",
+        "members": 20,
+        "variantProperties": [
+          {
+            "name": "type",
+            "values": [
+              "status",
+              "count",
+              "dot"
+            ]
+          },
+          {
+            "name": "emphasis",
+            "values": [
+              "subtle",
+              "bold"
+            ]
+          },
+          {
+            "name": "tone",
+            "values": [
+              "neutral",
+              "info",
+              "success",
+              "warning",
+              "danger"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "label",
+            "type": "TEXT"
+          },
+          {
+            "name": "value",
+            "type": "TEXT"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/badge.md"
+      },
+      {
+        "id": "tag",
+        "name": "Tag",
+        "figmaName": "tag",
+        "kind": "component set",
+        "page": "↳ Tag",
+        "section": "Components",
+        "members": 45,
+        "variantProperties": [
+          {
+            "name": "type",
+            "values": [
+              "select",
+              "dismissible"
+            ]
+          },
+          {
+            "name": "selection",
+            "values": [
+              "unselected",
+              "selected"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "hover",
+              "pressed",
+              "focus-visible",
+              "disabled"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "label",
+            "type": "TEXT"
+          },
+          {
+            "name": "leading icon",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "Check icon",
+            "type": "BOOLEAN"
+          }
+        ],
+        "codeOnly": {
+          "states": [
+            "read-only"
+          ]
+        },
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/tag.md"
+      },
+      {
+        "id": "tab",
+        "name": "Tab",
+        "figmaName": "tab",
+        "kind": "component set",
+        "page": "↳ Tabs",
+        "section": "Components",
+        "members": 30,
+        "variantProperties": [
+          {
+            "name": "selection",
+            "values": [
+              "unselected",
+              "selected"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "hover",
+              "pressed",
+              "focus-visible",
+              "disabled"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "label",
+            "type": "TEXT"
+          },
+          {
+            "name": "leading icon",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "count",
+            "type": "BOOLEAN"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/tab.md"
+      },
+      {
+        "id": "tabs",
+        "name": "Tabs",
+        "figmaName": "tabs",
+        "kind": "component set",
+        "page": "↳ Tabs",
+        "section": "Components",
+        "members": 6,
+        "variantProperties": [
+          {
+            "name": "alignment",
+            "values": [
+              "start",
+              "center"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          }
+        ],
+        "properties": [],
+        "codeOnly": {
+          "states": [
+            "rest"
+          ]
+        },
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/tabs.md"
+      },
+      {
+        "id": "divider",
+        "name": "Divider",
+        "figmaName": "divider",
+        "kind": "component set",
+        "page": "↳ Divider",
+        "section": "Components",
+        "members": 5,
+        "variantProperties": [
+          {
+            "name": "orientation",
+            "values": [
+              "horizontal",
+              "vertical"
+            ]
+          },
+          {
+            "name": "inset",
+            "values": [
+              "none",
+              "inset",
+              "middle-inset"
+            ]
+          }
+        ],
+        "properties": [],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/divider.md"
+      },
+      {
+        "id": "_accordion-indicator",
+        "name": "Accordion.Indicator",
+        "figmaName": "_accordion-indicator",
+        "kind": "component set",
+        "private": true,
+        "page": "↳ Accordion",
+        "section": "Components",
+        "members": 12,
+        "variantProperties": [
+          {
+            "name": "indicator",
+            "values": [
+              "chevron",
+              "plus-minus"
+            ]
+          },
+          {
+            "name": "expansion",
+            "values": [
+              "collapsed",
+              "expanded"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          }
+        ],
+        "properties": [],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/_accordion-indicator.md"
+      },
+      {
+        "id": "accordion",
+        "name": "Accordion",
+        "figmaName": "accordion",
+        "kind": "component set",
+        "page": "↳ Accordion",
+        "section": "Components",
+        "members": 24,
+        "variantProperties": [
+          {
+            "name": "expansion",
+            "values": [
+              "collapsed",
+              "expanded"
+            ]
+          },
+          {
+            "name": "icon position",
+            "values": [
+              "leading",
+              "trailing"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "focus-visible"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "title",
+            "type": "TEXT"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/accordion.md"
+      },
+      {
+        "id": "list-item",
+        "name": "List.Item",
+        "figmaName": "list-item",
+        "kind": "component set",
+        "page": "↳ List",
+        "section": "Components",
+        "members": 9,
+        "variantProperties": [
+          {
+            "name": "type",
+            "values": [
+              "unordered",
+              "ordered",
+              "icon"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "text",
+            "type": "TEXT"
+          },
+          {
+            "name": "number",
+            "type": "TEXT"
+          },
+          {
+            "name": "swap icon",
+            "type": "INSTANCE_SWAP",
+            "swapTarget": "icon/check"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/list-item.md"
+      },
+      {
+        "id": "list",
+        "name": "List",
+        "figmaName": "list",
+        "kind": "component set",
+        "page": "↳ List",
+        "section": "Components",
+        "members": 9,
+        "variantProperties": [
+          {
+            "name": "type",
+            "values": [
+              "unordered",
+              "ordered",
+              "icon"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          }
+        ],
+        "properties": [],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/list.md"
+      },
+      {
+        "id": "segmented-control-segment",
+        "name": "SegmentedControl.Segment",
+        "figmaName": "segmented-control-segment",
+        "kind": "component set",
+        "page": "↳ Segmented control",
+        "section": "Components",
+        "members": 30,
+        "variantProperties": [
+          {
+            "name": "selection",
+            "values": [
+              "unselected",
+              "selected"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "hover",
+              "pressed",
+              "focus-visible",
+              "disabled"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "label",
+            "type": "TEXT"
+          },
+          {
+            "name": "leading icon",
+            "type": "BOOLEAN"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/segmented-control-segment.md"
+      },
+      {
+        "id": "segmented-control",
+        "name": "SegmentedControl",
+        "figmaName": "segmented-control",
+        "kind": "component set",
+        "page": "↳ Segmented control",
+        "section": "Components",
+        "members": 3,
+        "variantProperties": [
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "Label",
+            "type": "BOOLEAN"
+          }
+        ],
+        "codeOnly": {
+          "states": [
+            "rest"
+          ]
+        },
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/segmented-control.md"
+      },
+      {
+        "id": "link",
+        "name": "Link",
+        "figmaName": "link",
+        "kind": "component set",
+        "page": "↳ Link",
+        "section": "Components",
+        "members": 96,
+        "variantProperties": [
+          {
+            "name": "style",
+            "values": [
+              "standalone",
+              "inline"
+            ]
+          },
+          {
+            "name": "weight",
+            "values": [
+              "emphasis",
+              "default"
+            ]
+          },
+          {
+            "name": "surface",
+            "values": [
+              "default",
+              "inverse"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "hover",
+              "pressed",
+              "focus-visible"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "label",
+            "type": "TEXT"
+          },
+          {
+            "name": "trailing icon",
+            "type": "BOOLEAN"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/link.md"
+      },
+      {
+        "id": "button-group",
+        "name": "Button.Group",
+        "figmaName": "button-group",
+        "kind": "component set",
+        "page": "↳ Buttons",
+        "section": "Components",
+        "members": 3,
+        "variantProperties": [
+          {
+            "name": "layout",
+            "values": [
+              "inline",
+              "stacked",
+              "fill"
+            ]
+          }
+        ],
+        "properties": [],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/button-group.md"
+      },
+      {
+        "id": "dialog",
+        "name": "Dialog",
+        "figmaName": "dialog",
+        "kind": "component set",
+        "page": "↳ Dialog",
+        "section": "Components",
+        "members": 15,
+        "variantProperties": [
+          {
+            "name": "placement",
+            "values": [
+              "center",
+              "bottom",
+              "full"
+            ]
+          },
+          {
+            "name": "footer",
+            "values": [
+              "inline",
+              "stacked",
+              "none"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "title",
+            "type": "TEXT"
+          },
+          {
+            "name": "description text",
+            "type": "TEXT"
+          },
+          {
+            "name": "description",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "close",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "dividers",
+            "type": "BOOLEAN"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/dialog.md"
+      },
+      {
+        "id": "password-field",
+        "name": "PasswordField",
+        "figmaName": "password-field",
+        "kind": "component set",
+        "page": "↳ Password field",
+        "section": "Components",
+        "members": 84,
+        "variantProperties": [
+          {
+            "name": "status",
+            "values": [
+              "default",
+              "error",
+              "warning",
+              "success"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "hover",
+              "filled",
+              "focus-visible",
+              "focus-visible-filled",
+              "disabled",
+              "read-only"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "placeholder",
+            "type": "TEXT"
+          },
+          {
+            "name": "value",
+            "type": "TEXT"
+          },
+          {
+            "name": "leading icon",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "message",
+            "type": "BOOLEAN"
+          }
+        ],
+        "codeOnly": {
+          "axes": [
+            "style"
+          ],
+          "states": [
+            "pending",
+            "empty"
+          ]
+        },
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/password-field.md"
+      },
+      {
+        "id": "counter",
+        "name": "Counter",
+        "figmaName": "counter",
+        "kind": "component set",
+        "page": "↳ Counter",
+        "section": "Components",
+        "members": 18,
+        "variantProperties": [
+          {
+            "name": "appearance",
+            "values": [
+              "outline",
+              "ghost"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "focus-visible",
+              "disabled"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "value",
+            "type": "TEXT"
+          },
+          {
+            "name": "label",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "message",
+            "type": "BOOLEAN"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/counter.md"
+      }
+    ]
+  },
+  "icons": {
+    "rule": "Each glyph is its own component named \"icon/<glyph>\". A glyph inside another component is an instance of one of them; where a part wraps it in a frame, the instance's layer is named \"glyph\".",
+    "source": "packages/engine/anatomy-figma.ts#export const iconComponentName",
+    "namespace": "icon/",
+    "insetLayer": "glyph",
+    "page": "↳ Icons & assets",
+    "glyphs": [
+      "arrow-down",
+      "arrow-down-left",
+      "arrow-down-right",
+      "arrow-left",
+      "arrow-right",
+      "arrow-up",
+      "arrow-up-left",
+      "arrow-up-right",
+      "check",
+      "check-circle",
+      "check-circle-filled",
+      "chevron-down",
+      "chevron-left",
+      "chevron-right",
+      "chevron-up",
+      "close",
+      "close-filled",
+      "error-circle",
+      "error-circle-filled",
+      "external-link-filled",
+      "eye",
+      "eye-filled",
+      "eye-off",
+      "eye-off-filled",
+      "FPO-default-icon",
+      "home",
+      "image",
+      "info-circle",
+      "info-circle-filled",
+      "link",
+      "menu",
+      "minus",
+      "minus-filled",
+      "more-horizontal-filled",
+      "more-vertical-filled",
+      "pause-circle",
+      "play-circle",
+      "plus",
+      "plus-circle",
+      "plus-circle-filled",
+      "plus-filled",
+      "resize-grip",
+      "search",
+      "warning-triangle",
+      "warning-triangle-filled"
+    ]
+  },
+  "nativeSlots": {
+    "rule": "A native slot is a region a designer fills in place on an instance. The set has one SLOT property named for the part. Its default content is a placeholder, and text inside it is literal: Figma accepts no component property on a slot sublayer. Settings left out take Figma's defaults: no child limit, any content, default content shown.",
+    "source": "packages/engine/component-schema.ts#contentSlot?: true",
+    "slots": [
+      {
+        "component": "checkbox-group",
+        "property": "items",
+        "settings": {
+          "minChildren": 1,
+          "allowPreferredValuesOnly": true
+        },
+        "preferred": [
+          "checkbox-row"
+        ]
+      },
+      {
+        "component": "radio-group",
+        "property": "items",
+        "settings": {
+          "minChildren": 1,
+          "allowPreferredValuesOnly": true
+        },
+        "preferred": [
+          "radio-row"
+        ]
+      },
+      {
+        "component": "tabs",
+        "property": "items",
+        "settings": {
+          "minChildren": 1,
+          "maxChildren": 6,
+          "allowPreferredValuesOnly": true
+        },
+        "preferred": [
+          "tab"
+        ]
+      },
+      {
+        "component": "accordion",
+        "property": "content"
+      },
+      {
+        "component": "list",
+        "property": "items",
+        "settings": {
+          "minChildren": 1,
+          "allowPreferredValuesOnly": true
+        },
+        "preferred": [
+          "list-item"
+        ]
+      },
+      {
+        "component": "segmented-control",
+        "property": "items",
+        "settings": {
+          "minChildren": 1,
+          "maxChildren": 5,
+          "allowPreferredValuesOnly": true
+        },
+        "preferred": [
+          "segmented-control-segment"
+        ]
+      },
+      {
+        "component": "button-group",
+        "property": "items",
+        "settings": {
+          "minChildren": 1,
+          "maxChildren": 3,
+          "allowPreferredValuesOnly": true
+        },
+        "preferred": [
+          "button"
+        ]
+      },
+      {
+        "component": "dialog",
+        "property": "body"
+      }
+    ]
+  },
+  "variables": {
+    "rule": "Every variable is named \"<root>/<path>\", the token's path below the brand root with \"/\" for \".\". Primitives carry the \"core\" tier after the root: \"<root>/core/<group>/…\". Style names carry neither the root nor the tier. The root is the brand's own; an input that declares none gets \"prism\".",
+    "source": "packages/engine/emit-figma.ts#EVERY VARIABLE NAME NOW CARRIES THE BRAND ROOT",
+    "rootDefault": {
+      "root": "prism",
+      "source": "packages/engine/theme.ts#const root = input.root ??"
+    },
+    "primitiveTier": "core",
+    "modesFrom": {
+      "theme": "the default theme",
+      "source": "packages/engine/examples/prism3.design.md"
+    },
+    "collections": [
+      {
+        "name": "color",
+        "modes": [
+          "light",
+          "dark",
+          "hc-light",
+          "hc-dark"
+        ]
+      },
+      {
+        "name": "type-sets",
+        "modes": [
+          "desktop",
+          "mobile"
+        ]
+      },
+      {
+        "name": "space",
+        "modes": [
+          "Default"
+        ]
+      },
+      {
+        "name": "radius",
+        "modes": [
+          "Default"
+        ]
+      },
+      {
+        "name": "size",
+        "modes": [
+          "Default"
+        ]
+      },
+      {
+        "name": "icon",
+        "modes": [
+          "Default"
+        ]
+      },
+      {
+        "name": "control",
+        "modes": [
+          "Default"
+        ]
+      },
+      {
+        "name": "border-width",
+        "modes": [
+          "Default"
+        ]
+      },
+      {
+        "name": "focus",
+        "modes": [
+          "Default"
+        ]
+      },
+      {
+        "name": "opacity",
+        "modes": [
+          "Default"
+        ]
+      },
+      {
+        "name": "core",
+        "modes": [
+          "Default"
+        ]
+      },
+      {
+        "name": "layout",
+        "modes": [
+          "sm",
+          "md",
+          "lg",
+          "xl",
+          "2xl"
+        ]
+      },
+      {
+        "name": "motion",
+        "modes": [
+          "Default"
+        ]
+      }
+    ],
+    "styleFiles": [
+      "text-styles",
+      "shadow-styles",
+      "gradient-styles",
+      "grid-styles"
+    ]
+  },
+  "canvasFurniture": {
+    "rule": "Canvas furniture is drawn around a component set on its page and is never part of the set: label instances for its rows and columns, and backdrops behind its inverse or modal members. Each instance carries shared plugin data under namespace \"prism3\", key \"furniture\", so a reader can skip it.",
+    "source": "apps/plugin/src/canvas-furniture.ts#export const FURNITURE_KEY",
+    "tag": {
+      "namespace": "prism3",
+      "key": "furniture"
+    },
+    "components": [
+      "focus-ring",
+      "button",
+      "button-destructive",
+      "button-neutral",
+      "icon-button",
+      "icon-button-destructive",
+      "icon-button-neutral",
+      "field-label",
+      "field-message",
+      "text-field",
+      "textarea",
+      "checkbox-control",
+      "checkbox-row",
+      "checkbox-group",
+      "radio-control",
+      "radio-row",
+      "radio-group",
+      "switch-control",
+      "switch-row",
+      "select",
+      "veil",
+      "image-placeholder",
+      "badge",
+      "tag",
+      "tab",
+      "tabs",
+      "divider",
+      "_accordion-indicator",
+      "accordion",
+      "flush-icon-button",
+      "flush-icon-button-destructive",
+      "flush-icon-button-neutral",
+      "list-item",
+      "list",
+      "segmented-control-segment",
+      "segmented-control",
+      "link",
+      "button-group",
+      "dialog",
+      "password-field",
+      "counter"
+    ],
+    "templates": [
+      {
+        "name": "_Label",
+        "variantProperties": [
+          {
+            "name": "Text",
+            "values": [
+              "Top",
+              "Left",
+              "Right",
+              "Bottom"
+            ]
+          },
+          {
+            "name": "surface",
+            "values": [
+              "default",
+              "inverse"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "Show bracket",
+            "type": "BOOLEAN"
+          }
+        ],
+        "source": "apps/plugin/src/furniture-templates.ts#export const LABEL_SET"
+      },
+      {
+        "name": "_inverse-backdrop",
+        "binds": "<root>/color/inverse/background/primary",
+        "source": "apps/plugin/src/furniture-templates.ts#export const BACKDROP_COMPONENT"
+      },
+      {
+        "name": "_scrim-backdrop",
+        "binds": "<root>/color/scrim/default",
+        "source": "apps/plugin/src/furniture-templates.ts#export const SCRIM_COMPONENT"
+      }
+    ],
+    "fileTemplates": {
+      "rule": "Page headers are instances of these sets. They live on the Sandbox section's file components page with the furniture templates, and their names start with \"_\" so a library leaves them out.",
+      "names": [
+        "_Section-header",
+        "_Headings"
+      ],
+      "source": "apps/plugin/src/file-components.ts#export const SECTION_HEADER_SET"
+    }
+  }
+}

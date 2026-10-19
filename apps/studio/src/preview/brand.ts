@@ -18,6 +18,7 @@ import { subscribe } from '../state/store';
 import { h, hook } from '../shell/dom';
 import type { HostFonts } from '../ui/fonts';
 import type { SetBuild } from '../state/host-session';
+import type { BuildRun, RunKind } from '../state/build-queue';
 
 /** What `main.ts` lends the moved pages' previews until their slices replace the legacy renderers. */
 export type PageLends = {
@@ -30,7 +31,22 @@ export type PageLends = {
    *  while one runs and for a set that can't be built. The Components page reads them here so it never imports
    *  `main.ts`; on the web nothing builds, so `busy` is false and `run` posts nothing. It repaints from the `host`
    *  and `host:components` topics. */
-  readonly sets: { readonly busy: () => boolean; readonly lastOf: (id: string) => SetBuild | undefined; readonly run: (id: string) => void };
+  readonly sets: {
+    readonly busy: () => boolean;
+    /** An agent's build runs (the action bar waits and says so, #2700). */
+    readonly agentBusy: () => boolean;
+    readonly lastOf: (id: string) => SetBuild | undefined;
+    /** Build these sets, one after another (#2700). Refuses while a build runs, and drops a set that can't be built. */
+    readonly run: (kind: RunKind, ids: readonly string[]) => void;
+    /** Stop the run after the set it is building (call 16 A). */
+    readonly stop: () => void;
+    /** The run that is out, or null. */
+    readonly current: () => BuildRun | null;
+    /** The last run that ended in this session, with its verdict, or null. */
+    readonly last: () => { readonly run: BuildRun; readonly verdict: { readonly ok: boolean; readonly headline: string; readonly lines: readonly string[] } } | null;
+    /** Open the build's result in Activity. */
+    readonly showResult: () => void;
+  };
 };
 
 /** Mount the Brand preview into `host`. */

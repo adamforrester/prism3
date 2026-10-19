@@ -55,3 +55,14 @@ no def, gate or artifact moves, so there is no change note.
   on #2649, and the skill cites that.
 - **`lint-skills` reads a lowercase dotted name in backticks as a token path.** So `docs.usage` and
   `notes.projection` would fail as dead paths, and the skill writes them as "the `usage` field of `docs`".
+
+### Owner decisions applied after review (2026-10-19)
+
+- **Q365 A** (naming sweep): main text is `label` with Dialog's `title`/`description` as the one exception;
+  glyph layers end in `Glyph` and the close glyph stays `dismissGlyph`; the root comes from a closed list of 12
+  roles; only the checkbox and radio controls are exempt from the `_` prefix, and Radio row stays unprefixed.
+- **Q394 A** (#2831): slot items (tab item, list item, the Segmented control's segment) are unprefixed and
+  preferred, because a `_` prefix hides a component from library publishing. The `_` rule now covers the
+  accordion indicator only.
+- Review fixes: field order (`inherits` after identity, `weightIntent` before the paint keys), both factories
+  named, and the closed root list restored. The size and slot ordering text is main's (#2752).

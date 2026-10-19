@@ -83,7 +83,8 @@ export const TAXONOMY: Taxonomy = {
       // Alphabetical in the file (#2568, owner decision Q260 A); the list below is no longer the page order.
       alphabetical: true,
       leaves: [
-        { page: 'Buttons', defs: ['button', 'button-destructive', 'button-neutral'] },
+        // Button.Group (#2661, owner decision Q363) joins the Button family's page: it nests the Button, built first.
+        { page: 'Buttons', defs: ['button', 'button-destructive', 'button-neutral', 'button-group'] },
         { page: 'Icon button', defs: ['icon-button', 'icon-button-destructive', 'icon-button-neutral'] },
         { page: 'Checkbox', defs: ['checkbox-control', 'checkbox-row', 'checkbox-group'] },
         { page: 'Radio', defs: ['radio-control', 'radio-row', 'radio-group'] },
@@ -121,6 +122,9 @@ export const TAXONOMY: Taxonomy = {
         // Dialog (#2609, owner decision Q303.12 A) — its own page under Components, every placement on it. It nests the
         // Neutral IconButton, the Divider and the Button, which the build places first wherever their pages sort.
         { page: 'Dialog', defs: ['dialog'] },
+        // Counter (#2427, owner decision Q283.14 A) — its own page, alphabetical under Components (between Checkbox and
+        // Divider). It nests FlushIconButton.Neutral, whose page is under Subcomponents.
+        { page: 'Counter', defs: ['counter'] },
       ],
     },
     {

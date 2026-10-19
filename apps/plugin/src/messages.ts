@@ -72,6 +72,10 @@ export type UiToMain =
    *  Carries no payload: the taxonomy is a config compiled into the main bundle (`file-taxonomy.ts`), not
    *  something the UI supplies, so there is nothing for the UI to send. */
   | { type: 'file-setup' }
+  /** Open the docs in the browser (#2637, owner decision Q384 A): the bar's Docs. The iframe cannot open a page, so the
+   *  main thread calls `figma.openExternal` on `DOCS_URL`, the studio's web `/docs/`. Carries no address, so the UI
+   *  cannot point it anywhere else. Needs no network permission: `openExternal` hands the address to the browser. */
+  | { type: 'open-docs' }
   /** Draw the style-guide tables (#259, phase 1: color) — one table per palette on `↳ Primitive tokens` and one
    *  per role family on `↳ Semantic tokens`, from the file's own variables. Its own action for the #652 reason.
    *  Updates tables already drawn in place; never creates a page or moves a cell set. */
@@ -84,6 +88,11 @@ export type UiToMain =
    *  drawn stay. Nothing to cancel is not an error: the message is dropped. Only the panel posts it; an agent's run
    *  can be stopped this way too, since the owner's panel is the one place a person watches the file. */
   | { type: 'style-guide-cancel' }
+  /** THE STYLE-GUIDE CLEANUP, CONFIRMED (Q412 A, #2816): remove the tables the designer confirmed from a run's offer
+   *  (`style-guide-result`'s `retired`), by node id. The Prune stale pattern: the run's result is the dry list, the page
+   *  asks, and the main thread re-reads the file and removes only a listed table the generator still does not draw.
+   *  Answered with one `style-guide-cleanup-result`. */
+  | { type: 'style-guide-cleanup'; ids: string[] }
   /** OPT-IN PRUNE (#1521) — remove the styles/variables/collections a config change dropped.
    *
    *  A SEPARATE ACTION FROM `apply-theme`, never a flag on it, for the #479 / #1152 reason: a theme apply
@@ -282,7 +291,12 @@ export type MainToUi =
     /** Set when a `style-guide-cancel` stopped the run (S11.2): `done` of the run's `total` tables were reached. */
     stopped?: { done: number; total: number };
     /** The summary's items, one per line (#2177; see `apply-result`): each failed table, each count, each note. */
-    lines: string[] }
+    lines: string[];
+    /** The cleanup offer (Q412 A, #2816): tables the generator no longer draws that the run left in place, by node id
+     *  and name. The page offers them for removal and removes nothing until the designer confirms. Absent when none. */
+    retired?: { id: string; name: string }[] }
+  /** The answer to `style-guide-cleanup` (Q412 A): the tables removed, by node id, and the sentence that says so. */
+  | { type: 'style-guide-cleanup-result'; ok: boolean; removed: string[]; summary: string }
   /** The answer to `style-guide-catalog-request` (S11.2). `error` is set, and the catalog empty, when the file could
    *  not be read: the page says so rather than showing an empty file as if it had nothing in it. */
   | { type: 'style-guide-catalog'; catalog: StyleGuideCatalog; error?: string }

@@ -9,10 +9,10 @@
   "note": "tokens: every token a definition declares or the design-file projection binds, keyed by path below the root. components.<id>.keys are the definition binding keys that name it; parts.<part>.where lists, per axis, the values the part is bound at — an axis bound at every value is left out, so an empty where means every member. byComponent is the inverse. unused lists emitted tokens nothing binds.",
   "summary": {
     "emitted": 787,
-    "used": 246,
-    "unusedSemantic": 261,
+    "used": 247,
+    "unusedSemantic": 260,
     "unusedPrimitive": 280,
-    "components": 41
+    "components": 43
   },
   "tokens": {
     "border-width.hairline": {
@@ -58,6 +58,17 @@
           "parts": {
             "container": {
               "members": 576,
+              "where": {}
+            }
+          }
+        },
+        "counter": {
+          "keys": [
+            "border-width"
+          ],
+          "parts": {
+            "control": {
+              "members": 18,
               "where": {}
             }
           }
@@ -168,17 +179,6 @@
             }
           }
         },
-        "segmented-control": {
-          "keys": [
-            "border-width"
-          ],
-          "parts": {
-            "track": {
-              "members": 3,
-              "where": {}
-            }
-          }
-        },
         "select": {
           "keys": [
             "border-width"
@@ -271,26 +271,6 @@
         }
       }
     },
-    "border-width.none": {
-      "type": "dimension",
-      "components": {
-        "segmented-control-segment": {
-          "keys": [
-            "unselected.border-width"
-          ],
-          "parts": {
-            "indicator": {
-              "members": 15,
-              "where": {
-                "selection": [
-                  "unselected"
-                ]
-              }
-            }
-          }
-        }
-      }
-    },
     "border-width.thick": {
       "type": "dimension",
       "components": {
@@ -313,21 +293,6 @@
             "control": {
               "members": 30,
               "where": {}
-            }
-          }
-        },
-        "segmented-control-segment": {
-          "keys": [
-            "selected.border-width"
-          ],
-          "parts": {
-            "indicator": {
-              "members": 15,
-              "where": {
-                "selection": [
-                  "selected"
-                ]
-              }
             }
           }
         },
@@ -373,6 +338,27 @@
         }
       }
     },
+    "color.background.primary": {
+      "type": "color",
+      "components": {
+        "segmented-control-segment": {
+          "keys": [
+            "disabled.fill",
+            "selected.fill"
+          ],
+          "parts": {
+            "indicator": {
+              "members": 15,
+              "where": {
+                "selection": [
+                  "selected"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
     "color.background.secondary": {
       "type": "color",
       "components": {
@@ -383,6 +369,17 @@
           "parts": {
             "frame": {
               "members": 7,
+              "where": {}
+            }
+          }
+        },
+        "segmented-control": {
+          "keys": [
+            "fill"
+          ],
+          "parts": {
+            "track": {
+              "members": 3,
               "where": {}
             }
           }
@@ -1239,6 +1236,78 @@
     "color.disabled.border": {
       "type": "color",
       "components": {
+        "button": {
+          "keys": [
+            "disabled.border"
+          ],
+          "parts": {
+            "container": {
+              "members": 12,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "inset": [
+                  "default"
+                ],
+                "state": [
+                  "disabled"
+                ],
+                "surface": [
+                  "default"
+                ]
+              }
+            }
+          }
+        },
+        "button-destructive": {
+          "keys": [
+            "disabled.border"
+          ],
+          "parts": {
+            "container": {
+              "members": 12,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "inset": [
+                  "default"
+                ],
+                "state": [
+                  "disabled"
+                ],
+                "surface": [
+                  "default"
+                ]
+              }
+            }
+          }
+        },
+        "button-neutral": {
+          "keys": [
+            "disabled.border"
+          ],
+          "parts": {
+            "container": {
+              "members": 12,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "inset": [
+                  "default"
+                ],
+                "state": [
+                  "disabled"
+                ],
+                "surface": [
+                  "default"
+                ]
+              }
+            }
+          }
+        },
         "checkbox-control": {
           "keys": [
             "disabled.border"
@@ -1249,6 +1318,24 @@
               "where": {
                 "selection": [
                   "unchecked"
+                ],
+                "state": [
+                  "disabled"
+                ]
+              }
+            }
+          }
+        },
+        "counter": {
+          "keys": [
+            "disabled.border"
+          ],
+          "parts": {
+            "control": {
+              "members": 3,
+              "where": {
+                "appearance": [
+                  "outline"
                 ],
                 "state": [
                   "disabled"
@@ -1311,6 +1398,69 @@
             }
           }
         },
+        "icon-button": {
+          "keys": [
+            "disabled.border"
+          ],
+          "parts": {
+            "container": {
+              "members": 6,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "state": [
+                  "disabled"
+                ],
+                "surface": [
+                  "default"
+                ]
+              }
+            }
+          }
+        },
+        "icon-button-destructive": {
+          "keys": [
+            "disabled.border"
+          ],
+          "parts": {
+            "container": {
+              "members": 6,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "state": [
+                  "disabled"
+                ],
+                "surface": [
+                  "default"
+                ]
+              }
+            }
+          }
+        },
+        "icon-button-neutral": {
+          "keys": [
+            "disabled.border"
+          ],
+          "parts": {
+            "container": {
+              "members": 6,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "state": [
+                  "disabled"
+                ],
+                "surface": [
+                  "default"
+                ]
+              }
+            }
+          }
+        },
         "password-field": {
           "keys": [
             "disabled.border"
@@ -1334,24 +1484,6 @@
             "control": {
               "members": 6,
               "where": {
-                "state": [
-                  "disabled"
-                ]
-              }
-            }
-          }
-        },
-        "segmented-control-segment": {
-          "keys": [
-            "disabled.border"
-          ],
-          "parts": {
-            "indicator": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "selected"
-                ],
                 "state": [
                   "disabled"
                 ]
@@ -1426,6 +1558,21 @@
                 "selection": [
                   "selected"
                 ],
+                "state": [
+                  "disabled"
+                ]
+              }
+            }
+          }
+        },
+        "tag": {
+          "keys": [
+            "disabled.border"
+          ],
+          "parts": {
+            "container": {
+              "members": 9,
+              "where": {
                 "state": [
                   "disabled"
                 ]
@@ -1722,27 +1869,9 @@
       "components": {
         "button": {
           "keys": [
-            "disabled.border",
             "disabled.icon"
           ],
           "parts": {
-            "container": {
-              "members": 12,
-              "where": {
-                "appearance": [
-                  "outline"
-                ],
-                "inset": [
-                  "default"
-                ],
-                "state": [
-                  "disabled"
-                ],
-                "surface": [
-                  "default"
-                ]
-              }
-            },
             "leadingVisual": {
               "members": 18,
               "where": {
@@ -1783,27 +1912,9 @@
         },
         "button-destructive": {
           "keys": [
-            "disabled.border",
             "disabled.icon"
           ],
           "parts": {
-            "container": {
-              "members": 12,
-              "where": {
-                "appearance": [
-                  "outline"
-                ],
-                "inset": [
-                  "default"
-                ],
-                "state": [
-                  "disabled"
-                ],
-                "surface": [
-                  "default"
-                ]
-              }
-            },
             "leadingVisual": {
               "members": 18,
               "where": {
@@ -1844,27 +1955,9 @@
         },
         "button-neutral": {
           "keys": [
-            "disabled.border",
             "disabled.icon"
           ],
           "parts": {
-            "container": {
-              "members": 12,
-              "where": {
-                "appearance": [
-                  "outline"
-                ],
-                "inset": [
-                  "default"
-                ],
-                "state": [
-                  "disabled"
-                ],
-                "surface": [
-                  "default"
-                ]
-              }
-            },
             "leadingVisual": {
               "members": 18,
               "where": {
@@ -1950,24 +2043,9 @@
         },
         "icon-button": {
           "keys": [
-            "disabled.border",
             "disabled.icon"
           ],
           "parts": {
-            "container": {
-              "members": 6,
-              "where": {
-                "appearance": [
-                  "outline"
-                ],
-                "state": [
-                  "disabled"
-                ],
-                "surface": [
-                  "default"
-                ]
-              }
-            },
             "icon": {
               "members": 18,
               "where": {
@@ -1983,24 +2061,9 @@
         },
         "icon-button-destructive": {
           "keys": [
-            "disabled.border",
             "disabled.icon"
           ],
           "parts": {
-            "container": {
-              "members": 6,
-              "where": {
-                "appearance": [
-                  "outline"
-                ],
-                "state": [
-                  "disabled"
-                ],
-                "surface": [
-                  "default"
-                ]
-              }
-            },
             "icon": {
               "members": 18,
               "where": {
@@ -2016,24 +2079,9 @@
         },
         "icon-button-neutral": {
           "keys": [
-            "disabled.border",
             "disabled.icon"
           ],
           "parts": {
-            "container": {
-              "members": 6,
-              "where": {
-                "appearance": [
-                  "outline"
-                ],
-                "state": [
-                  "disabled"
-                ],
-                "surface": [
-                  "default"
-                ]
-              }
-            },
             "icon": {
               "members": 18,
               "where": {
@@ -2079,7 +2127,6 @@
         },
         "tag": {
           "keys": [
-            "disabled.border",
             "disabled.icon"
           ],
           "parts": {
@@ -2094,14 +2141,6 @@
                 ],
                 "type": [
                   "select"
-                ]
-              }
-            },
-            "container": {
-              "members": 9,
-              "where": {
-                "state": [
-                  "disabled"
                 ]
               }
             },
@@ -2552,6 +2591,21 @@
           ],
           "parts": {}
         },
+        "counter": {
+          "keys": [
+            "disabled.label"
+          ],
+          "parts": {
+            "value": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "disabled"
+                ]
+              }
+            }
+          }
+        },
         "field-label": {
           "keys": [
             "disabled.indicator",
@@ -2802,6 +2856,25 @@
             }
           }
         },
+        "counter": {
+          "keys": [
+            "outline.border"
+          ],
+          "parts": {
+            "control": {
+              "members": 6,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ]
+              }
+            }
+          }
+        },
         "password-field": {
           "keys": [
             "border",
@@ -2911,6 +2984,25 @@
     "color.field.fill": {
       "type": "color",
       "components": {
+        "counter": {
+          "keys": [
+            "outline.fill"
+          ],
+          "parts": {
+            "control": {
+              "members": 6,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ]
+              }
+            }
+          }
+        },
         "password-field": {
           "keys": [
             "fill"
@@ -4829,17 +4921,6 @@
             }
           }
         },
-        "segmented-control": {
-          "keys": [
-            "border"
-          ],
-          "parts": {
-            "track": {
-              "members": 3,
-              "where": {}
-            }
-          }
-        },
         "switch-control": {
           "keys": [
             "off.border",
@@ -5138,13 +5219,15 @@
         },
         "segmented-control-segment": {
           "keys": [
-            "selected.icon.hover",
             "unselected.icon.hover"
           ],
           "parts": {
             "leadingVisual": {
-              "members": 6,
+              "members": 3,
               "where": {
+                "selection": [
+                  "unselected"
+                ],
                 "state": [
                   "hover"
                 ]
@@ -5304,13 +5387,15 @@
         },
         "segmented-control-segment": {
           "keys": [
-            "selected.icon.pressed",
             "unselected.icon.pressed"
           ],
           "parts": {
             "leadingVisual": {
-              "members": 6,
+              "members": 3,
               "where": {
+                "selection": [
+                  "unselected"
+                ],
                 "state": [
                   "pressed"
                 ]
@@ -5561,10 +5646,12 @@
           ],
           "parts": {
             "leadingVisual": {
-              "members": 12,
+              "members": 18,
               "where": {
                 "state": [
                   "focus-visible",
+                  "hover",
+                  "pressed",
                   "rest"
                 ]
               }
@@ -6075,21 +6162,26 @@
         },
         "segmented-control-segment": {
           "keys": [
-            "selected.label.hover",
             "unselected.label.hover"
           ],
           "parts": {
             "label": {
-              "members": 6,
+              "members": 3,
               "where": {
+                "selection": [
+                  "unselected"
+                ],
                 "state": [
                   "hover"
                 ]
               }
             },
             "labelReserve": {
-              "members": 6,
+              "members": 3,
               "where": {
+                "selection": [
+                  "unselected"
+                ],
                 "state": [
                   "hover"
                 ]
@@ -6172,21 +6264,26 @@
         },
         "segmented-control-segment": {
           "keys": [
-            "selected.label.pressed",
             "unselected.label.pressed"
           ],
           "parts": {
             "label": {
-              "members": 6,
+              "members": 3,
               "where": {
+                "selection": [
+                  "unselected"
+                ],
                 "state": [
                   "pressed"
                 ]
               }
             },
             "labelReserve": {
-              "members": 6,
+              "members": 3,
               "where": {
+                "selection": [
+                  "unselected"
+                ],
                 "state": [
                   "pressed"
                 ]
@@ -6287,19 +6384,23 @@
           ],
           "parts": {
             "label": {
-              "members": 12,
+              "members": 18,
               "where": {
                 "state": [
                   "focus-visible",
+                  "hover",
+                  "pressed",
                   "rest"
                 ]
               }
             },
             "labelReserve": {
-              "members": 12,
+              "members": 18,
               "where": {
                 "state": [
                   "focus-visible",
+                  "hover",
+                  "pressed",
                   "rest"
                 ]
               }
@@ -6422,24 +6523,6 @@
             }
           }
         },
-        "segmented-control-segment": {
-          "keys": [
-            "selected.border.hover"
-          ],
-          "parts": {
-            "indicator": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "selected"
-                ],
-                "state": [
-                  "hover"
-                ]
-              }
-            }
-          }
-        },
         "tab": {
           "keys": [
             "selected.fill.hover"
@@ -6539,24 +6622,6 @@
               "where": {
                 "selection": [
                   "checked"
-                ],
-                "state": [
-                  "pressed"
-                ]
-              }
-            }
-          }
-        },
-        "segmented-control-segment": {
-          "keys": [
-            "selected.border.pressed"
-          ],
-          "parts": {
-            "indicator": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "selected"
                 ],
                 "state": [
                   "pressed"
@@ -6668,25 +6733,6 @@
               "where": {
                 "selection": [
                   "checked"
-                ],
-                "state": [
-                  "focus-visible",
-                  "rest"
-                ]
-              }
-            }
-          }
-        },
-        "segmented-control-segment": {
-          "keys": [
-            "selected.border"
-          ],
-          "parts": {
-            "indicator": {
-              "members": 6,
-              "where": {
-                "selection": [
-                  "selected"
                 ],
                 "state": [
                   "focus-visible",
@@ -7732,27 +7778,6 @@
     "color.interactive.primary.subtle-fill.selected": {
       "type": "color",
       "components": {
-        "segmented-control-segment": {
-          "keys": [
-            "selected.overlay"
-          ],
-          "parts": {
-            "indicator": {
-              "members": 12,
-              "where": {
-                "selection": [
-                  "selected"
-                ],
-                "state": [
-                  "focus-visible",
-                  "hover",
-                  "pressed",
-                  "rest"
-                ]
-              }
-            }
-          }
-        },
         "tag": {
           "keys": [
             "selected.overlay"
@@ -7972,6 +7997,134 @@
         }
       }
     },
+    "color.inverse.disabled.border": {
+      "type": "color",
+      "components": {
+        "button": {
+          "keys": [],
+          "parts": {
+            "container": {
+              "members": 12,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "inset": [
+                  "default"
+                ],
+                "state": [
+                  "disabled"
+                ],
+                "surface": [
+                  "inverse"
+                ]
+              }
+            }
+          }
+        },
+        "button-destructive": {
+          "keys": [],
+          "parts": {
+            "container": {
+              "members": 12,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "inset": [
+                  "default"
+                ],
+                "state": [
+                  "disabled"
+                ],
+                "surface": [
+                  "inverse"
+                ]
+              }
+            }
+          }
+        },
+        "button-neutral": {
+          "keys": [],
+          "parts": {
+            "container": {
+              "members": 12,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "inset": [
+                  "default"
+                ],
+                "state": [
+                  "disabled"
+                ],
+                "surface": [
+                  "inverse"
+                ]
+              }
+            }
+          }
+        },
+        "icon-button": {
+          "keys": [],
+          "parts": {
+            "container": {
+              "members": 6,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "state": [
+                  "disabled"
+                ],
+                "surface": [
+                  "inverse"
+                ]
+              }
+            }
+          }
+        },
+        "icon-button-destructive": {
+          "keys": [],
+          "parts": {
+            "container": {
+              "members": 6,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "state": [
+                  "disabled"
+                ],
+                "surface": [
+                  "inverse"
+                ]
+              }
+            }
+          }
+        },
+        "icon-button-neutral": {
+          "keys": [],
+          "parts": {
+            "container": {
+              "members": 6,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "state": [
+                  "disabled"
+                ],
+                "surface": [
+                  "inverse"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
     "color.inverse.disabled.fill": {
       "type": "color",
       "components": {
@@ -8106,23 +8259,6 @@
         "button": {
           "keys": [],
           "parts": {
-            "container": {
-              "members": 12,
-              "where": {
-                "appearance": [
-                  "outline"
-                ],
-                "inset": [
-                  "default"
-                ],
-                "state": [
-                  "disabled"
-                ],
-                "surface": [
-                  "inverse"
-                ]
-              }
-            },
             "leadingVisual": {
               "members": 18,
               "where": {
@@ -8164,23 +8300,6 @@
         "button-destructive": {
           "keys": [],
           "parts": {
-            "container": {
-              "members": 12,
-              "where": {
-                "appearance": [
-                  "outline"
-                ],
-                "inset": [
-                  "default"
-                ],
-                "state": [
-                  "disabled"
-                ],
-                "surface": [
-                  "inverse"
-                ]
-              }
-            },
             "leadingVisual": {
               "members": 18,
               "where": {
@@ -8222,23 +8341,6 @@
         "button-neutral": {
           "keys": [],
           "parts": {
-            "container": {
-              "members": 12,
-              "where": {
-                "appearance": [
-                  "outline"
-                ],
-                "inset": [
-                  "default"
-                ],
-                "state": [
-                  "disabled"
-                ],
-                "surface": [
-                  "inverse"
-                ]
-              }
-            },
             "leadingVisual": {
               "members": 18,
               "where": {
@@ -8280,20 +8382,6 @@
         "icon-button": {
           "keys": [],
           "parts": {
-            "container": {
-              "members": 6,
-              "where": {
-                "appearance": [
-                  "outline"
-                ],
-                "state": [
-                  "disabled"
-                ],
-                "surface": [
-                  "inverse"
-                ]
-              }
-            },
             "icon": {
               "members": 18,
               "where": {
@@ -8310,20 +8398,6 @@
         "icon-button-destructive": {
           "keys": [],
           "parts": {
-            "container": {
-              "members": 6,
-              "where": {
-                "appearance": [
-                  "outline"
-                ],
-                "state": [
-                  "disabled"
-                ],
-                "surface": [
-                  "inverse"
-                ]
-              }
-            },
             "icon": {
               "members": 18,
               "where": {
@@ -8340,20 +8414,6 @@
         "icon-button-neutral": {
           "keys": [],
           "parts": {
-            "container": {
-              "members": 6,
-              "where": {
-                "appearance": [
-                  "outline"
-                ],
-                "state": [
-                  "disabled"
-                ],
-                "surface": [
-                  "inverse"
-                ]
-              }
-            },
             "icon": {
               "members": 18,
               "where": {
@@ -11698,6 +11758,23 @@
             }
           }
         },
+        "counter": {
+          "keys": [
+            "ghost.label",
+            "outline.label"
+          ],
+          "parts": {
+            "value": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ]
+              }
+            }
+          }
+        },
         "dialog": {
           "keys": [
             "body",
@@ -13536,6 +13613,24 @@
             }
           }
         },
+        "counter": {
+          "keys": [
+            "ghost.ring-offset"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 3,
+              "where": {
+                "appearance": [
+                  "ghost"
+                ],
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            }
+          }
+        },
         "flush-icon-button": {
           "keys": [
             "ring-offset"
@@ -13742,6 +13837,24 @@
             }
           }
         },
+        "counter": {
+          "keys": [
+            "outline.ring-offset"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 3,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            }
+          }
+        },
         "focus-ring": {
           "keys": [
             "offset.field"
@@ -13880,6 +13993,21 @@
           "parts": {
             "focusRing": {
               "members": 9,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            }
+          }
+        },
+        "counter": {
+          "keys": [
+            "ring-width"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 6,
               "where": {
                 "state": [
                   "focus-visible"
@@ -14271,21 +14399,6 @@
             }
           }
         },
-        "segmented-control-segment": {
-          "keys": [
-            "size.large.icon"
-          ],
-          "parts": {
-            "leadingVisual": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "large"
-                ]
-              }
-            }
-          }
-        },
         "spinner": {
           "keys": [
             "size.large"
@@ -14301,64 +14414,6 @@
             },
             "ring": {
               "members": 1,
-              "where": {
-                "size": [
-                  "large"
-                ]
-              }
-            }
-          }
-        },
-        "tab": {
-          "keys": [
-            "size.large.icon"
-          ],
-          "parts": {
-            "leadingVisual": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "large"
-                ]
-              }
-            }
-          }
-        },
-        "tag": {
-          "keys": [
-            "size.large.icon"
-          ],
-          "parts": {
-            "check": {
-              "members": 5,
-              "where": {
-                "selection": [
-                  "selected"
-                ],
-                "size": [
-                  "large"
-                ],
-                "type": [
-                  "select"
-                ]
-              }
-            },
-            "dismissGlyph": {
-              "members": 5,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "size": [
-                  "large"
-                ],
-                "type": [
-                  "dismissible"
-                ]
-              }
-            },
-            "leadingVisual": {
-              "members": 15,
               "where": {
                 "size": [
                   "large"
@@ -14790,14 +14845,14 @@
         },
         "segmented-control-segment": {
           "keys": [
-            "size.medium.icon"
+            "size.large.icon"
           ],
           "parts": {
             "leadingVisual": {
               "members": 10,
               "where": {
                 "size": [
-                  "medium"
+                  "large"
                 ]
               }
             }
@@ -14828,14 +14883,14 @@
         },
         "tab": {
           "keys": [
-            "size.medium.icon"
+            "size.large.icon"
           ],
           "parts": {
             "leadingVisual": {
               "members": 10,
               "where": {
                 "size": [
-                  "medium"
+                  "large"
                 ]
               }
             }
@@ -14843,7 +14898,7 @@
         },
         "tag": {
           "keys": [
-            "size.medium.icon"
+            "size.large.icon"
           ],
           "parts": {
             "check": {
@@ -14853,7 +14908,7 @@
                   "selected"
                 ],
                 "size": [
-                  "medium"
+                  "large"
                 ],
                 "type": [
                   "select"
@@ -14867,7 +14922,7 @@
                   "unselected"
                 ],
                 "size": [
-                  "medium"
+                  "large"
                 ],
                 "type": [
                   "dismissible"
@@ -14878,7 +14933,7 @@
               "members": 15,
               "where": {
                 "size": [
-                  "medium"
+                  "large"
                 ]
               }
             }
@@ -15348,14 +15403,14 @@
         },
         "segmented-control-segment": {
           "keys": [
-            "size.small.icon"
+            "size.medium.icon"
           ],
           "parts": {
             "leadingVisual": {
               "members": 10,
               "where": {
                 "size": [
-                  "small"
+                  "medium"
                 ]
               }
             }
@@ -15401,14 +15456,14 @@
         },
         "tab": {
           "keys": [
-            "size.small.icon"
+            "size.medium.icon"
           ],
           "parts": {
             "leadingVisual": {
               "members": 10,
               "where": {
                 "size": [
-                  "small"
+                  "medium"
                 ]
               }
             }
@@ -15416,7 +15471,7 @@
         },
         "tag": {
           "keys": [
-            "size.small.icon"
+            "size.medium.icon"
           ],
           "parts": {
             "check": {
@@ -15426,7 +15481,7 @@
                   "selected"
                 ],
                 "size": [
-                  "small"
+                  "medium"
                 ],
                 "type": [
                   "select"
@@ -15440,7 +15495,7 @@
                   "unselected"
                 ],
                 "size": [
-                  "small"
+                  "medium"
                 ],
                 "type": [
                   "dismissible"
@@ -15451,7 +15506,7 @@
               "members": 15,
               "where": {
                 "size": [
-                  "small"
+                  "medium"
                 ]
               }
             }
@@ -15750,6 +15805,21 @@
             }
           }
         },
+        "segmented-control-segment": {
+          "keys": [
+            "size.small.icon"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "spinner": {
           "keys": [
             "size.x-small"
@@ -15768,6 +15838,64 @@
               "where": {
                 "size": [
                   "x-small"
+                ]
+              }
+            }
+          }
+        },
+        "tab": {
+          "keys": [
+            "size.small.icon"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
+        "tag": {
+          "keys": [
+            "size.small.icon"
+          ],
+          "parts": {
+            "check": {
+              "members": 5,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "size": [
+                  "small"
+                ],
+                "type": [
+                  "select"
+                ]
+              }
+            },
+            "dismissGlyph": {
+              "members": 5,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "small"
+                ],
+                "type": [
+                  "dismissible"
+                ]
+              }
+            },
+            "leadingVisual": {
+              "members": 15,
+              "where": {
+                "size": [
+                  "small"
                 ]
               }
             }
@@ -16167,6 +16295,17 @@
             }
           }
         },
+        "counter": {
+          "keys": [
+            "radius"
+          ],
+          "parts": {
+            "control": {
+              "members": 18,
+              "where": {}
+            }
+          }
+        },
         "password-field": {
           "keys": [
             "radius"
@@ -16308,6 +16447,21 @@
             "size.large.min-height"
           ],
           "parts": {}
+        },
+        "counter": {
+          "keys": [
+            "size.large.height"
+          ],
+          "parts": {
+            "control": {
+              "members": 6,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
         },
         "flush-icon-button": {
           "keys": [
@@ -16573,6 +16727,21 @@
             "size.medium.min-height"
           ],
           "parts": {}
+        },
+        "counter": {
+          "keys": [
+            "size.medium.height"
+          ],
+          "parts": {
+            "control": {
+              "members": 6,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
         },
         "divider": {
           "keys": [
@@ -16903,6 +17072,21 @@
           ],
           "parts": {}
         },
+        "counter": {
+          "keys": [
+            "size.small.height"
+          ],
+          "parts": {
+            "control": {
+              "members": 6,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "flush-icon-button": {
           "keys": [
             "size.small.round"
@@ -17177,6 +17361,10 @@
             "container": {
               "members": 3,
               "where": {}
+            },
+            "items": {
+              "members": 3,
+              "where": {}
             }
           }
         },
@@ -17191,6 +17379,24 @@
             }
           }
         },
+        "counter": {
+          "keys": [
+            "ghost.size.large.pad-x",
+            "ghost.size.medium.pad-x",
+            "ghost.size.small.pad-x",
+            "pad-y"
+          ],
+          "parts": {
+            "control": {
+              "members": 18,
+              "where": {}
+            },
+            "entry": {
+              "members": 18,
+              "where": {}
+            }
+          }
+        },
         "dialog": {
           "keys": [
             "pad-none"
@@ -17200,18 +17406,11 @@
               "members": 15,
               "where": {}
             },
-            "footerInline": {
-              "members": 5,
+            "footer": {
+              "members": 10,
               "where": {
                 "footer": [
-                  "inline"
-                ]
-              }
-            },
-            "footerStacked": {
-              "members": 5,
-              "where": {
-                "footer": [
+                  "inline",
                   "stacked"
                 ]
               }
@@ -17270,6 +17469,10 @@
             "container": {
               "members": 3,
               "where": {}
+            },
+            "items": {
+              "members": 3,
+              "where": {}
             }
           }
         },
@@ -17290,6 +17493,10 @@
             "track-pad"
           ],
           "parts": {
+            "items": {
+              "members": 3,
+              "where": {}
+            },
             "track": {
               "members": 3,
               "where": {}
@@ -17337,7 +17544,7 @@
               "members": 6,
               "where": {}
             },
-            "list": {
+            "items": {
               "members": 6,
               "where": {}
             }
@@ -17427,6 +17634,23 @@
     "space.050": {
       "type": "dimension",
       "components": {
+        "counter": {
+          "keys": [
+            "size.medium.value-pad",
+            "size.small.value-pad"
+          ],
+          "parts": {
+            "entry": {
+              "members": 12,
+              "where": {
+                "size": [
+                  "medium",
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "field-label": {
           "keys": [
             "gap"
@@ -17766,6 +17990,21 @@
             }
           }
         },
+        "button-group": {
+          "keys": [
+            "layout.stacked.gap"
+          ],
+          "parts": {
+            "items": {
+              "members": 1,
+              "where": {
+                "layout": [
+                  "stacked"
+                ]
+              }
+            }
+          }
+        },
         "button-neutral": {
           "keys": [
             "size.large.padding-y",
@@ -17808,20 +18047,31 @@
             }
           }
         },
+        "counter": {
+          "keys": [
+            "root-gap",
+            "size.large.value-pad"
+          ],
+          "parts": {
+            "container": {
+              "members": 18,
+              "where": {}
+            },
+            "entry": {
+              "members": 6,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
         "dialog": {
           "keys": [
-            "footer.stacked.gap",
             "title-gap"
           ],
           "parts": {
-            "footerStacked": {
-              "members": 5,
-              "where": {
-                "footer": [
-                  "stacked"
-                ]
-              }
-            },
             "titleBox": {
               "members": 15,
               "where": {}
@@ -17867,6 +18117,14 @@
           ],
           "parts": {
             "container": {
+              "members": 3,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            },
+            "items": {
               "members": 3,
               "where": {
                 "size": [
@@ -18185,6 +18443,23 @@
             }
           }
         },
+        "button-group": {
+          "keys": [
+            "layout.fill.gap",
+            "layout.inline.gap"
+          ],
+          "parts": {
+            "items": {
+              "members": 2,
+              "where": {
+                "layout": [
+                  "fill",
+                  "inline"
+                ]
+              }
+            }
+          }
+        },
         "button-neutral": {
           "keys": [
             "size.large.gap",
@@ -18210,16 +18485,21 @@
             }
           }
         },
-        "dialog": {
+        "counter": {
           "keys": [
-            "footer.inline.gap"
+            "outline.size.medium.pad-x",
+            "outline.size.small.pad-x"
           ],
           "parts": {
-            "footerInline": {
-              "members": 5,
+            "control": {
+              "members": 6,
               "where": {
-                "footer": [
-                  "inline"
+                "appearance": [
+                  "outline"
+                ],
+                "size": [
+                  "medium",
+                  "small"
                 ]
               }
             }
@@ -18231,6 +18511,14 @@
           ],
           "parts": {
             "container": {
+              "members": 3,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            },
+            "items": {
               "members": 3,
               "where": {
                 "size": [
@@ -18394,6 +18682,24 @@
             }
           }
         },
+        "counter": {
+          "keys": [
+            "outline.size.large.pad-x"
+          ],
+          "parts": {
+            "control": {
+              "members": 3,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
         "dialog": {
           "keys": [
             "gap",
@@ -18414,25 +18720,11 @@
                 ]
               }
             },
-            "footerInline": {
-              "members": 2,
+            "footer": {
+              "members": 4,
               "where": {
                 "footer": [
-                  "inline"
-                ],
-                "placement": [
-                  "bottom",
-                  "full"
-                ],
-                "size": [
-                  "medium"
-                ]
-              }
-            },
-            "footerStacked": {
-              "members": 2,
-              "where": {
-                "footer": [
+                  "inline",
                   "stacked"
                 ],
                 "placement": [
@@ -18481,6 +18773,14 @@
           ],
           "parts": {
             "container": {
+              "members": 3,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            },
+            "items": {
               "members": 3,
               "where": {
                 "size": [
@@ -18609,6 +18909,32 @@
     "space.250": {
       "type": "dimension",
       "components": {
+        "accordion": {
+          "keys": [
+            "size.large.pad-x"
+          ],
+          "parts": {
+            "content": {
+              "members": 4,
+              "where": {
+                "expansion": [
+                  "expanded"
+                ],
+                "size": [
+                  "large"
+                ]
+              }
+            },
+            "header": {
+              "members": 8,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
         "segmented-control-segment": {
           "keys": [
             "size.large.padding-x"
@@ -18646,7 +18972,6 @@
       "components": {
         "accordion": {
           "keys": [
-            "size.large.pad-x",
             "size.large.panel-pad-end"
           ],
           "parts": {
@@ -18656,14 +18981,6 @@
                 "expansion": [
                   "expanded"
                 ],
-                "size": [
-                  "large"
-                ]
-              }
-            },
-            "header": {
-              "members": 8,
-              "where": {
                 "size": [
                   "large"
                 ]
@@ -18738,21 +19055,11 @@
                 ]
               }
             },
-            "footerInline": {
-              "members": 3,
+            "footer": {
+              "members": 6,
               "where": {
                 "footer": [
-                  "inline"
-                ],
-                "placement": [
-                  "center"
-                ]
-              }
-            },
-            "footerStacked": {
-              "members": 3,
-              "where": {
-                "footer": [
+                  "inline",
                   "stacked"
                 ],
                 "placement": [
@@ -18923,6 +19230,21 @@
           "parts": {
             "label": {
               "members": 1,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
+        "counter": {
+          "keys": [
+            "size.large.type"
+          ],
+          "parts": {
+            "value": {
+              "members": 6,
               "where": {
                 "size": [
                   "large"
@@ -19249,6 +19571,21 @@
           "parts": {
             "label": {
               "members": 1,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
+        "counter": {
+          "keys": [
+            "size.medium.type"
+          ],
+          "parts": {
+            "value": {
+              "members": 6,
               "where": {
                 "size": [
                   "medium"
@@ -19664,6 +20001,21 @@
           "parts": {
             "label": {
               "members": 1,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
+        "counter": {
+          "keys": [
+            "size.small.type"
+          ],
+          "parts": {
+            "value": {
+              "members": 6,
               "where": {
                 "size": [
                   "small"
@@ -20995,6 +21347,7 @@
         "space.100",
         "space.150",
         "space.200",
+        "space.250",
         "space.300",
         "type.body.lg.default",
         "type.body.md.default",
@@ -21107,6 +21460,7 @@
       "tokens": [
         "border-width.hairline",
         "color.border.focus",
+        "color.disabled.border",
         "color.disabled.fill",
         "color.disabled.icon",
         "color.disabled.on-fill",
@@ -21126,6 +21480,7 @@
         "color.interactive.primary.text.hover",
         "color.interactive.primary.text.pressed",
         "color.interactive.primary.text.rest",
+        "color.inverse.disabled.border",
         "color.inverse.disabled.fill",
         "color.inverse.disabled.icon",
         "color.inverse.disabled.on-fill",
@@ -21171,6 +21526,7 @@
         "color.border.focus"
       ],
       "drawnNotDeclared": [
+        "color.inverse.disabled.border",
         "color.inverse.disabled.fill",
         "color.inverse.disabled.icon",
         "color.inverse.disabled.on-fill",
@@ -21233,6 +21589,7 @@
       "tokens": [
         "border-width.hairline",
         "color.border.focus",
+        "color.disabled.border",
         "color.disabled.fill",
         "color.disabled.icon",
         "color.disabled.on-fill",
@@ -21252,6 +21609,7 @@
         "color.interactive.destructive.text.hover",
         "color.interactive.destructive.text.pressed",
         "color.interactive.destructive.text.rest",
+        "color.inverse.disabled.border",
         "color.inverse.disabled.fill",
         "color.inverse.disabled.icon",
         "color.inverse.disabled.on-fill",
@@ -21297,6 +21655,7 @@
         "color.border.focus"
       ],
       "drawnNotDeclared": [
+        "color.inverse.disabled.border",
         "color.inverse.disabled.fill",
         "color.inverse.disabled.icon",
         "color.inverse.disabled.on-fill",
@@ -21317,6 +21676,22 @@
         "color.inverse.interactive.destructive.text.pressed",
         "color.inverse.interactive.destructive.text.rest"
       ]
+    },
+    "button-group": {
+      "members": 3,
+      "axes": {
+        "layout": [
+          "fill",
+          "inline",
+          "stacked"
+        ]
+      },
+      "tokens": [
+        "space.100",
+        "space.150"
+      ],
+      "declaredNotDrawn": [],
+      "drawnNotDeclared": []
     },
     "button-neutral": {
       "members": 576,
@@ -21359,6 +21734,7 @@
       "tokens": [
         "border-width.hairline",
         "color.border.focus",
+        "color.disabled.border",
         "color.disabled.fill",
         "color.disabled.icon",
         "color.disabled.on-fill",
@@ -21378,6 +21754,7 @@
         "color.interactive.neutral.text.hover",
         "color.interactive.neutral.text.pressed",
         "color.interactive.neutral.text.rest",
+        "color.inverse.disabled.border",
         "color.inverse.disabled.fill",
         "color.inverse.disabled.icon",
         "color.inverse.disabled.on-fill",
@@ -21423,6 +21800,7 @@
         "color.border.focus"
       ],
       "drawnNotDeclared": [
+        "color.inverse.disabled.border",
         "color.inverse.disabled.fill",
         "color.inverse.disabled.icon",
         "color.inverse.disabled.on-fill",
@@ -21545,6 +21923,50 @@
       ],
       "drawnNotDeclared": []
     },
+    "counter": {
+      "members": 18,
+      "axes": {
+        "appearance": [
+          "ghost",
+          "outline"
+        ],
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "state": [
+          "disabled",
+          "focus-visible",
+          "rest"
+        ]
+      },
+      "tokens": [
+        "border-width.hairline",
+        "color.disabled.border",
+        "color.disabled.text",
+        "color.field.border.rest",
+        "color.field.fill",
+        "color.text.primary",
+        "focus.ring.offset",
+        "focus.ring.offset-field",
+        "focus.ring.width",
+        "radius.sm",
+        "size.lg.height",
+        "size.md.height",
+        "size.sm.height",
+        "space.0",
+        "space.050",
+        "space.100",
+        "space.150",
+        "space.200",
+        "type.body.lg.default",
+        "type.body.md.default",
+        "type.body.sm.default"
+      ],
+      "declaredNotDrawn": [],
+      "drawnNotDeclared": []
+    },
     "dialog": {
       "members": 15,
       "axes": {
@@ -21573,7 +21995,6 @@
         "shadow.xl",
         "space.0",
         "space.100",
-        "space.150",
         "space.200",
         "space.300",
         "type.body.md.default",
@@ -21942,6 +22363,7 @@
       "tokens": [
         "border-width.hairline",
         "color.border.focus",
+        "color.disabled.border",
         "color.disabled.fill",
         "color.disabled.icon",
         "color.interactive.primary.border.hover",
@@ -21956,6 +22378,7 @@
         "color.interactive.primary.on-fill",
         "color.interactive.primary.overlay.hover",
         "color.interactive.primary.overlay.pressed",
+        "color.inverse.disabled.border",
         "color.inverse.disabled.fill",
         "color.inverse.disabled.icon",
         "color.inverse.interactive.primary.border.hover",
@@ -21985,6 +22408,7 @@
         "color.border.focus"
       ],
       "drawnNotDeclared": [
+        "color.inverse.disabled.border",
         "color.inverse.disabled.fill",
         "color.inverse.disabled.icon",
         "color.inverse.interactive.primary.border.hover",
@@ -22034,6 +22458,7 @@
       "tokens": [
         "border-width.hairline",
         "color.border.focus",
+        "color.disabled.border",
         "color.disabled.fill",
         "color.disabled.icon",
         "color.interactive.destructive.border.hover",
@@ -22048,6 +22473,7 @@
         "color.interactive.destructive.on-fill",
         "color.interactive.destructive.overlay.hover",
         "color.interactive.destructive.overlay.pressed",
+        "color.inverse.disabled.border",
         "color.inverse.disabled.fill",
         "color.inverse.disabled.icon",
         "color.inverse.interactive.destructive.border.hover",
@@ -22077,6 +22503,7 @@
         "color.border.focus"
       ],
       "drawnNotDeclared": [
+        "color.inverse.disabled.border",
         "color.inverse.disabled.fill",
         "color.inverse.disabled.icon",
         "color.inverse.interactive.destructive.border.hover",
@@ -22126,6 +22553,7 @@
       "tokens": [
         "border-width.hairline",
         "color.border.focus",
+        "color.disabled.border",
         "color.disabled.fill",
         "color.disabled.icon",
         "color.interactive.neutral.border.hover",
@@ -22140,6 +22568,7 @@
         "color.interactive.neutral.on-fill",
         "color.interactive.neutral.overlay.hover",
         "color.interactive.neutral.overlay.pressed",
+        "color.inverse.disabled.border",
         "color.inverse.disabled.fill",
         "color.inverse.disabled.icon",
         "color.inverse.interactive.neutral.border.hover",
@@ -22169,6 +22598,7 @@
         "color.border.focus"
       ],
       "drawnNotDeclared": [
+        "color.inverse.disabled.border",
         "color.inverse.disabled.fill",
         "color.inverse.disabled.icon",
         "color.inverse.interactive.neutral.border.hover",
@@ -22509,8 +22939,7 @@
         ]
       },
       "tokens": [
-        "border-width.hairline",
-        "color.interactive.neutral.border.rest",
+        "color.background.secondary",
         "radius.md",
         "space.0",
         "space.100"
@@ -22539,10 +22968,8 @@
         ]
       },
       "tokens": [
-        "border-width.none",
-        "border-width.thick",
+        "color.background.primary",
         "color.border.focus",
-        "color.disabled.border",
         "color.disabled.icon",
         "color.disabled.text",
         "color.interactive.neutral.icon.hover",
@@ -22553,15 +22980,11 @@
         "color.interactive.neutral.text.hover",
         "color.interactive.neutral.text.pressed",
         "color.interactive.neutral.text.rest",
-        "color.interactive.primary.border.hover",
-        "color.interactive.primary.border.pressed",
-        "color.interactive.primary.border.rest",
-        "color.interactive.primary.subtle-fill.selected",
         "focus.ring.offset",
         "focus.ring.width",
-        "icon.size.lg",
         "icon.size.md",
         "icon.size.sm",
+        "icon.size.xs",
         "radius.sm",
         "size.lg.height",
         "size.md.height",
@@ -22786,9 +23209,9 @@
         "color.interactive.primary.text.rest",
         "focus.ring.offset",
         "focus.ring.width",
-        "icon.size.lg",
         "icon.size.md",
         "icon.size.sm",
+        "icon.size.xs",
         "size.lg.height",
         "size.md.height",
         "size.sm.height",
@@ -22859,6 +23282,7 @@
         "border-width.hairline",
         "border-width.thick",
         "color.border.focus",
+        "color.disabled.border",
         "color.disabled.icon",
         "color.disabled.text",
         "color.interactive.neutral.border.hover",
@@ -22878,9 +23302,9 @@
         "color.interactive.primary.subtle-fill.selected",
         "focus.ring.offset",
         "focus.ring.width",
-        "icon.size.lg",
         "icon.size.md",
         "icon.size.sm",
+        "icon.size.xs",
         "radius.round",
         "size.lg.height",
         "size.md.height",
@@ -23059,12 +23483,12 @@
   "unused": {
     "semantic": [
       "border-width.heavy",
+      "border-width.none",
       "breakpoint.2xl",
       "breakpoint.lg",
       "breakpoint.md",
       "breakpoint.sm",
       "breakpoint.xl",
-      "color.background.primary",
       "color.border.brand",
       "color.field.placeholder",
       "color.foreground.brand",
@@ -23100,7 +23524,6 @@
       "color.inverse.border.success",
       "color.inverse.border.tertiary",
       "color.inverse.border.warning",
-      "color.inverse.disabled.border",
       "color.inverse.field.border.hover",
       "color.inverse.field.border.rest",
       "color.inverse.field.fill",

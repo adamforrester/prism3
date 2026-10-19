@@ -7,7 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed
+- **Font variables without a font scope are typed by path.** A font family or
+  weight variable with no font scope is now typed by its path. That includes
+  an unscoped variable and one left on Figma's default, All scopes:
+  `font/family/body` exports as `fontFamily`, and `font/weight/700` and
+  `font/weight-role/strong` export as `fontWeight`. Before, they exported as
+  `string`, `dimension` and `number`. A variable scoped to a font property
+  (family, weight, size, line height or letter spacing) is typed by that
+  scope as before; the scope is checked first.
 
 ## [3.0.0] - 2026-08-10
 

@@ -159,8 +159,11 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
     // #1225 — `intent` is gone as an axis; it is the component identity now. `appearance` carries emphasis,
     // `size` the rung. #1432 — the tertiary value is `ghost`, not `text` (an icon-only control has no text);
     // this is an axis-VALUE rename for the icon-button family only, Button keeps `text` (owner-decided).
-    appearance: ['filled', 'outline', 'ghost'],
-    size: ['small', 'medium', 'large'],
+    // #2752 (owner decision Q347 A) — `ghost` LEADS because it is the code default (`props.appearance`), and
+    // Figma inserts a set's top-left member, which is the first value of each axis. The other two keep their
+    // order. The code enum keeps filled, outline, ghost; `test.ts` #2752 holds the first member to the default.
+    appearance: ['ghost', 'filled', 'outline'],
+    size: ['medium', 'small', 'large'],
     // #1353 — SHAPE is pure geometry (owner-decided 2026-09-10). `square` (default) is the button's normal
     // radius (`radius.md`); `circular` is full-round (`radius.round`). The two values differ ONLY in the
     // container's corner radius and are token-identical everywhere else, so this is a 2-value axis and NOT a
@@ -263,15 +266,10 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
     // components (that identity is why splitting the intents loses no coverage — #1225).
     'disabled.fill': 'color.disabled.fill',
     'disabled.icon': 'color.disabled.icon',
-    // THE DISABLED EDGE TRACKS THE DISABLED GLYPH (#1697), the rebind #1349 gave Button. It bound
-    // `color.disabled.border` — the muted neutral matched to `disabled.fill`, gated `min: 0` — which on the
-    // page measured 1.48–1.80:1, so a disabled outline icon-button's edge all but vanished around a glyph
-    // that clears 3:1. A border is a non-text graphical object, so its bar is SC 1.4.11's 3:1, and the role
-    // that already carries that contract against the page is the disabled icon ink two lines up. It paints
-    // only on `outline` (STRUCTURAL, no fill beneath), so the ground is `background.primary`, exactly what
-    // `disabled.icon` is gated against. `test.ts` pins the equality by name and re-measures the resolved
-    // ratio ≥3 per brand × mode for each sibling, so a revert fails a named assertion.
-    'disabled.border': 'color.disabled.icon',
+    // A border never binds an icon or text role (Q346, #2749): the disabled edge is `color.disabled.border`,
+    // as on Button. It once bound the disabled icon ink to clear 3:1 against the page (#1697); the owner
+    // superseded that. It paints only on `outline` (STRUCTURAL, no fill beneath).
+    'disabled.border': 'color.disabled.border',
   },
 
   // The STRUCTURAL layer. AUTHORED FLAT, and that is a decision rather than a shortcut: `inherits`
@@ -564,7 +562,7 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
     // `icon` the required slot carries is a partner, not a part — a slot names no component (#513).
     composesWith: ['focus-ring', 'spinner'],
     alternativeTo: [inheritsFrom],
-    planned: ['tooltip', 'button-group', 'menu', 'popover'],
+    planned: ['tooltip', 'menu', 'popover'],
     replacesPatterns: ['div[role=button] wrapping an icon', 'a <button> holding only an <svg> and no accessible name'],
   },
 
@@ -586,7 +584,7 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
       'RESOLVED (#1353, owner-decided 2026-09-10): a `shape` axis (square | circular), geometry only — the two values differ in the corner radius alone, which is why it is an axis and not a component split.',
       'RESOLVED (#1427): a `surface` axis (default | inverse), following Button, and the glyph ink walks state on outline/ghost as Button\'s label does.',
       'RESOLVED (#1350, owner-decided 2026-09-08): icon-button keeps the 1:1 glyph rung (medium → icon.size.md, 24px), matching a standalone icon, where the text-bearing Button moved one rung smaller.',
-      'RESOLVED (#1697): the disabled edge binds the disabled icon ink (as #1349 did for Button) instead of `color.disabled.border`, which measured 1.48–1.80:1 against the page; the pending member swaps in the real spinner.',
+      'RESOLVED (#1697): the pending member swaps in the real spinner. The disabled edge #1697 also rebound to the disabled icon ink was superseded by Q346 (#2749): a border never binds an icon or text role, so it binds `color.disabled.border`.',
     ],
     unverified: [
       'motion timing — the button brief\'s ~100–150ms state transition is carried in `motion.reduceMotion` as the target. No motion token is bound, so nothing gates it.',
