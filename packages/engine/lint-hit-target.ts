@@ -185,11 +185,6 @@ const INNER_TARGETS: Record<string, { key: (size: string) => string; why: string
   // #2317: a NESTED control with no side bound in the host. Its key is the NESTED def's (Button's box height), read
   // through Button's own tokens at the size the host nests it at, so a toggle pointed at a smaller rung fails here.
   'password-field.toggle': { key: (s) => `size.${s}.height`, why: 'the Show/Hide button, a nested flush text Button, small at every field size (Q301.3 B, Q380 A): its box height on Button\'s own rung; its hit area is the code-side flush rule below' },
-  // #2669: the Slider's thumbs nest Slider.Thumb, a CODE-SIDE target (CODE_SIDE_TARGETS, below), not an INTERACTIVE
-  // one, so the floor loop here passes over them: the thumb is measured, and its 44×44 code-side rule held, under its
-  // own id. Listed so the nest arm sees both thumbs as targets inside the Slider.
-  'slider.thumb': { key: () => 'size', why: 'the thumb of a single value or the maximum thumb of a range, Slider.Thumb nested; measured as _slider-thumb' },
-  'slider.thumbMin': { key: () => 'size', why: 'the minimum thumb of a range, Slider.Thumb nested; measured as _slider-thumb' },
   // The paired inputs (owner call 7 A): nested TextFields at medium, measured through TextField's own height rung.
   'slider.inputSingle': { key: (s) => `size.${s}.height`, why: 'the number input of a single value, a nested medium TextField' },
   'slider.inputMin': { key: (s) => `size.${s}.height`, why: 'the minimum input of a range, a nested medium TextField' },
@@ -271,6 +266,10 @@ const FLUSH_NESTS: Record<string, { parts: readonly string[]; pair?: readonly [s
   counter: { parts: ['decrement', 'increment'], pair: ['decrement', 'increment'], why: "the Counter's minus and plus, either side of the value" },
   // #2808 (Q385 A): the Dialog's close is one code-side target, so there is no second hit area to space it from.
   dialog: { parts: ['close'], why: "the Dialog's close, the one code-side target in its header" },
+  // #2669: the Slider's two thumbs are code-side targets (Slider.Thumb), the minimum one only on a range. No pair is measured:
+  // their spacing is the value's, not the layout's, so two thumbs a step apart overlap by design and the code states the
+  // nearer-thumb rule (call 10 A) instead of a spacing the layout could keep.
+  slider: { parts: ['thumbMin', 'thumb'], why: "the Slider's maximum thumb, and the minimum thumb of a range; Slider.Thumb nested" },
 };
 /** The 44px center-to-center spacing, a literal (Q296 A), not FLOOR_PX: a different rule that happens to share the number. */
 const FLUSH_NEST_SPACING_PX = 44;

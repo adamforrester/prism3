@@ -315,7 +315,9 @@
           "button-group",
           "dialog",
           "password-field",
-          "counter"
+          "counter",
+          "_slider-thumb",
+          "slider"
         ]
       }
     },
