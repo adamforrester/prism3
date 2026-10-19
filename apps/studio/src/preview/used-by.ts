@@ -181,7 +181,7 @@ export const USED_BY = {
       "Radio.Row",
       "Switch.Row",
       "Tag",
-      "Tab",
+      "Tab.Item",
       "SegmentedControl",
       "Counter"
     ]

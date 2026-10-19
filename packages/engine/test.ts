@@ -18282,7 +18282,7 @@ arm: {
     // The flush shape binds none.
     // `segmented-control-segment` joins (#2418, Q269.4): an unselected option's hover and pressed are the neutral wash,
     // and its selected tint is the subtle-fill Tag binds, so a solid-tint or no-hover brand reaches it as it reaches a tag.
-    ok(JSON.stringify(binders) === JSON.stringify(['segmented-control-segment', 'button', 'button-destructive', 'button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'password-field', 'select', 'tag', 'text-field', 'textarea']),
+    ok(JSON.stringify(binders) === JSON.stringify(['button', 'button-destructive', 'button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'password-field', 'segmented-control-segment', 'select', 'tag', 'text-field', 'textarea']),
       `#1608 the wash binders the lever reaches: button ×3, flush-icon-button ×3 (round), icon-button ×3, password-field, segmented-control-segment, select, tag, text-field, textarea (${binders.join(', ')})`);
 
     // BY-NAME MUTATION, in-suite: the RAW def (no wrap) under solid-tint misses the page wash — the 96-miss
@@ -31470,8 +31470,8 @@ arm: {
     ok(renamesUnaccounted(db, da, DL).length === 0 && renamesDangling(da, DL).length === 0, `#2759 renames lint: a def entry claims it, and its target projects (${[...renamesUnaccounted(db, da, DL), ...renamesDangling(da, DL)].join('; ')})`);
     const lost = renamesUnaccounted(db, { 'tab-item': { axes: { size: ['medium'] }, members: 1 } }, DL);
     ok(lost.length === 1 && lost[0].startsWith('tab-item: size=small is gone'), `#2759 renames lint: a value lost across a def rename is still named, under the new id (${lost.join('; ')})`);
-    const off = renamesDangling(da, [{ def: 'tab', kind: 'def', to: 'tab-item', issue: 2759 }]);
-    ok(off.length === 1 && off[0].includes("ends at 'tab-item'"), `#2759 renames lint: a def entry whose target projects nothing is dangling (${off.join('; ')})`);
+    const off = renamesDangling(da, [{ def: 'tab', kind: 'def', to: 'tab-items', issue: 2759 }]);
+    ok(off.length === 1 && off[0].includes("ends at 'tab-items'"), `#2759 renames lint: a def entry whose target projects nothing is dangling (${off.join('; ')})`);
     const chain: ComponentRename[] = [{ def: 'a', kind: 'def', to: 'b', issue: 1 }, { def: 'b', kind: 'def', to: 'c', issue: 2 }];
     ok(currentDefId('a', chain) === 'c' && currentDefId('z', chain) === 'z' && JSON.stringify(formerDefIds('c', chain)) === '["b","a"]',
       `#2759 currentDefId / formerDefIds: a chain resolves both ways, nearest first (${currentDefId('a', chain)}; ${JSON.stringify(formerDefIds('c', chain))})`);
