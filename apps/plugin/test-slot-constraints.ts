@@ -42,7 +42,7 @@ console.log('native slot constraints (#2646) — against the in-memory shim\n');
 
 // ── THE CORPUS, against literals ─────────────────────────────────────────────────────────────────────────────
 // What each committed native slot carries. Every row is a DRAFT owner item until the owner approves it (#2646).
-const EXPECTED: Record<string, { slotSettings?: Record<string, unknown>; preferred?: string[] }> = {
+const EXPECTED: Record<string, { slotSettings?: Record<string, unknown>; preferred?: string[]; preferredWhenBuilt?: string[] }> = {
   // Open: a section holds whatever its content is, so no limit, no preferred component, the placeholder shown.
   'accordion.content': {},
   // Repeating items (#2649, owner decision Q307 A): at least one, the ceiling where one means something, only the item.
@@ -54,8 +54,11 @@ const EXPECTED: Record<string, { slotSettings?: Record<string, unknown>; preferr
   // #2428 (owner decision Q329 A): six cells by default, four to eight, only the cell.
   'code-input.items': { slotSettings: { minChildren: 4, maxChildren: 8, allowPreferredValuesOnly: true }, preferred: ['code-input-cell'] },
   // Open (#2609, as built): the body holds whatever the dialog needs — text or any components — so no limit and no
-  // preferred component. The footer's actions are fixed nested Buttons, not a slot (Q311), so they have no row.
+  // preferred component. The footer's actions are the nested Button group's slot (#2661), its row below.
   'dialog.body': {},
+  // The Button group's buttons (#2661, owner decisions Q363.4 A and Q363.6 A): one to three, the Button family only, the
+  // primary Button required, the Destructive and Neutral families offered when the file has them (Q386).
+  'button-group.items': { slotSettings: { minChildren: 1, maxChildren: 3, allowPreferredValuesOnly: true }, preferred: ['button'], preferredWhenBuilt: ['button-destructive', 'button-neutral'] },
 };
 console.log('the corpus');
 {
@@ -68,7 +71,7 @@ console.log('the corpus');
   for (const f of found) {
     const want = EXPECTED[f.key];
     if (!want) continue;
-    const got = { ...(f.part.slotSettings ? { slotSettings: f.part.slotSettings } : {}), ...(f.part.preferred ? { preferred: [...f.part.preferred] } : {}) };
+    const got = { ...(f.part.slotSettings ? { slotSettings: f.part.slotSettings } : {}), ...(f.part.preferred ? { preferred: [...f.part.preferred] } : {}), ...(f.part.preferredWhenBuilt ? { preferredWhenBuilt: [...f.part.preferredWhenBuilt] } : {}) };
     ok(JSON.stringify(got) === JSON.stringify(want), `corpus/${f.key}: declares ${JSON.stringify(want)} (the def holds ${JSON.stringify(got)})`);
   }
   // And each builds: the projection resolves every preferred id against the registry, and throws naming a bad one.

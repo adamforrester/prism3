@@ -38,7 +38,8 @@
             "components": [
               "button",
               "button-destructive",
-              "button-neutral"
+              "button-neutral",
+              "button-group"
             ]
           },
           {
@@ -88,12 +89,6 @@
             "name": "↳ Password field",
             "components": [
               "password-field"
-            ]
-          },
-          {
-            "name": "↳ Code input",
-            "components": [
-              "code-input"
             ]
           },
           {
@@ -165,6 +160,12 @@
             "components": [
               "dialog"
             ]
+          },
+          {
+            "name": "↳ Counter",
+            "components": [
+              "counter"
+            ]
           }
         ]
       },
@@ -208,12 +209,6 @@
             "name": "↳ Spinner",
             "components": [
               "spinner"
-            ]
-          },
-          {
-            "name": "↳ Code Cell",
-            "components": [
-              "code-input-cell"
             ]
           }
         ]
@@ -2058,6 +2053,27 @@
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/link.md"
       },
       {
+        "id": "button-group",
+        "name": "Button.Group",
+        "figmaName": "button-group",
+        "kind": "component set",
+        "page": "↳ Buttons",
+        "section": "Components",
+        "members": 3,
+        "variantProperties": [
+          {
+            "name": "layout",
+            "values": [
+              "inline",
+              "stacked",
+              "fill"
+            ]
+          }
+        ],
+        "properties": [],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/button-group.md"
+      },
+      {
         "id": "dialog",
         "name": "Dialog",
         "figmaName": "dialog",
@@ -2184,58 +2200,19 @@
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/password-field.md"
       },
       {
-        "id": "code-input-cell",
-        "name": "CodeInput.Cell",
-        "figmaName": "code-input-cell",
+        "id": "counter",
+        "name": "Counter",
+        "figmaName": "counter",
         "kind": "component set",
-        "page": "↳ Code Cell",
-        "section": "Subcomponents",
-        "members": 28,
-        "variantProperties": [
-          {
-            "name": "size",
-            "values": [
-              "medium",
-              "small",
-              "large",
-              "xlarge"
-            ]
-          },
-          {
-            "name": "state",
-            "values": [
-              "rest",
-              "hover",
-              "filled",
-              "focus-visible",
-              "focus-visible-filled",
-              "disabled",
-              "error"
-            ]
-          }
-        ],
-        "properties": [
-          {
-            "name": "digit",
-            "type": "TEXT"
-          }
-        ],
-        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/code-input-cell.md"
-      },
-      {
-        "id": "code-input",
-        "name": "CodeInput",
-        "figmaName": "code-input",
-        "kind": "component set",
-        "page": "↳ Code input",
+        "page": "↳ Counter",
         "section": "Components",
-        "members": 48,
+        "members": 18,
         "variantProperties": [
           {
-            "name": "status",
+            "name": "appearance",
             "values": [
-              "default",
-              "error"
+              "outline",
+              "ghost"
             ]
           },
           {
@@ -2243,34 +2220,33 @@
             "values": [
               "medium",
               "small",
-              "large",
-              "xlarge"
+              "large"
             ]
           },
           {
             "name": "state",
             "values": [
               "rest",
-              "hover",
-              "filled",
               "focus-visible",
-              "focus-visible-filled",
               "disabled"
             ]
           }
         ],
         "properties": [
           {
+            "name": "value",
+            "type": "TEXT"
+          },
+          {
+            "name": "label",
+            "type": "BOOLEAN"
+          },
+          {
             "name": "message",
             "type": "BOOLEAN"
           }
         ],
-        "codeOnly": {
-          "states": [
-            "pending"
-          ]
-        },
-        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/code-input.md"
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/counter.md"
       }
     ]
   },
@@ -2394,20 +2370,20 @@
         ]
       },
       {
-        "component": "dialog",
-        "property": "body"
-      },
-      {
-        "component": "code-input",
+        "component": "button-group",
         "property": "items",
         "settings": {
-          "minChildren": 4,
-          "maxChildren": 8,
+          "minChildren": 1,
+          "maxChildren": 3,
           "allowPreferredValuesOnly": true
         },
         "preferred": [
-          "code-input-cell"
+          "button"
         ]
+      },
+      {
+        "component": "dialog",
+        "property": "body"
       }
     ]
   },
@@ -2563,10 +2539,10 @@
       "segmented-control-segment",
       "segmented-control",
       "link",
+      "button-group",
       "dialog",
       "password-field",
-      "code-input-cell",
-      "code-input"
+      "counter"
     ],
     "templates": [
       {

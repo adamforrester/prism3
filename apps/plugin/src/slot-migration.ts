@@ -28,6 +28,13 @@
  *     filled here;
  *   · a host that cannot list an instance's overrides, which is named rather than read as "none".
  *
+ * A SLOT INSIDE A NESTED INSTANCE (#2661, the entry's `within`). Dialog's footer buttons moved into a nested Button.Group,
+ * whose `items` slot already holds the same buttons by default (Cancel and Save, Cancel a Button.Neutral when the file
+ * has it). So nothing is replaced: the capture keeps only the values a designer CHANGED on each row (a label typed over
+ * the set's default), and the fill writes them onto the slot's default items in the same positions, by property name.
+ * A row swapped to another component or hidden by hand does not carry and is named; an instance with nothing changed
+ * is left out, since its new defaults are already right.
+ *
  * MEASURED ON THE SHIM, NOT ON A REAL HOST: the fill writes children into a SLOT sublayer of an INSTANCE, which is
  * what a designer does by hand, and `setProperties` on a fresh instance. Neither has been probed through the plugin
  * API on a real file yet; the first run on the master file is that probe, and a refusal there is a miss by name.
@@ -40,6 +47,8 @@ type Val = string | boolean;
 export type MigNode = {
   id?: string; name?: string; type?: string; visible?: boolean; parent?: MigNode | null; children?: readonly MigNode[];
   key?: string;
+  /** On a set (#2661): the definitions, whose defaults tell a changed row value from the set's own. */
+  componentPropertyDefinitions?: Record<string, { type?: string; defaultValue?: unknown }>;
   componentProperties?: Record<string, { type?: string; value?: unknown }>;
   componentPropertyReferences?: Record<string, string> | null;
   exposedInstances?: readonly MigNode[];
@@ -63,6 +72,8 @@ export type RowCapture = {
   props: Record<string, Val>;
   /** Each exposed instance's values, VARIANT ones included (a checked state), by the exposed instance's name. */
   exposed: { name: string; props: Record<string, Val> }[];
+  /** #2661 — the row's position among its layer's rows, the slot item it lands on when the slot keeps its defaults. */
+  at?: number;
 };
 /** One placed instance of a migrating set. */
 export type InstanceCapture = {
@@ -75,7 +86,7 @@ export type InstanceCapture = {
   /** Inside another instance: follows the component that holds it, not filled here. */
   nested?: true;
 };
-export type SlotMigration = { slot: string; instances: InstanceCapture[] };
+export type SlotMigration = { slot: string; instances: InstanceCapture[]; /** #2661 — the nested def whose slot keeps its defaults. */ within?: string };
 
 /** Fields an override can carry on a row that the fill carries too: the row's own property values and variant. */
 const ROW_CARRIED = new Set(['componentProperties', 'mainComponent', 'visible', 'name']);
@@ -132,7 +143,8 @@ export const captureSlotMigration = async (set: MigNode, entry: SlotEntry, rootP
   const instances: InstanceCapture[] = [];
   const live = new Map<string, { inst: MigNode; rows: { layer: MigNode; main: MigNode }[] }>();
   for (const inst of await instancesOf(set, breathe)) {
-    const from = entry.from === rootPart ? inst : find(inst, (x) => x !== inst && x.name === entry.from);
+    const froms = typeof entry.from === 'string' ? [entry.from] : [...entry.from];
+    const from = froms.includes(rootPart) ? inst : find(inst, (x) => x !== inst && froms.includes(String(x.name)));
     const kids = (from?.children ?? []).filter((c) => entry.rows.includes(String(c.name)));
     if (!from || !kids.length) continue;
     kids.sort((a, b) => entry.rows.indexOf(String(a.name)) - entry.rows.indexOf(String(b.name)));
@@ -151,15 +163,30 @@ export const captureSlotMigration = async (set: MigNode, entry: SlotEntry, rootP
     try { overrides = Array.isArray(inst.overrides) ? inst.overrides : null; } catch { overrides = null; }
     if (!overrides) cap.lost.push('this host does not list overrides, so any on its rows beyond labels and states are not known and would not carry');
     const rows: { layer: MigNode; main: MigNode }[] = [];
-    for (const r of kids) {
-      if (r.visible === false) { cap.hidden.push(String(r.name)); continue; }
+    const swapped = new Set((overrides ?? []).filter((o) => o.overriddenFields.map(String).includes('mainComponent')).map((o) => String(o.id)));
+    for (const [at, r] of kids.entries()) {
+      if (r.visible === false) {
+        // Onto kept defaults (#2661) a hidden row has no item to leave out: the slot's default button stays, and says so.
+        if (entry.within) cap.lost.push(`${r.name}: hidden by hand, and the slot keeps its default button there`);
+        else cap.hidden.push(String(r.name));
+        continue;
+      }
       const main = await r.getMainComponentAsync?.();
       if (!main) { cap.lost.push(`${r.name}: its component could not be read, so it can't become an item`); continue; }
+      let props = valuesOf(r, false);
+      if (entry.within) {
+        if (swapped.has(String(r.id))) cap.lost.push(`${r.name}: swapped to ${String(main.name ?? 'another component')} by hand, and the slot keeps its default button there`);
+        // Only what the designer changed: a value equal to its set's default is the old default, not a label to keep.
+        let defs: Record<string, { defaultValue?: unknown }> | undefined;
+        try { defs = main.parent?.type === 'COMPONENT_SET' ? main.parent.componentPropertyDefinitions : undefined; } catch { defs = undefined; }
+        if (defs) props = Object.fromEntries(Object.entries(props).filter(([k, v]) => defs![k]?.defaultValue !== v));
+      }
       cap.rows.push({
         row: String(r.name),
         main: { id: String(main.id), name: String(main.name ?? ''), set: String(main.parent?.type === 'COMPONENT_SET' ? main.parent.name : '') },
-        props: valuesOf(r, false),
+        props,
         exposed: (r.exposedInstances ?? []).map((e) => ({ name: String(e.name), props: valuesOf(e, true) })),
+        ...(entry.within ? { at } : {}),
       });
       rows.push({ layer: r, main });
     }
@@ -172,7 +199,7 @@ export const captureSlotMigration = async (set: MigNode, entry: SlotEntry, rootP
       const at = byId.get(String(o.id));
       if (!at) continue;
       const row = rowIds.get(String(o.id));
-      const fromGone = from !== inst && at.layer === from && !planParts.has(entry.from);
+      const fromGone = from !== inst && at.layer === from && !planParts.has(String(from.name));
       if (!row && !fromGone) continue;
       for (const f of o.overriddenFields) {
         const field = String(f);
@@ -180,13 +207,18 @@ export const captureSlotMigration = async (set: MigNode, entry: SlotEntry, rootP
         if (row && exposedIds.has(String(o.id)) && (field === 'componentProperties' || field === 'mainComponent')) continue;
         const ref = REF_FIELD[field];
         if (row && ref && at.layer.componentPropertyReferences?.[ref]) continue;
+        // Onto kept defaults (#2661), the row's own swap and visibility are already named above.
+        if (entry.within && row && at.layer === row && (field === 'mainComponent' || field === 'visible')) continue;
         cap.lost.push(`${at.path || String(inst.name)}: ${field} changed by hand`);
       }
     }
+    // Onto kept defaults (#2661), an instance that changed nothing is already right after the update: left out.
+    if (entry.within) cap.rows = cap.rows.filter((r) => Object.keys(r.props).length > 0 || r.exposed.some((e) => Object.keys(e.props).length > 0));
+    if (entry.within && !cap.rows.length && !cap.lost.length) continue;
     instances.push(cap);
     live.set(cap.id, { inst, rows });
   }
-  return { migration: { slot: entry.slot, instances }, live };
+  return { migration: { slot: entry.slot, instances, ...(entry.within ? { within: entry.within } : {}) }, live };
 };
 
 // ---- the words (DRAFT, for the owner: #2649) -------------------------------------------------------------------
@@ -202,6 +234,11 @@ const quoted = (r: RowCapture): string => {
 export const instanceLine = (set: string, c: InstanceCapture): string => {
   const where = `${set} instance "${c.name}"${c.page ? ` on ${c.page}` : ''}`;
   if (c.nested) return `${where}: ${c.lost[0]}.`;
+  if (c.rows.some((r) => r.at !== undefined) || (!c.rows.length && c.lost.length)) {
+    const kept = c.rows.length ? `${c.rows.length} button${c.rows.length === 1 ? '' : 's'} keep${c.rows.length === 1 ? 's' : ''} ${c.rows.length === 1 ? 'its' : 'their'} changes on the slot's default buttons, in order (${c.rows.map(quoted).join('; ')})` : 'nothing carries';
+    const lost = c.lost.length ? ` Can't carry over: ${c.lost.join('; ')}.` : '';
+    return `${where}: ${kept}.${lost}`;
+  }
   const moves = `${c.rows.length} row${c.rows.length === 1 ? '' : 's'} become${c.rows.length === 1 ? 's' : ''} ${c.rows.length} item${c.rows.length === 1 ? '' : 's'} in the slot, in order (${c.rows.map(quoted).join('; ')})`;
   const hidden = c.hidden.length ? ` Hidden, so left out: ${c.hidden.join(', ')}.` : '';
   const lost = c.lost.length ? ` Can't carry over: ${c.lost.join('; ')}.` : '';
@@ -210,6 +247,11 @@ export const instanceLine = (set: string, c: InstanceCapture): string => {
 
 /** The set's summary line, then one line per instance, every one listed. DRAFT. */
 export const migrationLines = (set: string, m: SlotMigration): string[] => {
+  if (m.within) {
+    const head = `${set}: the buttons move into the "${m.slot}" slot of a nested ${m.within}, which holds the same buttons by default.`;
+    if (!m.instances.length) return [`${head} No instance in this file changed them, so none needs carrying.`];
+    return [`${head} ${m.instances.length} instance${m.instances.length === 1 ? '' : 's'} in this file keep${m.instances.length === 1 ? 's' : ''} what was changed on them.`, ...m.instances.map((c) => instanceLine(set, c))];
+  }
   if (!m.instances.length) return [`${set}: the rows move into the "${m.slot}" slot. No instance in this file to carry across.`];
   const items = m.instances.reduce((k, c) => k + c.rows.length, 0);
   const lossy = m.instances.filter((c) => c.lost.length).length;
@@ -238,6 +280,29 @@ export const fillSlots = async (setName: string, entry: SlotEntry, live: Map<str
     if (!l) { out.misses.push(`${where}: no longer in the file`); continue; }
     const slot = find(l.inst, (x) => x.type === 'SLOT' && x.name === entry.slot);
     if (!slot) { out.misses.push(`${where}: has no "${entry.slot}" slot after the update`); continue; }
+    if (entry.within) {
+      // ONTO THE KEPT DEFAULTS (#2661): each changed value, by property name before Figma's `#id`, onto the slot's item at
+      // the row's position. Nothing is removed or made. Read back after.
+      let carried = 0;
+      for (const r of c.rows) {
+        const x = (slot.children ?? [])[r.at ?? -1];
+        if (!x) { out.misses.push(`${where}: ${r.row} -> the slot has no button at position ${(r.at ?? -1) + 1} to carry it onto`); continue; }
+        const keys = Object.keys(x.componentProperties ?? {});
+        const write: Record<string, Val> = {};
+        for (const [k, v] of Object.entries(r.props)) {
+          const to = keys.find((y) => y.split('#')[0] === k.split('#')[0]);
+          if (to) write[to] = v; else out.misses.push(`${where}: ${r.row} ${k.split('#')[0]} -> the slot's button has no such property`);
+        }
+        if (!Object.keys(write).length) continue;
+        try { x.setProperties?.(write); } catch (err) { out.misses.push(`${where}: ${r.row} values -> REFUSED (${(err as Error)?.message ?? String(err)})`); continue; }
+        const got = valuesOf(x, false);
+        for (const [k, v] of Object.entries(write)) if (got[k] !== v) out.misses.push(`${where}: ${r.row} ${k.split('#')[0]} reads ${JSON.stringify(got[k])}, expected ${JSON.stringify(v)}`);
+        carried++;
+      }
+      out.instances++;
+      out.items += carried;
+      continue;
+    }
     if (!slot.appendChild) { out.misses.push(`${where}: its slot takes no content on this host`); continue; }
     // The layout the default items had, so a carried item stretches or grows as they do.
     const model = slot.children?.[0];

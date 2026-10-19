@@ -1050,10 +1050,11 @@ export const slotMigrationFor = async (t: UpdateTarget, set: MigNode, ledger: re
   if (!entry || !plan) return null;
   const rootPart = plan.root.name;
   const has = (n: MigNode, name: string): MigNode | undefined => (n.name === name ? n : (n.children ?? []).map((k) => has(k, name)).find(Boolean));
-  const oldShape = (set.children ?? []).some((m) => {
-    const from = entry.from === rootPart ? m : has(m, entry.from);
+  const froms = typeof entry.from === 'string' ? [entry.from] : [...entry.from];
+  const oldShape = (set.children ?? []).some((m) => froms.some((f) => {
+    const from = f === rootPart ? m : has(m, f);
     return !!from && (from.children ?? []).some((c) => entry.rows.includes(String(c.name)));
-  });
+  }));
   if (!oldShape) return null;
   const parts = new Set<string>();
   const walk = (n: AnatomyPlan['root']): void => { parts.add(n.name); n.children.forEach(walk); };

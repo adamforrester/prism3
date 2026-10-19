@@ -218,6 +218,11 @@ const ZERO_OK: Record<string, string> = {
   'textarea.focusRing': FIELD_RING,
   // #2317: the Password field's box and ring are TextField's, from the shared field factory.
   'password-field.focusRing': FIELD_RING,
+  // #2427: the Counter's OUTLINE members take the field offset for the same reason (their edge is the field's); its
+  // GHOST members take the control offset, 2px (owner Q283.10 A), so they never reach this admission at gap 0.
+  // `test.ts` holds the ghost offset against a literal, since a ghost member rebound to the field offset would be
+  // admitted here.
+  'counter.focusRing': `on appearance=outline only: ${FIELD_RING}`,
   // #2428: the Code cell is a field box too, ringed at the field offset as TextField is.
   'code-input-cell.focusRing': FIELD_RING,
 };
@@ -235,6 +240,7 @@ const MUST_COVER = [
   'text-field.focusRing', 'textarea.focusRing', 'select.focusRing', 'password-field.focusRing',
   'checkbox-control.focusRing', 'radio-control.focusRing', 'switch-control.focusRing',
   'tag.focusRing', 'tab.focusRing', 'accordion.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing',
+  'counter.focusRing',
   'code-input-cell.focusRing',
 ];
 
@@ -253,6 +259,7 @@ const MUST_CLEAR_STROKE = [
   'text-field.focusRing', 'textarea.focusRing', 'select.focusRing', 'password-field.focusRing',
   'checkbox-control.focusRing', 'radio-control.focusRing', 'switch-control.focusRing',
   'tag.focusRing', 'tab.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing',
+  'counter.focusRing',
   'code-input-cell.focusRing',
 ];
 
@@ -454,7 +461,10 @@ for (const def of componentDefs) {
         }
 
         // ---- A: the name on the plan is the one the DEF's own key resolves to -------------------
-        const refOf = (key: string): string | undefined => def.tokens[key.includes('{size}') ? key.replace('{size}', size) : key];
+        // `{size}` from the size, and any other `{axis}` from the member's own coordinate (#2427: the Counter keys
+        // its ring offset by `{appearance}`). An axis the coordinate lacks stays unfilled and resolves no key.
+        const refOf = (key: string): string | undefined =>
+          def.tokens[key.replace(/\{([a-zA-Z]+)\}/g, (m, axis: string) => (axis === 'size' ? size : (plan.coord as Record<string, string | undefined>)[axis] ?? m))];
         const ref = refOf(d.insetKey);
         if (!ref) {
           failures.push(`${at}: '${node.name}' declares inset key '${d.insetKey}' and def.tokens binds no such key — the plan carries '${node.absoluteInset}' from somewhere this gate cannot corroborate`);

@@ -12,9 +12,6 @@ export const USED_BY = {
       "radius.2xl": [
         "Dialog"
       ],
-      "radius.lg": [
-        "CodeInput"
-      ],
       "radius.md": [
         "Button",
         "IconButton",
@@ -40,7 +37,7 @@ export const USED_BY = {
         "Badge",
         "SegmentedControl",
         "PasswordField",
-        "CodeInput"
+        "Counter"
       ]
     },
     pill: {
@@ -51,9 +48,6 @@ export const USED_BY = {
         "Button",
         "IconButton"
       ],
-      "radius.lg": [
-        "CodeInput"
-      ],
       "radius.md": [
         "SegmentedControl"
       ],
@@ -77,15 +71,12 @@ export const USED_BY = {
         "Badge",
         "SegmentedControl",
         "PasswordField",
-        "CodeInput"
+        "Counter"
       ]
     },
     boxed: {
       "radius.2xl": [
         "Dialog"
-      ],
-      "radius.lg": [
-        "CodeInput"
       ],
       "radius.md": [
         "SegmentedControl"
@@ -113,7 +104,7 @@ export const USED_BY = {
         "Badge",
         "SegmentedControl",
         "PasswordField",
-        "CodeInput"
+        "Counter"
       ]
     },
     hairline: {
@@ -128,9 +119,6 @@ export const USED_BY = {
         "Checkbox.Control",
         "Select"
       ],
-      "radius.lg": [
-        "CodeInput"
-      ],
       "radius.md": [
         "SegmentedControl"
       ],
@@ -151,7 +139,7 @@ export const USED_BY = {
         "Badge",
         "SegmentedControl",
         "PasswordField",
-        "CodeInput"
+        "Counter"
       ]
     }
   },
@@ -168,7 +156,8 @@ export const USED_BY = {
       "Tab",
       "Accordion",
       "SegmentedControl",
-      "PasswordField"
+      "PasswordField",
+      "Counter"
     ],
     "size.md.height": [
       "FocusRing",
@@ -181,7 +170,8 @@ export const USED_BY = {
       "Tag",
       "Tab",
       "Divider",
-      "SegmentedControl"
+      "SegmentedControl",
+      "Counter"
     ],
     "size.sm.height": [
       "Button",
@@ -192,7 +182,8 @@ export const USED_BY = {
       "Switch.Row",
       "Tag",
       "Tab",
-      "SegmentedControl"
+      "SegmentedControl",
+      "Counter"
     ]
   },
   buttonSizes: {

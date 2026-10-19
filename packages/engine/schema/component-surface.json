@@ -654,9 +654,16 @@
         "trailing icon:BOOLEAN"
       ]
     },
+    "button-group": {
+      "members": 3,
+      "sha256": "c74587caf9edee460be6ad103657fe8388bc74f1e46d314fd1fd637b2d5e5b21",
+      "properties": [
+        "items:SLOT"
+      ]
+    },
     "dialog": {
       "members": 15,
-      "sha256": "1fb8655392a39802ce21a98a39f8fc29321cc35f34d7e954f079f21c87627bfe",
+      "sha256": "6284e15233d3c43b9563932e6b716fa6e2271029be1b783344529bbb902daba4",
       "properties": [
         "body:SLOT",
         "close:BOOLEAN",
@@ -696,33 +703,13 @@
         "value:TEXT"
       ]
     },
-    "code-input-cell": {
-      "members": 28,
-      "sha256": "dc0852c3b0257c25380eed40b343ca27c13bd24168e4703670c69b70a6177785",
+    "counter": {
+      "members": 18,
+      "sha256": "2a891ba2e1b95c6342b378b458092f5605dd8c8f59b58f18bfb2c40a03bbe8a2",
       "properties": [
-        "digit:TEXT"
-      ]
-    },
-    "code-input-cell@outline-solid-tint": {
-      "members": 28,
-      "sha256": "3b2397665665383491b911ce7050299360e75054230080fa0c105a57dd2292ee",
-      "properties": [
-        "digit:TEXT"
-      ]
-    },
-    "code-input-cell@outline-none": {
-      "members": 28,
-      "sha256": "7b94728ea2be8c65a7f02d2b63078a314c7ce3641b1c60a8ee0a5002c8407fb6",
-      "properties": [
-        "digit:TEXT"
-      ]
-    },
-    "code-input": {
-      "members": 48,
-      "sha256": "5936447fdb8bb8d66606bfc9649f84c0c712a96cbd6ecdfc993b375da59ba94e",
-      "properties": [
-        "items:SLOT",
-        "message:BOOLEAN"
+        "label:BOOLEAN",
+        "message:BOOLEAN",
+        "value:TEXT"
       ]
     }
   }

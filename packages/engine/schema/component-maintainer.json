@@ -1195,6 +1195,33 @@
         "projection": []
       }
     },
+    "button-group": {
+      "codeOnly": [
+        "the element — a `<div>` holding the buttons in order, with no role: each button is its own control, and a group of separate actions is not a radio group or a toolbar. Give it `role=\"group\"` and an `aria-label` only when the buttons need a shared name the page does not already give them.",
+        "order — the DOM order is the order the buttons are given, which is also the focus order. Inline and fill take the main action last (Cancel, then Save); stacked takes it first (Save, then Cancel), so the visual order and the focus order match in every layout. Never reverse the order with CSS alone: focus would then move against what the eye reads.",
+        "the inline row — `display: flex; justify-content: flex-end; flex-wrap: wrap` with the row gap, so a row too wide for its container wraps instead of overflowing; nothing switches to stacked by itself. Fill gives each button `flex: 1 1 0` so the buttons share the width; stacked is a column with each button at full width.",
+        "button count — Figma holds the buttons in the native `items` slot, two by default and three at most; code takes `items` of one to three Button elements.",
+        "Cancel — in Figma the group's own default Cancel is an outline Button; a host that nests the group (Dialog) may prefer another, such as Button.Neutral when the file has that set. In code, pass whichever the product uses.",
+        "right-to-left — the row mirrors through logical properties: the end edge is the left, and the main action sits leftmost."
+      ],
+      "notes": {
+        "contested": [
+          "HELD FOR THE OWNER (#2661): the built width (400), the 12px gap at fill (the row's), the aliases, the summary and description, and the category `form`.",
+          "HELD FOR THE OWNER (#2661): no size axis. The buttons are medium, which Dialog's footer needs; Banner's small actions (#2787) would add one, medium first (Q347)."
+        ],
+        "unverified": [
+          "A host built before Button.Neutral keeps the group's primary Cancel: the host's preference is read when the host is built, so a file that builds the Neutral families later rebuilds the host to pick them up.",
+          "That Figma keeps the \"Cancel\" label when the host swaps the group's Cancel instance to Button.Neutral (`swapComponent` preserves overrides by property name; the shim models it, a real file has not been read).",
+          "That a designer's buttons in the slot survive a layout switch on a real host, as the accordion's panel content survives its expansion switch (one SLOT property per part name)."
+        ],
+        "evolution": [
+          "Owner decision Q363 (2026-10-16, #2661): the wireframe approved, all calls A except 8 (Cancel is Button.Neutral) and 9 (a fill layout too); a shared public Button group that Dialog nests now and Banner and Card later; the Button family preferred, preferred-only; stacked with the main action first; one to three buttons, two by default; three inline all at the end edge.",
+          "Owner decision (2026-10-16, #2661, amending Q363.8) and Q386 (#2808): Cancel uses Button.Neutral when the file has it and the primary Button otherwise; no component requires the Neutral families.",
+          "Owner decision Q418 (2026-10-18, #2661): the component that nests the group decides its buttons' defaults. Button.Group on its own defaults the secondary to the primary outline Button, with no Neutral preference; Dialog's nest prefers Button.Neutral, falling back to the primary Button; designers can still swap any button in the slot."
+        ],
+        "projection": []
+      }
+    },
     "dialog": {
       "codeOnly": [
         "role — `role=\"dialog\"` with `aria-modal=\"true\"`; the native `<dialog>` opened with `showModal()` provides both. `role: \"alertdialog\"` is a code prop with no Figma property: set it for a confirmation that interrupts and needs an answer. An alertdialog hides the close button (the Figma `close` toggle shows the result), keeps a backdrop click from closing it, and must hold at least one focusable control.",
@@ -1216,17 +1243,17 @@
       ],
       "notes": {
         "contested": [
-          "HELD FOR THE OWNER (#2609): the bottom and full members' build size (360 wide, and 640 tall for full), the title-to-description gap (space.100) and the title-to-close gap (space.200), the body placeholder copy, the description text property's Figma name (\"description text\"), the `actions` prop, and Cancel as an outline Button beside a filled Save.",
+          "HELD FOR THE OWNER (#2609): the bottom and full members' build size (360 wide, and 640 tall for full), the title-to-description gap (space.100) and the title-to-close gap (space.200), the body placeholder copy, and the description text property's Figma name (\"description text\").",
           "The close button sits at the header's top edge, beside the first line of the title, without an offset that centers it on that line: whether the title moves down to center on the 44px button is held for the owner's visual QA."
         ],
         "unverified": [
-          "The nested footer buttons read \"Button\" until a designer types \"Cancel\" and \"Save\": the def does not yet set their labels through a per-instance override (#2645).",
           "That the native slot keeps a designer's body content across a placement or footer switch in every Figma plan, as it does across the accordion's expansion switch."
         ],
         "evolution": [
           "Owner decisions: the proposal on #2609 (one component, the anatomy, the tokens, the accessibility contract), and Q303 (2026-10-14): no side or drawer placement; `placement` center, bottom or full, with no automatic switch; the backdrop `color.scrim.default` as canvas furniture and `::backdrop`; def-level widths; footer inline, stacked or none; Escape, close and backdrop click dismiss a dialog, and an alertdialog only through its buttons or Escape; `role` a code prop that hides close on an alertdialog; close on by default; corners per placement; the names and aliases; the placeholder wording.",
           "Owner decision (2026-10-16, #2609): the close button is always the X. It shows the close icon on every member, and Dialog has no icon swap property; a product that needs another X changes the close glyph in its icon set or edits the component.",
-          "Owner decision Q385 A (2026-10-16, #2806), settling Q377 A on #2609: the close button is a FlushIconButton.Neutral, not an IconButton.Neutral, so a file without the IconButton sets still builds Dialog. It is round at medium, the closest match to the earlier ghost medium IconButton."
+          "Owner decision Q385 A (2026-10-16, #2806), settling Q377 A on #2609: the close button is a FlushIconButton.Neutral, not an IconButton.Neutral, so a file without the IconButton sets still builds Dialog. It is round at medium, the closest match to the earlier ghost medium IconButton.",
+          "Owner decision Q363 (2026-10-16, #2661): the footer is a nested Button group whose native slot holds the buttons, replacing two fixed nested Buttons per layout. Cancel reads \"Cancel\" and Save \"Save\"; Cancel is Button.Neutral when the file has it and the primary Button otherwise (Q363.8 as amended, Q386), and since Q418 that is the Dialog's own preference on its nest of the group, which on its own keeps the primary outline Button; the `actions` prop is a slot of one to three Button elements (Q363.10 A)."
         ],
         "projection": []
       }
@@ -1266,59 +1293,37 @@
         "projection": []
       }
     },
-    "code-input-cell": {
+    "counter": {
       "codeOnly": [
-        "the cell in code — an aria-hidden element the code input draws; it is never focusable and has no role. The one input under the cells takes focus, the name and the value.",
-        "the active cell — the cell at the input's caret, or the last cell once the code is complete, carries the ring while the input has focus from any pointer or the keyboard (an input matches :focus-visible on a mouse focus too). It is the code input's caret position, never a DOM focus move.",
-        "the caret — Figma draws a static bar; code draws a blinking bar on the active empty cell, or hides the native caret and draws none, and stops blinking under prefers-reduced-motion.",
-        "tabular figures — the character sets `font-variant-numeric: tabular-nums`, so every digit is one width and the code does not shimmer as it fills.",
-        "the character's optical centering — its box is trimmed to the cap height and the baseline (`text-box: trim-both cap alphabetic`, Figma's vertical trim), so the cell centers the figure itself, whatever the brand font's ascender and descender. Where `text-box` is unsupported, the box falls back to the line box, centered.",
-        "the character's text style in Figma — vertical trim lives inside a Figma text style, so the trimmed character carries the style's font family, style and size as variable binds and shows no style name. Code reads the same type role.",
-        "fill width — Figma keeps each cell at its size until a designer sets it to fill; code's `width=\"full\"` makes every cell `flex: 1 1 0` with `min-inline-size: 32px`, and the height stays the size's.",
-        "forced-colors — the borders become system-color borders and the active cell's ring a system-color outline, so the active cell still shows."
+        "the spinbutton — the value is one focusable element with role=\"spinbutton\" and tabindex=\"0\", not an <input>: a counter shows its value and is not typed into (typed entry is the number input). It carries aria-valuenow, aria-valuemin, aria-valuemax only when a max is set, aria-valuetext where the number alone is unclear (\"3 items\"), and the label as its name through aria-labelledby, which works with the label shown or hidden. The message, when shown, is added through aria-describedby.",
+        "the keyboard model — Up Arrow and Down Arrow change the value by one step, Page Up and Page Down by ten steps, and Home and End go to min and to max when a max is set. The value never passes min or max. Tab reaches the counter once, at the value.",
+        "the stepper buttons — each is a <button type=\"button\" tabindex=\"-1\"> (APG), out of the Tab order because the arrow keys do the same job, and still reached by pointer, touch and voice. Each has aria-controls pointing at the value and an accessible name from decrementLabel and incrementLabel. A press does not move focus. At a limit the button takes aria-disabled=\"true\", not native disabled, so it stays in the accessibility tree, and a press does nothing.",
+        "the announcement — a button press writes the new value to the app's one shared polite live region, such as \"Quantity 3\", never a region of the counter's own. An arrow-key change is announced by the spinbutton itself and is not written there again.",
+        "touch-target-expansion — each nested button extends its hit area in code to at least 44×44px at every size (the flush icon button's own rule). On outline the medium inset is 12px, so a 20px glyph's 44px area reaches the edge exactly; the value between the two buttons keeps their areas apart, at least 44px center to center.",
+        "limits in Figma — min and max are code props. In Figma the designer shows a limit by setting that button's exposed state to disabled; in code the counter sets aria-disabled from min and max.",
+        "no wheel — the value never changes on a mouse wheel or a scroll gesture.",
+        "tabular figures — the value is set with font-variant-numeric: tabular-nums, so its width holds from one count to the next; the 32px minimum width holds two digits.",
+        "the glyphs — the minus and plus are the nested buttons' icon swap, set to the icon set's minus and plus as a per-instance override on each nested button (#2645).",
+        "RTL — the row follows the reading direction, so the minus button sits at the right edge. The minus and plus glyphs are symmetric and are not mirrored."
       ],
       "notes": {
         "contested": [
-          "The state names: the approved cell states say active and active filled; the closed state vocabulary has no `active`, so the cell spells them focus-visible and focus-visible-filled, Text field's names for the same ring and caret. Renaming them is a schema change held for the owner.",
-          "The character weight: no guaranteed type role is above 18px, so the medium, large and xlarge characters take the title steps in the brand's bold title weight (strong on most brands), and the small one Text field's body step in the default weight. A brand's own title ladder sets the exact size."
+          "Appearance order: `outline` first, as Q283.4 A spelled it, so the Figma default and the code default are outline, while the wireframe decision made ghost the MVP. If ghost should be what a designer inserts, the order flips (an owner call).",
+          "The value in Figma defaults to \"1\", the Oct 9 draft, while the code default is min, which defaults to 0 (Q283.7). A product card usually starts at 1; the two defaults differ on purpose until the owner says otherwise.",
+          "TWO NESTS EXPOSING `state` ON ONE HOST are built and exposed on the shim (`test-roundtrip.ts`), but untested on a real host, where Figma lists each exposed instance's properties under its layer name (decrement, increment)."
         ],
         "unverified": [
-          "An empty cell in error: the approved states draw error with a character only. A field in error with a short code shows its empty cells at rest in Figma; code draws the danger border on every cell.",
-          "The character's vertical trim on a real host: that a layer trimmed after its style is applied keeps the style's variable binds (measured for the #1567 detach, not for this layer), and that the trimmed box centers the figure in the brand's own display font, are modeled offline only until the owner's QA build."
+          "iOS VoiceOver's adjust gesture on role=\"spinbutton\" (APG warns of mobile support gaps); the two buttons are the fallback.",
+          "The round button's edge is decorative (about 2:1, no floor, Q305.1 A); the glyph carries the 3:1, gated on the flush icon button, not here.",
+          "The outline edge clears 3:1 through `color.field.border.rest`, gated for the field family, not re-measured here."
         ],
         "evolution": [
-          "2026-10-15 (#2428): owner decision Q329 A, the cell as a part in the code input's native items slot, its character edited on the cell; Q330 A, the four sizes.",
-          "2026-10-17 (#2789): the character is trimmed to its cap height and baseline, so the cell centers the figure (owner QA 2026-10-16: the digit sat too high at medium and large; option A of the owner question on #2789)."
-        ],
-        "projection": []
-      }
-    },
-    "code-input": {
-      "codeOnly": [
-        "code delivery pending: behavior layer (#2454). The entries below are a framework-neutral behavior contract.",
-        "ONE INPUT — `<input type=\"text\" inputmode=\"numeric\" autocomplete=\"one-time-code\" maxlength pattern=\"[0-9]*\" spellcheck=\"false\">` lies over the cells, which are aria-hidden. Assistive technology meets one textbox with one name and one value. A code with letters sets inputMode text, autocapitalize characters, and drops the pattern. Never one input per cell: paste and the phone's code suggestion then fill one cell (W3C Understanding SC 3.3.8).",
-        "NORMALIZE, THEN FILL — spaces, hyphens and dashes are removed before counting, and characters past `length` are dropped without an error. A pasted or suggested code fills every cell. Paste is never blocked.",
-        "onComplete — fires once when the value reaches `length`, again only after the value changes and reaches it again. No auto-submit: the page decides, so a typo never locks a user out (SC 3.2.2).",
-        "the drawn caret and the active cell — DOM focus never moves. Typing advances the active cell; Backspace removes the last character and moves the ring back; arrow keys, Home and End move the native caret and the ring follows. A click on any cell focuses the input with the caret at the end.",
-        "AFTER AN ERROR — the value stays, with the caret at the end and the text selected: the next keystroke replaces the code and Backspace edits it. The field never clears itself.",
-        "pending — a real state in code (the code is being checked: aria-busy and a polite \"Checking code\" status, the input still editable), not a Figma variant: its look is the rest look.",
-        "the field's status and state in Figma — a placed field's cells are the designer's (owner decision Q329 A): switching the field to error or disabled changes its label and message, not its cells, and the designer sets each cell. Each member's default cells show that member's state, as a fresh insert's starting point. In code the input drives every cell.",
-        "fill width — `width=\"full\"` makes the row `inline-size: 100%` and every cell `flex: 1 1 0` with `min-inline-size: 32px`, the gap held. In Figma a designer sets the field and each cell to fill.",
-        "RTL — the cell row is `dir=\"ltr\"` in every locale, because a code reads left to right; the label and the message follow the text direction.",
-        "the SMALL size on a COARSE POINTER — the small cell's character is 16px, so iOS does not zoom on focus; the input under the cells is set to 16px at every size.",
-        "the password-manager badge — the row keeps clear space after the last cell, so a manager's icon does not cover it.",
-        "the label / describedby WIRING — the host ties the FieldLabel to the input, stitches the helper and the error into aria-describedby and sets aria-invalid on error. The error is not a live region while the field has focus; a result from the server goes to a polite role=\"status\"."
-      ],
-      "notes": {
-        "contested": [
-          "The label size: one FieldLabel size at every cell size, because FieldLabel has no xlarge. Text field's label follows its size one step down.",
-          "The default cells per member: each member's six cells show its state (filled, active, disabled). Status has no mechanism to reach a nested coordinate, so an error member's default cells are not in error."
-        ],
-        "unverified": [
-          "The nested cells' characters are set by an override inside a native slot, as List's item numbers are. Writing them through the plugin is unmeasured on a real host until the first Build."
-        ],
-        "evolution": [
-          "2026-10-15 (#2428): owner decisions Q321 A (all but cell count), Q329 A (a native items slot of cells, 6 by default, 4 to 8; the cells do not follow the field's status or state in Figma), Q330 A (four sizes and fill width). As-built wireframe approved 2026-10-16."
+          "2026-10-09: proposal as QuantityStepper, owning its edges (shape A, 54 members).",
+          "2026-10-12: refreshed proposal: shape B, nesting a flush icon button (18 members).",
+          "2026-10-14 Q283: shape B; outline | ghost; medium first; remove-at-min out of scope, min defaulting to 0; buttons tabindex=\"-1\"; label hidden by default in Figma; the control focus offset on ghost; glyphs 20/20/24, insets 12/12/16, value 32 wide; its own page.",
+          "2026-10-14 Q286 A: Counter and Number input are two components; the Counter displays its value and is not typed into.",
+          "2026-10-14 wireframes: the name Counter; appearances outline and ghost (round buttons), ghost the MVP; filled square buttons not built, the axis left open for them.",
+          "2026-10-14 Q287 A (on #2457): the flush icon button carries `shape: flush | round`; outline nests flush and ghost nests round."
         ],
         "projection": []
       }

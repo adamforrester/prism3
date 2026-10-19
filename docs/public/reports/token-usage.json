@@ -9,8 +9,8 @@
   "note": "tokens: every token a definition declares or the design-file projection binds, keyed by path below the root. components.<id>.keys are the definition binding keys that name it; parts.<part>.where lists, per axis, the values the part is bound at — an axis bound at every value is left out, so an empty where means every member. byComponent is the inverse. unused lists emitted tokens nothing binds.",
   "summary": {
     "emitted": 787,
-    "used": 252,
-    "unusedSemantic": 255,
+    "used": 247,
+    "unusedSemantic": 260,
     "unusedPrimitive": 280,
     "components": 43
   },
@@ -62,22 +62,13 @@
             }
           }
         },
-        "code-input-cell": {
+        "counter": {
           "keys": [
-            "border-width",
-            "caret-width"
+            "border-width"
           ],
           "parts": {
-            "caret": {
-              "members": 4,
-              "where": {
-                "state": [
-                  "focus-visible"
-                ]
-              }
-            },
-            "cell": {
-              "members": 28,
+            "control": {
+              "members": 18,
               "where": {}
             }
           }
@@ -479,21 +470,6 @@
             }
           }
         },
-        "code-input-cell": {
-          "keys": [
-            "border.error"
-          ],
-          "parts": {
-            "cell": {
-              "members": 4,
-              "where": {
-                "state": [
-                  "error"
-                ]
-              }
-            }
-          }
-        },
         "password-field": {
           "keys": [
             "error.border.empty",
@@ -654,23 +630,6 @@
             "focus-ring"
           ],
           "parts": {}
-        },
-        "code-input-cell": {
-          "keys": [
-            "border.focus-visible",
-            "border.focus-visible-filled"
-          ],
-          "parts": {
-            "cell": {
-              "members": 8,
-              "where": {
-                "state": [
-                  "focus-visible",
-                  "focus-visible-filled"
-                ]
-              }
-            }
-          }
         },
         "focus-ring": {
           "keys": [
@@ -1367,14 +1326,17 @@
             }
           }
         },
-        "code-input-cell": {
+        "counter": {
           "keys": [
             "disabled.border"
           ],
           "parts": {
-            "cell": {
-              "members": 4,
+            "control": {
+              "members": 3,
               "where": {
+                "appearance": [
+                  "outline"
+                ],
                 "state": [
                   "disabled"
                 ]
@@ -1737,21 +1699,6 @@
                   "checked",
                   "indeterminate"
                 ],
-                "state": [
-                  "disabled"
-                ]
-              }
-            }
-          }
-        },
-        "code-input-cell": {
-          "keys": [
-            "disabled.fill"
-          ],
-          "parts": {
-            "cell": {
-              "members": 4,
-              "where": {
                 "state": [
                   "disabled"
                 ]
@@ -2644,6 +2591,21 @@
           ],
           "parts": {}
         },
+        "counter": {
+          "keys": [
+            "disabled.label"
+          ],
+          "parts": {
+            "value": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "disabled"
+                ]
+              }
+            }
+          }
+        },
         "field-label": {
           "keys": [
             "disabled.indicator",
@@ -2779,21 +2741,6 @@
             }
           }
         },
-        "code-input-cell": {
-          "keys": [
-            "border.hover"
-          ],
-          "parts": {
-            "cell": {
-              "members": 4,
-              "where": {
-                "state": [
-                  "hover"
-                ]
-              }
-            }
-          }
-        },
         "password-field": {
           "keys": [
             "border.hover"
@@ -2909,16 +2856,19 @@
             }
           }
         },
-        "code-input-cell": {
+        "counter": {
           "keys": [
-            "border"
+            "outline.border"
           ],
           "parts": {
-            "cell": {
-              "members": 8,
+            "control": {
+              "members": 6,
               "where": {
+                "appearance": [
+                  "outline"
+                ],
                 "state": [
-                  "filled",
+                  "focus-visible",
                   "rest"
                 ]
               }
@@ -3034,19 +2984,19 @@
     "color.field.fill": {
       "type": "color",
       "components": {
-        "code-input-cell": {
+        "counter": {
           "keys": [
-            "fill"
+            "outline.fill"
           ],
           "parts": {
-            "cell": {
-              "members": 20,
+            "control": {
+              "members": 6,
               "where": {
+                "appearance": [
+                  "outline"
+                ],
                 "state": [
-                  "error",
-                  "filled",
                   "focus-visible",
-                  "focus-visible-filled",
                   "rest"
                 ]
               }
@@ -5934,21 +5884,6 @@
                 ],
                 "surface": [
                   "default"
-                ]
-              }
-            }
-          }
-        },
-        "code-input-cell": {
-          "keys": [
-            "overlay.hover"
-          ],
-          "parts": {
-            "cell": {
-              "members": 4,
-              "where": {
-                "state": [
-                  "hover"
                 ]
               }
             }
@@ -11823,27 +11758,18 @@
             }
           }
         },
-        "code-input-cell": {
+        "counter": {
           "keys": [
-            "caret",
-            "label"
+            "ghost.label",
+            "outline.label"
           ],
           "parts": {
-            "caret": {
-              "members": 4,
-              "where": {
-                "state": [
-                  "focus-visible"
-                ]
-              }
-            },
-            "digit": {
+            "value": {
               "members": 12,
               "where": {
                 "state": [
-                  "error",
-                  "filled",
-                  "focus-visible-filled"
+                  "focus-visible",
+                  "rest"
                 ]
               }
             }
@@ -13687,6 +13613,24 @@
             }
           }
         },
+        "counter": {
+          "keys": [
+            "ghost.ring-offset"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 3,
+              "where": {
+                "appearance": [
+                  "ghost"
+                ],
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            }
+          }
+        },
         "flush-icon-button": {
           "keys": [
             "ring-offset"
@@ -13893,17 +13837,19 @@
             }
           }
         },
-        "code-input-cell": {
+        "counter": {
           "keys": [
-            "ring-offset"
+            "outline.ring-offset"
           ],
           "parts": {
             "focusRing": {
-              "members": 8,
+              "members": 3,
               "where": {
+                "appearance": [
+                  "outline"
+                ],
                 "state": [
-                  "focus-visible",
-                  "focus-visible-filled"
+                  "focus-visible"
                 ]
               }
             }
@@ -14055,17 +14001,16 @@
             }
           }
         },
-        "code-input-cell": {
+        "counter": {
           "keys": [
             "ring-width"
           ],
           "parts": {
             "focusRing": {
-              "members": 8,
+              "members": 6,
               "where": {
                 "state": [
-                  "focus-visible",
-                  "focus-visible-filled"
+                  "focus-visible"
                 ]
               }
             }
@@ -14694,24 +14639,6 @@
             }
           }
         },
-        "code-input-cell": {
-          "keys": [
-            "size.large.caret-height"
-          ],
-          "parts": {
-            "caret": {
-              "members": 1,
-              "where": {
-                "size": [
-                  "large"
-                ],
-                "state": [
-                  "focus-visible"
-                ]
-              }
-            }
-          }
-        },
         "flush-icon-button": {
           "keys": [
             "size.large.flush",
@@ -15229,24 +15156,6 @@
             }
           }
         },
-        "code-input-cell": {
-          "keys": [
-            "size.medium.caret-height"
-          ],
-          "parts": {
-            "caret": {
-              "members": 1,
-              "where": {
-                "size": [
-                  "medium"
-                ],
-                "state": [
-                  "focus-visible"
-                ]
-              }
-            }
-          }
-        },
         "flush-icon-button": {
           "keys": [
             "size.medium.flush",
@@ -15620,29 +15529,6 @@
         }
       }
     },
-    "icon.size.xl": {
-      "type": "dimension",
-      "components": {
-        "code-input-cell": {
-          "keys": [
-            "size.xlarge.caret-height"
-          ],
-          "parts": {
-            "caret": {
-              "members": 1,
-              "where": {
-                "size": [
-                  "xlarge"
-                ],
-                "state": [
-                  "focus-visible"
-                ]
-              }
-            }
-          }
-        }
-      }
-    },
     "icon.size.xs": {
       "type": "dimension",
       "components": {
@@ -15858,24 +15744,6 @@
             }
           }
         },
-        "code-input-cell": {
-          "keys": [
-            "size.small.caret-height"
-          ],
-          "parts": {
-            "caret": {
-              "members": 1,
-              "where": {
-                "size": [
-                  "small"
-                ],
-                "state": [
-                  "focus-visible"
-                ]
-              }
-            }
-          }
-        },
         "field-message": {
           "keys": [
             "glyph-size"
@@ -16062,26 +15930,6 @@
                 "placement": [
                   "bottom",
                   "center"
-                ]
-              }
-            }
-          }
-        }
-      }
-    },
-    "radius.lg": {
-      "type": "dimension",
-      "components": {
-        "code-input-cell": {
-          "keys": [
-            "size.xlarge.radius"
-          ],
-          "parts": {
-            "cell": {
-              "members": 7,
-              "where": {
-                "size": [
-                  "xlarge"
                 ]
               }
             }
@@ -16447,22 +16295,14 @@
             }
           }
         },
-        "code-input-cell": {
+        "counter": {
           "keys": [
-            "size.large.radius",
-            "size.medium.radius",
-            "size.small.radius"
+            "radius"
           ],
           "parts": {
-            "cell": {
-              "members": 21,
-              "where": {
-                "size": [
-                  "large",
-                  "medium",
-                  "small"
-                ]
-              }
+            "control": {
+              "members": 18,
+              "where": {}
             }
           }
         },
@@ -16607,6 +16447,21 @@
             "size.large.min-height"
           ],
           "parts": {}
+        },
+        "counter": {
+          "keys": [
+            "size.large.height"
+          ],
+          "parts": {
+            "control": {
+              "members": 6,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
         },
         "flush-icon-button": {
           "keys": [
@@ -16872,6 +16727,21 @@
             "size.medium.min-height"
           ],
           "parts": {}
+        },
+        "counter": {
+          "keys": [
+            "size.medium.height"
+          ],
+          "parts": {
+            "control": {
+              "members": 6,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
         },
         "divider": {
           "keys": [
@@ -17202,6 +17072,21 @@
           ],
           "parts": {}
         },
+        "counter": {
+          "keys": [
+            "size.small.height"
+          ],
+          "parts": {
+            "control": {
+              "members": 6,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "flush-icon-button": {
           "keys": [
             "size.small.round"
@@ -17494,13 +17379,20 @@
             }
           }
         },
-        "code-input-cell": {
+        "counter": {
           "keys": [
-            "pad"
+            "ghost.size.large.pad-x",
+            "ghost.size.medium.pad-x",
+            "ghost.size.small.pad-x",
+            "pad-y"
           ],
           "parts": {
-            "content": {
-              "members": 28,
+            "control": {
+              "members": 18,
+              "where": {}
+            },
+            "entry": {
+              "members": 18,
               "where": {}
             }
           }
@@ -17514,18 +17406,11 @@
               "members": 15,
               "where": {}
             },
-            "footerInline": {
-              "members": 5,
+            "footer": {
+              "members": 10,
               "where": {
                 "footer": [
-                  "inline"
-                ]
-              }
-            },
-            "footerStacked": {
-              "members": 5,
-              "where": {
-                "footer": [
+                  "inline",
                   "stacked"
                 ]
               }
@@ -17749,6 +17634,23 @@
     "space.050": {
       "type": "dimension",
       "components": {
+        "counter": {
+          "keys": [
+            "size.medium.value-pad",
+            "size.small.value-pad"
+          ],
+          "parts": {
+            "entry": {
+              "members": 12,
+              "where": {
+                "size": [
+                  "medium",
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "field-label": {
           "keys": [
             "gap"
@@ -18088,6 +17990,21 @@
             }
           }
         },
+        "button-group": {
+          "keys": [
+            "layout.stacked.gap"
+          ],
+          "parts": {
+            "items": {
+              "members": 1,
+              "where": {
+                "layout": [
+                  "stacked"
+                ]
+              }
+            }
+          }
+        },
         "button-neutral": {
           "keys": [
             "size.large.padding-y",
@@ -18130,36 +18047,31 @@
             }
           }
         },
-        "code-input": {
+        "counter": {
           "keys": [
-            "cell-gap",
-            "root-gap"
+            "root-gap",
+            "size.large.value-pad"
           ],
           "parts": {
             "container": {
-              "members": 48,
+              "members": 18,
               "where": {}
             },
-            "items": {
-              "members": 48,
-              "where": {}
+            "entry": {
+              "members": 6,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
             }
           }
         },
         "dialog": {
           "keys": [
-            "footer.stacked.gap",
             "title-gap"
           ],
           "parts": {
-            "footerStacked": {
-              "members": 5,
-              "where": {
-                "footer": [
-                  "stacked"
-                ]
-              }
-            },
             "titleBox": {
               "members": 15,
               "where": {}
@@ -18531,6 +18443,23 @@
             }
           }
         },
+        "button-group": {
+          "keys": [
+            "layout.fill.gap",
+            "layout.inline.gap"
+          ],
+          "parts": {
+            "items": {
+              "members": 2,
+              "where": {
+                "layout": [
+                  "fill",
+                  "inline"
+                ]
+              }
+            }
+          }
+        },
         "button-neutral": {
           "keys": [
             "size.large.gap",
@@ -18556,16 +18485,21 @@
             }
           }
         },
-        "dialog": {
+        "counter": {
           "keys": [
-            "footer.inline.gap"
+            "outline.size.medium.pad-x",
+            "outline.size.small.pad-x"
           ],
           "parts": {
-            "footerInline": {
-              "members": 5,
+            "control": {
+              "members": 6,
               "where": {
-                "footer": [
-                  "inline"
+                "appearance": [
+                  "outline"
+                ],
+                "size": [
+                  "medium",
+                  "small"
                 ]
               }
             }
@@ -18748,6 +18682,24 @@
             }
           }
         },
+        "counter": {
+          "keys": [
+            "outline.size.large.pad-x"
+          ],
+          "parts": {
+            "control": {
+              "members": 3,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
         "dialog": {
           "keys": [
             "gap",
@@ -18768,25 +18720,11 @@
                 ]
               }
             },
-            "footerInline": {
-              "members": 2,
+            "footer": {
+              "members": 4,
               "where": {
                 "footer": [
-                  "inline"
-                ],
-                "placement": [
-                  "bottom",
-                  "full"
-                ],
-                "size": [
-                  "medium"
-                ]
-              }
-            },
-            "footerStacked": {
-              "members": 2,
-              "where": {
-                "footer": [
+                  "inline",
                   "stacked"
                 ],
                 "placement": [
@@ -19117,21 +19055,11 @@
                 ]
               }
             },
-            "footerInline": {
-              "members": 3,
+            "footer": {
+              "members": 6,
               "where": {
                 "footer": [
-                  "inline"
-                ],
-                "placement": [
-                  "center"
-                ]
-              }
-            },
-            "footerStacked": {
-              "members": 3,
-              "where": {
-                "footer": [
+                  "inline",
                   "stacked"
                 ],
                 "placement": [
@@ -19302,6 +19230,21 @@
           "parts": {
             "label": {
               "members": 1,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
+        "counter": {
+          "keys": [
+            "size.large.type"
+          ],
+          "parts": {
+            "value": {
+              "members": 6,
               "where": {
                 "size": [
                   "large"
@@ -19636,21 +19579,16 @@
             }
           }
         },
-        "code-input-cell": {
+        "counter": {
           "keys": [
-            "size.small.type"
+            "size.medium.type"
           ],
           "parts": {
-            "digit": {
-              "members": 3,
+            "value": {
+              "members": 6,
               "where": {
                 "size": [
-                  "small"
-                ],
-                "state": [
-                  "error",
-                  "filled",
-                  "focus-visible-filled"
+                  "medium"
                 ]
               }
             }
@@ -20063,6 +20001,21 @@
           "parts": {
             "label": {
               "members": 1,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
+        "counter": {
+          "keys": [
+            "size.small.type"
+          ],
+          "parts": {
+            "value": {
+              "members": 6,
               "where": {
                 "size": [
                   "small"
@@ -21333,81 +21286,6 @@
           }
         }
       }
-    },
-    "type.title.2xl.strong": {
-      "type": "typography",
-      "components": {
-        "code-input-cell": {
-          "keys": [
-            "size.xlarge.type"
-          ],
-          "parts": {
-            "digit": {
-              "members": 3,
-              "where": {
-                "size": [
-                  "xlarge"
-                ],
-                "state": [
-                  "error",
-                  "filled",
-                  "focus-visible-filled"
-                ]
-              }
-            }
-          }
-        }
-      }
-    },
-    "type.title.md.strong": {
-      "type": "typography",
-      "components": {
-        "code-input-cell": {
-          "keys": [
-            "size.large.type"
-          ],
-          "parts": {
-            "digit": {
-              "members": 3,
-              "where": {
-                "size": [
-                  "large"
-                ],
-                "state": [
-                  "error",
-                  "filled",
-                  "focus-visible-filled"
-                ]
-              }
-            }
-          }
-        }
-      }
-    },
-    "type.title.sm.strong": {
-      "type": "typography",
-      "components": {
-        "code-input-cell": {
-          "keys": [
-            "size.medium.type"
-          ],
-          "parts": {
-            "digit": {
-              "members": 3,
-              "where": {
-                "size": [
-                  "medium"
-                ],
-                "state": [
-                  "error",
-                  "filled",
-                  "focus-visible-filled"
-                ]
-              }
-            }
-          }
-        }
-      }
     }
   },
   "byComponent": {
@@ -21799,6 +21677,22 @@
         "color.inverse.interactive.destructive.text.rest"
       ]
     },
+    "button-group": {
+      "members": 3,
+      "axes": {
+        "layout": [
+          "fill",
+          "inline",
+          "stacked"
+        ]
+      },
+      "tokens": [
+        "space.100",
+        "space.150"
+      ],
+      "declaredNotDrawn": [],
+      "drawnNotDeclared": []
+    },
     "button-neutral": {
       "members": 576,
       "axes": {
@@ -22029,77 +21923,46 @@
       ],
       "drawnNotDeclared": []
     },
-    "code-input": {
-      "members": 48,
+    "counter": {
+      "members": 18,
       "axes": {
+        "appearance": [
+          "ghost",
+          "outline"
+        ],
         "size": [
           "large",
           "medium",
-          "small",
-          "xlarge"
+          "small"
         ],
         "state": [
           "disabled",
-          "filled",
           "focus-visible",
-          "focus-visible-filled",
-          "hover",
-          "rest"
-        ],
-        "status": [
-          "default",
-          "error"
-        ]
-      },
-      "tokens": [
-        "space.100"
-      ],
-      "declaredNotDrawn": [],
-      "drawnNotDeclared": []
-    },
-    "code-input-cell": {
-      "members": 28,
-      "axes": {
-        "size": [
-          "large",
-          "medium",
-          "small",
-          "xlarge"
-        ],
-        "state": [
-          "disabled",
-          "error",
-          "filled",
-          "focus-visible",
-          "focus-visible-filled",
-          "hover",
           "rest"
         ]
       },
       "tokens": [
         "border-width.hairline",
-        "color.border.danger",
-        "color.border.focus",
         "color.disabled.border",
-        "color.disabled.fill",
-        "color.field.border.hover",
+        "color.disabled.text",
         "color.field.border.rest",
         "color.field.fill",
-        "color.interactive.neutral.overlay.hover",
         "color.text.primary",
+        "focus.ring.offset",
         "focus.ring.offset-field",
         "focus.ring.width",
-        "icon.size.md",
-        "icon.size.sm",
-        "icon.size.xl",
-        "icon.size.xs",
-        "radius.lg",
         "radius.sm",
+        "size.lg.height",
+        "size.md.height",
+        "size.sm.height",
         "space.0",
+        "space.050",
+        "space.100",
+        "space.150",
+        "space.200",
+        "type.body.lg.default",
         "type.body.md.default",
-        "type.title.2xl.strong",
-        "type.title.md.strong",
-        "type.title.sm.strong"
+        "type.body.sm.default"
       ],
       "declaredNotDrawn": [],
       "drawnNotDeclared": []
@@ -22132,7 +21995,6 @@
         "shadow.xl",
         "space.0",
         "space.100",
-        "space.150",
         "space.200",
         "space.300",
         "type.body.md.default",
@@ -23747,6 +23609,7 @@
       "grid.xl.columns",
       "grid.xl.gutter",
       "grid.xl.margin",
+      "icon.size.xl",
       "motion.duration-ms.0",
       "motion.duration-ms.100",
       "motion.duration-ms.200",
@@ -23803,6 +23666,7 @@
       "radius.3xl",
       "radius.capsule",
       "radius.hairline",
+      "radius.lg",
       "radius.xl",
       "shadow.2xl",
       "shadow.inset",
@@ -23867,10 +23731,13 @@
       "type.label.sm.default-link",
       "type.label.sm.line-box",
       "type.title.2xl.emphasis",
+      "type.title.2xl.strong",
       "type.title.lg.emphasis",
       "type.title.lg.strong",
       "type.title.md.emphasis",
+      "type.title.md.strong",
       "type.title.sm.emphasis",
+      "type.title.sm.strong",
       "type.title.xl.emphasis",
       "type.title.xl.strong",
       "type.title.xs.emphasis",

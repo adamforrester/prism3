@@ -319,7 +319,7 @@ section('label text — the text layer a value goes into, whatever the file\'s _
 /* ── the pilot defs, built by the real executor ─────────────────────────────────────────────────────────── */
 const plansOf = (id: string): AnatomyPlan[] => figmaAnatomySet(componentDefs.find((d) => d.id === id)!, { swapTarget: SWAP_TARGET });
 // A swap override's component (#2645) is in the file too: the build pre-builds it, so Dialog's `icon/close` (#2609) is listed.
-const planComps = (n: { swapTarget?: string; nestTarget?: string; nestOverrides?: { type: string; value: string }[]; children?: unknown[] }): string[] => [
+const planComps = (n: { swapTarget?: string; nestTarget?: string; nestOverrides?: readonly { type: string; value: string }[]; children?: unknown[] }): string[] => [
   ...(n.swapTarget ? [n.swapTarget] : []), ...(n.nestTarget ? [n.nestTarget] : []),
   ...(n.nestOverrides ?? []).filter((o) => o.type === 'INSTANCE_SWAP').map((o) => o.value), ...((n.children ?? []) as (typeof n)[]).flatMap(planComps),
 ];
@@ -751,7 +751,8 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
   // (2.5 × the 16px `LABEL_GAP`, written here) from the set to their left, so they read as their own set's.
   // The pages, by hand; held to the taxonomy so a new shared page is not skipped.
   const SHARED: Record<string, string[]> = {
-    Buttons: ['button', 'button-destructive', 'button-neutral'],
+    // #2661: Button.Group joins the Button family's page.
+    Buttons: ['button', 'button-destructive', 'button-neutral', 'button-group'],
     'Icon button': ['icon-button', 'icon-button-destructive', 'icon-button-neutral'],
     Checkbox: ['checkbox-control', 'checkbox-row', 'checkbox-group'],
     Radio: ['radio-control', 'radio-row', 'radio-group'],

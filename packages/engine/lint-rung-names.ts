@@ -184,6 +184,12 @@ const OUT = join(import.meta.dirname, 'out');
  * no emitted JSON states (object key order is not a promise), while MEMBERSHIP is read from the emitted
  * tree per brand in arm 1. So the gate authors the one thing the artifact cannot tell it and reads the
  * one thing it can.
+ *
+ * `2xl` is APPENDED (#2428: Code input's xlarge character is `type.title.2xl.strong`), never inserted, so every rung
+ * this file computes by index from `md` lands where it did before: the one-below and two-below offsets here, and an
+ * upward offset added beside them. PROGRESS NOTE (#2670, not on main): its ring offset is `md` plus two, which stays
+ * `xl` with `2xl` appended; when both meet, `expectedDefaultRung` and the failure message keep both branches (the
+ * pinned ladder and the ring offset name different defs), and `progress` joins `MUST_COVER` beside the Code input ids.
  */
 const RUNG_ORDER = ['xs', 'sm', 'md', 'lg', 'xl', '2xl'];
 
@@ -299,6 +305,7 @@ const NO_SIZE_AXIS: Record<string, string> = {
   'field-message': 'validation copy takes one type role; its axis is `status`, and size follows the field it belongs to',
   'veil': 'a media wash is full-bleed and has no size RUNG — its axes are `value` × `intensity`, and its only dimension binding is a NOMINAL standalone square (`container.narrow`), overwritten by the designer resizing it over the image; there is no size ladder to compare against the tier',
   'image-placeholder': 'a media frame has no size RUNG — its axis is `ratio` (an aspect PROPORTION, not a scale ladder), its one dimension binding is a NOMINAL width (`container.narrow`) the designer resizes, and its glyph size is a def-local literal (`glyphPx`, #1340), not a rung; there is no size ladder to compare against the tier (#1316)',
+  'button-group': 'a layout of Buttons has no size RUNG of its own — its axis is `layout`, its gaps are `space.*` steps, and each nested Button is medium and measured under its own name; a size axis for smaller actions is held for the owner (#2661)',
   'divider': 'a rule has no size RUNG — its axis is `orientation`, its thickness is one border-width role (`border-width.hairline`), and its length is a NOMINAL standalone placeholder (`container.narrow` across, `size.md.height` tall) a host stretches; there is no size ladder to compare against the tier (#2455)',
 };
 
@@ -392,6 +399,8 @@ const DEFAULT_FIRST: Record<string, string> = {
   'segmented-control-segment': Q1B,
   'segmented-control': Q1B,
   link: Q1B,
+  // #2427: owner Q283.6 B ("medium first") agrees with Q1 B; the Counter takes the same reason.
+  counter: Q1B,
   // #2428 (owner decisions Q330 A, Q347, Q359): Code input and its cell lead with medium, the code default.
   'code-input': 'the Figma default is `medium`, the code default (owner decisions Q330 A, Q347, Q359)',
   'code-input-cell': 'the Figma default is the medium cell, the code default (owner decisions Q330 A, Q347, Q359)',
@@ -432,7 +441,7 @@ const MUST_COVER = [
   'button', 'button-destructive', 'button-neutral',
   'icon-button', 'icon-button-destructive', 'icon-button-neutral',
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral',
-  'field-label', 'text-field', 'textarea', 'select', 'tag',
+  'field-label', 'text-field', 'textarea', 'select', 'tag', 'counter',
   'tab', 'tabs',
   'checkbox-control', 'checkbox-row', 'checkbox-group',
   'radio-control', 'radio-row', 'radio-group',

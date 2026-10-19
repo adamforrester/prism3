@@ -312,10 +312,10 @@
           "segmented-control-segment",
           "segmented-control",
           "link",
+          "button-group",
           "dialog",
           "password-field",
-          "code-input-cell",
-          "code-input"
+          "counter"
         ]
       }
     },
@@ -1546,7 +1546,8 @@
             "apps/plugin/src/style-guide.ts"
           ],
           "messages": [
-            "style-guide"
+            "style-guide",
+            "style-guide-cleanup"
           ]
         },
         "agent": {
