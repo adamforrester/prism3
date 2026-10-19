@@ -19075,8 +19075,8 @@ arm: {
     // today. Asserted rather than trusted, because the failure would surface at paste time, in Figma,
     // as a syntax error in a 40KB string — and the fix would be a lexer.
     for (const [label, js] of [['single', planToPluginJs(grid[0])], ['set', setJs], ['chunk', chunkJs]] as [string, string][])
-      ok(!js.includes('`'),
-        `anatomy/payload: the ${label} payload contains no backtick — the strip pass is only safe while no template literal spans lines (add a lexer before adding one)`);
+      ok(!js.includes('`') && !/\\\n/.test(js),
+        `anatomy/payload: the ${label} payload contains no backtick and no line ending in a backslash — the strip pass (comments and leading indentation) is only safe while no literal spans lines (add a lexer before adding one)`);
 
     // THE PASS ITSELF, on crafted input. Every assertion above samples the pass's OUTPUT, and output
     // sampling is blind to the one failure that matters: a line that is simply GONE. Measured — a
@@ -19087,6 +19087,7 @@ arm: {
     ok(stripPayloadComments('// gone\nkept();\n') === 'kept();\n', 'anatomy/payload: strip removes a full-line comment');
     ok(stripPayloadComments('a();\n\nb();\n') === 'a();\nb();\n', 'anatomy/payload: strip removes blank lines — they separated prose that is no longer there');
     ok(stripPayloadComments('  // indented\nkept();\n') === 'kept();\n', 'anatomy/payload: an INDENTED comment goes too — most of the payload prose is inside a block');
+    ok(stripPayloadComments('if(a){\n    b();\n  }\n') === 'if(a){\nb();\n}\n', 'anatomy/payload: leading indentation goes (#2428 meeting #2661: about 1 KB of every chunk shell), the code on the line kept');
     ok(stripPayloadComments('kept(); // trailing\n') === 'kept(); // trailing\n',
       'anatomy/payload: a line with code BEFORE the // is kept ENTIRELY — the greedy version deletes `if(!id)continue;`, a real guard, and no output-sampling gate can see it');
     ok(stripPayloadComments("s=\"http://x\";\n") === "s=\"http://x\";\n", 'anatomy/payload: a // inside a string literal is not a comment and its line survives');
@@ -23829,11 +23830,13 @@ arm: {
       // Cancel's Button.Neutral when the file has it) and the slot's preferred-when-built ids, in every chunk's shell.
       // icon-button uses neither. Re-pinned per the same standing instruction; every chunk stays under budget.
       //
-      // NOW 19, AS OF #2428 MEETING #2661 — a shell-byte move: the paste script's `claimDefaults` writes the plan's vertical
-      // trim (Code input's character) and the #1567 re-apply stands down for a trimmed node, with a read-back, in
-      // every chunk's shell. icon-button does not use it. Re-pinned per the same standing instruction; every chunk stays under budget.
+      // NOW 17, AS OF #2428 MEETING #2661 — two shell-byte moves. #2428 adds about 130 B: the paste script's
+      // `claimDefaults` writes the plan's vertical trim (Code input's character) and the #1567 re-apply stands down for a
+      // trimmed node, with a read-back. That put Code input and Dialog over #1798's unit ceiling, so the strip pass now
+      // drops leading indentation too, about 1 KB off every chunk's shell, and icon-button packs one chunk tighter.
+      // Re-pinned per the same standing instruction; every chunk stays under budget.
       const ibChunks = planSetChunks(ibSet);
-      ok(ibChunks.length === 18, `anatomy/icon-button: the set packs into 18 chunks (${ibChunks.length})`);
+      ok(ibChunks.length === 17, `anatomy/icon-button: the set packs into 17 chunks (${ibChunks.length})`);
       ok(ibChunks.every((c) => c.bytes <= SET_CHUNK_BYTES),
         `anatomy/icon-button: no chunk exceeds the byte budget (${ibChunks.map((c) => c.bytes).join(', ')} vs ${SET_CHUNK_BYTES})`);
       // And the chunks partition the set — no member dropped, none written twice. A packer that lost a

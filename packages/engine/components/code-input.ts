@@ -41,7 +41,7 @@
  * ── THE FIELD ────────────────────────────────────────────────────────────────────────────────────────────────
  * `size` × `status` [default, error] × six states (Text field's without read-only) = 48 members. A column: a nested
  * FieldLabel, the `items` slot of six nested cells following the field's `size`, and a nested FieldMessage following
- * `status`. Each member's DEFAULT cells show its state (`atState`): the filled member a full code, focus-visible-filled
+ * `status`. Each member's DEFAULT cells show its state (`variantWhen`): the filled member a full code, focus-visible-filled
  * three digits and the active fourth cell. That is a fresh insert's starting point only: a placed field's cells are
  * the designer's, per Q329.
  *
@@ -274,12 +274,14 @@ const cell = (n: number) => {
       kind: 'nest-fixed' as const,
       variant: { size: 'medium', state: 'rest' },
       follow: ['size'],
-      atState: {
-        hover: { state: 'hover' },
-        filled: { state: 'filled' },
-        'focus-visible': { state: n === 0 ? 'focus-visible' : 'rest' },
-        'focus-visible-filled': { state: partial },
-        disabled: { state: 'disabled' },
+      variantWhen: {
+        state: {
+          hover: { state: 'hover' },
+          filled: { state: 'filled' },
+          'focus-visible': { state: n === 0 ? 'focus-visible' : 'rest' },
+          'focus-visible-filled': { state: partial },
+          disabled: { state: 'disabled' },
+        },
       },
     },
     overrides: { texts: { digit: CODE[n] } },
@@ -347,8 +349,8 @@ export const codeInput: ComponentDef = {
         kind: 'nest',
         nests: 'field-label',
         // One label size at every cell size: FieldLabel has no xlarge, and the label names the field, it does not
-        // scale with the cells. Dims with the field (`atState`).
-        nesting: { kind: 'nest-exposed', variant: { size: 'medium', emphasis: 'secondary', weight: 'regular', state: 'rest' }, expose: ['emphasis', 'weight'], atState: { disabled: { state: 'disabled' } } },
+        // scale with the cells. Dims with the field (`variantWhen`).
+        nesting: { kind: 'nest-exposed', variant: { size: 'medium', emphasis: 'secondary', weight: 'regular', state: 'rest' }, expose: ['emphasis', 'weight'], variantWhen: { state: { disabled: { state: 'disabled' } } } },
         crossAxisFill: true,
         note: 'The accessible name, composed. Its label text, required marker, emphasis and weight surface on the code input; it dims when the field is disabled.',
       },

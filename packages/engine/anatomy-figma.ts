@@ -3911,6 +3911,11 @@ return {component:comp.name,id:comp.id,parts:${JSON.stringify(planPartNames(plan
  * Blank lines go too: the comments are what the blank lines separated, so leaving them behind emits
  * the blank paragraph breaks of prose that is no longer there.
  *
+ * LEADING INDENTATION goes too (#2428 meeting #2661: about 1 KB of every chunk's shell, which had grown to within
+ * 76 B of #1798's unit ceiling). Safe on the same ground as the comment pass: indentation is significant only inside
+ * a literal that spans lines, a multi-line template literal or a string continued by a trailing backslash, and the
+ * gate asserts the payload has neither.
+ *
  * EXPORTED for the gate, and for a reason worth recording: gating it through its OUTPUT is not enough.
  * A greedier stripper — `!l.includes('//')`, which reads like a *better* comment stripper — deletes
  * `if(!id)continue; // ...`, a real guard, and every one of the 1,684 assertions stayed green. The
@@ -3921,6 +3926,7 @@ export const stripPayloadComments = (js: string): string =>
   js
     .split('\n')
     .filter((l) => l.trim() !== '' && !l.trimStart().startsWith('//'))
+    .map((l) => l.trimStart())
     .join('\n') + '\n';
 
 /**
