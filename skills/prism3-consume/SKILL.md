@@ -185,6 +185,35 @@ sidecar's `avoid_when` closes them:
 
 Get those two right and you match the engine's own compliance contract.
 
+## Native (iOS, Android, Compose) is not in the stock promise
+
+Web is whole: a stock Style Dictionary 4 or later build reads the base and overlay set and writes CSS,
+SCSS and JavaScript that carry every type usably, apart from gradients on CSS and SCSS. Native is not
+covered yet. A stock build for Swift, Android resource XML or Compose reaches every token, but several
+types come out wrong or uncompilable. `packages/tokens/` pins each as a `[GAP]`. The first five are
+stock Style Dictionary's gaps, not defects in the DTCG; the sixth, #2434, is ours:
+
+- **Sizes (#2430).** The stock native transforms multiply every dimension by 16, so `16px` becomes
+  `CGFloat(256.00)` or `256.00.dp`. Our literals mix `px` and `rem`, and no stock transform reads the
+  unit. Write a transform that does.
+- **Font sizes on Android and Compose (#2613).** They come out in `dp`, not `sp`, so text ignores the
+  user's system font scale. Convert them to `sp`.
+- **Durations, font families, stroke styles and cubic beziers (#2431).** They are written as bare text
+  (`= 80ms`, `= Inter`) that does not compile in Swift or Kotlin. Quote or convert them in your own
+  transform.
+- **Composites (#2432).** Typography, shadow, transition and gradient tokens become `[object Object]`.
+  Read them from the JavaScript or JSON output, or write a format that models each one.
+- **Android numbers (#2433).** `<integer>1.5</integer>` is refused by `aapt2`. Write non-integer
+  numbers as `<item type="dimen" format="float">`.
+- **Letter spacing and the fluid container (#2434).** `em` and `%` are not DTCG 2025.10 dimension
+  units, and native writes them as absolute values: `-0.04em` becomes `-0.64`. Resolve letter spacing
+  against the font size yourself, and give `container.fluid` no absolute value.
+
+So on native, supply your own size, quoting and composite handling, and take composites from the
+JavaScript or JSON output until that is done. The no-custom-code rule stands: the gate admits no
+custom transforms, and no reference production config with custom transforms ships for now. Do not
+look for one, and do not describe native output as supported or compiled when you hand off work.
+
 ## If you have the MCP surface
 
 Call `export_theme` to write the brand's tree (`tokens.json`), its metadata sidecar

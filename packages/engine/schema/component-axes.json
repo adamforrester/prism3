@@ -208,6 +208,19 @@
       "↳ swap trailing icon": "INSTANCE_SWAP"
     }
   },
+  "button-group": {
+    "axes": {
+      "layout": [
+        "fill",
+        "inline",
+        "stacked"
+      ]
+    },
+    "members": 3,
+    "properties": {
+      "items": "SLOT"
+    }
+  },
   "button-neutral": {
     "axes": {
       "appearance": [
@@ -300,6 +313,30 @@
     "members": 3,
     "properties": {
       "label": "TEXT"
+    }
+  },
+  "counter": {
+    "axes": {
+      "appearance": [
+        "ghost",
+        "outline"
+      ],
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "state": [
+        "disabled",
+        "focus-visible",
+        "rest"
+      ]
+    },
+    "members": 18,
+    "properties": {
+      "label": "BOOLEAN",
+      "message": "BOOLEAN",
+      "value": "TEXT"
     }
   },
   "dialog": {

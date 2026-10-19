@@ -70,7 +70,7 @@ import { captureBaselines, previewUpdate, previewLine, previewVerdict, type Upda
 import { applyUpdate, applyVerdict, previewHashOf } from './src/update-apply';
 import { BASELINE_KEY } from './src/member-baseline';
 import { NS } from './src/persist-figma';
-import { planFurniture, drawFurniture, furnitureLayout, furnitureItems, withFurnitureItems, sentenceCase, pruneFurniture, clearFurniture, hasFurniture, SCRIM_BACKDROPS, type GridMember, type FurnitureApi, type XNode } from './src/canvas-furniture';
+import { planFurniture, drawFurniture, furnishUpdate, furnitureDue, furnitureLayout, furnitureItems, withFurnitureItems, sentenceCase, pruneFurniture, clearFurniture, hasFurniture, SCRIM_BACKDROPS, type GridMember, type FurnitureApi, type XNode } from './src/canvas-furniture';
 import { ensureFurnitureTemplates } from './src/furniture-templates';
 import { allLeaves } from './src/file-taxonomy';
 import type { TemplatesApi } from './src/furniture-templates';
@@ -319,7 +319,7 @@ section('label text — the text layer a value goes into, whatever the file\'s _
 /* ── the pilot defs, built by the real executor ─────────────────────────────────────────────────────────── */
 const plansOf = (id: string): AnatomyPlan[] => figmaAnatomySet(componentDefs.find((d) => d.id === id)!, { swapTarget: SWAP_TARGET });
 // #2666 — and the glyph a nested instance's swap override names (#2645): a real file holds the whole icon set.
-const planComps = (n: { swapTarget?: string; nestTarget?: string; nestOverrides?: { type: string; value: string }[]; children?: unknown[] }): string[] => [
+const planComps = (n: { swapTarget?: string; nestTarget?: string; nestOverrides?: readonly { type: string; value: string }[]; children?: unknown[] }): string[] => [
   ...(n.swapTarget ? [n.swapTarget] : []), ...(n.nestTarget ? [n.nestTarget] : []),
   ...(n.nestOverrides ?? []).filter((o) => o.type === 'INSTANCE_SWAP').map((o) => o.value), ...((n.children ?? []) as (typeof n)[]).flatMap(planComps),
 ];
@@ -363,7 +363,8 @@ section('group / panel / backdrop — Button, built by the real executor');
   const defs = (set as unknown as { componentPropertyDefinitions: Record<string, { variantOptions?: string[] }> }).componentPropertyDefinitions;
   ok(JSON.stringify(defs.surface?.variantOptions) === JSON.stringify(['default', 'inverse'])
     && JSON.stringify(defs.appearance?.variantOptions) === JSON.stringify(['filled', 'outline', 'text'])
-    && JSON.stringify(defs.size?.variantOptions) === JSON.stringify(['small', 'medium', 'large'])
+    // #2752 (owner decision Q1 B): medium leads, so the inserted Button is medium; Q213 had small first.
+    && JSON.stringify(defs.size?.variantOptions) === JSON.stringify(['medium', 'small', 'large'])
     // #2501 (owner decision Q213): Pressed, with Pending after it, before Focus visible.
     && JSON.stringify(defs.state?.variantOptions) === JSON.stringify(['rest', 'hover', 'pressed', 'pending', 'focus-visible', 'disabled']),
     `panel/values: the properties panel reads surface, appearance, size and state in the def's order (#2386) (${JSON.stringify([defs.surface?.variantOptions, defs.appearance?.variantOptions, defs.size?.variantOptions])})`);
@@ -557,7 +558,8 @@ section('group / panel / backdrop — Button, built by the real executor');
 section('pilot — Tag and Text field: label texts and column positions');
 for (const [id, wantCols, wantRows] of [
   ['tag', ['Rest', 'Hover', 'Pressed', 'Focus visible', 'Disabled'],
-    ['Select', 'Dismissible', 'Unselected', 'Selected', 'Small', 'Medium', 'Large', 'Small', 'Medium', 'Large', 'Small', 'Medium', 'Large']],
+    // #2752 (owner decision Q1 B): each size ladder reads medium, small, large, the field family's order.
+    ['Select', 'Dismissible', 'Unselected', 'Selected', 'Medium', 'Small', 'Large', 'Medium', 'Small', 'Large', 'Medium', 'Small', 'Large']],
   ['text-field', ['Rest', 'Hover', 'Filled', 'Focus visible', 'Focus visible filled', 'Disabled', 'Read only'],
     ['Default', 'Error', 'Warning', 'Success', ...Array.from({ length: 4 }, () => ['Medium', 'Small', 'Large']).flat()]],
   // #2317: the Password field is TextField's grid, from the shared field factory.
@@ -678,8 +680,8 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
   // properties builds a set, except the two that build single components (`emitAsComponents`), which have no grid.
   const withSet = componentDefs.filter((d) => d.figmaProperties && !d.figmaProperties.emitAsComponents).map((d) => d.id);
   const single = componentDefs.filter((d) => d.figmaProperties?.emitAsComponents).map((d) => d.id);
-  ok(withSet.length === 42 && withSet.every(hasFurniture) && JSON.stringify(single) === JSON.stringify(['icon', 'spinner']) && !single.some(hasFurniture),
-    `rollout/switch: all 42 defs that build a set have furniture; Icon and Spinner, single components, do not (off: ${JSON.stringify(withSet.filter((id) => !hasFurniture(id)))})`);
+  ok(withSet.length === 44 && withSet.every(hasFurniture) && JSON.stringify(single) === JSON.stringify(['icon', 'spinner']) && !single.some(hasFurniture),
+    `rollout/switch: all 44 defs that build a set have furniture; Icon and Spinner, single components, do not (off: ${JSON.stringify(withSet.filter((id) => !hasFurniture(id)))})`);
 
   // THE MEMBERS AN EARLIER LAYOUT HOLDS OFF THEIR GROUPED ROW, per def, worked out by hand. Only a def with a `surface`
   // ROW axis regroups. Button and its two siblings: 360, as `MOVES` above. The three icon buttons: 36 rows of 6
@@ -726,6 +728,10 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
 
     const o = await drawFurniture(fakeTemplates(), set, furnitureLayout(plans), id);
     const furn = furnitureOn(page);
+    // THE DRY RUN'S CHECK READS THE DRAW AS DRAWN (#2803): right after a draw, nothing is due, on every def. A check
+    // that matched a part the draw places differently would list it on every run, and "No changes found" would never come.
+    const due = furnitureDue(fakeTemplates(), set, furnitureLayout(plans), id);
+    ok(due.labels + due.backdrops === 0 && due.clear === 0, `rollout/${id} due: nothing due right after the draw (${JSON.stringify(due)})`);
     const surfaces = new Set(members.map((m) => valuesOf(String(m.name)).surface).filter(Boolean));
     // THE SCRIMS (#2609): Dialog alone, one behind each of its 9 center and 3 bottom members; every other def none.
     ok(o.scrims === (id === 'dialog' ? 12 : 0), `rollout/${id} scrims: ${id === 'dialog' ? '12, behind the center and bottom members' : 'none'} (${o.scrims})`);
@@ -745,7 +751,8 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
   // (2.5 × the 16px `LABEL_GAP`, written here) from the set to their left, so they read as their own set's.
   // The pages, by hand; held to the taxonomy so a new shared page is not skipped.
   const SHARED: Record<string, string[]> = {
-    Buttons: ['button', 'button-destructive', 'button-neutral'],
+    // #2661: Button.Group joins the Button family's page.
+    Buttons: ['button', 'button-destructive', 'button-neutral', 'button-group'],
     'Icon button': ['icon-button', 'icon-button-destructive', 'icon-button-neutral'],
     Checkbox: ['checkbox-control', 'checkbox-row', 'checkbox-group'],
     Radio: ['radio-control', 'radio-row', 'radio-group'],
@@ -922,6 +929,72 @@ section('update — the dry run and the as-built record ignore the labels');
   const inMembers = (set.children as FNode[]).flatMap((m) => (m.children as FNode[] ?? [])).filter((c) => (c.getSharedPluginData as ((a: string, b: string) => string) | undefined)?.('prism3', 'furniture')).length;
   ok(pre.counts.members === 45 && pre.counts.current === 45 && pre.counts.unstamped === 0 && pre.handEdits.length === 0 && inside === 0 && inMembers === 0,
     `update/ignores furniture: the dry run reads 45 members, all current, none unstamped, no hand edit, and no label sits in the set or a member (${JSON.stringify(pre.counts)}, ${pre.handEdits.length} hand edits, ${inside} in the set, ${inMembers} in members)`);
+}
+
+/* ── update: furniture the page lacks is a change (#2803, owner decision Q379 A) ──────────────────────────── */
+// LIVE (#2803): an Update ran on a file with no `_inverse-backdrop`, said "Run Set up file, then update again", and once
+// Set up file added the template the next dry run read "No changes found", so the backdrops behind Button's inverse rows
+// were never drawn. Here: Button built and its furniture drawn while the template was absent, then the template added.
+// The dry run lists the backdrop, the apply draws it and touches no member, and the next dry run reads current. The
+// expected lines are literals. Mutation: the furniture check dropped from `previewUpdate` → `due/dry run lists`,
+// `due/apply draws`, `due/stale`.
+section('due — furniture the page lacks is listed by the dry run, drawn by the apply, and then reads current (#2803)');
+{
+  const { plans, page, api, set } = await buildOnPage('button');
+  let withBackdrop = false;
+  const templates = (): readonly unknown[] => fakeTemplates({ backdrop: withBackdrop }).root.findAllWithCriteria({ types: ['COMPONENT_SET', 'COMPONENT'] });
+  const root = {
+    ...(api.root as object),
+    findAllWithCriteria: (c: { types: string[] }) => (c.types.length === 1 && c.types[0] === 'COMPONENT_SET' ? page.children.filter((n) => n.type === 'COMPONENT_SET')
+      : [...(api.root as { findAllWithCriteria: (c: unknown) => unknown[] }).findAllWithCriteria(c), ...(c.types.some((t) => t === 'COMPONENT' || t === 'COMPONENT_SET') ? templates() : [])]),
+  };
+  const host = { ...api, root } as unknown as UpdateHost;
+  const fApi: FurnitureApi = { root: root as FurnitureApi['root'], loadFontAsync: async () => {} };
+  const targets = [{ def: 'button', plans }];
+  // Built while the template was absent: the labels drawn, the backdrop named missing.
+  const [first] = await furnishUpdate(fApi, { outcomes: [{ def: 'button' }] }, targets);
+  ok(first.rows === 35 && first.columns === 6 && first.backdrops === 0 && JSON.stringify(first.missing) === JSON.stringify(['_inverse-backdrop']),
+    `premise: Button's labels are drawn and its backdrop is not, for want of the template (${first.columns} + ${first.rows}, ${first.backdrops}; missing ${JSON.stringify(first.missing)})`);
+  // A template the file still lacks is not a change: the apply could not draw it.
+  const absent = await previewUpdate(host, targets);
+  ok(!absent.sets[0].furniture && previewLine(absent.sets[0]) === 'button: up to date (576 members).',
+    `due/template absent: a backdrop with no template to draw it from is not listed (${previewLine(absent.sets[0])})`);
+  withBackdrop = true;
+  const members = (): string => JSON.stringify((set.children as FNode[]).map((m) => [m.id, m.x, m.y, (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY)]));
+  const membersWas = members();
+  const pre = await previewUpdate(host, targets);
+  const v = previewVerdict(pre);
+  ok(JSON.stringify(pre.sets[0].furniture) === JSON.stringify({ labels: 0, backdrops: 1, clear: 0 }) && previewLine(pre.sets[0]) === 'button: 576 members. 1 backdrop to draw.' && v.headline === 'Would change 1 of 1',
+    `due/dry run lists: with the template added, the dry run lists the one backdrop to draw and nothing else (${JSON.stringify(pre.sets[0].furniture)}; ${previewLine(pre.sets[0])}; ${v.headline})`);
+  const versions = (api as { _versions?: string[] })._versions;
+  const res = await applyUpdate(host as never, api as never, targets, previewHashOf(pre));
+  const drawn = await furnishUpdate(fApi, res, targets);
+  const av = applyVerdict(res);
+  const bds = furnitureOn(page).filter((n) => tagOf(n).kind === 'backdrop');
+  ok(!res.refusedAll && drawn[0]?.backdrops === 1 && bds.length === 1 && members() === membersWas
+    && av.headline === '✓ canvas furniture drawn for 1 set' && av.lines[0] === 'button: 1 backdrop drawn.' && (versions ?? []).at(-1) === 'Before Prism3 updated button',
+    `due/apply draws: the apply saves a version and draws the backdrop, and every member keeps its id, place and stamp (${res.refusedAll ?? 'applied'}; ${bds.length} backdrop(s); ${av.headline} / ${av.lines[0]}; ${JSON.stringify((versions ?? []).at(-1))})`);
+  const next = await previewUpdate(host, targets);
+  ok(!next.sets[0].furniture && previewVerdict(next).headline === '✓ All sets up to date',
+    `due/current: the next dry run reads the furniture current, and the set up to date (${previewLine(next.sets[0])}; ${previewVerdict(next).headline})`);
+  // STALE: the designer moves the set; its furniture stays behind, so every part is listed again, and one apply converges.
+  set.x = Number(set.x) + 500;
+  const moved = await previewUpdate(host, targets);
+  ok(JSON.stringify(moved.sets[0].furniture) === JSON.stringify({ labels: 41, backdrops: 1, clear: 42 }) && previewLine(moved.sets[0]) === 'button: 576 members. 41 canvas labels to draw, 1 backdrop to draw.',
+    `due/stale: furniture left where the set was is listed to draw again (${JSON.stringify(moved.sets[0].furniture)}; ${previewLine(moved.sets[0])})`);
+  const res2 = await applyUpdate(host as never, api as never, targets, previewHashOf(moved));
+  await furnishUpdate(fApi, res2, targets);
+  const again = await previewUpdate(host, targets);
+  ok(!again.sets[0].furniture && furnitureOn(page).length === 42 && applyVerdict(res2).lines[0] === 'button: 41 canvas labels drawn, 1 backdrop drawn.',
+    `due/stale converges: the apply redraws it beside the set, and the next dry run reads current (${furnitureOn(page).length} instances; ${applyVerdict(res2).lines[0]}; ${previewLine(again.sets[0])})`);
+  // A REFUSED CONFIRM DRAWS NOTHING: the version was not saved, so nothing may be written.
+  for (const f of furnitureOn(page).filter((n) => tagOf(n).kind === 'backdrop')) (f.remove as () => void)();
+  const pre3 = await previewUpdate(host, targets);
+  set.x = Number(set.x) + 1;
+  const res3 = await applyUpdate(host as never, api as never, targets, previewHashOf(pre3));
+  const none = await furnishUpdate(fApi, res3, targets);
+  ok(!!res3.refusedAll && none.length === 0 && furnitureOn(page).filter((n) => tagOf(n).kind === 'backdrop').length === 0,
+    `due/refused: a confirm refused because the set moved since the check draws nothing (${res3.refusedAll ?? 'applied'}; ${none.length} drawn)`);
 }
 
 /* ── prune: stale furniture goes, live furniture stays ──────────────────────────────────────────────────── */

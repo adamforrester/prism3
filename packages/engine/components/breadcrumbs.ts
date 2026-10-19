@@ -10,7 +10,7 @@
  *     goes behind one overflow item, which expands the hidden steps in place. Code only; in Figma a designer sets a
  *     middle item's kind to overflow and removes the items it stands for.
  *   - Call 10 A — only the current page's label truncates (code only).
- *   - Call 11 A — below 480px the trail becomes one link up to the parent: the `layout=parent` member, a
+ *   - Call 11 A — below 480px the trail becomes one link up to the parent: the `path=parent` member, a
  *     `chevron-left` glyph beside a Link reading "Parent page". In code a container query switches it.
  *   - Calls 12 A, 13 A — the root crumb is the word "Home"; the default surface only.
  *   - Call 15 A — `Breadcrumbs` / `breadcrumbs`, category navigation, aliases `breadcrumb`, `breadcrumb-trail`,
@@ -28,7 +28,7 @@
  * THE SEPARATOR (owner decision Q382 A, 2026-10-16, after QA): one `separator` setting, chevron or slash, chevron by
  * default, applied to every step. It is a variant axis here, passed to each default ancestor (`follow`), which shows
  * the matching look of `_breadcrumb-separator`. The current page has no separator, so it does not follow. The parent
- * layout has no separator either, so it has no slash member. The overflow item and the parent layout stay as built.
+ * path has no separator either, so it has no slash member. The overflow item and the parent path stay as built.
  */
 import { ComponentDef } from '../component-schema';
 
@@ -66,13 +66,13 @@ export const breadcrumbs: ComponentDef = {
   // `[]` — the trail is not interactive itself; its links and the overflow button carry their own states.
   states: [],
   variants: {
-    layout: ['trail', 'parent'],
-    // Q382 A: the mark between steps, one setting for the whole trail. The parent layout has none (excludeCoordinates).
+    path: ['full', 'parent'],
+    // Q382 A: the mark between steps, one setting for the whole trail. The parent path has none (excludeCoordinates).
     separator: ['chevron', 'slash'],
     size: ['medium', 'small'],
   },
-  // A product picks the layout per breakpoint in code and the separator once; nothing switches either on screen.
-  axisKinds: { layout: 'authoring', separator: 'authoring', size: 'authoring' },
+  // A product picks the path per breakpoint in code and the separator once; nothing switches either on screen.
+  axisKinds: { path: 'authoring', separator: 'authoring', size: 'authoring' },
 
   paintKeys: ['{slot}'],
   densitySpacing: ['size.{size}.gap', 'back-gap'],
@@ -81,7 +81,7 @@ export const breadcrumbs: ComponentDef = {
     // The space between items, matching the space inside each item before its separator (DRAFT on #2666).
     'size.medium.gap': 'space.100',
     'size.small.gap': 'space.050',
-    // The parent layout: the back chevron beside the link, at Link's own icon gap and icon size.
+    // The parent path: the back chevron beside the link, at Link's own icon gap and icon size.
     'back-gap': 'space.050',
     'back-icon': 'icon.size.xs',
     // The back chevron in the link's icon role (#1471), lowest 4.26:1 on background.primary (measured for the proposal).
@@ -105,7 +105,7 @@ export const breadcrumbs: ComponentDef = {
         kind: 'box',
         role: 'presentation',
         contentSlot: true,
-        presentWhen: { layout: ['trail'] },
+        presentWhen: { path: ['full'] },
         // At least two items (an ancestor and the current page), and only a BreadcrumbItem (the proposal's Figma
         // properties table, approved).
         slotSettings: { minChildren: 2, allowPreferredValuesOnly: true },
@@ -122,16 +122,16 @@ export const breadcrumbs: ComponentDef = {
         kind: 'vector',
         glyph: 'chevron-left',
         size: 'back-icon',
-        presentWhen: { layout: ['parent'] },
-        note: 'The parent layout: a 16px chevron pointing up the trail, in the link icon color, before the link.',
+        presentWhen: { path: ['parent'] },
+        note: 'The parent path: a 16px chevron pointing up the trail, in the link icon color, before the link.',
       },
       parentLink: {
         kind: 'nest',
         nests: 'link',
-        presentWhen: { layout: ['parent'] },
+        presentWhen: { path: ['parent'] },
         nesting: { kind: 'nest-exposed', variant: { style: 'inline', weight: 'default', size: 'medium', surface: 'default', state: 'rest' }, expose: ['state'], follow: ['size'] },
         overrides: { texts: { label: 'Parent page' } },
-        note: 'The parent layout: a Link to the parent page, inline and default weight, reading "Parent page". Its state is set on Breadcrumbs.',
+        note: 'The parent path: a Link to the parent page, inline and default weight, reading "Parent page". Its state is set on Breadcrumbs.',
       },
     },
     codeOnly: [
@@ -141,7 +141,7 @@ export const breadcrumbs: ComponentDef = {
       'Collapsing a long trail — above maxItems (5), keep itemsBeforeCollapse (1) and itemsAfterCollapse (2) and put the middle behind one overflow button. The root and the current page always stay visible. A width-measuring collapse (ResizeObserver) can follow as an enhancement.',
       'Expanding in place — pressed, the overflow button is replaced by the hidden steps as ordinary links, and focus moves to the first revealed link. No popover, no menu keyboard model and no aria-haspopup. When Menu is built, the same button can open a Menu instead (aria-haspopup="menu", aria-expanded, Escape returning focus to it): a new collapse value, with no Figma change.',
       'Long labels — ancestor labels never truncate. If the trail still does not fit once collapsed, only the current page\'s label stops at a max width (DRAFT 240px) with an ellipsis; the page\'s h1 carries the full name below it.',
-      'The small-screen switch — below breakpoint.sm (480px), a container query swaps the trail for one link up to the parent, still inside the <nav>, going up a level and never back in history. responsive={false} turns it off. In Figma, the parent layout is a member the designer places for a small frame.',
+      'The small-screen switch — below breakpoint.sm (480px), a container query swaps the trail for one link up to the parent, still inside the <nav>, going up a level and never back in history. responsive={false} turns it off. In Figma, the parent path is a member the designer places for a small frame.',
       'The back link in code — the chevron sits inside the anchor, aria-hidden, and takes the link\'s color at every state. Figma draws it beside the nested Link in the link\'s rest color.',
       'Router integration — renderLink renders each ancestor through the router\'s own link (Link\'s asChild), so one <a href> renders per step.',
       'Structured data — the component emits no JSON-LD BreadcrumbList; the page\'s search layer owns it. A script inside a component duplicates under server rendering and can be indexed from a hidden mobile subtree.',
@@ -152,9 +152,9 @@ export const breadcrumbs: ComponentDef = {
   },
 
   figmaProperties: {
-    variantAxes: ['layout', 'separator', 'size'],
-    // The parent layout is one link up, with no separator, so it has no slash member.
-    excludeCoordinates: [{ layout: ['parent'], separator: ['slash'] }],
+    variantAxes: ['path', 'separator', 'size'],
+    // The parent path is one link up, with no separator, so it has no slash member.
+    excludeCoordinates: [{ path: ['parent'], separator: ['slash'] }],
     booleans: {},
   },
 
@@ -228,7 +228,7 @@ export const breadcrumbs: ComponentDef = {
     ],
     evolution: [
       '2026-10-16 (#2666): built from the approved wireframe, every numbered call A, on the items-slot pattern of #2649 (PR #2660, open at the time). Sizes medium-first by the later owner rule Q359 B, which supersedes the proposal\'s small-first order.',
-      '2026-10-16 (Q382 A, after QA): one `separator` setting, chevron or slash, chevron by default, for every step, through `_breadcrumb-separator`. The overflow item and the parent layout are unchanged.',
+      '2026-10-16 (Q382 A, after QA): one `separator` setting, chevron or slash, chevron by default, for every step, through `_breadcrumb-separator`. The overflow item and the parent path are unchanged.',
     ],
   },
 };

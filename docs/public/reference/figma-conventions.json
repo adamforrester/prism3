@@ -38,7 +38,8 @@
             "components": [
               "button",
               "button-destructive",
-              "button-neutral"
+              "button-neutral",
+              "button-group"
             ]
           },
           {
@@ -161,9 +162,9 @@
             ]
           },
           {
-            "name": "↳ Breadcrumbs",
+            "name": "↳ Counter",
             "components": [
-              "breadcrumbs"
+              "counter"
             ]
           }
         ]
@@ -209,13 +210,6 @@
             "components": [
               "spinner"
             ]
-          },
-          {
-            "name": "↳ Breadcrumb Item",
-            "components": [
-              "_breadcrumb-separator",
-              "breadcrumb-item"
-            ]
           }
         ]
       },
@@ -255,7 +249,7 @@
         "kind": "component set",
         "page": "↳ Icons & assets",
         "section": "Foundations",
-        "members": 46,
+        "members": 45,
         "variantProperties": [
           {
             "name": "name",
@@ -303,7 +297,6 @@
               "plus-filled",
               "resize-grip",
               "search",
-              "slash",
               "warning-triangle",
               "warning-triangle-filled"
             ]
@@ -376,8 +369,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -395,15 +388,15 @@
           {
             "name": "leading icon",
             "values": [
-              "true",
-              "false"
+              "false",
+              "true"
             ]
           },
           {
             "name": "trailing icon",
             "values": [
-              "true",
-              "false"
+              "false",
+              "true"
             ]
           }
         ],
@@ -457,8 +450,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -476,15 +469,15 @@
           {
             "name": "leading icon",
             "values": [
-              "true",
-              "false"
+              "false",
+              "true"
             ]
           },
           {
             "name": "trailing icon",
             "values": [
-              "true",
-              "false"
+              "false",
+              "true"
             ]
           }
         ],
@@ -538,8 +531,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -557,15 +550,15 @@
           {
             "name": "leading icon",
             "values": [
-              "true",
-              "false"
+              "false",
+              "true"
             ]
           },
           {
             "name": "trailing icon",
             "values": [
-              "true",
-              "false"
+              "false",
+              "true"
             ]
           }
         ],
@@ -619,8 +612,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -678,8 +671,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -737,8 +730,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -781,8 +774,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -819,8 +812,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -857,8 +850,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -1126,8 +1119,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -1158,8 +1151,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
@@ -1195,8 +1188,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
@@ -1228,8 +1221,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -1259,8 +1252,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
@@ -1295,8 +1288,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
@@ -1328,8 +1321,8 @@
           {
             "name": "size",
             "values": [
-              "small",
-              "medium"
+              "medium",
+              "small"
             ]
           },
           {
@@ -1364,8 +1357,8 @@
           {
             "name": "size",
             "values": [
-              "small",
-              "medium"
+              "medium",
+              "small"
             ]
           }
         ],
@@ -1617,8 +1610,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -1673,8 +1666,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -1724,8 +1717,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
@@ -1793,8 +1786,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
@@ -1828,8 +1821,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -1869,8 +1862,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
@@ -1912,8 +1905,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
@@ -1940,8 +1933,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -1980,8 +1973,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
@@ -2032,8 +2025,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -2058,6 +2051,27 @@
           }
         ],
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/link.md"
+      },
+      {
+        "id": "button-group",
+        "name": "Button.Group",
+        "figmaName": "button-group",
+        "kind": "component set",
+        "page": "↳ Buttons",
+        "section": "Components",
+        "members": 3,
+        "variantProperties": [
+          {
+            "name": "layout",
+            "values": [
+              "inline",
+              "stacked",
+              "fill"
+            ]
+          }
+        ],
+        "properties": [],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/button-group.md"
       },
       {
         "id": "dialog",
@@ -2186,99 +2200,53 @@
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/password-field.md"
       },
       {
-        "id": "_breadcrumb-separator",
-        "name": "BreadcrumbSeparator",
-        "figmaName": "_breadcrumb-separator",
+        "id": "counter",
+        "name": "Counter",
+        "figmaName": "counter",
         "kind": "component set",
-        "private": true,
-        "page": "↳ Breadcrumb Item",
-        "section": "Subcomponents",
-        "members": 2,
+        "page": "↳ Counter",
+        "section": "Components",
+        "members": 18,
         "variantProperties": [
           {
-            "name": "type",
+            "name": "appearance",
             "values": [
-              "chevron",
-              "slash"
-            ]
-          }
-        ],
-        "properties": [],
-        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/_breadcrumb-separator.md"
-      },
-      {
-        "id": "breadcrumb-item",
-        "name": "BreadcrumbItem",
-        "figmaName": "breadcrumb-item",
-        "kind": "component set",
-        "page": "↳ Breadcrumb Item",
-        "section": "Subcomponents",
-        "members": 10,
-        "variantProperties": [
-          {
-            "name": "kind",
-            "values": [
-              "ancestor",
-              "current",
-              "overflow"
-            ]
-          },
-          {
-            "name": "separator",
-            "values": [
-              "chevron",
-              "slash"
+              "outline",
+              "ghost"
             ]
           },
           {
             "name": "size",
             "values": [
               "medium",
-              "small"
+              "small",
+              "large"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "focus-visible",
+              "disabled"
             ]
           }
         ],
         "properties": [
           {
-            "name": "label",
+            "name": "value",
             "type": "TEXT"
-          }
-        ],
-        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/breadcrumb-item.md"
-      },
-      {
-        "id": "breadcrumbs",
-        "name": "Breadcrumbs",
-        "figmaName": "breadcrumbs",
-        "kind": "component set",
-        "page": "↳ Breadcrumbs",
-        "section": "Components",
-        "members": 6,
-        "variantProperties": [
-          {
-            "name": "layout",
-            "values": [
-              "trail",
-              "parent"
-            ]
           },
           {
-            "name": "separator",
-            "values": [
-              "chevron",
-              "slash"
-            ]
+            "name": "label",
+            "type": "BOOLEAN"
           },
           {
-            "name": "size",
-            "values": [
-              "medium",
-              "small"
-            ]
+            "name": "message",
+            "type": "BOOLEAN"
           }
         ],
-        "properties": [],
-        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/breadcrumbs.md"
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/counter.md"
       }
     ]
   },
@@ -2332,7 +2300,6 @@
       "plus-filled",
       "resize-grip",
       "search",
-      "slash",
       "warning-triangle",
       "warning-triangle-filled"
     ]
@@ -2403,19 +2370,20 @@
         ]
       },
       {
-        "component": "dialog",
-        "property": "body"
-      },
-      {
-        "component": "breadcrumbs",
+        "component": "button-group",
         "property": "items",
         "settings": {
-          "minChildren": 2,
+          "minChildren": 1,
+          "maxChildren": 3,
           "allowPreferredValuesOnly": true
         },
         "preferred": [
-          "breadcrumb-item"
+          "button"
         ]
+      },
+      {
+        "component": "dialog",
+        "property": "body"
       }
     ]
   },
@@ -2571,11 +2539,10 @@
       "segmented-control-segment",
       "segmented-control",
       "link",
+      "button-group",
       "dialog",
       "password-field",
-      "_breadcrumb-separator",
-      "breadcrumb-item",
-      "breadcrumbs"
+      "counter"
     ],
     "templates": [
       {

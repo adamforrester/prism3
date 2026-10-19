@@ -2,7 +2,7 @@
 
 Built from the proposal on #2666, which the owner approved on 2026-10-16 with every numbered call at its
 recommendation (A), then given a choice of separator by owner decision Q382 A (below). Three defs: `breadcrumbs`
-(`layout` trail | parent × `separator` chevron | slash × `size` medium | small, 6 members), `breadcrumb-item` (`kind`
+(`path` full | parent × `separator` chevron | slash × `size` medium | small, 6 members), `breadcrumb-item` (`kind`
 ancestor | current | overflow × `separator` × `size`, 10 members) and `_breadcrumb-separator` (`type` chevron | slash,
 2 members). No state axis on either: the nested Link
 and FlushIconButton.Neutral carry their own, exposed (`nest-exposed`, `expose: ['state']`), the Dialog precedent.
@@ -16,7 +16,7 @@ and FlushIconButton.Neutral carry their own, exposed (`nest-exposed`, `expose: [
 - **Size order is medium first.** The proposal listed small first; Q347 A and Q359 B (#2752, decided the same day)
   make every size axis lead with the code default, medium. Both defs join the medium-first lists in `test.ts`'s #2501
   arm, `lint-rung-names.ts` DEFAULT_FIRST and `lint-axis-values.ts`, which the Q359 sweep will absorb.
-- **Two new axis names, `kind` and `layout`,** the approved proposal's own, argued in `VARIANT_AXES`' header the way
+- **Two new axis names, `kind` and `path` (named `layout` in the proposal, renamed by Q424 A because the Button group holds that name),** the approved proposal's own, argued in `VARIANT_AXES`' header the way
   Dialog's `placement` and `footer` were.
 - **No `_` prefix on the item, held for the owner.** Q349 gives a part used only inside its parent the `_` prefix,
   and the lane's brief expected the item to take it. But the projection refuses a `_` id as a slot's preferred item
@@ -32,12 +32,12 @@ and FlushIconButton.Neutral carry their own, exposed (`nest-exposed`, `expose: [
 
 The owner's QA on the first build asked for a choice of separator, as Prism 2 had, and decided Q382 A: a separate part,
 `_breadcrumb-separator`, in two looks, `type: chevron | slash`, and one `separator` setting on Breadcrumbs for every
-step, chevron by default, both in `color.icon.secondary`. The overflow item and the `parent` layout stay as built.
+step, chevron by default, both in `color.icon.secondary`. The overflow item and the ``parent` path stay as built.
 
 - **How the setting reaches each step.** `follow` passes an axis by its own name, and Q382 names the part's axis
   `type` and the trail's setting `separator`. So Breadcrumbs and BreadcrumbItem both carry a `separator` axis, the
   trail's default ancestors follow it, and the item nests the separator twice, the chevron look at `separator=chevron`
-  and the slash at `separator=slash` (`presentWhen`). No engine change. The current page and the parent layout have no
+  and the slash at `separator=slash` (`presentWhen`). No engine change. The current page and the parent path have no
   separator, so neither has a slash member: the item is 10 members, the trail 6, the separator 2. `separator` is the
   thirtieth axis name, argued in `VARIANT_AXES`' header.
 - **The slash glyph is the set's first that is not Remix's.** Remix 4.9.1 has no plain slash (`code-s-slash`,
@@ -63,7 +63,7 @@ step, chevron by default, both in `color.icon.secondary`. The overflow item and 
   slot's preferred def a keyed set.
 - **A slot item's label cannot be set two levels down.** The slot's default ancestors read Link's "Link text", not the
   approved "Home" and "Category": a host's #2645 override reaches its own nested instance, not that instance's nested
-  Link. The proposal named this gap; #2781 tracks it. The parent layout's Link is one level down and reads "Parent page".
+  Link. The proposal named this gap; #2781 tracks it. The parent path's Link is one level down and reads "Parent page".
 - **The collapsed-trail example is not on the canvas.** The proposal's §12 places one beside the set; the canvas
   furniture cannot place a configured instance yet (#2784).
 - **The wireframe's CSS and the proposal's token table disagree on the separator gap.** The wireframe draws 4px either

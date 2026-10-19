@@ -77,7 +77,7 @@ export const link: ComponentDef = {
   variants: {
     style: ['standalone', 'inline'],
     weight: ['emphasis', 'default'],
-    size: ['small', 'medium', 'large'],
+    size: ['medium', 'small', 'large'],
     surface: ['default', 'inverse'],
   },
   axisKinds: { style: 'authoring', weight: 'authoring', size: 'authoring', surface: 'authoring' },

@@ -198,7 +198,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     // #1223 — `intent` is gone as an axis; it is the component identity now. `appearance` carries
     // emphasis, `surface` the ground, `size` the rung, `width` a drag (not projected).
     appearance: ['filled', 'outline', 'text'],
-    size: ['small', 'medium', 'large'],
+    size: ['medium', 'small', 'large'],
     width: ['auto', 'full'],
     // THE INVERSE GROUND (#1134), and the bindings for it are NOT in `tokens` below — that is the whole
     // mechanism, not an omission. An inverse control binds every role's inverse counterpart, which
@@ -708,7 +708,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     avoidWhen: `The target is a different location/URL → use Link (or give the button an href, which renders an <a>, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton (the accessible name is required there at the type level). ${sibling.avoidWhen}`,
     // #1697 — `spinner` (the pending state swaps it in, #1670) and `focus-ring` (every focus-visible member
     // nests it) are the two components this one always builds with, beside the icon in its slots.
-    commonPartners: ['icon', 'spinner', 'focus-ring'],
+    commonPartners: ['icon', 'spinner', 'focus-ring', 'button-group'],
     triggerKeywords: sibling.triggerKeywords,
     generationPriority: sibling.generationPriority,
   },
@@ -720,7 +720,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     // #1697 — each sibling points at the icon-button of its OWN family, so the destructive button's
     // icon-only alternative is the destructive icon-button rather than the primary one.
     alternativeTo: [family === 'primary' ? 'icon-button' : `icon-button-${family}`, 'switch-row'],
-    planned: ['tooltip', 'button-group', 'menu', 'popover', 'toggle-button', 'split-button'],
+    planned: ['tooltip', 'menu', 'popover', 'toggle-button', 'split-button'],
     replacesPatterns: ['input[type=button|submit]', 'div[role=button]'],
   },
 

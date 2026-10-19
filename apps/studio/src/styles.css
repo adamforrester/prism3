@@ -360,7 +360,8 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .btnl-icon.btnl-pinned{position:absolute;top:50%;transform:translateY(-50%)}
 /* UI redesign S8.2 — the Components preview's Component sets list, on the section's ground in the ground's own inks
    (`--ink`, `--muted`, `--line`). A set that can't be built is grayed by its text tier, never by opacity, so its
-   reason stays legible. The Build button is the preview's build bar, in the chrome (`chrome.css`, `.p3-buildbar`). */
+   reason stays legible. Since #2700 these lines sit in the preview pane's focused-family block; the list and the action bar
+   are the levers pane's, in the chrome (`chrome.css`, `.p3-cp-*`). */
 .cset{display:flex;flex-direction:column;gap:12px;margin-top:6px}
 .cset-list{display:flex;flex-direction:column;gap:0;margin:0;padding:0;list-style:none;border-top:1px solid var(--line)}
 .cset-item{padding:12px 0;border-bottom:1px solid var(--line)}

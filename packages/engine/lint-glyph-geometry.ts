@@ -235,8 +235,8 @@ const FIXED_GLYPH: Record<string, { glyph: string; at: Record<string, readonly s
   // between two fixed shapes is what Q382 decided.
   '_breadcrumb-separator.chevron': { glyph: 'chevron-right', at: { type: ['chevron'] }, why: 'the chevron look, pointing toward the current page; one fixed shape, mirrored in right-to-left in code, never a glyph a designer picks' },
   '_breadcrumb-separator.slash': { glyph: 'slash', at: { type: ['slash'] }, why: 'the slash look, a forward slash between steps; one fixed shape, not mirrored in right-to-left' },
-  // #2666 (owner call 11 A) — the small-screen layout's chevron, pointing up the trail to the parent page.
-  'breadcrumbs.backGlyph': { glyph: 'chevron-left', at: { layout: ['parent'] }, why: 'the up-a-level mark before the parent link, pointing back up the trail; one fixed shape, mirrored in right-to-left in code' },
+  // #2666 (owner call 11 A) — the small-screen path's chevron, pointing up the trail to the parent page.
+  'breadcrumbs.backGlyph': { glyph: 'chevron-left', at: { path: ['parent'] }, why: 'the up-a-level mark before the parent link, pointing back up the trail; one fixed shape, mirrored in right-to-left in code' },
   // #2417 (owner Q183) — the Accordion indicator's four glyphs, one per (indicator, expansion) pair. `glyph:
   // '{expansion}'` cannot express them: the vocabulary has no `collapsed` or `expanded` glyph, and the pair changes
   // with `indicator` as well.

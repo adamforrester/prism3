@@ -188,6 +188,19 @@ type FieldCheck = {
   show?: (planned: unknown) => string;
 };
 
+/** A slot's preferred values read back as names (#2646): exactly `required`, then an in-order subset of `optional` (#2661). */
+const preferredNames = (required: readonly string[], optional: readonly string[], n: HostNode, ports: ReadPorts): string | null => {
+  const d = slotPropertyOf(n, ports);
+  if (typeof d === 'string') return d;
+  const keys = ((d.preferredValues ?? []) as { key?: unknown }[]).map((v) => String(v.key));
+  if (!ports.componentName) return `UNREADABLE (no port names a component key; host holds ${keys.length} key(s))`;
+  const names = keys.map((k) => ports.componentName!(k) ?? `(nothing under ${k})`);
+  const head = names.slice(0, required.length), rest = names.slice(required.length);
+  let at = 0;
+  const inOrder = rest.every((x) => { const i = optional.indexOf(x, at); if (i < 0) return false; at = i + 1; return true; });
+  return JSON.stringify(head) === JSON.stringify(required) && inOrder ? null : JSON.stringify(names);
+};
+
 /** The SLOT property a slot node references (#2646), read off the set it sits in; a string says why there is none. */
 const slotPropertyOf = (n: HostNode, ports: ReadPorts): Record<string, unknown> | string => {
   const key = (n.componentPropertyReferences as Record<string, unknown> | null | undefined)?.slotContentId;
@@ -572,14 +585,14 @@ export const FIELDS: Record<string, FieldCheck> = {
   },
   slotPreferred: {
     show: (p) => JSON.stringify(p),
-    check: (p, n, ports) => {
-      const d = slotPropertyOf(n, ports);
-      if (typeof d === 'string') return d;
-      const keys = ((d.preferredValues ?? []) as { key?: unknown }[]).map((v) => String(v.key));
-      if (!ports.componentName) return `UNREADABLE (no port names a component key; host holds ${keys.length} key(s))`;
-      const names = keys.map((k) => ports.componentName!(k) ?? `(nothing under ${k})`);
-      return JSON.stringify(names) === JSON.stringify(p) ? null : JSON.stringify(names);
-    },
+    check: (p, n, ports, _root, plan) => preferredNames(p as readonly string[], plan?.slotPreferredWhenBuilt ?? [], n, ports),
+  },
+  // #2661 — the components a slot offers WHEN THE FILE HAS THEM: after `slotPreferred`, any of them, in their order. Which
+  // ones the file had is the file's fact, not the plan's, so any in-order subset reads as agreeing; one the plan does
+  // not name, or one out of order, does not. Read with `slotPreferred` when the plan has both, so it is read once.
+  slotPreferredWhenBuilt: {
+    show: (p) => `any of ${JSON.stringify(p)}, in order, when the file has them`,
+    check: (p, n, ports, _root, plan) => (plan?.slotPreferred ? null : preferredNames([], p as readonly string[], n, ports)),
   },
 
   // ── node-visibility boolean (#1331) ────────────────────────────────────────────────────────────
@@ -627,16 +640,21 @@ export const FIELDS: Record<string, FieldCheck> = {
   nestTarget: {
     // True for both owners the check accepts: the plain component of that name, or a member of the set.
     show: (p) => `an instance of ${String(p)} (the component of that name, or a member of the set of that name)`,
-    check: (p, n) => {
+    check: (p, n, _ports, _root, plan) => {
       if (String(n.type ?? '') !== 'INSTANCE') return `${str(n.type)} — not an instance`;
       const main = n.mainComponent as { name?: unknown; parent?: { name?: unknown; type?: unknown } | null } | null | undefined;
       if (!main || typeof main.name !== 'string') return 'an instance whose main component the host cannot name';
       const inSet = main.parent?.type === 'COMPONENT_SET';
       const owner = inSet ? String(main.parent?.name ?? '') : main.name;
       if (owner === p) return null;
+      // #2661 — a FALLBACK-ONLY PREFERENCE (`nestPrefer`): the instance is made from that sibling set when the file has
+      // it, so an instance of either set agrees. Which one the file had is the file's fact, not the plan's.
+      if (plan?.nestPrefer && owner === plan.nestPrefer) return null;
       return inSet ? `an instance of ${owner}/${main.name} — the WRONG SET` : `an instance of ${main.name} — the WRONG COMPONENT`;
     },
   },
+  nestPrefer: { reason: 'read with `nestTarget`, which accepts an instance of this set or of `nestTarget`: which one the file had is the file\'s fact, not the plan\'s (#2661)' },
+  nestItemPrefer: { reason: 'which of the two sets a default item of the nested instance came from is the file\'s fact, not the plan\'s, and the item is a sublayer of another component\'s instance that this reader does not descend into; the executors\' tests read the swapped item off the built page (#2661, Q418)' },
   nestVariant: { reason: 'which VARIANT the nested instance resolved to is an id on the host; the executor resolves it by name at write time and reports a miss, and this reader has no independent name for it' },
   // #1330 — HOST-TRUTH for exposure. The plan's `nestExpose` names the child axes the consumer drives;
   // Figma exposes them by marking the nested instance `isExposedInstance`. This reads that marking back off
