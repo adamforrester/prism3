@@ -8,7 +8,7 @@ base's `components/progress.md`, read for this build.
 **10 members.** `shape` [linear, circular] × `type` [determinate, indeterminate] × `status` [active, complete, error] ×
 `size` [medium, small]. Three `excludeCoordinates` rows make the sparse grid: a linear bar has one thickness (no small),
 a ring always has a value (no indeterminate ring; that is the Spinner), and an indeterminate bar has no end state.
-Each axis lists its code default first (owner Q347), so the first member is the default bar.
+Each axis lists its code default first (owner Q347), so the first member is the default bar: the code `type` default is determinate.
 
 ### How the still members show an amount
 
@@ -81,12 +81,19 @@ The furniture rollout test builds with the shim's `scaleConstrained` on (Progres
 glyphs; the host scales them on resize) and declares FieldMessage's `message` text property for the stub, which the
 #2645 override needs.
 
-### Held for the owner: the default `type` against Q347
+### The default `type` and the linear footprint (owner QA, #2791)
 
-Q347's gate (merged during this build) wants the set's first member to carry the code default on every axis. In code a
-bar's type follows from `value`, and no value means indeterminate; the approved set leads with the determinate bar.
-The approved order is kept and recorded as a named exception in the #2752 arm, with the alternative (lead with the
-indeterminate bar) put to the owner on the PR.
+The approved set leads with the determinate bar, so Figma inserts `type=determinate`; code used to treat a bar with no
+`value` as indeterminate, so the two defaults disagreed and the first build recorded a named exception in the #2752
+arm. The exception is gone. Code now has a `type` prop, `determinate` by default, and `value` is a plain number
+(omitted, the bar rests at `min`); an indeterminate bar is chosen with `type`, not by leaving the value out. The
+`shape=circular` + indeterminate refusal moves onto `type`. This is the recommendation put to the owner as a question
+on the PR.
+
+The two linear types measured different heights at the same size because the header held the label alone when
+indeterminate, and the label and value together (baseline-aligned, the value on a taller line) when determinate. The
+header now centers its row and carries a token-bound floor, `icon.size.md`, which the value line fits under, so both
+types measure the same. Two named arms in `test.ts` hold both.
 
 ### Trap
 

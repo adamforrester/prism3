@@ -31758,6 +31758,26 @@ arm: {
   ok(JSON.stringify(names) === JSON.stringify(MEMBERS),
     `#2670 call 1/2/9 progress: the set is the ten approved members, default first — linear determinate × 3 statuses, linear indeterminate active, circular determinate × 3 statuses × 2 sizes (got ${names.length}: ${names.filter((n) => !MEMBERS.includes(n)).join(' | ') || names.join(' | ')})`);
 
+  // #2791 owner item 7 (the default `type`): Figma inserts the set's top-left member, so its `type` is what a designer
+  // gets, and code must default to the same one. Determinate, typed here (the owner's QA fix leads with it), never read
+  // from the prop it checks.
+  const typeProp = progress.props.find((pr) => pr.name === 'type');
+  const insertedType = names[0].match(/type=(\w+)/)?.[1];
+  ok(typeProp?.default === 'determinate' && insertedType === 'determinate' && progress.props.find((pr) => pr.name === 'value')?.type === 'number',
+    `#2791 progress type default: Figma inserts type=${insertedType} and the code default is '${typeProp?.default}'; both are 'determinate', and \`value\` is a plain number that no longer decides the type`);
+
+  // #2791: the two linear types measure the same height. The indeterminate bar shows no value, so its header holds the
+  // label alone; the header's token-bound floor and its centered row keep it as tall as the determinate header, whose
+  // value text is the taller line. Typed per member: the floor, the alignment and the track must agree across types.
+  {
+    const header = (m: string) => part(m, 'header') as (PNode & { counterAxisAlignItems?: string; bound?: Record<string, string> }) | undefined;
+    const sig = (m: string) => { const h = header(m); return `${h?.counterAxisAlignItems}|${h?.bound?.minHeight}|${part(m, 'track')?.height}`; };
+    const linear = MEMBERS.filter((m) => m.startsWith('shape=linear'));
+    const sigs = new Set(linear.filter((m) => /status=active/.test(m)).map(sig));
+    ok(sigs.size === 1 && sig(MEMBERS[0]).startsWith('CENTER|icon/size/md|'),
+      `#2791 progress footprint: the linear determinate and indeterminate headers share one floor (icon/size/md) and one alignment (CENTER), so the two types measure the same height at size=medium (got ${[...sigs].join(' / ')})`);
+  }
+
   // Call 3: the ring's value text sits beside the ring, on by default.
   const ringRow = part(MEMBERS[4], 'ringRow');
   ok(JSON.stringify((ringRow?.children ?? []).map((c) => c.name)) === JSON.stringify(['ring', 'ringValue']) && progress.figmaProperties?.booleans?.showValue !== undefined
@@ -31990,8 +32010,6 @@ arm: {
     'tab.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'a tab is selected by `selected`' },
     'segmented-control-segment.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'a segment is selected by `selected`' },
     'accordion.expansion': { prop: 'defaultExpanded', map: off('collapsed', 'expanded'), reason: 'an accordion opens by `defaultExpanded`' },
-    // Progress (#2670): the type follows from `value`. Unset (or null) is indeterminate; any number is determinate.
-    'progress.type': { prop: 'value', map: { undefined: 'indeterminate', null: 'indeterminate' }, reason: 'a progress bar with no `value` is indeterminate; a number makes it determinate' },
   };
   // NO RECORDED EXCEPTIONS (#2752, owner decisions Q1 B and Q2 A, 2026-10-16): every size ladder leads with medium and
   // Button's icon slots lead with false, so any mismatch fails. The size ladder is named only for MUST below.

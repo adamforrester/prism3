@@ -25,7 +25,7 @@ Use Progress for system work that takes more than a few seconds: a determinate b
 
 - Fake a value. A bar that creeps toward the end and stops there breaks the contract; use an indeterminate bar
 - Put the label or the value inside the track
-- Use a ring with no value. That is a Spinner
+- Use an indeterminate ring. That is a Spinner
 - Use Progress for a static measurement such as storage used. That is a meter
 - Use Progress for a user's place in a multi-step form. That is a stepper
 - Show the outcome by color alone
@@ -50,12 +50,13 @@ Label: what is happening, with an active verb ("Uploading photo.jpg"), one label
 
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
-| `value` | number \| null | — | no | How far the work has got, between min and max. Omitted or null, the bar is indeterminate: it sweeps and has no value. Out-of-range values are clamped, with a warning in development. Never fake a value: a bar that creeps toward the end and stops there breaks the contract. If the work cannot be measured, leave the value out. |
+| `type` | enum: 'determinate' \| 'indeterminate' | `determinate` | no | determinate = the work can be measured, so the bar shows how far it has got. indeterminate = it cannot, so a segment sweeps along the track and there is no value. Choose indeterminate rather than faking a value. |
+| `value` | number | — | no | How far the work has got, between min and max, for a determinate bar. Omitted, the bar rests at min. Out-of-range values are clamped, with a warning in development. Never fake a value: a bar that creeps toward the end and stops there breaks the contract. If the work cannot be measured, set type to indeterminate. |
 | `min` | number | `0` | no | The start of the range. |
 | `max` | number | `100` | no | The end of the range: 100 for a percentage, or the total, such as a byte count. |
 | `label` | string | — | yes | What is in progress, with an active verb ("Uploading photo.jpg"). It is the accessible name. A linear bar shows it above the track; a ring is named by it without showing it. |
 | `valueText` | string \| (value: number) => string | — | no | The visible value, and the same string as aria-valuetext. A percentage by default, through Intl.NumberFormat, so "45%" localizes. Prefer a concrete amount when there is one ("45 MB of 100 MB"). |
-| `shape` | enum: 'linear' \| 'circular' | `linear` | no | linear = a bar that fills its container. circular = a ring for a small space, determinate only. A ring with no value is a Spinner. |
+| `shape` | enum: 'linear' \| 'circular' | `linear` | no | linear = a bar that fills its container. circular = a ring for a small space, determinate only. A ring that cannot show a value is a Spinner. |
 | `size` | enum: 'small' \| 'medium' | `medium` | no | The ring's size: medium is 40px with a 4px band, small is 24px with a 2px band. A linear bar has one thickness, 4px, and ignores this. |
 | `status` | enum: 'active' \| 'complete' \| 'error' | `active` | no | active = the work is running. complete = it finished: the fill turns to the success color and the message names the result. error = it failed: the fill stops where it failed, turns to the danger color, and the message names the problem and the next step. |
 | `message` | string | — | no | The outcome, shown below the bar at complete and error with a glyph: past tense when done ("Upload complete"), the problem and the next step when it fails ("Upload failed. The connection dropped. Try again."). |

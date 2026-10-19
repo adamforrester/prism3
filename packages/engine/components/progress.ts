@@ -4,7 +4,7 @@
  * #2670, approved by the owner on 2026-10-16 with every numbered call at its recommendation (A):
  *
  *   1. one Progress: linear determinate, linear indeterminate, circular determinate;
- *   2. circular only with a value — a ring that spins with no value stays the Spinner;
+ *   2. circular only when determinate — a ring that spins with no value stays the Spinner;
  *   3. the ring's value text sits beside it, on by default;
  *   4. status active, complete, error — a glyph and a message, never color alone;
  *   5. a pale 4px track (`color.background.tertiary`) with a stop dot at its end, the fill on `color.icon.<role>`;
@@ -58,12 +58,13 @@ export const progress: ComponentDef = {
     'Shows that system work is under way and, when the system can measure it, how far along it is: an upload, an export, a batch save. A linear bar shows a known amount (determinate) or a sweeping segment while the amount is unknown (indeterminate). A ring shows a known amount in a small space, with its value beside it. At the end the bar turns to the success or danger color and a message with a glyph names the outcome. The label and the value sit outside the track, so neither loses contrast as the fill moves behind it.',
 
   props: [
-    { name: 'value', type: 'number | null', required: false, description: 'How far the work has got, between min and max. Omitted or null, the bar is indeterminate: it sweeps and has no value. Out-of-range values are clamped, with a warning in development. Never fake a value: a bar that creeps toward the end and stops there breaks the contract. If the work cannot be measured, leave the value out.' },
+    { name: 'type', type: "enum: 'determinate' | 'indeterminate'", values: ['determinate', 'indeterminate'], default: 'determinate', required: false, description: 'determinate = the work can be measured, so the bar shows how far it has got. indeterminate = it cannot, so a segment sweeps along the track and there is no value. Choose indeterminate rather than faking a value.' },
+    { name: 'value', type: 'number', required: false, description: 'How far the work has got, between min and max, for a determinate bar. Omitted, the bar rests at min. Out-of-range values are clamped, with a warning in development. Never fake a value: a bar that creeps toward the end and stops there breaks the contract. If the work cannot be measured, set type to indeterminate.' },
     { name: 'min', type: 'number', default: 0, required: false, description: 'The start of the range.' },
     { name: 'max', type: 'number', default: 100, required: false, description: 'The end of the range: 100 for a percentage, or the total, such as a byte count.' },
     { name: 'label', type: 'string', required: true, description: 'What is in progress, with an active verb ("Uploading photo.jpg"). It is the accessible name. A linear bar shows it above the track; a ring is named by it without showing it.' },
     { name: 'valueText', type: 'string | (value: number) => string', required: false, description: 'The visible value, and the same string as aria-valuetext. A percentage by default, through Intl.NumberFormat, so "45%" localizes. Prefer a concrete amount when there is one ("45 MB of 100 MB").' },
-    { name: 'shape', type: "enum: 'linear' | 'circular'", values: ['linear', 'circular'], default: 'linear', required: false, description: 'linear = a bar that fills its container. circular = a ring for a small space, determinate only. A ring with no value is a Spinner.' },
+    { name: 'shape', type: "enum: 'linear' | 'circular'", values: ['linear', 'circular'], default: 'linear', required: false, description: 'linear = a bar that fills its container. circular = a ring for a small space, determinate only. A ring that cannot show a value is a Spinner.' },
     { name: 'size', type: "enum: 'small' | 'medium'", values: ['small', 'medium'], default: 'medium', required: false, description: 'The ring\'s size: medium is 40px with a 4px band, small is 24px with a 2px band. A linear bar has one thickness, 4px, and ignores this.' },
     { name: 'status', type: "enum: 'active' | 'complete' | 'error'", values: ['active', 'complete', 'error'], default: 'active', required: false, description: 'active = the work is running. complete = it finished: the fill turns to the success color and the message names the result. error = it failed: the fill stops where it failed, turns to the danger color, and the message names the problem and the next step.' },
     { name: 'message', type: 'string', required: false, description: 'The outcome, shown below the bar at complete and error with a glyph: past tense when done ("Upload complete"), the problem and the next step when it fails ("Upload failed. The connection dropped. Try again.").' },
@@ -103,6 +104,9 @@ export const progress: ComponentDef = {
     // The column between header, track and message, and the space between the label and the value.
     gap: 'space.075',
     'header-gap': 'space.100',
+    // The header's floor: the taller of the two texts (the value, a body line) fits under it, so an indeterminate bar, which
+    // shows no value, is as tall as a determinate one.
+    'header-min': 'icon.size.md',
     'ring-gap': 'space.100',
 
     // The track, both shapes: the pale role (call 5). The linear track's box fill, and the ring track glyph's ink.
@@ -137,12 +141,13 @@ export const progress: ComponentDef = {
       },
       header: {
         kind: 'box',
-        layout: { direction: 'row', align: 'baseline', justify: 'space-between', sizing: { x: 'fill', y: 'hug' } },
+        layout: { direction: 'row', align: 'center', justify: 'space-between', sizing: { x: 'fill', y: 'hug' } },
         gap: 'header-gap',
+        minHeight: 'header-min',
         crossAxisFill: true,
         presentWhen: { shape: ['linear'] },
         children: ['label', 'value', 'valueComplete'],
-        note: 'The label at the start and the value at the end, above the track and never inside it.',
+        note: 'The label at the start and the value at the end, above the track and never inside it. A floor holds it one height whether or not a value shows, so a determinate and an indeterminate bar measure the same.',
       },
       label: {
         kind: 'text',
@@ -297,10 +302,10 @@ export const progress: ComponentDef = {
       'right-to-left — the linear fill grows from the inline-start edge (the right) through logical properties, and the label and value swap sides. The ring runs counterclockwise from twelve o\'clock. The sweep moves from right to left.',
       'number formatting — the value text defaults to a percentage through Intl.NumberFormat ("45%", "%45", "45 %"), and a concrete amount ("45 MB of 100 MB", "Step 3 of 5") is localized with its word order. The value text is never truncated; the label wraps instead.',
       'text expansion — the label wraps rather than truncating, and the value keeps its full text at the end of the header.',
-      'the value contract — `role="progressbar"` named by the label (`aria-labelledby`, or `aria-label` on a ring, whose label does not show). With a value: `aria-valuenow`, `aria-valuemin`, `aria-valuemax`, and `aria-valuetext` whenever the visible value is not a bare percentage. With no value: none of the three, never a fixed `aria-valuenow="0"` (it reads as stuck at 0%), and `aria-busy="true"` on the region the work updates.',
+      'the value contract — `role="progressbar"` named by the label (`aria-labelledby`, or `aria-label` on a ring, whose label does not show). Determinate: `aria-valuenow`, `aria-valuemin`, `aria-valuemax`, and `aria-valuetext` whenever the visible value is not a bare percentage. Indeterminate: none of the three, never a fixed `aria-valuenow="0"` (it reads as stuck at 0%), and `aria-busy="true"` on the region the work updates.',
       'the milestone announcements — a visually hidden `aria-live="polite"` region, in the DOM and empty from mount. The last milestone spoken is kept in a ref; when the value passes 25, 50 or 75% for the first time, the region\'s text is set to the value text; at max it is set to the message ("Upload complete"). An error message is set when the error happens. `aria-valuenow` never triggers speech. `announce="end"` skips the milestones; `announce="none"` leaves the region empty.',
       'the anti-flash timers — the component waits `delay` (400ms) before it shows, and shows nothing if the work finishes first; once shown it stays at least `minDisplay` (500ms). Both timers are cleared on unmount.',
-      'a ring with no value — `shape="circular"` with no value is refused in development, pointing to Spinner: a spinning ring with no value is the Spinner\'s job.',
+      'an indeterminate ring — `shape="circular"` with `type="indeterminate"` is refused in development, pointing to Spinner: a spinning ring is the Spinner\'s job.',
       'the end-state message — a nested FieldMessage, success at complete and error at error. Its glyph is aria-hidden; the caption carries the meaning. A "Try again" action after an error belongs to the host, placed beside the bar, not inside it.',
     ],
   },
@@ -363,7 +368,7 @@ export const progress: ComponentDef = {
     dont: [
       'Fake a value. A bar that creeps toward the end and stops there breaks the contract; use an indeterminate bar',
       'Put the label or the value inside the track',
-      'Use a ring with no value. That is a Spinner',
+      'Use an indeterminate ring. That is a Spinner',
       'Use Progress for a static measurement such as storage used. That is a meter',
       'Use Progress for a user\'s place in a multi-step form. That is a stepper',
       'Show the outcome by color alone',
@@ -398,7 +403,7 @@ export const progress: ComponentDef = {
       'REDUCED MOTION SLOWS THE SWEEP rather than substituting an opacity pulse (owner call 7 A, matching the Spinner). Brief §6 and §8 name a slow pulse (40% to 100% over about 1.5s) or a static "Loading…" as the substitute. Both agree on the rule that matters: never remove the only busy cue.',
       'THE END STATES ARE A NESTED FieldMessage, not a message drawn here. The brief (§4) gives complete a checkmark replacing the percentage; the proposal and this def keep the value and add the message row below, so the end state carries a glyph and text the way a field\'s validation does (owner Q352/Q354: one way to show an error). The cost: the error glyph is FieldMessage\'s exclamation in a triangle, where the proposal named `error-circle`.',
       'UNIFIED Progress with a `shape` prop (brief §10\'s practice default) rather than distinct LinearProgress and CircularProgress (MUI, Fluent). The bundle-size argument for the split is answered by tree-shaking.',
-      'THE DETERMINATE THRESHOLD (brief §15): when the work can honestly be measured. This def\'s answer is the prop contract: no value means indeterminate, and the docs say never to fake one.',
+      'THE DETERMINATE THRESHOLD (brief §15): when the work can honestly be measured. This def\'s answer is the `type` prop: determinate by default (owner item 7), indeterminate when the work cannot be measured, and the docs say never to fake a value.',
       'THE GLOBAL ROUTE-CHANGE BAR (brief §4, §11) is out of scope: a product-shell placement whose visual eases while the value stays indeterminate. It can follow as a placement once a shell exists.',
       'NO BUFFER, no segmented bar, no dashboard gauge (brief §4). A buffer fill is a media-player need not on the table; a gauge is a meter.',
       'THE STILL MEMBERS SHOW 50%, not the proposal wireframe\'s 45% and 62%: Figma has no percentage width, and two growing boxes split the track evenly, so the value text reads 50% to match. A literal width would freeze the fill when an instance is stretched.',

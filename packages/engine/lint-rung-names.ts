@@ -393,7 +393,7 @@ const DEFAULT_FIRST: Record<string, string> = {
   link: Q1B,
   // #2427: owner Q283.6 B ("medium first") agrees with Q1 B; the Counter takes the same reason.
   counter: Q1B,
-  progress: 'the Figma default is the 40px medium ring, the proposal\'s axis table approved with every call at A, and owner Q347 puts the code default first (#2670)',
+  progress: 'the Figma default is the 40px medium ring, the proposal\'s axis table approved with every call at A, and the code default `type` is determinate to match (#2791)',
 };
 
 const SIZE_BY_FOLLOW_ONLY: Record<string, string> = {
