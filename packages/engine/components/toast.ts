@@ -8,7 +8,7 @@
  * user's own action and is safe to miss (call 1 A); errors, warnings, lasting states and an action that has no other
  * route go to a banner, so there is no danger or warning member. Neutral carries no glyph (call 3 A); success carries
  * the circled check FieldMessage uses. No size axis (the brief names one size) and no state axis: a toast is not
- * interactive, and its nested Button and IconButton.Neutral carry their own states and prototype reactions.
+ * interactive, and its nested Button and FlushIconButton.Neutral carry their own states and prototype reactions.
  *
  * ── THE SURFACE (call 9 A) ────────────────────────────────────────────────────────────────────────────────────
  *
@@ -18,12 +18,12 @@
  * `surface: inverse`, so the projector's `color.inverse.*` rewrite gives them their inverse ink and focus ring and no
  * new role is minted. `test.ts` holds every one of these pairs over every committed brand × mode.
  *
- * ── THE CLOSE IS AN ICONBUTTON.NEUTRAL, NOT A FLUSHICONBUTTON (owner item) ──────────────────────────────────────
+ * ── THE CLOSE IS A FLUSHICONBUTTON.NEUTRAL (Q386, as Dialog's close, Q385 A) ───────────────────────────────────
  *
- * The build brief named "Button / Flush icon button" for the nests. The approved proposal (§2) names IconButton.Neutral
- * for close, ghost, small, `surface: inverse`, and says why not FlushIconButton: it has no inverse surface. That is
- * still true on main: FlushIconButton.Neutral's glyph is `color.interactive.neutral.icon.rest`, the default-ground ink,
- * which on the inverse card is dark on dark. This build follows the approved proposal and lists it under Owner items.
+ * No component requires a Neutral button family (Q386, #2808): a file built without the IconButton sets must still
+ * build Toast. The close is the flush shape at small, the same bare glyph Dialog's close draws, with the same
+ * `close` glyph set by a swap override. FlushIconButton has no `surface` axis, so its glyph keeps the default-ground ink
+ * on the inverse card; the contrast arm in `test.ts` measures that pair and holds the result for the owner.
  *
  * ── PLACEMENT, STACKING AND TIMING ARE CODE (calls 4, 5, 6, 10, 11) ──────────────────────────────────────────────
  *
@@ -146,11 +146,11 @@ export const toast: ComponentDef = {
       },
       close: {
         kind: 'nest',
-        nests: 'icon-button-neutral',
+        nests: 'flush-icon-button-neutral',
         optional: true,
-        nesting: { kind: 'nest-fixed', variant: { appearance: 'ghost', size: 'small', shape: 'square', surface: 'inverse', state: 'rest' } },
+        nesting: { kind: 'nest-fixed', variant: { shape: 'flush', size: 'small', surface: 'inverse', state: 'rest' } },
         overrides: { swaps: { icon: 'close' } },
-        note: 'The close button: an IconButton.Neutral, ghost, small, on the inverse surface, showing the close glyph and named "Dismiss". On by default.',
+        note: 'The close button: a FlushIconButton.Neutral, flush, small, showing the close glyph and named "Dismiss". On by default.',
       },
     },
     codeOnly: [
@@ -163,7 +163,7 @@ export const toast: ComponentDef = {
       'timing, with an action — no timer. The toast stays until the action, the close button, the next toast, or a page change. `duration` is ignored.',
       'the keyboard route — the region is a landmark, `<section aria-label="Notifications">`. F6 moves focus into it, to the newest toast\'s first control; Escape or Shift+F6 returns focus to where it was. The action always also exists elsewhere on the page, so a keyboard user who never enters the region loses nothing.',
       'the action — at most one. A text Button; when it navigates ("View bag") code renders it as a link element. Its label is set per toast in code; in Figma a designer edits the nested Button\'s label, since a nested instance\'s text cannot be a property of the toast.',
-      'the close button — `aria-label="Dismiss"`. A small IconButton.Neutral is a 36px box; its hit area is extended to 44×44px in code, as IconButton records.',
+      'the close button — `aria-label="Dismiss"`. A small FlushIconButton is the bare 20px glyph; its hit area is extended to 44×44px in code, as FlushIconButton records.',
       'focus not obscured — while a toast shows, the page sets `scroll-padding-bottom` to the toast\'s height plus its offset, so a focused control near the bottom of the viewport scrolls clear of it.',
       'motion — enter: an 8px slide up and a fade on `motion.transition.enter` (`motion.duration.normal`, `motion.easing-role.enter`). Exit: a fade on `motion.transition.exit` (`motion.duration.fast`, `motion.easing-role.exit`). Under `prefers-reduced-motion`, the fade only, on `motion.duration-reduced.normal`. Both placements are anchored to the bottom, so the slide is upward in either reading direction and does not mirror. Figma shows the toast at rest.',
       'RTL — the row mirrors through logical properties: the glyph and message move to the right and the controls to the left.',
@@ -228,13 +228,13 @@ export const toast: ComponentDef = {
     primaryPurpose: 'Confirm the user\'s own action with a short status over the page that is safe to miss.',
     whenToUse: 'After an action whose result the page already shows ("Added to bag", "Address saved"), when a brief, polite confirmation helps and missing it costs nothing.',
     avoidWhen: 'The message is an error, a warning or anything the user must see (a banner); it asks for a decision (a dialog); it is about one field (a field message); or its action has no other route on the page.',
-    commonPartners: ['button', 'icon-button-neutral', 'field-message', 'dialog'],
+    commonPartners: ['button', 'flush-icon-button-neutral', 'field-message', 'dialog'],
     triggerKeywords: ['toast', 'snackbar', 'notification', 'confirmation message', 'status message', 'added to bag'],
     generationPriority: 2,
   },
 
   composition: {
-    composesWith: ['button', 'icon-button-neutral'],
+    composesWith: ['button', 'flush-icon-button-neutral'],
     alternativeTo: ['dialog', 'field-message'],
     replacesPatterns: ['an alert() after a save', 'a status message that moves focus', 'a timed message with no pause'],
     supersededBy: [],
@@ -249,10 +249,10 @@ export const toast: ComponentDef = {
 
   notes: {
     contested: [
-      'HELD FOR THE OWNER (#2668): the close nests IconButton.Neutral as the approved proposal says, not FlushIconButton as the build brief named, because FlushIconButton has no inverse surface; the 8px gap between the message and the controls (the proposal leaves it open; the wireframe uses 8px); the action label as a nested Button\'s text rather than a toast text property.',
+      'HELD FOR THE OWNER (#2668): the close nests FlushIconButton.Neutral (Q386, as Dialog), not the proposal\'s IconButton.Neutral, and FlushIconButton has no inverse surface; the 8px gap between the message and the controls (the proposal leaves it open; the wireframe uses 8px); the action label as a nested Button\'s text rather than a toast text property.',
     ],
     unverified: [
-      'That the nested Button and IconButton.Neutral carry their prototype reactions into the toast\'s instances on the canvas, as they do inside Dialog.',
+      'That the nested Button and FlushIconButton.Neutral carry their prototype reactions into the toast\'s instances on the canvas, as they do inside Dialog.',
       'The live-region timing (one frame after the region exists) and NVDA\'s behavior, against current assistive technology.',
     ],
     evolution: [

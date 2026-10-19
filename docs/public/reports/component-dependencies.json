@@ -108,6 +108,102 @@
       "relation": "swap"
     },
     {
+      "from": "button-group",
+      "to": "button",
+      "part": "cancel",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "appearance": "outline",
+        "size": "medium",
+        "surface": "default",
+        "inset": "default",
+        "state": "rest",
+        "leading icon": "false",
+        "trailing icon": "false"
+      }
+    },
+    {
+      "from": "button-group",
+      "to": "button",
+      "part": "cancelFill",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "appearance": "outline",
+        "size": "medium",
+        "surface": "default",
+        "inset": "default",
+        "state": "rest",
+        "leading icon": "false",
+        "trailing icon": "false"
+      }
+    },
+    {
+      "from": "button-group",
+      "to": "button",
+      "part": "cancelStacked",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "appearance": "outline",
+        "size": "medium",
+        "surface": "default",
+        "inset": "default",
+        "state": "rest",
+        "leading icon": "false",
+        "trailing icon": "false"
+      }
+    },
+    {
+      "from": "button-group",
+      "to": "button",
+      "part": "save",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "appearance": "filled",
+        "size": "medium",
+        "surface": "default",
+        "inset": "default",
+        "state": "rest",
+        "leading icon": "false",
+        "trailing icon": "false"
+      }
+    },
+    {
+      "from": "button-group",
+      "to": "button",
+      "part": "saveFill",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "appearance": "filled",
+        "size": "medium",
+        "surface": "default",
+        "inset": "default",
+        "state": "rest",
+        "leading icon": "false",
+        "trailing icon": "false"
+      }
+    },
+    {
+      "from": "button-group",
+      "to": "button",
+      "part": "saveStacked",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "appearance": "filled",
+        "size": "medium",
+        "surface": "default",
+        "inset": "default",
+        "state": "rest",
+        "leading icon": "false",
+        "trailing icon": "false"
+      }
+    },
+    {
       "from": "button-neutral",
       "to": "focus-ring",
       "part": "focusRing",
@@ -193,71 +289,6 @@
       ]
     },
     {
-      "from": "checkbox-group",
-      "to": "checkbox-row",
-      "part": "row4",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "size": "medium"
-      },
-      "follow": [
-        "size"
-      ]
-    },
-    {
-      "from": "checkbox-group",
-      "to": "checkbox-row",
-      "part": "row5",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "size": "medium"
-      },
-      "follow": [
-        "size"
-      ]
-    },
-    {
-      "from": "checkbox-group",
-      "to": "checkbox-row",
-      "part": "row6",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "size": "medium"
-      },
-      "follow": [
-        "size"
-      ]
-    },
-    {
-      "from": "checkbox-group",
-      "to": "checkbox-row",
-      "part": "row7",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "size": "medium"
-      },
-      "follow": [
-        "size"
-      ]
-    },
-    {
-      "from": "checkbox-group",
-      "to": "checkbox-row",
-      "part": "row8",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "size": "medium"
-      },
-      "follow": [
-        "size"
-      ]
-    },
-    {
       "from": "checkbox-row",
       "to": "checkbox-control",
       "part": "control",
@@ -276,81 +307,110 @@
       ]
     },
     {
-      "from": "dialog",
-      "to": "button",
-      "part": "cancelInline",
+      "from": "counter",
+      "to": "flush-icon-button-neutral",
+      "part": "decrement",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "shape": "flush",
+        "size": "medium",
+        "surface": "default",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "state"
+      ]
+    },
+    {
+      "from": "counter",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      }
+    },
+    {
+      "from": "counter",
+      "to": "flush-icon-button-neutral",
+      "part": "increment",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "shape": "flush",
+        "size": "medium",
+        "surface": "default",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "state"
+      ]
+    },
+    {
+      "from": "counter",
+      "to": "field-label",
+      "part": "label",
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
-        "appearance": "outline",
         "size": "medium",
-        "surface": "default",
-        "inset": "default",
-        "state": "rest",
-        "leading icon": "false",
-        "trailing icon": "false"
+        "emphasis": "secondary",
+        "weight": "regular",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "counter",
+      "to": "field-message",
+      "part": "message",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "status": "default"
       }
     },
     {
       "from": "dialog",
-      "to": "button",
-      "part": "cancelStacked",
+      "to": "button-group",
+      "part": "actionsInline",
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
-        "appearance": "outline",
-        "size": "medium",
-        "surface": "default",
-        "inset": "default",
-        "state": "rest",
-        "leading icon": "false",
-        "trailing icon": "false"
+        "layout": "inline"
       }
     },
     {
       "from": "dialog",
-      "to": "icon-button-neutral",
+      "to": "button-group",
+      "part": "actionsStacked",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "layout": "stacked"
+      }
+    },
+    {
+      "from": "dialog",
+      "to": "flush-icon-button-neutral",
       "part": "close",
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
-        "appearance": "ghost",
+        "shape": "round",
         "size": "medium",
-        "shape": "square",
         "surface": "default",
         "state": "rest"
-      }
-    },
-    {
-      "from": "dialog",
-      "to": "button",
-      "part": "confirmInline",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "appearance": "filled",
-        "size": "medium",
-        "surface": "default",
-        "inset": "default",
-        "state": "rest",
-        "leading icon": "false",
-        "trailing icon": "false"
-      }
-    },
-    {
-      "from": "dialog",
-      "to": "button",
-      "part": "confirmStacked",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "appearance": "filled",
-        "size": "medium",
-        "surface": "default",
-        "inset": "default",
-        "state": "rest",
-        "leading icon": "false",
-        "trailing icon": "false"
       }
     },
     {
@@ -383,7 +443,10 @@
       "relation": "nest-fixed",
       "variant": {
         "surface": "default"
-      }
+      },
+      "follow": [
+        "surface"
+      ]
     },
     {
       "from": "flush-icon-button-destructive",
@@ -393,7 +456,10 @@
       "relation": "nest-fixed",
       "variant": {
         "surface": "default"
-      }
+      },
+      "follow": [
+        "surface"
+      ]
     },
     {
       "from": "flush-icon-button-neutral",
@@ -403,7 +469,10 @@
       "relation": "nest-fixed",
       "variant": {
         "surface": "default"
-      }
+      },
+      "follow": [
+        "surface"
+      ]
     },
     {
       "from": "icon-button",
@@ -524,81 +593,6 @@
       ]
     },
     {
-      "from": "list",
-      "to": "list-item",
-      "part": "item4",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "type": "unordered",
-        "size": "medium"
-      },
-      "follow": [
-        "type",
-        "size"
-      ]
-    },
-    {
-      "from": "list",
-      "to": "list-item",
-      "part": "item5",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "type": "unordered",
-        "size": "medium"
-      },
-      "follow": [
-        "type",
-        "size"
-      ]
-    },
-    {
-      "from": "list",
-      "to": "list-item",
-      "part": "item6",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "type": "unordered",
-        "size": "medium"
-      },
-      "follow": [
-        "type",
-        "size"
-      ]
-    },
-    {
-      "from": "list",
-      "to": "list-item",
-      "part": "item7",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "type": "unordered",
-        "size": "medium"
-      },
-      "follow": [
-        "type",
-        "size"
-      ]
-    },
-    {
-      "from": "list",
-      "to": "list-item",
-      "part": "item8",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "type": "unordered",
-        "size": "medium"
-      },
-      "follow": [
-        "type",
-        "size"
-      ]
-    },
-    {
       "from": "password-field",
       "to": "focus-ring",
       "part": "focusRing",
@@ -649,16 +643,13 @@
       "relation": "nest-exposed",
       "variant": {
         "appearance": "text",
-        "size": "medium",
+        "size": "small",
         "surface": "default",
         "inset": "flush",
         "state": "rest",
         "leading icon": "false",
         "trailing icon": "false"
       },
-      "follow": [
-        "size"
-      ],
       "expose": [
         "label"
       ]
@@ -729,71 +720,6 @@
       ]
     },
     {
-      "from": "radio-group",
-      "to": "radio-row",
-      "part": "row4",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "size": "medium"
-      },
-      "follow": [
-        "size"
-      ]
-    },
-    {
-      "from": "radio-group",
-      "to": "radio-row",
-      "part": "row5",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "size": "medium"
-      },
-      "follow": [
-        "size"
-      ]
-    },
-    {
-      "from": "radio-group",
-      "to": "radio-row",
-      "part": "row6",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "size": "medium"
-      },
-      "follow": [
-        "size"
-      ]
-    },
-    {
-      "from": "radio-group",
-      "to": "radio-row",
-      "part": "row7",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "size": "medium"
-      },
-      "follow": [
-        "size"
-      ]
-    },
-    {
-      "from": "radio-group",
-      "to": "radio-row",
-      "part": "row8",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "size": "medium"
-      },
-      "follow": [
-        "size"
-      ]
-    },
-    {
       "from": "radio-row",
       "to": "radio-control",
       "part": "control",
@@ -832,7 +758,7 @@
       "to": "segmented-control-segment",
       "part": "segment1",
       "partKind": "nest",
-      "relation": "nest-exposed",
+      "relation": "nest-fixed",
       "variant": {
         "selection": "selected",
         "size": "medium",
@@ -840,10 +766,6 @@
       },
       "follow": [
         "size"
-      ],
-      "expose": [
-        "selection",
-        "state"
       ]
     },
     {
@@ -851,7 +773,7 @@
       "to": "segmented-control-segment",
       "part": "segment2",
       "partKind": "nest",
-      "relation": "nest-exposed",
+      "relation": "nest-fixed",
       "variant": {
         "selection": "unselected",
         "size": "medium",
@@ -859,10 +781,6 @@
       },
       "follow": [
         "size"
-      ],
-      "expose": [
-        "selection",
-        "state"
       ]
     },
     {
@@ -870,7 +788,7 @@
       "to": "segmented-control-segment",
       "part": "segment3",
       "partKind": "nest",
-      "relation": "nest-exposed",
+      "relation": "nest-fixed",
       "variant": {
         "selection": "unselected",
         "size": "medium",
@@ -878,48 +796,6 @@
       },
       "follow": [
         "size"
-      ],
-      "expose": [
-        "selection",
-        "state"
-      ]
-    },
-    {
-      "from": "segmented-control",
-      "to": "segmented-control-segment",
-      "part": "segment4",
-      "partKind": "nest",
-      "relation": "nest-exposed",
-      "variant": {
-        "selection": "unselected",
-        "size": "medium",
-        "state": "rest"
-      },
-      "follow": [
-        "size"
-      ],
-      "expose": [
-        "selection",
-        "state"
-      ]
-    },
-    {
-      "from": "segmented-control",
-      "to": "segmented-control-segment",
-      "part": "segment5",
-      "partKind": "nest",
-      "relation": "nest-exposed",
-      "variant": {
-        "selection": "unselected",
-        "size": "medium",
-        "state": "rest"
-      },
-      "follow": [
-        "size"
-      ],
-      "expose": [
-        "selection",
-        "state"
       ]
     },
     {
@@ -1072,51 +948,6 @@
       ]
     },
     {
-      "from": "tabs",
-      "to": "tab",
-      "part": "tab4",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "selection": "unselected",
-        "size": "medium",
-        "state": "rest"
-      },
-      "follow": [
-        "size"
-      ]
-    },
-    {
-      "from": "tabs",
-      "to": "tab",
-      "part": "tab5",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "selection": "unselected",
-        "size": "medium",
-        "state": "rest"
-      },
-      "follow": [
-        "size"
-      ]
-    },
-    {
-      "from": "tabs",
-      "to": "tab",
-      "part": "tab6",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "selection": "unselected",
-        "size": "medium",
-        "state": "rest"
-      },
-      "follow": [
-        "size"
-      ]
-    },
-    {
       "from": "tag",
       "to": "focus-ring",
       "part": "focusRing",
@@ -1230,14 +1061,13 @@
     },
     {
       "from": "toast",
-      "to": "icon-button-neutral",
+      "to": "flush-icon-button-neutral",
       "part": "close",
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
-        "appearance": "ghost",
+        "shape": "flush",
         "size": "small",
-        "shape": "square",
         "surface": "inverse",
         "state": "rest"
       }
@@ -1292,11 +1122,12 @@
         "spinner"
       ],
       "nestedBy": [
-        "dialog",
+        "button-group",
         "password-field",
         "toast"
       ],
       "affectedByChange": [
+        "button-group",
         "dialog",
         "password-field",
         "toast"
@@ -1319,6 +1150,23 @@
       "inheritedBy": [
         "icon-button-destructive"
       ]
+    },
+    "button-group": {
+      "nests": [
+        "button"
+      ],
+      "nestsTransitively": [
+        "button",
+        "focus-ring",
+        "spinner"
+      ],
+      "nestedBy": [
+        "dialog"
+      ],
+      "affectedByChange": [
+        "dialog"
+      ],
+      "inheritedBy": []
     },
     "button-neutral": {
       "nests": [
@@ -1386,17 +1234,35 @@
         "switch-row"
       ]
     },
+    "counter": {
+      "nests": [
+        "field-label",
+        "field-message",
+        "flush-icon-button-neutral",
+        "focus-ring"
+      ],
+      "nestsTransitively": [
+        "field-label",
+        "field-message",
+        "flush-icon-button-neutral",
+        "focus-ring"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
     "dialog": {
       "nests": [
-        "button",
+        "button-group",
         "divider",
-        "icon-button-neutral"
+        "flush-icon-button-neutral"
       ],
       "nestsTransitively": [
         "button",
+        "button-group",
         "divider",
+        "flush-icon-button-neutral",
         "focus-ring",
-        "icon-button-neutral",
         "spinner"
       ],
       "nestedBy": [],
@@ -1421,6 +1287,7 @@
       "nestsTransitively": [],
       "nestedBy": [
         "checkbox-group",
+        "counter",
         "password-field",
         "radio-group",
         "segmented-control",
@@ -1430,6 +1297,7 @@
       ],
       "affectedByChange": [
         "checkbox-group",
+        "counter",
         "password-field",
         "radio-group",
         "segmented-control",
@@ -1443,12 +1311,14 @@
       "nests": [],
       "nestsTransitively": [],
       "nestedBy": [
+        "counter",
         "password-field",
         "select",
         "text-field",
         "textarea"
       ],
       "affectedByChange": [
+        "counter",
         "password-field",
         "select",
         "text-field",
@@ -1487,8 +1357,16 @@
       "nestsTransitively": [
         "focus-ring"
       ],
-      "nestedBy": [],
-      "affectedByChange": [],
+      "nestedBy": [
+        "counter",
+        "dialog",
+        "toast"
+      ],
+      "affectedByChange": [
+        "counter",
+        "dialog",
+        "toast"
+      ],
       "inherits": "icon-button-neutral",
       "inheritedBy": []
     },
@@ -1501,6 +1379,7 @@
         "button-destructive",
         "button-neutral",
         "checkbox-control",
+        "counter",
         "flush-icon-button",
         "flush-icon-button-destructive",
         "flush-icon-button-neutral",
@@ -1522,10 +1401,12 @@
         "accordion",
         "button",
         "button-destructive",
+        "button-group",
         "button-neutral",
         "checkbox-control",
         "checkbox-group",
         "checkbox-row",
+        "counter",
         "dialog",
         "flush-icon-button",
         "flush-icon-button-destructive",
@@ -1600,14 +1481,8 @@
         "focus-ring",
         "spinner"
       ],
-      "nestedBy": [
-        "dialog",
-        "toast"
-      ],
-      "affectedByChange": [
-        "dialog",
-        "toast"
-      ],
+      "nestedBy": [],
+      "affectedByChange": [],
       "inherits": "button-neutral",
       "inheritedBy": [
         "flush-icon-button-neutral"
@@ -1777,6 +1652,7 @@
       "affectedByChange": [
         "button",
         "button-destructive",
+        "button-group",
         "button-neutral",
         "dialog",
         "icon-button",
@@ -1893,12 +1769,12 @@
     "toast": {
       "nests": [
         "button",
-        "icon-button-neutral"
+        "flush-icon-button-neutral"
       ],
       "nestsTransitively": [
         "button",
+        "flush-icon-button-neutral",
         "focus-ring",
-        "icon-button-neutral",
         "spinner"
       ],
       "nestedBy": [],
@@ -1919,11 +1795,13 @@
     "badge": 0,
     "button": 1,
     "button-destructive": 1,
+    "button-group": 2,
     "button-neutral": 1,
     "checkbox-control": 1,
     "checkbox-group": 3,
     "checkbox-row": 2,
-    "dialog": 2,
+    "counter": 2,
+    "dialog": 3,
     "divider": 0,
     "field-label": 0,
     "field-message": 0,

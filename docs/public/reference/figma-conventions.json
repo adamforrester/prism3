@@ -38,7 +38,8 @@
             "components": [
               "button",
               "button-destructive",
-              "button-neutral"
+              "button-neutral",
+              "button-group"
             ]
           },
           {
@@ -164,6 +165,12 @@
             "name": "↳ Toast",
             "components": [
               "toast"
+            ]
+          },
+          {
+            "name": "↳ Counter",
+            "components": [
+              "counter"
             ]
           }
         ]
@@ -368,8 +375,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -387,15 +394,15 @@
           {
             "name": "leading icon",
             "values": [
-              "true",
-              "false"
+              "false",
+              "true"
             ]
           },
           {
             "name": "trailing icon",
             "values": [
-              "true",
-              "false"
+              "false",
+              "true"
             ]
           }
         ],
@@ -449,8 +456,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -468,15 +475,15 @@
           {
             "name": "leading icon",
             "values": [
-              "true",
-              "false"
+              "false",
+              "true"
             ]
           },
           {
             "name": "trailing icon",
             "values": [
-              "true",
-              "false"
+              "false",
+              "true"
             ]
           }
         ],
@@ -530,8 +537,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -549,15 +556,15 @@
           {
             "name": "leading icon",
             "values": [
-              "true",
-              "false"
+              "false",
+              "true"
             ]
           },
           {
             "name": "trailing icon",
             "values": [
-              "true",
-              "false"
+              "false",
+              "true"
             ]
           }
         ],
@@ -589,9 +596,9 @@
           {
             "name": "appearance",
             "values": [
+              "ghost",
               "filled",
-              "outline",
-              "ghost"
+              "outline"
             ]
           },
           {
@@ -611,8 +618,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -648,9 +655,9 @@
           {
             "name": "appearance",
             "values": [
+              "ghost",
               "filled",
-              "outline",
-              "ghost"
+              "outline"
             ]
           },
           {
@@ -670,8 +677,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -707,9 +714,9 @@
           {
             "name": "appearance",
             "values": [
+              "ghost",
               "filled",
-              "outline",
-              "ghost"
+              "outline"
             ]
           },
           {
@@ -729,8 +736,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -761,7 +768,7 @@
         "kind": "component set",
         "page": "↳ Flush Icon Button",
         "section": "Subcomponents",
-        "members": 30,
+        "members": 60,
         "variantProperties": [
           {
             "name": "shape",
@@ -771,10 +778,17 @@
             ]
           },
           {
+            "name": "surface",
+            "values": [
+              "default",
+              "inverse"
+            ]
+          },
+          {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -799,7 +813,7 @@
         "kind": "component set",
         "page": "↳ Flush Icon Button",
         "section": "Subcomponents",
-        "members": 30,
+        "members": 60,
         "variantProperties": [
           {
             "name": "shape",
@@ -809,10 +823,17 @@
             ]
           },
           {
+            "name": "surface",
+            "values": [
+              "default",
+              "inverse"
+            ]
+          },
+          {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -837,7 +858,7 @@
         "kind": "component set",
         "page": "↳ Flush Icon Button",
         "section": "Subcomponents",
-        "members": 30,
+        "members": 60,
         "variantProperties": [
           {
             "name": "shape",
@@ -847,10 +868,17 @@
             ]
           },
           {
+            "name": "surface",
+            "values": [
+              "default",
+              "inverse"
+            ]
+          },
+          {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -1118,8 +1146,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -1150,8 +1178,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
@@ -1187,42 +1215,13 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
         ],
-        "properties": [
-          {
-            "name": "Option 2",
-            "type": "BOOLEAN"
-          },
-          {
-            "name": "Option 3",
-            "type": "BOOLEAN"
-          },
-          {
-            "name": "Option 4",
-            "type": "BOOLEAN"
-          },
-          {
-            "name": "Option 5",
-            "type": "BOOLEAN"
-          },
-          {
-            "name": "Option 6",
-            "type": "BOOLEAN"
-          },
-          {
-            "name": "Option 7",
-            "type": "BOOLEAN"
-          },
-          {
-            "name": "Option 8",
-            "type": "BOOLEAN"
-          }
-        ],
+        "properties": [],
         "codeOnly": {
           "states": [
             "rest"
@@ -1249,8 +1248,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -1280,8 +1279,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
@@ -1316,42 +1315,13 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
         ],
-        "properties": [
-          {
-            "name": "Option 2",
-            "type": "BOOLEAN"
-          },
-          {
-            "name": "Option 3",
-            "type": "BOOLEAN"
-          },
-          {
-            "name": "Option 4",
-            "type": "BOOLEAN"
-          },
-          {
-            "name": "Option 5",
-            "type": "BOOLEAN"
-          },
-          {
-            "name": "Option 6",
-            "type": "BOOLEAN"
-          },
-          {
-            "name": "Option 7",
-            "type": "BOOLEAN"
-          },
-          {
-            "name": "Option 8",
-            "type": "BOOLEAN"
-          }
-        ],
+        "properties": [],
         "codeOnly": {
           "states": [
             "rest"
@@ -1378,8 +1348,8 @@
           {
             "name": "size",
             "values": [
-              "small",
-              "medium"
+              "medium",
+              "small"
             ]
           },
           {
@@ -1414,8 +1384,8 @@
           {
             "name": "size",
             "values": [
-              "small",
-              "medium"
+              "medium",
+              "small"
             ]
           }
         ],
@@ -1523,8 +1493,8 @@
           {
             "name": "intensity",
             "values": [
-              "subtle",
               "medium",
+              "subtle",
               "strong"
             ]
           },
@@ -1554,11 +1524,11 @@
           {
             "name": "ratio",
             "values": [
+              "4:3",
               "2:3",
               "3:4",
               "4:5",
               "1:1",
-              "4:3",
               "3:2",
               "16:9"
             ]
@@ -1667,8 +1637,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -1723,8 +1693,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -1774,26 +1744,13 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
         ],
-        "properties": [
-          {
-            "name": "Tab 4",
-            "type": "BOOLEAN"
-          },
-          {
-            "name": "Tab 5",
-            "type": "BOOLEAN"
-          },
-          {
-            "name": "Tab 6",
-            "type": "BOOLEAN"
-          }
-        ],
+        "properties": [],
         "codeOnly": {
           "states": [
             "rest"
@@ -1856,8 +1813,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
@@ -1891,8 +1848,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -1932,8 +1889,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
@@ -1975,34 +1932,13 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
         ],
-        "properties": [
-          {
-            "name": "Item 4",
-            "type": "BOOLEAN"
-          },
-          {
-            "name": "Item 5",
-            "type": "BOOLEAN"
-          },
-          {
-            "name": "Item 6",
-            "type": "BOOLEAN"
-          },
-          {
-            "name": "Item 7",
-            "type": "BOOLEAN"
-          },
-          {
-            "name": "Item 8",
-            "type": "BOOLEAN"
-          }
-        ],
+        "properties": [],
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/list.md"
       },
       {
@@ -2024,8 +1960,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -2064,8 +2000,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
@@ -2073,18 +2009,6 @@
         "properties": [
           {
             "name": "Label",
-            "type": "BOOLEAN"
-          },
-          {
-            "name": "Segment 3",
-            "type": "BOOLEAN"
-          },
-          {
-            "name": "Segment 4",
-            "type": "BOOLEAN"
-          },
-          {
-            "name": "Segment 5",
             "type": "BOOLEAN"
           }
         ],
@@ -2128,8 +2052,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -2154,6 +2078,27 @@
           }
         ],
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/link.md"
+      },
+      {
+        "id": "button-group",
+        "name": "Button.Group",
+        "figmaName": "button-group",
+        "kind": "component set",
+        "page": "↳ Buttons",
+        "section": "Components",
+        "members": 3,
+        "variantProperties": [
+          {
+            "name": "layout",
+            "values": [
+              "inline",
+              "stacked",
+              "fill"
+            ]
+          }
+        ],
+        "properties": [],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/button-group.md"
       },
       {
         "id": "dialog",
@@ -2313,6 +2258,55 @@
           }
         ],
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/toast.md"
+      },
+      {
+        "id": "counter",
+        "name": "Counter",
+        "figmaName": "counter",
+        "kind": "component set",
+        "page": "↳ Counter",
+        "section": "Components",
+        "members": 18,
+        "variantProperties": [
+          {
+            "name": "appearance",
+            "values": [
+              "outline",
+              "ghost"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "focus-visible",
+              "disabled"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "value",
+            "type": "TEXT"
+          },
+          {
+            "name": "label",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "message",
+            "type": "BOOLEAN"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/counter.md"
       }
     ]
   },
@@ -2375,8 +2369,77 @@
     "source": "packages/engine/component-schema.ts#contentSlot?: true",
     "slots": [
       {
+        "component": "checkbox-group",
+        "property": "items",
+        "settings": {
+          "minChildren": 1,
+          "allowPreferredValuesOnly": true
+        },
+        "preferred": [
+          "checkbox-row"
+        ]
+      },
+      {
+        "component": "radio-group",
+        "property": "items",
+        "settings": {
+          "minChildren": 1,
+          "allowPreferredValuesOnly": true
+        },
+        "preferred": [
+          "radio-row"
+        ]
+      },
+      {
+        "component": "tabs",
+        "property": "items",
+        "settings": {
+          "minChildren": 1,
+          "maxChildren": 6,
+          "allowPreferredValuesOnly": true
+        },
+        "preferred": [
+          "tab"
+        ]
+      },
+      {
         "component": "accordion",
         "property": "content"
+      },
+      {
+        "component": "list",
+        "property": "items",
+        "settings": {
+          "minChildren": 1,
+          "allowPreferredValuesOnly": true
+        },
+        "preferred": [
+          "list-item"
+        ]
+      },
+      {
+        "component": "segmented-control",
+        "property": "items",
+        "settings": {
+          "minChildren": 1,
+          "maxChildren": 5,
+          "allowPreferredValuesOnly": true
+        },
+        "preferred": [
+          "segmented-control-segment"
+        ]
+      },
+      {
+        "component": "button-group",
+        "property": "items",
+        "settings": {
+          "minChildren": 1,
+          "maxChildren": 3,
+          "allowPreferredValuesOnly": true
+        },
+        "preferred": [
+          "button"
+        ]
       },
       {
         "component": "dialog",
@@ -2536,8 +2599,10 @@
       "segmented-control-segment",
       "segmented-control",
       "link",
+      "button-group",
       "dialog",
       "password-field",
+      "counter",
       "toast"
     ],
     "templates": [

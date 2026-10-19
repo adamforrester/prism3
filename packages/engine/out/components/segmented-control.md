@@ -47,6 +47,7 @@ One or two words per option, nouns, sentence case: "List", not "Show list".
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
 | `label` | string | — | yes | What is being chosen, such as "View". Shown above the track, or given as an accessible name only when the page already shows it. |
+| `items` | slot of `segmented-control-segment`, 1 to 5 | — | yes | The options, each a SegmentedControl.Segment, in order. Three by default with the first selected, five at most. |
 | `value` | string | — | no | The selected option's value. Controlled; pair it with onChange. |
 | `defaultValue` | string | — | no | The option selected first, when the control manages its own state. A segmented control always has one option selected. |
 | `onChange` | function | — | no | Called with the new value when the selection changes. Never called with an empty value. |
@@ -64,7 +65,7 @@ One or two words per option, nouns, sentence case: "List", not "Show list".
 
 | Axis | Values | Changes |
 | --- | --- | --- |
-| `size` | `small`, `medium`, `large` | once, when authored |
+| `size` | `medium`, `small`, `large` | once, when authored |
 
 ## Accessibility
 

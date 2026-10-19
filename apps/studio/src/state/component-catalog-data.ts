@@ -16,6 +16,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "summary": "Glyph from the icon set at 16/20/24/32px. Decorative unless labeled; never interactive.",
     "unit": "components",
     "spacing": [],
+    "page": "Icons & assets",
+    "section": "Foundations",
     "buildable": true,
     "reason": null,
     "members": 45,
@@ -28,6 +30,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "summary": "Keyboard-focus ring nested by focusable components. Build first; don't place alone.",
     "unit": "variants",
     "spacing": [],
+    "page": "Focus Ring",
+    "section": "Subcomponents",
     "buildable": true,
     "reason": null,
     "members": 2,
@@ -41,11 +45,11 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "unit": "variants",
     "spacing": [
       {
-        "key": "size.small.padding-x",
+        "key": "size.medium.padding-x",
         "ref": "space.200"
       },
       {
-        "key": "size.medium.padding-x",
+        "key": "size.small.padding-x",
         "ref": "space.200"
       },
       {
@@ -53,11 +57,11 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
         "ref": "space.300"
       },
       {
-        "key": "size.small.padding-x-visual",
+        "key": "size.medium.padding-x-visual",
         "ref": "space.150"
       },
       {
-        "key": "size.medium.padding-x-visual",
+        "key": "size.small.padding-x-visual",
         "ref": "space.150"
       },
       {
@@ -65,19 +69,15 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
         "ref": "space.200"
       },
       {
-        "key": "size.small.padding-y",
-        "ref": "space.075"
-      },
-      {
         "key": "size.medium.padding-y",
         "ref": "space.100"
       },
       {
-        "key": "size.large.padding-y",
-        "ref": "space.100"
+        "key": "size.small.padding-y",
+        "ref": "space.075"
       },
       {
-        "key": "size.small.gap",
+        "key": "size.large.padding-y",
         "ref": "space.100"
       },
       {
@@ -85,10 +85,16 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
         "ref": "space.100"
       },
       {
+        "key": "size.small.gap",
+        "ref": "space.100"
+      },
+      {
         "key": "size.large.gap",
         "ref": "space.150"
       }
     ],
+    "page": "Buttons",
+    "section": "Components",
     "buildable": true,
     "reason": null,
     "members": 576,
@@ -106,11 +112,11 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "unit": "variants",
     "spacing": [
       {
-        "key": "size.small.padding-x",
+        "key": "size.medium.padding-x",
         "ref": "space.200"
       },
       {
-        "key": "size.medium.padding-x",
+        "key": "size.small.padding-x",
         "ref": "space.200"
       },
       {
@@ -118,11 +124,11 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
         "ref": "space.300"
       },
       {
-        "key": "size.small.padding-x-visual",
+        "key": "size.medium.padding-x-visual",
         "ref": "space.150"
       },
       {
-        "key": "size.medium.padding-x-visual",
+        "key": "size.small.padding-x-visual",
         "ref": "space.150"
       },
       {
@@ -130,19 +136,15 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
         "ref": "space.200"
       },
       {
-        "key": "size.small.padding-y",
-        "ref": "space.075"
-      },
-      {
         "key": "size.medium.padding-y",
         "ref": "space.100"
       },
       {
-        "key": "size.large.padding-y",
-        "ref": "space.100"
+        "key": "size.small.padding-y",
+        "ref": "space.075"
       },
       {
-        "key": "size.small.gap",
+        "key": "size.large.padding-y",
         "ref": "space.100"
       },
       {
@@ -150,10 +152,16 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
         "ref": "space.100"
       },
       {
+        "key": "size.small.gap",
+        "ref": "space.100"
+      },
+      {
         "key": "size.large.gap",
         "ref": "space.150"
       }
     ],
+    "page": "Buttons",
+    "section": "Components",
     "buildable": true,
     "reason": null,
     "members": 576,
@@ -171,11 +179,11 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "unit": "variants",
     "spacing": [
       {
-        "key": "size.small.padding-x",
+        "key": "size.medium.padding-x",
         "ref": "space.200"
       },
       {
-        "key": "size.medium.padding-x",
+        "key": "size.small.padding-x",
         "ref": "space.200"
       },
       {
@@ -183,11 +191,11 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
         "ref": "space.300"
       },
       {
-        "key": "size.small.padding-x-visual",
+        "key": "size.medium.padding-x-visual",
         "ref": "space.150"
       },
       {
-        "key": "size.medium.padding-x-visual",
+        "key": "size.small.padding-x-visual",
         "ref": "space.150"
       },
       {
@@ -195,19 +203,15 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
         "ref": "space.200"
       },
       {
-        "key": "size.small.padding-y",
-        "ref": "space.075"
-      },
-      {
         "key": "size.medium.padding-y",
         "ref": "space.100"
       },
       {
-        "key": "size.large.padding-y",
-        "ref": "space.100"
+        "key": "size.small.padding-y",
+        "ref": "space.075"
       },
       {
-        "key": "size.small.gap",
+        "key": "size.large.padding-y",
         "ref": "space.100"
       },
       {
@@ -215,10 +219,16 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
         "ref": "space.100"
       },
       {
+        "key": "size.small.gap",
+        "ref": "space.100"
+      },
+      {
         "key": "size.large.gap",
         "ref": "space.150"
       }
     ],
+    "page": "Buttons",
+    "section": "Components",
     "buildable": true,
     "reason": null,
     "members": 576,
@@ -235,6 +245,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "summary": "Icon-only action. Needs an accessible name.",
     "unit": "variants",
     "spacing": [],
+    "page": "Icon button",
+    "section": "Components",
     "buildable": true,
     "reason": null,
     "members": 216,
@@ -251,6 +263,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "summary": "Icon-only destructive action. Needs an accessible name.",
     "unit": "variants",
     "spacing": [],
+    "page": "Icon button",
+    "section": "Components",
     "buildable": true,
     "reason": null,
     "members": 216,
@@ -267,6 +281,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "summary": "Icon-only action with no brand emphasis. Needs an accessible name.",
     "unit": "variants",
     "spacing": [],
+    "page": "Icon button",
+    "section": "Components",
     "buildable": true,
     "reason": null,
     "members": 216,
@@ -283,6 +299,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "summary": "Icon-only brand action inside a component: a bare glyph or a light circle. Needs an accessible name.",
     "unit": "variants",
     "spacing": [],
+    "page": "Flush Icon Button",
+    "section": "Subcomponents",
     "buildable": true,
     "reason": null,
     "members": 30,
@@ -298,6 +316,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "summary": "Icon-only destructive action in a component: a bare glyph or light circle. Needs an accessible name.",
     "unit": "variants",
     "spacing": [],
+    "page": "Flush Icon Button",
+    "section": "Subcomponents",
     "buildable": true,
     "reason": null,
     "members": 30,
@@ -313,6 +333,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "summary": "Icon-only action inside another component: a bare glyph or a light circle. Needs an accessible name.",
     "unit": "variants",
     "spacing": [],
+    "page": "Flush Icon Button",
+    "section": "Subcomponents",
     "buildable": true,
     "reason": null,
     "members": 30,
@@ -328,6 +350,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "summary": "Visible label that names a field, with an optional required marker.",
     "unit": "variants",
     "spacing": [],
+    "page": "Field Label",
+    "section": "Subcomponents",
     "buildable": true,
     "reason": null,
     "members": 24,
@@ -340,6 +364,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "summary": "Helper or validation caption below a field; status sets its icon and ink.",
     "unit": "variants",
     "spacing": [],
+    "page": "Field Message",
+    "section": "Subcomponents",
     "buildable": true,
     "reason": null,
     "members": 4,
@@ -391,6 +417,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
         "ref": "space.100"
       }
     ],
+    "page": "Text field",
+    "section": "Components",
     "buildable": true,
     "reason": null,
     "members": 84,
@@ -433,6 +461,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
         "ref": "space.100"
       }
     ],
+    "page": "Textarea",
+    "section": "Components",
     "buildable": true,
     "reason": null,
     "members": 84,
@@ -450,6 +480,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "summary": "Checkbox box with check/dash glyph and focus ring. Nested by Checkbox.Row; no label.",
     "unit": "variants",
     "spacing": [],
+    "page": "Checkbox",
+    "section": "Components",
     "buildable": true,
     "reason": null,
     "members": 54,
@@ -466,11 +498,11 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "unit": "variants",
     "spacing": [
       {
-        "key": "size.small.gap",
+        "key": "size.medium.gap",
         "ref": "space.100"
       },
       {
-        "key": "size.medium.gap",
+        "key": "size.small.gap",
         "ref": "space.100"
       },
       {
@@ -478,6 +510,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
         "ref": "space.150"
       }
     ],
+    "page": "Checkbox",
+    "section": "Components",
     "buildable": true,
     "reason": null,
     "members": 3,
@@ -492,6 +526,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "summary": "Labeled stack of Checkbox rows. Owns the value array, required and validation.",
     "unit": "variants",
     "spacing": [],
+    "page": "Checkbox",
+    "section": "Components",
     "buildable": true,
     "reason": null,
     "members": 3,
@@ -507,6 +543,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "summary": "Outlined radio ring; dot and brand ring on select. Nested by Radio.Row; no label.",
     "unit": "variants",
     "spacing": [],
+    "page": "Radio",
+    "section": "Components",
     "buildable": true,
     "reason": null,
     "members": 30,
@@ -522,11 +560,11 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "unit": "variants",
     "spacing": [
       {
-        "key": "size.small.gap",
+        "key": "size.medium.gap",
         "ref": "space.100"
       },
       {
-        "key": "size.medium.gap",
+        "key": "size.small.gap",
         "ref": "space.100"
       },
       {
@@ -534,6 +572,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
         "ref": "space.150"
       }
     ],
+    "page": "Radio",
+    "section": "Components",
     "buildable": true,
     "reason": null,
     "members": 3,
@@ -548,6 +588,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "summary": "Labeled stack of Radio rows. Owns the shared name, one value and validation.",
     "unit": "variants",
     "spacing": [],
+    "page": "Radio",
+    "section": "Components",
     "buildable": true,
     "reason": null,
     "members": 3,
@@ -563,6 +605,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "summary": "Switch track, thumb, state glyph and focus ring. Nested by Switch.Row; no label.",
     "unit": "variants",
     "spacing": [],
+    "page": "Switch",
+    "section": "Components",
     "buildable": true,
     "reason": null,
     "members": 24,
@@ -579,14 +623,16 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "unit": "variants",
     "spacing": [
       {
-        "key": "size.small.gap",
+        "key": "size.medium.gap",
         "ref": "space.100"
       },
       {
-        "key": "size.medium.gap",
+        "key": "size.small.gap",
         "ref": "space.100"
       }
     ],
+    "page": "Switch",
+    "section": "Components",
     "buildable": true,
     "reason": null,
     "members": 2,
@@ -638,6 +684,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
         "ref": "space.100"
       }
     ],
+    "page": "Select",
+    "section": "Components",
     "buildable": true,
     "reason": null,
     "members": 84,
@@ -655,6 +703,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "summary": "Wash over media so text stays legible, solid or fading from one edge. Verify contrast.",
     "unit": "variants",
     "spacing": [],
+    "page": "Veil",
+    "section": "Components",
     "buildable": true,
     "reason": null,
     "members": 30,
@@ -667,6 +717,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "summary": "Empty media frame locked to a ratio, from 2:3 portrait to 16:9. Drop an image fill onto it.",
     "unit": "variants",
     "spacing": [],
+    "page": "Image Placeholder",
+    "section": "Subcomponents",
     "buildable": true,
     "reason": null,
     "members": 7,
@@ -681,6 +733,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "summary": "Indeterminate loading indicator on the icon ladder. Announces \"Loading\" unless its host hides it.",
     "unit": "components",
     "spacing": [],
+    "page": "Spinner",
+    "section": "Subcomponents",
     "buildable": true,
     "reason": null,
     "members": 4,
@@ -693,6 +747,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "summary": "A static status label, count or dot. Nothing to click, and color is never the only signal.",
     "unit": "variants",
     "spacing": [],
+    "page": "Badge",
+    "section": "Components",
     "buildable": true,
     "reason": null,
     "members": 20,
@@ -706,55 +762,51 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "unit": "variants",
     "spacing": [
       {
-        "key": "size.small.padding-x",
-        "ref": "space.100"
-      },
-      {
         "key": "size.medium.padding-x",
         "ref": "space.150"
+      },
+      {
+        "key": "size.small.padding-x",
+        "ref": "space.100"
       },
       {
         "key": "size.large.padding-x",
         "ref": "space.200"
       },
       {
-        "key": "size.small.select.gap",
-        "ref": "space.075"
-      },
-      {
         "key": "size.medium.select.gap",
         "ref": "space.100"
+      },
+      {
+        "key": "size.small.select.gap",
+        "ref": "space.075"
       },
       {
         "key": "size.large.select.gap",
         "ref": "space.150"
       },
       {
-        "key": "size.small.dismissible.visible-gap",
-        "ref": "space.075"
-      },
-      {
         "key": "size.medium.dismissible.visible-gap",
         "ref": "space.100"
+      },
+      {
+        "key": "size.small.dismissible.visible-gap",
+        "ref": "space.075"
       },
       {
         "key": "size.large.dismissible.visible-gap",
         "ref": "space.100"
       },
       {
-        "key": "size.small.check-gap",
-        "ref": "space.050"
-      },
-      {
         "key": "size.medium.check-gap",
         "ref": "space.075"
       },
       {
-        "key": "size.large.check-gap",
-        "ref": "space.100"
+        "key": "size.small.check-gap",
+        "ref": "space.050"
       },
       {
-        "key": "size.small.select.padding-end",
+        "key": "size.large.check-gap",
         "ref": "space.100"
       },
       {
@@ -762,10 +814,16 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
         "ref": "space.150"
       },
       {
+        "key": "size.small.select.padding-end",
+        "ref": "space.100"
+      },
+      {
         "key": "size.large.select.padding-end",
         "ref": "space.200"
       }
     ],
+    "page": "Tag",
+    "section": "Components",
     "buildable": true,
     "reason": null,
     "members": 45,
@@ -782,30 +840,32 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "unit": "variants",
     "spacing": [
       {
-        "key": "size.small.padding-x",
-        "ref": "space.150"
-      },
-      {
         "key": "size.medium.padding-x",
         "ref": "space.200"
+      },
+      {
+        "key": "size.small.padding-x",
+        "ref": "space.150"
       },
       {
         "key": "size.large.padding-x",
         "ref": "space.250"
       },
       {
-        "key": "size.small.gap",
-        "ref": "space.075"
-      },
-      {
         "key": "size.medium.gap",
         "ref": "space.100"
+      },
+      {
+        "key": "size.small.gap",
+        "ref": "space.075"
       },
       {
         "key": "size.large.gap",
         "ref": "space.100"
       }
     ],
+    "page": "Tabs",
+    "section": "Components",
     "buildable": true,
     "reason": null,
     "members": 30,
@@ -822,6 +882,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "summary": "A row of tabs that switches between panels of related content in place.",
     "unit": "variants",
     "spacing": [],
+    "page": "Tabs",
+    "section": "Components",
     "buildable": true,
     "reason": null,
     "members": 6,
@@ -836,6 +898,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "summary": "A thin rule between groups of content. Horizontal or vertical, and it fills its container.",
     "unit": "variants",
     "spacing": [],
+    "page": "Divider",
+    "section": "Components",
     "buildable": true,
     "reason": null,
     "members": 5,
@@ -848,6 +912,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "summary": "The open or closed glyph inside an Accordion header: a chevron or a plus and minus.",
     "unit": "variants",
     "spacing": [],
+    "page": "Accordion",
+    "section": "Components",
     "buildable": true,
     "reason": null,
     "members": 12,
@@ -863,39 +929,43 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "unit": "variants",
     "spacing": [
       {
-        "key": "size.small.pad-x",
-        "ref": "space.150"
-      },
-      {
         "key": "size.medium.pad-x",
         "ref": "space.200"
+      },
+      {
+        "key": "size.small.pad-x",
+        "ref": "space.150"
       },
       {
         "key": "size.large.pad-x",
         "ref": "space.250"
       },
       {
-        "key": "size.small.pad-y",
-        "ref": "space.100"
-      },
-      {
         "key": "size.medium.pad-y",
         "ref": "space.150"
+      },
+      {
+        "key": "size.small.pad-y",
+        "ref": "space.100"
       },
       {
         "key": "size.large.pad-y",
         "ref": "space.200"
       },
       {
-        "key": "size.small.gap",
-        "ref": "space.100"
-      },
-      {
         "key": "size.medium.gap",
         "ref": "space.150"
       },
       {
+        "key": "size.small.gap",
+        "ref": "space.100"
+      },
+      {
         "key": "size.large.gap",
+        "ref": "space.200"
+      },
+      {
+        "key": "size.medium.panel-pad-end",
         "ref": "space.200"
       },
       {
@@ -903,14 +973,12 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
         "ref": "space.150"
       },
       {
-        "key": "size.medium.panel-pad-end",
-        "ref": "space.200"
-      },
-      {
         "key": "size.large.panel-pad-end",
         "ref": "space.300"
       }
     ],
+    "page": "Accordion",
+    "section": "Components",
     "buildable": true,
     "reason": null,
     "members": 24,
@@ -927,6 +995,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "summary": "One list item: a bullet, number or icon at a fixed indent, then text that wraps under itself.",
     "unit": "variants",
     "spacing": [],
+    "page": "List",
+    "section": "Components",
     "buildable": true,
     "reason": null,
     "members": 9,
@@ -942,18 +1012,20 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "unit": "variants",
     "spacing": [
       {
-        "key": "size.small.gap",
-        "ref": "space.100"
-      },
-      {
         "key": "size.medium.gap",
         "ref": "space.150"
+      },
+      {
+        "key": "size.small.gap",
+        "ref": "space.100"
       },
       {
         "key": "size.large.gap",
         "ref": "space.200"
       }
     ],
+    "page": "List",
+    "section": "Components",
     "buildable": true,
     "reason": null,
     "members": 9,
@@ -969,30 +1041,32 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "unit": "variants",
     "spacing": [
       {
-        "key": "size.small.padding-x",
-        "ref": "space.150"
-      },
-      {
         "key": "size.medium.padding-x",
         "ref": "space.200"
+      },
+      {
+        "key": "size.small.padding-x",
+        "ref": "space.150"
       },
       {
         "key": "size.large.padding-x",
         "ref": "space.250"
       },
       {
-        "key": "size.small.gap",
-        "ref": "space.075"
-      },
-      {
         "key": "size.medium.gap",
         "ref": "space.100"
+      },
+      {
+        "key": "size.small.gap",
+        "ref": "space.075"
       },
       {
         "key": "size.large.gap",
         "ref": "space.100"
       }
     ],
+    "page": "Segmented control",
+    "section": "Components",
     "buildable": true,
     "reason": null,
     "members": 30,
@@ -1008,6 +1082,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "summary": "A row of two to five options in one track, where exactly one is selected and all stay visible.",
     "unit": "variants",
     "spacing": [],
+    "page": "Segmented control",
+    "section": "Components",
     "buildable": true,
     "reason": null,
     "members": 3,
@@ -1024,11 +1100,11 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "unit": "variants",
     "spacing": [
       {
-        "key": "size.small.gap",
+        "key": "size.medium.gap",
         "ref": "space.050"
       },
       {
-        "key": "size.medium.gap",
+        "key": "size.small.gap",
         "ref": "space.050"
       },
       {
@@ -1036,6 +1112,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
         "ref": "space.100"
       }
     ],
+    "page": "Link",
+    "section": "Components",
     "buildable": true,
     "reason": null,
     "members": 96,
@@ -1045,19 +1123,38 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     ]
   },
   {
+    "id": "button-group",
+    "name": "Button.Group",
+    "category": "form",
+    "summary": "One to three buttons laid out together: in a row at the end, stacked, or sharing the width.",
+    "unit": "variants",
+    "spacing": [],
+    "page": "Buttons",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 3,
+    "nests": [
+      "button"
+    ]
+  },
+  {
     "id": "dialog",
     "name": "Dialog",
     "category": "overlay",
     "summary": "A panel over the page for a short task or a decision. Centered, a bottom sheet, or full screen.",
     "unit": "variants",
     "spacing": [],
+    "page": "Dialog",
+    "section": "Components",
     "buildable": true,
     "reason": null,
     "members": 15,
     "nests": [
-      "icon-button-neutral",
+      "flush-icon-button-neutral",
+      "icon",
       "divider",
-      "button"
+      "button-group"
     ]
   },
   {
@@ -1104,6 +1201,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
         "ref": "space.100"
       }
     ],
+    "page": "Password field",
+    "section": "Components",
     "buildable": true,
     "reason": null,
     "members": 84,
@@ -1116,40 +1215,23 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     ]
   },
   {
-    "id": "toast",
-    "name": "Toast",
-    "category": "feedback",
-    "summary": "A short status message over the page after an action. Announced politely; it never takes focus.",
+    "id": "counter",
+    "name": "Counter",
+    "category": "form",
+    "summary": "A whole-number quantity between a minus and a plus button, such as an item count in a bag.",
     "unit": "variants",
-    "spacing": [
-      {
-        "key": "pad-y",
-        "ref": "space.100"
-      },
-      {
-        "key": "pad-x",
-        "ref": "space.200"
-      },
-      {
-        "key": "pad-end",
-        "ref": "space.100"
-      },
-      {
-        "key": "gap",
-        "ref": "space.100"
-      },
-      {
-        "key": "glyph-gap",
-        "ref": "space.150"
-      }
-    ],
+    "spacing": [],
+    "page": "Counter",
+    "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 2,
+    "members": 18,
     "nests": [
-      "button",
-      "icon-button-neutral",
-      "icon"
+      "field-label",
+      "flush-icon-button-neutral",
+      "icon",
+      "field-message",
+      "focus-ring"
     ]
   }
 ];

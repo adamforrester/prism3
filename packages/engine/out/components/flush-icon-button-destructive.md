@@ -40,7 +40,7 @@ The accessible name is a verb naming the action ("Close", "Increase quantity"), 
 - **Purpose:** Trigger an action inside another component, with a bare glyph that sits flush with the content edge or a glyph in a light circle.
 - **Use when:** The minus and plus of a counter, a card's close, or any icon action inside a component. shape=flush where the glyph must line up with the content edge; shape=round where the buttons stand on their own beside a value.
 - **Avoid when:** The action is not destructive (use FlushIconButton, or FlushIconButton.Neutral for one with no brand emphasis). It stands on its own in a toolbar or a header (use IconButton.Destructive, which has a visible box). It would sit inside an element that is already a button, such as an accordion header or a tab. You cannot supply an accessible name.
-- **Often used with:** `icon`, `focus-ring`
+- **Often used with:** `icon`, `focus-ring`, `counter`
 
 ## Props
 
@@ -52,6 +52,7 @@ The accessible name is a verb naming the action ("Close", "Increase quantity"), 
 | `type` | enum: 'button' \| 'submit' \| 'reset' | `button` | no | Defaults to 'button', as Button does. The platform default is 'submit', so a flush icon button inside a form would submit it. |
 | `shape` | enum: 'flush' \| 'round' | `flush` | no | flush is the bare glyph, with no padding, fill or border, for a glyph that lines up with the content edge. round is a circle around the glyph with a light edge and a soft fill on hover and press, for a counter whose buttons stand on their own. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The glyph size: 20px at small and medium, 24px at large. A flush box is the glyph, with no padding. A round circle is 36, 44 or 56px across. The hit area in code is at least 44×44px at every size. |
+| `surface` | enum: 'default' \| 'inverse' | `default` | no | The ground the button sits on, following IconButton. `default` for a normal page; `inverse` for a dark or brand-filled card or band, where the glyph binds its `color.inverse.*` counterpart so it keeps contrast against the flipped surface. Flush has no fill, so the glyph ink is all the axis changes. A host that cannot know its ground picks `default`, and the designer sets `inverse` on the instance, the same answer the nested focus ring gives. |
 | `disabled` | boolean | `false` | no | Native disabled. Inside a component that sets it at a limit (a counter at its minimum), prefer aria-disabled so the button keeps its place in the accessibility tree. |
 
 ## States
@@ -63,7 +64,8 @@ The accessible name is a verb naming the action ("Close", "Increase quantity"), 
 | Axis | Values | Changes |
 | --- | --- | --- |
 | `shape` | `flush`, `round` | once, when authored |
-| `size` | `small`, `medium`, `large` | once, when authored |
+| `size` | `medium`, `small`, `large` | once, when authored |
+| `surface` | `default`, `inverse` | once, when authored |
 
 ## Accessibility
 
@@ -88,7 +90,7 @@ The accessible name is a verb naming the action ("Close", "Increase quantity"), 
 
 - **Composes with:** `focus-ring`
 - **Alternative to:** `icon-button-destructive`
-- **Planned:** `counter`, `number-input`, `card`
+- **Planned:** `number-input`, `card`
 - **Replaces:**
   - an \<svg> with a click handler and no button
   - an IconButton with its padding overridden to zero

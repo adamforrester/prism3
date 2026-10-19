@@ -42,7 +42,7 @@ Short and factual: the outcome, not a conversation. The glyph carries the tone, 
 - **Purpose:** Confirm the user's own action with a short status over the page that is safe to miss.
 - **Use when:** After an action whose result the page already shows ("Added to bag", "Address saved"), when a brief, polite confirmation helps and missing it costs nothing.
 - **Avoid when:** The message is an error, a warning or anything the user must see (a banner); it asks for a decision (a dialog); it is about one field (a field message); or its action has no other route on the page.
-- **Often used with:** `button`, `icon-button-neutral`, `field-message`, `dialog`
+- **Often used with:** `button`, `flush-icon-button-neutral`, `field-message`, `dialog`
 
 ## Props
 
@@ -90,7 +90,7 @@ None — not interactive.
 
 ## Composition
 
-- **Composes with:** `button`, `icon-button-neutral`
+- **Composes with:** `button`, `flush-icon-button-neutral`
 - **Alternative to:** `dialog`, `field-message`
 - **Planned:** `banner`
 - **Replaces:**

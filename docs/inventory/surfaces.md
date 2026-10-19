@@ -366,7 +366,7 @@ Group order/labels: `levers.ts:219-227`. `id`/`root` are host-supplied identity,
 | `bar.ts` (508) | Brand switcher + menu (examples, "+ New brand", "↑ Import design.md…"), Export tile + dialog, plugin Apply Theme, prune review | `bar.ts:1-20,157-166,288` |
 | `preview.ts` (329) | Preview header: mode radio group, Inspect menu (Contrast/Tokens/Decisions log), verdict; build stamp at foot of Inspect menu | `preview.ts:1-16,243-251` |
 | `activity.ts` (696) | Activity drawer: one row per operation (Apply Theme, Build set, Set up file, Style guides, Prune stale, Read-back) | `activity.ts:5-9` |
-| `figma.ts` (109) | Figma menu (plugin only): Prune stale, Set up file, Build set…, Build style guides… | `figma.ts:1-13`; `apps/studio/src/main.ts:1778-1786` |
+| `figma.ts` (109) | Figma menu (plugin only): Prune stale, Set up file, Build sets…, Build style guides… | `figma.ts:1-13`; `apps/studio/src/main.ts:1778-1786` |
 | `theme.ts` (87) | Chrome theme: web Light/Dark/System in `localStorage`; plugin Match Figma/Light/Dark via `figma.clientStorage` | `theme.ts:5-12,25-29` |
 | `start.ts` (275) | Start window: 3 cards — "Start from your color" (+ Start blank), "Explore an example", "Import a design.md" | `start.ts:155,190,206` |
 | `style-guides.ts` (614) | Build style guides page (plugin only) | `style-guides.ts:1-5` |

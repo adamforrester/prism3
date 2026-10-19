@@ -9,7 +9,7 @@ for this build.
 
 - **2 members** on an `intent` axis, `neutral | success`, neutral first (the code default, so Figma's first member is
   the code default too). No size axis and no state axis: a toast is not interactive, and its nested controls carry
-  their own states and prototype reactions (Q344 applies inside the nested Button and IconButton.Neutral sets, with
+  their own states and prototype reactions (Q344 applies inside the nested Button and FlushIconButton.Neutral sets, with
   nothing authored here).
 - **The card** is the inverse surface, `color.inverse.background.primary`, `shadow.lg` as an effect style,
   `radius.xl`, padding 8 / 16 / 8 (block, inline start, inline end), built 360 wide (`placementWidth`) and hugging its
@@ -17,20 +17,23 @@ for this build.
 - **Content:** success adds `check-circle` on `color.inverse.icon.success` at `icon.size.sm`, 12px from the message;
   neutral has no glyph. The message is `type.body.md.default` on `color.inverse.text.primary` and wraps.
 - **Controls**, 4px apart at the end edge: the action, a nested Button (text, small, `surface: inverse`), off by
-  default and reading "Action" through a nested-instance override; the close, a nested IconButton.Neutral (ghost,
-  small, square, `surface: inverse`), on by default, showing the close glyph through a swap override.
+  default and reading "Action" through a nested-instance override; the close, a nested FlushIconButton.Neutral (flush,
+  small, `surface: inverse`), on by default, showing the close glyph through a swap override.
 - **Figma properties:** `message` ("Status message"), `action` (off), `close` (on). All lowercase (Q345).
 - **Code-side, in `codeOnly`:** the `Toaster` region and `toast()` API, the one shared polite live region present
   from app start, no focus steal, placement (bottom center below 768px, the bottom inline-end corner from 768px),
   one at a time with the newest replacing, the timer (6000ms default, 5000ms floor, pausing on hover, focus and a
   hidden window; no timer with an action), F6 in and Escape or Shift+F6 out, `scroll-padding-bottom`, motion.
 
-### The one place this departs from the build brief (held for the owner)
+### The close follows Q386 (held for the owner)
 
-The build brief named "Button / Flush icon button" for the nests. The approved proposal names IconButton.Neutral for
-the close and says why not FlushIconButton: it has no inverse surface. That still holds on main:
-FlushIconButton.Neutral's glyph is `color.interactive.neutral.icon.rest`, the default-ground ink, dark on the dark
-card in light mode. This build follows the approved proposal. Also held: the 8px gap between the message and the
+The build brief named "Button / Flush icon button" for the nests and the approved proposal named IconButton.Neutral,
+because FlushIconButton had no inverse surface. Q386 (#2808) forbids a component to require a Neutral button family, and
+main's gate fails the IconButton.Neutral close, so the close is now FlushIconButton.Neutral, flush and small, as Dialog's
+close is (Q385 A). A flush glyph on the dark card would have been 1.00:1, so FlushIconButton gains a `surface` axis
+(`default | inverse`), appended last and following IconButton's: no fill, so the axis changes the glyph ink only, through
+the projector's existing `color.inverse.*` rewrite. Counter and Dialog name `surface: default` on their nests. The axis
+is the owner's call (Owner question on the PR). Also held: the 8px gap between the message and the
 controls (the proposal leaves it open; the wireframe draws 8px), and the action label living on the nested Button
 rather than as a Toast text property (a host text property can only drive the host's own text parts).
 
