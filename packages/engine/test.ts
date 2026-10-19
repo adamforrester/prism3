@@ -6390,7 +6390,7 @@ arm: {
       if (find(r, 'titleBox')?.visible === false) wrong.push(`${name} title hidden by default`);
     }
     ok(wrong.length === 0,
-      `banner members: each paints foreground.<tone>-subtle with a 1px border.<tone> edge, its tone's glyph in icon.<tone>, text.primary ink, radius md contained and none full, and nests a neutral outline and text action and a round close dismiss, all off${wrong.length ? ` — ${wrong.join('; ')}` : ''}`);
+      `banner members: each paints foreground.<tone>-subtle with a 1px border.<tone> edge, its tone's glyph in icon.<tone>, text.primary ink, radius md contained and none full, and nests a neutral outline and text action and a flush close dismiss, all off${wrong.length ? ` — ${wrong.join('; ')}` : ''}`);
     // Q346: an edge never binds an icon or text role. Read off the TOKENS too, so a border key on any coordinate counts.
     const badEdge = Object.entries(bannerDef.tokens).filter(([k, ref]) => /(^|\.)border$/.test(k) && !String(ref).startsWith('color.border.'));
     ok(badEdge.length === 0, `banner edge: every border key binds a color.border.* role (Q346)${badEdge.length ? ` — ${badEdge.map(([k, r]) => `${k} → ${r}`).join('; ')}` : ''}`);
