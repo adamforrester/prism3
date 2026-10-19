@@ -14081,6 +14081,52 @@ arm: {
   ok(unscopedBad.length === 0, `#2412 every TIMING and EASING row holds exactly ['ALL_SCOPES'], the only scope Figma lets it hold, in every brand and on every typed path (${unscopedSwept} rows)` + (unscopedBad.length ? ` — ${unscopedBad.length} wrong: ${unscopedBad.slice(0, 4).join('; ')}` : ''));
 }
 
+// (23c) #2736 — THE DTCG FONT HINT AGREES WITH THE FIGMA ROW. `$extensions.prism3.figma.scope` on a `core.font`
+// leaf names the one scope its Figma row carries, and an absent field means the row carries none. It ships in
+// every emitted tree, so a stale one tells a consumer a scope no Figma row has: it named FONT_SIZE and
+// FONT_WEIGHT after #2602 and #2616 had unscoped those rows. Two independent writers are compared, the DTCG tree
+// (`tree.ts`) and the Figma emission (`emit-figma-font.ts`, `core` collection, Default mode), by path, in nb and
+// every committed brief. A leaf with no Figma row (a `typeface` primitive) is not compared. The family, size and
+// numeric weight groups must each be REPRESENTED per brand, so an empty match passes over nothing by name.
+{
+  const briefs = readdirSync(resolve(HERE, './examples')).filter((f) => f.endsWith('.design.md')).sort();
+  const brands: Array<[string, Theme | undefined]> = [['nb', nbTheme()], ...briefs.map((file): [string, Theme | undefined] => [file, exampleTheme(file, () => {
+    const text = readFileSync(resolve(HERE, `./examples/${file}`), 'utf8');
+    const std = parseStandardDesignMd(text);
+    return brandTheme(isStandardDesignMd(std) ? standardToBrandInput(std).input : parseDesignMd(text).input);
+  })])];
+  const GROUPS_2736 = ['family', 'size', 'weight']; // literal
+  const bad: string[] = [], unrepresented: string[] = [];
+  let brandsSwept = 0, compared = 0;
+  for (const [id, th] of loadedRows(brands)) {
+    brandsSwept++;
+    const { tree } = buildTree(th!);
+    const root = Object.keys(tree)[0];
+    const rows = new Map<string, unknown>();
+    for (const a of figmaArtifacts(th!).artifacts) {
+      const f = JSON.parse(a.content);
+      if (f?.$collection !== 'core' || f?.$mode !== 'Default' || !Array.isArray(f?.variables)) continue;
+      for (const v of f.variables) rows.set(v.name, v.scopes);
+    }
+    const seen = new Set<string>();
+    const fontNode = (tree as any)[root]?.core?.font ?? {};
+    for (const g of GROUPS_2736) for (const [key, leaf] of Object.entries<any>(fontNode[g] ?? {})) {
+      if (key.startsWith('$') || !leaf?.$extensions?.prism3?.figma) continue;
+      const name = `${root}/core/font/${g}/${key}`;
+      if (!rows.has(name)) continue;
+      compared++; seen.add(g);
+      const hint = leaf.$extensions.prism3.figma.scope;
+      const want = JSON.stringify(rows.get(name));
+      if (JSON.stringify(hint === undefined ? [] : [hint]) !== want) bad.push(`${id} ${root}.core.font.${g}.${key}: figma.scope=${JSON.stringify(hint)}, row scopes=${want}`);
+    }
+    const missing = GROUPS_2736.filter((g) => !seen.has(g));
+    if (missing.length) unrepresented.push(`${id} [${missing.join(', ')}]`);
+  }
+  ok(brandsSwept >= 5 && compared > 0 && unrepresented.length === 0,
+    `#2736 sweep floor: ${brandsSwept} brand(s) (≥5), ${compared} DTCG font leaves compared to their Figma rows, family/size/weight each represented per brand` + (unrepresented.length ? ` — MISSING: ${unrepresented.slice(0, 4).join('; ')}` : ''));
+  ok(bad.length === 0, `#2736 every DTCG \`core.font\` leaf's figma.scope names the scope its emitted Figma row carries, absent where the row carries none (size and numeric weight), in every brand (${compared} leaves)` + (bad.length ? ` — ${bad.length} wrong: ${bad.slice(0, 3).join('; ')}` : ''));
+}
+
 // ----------------------------------------- component-definition schema (docs/14 §2, DRAFT v0)
 // Button, the first component def, validated against component-schema.ts — and its token
 // bindings resolved against TWO brands' generated trees. That proves the definition is
