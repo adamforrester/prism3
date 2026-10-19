@@ -10,9 +10,10 @@
  *
  *  · ITS OWN DEF (Q301.1 A), not a `reveal` option on TextField.
  *  · THE SHOW/HIDE BUTTON SITS ON THE LABEL ROW, end-aligned (Q301.2 B), outside the box. So the box has no
- *    trailing slot (`edge: 'toggle'`), and the label row grows to the button's height.
- *  · THE BUTTON IS A NESTED Button (Q301.3 B): text appearance, flush, primary intent, emphasis weight. It goes
- *    disabled with the field, stays live at read-only, and status never colors it.
+ *    trailing slot (`edge: 'toggle'`). The row is as tall as the label's line, not the button (#2804, Q380 A).
+ *  · THE BUTTON IS A NESTED Button (Q301.3 B): text appearance, flush, primary intent, emphasis weight, SMALL at
+ *    every field size (#2804, Q380 A). It goes disabled with the field, stays live at read-only, and status never
+ *    colors it.
  *  · NO VISIBILITY AXIS (Q301.6 A): size(3) × status(4) × state(7) = 84 members, TextField's count. The default
  *    member is the HIDDEN state, a masked value and "Show"; a designer overrides the value and the button's text for
  *    the shown look.
@@ -48,7 +49,7 @@ export const passwordField: ComponentDef = makeTextField({
     { name: 'autoComplete', type: "enum: 'current-password' | 'new-password'", values: ['current-password', 'new-password'], required: true, description: 'Required (SC 1.3.5): current-password on a sign-in form, new-password where the user sets one, so a password manager fills or offers to generate it. Never off.' },
     { name: 'leadingIcon', type: 'slot', required: false, description: 'An optional leading glyph before the value, aria-hidden and never the accessible name. Hidden by default; the file nominates the swap target.' },
     { name: 'isPending', type: 'boolean', default: false, required: false, description: 'Async validation in progress; sets aria-busy; does not block typing.' },
-    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'TextField\'s three tiers: the input type, the nested label and the Show/Hide button scale with it. Every size keeps the input\'s 44px target; the button\'s hit area is 44×44 at medium and large and 24×24 at small.' },
+    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'TextField\'s three tiers: the input type and the nested label scale with it. The Show/Hide button is small at every size, so the label row stays one label line tall. Every size keeps the input\'s 44px target; the button\'s hit area is 44×44 at medium and large and 24×24 at small, in code.' },
     { name: 'id', type: 'string', required: false, description: 'Wiring + form submission; auto-generated with useId if omitted. The Show/Hide button\'s aria-controls names it.' },
     { name: 'name', type: 'string', required: false, description: 'A real <input name>, so the field works in a native <form> and a password manager recognizes it.' },
   ],
@@ -67,7 +68,7 @@ export const passwordField: ComponentDef = makeTextField({
     'BACK TO HIDDEN ON SUBMIT (owner decision Q301.7 A) — the field returns to `type="password"` when its form submits, so a browser never stores or restores the value as plain text.',
     'ONE TOGGLE ONLY — the browser\'s own reveal button is hidden (`input::-ms-reveal { display: none }`), so the field never shows two.',
     'the INPUT\'S ATTRIBUTES — `autocomplete` is required, `current-password` or `new-password`, and never `off` (SC 1.3.5). Paste is never blocked: blocking it fails SC 3.3.8 Accessible Authentication, and a password manager needs it. `spellcheck="false"` and `autocapitalize="none"`, so the value is not sent to a spelling service or changed by the keyboard. `passwordrules` passes through when the host provides one.',
-    'the BUTTON\'S HIT AREA — Figma draws the flush button at its label\'s width. In code the flush button\'s hit area is at least 44×44 at medium and large sizes and at least 24×24 at small, through a transparent `::before` inset outward (Button\'s flush rule, #2408), so the label row does not move.',
+    'the LABEL ROW\'S HEIGHT and the BUTTON\'S HIT AREA (#2804, owner decision Q380 A) — the button is a small Button at every field size, and the row is one label line tall: 18px for a small field, 21 for a medium one and 24 for a large one. In Figma the button stretches to the row. In code the button inside the row sets `block-size: auto` and `padding-block: 0`, so it is one line of its 14px label and the row takes the label\'s height. Figma draws the flush button at its label\'s width. In code the flush button\'s hit area is at least 44×44 at medium and large sizes, and at least 24×24 at small, through a transparent `::before` inset outward (Button\'s flush rule, #2408), so the label row does not move. At medium and large the row (21 and 24px) is shorter than 44, so the extension is ANCHORED: its bottom edge sits on the label row\'s bottom edge and it reaches up and sideways, never down into the input box (a centered 44 would reach 3.5 and 2px into the box). At small the 24×24 is centered and reaches 3px past the row, inside the 8px gap above the box. Either way it never overlaps the input\'s target.',
     'RIGHT TO LEFT — the label row mirrors, so the button sits at the row\'s left end; the masked value follows the input\'s direction.',
     'the label / describedby WIRING — the host generates ids (useId), ties the FieldLabel to the input, stitches the FieldMessage into aria-describedby, and sets aria-invalid on error. Figma has no accessibility tree and no node-to-node reference, so the nested label and message sit near the input and are associated by proximity alone (the same ceiling `field-label` and `field-message` each hit).',
     'the nested LABEL\'s disabled dimming — the field fixes the FieldLabel to `state=rest` because field-label\'s state vocabulary (rest / disabled) is not the field\'s, so it cannot be followed by value. In code a disabled field dims its label; in Figma the nested label reads at its rest configuration regardless. A projection limit, not a design choice.',
@@ -137,10 +138,13 @@ export const passwordField: ComponentDef = makeTextField({
 
   notes: {
     contested: [
-      'The button\'s position (owner decision Q301.2 B): on the label row, end-aligned, rather than beside the box (A) or below the field (C). The label row grows to the button\'s height; the button\'s code hit area does not move the row.',
+      'The button\'s position (owner decision Q301.2 B): on the label row, end-aligned, rather than beside the box (A) or below the field (C). The button\'s code hit area does not move the row.',
+      'The button\'s size and the row\'s height (owner decision Q380 A, #2804): a small text Button at every field size, and a row one label line tall, rather than a button that follows the field\'s size and a row as tall as the button (36, 44 and 56px at small, medium and large). The label now sits 8px above the box at every size, where TextField\'s label sits, instead of 17, 19.5 and 24px. Link was considered for the control and declined: Show is an action, so it is a button for assistive tech (WCAG 4.1.2); the text appearance gives it the link look.',
+      'The button\'s code-side hit area at medium and large (owner question on #2809, option A built): 44×44, anchored so its bottom edge sits on the label row\'s bottom edge, which keeps Button\'s 44 floor for a nested flush Button (#1741, Q170 B) without reaching into the input box. The alternatives: 24×24 at every size as a named exception to the floor (B), or a row that grows to 44 on coarse pointers only (C).',
       'A changing name versus aria-pressed (owner decision Q301.5 A): the name changes Show/Hide and a polite announcement says the new state. The constant name with aria-pressed was declined, because the visible text could not then change to "Hide".',
     ],
     unverified: [
+      'The button stretches to the label row (`STRETCH`, #2804) while Button\'s own height is bound to a 36px size. That a live host lets the row hug the label alone and sizes the instance to the row, with its label centered and not clipped, is modeled offline only.',
       'The nested button\'s text is set to "Show" on every member by a property override on the nested instance (`nestTexts`). Whether the live host keeps that override when a designer swaps a placed field\'s variant is the standing nesting caveat.',
     ],
     evolution: [

@@ -38,7 +38,7 @@ Write the label as a noun or noun phrase in sentence case, three words or fewer,
 - **Purpose:** Name a form field visibly and programmatically.
 - **Use when:** Above every field control — the accessible name for the input.
 - **Avoid when:** As a section heading or standalone text (use a heading) — this is bound to one control via htmlFor. Never omit it in favor of a placeholder.
-- **Often used with:** `text-field`, `password-field`, `textarea`, `select`, `checkbox-group`, `radio-group`, `segmented-control`, `field-message`
+- **Often used with:** `text-field`, `password-field`, `textarea`, `select`, `checkbox-group`, `radio-group`, `segmented-control`, `counter`, `field-message`
 
 ## Props
 

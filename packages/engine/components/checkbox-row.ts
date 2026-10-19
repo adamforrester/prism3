@@ -120,11 +120,13 @@ export const checkboxRow: ComponentDef = {
 
   // THE DELTA ONLY (brief §3, §15). The form-field substrate — `description`/helper, `error`, the
   // aria-describedby wiring, `name`, `id`, `required`, `disabled`, `readOnly`, `onFocus`/`onBlur` — is
-  // `text-field`'s and is not restated. Five exceptions, each because the substrate's version is
+  // `text-field`'s and is not restated. Six exceptions, each because the substrate's version is
   // genuinely a different prop here: `label` (three differences, see the header), `description` (the
   // brief restates it for the row, and `radio-row` carries it — #1698 made the family agree), `onChange`
   // (yields a boolean, not a string), `size` (the gate reads the ladder — see below), and `readOnly`,
-  // restated only to carry the caveat that it has no native support on this element.
+  // restated only to carry the caveat that it has no native support on this element. And `disabled`
+  // (owner decision Q351 A on #2706): a consumer disables a labeled checkbox, not its box, so the Row
+  // restates it in Text field's shape rather than leaving it to the nested control.
   props: [
     { name: 'checked', type: 'boolean', required: false, description: 'The controlled binary. Pair with onChange; use defaultChecked for the uncontrolled form. Named for the DOM attribute rather than the framework idiom — checked, not isChecked/isSelected. Inside a Checkbox.Group this is derived from the group\'s value array and a consumer should not also wire it here.' },
     { name: 'defaultChecked', type: 'boolean', default: false, required: false, description: 'Uncontrolled initial value. Never true for a consent checkbox — pre-checked consent is a dark pattern and, for marketing consent, often unlawful.' },
@@ -133,6 +135,7 @@ export const checkboxRow: ComponentDef = {
     { name: 'description', type: 'node', required: false, description: 'Optional helper beneath the label, describedby-wired — the detail that qualifies the choice without lengthening the label.' },
     { name: 'onChange', type: '(checked: boolean, event) => void', required: false, description: 'Restated rather than inherited: the substrate\'s change yields a string, this one yields the resulting boolean alongside the event.' },
     { name: 'value', type: 'string', required: false, description: 'The string submitted when checked (the platform default is "on"), and the element this row contributes to a Checkbox.Group\'s array. An unchecked box submits nothing at all rather than a false value — the missing-key trap.' },
+    { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Native disabled: removed from the tab order, not submitted, contrast-exempt. Disables the whole row: the nested control takes its disabled skin and the label dims. Reserve for an option that does not apply in the current state.' },
     { name: 'readOnly', type: 'boolean', default: false, required: false, description: 'Restated only for the caveat: <input type="checkbox"> has no working readonly — only disabled — so a genuinely read-only checkbox needs aria-readonly plus a prevented toggle, or is better rendered as static text. Decide which explicitly; the default of doing neither is a control that looks interactive and silently is not.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Scales the control square, the label\'s type ramp, the box↔label gap and the row\'s minimum height. The square reads control.size.<rung>.height on both axes — square by construction rather than by two tokens agreeing — and not icon.size.*, which is 16/20/24 in every brand the engine ships and so would hold a control rigid that should move with brand density.' },
   ],

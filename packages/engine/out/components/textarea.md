@@ -52,8 +52,11 @@ Counter reads "240 / 280" or "40 characters remaining"; over-limit reads "12 cha
 
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
+| `label` | string \| node | — | yes | The visible, persistent label (rendered as FieldLabel). Required — a visually-hidden label is the only label-less case, and it still exists in the DOM. Never the placeholder. The same prop as TextField's. |
 | `value` | string | — | no | Controlled value; pair with onChange. The same prop as TextField's. |
+| `onChange` | function | — | no | Change handler (also onBlur / onFocus). The same prop as TextField's. |
 | `placeholder` | string | — | no | An example only; vanishes on input; nothing load-bearing lives here. The same prop as TextField's. |
+| `helpText` | string \| node | — | no | Persistent guidance (rendered as FieldMessage, default status); wired via aria-describedby. Show the format and any length limit before failure. The same prop as TextField's. |
 | `showMessage` | boolean | `true` | no | Whether the composed FieldMessage is shown. On, the default, renders the helper or validation message below the field; turning it off hides the message entirely. The same prop as TextField's. Never hides a message the field needs. |
 | `rows` | number | `3` | no | Initial and minimum height, in lines not pixels — a line count recomputes against the current line-height when the user raises their font size, where a pixel floor does not. Also a content cue: two rows signals brevity, six signals "write more". cols is dead on the web; width comes from CSS. |
 | `resize` | enum: 'none' \| 'vertical' \| 'auto' | `vertical` | no | The sizing model in one prop, so two props cannot contradict each other. vertical (the drag handle) for standalone form fields; auto (grow within minRows/maxRows) for composers; none where layout stability wins. Never horizontal or both — altering the inline dimension shatters grid and flex layouts for no user gain. |
@@ -65,7 +68,13 @@ Counter reads "240 / 280" or "40 characters remaining"; over-limit reads "12 cha
 | `submitOnEnter` | boolean | `false` | no | Composer opt-in: Enter submits, Shift+Enter inserts a newline. Not the base default — Enter inserting a newline is the platform contract a multi-line field advertises via aria-multiline, and hijacking it silently can lose a screen-reader user a drafted message. Whenever true, pair it with a real visible submit button and a visible "Shift+Enter for a new line" hint (SC 3.3.2). A composer that submits on Enter by default is its own specialization, named MessageComposer or ChatInput, not this base field. |
 | `validation` | enum: 'default' \| 'error' \| 'warning' \| 'success' | `default` | no | The validation state. Each non-default status swaps the field border to its own boundary (border-only — error → danger, warning → warning, success → success) and sets the composed message to the matching status; default is neutral. error also sets aria-invalid. The same prop, with the same values, as TextField and Select. |
 | `validationMessage` | string \| node | — | no | The validation text shown at error / warning / success, added to aria-describedby. For error, say what is wrong and how to fix it, with the number when it is a length limit (SC 3.3.3), never "Invalid". |
+| `required` | boolean | `false` | no | Sets required / aria-required, and turns on the FieldLabel's required marker. The same prop as TextField's. |
+| `disabled` | boolean | `false` | no | Native disabled — removed from tab order, not submitted, silent to assistive tech, contrast-exempt. Reserve for fields irrelevant in the current state. The same prop as TextField's. |
+| `readOnly` | boolean | `false` | no | Distinct from disabled: focusable, selectable and copyable, submitted with the form, and passes contrast. Use for text the user may read or copy but not edit (a submitted message, a generated summary). The same prop as TextField's. |
+| `isPending` | boolean | `false` | no | Content arriving asynchronously, such as a draft streaming into the field: sets aria-busy; does not block typing unless intended. The same prop as TextField's. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | Scales the value type with the field (small 14px, medium 16px, large 18px, from type.body.sm, md and lg), the nested label one step below it (12 / 14 / 16), and the padding. Not the height: that belongs to rows / auto-grow, so the reserved rows grow with the type's line height. small is for fine pointers only: on a coarse pointer (@media (pointer: coarse)) the code sets the small textarea to 16px, because iOS Safari zooms the page when it focuses a field under 16px. The same prop, with the same values, as TextField and Select. |
+| `id` | string | — | no | Wiring + form submission; auto-generated with useId if omitted, tying label→textarea and the aria-describedby chain. The same prop as TextField's. |
+| `name` | string | — | no | A real \<textarea name> so the field works uncontrolled, in a native \<form>, with useFormStatus / Server Actions, and the Constraint Validation API. The same prop as TextField's. |
 
 ## States
 

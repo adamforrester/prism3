@@ -110,13 +110,17 @@ export const radioRow: ComponentDef = {
   description:
     'A control for choosing exactly one from a small set of mutually exclusive, all-visible options — 2 to about 7, where seeing them all aids the decision. Radio.Row is the labeled option: it nests a Radio.Control (the outlined circle and its inner selection dot) and carries the option label, with the whole row as the hit target. The group is a separate component and is mandatory, because a lone radio is meaningless: it owns the shared name that enforces exclusivity, the single selected value, the single tab stop, and all validation. Selection is derived from the group, never held here. Not any-number selection (Checkbox.Row), not an immediate on/off (Switch.Row), not the same choice collapsed (Select) or in a compact skin (SegmentedControl).',
 
-  // THE DELTA ONLY. The form-field substrate reaches this def through `checkbox` and is not restated.
+  // THE DELTA ONLY. The form-field substrate reaches this def through `checkbox` and is not restated,
+  // except `disabled` and `readOnly` (owner decision Q351 A on #2706): a consumer disables or locks a
+  // labeled option, not its circle. `disabled` takes Text field's shape and `readOnly` Checkbox.Row's.
   // FOUR PROPS ARE DELIBERATELY ABSENT — `checked`, `onChange` and `name` all live on the group (see
   // the header), and `error` is group-level only (#1698, decision 1); `props` cannot express an absence, so `docs.dont` carries it too.
   props: [
     { name: 'value', type: 'string', required: true, description: 'Required, where Checkbox.Row\'s is optional. This is the option\'s identity within its group, not a string that happens to be submitted. Selection is derived from it: checked = (group.value === props.value). The option never holds a boolean of its own.' },
     { name: 'label', type: 'node', required: false, description: 'Rich content, inline-end of the control, and part of the hit target — the Checkbox.Row label model, inherited. Option labels are parallel, mutually exclusive and brief: the same grammatical shape across the set, with no overlap that would make two options both apply. Long labels wrap rather than truncate, with the control centered within the first line-box so it stays on the first line. Per-option detail or price belongs in description, not in the label.' },
     { name: 'description', type: 'node', required: false, description: 'Per-option helper beneath the label, describedby-wired. This is where the detail that makes an option distinguishable goes — the price, the delivery estimate, the caveat.' },
+    { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Native disabled: removed from the tab order, not submitted, contrast-exempt. Disables the whole row: the nested control takes its disabled skin and the label dims. Reserve for an option that does not apply in the current state.' },
+    { name: 'readOnly', type: 'boolean', default: false, required: false, description: 'Restated for the caveat Checkbox.Row carries: <input type="radio"> has no working readonly, only disabled, so a genuinely read-only option needs aria-readonly plus a prevented change, or is better rendered as static text. Usually set on every option of a group at once. Decide which explicitly; the default of doing neither is a control that looks interactive and silently is not.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Scales the row — the control-to-label gap, the row\'s minimum height, the label\'s type — and is passed through to the nested Radio.Control by follow, scaling the circle\'s diameter and the inner dot\'s.' },
   ],
 

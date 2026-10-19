@@ -42,13 +42,13 @@ import { scaffoldSkeleton, resolveComponentPage } from './file-setup';
 import { ensureFileComponents } from './file-components';
 import { ensureStyleGuideCells } from './style-guide-cells';
 import type { CellsApi } from './style-guide-cells';
-import { runStyleGuide, styleGuideSummary, readCatalog, catalogFor, isSetUp } from './style-guide';
+import { runStyleGuide, removeRetiredTables, styleGuideSummary, readCatalog, catalogFor, isSetUp } from './style-guide';
 import type { SgContract } from './style-guide';
 import { resolveAllModes } from '@prism3/engine/modes';
 import { TAXONOMY } from './file-taxonomy';
 import { ensurePageHeader, pageHeaderCopy, pageHeaderItems } from './page-header';
 import type { PageHeaderOutcome, HeaderPage } from './page-header';
-import { hasFurniture, clearFurniture, drawFurniture, furnitureLayout, furnitureItems, withFurnitureItems, withTemplateWarning, readTag, staleFurniture, pruneFurniture, furniturePruneText, FURNITURE_NS, FURNITURE_KEY } from './canvas-furniture';
+import { hasFurniture, clearFurniture, drawFurniture, furnishUpdate, furnitureLayout, furnitureItems, withFurnitureItems, withTemplateWarning, readTag, staleFurniture, pruneFurniture, furniturePruneText, FURNITURE_NS, FURNITURE_KEY } from './canvas-furniture';
 import type { FurnitureApi, FurnitureOutcome, FurnitureParent, FurnitureTag, XNode } from './canvas-furniture';
 import { ensureFurnitureTemplates } from './furniture-templates';
 import type { TemplatesApi } from './furniture-templates';
@@ -946,15 +946,8 @@ const updateComponents = async (defId: string | undefined, previewHash: string |
     r.refused.push(...refused);
     // THE CANVAS FURNITURE (#2406, #2188), redrawn for every piloted set the apply acted on — from the members as they
     // now sit, so the labels follow the update. Reported in the data, and in the verdict only where a part was skipped.
-    const furniture: FurnitureOutcome[] = [];
-    for (const o of r.outcomes) {
-      const t = targets.find((x) => x.def === o.def);
-      if (!t || !hasFurniture(o.def)) continue;
-      const sets = (figma.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly ComponentSetNode[]).filter((n) => n.name === (t.plans[0]?.component ?? t.def));
-      if (sets.length !== 1) continue;
-      const drawn = await furnishSet(o.def, sets[0].id, t.plans);
-      if (drawn) furniture.push(drawn);
-    }
+    // A set whose only work was its furniture (#2803) is one of them (`furnishUpdate`).
+    const furniture = await furnishUpdate(figma as unknown as FurnitureApi, r, targets);
     sink.data({ update: { mode: 'apply', ...r, furniture } });
     postVerdict({ type: 'component-update-result', ...withTemplateWarning(withFurnitureItems(applyVerdict(r), furnitureItems(furniture, 'update')), furniture) }, sink);
   } catch (e) {
@@ -1095,7 +1088,8 @@ const styleGuide = async (options: StyleGuideOptions, sink: ActionSink): Promise
     // The contract note is one more item, joined by `. ` like the rest (#2177).
     const summary = contractNote ? `${v.summary}. ${contractNote}` : v.summary;
     const lines = withBuildLine(contractNote ? [...v.lines, contractNote] : v.lines);
-    sink.post({ type: 'style-guide-result', ok: v.ok, headline: v.headline, summary: appendBuildNote(summary, PRISM3_BUILD), lines, ...(result.stopped ? { stopped: result.stopped } : {}) });
+    sink.post({ type: 'style-guide-result', ok: v.ok, headline: v.headline, summary: appendBuildNote(summary, PRISM3_BUILD), lines, ...(result.stopped ? { stopped: result.stopped } : {}),
+      ...(result.retired?.length ? { retired: result.retired } : {}) });
   } catch (e) {
     const failure = `style guide failed: ${(e as Error).message}`;
     sink.post({ type: 'style-guide-result', ok: false, headline: '✗ style guide failed', summary: appendBuildNote(failure, PRISM3_BUILD), lines: withBuildLine([failure]) });
@@ -1200,6 +1194,22 @@ const sendFonts = async (): Promise<void> => {
     });
   } catch {
     /* no font list — the UI keeps its free-text input (which is the pre-#113 behavior) */
+  }
+};
+
+/**
+ * THE STYLE-GUIDE CLEANUP, CONFIRMED (Q412 A, #2816). The designer confirmed removing these tables from a run's offer;
+ * `removeRetiredTables` re-reads the file and removes only a listed table the generator still does not draw. Never
+ * reached by a run: a run only lists.
+ */
+const styleGuideCleanup = async (ids: string[], sink: ActionSink): Promise<void> => {
+  try {
+    const { removed, left } = await removeRetiredTables(figma, savedContract().contract, ids);
+    const n = removed.length;
+    const summary = n ? `${n} table${n === 1 ? '' : 's'} removed: ${removed.join(', ')}` : 'No table removed';
+    sink.post({ type: 'style-guide-cleanup-result', ok: left.length === 0, removed: ids.filter((id) => !left.includes(id)), summary: left.length ? `${summary}. ${left.length} left in place: the generator draws ${left.length === 1 ? 'it' : 'them'} again, or ${left.length === 1 ? 'it is' : 'they are'} gone` : summary });
+  } catch (e) {
+    sink.post({ type: 'style-guide-cleanup-result', ok: false, removed: [], summary: `Cleanup failed: ${(e as Error).message}` });
   }
 };
 
@@ -1343,6 +1353,11 @@ onUiMessage((msg: UiToMain) => {
     case 'style-guide-catalog-request':
       // S11.2 — the Build style guides page's tree, titles and Set up file state. A read: never guarded.
       void styleGuideCatalog();
+      return;
+    case 'style-guide-cleanup':
+      // Q412 A — the confirmed cleanup. A write under the style guide's own guard: never while a run is drawing.
+      if (guard.busy('style-guide')) { uiSink.post(refusal('style-guide', false)); return; }
+      void guard.run('style-guide', () => styleGuideCleanup(Array.isArray(msg.ids) ? msg.ids.filter((x): x is string => typeof x === 'string') : [], uiSink));
       return;
     case 'style-guide-cancel':
       // S11.2 (P7) — read by the running style guide after its current table; nothing running, nothing to stop.

@@ -14,7 +14,7 @@ Building needs the Figma plugin. On the web, the Components tab lists the same s
 
 ## Build a set
 
-1. Open the **Components** tab, or choose **Build set…** in the **Figma** menu, which opens it. <!-- src: apps/studio/src/main.ts:1782-1783 -->
+1. Open the **Components** tab, or choose **Build sets…** in the **Figma** menu, which opens it. <!-- src: apps/studio/src/main.ts:1782-1783 -->
 2. Under **Component sets**, pick the set to build. Each entry shows what it contains and how many parts it has. <!-- src: apps/studio/src/shell/pages.ts:339 --> <!-- src: apps/studio/src/preview/sections/component-sets.ts:29-30 --> <!-- src: apps/studio/src/preview/sections/component-sets.ts:44 -->
 3. Choose **Build *Name***, for example **Build Button**. It reads **Building…** while it runs. <!-- src: apps/studio/src/preview/sections/component-sets.ts:35-36 -->
 

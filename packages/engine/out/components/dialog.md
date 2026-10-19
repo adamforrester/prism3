@@ -17,7 +17,7 @@ Use a Dialog when the user must make a decision or finish a short task before go
 
 - Name the task in the title, and the action in the main button
 - Keep the close button on a standard dialog
-- Put the main action last in the footer (Cancel, then Save)
+- Put the main action last in an inline footer (Cancel, then Save), and on top when stacked
 - Let only the body scroll, and keep the footer in view
 - Return focus to the control that opened the dialog
 
@@ -43,7 +43,7 @@ Titles are specific and in sentence case. Body text is short and states the cons
 - **Purpose:** Interrupt the page for a short task or a decision the user must make before going on.
 - **Use when:** A confirmation, a short form or a choice that needs the page behind it for context, and that the user must finish or dismiss before going on.
 - **Avoid when:** The message is passing and needs no answer (a toast or a banner), the content belongs beside a control (a popover or a menu), the task is long or has many steps (a page of its own), or the content can sit in the page (an accordion).
-- **Often used with:** `button`, `icon-button-neutral`, `divider`, `text-field`, `select`, `checkbox-group`, `radio-group`
+- **Often used with:** `button`, `button-neutral`, `button-destructive`, `flush-icon-button-neutral`, `divider`, `text-field`, `select`, `checkbox-group`, `radio-group`
 
 ## Props
 
@@ -54,7 +54,7 @@ Titles are specific and in sentence case. Body text is short and states the cons
 | `title` | node | — | yes | The heading that names the task. It is the dialog's accessible name, so make it specific: "Delete this address?", not "Are you sure?". It wraps rather than truncating. |
 | `description` | node | — | no | One or two sentences under the title that say what the dialog is for or what an action will do. Linked as the dialog's accessible description. |
 | `children` | node | — | yes | The body content. The body is the only part that scrolls; the header and footer stay in place. |
-| `actions` | node | — | no | The footer buttons, the main action last in reading order (Cancel, then Save). Name each by what it does. |
+| `actions` | slot of `button` or `button-destructive` or `button-neutral`, 1 to 3 | — | no | The footer buttons, one to three Button elements, laid out by a Button group. Inline, the main action last (Cancel, then Save); stacked, the main action first. Name each by what it does. |
 | `role` | enum: 'dialog' \| 'alertdialog' | `dialog` | no | dialog for a task or form. alertdialog for a confirmation that interrupts and needs an answer: it hides the close button, a backdrop click does not close it, and focus starts on the least destructive action. |
 | `placement` | enum: 'center' \| 'bottom' \| 'full' | `center` | no | Where the panel sits. center on every screen by default; bottom (a bottom sheet) and full (full screen) are for small screens. Set per breakpoint; nothing switches automatically. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The width of a centered panel: 400, 560 or 720px. On a small screen a centered panel is as wide as the screen less its margins. Bottom and full panels are full width and ignore it. |
@@ -84,7 +84,7 @@ None — not interactive.
   - 2.4.7 Focus Visible (every control inside shows the shared focus ring)
   - 2.4.11 Focus Not Obscured (only the body scrolls, so the footer never covers a focused field)
   - 1.4.10 Reflow (a bottom sheet or full-screen dialog keeps a 320px screen usable)
-  - 2.5.8 Target Size (Minimum) (the close button is a medium icon button, 44px at the default density)
+  - 2.5.8 Target Size (Minimum) (the close button is a medium round icon button, 44px across at the default density)
   - 4.1.2 Name, Role, Value (role, aria-modal and the accessible name are set)
 - **Keyboard:** Tab and Shift+Tab cycle through the controls inside the dialog. Escape closes it (an alertdialog as Cancel). Enter and Space act on the focused button.
 - **Focus:** Moves into the dialog on open (the first control, the title for long content, or Cancel in an alertdialog), stays inside while it is open, and returns to the control that opened it.
@@ -98,7 +98,7 @@ None — not interactive.
 
 ## Composition
 
-- **Composes with:** `icon-button-neutral`, `divider`, `button`
+- **Composes with:** `flush-icon-button-neutral`, `divider`, `button-group`
 - **Alternative to:** `accordion`
 - **Planned:** `toast`, `popover`, `menu`
 - **Replaces:**

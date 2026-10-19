@@ -33,10 +33,12 @@
  *
  * ── PARTS ─────────────────────────────────────────────────────────────────────────────────────────────────
  *
- * A header (the title, an optional description, and the close button: IconButton.Neutral, ghost, medium), an optional
+ * A header (the title, an optional description, and the close button: FlushIconButton.Neutral, round, medium, always
+ * the `close` glyph with no swap of its own, owner 2026-10-16 on #2609 and Q385 A on #2806), an optional
  * divider above and below the body (the Divider, nested), the body (a native Figma slot, as the accordion's panel is,
- * #2417), and a footer of nested Buttons. The title row is the accordion's arrangement (Q262 A, #2456): the title beside
- * the close, top-aligned, so a wrapped title keeps the close beside its first line. Mints no new subcomponent.
+ * #2417), and a footer that nests a Button group (owner decision Q363, #2661), whose slot holds the buttons. The title
+ * row is the accordion's arrangement (Q262 A, #2456): the title beside the close, top-aligned, so a wrapped title keeps
+ * the close beside its first line. Mints no new subcomponent.
  *
  * ── THE WALL (#2454) ───────────────────────────────────────────────────────────────────────────────────────
  *
@@ -62,7 +64,7 @@ export const dialog: ComponentDef = {
     { name: 'title', type: 'node', required: true, description: 'The heading that names the task. It is the dialog\'s accessible name, so make it specific: "Delete this address?", not "Are you sure?". It wraps rather than truncating.' },
     { name: 'description', type: 'node', required: false, description: 'One or two sentences under the title that say what the dialog is for or what an action will do. Linked as the dialog\'s accessible description.' },
     { name: 'children', type: 'node', required: true, description: 'The body content. The body is the only part that scrolls; the header and footer stay in place.' },
-    { name: 'actions', type: 'node', required: false, description: 'The footer buttons, the main action last in reading order (Cancel, then Save). Name each by what it does.' },
+    { name: 'actions', type: 'slot', anyOf: ['button', 'button-destructive', 'button-neutral'], minItems: 1, maxItems: 3, required: false, description: 'The footer buttons, one to three Button elements, laid out by a Button group. Inline, the main action last (Cancel, then Save); stacked, the main action first. Name each by what it does.' },
     { name: 'role', type: "enum: 'dialog' | 'alertdialog'", values: ['dialog', 'alertdialog'], default: 'dialog', required: false, description: 'dialog for a task or form. alertdialog for a confirmation that interrupts and needs an answer: it hides the close button, a backdrop click does not close it, and focus starts on the least destructive action.' },
     { name: 'placement', type: "enum: 'center' | 'bottom' | 'full'", values: ['center', 'bottom', 'full'], default: 'center', required: false, description: 'Where the panel sits. center on every screen by default; bottom (a bottom sheet) and full (full screen) are for small screens. Set per breakpoint; nothing switches automatically.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'The width of a centered panel: 400, 560 or 720px. On a small screen a centered panel is as wide as the screen less its margins. Bottom and full panels are full width and ignore it.' },
@@ -115,9 +117,6 @@ export const dialog: ComponentDef = {
     'placement.bottom.radius-bottom': 'radius.none',
     'placement.full.radius-top': 'radius.none',
     'placement.full.radius-bottom': 'radius.none',
-    // ── THE FOOTER (the proposal's §7): 12px between inline buttons, 8px between stacked ones.
-    'footer.inline.gap': 'space.150',
-    'footer.stacked.gap': 'space.100',
   },
 
   anatomy: {
@@ -140,7 +139,7 @@ export const dialog: ComponentDef = {
         },
         padding: { block: 'placement.{placement}.pad', inlineLabel: 'pad-none' },
         gap: 'gap',
-        children: ['header', 'headerDivider', 'body', 'footerDivider', 'footerInline', 'footerStacked'],
+        children: ['header', 'headerDivider', 'body', 'footerDivider', 'footer'],
         note: 'The panel: the surface, its shadow and its corners. It pads the top and bottom; the header, body and footer pad their own sides, so a divider runs edge to edge.',
       },
       header: {
@@ -180,10 +179,18 @@ export const dialog: ComponentDef = {
       },
       close: {
         kind: 'nest',
-        nests: 'icon-button-neutral',
+        // FlushIconButton.Neutral, not IconButton.Neutral (Q385 A, settling Q377 A): a file built without the IconButton
+        // sets still builds Dialog. Round at medium is the closest match to the approved ghost medium IconButton: the
+        // same 44px box at the default density, so the header keeps its height, the same neutral glyph ink and hover
+        // wash, and the shared focus ring. It adds the decorative round edge, which the ghost button did not draw.
+        nests: 'flush-icon-button-neutral',
         optional: true,
-        nesting: { kind: 'nest-fixed', variant: { appearance: 'ghost', size: 'medium', shape: 'square', surface: 'default', state: 'rest' } },
-        note: 'The close button: an IconButton.Neutral, ghost, medium, labeled "Close". Shown by default; an alertdialog hides it.',
+        nesting: { kind: 'nest-fixed', variant: { shape: 'round', size: 'medium', state: 'rest' } },
+        // Always the X (owner decision, 2026-10-16, #2609): the nested button's own `swap icon` is set to `close` on every
+        // member (#2645), and Dialog exposes no swap of its own. A product that wants another X changes the icon set's
+        // `close` glyph, or edits the component.
+        overrides: { swaps: { icon: 'close' } },
+        note: 'The close button: a FlushIconButton.Neutral, round, medium, labeled "Close", always showing the close icon. Shown by default; an alertdialog hides it.',
       },
       headerDivider: {
         kind: 'nest',
@@ -221,53 +228,38 @@ export const dialog: ComponentDef = {
         crossAxisFill: true,
         note: 'The rule above the footer, edge to edge. Off by default, and absent when there is no footer.',
       },
-      footerInline: {
+      footer: {
         kind: 'box',
         role: 'presentation',
-        presentWhen: { footer: ['inline'] },
-        layout: { direction: 'row', align: 'center', justify: 'end', sizing: { x: 'fill', y: 'hug' } },
-        crossAxisFill: true,
-        padding: { block: 'pad-none', inlineLabel: 'placement.{placement}.pad' },
-        gap: 'footer.inline.gap',
-        children: ['cancelInline', 'confirmInline'],
-        note: 'The inline footer: a row of buttons at the end edge, the main action last.',
-      },
-      cancelInline: {
-        kind: 'nest',
-        nests: 'button',
-        nesting: { kind: 'nest-fixed', variant: { appearance: 'outline', size: 'medium', surface: 'default', inset: 'default', state: 'rest', 'leading icon': 'false', 'trailing icon': 'false' } },
-        note: 'The secondary action, "Cancel": a Button, outline, medium.',
-      },
-      confirmInline: {
-        kind: 'nest',
-        nests: 'button',
-        nesting: { kind: 'nest-fixed', variant: { appearance: 'filled', size: 'medium', surface: 'default', inset: 'default', state: 'rest', 'leading icon': 'false', 'trailing icon': 'false' } },
-        note: 'The main action, "Save": a Button, filled, medium.',
-      },
-      footerStacked: {
-        kind: 'box',
-        role: 'presentation',
-        presentWhen: { footer: ['stacked'] },
+        presentWhen: { footer: ['inline', 'stacked'] },
         layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
         crossAxisFill: true,
         padding: { block: 'pad-none', inlineLabel: 'placement.{placement}.pad' },
-        gap: 'footer.stacked.gap',
-        children: ['confirmStacked', 'cancelStacked'],
-        note: 'The stacked footer: full-width buttons, the main action on top.',
+        children: ['actionsInline', 'actionsStacked'],
+        note: 'The footer: the actions, inset to match the header. Absent when there is no footer.',
       },
-      confirmStacked: {
+      // THE ACTIONS ARE A BUTTON GROUP (owner decision Q363, #2661): one nested Button group whose native `items` slot
+      // holds the buttons, Cancel then Save inline and Save then Cancel stacked, with Cancel a Button.Neutral when the
+      // file has it and the primary Button otherwise (the DIALOG's preference, `nestItemPrefers`, owner decision Q418: the
+      // group on its own keeps the primary outline Button). Two parts, one per footer layout, because a nested instance takes
+      // one coordinate and Dialog's `footer` axis is not the group's `layout` axis.
+      actionsInline: {
         kind: 'nest',
-        nests: 'button',
+        nests: 'button-group',
+        presentWhen: { footer: ['inline'] },
         crossAxisFill: true,
-        nesting: { kind: 'nest-fixed', variant: { appearance: 'filled', size: 'medium', surface: 'default', inset: 'default', state: 'rest', 'leading icon': 'false', 'trailing icon': 'false' } },
-        note: 'The main action, "Save", full width, on top.',
+        nesting: { kind: 'nest-fixed', variant: { layout: 'inline' } },
+        nestItemPrefers: { cancel: 'button-neutral' },
+        note: 'The inline footer: a Button group, inline, at the end edge: Cancel, then Save.',
       },
-      cancelStacked: {
+      actionsStacked: {
         kind: 'nest',
-        nests: 'button',
+        nests: 'button-group',
+        presentWhen: { footer: ['stacked'] },
         crossAxisFill: true,
-        nesting: { kind: 'nest-fixed', variant: { appearance: 'outline', size: 'medium', surface: 'default', inset: 'default', state: 'rest', 'leading icon': 'false', 'trailing icon': 'false' } },
-        note: 'The secondary action, "Cancel", full width, under the main action.',
+        nesting: { kind: 'nest-fixed', variant: { layout: 'stacked' } },
+        nestItemPrefers: { cancelStacked: 'button-neutral' },
+        note: 'The stacked footer: a Button group, stacked: Save on top, Cancel under it, both full width.',
       },
     },
     codeOnly: [
@@ -317,7 +309,7 @@ export const dialog: ComponentDef = {
       '2.4.7 Focus Visible (every control inside shows the shared focus ring)',
       '2.4.11 Focus Not Obscured (only the body scrolls, so the footer never covers a focused field)',
       '1.4.10 Reflow (a bottom sheet or full-screen dialog keeps a 320px screen usable)',
-      '2.5.8 Target Size (Minimum) (the close button is a medium icon button, 44px at the default density)',
+      '2.5.8 Target Size (Minimum) (the close button is a medium round icon button, 44px across at the default density)',
       '4.1.2 Name, Role, Value (role, aria-modal and the accessible name are set)',
     ],
     keyboard: 'Tab and Shift+Tab cycle through the controls inside the dialog. Escape closes it (an alertdialog as Cancel). Enter and Space act on the focused button.',
@@ -335,7 +327,7 @@ export const dialog: ComponentDef = {
     do: [
       'Name the task in the title, and the action in the main button',
       'Keep the close button on a standard dialog',
-      'Put the main action last in the footer (Cancel, then Save)',
+      'Put the main action last in an inline footer (Cancel, then Save), and on top when stacked',
       'Let only the body scroll, and keep the footer in view',
       'Return focus to the control that opened the dialog',
     ],
@@ -353,13 +345,13 @@ export const dialog: ComponentDef = {
     primaryPurpose: 'Interrupt the page for a short task or a decision the user must make before going on.',
     whenToUse: 'A confirmation, a short form or a choice that needs the page behind it for context, and that the user must finish or dismiss before going on.',
     avoidWhen: 'The message is passing and needs no answer (a toast or a banner), the content belongs beside a control (a popover or a menu), the task is long or has many steps (a page of its own), or the content can sit in the page (an accordion).',
-    commonPartners: ['button', 'icon-button-neutral', 'divider', 'text-field', 'select', 'checkbox-group', 'radio-group'],
+    commonPartners: ['button', 'button-neutral', 'button-destructive', 'flush-icon-button-neutral', 'divider', 'text-field', 'select', 'checkbox-group', 'radio-group'],
     triggerKeywords: ['dialog', 'modal', 'bottom sheet', 'full-screen dialog', 'confirmation', 'alert dialog', 'popup'],
     generationPriority: 2,
   },
 
   composition: {
-    composesWith: ['icon-button-neutral', 'divider', 'button'],
+    composesWith: ['flush-icon-button-neutral', 'divider', 'button-group'],
     alternativeTo: ['accordion'],
     replacesPatterns: ['a div overlay with a z-index and a hand-written focus trap', 'a backdrop built from a veil'],
     supersededBy: [],
@@ -374,15 +366,17 @@ export const dialog: ComponentDef = {
 
   notes: {
     contested: [
-      'HELD FOR THE OWNER (#2609): the bottom and full members\' build size (360 wide, and 640 tall for full), the title-to-description gap (space.100) and the title-to-close gap (space.200), the body placeholder copy, the description text property\'s Figma name ("description text"), the `actions` prop, and Cancel as an outline Button beside a filled Save.',
+      'HELD FOR THE OWNER (#2609): the bottom and full members\' build size (360 wide, and 640 tall for full), the title-to-description gap (space.100) and the title-to-close gap (space.200), the body placeholder copy, and the description text property\'s Figma name ("description text").',
       'The close button sits at the header\'s top edge, beside the first line of the title, without an offset that centers it on that line: whether the title moves down to center on the 44px button is held for the owner\'s visual QA.',
     ],
     unverified: [
-      'The nested close button shows the file\'s default icon until a designer swaps it to close, and the nested footer buttons read "Button" until a designer types "Cancel" and "Save": a per-instance override on a nested instance is executor work no def can ask for yet (#2645).',
       'That the native slot keeps a designer\'s body content across a placement or footer switch in every Figma plan, as it does across the accordion\'s expansion switch.',
     ],
     evolution: [
       'Owner decisions: the proposal on #2609 (one component, the anatomy, the tokens, the accessibility contract), and Q303 (2026-10-14): no side or drawer placement; `placement` center, bottom or full, with no automatic switch; the backdrop `color.scrim.default` as canvas furniture and `::backdrop`; def-level widths; footer inline, stacked or none; Escape, close and backdrop click dismiss a dialog, and an alertdialog only through its buttons or Escape; `role` a code prop that hides close on an alertdialog; close on by default; corners per placement; the names and aliases; the placeholder wording.',
+      'Owner decision (2026-10-16, #2609): the close button is always the X. It shows the close icon on every member, and Dialog has no icon swap property; a product that needs another X changes the close glyph in its icon set or edits the component.',
+      'Owner decision Q385 A (2026-10-16, #2806), settling Q377 A on #2609: the close button is a FlushIconButton.Neutral, not an IconButton.Neutral, so a file without the IconButton sets still builds Dialog. It is round at medium, the closest match to the earlier ghost medium IconButton.',
+      'Owner decision Q363 (2026-10-16, #2661): the footer is a nested Button group whose native slot holds the buttons, replacing two fixed nested Buttons per layout. Cancel reads "Cancel" and Save "Save"; Cancel is Button.Neutral when the file has it and the primary Button otherwise (Q363.8 as amended, Q386), and since Q418 that is the Dialog\'s own preference on its nest of the group, which on its own keeps the primary outline Button; the `actions` prop is a slot of one to three Button elements (Q363.10 A).',
     ],
   },
 };

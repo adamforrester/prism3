@@ -353,7 +353,8 @@
           "checkbox-control",
           "radio-control",
           "switch-control",
-          "link"
+          "link",
+          "counter"
         ],
         "triggerKeywords": [
           "focus ring",
@@ -613,7 +614,8 @@
         "commonPartners": [
           "icon",
           "spinner",
-          "focus-ring"
+          "focus-ring",
+          "button-group"
         ],
         "triggerKeywords": [
           "button",
@@ -644,7 +646,6 @@
         "supersededBy": [],
         "planned": [
           "tooltip",
-          "button-group",
           "menu",
           "popover",
           "toggle-button",
@@ -894,7 +895,8 @@
         "commonPartners": [
           "icon",
           "spinner",
-          "focus-ring"
+          "focus-ring",
+          "button-group"
         ],
         "triggerKeywords": [
           "destructive button",
@@ -926,7 +928,6 @@
         "supersededBy": [],
         "planned": [
           "tooltip",
-          "button-group",
           "menu",
           "popover",
           "toggle-button",
@@ -1175,7 +1176,8 @@
         "commonPartners": [
           "icon",
           "spinner",
-          "focus-ring"
+          "focus-ring",
+          "button-group"
         ],
         "triggerKeywords": [
           "neutral button",
@@ -1204,7 +1206,6 @@
         "supersededBy": [],
         "planned": [
           "tooltip",
-          "button-group",
           "menu",
           "popover",
           "toggle-button",
@@ -1435,7 +1436,6 @@
         "supersededBy": [],
         "planned": [
           "tooltip",
-          "button-group",
           "menu",
           "popover"
         ],
@@ -1665,7 +1665,6 @@
         "supersededBy": [],
         "planned": [
           "tooltip",
-          "button-group",
           "menu",
           "popover"
         ],
@@ -1894,7 +1893,6 @@
         "supersededBy": [],
         "planned": [
           "tooltip",
-          "button-group",
           "menu",
           "popover"
         ],
@@ -2038,7 +2036,8 @@
         "avoidWhen": "The action deletes or removes something (use FlushIconButton.Destructive). It carries no brand emphasis, such as the minus and plus of a counter or the close on a card (use FlushIconButton.Neutral). It stands on its own in a toolbar or a header (use IconButton, which has a visible box). It would sit inside an element that is already a button, such as an accordion header or a tab. You cannot supply an accessible name.",
         "commonPartners": [
           "icon",
-          "focus-ring"
+          "focus-ring",
+          "counter"
         ],
         "triggerKeywords": [
           "primary flush icon button",
@@ -2063,7 +2062,6 @@
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "counter",
           "number-input",
           "card"
         ],
@@ -2208,7 +2206,8 @@
         "avoidWhen": "The action is not destructive (use FlushIconButton, or FlushIconButton.Neutral for one with no brand emphasis). It stands on its own in a toolbar or a header (use IconButton.Destructive, which has a visible box). It would sit inside an element that is already a button, such as an accordion header or a tab. You cannot supply an accessible name.",
         "commonPartners": [
           "icon",
-          "focus-ring"
+          "focus-ring",
+          "counter"
         ],
         "triggerKeywords": [
           "destructive flush icon button",
@@ -2233,7 +2232,6 @@
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "counter",
           "number-input",
           "card"
         ],
@@ -2377,7 +2375,8 @@
         "avoidWhen": "The action carries the brand (use FlushIconButton) or deletes something (use FlushIconButton.Destructive). It stands on its own in a toolbar or a header (use IconButton.Neutral, which has a visible box and a hover wash). It would sit inside an element that is already a button, such as an accordion header or a tab. You cannot supply an accessible name.",
         "commonPartners": [
           "icon",
-          "focus-ring"
+          "focus-ring",
+          "counter"
         ],
         "triggerKeywords": [
           "flush icon button",
@@ -2404,7 +2403,6 @@
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "counter",
           "number-input",
           "card"
         ],
@@ -2546,6 +2544,7 @@
           "checkbox-group",
           "radio-group",
           "segmented-control",
+          "counter",
           "field-message"
         ],
         "triggerKeywords": [
@@ -2673,6 +2672,7 @@
           "textarea",
           "select",
           "checkbox-row",
+          "counter",
           "field-label",
           "icon"
         ],
@@ -3047,16 +3047,34 @@
       "inherits": "text-field",
       "props": [
         {
+          "name": "label",
+          "type": "string | node",
+          "required": true,
+          "description": "The visible, persistent label (rendered as FieldLabel). Required — a visually-hidden label is the only label-less case, and it still exists in the DOM. Never the placeholder. The same prop as TextField's."
+        },
+        {
           "name": "value",
           "type": "string",
           "required": false,
           "description": "Controlled value; pair with onChange. The same prop as TextField's."
         },
         {
+          "name": "onChange",
+          "type": "function",
+          "required": false,
+          "description": "Change handler (also onBlur / onFocus). The same prop as TextField's."
+        },
+        {
           "name": "placeholder",
           "type": "string",
           "required": false,
           "description": "An example only; vanishes on input; nothing load-bearing lives here. The same prop as TextField's."
+        },
+        {
+          "name": "helpText",
+          "type": "string | node",
+          "required": false,
+          "description": "Persistent guidance (rendered as FieldMessage, default status); wired via aria-describedby. Show the format and any length limit before failure. The same prop as TextField's."
         },
         {
           "name": "showMessage",
@@ -3142,6 +3160,34 @@
           "description": "The validation text shown at error / warning / success, added to aria-describedby. For error, say what is wrong and how to fix it, with the number when it is a length limit (SC 3.3.3), never \"Invalid\"."
         },
         {
+          "name": "required",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Sets required / aria-required, and turns on the FieldLabel's required marker. The same prop as TextField's."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Native disabled — removed from tab order, not submitted, silent to assistive tech, contrast-exempt. Reserve for fields irrelevant in the current state. The same prop as TextField's."
+        },
+        {
+          "name": "readOnly",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Distinct from disabled: focusable, selectable and copyable, submitted with the form, and passes contrast. Use for text the user may read or copy but not edit (a submitted message, a generated summary). The same prop as TextField's."
+        },
+        {
+          "name": "isPending",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Content arriving asynchronously, such as a draft streaming into the field: sets aria-busy; does not block typing unless intended. The same prop as TextField's."
+        },
+        {
           "name": "size",
           "type": "enum: 'small' | 'medium' | 'large'",
           "default": "medium",
@@ -3152,6 +3198,18 @@
             "large"
           ],
           "description": "Scales the value type with the field (small 14px, medium 16px, large 18px, from type.body.sm, md and lg), the nested label one step below it (12 / 14 / 16), and the padding. Not the height: that belongs to rows / auto-grow, so the reserved rows grow with the type's line height. small is for fine pointers only: on a coarse pointer (@media (pointer: coarse)) the code sets the small textarea to 16px, because iOS Safari zooms the page when it focuses a field under 16px. The same prop, with the same values, as TextField and Select."
+        },
+        {
+          "name": "id",
+          "type": "string",
+          "required": false,
+          "description": "Wiring + form submission; auto-generated with useId if omitted, tying label→textarea and the aria-describedby chain. The same prop as TextField's."
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": false,
+          "description": "A real <textarea name> so the field works uncontrolled, in a native <form>, with useFormStatus / Server Actions, and the Constraint Validation API. The same prop as TextField's."
         }
       ],
       "states": [
@@ -3487,6 +3545,13 @@
           "type": "string",
           "required": false,
           "description": "The string submitted when checked (the platform default is \"on\"), and the element this row contributes to a Checkbox.Group's array. An unchecked box submits nothing at all rather than a false value — the missing-key trap."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Native disabled: removed from the tab order, not submitted, contrast-exempt. Disables the whole row: the nested control takes its disabled skin and the label dims. Reserve for an option that does not apply in the current state."
         },
         {
           "name": "readOnly",
@@ -3969,6 +4034,20 @@
           "type": "node",
           "required": false,
           "description": "Per-option helper beneath the label, describedby-wired. This is where the detail that makes an option distinguishable goes — the price, the delivery estimate, the caveat."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Native disabled: removed from the tab order, not submitted, contrast-exempt. Disables the whole row: the nested control takes its disabled skin and the label dims. Reserve for an option that does not apply in the current state."
+        },
+        {
+          "name": "readOnly",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Restated for the caveat Checkbox.Row carries: <input type=\"radio\"> has no working readonly, only disabled, so a genuinely read-only option needs aria-readonly plus a prevented change, or is better rendered as static text. Usually set on every option of a group at once. Decide which explicitly; the default of doing neither is a control that looks interactive and silently is not."
         },
         {
           "name": "size",
@@ -4468,6 +4547,13 @@
             "trailing"
           ],
           "description": "Where Switch.Row differs structurally from Checkbox.Row and Radio.Row, whose control always leads. Defaults to label-leading because a switch's habitat is the settings row, with the toggle at the row's trailing edge where the eye expects it; flip to control-leading when a switch sits inline among other form controls. A prop and not a variants axis: it changes a row's direction and no ink at any coordinate, so it is an anatomy concern (see the header)."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Native disabled: removed from the tab order, not submitted, contrast-exempt. Disables the whole row: the nested switch takes its disabled skin and the label dims. Reserve for a setting that does not apply in the current state."
         },
         {
           "name": "isPending",
@@ -7299,6 +7385,132 @@
         ]
       }
     },
+    "button-group": {
+      "id": "button-group",
+      "name": "Button.Group",
+      "aliases": [
+        "button-set",
+        "action-group",
+        "actions"
+      ],
+      "category": "form",
+      "status": "draft",
+      "summary": "One to three buttons laid out together: in a row at the end, stacked, or sharing the width.",
+      "description": "A set of one to three buttons for the actions that close a task: Cancel and Save at the foot of a dialog, the actions of a banner, the buttons under a form. Inline puts them in a row at the end edge with the main action last; stacked puts them in a column of full-width buttons with the main action on top; fill puts them in a row whose buttons share the width. The buttons are Button, Button.Destructive and Button.Neutral, each its own action and spaced apart. Not a segmented control, whose buttons join edge to edge as one choice, and not a toolbar.",
+      "props": [
+        {
+          "name": "items",
+          "type": "slot",
+          "required": true,
+          "anyOf": [
+            "button",
+            "button-destructive",
+            "button-neutral"
+          ],
+          "minItems": 1,
+          "maxItems": 3,
+          "description": "The buttons, each a Button, Button.Destructive or Button.Neutral, in order. Two by default, three at most. Inline and fill, the main action last; stacked, the main action first."
+        },
+        {
+          "name": "layout",
+          "type": "enum: 'inline' | 'stacked' | 'fill'",
+          "default": "inline",
+          "required": false,
+          "values": [
+            "inline",
+            "stacked",
+            "fill"
+          ],
+          "description": "inline is a row at the end edge; stacked is a column of full-width buttons, the main action on top; fill is a row whose buttons share the width. A row too wide for its space wraps; nothing switches layout by itself."
+        }
+      ],
+      "states": [],
+      "variants": {
+        "layout": {
+          "values": [
+            "inline",
+            "stacked",
+            "fill"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "None of its own. Each button is a native <button> with its own name; add role=\"group\" with an aria-label only when the buttons need a shared name.",
+        "wcag": [
+          "1.3.2 Meaningful Sequence (the reading and focus order match the visual order in every layout)",
+          "2.4.3 Focus Order (focus moves through the buttons in the order they are given)",
+          "2.5.8 Target Size (Minimum) (each medium button meets the target size at the default density)"
+        ],
+        "keyboard": "Tab moves through the buttons in order. Enter and Space act on the focused one.",
+        "focus": "Each button takes focus in turn and shows the shared focus ring.",
+        "aria": "Nothing on the group by default. Name each button by what it does; translated labels make a row longer, and a row that no longer fits wraps."
+      },
+      "content": {
+        "labelPattern": "Name each button by what it does, in sentence case: \"Save address\", \"Delete\", \"Cancel\". The main action echoes the task; never \"OK\" or \"Yes\"."
+      },
+      "docs": {
+        "usage": "Use a Button.Group for the actions that close a task: the foot of a dialog, the actions of a banner or a card, the buttons under a form. Inline for a row at the end edge on a wide surface; stacked for full-width buttons on a phone or a bottom sheet; fill for a row whose buttons share the width. Put the main action last inline and at fill, and first when stacked.",
+        "do": [
+          "Keep to one main action, the filled Button",
+          "Put the main action last in a row and on top when stacked",
+          "Use Button.Destructive for an action that deletes or removes, with Cancel beside it",
+          "Keep the group to three buttons or fewer"
+        ],
+        "dont": [
+          "Join the buttons edge to edge. Use a segmented control for one choice among options.",
+          "Reverse the order with styling only. Pass the buttons in the order they read.",
+          "Put links or icon buttons in the group",
+          "Use a group for a toolbar of tools"
+        ],
+        "contentGuidelines": "Button labels are short verbs or verb phrases in sentence case, each naming its own action."
+      },
+      "ai": {
+        "primaryPurpose": "Lay out the one to three buttons that close a task, as a row at the end edge, a full-width stack or a row that shares the width.",
+        "whenToUse": "The actions at the foot of a dialog, banner, card or form: a main action with a Cancel beside it, or up to three related actions.",
+        "avoidWhen": "One choice among joined options (segmented-control), a toolbar of tools, navigation (links), or a single action on its own (a Button by itself).",
+        "commonPartners": [
+          "dialog",
+          "button",
+          "button-destructive",
+          "button-neutral"
+        ],
+        "triggerKeywords": [
+          "button group",
+          "button set",
+          "actions",
+          "action buttons",
+          "dialog footer",
+          "form actions",
+          "cancel and save"
+        ],
+        "generationPriority": 2
+      },
+      "motion": {
+        "enter": "None of its own.",
+        "exit": "None of its own.",
+        "reduceMotion": "Nothing moves."
+      },
+      "composition": {
+        "composesWith": [
+          "button"
+        ],
+        "alternativeTo": [
+          "segmented-control"
+        ],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [
+          "banner",
+          "card",
+          "toolbar"
+        ],
+        "replacesPatterns": [
+          "a footer of fixed nested buttons copied into each component",
+          "a button-set component with a variant per count and layout"
+        ]
+      }
+    },
     "dialog": {
       "id": "dialog",
       "name": "Dialog",
@@ -7346,9 +7558,16 @@
         },
         {
           "name": "actions",
-          "type": "node",
+          "type": "slot",
           "required": false,
-          "description": "The footer buttons, the main action last in reading order (Cancel, then Save). Name each by what it does."
+          "anyOf": [
+            "button",
+            "button-destructive",
+            "button-neutral"
+          ],
+          "minItems": 1,
+          "maxItems": 3,
+          "description": "The footer buttons, one to three Button elements, laid out by a Button group. Inline, the main action last (Cancel, then Save); stacked, the main action first. Name each by what it does."
         },
         {
           "name": "role",
@@ -7436,7 +7655,7 @@
           "2.4.7 Focus Visible (every control inside shows the shared focus ring)",
           "2.4.11 Focus Not Obscured (only the body scrolls, so the footer never covers a focused field)",
           "1.4.10 Reflow (a bottom sheet or full-screen dialog keeps a 320px screen usable)",
-          "2.5.8 Target Size (Minimum) (the close button is a medium icon button, 44px at the default density)",
+          "2.5.8 Target Size (Minimum) (the close button is a medium round icon button, 44px across at the default density)",
           "4.1.2 Name, Role, Value (role, aria-modal and the accessible name are set)"
         ],
         "keyboard": "Tab and Shift+Tab cycle through the controls inside the dialog. Escape closes it (an alertdialog as Cancel). Enter and Space act on the focused button.",
@@ -7452,7 +7671,7 @@
         "do": [
           "Name the task in the title, and the action in the main button",
           "Keep the close button on a standard dialog",
-          "Put the main action last in the footer (Cancel, then Save)",
+          "Put the main action last in an inline footer (Cancel, then Save), and on top when stacked",
           "Let only the body scroll, and keep the footer in view",
           "Return focus to the control that opened the dialog"
         ],
@@ -7471,7 +7690,9 @@
         "avoidWhen": "The message is passing and needs no answer (a toast or a banner), the content belongs beside a control (a popover or a menu), the task is long or has many steps (a page of its own), or the content can sit in the page (an accordion).",
         "commonPartners": [
           "button",
-          "icon-button-neutral",
+          "button-neutral",
+          "button-destructive",
+          "flush-icon-button-neutral",
           "divider",
           "text-field",
           "select",
@@ -7496,9 +7717,9 @@
       },
       "composition": {
         "composesWith": [
-          "icon-button-neutral",
+          "flush-icon-button-neutral",
           "divider",
-          "button"
+          "button-group"
         ],
         "alternativeTo": [
           "accordion"
@@ -7644,7 +7865,7 @@
             "medium",
             "large"
           ],
-          "description": "TextField's three tiers: the input type, the nested label and the Show/Hide button scale with it. Every size keeps the input's 44px target; the button's hit area is 44×44 at medium and large and 24×24 at small."
+          "description": "TextField's three tiers: the input type and the nested label scale with it. The Show/Hide button is small at every size, so the label row stays one label line tall. Every size keeps the input's 44px target; the button's hit area is 44×44 at medium and large and 24×24 at small, in code."
         },
         {
           "name": "id",
@@ -7773,6 +7994,239 @@
           "eye icon inside a password field",
           "password field with no way to show the characters",
           "autocomplete=\"off\" on a password"
+        ]
+      }
+    },
+    "counter": {
+      "id": "counter",
+      "name": "Counter",
+      "aliases": [
+        "quantity-stepper",
+        "quantity-selector",
+        "quantity-picker",
+        "qty-stepper"
+      ],
+      "category": "form",
+      "status": "draft",
+      "summary": "A whole-number quantity between a minus and a plus button, such as an item count in a bag.",
+      "description": "A small whole-number quantity shown between a minus and a plus button, such as the item count on a product card or a bag line. The buttons change the value by one; the value itself is shown, not typed. Min and max are settable, with min 0 by default, and at a limit the matching button is unavailable. Outline draws the field's edge around the row, with the glyphs inside it. Ghost draws no box, and each button is a light circle. For typed numeric entry in a form, use a number input.",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "description": "What is counted, such as \"Quantity\". The accessible name of the value, always present in code; shown above the counter only with showLabel."
+        },
+        {
+          "name": "showLabel",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Shows the label above the counter. Off by default: a counter on a product card or a bag line is usually explained by what sits around it, and the label stays its accessible name either way."
+        },
+        {
+          "name": "value",
+          "type": "number",
+          "required": false,
+          "description": "Controlled value; pair it with onChange."
+        },
+        {
+          "name": "defaultValue",
+          "type": "number",
+          "required": false,
+          "description": "The starting value when the counter manages its own state. Defaults to min."
+        },
+        {
+          "name": "onChange",
+          "type": "function",
+          "required": false,
+          "description": "Called with the new number after each step. Never called with a value outside min and max."
+        },
+        {
+          "name": "min",
+          "type": "number",
+          "default": 0,
+          "required": false,
+          "description": "The lowest value. At min, the minus button is unavailable."
+        },
+        {
+          "name": "max",
+          "type": "number",
+          "required": false,
+          "description": "The highest value, such as the stock or a per-order limit. At max, the plus button is unavailable. No max means no upper limit."
+        },
+        {
+          "name": "step",
+          "type": "number",
+          "default": 1,
+          "required": false,
+          "description": "How much one press or one arrow key changes the value."
+        },
+        {
+          "name": "appearance",
+          "type": "enum: 'outline' | 'ghost'",
+          "default": "outline",
+          "required": false,
+          "values": [
+            "outline",
+            "ghost"
+          ],
+          "description": "outline draws the field edge around the row, with the minus and plus glyphs inside it. ghost draws no box, and the minus and plus are light circles at each end."
+        },
+        {
+          "name": "size",
+          "type": "enum: 'small' | 'medium' | 'large'",
+          "default": "medium",
+          "required": false,
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "description": "The row height (36, 44 or 56px), the value type (14, 16 or 18px) and the glyph (20, 20 or 24px). Each button keeps a hit area of at least 44×44px in code at every size."
+        },
+        {
+          "name": "message",
+          "type": "string",
+          "required": false,
+          "description": "Text below the counter, such as the reason for a limit (\"Limit 5 per order\"). Added to the value's description."
+        },
+        {
+          "name": "showMessage",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Shows the message below the counter. Off by default."
+        },
+        {
+          "name": "decrementLabel",
+          "type": "string",
+          "required": false,
+          "description": "The minus button's accessible name. Defaults to \"Decrease\" followed by the label, such as \"Decrease quantity\". In a list of line items, include the item: \"Decrease quantity, Trail runner\"."
+        },
+        {
+          "name": "incrementLabel",
+          "type": "string",
+          "required": false,
+          "description": "The plus button's accessible name. Defaults to \"Increase\" followed by the label. In a list of line items, include the item."
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": false,
+          "description": "The form field name: a hidden input carries the value when the counter sits in a form."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Disables the whole counter: the value leaves the Tab order and both buttons are unavailable."
+        }
+      ],
+      "states": [
+        "rest",
+        "focus-visible",
+        "disabled"
+      ],
+      "variants": {
+        "appearance": {
+          "values": [
+            "outline",
+            "ghost"
+          ],
+          "kind": "authoring"
+        },
+        "size": {
+          "values": [
+            "medium",
+            "small",
+            "large"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "spinbutton (the value), with two buttons outside the Tab order",
+        "wcag": [
+          "4.1.2 Name, Role, Value (the value is a spinbutton named by the label, with its current, minimum and maximum values)",
+          "2.1.1 Keyboard (the arrow, Page Up, Page Down, Home and End keys change the value; the buttons are not needed)",
+          "4.1.3 Status Messages (a button press announces the new value through the shared polite live region)",
+          "1.4.11 Non-text Contrast (the outline edge is the field edge; the glyphs target 3:1 against the page)",
+          "2.4.7 Focus Visible (the shared focus ring around the row)",
+          "2.5.8 Target Size (Minimum) (24×24, as intent, through each button's code-side hit area)",
+          "2.5.5 Target Size (Enhanced) (targets 44×44 for each button at every size, through its code-side hit area)"
+        ],
+        "keyboard": "Tab reaches the value once. Up and Down Arrow change it by one step, Page Up and Page Down by ten, Home and End go to min and max. The minus and plus buttons are outside the Tab order (tabindex=\"-1\").",
+        "focus": "A focus ring around the whole row while the value has keyboard focus: on the edge for outline, 2px outside the buttons for ghost.",
+        "aria": "The value has role=\"spinbutton\", aria-valuenow, aria-valuemin, aria-valuemax when a max is set, and the label as its name, shown or not. Each button has aria-controls pointing at the value and its own name, a verb with the object (\"Increase quantity\"); in a list of line items, the name includes the item. At a limit the button takes aria-disabled=\"true\" and stays in the accessibility tree. Every name is translatable, and the row mirrors right to left."
+      },
+      "content": {
+        "labelPattern": "The label is a noun (\"Quantity\"). The button names are a verb with the object (\"Decrease quantity\", \"Increase quantity\"). A limit message states the limit and its reason (\"Limit 5 per order\")."
+      },
+      "docs": {
+        "usage": "Use for a small whole-number quantity that usually changes by one, such as the item count on a product card or in a bag. Set min and max where they apply, and say why a limit applies in the message. Use ghost where the counter stands on its own beside product text; use outline where it should read as a field. For a number the user types, such as a price or a measurement, use a number input.",
+        "do": [
+          "Set max when stock or a per-order limit exists, and state the limit in the message",
+          "Name the buttons for the item in a list of line items (\"Increase quantity, Trail runner\")",
+          "Show a button at its limit as unavailable rather than hiding it, so the row does not move",
+          "Leave each button its 44×44px hit area in code, at least 44px apart center to center"
+        ],
+        "dont": [
+          "Use it for a large or precise number, such as a price or a measurement; use a number input",
+          "Use it for a count shown on another element, such as unread messages; use a badge",
+          "Put the minus and plus buttons in the Tab order; the arrow keys already step the value",
+          "Change the value on a mouse wheel or scroll"
+        ],
+        "contentGuidelines": "The label is a noun (\"Quantity\"). Button names are a verb with the object. A limit message states the limit and why (\"Limit 5 per order\")."
+      },
+      "ai": {
+        "primaryPurpose": "Set a small whole-number quantity with a minus and a plus button around the displayed value.",
+        "whenToUse": "An item count on a product card or a bag line, a number of guests or tickets: a small count, usually changed by one, with a known minimum and often a maximum.",
+        "avoidWhen": "The number is typed, large, precise or decimal, such as a price or a measurement (use a number input). The count is shown on another element rather than set by the user, such as unread messages (use Badge). The options are a short fixed list to compare (use Select or SegmentedControl).",
+        "commonPartners": [
+          "flush-icon-button-neutral",
+          "field-label",
+          "field-message",
+          "button"
+        ],
+        "triggerKeywords": [
+          "counter",
+          "quantity",
+          "quantity stepper",
+          "quantity selector",
+          "plus minus",
+          "item count",
+          "add to bag quantity"
+        ],
+        "generationPriority": 4
+      },
+      "motion": {
+        "enter": "none (present on mount)",
+        "exit": "none",
+        "reduceMotion": "The value changes in place with no animation, so nothing changes under prefers-reduced-motion."
+      },
+      "composition": {
+        "composesWith": [
+          "field-label",
+          "flush-icon-button-neutral",
+          "focus-ring",
+          "field-message"
+        ],
+        "alternativeTo": [
+          "select",
+          "segmented-control",
+          "text-field"
+        ],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [
+          "number-input"
+        ],
+        "replacesPatterns": [
+          "an <input type=\"number\"> for an item count",
+          "a select of 1 to 10 for a bag quantity",
+          "two IconButtons around a <span> with no spinbutton semantics"
         ]
       }
     }
