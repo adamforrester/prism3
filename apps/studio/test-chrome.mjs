@@ -8100,7 +8100,8 @@ for (const host of ['web', 'figma']) {
     ok(JSON.stringify(r.density) === JSON.stringify(COMPONENTS_COPY.density), `G6: ${host}: the way to Density reads "${COMPONENTS_COPY.density.join(' ')}" (${JSON.stringify(r.density)})`);
     ok(JSON.stringify([...r.sets].sort()) === JSON.stringify(DOC_SETS), `G5: ${host}: the list is every definition the engine documents, once each (${DOC_SETS.length}) — listed ${r.sets.length}${JSON.stringify([...r.sets].sort()) === JSON.stringify(DOC_SETS) ? '' : `: ${r.sets.join(', ')}`}`);
     ok(r.offered.length === 0, `G4: ${host}: every set builds today, so none is listed as unavailable (${JSON.stringify(r.offered)}; the path is held on planted definitions in test-component-catalog.ts)`);
-    ok(JSON.stringify(r.previewSets) === JSON.stringify(['button', 'button-destructive', 'button-neutral']), `#2700 note 1: ${host}: the preview shows the Buttons family's sets, the one with a preview (${JSON.stringify(r.previewSets)})`);
+    // #2661: Button.Group joins the Buttons family, alphabetical by component name (Button.Group before Button.Neutral).
+    ok(JSON.stringify(r.previewSets) === JSON.stringify(['button', 'button-destructive', 'button-group', 'button-neutral']), `#2700 note 1: ${host}: the preview shows the Buttons family's sets, the one with a preview (${JSON.stringify(r.previewSets)})`);
     if (host === 'web') {
       ok(r.build.length === 0 && r.boxes === 0 && r.figma === 0, `G5: web: the Components page draws no build control — Build ${r.build.length}, set boxes ${r.boxes}, Figma menu items ${r.figma}`);
       ok(r.webLines.length === 2 && r.webLines.every((t) => t === COMPONENTS_COPY.web), `G5: web: the list and the preview both say "${COMPONENTS_COPY.web}" (${JSON.stringify(r.webLines)})`);
@@ -8109,7 +8110,7 @@ for (const host of ['web', 'figma']) {
       ok(r.build.length === 1 && r.build[0][0] === COMPONENTS_COPY.build && r.build[0][2] === true && r.checked === 0 && r.summary === COMPONENTS_COPY.nothing && r.boxes >= DOC_SETS.length,
         `#2700 call 13: figma: nothing is selected on open, and the one Build control waits for a set — ${JSON.stringify(r.build)}, ${r.checked} of ${r.boxes} boxes checked, "${r.summary}"`);
       ok(r.hint === COMPONENTS_COPY.orderHint, `figma: the build's plain fact reads "${COMPONENTS_COPY.orderHint}" (${JSON.stringify(r.hint)})`);
-      ok(r.last.length === 3 && r.last.every((t) => t === 'Not built in this session'), `G9: figma: before any build, every set shown reads "Not built in this session" (${[...new Set(r.last)].join(', ')})`);
+      ok(r.last.length === 4 && r.last.every((t) => t === 'Not built in this session'), `G9: figma: before any build, every set shown reads "Not built in this session" (${[...new Set(r.last)].join(', ')})`);
       ok(r.webLines.length === 0, `figma: no web line in the plugin (${JSON.stringify(r.webLines)})`);
       // Selecting a set names the build, in place, keeping focus on the box (#2700, call 17).
       await hooks.click(page.locator('[data-p3="cp-box"][data-key="set=tag"]'));

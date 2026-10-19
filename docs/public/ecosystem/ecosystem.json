@@ -312,8 +312,10 @@
           "segmented-control-segment",
           "segmented-control",
           "link",
+          "button-group",
           "dialog",
-          "password-field"
+          "password-field",
+          "counter"
         ]
       }
     },
