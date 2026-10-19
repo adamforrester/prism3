@@ -364,7 +364,7 @@ section('all three — reactions, set moves and page reorders in one run: one ve
   const sets = page.children.filter((n) => n.type === 'COMPONENT_SET') as Node[];
   for (const set of sets) (set as { parent?: unknown }).parent = page;
   const fresh = sets.map((n) => [Number(n.x), Number(n.y)]);
-  for (let k = 1; k < sets.length; k++) sets[k].x = Number(sets[k - 1].x) + Number(sets[k - 1].width) + 160;
+  for (let k = 1; k < sets.length; k++) sets[k].x = Number(sets[k - 1].x) + Number(sets[k - 1].width) + 100;
   type P = { name: string; isPageDivider?: boolean; appendChild(): void };
   const pg = (name: string, isPageDivider = false): P => ({ name, isPageDivider, appendChild() {} });
   const pages: P[] = [pg('Cover'), pg('---', true), pg('Components'), pg('↳ Tabs'), pg('↳ Badge'), pg('↳ Divider')];
