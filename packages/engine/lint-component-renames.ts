@@ -94,7 +94,9 @@ const project = (): Baseline => {
     out[def.id] = {
       axes: Object.fromEntries(Object.keys(axes).sort().map((a) => [a, [...axes[a]].sort()])),
       members: plans.length,
-      properties: Object.fromEntries(props.map((p) => [p.name, p.type] as const).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))),
+      // The non-variant component properties (#2649), so a removed BOOLEAN, TEXT, swap or slot owes a claim too, and a
+      // property renamed in place (#2759) a property-rename entry.
+      properties: Object.fromEntries(props.map((p) => [p.name, p.type] as const).sort(([x], [y]) => (x < y ? -1 : x > y ? 1 : 0))),
     };
   }
   return out;
@@ -182,9 +184,12 @@ console.log(`component renames (#2265) — ${nDefs} defs, ${nAxes} axes, ${nValu
 console.log(before
   ? `  base ${base.slice(0, 8)} (${baseRef}, ${cmp.label}): ${Object.keys(before).length} defs compared`
   : `  base ${base.slice(0, 8)} (${baseRef}, ${cmp.label}) does not track ${REL} — BOOTSTRAP: arm B has nothing to compare at this base`);
+// The property arm (#2649) compares only where the base's baseline records properties; one written before it does not.
+if (before && !Object.values(before).some((d) => d.properties))
+  console.log('  the base records no component properties — BOOTSTRAP: the property arm has nothing to compare at this base');
 if (failures.length) {
   console.error(`\n❌ ${failures.length} failure(s):`);
   for (const f of failures) console.error(`  ${f}`);
   process.exit(1);
 }
-console.log('✓ every def, axis and value that left the projection is claimed by COMPONENT_RENAMES');
+console.log('✓ every def, axis, value and component property that left the projection is claimed by COMPONENT_RENAMES');

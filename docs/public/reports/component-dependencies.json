@@ -9,38 +9,6 @@
   "note": "edges: every part that nests another component (anatomy part with `nests`), with its nesting relation. components.<id>.affectedByChange lists every component that nests it directly or transitively — the components a change to it reaches. inherits is a reading reference only: the engine copies no fields across it, so it does not appear in affectedByChange.",
   "edges": [
     {
-      "from": "_segmented-control-segment",
-      "to": "focus-ring",
-      "part": "focusRing",
-      "partKind": "absolute",
-      "relation": "nest-fixed",
-      "variant": {
-        "surface": "default"
-      }
-    },
-    {
-      "from": "_tab-item",
-      "to": "badge",
-      "part": "count",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "type": "count",
-        "emphasis": "bold",
-        "tone": "neutral"
-      }
-    },
-    {
-      "from": "_tab-item",
-      "to": "focus-ring",
-      "part": "focusRing",
-      "partKind": "absolute",
-      "relation": "nest-fixed",
-      "variant": {
-        "surface": "default"
-      }
-    },
-    {
       "from": "accordion",
       "to": "divider",
       "part": "divider",
@@ -140,6 +108,102 @@
       "relation": "swap"
     },
     {
+      "from": "button-group",
+      "to": "button",
+      "part": "cancel",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "appearance": "outline",
+        "size": "medium",
+        "surface": "default",
+        "inset": "default",
+        "state": "rest",
+        "leading icon": "false",
+        "trailing icon": "false"
+      }
+    },
+    {
+      "from": "button-group",
+      "to": "button",
+      "part": "cancelFill",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "appearance": "outline",
+        "size": "medium",
+        "surface": "default",
+        "inset": "default",
+        "state": "rest",
+        "leading icon": "false",
+        "trailing icon": "false"
+      }
+    },
+    {
+      "from": "button-group",
+      "to": "button",
+      "part": "cancelStacked",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "appearance": "outline",
+        "size": "medium",
+        "surface": "default",
+        "inset": "default",
+        "state": "rest",
+        "leading icon": "false",
+        "trailing icon": "false"
+      }
+    },
+    {
+      "from": "button-group",
+      "to": "button",
+      "part": "save",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "appearance": "filled",
+        "size": "medium",
+        "surface": "default",
+        "inset": "default",
+        "state": "rest",
+        "leading icon": "false",
+        "trailing icon": "false"
+      }
+    },
+    {
+      "from": "button-group",
+      "to": "button",
+      "part": "saveFill",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "appearance": "filled",
+        "size": "medium",
+        "surface": "default",
+        "inset": "default",
+        "state": "rest",
+        "leading icon": "false",
+        "trailing icon": "false"
+      }
+    },
+    {
+      "from": "button-group",
+      "to": "button",
+      "part": "saveStacked",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "appearance": "filled",
+        "size": "medium",
+        "surface": "default",
+        "inset": "default",
+        "state": "rest",
+        "leading icon": "false",
+        "trailing icon": "false"
+      }
+    },
+    {
       "from": "button-neutral",
       "to": "focus-ring",
       "part": "focusRing",
@@ -225,71 +289,6 @@
       ]
     },
     {
-      "from": "checkbox-group",
-      "to": "checkbox-row",
-      "part": "row4",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "size": "medium"
-      },
-      "follow": [
-        "size"
-      ]
-    },
-    {
-      "from": "checkbox-group",
-      "to": "checkbox-row",
-      "part": "row5",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "size": "medium"
-      },
-      "follow": [
-        "size"
-      ]
-    },
-    {
-      "from": "checkbox-group",
-      "to": "checkbox-row",
-      "part": "row6",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "size": "medium"
-      },
-      "follow": [
-        "size"
-      ]
-    },
-    {
-      "from": "checkbox-group",
-      "to": "checkbox-row",
-      "part": "row7",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "size": "medium"
-      },
-      "follow": [
-        "size"
-      ]
-    },
-    {
-      "from": "checkbox-group",
-      "to": "checkbox-row",
-      "part": "row8",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "size": "medium"
-      },
-      "follow": [
-        "size"
-      ]
-    },
-    {
       "from": "checkbox-row",
       "to": "checkbox-control",
       "part": "control",
@@ -308,81 +307,107 @@
       ]
     },
     {
-      "from": "dialog",
-      "to": "button",
-      "part": "cancelInline",
+      "from": "counter",
+      "to": "flush-icon-button-neutral",
+      "part": "decrement",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "shape": "flush",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "state"
+      ]
+    },
+    {
+      "from": "counter",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      }
+    },
+    {
+      "from": "counter",
+      "to": "flush-icon-button-neutral",
+      "part": "increment",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "shape": "flush",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "state"
+      ]
+    },
+    {
+      "from": "counter",
+      "to": "field-label",
+      "part": "label",
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
-        "appearance": "outline",
         "size": "medium",
-        "surface": "default",
-        "inset": "default",
-        "state": "rest",
-        "leading icon": "false",
-        "trailing icon": "false"
+        "emphasis": "secondary",
+        "weight": "regular",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "counter",
+      "to": "field-message",
+      "part": "message",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "status": "default"
       }
     },
     {
       "from": "dialog",
-      "to": "button",
-      "part": "cancelStacked",
+      "to": "button-group",
+      "part": "actionsInline",
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
-        "appearance": "outline",
-        "size": "medium",
-        "surface": "default",
-        "inset": "default",
-        "state": "rest",
-        "leading icon": "false",
-        "trailing icon": "false"
+        "layout": "inline"
       }
     },
     {
       "from": "dialog",
-      "to": "icon-button-neutral",
+      "to": "button-group",
+      "part": "actionsStacked",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "layout": "stacked"
+      }
+    },
+    {
+      "from": "dialog",
+      "to": "flush-icon-button-neutral",
       "part": "close",
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
-        "appearance": "ghost",
+        "shape": "round",
         "size": "medium",
-        "shape": "square",
-        "surface": "default",
         "state": "rest"
-      }
-    },
-    {
-      "from": "dialog",
-      "to": "button",
-      "part": "confirmInline",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "appearance": "filled",
-        "size": "medium",
-        "surface": "default",
-        "inset": "default",
-        "state": "rest",
-        "leading icon": "false",
-        "trailing icon": "false"
-      }
-    },
-    {
-      "from": "dialog",
-      "to": "button",
-      "part": "confirmStacked",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "appearance": "filled",
-        "size": "medium",
-        "surface": "default",
-        "inset": "default",
-        "state": "rest",
-        "leading icon": "false",
-        "trailing icon": "false"
       }
     },
     {
@@ -512,7 +537,7 @@
     },
     {
       "from": "list",
-      "to": "_list-item",
+      "to": "list-item",
       "part": "item1",
       "partKind": "nest",
       "relation": "nest-fixed",
@@ -527,7 +552,7 @@
     },
     {
       "from": "list",
-      "to": "_list-item",
+      "to": "list-item",
       "part": "item2",
       "partKind": "nest",
       "relation": "nest-fixed",
@@ -542,83 +567,8 @@
     },
     {
       "from": "list",
-      "to": "_list-item",
+      "to": "list-item",
       "part": "item3",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "type": "unordered",
-        "size": "medium"
-      },
-      "follow": [
-        "type",
-        "size"
-      ]
-    },
-    {
-      "from": "list",
-      "to": "_list-item",
-      "part": "item4",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "type": "unordered",
-        "size": "medium"
-      },
-      "follow": [
-        "type",
-        "size"
-      ]
-    },
-    {
-      "from": "list",
-      "to": "_list-item",
-      "part": "item5",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "type": "unordered",
-        "size": "medium"
-      },
-      "follow": [
-        "type",
-        "size"
-      ]
-    },
-    {
-      "from": "list",
-      "to": "_list-item",
-      "part": "item6",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "type": "unordered",
-        "size": "medium"
-      },
-      "follow": [
-        "type",
-        "size"
-      ]
-    },
-    {
-      "from": "list",
-      "to": "_list-item",
-      "part": "item7",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "type": "unordered",
-        "size": "medium"
-      },
-      "follow": [
-        "type",
-        "size"
-      ]
-    },
-    {
-      "from": "list",
-      "to": "_list-item",
-      "part": "item8",
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
@@ -681,16 +631,13 @@
       "relation": "nest-exposed",
       "variant": {
         "appearance": "text",
-        "size": "medium",
+        "size": "small",
         "surface": "default",
         "inset": "flush",
         "state": "rest",
         "leading icon": "false",
         "trailing icon": "false"
       },
-      "follow": [
-        "size"
-      ],
       "expose": [
         "label"
       ]
@@ -761,71 +708,6 @@
       ]
     },
     {
-      "from": "radio-group",
-      "to": "radio-row",
-      "part": "row4",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "size": "medium"
-      },
-      "follow": [
-        "size"
-      ]
-    },
-    {
-      "from": "radio-group",
-      "to": "radio-row",
-      "part": "row5",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "size": "medium"
-      },
-      "follow": [
-        "size"
-      ]
-    },
-    {
-      "from": "radio-group",
-      "to": "radio-row",
-      "part": "row6",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "size": "medium"
-      },
-      "follow": [
-        "size"
-      ]
-    },
-    {
-      "from": "radio-group",
-      "to": "radio-row",
-      "part": "row7",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "size": "medium"
-      },
-      "follow": [
-        "size"
-      ]
-    },
-    {
-      "from": "radio-group",
-      "to": "radio-row",
-      "part": "row8",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "size": "medium"
-      },
-      "follow": [
-        "size"
-      ]
-    },
-    {
       "from": "radio-row",
       "to": "radio-control",
       "part": "control",
@@ -861,10 +743,10 @@
     },
     {
       "from": "segmented-control",
-      "to": "_segmented-control-segment",
+      "to": "segmented-control-segment",
       "part": "segment1",
       "partKind": "nest",
-      "relation": "nest-exposed",
+      "relation": "nest-fixed",
       "variant": {
         "selection": "selected",
         "size": "medium",
@@ -872,18 +754,14 @@
       },
       "follow": [
         "size"
-      ],
-      "expose": [
-        "selection",
-        "state"
       ]
     },
     {
       "from": "segmented-control",
-      "to": "_segmented-control-segment",
+      "to": "segmented-control-segment",
       "part": "segment2",
       "partKind": "nest",
-      "relation": "nest-exposed",
+      "relation": "nest-fixed",
       "variant": {
         "selection": "unselected",
         "size": "medium",
@@ -891,18 +769,14 @@
       },
       "follow": [
         "size"
-      ],
-      "expose": [
-        "selection",
-        "state"
       ]
     },
     {
       "from": "segmented-control",
-      "to": "_segmented-control-segment",
+      "to": "segmented-control-segment",
       "part": "segment3",
       "partKind": "nest",
-      "relation": "nest-exposed",
+      "relation": "nest-fixed",
       "variant": {
         "selection": "unselected",
         "size": "medium",
@@ -910,49 +784,17 @@
       },
       "follow": [
         "size"
-      ],
-      "expose": [
-        "selection",
-        "state"
       ]
     },
     {
-      "from": "segmented-control",
-      "to": "_segmented-control-segment",
-      "part": "segment4",
-      "partKind": "nest",
-      "relation": "nest-exposed",
+      "from": "segmented-control-segment",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
       "variant": {
-        "selection": "unselected",
-        "size": "medium",
-        "state": "rest"
-      },
-      "follow": [
-        "size"
-      ],
-      "expose": [
-        "selection",
-        "state"
-      ]
-    },
-    {
-      "from": "segmented-control",
-      "to": "_segmented-control-segment",
-      "part": "segment5",
-      "partKind": "nest",
-      "relation": "nest-exposed",
-      "variant": {
-        "selection": "unselected",
-        "size": "medium",
-        "state": "rest"
-      },
-      "follow": [
-        "size"
-      ],
-      "expose": [
-        "selection",
-        "state"
-      ]
+        "surface": "default"
+      }
     },
     {
       "from": "select",
@@ -1027,8 +869,30 @@
       ]
     },
     {
+      "from": "tab-item",
+      "to": "badge",
+      "part": "count",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "count",
+        "emphasis": "bold",
+        "tone": "neutral"
+      }
+    },
+    {
+      "from": "tab-item",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      }
+    },
+    {
       "from": "tabs",
-      "to": "_tab-item",
+      "to": "tab-item",
       "part": "tab1",
       "partKind": "nest",
       "relation": "nest-fixed",
@@ -1043,7 +907,7 @@
     },
     {
       "from": "tabs",
-      "to": "_tab-item",
+      "to": "tab-item",
       "part": "tab2",
       "partKind": "nest",
       "relation": "nest-fixed",
@@ -1058,53 +922,8 @@
     },
     {
       "from": "tabs",
-      "to": "_tab-item",
+      "to": "tab-item",
       "part": "tab3",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "selection": "unselected",
-        "size": "medium",
-        "state": "rest"
-      },
-      "follow": [
-        "size"
-      ]
-    },
-    {
-      "from": "tabs",
-      "to": "_tab-item",
-      "part": "tab4",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "selection": "unselected",
-        "size": "medium",
-        "state": "rest"
-      },
-      "follow": [
-        "size"
-      ]
-    },
-    {
-      "from": "tabs",
-      "to": "_tab-item",
-      "part": "tab5",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "selection": "unselected",
-        "size": "medium",
-        "state": "rest"
-      },
-      "follow": [
-        "size"
-      ]
-    },
-    {
-      "from": "tabs",
-      "to": "_tab-item",
-      "part": "tab6",
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
@@ -1225,49 +1044,6 @@
       ],
       "inheritedBy": []
     },
-    "_list-item": {
-      "nests": [],
-      "nestsTransitively": [],
-      "nestedBy": [
-        "list"
-      ],
-      "affectedByChange": [
-        "list"
-      ],
-      "inheritedBy": []
-    },
-    "_segmented-control-segment": {
-      "nests": [
-        "focus-ring"
-      ],
-      "nestsTransitively": [
-        "focus-ring"
-      ],
-      "nestedBy": [
-        "segmented-control"
-      ],
-      "affectedByChange": [
-        "segmented-control"
-      ],
-      "inheritedBy": []
-    },
-    "_tab-item": {
-      "nests": [
-        "badge",
-        "focus-ring"
-      ],
-      "nestsTransitively": [
-        "badge",
-        "focus-ring"
-      ],
-      "nestedBy": [
-        "tabs"
-      ],
-      "affectedByChange": [
-        "tabs"
-      ],
-      "inheritedBy": []
-    },
     "accordion": {
       "nests": [
         "_accordion-indicator",
@@ -1287,10 +1063,10 @@
       "nests": [],
       "nestsTransitively": [],
       "nestedBy": [
-        "_tab-item"
+        "tab-item"
       ],
       "affectedByChange": [
-        "_tab-item",
+        "tab-item",
         "tabs"
       ],
       "inheritedBy": []
@@ -1305,10 +1081,11 @@
         "spinner"
       ],
       "nestedBy": [
-        "dialog",
+        "button-group",
         "password-field"
       ],
       "affectedByChange": [
+        "button-group",
         "dialog",
         "password-field"
       ],
@@ -1330,6 +1107,23 @@
       "inheritedBy": [
         "icon-button-destructive"
       ]
+    },
+    "button-group": {
+      "nests": [
+        "button"
+      ],
+      "nestsTransitively": [
+        "button",
+        "focus-ring",
+        "spinner"
+      ],
+      "nestedBy": [
+        "dialog"
+      ],
+      "affectedByChange": [
+        "dialog"
+      ],
+      "inheritedBy": []
     },
     "button-neutral": {
       "nests": [
@@ -1397,17 +1191,35 @@
         "switch-row"
       ]
     },
+    "counter": {
+      "nests": [
+        "field-label",
+        "field-message",
+        "flush-icon-button-neutral",
+        "focus-ring"
+      ],
+      "nestsTransitively": [
+        "field-label",
+        "field-message",
+        "flush-icon-button-neutral",
+        "focus-ring"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
     "dialog": {
       "nests": [
-        "button",
+        "button-group",
         "divider",
-        "icon-button-neutral"
+        "flush-icon-button-neutral"
       ],
       "nestsTransitively": [
         "button",
+        "button-group",
         "divider",
+        "flush-icon-button-neutral",
         "focus-ring",
-        "icon-button-neutral",
         "spinner"
       ],
       "nestedBy": [],
@@ -1432,6 +1244,7 @@
       "nestsTransitively": [],
       "nestedBy": [
         "checkbox-group",
+        "counter",
         "password-field",
         "radio-group",
         "segmented-control",
@@ -1441,6 +1254,7 @@
       ],
       "affectedByChange": [
         "checkbox-group",
+        "counter",
         "password-field",
         "radio-group",
         "segmented-control",
@@ -1454,12 +1268,14 @@
       "nests": [],
       "nestsTransitively": [],
       "nestedBy": [
+        "counter",
         "password-field",
         "select",
         "text-field",
         "textarea"
       ],
       "affectedByChange": [
+        "counter",
         "password-field",
         "select",
         "text-field",
@@ -1498,8 +1314,14 @@
       "nestsTransitively": [
         "focus-ring"
       ],
-      "nestedBy": [],
-      "affectedByChange": [],
+      "nestedBy": [
+        "counter",
+        "dialog"
+      ],
+      "affectedByChange": [
+        "counter",
+        "dialog"
+      ],
       "inherits": "icon-button-neutral",
       "inheritedBy": []
     },
@@ -1507,13 +1329,12 @@
       "nests": [],
       "nestsTransitively": [],
       "nestedBy": [
-        "_segmented-control-segment",
-        "_tab-item",
         "accordion",
         "button",
         "button-destructive",
         "button-neutral",
         "checkbox-control",
+        "counter",
         "flush-icon-button",
         "flush-icon-button-destructive",
         "flush-icon-button-neutral",
@@ -1523,22 +1344,24 @@
         "link",
         "password-field",
         "radio-control",
+        "segmented-control-segment",
         "select",
         "switch-control",
+        "tab-item",
         "tag",
         "text-field",
         "textarea"
       ],
       "affectedByChange": [
-        "_segmented-control-segment",
-        "_tab-item",
         "accordion",
         "button",
         "button-destructive",
+        "button-group",
         "button-neutral",
         "checkbox-control",
         "checkbox-group",
         "checkbox-row",
+        "counter",
         "dialog",
         "flush-icon-button",
         "flush-icon-button-destructive",
@@ -1552,9 +1375,11 @@
         "radio-group",
         "radio-row",
         "segmented-control",
+        "segmented-control-segment",
         "select",
         "switch-control",
         "switch-row",
+        "tab-item",
         "tabs",
         "tag",
         "text-field",
@@ -1610,12 +1435,8 @@
         "focus-ring",
         "spinner"
       ],
-      "nestedBy": [
-        "dialog"
-      ],
-      "affectedByChange": [
-        "dialog"
-      ],
+      "nestedBy": [],
+      "affectedByChange": [],
       "inherits": "button-neutral",
       "inheritedBy": [
         "flush-icon-button-neutral"
@@ -1641,13 +1462,24 @@
     },
     "list": {
       "nests": [
-        "_list-item"
+        "list-item"
       ],
       "nestsTransitively": [
-        "_list-item"
+        "list-item"
       ],
       "nestedBy": [],
       "affectedByChange": [],
+      "inheritedBy": []
+    },
+    "list-item": {
+      "nests": [],
+      "nestsTransitively": [],
+      "nestedBy": [
+        "list"
+      ],
+      "affectedByChange": [
+        "list"
+      ],
       "inheritedBy": []
     },
     "password-field": {
@@ -1718,16 +1550,31 @@
     },
     "segmented-control": {
       "nests": [
-        "_segmented-control-segment",
-        "field-label"
+        "field-label",
+        "segmented-control-segment"
       ],
       "nestsTransitively": [
-        "_segmented-control-segment",
         "field-label",
-        "focus-ring"
+        "focus-ring",
+        "segmented-control-segment"
       ],
       "nestedBy": [],
       "affectedByChange": [],
+      "inheritedBy": []
+    },
+    "segmented-control-segment": {
+      "nests": [
+        "focus-ring"
+      ],
+      "nestsTransitively": [
+        "focus-ring"
+      ],
+      "nestedBy": [
+        "segmented-control"
+      ],
+      "affectedByChange": [
+        "segmented-control"
+      ],
       "inheritedBy": []
     },
     "select": {
@@ -1759,6 +1606,7 @@
       "affectedByChange": [
         "button",
         "button-destructive",
+        "button-group",
         "button-neutral",
         "dialog",
         "icon-button",
@@ -1796,14 +1644,31 @@
       "inherits": "checkbox-row",
       "inheritedBy": []
     },
-    "tabs": {
+    "tab-item": {
       "nests": [
-        "_tab-item"
-      ],
-      "nestsTransitively": [
-        "_tab-item",
         "badge",
         "focus-ring"
+      ],
+      "nestsTransitively": [
+        "badge",
+        "focus-ring"
+      ],
+      "nestedBy": [
+        "tabs"
+      ],
+      "affectedByChange": [
+        "tabs"
+      ],
+      "inheritedBy": []
+    },
+    "tabs": {
+      "nests": [
+        "tab-item"
+      ],
+      "nestsTransitively": [
+        "badge",
+        "focus-ring",
+        "tab-item"
       ],
       "nestedBy": [],
       "affectedByChange": [],
@@ -1864,18 +1729,17 @@
   },
   "depth": {
     "_accordion-indicator": 0,
-    "_list-item": 0,
-    "_segmented-control-segment": 1,
-    "_tab-item": 1,
     "accordion": 1,
     "badge": 0,
     "button": 1,
     "button-destructive": 1,
+    "button-group": 2,
     "button-neutral": 1,
     "checkbox-control": 1,
     "checkbox-group": 3,
     "checkbox-row": 2,
-    "dialog": 2,
+    "counter": 2,
+    "dialog": 3,
     "divider": 0,
     "field-label": 0,
     "field-message": 0,
@@ -1890,15 +1754,18 @@
     "image-placeholder": 0,
     "link": 1,
     "list": 1,
+    "list-item": 0,
     "password-field": 2,
     "radio-control": 1,
     "radio-group": 3,
     "radio-row": 2,
     "segmented-control": 2,
+    "segmented-control-segment": 1,
     "select": 1,
     "spinner": 0,
     "switch-control": 1,
     "switch-row": 2,
+    "tab-item": 1,
     "tabs": 2,
     "tag": 1,
     "text-field": 1,

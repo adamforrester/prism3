@@ -12,7 +12,6 @@ Generated from the component definitions and the emission by `packages/engine/em
 |  | chevronUpGlyph | `chevron-up` | icon set | drawn | indicator: chevron; expansion: expanded |
 |  | minusGlyph | `minus` | icon set | drawn | indicator: plus-minus; expansion: expanded |
 |  | plusGlyph | `plus` | icon set | drawn | indicator: plus-minus; expansion: collapsed |
-| _list-item | icon | `check` | icon set | swap default | type: icon |
 | checkbox-control | checkGlyph | `check` | icon set | drawn | selection: checked |
 |  | dashGlyph | `minus` | icon set | drawn | selection: indeterminate |
 | field-message | errorGlyph | `warning-triangle` | icon set | drawn | status: error |
@@ -20,6 +19,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 |  | warningGlyph | `error-circle` | icon set | drawn | status: warning |
 | icon | glyph | `{name}` | any (prop) | drawn | always |
 | image-placeholder | markerGlyph | `image` | icon set | drawn | always |
+| list-item | icon | `check` | icon set | swap default | type: icon |
 | select | chevronGlyph | `chevron-down` | icon set | drawn | always |
 | spinner | ringGlyph | `spinner` | component-owned | drawn | always |
 | switch-control | offGlyph | `close` | icon set | drawn | selection: off |
@@ -34,9 +34,6 @@ Parts that take any icon from the set. The file nominates the default unless the
 
 | Component | Slots |
 |---|---|
-| _list-item | icon |
-| _segmented-control-segment | leadingVisual |
-| _tab-item | leadingVisual |
 | button | leadingVisual, trailingVisual |
 | button-destructive | leadingVisual, trailingVisual |
 | button-neutral | leadingVisual, trailingVisual |
@@ -47,8 +44,11 @@ Parts that take any icon from the set. The file nominates the default unless the
 | icon-button-destructive | icon |
 | icon-button-neutral | icon |
 | link | trailingVisual |
+| list-item | icon |
 | password-field | leadingVisual |
+| segmented-control-segment | leadingVisual |
 | select | leadingVisual |
+| tab-item | leadingVisual |
 | tag | leadingVisual |
 | text-field | leadingVisual, trailingVisual |
 
@@ -56,7 +56,7 @@ Parts that take any icon from the set. The file nominates the default unless the
 
 | Glyph | Drawn by |
 |---|---|
-| `check` | _list-item, checkbox-control, switch-control, tag |
+| `check` | checkbox-control, list-item, switch-control, tag |
 | `check-circle` | field-message |
 | `chevron-down` | _accordion-indicator, select |
 | `chevron-up` | _accordion-indicator |

@@ -36,6 +36,24 @@ face. When we do deviate, that deviation is itself a finding — tag it `[KB]` a
 
 ---
 
+## 2026-10-18 — from deciding what a refused host call does to a 648-member build (#982)
+
+### `[SKILL]` A refused host call is a miss or a stop by what it was writing to, decided once
+
+One refused `setBoundVariable` used to end a whole component build, while its neighbour (`loadFontAsync`) was already a miss. Each call site had decided for itself, and nothing said which was right. The rule, decided on #982 and recorded above `applyComponentPlan` in `apps/plugin/src/write-components.ts`:
+
+- **A refused PROPERTY is a miss.** One write onto a node that exists (a variable binding, a text or effect style, a font load, `characters`, a component-property definition or reference). Record it, name the node and the field, and keep building the member.
+- **A refused STRUCTURE stops the member or set.** Creating or parenting a node, `createComponentFromNode`, `combineAsVariants`. It throws to the `applyComponentPlan` guard, which marks what was left behind (#913) and rethrows.
+- **The classifier** is one question: "does the node I am writing to still exist, whole, after this fails?" A property refusal leaves the node as it was; a structure refusal leaves a half-made one.
+
+A skill that adds a host call to the executor should classify it with that question before writing it, then pin it in `test-write-components.ts` with a `#982` arm:
+
+- A refused property needs a REFUSED miss, exactly one per member (no second `DISCARDED` or `could not be re-applied` line: a refused binding is not pushed to `wrote`, a refused style leaves `appliedStyle` unset).
+- A refused structure needs a throw.
+- Put the `#982` arms ahead of the #913 regimes, which pin the same structure sites and crash the file when one is flipped; an arm after them cannot run under the mutation it is named for.
+
+**Not yet classified:** `resize` (clears every dimension binding), `setBoundVariableForPaint`, and the paint-array assignments (`fills` / `strokes`). Each needs its own host measurement before it is moved. Tracked in #2824.
+
 ## 2026-08-14 — from deciding three synonyms inside closed vocabularies (#843, #844, #845)
 
 ### `[SKILL]` A cost estimate written while filing is a hypothesis with a number in it

@@ -83,7 +83,8 @@ export const TAXONOMY: Taxonomy = {
       // Alphabetical in the file (#2568, owner decision Q260 A); the list below is no longer the page order.
       alphabetical: true,
       leaves: [
-        { page: 'Buttons', defs: ['button', 'button-destructive', 'button-neutral'] },
+        // Button.Group (#2661, owner decision Q363) joins the Button family's page: it nests the Button, built first.
+        { page: 'Buttons', defs: ['button', 'button-destructive', 'button-neutral', 'button-group'] },
         { page: 'Icon button', defs: ['icon-button', 'icon-button-destructive', 'icon-button-neutral'] },
         { page: 'Checkbox', defs: ['checkbox-control', 'checkbox-row', 'checkbox-group'] },
         { page: 'Radio', defs: ['radio-control', 'radio-row', 'radio-group'] },
@@ -102,10 +103,10 @@ export const TAXONOMY: Taxonomy = {
         { page: 'Tag', defs: ['tag'] },
         // Tabs — its own page under Components, owner-decided 2026-10-09 (#2416 Q177.14: no navigation grouping,
         // no new section). Tab builds first, so the list's nested tabs resolve against it on the same page.
-        { page: 'Tabs', defs: ['_tab-item', 'tabs'] },
+        { page: 'Tabs', defs: ['tab-item', 'tabs'] },
         // Segmented control (#2418, owner Q269.7) — its own page under Components, after Tabs. The option builds
         // first, so the control's nested options resolve against it on the same page, as Tabs' do.
-        { page: 'Segmented control', defs: ['_segmented-control-segment', 'segmented-control'] },
+        { page: 'Segmented control', defs: ['segmented-control-segment', 'segmented-control'] },
         // Divider (#2455) — its own page, as the issue asks. Under Components beside the components that nest
         // it next (Accordion, #2417); the section is the owner's call and held as DRAFT in the PR.
         { page: 'Divider', defs: ['divider'] },
@@ -114,13 +115,16 @@ export const TAXONOMY: Taxonomy = {
         { page: 'Accordion', defs: ['_accordion-indicator', 'accordion'] },
         // List (#2319, owner decision Q273.7) — its own page under Components, List.Item beside it. The item builds first,
         // so the list's nested items resolve against it on the same page.
-        { page: 'List', defs: ['_list-item', 'list'] },
+        { page: 'List', defs: ['list-item', 'list'] },
         // Link (#2580) — its own page under Components. The proposal named a navigation section; none exists (Tabs
         // went under Components, Q177.14), so the section is held as an owner item in the PR.
         { page: 'Link', defs: ['link'] },
         // Dialog (#2609, owner decision Q303.12 A) — its own page under Components, every placement on it. It nests the
         // Neutral IconButton, the Divider and the Button, which the build places first wherever their pages sort.
         { page: 'Dialog', defs: ['dialog'] },
+        // Counter (#2427, owner decision Q283.14 A) — its own page, alphabetical under Components (between Checkbox and
+        // Divider). It nests FlushIconButton.Neutral, whose page is under Subcomponents.
+        { page: 'Counter', defs: ['counter'] },
       ],
     },
     {

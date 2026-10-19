@@ -123,7 +123,7 @@ section('map — the per-def reaction map, literal (owner decision Q238 A, part 
     'button': [576, 192, 288], 'button-destructive': [576, 192, 288], 'button-neutral': [576, 192, 288],
     'icon-button': [216, 72, 108], 'icon-button-destructive': [216, 72, 108], 'icon-button-neutral': [216, 72, 108],
     'checkbox-control': [54, 18, 27], 'radio-control': [30, 12, 18], 'switch-control': [24, 8, 12],
-    'tag': [45, 18, 27], '_tab-item': [30, 12, 18], '_segmented-control-segment': [30, 12, 18], 'link': [96, 48, 72],
+    'tag': [45, 18, 27], 'tab-item': [30, 12, 18], 'segmented-control-segment': [30, 12, 18], 'link': [96, 48, 72],
     // #2457: the flush icon button, 2 shapes × 3 sizes (Q287 A) × (rest → hover, rest → pressed, hover → pressed), in
     // each of its three families (Q295.2 B).
     'flush-icon-button': [30, 12, 18], 'flush-icon-button-destructive': [30, 12, 18], 'flush-icon-button-neutral': [30, 12, 18],
@@ -349,7 +349,7 @@ section('touch — Rest keeps While pressing, and a file built under the hover-o
 // → `all three/hash, set`; the page list dropped from it → `all three/hash, page`.
 section('all three — reactions, set moves and page reorders in one run: one version, all done, all in the hash');
 {
-  const IDS = ['tag', '_tab-item', 'switch-control'];
+  const IDS = ['tag', 'tab-item', 'switch-control'];
   const plansBy = new Map(IDS.map((id) => [id, plansOf(id)] as const));
   const all = [...plansBy.values()].flat();
   const page: Page = { children: [] };
@@ -387,9 +387,9 @@ section('all three — reactions, set moves and page reorders in one run: one ve
   await dangle(null);
   const pre = await previewUpdate(host, targets);
   const stateOf = (set: string, member: string) => pre.sets.find((p) => p.set === set)?.states.find((s) => s.member === member)?.state;
-  ok(JSON.stringify(pre.sets.filter((p) => p.setMove).map((p) => p.set)) === JSON.stringify(['_tab-item', 'switch-control'])
+  ok(JSON.stringify(pre.sets.filter((p) => p.setMove).map((p) => p.set)) === JSON.stringify(['tab-item', 'switch-control'])
     && JSON.stringify(pre.pages) === JSON.stringify(['↳ Tabs'])
-    && pre.sets[0].counts.update === 18 && stateOf('_tab-item', String(TAB_REST.name)) === 'update',
+    && pre.sets[0].counts.update === 18 && stateOf('tab-item', String(TAB_REST.name)) === 'update',
     `all three/dry run: 18 tag members and the dangling tab member to update, the 2 later sets to move, Tabs to reorder (${JSON.stringify(pre.sets.map((p) => [p.set, p.counts.update, !!p.setMove]))}; ${JSON.stringify(pre.pages)})`);
   // THE HASH covers all three: each changed after the check refuses the confirm, and nothing is saved or written.
   const refused = async (label: string, change: () => Promise<void> | void, undo: () => Promise<void> | void): Promise<void> => {
@@ -408,7 +408,7 @@ section('all three — reactions, set moves and page reorders in one run: one ve
   // THE RUN: one named version, then every set's reactions, every set's place, and the page order.
   const go = await previewUpdate(host, targets);
   const res = await applyUpdate(host, api, targets, previewHashOf(go));
-  ok(JSON.stringify(api._versions) === JSON.stringify(['Before Prism3 updated tag, _tab-item, switch-control, the page order']),
+  ok(JSON.stringify(api._versions) === JSON.stringify(['Before Prism3 updated tag, tab-item, switch-control, the page order']),
     `all three/version: one named version, naming the sets and the page order (${JSON.stringify(api._versions)})`);
   const byName = (s: Node, n: Node): string[] => {
     const ids = new Map(kids(s).map((m) => [String(m.id), String(m.name)] as const));

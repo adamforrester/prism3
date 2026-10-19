@@ -103,8 +103,8 @@ export const badge: ComponentDef = {
     { name: 'tone', type: "enum: 'neutral' | 'info' | 'success' | 'warning' | 'danger'", values: ['neutral', 'info', 'success', 'warning', 'danger'], default: 'neutral', required: false, description: 'Which semantic role the badge paints from. The text carries the meaning, so a tone never stands in for it.' },
     { name: 'label', type: 'string', required: false, description: 'The status text, for type status. One or two words, in consistent casing across the product.' },
     { name: 'value', type: 'number', required: false, description: 'The count, for type count. Above max it shows as max followed by a plus sign, formatted for the locale.' },
-    { name: 'max', type: 'number', default: '99', required: false, description: 'The largest count shown in full, for type count. A larger value shows as "99+".' },
-    { name: 'showZero', type: 'boolean', default: 'false', required: false, description: 'Whether a count of zero still shows, for type count. Hidden by default, since zero is usually nothing to act on.' },
+    { name: 'max', type: 'number', default: 99, required: false, description: 'The largest count shown in full, for type count. A larger value shows as "99+".' },
+    { name: 'showZero', type: 'boolean', default: false, required: false, description: 'Whether a count of zero still shows, for type count. Hidden by default, since zero is usually nothing to act on.' },
     { name: 'overlap', type: "enum: 'rectangular' | 'circular'", values: ['rectangular', 'circular'], default: 'rectangular', required: false, description: 'The host shape a count or dot sits over. circular pulls the badge in toward the curve so it stays on the host\'s edge, such as an avatar.' },
   ],
 
@@ -306,7 +306,7 @@ export const badge: ComponentDef = {
     whenToUse: 'A short inline state or attribute (status), an actionable number over an icon button or tab (count), or presence or unread state over an avatar or nav item (dot).',
     avoidWhen: 'The user can click, toggle or remove it (use a tag), the message is feedback about an action (use a toast or banner), or the color would be the only signal.',
     // `tab` moved here from `planned` when it was built (#2416): a tab nests a count badge.
-    commonPartners: ['icon-button', 'button', '_tab-item'],
+    commonPartners: ['icon-button', 'button', 'tab-item'],
     triggerKeywords: ['badge', 'status badge', 'status label', 'counter badge', 'count badge', 'notification badge', 'notification dot', 'unread count', 'presence dot', 'label', 'pill label'],
     generationPriority: 3,
   },

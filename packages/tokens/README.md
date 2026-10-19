@@ -250,6 +250,26 @@ The full tables are in [`sd-version-matrix.md`](sd-version-matrix.md). In short:
   tokens in units DTCG 2025.10 does not allow (#2434). On native, `-0.04em` becomes an absolute
   `-0.64`, pinned as a `[GAP]` literal beside the font size.
 
+### What this means for native consumers (#2426)
+
+Native (iOS, Android, Compose) is not in the stock promise yet. The gate proves that every token
+*arrives* on every native platform and that each gap is pinned; it does not prove that the output
+compiles, and the gaps above are not fixed. A native consumer needs their own size, quoting and
+composite transforms:
+
+- **Sizes:** a transform that reads the unit, since `px` and `rem` are both emitted (#2430). Convert
+  Android and Compose font sizes to `sp` (#2613) and resolve `em` letter spacing against the font
+  size (#2434).
+- **Quoting:** durations, font families, stroke styles and cubic beziers, so Swift and Kotlin accept
+  them (#2431).
+- **Composites:** typography, shadow, transition and gradient. Read them from the JavaScript or JSON
+  output until a format models them (#2432).
+- **Android numbers:** non-integer values as `<item type="dimen" format="float">` (#2433).
+
+The no-custom-code rule stands. The gate runs built-in transform groups and formats only, so no
+reference production config with custom transforms ships for now, and the `[GAP]` pins stay as the
+record of what stock output does. Each pin fails by name the day a fix changes its value.
+
 ### Which Style Dictionary version (#2425's preset question)
 
 Measured, not assumed, by `tools/sd-version-matrix/`. It runs this config under 3.9.2, 4.0.0, 4.4.0,
