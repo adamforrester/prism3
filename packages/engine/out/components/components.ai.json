@@ -3044,16 +3044,34 @@
       "inherits": "text-field",
       "props": [
         {
+          "name": "label",
+          "type": "string | node",
+          "required": true,
+          "description": "The visible, persistent label (rendered as FieldLabel). Required — a visually-hidden label is the only label-less case, and it still exists in the DOM. Never the placeholder. The same prop as TextField's."
+        },
+        {
           "name": "value",
           "type": "string",
           "required": false,
           "description": "Controlled value; pair with onChange. The same prop as TextField's."
         },
         {
+          "name": "onChange",
+          "type": "function",
+          "required": false,
+          "description": "Change handler (also onBlur / onFocus). The same prop as TextField's."
+        },
+        {
           "name": "placeholder",
           "type": "string",
           "required": false,
           "description": "An example only; vanishes on input; nothing load-bearing lives here. The same prop as TextField's."
+        },
+        {
+          "name": "helpText",
+          "type": "string | node",
+          "required": false,
+          "description": "Persistent guidance (rendered as FieldMessage, default status); wired via aria-describedby. Show the format and any length limit BEFORE failure. The same prop as TextField's."
         },
         {
           "name": "showMessage",
@@ -3139,6 +3157,34 @@
           "description": "The validation text shown at error / warning / success, added to aria-describedby. For error, say what is wrong AND how to fix it, with the number when it is a length limit (SC 3.3.3), never \"Invalid\"."
         },
         {
+          "name": "required",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Sets required / aria-required, and turns on the FieldLabel's required marker. The same prop as TextField's."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Native disabled — removed from tab order, not submitted, silent to AT, contrast-exempt. Reserve for fields irrelevant in the current state. The same prop as TextField's."
+        },
+        {
+          "name": "readOnly",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Distinct from disabled: focusable, selectable and copyable, submitted with the form, and passes contrast. Use for text the user may read or copy but not edit (a submitted message, a generated summary). The same prop as TextField's."
+        },
+        {
+          "name": "isPending",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Content arriving asynchronously, such as a draft streaming into the field: sets aria-busy; does not block typing unless intended. The same prop as TextField's."
+        },
+        {
           "name": "size",
           "type": "enum: 'small' | 'medium' | 'large'",
           "default": "medium",
@@ -3149,6 +3195,18 @@
             "large"
           ],
           "description": "Scales the value type with the field (small 14px, medium 16px, large 18px, `type.body.{sm,md,lg}`), the nested label one step below it (12 / 14 / 16), and the padding. NOT the height: that belongs to rows / auto-grow, so the reserved rows grow with the type's line height. `small` is for fine pointers only: on a coarse pointer (`@media (pointer: coarse)`) the code sets the small textarea to 16px, because iOS Safari zooms the page when it focuses a field under 16px. The same prop, with the same values, as TextField and Select."
+        },
+        {
+          "name": "id",
+          "type": "string",
+          "required": false,
+          "description": "Wiring + form submission; auto-generated with useId if omitted, tying label→textarea and the aria-describedby chain. The same prop as TextField's."
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": false,
+          "description": "A real <textarea name> so the field works uncontrolled, in a native <form>, with useFormStatus / Server Actions, and the Constraint Validation API. The same prop as TextField's."
         }
       ],
       "states": [
@@ -3484,6 +3542,13 @@
           "type": "string",
           "required": false,
           "description": "The string submitted when checked (the platform default is `\"on\"`), and the element this row contributes to a Checkbox.Group's array. An unchecked box submits nothing at all rather than a false value — the missing-key trap."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Native disabled: removed from the tab order, not submitted, contrast-exempt. Disables the whole row: the nested control takes its disabled skin and the label dims. Reserve for an option that does not apply in the current state."
         },
         {
           "name": "readOnly",
@@ -3966,6 +4031,20 @@
           "type": "node",
           "required": false,
           "description": "Per-option helper beneath the label, describedby-wired. This is where the detail that makes an option distinguishable goes — the price, the delivery estimate, the caveat."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Native disabled: removed from the tab order, not submitted, contrast-exempt. Disables the whole row: the nested control takes its disabled skin and the label dims. Reserve for an option that does not apply in the current state."
+        },
+        {
+          "name": "readOnly",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Restated for the caveat Checkbox.Row carries: `<input type=\"radio\">` has NO working `readonly`, only `disabled`, so a genuinely read-only option needs `aria-readonly` plus a prevented change, or is better rendered as static text. Usually set on every option of a group at once. Decide which explicitly; the default of doing neither is a control that looks interactive and silently is not."
         },
         {
           "name": "size",
@@ -4465,6 +4544,13 @@
             "trailing"
           ],
           "description": "Where Switch.Row differs structurally from Checkbox.Row and Radio.Row, whose control always leads. Defaults to label-leading because a switch's habitat is the settings row, with the toggle at the row's trailing edge where the eye expects it; flip to control-leading when a switch sits inline among other form controls. A PROP and not a variants axis: it changes a row's direction and no ink at any coordinate, so it is an anatomy concern (see the header)."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Native disabled: removed from the tab order, not submitted, contrast-exempt. Disables the whole row: the nested switch takes its disabled skin and the label dims. Reserve for a setting that does not apply in the current state."
         },
         {
           "name": "isPending",
