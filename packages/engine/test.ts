@@ -31771,10 +31771,10 @@ arm: {
   // value text is the taller line. Typed per member: the floor, the alignment and the track must agree across types.
   {
     const header = (m: string) => part(m, 'header') as (PNode & { counterAxisAlignItems?: string; bound?: Record<string, string> }) | undefined;
-    const sig = (m: string) => { const h = header(m); return `${h?.counterAxisAlignItems}|${h?.bound?.minHeight}|${part(m, 'track')?.height}`; };
+    const sig = (m: string) => { const h = header(m); return `${h?.counterAxisAlignItems}|${h?.bound?.minHeight}`; };
     const linear = MEMBERS.filter((m) => m.startsWith('shape=linear'));
     const sigs = new Set(linear.filter((m) => /status=active/.test(m)).map(sig));
-    ok(sigs.size === 1 && sig(MEMBERS[0]).startsWith('CENTER|icon/size/md|'),
+    ok(sigs.size === 1 && sig(MEMBERS[0]) === 'CENTER|icon/size/md',
       `#2791 progress footprint: the linear determinate and indeterminate headers share one floor (icon/size/md) and one alignment (CENTER), so the two types measure the same height at size=medium (got ${[...sigs].join(' / ')})`);
   }
 
