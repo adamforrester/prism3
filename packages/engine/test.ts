@@ -32643,6 +32643,18 @@ console.log(`\nPrism3 engine tests: ${pass} passed, ${fails.length} failed`);
 // 104,698). That is the assertion-site arm at the top of this file, which needs no numeral. The two are
 // complementary: that arm reads V8 coverage and cannot see `ok()` stop counting; this one can.
 const MIN_ASSERTIONS = 1800;
+// #1019 — NOTHING CLAIMS THAT THIS PACKAGE'S `version` TRACKS `ENGINE_VERSION`. The field is inert (npm
+// requires it; `@prism3/engine` is consumed by workspace name and nothing reads it), like the `0.0.0` of its
+// sibling workspaces. The note once said it tracked `ENGINE_VERSION`, was true for one release, and then
+// sat 18 minors behind with nothing comparing the two. Read off the file itself: a claim is any "track"
+// word in the "//" note that sits beside the word "version".
+{
+  const pkg = JSON.parse(readFileSync(resolve(HERE, './package.json'), 'utf8')) as { '//'?: string };
+  const note = pkg['//'] ?? '';
+  ok(!/\bversion\b[^.]*\btracks?\b|\btracks?\b[^.]*\bversion\b/i.test(note),
+    `#1019 packages/engine/package.json claims its version tracks ENGINE_VERSION, and nothing keeps it so — say it is inert instead (note: ${JSON.stringify(note.slice(-140))})`);
+}
+
 if (pass + fails.length < MIN_ASSERTIONS) {
   console.log(`  ❌ only ${pass + fails.length} assertions ran, expected at least ${MIN_ASSERTIONS} — the harness collapsed, so "0 failed" means nothing.`);
   process.exitCode = 1;
