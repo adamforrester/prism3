@@ -53,7 +53,9 @@ try {
   const cases: Array<[string, string, string]> = [
     ['/docs/llms.txt', 'docs/public/llms.txt', 'text/plain'],
     ['/docs/reference/commands.json', 'docs/public/reference/commands.json', 'application/json'],
-    // The studio's Docs item opens this (#2662).
+    // The landing page the studio's and the plugin's Docs links open (#2637 Q384): the route's root answers it.
+    ['/docs/', 'docs/public/index.html', 'text/html'],
+    // The landing page's Guides entry (#2662).
     ['/docs/guides/index.md', 'docs/public/guides/index.md', 'text/markdown'],
   ];
   for (const [url, file, type] of cases) {

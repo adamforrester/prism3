@@ -745,15 +745,15 @@ const TYPE_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="face-add-inpu
 /** Shape in the two panes (S7): the controls its levers must render, by hook (Density's chips and the way to
  *  Components, Radius' slider and Control shape chips, Show advanced, the way on to Depth & motion). */
 const SHAPE_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="density-choice-comfortable"]', '[data-p3="shape-see-components"]',
-  '[data-p3="radius-scale-slider"]', '[data-p3="control-shape-choice-rounded"]', '[data-p3="shape-advanced"]', '[data-p3="shape-continue"]'];
+  '[data-p3="radius-scale-slider"]', '[data-p3="control-shape-choice-rounded"]', '[data-p3="field-style-choice-outline"]', '[data-p3="shape-advanced"]', '[data-p3="shape-continue"]'];
 /** Depth & motion in the two panes (S9.2), previewing Light: the softness slider, Elevation's Show advanced, the tempo
  *  chips, an easing picker button per role, the way on to Layout. The rest is section 23's. */
 const DEPTH_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="shadow-softness"]', '[data-p3="depth-tint-advanced"]',
   '[data-p3="tempo-snappy"]', '[data-p3="easing-pick"]', '[data-p3="depth-continue"]'];
-/** Components in the two panes (S8.2): the way to Shape › Density, a Button option chip per lever, the minimum-width
- *  slider. The rest is section 26's. */
-const COMPONENTS_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="components-density-link"]', '[data-p3="button-icons-choice-attached"]',
-  '[data-p3="button-content-size-choice-match"]', '[data-p3="button-label-weight-choice-emphasis"]', '[data-p3="button-min-width-slider"]'];
+/** Components in the two panes (#2700): the levers pane is the list, so it renders a row's name (which focuses its family)
+ *  and a family's fold on both hosts. The Button options moved to the preview pane with the Buttons family; the plugin's
+ *  boxes and Build are section 26's and the focus sweep's. */
+const COMPONENTS_LEVERS_CONTROLS = ['[data-p3="cp-name"]', '[data-p3="cp-fold"]'];
 /** Each moved place's levers, by place. */
 const LEVERS_CONTROLS = { 'color-palettes': PALETTES_LEVERS_CONTROLS, brand: BRAND_LEVERS_CONTROLS, 'color-fills': FILLS_LEVERS_CONTROLS,
   'color-interactive': INTERACTIVE_LEVERS_CONTROLS, type: TYPE_LEVERS_CONTROLS, shape: SHAPE_LEVERS_CONTROLS, depth: DEPTH_LEVERS_CONTROLS,
@@ -2197,27 +2197,48 @@ for (const theme of ['light', 'dark']) {
   ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   await ctx.close();
 }
-// Inspect's Docs item (#2662, owner Q313.1 A): on the web it opens the designer guides' index in a new tab; the
-// plugin has no `/docs` route, so it draws no Docs item. The target is a literal typed here, never read from
-// `DOCS_HREF`, and the file it names under `docs/public/` (served at `/docs`, #2637) is read from disk.
+// The bar's Docs (#2637, owner decision Q384 A): a tile just before Export on both hosts, which replaced Inspect's Docs
+// item (#2662). On the web a link to the docs landing page, `/docs/`, in a new tab; in the plugin a button that posts
+// `open-docs`, and the main thread opens the page in the browser (`test-open-docs.ts` in the plugin). The target and the
+// message are literals typed here, never read from `DOCS_HREF` or `messages.ts`, and the file `/docs/` serves
+// (`docs/public/index.html`, #2637) is read from disk.
 {
-  const GUIDES_INDEX = '/docs/guides/index.md';
-  const onDisk = (() => { try { return statSync(join(REPO, 'docs/public', GUIDES_INDEX.slice('/docs/'.length))).isFile(); } catch { return false; } })();
-  ok(onDisk, `the Docs target ${GUIDES_INDEX} names a file on disk (docs/public/guides/index.md)`);
+  const LANDING = '/docs/';
+  const onDisk = (() => { try { return statSync(join(REPO, 'docs/public/index.html')).isFile(); } catch { return false; } })();
+  ok(onDisk, `the Docs target ${LANDING} names a file on disk (docs/public/index.html)`);
   for (const host of ['web', 'figma']) {
     const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+    if (host === 'figma') await page.evaluate(() => { window.__docsPosts = []; window.addEventListener('message', (e) => { const m = e.data?.pluginMessage; if (m && m.type !== 'ui-ready') window.__docsPosts.push(m); }); });
+    const tileOf = await page.evaluate(() => {
+      const t = document.querySelector('[data-p3="bar-main"] [data-p3="docs-open"]');
+      const next = t?.nextElementSibling;
+      return t ? { tag: t.tagName.toLowerCase(), href: t.getAttribute('href'), target: t.getAttribute('target'), rel: t.getAttribute('rel'), name: t.getAttribute('aria-label'),
+        beforeExport: !!next?.querySelector(':scope > [data-p3="export-open"]'), shown: t.getClientRects().length > 0 } : null;
+    });
+    if (host === 'web') {
+      ok(tileOf?.tag === 'a' && tileOf.href === LANDING && tileOf.target === '_blank' && tileOf.rel === 'noopener' && tileOf.name === 'Docs' && tileOf.beforeExport && tileOf.shown,
+        `web: the bar's Docs is a link to ${LANDING} in a new tab, just before Export — read ${JSON.stringify(tileOf)}`);
+      const before = page.url();
+      const [tab] = await Promise.all([ctx.waitForEvent('page'), hooks.click(page.locator('[data-p3="docs-open"]'))]);
+      ok(new URL(tab.url()).pathname === LANDING && page.url() === before,
+        `web: Docs opens ${LANDING} in a new tab and leaves the studio where it was (opened ${tab.url()}; studio ${page.url() === before ? 'unchanged' : page.url()})`);
+    } else {
+      ok(tileOf?.tag === 'button' && tileOf.href === null && tileOf.name === 'Docs' && tileOf.beforeExport && tileOf.shown,
+        `figma: the bar's Docs is a button, just before Export — read ${JSON.stringify(tileOf)}`);
+      const before = page.url();
+      const opened = [];
+      ctx.on('page', (pg) => opened.push(pg.url()));
+      await hooks.click(page.locator('[data-p3="docs-open"]'));
+      const posts = await page.evaluate(() => new Promise((r) => setTimeout(() => r(window.__docsPosts.slice()), 50)));
+      ok(JSON.stringify(posts) === JSON.stringify([{ type: 'open-docs' }]) && opened.length === 0 && page.url() === before,
+        `figma: Docs posts {"type":"open-docs"} to the main thread and opens nothing in the panel (posted ${JSON.stringify(posts)}; opened ${JSON.stringify(opened)})`);
+    }
+    // Inspect no longer lists Docs, on either host.
     await hooks.click(page.locator('[data-p3="inspect-open"]'));
     await hooks.need(page, '[data-p3="inspect-menu"] [role="menuitem"]');
-    const docs = await page.evaluate(() => [...document.querySelectorAll('[data-p3="inspect-menu"] [data-p3="docs-link"]')].map((a) => ({
-      href: a.getAttribute('href'), target: a.getAttribute('target'), rel: a.getAttribute('rel'), role: a.getAttribute('role'), label: a.textContent,
-    })));
-    if (host === 'web') {
-      ok(docs.length === 1 && docs[0].href === GUIDES_INDEX && docs[0].target === '_blank' && docs[0].rel === 'noopener' && docs[0].role === 'menuitem' && docs[0].label === 'Docs',
-        `web: Inspect's Docs item opens the designer guides' index, ${GUIDES_INDEX}, in a new tab — read ${JSON.stringify(docs)}`);
-    } else {
-      ok(docs.length === 0, `figma: Inspect draws no Docs item (the plugin has no /docs route) — read ${JSON.stringify(docs)}`);
-    }
-    ok(errors.length === 0, `${host}: Inspect's Docs item, 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    const inspectDocs = await page.evaluate(() => [...document.querySelectorAll('[data-p3="inspect-menu"] [role="menuitem"]')].map((n) => n.textContent.trim()).filter((t) => /docs/i.test(t)));
+    ok(inspectDocs.length === 0, `${host}: Inspect lists no Docs item (Docs is on the bar) — read ${JSON.stringify(inspectDocs)}`);
+    ok(errors.length === 0, `${host}: the bar's Docs, 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     await ctx.close();
   }
 }
@@ -2244,7 +2265,7 @@ const COLLAPSE_MS = 4000;
 /** The Figma menu's items, by hook suffix and label: today's labels (the old Prune stale control, the file-setup
  *  button) and concept v6's two option-first items. No Apply Theme (#2178, owner decision 2026-10-05): the bar's
  *  filled button is its one control. Literal. */
-const FIGMA_ITEMS = [['prune', 'Prune stale'], ['file-setup', 'Set up file'], ['build', 'Build set…'], ['style-guide', 'Build style guides…']];
+const FIGMA_ITEMS = [['prune', 'Prune stale'], ['file-setup', 'Set up file'], ['build', 'Build sets…'], ['style-guide', 'Build style guides…']];
 /** Each item's hook, spelled out so the hook guard reads every one. */
 const FIGMA_OPTION = { prune: '[data-p3="figma-option-prune"]', 'file-setup': '[data-p3="figma-option-file-setup"]',
   build: '[data-p3="figma-option-build"]', 'style-guide': '[data-p3="figma-option-style-guide"]' };
@@ -7556,7 +7577,8 @@ for (const host of ['web', 'figma']) {
 // =============================================================================================
 console.log(`\nShape (S7)\n${'='.repeat(78)}`);
 /** The lever keys the owner's D1 A places on Shape, by hook (represented, not counted). `radiusHairline` is retired. */
-const SHAPE_LEVERS = ['lever-density', 'lever-radius-scale', 'lever-control-shape', 'lever-base-md'];
+// #2695: Field style, right after Control shape (owner Q333, the Form group's order).
+const SHAPE_LEVERS = ['lever-density', 'lever-radius-scale', 'lever-control-shape', 'lever-field-style', 'lever-base-md'];
 /** The preview's sections, in order (D1 A). Literal. */
 const EXPECT_SHAPE_SPECIMENS = ['Density', 'Radius', 'Spacing', 'Building blocks'];
 /** Q23: each lever section, in order, and the preview section it pairs with (Base radius with Radius, D1 A). */
@@ -7762,6 +7784,11 @@ for (const host of ['web', 'figma']) {
     const pShape = await persisted(page);
     ok(pShape?.controlShape === 'pill', `shape: Pill writes controlShape: pill (${pShape?.controlShape})`);
     await chip('control-shape-choice-rounded');
+    // #2695: Field style is brand-wide chips, as Control shape is.
+    await chip('field-style-choice-underline');
+    const pField = await persisted(page);
+    ok(pField?.fieldStyle === 'underline', `shape: Underline writes fieldStyle: underline (${pField?.fieldStyle})`);
+    await chip('field-style-choice-outline');
     await hooks.click(page.locator('[data-p3="base-radius-pick"]'));
     await hooks.click(page.locator('[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="6"]'));
     await page.waitForFunction(() => document.querySelector('[data-p3="base-radius-pick"] .p3-btn-label')?.textContent === '6px', null, { timeout: 5000 }).catch(() => {});
@@ -7792,6 +7819,10 @@ for (const host of ['web', 'figma']) {
     await chip('control-shape-choice-pill');
     ok((await persisted(page))?.controlShape === 'pill' && JSON.stringify((await persisted(page))?.modeLevers) === JSON.stringify(p2?.modeLevers), 'Q54: previewing Dark, Pill writes controlShape: pill and no per-mode value');
     await chip('control-shape-choice-rounded');
+    // #2695: Field style too, brand-wide from Dark.
+    await chip('field-style-choice-underline');
+    ok((await persisted(page))?.fieldStyle === 'underline' && JSON.stringify((await persisted(page))?.modeLevers) === JSON.stringify(p2?.modeLevers), '#2695: previewing Dark, Underline writes fieldStyle: underline and no per-mode value');
+    await chip('field-style-choice-outline');
     await hooks.click(page.locator('[data-p3="density-reset"]'));
     await hooks.click(page.locator('[data-p3="radius-scale-reset"]'));
     await page.waitForFunction(() => !!document.querySelector('[data-p3="radius-scale-auto"]'), null, { timeout: 5000 }).catch(() => {});
@@ -7839,7 +7870,7 @@ for (const host of ['web', 'figma']) {
       });
       ok(d.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.`, `Q59: previewing ${label}, the panel's derived line shows (N-3 A) on Shape ("${d.line}")`);
       ok(d.n >= 9 && d.enabled.length === 0, `Q59: previewing ${label}, every control on Shape is disabled, Base radius included (${d.n - d.enabled.length}/${d.n})${d.enabled.length ? ` — enabled ${[...new Set(d.enabled)].join(', ')}` : ''}`);
-      for (const hk of ['density-choice-compact', 'radius-scale-slider', 'control-shape-choice-pill', 'base-radius-pick']) ok(d.hooks.includes(hk), `Q59: previewing ${label}, the ${hk} control on Shape is among those held disabled`);
+      for (const hk of ['density-choice-compact', 'radius-scale-slider', 'control-shape-choice-pill', 'field-style-choice-underline', 'base-radius-pick']) ok(d.hooks.includes(hk), `Q59: previewing ${label}, the ${hk} control on Shape is among those held disabled`);
       ok(JSON.stringify(d.preview) === JSON.stringify(EXPECT_SHAPE_SPECIMENS), `Q59: previewing ${label}, the Shape preview is still drawn (${d.preview.join(', ')})`);
       // Every size is drawn at 0px, as the emission draws wireframe; the two pill sizes still read "Pill" (#2078: the
       // label is which size it is, not its px).
@@ -7871,7 +7902,8 @@ for (const host of ['web', 'figma']) {
     await hooks.click(page.locator('[data-p3="shape-see-components"]'));
     await page.waitForFunction(() => !!document.querySelector('[data-p3="components-levers"]'), null, { timeout: 5000 }).catch(() => {});
     const s = await page.evaluate(() => ({ place: document.querySelector('[data-p3="frame"]')?.dataset.place,
-      buttons: !!document.querySelector('[data-p3="components-levers"] [data-p3="lever-button-icons"]') }));
+      // #2700: the Button options sit with the Buttons family, in the preview pane.
+      buttons: !!document.querySelector('[data-p3="components-style-guide"] [data-p3="lever-button-icons"]') }));
     ok(s.place === 'components' && s.buttons, `${host}: See Components opens the Components tab, where the Button options are (${JSON.stringify(s)})`);
     ok(errors.length === 0, `${host} Shape routes: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
@@ -7958,17 +7990,29 @@ for (const { w, h } of WIDTHS) {
 console.log(`\nComponents (S8.2)\n${'='.repeat(78)}`);
 /** The lever keys pages.ts places on Components (G6 A), by hook. Literal. */
 const COMPONENTS_LEVERS = ['lever-button-icons', 'lever-button-content-size', 'lever-button-label-weight', 'lever-button-text-hover', 'lever-button-min-width-multiplier'];
-/** The lever sections and the preview sections they pair with (Q23), in order. Literal. */
-const COMPONENTS_PAIRS = [['Button', 'Button'], ['Component sets', 'Component sets']];
-/** The page's copy, approved by the owner (2026-10-05), verbatim. */
+/** #2700 (call 9 A): the levers pane holds the list, in its two sections; the preview pane the focused family, Buttons by
+ *  default, in three sections. Literal. Q23's heading pairs (a lever section headed as its preview section) ended with
+ *  the move: the levers pane no longer has a section per preview section. */
+const COMPONENTS_LIST_SECTIONS = ['Components', 'Subcomponents'];
+// The specimen sections, each on the brand's page; Button options sit between them on the card, in the chrome's inks.
+const COMPONENTS_PREVIEW_SECTIONS = ['Preview', 'Sets in this family'];
+/** The page's copy, verbatim: approved by the owner (2026-10-05), or #2700's wireframe draft. */
 const COMPONENTS_COPY = {
-  Button: 'How buttons place their icons, size their label and set their minimum width. Applies to buttons, not icon buttons.',
-  'Component sets': 'Every component set the engine defines, with what each contains and its spacing at your density.',
+  options: 'How buttons place their icons, size their label and set their minimum width. Applies to buttons, not icon buttons.',
   density: ['Density sets component heights and spacing.', 'Set it in Shape › Density'],
   web: 'Building sets needs the Figma plugin.',
-  build: 'Build Button', busy: 'Building…',
-  buildHint: "Builds any set it contains first, then switches Figma to the set's page.",
-  orderHint: 'Apply Theme first, so the set can use your variables.',
+  intro: (n) => `The ${n} component sets the engine defines, in families. A build places each on its page in this file.`,
+  build: 'Build', buildOne: 'Build 1 set', busy: 'Building 1 of 1…',
+  nothing: 'Select sets to build them.',
+  orderHint: 'Apply Theme first, so the sets can use your variables.',
+};
+/** The families the list opens, in order, so every set is drawn: each family's fold. */
+const openAllFamilies = async (page) => {
+  for (let i = 0; i < 40; i++) {
+    const closed = page.locator('[data-p3="cp-fold"][aria-expanded="false"]').first();
+    if (!(await closed.count())) break;
+    await hooks.click(closed);
+  }
 };
 /** The component definitions, by the committed per-definition docs (one `<id>.md` each). */
 const DOC_SETS = readdirSync(join(REPO, 'packages/engine/out/components')).filter((f) => f.endsWith('.md')).map((f) => f.slice(0, -3)).sort();
@@ -7986,7 +8030,7 @@ for (const host of ['web', 'figma']) {
         const where = `${host} ${theme} 1280, previewing ${mode}`;
         const g = await sectionGrounds(page, 'components-style-guide');
         const want = EMITTED[mode];
-        for (const [, name] of COMPONENTS_PAIRS) {
+        for (const name of COMPONENTS_PREVIEW_SECTIONS) {
           const r = g.roots.find((x) => x.name === name);
           ok(!!r && r.root && r.ground === want, `specimen ground: components ${where}: ${name} is a specimen root on background.primary ${want}${!r ? ' — not drawn' : !r.root ? ' — not a specimen root' : r.ground !== want ? ` — is ${r.ground}` : ''}`);
         }
@@ -8010,23 +8054,27 @@ for (const host of ['web', 'figma']) {
   try {
     await goPlace(page, 'components');
     await hooks.need(page, '[data-p3="components-levers"]');
+    await openAllFamilies(page);
     const r = await page.evaluate(() => {
       const pane = document.querySelector('[data-p3="levers-pane"]');
       const pv = document.querySelector('[data-p3="components-style-guide"]');
-      const shown = (n) => !!n && n.getClientRects().length > 0;
+      const both = [pane, pv];
       return {
-        levers: [...pane.querySelectorAll('[data-p3^="lever-"]')].map((n) => n.getAttribute('data-p3')).filter((k) => k !== 'lever-info' && k !== 'lever-section'),
-        intro: pane.querySelector('.p3-intro')?.textContent ?? null,
-        lsec: [...pane.querySelectorAll('[data-p3="lever-section"]')].map((x) => [x.querySelector('.p3-lsec-title')?.textContent ?? null, x.querySelector('.p3-lsec-desc')?.textContent ?? null]),
+        // #2700: the Button options sit with the Buttons family, in the preview pane: each lever is counted on the page.
+        levers: both.flatMap((x) => [...x.querySelectorAll('[data-p3^="lever-"]')]).map((n) => n.getAttribute('data-p3')).filter((k) => k !== 'lever-info' && k !== 'lever-section'),
+        intro: pane.querySelector('[data-p3="components-intro"]')?.textContent ?? null,
+        lsec: [...pane.querySelectorAll('[data-p3="cp-section-title"]')].map((x) => x.dataset.name),
+        options: [document.querySelector('[data-p3="button-options-title"]')?.textContent ?? null, document.querySelector('[data-p3="button-options-desc"]')?.textContent ?? null],
         psec: [...pv.querySelectorAll('.psec')].map((x) => [x.querySelector('.psec-t')?.textContent ?? null, x.querySelector('.psec-d')?.textContent ?? null]),
-        density: [pane.querySelector('[data-p3="components-density"] .p3-sub')?.textContent ?? null, pane.querySelector('[data-p3="components-density-link"]')?.textContent ?? null],
-        sets: [...pv.querySelectorAll('[data-p3="component-set"]')].map((n) => n.dataset.set),
-        offered: [...pv.querySelectorAll('[data-p3="component-set"]')].filter((n) => n.dataset.offered !== 'true').map((n) => n.dataset.set),
-        build: [...document.querySelectorAll('[data-p3="components-build"]')].map((n) => [n.querySelector('[data-p3="label-idle"]')?.textContent ?? null, n.querySelector('[data-p3="label-busy"]')?.textContent ?? null]),
-        radios: document.querySelectorAll('[data-p3="components-def-option"]').length,
-        checked: document.querySelector('[data-p3="components-def-option"]:checked')?.value ?? null,
-        webLines: [...document.querySelectorAll('[data-p3="components-web-line"], [data-p3="components-sets-web"]')].map((n) => n.textContent.trim()),
-        hints: [document.querySelector('[data-p3="components-build-hint"]')?.textContent ?? null, document.querySelector('[data-p3="components-order-hint"]')?.textContent ?? null],
+        density: [pv.querySelector('[data-p3="components-density"] .p3-sub')?.textContent ?? null, pv.querySelector('[data-p3="components-density-link"]')?.textContent ?? null],
+        sets: [...pane.querySelectorAll('[data-p3="cp-row"][data-set], [data-p3="cp-member"][data-set]')].map((n) => n.dataset.set),
+        offered: [...pane.querySelectorAll('[data-set][data-off="true"]')].map((n) => n.dataset.set),
+        build: [...document.querySelectorAll('[data-p3="components-build"]')].map((n) => [n.querySelector('[data-p3="label-idle"]')?.textContent ?? null, n.querySelector('[data-p3="label-busy"]')?.textContent ?? null, n.disabled]),
+        boxes: pane.querySelectorAll('[data-p3="cp-box"]').length,
+        checked: [...pane.querySelectorAll('[data-p3="cp-box"][aria-checked="true"]')].length,
+        summary: document.querySelector('[data-p3="components-summary"]')?.textContent ?? null,
+        webLines: [...document.querySelectorAll('[data-p3="components-web-line"]')].map((n) => n.textContent.trim()),
+        hint: document.querySelector('[data-p3="components-order-hint"]')?.textContent ?? null,
         figma: document.querySelectorAll('[data-p3^="figma-option-"], [data-p3="figma-open"]').length,
         // The Pages menu, by the accessible name a designer would look for: gone on both hosts (G19 A on the web; PG1 A,
         // H12 #2289, on the plugin), so it is read without its retired hook.
@@ -8036,7 +8084,7 @@ for (const host of ['web', 'figma']) {
           words: /set up file/i.test(`${pane.textContent} ${pv.textContent}`) },
         internal: /\b(internal|experimental)\b/i.test(`${pane.textContent} ${pv.textContent}`),
         last: [...pv.querySelectorAll('[data-p3="component-set-last"]')].map((n) => n.textContent),
-        shownSets: shown(pv.querySelector('[data-p3="component-sets"]')),
+        previewSets: [...pv.querySelectorAll('[data-p3="component-set"]')].map((n) => n.dataset.set),
       };
     });
     const count = (k) => r.levers.filter((x) => x === k).length;
@@ -8045,30 +8093,29 @@ for (const host of ['web', 'figma']) {
     const missing = COMPONENTS_LEVERS.filter((k) => count(k) !== 1).map((k) => `${k} ×${count(k)}`);
     const extra = [...new Set(r.levers.filter((k) => !COMPONENTS_LEVERS.includes(k)))];
     ok(missing.length === 0 && extra.length === 0, `Components: every lever pages.ts places renders once (${COMPONENTS_LEVERS.length}, ${host})${missing.length ? ` — missing ${missing.join(', ')}` : ''}${extra.length ? ` — also drawn ${extra.join(', ')}` : ''}`);
-    ok(r.intro === `Button options, and the ${DOC_SETS.length} component sets the engine defines.`, `${host}: the intro counts the sets the engine defines (${DOC_SETS.length}, from the committed docs) — read "${r.intro}"`);
-    ok(JSON.stringify(r.lsec.map(([t]) => t)) === JSON.stringify(COMPONENTS_PAIRS.map(([t]) => t)) && JSON.stringify(r.psec.map(([t]) => t)) === JSON.stringify(COMPONENTS_PAIRS.map(([, t]) => t)),
-      `${host}: Components' lever sections and preview sections, in order: ${COMPONENTS_PAIRS.map(([t]) => t).join(', ')} — drew ${JSON.stringify(r.lsec.map(([t]) => t))} and ${JSON.stringify(r.psec.map(([t]) => t))}`);
-    for (const [title, want] of COMPONENTS_PAIRS) {
-      const lev = r.lsec.find(([t]) => t === title), pre = r.psec.find(([t]) => t === want);
-      ok(!!lev && !!pre && lev[1] === pre[1] && lev[1] === COMPONENTS_COPY[title], `Q23: ${host}: "${title}" pairs with the preview's "${want}", one description on both sides, reading "${COMPONENTS_COPY[title]}" — levers ${JSON.stringify(lev)}, preview ${JSON.stringify(pre)}`);
-    }
+    ok(r.intro === COMPONENTS_COPY.intro(DOC_SETS.length), `${host}: the intro counts the sets the engine defines (${DOC_SETS.length}, from the committed docs) — read "${r.intro}"`);
+    ok(JSON.stringify(r.lsec) === JSON.stringify(COMPONENTS_LIST_SECTIONS) && JSON.stringify(r.psec.map(([t]) => t)) === JSON.stringify(COMPONENTS_PREVIEW_SECTIONS),
+      `#2700 call 9: ${host}: the list's sections, ${COMPONENTS_LIST_SECTIONS.join(', ')}, and the focused family's, ${COMPONENTS_PREVIEW_SECTIONS.join(', ')} — drew ${JSON.stringify(r.lsec)} and ${JSON.stringify(r.psec.map(([t]) => t))}`);
+    ok(JSON.stringify(r.options) === JSON.stringify(['Button options', COMPONENTS_COPY.options]), `${host}: Button options sit with Buttons, with their approved description, "${COMPONENTS_COPY.options}" (${JSON.stringify(r.options)})`);
     ok(JSON.stringify(r.density) === JSON.stringify(COMPONENTS_COPY.density), `G6: ${host}: the way to Density reads "${COMPONENTS_COPY.density.join(' ')}" (${JSON.stringify(r.density)})`);
-    ok(JSON.stringify([...r.sets].sort()) === JSON.stringify(DOC_SETS) && r.shownSets, `G5: ${host}: the Component sets list is every definition the engine documents (${DOC_SETS.length}) — listed ${r.sets.length}${JSON.stringify([...r.sets].sort()) === JSON.stringify(DOC_SETS) ? '' : `: ${r.sets.join(', ')}`}`);
+    ok(JSON.stringify([...r.sets].sort()) === JSON.stringify(DOC_SETS), `G5: ${host}: the list is every definition the engine documents, once each (${DOC_SETS.length}) — listed ${r.sets.length}${JSON.stringify([...r.sets].sort()) === JSON.stringify(DOC_SETS) ? '' : `: ${r.sets.join(', ')}`}`);
     ok(r.offered.length === 0, `G4: ${host}: every set builds today, so none is listed as unavailable (${JSON.stringify(r.offered)}; the path is held on planted definitions in test-component-catalog.ts)`);
+    // #2661: Button.Group joins the Buttons family, alphabetical by component name (Button.Group before Button.Neutral).
+    ok(JSON.stringify(r.previewSets) === JSON.stringify(['button', 'button-destructive', 'button-group', 'button-neutral']), `#2700 note 1: ${host}: the preview shows the Buttons family's sets, the one with a preview (${JSON.stringify(r.previewSets)})`);
     if (host === 'web') {
-      ok(r.build.length === 0 && r.radios === 0 && r.figma === 0, `G5: web: the Components page draws no build control — Build ${r.build.length}, set radios ${r.radios}, Figma menu items ${r.figma}`);
-      ok(r.webLines.length === 2 && r.webLines.every((t) => t === COMPONENTS_COPY.web), `G5: web: the levers and the set list both say "${COMPONENTS_COPY.web}" (${JSON.stringify(r.webLines)})`);
+      ok(r.build.length === 0 && r.boxes === 0 && r.figma === 0, `G5: web: the Components page draws no build control — Build ${r.build.length}, set boxes ${r.boxes}, Figma menu items ${r.figma}`);
+      ok(r.webLines.length === 2 && r.webLines.every((t) => t === COMPONENTS_COPY.web), `G5: web: the list and the preview both say "${COMPONENTS_COPY.web}" (${JSON.stringify(r.webLines)})`);
       ok(r.last.length === 0, `G9: web: no set states a build result (${r.last.length})`);
     } else {
-      ok(r.build.length === 1 && r.build[0][0] === COMPONENTS_COPY.build && (r.build[0][1] ?? '').trim().endsWith(COMPONENTS_COPY.busy) && r.radios === DOC_SETS.length && r.checked === 'button',
-        `G2: figma: the set list offers each set as a choice, Button chosen, and one Build button names it — ${JSON.stringify(r.build)}, ${r.radios} radios, checked ${r.checked}`);
-      ok(JSON.stringify(r.hints) === JSON.stringify([COMPONENTS_COPY.buildHint, COMPONENTS_COPY.orderHint]), `G3: figma: the build's two plain facts read as approved (${JSON.stringify(r.hints)})`);
-      ok(r.last.length === DOC_SETS.length && r.last.every((t) => t === 'Not built in this session'), `G9: figma: before any build, every set reads "Not built in this session" (${[...new Set(r.last)].join(', ')})`);
+      ok(r.build.length === 1 && r.build[0][0] === COMPONENTS_COPY.build && r.build[0][2] === true && r.checked === 0 && r.summary === COMPONENTS_COPY.nothing && r.boxes >= DOC_SETS.length,
+        `#2700 call 13: figma: nothing is selected on open, and the one Build control waits for a set — ${JSON.stringify(r.build)}, ${r.checked} of ${r.boxes} boxes checked, "${r.summary}"`);
+      ok(r.hint === COMPONENTS_COPY.orderHint, `figma: the build's plain fact reads "${COMPONENTS_COPY.orderHint}" (${JSON.stringify(r.hint)})`);
+      ok(r.last.length === 4 && r.last.every((t) => t === 'Not built in this session'), `G9: figma: before any build, every set shown reads "Not built in this session" (${[...new Set(r.last)].join(', ')})`);
       ok(r.webLines.length === 0, `figma: no web line in the plugin (${JSON.stringify(r.webLines)})`);
-      // Choosing another set renames the Build button, in place, keeping focus on the radio.
-      await hooks.click(page.locator('[data-p3="components-def-option"][value="tag"]'));
-      const ch = await page.evaluate(() => ({ label: document.querySelector('[data-p3="components-build"] [data-p3="label-idle"]')?.textContent, focus: document.activeElement?.getAttribute('data-p3'), value: document.activeElement?.value }));
-      ok(ch.label === 'Build Tag' && ch.focus === 'components-def-option' && ch.value === 'tag', `G2: figma: choosing Tag renames the button "Build Tag", focus kept on the choice (${JSON.stringify(ch)})`);
+      // Selecting a set names the build, in place, keeping focus on the box (#2700, call 17).
+      await hooks.click(page.locator('[data-p3="cp-box"][data-key="set=tag"]'));
+      const ch = await page.evaluate(() => ({ label: document.querySelector('[data-p3="components-build"] [data-p3="label-idle"]')?.textContent, focus: document.activeElement?.dataset?.key }));
+      ok(ch.label === COMPONENTS_COPY.buildOne && ch.focus === 'set=tag', `#2700: figma: selecting Tag offers "${COMPONENTS_COPY.buildOne}", focus kept on its box (${JSON.stringify(ch)})`);
     }
     ok(r.fileSetup.controls === 0 && !r.fileSetup.words, `G8: ${host}: no Set up file control or words on the Components page (controls ${r.fileSetup.controls}, words ${r.fileSetup.words})`);
     ok(!r.internal, `G3: ${host}: nothing on the Components page says "Internal" or "experimental"`);
@@ -8102,20 +8149,25 @@ for (const host of ['web', 'figma']) {
     await goPlace(page, 'components');
     for (const [mode, label] of [['hc-light', 'HC light'], ['hc-dark', 'HC dark'], ['wireframe', 'Wireframe']]) {
       await chooseAnyMode(page, mode);
-      await page.waitForFunction((l) => document.querySelector('[data-p3="levers-derived-note"]')?.textContent?.startsWith(l), label, { timeout: 5000 }).catch(() => {});
+      await page.waitForFunction((l) => document.querySelector('[data-p3="button-options-derived"]')?.textContent?.startsWith(l), label, { timeout: 5000 }).catch(() => {});
       const d = await page.evaluate(() => {
-        const pane = document.querySelector('[data-p3="levers-pane"]');
-        const ctls = [...pane.querySelectorAll('[data-p3="lever-section"] :is(button, select, input)')].filter((n) => !n.matches('[data-p3="lever-info"], [data-p3="components-density-link"]'));
+        const opts = document.querySelector('[data-p3="button-options"]');
+        const ctls = [...(opts?.querySelectorAll(':is(button, select, input)') ?? [])].filter((n) => !n.matches('[data-p3="lever-info"], [data-p3="components-density-link"]'));
+        const list = document.querySelector('[data-p3="components-list"]');
         return { n: ctls.length, enabled: ctls.filter((n) => !n.matches(':disabled')).map((n) => n.getAttribute('data-p3') ?? n.tagName), hooks: [...new Set(ctls.map((n) => n.getAttribute('data-p3')))],
           link: !document.querySelector('[data-p3="components-density-link"]')?.matches(':disabled'),
-          line: document.querySelector('[data-p3="levers-derived-note"]')?.textContent ?? null,
+          line: document.querySelector('[data-p3="button-options-derived"]')?.textContent ?? null,
+          frameLine: !!document.querySelector('[data-p3="levers-derived-note"]'),
+          listHeld: [...(list?.querySelectorAll('button') ?? [])].filter((b) => b.matches(':disabled') || b.getAttribute('aria-disabled') === 'true').length,
+          listN: list?.querySelectorAll('button').length ?? 0,
           preview: [...document.querySelectorAll('[data-p3="components-style-guide"] .psec-t')].map((t) => t.textContent),
           buttons: document.querySelectorAll('[data-p3="components-style-guide"] .btnl-btn').length };
       });
-      ok(d.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.`, `Q59: previewing ${label}, the panel's derived line shows (N-3 A) on Components ("${d.line}")`);
-      ok(d.n >= 7 && d.enabled.length === 0 && d.link, `Q59: previewing ${label}, every control on Components is disabled (${d.n - d.enabled.length}/${d.n}), the way to Shape left live (RX1 A: ${d.link})${d.enabled.length ? ` — enabled ${[...new Set(d.enabled)].join(', ')}` : ''}`);
-      for (const hk of ['button-icons-choice-edges', 'button-content-size-choice-smaller', 'button-label-weight-choice-default', 'button-min-width-slider']) ok(d.hooks.includes(hk), `Q59: previewing ${label}, the ${hk} control on Components is among those held disabled`);
-      ok(JSON.stringify(d.preview) === JSON.stringify(COMPONENTS_PAIRS.map(([, t]) => t)) && d.buttons === 9, `Q59: previewing ${label}, the Components preview is still drawn (${d.preview.join(', ')}; ${d.buttons} buttons)`);
+      ok(d.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.`, `Q59: previewing ${label}, Button options carry the derived line, in the frame's words (N-3 A) ("${d.line}")`);
+      ok(d.n >= 7 && d.enabled.length === 0 && d.link, `Q59: previewing ${label}, every Button option is held (${d.n - d.enabled.length}/${d.n}), the way to Shape left live (RX1 A: ${d.link})${d.enabled.length ? ` — enabled ${[...new Set(d.enabled)].join(', ')}` : ''}`);
+      for (const hk of ['button-icons-choice-edges', 'button-content-size-choice-smaller', 'button-label-weight-choice-default', 'button-min-width-slider']) ok(d.hooks.includes(hk), `Q59: previewing ${label}, the ${hk} control is among the Button options held`);
+      ok(!d.frameLine && d.listN > 20 && d.listHeld === 0, `#2700: previewing ${label}, the list stays usable (selecting edits no brand setting), with no frame hold over it (${d.listHeld} of ${d.listN} held, frame line ${d.frameLine})`);
+      ok(JSON.stringify(d.preview) === JSON.stringify(COMPONENTS_PREVIEW_SECTIONS) && d.buttons === 9, `Q59: previewing ${label}, the Components preview is still drawn (${d.preview.join(', ')}; ${d.buttons} buttons)`);
       // #2096: the write itself is refused, not only the DOM's disabled flag. A scripted `input` on the disabled
       // minimum-width slider (which a disabled flag does not stop) leaves the persisted brand byte-identical. The value
       // is one the slider's range holds and the brand does not, so a write that got through would show.
@@ -8141,23 +8193,15 @@ for (const host of ['web', 'figma']) {
     ok(false, `S8.2 derived modes: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
-// QA-B9: an edit on Components eases the preview to the Button section, from the preview's far end. Brand-wide (Q54):
-// previewing Dark, a chip writes the same key as from Light and no per-mode value.
+// Q54, brand-wide: previewing Dark, a chip writes the same key as from Light and no per-mode value. (QA-B9's reveal ended
+// here with #2700: the Button options are drawn in the preview itself, beside the specimen they change.)
 {
   const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
   try {
     await goPlace(page, 'components');
     await page.emulateMedia({ reducedMotion: 'reduce' });
-    await page.evaluate(() => { const b = document.querySelector('[data-p3="preview-body"]'); b.scrollTop = b.scrollHeight; });
     await hooks.click(page.locator('[data-p3="button-icons-choice-edges"]'));
     await page.waitForTimeout(120);
-    const s = await page.evaluate(() => {
-      const body = document.querySelector('[data-p3="preview-body"]');
-      const head = [...body.querySelectorAll('[data-p3="section-title"]')].find((n) => n.textContent === 'Button');
-      const b = body.getBoundingClientRect(), r = head?.closest('.psec')?.getBoundingClientRect();
-      return { found: !!r, inView: !!r && r.top >= b.top - 1 && r.top < b.bottom - 40, place: document.querySelector('[data-p3="frame"]')?.dataset.place };
-    });
-    ok(s.found && s.inView && s.place === 'components', `QA-B9: editing Button icons on Components brings the preview's Button section into view, on the same page (${JSON.stringify(s)})`);
     ok((await persisted(page))?.buttonIcons === 'edges', `components: Locked to edges writes buttonIcons: edges (${(await persisted(page))?.buttonIcons})`);
     await chooseMode(page, 'dark');
     await hooks.click(page.locator('[data-p3="button-label-weight-choice-default"]'));
@@ -8165,9 +8209,9 @@ for (const host of ['web', 'figma']) {
     const pd = await persisted(page);
     ok(pd?.buttonLabelWeight === 'default' && !pd?.modeLevers, `Q54: previewing Dark, Default writes buttonLabelWeight: default and no per-mode value (${JSON.stringify({ w: pd?.buttonLabelWeight, modeLevers: pd?.modeLevers ?? null })})`);
     await page.emulateMedia({ reducedMotion: 'no-preference' });
-    ok(errors.length === 0, `components reveal: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    ok(errors.length === 0, `components Q54: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S8.2 reveal: the case stopped at a step that threw — ${stopped(e)}`);
+    ok(false, `S8.2 Q54: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // C3 A (#2086): the build stamp moved from the foot of the Pages menu to the foot of the Inspect menu, in small text, on
@@ -8207,58 +8251,60 @@ for (const host of ['web', 'figma']) {
     ok(false, `S8.2 C3 ${host}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
-// C4 A: in the plugin, the build bar ("Build ‹Name›" and its two hints) stays in view at the foot of the preview at any
-// scroll position, and never covers the last set: at the end of the scroll the last set ends above it. Read at three
-// scroll positions, wide and in the narrow Preview pane, by the browser's own hit test at the bar's center. Its focus
-// order (the set's choice, then the Build button) and the Activity drawer over it still work.
+// C4 A, moved by #2700 (idea 9 A): in the plugin, the action bar stays in view at the foot of the LIST pane at any scroll
+// position, as Draw does on Build style guides, and never covers the last row: at the end of the scroll the last row ends
+// above it. Read at three scroll positions, wide and narrow (at 380 the list is the Settings pane), by the browser's own
+// hit test at the bar's center. Its focus order (the list, then the Build button) and the Activity drawer over it still
+// work. Every family is opened first, so the list scrolls far enough to mean something.
 //
-// Mutations this fails by name: `position: sticky` dropped from `.p3-buildbar` → `C4: figma 1280 at the top: the build
+// Mutations this fails by name: `position: sticky` dropped from `.p3-cp-bar` → `C4: figma 1280 at the top: the action
 // bar is in view …`.
 for (const { w, h } of [{ w: 1280, h: 700 }, { w: 380, h: 700 }]) {
   const { ctx, page, errors } = await open({ host: 'figma', theme: 'light', w, h });
   try {
     await goPlace(page, 'components');
-    if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
-    await hooks.need(page, '[data-p3="components-row"]');
-    const scrollable = await page.evaluate(() => { const b = document.querySelector('[data-p3="preview-body"]'); return b.scrollHeight - b.clientHeight; });
-    ok(scrollable > 400, `C4: figma ${w}: the preview scrolls, so this check can mean something (${scrollable}px of scroll)`);
+    await hooks.need(page, '[data-p3="components-bar"]');
+    await openAllFamilies(page);
+    const scrollable = await page.evaluate(() => { const b = document.querySelector('[data-p3="levers-pane"]'); return b.scrollHeight - b.clientHeight; });
+    ok(scrollable > 400, `C4: figma ${w}: the list scrolls, so this check can mean something (${scrollable}px of scroll)`);
     for (const [at, f] of [['the top', 0], ['the middle', 0.5], ['the end', 1]]) {
-      await page.evaluate((k) => { const b = document.querySelector('[data-p3="preview-body"]'); b.scrollTop = Math.round((b.scrollHeight - b.clientHeight) * k); }, f);
+      await page.evaluate((k) => { const b = document.querySelector('[data-p3="levers-pane"]'); b.scrollTop = Math.round((b.scrollHeight - b.clientHeight) * k); }, f);
       await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
       const g = await page.evaluate(() => {
-        const body = document.querySelector('[data-p3="preview-body"]').getBoundingClientRect();
-        const barN = document.querySelector('[data-p3="components-row"]');
+        const body = document.querySelector('[data-p3="levers-pane"]').getBoundingClientRect();
+        const barN = document.querySelector('[data-p3="components-bar"]');
         const bar = barN.getBoundingClientRect();
         const hit = document.elementFromPoint(bar.left + bar.width / 2, bar.top + bar.height / 2);
-        const sets = document.querySelectorAll('[data-p3="component-set"]');
-        const lastSet = sets[sets.length - 1].getBoundingClientRect();
+        const rows = document.querySelectorAll('[data-p3="cp-row"], [data-p3="cp-member"]');
+        const lastRow = rows[rows.length - 1].getBoundingClientRect();
         return { inView: bar.top >= body.top - 0.5 && bar.bottom <= body.bottom + 0.5 && bar.height > 0, onTop: !!hit && barN.contains(hit),
-          bar: [Math.round(bar.top), Math.round(bar.bottom)], body: [Math.round(body.top), Math.round(body.bottom)], lastBottom: Math.round(lastSet.bottom),
+          bar: [Math.round(bar.top), Math.round(bar.bottom)], body: [Math.round(body.top), Math.round(body.bottom)], lastBottom: Math.round(lastRow.bottom),
           label: barN.querySelector('[data-p3="label-idle"]')?.textContent ?? null,
-          hints: [...barN.querySelectorAll('[data-p3="components-build-hint"], [data-p3="components-order-hint"]')].length };
+          hints: barN.querySelectorAll('[data-p3="components-order-hint"]').length };
       });
-      ok(g.inView && g.onTop && g.label === 'Build Button' && g.hints === 2,
-        `C4: figma ${w} at ${at}: the build bar is in view at the foot of the preview and on top at its center, "Build Button" with its two hints — bar ${JSON.stringify(g.bar)} in ${JSON.stringify(g.body)}, on top ${g.onTop}, ${JSON.stringify(g.label)}, ${g.hints} hints`);
-      if (f === 1) ok(g.lastBottom <= g.bar[0] + 0.5, `C4: figma ${w} at the end: the last set ends above the bar, not under it (set ends ${g.lastBottom}, bar starts ${g.bar[0]})`);
+      ok(g.inView && g.onTop && g.label === 'Build' && g.hints === 1,
+        `C4: figma ${w} at ${at}: the action bar is in view at the foot of the list and on top at its center, "Build" with its hint — bar ${JSON.stringify(g.bar)} in ${JSON.stringify(g.body)}, on top ${g.onTop}, ${JSON.stringify(g.label)}, ${g.hints} hint`);
+      if (f === 1) ok(g.lastBottom <= g.bar[0] + 0.5, `C4: figma ${w} at the end: the last row ends above the bar, not under it (row ends ${g.lastBottom}, bar starts ${g.bar[0]})`);
     }
-    // Focus order: from the chosen set's radio, Tab reaches the Build button next.
-    await page.locator('[data-p3="components-def-option"]:checked').focus();
+    // Focus order: from the list's last control, Tab reaches the Build button next (a set selected, so it is enabled).
+    await hooks.click(page.locator('[data-p3="cp-box"][data-key="set=badge"]'));
+    await page.evaluate(() => { const all = [...document.querySelectorAll('[data-p3="components-list"] button')]; all[all.length - 1].focus(); });
     await page.keyboard.press('Tab');
     const focus = await page.evaluate(() => document.activeElement?.getAttribute('data-p3') ?? null);
-    ok(focus === 'components-build', `C4: figma ${w}: Tab from the chosen set reaches the Build button (on "${focus}")`);
+    ok(focus === 'components-build', `C4: figma ${w}: Tab from the list's last control reaches the Build button (on "${focus}")`);
     // The Activity drawer, opened, sits over the bar wherever the two meet.
     await hooks.click(page.locator('[data-p3="activity-open"]'));
     await page.waitForFunction(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true', null, { timeout: 5000 }).catch(() => {});
     await page.waitForTimeout(400);
     const d = await page.evaluate(() => {
       const dr = document.querySelector('[data-p3="activity-drawer"]');
-      const a = dr.getBoundingClientRect(), b = document.querySelector('[data-p3="components-row"]').getBoundingClientRect();
+      const a = dr.getBoundingClientRect(), b = document.querySelector('[data-p3="components-bar"]').getBoundingClientRect();
       const x0 = Math.max(a.left, b.left), x1 = Math.min(a.right, b.right), y0 = Math.max(a.top, b.top), y1 = Math.min(a.bottom, b.bottom);
       if (x1 - x0 < 2 || y1 - y0 < 2) return { open: dr.dataset.open, overlap: false, onTop: true };
       const hit = document.elementFromPoint((x0 + x1) / 2, (y0 + y1) / 2);
       return { open: dr.dataset.open, overlap: true, onTop: !!hit && dr.contains(hit) };
     });
-    ok(d.open === 'true' && d.onTop, `C4: figma ${w}: the Activity drawer opens over the build bar, not under it (${JSON.stringify(d)})`);
+    ok(d.open === 'true' && d.onTop, `C4: figma ${w}: the Activity drawer opens over the action bar, not under it (${JSON.stringify(d)})`);
     ok(errors.length === 0, `C4 figma ${w}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     ok(false, `S8.2 C4 figma ${w}: the case stopped at a step that threw — ${stopped(e)}`);
@@ -8271,7 +8317,9 @@ for (const { w, h } of [{ w: 1280, h: 700 }, { w: 380, h: 700 }]) {
 // drawer's top edge less the bar's bottom edge. At 380 the open drawer is the full-pane sheet (F2), which hides the
 // panes: there the bar must not be drawn at all, so nothing can sit on the sheet.
 //
-// Mutation this fails by name: `.p3-buildbar`'s `bottom` back to 0 → `#2180: figma 1280, drawer closed, at the top:
+// Since #2700 the bar is the list pane's action bar, so it is read there, and the list is the Settings pane at 380.
+//
+// Mutation this fails by name: `.p3-cp-bar`'s `bottom` back to 0 → `#2180: figma 1280, drawer closed, at the top:
 // the build bar stands at least space.300 (24px) above the Activity drawer — gap 0 …`.
 {
   const STACK_GAP = parseFloat(String(resolveToken(loadModes().light, P('space.300')).value));
@@ -8283,35 +8331,39 @@ for (const { w, h } of [{ w: 1280, h: 700 }, { w: 380, h: 700 }]) {
       try {
         const narrow = w <= 560;
         await goPlace(page, 'components');
-        if (narrow) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
-        await hooks.need(page, '[data-p3="components-row"]');
-        // An operation, so the closed drawer is its strip rather than hidden: the bar's own Build.
+        await hooks.need(page, '[data-p3="components-bar"]');
+        await openAllFamilies(page);
+        // An operation, so the closed drawer is its strip rather than hidden: the bar's own Build, of one set.
+        await hooks.click(page.locator('[data-p3="cp-box"][data-key="set=badge"]'));
         await hooks.click(page.locator('[data-p3="components-build"]'));
         await page.waitForFunction(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.ever === 'true', null, WAIT);
         const isOpen = () => page.evaluate(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true');
         if ((await isOpen()) !== (drawer === 'open')) await hooks.click(page.locator('[data-p3="activity-toggle"]'));
         await page.waitForFunction((want) => (document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true') === want, drawer === 'open', WAIT);
-        if (narrow && drawer === 'closed' && await page.locator('[data-p3="pane-toggle-preview"]').isVisible()) {
-          const onPreview = await page.evaluate(() => { const b = document.querySelector('[data-p3="components-row"]')?.getBoundingClientRect(); return !!b && b.height > 0; });
-          if (!onPreview) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
+        if (narrow && drawer === 'closed' && await page.locator('[data-p3="pane-toggle-settings"]').isVisible()) {
+          const onList = await page.evaluate(() => { const b = document.querySelector('[data-p3="components-bar"]')?.getBoundingClientRect(); return !!b && b.height > 0; });
+          if (!onList) await hooks.click(page.locator('[data-p3="pane-toggle-settings"]'));
         }
         await settle(page);
         const GEOM = () => {
           const vis = (n) => { if (!n) return false; const r = n.getBoundingClientRect(); if (r.width < 1 || r.height < 1) return false; for (let x = n; x && x.nodeType === 1; x = x.parentElement) if (getComputedStyle(x).display === 'none') return false; return true; };
-          const bar = document.querySelector('[data-p3="components-row"]'), dr = document.querySelector('[data-p3="activity-drawer"]');
-          return { barShown: vis(bar), drawerShown: vis(dr), barBottom: bar.getBoundingClientRect().bottom, drawerTop: dr.getBoundingClientRect().top };
+          const bar = document.querySelector('[data-p3="components-bar"]'), dr = document.querySelector('[data-p3="activity-drawer"]');
+          const b = bar.getBoundingClientRect(), d = dr.getBoundingClientRect();
+          // #2700: the bar is in the list pane; above the narrow tier the drawer spans the preview column only, so the two
+          // share no column and cannot meet. The gap is required where they do share one (380).
+          return { barShown: vis(bar), drawerShown: vis(dr), barBottom: b.bottom, drawerTop: d.top, beside: Math.min(b.right, d.right) - Math.max(b.left, d.left) < 1 };
         };
         if (narrow && drawer === 'open') {
           const g = await page.evaluate(GEOM);
           ok(g.drawerShown && !g.barShown, `${where}: the open drawer is the full-pane sheet and the build bar is not drawn on it (${JSON.stringify(g)})`);
         } else {
           for (const [at, f] of [['the top', 0], ['the middle', 0.5], ['the end', 1]]) {
-            await page.evaluate((k) => { const b = document.querySelector('[data-p3="preview-body"]'); b.scrollTop = Math.round((b.scrollHeight - b.clientHeight) * k); }, f);
+            await page.evaluate((k) => { const b = document.querySelector('[data-p3="levers-pane"]'); b.scrollTop = Math.round((b.scrollHeight - b.clientHeight) * k); }, f);
             await settle(page);
             const g = await page.evaluate(GEOM);
             const gap = g.drawerTop - g.barBottom;
-            ok(g.barShown && g.drawerShown && gap >= STACK_GAP - ALIGN_TOLERANCE,
-              `${where}, at ${at}: the build bar stands at least space.300 (${STACK_GAP}px) above the Activity drawer — gap ${gap.toFixed(1)} (bar shown ${g.barShown}, drawer shown ${g.drawerShown})`);
+            ok(g.barShown && g.drawerShown && (g.beside ? !narrow : gap >= STACK_GAP - ALIGN_TOLERANCE),
+              `${where}, at ${at}: the build bar stands at least space.300 (${STACK_GAP}px) above the Activity drawer, or (wide) beside it in its own column — ${g.beside ? 'beside it' : `gap ${gap.toFixed(1)}`} (bar shown ${g.barShown}, drawer shown ${g.drawerShown})`);
           }
         }
         ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
@@ -8947,8 +8999,8 @@ const FOCUS_SWEEP_FLOOR = { web: 820, figma: 870 };
 /** The least each place must read, every host and theme (the fewest measured when this landed: 19, Shape and Components). */
 const FOCUS_PLACE_FLOOR = 15;
 /** The lent legacy views the sweep skips: INSPECT_LEGACY but the views whose controls draw the chrome's ring from
- *  `styles.css`, on the chrome's variables. Components' preview, whose one focusable control is the plugin's set radio
- *  (`.cset-radio`, #2144); and since B2 (#2487) the token list in Inspect (its segments and selects), Brand's Style guide
+ *  `styles.css`, on the chrome's variables. Components' preview, whose focusable controls since #2700 are the Button
+ *  options drawn with the Buttons family (chrome controls); and since B2 (#2487) the token list in Inspect (its segments and selects), Brand's Style guide
  *  (its surface select), Depth & motion's preview (the replay and its speed) and Interactive's (its specimens are
  *  display-only since Q196, so it has none). Anything else that turns focusable in those views is read too, and must
  *  hold the same contract. */
@@ -8961,14 +9013,14 @@ const FOCUS_SWEEP_SKIP = INSPECT_LEGACY.filter((h) => !SWEPT_LEGACY.includes(h))
 const B2_RING_NEEDS = ['[data-p3="style-guide-ground"]', '[data-p3="motion-play"]', '[data-p3="motion-slowmo"]', '[data-p3="token-tier-primitive"]',
   '[data-p3="token-tier-semantic"]', '[data-p3="token-path-full"]', '[data-p3="token-path-short"]'];
 /** Controls the sweep must reach and measure, by hook: Continue, a chip, a text field, a tab, and one of each other
- *  kind the issue names. The plugin adds its own bar control and the Components set radio (`styles.css`). */
+ *  kind the issue names. The plugin adds its own bar control and the Components set box (#2700). */
 const FOCUS_SWEEP_NEEDS = {
   web: ['[data-p3="palettes-continue"]', '[data-p3="density-choice-comfortable"]', '[data-p3="brand-name"]', '[data-p3="primary-hex"]',
     '[data-p3="tab-color"]', '[data-p3="color-sub-palettes"]', '[data-p3="neutral-chroma-slider"]', '[data-p3="export-open"]', '[data-p3="search-open"]',
     '[data-p3="mode-option"]', '[data-p3="inspect-open"]', ...B2_RING_NEEDS],
   figma: ['[data-p3="palettes-continue"]', '[data-p3="density-choice-comfortable"]', '[data-p3="brand-name"]', '[data-p3="primary-hex"]',
     '[data-p3="tab-color"]', '[data-p3="color-sub-palettes"]', '[data-p3="neutral-chroma-slider"]', '[data-p3="export-open"]', '[data-p3="search-open"]',
-    '[data-p3="mode-option"]', '[data-p3="inspect-open"]', '[data-p3="apply-to-figma"]', '[data-p3="components-def-option"]', ...B2_RING_NEEDS],
+    '[data-p3="mode-option"]', '[data-p3="inspect-open"]', '[data-p3="apply-to-figma"]', '[data-p3="cp-box"]', ...B2_RING_NEEDS],
 };
 /** The focused controls photographed for review when a screenshot directory is given: [hook, file name part]. */
 const FOCUS_SHOTS = [['palettes-continue', 'continue'], ['density-choice-comfortable', 'chip'], ['brand-name', 'text-field'], ['tab-color', 'tab']];
@@ -10194,9 +10246,11 @@ const EXPECT_HEADINGS = {
     L1: ['Breakpoints', 'Grid', 'Containers'],
     L2: ['Grid columns', 'Maximum width', 'Content container', 'sm', 'md', 'lg', 'xl', '2xl'],
   },
+  // #2700: the levers pane is the list, in its two sections; the Button options (and their L2 names) moved to the preview
+  // pane, with the Buttons family, which this audit does not sweep.
   components: {
-    L1: ['Button', 'Component sets'],
-    L2: ['Density', 'Button icons', 'Button label & icon', 'Button label weight', 'Button minimum width'],
+    L1: ['Components', 'Subcomponents'],
+    L2: [],
   },
   // #2215: the plugin's Build style guides page, with SG_RING_CATALOG posted (every kind selected, so every option group
   // draws). Its page title is not a level (HEADING_EXEMPT).
@@ -10219,8 +10273,13 @@ const HEADING_FLOOR = {
   // Heading pass 2: Type's split adds an L1; the seven promoted lever names leave L2 (and four of them were legends).
   // #1984: the derived lines it counted in High contrast light (one per page, and one per row list on Surfaces & fills)
   // are gone; the panel's one line is a note, not a hint. So the hint lines read fell from 16 to 2, Light's own, measured.
-  1280: { L1: 35, L2: 65, L3: 20, TH: 21, info: 54, tokenLabels: 288, hints: 2, swept: 77 },
-  380: { L1: 35, L2: 65, L3: 20, TH: 21, info: 54, tokenLabels: 288, hints: 2, swept: 77 },
+  // #2700: the five Button option levers left Components' levers pane for its preview, with their L2 names, their four
+  // ⓘ buttons and their three heading elements; the list's two section titles replace the old two. So L2 65 → 60, info
+  // 54 → 50 and swept 77 → 74, each by what moved. The plugin's own hint line ("Choose a set in the preview…") is gone with
+  // the radios, so its hints floor is 0; the web keeps its one ("Building sets needs the Figma plugin."), read in Light
+  // and High contrast light, so HP3's rule keeps a subject (`hints` is per host below).
+  1280: { L1: 35, L2: 60, L3: 20, TH: 21, info: 50, tokenLabels: 288, hints: { web: 2, figma: 0 }, swept: 74 },
+  380: { L1: 35, L2: 60, L3: 20, TH: 21, info: 50, tokenLabels: 288, hints: { web: 2, figma: 0 }, swept: 74 },
 };
 /** Elements a sweep may find with a heading's tag or a heading's weight or size that are not one of the levels, each with
  *  the reason it is not (a selector, then the reason; the reason is held to 20 characters or more). Empty when pass 1
@@ -10575,7 +10634,8 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
         await showLevers(page, w);   // the narrow tab select is drawn only over the levers
       }
       console.log(`  ${where}: ${JSON.stringify(tally)}${host === 'figma' ? `, style guides ${JSON.stringify(sgTally)}` : ''}`);
-      for (const [k, floor] of Object.entries(HEADING_FLOOR[w])) {
+      for (const [k, f] of Object.entries(HEADING_FLOOR[w])) {
+        const floor = typeof f === 'object' ? f[host] : f;
         ok(tally[k] >= floor, `${where}: the sweep measured ${tally[k]} ${k === 'info' ? 'ⓘ buttons' : k === 'hints' ? 'hint lines' : k === 'tokenLabels' ? 'token labels' : k === 'swept' ? 'heading elements' : `${k} headings`} across the nine pages (floor ${floor})`);
       }
       // #2215: every page the audit's list names was measured on this host — by name, not by a count. A page dropped from
@@ -11728,7 +11788,9 @@ console.log('\n34. #2272: trim and its tooltip follow the name\'s own cut');
 // held again: a brand change also redraws nodes, so this is what holds the hold's attribute watch on its own.
 const RO_DERIVED = [['hc-light', 'HC light'], ['hc-dark', 'HC dark'], ['wireframe', 'Wireframe']];
 const RO_EDITABLE = ['light', 'dark'];
-const RO_PLACES = ['color-fills', 'color-interactive', 'type', 'depth', 'shape', 'layout', 'components'];
+// #2700: Components left this list. Its levers pane is the list of sets and the action bar, which edit no brand setting;
+// the Button options it shapes sit in the preview pane and hold themselves (held in section 26's Q59 arm).
+const RO_PLACES = ['color-fills', 'color-interactive', 'type', 'depth', 'shape', 'layout'];
 const RO_LINE = (name) => `${name} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.`;
 /** RX1 A's exceptions, by hook: help, the Show advanced folds, the Jump to links, the "way to" links, Continue. */
 const RO_EXCEPTIONS = [

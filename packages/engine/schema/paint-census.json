@@ -469,6 +469,18 @@
         "sha256": "5480f441576c069f711473c032feaabf90c037ec47bcd140f87fb8e5145b2fb6"
       }
     },
+    "button-group": {
+      "set": {
+        "members": 3,
+        "assignments": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "grid": {
+        "members": 3,
+        "assignments": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
     "dialog": {
       "set": {
         "members": 15,
@@ -493,16 +505,16 @@
         "sha256": "f4c8a2016d77cece81f97d359ca68dc8eff078bc1f9a52f0f7609105c65946f0"
       }
     },
-    "banner": {
+    "counter": {
       "set": {
-        "members": 8,
-        "assignments": 40,
-        "sha256": "580cbccd5aea0a725323b03ba2f2867d90e815284021ace2409858e5b156ee49"
+        "members": 18,
+        "assignments": 33,
+        "sha256": "acd5f49dae97ec1116531001337296adec9ab1e1f107bdc6816b884c04f048b0"
       },
       "grid": {
-        "members": 8,
-        "assignments": 40,
-        "sha256": "b4f41a6c3b0e440f38972552508cd757dd6f94161319179e49f94dfeea1ecfc7"
+        "members": 18,
+        "assignments": 33,
+        "sha256": "6bc23dc4a29e15cda035cf17a5a1a035f7fd5c48bb1b69a6c0d5967f1092d28a"
       }
     }
   }
