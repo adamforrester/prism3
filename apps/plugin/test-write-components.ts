@@ -1817,7 +1817,8 @@ ok(loadedRun.misses.length === 0 && loadedRun.variants === 21,
 ok(!loadedRun.misses.some((m) => m.indexOf('.font ->') >= 0), '#680 ...and nothing was reported as unloadable when every font is available');
 
 // The OTHER failure mode: a font that is not INSTALLED. Figma fails that at the load call, and this lane
-// catches it and reports a miss — then applies the style anyway, which throws, and nothing catches THAT.
+// catches it and reports a miss — then applies the style anyway, which throws. Since #982 the style apply is
+// a PROPERTY write, so that throw is a miss too and the build degrades instead of ending (the inverted #680 pin).
 const missingFont: FontName = { family: 'Clash Display', style: 'Semi Bold' };
 let unavailThrew = '';
 let unavailMisses: string[] = [];
@@ -1825,13 +1826,9 @@ try {
   const r = await run(grid, { ...full(), page: { children: [] }, styleFont: missingFont, unavailableFonts: [missingFont] });
   unavailMisses = r.misses;
 } catch (e) { unavailThrew = (e as Error).message; }
-// The load failure IS reported — the `catch` at write-components.ts:296 works, and is now exercised.
-// (Only reachable when the run survives to return; pinned below is the case where it does not.)
-pinned(unavailThrew.indexOf('unloaded font') >= 0, '#680',
-  `a brand whose typeface is not installed loses the WHOLE component build rather than degrading — the load miss is reported, then the style is applied anyway and the throw escapes (${unavailThrew.slice(0, 80)}…)`);
-ok(unavailMisses.length === 0, '#680 (bookkeeping) the unavailable-font run returned nothing, because it threw — see the pin above');
-// #680's stated posture is `write-text-styles`': report what was skipped, write everything else. That is
-// what the fix must give this lane too, and this is the assertion that will invert.
+ok(unavailThrew === '', `#680 a brand whose typeface is not installed no longer loses the whole component build (${unavailThrew.slice(0, 80)})`);
+ok(unavailMisses.some((m) => m.indexOf('.font ->') >= 0) && unavailMisses.some((m) => m.indexOf('.textStyle ->') >= 0 && m.indexOf('REFUSED') >= 0),
+  `#680 ...the font load AND the refused style apply are both reported (${unavailMisses.length} misses)`);
 
 // =============================================================================================
 // #682 — THE DEPRECATED PROPORTION LOCK, MIGRATED TO `unlockAspectRatio()`
@@ -2666,6 +2663,49 @@ ok(fmRun.properties.filter((p) => p.indexOf('TEXT') >= 0).length === 1,
 }
 
 // =============================================================================================
+// #982 — A REFUSED PROPERTY IS A MISS, A REFUSED STRUCTURE IS A STOP
+// =============================================================================================
+// The rule is recorded above `applyComponentPlan` in write-components.ts. Each arm drives a host that refuses
+// exactly one call and reads the verdict: flipping a site's class (guarding a structure call, or letting a
+// property call escape) fails the arm named for it. This block sits ABOVE the #913 regimes on purpose: those
+// pin the same structure sites and crash the file when one is flipped, so any #982 arm placed after them
+// could not run under the mutation it is named for (docs/34). The control arm proves the host accepts
+// everything otherwise, so a miss below can only come from the refusal.
+const rControl = await run(grid, { ...full(), page: { children: [] } });
+const boundField = Object.keys(grid[0].root.bound)[0];
+ok(!!boundField && rControl.misses.every((m) => m.indexOf('REFUSED') < 0),
+  `#982 control: the unrefusing host reports no REFUSED miss, and the plan binds a field to refuse (${boundField})`);
+
+// A refused PROPERTY is a miss, and ONLY that miss: exactly one line per member for the refused field, all
+// of them REFUSED. A second line for the field (`DISCARDED` from a refused binding pushed to `wrote`, or
+// `could not be re-applied` / `DISCARDED` from a refused style that still set `appliedStyle`) is the retry
+// the rule says does not happen.
+const refusedProperty = async (label: string, plans: AnatomyPlan[], opts: ShimOpts, refuse: NonNullable<ShimOpts['refuse']>, field: RegExp) => {
+  let err = '';
+  let res: Awaited<ReturnType<typeof run>> | null = null;
+  try { res = await run(plans, { ...opts, page: { children: [] }, refuse }); } catch (e) { err = (e as Error).message; }
+  const mine = (res?.misses ?? []).filter((m) => field.test(m));
+  const refused = mine.filter((m) => m.indexOf('REFUSED') >= 0);
+  ok(err === '' && refused.length > 0,
+    `#982 PROPERTY ${label}: refused, it is a MISS and the build finishes (${err ? 'THREW: ' + err.slice(0, 60) : (refused[0] ?? 'no miss').slice(0, 90)})`);
+  ok(err === '' && mine.length === plans.length && refused.length === plans.length,
+    `#982 PROPERTY ${label}: exactly one miss per member and no retry (${mine.length} ${field.source} miss(es) for ${plans.length} member(s); ${mine.filter((m) => /DISCARDED|could not be re-applied/.test(m)).length} DISCARDED / re-applied)`);
+};
+await refusedProperty('setBoundVariable', grid, full(), { setBoundVariable: boundField }, new RegExp(`\\.${boundField} ->`));
+await refusedProperty('setTextStyleIdAsync', grid, full(), { setTextStyleId: true }, /\.textStyle ->/);
+// No def declares `effectStyle` (#1007), so this site needs the probe plan rather than `grid`.
+const effProbe: AnatomyPlan = { ...labelPlans[0], root: { ...labelPlans[0].root, effectStyle: 'shadow/md' } };
+await refusedProperty('setEffectStyleIdAsync', [effProbe], fullFor([effProbe]), { setEffectStyleId: true }, /\.effectStyle ->/);
+
+const refusedStructure = async (label: string, refuse: NonNullable<ShimOpts['refuse']>) => {
+  let threw = false;
+  try { await run(grid, { ...full(), page: { children: [] }, refuse }); } catch { threw = true; }
+  ok(threw, `#982 STRUCTURE ${label}: refused, it STOPS the build rather than becoming a miss`);
+};
+await refusedStructure('createText', { createText: true });
+await refusedStructure('combineAsVariants', { combine: true });
+
+// =============================================================================================
 // #913 — A PARTIAL WRITE IS MARKED, AND THE MARKING CANNOT MAKE THINGS WORSE
 // =============================================================================================
 // A throw mid-build leaves what it already wrote in the designer's file: Figma parents a created node to
@@ -2688,17 +2728,17 @@ ok(fmRun.properties.filter((p) => p.indexOf('TEXT') >= 0).length === 1,
 // re-parenting is read off `node.parent`, which the shim does model, rather than off the page.
 
 // ---- REGIME 1: the small one, and the ORDINARY client failure -------------------------------
-// A brand whose typeface is not installed (#680, pinned above as unfixed). The throw lands inside the
-// FIRST member's build, before anything reaches the page at all — which is exactly why the count is small
+// A host that refuses a STRUCTURE call (`createText`; since #982 the missing-typeface case is a property miss
+// and no longer reaches this). The throw lands inside the FIRST member's build, before anything reaches the page at all — which is exactly why the count is small
 // and why it is the one that gets overlooked and then re-run on top of. Two nodes is not a dramatic
 // number; it is the number a designer meets most often.
 const smallPage: Page = { children: [] };
 let smallErr: unknown = null;
 try {
-  await run(grid, { ...full(), page: smallPage, styleFont: missingFont, unavailableFonts: [missingFont] });
+  await run(grid, { ...full(), page: smallPage, refuse: { createText: true } });
 } catch (e) { smallErr = e; }
 const smallFacts = partialWriteOf(smallErr);
-ok(smallErr !== null && (smallErr as Error).message.indexOf('unloaded font') >= 0,
+ok(smallErr !== null && (smallErr as Error).message.indexOf('The document is not editable') >= 0,
   `#913 the HOST'S OWN ERROR still escapes, unwrapped and unreplaced — the throw is what the designer needs to see (${(smallErr as Error)?.message?.slice(0, 52)}…)`);
 ok(smallFacts !== null, '#913 ...and it carries the facts about what was left behind, attached rather than substituted');
 // The FRAME, read off the page — the independent half. `findOne` is the shim's, so this is the same
@@ -3714,6 +3754,96 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const projected = componentDefs.filter((d) => d.figmaProperties && !(FORBIDDEN as readonly string[]).includes(d.id)).length;
   ok(walked === projected && unprojected.length === 0,
     `#2808 the BUILT reading walked every projected def (${walked} of ${projected})${unprojected.length ? ` — not walked: ${unprojected.join('; ')}` : ''}`);
+
+  // #2661 — THE DECLARED FALLBACK-ONLY REFERENCES. A nest's `prefersWhenBuilt` and a slot's `preferredWhenBuilt` are
+  // how a def names a Neutral family without requiring it. Neither reading above counts them, and a native slot's
+  // `preferred` list (which names a missing def as a miss) must not name a forbidden family at all: it goes in
+  // `preferredWhenBuilt`. The fixture proves each predicate tells the two apart: `prefersWhenBuilt` alone is not a
+  // requirement, and the same id in `nests` is.
+  const slotNeeds = (def: ComponentDef): string[] =>
+    Object.entries(def.anatomy?.parts ?? {}).flatMap(([n, p]) => (p.preferred ?? []).filter((id) => (FORBIDDEN as readonly string[]).includes(id)).map((id) => `${n}.preferred → ${id}`));
+  for (const def of componentDefs) {
+    if ((FORBIDDEN as readonly string[]).includes(def.id)) continue;
+    const needs = slotNeeds(def);
+    ok(needs.length === 0, `#2808 ${def.id}'s native slots require no Neutral button family (Q386)${needs.length ? ` — ${needs.join(', ')}; move it to preferredWhenBuilt` : ''}`);
+  }
+  const prefHost = { id: 'fixture-pref', anatomy: { root: 'x', parts: { x: { kind: 'nest', nests: 'button', prefersWhenBuilt: 'button-neutral', nesting: { kind: 'nest-fixed', variant: {} } }, s: { kind: 'box', contentSlot: true, preferred: ['button'], preferredWhenBuilt: ['button-neutral'] } } }, figmaProperties: {} } as unknown as ComponentDef;
+  const prefProj = (d: ComponentDef) => (d === prefHost ? [{ root: { nestTarget: 'button', nestPrefer: 'button-neutral', children: [] } } as unknown as AnatomyPlan] : project(d));
+  const slotHost = { ...prefHost, anatomy: { root: 's', parts: { s: { kind: 'box', contentSlot: true, preferred: ['button-neutral'] } } } } as unknown as ComponentDef;
+  ok(declaredNeeds(prefHost).length === 0 && !builtNeeds(prefHost, [...componentDefs, prefHost], prefProj).length && slotNeeds(prefHost).length === 0 && slotNeeds(slotHost).length === 1,
+    `#2808 #2661 a fallback-only preference is not a requirement on either reading, and the same family in a slot's preferred list is (declared [${declaredNeeds(prefHost).join(', ')}], built [${builtNeeds(prefHost, [...componentDefs, prefHost], prefProj).join(', ')}], slot [${slotNeeds(slotHost).join(', ')}])`);
+  // Q418 — and a HOST's preference for a nested component's default item (`nestItemPrefers`) is the same kind of
+  // reference: the plan field it projects to is not `nestTarget` either reading reads. The fixture nests the group and
+  // prefers Button.Neutral for its Cancel; neither reading counts it, and the same id in `nests` is still counted.
+  const itemHost = { id: 'fixture-item', anatomy: { root: 'x', parts: { x: { kind: 'nest', nests: 'button-group', nestItemPrefers: { cancel: 'button-neutral' }, nesting: { kind: 'nest-fixed', variant: {} } } } }, figmaProperties: {} } as unknown as ComponentDef;
+  const itemProj = (d: ComponentDef) => (d === itemHost ? [{ root: { nestTarget: 'button-group', nestItemPrefer: [{ item: 'cancel', prefer: 'button-neutral', variant: {} }], children: [] } } as unknown as AnatomyPlan] : project(d));
+  ok(declaredNeeds(itemHost).length === 0 && !builtNeeds(itemHost, [...componentDefs, itemHost], itemProj).length,
+    `#2808 #2661 Q418 a host's item preference for Button.Neutral is not a requirement on either reading (declared [${declaredNeeds(itemHost).join(', ')}], built [${builtNeeds(itemHost, [...componentDefs, itemHost], itemProj).join(', ')}])`);
+  // REPRESENTED (shape 15): the corpus declares at least one Neutral fallback, so the arm above reads a real case.
+  const fallbacks = componentDefs.flatMap((d) => Object.entries(d.anatomy?.parts ?? {})
+    .filter(([, p]) => p.prefersWhenBuilt === 'button-neutral' || Object.values(p.nestItemPrefers ?? {}).includes('button-neutral')).map(([n]) => `${d.id}.${n}`));
+  ok(fallbacks.length > 0, `#2808 #2661 the corpus declares Button.Neutral as a fallback-only preference somewhere (${fallbacks.join(', ') || 'nowhere'})`);
+}
+
+// =============================================================================================
+// #2661 (Q363.8 as amended, Q386, Q418) — THE HOST DECIDES THE SECONDARY: DIALOG'S CANCEL IS BUTTON.NEUTRAL ONLY WHEN THE FILE HAS IT
+// =============================================================================================
+// Two themed files, each built the way `main.ts` builds: the def's missing nests first (`prebuildDependencies`), then
+// the def. Button.Group on its own prefers nothing (Q418): in either file every Cancel in the group is an outline
+// primary Button. A Dialog's instance of the group prefers Button.Neutral for its Cancel (`nestItemPrefers`): in the file
+// WITHOUT the Neutral families, building Dialog builds Button.Group and Button but never Button.Neutral, and the footer's
+// Cancel is an outline primary Button, with no nest miss and no slot miss for the families it only prefers; in the file
+// where Button.Neutral was built FIRST, it is an outline Button.Neutral and the slot offers it. Expected owners and lists
+// are LITERALS (docs/34). Mutations: drop the `nestItemPrefer` call from the plugin executor → the Dialog `with
+// Button.Neutral` arm fails; make the group's Cancel prefer Button.Neutral again → the standalone `with Button.Neutral`
+// arm fails; make `nestItemPrefers` project as `nestTarget` → `without` fails (the plugin builds button-neutral first).
+{
+  const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP });
+  const all = componentDefs.flatMap((d) => { try { return project(d); } catch { return []; } });
+  const f = fullFor(all);
+  const byDef = (id: string) => componentDefs.find((d) => d.id === id)!;
+  const flat = (n: Node): Node[] => [n, ...((n.children as Node[] | undefined) ?? []).flatMap(flat)];
+  const CANCEL = ['cancel', 'cancelStacked', 'cancelFill'];
+  for (const withNeutral of [false, true]) {
+    const label = withNeutral ? 'with Button.Neutral built first' : 'without Button.Neutral';
+    const page: Page = { children: [] };
+    const shim = makeShim({ vars: f.vars, styles: f.styles, effects: f.effects, comps: [], liveRoot: true, page, identities: true, nestedItems: true });
+    const order: string[] = [];
+    const misses: string[] = [];
+    const build = async (d: ComponentDef) => { order.push(d.id); const r = await applyComponentPlan(project(d), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents }); misses.push(...r.misses.map((m) => `${d.id}: ${m}`)); return r; };
+    if (withNeutral) { await prebuildDependencies(byDef('button-neutral'), { defs: componentDefs, project, host: shim as any, build }); await build(byDef('button-neutral')); }
+    const neutralBuilds = order.filter((id) => id === 'button-neutral').length;
+    await prebuildDependencies(byDef('dialog'), { defs: componentDefs, project, host: shim as any, build });
+    await build(byDef('dialog'));
+    ok(order.includes('button-group') && order.includes('button') && order.filter((id) => id === 'button-neutral').length === neutralBuilds && order.indexOf('button-group') < order.indexOf('dialog'),
+      `#2661 ${label}: building Dialog builds Button.Group and Button first, and never Button.Neutral (${order.join(', ')})`);
+    const group = page.children.find((c) => c.name === 'button-group' && c.type === 'COMPONENT_SET') as Node | undefined;
+    const cancels = ((group?.children as Node[] | undefined) ?? []).flatMap(flat).filter((n) => n.type === 'INSTANCE' && CANCEL.includes(String(n.name)));
+    const readOwner = (n: Node) => { const m = n.mainComponent as Node | undefined; return { name: n.name, set: String((m?.parent as Node | undefined)?.name ?? ''), member: String(m?.name ?? '') }; };
+    // THE GROUP ON ITS OWN prefers nothing (Q418): its Cancel is the outline primary Button in either file.
+    const wrong = cancels.map(readOwner).filter((x) => x.set !== 'button' || !/appearance=outline/.test(x.member));
+    ok(cancels.length === 3 && wrong.length === 0,
+      `#2661 Q418 ${label}: every Cancel in Button.Group on its own (inline, stacked, fill) is an outline button, whatever the file holds (${cancels.length} found${wrong.length ? `; WRONG: ${wrong.map((w) => `${w.name} → ${w.set}/${w.member}`).join(' | ')}` : ''})`);
+    // DIALOG'S FOOTER: the group instance's Cancel is the host's preference. Read off the built Dialog set, through each
+    // footer's instance of the group.
+    const wantSet = withNeutral ? 'button-neutral' : 'button';
+    const dialogSet = page.children.find((c) => c.name === 'dialog' && c.type === 'COMPONENT_SET') as Node | undefined;
+    const footers = ((dialogSet?.children as Node[] | undefined) ?? []).flatMap(flat).filter((n) => n.type === 'INSTANCE' && ['actionsInline', 'actionsStacked'].includes(String(n.name)));
+    const dlgCancels = footers.flatMap((fi) => ((fi.findAll as (p: (n: Node) => boolean) => Node[])((n) => CANCEL.includes(String(n.name)) && n.type === 'INSTANCE')));
+    const dlgWrong = dlgCancels.map(readOwner).filter((x) => x.set !== wantSet || !/appearance=outline/.test(x.member));
+    const dlgSaves = footers.flatMap((fi) => ((fi.findAll as (p: (n: Node) => boolean) => Node[])((n) => ['save', 'saveStacked'].includes(String(n.name)) && n.type === 'INSTANCE'))).map(readOwner);
+    ok(footers.length >= 2 && dlgCancels.length === footers.length && dlgWrong.length === 0 && dlgSaves.length === footers.length && dlgSaves.every((x) => x.set === 'button' && /appearance=filled/.test(x.member)),
+      `#2661 Q418 ${label}: every Dialog footer's Cancel (${footers.length} footers, ${dlgCancels.length} Cancels) is an outline ${wantSet}, and every Save a filled button${dlgWrong.length ? `; WRONG: ${dlgWrong.map((w) => `${w.name} → ${w.set}/${w.member}`).join(' | ')}` : ''}`);
+    const nestMisses = misses.filter((m) => /\.nest(Target|Variant|Prefer|ItemPrefer) ->|\.preferred -> button-(neutral|destructive)/.test(m));
+    ok(nestMisses.length === 0, `#2661 ${label}: Button.Group and Dialog build with no nest miss and no slot miss for the families they only prefer (${nestMisses.slice(0, 2).join(' | ') || 'none'})`);
+    // THE SLOT OFFERS what the file has: the primary Button always, Button.Neutral only once it is built.
+    const defs = (group?.componentPropertyDefinitions ?? {}) as Record<string, { type?: string; preferredValues?: { key?: string }[] }>;
+    const slot = Object.entries(defs).find(([k, v]) => k.split('#')[0] === 'items' && v.type === 'SLOT')?.[1];
+    const keyName = (k: string): string => String(page.children.find((x) => (x.type === 'COMPONENT_SET' || x.type === 'COMPONENT') && x.key === k)?.name ?? `(${k})`);
+    const offered = (slot?.preferredValues ?? []).map((v) => keyName(String(v.key)));
+    const wantOffered = withNeutral ? ['button', 'button-neutral'] : ['button'];
+    ok(JSON.stringify(offered) === JSON.stringify(wantOffered), `#2661 ${label}: the items slot offers ${wantOffered.join(' and ')} (got ${JSON.stringify(offered)})`);
+  }
 }
 
 // =============================================================================================

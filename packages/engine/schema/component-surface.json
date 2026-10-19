@@ -654,9 +654,16 @@
         "trailing icon:BOOLEAN"
       ]
     },
+    "button-group": {
+      "members": 3,
+      "sha256": "c74587caf9edee460be6ad103657fe8388bc74f1e46d314fd1fd637b2d5e5b21",
+      "properties": [
+        "items:SLOT"
+      ]
+    },
     "dialog": {
       "members": 15,
-      "sha256": "43ef9046f4b43742b04cf9c759e495335ec10abcf6b8fb21af5b80940cea1162",
+      "sha256": "6864fc9da79975ed541e96838bfb39000ed633569e9cd94668245c61e9ed7e99",
       "properties": [
         "body:SLOT",
         "close:BOOLEAN",
@@ -668,7 +675,7 @@
     },
     "password-field": {
       "members": 84,
-      "sha256": "9bd8e7b4c0747d51e4a1f387269154385c5de5bfb94b0b74bd5752ba882cb7ed",
+      "sha256": "267613a687122c0459102d6ebe41936c1c239c1a1733190c3ebda33165a27b4c",
       "properties": [
         "leading icon:BOOLEAN",
         "message:BOOLEAN",
@@ -678,7 +685,7 @@
     },
     "password-field@outline-solid-tint": {
       "members": 84,
-      "sha256": "55b5c998f7aaef9b83476a3cec79bcd661ae3e45e6d948934afcc87975fbc52f",
+      "sha256": "e50d89beefad52b60286bf4334ba2dfe2f0c8cdbd157f8b21229beb588d1ae35",
       "properties": [
         "leading icon:BOOLEAN",
         "message:BOOLEAN",
@@ -688,11 +695,20 @@
     },
     "password-field@outline-none": {
       "members": 84,
-      "sha256": "00fc714ad1f69bc4d42251a528d6a7d3ff716b9a4bcbd2d36f515d4a21fc3631",
+      "sha256": "6b6ee9b77f451dd1da93dff8039caac5542918e858aa057b7c4c1f42571729ea",
       "properties": [
         "leading icon:BOOLEAN",
         "message:BOOLEAN",
         "placeholder:TEXT",
+        "value:TEXT"
+      ]
+    },
+    "counter": {
+      "members": 18,
+      "sha256": "2a891ba2e1b95c6342b378b458092f5605dd8c8f59b58f18bfb2c40a03bbe8a2",
+      "properties": [
+        "label:BOOLEAN",
+        "message:BOOLEAN",
         "value:TEXT"
       ]
     }

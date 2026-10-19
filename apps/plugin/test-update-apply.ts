@@ -185,7 +185,7 @@ const plansOf = (id: string): AnatomyPlan[] => {
 };
 // A swap override's component is one the file holds too (#2645): the build pre-builds it (`build-deps.ts`), so the
 // world lists it, or Dialog's close (`icon/close`, #2609) reads as a blocker the file never has.
-const planComps = (n: { swapTarget?: string; nestTarget?: string; nestOverrides?: { type: string; value: string }[]; children?: unknown[] }): string[] => [
+const planComps = (n: { swapTarget?: string; nestTarget?: string; nestOverrides?: readonly { type: string; value: string }[]; children?: unknown[] }): string[] => [
   ...(n.swapTarget ? [n.swapTarget] : []),
   ...(n.nestTarget ? [n.nestTarget] : []),
   ...(n.nestOverrides ?? []).filter((o) => o.type === 'INSTANCE_SWAP').map((o) => o.value),
@@ -422,11 +422,13 @@ section('stop — a run that stops part-way finishes when the update runs again'
   const w = await world(TAG, plansOf(TAG), { extraVars: ['space/999'] });
   const before = identityOf(w.set());
   const next = moveGap(w.plans);
-  // The host refuses one write on the 20th member's content, once: the run stops there.
+  // The host throws once on the 20th member's content: the run stops there. `unlockAspectRatio` stands for the class
+  // of stop (a host throw, a closed plugin window) because the executor calls it on every node and no rule catches
+  // it. It was a refused `setBoundVariable` until #982 made a refused property a MISS, which no longer stops a run.
   const victim = childNamed(membersOf(w.set())[20], 'content');
-  const real = victim.setBoundVariable as (f: string, v: unknown) => void;
+  const real = victim.unlockAspectRatio as () => void;
   let armed = true;
-  victim.setBoundVariable = (f: string, v: unknown) => { if (armed && f === 'itemSpacing') { armed = false; throw new Error('in setBoundVariable: the host stopped'); } real.call(victim, f, v); };
+  victim.unlockAspectRatio = () => { if (armed) { armed = false; throw new Error('in unlockAspectRatio: the host stopped'); } real.call(victim); };
   const { res } = await confirm(w, [{ def: TAG, plans: next }]);
   ok(!!res.outcomes[0]?.stopped && /the host stopped/.test(res.outcomes[0].stopped!), `premise: the run stopped (${res.outcomes[0]?.stopped})`);
   ok(/^✗ update stopped at /.test(applyVerdict(res).headline), `stop/verdict: ${applyVerdict(res).headline}`);

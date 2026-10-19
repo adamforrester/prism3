@@ -19,12 +19,17 @@ import { fileURLToPath } from 'node:url';
 import { componentDefs } from '@prism3/engine/components/index';
 import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
 import { catalogOf, CATALOG_SWAP_TARGET, type CatalogEntry } from './src/state/component-catalog';
+// The plugin's page taxonomy, read at generation time only (the web bundle reads the data this writes, #2700).
+import { leafForDef } from '../plugin/src/file-taxonomy';
 
 export const OUT = join(dirname(fileURLToPath(import.meta.url)), 'src', 'state', 'component-catalog-data.ts');
 
 /** The catalog, computed from the definitions. */
 export const computeCatalog = (): CatalogEntry[] =>
-  catalogOf(componentDefs, (d) => figmaAnatomySet(d, { swapTarget: CATALOG_SWAP_TARGET }));
+  catalogOf(componentDefs, (d) => figmaAnatomySet(d, { swapTarget: CATALOG_SWAP_TARGET }), (id) => {
+    const at = leafForDef(id);
+    return at ? { page: at.leaf.page, section: at.section.header } : null;
+  });
 
 /** The module text for a catalog. */
 export const render = (c: readonly CatalogEntry[]): string => `/**

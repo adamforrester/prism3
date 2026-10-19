@@ -15,5 +15,8 @@
 import { componentDefs } from '@prism3/engine/components/index';
 import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
 import { catalogOf, provideCatalog, CATALOG_SWAP_TARGET } from '../../../studio/src/state/component-catalog';
+import { leafForDef } from '../file-taxonomy';
 
-provideCatalog(catalogOf(componentDefs, (d) => figmaAnatomySet(d, { swapTarget: CATALOG_SWAP_TARGET })));
+// Each set's Figma page and file section, from the taxonomy a build places it by (#2700: the page groups the list so).
+const placeOf = (id: string) => { const at = leafForDef(id); return at ? { page: at.leaf.page, section: at.section.header } : null; };
+provideCatalog(catalogOf(componentDefs, (d) => figmaAnatomySet(d, { swapTarget: CATALOG_SWAP_TARGET }), placeOf));

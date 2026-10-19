@@ -26,6 +26,10 @@
  *   segmented/… rows that sat in a layer the update keeps (`track`): four options, the second selected, each growing.
  *   converge/…  the next dry run has nothing to carry: the set reads current, and no old boolean is left to remove.
  *   untouched/… an instance left at its defaults carries its three default rows as three items.
+ *   dialog/…    #2661 — the footer's two fixed Buttons move into a nested Button.Group's slot, which holds the same two by
+ *               default: a designer's changed labels land on those defaults in order, an unchanged instance is left
+ *               out, and a swapped or hidden button is named. Driven on a hand-built model of the placed instances
+ *               (a Dialog member before and after), since the shim's placed-instance model has no nested slot.
  *
  * Mutations, each failing by name:
  *   · the capture keeps hidden rows (`r.visible === false` check dropped) → `carry/hidden not resurrected`;
@@ -34,6 +38,8 @@
  *   · the dry run's migration lines dropped → `dry run/lines`;
  *   · the lost-override read dropped → `lost/named`.
  *   · the apply stops deleting removed properties → `converge/booleans gone`.
+ *   · the capture keeps values equal to the set default (the `defaultValue` filter dropped) → `dialog/only changes`;
+ *   · the within fill removes the slot's defaults and remakes them → `dialog/defaults kept`.
  */
 import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles } from '@prism3/engine/anatomy-figma';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
@@ -44,6 +50,9 @@ import { SWAP_TARGET } from './src/build-deps';
 import { makeShim, type Node, type Page } from './component-shim';
 import { previewUpdate, previewVerdict, type UpdateTarget } from './src/update-plan';
 import { applyUpdate, applyVerdict, previewHashOf, type ApplyHost } from './src/update-apply';
+import { captureSlotMigration, fillSlots, migrationLines, type MigNode } from './src/slot-migration';
+import { slotMigrationFor } from './src/update-plan';
+import { COMPONENT_RENAMES, slotMigrationOf } from '@prism3/engine/component-renames';
 
 let failed = 0, executed = 0;
 const ok = (cond: boolean, label: string): void => {
@@ -370,6 +379,74 @@ section('segmented — rows that sat in a kept `track` layer: four options, the 
     && sel[1].startsWith('selection=selected') && sel.filter((x) => x.startsWith('selection=selected')).length === 1 && !res.outcomes[0].carried?.misses.length,
     `segmented/carried: four options in order, the second the one selected (${JSON.stringify(sel)}; ${JSON.stringify(res.outcomes[0].carried)})`);
   ok(items.every((x) => x.layoutGrow === 1), `segmented/layout: every carried option grows along the slot as the default options do (${items.map((x) => String(x.layoutGrow)).join(',')})`);
+}
+
+// ---- dialog (#2661): onto the nested Button.Group's kept defaults ---------------------------------------------------
+
+section('dialog — the footer buttons move into the nested Button.Group slot, keeping only what a designer changed');
+{
+  const entry = slotMigrationOf('dialog', COMPONENT_RENAMES)!;
+  ok(!!entry && entry.within === 'button-group' && entry.slot === 'items' && JSON.stringify(entry.from) === JSON.stringify(['footerInline', 'footerStacked'])
+    && JSON.stringify(entry.rows) === JSON.stringify(['cancelInline', 'confirmInline', 'confirmStacked', 'cancelStacked']) && entry.booleans.length === 0 && entry.issue === 2661,
+    `dialog/ledger: one slot entry, within button-group, from the two old footer layers, its four old buttons in order (${JSON.stringify(entry)})`);
+  // THE MODEL. The old Button set (its label default "Button"), a Dialog member's old footer, and placed instances whose
+  // tree switches to the new shape once the "update" has run: footer/actionsInline/items, holding Cancel and Save.
+  let updated = false;
+  const mk = (o: Record<string, unknown>): MigNode => o as MigNode;
+  const btnSet = mk({ id: 'S:button', name: 'button', type: 'COMPONENT_SET', componentPropertyDefinitions: { 'label#1:1': { type: 'TEXT', defaultValue: 'Button' } } });
+  const btnMain = (appearance: string) => mk({ id: `M:${appearance}`, name: `appearance=${appearance}, size=medium`, type: 'COMPONENT', parent: btnSet });
+  const oldButton = (id: string, name: string, appearance: string, label: string): MigNode => {
+    const main = btnMain(appearance);
+    return mk({ id, name, type: 'INSTANCE', visible: true, componentProperties: { 'label#1:1': { type: 'TEXT', value: label } }, getMainComponentAsync: async () => main });
+  };
+  const newItem = (name: string, key: string, label: string): MigNode => {
+    const values: Record<string, { type: string; value: string }> = { [key]: { type: 'TEXT', value: label } };
+    const n = mk({ id: `N:${name}:${Math.random()}`, name, type: 'INSTANCE' });
+    Object.defineProperty(n, 'componentProperties', { get: () => JSON.parse(JSON.stringify(values)) });
+    n.setProperties = (p) => { for (const [k, v] of Object.entries(p)) { if (!values[k]) throw new Error(`no property ${k}`); values[k].value = String(v); } };
+    return n;
+  };
+  const placed: MigNode[] = [];
+  const dialogInstance = (name: string, oldRows: () => MigNode[], overrides: { id: string; overriddenFields: string[] }[]): MigNode => {
+    const old = oldRows();
+    // The new defaults: Cancel a Button.Neutral (its own label key), Save a Button.
+    const items = [newItem('cancel', 'label#7:7', 'Cancel'), newItem('save', 'label#1:1', 'Save')];
+    const slot = mk({ id: `${name}:slot`, name: 'items', type: 'SLOT', children: items, appendChild: () => { throw new Error('the within fill appends nothing'); } });
+    for (const it of items) (it as Record<string, unknown>).remove = () => { throw new Error('the within fill removes nothing'); };
+    const inst = mk({ id: `PI:${name}`, name, type: 'INSTANCE', parent: mk({ type: 'PAGE', name: 'Designs' }), overrides });
+    Object.defineProperty(inst, 'children', { get: () => (updated
+      ? [mk({ name: 'footer', type: 'FRAME', children: [mk({ name: 'actionsInline', type: 'INSTANCE', children: [slot] })] })]
+      : [mk({ name: 'footerInline', type: 'FRAME', children: old })]) });
+    for (const r of old) (r as Record<string, unknown>).parent = inst;
+    placed.push(inst);
+    return inst;
+  };
+  const typed = dialogInstance('Delete address', () => [oldButton('a1', 'cancelInline', 'outline', 'Keep'), oldButton('a2', 'confirmInline', 'filled', 'Delete')], [{ id: 'a1', overriddenFields: ['componentProperties'] }, { id: 'a2', overriddenFields: ['componentProperties'] }]);
+  dialogInstance('Untouched', () => [oldButton('b1', 'cancelInline', 'outline', 'Button'), oldButton('b2', 'confirmInline', 'filled', 'Button')], []);
+  const swappedInst = dialogInstance('Swapped', () => [oldButton('c1', 'cancelInline', 'outline', 'Button'), oldButton('c2', 'confirmInline', 'filled', 'Remove')], [{ id: 'c1', overriddenFields: ['mainComponent'] }, { id: 'c2', overriddenFields: ['componentProperties'] }]);
+  const member = mk({ id: 'DM:1', name: 'placement=center, footer=inline, size=medium', type: 'COMPONENT', getInstancesAsync: async () => placed });
+  const set = mk({ id: 'DS', name: 'dialog', type: 'COMPONENT_SET', children: [member] });
+  const { migration, live } = await captureSlotMigration(set, entry, 'panel', new Set(['panel', 'footer', 'actionsInline']));
+  const byName = (n: string) => migration.instances.find((c) => c.name === n);
+  ok(migration.within === 'button-group' && !byName('Untouched') && JSON.stringify(byName('Delete address')?.rows.map((r) => [r.row, r.at, r.props])) === JSON.stringify([['cancelInline', 0, { 'label#1:1': 'Keep' }], ['confirmInline', 1, { 'label#1:1': 'Delete' }]]),
+    `dialog/only changes: the typed instance carries "Keep" and "Delete" at positions 1 and 2, and the untouched one (still "Button") is left out (${JSON.stringify(migration.instances.map((c) => [c.name, c.rows.map((r) => r.props)]))})`);
+  const sw = byName('Swapped');
+  ok(!!sw && sw.lost.some((l) => /cancelInline: swapped to appearance=outline/.test(l)) && JSON.stringify(sw.rows.map((r) => r.props)) === JSON.stringify([{}, { 'label#1:1': 'Remove' }].filter((p) => Object.keys(p).length)),
+    `dialog/swapped named: a button swapped by hand is named as not carried, and the other's label still carries (${JSON.stringify(sw)})`.slice(0, 600));
+  const lines = migrationLines('dialog', migration);
+  ok(/moves? into the "items" slot of a nested button-group/.test(lines[0]) && lines.some((l) => /"Delete address".*keep their changes.*"Keep"; "Delete"/.test(l)) && lines.some((l) => /"Swapped".*Can't carry over: cancelInline: swapped/.test(l)),
+    `dialog/dry run: the lines name the nested slot, what each instance keeps, and what can't carry over (${JSON.stringify(lines)})`.slice(0, 700));
+  updated = true;
+  const out = await fillSlots('dialog', entry, live, migration);
+  const labels = (inst: MigNode) => (((inst.children ?? [])[0]?.children ?? [])[0]?.children?.[0]?.children ?? []).map((x) => Object.values(x.componentProperties ?? {})[0]?.value);
+  ok(out.misses.length === 0 && JSON.stringify(labels(typed)) === JSON.stringify(['Keep', 'Delete']) && JSON.stringify(labels(swappedInst)) === JSON.stringify(['Cancel', 'Remove']) && out.items === 3,
+    `dialog/defaults kept: the slot's default buttons stay and take the changed labels by name, across label keys ("Keep", "Delete"; "Cancel" kept, "Remove") (${JSON.stringify({ misses: out.misses, typed: labels(typed), swapped: labels(swappedInst), items: out.items })})`);
+  // THE UPDATE FINDS THE OLD SHAPE in either footer layer: a set whose only member holds `footerStacked` still migrates.
+  const stackedOnly = mk({ id: 'DS2', name: 'dialog', type: 'COMPONENT_SET', children: [mk({ id: 'DM:2', name: 'm', type: 'COMPONENT', getInstancesAsync: async () => [], children: [mk({ name: 'footerStacked', type: 'FRAME', children: [mk({ name: 'confirmStacked' }), mk({ name: 'cancelStacked' })] })] })] });
+  const plans = figmaAnatomySet(defOf('dialog'), { swapTarget: SWAP_TARGET });
+  const found = await slotMigrationFor({ def: 'dialog', plans }, stackedOnly);
+  const current = await slotMigrationFor({ def: 'dialog', plans }, mk({ id: 'DS3', name: 'dialog', type: 'COMPONENT_SET', children: [mk({ id: 'DM:3', name: 'm', type: 'COMPONENT', children: [mk({ name: 'footer', type: 'FRAME', children: [] })] })] }));
+  ok(!!found && current === null, `dialog/old shape: a set with the stacked footer's old buttons migrates, and one already holding the group does not (${!!found}, ${current === null})`);
 }
 
 console.log(`\n${failed ? `✗ ${failed} of ${executed} failed` : `✓ slot migration: all ${executed} pass`}`);

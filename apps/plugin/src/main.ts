@@ -42,7 +42,7 @@ import { scaffoldSkeleton, resolveComponentPage } from './file-setup';
 import { ensureFileComponents } from './file-components';
 import { ensureStyleGuideCells } from './style-guide-cells';
 import type { CellsApi } from './style-guide-cells';
-import { runStyleGuide, styleGuideSummary, readCatalog, catalogFor, isSetUp } from './style-guide';
+import { runStyleGuide, removeRetiredTables, styleGuideSummary, readCatalog, catalogFor, isSetUp } from './style-guide';
 import type { SgContract } from './style-guide';
 import { resolveAllModes } from '@prism3/engine/modes';
 import { TAXONOMY } from './file-taxonomy';
@@ -1088,7 +1088,8 @@ const styleGuide = async (options: StyleGuideOptions, sink: ActionSink): Promise
     // The contract note is one more item, joined by `. ` like the rest (#2177).
     const summary = contractNote ? `${v.summary}. ${contractNote}` : v.summary;
     const lines = withBuildLine(contractNote ? [...v.lines, contractNote] : v.lines);
-    sink.post({ type: 'style-guide-result', ok: v.ok, headline: v.headline, summary: appendBuildNote(summary, PRISM3_BUILD), lines, ...(result.stopped ? { stopped: result.stopped } : {}) });
+    sink.post({ type: 'style-guide-result', ok: v.ok, headline: v.headline, summary: appendBuildNote(summary, PRISM3_BUILD), lines, ...(result.stopped ? { stopped: result.stopped } : {}),
+      ...(result.retired?.length ? { retired: result.retired } : {}) });
   } catch (e) {
     const failure = `style guide failed: ${(e as Error).message}`;
     sink.post({ type: 'style-guide-result', ok: false, headline: '✗ style guide failed', summary: appendBuildNote(failure, PRISM3_BUILD), lines: withBuildLine([failure]) });
@@ -1193,6 +1194,22 @@ const sendFonts = async (): Promise<void> => {
     });
   } catch {
     /* no font list — the UI keeps its free-text input (which is the pre-#113 behavior) */
+  }
+};
+
+/**
+ * THE STYLE-GUIDE CLEANUP, CONFIRMED (Q412 A, #2816). The designer confirmed removing these tables from a run's offer;
+ * `removeRetiredTables` re-reads the file and removes only a listed table the generator still does not draw. Never
+ * reached by a run: a run only lists.
+ */
+const styleGuideCleanup = async (ids: string[], sink: ActionSink): Promise<void> => {
+  try {
+    const { removed, left } = await removeRetiredTables(figma, savedContract().contract, ids);
+    const n = removed.length;
+    const summary = n ? `${n} table${n === 1 ? '' : 's'} removed: ${removed.join(', ')}` : 'No table removed';
+    sink.post({ type: 'style-guide-cleanup-result', ok: left.length === 0, removed: ids.filter((id) => !left.includes(id)), summary: left.length ? `${summary}. ${left.length} left in place: the generator draws ${left.length === 1 ? 'it' : 'them'} again, or ${left.length === 1 ? 'it is' : 'they are'} gone` : summary });
+  } catch (e) {
+    sink.post({ type: 'style-guide-cleanup-result', ok: false, removed: [], summary: `Cleanup failed: ${(e as Error).message}` });
   }
 };
 
@@ -1336,6 +1353,11 @@ onUiMessage((msg: UiToMain) => {
     case 'style-guide-catalog-request':
       // S11.2 — the Build style guides page's tree, titles and Set up file state. A read: never guarded.
       void styleGuideCatalog();
+      return;
+    case 'style-guide-cleanup':
+      // Q412 A — the confirmed cleanup. A write under the style guide's own guard: never while a run is drawing.
+      if (guard.busy('style-guide')) { uiSink.post(refusal('style-guide', false)); return; }
+      void guard.run('style-guide', () => styleGuideCleanup(Array.isArray(msg.ids) ? msg.ids.filter((x): x is string => typeof x === 'string') : [], uiSink));
       return;
     case 'style-guide-cancel':
       // S11.2 (P7) — read by the running style guide after its current table; nothing running, nothing to stop.

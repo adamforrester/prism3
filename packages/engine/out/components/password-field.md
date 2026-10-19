@@ -63,7 +63,7 @@ Label = noun phrase, sentence case, no trailing colon. Button = "Show" / "Hide",
 | `autoComplete` | enum: 'current-password' \| 'new-password' | — | yes | Required (SC 1.3.5): `current-password` on a sign-in form, `new-password` where the user sets one, so a password manager fills or offers to generate it. Never `off`. |
 | `leadingIcon` | slot | — | no | An optional leading glyph before the value, aria-hidden and never the accessible name. Hidden by default; the file nominates the swap target. |
 | `isPending` | boolean | `false` | no | Async validation in progress; sets aria-busy; does not block typing. |
-| `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | TextField's three tiers: the input type, the nested label and the Show/Hide button scale with it. Every size keeps the input's 44px target; the button's hit area is 44×44 at medium and large and 24×24 at small. |
+| `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | TextField's three tiers: the input type and the nested label scale with it. The Show/Hide button is small at every size, so the label row stays one label line tall. Every size keeps the input's 44px target; the button's hit area is 44×44 at medium and large and 24×24 at small, in code. |
 | `id` | string | — | no | Wiring + form submission; auto-generated with useId if omitted. The Show/Hide button's aria-controls names it. |
 | `name` | string | — | no | A real \<input name>, so the field works in a native \<form> and a password manager recognizes it. |
 
