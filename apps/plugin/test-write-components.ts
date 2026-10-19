@@ -2663,6 +2663,49 @@ ok(fmRun.properties.filter((p) => p.indexOf('TEXT') >= 0).length === 1,
 }
 
 // =============================================================================================
+// #982 — A REFUSED PROPERTY IS A MISS, A REFUSED STRUCTURE IS A STOP
+// =============================================================================================
+// The rule is recorded above `applyComponentPlan` in write-components.ts. Each arm drives a host that refuses
+// exactly one call and reads the verdict: flipping a site's class (guarding a structure call, or letting a
+// property call escape) fails the arm named for it. This block sits ABOVE the #913 regimes on purpose: those
+// pin the same structure sites and crash the file when one is flipped, so any #982 arm placed after them
+// could not run under the mutation it is named for (docs/34). The control arm proves the host accepts
+// everything otherwise, so a miss below can only come from the refusal.
+const rControl = await run(grid, { ...full(), page: { children: [] } });
+const boundField = Object.keys(grid[0].root.bound)[0];
+ok(!!boundField && rControl.misses.every((m) => m.indexOf('REFUSED') < 0),
+  `#982 control: the unrefusing host reports no REFUSED miss, and the plan binds a field to refuse (${boundField})`);
+
+// A refused PROPERTY is a miss, and ONLY that miss: exactly one line per member for the refused field, all
+// of them REFUSED. A second line for the field (`DISCARDED` from a refused binding pushed to `wrote`, or
+// `could not be re-applied` / `DISCARDED` from a refused style that still set `appliedStyle`) is the retry
+// the rule says does not happen.
+const refusedProperty = async (label: string, plans: AnatomyPlan[], opts: ShimOpts, refuse: NonNullable<ShimOpts['refuse']>, field: RegExp) => {
+  let err = '';
+  let res: Awaited<ReturnType<typeof run>> | null = null;
+  try { res = await run(plans, { ...opts, page: { children: [] }, refuse }); } catch (e) { err = (e as Error).message; }
+  const mine = (res?.misses ?? []).filter((m) => field.test(m));
+  const refused = mine.filter((m) => m.indexOf('REFUSED') >= 0);
+  ok(err === '' && refused.length > 0,
+    `#982 PROPERTY ${label}: refused, it is a MISS and the build finishes (${err ? 'THREW: ' + err.slice(0, 60) : (refused[0] ?? 'no miss').slice(0, 90)})`);
+  ok(err === '' && mine.length === plans.length && refused.length === plans.length,
+    `#982 PROPERTY ${label}: exactly one miss per member and no retry (${mine.length} ${field.source} miss(es) for ${plans.length} member(s); ${mine.filter((m) => /DISCARDED|could not be re-applied/.test(m)).length} DISCARDED / re-applied)`);
+};
+await refusedProperty('setBoundVariable', grid, full(), { setBoundVariable: boundField }, new RegExp(`\\.${boundField} ->`));
+await refusedProperty('setTextStyleIdAsync', grid, full(), { setTextStyleId: true }, /\.textStyle ->/);
+// No def declares `effectStyle` (#1007), so this site needs the probe plan rather than `grid`.
+const effProbe: AnatomyPlan = { ...labelPlans[0], root: { ...labelPlans[0].root, effectStyle: 'shadow/md' } };
+await refusedProperty('setEffectStyleIdAsync', [effProbe], fullFor([effProbe]), { setEffectStyleId: true }, /\.effectStyle ->/);
+
+const refusedStructure = async (label: string, refuse: NonNullable<ShimOpts['refuse']>) => {
+  let threw = false;
+  try { await run(grid, { ...full(), page: { children: [] }, refuse }); } catch { threw = true; }
+  ok(threw, `#982 STRUCTURE ${label}: refused, it STOPS the build rather than becoming a miss`);
+};
+await refusedStructure('createText', { createText: true });
+await refusedStructure('combineAsVariants', { combine: true });
+
+// =============================================================================================
 // #913 — A PARTIAL WRITE IS MARKED, AND THE MARKING CANNOT MAKE THINGS WORSE
 // =============================================================================================
 // A throw mid-build leaves what it already wrote in the designer's file: Figma parents a created node to
@@ -5285,35 +5328,5 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   ok(members.length === 3 && wrong.length === 0,
     `segmented control equal widths (Q269.6): at every size the items slot grows along the track and its three options grow along it (layoutGrow 1 on the host) and measure the same width, their shares filling the track (${members.length} members${wrong.length ? ` — WRONG: ${wrong.join(' | ')}` : ''})`);
 }
-
-// =============================================================================================
-// #982 — A REFUSED PROPERTY IS A MISS, A REFUSED STRUCTURE IS A STOP
-// =============================================================================================
-// The rule is recorded above `applyComponentPlan` in write-components.ts. Each arm drives a host that refuses
-// exactly one call and reads the verdict: flipping a site's class (guarding a structure call, or letting a
-// property call escape) fails the arm named for it. The control arm proves the host accepts everything
-// otherwise, so a miss below can only come from the refusal.
-const rControl = await run(grid, { ...full(), page: { children: [] } });
-const boundField = Object.keys(grid[0].root.bound)[0];
-ok(!!boundField && rControl.misses.every((m) => m.indexOf('REFUSED') < 0),
-  `#982 control: the unrefusing host reports no REFUSED miss, and the plan binds a field to refuse (${boundField})`);
-
-const refusedProperty = async (label: string, refuse: NonNullable<ShimOpts['refuse']>, token: RegExp) => {
-  let err = '';
-  let res: Awaited<ReturnType<typeof run>> | null = null;
-  try { res = await run(grid, { ...full(), page: { children: [] }, refuse }); } catch (e) { err = (e as Error).message; }
-  ok(err === '' && res !== null && res.misses.some((m) => token.test(m)),
-    `#982 PROPERTY ${label}: refused, it is a MISS and the build finishes (${err ? 'THREW: ' + err.slice(0, 60) : (res?.misses.find((m) => token.test(m)) ?? 'no miss').slice(0, 90)})`);
-};
-await refusedProperty('setBoundVariable', { setBoundVariable: boundField }, new RegExp(`\\.${boundField} -> .*REFUSED`));
-await refusedProperty('setTextStyleIdAsync', { setTextStyleId: true }, /\.textStyle -> .*REFUSED/);
-
-const refusedStructure = async (label: string, refuse: NonNullable<ShimOpts['refuse']>) => {
-  let threw = false;
-  try { await run(grid, { ...full(), page: { children: [] }, refuse }); } catch { threw = true; }
-  ok(threw, `#982 STRUCTURE ${label}: refused, it STOPS the build rather than becoming a miss`);
-};
-await refusedStructure('createText', { createText: true });
-await refusedStructure('combineAsVariants', { combine: true });
 
 if (failed) process.exit(1);
