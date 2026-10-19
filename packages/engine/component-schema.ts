@@ -1795,7 +1795,8 @@ export type ComponentDef = {
      *  or a "sits beside" list goes. */
     commonPartners?: string[];
     triggerKeywords?: string[];
-    /** Tiebreaker when several components could serve a prompt. */
+    /** Tiebreaker when several components could serve a prompt: lower wins; the scale is in the
+     *  build-component skill. */
     generationPriority?: number;
   };
 

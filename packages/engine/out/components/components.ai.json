@@ -8189,7 +8189,7 @@
           "item count",
           "add to bag quantity"
         ],
-        "generationPriority": 4
+        "generationPriority": 2
       },
       "motion": {
         "enter": "none (present on mount)",

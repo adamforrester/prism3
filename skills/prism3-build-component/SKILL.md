@@ -100,7 +100,7 @@ from what the component is:
 | Priority | Tier | For example |
 |---|---|---|
 | 1 | The default pick: the one component an agent reaches for when nothing in the prompt narrows the choice | Button |
-| 2 | A top-level component an agent places on its own | Text field, Select, Tabs, Dialog, Icon, Button.Neutral |
+| 2 | A top-level component an agent places on its own | Text field, Select, Counter, Button group, Tabs, Dialog, Icon, Button.Neutral |
 | 3 | A top-level component that supports another (a status, a separator, a wait, a wash), or a sibling that loses the tiebreak to its family's 2 | Badge, Divider, Spinner, IconButton.Destructive, Segmented control |
 | 4–5 | A specialization of a top-level component for a narrower place | the three flush icon buttons |
 | 6 | A part a host nests, placed alone only in the case its `whenToUse` names | the three controls, Field label, Field message, Focus ring |
