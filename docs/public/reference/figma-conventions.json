@@ -38,7 +38,8 @@
             "components": [
               "button",
               "button-destructive",
-              "button-neutral"
+              "button-neutral",
+              "button-group"
             ]
           },
           {
@@ -161,9 +162,9 @@
             ]
           },
           {
-            "name": "↳ Progress",
+            "name": "↳ Counter",
             "components": [
-              "progress"
+              "counter"
             ]
           }
         ]
@@ -368,8 +369,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -387,15 +388,15 @@
           {
             "name": "leading icon",
             "values": [
-              "true",
-              "false"
+              "false",
+              "true"
             ]
           },
           {
             "name": "trailing icon",
             "values": [
-              "true",
-              "false"
+              "false",
+              "true"
             ]
           }
         ],
@@ -449,8 +450,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -468,15 +469,15 @@
           {
             "name": "leading icon",
             "values": [
-              "true",
-              "false"
+              "false",
+              "true"
             ]
           },
           {
             "name": "trailing icon",
             "values": [
-              "true",
-              "false"
+              "false",
+              "true"
             ]
           }
         ],
@@ -530,8 +531,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -549,15 +550,15 @@
           {
             "name": "leading icon",
             "values": [
-              "true",
-              "false"
+              "false",
+              "true"
             ]
           },
           {
             "name": "trailing icon",
             "values": [
-              "true",
-              "false"
+              "false",
+              "true"
             ]
           }
         ],
@@ -611,8 +612,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -670,8 +671,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -729,8 +730,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -773,8 +774,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -811,8 +812,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -849,8 +850,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -1118,8 +1119,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -1150,8 +1151,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
@@ -1187,8 +1188,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
@@ -1220,8 +1221,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -1251,8 +1252,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
@@ -1287,8 +1288,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
@@ -1320,8 +1321,8 @@
           {
             "name": "size",
             "values": [
-              "small",
-              "medium"
+              "medium",
+              "small"
             ]
           },
           {
@@ -1356,8 +1357,8 @@
           {
             "name": "size",
             "values": [
-              "small",
-              "medium"
+              "medium",
+              "small"
             ]
           }
         ],
@@ -1609,8 +1610,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -1665,8 +1666,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -1716,8 +1717,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
@@ -1785,8 +1786,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
@@ -1820,8 +1821,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -1861,8 +1862,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
@@ -1904,8 +1905,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
@@ -1932,8 +1933,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -1972,8 +1973,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
@@ -2024,8 +2025,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -2050,6 +2051,27 @@
           }
         ],
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/link.md"
+      },
+      {
+        "id": "button-group",
+        "name": "Button.Group",
+        "figmaName": "button-group",
+        "kind": "component set",
+        "page": "↳ Buttons",
+        "section": "Components",
+        "members": 3,
+        "variantProperties": [
+          {
+            "name": "layout",
+            "values": [
+              "inline",
+              "stacked",
+              "fill"
+            ]
+          }
+        ],
+        "properties": [],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/button-group.md"
       },
       {
         "id": "dialog",
@@ -2178,55 +2200,41 @@
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/password-field.md"
       },
       {
-        "id": "progress",
-        "name": "Progress",
-        "figmaName": "progress",
+        "id": "counter",
+        "name": "Counter",
+        "figmaName": "counter",
         "kind": "component set",
-        "page": "↳ Progress",
+        "page": "↳ Counter",
         "section": "Components",
-        "members": 10,
+        "members": 18,
         "variantProperties": [
           {
-            "name": "shape",
+            "name": "appearance",
             "values": [
-              "linear",
-              "circular"
-            ]
-          },
-          {
-            "name": "type",
-            "values": [
-              "determinate",
-              "indeterminate"
-            ]
-          },
-          {
-            "name": "status",
-            "values": [
-              "active",
-              "complete",
-              "error"
+              "outline",
+              "ghost"
             ]
           },
           {
             "name": "size",
             "values": [
               "medium",
-              "small"
+              "small",
+              "large"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "focus-visible",
+              "disabled"
             ]
           }
         ],
         "properties": [
           {
-            "name": "label text",
-            "type": "TEXT"
-          },
-          {
-            "name": "value text",
-            "type": "TEXT"
-          },
-          {
-            "name": "complete value text",
+            "name": "value",
             "type": "TEXT"
           },
           {
@@ -2234,15 +2242,11 @@
             "type": "BOOLEAN"
           },
           {
-            "name": "value",
-            "type": "BOOLEAN"
-          },
-          {
             "name": "message",
             "type": "BOOLEAN"
           }
         ],
-        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/progress.md"
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/counter.md"
       }
     ]
   },
@@ -2363,6 +2367,18 @@
         },
         "preferred": [
           "segmented-control-segment"
+        ]
+      },
+      {
+        "component": "button-group",
+        "property": "items",
+        "settings": {
+          "minChildren": 1,
+          "maxChildren": 3,
+          "allowPreferredValuesOnly": true
+        },
+        "preferred": [
+          "button"
         ]
       },
       {
@@ -2523,9 +2539,10 @@
       "segmented-control-segment",
       "segmented-control",
       "link",
+      "button-group",
       "dialog",
       "password-field",
-      "progress"
+      "counter"
     ],
     "templates": [
       {

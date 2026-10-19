@@ -4158,7 +4158,10 @@ for (const brand of BRANDS) {
         nodesMeasured += probe.text.length;
         const chromeRows = probe.text.filter((r) => !r.specimen);
         specimensMeasured += probe.text.length - chromeRows.length;
-        ok(probe.rootFound && probe.text.length >= 26 * 3, `${lw}: the probe measured the Components preview (${probe.text.length} text nodes, floor ${26 * 3})`);
+        // #2700: the preview shows the focused family (Buttons: its head, the specimen, Button options and its three sets),
+        // no longer every set's three lines. Measured 61 when it landed; the floor is a literal under that.
+        const COMPONENTS_TEXT_FLOOR = 55;
+        ok(probe.rootFound && probe.text.length >= COMPONENTS_TEXT_FLOOR, `${lw}: the probe measured the Components preview (${probe.text.length} text nodes, floor ${COMPONENTS_TEXT_FLOOR})`);
         const under = chromeRows.filter((r) => r.ratio < barOf(r));
         ok(under.length === 0, `${lw}: every chrome text node in the preview meets WCAG 1.4.3${under.length ? ` — ${under.slice(0, 3).map((u) => `${u.cls} "${u.text}" at ${u.ratio}:1`).join(' | ')}` : ''}`);
         const unmarked = probe.text.filter((r) => r.inlineInk && !r.specimen);
@@ -4201,11 +4204,45 @@ ok(componentChipGroups >= COMPONENT_CHIPS.length * 2 && buttonSpecimens === BRAN
   // `setViewportSize` resolves. Measured before it, the levers sit in the wide layout's 42% column at 380 (each group
   // about 90px wide) and all three groups overflow. Wait on the tier itself, a real condition, and name it below.
   await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow', null, { timeout: 5000 }).catch(() => {});
+  // #2700: at the narrow tier the Button options open inline under the Buttons row once it is focused.
+  await hooks.click(page.locator('[data-p3="cp-name"][data-key^="name=components|Buttons="]'));
+  await page.waitForFunction(() => !!document.querySelector('[data-p3="components-inline"] [role="radiogroup"]'), null, { timeout: 5000 }).catch(() => {});
   const { tier, groups, over } = await page.evaluate(() => {
     const gs = [...document.querySelectorAll('[data-p3="components-levers"] [role="radiogroup"]')];
     return { tier: document.querySelector('[data-p3="frame"]')?.dataset.w, groups: gs.length, over: gs.map((g) => g.scrollWidth - g.clientWidth).filter((x) => x > 1).length };
   });
   ok(tier === 'narrow' && groups === 4 && over === 0, `at 380px every Button option chip group fits the levers panel (${groups} groups, ${over} overflow, frame tier ${tier})`);
+  await ctx.close();
+}
+// #2812 S2: the Button options sit on the card in the chrome's inks, never on a specimen ground, which is the brand's page
+// for the previewed mode: there the chrome's light inks measured 1:1 on a dark mode's page. Measured as rendered, in
+// each mode, in the preview pane at the wide tier and inline under the Buttons row at 380. The floor on the count keeps
+// the ratio assertion from passing over nothing.
+// MUTATION: the options drawn on the specimen ground (`ground(c, opts, SG_SURFACES[0])` in `preview/components.ts`) →
+// `#2812 S2 … dark at 1280 …` and `… at 380 …`, at 1:1.
+{
+  const OPTIONS_TEXT_FLOOR = 10;
+  const { ctx, page } = await openBrand(BRANDS[0]);
+  await gotoComponents(page);
+  for (const mode of ['light', 'dark', 'hc-dark']) {
+    for (const [w, sel] of [[1280, '[data-p3="components-style-guide"] [data-p3="button-options-section"]'], [380, '[data-p3="components-inline"] [data-p3="button-options-section"]']]) {
+      await page.setViewportSize({ width: w, height: 900 });
+      await page.waitForFunction((t) => document.querySelector('[data-p3="frame"]')?.dataset.w === t, w === 380 ? 'narrow' : 'wide', { timeout: 5000 }).catch(() => {});
+      if (w === 1280) await chooseMode(page, mode);
+      else await hooks.click(page.locator('[data-p3="cp-name"][data-key="name=components|Buttons=Buttons"]'));
+      await page.waitForFunction((x) => !!document.querySelector(x), sel, { timeout: 5000 }).catch(() => {});
+      const where = `${BRANDS[0]} / Components / ${mode} at ${w}`;
+      await settle(page, where);
+      const probe = await page.evaluate(LEGIBILITY_PROBE, sel);
+      assertParsed(where, probe.unparsed);
+      nodesMeasured += probe.text.length;
+      const rows = probe.text.filter((r) => !isExemptText(r));
+      const under = rows.filter((r) => r.ratio < barOf(r));
+      const low = rows.reduce((m, r) => Math.min(m, r.ratio), Infinity);
+      ok(probe.rootFound && rows.length >= OPTIONS_TEXT_FLOOR && under.length === 0,
+        `#2812 S2 ${where}: the Button options' text meets WCAG 1.4.3 on the card (${rows.length} nodes, floor ${OPTIONS_TEXT_FLOOR}, lowest ${low}:1)${under.length ? ` — ${under.slice(0, 3).map((u) => `${u.cls} "${u.text}" at ${u.ratio}:1`).join(' | ')}` : ''}`);
+    }
+  }
   await ctx.close();
 }
 

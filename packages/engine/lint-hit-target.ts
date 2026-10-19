@@ -99,6 +99,7 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { componentDefs } from './components/index';
 import type { ComponentDef } from './component-schema';
+import { figmaAnatomySet, planComponentName } from './anatomy-figma';
 import { buildTree } from './tree';
 import { brandTheme } from './theme';
 import { parseDesignMd } from './design-md';
@@ -165,6 +166,9 @@ const INTERACTIVE: Record<string, Binding> = {
   'accordion': { key: (s) => `size.${s}.min-height`, why: 'the header row\'s min-height floor' },
   // #2418: each option\'s full-height cell is its target, on Button\'s own height rung (the visible pill is inset 4px).
   'segmented-control-segment': { key: (s) => `size.${s}.height`, why: 'the option cell height' },
+  // #2427: the Counter's row, the height of the value it centers (the spinbutton, its one Tab stop). Its two buttons
+  // are code-side targets nested in it, measured under FLUSH_NESTS below.
+  'counter': { key: (s) => `size.${s}.height`, why: 'the Counter row height, on Button\'s height rung' },
 };
 
 // ── TARGETS INSIDE A CONTROL (#1741): `<def>.<part>` → the tokens KEY of the part's side at a size ─────────
@@ -177,13 +181,23 @@ const INNER_TARGETS: Record<string, { key: (size: string) => string; why: string
   'tag.dismiss': { key: (s) => `size.${s}.height`, why: "the dismissible tag's × slot, a square the tag's height (owner, 2026-09-28) — the target itself or a part of a whole-tag target, the owner's open call; it clears the floor either way" },
   // #2317: a NESTED control with no side bound in the host. Its key is the NESTED def's (Button's box height), read
   // through Button's own tokens at the size the host nests it at, so a toggle pointed at a smaller rung fails here.
-  'password-field.toggle': { key: (s) => `size.${s}.height`, why: 'the Show/Hide button, a nested flush text Button at the field\'s size (Q301.3 B): its box height on Button\'s own rung; its width is the code-side flush rule below' },
+  'password-field.toggle': { key: (s) => `size.${s}.height`, why: 'the Show/Hide button, a nested flush text Button, small at every field size (Q301.3 B, Q380 A): its box height on Button\'s own rung; its hit area is the code-side flush rule below' },
+};
+
+// ── A NESTED FLUSH BUTTON SHORTER THAN THE FLOOR (#2804, Q380 A; owner question on #2809, option A) ──────────────
+// Password's Show is a SMALL Button (36 tall) at every field size, in a label row one label line tall (21 / 24 at
+// medium / large), so its Figma box is below the floor by decision. Its floor at medium and large is the code-side
+// 44×44 instead, which the host must state (FLUSH_BUTTON_HOSTS below), AND state ANCHORED: a 44 centered on a 21 or 24px
+// row reaches 3.5 or 2px into the input box, which would put one target over another. The anchor phrase is a literal
+// here, never read off the def (docs/34). A toggle measured AT the floor makes the entry stale by name.
+const CODE_SIDE_NESTED: Record<string, { anchor: RegExp; why: string }> = {
+  'password-field.toggle': { anchor: /bottom edge sits on the label row's bottom edge/, why: 'the 44 reaches up and sideways, never down into the input box' },
 };
 
 // ── HOSTS OF A NESTED FLUSH BUTTON (#2317): a host whose nested Button is flush owes the same code-side hit area ────
 // The nested Button's own def states the rule (FLUSH_MEMBERS), but a designer or agent reads the HOST, so the host
 // states it too, with the same phrases. Compared both ways with the defs' nested coordinates.
-const FLUSH_NESTS = new Set(['password-field']);
+const FLUSH_BUTTON_HOSTS = new Set(['password-field']);
 
 // ── FLUSH MEMBERS (#2408): the defs whose flush member drops its width floor, so its hit area is code-side ────
 // Authored here and compared both ways with the defs' own `flush` fields, so a new flush def cannot arrive with
@@ -231,6 +245,33 @@ const CODE_SIDE_TARGETS: Record<string, { key: (size: string) => string; why: st
 };
 const CODE_SIDE_RULE = [/at least 44×44px at every size/, /::before`? inset outward/, /centered on the glyph/];
 const CODE_SIDE_DOC = [/hit area in code to at least 44×44px at every size/, /::before`? inset outward/];
+// ── FLUSH NESTS (#2427): a host nesting code-side targets, and the room it leaves their hit areas ─────────────
+// A code-side target's 44×44 hit area reaches past its box, so a host nesting two of them must keep their centers
+// at least 44px apart, or the two areas overlap and one tap lands on both (owner Q296 A, on #2457: "the 44px
+// spacing between two flush icon buttons is center to center"). Per host, the nest parts that are code-side
+// targets, listed both ways against the def's anatomy, and the PAIR whose spacing is measured (none for a host that
+// nests one). Authored here, never read off the def: dropping a part from the anatomy, or nesting a third, fails by name.
+const FLUSH_NESTS: Record<string, { parts: readonly string[]; pair?: readonly [string, string]; why: string }> = {
+  counter: { parts: ['decrement', 'increment'], pair: ['decrement', 'increment'], why: "the Counter's minus and plus, either side of the value" },
+  // #2808 (Q385 A): the Dialog's close is one code-side target, so there is no second hit area to space it from.
+  dialog: { parts: ['close'], why: "the Dialog's close, the one code-side target in its header" },
+};
+/** The 44px center-to-center spacing, a literal (Q296 A), not FLOOR_PX: a different rule that happens to share the number. */
+const FLUSH_NEST_SPACING_PX = 44;
+/** The nest parts of each def that nest a code-side target, against FLUSH_NESTS, both ways. Pure, for the self-check. */
+const flushNestFailures = (defs: readonly ComponentDef[], codeSide: ReadonlySet<string>, listed: Record<string, { parts: readonly string[] }>): string[] => {
+  const out: string[] = [];
+  for (const def of defs) {
+    const nesting = Object.entries(def.anatomy?.parts ?? {}).filter(([, p]) => p.kind === 'nest' && !!p.nests && codeSide.has(p.nests)).map(([n]) => n);
+    const want = listed[def.id]?.parts ?? [];
+    for (const n of nesting.filter((x) => !want.includes(x)))
+      out.push(`${def.id}.${n}: nests a code-side target ('${def.anatomy!.parts[n]!.nests}'), and FLUSH_NESTS does not list it — its 44×44 hit area reaches past its box, so the host's spacing around it is unmeasured. Add it to FLUSH_NESTS['${def.id}'].parts.`);
+    for (const n of want.filter((x) => !nesting.includes(x)))
+      out.push(`FLUSH_NESTS['${def.id}'] lists '${n}', which is not a nest part of '${def.id}' nesting a code-side target — a stale entry measures nothing.`);
+  }
+  for (const id of Object.keys(listed)) if (!defs.some((d) => d.id === id)) out.push(`FLUSH_NESTS names '${id}', which is not a def — a stale entry.`);
+  return out;
+};
 /** The phrases of `rule` that no single entry carries (the best entry's gaps). Pure, so the self-check can drive it. */
 const ruleGap = (entries: readonly string[], rule: readonly RegExp[]): string[] =>
   (entries.map((e) => rule.filter((re) => !re.test(e))).sort((a, b) => a.length - b.length)[0] ?? [...rule]).map((re) => re.source);
@@ -249,7 +290,8 @@ const EXCLUDED: Record<string, string> = {
   'veil': 'a media wash overlay, not an interactive control',
   'segmented-control': 'a segmented control\'s track and label — its tap targets are the nested options, which are gated as segmented-control-segment',
   'divider': 'a 1px rule between groups of content, never interactive and never focusable',
-  'dialog': 'a modal panel, never itself a pointer target: its close button and footer buttons are an IconButton.Neutral and Buttons, each measured under its own name (#2609)',
+  'button-group': 'a layout of one to three Buttons, never itself a pointer target: each Button is measured under its own name (#2661)',
+  'dialog': 'a modal panel, never itself a pointer target: its close button and footer buttons are a FlushIconButton.Neutral and Buttons, each measured under its own name (#2609, Q385 A)',
   'list': 'a read list of text items, never interactive and never focusable; a link inside an item is its own control (#2319)',
   'list-item': 'one item of a read list, never interactive and never focusable; a link inside it is its own control (#2319)',
   '_accordion-indicator': 'a decorative glyph inside an Accordion header; the tap target is the header row, gated as accordion',
@@ -425,9 +467,12 @@ const markFailures = (defs: readonly ComponentDef[], interactive: ReadonlySet<st
 }
 failures.push(...selfFails.filter((f) => f.startsWith('markFailures')));
 
-// A code-side target (below) is a control too: a host nesting one has a second target inside it, which must be
-// listed, so the nest arm sees CODE_SIDE_TARGETS as well (#2457 — the Counter will nest two).
-failures.push(...markFailures(componentDefs, new Set([...Object.keys(INTERACTIVE), ...Object.keys(CODE_SIDE_TARGETS)]), new Set(Object.keys(INNER_TARGETS))));
+// A code-side target nested in a host is a second target inside it too, but its box is below the floor by design, so
+// INNER_TARGETS (which measures a side against the floor) cannot hold it. It is FLUSH_NESTS' to list and measure
+// (#2427, the Counter's two), so this arm sees INTERACTIVE alone. (#2457 had it see CODE_SIDE_TARGETS as well, which
+// would have demanded an INNER_TARGETS entry the measure loop then skips.)
+failures.push(...markFailures(componentDefs, new Set(Object.keys(INTERACTIVE)), new Set(Object.keys(INNER_TARGETS))));
+for (const id of Object.keys(CODE_SIDE_NESTED)) if (!(id in INNER_TARGETS)) failures.push(`CODE_SIDE_NESTED names '${id}', which INNER_TARGETS does not list — a stale entry.`);
 for (const [id, inner] of Object.entries(INNER_TARGETS)) {
   const [defId, partName] = id.split('.');
   const def = componentDefs.find((d) => d.id === defId);
@@ -452,6 +497,19 @@ for (const [id, inner] of Object.entries(INNER_TARGETS)) {
     const px = Math.min(...got.map((m) => m.px!));
     floorCount++;
     const bad = violation(px, 'floor');
+    const codeSide = CODE_SIDE_NESTED[id];
+    if (codeSide) {
+      // Below the floor by decision: the floor moves to code, so the host must be a stated flush host, stating the
+      // 44×44 rule (checked with FLUSH_BUTTON_HOSTS below) and its anchor in the SAME codeOnly entry.
+      const codeOnly = def.anatomy?.codeOnly ?? [];
+      const flush = nesting?.variant?.inset === 'flush' && FLUSH_BUTTON_HOSTS.has(defId);
+      const anchored = codeOnly.some((e) => !flushRuleGap([e]).length && codeSide.anchor.test(e));
+      rows.push(`${id}/${size} → ${part.nests} ${key} → ${path} = ${px}px in Figma; the floor is the code-side 44×44, anchored (${codeSide.why}) [nested target, code-side]${!bad || !flush || !anchored ? '  ✗' : ''}`);
+      if (!bad) failures.push(`CODE_SIDE_NESTED names '${id}', whose nested box (${px}px) meets the floor — a stale entry; measure it as a nested target.`);
+      else if (!flush) failures.push(`${id}/${size} (${inner.why}, ${path}) ${bad}, and its nested Button is not a flush Button of a FLUSH_BUTTON_HOSTS host — nothing carries the floor in code.`);
+      else if (!anchored) failures.push(`${id}/${size} (${inner.why}, ${path}) ${bad}: no codeOnly entry states the code-side 44×44 together with its anchor (${codeSide.anchor.source}) — ${codeSide.why}.`);
+      continue;
+    }
     rows.push(`${id}/${size} → ${part.nests} ${key} → ${path} = ${px}px (min over ${FLOOR_DENSITIES.join('+')}) [floor, nested target]${bad ? '  ✗' : ''}`);
     if (bad) failures.push(`${id}/${size} (${inner.why}, ${path}) ${bad} on a ${got.find((m) => m.px === px)!.density} brand — a target inside a control must meet the floor too.`);
     continue;
@@ -508,15 +566,15 @@ for (const def of componentDefs) {
   if (!flushes && FLUSH_MEMBERS.has(def.id))
     failures.push(`FLUSH_MEMBERS names '${def.id}', which has no flush part — a stale entry.`);
 }
-// The hosts of a nested flush Button, both ways, and each states the code-side rule in its own codeOnly.
+// The hosts of a nested flush Button (FLUSH_BUTTON_HOSTS; FLUSH_NESTS below is the Counter's different rule), both ways, and each states the code-side rule in its own codeOnly.
 for (const def of componentDefs) {
   if (!(def.id in INTERACTIVE)) continue;
   const nestsFlush = Object.values(def.anatomy?.parts ?? {}).some((p) => p.kind === 'nest' && !!p.nests && p.nests in INTERACTIVE
     && (p.nesting as { variant?: Record<string, string> } | undefined)?.variant?.inset === 'flush');
-  if (nestsFlush && !FLUSH_NESTS.has(def.id))
-    failures.push(`${def.id}: nests a flush Button, whose width floor is code-side, and FLUSH_NESTS does not list it — state the 44×44 code-side hit area in its codeOnly and list it.`);
-  if (!nestsFlush && FLUSH_NESTS.has(def.id))
-    failures.push(`FLUSH_NESTS names '${def.id}', which nests no flush Button — a stale entry.`);
+  if (nestsFlush && !FLUSH_BUTTON_HOSTS.has(def.id))
+    failures.push(`${def.id}: nests a flush Button, whose width floor is code-side, and FLUSH_BUTTON_HOSTS does not list it — state the 44×44 code-side hit area in its codeOnly and list it.`);
+  if (!nestsFlush && FLUSH_BUTTON_HOSTS.has(def.id))
+    failures.push(`FLUSH_BUTTON_HOSTS names '${def.id}', which nests no flush Button — a stale entry.`);
   if (nestsFlush) {
     const gap = flushRuleGap(def.anatomy?.codeOnly ?? []);
     rows.push(`${def.id} → a nested flush Button; hit area ≥ 44×44 in code at ${FLUSH_SIZES.join(' and ')}, ≥ 24×24 at ${FLUSH_SMALL_SIZES.join(', ')} (codeOnly) [code-side rule, #2317]${gap.length ? '  ✗' : ''}`);
@@ -579,6 +637,67 @@ for (const [id, target] of Object.entries(CODE_SIDE_TARGETS)) {
   if (ruleMiss.length) failures.push(`${id}: no codeOnly entry states the code-side hit area (missing: ${ruleMiss.join(', ')}) — its box is below the floor by design, so the rule is the only target it has. State that the hit area is at least 44×44px at every size in code, through a ::before inset outward and centered on the glyph (owner Q283.3 A, #2457).`);
   const docMiss = ruleGap(def.docs?.do ?? [], CODE_SIDE_DOC);
   if (docMiss.length) failures.push(`${id}: the shipped docs.do does not tell the implementer to extend the hit area (missing: ${docMiss.join(', ')}) — codeOnly never ships, so without this the code docs lose the only 44×44 target the control has. Keep a docs.do entry: "Extend its hit area in code to at least 44×44px at every size, with a transparent ::before inset outward…" (owner Q283.3 A, #2457).`);
+}
+
+// ── FLUSH NESTS (#2427): every code-side nest listed, and each listed pair 44px apart center to center ──────────
+{
+  const defOf = (id: string, parts: Record<string, unknown>) => ({ id, anatomy: { root: 'row', parts: { row: { kind: 'box' }, ...parts } } }) as unknown as ComponentDef;
+  const nest = (to: string) => ({ kind: 'nest', nests: to });
+  const CASES: Array<{ why: string; defs: ComponentDef[]; listed: Record<string, { parts: string[] }>; want: RegExp | null }> = [
+    { why: 'a code-side nest FLUSH_NESTS does not list', defs: [defOf('h', { a: nest('c') })], listed: {}, want: /FLUSH_NESTS does not list it/ },
+    { why: 'a listed part that nests no code-side target', defs: [defOf('h', { a: nest('other') })], listed: { h: { parts: ['a'] } }, want: /a stale entry measures nothing/ },
+    { why: 'a listed host that is not a def', defs: [], listed: { h: { parts: [] } }, want: /is not a def/ },
+    { why: 'every code-side nest listed (clean)', defs: [defOf('h', { a: nest('c'), b: nest('c') })], listed: { h: { parts: ['a', 'b'] } }, want: null },
+  ];
+  for (const c of CASES) {
+    const got = flushNestFailures(c.defs, new Set(['c']), c.listed);
+    if (c.want ? !got.some((f) => c.want!.test(f)) : got.length) failures.push(`flushNestFailures, ${c.why}: ${c.want ? 'should FIRE' : 'should pass'}, got ${got.length ? got.join(' | ') : 'nothing'}.`);
+  }
+}
+failures.push(...flushNestFailures(componentDefs, new Set(Object.keys(CODE_SIDE_TARGETS)), FLUSH_NESTS));
+{
+  // ACTUAL, off the PROJECTED plans on the comfortable build: half of each nested box (the nested def's own root
+  // `size` key, filled from the instance's coordinate), plus every frame between the two (its minimum width and
+  // inline padding — a hugging value can only be wider), plus the row's gap on each side. A lower bound on the
+  // real spacing, held to 44.
+  const pxOf = (name: string | undefined): number => (name ? resolvePx(comfortable.tree, comfortable.root, name.replace(/\//g, '.')) ?? NaN : 0);
+  type PlanNode = { name: string; type?: string; nestTarget?: string; nestVariant?: Record<string, string>; minWidth?: number; bound?: Record<string, string>; children?: PlanNode[] };
+  const sideOf = (n: PlanNode): number => {
+    const nested = componentDefs.find((d) => d.id === n.nestTarget);
+    const key = nested?.anatomy ? nested.anatomy.parts[nested.anatomy.root]?.size : undefined;
+    const filled = key?.replace(/\{([a-zA-Z]+)\}/g, (m, a: string) => n.nestVariant?.[a] ?? m);
+    const path = filled ? (nested!.tokens as Record<string, string>)[filled] : undefined;
+    return path ? resolvePx(comfortable.tree, comfortable.root, path) ?? NaN : NaN;
+  };
+  let measuredPairs = 0;
+  const paired = Object.entries(FLUSH_NESTS).flatMap(([id, fn]) => (fn.pair ? [[id, { ...fn, pair: fn.pair }] as const] : []));
+  for (const [id, fn] of paired) {
+    const def = componentDefs.find((d) => d.id === id);
+    if (!def) continue;   // reported as stale above
+    let closest = Infinity;
+    let at = '';
+    for (const plan of figmaAnatomySet(def)) {
+      const walk = (n: PlanNode): PlanNode | undefined => ((n.children ?? []).some((c) => c.name === fn.pair[0]) ? n : (n.children ?? []).map(walk).find(Boolean));
+      const row = walk(plan.root as unknown as PlanNode);
+      const kids = row?.children ?? [];
+      const ia = kids.findIndex((c) => c.name === fn.pair[0]);
+      const ib = kids.findIndex((c) => c.name === fn.pair[1]);
+      if (!row || ia < 0 || ib <= ia) { failures.push(`${id} @ ${planComponentName(plan)}: FLUSH_NESTS pair [${fn.pair.join(', ')}] are not siblings in one row, in that order — the spacing between them cannot be measured.`); continue; }
+      const between = kids.slice(ia + 1, ib).filter((c) => c.type === 'FRAME' || c.type === 'TEXT');
+      const gap = pxOf(row.bound?.itemSpacing);
+      const span = between.reduce((sum, c) => sum + Math.max(c.minWidth ?? 0, 0) + pxOf(c.bound?.paddingLeft) + pxOf(c.bound?.paddingRight), 0);
+      const d = sideOf(kids[ia]) / 2 + gap * (between.length + 1) + span + sideOf(kids[ib]) / 2;
+      if (!Number.isFinite(d)) { failures.push(`${id} @ ${planComponentName(plan)}: the spacing between ${fn.pair.join(' and ')} does not resolve to px on the comfortable build — a nested box key or a bound padding moved.`); continue; }
+      if (d < closest) { closest = d; at = planComponentName(plan); }
+    }
+    if (closest === Infinity) continue;
+    measuredPairs++;
+    const bad = closest < FLUSH_NEST_SPACING_PX;
+    rows.push(`${id}: ${fn.pair.join(' ↔ ')} at least ${closest}px apart center to center (closest at ${at}, comfortable) [code-side hit areas, ≥ ${FLUSH_NEST_SPACING_PX}px, Q296 A, #2427]${bad ? '  ✗' : ''}`);
+    if (bad) failures.push(`${id}: ${fn.pair.join(' and ')} (${fn.why}) are ${closest}px apart center to center at ${at} — below ${FLUSH_NEST_SPACING_PX}px, so their 44×44 code-side hit areas overlap (owner Q296 A). Widen what sits between them.`);
+  }
+  if (measuredPairs !== paired.length && !failures.length)
+    failures.push(`FLUSH_NESTS lists ${paired.length} host(s) with a pair and ${measuredPairs} pair(s) were measured — a host measured nowhere asserts nothing.`);
 }
 
 // ── EXCEPTION 1: small size — asserted ACTUALLY below the floor on comfortable (self-justified) ──

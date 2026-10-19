@@ -24,8 +24,8 @@
           "expanded"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
@@ -57,8 +57,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -85,8 +85,8 @@
           "trailing"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
@@ -142,8 +142,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -254,8 +254,8 @@
           "text"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ],
         "width": [
@@ -351,8 +351,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -385,8 +385,8 @@
           "text"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ],
         "width": [
@@ -482,11 +482,40 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
+    },
+    {
+      "id": "button-group",
+      "name": "Button.Group",
+      "category": "form",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "layout": [
+          "inline",
+          "stacked",
+          "fill"
+        ]
+      },
+      "props": [
+        {
+          "name": "items"
+        },
+        {
+          "name": "layout",
+          "default": "inline",
+          "values": [
+            "inline",
+            "stacked",
+            "fill"
+          ]
+        }
+      ],
+      "sizes": []
     },
     {
       "id": "button-neutral",
@@ -516,8 +545,8 @@
           "text"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ],
         "width": [
@@ -613,8 +642,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -641,8 +670,8 @@
       ],
       "axes": {
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ],
         "selection": [
@@ -677,8 +706,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -693,8 +722,8 @@
       "projectedStates": [],
       "axes": {
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
@@ -736,8 +765,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -758,8 +787,8 @@
       "projectedStates": [],
       "axes": {
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
@@ -788,6 +817,10 @@
           "name": "value"
         },
         {
+          "name": "disabled",
+          "default": false
+        },
+        {
           "name": "readOnly",
           "default": false
         },
@@ -802,8 +835,106 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
+      "id": "counter",
+      "name": "Counter",
+      "category": "form",
+      "states": [
+        "rest",
+        "focus-visible",
+        "disabled"
+      ],
+      "projectedStates": [
+        "rest",
+        "focus-visible",
+        "disabled"
+      ],
+      "axes": {
+        "appearance": [
+          "outline",
+          "ghost"
+        ],
+        "size": [
+          "medium",
+          "small",
+          "large"
+        ]
+      },
+      "props": [
+        {
+          "name": "label"
+        },
+        {
+          "name": "showLabel",
+          "default": false
+        },
+        {
+          "name": "value"
+        },
+        {
+          "name": "defaultValue"
+        },
+        {
+          "name": "onChange"
+        },
+        {
+          "name": "min",
+          "default": 0
+        },
+        {
+          "name": "max"
+        },
+        {
+          "name": "step",
+          "default": 1
+        },
+        {
+          "name": "appearance",
+          "default": "outline",
+          "values": [
+            "outline",
+            "ghost"
+          ]
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        {
+          "name": "message"
+        },
+        {
+          "name": "showMessage",
+          "default": false
+        },
+        {
+          "name": "decrementLabel"
+        },
+        {
+          "name": "incrementLabel"
+        },
+        {
+          "name": "name"
+        },
+        {
+          "name": "disabled",
+          "default": false
+        }
+      ],
+      "sizes": [
+        "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -1068,8 +1199,8 @@
           "round"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
@@ -1115,8 +1246,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -1145,8 +1276,8 @@
           "round"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
@@ -1192,8 +1323,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -1222,8 +1353,8 @@
           "round"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
@@ -1269,8 +1400,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -1488,8 +1619,8 @@
           "outline"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ],
         "shape": [
@@ -1568,8 +1699,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -1602,8 +1733,8 @@
           "outline"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ],
         "shape": [
@@ -1682,8 +1813,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -1716,8 +1847,8 @@
           "outline"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ],
         "shape": [
@@ -1796,8 +1927,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -1862,8 +1993,8 @@
           "default"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ],
         "surface": [
@@ -1924,8 +2055,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -1943,8 +2074,8 @@
           "icon"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
@@ -1980,8 +2111,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -1999,8 +2130,8 @@
           "icon"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
@@ -2034,8 +2165,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -2166,105 +2297,6 @@
       "sizeDefault": "medium"
     },
     {
-      "id": "progress",
-      "name": "Progress",
-      "category": "feedback",
-      "states": [],
-      "projectedStates": [],
-      "axes": {
-        "shape": [
-          "linear",
-          "circular"
-        ],
-        "type": [
-          "determinate",
-          "indeterminate"
-        ],
-        "status": [
-          "active",
-          "complete",
-          "error"
-        ],
-        "size": [
-          "medium",
-          "small"
-        ]
-      },
-      "props": [
-        {
-          "name": "value"
-        },
-        {
-          "name": "min",
-          "default": 0
-        },
-        {
-          "name": "max",
-          "default": 100
-        },
-        {
-          "name": "label"
-        },
-        {
-          "name": "valueText"
-        },
-        {
-          "name": "shape",
-          "default": "linear",
-          "values": [
-            "linear",
-            "circular"
-          ]
-        },
-        {
-          "name": "size",
-          "default": "medium",
-          "values": [
-            "small",
-            "medium"
-          ]
-        },
-        {
-          "name": "status",
-          "default": "active",
-          "values": [
-            "active",
-            "complete",
-            "error"
-          ]
-        },
-        {
-          "name": "message"
-        },
-        {
-          "name": "showValue",
-          "default": true
-        },
-        {
-          "name": "announce",
-          "default": "milestones",
-          "values": [
-            "milestones",
-            "end",
-            "none"
-          ]
-        },
-        {
-          "name": "delay",
-          "default": 400
-        },
-        {
-          "name": "minDisplay",
-          "default": 500
-        }
-      ],
-      "sizes": [
-        "medium",
-        "small"
-      ],
-      "sizeDefault": "medium"
-    },
-    {
       "id": "radio-control",
       "name": "Radio.Control",
       "category": "form",
@@ -2284,8 +2316,8 @@
       ],
       "axes": {
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ],
         "selection": [
@@ -2315,8 +2347,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -2331,8 +2363,8 @@
       "projectedStates": [],
       "axes": {
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
@@ -2374,8 +2406,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -2395,8 +2427,8 @@
       "projectedStates": [],
       "axes": {
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
@@ -2411,6 +2443,14 @@
           "name": "description"
         },
         {
+          "name": "disabled",
+          "default": false
+        },
+        {
+          "name": "readOnly",
+          "default": false
+        },
+        {
           "name": "size",
           "default": "medium",
           "values": [
@@ -2421,8 +2461,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -2437,8 +2477,8 @@
       "projectedStates": [],
       "axes": {
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
@@ -2492,8 +2532,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -2522,8 +2562,8 @@
           "selected"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
@@ -2556,8 +2596,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -2737,8 +2777,8 @@
       ],
       "axes": {
         "size": [
-          "small",
-          "medium"
+          "medium",
+          "small"
         ],
         "selection": [
           "off",
@@ -2770,8 +2810,8 @@
         }
       ],
       "sizes": [
-        "small",
-        "medium"
+        "medium",
+        "small"
       ],
       "sizeDefault": "medium"
     },
@@ -2792,8 +2832,8 @@
       "projectedStates": [],
       "axes": {
         "size": [
-          "small",
-          "medium"
+          "medium",
+          "small"
         ]
       },
       "props": [
@@ -2813,6 +2853,10 @@
             "leading",
             "trailing"
           ]
+        },
+        {
+          "name": "disabled",
+          "default": false
         },
         {
           "name": "isPending",
@@ -2836,8 +2880,8 @@
         }
       ],
       "sizes": [
-        "small",
-        "medium"
+        "medium",
+        "small"
       ],
       "sizeDefault": "medium"
     },
@@ -2865,8 +2909,8 @@
           "selected"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
@@ -2902,8 +2946,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -2918,8 +2962,8 @@
       "projectedStates": [],
       "axes": {
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ],
         "alignment": [
@@ -2970,8 +3014,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -3005,8 +3049,8 @@
           "selected"
         ],
         "size": [
-          "small",
           "medium",
+          "small",
           "large"
         ]
       },
@@ -3058,8 +3102,8 @@
         }
       ],
       "sizes": [
-        "small",
         "medium",
+        "small",
         "large"
       ],
       "sizeDefault": "medium"
@@ -3264,10 +3308,19 @@
       },
       "props": [
         {
+          "name": "label"
+        },
+        {
           "name": "value"
         },
         {
+          "name": "onChange"
+        },
+        {
           "name": "placeholder"
+        },
+        {
+          "name": "helpText"
         },
         {
           "name": "showMessage",
@@ -3320,6 +3373,22 @@
           "name": "validationMessage"
         },
         {
+          "name": "required",
+          "default": false
+        },
+        {
+          "name": "disabled",
+          "default": false
+        },
+        {
+          "name": "readOnly",
+          "default": false
+        },
+        {
+          "name": "isPending",
+          "default": false
+        },
+        {
           "name": "size",
           "default": "medium",
           "values": [
@@ -3327,6 +3396,12 @@
             "medium",
             "large"
           ]
+        },
+        {
+          "name": "id"
+        },
+        {
+          "name": "name"
         }
       ],
       "sizes": [
@@ -3448,6 +3523,7 @@
       "kind": "role peers",
       "name": "*.Group",
       "members": [
+        "button-group",
         "checkbox-group",
         "radio-group"
       ],
@@ -3503,6 +3579,7 @@
       "button-neutral",
       "checkbox-control",
       "checkbox-row",
+      "counter",
       "field-label",
       "flush-icon-button",
       "flush-icon-button-destructive",
@@ -3547,6 +3624,7 @@
       "button-neutral",
       "checkbox-control",
       "checkbox-row",
+      "counter",
       "flush-icon-button",
       "flush-icon-button-destructive",
       "flush-icon-button-neutral",
@@ -3657,6 +3735,7 @@
       "checkbox-control",
       "checkbox-group",
       "checkbox-row",
+      "counter",
       "field-label",
       "flush-icon-button",
       "flush-icon-button-destructive",
@@ -3716,6 +3795,15 @@
           "button",
           "button-destructive",
           "button-neutral"
+        ]
+      },
+      {
+        "values": [
+          "ghost",
+          "outline"
+        ],
+        "components": [
+          "counter"
         ]
       }
     ],
@@ -3834,6 +3922,18 @@
         ]
       }
     ],
+    "layout": [
+      {
+        "values": [
+          "fill",
+          "inline",
+          "stacked"
+        ],
+        "components": [
+          "button-group"
+        ]
+      }
+    ],
     "offset": [
       {
         "values": [
@@ -3947,15 +4047,6 @@
           "flush-icon-button-destructive",
           "flush-icon-button-neutral"
         ]
-      },
-      {
-        "values": [
-          "circular",
-          "linear"
-        ],
-        "components": [
-          "progress"
-        ]
       }
     ],
     "size": [
@@ -3974,6 +4065,7 @@
           "checkbox-control",
           "checkbox-group",
           "checkbox-row",
+          "counter",
           "dialog",
           "field-label",
           "flush-icon-button",
@@ -4005,7 +4097,6 @@
           "small"
         ],
         "components": [
-          "progress",
           "switch-control",
           "switch-row"
         ]
@@ -4036,16 +4127,6 @@
           "select",
           "text-field",
           "textarea"
-        ]
-      },
-      {
-        "values": [
-          "active",
-          "complete",
-          "error"
-        ],
-        "components": [
-          "progress"
         ]
       }
     ],
@@ -4142,15 +4223,6 @@
       },
       {
         "values": [
-          "determinate",
-          "indeterminate"
-        ],
-        "components": [
-          "progress"
-        ]
-      },
-      {
-        "values": [
           "dismissible",
           "select"
         ],
@@ -4230,17 +4302,6 @@
         ]
       }
     ],
-    "announce": [
-      {
-        "id": "progress",
-        "default": "milestones",
-        "values": [
-          "milestones",
-          "end",
-          "none"
-        ]
-      }
-    ],
     "appearance": [
       {
         "id": "button",
@@ -4267,6 +4328,14 @@
           "filled",
           "outline",
           "text"
+        ]
+      },
+      {
+        "id": "counter",
+        "default": "outline",
+        "values": [
+          "outline",
+          "ghost"
         ]
       },
       {
@@ -4408,6 +4477,11 @@
         "default": true
       }
     ],
+    "decrementLabel": [
+      {
+        "id": "counter"
+      }
+    ],
     "defaultChecked": [
       {
         "id": "checkbox-row",
@@ -4425,6 +4499,9 @@
         "id": "checkbox-group"
       },
       {
+        "id": "counter"
+      },
+      {
         "id": "password-field"
       },
       {
@@ -4438,12 +4515,6 @@
       },
       {
         "id": "text-field"
-      }
-    ],
-    "delay": [
-      {
-        "id": "progress",
-        "default": 400
       }
     ],
     "description": [
@@ -4495,6 +4566,14 @@
         "default": false
       },
       {
+        "id": "checkbox-row",
+        "default": false
+      },
+      {
+        "id": "counter",
+        "default": false
+      },
+      {
         "id": "flush-icon-button",
         "default": false
       },
@@ -4531,6 +4610,10 @@
         "default": false
       },
       {
+        "id": "radio-row",
+        "default": false
+      },
+      {
         "id": "segmented-control",
         "default": false
       },
@@ -4547,6 +4630,10 @@
         "default": false
       },
       {
+        "id": "switch-row",
+        "default": false
+      },
+      {
         "id": "tab",
         "default": false
       },
@@ -4556,6 +4643,10 @@
       },
       {
         "id": "text-field",
+        "default": false
+      },
+      {
+        "id": "textarea",
         "default": false
       }
     ],
@@ -4634,6 +4725,9 @@
       },
       {
         "id": "text-field"
+      },
+      {
+        "id": "textarea"
       }
     ],
     "href": [
@@ -4703,6 +4797,14 @@
       },
       {
         "id": "text-field"
+      },
+      {
+        "id": "textarea"
+      }
+    ],
+    "incrementLabel": [
+      {
+        "id": "counter"
       }
     ],
     "indeterminate": [
@@ -4865,9 +4967,16 @@
       {
         "id": "text-field",
         "default": false
+      },
+      {
+        "id": "textarea",
+        "default": false
       }
     ],
     "items": [
+      {
+        "id": "button-group"
+      },
       {
         "id": "checkbox-group"
       },
@@ -4904,6 +5013,9 @@
         "id": "checkbox-row"
       },
       {
+        "id": "counter"
+      },
+      {
         "id": "field-label"
       },
       {
@@ -4914,9 +5026,6 @@
       },
       {
         "id": "password-field"
-      },
-      {
-        "id": "progress"
       },
       {
         "id": "radio-group"
@@ -4951,6 +5060,9 @@
       },
       {
         "id": "text-field"
+      },
+      {
+        "id": "textarea"
       }
     ],
     "labelPosition": [
@@ -4960,6 +5072,17 @@
         "values": [
           "leading",
           "trailing"
+        ]
+      }
+    ],
+    "layout": [
+      {
+        "id": "button-group",
+        "default": "inline",
+        "values": [
+          "inline",
+          "stacked",
+          "fill"
         ]
       }
     ],
@@ -5000,8 +5123,7 @@
         "default": 99
       },
       {
-        "id": "progress",
-        "default": 100
+        "id": "counter"
       }
     ],
     "maxLength": [
@@ -5016,22 +5138,16 @@
     ],
     "message": [
       {
-        "id": "field-message"
+        "id": "counter"
       },
       {
-        "id": "progress"
+        "id": "field-message"
       }
     ],
     "min": [
       {
-        "id": "progress",
+        "id": "counter",
         "default": 0
-      }
-    ],
-    "minDisplay": [
-      {
-        "id": "progress",
-        "default": 500
       }
     ],
     "minRows": [
@@ -5042,6 +5158,9 @@
     "name": [
       {
         "id": "checkbox-group"
+      },
+      {
+        "id": "counter"
       },
       {
         "id": "icon",
@@ -5107,6 +5226,9 @@
       },
       {
         "id": "text-field"
+      },
+      {
+        "id": "textarea"
       }
     ],
     "offset": [
@@ -5127,6 +5249,9 @@
         "id": "checkbox-row"
       },
       {
+        "id": "counter"
+      },
+      {
         "id": "password-field"
       },
       {
@@ -5143,6 +5268,9 @@
       },
       {
         "id": "text-field"
+      },
+      {
+        "id": "textarea"
       }
     ],
     "onClick": [
@@ -5273,6 +5401,10 @@
         "default": false
       },
       {
+        "id": "radio-row",
+        "default": false
+      },
+      {
         "id": "select",
         "default": false
       },
@@ -5286,6 +5418,10 @@
       },
       {
         "id": "text-field",
+        "default": false
+      },
+      {
+        "id": "textarea",
         "default": false
       }
     ],
@@ -5312,6 +5448,10 @@
       },
       {
         "id": "text-field",
+        "default": false
+      },
+      {
+        "id": "textarea",
         "default": false
       }
     ],
@@ -5410,14 +5550,6 @@
           "square",
           "circular"
         ]
-      },
-      {
-        "id": "progress",
-        "default": "linear",
-        "values": [
-          "linear",
-          "circular"
-        ]
       }
     ],
     "showCheck": [
@@ -5432,7 +5564,17 @@
         "default": false
       }
     ],
+    "showLabel": [
+      {
+        "id": "counter",
+        "default": false
+      }
+    ],
     "showMessage": [
+      {
+        "id": "counter",
+        "default": false
+      },
       {
         "id": "password-field",
         "default": true
@@ -5457,12 +5599,6 @@
       },
       {
         "id": "switch-row",
-        "default": true
-      }
-    ],
-    "showValue": [
-      {
-        "id": "progress",
         "default": true
       }
     ],
@@ -5538,6 +5674,15 @@
       },
       {
         "id": "checkbox-row",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "id": "counter",
         "default": "medium",
         "values": [
           "small",
@@ -5661,14 +5806,6 @@
           "small",
           "medium",
           "large"
-        ]
-      },
-      {
-        "id": "progress",
-        "default": "medium",
-        "values": [
-          "small",
-          "medium"
         ]
       },
       {
@@ -5818,15 +5955,12 @@
           "warning",
           "success"
         ]
-      },
+      }
+    ],
+    "step": [
       {
-        "id": "progress",
-        "default": "active",
-        "values": [
-          "active",
-          "complete",
-          "error"
-        ]
+        "id": "counter",
+        "default": 1
       }
     ],
     "style": [
@@ -6171,13 +6305,13 @@
         "id": "checkbox-row"
       },
       {
+        "id": "counter"
+      },
+      {
         "id": "list-item"
       },
       {
         "id": "password-field"
-      },
-      {
-        "id": "progress"
       },
       {
         "id": "radio-group"
@@ -6213,11 +6347,6 @@
           "dark",
           "light"
         ]
-      }
-    ],
-    "valueText": [
-      {
-        "id": "progress"
       }
     ],
     "weight": [
@@ -6267,6 +6396,14 @@
         "switch-row"
       ],
       "detail": "no state set is shared by most of the group — checkbox-row [rest, hover, pressed, focus-visible, disabled, read-only, error]; radio-row [rest, hover, pressed, focus-visible, disabled, read-only]; switch-row [rest, hover, pressed, pending, focus-visible, disabled, read-only, error]"
+    },
+    {
+      "kind": "state set",
+      "subject": "role peers: *.Group",
+      "components": [
+        "button-group"
+      ],
+      "detail": "button-group differs from the group's common set [rest] — lacks rest"
     },
     {
       "kind": "state set",
@@ -6399,11 +6536,12 @@
         "button",
         "button-destructive",
         "button-neutral",
+        "counter",
         "icon-button",
         "icon-button-destructive",
         "icon-button-neutral"
       ],
-      "detail": "the appearance axis takes 2 value sets — [filled, ghost, outline] in icon-button, icon-button-destructive, icon-button-neutral; [filled, outline, text] in button, button-destructive, button-neutral"
+      "detail": "the appearance axis takes 3 value sets — [filled, ghost, outline] in icon-button, icon-button-destructive, icon-button-neutral; [filled, outline, text] in button, button-destructive, button-neutral; [ghost, outline] in counter"
     },
     {
       "kind": "axis values",
@@ -6447,10 +6585,9 @@
         "flush-icon-button-neutral",
         "icon-button",
         "icon-button-destructive",
-        "icon-button-neutral",
-        "progress"
+        "icon-button-neutral"
       ],
-      "detail": "the shape axis takes 3 value sets — [circular, square] in icon-button, icon-button-destructive, icon-button-neutral; [flush, round] in flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral; [circular, linear] in progress"
+      "detail": "the shape axis takes 2 value sets — [circular, square] in icon-button, icon-button-destructive, icon-button-neutral; [flush, round] in flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral"
     },
     {
       "kind": "axis values",
@@ -6464,6 +6601,7 @@
         "checkbox-control",
         "checkbox-group",
         "checkbox-row",
+        "counter",
         "dialog",
         "field-label",
         "flush-icon-button",
@@ -6476,7 +6614,6 @@
         "list",
         "list-item",
         "password-field",
-        "progress",
         "radio-control",
         "radio-group",
         "radio-row",
@@ -6492,20 +6629,7 @@
         "text-field",
         "textarea"
       ],
-      "detail": "the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab, tabs, tag, text-field, textarea; [medium, small] in progress, switch-control, switch-row; [large, medium, small, x-small] in spinner"
-    },
-    {
-      "kind": "axis values",
-      "subject": "axis status",
-      "components": [
-        "field-message",
-        "password-field",
-        "progress",
-        "select",
-        "text-field",
-        "textarea"
-      ],
-      "detail": "the status axis takes 2 value sets — [default, error, success, warning] in field-message, password-field, select, text-field, textarea; [active, complete, error] in progress"
+      "detail": "the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab, tabs, tag, text-field, textarea; [medium, small] in switch-control, switch-row; [large, medium, small, x-small] in spinner"
     },
     {
       "kind": "axis values",
@@ -6534,10 +6658,9 @@
         "badge",
         "list",
         "list-item",
-        "progress",
         "tag"
       ],
-      "detail": "the type axis takes 4 value sets — [icon, ordered, unordered] in list, list-item; [count, dot, status] in badge; [determinate, indeterminate] in progress; [dismissible, select] in tag"
+      "detail": "the type axis takes 3 value sets — [icon, ordered, unordered] in list, list-item; [count, dot, status] in badge; [dismissible, select] in tag"
     },
     {
       "kind": "axis values",
@@ -6550,11 +6673,155 @@
     },
     {
       "kind": "size order",
+      "subject": "_accordion-indicator",
+      "components": [
+        "_accordion-indicator"
+      ],
+      "detail": "_accordion-indicator declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "accordion",
+      "components": [
+        "accordion"
+      ],
+      "detail": "accordion declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "button",
+      "components": [
+        "button"
+      ],
+      "detail": "button declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "button-destructive",
+      "components": [
+        "button-destructive"
+      ],
+      "detail": "button-destructive declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "button-neutral",
+      "components": [
+        "button-neutral"
+      ],
+      "detail": "button-neutral declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "checkbox-control",
+      "components": [
+        "checkbox-control"
+      ],
+      "detail": "checkbox-control declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "checkbox-group",
+      "components": [
+        "checkbox-group"
+      ],
+      "detail": "checkbox-group declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "checkbox-row",
+      "components": [
+        "checkbox-row"
+      ],
+      "detail": "checkbox-row declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "counter",
+      "components": [
+        "counter"
+      ],
+      "detail": "counter declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
       "subject": "dialog",
       "components": [
         "dialog"
       ],
       "detail": "dialog declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "flush-icon-button",
+      "components": [
+        "flush-icon-button"
+      ],
+      "detail": "flush-icon-button declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "flush-icon-button-destructive",
+      "components": [
+        "flush-icon-button-destructive"
+      ],
+      "detail": "flush-icon-button-destructive declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "flush-icon-button-neutral",
+      "components": [
+        "flush-icon-button-neutral"
+      ],
+      "detail": "flush-icon-button-neutral declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "icon-button",
+      "components": [
+        "icon-button"
+      ],
+      "detail": "icon-button declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "icon-button-destructive",
+      "components": [
+        "icon-button-destructive"
+      ],
+      "detail": "icon-button-destructive declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "icon-button-neutral",
+      "components": [
+        "icon-button-neutral"
+      ],
+      "detail": "icon-button-neutral declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "link",
+      "components": [
+        "link"
+      ],
+      "detail": "link declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "list",
+      "components": [
+        "list"
+      ],
+      "detail": "list declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "list-item",
+      "components": [
+        "list-item"
+      ],
+      "detail": "list-item declares its sizes as [medium, small, large], not smallest first"
     },
     {
       "kind": "size order",
@@ -6566,11 +6833,43 @@
     },
     {
       "kind": "size order",
-      "subject": "progress",
+      "subject": "radio-control",
       "components": [
-        "progress"
+        "radio-control"
       ],
-      "detail": "progress declares its sizes as [medium, small], not smallest first"
+      "detail": "radio-control declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "radio-group",
+      "components": [
+        "radio-group"
+      ],
+      "detail": "radio-group declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "radio-row",
+      "components": [
+        "radio-row"
+      ],
+      "detail": "radio-row declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "segmented-control",
+      "components": [
+        "segmented-control"
+      ],
+      "detail": "segmented-control declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "segmented-control-segment",
+      "components": [
+        "segmented-control-segment"
+      ],
+      "detail": "segmented-control-segment declares its sizes as [medium, small, large], not smallest first"
     },
     {
       "kind": "size order",
@@ -6579,6 +6878,46 @@
         "select"
       ],
       "detail": "select declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "switch-control",
+      "components": [
+        "switch-control"
+      ],
+      "detail": "switch-control declares its sizes as [medium, small], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "switch-row",
+      "components": [
+        "switch-row"
+      ],
+      "detail": "switch-row declares its sizes as [medium, small], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "tab",
+      "components": [
+        "tab"
+      ],
+      "detail": "tab declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "tabs",
+      "components": [
+        "tabs"
+      ],
+      "detail": "tabs declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "tag",
+      "components": [
+        "tag"
+      ],
+      "detail": "tag declares its sizes as [medium, small, large], not smallest first"
     },
     {
       "kind": "size order",
@@ -6606,12 +6945,15 @@
     },
     {
       "kind": "prop default",
-      "subject": "prop max",
+      "subject": "prop showMessage",
       "components": [
-        "badge",
-        "progress"
+        "counter",
+        "password-field",
+        "select",
+        "text-field",
+        "textarea"
       ],
-      "detail": "max defaults differ over the same values — 100 in progress; 99 in badge"
+      "detail": "showMessage defaults differ over the same values — false in counter; true in password-field, select, text-field, textarea"
     },
     {
       "kind": "axis without prop",
@@ -6660,14 +7002,6 @@
         "password-field"
       ],
       "detail": "password-field has the variant axes style and status and no props of those names"
-    },
-    {
-      "kind": "axis without prop",
-      "subject": "progress",
-      "components": [
-        "progress"
-      ],
-      "detail": "progress has the variant axis type and no prop of that name"
     },
     {
       "kind": "axis without prop",

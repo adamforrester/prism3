@@ -6,7 +6,7 @@
  * never imports the definitions themselves (UI redesign S7, T4; the generator's header says why).
  */
 export const USED_BY = {
-  defs: 42,
+  defs: 44,
   radius: {
     rounded: {
       "radius.2xl": [
@@ -39,7 +39,8 @@ export const USED_BY = {
         "Select",
         "Badge",
         "SegmentedControl",
-        "PasswordField"
+        "PasswordField",
+        "Counter"
       ]
     },
     pill: {
@@ -73,7 +74,8 @@ export const USED_BY = {
         "Select",
         "Badge",
         "SegmentedControl",
-        "PasswordField"
+        "PasswordField",
+        "Counter"
       ]
     },
     boxed: {
@@ -108,7 +110,8 @@ export const USED_BY = {
       "radius.sm": [
         "Badge",
         "SegmentedControl",
-        "PasswordField"
+        "PasswordField",
+        "Counter"
       ]
     },
     hairline: {
@@ -145,7 +148,8 @@ export const USED_BY = {
       "radius.sm": [
         "Badge",
         "SegmentedControl",
-        "PasswordField"
+        "PasswordField",
+        "Counter"
       ]
     }
   },
@@ -162,7 +166,8 @@ export const USED_BY = {
       "Tab",
       "Accordion",
       "SegmentedControl",
-      "PasswordField"
+      "PasswordField",
+      "Counter"
     ],
     "size.md.height": [
       "FocusRing",
@@ -175,7 +180,8 @@ export const USED_BY = {
       "Tag",
       "Tab",
       "Divider",
-      "SegmentedControl"
+      "SegmentedControl",
+      "Counter"
     ],
     "size.sm.height": [
       "Button",
@@ -186,7 +192,8 @@ export const USED_BY = {
       "Switch.Row",
       "Tag",
       "Tab",
-      "SegmentedControl"
+      "SegmentedControl",
+      "Counter"
     ]
   },
   buttonSizes: {
