@@ -28,13 +28,15 @@
  *      groups within each root and names it in the title, grounds stay in their root, a rerun over the live
  *      run's tables rewrites old titles and reports the per-root tables as replaced and kept; an unbound swatch is a ⚠
  *      with its count; named values lead a ramp;
- *  10. a RERUN RE-FLOWS the generator's tables into a row, left to right, when one widens (owner decision 16), leaving a
- *      designer-moved table alone; a grid that drops its
+ *  10. GROUPS ON A RERUN (#2801): Semantic colors' inverse row, each inverse guide under its default by column, typed;
+ *      the group as wide as its columns read off its guides; a widened guide keeps its cell; a guide dragged out stays
+ *      where it was put; tables an earlier build drew loose join their groups where the rows started; a grid that drops its
  *      HUG column or row tracks, and a header that does not take its table's width, are named. Column widths (sections 2
  *      and 5) are read off the shim's own layout model — 7px a character, a HUG track as wide as its widest cell's
  *      content, 2px between tracks — never off the plugin's arithmetic;
  *  11. SUPERSEDED tables (owner decision, 2026-09-28): an unedited replaced or stale table is deleted, header and
- *      cells with it, and the row closes over it; one with a text cell retyped, one moved, one with no
+ *      cells with it, and its group's grid closes over it; one with a text cell retyped, one moved (dragged out of its
+ *      group, into a designer's frame, onto another page; a cell moved within its group is no move), one with no
  *      fingerprint and a duplicate of one are kept and reported apart; a frame the generator did not make is
  *      never touched, whatever its name. The edits are made to the shim's nodes here, never through the plugin;
  *  12. THE OWNER'S GRID MODEL (owner decisions, 2026-09-29): HUG tracks 2px apart, every cell FILL on both axes, the
@@ -44,13 +46,13 @@
  *      header component's 2,517px; a grid dragged wider keeps every cell as wide as its track, and the table and its
  *      header follow the grid. Whether the HUG tracks take up the extra width is NOT asserted: the typings define HUG
  *      as CSS `fit-content(100%)`, which does not grow past its content, so that is a live-check (docs/45 §7);
- *  13. the TABLES FILTER (#1778): one table drawn in place, the 42 others untouched and never stale; a filtered run
- *      moves only the tables after the drawn one, in its row, by exactly its change in width, widening or
- *      narrowing — it closes no gap, leaves a table a designer moved and a table with no position record alone, and
- *      writes no record for a table it does not move; any case, or a key; an unknown name reported with the first 8
+ *  13. the TABLES FILTER (#1778): one table drawn in place, the 56 others untouched and never stale; a filtered run
+ *      widens or narrows its group by exactly its table's change and moves nothing on the page; a guide dragged out
+ *      and a reordered guide stay as the designer left them; a first-time table joins the end of its group; any case,
+ *      or a key; an unknown name reported with the first 8
  *      titles, and not a pass; a renamed group's old table named as staying until an unfiltered run;
  *  14. YIELDING (#1778), with a counting `yieldTo`: a progress reading per table, a yield after every table, and at
- *      least 12 yields inside the 124-row Inverse table, never more than 10 rows apart;
+ *      least 12 yields inside the 55-row Interactive table, never more than 10 rows apart;
  *  15. ONE RUN AT A TIME (#1785), through the plugin's run guard (#1957, `run-guard.ts`): a run asked for while
  *      another is mid-yield is refused, and exactly one set of tables results. (`test-agent-link.ts` drives the same
  *      guard through `main.ts`'s two real entry points.)
@@ -67,23 +69,24 @@
  *  22. THE OWNER'S CELL STRUCTURE (the live run of 4faeb98a): the owner's spacing and radius cells, copied from a live
  *      measurement, and the cells the real builder makes, each drawing the bracket, the bar and the radius at their
  *      value; the bracket's right edge carried, moved (named static) or counted; a cell with no layer counted.
- *  23. ROWS BY CATEGORY (owner decision 16): literal positions for two categories; a width change moves its row's later
- *      tables, a height change moves the rows below; a new category starts a new row.
+ *  23. GROUPS (#2801): two groups stacked in the table's order, 320 apart; the measured layout (88 / 160 / 160 / 160,
+ *      80 under a Size=Large title with no description, a HUG grid 160 apart); guides in plan order; a width change widens
+ *      its group and moves nothing; a height change pushes the group below by exactly it; a new group 320 below.
  *  24. THE REVIEW OF f3bb76cd: a bracket with its parts named otherwise, and a file with no spacing set, counted; one
- *      verdict per specimen; a new table taller than its row pushing the row below down.
+ *      verdict per specimen; a new table taller than its group pushing the group below down.
  *  25. REM ON AND OFF (#2153): every dimension and font-variable table, planned and drawn, with REM on and with REM off
  *      (first drawn, and redrawn from on): its exact column list, a REM cell under every REM column, and no REM cell and
  *      no cell past the last column when REM is off. The column lists are literals, one per table and setting.
- *  26. THE BUILD STYLE GUIDES PAGE (UI redesign S11.2): the catalog the page is offered (`catalogFor`), its 22 titles typed
+ *  26. THE BUILD STYLE GUIDES PAGE (UI redesign S11.2): the catalog the page is offered (`catalogFor`), its 29 titles typed
  *      here; every variable listed under the table that drew it, read back off each drawn frame's own row record; the
  *      later-phase variables with no table; the text styles last; `isSetUp` needing both cell sets and both pages.
  *  27. A RUN TABLE BY TABLE: its list first, then each table drawing and done.
  *  28. ONE FAILED TABLE (owner decision P6): the host refusing the Accent table fails that table with its words, the run
- *      draws the other 21, the verdict is "⚠ 21 drawn, 1 failed", and a redraw by the table's key draws it alone.
+ *      draws the other 28, the verdict is "⚠ 28 drawn, 1 failed", and a redraw by the table's key draws it alone.
  *  29. CANCEL (owner decision P7): a stop read after table 3 ends the run there, deletes no superseded table (the control
  *      run to the end does), and the verdict says where it stopped; a stop after the last table is no stop.
  *  33. THE OWNER'S QA OF A REAL BRAND FILE (#2371): a mixed filtered run, tables narrowed or shortened in place and one
- *      created beside or below them, overlaps nothing and keeps the 160px gap; no font-size table for the text styles'
+ *      created in their group or a new group below them, overlaps nothing; no font-size table for the text styles'
  *      responsive collection (type-sets), listed under Text styles on the page, and an earlier run's one deleted; the raw
  *      font weights on Primitive tokens and the weight roles on Semantic tokens, read off the emission; no fill on a
  *      table's outer frame (section 32); a family with no Regular set in its role's face, or the host's first style
@@ -102,6 +105,13 @@
  *      own; the specimen a type=default card or fill swatch with the style applied by id; the phase boundary; the page's
  *      catalog; a rerun in place; a refused style counted. The emission's 14 effect and 2 gradient styles plus three
  *      foreign styles; every expected value typed here.
+ *  37. GROUPS (#2801, Q378): the engine table by type and tier, typed from the issue (another brand's accent ramp a
+ *      palette, a link family a semantic color, icon sizes Space & size, border widths and radii Borders); each page's
+ *      groups in order; a guide moved by hand into another group stays; a designer's note stays; a retitled group keeps
+ *      its title and a title Prism3 wrote is refreshed; an empty group kept by a filtered and a stopped run and removed by
+ *      a full one, a group holding only a note not empty; adoption of hand-made groups, one holding two groups' guides
+ *      included, and one emptied by hand never removed; an inverse family with no default at the end of the inverse row;
+ *      effect styles below the groups; a header set with no Size=Large.
  *
  * INDEPENDENCE (docs/34): expected values are literals written here. The ratios (19.42, 18.13, 21) and the
  * failing 3.27 (neutral/400 on white, computed by hand from the WCAG formula), 6.44 (foreground.brand on
@@ -189,7 +199,7 @@
  *     owner's grid model: nothing wraps.)
  *   - (#1778 and the 2026-09-29 owner decisions; docs/00-progress.md 2026-09-29) the filter ignored → "13: tables:
  *     ["Primary — nbds"] draws that one table" fails; the skipped tables treated as candidates → "13: the tables a
- *     filtered run skips are not stale…" fails; the per-row yield removed → "14: the 124-row Inverse table yields while
+ *     filtered run skips are not stale…" fails; the per-row yield removed → "14: the 55-row Interactive table yields while
  *     its rows are placed…" fails; the per-table yield removed → "14: the host gets control back after every table"
  *     fails; the header left at its component width → "2: the table and its header are as wide as its grid…" and "12:
  *     the table and its header hug the grid…" fail; a FIXED column track → "5: every column and row track of every
@@ -266,6 +276,23 @@
  *     fails. Both passed silently before. In `planVariableTables` both were already caught by name, also in the form that
  *     touches only the Token cell: "34: short: the space step prints 025 (space/025)", because `pds3/space/` is two
  *     segments deep.
+ *   - (#2801, each on a committed head, in a copy, the suite run on it) radii no longer Borders' in the engine table →
+ *     "37: the engine table groups by type and tier…"; the inverse not split per family → "3: color groups by family…
+ *     each inverse family its own table"; inverse guides put in the default row → "10: Semantic colors holds the
+ *     defaults in one row and each inverse guide under its counterpart…"; no adoption → "37: a hand-made group is
+ *     adopted…"; loose guides from before groups left loose → "10: tables an earlier build drew loose join their
+ *     groups…"; a dragged-out guide put back → "10: a guide a designer dragged out of its group stays…"; empty groups
+ *     never removed → "37: a full run removes a group it drew once it holds nothing…"; a filtered run removing them →
+ *     "37: a filtered run removes no group, an empty one included"; a note not counting → "37: a group left with only a
+ *     designer's note is not empty…"; a retitled group overwritten → "37: … a title they changed is kept"; no grid
+ *     compaction → "11: the group closes over the deleted table…"; groups 160 apart → "23: Dimensions then Fonts…";
+ *     no partial push-down → "23: a height change moves the group below…"; the push-down moving a group drawn in the
+ *     same run → "33: a mixed run whose group got shorter starts a new group…"; a grouped guide always read as moved →
+ *     "11: an unedited replaced table is deleted…"; ungrouped guides not below the groups → "37: Effect styles stands
+ *     alone below the last group…"; a Medium or described group title → "23: its title is a Size=Large header…"; a new
+ *     default ignoring its inverse's column → "37: a new default joins above its inverse…"; a hand-made group removed
+ *     when empty → "37: a hand-made group with no guides left is never removed"; 160 top padding → "23: a group is a
+ *     transparent vertical auto layout…".
  *
  * THE SHIM IGNORES A RESIZE THE HOST IGNORES: a FIXED text inside an instance keeps its main component's width under
  * `resize` (live, 2026-09-28). Before the shim modeled it, every width assertion passed over one-word-a-line text.
@@ -279,7 +306,8 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { ensureStyleGuideCells } from './src/style-guide-cells';
 import type { CellsApi } from './src/style-guide-cells';
-import { planStyleGuide, runStyleGuide, styleGuideSummary, contrastText, humanizeName, varKind, sizeByPadding, catalogFor, isSetUp } from './src/style-guide';
+import { STYLE_GUIDE_GROUPS, styleGuideGroupOf } from '@prism3/engine/style-guide-groups';
+import { planStyleGuide, runStyleGuide, removeRetiredTables, styleGuideSummary, contrastText, humanizeName, varKind, sizeByPadding, catalogFor, isSetUp } from './src/style-guide';
 import { createRunGuard, busyMessage } from './src/run-guard';
 import type { StyleGuideApi, SgCatalog, SgTable, TableOutcome, StyleGuideResult, StyleGuideRun, StyleGuideOptions, StyleGuideProgress } from './src/style-guide';
 import { parseDesignMd } from '@prism3/engine/design-md';
@@ -505,9 +533,10 @@ class N {
     this.lsh = v;
   }
   get gridColumnCount(): number { return this._cols; }
-  set gridColumnCount(n: number) { this._cols = n; this.gridColumnSizes = Array.from({ length: n }, () => ({ type: 'FLEX' })); }
+  // The host refuses to drop a track a child still occupies.
+  set gridColumnCount(n: number) { if (this.children.some((k) => (k.gridCol ?? -1) >= n)) throw new Error('cannot remove an occupied column'); this._cols = n; this.gridColumnSizes = Array.from({ length: n }, () => ({ type: 'FLEX' })); }
   get gridRowCount(): number { return this._rows; }
-  set gridRowCount(n: number) { this._rows = n; this.gridRowSizes = Array.from({ length: n }, () => ({ type: 'FLEX' })); }
+  set gridRowCount(n: number) { if (this.children.some((k) => (k.gridRow ?? -1) >= n)) throw new Error('cannot remove an occupied row'); this._rows = n; this.gridRowSizes = Array.from({ length: n }, () => ({ type: 'FLEX' })); }
   /** A grid's cells by column and by row — the shim's own index, so a track reads its cells without a scan of the
    *  whole grid (a 124-row table holds 1,750). Kept by `appendChildAt` and `detach`, the only ways a cell moves. */
   byCol = new Map<number, Set<N>>();
@@ -526,6 +555,13 @@ class N {
     this.children.push(c);
     epoch++;
   }
+  /** As the host's: at `i` among the children (an auto layout's order), taken from wherever it was (Q412 A). */
+  insertChild(i: number, c: N): void {
+    c.detach();
+    c.parent = this;
+    this.children.splice(Math.max(0, Math.min(i, this.children.length)), 0, c);
+    epoch++;
+  }
   appendChildAt(c: N, r: number, col: number): void {
     if (this.layoutMode !== 'GRID') throw new Error('appendChildAt on a non-grid');
     if (r >= this._rows || col >= this._cols) throw new Error(`grid cell ${r},${col} out of bounds`);
@@ -536,6 +572,23 @@ class N {
     if (!this.byRow.has(r)) this.byRow.set(r, new Set());
     this.byCol.get(col)!.add(c);
     this.byRow.get(r)!.add(c);
+  }
+  /** A grid child's cell, as the host reads it (#2801): the row and column it is anchored at. */
+  get gridRowAnchorIndex(): number { return this.gridRow ?? 0; }
+  get gridColumnAnchorIndex(): number { return this.gridCol ?? 0; }
+  /** Move a grid child to another cell, refused where the host refuses it: out of bounds or occupied. */
+  setGridChildPosition(r: number, col: number): void {
+    const p = this.parent;
+    if (!p || p.layoutMode !== 'GRID') throw new Error('setGridChildPosition outside a grid');
+    if (r >= p.gridRowCount || col >= p.gridColumnCount) throw new Error(`grid cell ${r},${col} out of bounds`);
+    if ([...(p.byRow.get(r) ?? [])].some((k) => k !== this && k.gridCol === col)) throw new Error(`grid cell ${r},${col} occupied`);
+    if (this.gridCol !== undefined) p.byCol.get(this.gridCol)?.delete(this);
+    if (this.gridRow !== undefined) p.byRow.get(this.gridRow)?.delete(this);
+    this.gridRow = r; this.gridCol = col;
+    if (!p.byCol.has(col)) p.byCol.set(col, new Set());
+    if (!p.byRow.has(r)) p.byRow.set(r, new Set());
+    p.byCol.get(col)!.add(this); p.byRow.get(r)!.add(this);
+    epoch++;
   }
   _removed = false;
   get removed(): boolean { return this._removed; }
@@ -806,12 +859,13 @@ const ownerRadiusMember = (): N => {
   return m;
 };
 
-/** The `_Section-header` set the page header reads: a Size=Medium member with Title/Description text. */
-const headerSet = (name = '_Section-header'): N => {
+/** The `_Section-header` set the page header reads: Size members with Title/Description text. Set up file builds XL,
+ *  Large, Medium and Small; a group's title takes Large (#2801). `sizes` drops one, as the owner's hand-made set has. */
+const headerSet = (name = '_Section-header', sizes: readonly string[] = ['XL', 'Large', 'Medium']): N => {
   const set = new N('COMPONENT_SET');
   set.name = name;
   set.componentProperties = { 'Description#1:0': { type: 'BOOLEAN', value: true } };
-  for (const size of ['XL', 'Medium']) {
+  for (const size of sizes) {
     const m = new N('COMPONENT');
     m.name = `Size=${size}`;
     // The owner's header component is page-wide: 2,517px, FIXED (live, 2026-09-29).
@@ -945,6 +999,9 @@ const GROW_DIMENSION = 2 * 44;
 /** An 80-step dimension table: 81 rows of 44px, no gaps since #2336, 3,564, and the wrapper's 40px between its header
  *  (0px tall in the shim) and its grid: 3,604px. */
 const RAMP_H = 81 * 44 + 40;
+/** The prism3 emission's inverse families, in file order: one table each since #2801 (the owner's change of 2026-10-16),
+ *  where they were one Inverse table. */
+const SEM_INVERSE = ['Inverse background', 'Inverse foreground', 'Inverse interactive', 'Inverse disabled', 'Inverse field', 'Inverse text', 'Inverse icon', 'Inverse border'];
 const PRIM = '↳ Primitive tokens';
 const SEM = '↳ Semantic tokens';
 const FC = '↳ File Components';
@@ -1066,6 +1123,20 @@ const fullFile = async (variables = prism3Variables()): Promise<Shim & { fc: N; 
 
 const setsNamed = (pages: N[], name: string): N[] => pages.flatMap((p) => p.findAllWithCriteria({ types: ['COMPONENT_SET'] })).filter((n) => n.name.toLowerCase() === name.toLowerCase());
 const tablesOn = (p: N): N[] => p.findAll((n) => n.type === 'FRAME' && !!n.pluginData['prism3-style-guide']);
+/** The frames directly on a page: the groups and the loose guides (#2801). Overlap is judged here: inside a group, the
+ *  group's own layout places each guide. */
+const pageFrames = (p: N): N[] => p.children.filter((n) => n.type === 'FRAME');
+/** Every pair of a page's frames whose boxes intersect, read off the drawn frames. */
+const pageOverlaps = (p: N): string[] => {
+  const b = pageFrames(p).map((n) => ({ n: n.name.replace(/^Style guides? — /, ''), x: Number(n.x), y: Number(n.y), w: n.width, h: n.height }));
+  return b.flatMap((a, i) => b.slice(i + 1).filter((c) => a.x < c.x + c.w && c.x < a.x + a.w && a.y < c.y + c.h && c.y < a.y + a.h)
+    .map((c) => `${a.n} ${a.x},${a.y} ${a.w}×${a.h} × ${c.n} ${c.x},${c.y} ${c.w}×${c.h}`));
+};
+/** A group Prism3 drew (#2801), by its title. */
+const groupFrame = (p: N, title: string): N | undefined => p.children.find((n) => n.name === `Style guides — ${title}`);
+/** A group's guides grid, and a guide's cell in it as `row,col`. */
+const guidesOf = (g: N | undefined): N | undefined => g?.children.find((c) => c.pluginData['prism3-style-guide-part'] === 'guides');
+const cellOf = (guide: N | undefined): string => (guide ? `${guide.gridRow},${guide.gridCol}` : 'none');
 const tableFrame = (p: N, title: string): N | undefined => tablesOn(p).find((n) => n.name === `Style guide — ${title}`);
 /** A table's grid. A missing table or grid is a named failure and an empty frame, never a throw (#2153): a fault that
  *  loses a table must not stop the suite before the checks after it report. */
@@ -1201,7 +1272,7 @@ const main = async (): Promise<void> => {
     // A fill is the swatch itself, filling its cell (#2331), so the cell IS the owner's layerless instance.
     const bgSw = bgG ? cellAt(bgG, rowOf(bgG, 'primary'), 1) : undefined;
     ok(bgSw?.mainComponent?.name === 'type=Default' && boundId(bgSw?.fills) === vars.find((v) => v.name === 'pds3/color/background/primary')!.id, "2: a type=default swatch with no layers binds the instance's own fill");
-    ok(run.unbound === 0 && styleGuideSummary(run).headline === '✓ style guide: 11 tables', '2: nothing unbound — headline "✓ style guide: 11 tables"');
+    ok(run.unbound === 0 && styleGuideSummary(run).headline === '✓ style guide: 18 tables', '2: nothing unbound — headline "✓ style guide: 18 tables"');
     // The owner's cells are a fixed 120px and clip; drawn, each hugs its words and no column cuts one off.
     const off = g ? clipped(g) : ['no grid'];
     ok(off.length === 0, `2: no text in the owner's cells is wider than its column (${off.slice(0, 3).join('; ')})`);
@@ -1227,7 +1298,7 @@ const main = async (): Promise<void> => {
   const byTitle = (kind: string, title: string): SgTable | undefined => plan.tables.find((t) => t.kind === kind && t.title === title);
   {
     const sem = plan.tables.filter((t) => t.kind === 'semantic');
-    ok(JSON.stringify(sem.map((t) => t.title)) === JSON.stringify(['Background', 'Foreground', 'Text', 'Icon', 'Interactive', 'Disabled', 'Border', 'Scrim', 'Veil', 'Field', 'Inverse']), '3: color groups by family, in file order');
+    ok(JSON.stringify(sem.map((t) => t.title)) === JSON.stringify(['Background', 'Foreground', 'Text', 'Icon', 'Interactive', 'Disabled', 'Border', 'Scrim', 'Veil', 'Field', ...SEM_INVERSE]), '3: color groups by family, in file order, each inverse family its own table (#2801)');
     ok(sem.every((t) => t.page === SEM), '3: semantic tables go on ↳ Semantic tokens');
     const prim = plan.tables.filter((t) => t.kind === 'primitive');
     ok(JSON.stringify(prim.map((t) => t.title)) === JSON.stringify(['Core — base', 'Primary', 'Neutral', 'Accent', 'Success', 'Warning', 'Info', 'Danger', 'Black alpha', 'White alpha', 'Legacy']), '3: primitive tables per palette');
@@ -1271,7 +1342,7 @@ const main = async (): Promise<void> => {
   const idOf = (name: string): string => f.vars.find((v) => v.name === name)!.id;
   const first = await draw(f.api, contract);
   {
-    ok(tablesOn(f.sem).length === 11 && tablesOn(f.prim).length === 11, '5: 11 semantic and 11 primitive tables');
+    ok(tablesOn(f.sem).length === 18 && tablesOn(f.prim).length === 11, '5: 18 semantic and 11 primitive tables');
     ok(first.tables.every((t) => t.status === 'created'), '5: every table created on a first run');
     const text = tableFrame(f.sem, 'Text')!;
     const header = text.children[0];
@@ -1283,7 +1354,7 @@ const main = async (): Promise<void> => {
     // track on both axes, every text hugs its words on one line and nothing truncates.
     const grids = [...tablesOn(f.sem), ...tablesOn(f.prim)].map(gridOf);
     const notHug = grids.flatMap((x) => [...x.gridColumnSizes, ...x.gridRowSizes].filter((s) => s.type !== 'HUG').map((s) => `${x.parent?.name}: ${s.type}`));
-    ok(grids.length === 22 && notHug.length === 0, `5: every column and row track of every table is HUG (${notHug.slice(0, 3).join('; ')})`);
+    ok(grids.length === 29 && notHug.length === 0, `5: every column and row track of every table is HUG (${notHug.slice(0, 3).join('; ')})`);
     // A palette row's swatch sits in the grid itself (decision 13), so the text cells are the instances of any other set.
     const isSwatch = (k: N): boolean => k.mainComponent?.parent?.name === '_style-guide-swatches';
     const textCells = grids.flatMap((x) => x.children.filter((k) => k.type === 'INSTANCE' && !isSwatch(k)));
@@ -1318,9 +1389,9 @@ const main = async (): Promise<void> => {
     ok(textIn(cellAt(g, r, 3)) === '19.42:1 — clears the 7:1 floor\non background/primary', '5: the contrast cell reads the ratio, the floor and the ground');
     ok(textIn(cellAt(g, r, 13)) === f.vars.find((v) => v.name === 'pds3/color/text/primary')!.description, '5: the description cell');
 
-    const inv = tableFrame(f.sem, 'Inverse')!;
+    const inv = tableFrame(f.sem, 'Inverse text')!;
     const ig = gridOf(inv);
-    const ir = rowOf(ig, 'text/primary');
+    const ir = rowOf(ig, 'primary');
     ok(ir > 0 && [1, 4, 7, 10].every((c) => boundId(cellAt(ig, ir, c)?.fills) === idOf('pds3/color/inverse/background/primary')), '5: inverse/text/primary is drawn on inverse/background/primary');
     const icon = gridOf(tableFrame(f.sem, 'Icon')!);
     ok(boundId(cellAt(icon, rowOf(icon, 'on-brand'), 1)?.fills) === idOf('pds3/color/foreground/brand'), '5: icon/on-brand is drawn on foreground/brand');
@@ -1396,7 +1467,7 @@ const main = async (): Promise<void> => {
     ok(JSON.stringify(neutral.children.filter((k) => k.gridCol === 0 && k.gridRow! > 0).sort((a, b) => a.gridRow! - b.gridRow!).map(textIn).slice(0, 4)) === JSON.stringify(['pds3/core/palette/neutral/025', 'pds3/core/palette/neutral/050', 'pds3/core/palette/neutral/100', 'pds3/core/palette/neutral/150']),
       '5: a palette table leads with each step\'s full path, in ramp order: pds3/core/palette/neutral/025, 050, 100, 150 … (#2372)');
     const sum = styleGuideSummary(first);
-    ok(sum.ok && sum.headline === '✓ style guide: 22 tables' && sum.headline.length <= 24, '5: headline "✓ style guide: 22 tables"');
+    ok(sum.ok && sum.headline === '✓ style guide: 29 tables' && sum.headline.length <= 24, '5: headline "✓ style guide: 29 tables"');
   }
 
   console.log('6a. a deleted table is not read after it is removed (#1795)');
@@ -1421,11 +1492,7 @@ const main = async (): Promise<void> => {
     // the shim does the same. A FULL run (no filter) whose two tables are superseded must delete both, re-flow and
     // report: on the owner's file each run deleted one, then threw reading the next frame the loop had gathered, a
     // sublayer of the deleted table's header ("in getPluginData: … instance sublayer … does not exist").
-    const overlapsOn = (p: N): string[] => {
-      const b = tablesOn(p).map((n) => ({ n: n.name.replace(/^Style guide — /, ''), x: Number(n.x), y: Number(n.y), w: n.width, h: n.height }));
-      return b.flatMap((a, i) => b.slice(i + 1).filter((c) => a.x < c.x + c.w && c.x < a.x + a.w && a.y < c.y + c.h && c.y < a.y + a.h)
-        .map((c) => `${a.n} × ${c.n}`));
-    };
+    const overlapsOn = pageOverlaps;
     const regroup = (vars: ShimVar[]): void => {
       for (const v of vars) { if (/^density\//.test(v.name)) v.name = v.name.replace(/^density\//, 'dense/'); if (/^metrics\/step\//.test(v.name)) v.name = v.name.replace('/step/', '/rung/'); }
     };
@@ -1475,7 +1542,7 @@ const main = async (): Promise<void> => {
     f.vars.push({ id: 'VariableID:color:new', name: 'pds3/color/text/quaternary', variableCollectionId: 'VariableCollectionId:color', resolvedType: 'COLOR', description: 'New', valuesByMode: { 'color:0': { r: 0, g: 0, b: 0, a: 1 }, 'color:1': { r: 1, g: 1, b: 1, a: 1 }, 'color:2': { r: 0, g: 0, b: 0, a: 1 }, 'color:3': { r: 1, g: 1, b: 1, a: 1 } } });
     for (let i = f.vars.length - 1; i >= 0; i--) if (f.vars[i].name.startsWith('pds3/color/scrim/')) f.vars.splice(i, 1);
     const again = await draw(f.api, contract);
-    ok(tablesOn(f.sem).length === 10, '6: rerun: 10 tables on the semantic page — none duplicated, the emptied Scrim deleted');
+    ok(tablesOn(f.sem).length === 17, '6: rerun: 17 tables on the semantic page — none duplicated, the emptied Scrim deleted');
     ok(tableFrame(f.sem, 'Text')?.id === wrapId, '6: the Text table is updated in place');
     ok(tableFrame(f.sem, 'Text')!.children.filter((c) => c.name === 'Table').length === 1 && tableFrame(f.sem, 'Text')!.children.filter((c) => c.mainComponent).length === 1, '6: one grid and one header after the rerun');
     const t = again.tables.find((x) => x.title === 'Text') as Extract<TableOutcome, { status: 'updated' }>;
@@ -1499,21 +1566,21 @@ const main = async (): Promise<void> => {
     const s = makeShim([prim, fc], c2, v2);
     await ensureStyleGuideCells(s.api, fc);
     const r = await draw(s.api, contract);
-    ok(r.tables.filter((t) => t.status === 'skipped' && t.reason === 'no-page').length === 11, '7: no Semantic tokens page — 11 tables skipped');
+    ok(r.tables.filter((t) => t.status === 'skipped' && t.reason === 'no-page').length === 18, '7: no Semantic tokens page — 18 tables skipped');
     ok(!s.pages.some((p) => p.name === SEM), '7: the missing page is not created');
     ok(r.tables.filter((t) => t.status === 'created').length === 11, '7: the primitive tables are still drawn');
-    ok(styleGuideSummary(r).summary.includes('11 tables skipped — this file has no Semantic tokens page'), '7: the skip is named in the summary');
+    ok(styleGuideSummary(r).summary.includes('18 tables skipped — this file has no Semantic tokens page'), '7: the skip is named in the summary');
     const partial = styleGuideSummary(r);
-    ok(!partial.ok && partial.headline === '⚠ 11 drawn, 11 skipped', `7: a partial run is not a pass — headline "${partial.headline}"`);
-    // #2177: the Activity drawer's lines are the summary's items, the created tables and the skip, each in the summary's
-    // words, and joined by `. ` they are the summary, byte for byte.
-    ok(partial.lines.length === 2 && partial.lines[0].startsWith('11 tables created (') && partial.lines[1] === '11 tables skipped — this file has no Semantic tokens page, and Set up file adds it'
-      && partial.summary === `${partial.lines[0]}. ${partial.lines[1]}`,
-      `7 #2177: the summary's two items are its two lines (${JSON.stringify(partial.lines)})`);
+    ok(!partial.ok && partial.headline === '⚠ 11 drawn, 18 skipped', `7: a partial run is not a pass — headline "${partial.headline}"`);
+    // #2177: the Activity drawer's lines are the summary's items, the created tables, the skip and the group drawn (#2801),
+    // each in the summary's words, and joined by `. ` they are the summary, byte for byte.
+    ok(partial.lines.length === 3 && partial.lines[0].startsWith('11 tables created (') && partial.lines[1] === '18 tables skipped — this file has no Semantic tokens page, and Set up file adds it'
+      && partial.lines[2] === '1 group drawn: Palettes' && partial.summary === partial.lines.join('. '),
+      `7 #2177: the summary's three items are its three lines (${JSON.stringify(partial.lines)})`);
 
     const bare = makeShim([page(PRIM), page(SEM)], c2, v2);
     const r2 = await draw(bare.api, contract);
-    ok(r2.tables.length === 22 && r2.tables.every((t) => t.status === 'skipped' && t.reason === 'no-cells'), '7: no cell sets — every table skipped');
+    ok(r2.tables.length === 29 && r2.tables.every((t) => t.status === 'skipped' && t.reason === 'no-cells'), '7: no cell sets — every table skipped');
     const s2 = styleGuideSummary(r2);
     ok(!s2.ok && s2.headline === '✗ style guide skipped' && s2.summary.includes('Set up file adds them'), '7: the verdict says Set up file adds the cells');
 
@@ -1589,7 +1656,7 @@ const main = async (): Promise<void> => {
   {
     const two = twoRootVariables();
     const p2 = planStyleGuide({ collections: two.cols, variables: two.vars }, contract);
-    const fams = ['Background', 'Foreground', 'Text', 'Icon', 'Interactive', 'Disabled', 'Border', 'Scrim', 'Veil', 'Field', 'Inverse'];
+    const fams = ['Background', 'Foreground', 'Text', 'Icon', 'Interactive', 'Disabled', 'Border', 'Scrim', 'Veil', 'Field', ...SEM_INVERSE];
     ok(JSON.stringify(p2.tables.filter((t) => t.kind === 'semantic').map((t) => t.title)) === JSON.stringify([...fams.map((x) => `${x} — nbds`), ...fams.map((x) => `${x} — pds3`)]), '9: a two-root color collection groups by family within each root, the root named in the title');
     const pal = ['Primary', 'Neutral', 'Accent', 'Success', 'Warning', 'Info', 'Danger', 'Black alpha', 'White alpha'];
     ok(JSON.stringify(p2.tables.filter((t) => t.kind === 'primitive').map((t) => t.title)) === JSON.stringify(['Core — nbds base', ...pal.map((x) => `${x} — nbds`), 'Core — pds3 base', ...pal.map((x) => `${x} — pds3`), 'Legacy']), '9: the two Primary palettes are told apart by their root; a one-root collection names none');
@@ -1602,10 +1669,10 @@ const main = async (): Promise<void> => {
     const f9 = await fullFile(two);
     const id9 = (name: string): string => f9.vars.find((v) => v.name === name)!.id;
     const r9 = await draw(f9.api, contract);
-    ok(tablesOn(f9.sem).length === 22 && tablesOn(f9.prim).length === 21, '9: 22 semantic and 21 primitive tables');
+    ok(tablesOn(f9.sem).length === 36 && tablesOn(f9.prim).length === 21, '9: 36 semantic and 21 primitive tables');
     const ground = (root: string): string | undefined => { const g = gridOf(tableFrame(f9.sem, `Text — ${root}`)!); return boundId(cellAt(g, rowOf(g, 'primary'), 1)?.fills); };
     ok(ground('nbds') === id9('nbds/color/background/primary') && ground('pds3') === id9('pds3/color/background/primary'), "9: each root's text is drawn on its own root's background");
-    ok(styleGuideSummary(r9).headline === '✓ style guide: 43 tables', `9: headline "✓ style guide: 43 tables" (got "${styleGuideSummary(r9).headline}")`);
+    ok(styleGuideSummary(r9).headline === '✓ style guide: 57 tables', `9: headline "✓ style guide: 57 tables" (got "${styleGuideSummary(r9).headline}")`);
 
     // A RERUN over the live run's tables: one per root for a semantic collection, keyed at the root, and primitive
     // tables titled without their root. Planted as that build left them.
@@ -1618,7 +1685,7 @@ const main = async (): Promise<void> => {
     const nTitle = neu.children[0].findOne((k) => k.name === 'Title')!;
     nTitle.characters = 'Grays';
     const again = await draw(f9.api, contract);
-    ok(tablesOn(f9.sem).length === 23 && tablesOn(f9.prim).length === 21 && again.tables.every((t) => t.status === 'updated'), '9: rerun: every table updated in place, no duplicates');
+    ok(tablesOn(f9.sem).length === 37 && tablesOn(f9.prim).length === 21 && again.tables.every((t) => t.status === 'updated'), '9: rerun: every table updated in place, no duplicates');
     ok(JSON.stringify(again.replaced) === JSON.stringify(['Style guide — Nbds']) && again.stale.length === 0, '9: the per-root table is reported as replaced, not stale');
     ok(old.parent === f9.sem && JSON.stringify(again.kept) === JSON.stringify([{ name: 'Style guide — Nbds', reason: 'unrecorded' }]), '9: the per-root table has no fingerprint, so it is left in place');
     ok(styleGuideSummary(again).summary.includes('1 table the generator no longer draws was left in place — drawn before edits were tracked, so the generator never deletes it; delete it by hand if no longer needed: Style guide — Nbds'), '9: the summary names the kept table and why it is kept');
@@ -1647,37 +1714,53 @@ const main = async (): Promise<void> => {
     ok(JSON.stringify(planStyleGuide(named, contract).tables.find((t) => t.title === 'Legacy')!.rows.map((r) => r.token)) === JSON.stringify(['white', 'black', '5', '50', '100', '900']), '9: named values lead, in file order, then steps ascending');
   }
 
-  console.log('10. a rerun re-flows the generator\'s tables into a row (owner decision 16)');
+  console.log('10. groups on a rerun (#2801): column-aligned inverse row, a widened guide, a guide dragged out, tables from before groups');
   {
     const r = await fullFile();
     await draw(r.api, contract, { collections: ['color'] });
-    const order = (): N[] => r.sem.children.filter((n) => !!n.pluginData['prism3-style-guide']).sort((a, b) => a.x - b.x);
-    const gaps = (ns: N[]): number[] => ns.slice(1).map((n, i) => n.x - (ns[i].x + ns[i].width));
-    ok(order().length === 11 && gaps(order()).every((d) => d === 160) && order().every((n) => n.y === order()[0].y),
-      `10: a first run lays its tables out left to right, top-aligned, 160px apart (${gaps(order()).join(', ')}; y ${[...new Set(order().map((n) => n.y))].join(', ')})`);
-    const xs = order().slice(0, 3).map((n) => `${n.name.replace('Style guide — ', '')} ${n.x}`);
-    ok(JSON.stringify(xs) === JSON.stringify(XS_THREE), `10: the first three tables sit at literal x positions (${xs.join(', ')})`);
-    const text = tableFrame(r.sem, 'Text')!, icon = tableFrame(r.sem, 'Icon')!, border = tableFrame(r.sem, 'Border')!;
-    border.y += 5000;
-    const [bx, by, iconX, iconY, textW] = [border.x, border.y, icon.x, icon.y, text.width];
+    const sc = groupFrame(r.sem, 'Semantic colors')!;
+    const at = (title: string): string => cellOf(tableFrame(r.sem, title));
+    // THE INVERSE ROW (the owner's change on #2801): each inverse guide directly under the default-surface guide it
+    // re-states, by column. Scrim and Veil have no inverse, so their cells below stay empty; typed out here.
+    const want = { Background: '0,0', Foreground: '0,1', Text: '0,2', Icon: '0,3', Interactive: '0,4', Disabled: '0,5', Border: '0,6', Scrim: '0,7', Veil: '0,8', Field: '0,9',
+      'Inverse background': '1,0', 'Inverse foreground': '1,1', 'Inverse text': '1,2', 'Inverse icon': '1,3', 'Inverse interactive': '1,4', 'Inverse disabled': '1,5', 'Inverse border': '1,6', 'Inverse field': '1,9' };
+    const got = Object.keys(want).map((t) => `${t} ${at(t)}`);
+    ok(!!sc && pageFrames(r.sem).length === 1 && JSON.stringify(got) === JSON.stringify(Object.entries(want).map(([t, c]) => `${t} ${c}`))
+      && guidesOf(sc)!.gridRowCount === 2 && guidesOf(sc)!.gridColumnCount === 10,
+      `10: Semantic colors holds the defaults in one row and each inverse guide under its counterpart, in a 2 × 10 grid (${got.filter((g, i) => g !== `${Object.keys(want)[i]} ${Object.values(want)[i]}`).join(', ') || 'as typed'})`);
+    // THE GROUP'S WIDTH, read off the guides: its padding, each column as wide as its widest guide, 160 between.
+    const colW = (g: N): number[] => { const kids = guidesOf(g)!.children; return Array.from({ length: guidesOf(g)!.gridColumnCount }, (_, c) => Math.max(0, ...kids.filter((k) => k.gridCol === c).map((k) => k.width))); };
+    const fromGuides = (g: N): number => 320 + colW(g).reduce((x, y) => x + y, 0) + 160 * (colW(g).length - 1);
+    ok(sc.width === fromGuides(sc), `10: the group is as wide as its columns and gaps, read off its guides (${sc.width} vs ${fromGuides(sc)})`);
+    const text = tableFrame(r.sem, 'Text')!, border = tableFrame(r.sem, 'Border')!;
+    const textW = text.width;
     const grow = (n: number, tag: string, description: string): void => { for (let i = 0; i < n; i++) r.vars.push({ id: `VariableID:color:${tag}${i}`, name: `pds3/color/text/${tag}-${i}`, variableCollectionId: 'VariableCollectionId:color', resolvedType: 'COLOR', description, valuesByMode: { 'color:0': { r: 0, g: 0, b: 0, a: 1 }, 'color:1': { r: 1, g: 1, b: 1, a: 1 }, 'color:2': { r: 0, g: 0, b: 0, a: 1 }, 'color:3': { r: 1, g: 1, b: 1, a: 1 } } }); };
+    // A DESIGNER DRAGS Border out of the group, 5,000px below it: it stays where they put it, every run (Q5 A).
+    r.sem.appendChild(border);
+    border.x = 400; border.y = sc.y + sc.height + 5000;
+    const [bx, by] = [border.x, border.y];
     // A new row whose description is 120 characters, 840px at the shim's 7px: the description column widens to
-    // 840 + 16 + 16 = 872, and so does the table.
+    // 840 + 16 + 16 = 872, and so does the table, and its column, and the group with it.
     grow(1, 'wide', 'W'.repeat(120));
     await draw(r.api, contract, { collections: ['color'] });
-    const widened = text.width - textW;
-    ok(widened === WIDEN_TEXT && icon.x - iconX === widened && icon.y === iconY, `10: a table that widens by ${widened}px pushes the next table right by exactly that, its y unchanged (Icon +${icon.x - iconX}, y ${icon.y - iconY})`);
-    ok(border.x === bx && border.y === by, '10: a table a designer moved stays where they put it');
-    ok(gaps(order().filter((n) => n !== border)).every((d) => d === 160), `10: the rest stay 160px apart (${gaps(order().filter((n) => n !== border)).join(', ')})`);
-    // Tables drawn before the position was recorded: re-flowed while they keep the row's y.
-    for (const n of order()) delete n.pluginData['prism3-style-guide-at'];
-    const field = tableFrame(r.sem, 'Field')!;
-    field.y += 2000;
-    const [fx, fy, iconX2] = [field.x, field.y, icon.x];
-    grow(1, 'wider', 'W'.repeat(130));
-    await draw(r.api, contract, { collections: ['color'] });
-    ok(icon.x - iconX2 === 70, `10: tables from before the position record are re-flowed too: Icon +70, ten more characters in Text's description column (got +${icon.x - iconX2})`);
-    ok(field.x === fx && field.y === fy, "10: a table from before the record, off the row's y, is taken as moved and left alone");
+    ok(text.width - textW === WIDEN_TEXT && cellOf(text) === '0,2' && sc.width === fromGuides(sc), `10: a guide that widens by ${WIDEN_TEXT}px keeps its cell, and the group takes its new width (Text +${text.width - textW}, ${cellOf(text)}; group ${sc.width} vs ${fromGuides(sc)})`);
+    ok(border.parent === r.sem && border.x === bx && border.y === by && border.pluginData['prism3-style-guide-in-group'] === sc.id, '10: a guide a designer dragged out of its group stays where they put it, and is not put back');
+    // The grid closed over Border's empty cell: Inverse border keeps column 6, now alone in it, and nothing moved.
+    ok(at('Inverse border') === '1,6' && at('Scrim') === '0,7' && guidesOf(sc)!.gridColumnCount === 10, `10: the grid keeps every column that still holds a guide (Inverse border ${at('Inverse border')}, Scrim ${at('Scrim')})`);
+    // TABLES FROM BEFORE GROUPS: an earlier build drew every table loose on the page, in category rows, with no group
+    // record. The next run puts each in its group, and the groups stack from where those rows started.
+    const old = await fullFile();
+    await draw(old.api, contract, { collections: ['color', 'core'] });
+    for (const p of [old.prim, old.sem]) {
+      const guides = tablesOn(p);
+      for (const [i, g] of guides.entries()) { p.appendChild(g); g.x = 1000 + i * 1200; g.y = 500; delete g.pluginData['prism3-style-guide-in-group']; }
+      for (const g of pageFrames(p).filter((n) => !n.pluginData['prism3-style-guide'])) g.remove();
+    }
+    const mig = await draw(old.api, contract, { collections: ['color', 'core'] });
+    const semG = groupFrame(old.sem, 'Semantic colors'), primG = groupFrame(old.prim, 'Palettes');
+    ok(!!semG && !!primG && pageFrames(old.sem).length === 1 && pageFrames(old.prim).length === 1 && tablesOn(old.sem).every((g) => g.parent === guidesOf(semG))
+      && semG.x === 1000 && semG.y === 500 && primG.x === 1000 && primG.y === 500 && cellOf(tableFrame(old.sem, 'Inverse text')) === '1,2' && mig.tables.every((t) => t.status === 'updated'),
+      `10: tables an earlier build drew loose join their groups, updated in place, and the groups start where the rows did (${semG?.x},${semG?.y}; ${primG?.x},${primG?.y}; ${pageFrames(old.sem).length} frames on the page; Inverse text ${cellOf(tableFrame(old.sem, 'Inverse text'))}; ${mig.tables.filter((t) => t.status !== 'updated').map((t) => t.title).join(', ')}; ${tablesOn(old.sem).filter((g) => g.parent !== guidesOf(semG)).length} outside)`);
 
     // A host that does not keep the grid's HUG tracks is named, not drawn silently wrong.
     const q = await fullFile();
@@ -1736,14 +1819,14 @@ const main = async (): Promise<void> => {
     const keptAs = (r: StyleGuideResult, reason: string): boolean => r.deleted.length === 0 && JSON.stringify(r.kept) === JSON.stringify([{ name: LEGACY, reason }]);
     const summaryOf = (r: StyleGuideResult): string => styleGuideSummary(r).summary;
     /** A file with the Legacy table drawn, `edit` applied to it by hand, then the ramp split so the table is replaced. */
-    const afterEdit = async (edit: (t: N, sh: Shim & { prim: N }) => void): Promise<{ r: StyleGuideResult; t: N; sh: Shim & { prim: N }; at: { x: number; y: number } }> => {
+    const afterEdit = async (edit: (t: N, sh: Shim & { prim: N }) => void): Promise<{ r: StyleGuideResult; t: N; sh: Shim & { prim: N }; at: { x: number; y: number; cell: string } }> => {
       const sh = await fullFile();
       await draw(sh.api, contract, LEG);
       const t = tableFrame(sh.prim, 'Legacy')!;
       edit(t, sh);
       splitLegacy(sh);
       // Where the table stood, read before the run that may delete it: a removed node cannot be read (#1795).
-      const at = { x: t.x, y: t.y };
+      const at = { x: t.x, y: t.y, cell: cellOf(t) };
       return { r: await draw(sh.api, contract, LEG), t, sh, at };
     };
     const valueCell = (t: N): N => cellAt(gridOf(t), 1, 2)!;
@@ -1759,9 +1842,12 @@ const main = async (): Promise<void> => {
     ok(JSON.stringify(a.r.replaced) === JSON.stringify([LEGACY]) && JSON.stringify(a.r.deleted) === JSON.stringify([LEGACY]) && legA.removed
       && JSON.stringify(names(a.sh.prim)) === JSON.stringify(['Style guide — Dark', 'Style guide — Light']), `11: an unedited replaced table is deleted: Legacy, now drawn as Dark and Light (${names(a.sh.prim).join(', ')})`);
     ok(a.sh.prim.findAll((k) => k.pluginData['prism3-style-guide-part'] === 'header').length === 2, "11: the deleted table's header and cells go with it");
-    // Dark and Light were drawn after Legacy in its row; with Legacy gone, the first of them takes its place.
+    // Dark and Light were drawn after Legacy in its group; with Legacy gone, the group's grid closes over it (#2801): Dark
+    // takes Legacy's cell, Light the next, and the grid has no column left empty.
     const dark = tableFrame(a.sh.prim, 'Dark')!;
-    ok(dark.x === a.at.x && dark.y === a.at.y && tableFrame(a.sh.prim, 'Light')!.x === dark.x + dark.width + 160 && tableFrame(a.sh.prim, 'Light')!.y === dark.y, `11: the row closes over the deleted table: Dark starts where Legacy stood, Light 160px to its right (${dark.x},${dark.y} vs ${a.at.x},${a.at.y})`);
+    const light = tableFrame(a.sh.prim, 'Light')!;
+    ok(cellOf(dark) === a.at.cell && cellOf(light) === '0,1' && dark.parent === light.parent && dark.parent?.gridColumnCount === 2,
+      `11: the group closes over the deleted table: Dark takes Legacy's cell ${a.at.cell}, Light the next, two columns (${cellOf(dark)}, ${cellOf(light)}; ${dark.parent?.gridColumnCount} columns)`);
     ok(summaryOf(a.r).includes('1 table the generator no longer draws was deleted, unedited: Style guide — Legacy'), '11: the summary names the deleted table');
     ok(styleGuideSummary(a.r).headline === '✓ 2 tables, 1 deleted', `11: the headline counts the deletion: "✓ 2 tables, 1 deleted" (got "${styleGuideSummary(a.r).headline}")`);
 
@@ -1810,12 +1896,14 @@ const main = async (): Promise<void> => {
     const b = await afterEdit((t) => { valueText(t).characters = '#7F7F7F'; });
     ok(summaryOf(b.r).includes('1 table the generator no longer draws was left in place — edited: Style guide — Legacy'), '11: the summary names the edited table and its reason');
 
-    // MOVED: across, down, into a designer's frame, onto another page at the same x and y.
-    const across = await afterEdit((t) => { t.x += 400; });
-    ok(keptAs(across.r, 'moved'), '11: a table moved across is kept, reported as moved');
+    // MOVED (#2801: a guide sits in its group, which places it): dragged out of its group onto the page, into a designer's
+    // frame, onto another page at the same x and y. Moved to another cell of its own group, it is still where the
+    // generator keeps it, and is deleted.
+    const across = await afterEdit((t, sh) => { const [x, y] = [t.x, t.y]; sh.prim.appendChild(t); t.x = x + 400; t.y = y; });
+    ok(keptAs(across.r, 'moved'), '11: a guide dragged out of its group onto the page is kept, reported as moved');
     ok(summaryOf(across.r).includes('1 table the generator no longer draws was left in place — moved: Style guide — Legacy'), '11: the summary says it was moved, not edited');
-    const down = await afterEdit((t) => { t.y += 300; });
-    ok(keptAs(down.r, 'moved'), '11: a table moved straight down is kept, reported as moved');
+    const down = await afterEdit((t) => { const g = t.parent!; g.gridColumnCount = 2; g.gridColumnSizes = [{ type: 'HUG' }, { type: 'HUG' }]; t.setGridChildPosition(0, 1); });
+    ok(JSON.stringify(down.r.deleted) === JSON.stringify([LEGACY]) && down.t.removed, `11: a guide moved to another cell of its own group is still the generator's: deleted (${JSON.stringify(down.r.kept)})`);
     const nested = await afterEdit((t, sh) => {
       const sel = new N('FRAME'); sel.name = 'Frame selection'; sh.prim.appendChild(sel);
       const [x, y] = [t.x, t.y];
@@ -1832,7 +1920,7 @@ const main = async (): Promise<void> => {
     delete legD.pluginData['prism3-style-guide-print']; delete legD.pluginData['prism3-style-guide-mark'];
     dropLegacy(d);
     const rd = await draw(d.api, contract, WITH_CORE);
-    ok(legD.parent === d.prim && JSON.stringify(rd.stale) === JSON.stringify([LEGACY]) && keptAs(rd, 'unrecorded'), '11: a table with no fingerprint is kept');
+    ok(!legD.removed && JSON.stringify(rd.stale) === JSON.stringify([LEGACY]) && keptAs(rd, 'unrecorded'), '11: a table with no fingerprint is kept');
     ok(summaryOf(rd).includes('1 table the generator no longer draws was left in place — drawn before edits were tracked, so the generator never deletes it; delete it by hand if no longer needed: Style guide — Legacy'), '11: the summary says a table from before the fingerprint is never deleted, and to delete it by hand');
 
     // STALE and unedited, while the run still draws core: deleted.
@@ -1866,7 +1954,7 @@ const main = async (): Promise<void> => {
     ok(copy.x === legE.x && copy.y === legE.y && copy.pluginData['prism3-style-guide-print'] === legE.pluginData['prism3-style-guide-print'], '11: the copy sits on the original and carries its fingerprint');
     dropLegacy(e);
     const re = await draw(e.api, contract, WITH_CORE);
-    ok(foreign.parent === e.prim && foreign.x === 3000 && foreign.y === 0 && Object.keys(foreign.pluginData).length === 0, '11: a frame the generator did not make, named like its table, is never touched');
+    ok(!foreign.removed && foreign.parent === e.prim && foreign.x === 3000 && foreign.y === 0 && Object.keys(foreign.pluginData).length === 0, '11: a frame the generator did not make, named like its table, is never touched');
     ok(legE.removed && copy.parent === e.prim && JSON.stringify(re.deleted) === JSON.stringify([LEGACY]) && JSON.stringify(re.kept) === JSON.stringify([{ name: LEGACY, reason: 'copied' }]), '11: a duplicate of a generator table is never deleted; the table it copies is');
     ok(summaryOf(re).includes('1 table the generator no longer draws was left in place — a copy: Style guide — Legacy'), '11: the summary says it is a copy');
 
@@ -1879,14 +1967,14 @@ const main = async (): Promise<void> => {
     await draw(g0.api, contract);
     g0.vars.splice(0);
     const r0 = await draw(g0.api, contract);
-    ok(r0.deleted.length === 0 && r0.kept.length === 22 && r0.kept.every((k) => k.reason === 'nothing-drawn') && tablesOn(g0.prim).length + tablesOn(g0.sem).length === 22, `11: a run that draws nothing deletes nothing: 22 tables kept (${r0.deleted.length} deleted)`);
-    ok(summaryOf(r0).includes('22 tables the generator no longer draws were left in place — nothing was drawn this run: ') && summaryOf(r0).includes(' and 19 more'), '11: the summary gives the reason and caps the list at three names');
+    ok(r0.deleted.length === 0 && r0.kept.length === 29 && r0.kept.every((k) => k.reason === 'nothing-drawn') && tablesOn(g0.prim).length + tablesOn(g0.sem).length === 29, `11: a run that draws nothing deletes nothing: 29 tables kept (${r0.deleted.length} deleted)`);
+    ok(summaryOf(r0).includes('29 tables the generator no longer draws were left in place — nothing was drawn this run: ') && summaryOf(r0).includes(' and 26 more'), '11: the summary gives the reason and caps the list at three names');
     // The variables moved to a library: no local collection, no local variable. Every table's collection is gone.
     const lib = await fullFile();
     await draw(lib.api, contract);
     lib.cols.splice(0); lib.vars.splice(0);
     const rl = await draw(lib.api, contract);
-    ok(rl.deleted.length === 0 && rl.kept.length === 22 && rl.kept.every((k) => k.reason === 'no-collection'), '11: variables moved to a library: every table kept, its collection not in this file');
+    ok(rl.deleted.length === 0 && rl.kept.length === 29 && rl.kept.every((k) => k.reason === 'no-collection'), '11: variables moved to a library: every table kept, its collection not in this file');
     // One collection gone while the rest still draw: the plan is not empty, and only the collection check keeps it.
     const g1 = await fullFile();
     await draw(g1.api, contract);
@@ -1901,7 +1989,7 @@ const main = async (): Promise<void> => {
     await draw(many.api, contract, { collections: ['color'] });
     for (let i = many.vars.length - 1; i >= 0; i--) if (/^pds3\/color\/(scrim|veil|field|disabled)\//.test(many.vars[i].name)) many.vars.splice(i, 1);
     const rm = await draw(many.api, contract, { collections: ['color'] });
-    ok(rm.deleted.length === 4 && summaryOf(rm).includes('4 tables the generator no longer draws were deleted, unedited: ') && summaryOf(rm).includes(' and 1 more') && styleGuideSummary(rm).headline === '✓ 7 tables, 4 deleted', `11: four deleted: three named and "and 1 more"; headline "✓ 7 tables, 4 deleted" (got "${styleGuideSummary(rm).headline}", ${rm.deleted.length})`);
+    ok(rm.deleted.length === 4 && summaryOf(rm).includes('4 tables the generator no longer draws were deleted, unedited: ') && summaryOf(rm).includes(' and 1 more') && styleGuideSummary(rm).headline === '✓ 14 tables, 4 deleted', `11: four deleted: three named and "and 1 more"; headline "✓ 14 tables, 4 deleted" (got "${styleGuideSummary(rm).headline}", ${rm.deleted.length})`);
   }
 
   console.log("12. the owner's grid model: a table dragged wider");
@@ -1933,75 +2021,72 @@ const main = async (): Promise<void> => {
     const AT = 'prism3-style-guide-at';
     const others = [...tablesOn(f13.prim), ...tablesOn(f13.sem)].filter((n) => n !== target);
     const targetGrid = gridOf(target).id;
-    // THE DESIGNER'S HAND, before the filtered runs. On the primitive page, the page the filter draws on: the fourth
-    // table, Accent, dragged 600px down out of the row, which leaves a gap in it; and Warning, drawn before the
-    // position record, sitting 50px off the row. On the semantic page, which the filter does not draw on, Text — nbds
-    // the same way. An unfiltered run re-flows a record-less table (section 10); a filtered run must touch none of them.
+    // THE DESIGNER'S HAND, before the filtered runs (#2801: guides sit in groups). On the primitive page, the page the
+    // filter draws on: the fourth table, Accent, dragged out of its group onto the page, 600px below it; and Warning,
+    // reordered by hand to the end of its group. On the semantic page, which the filter does not draw on, Text — nbds
+    // dragged out the same way. A filtered run must move none of them, and write no record for any.
+    const palettes = groupFrame(f13.prim, 'Palettes')!;
     const accent = tableFrame(f13.prim, 'Accent — nbds')!;
-    accent.y += 600;
+    f13.prim.appendChild(accent);
+    accent.x = Number(palettes.x); accent.y = Number(palettes.y) + palettes.height + 600;
     const warning = tableFrame(f13.prim, 'Warning — nbds')!;
-    delete warning.pluginData[AT];
-    warning.y += 50;
+    const pg = warning.parent!;
+    pg.gridColumnCount = pg.gridColumnCount + 1; pg.gridColumnSizes = pg.gridColumnSizes.map(() => ({ type: 'HUG' }));
+    warning.setGridChildPosition(0, pg.gridColumnCount - 1);
+    const warningCell = cellOf(warning);
     const textNb = tableFrame(f13.sem, 'Text — nbds')!;
-    delete textNb.pluginData[AT];
-    textNb.y += 50;
-    const snap = new Map(others.map((n) => [n, { page: n.parent, grid: gridOf(n).id, print: n.pluginData[PRINT], x: n.x, y: n.y, at: n.pluginData[AT] }]));
+    f13.sem.appendChild(textNb);
+    textNb.x = -5000; textNb.y = 0;
+    const snap = new Map(others.map((n) => [n, { page: n.parent, grid: gridOf(n).id, print: n.pluginData[PRINT], x: n.x, y: n.y, at: n.pluginData[AT], cell: cellOf(n) }]));
+    const groupsAt = new Map([...pageFrames(f13.prim), ...pageFrames(f13.sem)].map((n) => [n, { x: n.x, y: n.y, w: n.width }]));
     const p500 = f13.vars.find((v) => v.name === 'nbds/core/palette/primary/500')!;
     p500.valuesByMode['core:0'] = { r: 0.1, g: 0.2, b: 0.3, a: 1 };
     const r1 = await draw(f13.api, contract, { tables: [PRIMARY] });
-    ok(others.length === 42 && r1.tables.length === 1 && r1.tables[0].title === PRIMARY && r1.tables[0].status === 'updated', `13: tables: ["${PRIMARY}"] draws that one table (${r1.tables.map((t) => `${t.title} ${t.status}`).join(', ')})`);
+    ok(others.length === 56 && r1.tables.length === 1 && r1.tables[0].title === PRIMARY && r1.tables[0].status === 'updated', `13: tables: ["${PRIMARY}"] draws that one table (${r1.tables.map((t) => `${t.title} ${t.status}`).join(', ')})`);
     const d1 = (r1.tables[0] as Extract<TableOutcome, { status: 'updated' }>).diff;
     ok(tableFrame(f13.prim, PRIMARY) === target && gridOf(target).id !== targetGrid && JSON.stringify(d1.changed) === JSON.stringify(['nbds/core/palette/primary/500']),
       '13: a filtered rerun updates its table in place: the same frame, a new grid, primary/500 reported changed');
     ok(r1.stale.length === 0 && r1.replaced.length === 0 && r1.deleted.length === 0 && r1.kept.length === 0,
       `13: the tables a filtered run skips are not stale, not replaced, not deleted and not reported (stale ${r1.stale.length}, deleted ${r1.deleted.length}, kept ${r1.kept.length})`);
     const touched = [...snap].filter(([n, x]) => n.parent !== x.page || gridOf(n).id !== x.grid || n.pluginData[PRINT] !== x.print);
-    ok(tablesOn(f13.prim).length + tablesOn(f13.sem).length === 43 && touched.length === 0, `13: every other table is untouched: all 43 still drawn, each with its own grid and fingerprint (${touched.length} touched)`);
-    // THE REVIEW'S PROBE (S1): with a gap in the stack and a record-less table beside it, a run that does not change
-    // its table's height moves nothing and records nothing. The gap-closing re-stack moved 16 tables up and pulled
-    // Warning in.
-    const movedAt = (m: typeof snap): N[] => [...m].filter(([n, x]) => n.x !== x.x || n.y !== x.y).map(([n]) => n);
+    ok(tablesOn(f13.prim).length + tablesOn(f13.sem).length === 57 && touched.length === 0, `13: every other table is untouched: all 57 still drawn, each with its own grid and fingerprint (${touched.length} touched)`);
+    // THE REVIEW'S PROBE (S1): a run that does not change its table's height moves nothing and records nothing: no
+    // guide changes its cell, no frame on either page moves, and the guides a designer dragged out stay where they are.
+    const movedAt = (m: typeof snap): N[] => [...m].filter(([n, x]) => n.x !== x.x || n.y !== x.y || cellOf(n) !== x.cell).map(([n]) => n);
     const recorded = (m: typeof snap): N[] => [...m].filter(([n, x]) => (n.pluginData[AT] ?? '') !== (x.at ?? '')).map(([n]) => n);
-    ok(movedAt(snap).length === 0 && recorded(snap).length === 0,
-      `13: a filtered run whose table keeps its height moves no table and writes no position record — the gap Accent left stays open, Warning stays off the stack (${movedAt(snap).length} moved: ${movedAt(snap).slice(0, 3).map((n) => n.name).join(', ')}; ${recorded(snap).length} recorded)`);
-    ok(textNb.y === snap.get(textNb)!.y && !textNb.pluginData[AT], `13: the semantic page, which the filtered run did not draw on, is not re-stacked (Text — nbds at ${textNb.y}, left at ${snap.get(textNb)!.y})`);
+    const pageMoved = (): N[] => [...groupsAt].filter(([n, x]) => n.x !== x.x || n.y !== x.y).map(([n]) => n);
+    ok(movedAt(snap).length === 0 && recorded(snap).length === 0 && pageMoved().length === 0 && cellOf(warning) === warningCell,
+      `13: a filtered run whose table keeps its height moves no table and writes no position record — Accent stays where it was dragged, Warning keeps its cell (${movedAt(snap).length} moved: ${movedAt(snap).slice(0, 3).map((n) => n.name).join(', ')}; ${recorded(snap).length} recorded; ${pageMoved().map((n) => n.name).join(', ')})`);
+    ok(textNb.x === -5000 && textNb.y === 0 && !textNb.pluginData[AT], `13: the semantic page, which the filtered run did not draw on, is not touched (Text — nbds at ${textNb.x},${textNb.y})`);
     ok(styleGuideSummary(r1).ok && styleGuideSummary(r1).headline === '✓ style guide: 1 table', `13: the verdict counts the one table (${styleGuideSummary(r1).headline})`);
 
-    // WIDENING, then NARROWING (the row of decision 16): two new steps, one with a 150-character description, widen the
-    // table's description column, and removing them narrows it back. The tables AFTER it in its row that sit where the
-    // generator left them move right by exactly that, their records with them, their y unchanged; Accent (moved out
-    // of the row by hand) and Warning (no record) do not move and gain no record, and the gap Accent left stays open.
-    // Nothing before it and nothing on the other page moves.
-    const onPage = (): N[] => tablesOn(f13.prim).filter((n) => n !== target);
-    const at0 = new Map([...tablesOn(f13.prim), ...tablesOn(f13.sem)].map((n) => [n, { x: n.x, y: n.y, at: n.pluginData[AT] }]));
-    const after = onPage().filter((n) => at0.get(n)!.x > at0.get(target)!.x && n !== accent && n !== warning);
-    const before = onPage().filter((n) => at0.get(n)!.x < at0.get(target)!.x);
+    // WIDENING, then NARROWING: two new steps, one with a 150-character description, widen the table's description column,
+    // and removing them narrows it back. Its group widens and narrows by exactly that (#2801: the groups stack in one
+    // column, so nothing on the page moves sideways); every guide keeps its cell; Accent, dragged out by hand, stays.
     const w0 = target.width;
+    const gw0 = palettes.width;
+    const targetCell = cellOf(target);
     const steps = ['960', '970'].map((step, i) => ({ id: `VariableID:nb-grow:${step}`, name: `nbds/core/palette/primary/${step}`, variableCollectionId: 'VariableCollectionId:core', resolvedType: 'COLOR', description: i ? '' : 'W'.repeat(150), valuesByMode: { 'core:0': { r: 0, g: 0, b: 0, a: 1 } } }));
     f13.vars.push(...steps);
     await draw(f13.api, contract, { tables: [PRIMARY] });
-    const shiftOf = (n: N): number => n.x - at0.get(n)!.x;
-    const inStep = (n: N): boolean => n.pluginData[AT] === `${n.x},${n.y}` && n.y === at0.get(n)!.y;
     ok(target.width - w0 === WIDEN_PRIMARY, `13: a 150-character description widens ${PRIMARY} by ${WIDEN_PRIMARY}px (got ${target.width - w0})`);
-    ok(after.length === 17 && after.every((n) => shiftOf(n) === WIDEN_PRIMARY && inStep(n)),
-      `13: a filtered run moves only the tables after its table, in its row and where the generator left them, right by exactly its widening, each record moved with it, y unchanged (${after.length} tables: ${[...new Set(after.map(shiftOf))].join(', ')})`);
-    ok(accent.x === at0.get(accent)!.x && accent.y === at0.get(accent)!.y && accent.pluginData[AT] === at0.get(accent)!.at
-      && warning.x === at0.get(warning)!.x && warning.y === at0.get(warning)!.y && !warning.pluginData[AT],
-      `13: a table a designer moved and a table with no position record are left alone, and neither gains a record (Accent +${shiftOf(accent)}, Warning +${shiftOf(warning)}, Warning's record "${warning.pluginData[AT] ?? ''}")`);
-    ok(before.length === 1 && before.every((n) => shiftOf(n) === 0) && tablesOn(f13.sem).every((n) => shiftOf(n) === 0 && n.y === at0.get(n)!.y),
-      `13: the table before it does not move, nor any table on the other page (${before.map((n) => n.name).join(', ')})`);
+    ok(palettes.width - gw0 === WIDEN_PRIMARY && movedAt(snap).length === 0 && cellOf(target) === targetCell,
+      `13: its group widens by exactly that, and every guide keeps its cell (Palettes +${palettes.width - gw0}; ${movedAt(snap).length} moved)`);
+    ok(accent.x === groupsAt.get(accent)!.x && accent.y === groupsAt.get(accent)!.y && !accent.pluginData[AT] && cellOf(warning) === warningCell,
+      `13: a guide a designer dragged out stays where they put it and gains no record, and a reordered guide keeps its cell (Accent ${accent.x},${accent.y}; Warning ${cellOf(warning)})`);
+    ok([...groupsAt].filter(([n]) => n.parent === f13.sem).every(([n, x]) => n.x === x.x && n.y === x.y),
+      '13: nothing on the other page moves');
     for (const st of steps) f13.vars.splice(f13.vars.indexOf(st), 1);
     await draw(f13.api, contract, { tables: [PRIMARY] });
-    ok(target.width === w0 && after.every((n) => shiftOf(n) === 0 && inStep(n)) && shiftOf(accent) === 0 && shiftOf(warning) === 0 && !warning.pluginData[AT],
-      `13: narrowing back moves the same 17 tables left by exactly that, and leaves Accent and Warning where they are (${[...new Set(after.map(shiftOf))].join(', ')})`);
-    // A FIRST-TIME TABLE FROM A FILTERED RUN goes at the END of the row: 160px right of the rightmost table left where
-    // the generator put it, top-aligned with them.
-    const rowEnd = Math.max(...tablesOn(f13.prim).filter((n) => n !== accent && n !== warning).map((n) => n.x + n.width));
-    const rowY = target.y;
+    ok(target.width === w0 && palettes.width === gw0 && movedAt(snap).length === 0 && pageMoved().length === 0,
+      `13: narrowing back narrows the group by exactly that, and moves nothing (Palettes ${palettes.width}, was ${gw0})`);
+    // A FIRST-TIME TABLE FROM A FILTERED RUN joins the END of its group (#2801): one column past the last guide.
+    const lastCol = Math.max(...guidesOf(palettes)!.children.map((k) => k.gridCol!));
     f13.vars.push({ id: 'VariableID:nb-new:0', name: 'nbds/core/palette/zest/100', variableCollectionId: 'VariableCollectionId:core', resolvedType: 'COLOR', description: '', valuesByMode: { 'core:0': { r: 0.9, g: 0.8, b: 0.1, a: 1 } } });
     const rz = await draw(f13.api, contract, { tables: ['Zest — nbds'] });
     const zest = tableFrame(f13.prim, 'Zest — nbds');
-    ok(rz.tables[0]?.status === 'created' && zest?.x === rowEnd + 160 && zest?.y === rowY, `13: a table a filtered run draws for the first time goes at the end of the row, 160px right of it, top-aligned (${zest?.x},${zest?.y} for ${rowEnd + 160},${rowY})`);
+    ok(rz.tables[0]?.status === 'created' && zest?.parent === guidesOf(palettes) && cellOf(zest) === `0,${lastCol + 1}` && pageMoved().length === 0,
+      `13: a table a filtered run draws for the first time joins the end of its group, and nothing on the page moves (${cellOf(zest)} for 0,${lastCol + 1})`);
     f13.vars.pop();
     zest?.remove();
 
@@ -2009,17 +2094,17 @@ const main = async (): Promise<void> => {
     const r3 = await draw(f13.api, contract, { tables: ['primary — NBDS', 'color|variablecollectionid:color|pds3/color/text'] });
     ok(JSON.stringify(r3.tables.map((t) => t.title)) === JSON.stringify([PRIMARY, 'Text — pds3']) && r3.unmatched.length === 0, `13: a table is named by its title in any case, or by its key (${r3.tables.map((t) => t.title).join(', ')})`);
 
-    // A NAME THAT MATCHES NOTHING is reported by name, with the first 8 of the 43 titles this run can draw and a count
+    // A NAME THAT MATCHES NOTHING is reported by name, with the first 8 of the 57 titles this run can draw and a count
     // of the rest, and is not a pass.
     const r4 = await draw(f13.api, contract, { tables: [PRIMARY, 'Primry — nbds'] });
     const s4 = styleGuideSummary(r4);
     const first8 = 'Core — nbds base, Primary — nbds, Neutral — nbds, Accent — nbds, Success — nbds, Warning — nbds, Info — nbds, Danger — nbds';
-    ok(JSON.stringify(r4.unmatched) === JSON.stringify(['Primry — nbds']) && s4.summary.includes(`No table is titled or keyed "Primry — nbds"; the tables this run can draw are ${first8} and 35 more`),
-      `13: an unknown name is reported by name, with the first 8 titles this run can draw and "and 35 more" (${s4.summary.slice(0, 160)})`);
+    ok(JSON.stringify(r4.unmatched) === JSON.stringify(['Primry — nbds']) && s4.summary.includes(`No table is titled or keyed "Primry — nbds"; the tables this run can draw are ${first8} and 49 more`),
+      `13: an unknown name is reported by name, with the first 8 titles this run can draw and "and 49 more" (${s4.summary.slice(0, 160)})`);
     ok(!s4.ok && s4.headline === '⚠ 1 drawn, 1 not found', `13: an unknown name is not a pass: "⚠ 1 drawn, 1 not found" (got "${s4.headline}")`);
     const r5 = await draw(f13.api, contract, { tables: ['Nope'] });
     const s5 = styleGuideSummary(r5);
-    ok(r5.tables.length === 0 && !s5.ok && s5.headline === '✗ no table matched' && r5.deleted.length === 0 && tablesOn(f13.prim).length + tablesOn(f13.sem).length === 43,
+    ok(r5.tables.length === 0 && !s5.ok && s5.headline === '✗ no table matched' && r5.deleted.length === 0 && tablesOn(f13.prim).length + tablesOn(f13.sem).length === 57,
       `13: a filter that matches nothing draws nothing, deletes nothing and says so: "✗ no table matched" (got "${s5.headline}")`);
     const p13 = planStyleGuide({ collections: f13.cols, variables: f13.vars }, contract, { types: ['dimension'], tables: [PRIMARY] });
     ok(JSON.stringify(p13.unmatched) === JSON.stringify([PRIMARY]) && p13.notes.includes(`No table is titled or keyed "${PRIMARY}"; this run draws no tables`), '13: a name asked for in a run that draws no color is still reported');
@@ -2037,29 +2122,31 @@ const main = async (): Promise<void> => {
   {
     const y = await fullFile();
     const titles = planStyleGuide({ collections: y.cols, variables: y.vars }, contract).tables.map((t) => t.title);
-    const INV = titles.indexOf('Inverse');
+    // The largest table since the Inverse table split per family (#2801): Interactive, 55 roles.
+    const INV = titles.indexOf('Interactive');
     const readings: StyleGuideProgress[] = [];
     const perReading = new Map<number, number>();
     let reading = -1;
-    // Inside the 124-row Inverse table: the rows placed at each yield, read off the shim's own grid.
+    // Inside the 55-row Interactive table: the rows placed at each yield, read off the shim's own grid.
     const rowsAt: number[] = [];
     const yieldTo = async (): Promise<void> => {
       perReading.set(reading, (perReading.get(reading) ?? 0) + 1);
       if (reading === INV) {
-        const t = tableFrame(y.sem, 'Inverse');
+        const t = tableFrame(y.sem, 'Interactive');
         rowsAt.push(t ? gridOf(t).children.filter((k) => k.gridCol === 0 && k.gridRow! > 0).length : 0);
       }
       await fastYield();
     };
     await draw(y.api, contract, {}, { yieldTo, onProgress: (p) => { readings.push(p); reading = p.done; } });
-    ok(INV >= 0 && JSON.stringify(readings.map((p) => `${p.done}/${p.total}`)) === JSON.stringify(Array.from({ length: 23 }, (_, i) => `${i}/22`)),
-      `14: progress reads 0 of 22, then after each table 1 of 22 … 22 of 22 (${readings.slice(0, 3).map((p) => `${p.done}/${p.total}`).join(', ')}…)`);
-    ok(readings[INV + 1]?.title === 'Inverse' && readings.slice(1).every((p) => p.tableMs >= 0), '14: each reading names the table just drawn and what it cost');
-    const silent = Array.from({ length: 22 }, (_, i) => i + 1).filter((k) => !perReading.get(k));
+    ok(INV >= 0 && JSON.stringify(readings.map((p) => `${p.done}/${p.total}`)) === JSON.stringify(Array.from({ length: 30 }, (_, i) => `${i}/29`)),
+      `14: progress reads 0 of 29, then after each table 1 of 29 … 29 of 29 (${readings.slice(0, 3).map((p) => `${p.done}/${p.total}`).join(', ')}…)`);
+    ok(readings[INV + 1]?.title === 'Interactive' && readings.slice(1).every((p) => p.tableMs >= 0), '14: each reading names the table just drawn and what it cost');
+    const silent = Array.from({ length: 29 }, (_, i) => i + 1).filter((k) => !perReading.get(k));
     ok(silent.length === 0, `14: the host gets control back after every table (none after table ${silent.join(', ')})`);
     const gaps = rowsAt.map((n, i) => n - (i ? rowsAt[i - 1] : 0));
-    ok(rowsAt.length >= 12 && rowsAt[rowsAt.length - 1] === 124 && Math.max(...gaps) <= 10,
-      `14: the 124-row Inverse table yields while its rows are placed, never more than 10 rows apart (${rowsAt.length} yields, largest gap ${Math.max(0, ...gaps)} rows)`);
+    // 55 is odd: the last yield inside the table falls after row 54, and the one after the table reads the next table.
+    ok(rowsAt.length >= 12 && rowsAt[rowsAt.length - 1] === 54 && Math.max(...gaps) <= 10,
+      `14: the 55-row Interactive table yields while its rows are placed, never more than 10 rows apart (${rowsAt.length} yields, largest gap ${Math.max(0, ...gaps)} rows)`);
   }
 
   console.log('15. one run at a time, through the run guard (#1785, #1957)');
@@ -2086,9 +2173,10 @@ const main = async (): Promise<void> => {
       `15: a run asked for while another is mid-yield is refused, in the guard's words (${JSON.stringify(second && (second.ran ? 'ran' : second.message))})`);
     const wraps = [...tablesOn(f15.prim), ...tablesOn(f15.sem)];
     const keys = new Set(wraps.map((w) => w.pluginData['prism3-style-guide']));
-    ok(wraps.length === 22 && keys.size === 22 && wraps.every((w) => w.children.filter((c) => c.name === 'Table').length === 1)
-      && first.ran && first.value.tables.length === 22 && first.value.tables.every((t) => t.status === 'created'),
-      `15: exactly one set of tables results: 22, each key once, each with one grid (${wraps.length} tables, ${keys.size} keys)`);
+    ok(wraps.length === 29 && keys.size === 29 && wraps.every((w) => w.children.filter((c) => c.name === 'Table').length === 1)
+      && first.ran && first.value.tables.length === 29 && first.value.tables.every((t) => t.status === 'created')
+      && pageFrames(f15.prim).length === 1 && pageFrames(f15.sem).length === 1,
+      `15: exactly one set of tables results: 29, each key once, one group a page, each with one grid (${wraps.length} tables, ${keys.size} keys)`);
     const third = await request(() => draw(f15.api, contract, { collections: ['legacy'] }));
     ok(third.ran && !guard.busy('style-guide'), '15: once that run reports, the next is let through');
   }
@@ -2355,7 +2443,7 @@ const main = async (): Promise<void> => {
       && tn?.mainComponent?.name === 'color=white, textAlign=left, type=default, padding=default' && tn.lsh === 'FILL' && tn.layoutSizingVertical === 'FILL'
       && tn.findOne((k) => k.type === 'TEXT')?.textAutoResize === 'WIDTH_AND_HEIGHT',
       `20: on, a color table leads with Name: text/primary reads "Text Primary" in a default text cell that FILLs its track, on one line (${headerRow(text20).slice(0, 3).join(' · ')}; "${textIn(tn)}")`);
-    ok(nameOf(tableFrame(c20.sem, 'Inverse')!, 'text/primary') === 'Inverse Text Primary', `20: an inverse role reads "Inverse Text Primary" (${nameOf(tableFrame(c20.sem, 'Inverse')!, 'text/primary')})`);
+    ok(nameOf(tableFrame(c20.sem, 'Inverse text')!, 'primary') === 'Inverse Text Primary', `20: an inverse role reads "Inverse Text Primary" (${nameOf(tableFrame(c20.sem, 'Inverse text')!, 'primary')})`);
     const t20 = await phase2File();
     // A HEADER WHOSE INSIDE FOLLOWS ITS WIDTH, as an auto-layout header component's does: its "Text" box FILLs it. A
     // wider title column then widens the header's inside too, which the fingerprint must leave out with the header
@@ -2630,52 +2718,60 @@ const main = async (): Promise<void> => {
       `22: a spacing cell with no layer to size reports each specimen unbound, by table and token: ${rd.unbound} — "${styleGuideSummary(rd).headline}"`);
   }
 
-  console.log('23. rows by category (owner decision 16): left to right within a category, a new row per category');
+  console.log('23. groups (#2801, Q378): titled groups down the page in the engine table\'s order, guides in their group\'s grid');
   {
     const rw = await phase2File();
     await draw(rw.api, contract);
-    const at = (title: string): string => { const w = tableFrame(rw.prim, title); return w ? `${w.x},${w.y}` : `no ${title} table`; };
-    // The Primitive page holds two categories: dimension (Dimension 602 wide, its REM column included and 1,888 tall, Density, Step) and font
-    // variables (Font family 968 wide, …). The font row starts 160px below the dimension row's tallest table. No gap
-    // between tracks since #2336: with the 2px gaps these were 610, 1,970 and 974. The full path in the Token column
-    // (#2372) widens Dimension from 602 to 728 (its column was the 5-character "Token" header; now the 23 of
-    // `pds3/core/dimension/124`: 18 × 7 = 126) and Font family from 968 to 1,122 (`pds3/core/font/family/`, 22 × 7 = 154).
-    ok(JSON.stringify(['Dimension', 'Density', 'Font family', 'Font size'].map(at)) === JSON.stringify(['0,0', '888,0', '0,2048', '1282,2048']),
-      `23: two categories, two tables each, at literal positions: Dimension 0,0 and Density 888,0; Font family 0,2048 and Font size 1282,2048 (${['Dimension', 'Density', 'Font family', 'Font size'].map(at).join(' | ')})`);
-    const rowOfCat = (cat: RegExp): N[] => tablesOn(rw.prim).filter((w) => cat.test(w.pluginData['prism3-style-guide'])).sort((a, b) => a.x - b.x);
-    const dimRow = rowOfCat(/^dimension\|/), fontRow = rowOfCat(/^(fontFamily|fontSize|fontWeight|lineHeight|letterSpacing)\|/);
-    const rowGaps = (ns: N[]): number[] => ns.slice(1).map((n, i) => n.x - (ns[i].x + ns[i].width));
-    ok(dimRow.length === 3 && fontRow.length === 5 && [dimRow, fontRow].every((r) => r.every((n) => n.y === r[0].y) && rowGaps(r).every((g) => g === 160)),
-      `23: each category's tables are top-aligned, 160px apart (${rowGaps(dimRow).join(', ')} | ${rowGaps(fontRow).join(', ')})`);
-    // A WIDTH CHANGE in row 1, by a filtered run: Density's description column widens by a 100-character description;
-    // Step, after it in its row, moves right by exactly that; Dimension and the whole font row stay.
-    const snap = new Map(tablesOn(rw.prim).map((w) => [w, { x: w.x, y: w.y }]));
+    const dims = groupFrame(rw.prim, 'Dimensions')!, fonts = groupFrame(rw.prim, 'Fonts')!;
+    // Two groups on Primitive tokens, stacked down one column in the table's order, left-aligned, 320 apart (Q1 A, Q2 A).
+    ok(!!dims && !!fonts && pageFrames(rw.prim).length === 2 && dims.x === 0 && dims.y === 0 && fonts.x === 0 && fonts.y === dims.height + 320,
+      `23: Dimensions then Fonts, stacked from the page's origin, left-aligned, 320 apart (Dimensions ${dims?.x},${dims?.y} ${dims?.height} tall; Fonts ${fonts?.x},${fonts?.y})`);
+    // THE MEASURED LAYOUT: vertical auto layout, 88 on top, 160 on the sides and bottom, 80 under the title, guides 160
+    // apart in a grid, transparent; the title a Size=Large header, its description off (decision 2), FILLing the group.
+    const head = dims.children[0], grid = guidesOf(dims)!;
+    ok(dims.layoutMode === 'VERTICAL' && dims.paddingTop === 88 && dims.paddingLeft === 160 && dims.paddingRight === 160 && dims.paddingBottom === 160 && dims.itemSpacing === 80
+      && Array.isArray(dims.fills) && (dims.fills as unknown[]).length === 0 && grid.layoutMode === 'GRID' && grid.gridColumnGap === 160 && grid.gridRowGap === 160 && (grid.fills as unknown[]).length === 0
+      && [...grid.gridColumnSizes, ...grid.gridRowSizes].every((t) => t.type === 'HUG'),
+      `23: a group is a transparent vertical auto layout, 88 / 160 / 160 / 160, 80 under its title, its guides in a HUG grid 160 apart (${dims.layoutMode} ${dims.paddingTop}/${dims.paddingRight}/${dims.paddingBottom}/${dims.paddingLeft}, ${dims.itemSpacing}; ${grid.layoutMode} ${grid.gridColumnGap})`);
+    ok(head?.mainComponent?.name === 'Size=Large' && head.findOne((k) => k.name === 'Title')?.characters === 'Dimensions' && head.componentProperties?.['Description#1:0']?.value === false
+      && head.lsh === 'FILL' && head.width === dims.width - 320,
+      `23: its title is a Size=Large header reading "Dimensions", the description off, spanning the group (${head?.mainComponent?.name}, ${head?.width} of ${dims.width - 320})`);
+    // Each guide in plan order along its group's one row.
+    const order = (g: N): string => guidesOf(g)!.children.slice().sort((x, y) => x.gridCol! - y.gridCol!).map((k) => `${k.gridRow}:${k.name.replace('Style guide — ', '')}`).join(', ');
+    ok(order(dims) === '0:Dimension, 0:Opacity, 0:Density, 0:Step' && order(fonts) === '0:Font family, 0:Font size, 0:Font weight, 0:Line height, 0:Letter spacing',
+      `23: each guide sits in its group in plan order, one row (${order(dims)} | ${order(fonts)})`);
+    // A WIDTH CHANGE, by a filtered run: Density's description column widens by a 100-character description. Its group
+    // widens by exactly that; nothing on the page moves (one column of groups).
+    const snap = new Map(pageFrames(rw.prim).map((w) => [w, { x: w.x, y: w.y }]));
     const moved = (w: N): string => `${w.x - snap.get(w)!.x},${w.y - snap.get(w)!.y}`;
     const densityW = tableFrame(rw.prim, 'Density')!;
-    const dw0 = densityW.width;
+    const [dw0, gw0] = [densityW.width, dims.width];
     rw.vars.find((v) => v.name === 'density/space/gap')!.description = 'W'.repeat(100);
     await draw(rw.api, contract, { tables: ['Density'] });
     const dDelta = densityW.width - dw0;
-    ok(dDelta === WIDEN_DENSITY && moved(tableFrame(rw.prim, 'Step')!) === `${WIDEN_DENSITY},0` && moved(tableFrame(rw.prim, 'Dimension')!) === '0,0' && fontRow.every((w) => moved(w) === '0,0'),
-      `23: a width change in row 1 moves only row 1's later tables, by exactly it: Density +${dDelta}px, Step ${moved(tableFrame(rw.prim, 'Step')!)}, the font row ${[...new Set(fontRow.map(moved))].join(' ')}`);
-    // A HEIGHT CHANGE in row 1: two new steps make Dimension, the row's tallest, two rows taller; the font row moves down
-    // by exactly that, and row 1 stays where it is.
-    for (const w of tablesOn(rw.prim)) snap.set(w, { x: w.x, y: w.y });
+    ok(dDelta === WIDEN_DENSITY && dims.width - gw0 === WIDEN_DENSITY && moved(dims) === '0,0' && moved(fonts) === '0,0',
+      `23: a width change widens its group by exactly it and moves nothing: Density +${dDelta}px, Dimensions +${dims.width - gw0}, Fonts ${moved(fonts)}`);
+    // A HEIGHT CHANGE: two new steps make Dimension, the group's tallest guide, two rows taller; the group grows by that,
+    // and the group below it moves down by exactly that. A filtered run, so nothing else moves.
+    for (const w of pageFrames(rw.prim)) snap.set(w, { x: w.x, y: w.y });
     const dimW = tableFrame(rw.prim, 'Dimension')!;
-    const [h0, w0] = [dimW.height, dimW.width];
+    const [h0, w0, gh0] = [dimW.height, dimW.width, dims.height];
     for (const n of [7, 9]) rw.vars.push({ id: `VariableID:core:grow${n}`, name: `pds3/core/dimension/${n}`, variableCollectionId: 'VariableCollectionId:core', resolvedType: 'FLOAT', description: '', valuesByMode: { 'core:0': n }, scopes: ['WIDTH_HEIGHT', 'GAP', 'CORNER_RADIUS', 'STROKE_FLOAT'] });
     await draw(rw.api, contract, { tables: ['Dimension'] });
     const hDelta = dimW.height - h0;
-    ok(hDelta === GROW_DIMENSION && dimW.width === w0 && fontRow.every((w) => moved(w) === `0,${GROW_DIMENSION}`) && dimRow.every((w) => moved(w) === '0,0'),
-      `23: a height change in row 1 moves row 2 down by exactly it: Dimension +${hDelta}px tall, the font row ${[...new Set(fontRow.map(moved))].join(' ')}, row 1 ${[...new Set(dimRow.map(moved))].join(' ')}`);
-    // A FIRST-TIME TABLE IN A NEW CATEGORY, drawn by a filtered run, starts a new row: 160px below the lowest table, at
-    // the row's left edge.
+    ok(hDelta === GROW_DIMENSION && dimW.width === w0 && dims.height - gh0 === GROW_DIMENSION && moved(fonts) === `0,${GROW_DIMENSION}` && moved(dims) === '0,0'
+      && fonts.pluginData['prism3-style-guide-group-at'] === `${fonts.x},${fonts.y}`,
+      `23: a height change moves the group below down by exactly it, its record with it: Dimension +${hDelta}px tall, Dimensions +${dims.height - gh0}, Fonts ${moved(fonts)}, Dimensions ${moved(dims)}`);
+    // A FULL RUN re-stacks: Fonts sits 320 below Dimensions again after any change.
+    await draw(rw.api, contract);
+    ok(fonts.y === dims.y + dims.height + 320 && fonts.x === dims.x, `23: a full run stacks the groups 320 apart (Fonts at ${fonts.y}, Dimensions ends at ${dims.y + dims.height})`);
+    // A FIRST-TIME GROUP, drawn by a filtered run, goes 320 below the page's lowest content, at its left edge.
     const nc = await phase2File();
     await draw(nc.api, contract, { types: ['dimension'] });
-    const lowest = Math.max(...tablesOn(nc.prim).map((w) => w.y + w.height));
+    const lowest = Math.max(...pageFrames(nc.prim).map((w) => w.y + w.height));
     await draw(nc.api, contract, { tables: ['Font family'] });
-    const ff = tableFrame(nc.prim, 'Font family');
-    ok(ff?.x === 0 && ff?.y === lowest + 160, `23: a first table of a new category starts a new row, 160px below the lowest (${ff?.x},${ff?.y} for 0,${lowest + 160})`);
+    const ff = groupFrame(nc.prim, 'Fonts');
+    ok(ff?.x === 0 && ff?.y === lowest + 320 && cellOf(tableFrame(nc.prim, 'Font family')) === '0,0', `23: a first-time group starts 320 below the lowest content (${ff?.x},${ff?.y} for 0,${lowest + 320})`);
   }
 
   console.log('24. the review of f3bb76cd: no silent spacing miss, one verdict per specimen, a new table that pushes its row down');
@@ -2715,17 +2811,19 @@ const main = async (): Promise<void> => {
     // Four of the five: dimension/0 draws nothing, so it binds nothing (owner decision, live QA of 0.210.0).
     ok(ro.unbound === 4 && spacingMisses.length === 1 && spacingMisses[0].startsWith('4 display=filled spacing specimens are not bound to their variable'),
       `24: four bars whose padding bind is refused count once each, 4, in one report line; the zero binds nothing (${ro.unbound}; ${spacingMisses.join(' / ')})`);
-    // (2) A NEW TABLE FROM A FILTERED RUN, TALLER THAN ITS ROW, pushes the rows below it down: an 80-step collection
-    // drawn alone lands at the end of the dimension row, and the font row moves to 160px below it.
+    // (2) A NEW TABLE FROM A FILTERED RUN, TALLER THAN ITS GROUP, pushes the groups below it down (#2801): an 80-step
+    // collection drawn alone joins the end of Dimensions, which grows to hold it, and Fonts moves down by exactly that.
     const tl = await phase2File();
     await draw(tl.api, contract);
     tl.cols.push({ id: 'VariableCollectionId:tall', name: 'tall', modes: [{ modeId: 'tall:0', name: 'Default' }], defaultModeId: 'tall:0' });
     for (let i = 1; i <= 80; i++) tl.vars.push({ id: `VariableID:tall:${i}`, name: `tall/ramp/${i}`, variableCollectionId: 'VariableCollectionId:tall', resolvedType: 'FLOAT', description: '', valuesByMode: { 'tall:0': i }, scopes: ['WIDTH_HEIGHT'] });
-    const fontBefore = tablesOn(tl.prim).filter((w) => /^(fontFamily|fontSize|lineHeight|letterSpacing)\|/.test(w.pluginData['prism3-style-guide']));
+    const tdims = groupFrame(tl.prim, 'Dimensions')!, tfonts = groupFrame(tl.prim, 'Fonts')!;
+    const [dimsH, fontsY] = [tdims.height, tfonts.y];
     const rt = await draw(tl.api, contract, { tables: ['Ramp'] });
     const ramp = tableFrame(tl.prim, 'Ramp');
-    ok(rt.tables[0]?.status === 'created' && ramp?.y === 0 && ramp.height === RAMP_H && fontBefore.every((w) => w.y === RAMP_H + 160),
-      `24: a new 80-step table lands at the end of the dimension row, ${ramp?.height}px tall, and the font row moves to 160px below it, y ${RAMP_H + 160} (${[...new Set(fontBefore.map((w) => w.y))].join(', ')})`);
+    ok(rt.tables[0]?.status === 'created' && ramp?.parent === guidesOf(tdims) && cellOf(ramp) === '0,4' && ramp.height === RAMP_H
+      && tdims.height === 88 + 80 + RAMP_H + 160 && tfonts.y - fontsY === tdims.height - dimsH && tfonts.y === tdims.height + 320,
+      `24: a new 80-step table joins the end of Dimensions, ${ramp?.height}px tall, and Fonts moves down by exactly the group's growth (${cellOf(ramp)}; Dimensions ${dimsH} → ${tdims.height}; Fonts ${fontsY} → ${tfonts.y})`);
   }
 
   console.log('25. REM on and REM off on every dimension and font-variable table (#2153)');
@@ -2819,14 +2917,14 @@ const main = async (): Promise<void> => {
 
   console.log('26. the Build style guides page: what the file holds, and whether Set up file has run (S11.2)');
   {
-    // THE TABLES THE PAGE OFFERS, typed here: the prism3 file's 22, in draw order (section 14 counts the same run).
+    // THE TABLES THE PAGE OFFERS, typed here: the prism3 file's 29, in draw order (section 14 counts the same run).
     const PRISM3_TITLES = ['Core — base', 'Primary', 'Neutral', 'Accent', 'Success', 'Warning', 'Info', 'Danger', 'Black alpha', 'White alpha',
-      'Background', 'Foreground', 'Text', 'Icon', 'Interactive', 'Disabled', 'Border', 'Scrim', 'Veil', 'Field', 'Inverse', 'Legacy'];
+      'Background', 'Foreground', 'Text', 'Icon', 'Interactive', 'Disabled', 'Border', 'Scrim', 'Veil', 'Field', ...SEM_INVERSE, 'Legacy'];
     const f25 = await fullFile();
     const cat = catalogFor({ collections: f25.cols, variables: f25.vars }, contract, isSetUp(f25.api.root));
     ok(JSON.stringify(cat.tables.map((t) => t.title)) === JSON.stringify(PRISM3_TITLES) && cat.tables.every((t) => t.kind === 'color')
-      && cat.tables.filter((t) => t.page === 'Semantic tokens').length === 11 && cat.tables.filter((t) => t.page === 'Primitive tokens').length === 11,
-      `26: the page is offered the 22 tables in draw order, all color, 11 on each token page, named without "↳" (${cat.tables.slice(0, 3).map((t) => `${t.title}@${t.page}`).join(', ')}…)`);
+      && cat.tables.filter((t) => t.page === 'Semantic tokens').length === 18 && cat.tables.filter((t) => t.page === 'Primitive tokens').length === 11,
+      `26: the page is offered the 29 tables in draw order, all color, 18 semantic and 11 primitive, named without "↳" (${cat.tables.slice(0, 3).map((t) => `${t.title}@${t.page}`).join(', ')}…)`);
     ok(JSON.stringify(cat.collections.map((c) => `${c.name}:${c.modes.join('/')}:${c.items.length}`)) === JSON.stringify(['core:Default:164', 'color:light/dark/hc-light/hc-dark:268', 'legacy:Value:4']),
       `26: every collection, its modes and every variable in it (${cat.collections.map((c) => `${c.name} ${c.items.length}`).join(', ')})`);
     const item = (n: string) => cat.collections.flatMap((c) => c.items).find((i) => i.name === n);
@@ -2876,9 +2974,9 @@ const main = async (): Promise<void> => {
     const events: string[] = [];
     let listed: string[] = [];
     await draw(f26.api, contract, {}, { onPlan: (ts) => { listed = ts.map((t) => t.title); }, onTable: (e) => events.push(`${e.index}:${e.status}`) });
-    const want = Array.from({ length: 22 }, (_, i) => [`${i}:drawing`, `${i}:done`]).flat();
-    ok(listed.length === 22 && listed[0] === 'Core — base' && listed[21] === 'Legacy' && JSON.stringify(events) === JSON.stringify(want),
-      `27: the run lists its 22 tables first, then each one drawing and then done, in order (${events.slice(0, 4).join(', ')}… ${events.length} moves)`);
+    const want = Array.from({ length: 29 }, (_, i) => [`${i}:drawing`, `${i}:done`]).flat();
+    ok(listed.length === 29 && listed[0] === 'Core — base' && listed[28] === 'Legacy' && JSON.stringify(events) === JSON.stringify(want),
+      `27: the run lists its 29 tables first, then each one drawing and then done, in order (${events.slice(0, 4).join(', ')}… ${events.length} moves)`);
   }
 
   console.log('28. one failed table does not stop the run, and Draw it again redraws that table alone (S11.2, owner decision P6)');
@@ -2904,13 +3002,13 @@ const main = async (): Promise<void> => {
     const accent = 3;
     const failedT = r.tables.filter((t) => t.status === 'failed');
     ok(failedT.length === 1 && failedT[0].title === 'Accent' && (failedT[0] as Extract<TableOutcome, { status: 'failed' }>).reason === 'Accent refused'
-      && r.tables.filter((t) => t.status === 'created').length === 21,
-      `28: the Accent table fails with the host's words, and the run goes on to draw the other 21 (${r.tables.map((t) => t.status).filter((x) => x !== 'created').join(', ')}; ${r.tables.filter((t) => t.status === 'created').length} created)`);
-    ok(events[accent * 2] === '3:drawing' && events[accent * 2 + 1] === '3:failed(Accent refused)' && events[accent * 2 + 2] === '4:drawing' && events.length === 44,
+      && r.tables.filter((t) => t.status === 'created').length === 28,
+      `28: the Accent table fails with the host's words, and the run goes on to draw the other 28 (${r.tables.map((t) => t.status).filter((x) => x !== 'created').join(', ')}; ${r.tables.filter((t) => t.status === 'created').length} created)`);
+    ok(events[accent * 2] === '3:drawing' && events[accent * 2 + 1] === '3:failed(Accent refused)' && events[accent * 2 + 2] === '4:drawing' && events.length === 58,
       `28: the Accent table's moves read drawing, then failed with its reason, and the next table starts (${events.slice(6, 9).join(', ')})`);
     const v = styleGuideSummary(r);
-    ok(!v.ok && v.headline === '⚠ 21 drawn, 1 failed' && v.summary.startsWith('Accent: Accent refused. '),
-      `28: the verdict is "⚠ 21 drawn, 1 failed", not a pass, and the summary opens on the failed table and its reason (${v.headline}; ${v.summary.slice(0, 40)}…)`);
+    ok(!v.ok && v.headline === '⚠ 28 drawn, 1 failed' && v.summary.startsWith('Accent: Accent refused. '),
+      `28: the verdict is "⚠ 28 drawn, 1 failed", not a pass, and the summary opens on the failed table and its reason (${v.headline}; ${v.summary.slice(0, 40)}…)`);
     // DRAW IT AGAIN: the host now takes the binding, and the page redraws the one table by its key.
     refuse = false;
     const others = [...tablesOn(f27.prim), ...tablesOn(f27.sem)].filter((w) => w.pluginData['prism3-style-guide'] !== keys[accent]);
@@ -2934,20 +3032,20 @@ const main = async (): Promise<void> => {
     for (const v of legacy) f28.vars.splice(f28.vars.indexOf(v), 1);
     let done = 0;
     const r = await draw(f28.api, contract, {}, { onTable: (e) => { if (e.status === 'done') done++; }, stop: () => done >= 3 });
-    ok(r.tables.length === 3 && JSON.stringify(r.stopped) === JSON.stringify({ done: 3, total: 21 }) && done === 3,
-      `29: a stop read after the third table ends the run there: 3 of 21 reached (${r.tables.length} outcomes; ${JSON.stringify(r.stopped)})`);
+    ok(r.tables.length === 3 && JSON.stringify(r.stopped) === JSON.stringify({ done: 3, total: 28 }) && done === 3,
+      `29: a stop read after the third table ends the run there: 3 of 28 reached (${r.tables.length} outcomes; ${JSON.stringify(r.stopped)})`);
     ok(r.deleted.length === 0 && r.stale.length === 0 && !!tableFrame(f28.prim, 'Legacy'),
       `29: a stopped run judges no superseded table: the emptied Legacy table stays (deleted ${r.deleted.length}, stale ${r.stale.length})`);
     const v = styleGuideSummary(r);
-    ok(v.ok && v.headline === '✓ style guide: 3 tables' && v.summary.includes('Stopped after table 3 of 21. The tables already drawn stay'),
+    ok(v.ok && v.headline === '✓ style guide: 3 tables' && v.summary.includes('Stopped after table 3 of 28. The tables already drawn stay'),
       `29: the verdict counts the 3 tables and says where it stopped (${v.headline}; ${v.summary.slice(0, 120)})`);
     // The control: the same file, run to the end, deletes the Legacy table, so the stop is what kept it.
     const full = await draw(f28.api, contract);
     ok(!full.stopped && full.deleted.includes('Style guide — Legacy'), `29: run to the end, the same file deletes the Legacy table (${full.deleted.join(', ')})`);
     // A stop read after the LAST table is no stop.
     let n = 0;
-    const last = await draw(f28.api, contract, {}, { onTable: (e) => { if (e.status === 'done') n++; }, stop: () => n >= 21 });
-    ok(!last.stopped && last.tables.length === 21, `29: a stop that turns true only after the last table is not a stop (${JSON.stringify(last.stopped)})`);
+    const last = await draw(f28.api, contract, {}, { onTable: (e) => { if (e.status === 'done') n++; }, stop: () => n >= 28 });
+    ok(!last.stopped && last.tables.length === 28, `29: a stop that turns true only after the last table is not a stop (${JSON.stringify(last.stopped)})`);
   }
 
   console.log('30. the NB master QA (2026-10-06): font-size rows, the palette swatch, the skip count, a filtered run (#2267, #2268, #2261, #2269)');
@@ -3014,9 +3112,9 @@ const main = async (): Promise<void> => {
     const note = new N('FRAME'); note.name = 'designer note'; note.w = 600; note.h = 400; note.x = 0; note.y = 0;
     multi.prim.appendChild(note);
     await draw(multi.api, contract, { tables: titles });
-    const boxes = [note, ...tablesOn(multi.prim)].map((n) => ({ n: n.name, x: Number(n.x), y: Number(n.y), w: n.width, h: n.height }));
+    const boxes = pageFrames(multi.prim).map((n) => ({ n: n.name, x: Number(n.x), y: Number(n.y), w: n.width, h: n.height }));
     const hits = boxes.flatMap((a, i) => boxes.slice(i + 1).filter((b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h).map((b) => `${a.n} × ${b.n}`));
-    ok(titles.length === 3 && tablesOn(multi.prim).length === 3 && hits.length === 0,
+    ok(titles.length === 3 && tablesOn(multi.prim).length === 3 && boxes.length === 2 && hits.length === 0,
       `30 #2269: three palettes drawn in one filtered run on a page with content overlap nothing (${boxes.map((b) => `${b.n} ${b.x},${b.y} ${b.w}×${b.h}`).join(' | ')}${hits.length ? ` — overlap: ${hits.join(', ')}` : ''})`);
     // THE OWNER'S CASE, found live on the NB copy (2026-10-07): the run started while the page it draws on is the current
     // page, as it is when a designer is looking at it. The host puts each new frame there at 0, 0 before the run places it,
@@ -3025,16 +3123,16 @@ const main = async (): Promise<void> => {
     const cur = await phase2File();
     (cur.api as unknown as { currentPage: N }).currentPage = cur.prim;
     await draw(cur.api, contract, { tables: ['Dimension', 'Density', 'Font family', 'Font size'] });
-    const cboxes = tablesOn(cur.prim).map((n) => ({ n: n.name.replace(/^Style guide — /, ''), x: Number(n.x), y: Number(n.y), w: n.width, h: n.height }));
+    const cboxes = pageFrames(cur.prim).map((n) => ({ n: n.name.replace(/^Style guides? — /, ''), x: Number(n.x), y: Number(n.y), w: n.width, h: n.height }));
     const chits = cboxes.flatMap((a, i) => cboxes.slice(i + 1).filter((b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h).map((b) => `${a.n} × ${b.n}`));
-    ok(cboxes.length === 4 && chits.length === 0 && cboxes.find((b) => b.n === 'Dimension')?.x === 0,
-      `30 #2269: drawn from its own page, a filtered run of two categories lays its tables apart, the first at the page's origin (${cboxes.map((b) => `${b.n} ${b.x},${b.y} ${b.w}×${b.h}`).join(' | ')}${chits.length ? ` — overlap: ${chits.join(', ')}` : ''})`);
+    ok(cboxes.length === 2 && tablesOn(cur.prim).length === 4 && chits.length === 0 && cboxes.find((b) => b.n === 'Dimensions')?.x === 0 && cboxes.find((b) => b.n === 'Dimensions')?.y === 0,
+      `30 #2269: drawn from its own page, a filtered run of two groups lays them apart, the first at the page's origin (${cboxes.map((b) => `${b.n} ${b.x},${b.y} ${b.w}×${b.h}`).join(' | ')}${chits.length ? ` — overlap: ${chits.join(', ')}` : ''})`);
   }
 
   console.log('31. inverse samples (#2331): only an inverse text, border or icon sample sits on the inverse background; every fill swatch fills its cell');
   {
     const inv = await fullFile();
-    await draw(inv.api, contract, { tables: ['Inverse', 'Border', 'Text', 'Background'] });
+    await draw(inv.api, contract, { tables: ['Inverse text', 'Inverse border', 'Inverse icon', 'Inverse background', 'Border', 'Text', 'Background'] });
     const idOf = (name: string): string | undefined => inv.vars.find((v) => v.name === name)?.id;
     const INV_GROUND = idOf('pds3/color/inverse/background/primary');
     const PAGE_GROUND = idOf('pds3/color/background/primary');
@@ -3043,7 +3141,7 @@ const main = async (): Promise<void> => {
     // The defect the owner reported: an inverse TEXT sample on white, where #F7F7F7 cannot be seen. Its path has an
     // `inverse` segment; the table's common prefix (`pds3/color/inverse`) does not count against that.
     for (const token of ['text/primary', 'border/primary', 'icon/primary']) {
-      const c = sample('Inverse', token);
+      const c = sample(`Inverse ${token.split('/')[0]}`, 'primary');
       ok(!!INV_GROUND && c?.name === 'Ground' && boundId(c.fills) === INV_GROUND,
         `31: an inverse ${token.split('/')[0]} sample (inverse/${token}) sits on the inverse background (${say(c)}; want ${INV_GROUND})`);
     }
@@ -3051,13 +3149,13 @@ const main = async (): Promise<void> => {
     // from the path below the table's own prefix, `…/inverse`, which no longer says inverse. The detection reads the
     // whole name, so it still lands on the inverse background.
     const bare = await fullFile();
-    await draw(bare.api, null, { tables: ['Inverse'] });
-    const bareG = gridOf(tableFrame(bare.sem, 'Inverse'));
-    const bareText = cellAt(bareG, rowOf(bareG, 'text/primary'), 1);
+    await draw(bare.api, null, { tables: ['Inverse text'] });
+    const bareG = gridOf(tableFrame(bare.sem, 'Inverse text'));
+    const bareText = cellAt(bareG, rowOf(bareG, 'primary'), 1);
     ok(bareText?.name === 'Ground' && boundId(bareText.fills) === bare.vars.find((v) => v.name === 'pds3/color/inverse/background/primary')?.id,
       `31: with no saved brand (no contract), an inverse text sample still sits on the inverse background, detected from its whole path (${say(bareText)})`);
     // An inverse FILL is a swatch: it fills its cell and never sits on the inverse backdrop.
-    const fill = sample('Inverse', 'background/primary');
+    const fill = sample('Inverse background', 'primary');
     ok(fill?.type === 'INSTANCE' && fill.lsh === 'FILL' && boundId(fill.fills) === INV_GROUND,
       `31: an inverse fill (inverse/background/primary) fills its cell as its own swatch, on no backdrop (${say(fill)})`);
     // A non-inverse border (and text) sample is never on the inverse background: its page ground.
@@ -3126,36 +3224,33 @@ const main = async (): Promise<void> => {
 
   console.log('33. the owner\'s QA of a real brand file (#2371): a mixed run never overlaps, no type-sets font-size table, font weight split, a family in a face it has');
   {
-    /** Every pair of the generator's tables on a page whose boxes intersect, read off the drawn frames. */
-    const overlapsOn = (p: N): string[] => {
-      const b = tablesOn(p).map((n) => ({ n: n.name.replace(/^Style guide — /, ''), x: Number(n.x), y: Number(n.y), w: n.width, h: n.height }));
-      return b.flatMap((a, i) => b.slice(i + 1).filter((c) => a.x < c.x + c.w && c.x < a.x + a.w && a.y < c.y + c.h && c.y < a.y + a.h)
-        .map((c) => `${a.n} ${a.x},${a.y} ${a.w}×${a.h} × ${c.n} ${c.x},${c.y} ${c.w}×${c.h}`));
-    };
-    const GAP = 160;
+    /** Every pair of frames on a page whose boxes intersect: the groups and loose guides (#2801). */
+    const overlapsOn = pageOverlaps;
+    const GAP = 320;
     // (1) A MIXED RUN, filtered as the Build style guides page sends it when not every table is picked: tables updated in
     // place and tables created in one run. Here the updated ones NARROW (the Description column toggled off), as every
-    // table did when #2336 removed its 2px gaps, and the new one joins their row. It lands one gap after them.
+    // table did when #2336 removed its 2px gaps, and the new one joins their group, after them (#2801).
     const mx = await phase2File();
     await draw(mx.api, contract, { tables: ['Dimension', 'Density'] });
     const wide = tableFrame(mx.prim, 'Dimension')!.width;
     const mixed = await draw(mx.api, contract, { tables: ['Dimension', 'Density', 'Step'], description: false });
     const [dim, den, step] = ['Dimension', 'Density', 'Step'].map((t) => tableFrame(mx.prim, t)!);
     ok(JSON.stringify(mixed.tables.map((t) => `${t.title} ${t.status}`)) === JSON.stringify(['Dimension updated', 'Density updated', 'Step created']) && dim.width < wide
-      && overlapsOn(mx.prim).length === 0 && Number(step.x) === Number(den.x) + den.width + GAP && Number(den.x) === Number(dim.x) + dim.width + GAP,
-      `33: a mixed run, tables narrowed in place and one created in their row, overlaps nothing; each sits ${GAP}px after the one before (Dimension ${dim.x} ${dim.width}, was ${wide}; Density ${den.x} ${den.width}; Step ${step.x}${overlapsOn(mx.prim).length ? `; overlap: ${overlapsOn(mx.prim).join('; ')}` : ''})`);
-    // The same, down the page: the dimension row gets SHORTER (twelve steps gone) and a new category's first table, Font
-    // family, starts its row below it.
+      && overlapsOn(mx.prim).length === 0 && [dim, den, step].map(cellOf).join(' ') === '0,0 0,1 0,2' && step.parent === dim.parent,
+      `33: a mixed run, tables narrowed in place and one created in their group, overlaps nothing; each sits after the one before (Dimension ${cellOf(dim)} ${dim.width}, was ${wide}; Density ${cellOf(den)}; Step ${cellOf(step)}${overlapsOn(mx.prim).length ? `; overlap: ${overlapsOn(mx.prim).join('; ')}` : ''})`);
+    // The same, down the page: the Dimensions group gets SHORTER (twelve steps gone) and a new group's first table, Font
+    // family, starts its group below it.
     const mv = await phase2File();
     await draw(mv.api, contract, { tables: ['Dimension', 'Density'] });
     const tall = tableFrame(mv.prim, 'Dimension')!.height;
     const gone = mv.vars.filter((v) => /^pds3\/core\/dimension\//.test(v.name)).slice(-12).map((v) => v.id);
     for (const id of gone) mv.vars.splice(mv.vars.findIndex((v) => v.id === id), 1);
     await draw(mv.api, contract, { tables: ['Dimension', 'Density', 'Font family'] });
-    const [vdim, vden, vfam] = ['Dimension', 'Density', 'Font family'].map((t) => tableFrame(mv.prim, t)!);
-    const rowBottom = Math.max(Number(vdim.y) + vdim.height, Number(vden.y) + vden.height);
-    ok(gone.length === 12 && vdim.height < tall && overlapsOn(mv.prim).length === 0 && Number(vfam.y) === rowBottom + GAP && Number(vfam.x) === Number(vdim.x),
-      `33: a mixed run whose row got shorter starts a new category's row ${GAP}px below it, over nothing (Dimension ${vdim.height} tall, was ${tall}; Font family at ${vfam.x},${vfam.y}, the row ends at ${rowBottom}${overlapsOn(mv.prim).length ? `; overlap: ${overlapsOn(mv.prim).join('; ')}` : ''})`);
+    const vdim = tableFrame(mv.prim, 'Dimension')!;
+    const [vdims, vfonts] = [groupFrame(mv.prim, 'Dimensions')!, groupFrame(mv.prim, 'Fonts')!];
+    const rowBottom = Number(vdims.y) + vdims.height;
+    ok(gone.length === 12 && vdim.height < tall && overlapsOn(mv.prim).length === 0 && Number(vfonts.y) === rowBottom + GAP && Number(vfonts.x) === Number(vdims.x),
+      `33: a mixed run whose group got shorter starts a new group ${GAP}px below it, over nothing (Dimension ${vdim.height} tall, was ${tall}; Fonts at ${vfonts?.x},${vfonts?.y}, Dimensions ends at ${rowBottom}${overlapsOn(mv.prim).length ? `; overlap: ${overlapsOn(mv.prim).join('; ')}` : ''})`);
     // And unfiltered: a run that updates some tables and creates the rest re-flows every row, over nothing.
     const mf = await phase2File();
     await draw(mf.api, contract, { tables: ['Dimension', 'Space', 'Font family'] });
@@ -3190,7 +3285,7 @@ const main = async (): Promise<void> => {
     // (3) FONT WEIGHT SPLIT (owner decision Q133 A): the raw weights on Primitive tokens beside font family and size, the
     // weight roles on Semantic tokens. Which is which is read off the emission: a literal is a raw weight, an alias a role.
     const fontEm = (JSON.parse(readFileSync(join(OUT, 'core.font.json'), 'utf8')) as { variables: { name: string; resolvedType: string; alias: unknown; scopes?: string[] }[] }).variables
-      .filter((v) => v.scopes?.includes('FONT_WEIGHT'));
+      .filter((v) => /\/core\/font\/weight(-role)?\//.test(v.name));
     const rawW = fontEm.filter((v) => !v.alias).map((v) => v.name);
     const roleW = fontEm.filter((v) => v.alias).map((v) => v.name);
     const tokensOf = (w: N | undefined): string[] => (w ? gridOf(w).children.filter((k) => k.gridCol === 0 && k.gridRow! > 0).sort((a, b) => a.gridRow! - b.gridRow!).map(textIn) : []);
@@ -3242,45 +3337,45 @@ const main = async (): Promise<void> => {
     // Every expected value is typed out here, from the engine's emitted names; none is read back off the plan.
     const tokenCol = (w: N | undefined): string[] => (w ? gridOf(w).children.filter((k) => k.gridCol === 0 && k.gridRow! > 0).sort((a, b) => a.gridRow! - b.gridRow!).map(textIn) : []);
     // THE PLAN: a row's Token cell is its whole name by default, and below the table's prefix in short mode.
-    const tp = (o: StyleGuideOptions): string | undefined => planStyleGuide(catalog, contract, o).tables.find((t) => t.title === 'Inverse')?.rows.find((r) => r.name === 'pds3/color/inverse/text/primary')?.tokenCell;
+    const tp = (o: StyleGuideOptions): string | undefined => planStyleGuide(catalog, contract, o).tables.find((t) => t.title === 'Inverse text')?.rows.find((r) => r.name === 'pds3/color/inverse/text/primary')?.tokenCell;
     ok(tp({}) === 'pds3/color/inverse/text/primary' && tp({ tokenNames: 'full' }) === 'pds3/color/inverse/text/primary',
-      `34: plan: absent or full, the Inverse table's text/primary row prints pds3/color/inverse/text/primary (${tp({})})`);
-    ok(tp({ tokenNames: 'short' }) === 'text/primary', `34: plan: short, it prints text/primary (${tp({ tokenNames: 'short' })})`);
+      `34: plan: absent or full, the Inverse text table's primary row prints pds3/color/inverse/text/primary (${tp({})})`);
+    ok(tp({ tokenNames: 'short' }) === 'primary', `34: plan: short, it prints primary, the role inside its inverse family (#2801) (${tp({ tokenNames: 'short' })})`);
 
-    // DRAWN, DEFAULT: a long-path table (Inverse) and a palette table.
+    // DRAWN, DEFAULT: a long-path table (Inverse text) and a palette table.
     const full = await fullFile();
     await draw(full.api, contract, { collections: ['color'] });
     await draw(full.api, contract, { collections: ['core'] });
-    const invFull = tokenCol(tableFrame(full.sem, 'Inverse'));
-    ok(invFull.length > 0 && invFull.every((t) => t.startsWith('pds3/color/inverse/')) && invFull.includes('pds3/color/inverse/text/primary') && invFull.includes('pds3/color/inverse/background/primary'),
-      `34: default: every Inverse row prints its full path, as pds3/color/inverse/text/primary (${invFull.slice(0, 2).join(', ')})`);
+    const invFull = tokenCol(tableFrame(full.sem, 'Inverse text'));
+    ok(invFull.length > 0 && invFull.every((t) => t.startsWith('pds3/color/inverse/text/')) && invFull.includes('pds3/color/inverse/text/primary'),
+      `34: default: every Inverse text row prints its full path, as pds3/color/inverse/text/primary (${invFull.slice(0, 2).join(', ')})`);
     ok(JSON.stringify(tokenCol(tableFrame(full.prim, 'Neutral')).slice(0, 3)) === JSON.stringify(['pds3/core/palette/neutral/025', 'pds3/core/palette/neutral/050', 'pds3/core/palette/neutral/100']),
       `34: default: the Neutral palette prints pds3/core/palette/neutral/025, 050, 100 … (${tokenCol(tableFrame(full.prim, 'Neutral')).slice(0, 3).join(', ')})`);
     // NEVER CLIPPED: the Token track takes its longest path, by the shim's own metric (7px a character).
-    const invG = gridOf(tableFrame(full.sem, 'Inverse'));
+    const invG = gridOf(tableFrame(full.sem, 'Inverse text'));
     const longest = Math.max(...invFull.map((t) => t.length));
     ok(clipped(invG).length === 0 && trackW(invG, 0) >= longest * CHAR_W,
-      `34: default: no Inverse cell is wider than its column, and the Token track holds its longest path, ${longest} × ${CHAR_W}px (track ${trackW(invG, 0)}; ${clipped(invG).slice(0, 2).join('; ')})`);
+      `34: default: no Inverse text cell is wider than its column, and the Token track holds its longest path, ${longest} × ${CHAR_W}px (track ${trackW(invG, 0)}; ${clipped(invG).slice(0, 2).join('; ')})`);
 
     // SWITCHING IS NOT A RENAME: the rerun report keys on variable ID and compares names and raw values, never the
     // printed Token cell, so a rerun in short mode updates every table with no change, and back again.
     const toShort = await draw(full.api, contract, { collections: ['color'], tokenNames: 'short' });
     const quiet = (r: StyleGuideResult): string[] => r.tables.flatMap((t) => (t.status !== 'updated' ? [`${t.title}: ${t.status}`]
       : [...t.diff.added, ...t.diff.removed, ...t.diff.changed, ...t.diff.renamed].map((x) => `${t.title}: ${x}`)));
-    ok(toShort.tables.length === 11 && quiet(toShort).length === 0, `34: switching to short names updates every table and reports no row added, removed, changed or renamed (${quiet(toShort).slice(0, 3).join('; ')})`);
+    ok(toShort.tables.length === 18 && quiet(toShort).length === 0, `34: switching to short names updates every table and reports no row added, removed, changed or renamed (${quiet(toShort).slice(0, 3).join('; ')})`);
 
     // DRAWN, SHORT: the names below each table's prefix, as before #2372.
     const short = await fullFile();
     await draw(short.api, contract, { collections: ['color'], tokenNames: 'short' });
     await draw(short.api, contract, { collections: ['core'], tokenNames: 'short' });
-    const invShort = tokenCol(tableFrame(short.sem, 'Inverse'));
-    ok(invShort.includes('text/primary') && invShort.includes('background/primary') && !invShort.some((t) => t.startsWith('pds3/')),
-      `34: short: the Inverse table prints text/primary and background/primary, no root (${invShort.slice(0, 2).join(', ')})`);
+    const invShort = tokenCol(tableFrame(short.sem, 'Inverse text'));
+    ok(invShort.includes('primary') && !invShort.some((t) => t.startsWith('pds3/') || t.startsWith('text/')),
+      `34: short: the Inverse text table prints primary, no root and no family (${invShort.slice(0, 2).join(', ')})`);
     ok(JSON.stringify(tokenCol(tableFrame(short.prim, 'Neutral')).slice(0, 4)) === JSON.stringify(['025', '050', '100', '150']),
       `34: short: a palette table leads with the step alone: 025, 050, 100, 150 … (${tokenCol(tableFrame(short.prim, 'Neutral')).slice(0, 4).join(', ')})`);
     ok(tokenCol(tableFrame(short.sem, 'Text'))[0] === 'primary', `34: short: text/primary is named "primary" in the Text table (${tokenCol(tableFrame(short.sem, 'Text'))[0]})`);
     const toFull = await draw(short.api, contract, { collections: ['color'] });
-    ok(toFull.tables.length === 11 && quiet(toFull).length === 0 && tokenCol(tableFrame(short.sem, 'Text'))[0] === 'pds3/color/text/primary',
+    ok(toFull.tables.length === 18 && quiet(toFull).length === 0 && tokenCol(tableFrame(short.sem, 'Text'))[0] === 'pds3/color/text/primary',
       `34: back to full paths: no row reported, and text/primary reads its full path again (${quiet(toFull).slice(0, 3).join('; ')})`);
 
     // PHASE 2 FOLLOWS THE SAME OPTION: a dimension and a text style.
@@ -3815,6 +3910,343 @@ const main = async (): Promise<void> => {
     // Q272 A: the miss names the style in plain words. No internal kind key reaches the user, in the misses or the summary.
     const keyLeaks = [...refused.misses, styleGuideSummary(refused).summary, ...styleGuideSummary(refused).lines].filter((m) => /\b(effect|gradient)-style\b/.test(m));
     ok(keyLeaks.length === 0, `36: the refused styles' miss says "effect styles" / "gradient styles", never a raw kind key (${keyLeaks.join(' / ') || 'none'})`);
+  }
+
+  console.log('37. groups (#2801, Q378): the engine table by type and tier, adoption, re-runs, empty groups, ungrouped guides');
+  {
+    // (1) THE TABLE, BY TYPE AND TIER, NEVER BY FAMILY NAME (decision 1). Typed from the issue's table: an icon COLOR family
+    // is a semantic color and an icon SIZE family is Space & size; a border COLOR is a semantic color and a border WIDTH is
+    // Borders; a guide of radii is Borders; another brand's ramp is a palette because it is a primitive color family.
+    ok(styleGuideGroupOf({ type: 'color', tier: 'primitive' }) === 'palettes' && styleGuideGroupOf({ type: 'color', tier: 'semantic' }) === 'semantic-colors'
+      && styleGuideGroupOf({ type: 'dimension', tier: 'primitive' }) === 'dimensions' && styleGuideGroupOf({ type: 'opacity', tier: 'primitive' }) === 'dimensions'
+      && styleGuideGroupOf({ type: 'dimension', tier: 'semantic' }) === 'space-size' && styleGuideGroupOf({ type: 'dimension', tier: 'semantic', allRadius: true }) === 'borders'
+      && styleGuideGroupOf({ type: 'borderWidth', tier: 'semantic' }) === 'borders' && styleGuideGroupOf({ type: 'fontSize', tier: 'primitive' }) === 'primitive-fonts'
+      && styleGuideGroupOf({ type: 'fontWeight', tier: 'semantic' }) === 'semantic-fonts' && styleGuideGroupOf({ type: 'typography', tier: 'semantic' }) === 'semantic-fonts'
+      && styleGuideGroupOf({ type: 'shadow', tier: 'semantic' }) === null && styleGuideGroupOf({ type: 'gradient', tier: 'semantic' }) === null,
+      '37: the engine table groups by type and tier: palettes, dimensions, fonts; semantic colors, space & size, borders, fonts; effect and gradient styles stand alone');
+    ok(JSON.stringify(STYLE_GUIDE_GROUPS.map((g) => `${g.tier[0]}:${g.title}`)) === JSON.stringify(['p:Palettes', 'p:Dimensions', 'p:Fonts', 's:Semantic colors', 's:Space & size', 's:Borders', 's:Fonts']),
+      `37: seven groups in the order they stack, titled as decided (${STYLE_GUIDE_GROUPS.map((g) => g.title).join(', ')})`);
+    // Through the plan, on a file with another brand's families: an `accent` ramp under a foreign root, a semantic `link`
+    // family, an icon-size collection and a border-width collection the prism3 emission does not have.
+    const gf = await phase2File();
+    const core = gf.vars.find((v) => v.name === 'pds3/core/dimension/100')!;
+    gf.cols.push({ id: 'VariableCollectionId:bw', name: 'border-width', modes: [{ modeId: 'bw:0', name: 'Default' }], defaultModeId: 'bw:0' },
+      { id: 'VariableCollectionId:ic', name: 'icon', modes: [{ modeId: 'ic:0', name: 'Default' }], defaultModeId: 'ic:0' },
+      { id: 'VariableCollectionId:bx', name: 'brandx', modes: [{ modeId: 'bx:0', name: 'Default' }], defaultModeId: 'bx:0' },
+      { id: 'VariableCollectionId:bxs', name: 'brandx roles', modes: [{ modeId: 'bxs:0', name: 'Default' }], defaultModeId: 'bxs:0' });
+    const alias = (id: string): { type: string; id: string } => ({ type: 'VARIABLE_ALIAS', id });
+    gf.vars.push({ id: 'VariableID:bw:0', name: 'pds3/border-width/thin', variableCollectionId: 'VariableCollectionId:bw', resolvedType: 'FLOAT', description: '', valuesByMode: { 'bw:0': alias(core.id) }, scopes: ['STROKE_FLOAT'] },
+      { id: 'VariableID:ic:0', name: 'pds3/icon/sm', variableCollectionId: 'VariableCollectionId:ic', resolvedType: 'FLOAT', description: '', valuesByMode: { 'ic:0': alias(core.id) }, scopes: ['WIDTH_HEIGHT'] },
+      { id: 'VariableID:bx:0', name: 'brandx/accent/100', variableCollectionId: 'VariableCollectionId:bx', resolvedType: 'COLOR', description: '', valuesByMode: { 'bx:0': { r: 0.9, g: 0.2, b: 0.4, a: 1 } } },
+      { id: 'VariableID:bxs:0', name: 'brandx/link/default', variableCollectionId: 'VariableCollectionId:bxs', resolvedType: 'COLOR', description: '', valuesByMode: { 'bxs:0': alias('VariableID:bx:0') } });
+    const plan37 = planStyleGuide({ collections: gf.cols, variables: gf.vars, textStyles: gf.styles }, contract);
+    const groupsOfPlan = plan37.tables.map((t) => `${t.title}:${t.group}`).join(', ');
+    // One-family collections are titled after their collection (`brandx`, `brandx roles`), as every collection is.
+    ok(groupsOfPlan === ['Brandx:palettes', 'Brandx roles:semantic-colors', 'Dimension:dimensions', 'Font family:primitive-fonts', 'Font size:primitive-fonts', 'Font weight:primitive-fonts',
+      'Font weight roles:semantic-fonts', 'Space:space-size', 'Radius:borders', 'Size:space-size', 'Opacity:dimensions', 'Density:dimensions', 'Step:dimensions',
+      'Line height:primitive-fonts', 'Letter spacing:primitive-fonts', 'Border width:borders', 'Icon size:space-size', 'Text styles:semantic-fonts'].join(', '),
+      `37: the plan gives every table its group by type and tier: another brand's accent ramp a palette, its link family a semantic color, icon sizes Space & size, border widths and radii Borders (${groupsOfPlan})`);
+
+    // (2) A FRESH FILE DRAWS EACH GROUP ONCE, the tier's groups on its page, in the table's order.
+    await draw(gf.api, contract);
+    const titlesOn = (p: N): string[] => pageFrames(p).sort((a, b) => a.y - b.y).map((n) => n.name.replace(/^Style guides? — /, ''));
+    ok(JSON.stringify(titlesOn(gf.prim)) === JSON.stringify(['Palettes', 'Dimensions', 'Fonts']) && JSON.stringify(titlesOn(gf.sem)) === JSON.stringify(['Semantic colors', 'Space & size', 'Borders', 'Fonts']),
+      `37: a fresh file stacks each page's groups in the table's order (${titlesOn(gf.prim).join(', ')} | ${titlesOn(gf.sem).join(', ')})`);
+    const inGroup = (p: N, title: string): string[] => guidesOf(groupFrame(p, title))!.children.slice().sort((a, b) => a.gridCol! - b.gridCol!).map((k) => k.name.replace('Style guide — ', ''));
+    ok(JSON.stringify(inGroup(gf.sem, 'Borders')) === JSON.stringify(['Radius', 'Border width']) && JSON.stringify(inGroup(gf.sem, 'Space & size')) === JSON.stringify(['Space', 'Size', 'Icon size']),
+      `37: Borders holds Radius and Border width, in plan order, Space & size holds Space, Size and Icon size (${inGroup(gf.sem, 'Borders').join(', ')} | ${inGroup(gf.sem, 'Space & size').join(', ')})`);
+
+    // (3) A GUIDE MOVED BY HAND INTO ANOTHER GROUP STAYS THERE (decision 3); a note a designer put in a group is never
+    // moved or deleted; a renamed group keeps its title; a title Prism3 wrote is refreshed.
+    const radius = tableFrame(gf.sem, 'Radius')!;
+    const spaceGrid = guidesOf(groupFrame(gf.sem, 'Space & size'))!;
+    spaceGrid.gridColumnCount = 4; spaceGrid.gridColumnSizes = [0, 1, 2, 3].map(() => ({ type: 'HUG' }));
+    spaceGrid.appendChildAt(radius, 0, 3);
+    const borders = groupFrame(gf.sem, 'Borders')!;
+    const note = new N('FRAME'); note.name = 'sticky note'; note.w = 300; note.h = 200; borders.appendChild(note);
+    const bTitle = borders.children[0].findOne((k) => k.name === 'Title')!;
+    bTitle.characters = 'Strokes & corners';
+    const fontsSem = groupFrame(gf.sem, 'Fonts')!;
+    // As an earlier build would have written a different title: its record, its frame name and its header all read it.
+    const fTitle = fontsSem.children[0].findOne((k) => k.name === 'Title')!;
+    fTitle.characters = 'Type'; fontsSem.name = 'Style guides — Type'; fontsSem.pluginData['prism3-style-guide-group-title'] = 'Type';
+    await draw(gf.api, contract);
+    ok(radius.parent === spaceGrid && cellOf(radius) === '0,3' && tableFrame(gf.sem, 'Radius') === radius,
+      `37: a guide moved by hand into another group stays there on a rerun, redrawn in place (${radius.parent?.parent?.name}, ${cellOf(radius)})`);
+    ok(note.parent === borders && !note.removed && bTitle.characters === 'Strokes & corners' && borders.name === 'Style guides — Borders',
+      `37: a designer's note in a group is left where it is, and a title they changed is kept (${note.parent?.name}; "${bTitle.characters}")`);
+    ok(fTitle.characters === 'Fonts' && fontsSem.name === 'Style guides — Fonts' && fontsSem.pluginData['prism3-style-guide-group-title'] === 'Fonts',
+      `37: a title still reading what Prism3 wrote is refreshed, its frame name with it ("${fTitle.characters}", ${fontsSem.name})`);
+
+    // (4) AN EMPTY GROUP IS REMOVED by a full run, never by a filtered or a stopped one; a group holding a designer's note
+    // is not empty. Border width removed: Borders keeps only the note, so it stays. Icon size removed: Space & size still
+    // holds guides. Every space and size removed, and Radius with them: Space & size is empty, and goes.
+    gf.vars.splice(gf.vars.findIndex((v) => v.id === 'VariableID:bw:0'), 1);
+    const rb = await draw(gf.api, contract);
+    ok(!!groupFrame(gf.sem, 'Borders') && borders.children.every((c) => c === note || c.pluginData['prism3-style-guide-part']) && !rb.groups?.removed.length,
+      `37: a group left with only a designer's note is not empty, and stays (${JSON.stringify(rb.groups?.removed)})`);
+    const drop = (re: RegExp): void => { for (let i = gf.vars.length - 1; i >= 0; i--) if (re.test(gf.vars[i].name)) gf.vars.splice(i, 1); };
+    drop(/^pds3\/(space|size|radius|icon)\//);
+    drop(/^density\//);
+    // The designer deletes those guides by hand too, so Space & size is EMPTY before the partial runs: a filtered or a
+    // stopped run judges no superseded guide, so without this the group would still hold them and the checks prove nothing.
+    for (const t of ['Space', 'Size', 'Icon size', 'Radius']) tableFrame(gf.sem, t)!.remove();
+    const space = groupFrame(gf.sem, 'Space & size')!;
+    ok(!space.findOne((k) => !!k.pluginData['prism3-style-guide']), '37: Space & size is empty before the partial runs (the precondition)');
+    const filtered = await draw(gf.api, contract, { tables: ['Dimension'] });
+    ok(!!groupFrame(gf.sem, 'Space & size') && !space.removed && !filtered.groups?.removed.length, '37: a filtered run removes no group, an empty one included');
+    let n37 = 0;
+    const stopped = await draw(gf.api, contract, {}, { onTable: (e) => { if (e.status === 'done') n37++; }, stop: () => n37 >= 1 });
+    ok(!!stopped.stopped && !!groupFrame(gf.sem, 'Space & size') && !space.removed && !stopped.groups?.removed.length, '37: a stopped run removes no group, an empty one included');
+    const full = await draw(gf.api, contract);
+    ok(!groupFrame(gf.sem, 'Space & size') && space.removed && JSON.stringify(full.groups?.removed) === JSON.stringify(['Style guides — Space & size'])
+      && styleGuideSummary(full).summary.includes('1 group removed, empty: Style guides — Space & size'),
+      `37: a full run removes a group it drew once it holds nothing, and says so (${JSON.stringify(full.groups?.removed)})`);
+    ok(pageOverlaps(gf.sem).length === 0 && titlesOn(gf.sem).join(', ') === 'Semantic colors, Borders, Fonts' && groupFrame(gf.sem, 'Borders')!.y === groupFrame(gf.sem, 'Semantic colors')!.y + groupFrame(gf.sem, 'Semantic colors')!.height + 320,
+      `37: the groups below close up over it, 320 apart (${titlesOn(gf.sem).join(', ')}; ${pageOverlaps(gf.sem).join('; ') || 'no overlap'})`);
+
+    // (5) ADOPTION (Q378): a file whose designer grouped the guides by hand. Its "Color ramps" frame, a horizontal auto
+    // layout of their own spacing, holds Primary and Neutral; the other guides are loose, drawn before groups. The first run
+    // adopts it: no Palettes group is drawn, the loose palettes join it, and its title, position and layout are kept. A
+    // hand-made frame holding guides of two default groups ("Odds and ends": Text and Legacy) is one group, as it is.
+    const ad = await fullFile();
+    await draw(ad.api, contract);
+    for (const p of [ad.prim, ad.sem]) {
+      for (const g of tablesOn(p)) { p.appendChild(g); delete g.pluginData['prism3-style-guide-in-group']; }
+      for (const g of pageFrames(p).filter((n) => !n.pluginData['prism3-style-guide'])) g.remove();
+    }
+    const hand = (p: N, name: string, guides: string[], x: number): N => {
+      const f = new N('FRAME'); f.name = name; f.layoutMode = 'HORIZONTAL'; f.itemSpacing = 48; f.paddingTop = 24; f.x = x; f.y = -4000; p.appendChild(f);
+      const t = new N('TEXT'); t.name = 'Title'; t.characters = name; f.appendChild(t);
+      for (const g of guides) f.appendChild(tableFrame(p, g)!);
+      return f;
+    };
+    const ramps = hand(ad.prim, 'Color ramps', ['Primary', 'Neutral'], -9000);
+    const odds = hand(ad.prim, 'Odds and ends', ['Legacy'], -20000);
+    const textOdd = tableFrame(ad.sem, 'Text')!;
+    odds.appendChild(textOdd);
+    const ra = await draw(ad.api, contract);
+    const rampNames = ramps.children.filter((k) => k.type === 'FRAME').map((k) => k.name.replace('Style guide — ', ''));
+    ok(!groupFrame(ad.prim, 'Palettes') && JSON.stringify(rampNames) === JSON.stringify(['Primary', 'Neutral', 'Core — base', 'Accent', 'Success', 'Warning', 'Info', 'Danger', 'Black alpha', 'White alpha'])
+      && ramps.x === -9000 && ramps.y === -4000 && ramps.name === 'Color ramps' && ramps.itemSpacing === 48 && ramps.paddingTop === 24 && ramps.children[0].characters === 'Color ramps',
+      `37: a hand-made group is adopted: no Palettes drawn, the loose palettes join it at its end, its title, place and layout kept (${rampNames.join(', ')}; ${ramps.x},${ramps.y})`);
+    ok(textOdd.parent === odds && tableFrame(ad.prim, 'Legacy')!.parent === odds && tableFrame(ad.sem, 'Background')!.parent === guidesOf(groupFrame(ad.sem, 'Semantic colors')),
+      `37: a hand-made frame holding guides of two groups keeps both; a guide in no hand group goes to its default group, drawn when missing (Text in ${textOdd.parent?.name}; Background in ${tableFrame(ad.sem, 'Background')!.parent?.parent?.name})`);
+    ok(JSON.stringify(ra.groups?.adopted) === JSON.stringify(['Color ramps']) && styleGuideSummary(ra).summary.includes('1 group you made is kept as drawn, with new guides added: Color ramps'),
+      `37: the summary names the adopted group (${JSON.stringify(ra.groups?.adopted)})`);
+    // Emptied by hand, title and all, a group Prism3 did not draw is never removed: it holds nothing, as an empty group
+    // Prism3 drew would, and is still the designer's.
+    for (const g of ramps.children.filter((k) => k.type === 'FRAME')) ad.prim.appendChild(g);
+    for (const k of [...ramps.children]) k.remove();
+    await draw(ad.api, contract);
+    ok(!ramps.removed && ramps.parent === ad.prim, '37: a hand-made group with no guides left is never removed');
+
+    // (6) A FAMILY WITH NO DEFAULT COUNTERPART sits at the end of the inverse row; one with no inverse leaves a gap.
+    const iv = await fullFile();
+    const four = { 'color:0': { r: 0, g: 0, b: 1, a: 1 }, 'color:1': { r: 0, g: 0, b: 1, a: 1 }, 'color:2': { r: 0, g: 0, b: 1, a: 1 }, 'color:3': { r: 0, g: 0, b: 1, a: 1 } };
+    iv.vars.push({ id: 'VariableID:color:invlink', name: 'pds3/color/inverse/link/primary', variableCollectionId: 'VariableCollectionId:color', resolvedType: 'COLOR', description: '', valuesByMode: four });
+    await draw(iv.api, contract, { collections: ['color'] });
+    ok(cellOf(tableFrame(iv.sem, 'Inverse link')) === '1,10' && cellOf(tableFrame(iv.sem, 'Scrim')) === '0,7' && !guidesOf(groupFrame(iv.sem, 'Semantic colors'))!.children.some((k) => k.gridRow === 1 && k.gridCol === 7),
+      `37: an inverse family with no default sits at the end of the inverse row, and a default with no inverse leaves its cell below empty (Inverse link ${cellOf(tableFrame(iv.sem, 'Inverse link'))})`);
+    // A new default family drawn later joins the end, and its inverse counterpart, drawn after it, goes under it.
+    iv.vars.push({ id: 'VariableID:color:link', name: 'pds3/color/link/primary', variableCollectionId: 'VariableCollectionId:color', resolvedType: 'COLOR', description: '', valuesByMode: four });
+    iv.vars.push({ id: 'VariableID:color:invglow', name: 'pds3/color/inverse/glow/primary', variableCollectionId: 'VariableCollectionId:color', resolvedType: 'COLOR', description: '', valuesByMode: four });
+    iv.vars.push({ id: 'VariableID:color:glow', name: 'pds3/color/glow/primary', variableCollectionId: 'VariableCollectionId:color', resolvedType: 'COLOR', description: '', valuesByMode: four });
+    await draw(iv.api, contract, { collections: ['color'] });
+    ok(cellOf(tableFrame(iv.sem, 'Link')) === '0,10' && cellOf(tableFrame(iv.sem, 'Glow')) === '0,11' && cellOf(tableFrame(iv.sem, 'Inverse glow')) === '1,11',
+      `37: a new default joins above its inverse when that column is free, and a new pair takes a new column, inverse under default (Link ${cellOf(tableFrame(iv.sem, 'Link'))}, Glow ${cellOf(tableFrame(iv.sem, 'Glow'))}, Inverse glow ${cellOf(tableFrame(iv.sem, 'Inverse glow'))})`);
+
+    // (7) UNGROUPED GUIDES (Q6 A, Q8 A): effect styles stand alone, below the last group, left-aligned with the groups.
+    const ef = await phase2File();
+    ef.effectStyles.push({ id: 'S:effect:37,', name: 'elevation/1', description: '', effects: [{ type: 'DROP_SHADOW', visible: true, color: { r: 0, g: 0, b: 0, a: 0.2 }, offset: { x: 0, y: 2 }, radius: 4, spread: 0 }] });
+    await draw(ef.api, contract);
+    const eff = tableFrame(ef.sem, 'Effect styles')!;
+    const lastGroup = pageFrames(ef.sem).filter((n) => n !== eff).sort((a, b) => b.y - a.y)[0];
+    ok(eff.parent === ef.sem && eff.x === groupFrame(ef.sem, 'Space & size')!.x && eff.y === lastGroup.y + lastGroup.height + 320 && !eff.pluginData['prism3-style-guide-in-group'],
+      `37: Effect styles stands alone below the last group, left-aligned, 320 below it (${eff.x},${eff.y}; ${lastGroup.name} ends at ${lastGroup.y + lastGroup.height})`);
+
+    // (8) A HEADER SET WITHOUT Size=Large (the owner's own set has Medium only): the group title uses Medium, named.
+    const md = page(FC), mp = page(PRIM), ms = page(SEM);
+    md.appendChild(headerSet('_section-header', ['Medium']));
+    const mv = prism3Variables();
+    const mh = makeShim([mp, ms, md], mv.cols, mv.vars);
+    await ensureStyleGuideCells(mh.api, md);
+    const rmh = await draw(mh.api, contract, { collections: ['legacy'] });
+    ok(groupFrame(mp, 'Palettes')?.children[0]?.mainComponent?.name === 'Size=Medium' && rmh.misses.includes('_section-header has no Size=Large variant, so group titles use Size=Medium'),
+      `37: with no Size=Large header, a group's title uses Size=Medium, and the run says so (${rmh.misses.filter((m) => m.includes('Size=')).join(' / ')})`);
+  }
+
+  console.log('38. a group you made takes the inverse row (Q412 A, #2816); a table the generator no longer draws is offered, removed only on confirm');
+  {
+    const KEY = 'prism3-style-guide';
+    const keyOf = (k: N): string => k.pluginData[KEY] ?? '';
+    const isInv = (k: N): boolean => /\/inverse(\/|$)/.test(keyOf(k));
+    const guideName = (k: N | undefined): string => (k?.name ?? 'none').replace('Style guide — ', '');
+    /** A file whose designer made Semantic colors by hand, after an earlier build drew its guides loose: their own frame,
+     *  ONE horizontal auto-layout row with their own title and spacing, the default guides in an order of their own. */
+    const handMade = async (inverseInRow: boolean): Promise<{ f: Awaited<ReturnType<typeof fullFile>>; row: N; title: N; note: N; defaults: N[]; inverses: N[]; y: number }> => {
+      const f = await fullFile();
+      await draw(f.api, contract);
+      for (const g of tablesOn(f.sem)) { f.sem.appendChild(g); delete g.pluginData['prism3-style-guide-in-group']; }
+      for (const g of pageFrames(f.sem).filter((n) => !n.pluginData[KEY])) g.remove();
+      const colors = tablesOn(f.sem).filter((k) => keyOf(k).startsWith('color|'));
+      // The designer's order, not the plan's.
+      const defaults = colors.filter((k) => !isInv(k)).reverse();
+      const inverses = colors.filter(isInv);
+      const row = new N('FRAME'); row.name = 'Semantic colors'; row.layoutMode = 'HORIZONTAL'; row.primaryAxisSizingMode = 'AUTO'; row.counterAxisSizingMode = 'AUTO'; row.itemSpacing = 96; row.paddingTop = 24; row.x = -7000; row.y = -30000;
+      f.sem.appendChild(row);
+      const title = new N('TEXT'); title.name = 'Title'; title.characters = 'Semantic colors'; row.appendChild(title);
+      for (const g of defaults) row.appendChild(g);
+      // As #2810's first run left the owner's file: every inverse guide appended at the end of the row.
+      if (inverseInRow) for (const g of inverses) row.appendChild(g);
+      // A note of theirs after the guides: their content, which keeps its place after the new grid.
+      const note = new N('FRAME'); note.name = 'sticky note'; note.w = 300; note.h = 200; row.appendChild(note);
+      row.y = -30000;
+      // A group Prism3 drew 320 below the row, where it left it (a designer's note keeps it from being empty): the page's
+      // groups stack from it, so a row that grows taller runs into it unless it moves down with the row.
+      const below = new N('FRAME'); below.name = 'Style guides — Borders'; below.layoutMode = 'VERTICAL'; below.primaryAxisSizingMode = 'AUTO'; below.counterAxisSizingMode = 'AUTO';
+      f.sem.appendChild(below);
+      below.pluginData['prism3-style-guide-group'] = 'borders'; below.pluginData['prism3-style-guide-group-mark'] = `${String(f.sem.id)}|${String(below.id)}`;
+      const memo = new N('FRAME'); memo.name = 'sticky note'; memo.w = 300; memo.h = 200; below.appendChild(memo);
+      below.x = -7000; below.y = row.y + row.height + 320; below.pluginData['prism3-style-guide-group-at'] = `${below.x},${below.y}`;
+      return { f, row, title, note, defaults, inverses, y: row.y };
+    };
+    const gridIn = (row: N): N | undefined => row.children.find((c) => c.pluginData['prism3-style-guide-part'] === 'guides');
+    /** Each inverse guide's cell against its default's: `Inverse text 1,3 under Text 0,3`. */
+    const pairing = (defaults: N[], inverses: N[]): string[] => inverses.map((v) => {
+      const mate = defaults.find((d) => keyOf(d) === keyOf(v).replace('/inverse', ''));
+      return `${guideName(v)} ${cellOf(v)} ${mate ? `under ${guideName(mate)} ${cellOf(mate)}` : 'with no default'}`;
+    });
+    const paired = (defaults: N[], inverses: N[], grid: N | undefined): boolean => inverses.every((v) => {
+      const mate = defaults.find((d) => keyOf(d) === keyOf(v).replace('/inverse', ''));
+      return v.parent === grid && v.gridRow === 1 && (mate ? v.gridCol === mate.gridCol : v.gridCol! >= defaults.length);
+    });
+
+    // (1) THE MEASURED RESULT: the inverse guides at the end of the row. One of them a designer dragged out of the row
+    // before this run: it carries the record of the group it was in.
+    const a = await handMade(true);
+    const out = a.inverses[a.inverses.length - 1];
+    a.f.sem.appendChild(out); out.pluginData['prism3-style-guide-in-group'] = String(a.row.id); out.x = -7000; out.y = -90000;
+    const inRow = a.inverses.filter((v) => v !== out);
+    ok(a.defaults.length > 1 && inRow.length > 1 && a.row.width > 15000, `38: the precondition: one row, ${a.defaults.length} defaults then ${inRow.length} inverse guides, ${a.row.width}px wide`);
+    const r1 = await draw(a.f.api, contract);
+    const grid = gridIn(a.row);
+    ok(a.row.parent === a.f.sem && !a.row.removed && a.row.x === -7000 && a.row.y === a.y && a.row.name === 'Semantic colors' && a.row.layoutMode === 'HORIZONTAL'
+      && a.row.itemSpacing === 96 && a.row.paddingTop === 24 && a.row.children[0] === a.title && a.title.characters === 'Semantic colors' && a.row.children[1] === grid
+      && a.row.children[2] === a.note && a.row.children.length === 3,
+      `38: a group you made keeps its frame, title, place and layout; its guides go into one grid where the first guide was (${a.row.children.map((c) => c.name).join(', ')}; ${a.row.x},${a.row.y})`);
+    ok(grid?.layoutMode === 'GRID' && grid.gridRowCount === 2 && grid.gridColumnGap === 96 && grid.gridRowGap === 96 && a.defaults.every((d, i) => d.parent === grid && d.gridRow === 0 && d.gridCol === i),
+      `38: the defaults are the top row, in the designer's order, their own spacing kept (${a.defaults.map((d) => `${guideName(d)} ${cellOf(d)}`).join(', ')})`);
+    ok(paired(a.defaults, inRow, grid), `38: each inverse guide is under its default counterpart, one with no default past the last column (${pairing(a.defaults, inRow).join('; ')})`);
+    ok(out.parent === a.f.sem && out.x === -7000 && out.y === -90000, `38: a guide dragged out of the group by hand stays where it was put (${out.parent?.name})`);
+    const below = groupFrame(a.f.sem, 'Borders');
+    ok(!!below && pageOverlaps(a.f.sem).every((o) => !o.includes('Semantic colors')) && below.y === a.row.y + a.row.height + 320,
+      `38: the group grew taller, and the group below it moved down with it, 320 below (Borders at ${below?.y}, the row ends at ${a.row.y + a.row.height}; ${pageOverlaps(a.f.sem).filter((o) => o.includes('Semantic colors')).join('; ') || 'no overlap'})`);
+    ok(JSON.stringify(r1.groups?.rearranged) === JSON.stringify(['Semantic colors'])
+      && styleGuideSummary(r1).summary.includes('1 group you made now has each inverse guide under its default, its title and place kept: Semantic colors')
+      && !/kept as drawn, with new guides added: [^.]*Semantic colors/.test(styleGuideSummary(r1).summary),
+      `38: the summary says the group was rearranged, once (${JSON.stringify(r1.groups?.rearranged)})`);
+
+    // (2) A RERUN LEAVES THE DESIGNER'S ARRANGEMENT ALONE: the rule is applied once; a guide moved by hand to another cell
+    // stays there, and no second grid is made.
+    const moved = a.defaults[0];
+    grid!.gridColumnCount = grid!.gridColumnCount + 1; grid!.gridColumnSizes = Array.from({ length: grid!.gridColumnCount }, () => ({ type: 'HUG' }));
+    moved.setGridChildPosition(0, grid!.gridColumnCount - 1);
+    const at = cellOf(moved);
+    const r2 = await draw(a.f.api, contract);
+    ok(gridIn(a.row) === grid && a.row.children.length === 3 && cellOf(moved) === at && moved.parent === grid && !r2.groups?.rearranged.length,
+      `38: a rerun keeps a guide moved by hand where it was put, and rearranges nothing (${guideName(moved)} ${cellOf(moved)}, was ${at})`);
+
+    // (3) A NEW PAIR LATER joins the adopted grid as it would one Prism3 drew: the default on top, its inverse under it.
+    const four = { 'color:0': { r: 0, g: 0, b: 1, a: 1 }, 'color:1': { r: 0, g: 0, b: 1, a: 1 }, 'color:2': { r: 0, g: 0, b: 1, a: 1 }, 'color:3': { r: 0, g: 0, b: 1, a: 1 } };
+    a.f.vars.push({ id: 'VariableID:color:glow', name: 'pds3/color/glow/primary', variableCollectionId: 'VariableCollectionId:color', resolvedType: 'COLOR', description: '', valuesByMode: four });
+    a.f.vars.push({ id: 'VariableID:color:invglow', name: 'pds3/color/inverse/glow/primary', variableCollectionId: 'VariableCollectionId:color', resolvedType: 'COLOR', description: '', valuesByMode: four });
+    await draw(a.f.api, contract);
+    const glow = tableFrame(a.f.sem, 'Glow'), invGlow = tableFrame(a.f.sem, 'Inverse glow');
+    ok(glow?.parent === grid && invGlow?.parent === grid && glow.gridRow === 0 && invGlow.gridRow === 1 && invGlow.gridCol === glow.gridCol,
+      `38: a new pair joins a group you made, the inverse under its default (Glow ${cellOf(glow)} in ${glow?.parent?.parent?.name}, Inverse glow ${cellOf(invGlow)})`);
+
+    // (4) ADOPTED THIS RUN: the row holds the defaults only, and the inverse guides are loose, drawn before groups. They
+    // join it and the row becomes the two rows in the same run.
+    const b = await handMade(false);
+    const rb = await draw(b.f.api, contract);
+    const gb = gridIn(b.row);
+    ok(!!gb && b.defaults.every((d, i) => d.parent === gb && cellOf(d) === `0,${i}`) && paired(b.defaults, b.inverses, gb) && b.row.children[0] === b.title
+      && JSON.stringify(rb.groups?.rearranged) === JSON.stringify(['Semantic colors']),
+      `38: inverse guides that join a group you made this run go under their defaults too (${pairing(b.defaults, b.inverses).slice(0, 3).join('; ')}…)`);
+
+    // (5) THE CLEANUP OFFER: the owner's old single Inverse table, in their own "Inverse" frame, a copy of a table the
+    // generator no longer draws (it now draws one per family). The run leaves it, says so, and lists it; it is removed
+    // only when the designer confirms it, and only it.
+    const c = await fullFile();
+    await draw(c.api, contract);
+    const invText = tableFrame(c.sem, 'Inverse text')!;
+    const oldKey = keyOf(invText).replace(/\/text$/, '');
+    const box = new N('FRAME'); box.name = 'Inverse'; box.x = -9000; box.y = -9000; c.sem.appendChild(box);
+    const old = new N('FRAME'); old.name = 'Style guide — Inverse';
+    old.pluginData[KEY] = oldKey; old.pluginData['prism3-style-guide-print'] = 'x'; old.pluginData['prism3-style-guide-mark'] = `${String(c.sem.id)}|not-this-frame`;
+    box.appendChild(old);
+    ok(oldKey.endsWith('/inverse') && !oldKey.endsWith('/inverse/text'), `38: the precondition: a table keyed as the old single Inverse table (${oldKey})`);
+    const rc = await draw(c.api, contract);
+    ok(!old.removed && old.parent === box && JSON.stringify(rc.retired) === JSON.stringify([{ id: String(old.id), name: 'Style guide — Inverse' }])
+      && rc.kept.some((k) => k.name === 'Style guide — Inverse' && k.reason === 'copied'),
+      `38: a run never removes a table the generator no longer draws by itself; it lists it as an offer (${JSON.stringify(rc.retired)})`);
+    ok(styleGuideSummary(rc).summary.includes('1 table the generator no longer draws can be removed on the Style guides page, once you confirm'),
+      '38: the run\'s result offers the cleanup');
+    // Not confirmed: nothing. Confirmed with a table that is still drawn: that one is left, by id.
+    const none = await removeRetiredTables(c.api, contract, []);
+    ok(!old.removed && none.removed.length === 0, '38: with nothing confirmed, nothing is removed');
+    const still = await removeRetiredTables(c.api, contract, [String(invText.id)]);
+    ok(!invText.removed && still.removed.length === 0 && JSON.stringify(still.left) === JSON.stringify([String(invText.id)]),
+      `38: a table the generator still draws is never removed, even when named (${JSON.stringify(still)})`);
+    const done = await removeRetiredTables(c.api, contract, [String(old.id)]);
+    ok(old.removed && JSON.stringify(done.removed) === JSON.stringify(['Style guide — Inverse']) && !box.removed && !invText.removed,
+      `38: confirmed, the offered table is removed, and nothing else (${JSON.stringify(done)})`);
+
+    // (6) THE CLEANUP'S GUARDS. The run offers only what the designer can decide (edited, moved, a copy, unrecorded): a
+    // table kept by the run's own guards, or one the host refused to remove, is not offered. And the confirm re-reads
+    // the file: a table whose collection has left the file, or a plan that draws nothing, removes nothing.
+    const withOld = async (): Promise<{ c: Awaited<ReturnType<typeof fullFile>>; old: N; box: N }> => {
+      const w = await fullFile();
+      await draw(w.api, contract);
+      const key = keyOf(tableFrame(w.sem, 'Inverse text')!).replace(/\/text$/, '');
+      const bx = new N('FRAME'); bx.name = 'Inverse'; bx.x = -9000; bx.y = -9000; w.sem.appendChild(bx);
+      const o = new N('FRAME'); o.name = 'Style guide — Inverse';
+      o.pluginData[KEY] = key; o.pluginData['prism3-style-guide-print'] = 'x'; o.pluginData['prism3-style-guide-mark'] = `${String(w.sem.id)}|not-this-frame`;
+      bx.appendChild(o);
+      return { c: w, old: o, box: bx };
+    };
+    // The run side: a guard or a refusal is a kept table, never an offer.
+    const gNone = await fullFile();
+    await draw(gNone.api, contract);
+    gNone.vars.splice(0);
+    const rNone = await draw(gNone.api, contract);
+    ok(rNone.kept.length > 0 && rNone.kept.every((k) => k.reason === 'nothing-drawn') && (rNone.retired ?? []).length === 0,
+      `38: a table kept because nothing was drawn is never offered for removal (${rNone.kept.length} kept, ${JSON.stringify(rNone.retired)})`);
+    const gLib = await fullFile();
+    await draw(gLib.api, contract);
+    gLib.cols.splice(0); gLib.vars.splice(0);
+    const rLib = await draw(gLib.api, contract);
+    ok(rLib.kept.length > 0 && rLib.kept.every((k) => k.reason === 'no-collection') && (rLib.retired ?? []).length === 0,
+      `38: a table kept because its collection is not in this file is never offered for removal (${rLib.kept.length} kept, ${JSON.stringify(rLib.retired)})`);
+    const gRef = await fullFile();
+    await draw(gRef.api, contract, { collections: ['legacy'] });
+    (tableFrame(gRef.prim, 'Legacy') as unknown as { remove: undefined }).remove = undefined;
+    for (let i = gRef.vars.length - 1; i >= 0; i--) if (gRef.vars[i].name.startsWith('legacy/')) gRef.vars.splice(i, 1);
+    const rRef = await draw(gRef.api, contract, { collections: ['core', 'legacy'] });
+    ok(rRef.kept.length === 1 && rRef.kept[0].reason === 'not-removable' && (rRef.retired ?? []).length === 0,
+      `38: a table the host refused to remove is never offered for removal (${JSON.stringify(rRef.kept)}, ${JSON.stringify(rRef.retired)})`);
+    // The confirm side: the same id, re-read after the file changed.
+    const lost = await withOld();
+    lost.c.cols.splice(lost.c.cols.findIndex((k) => k.id === keyOf(lost.old).split('|')[1]), 1);
+    const rLost = await removeRetiredTables(lost.c.api, contract, [String(lost.old.id)]);
+    ok(!lost.old.removed && rLost.removed.length === 0 && JSON.stringify(rLost.left) === JSON.stringify([String(lost.old.id)]),
+      `38: a confirmed table whose collection has left the file is left in place, by id (${JSON.stringify(rLost)})`);
+    const empty = await withOld();
+    empty.c.vars.splice(0);
+    const rEmpty = await removeRetiredTables(empty.c.api, contract, [String(empty.old.id)]);
+    ok(!empty.old.removed && rEmpty.removed.length === 0 && JSON.stringify(rEmpty.left) === JSON.stringify([String(empty.old.id)]),
+      `38: a confirmed table is left in place when the plan draws nothing, by id (${JSON.stringify(rEmpty)})`);
   }
 
   if (failures) { console.error(`\n${failures} style-guide check(s) failed`); process.exit(1); }

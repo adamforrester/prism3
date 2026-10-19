@@ -200,20 +200,39 @@ export type PaddingDef = {
  * label ramp, the gap and the row height — not just the control), and only the axes that are purely the
  * control's become the consumer's. A wholesale flag could not draw that line.
  */
-/**
- * `atState` — A HOST STATE THAT MOVES THE NESTED COORDINATE (#2317). `follow` passes a host axis through BY NAME,
- * which needs the two vocabularies to agree; a field's seven states and a Button's six do not (`filled`, `read-only`
- * and `focus-visible-filled` have no Button member). `atState` names, per HOST state value, the nested axis values
- * that member takes instead: the Password field's `{ disabled: { state: 'disabled' } }` nests Button's disabled
- * member at the field's disabled member and its `variant` (rest) everywhere else. Applied after `follow`. Each key
- * must be a value of the host's projected state axis and each axis one `variant` names, and none may be
- * `follow`ed or exposed (the host would drive one axis two ways). Projector-only: the plan already carries the
- * resolved coordinate per member, so neither executor reads this field.
- */
+/** `variantWhen` — THE HOST'S VALUE PICKS A NESTED VALUE ON A DIFFERENTLY NAMED AXIS (#2427). `follow` passes a
+ * value through BY NAME, so it cannot say "where the host is `appearance=ghost`, nest the child at `shape=round`":
+ * the two axes are different words, and their values are too. `variantWhen` is that mapping, stated per host axis
+ * and host value: `{ appearance: { outline: { shape: 'flush' }, ghost: { shape: 'round' } } }`. At each projected
+ * member the projector starts from `variant`, merges the entry for the member's value of each listed host axis,
+ * then applies `follow`. A host value with no entry keeps `variant`'s coordinate.
+ *
+ * It is also how a host STATE moves the nested coordinate where `follow` cannot pass it by name because the two
+ * vocabularies differ: the Password field's seven states are not Button's six, so its Show button is mapped at the
+ * one state that moves it, `{ state: { disabled: { state: 'disabled' } } }` (#2317, which first shipped this as a
+ * separate `atState` field; one mapping field now does both jobs).
+ *
+ * On a `nest-exposed` part it may name an EXPOSED child axis: the mapping then sets the value that axis STARTS at
+ * on that member, and the consumer still drives it from there. The Counter's disabled member nests its two buttons
+ * starting at `state=disabled` this way, while each button's `state` stays the designer's to set at a limit. That is
+ * safe where a followed axis is not, because the two write at different times: a followed axis is the HOST's to
+ * drive at every member, so a mapping onto it is overwritten (refused below), while an exposed axis is driven by the
+ * CONSUMER after the instance is placed. The plan only picks the member the instance is placed AT — the same thing
+ * `variant` already does for every exposed axis — and the exposed property overrides it from there. Nothing is
+ * driven two ways at once.
+ *
+ * Refused by `anatomyErrors`: a host axis the def does not project (it would never fire, #1298's shape), a host
+ * value the axis does not have, an empty map, a child axis also in `follow` (the follow would overwrite it at
+ * every member, so the mapping would read as working and never land), and one child axis set from two host axes
+ * (both could apply at one member, and the answer would be declaration order), and a child axis `variant` does not
+ * name (the moved coordinate must still name every axis of one member). That each mapped coordinate is a
+ * REAL child member is checked against the child's own projected members by `lint-nesting.ts`. */
+export type NestVariantWhen = Readonly<Record<string, Readonly<Record<string, Readonly<Record<string, string>>>>>>;
+
 export type NestingRelation =
   | { kind: 'swap' }
-  | { kind: 'nest-fixed'; variant: Record<string, string>; follow?: readonly string[]; atState?: Record<string, Record<string, string>> }
-  | { kind: 'nest-exposed'; variant: Record<string, string>; expose: readonly string[]; follow?: readonly string[]; atState?: Record<string, Record<string, string>> };
+  | { kind: 'nest-fixed'; variant: Record<string, string>; follow?: readonly string[]; variantWhen?: NestVariantWhen }
+  | { kind: 'nest-exposed'; variant: Record<string, string>; expose: readonly string[]; follow?: readonly string[]; variantWhen?: NestVariantWhen };
 
 export type PartDef = {
   kind: PartKind;
@@ -498,6 +517,12 @@ export type PartDef = {
    *  id must be a registered def that builds one component or one set on its own; `figmaAnatomyPlan` refuses any
    *  other, naming it (the schema has no registry to check against). Refused on anything but a `contentSlot` box. */
   preferred?: readonly string[];
+  /** For a `contentSlot` box (#2661, owner decisions Q363.4 and Q386): components the slot offers WHEN THE FILE HAS
+   *  THEM, by DEF ID. Written with `preferred` on the slot's SLOT property; a def not built in this file is left out
+   *  WITHOUT a miss, because the slot does not need it. This is how a slot offers Button.Neutral beside the primary
+   *  Button without requiring a family many teams never build (Q386). Each id is checked against the registry as
+   *  `preferred` is; refused on anything but a `contentSlot` box, and on an id `preferred` also names. */
+  preferredWhenBuilt?: readonly string[];
   /** For `text` parts INSIDE a `contentSlot` box (#2417): the placeholder copy, written as it is. A text node in a
    *  native slot's default content can carry no component-property reference (measured: Figma refuses one on a slot
    *  sublayer), so a slot's placeholder is literal text, which a designer edits or replaces on the instance. Refused
@@ -631,6 +656,15 @@ export type PartDef = {
    *  `widths` key that is not a value of it or a per-size map whose keys are not exactly the `size` values, with a
    *  `heights` key that is not a `widths` key, with a non-positive number, and with a `grow` that is not a child of
    *  the root. */
+  /** For a `box` with `layout`: its DIRECTION PER MEMBER (#2661, owner decision Q363.9). At the value of `axis` the
+   *  member holds, the box reads as if its `layout.direction` were the one named; at any other coordinate, and in a
+   *  structure-only plan, it is the box as authored. Button group's `items` slot is a row inline and at fill and a
+   *  column stacked, and must stay ONE part: a native slot is one SLOT property per part name, so a designer's
+   *  buttons survive a layout switch only when every member's slot is the same part. Resolved at projection, before
+   *  anything reads the anatomy (`directionAt` in `anatomy-figma.ts`), so each member's plan is an ordinary
+   *  `layoutMode` and neither executor changes. Refused off a `box` with `layout`, with an `axis` that is not a
+   *  projected variant axis, and with a key that is not one of its values or a value missing. */
+  directionWhen?: { axis: string; values: Record<string, 'row' | 'column'> };
   builtSize?: {
     axis: string;
     widths: Record<string, number | Record<string, number>>;
@@ -991,6 +1025,32 @@ export type PartDef = {
    *  would be the tempting choice — and it would silently make every nested set fixed-at-its-first-
    *  variant, which is the #656 error this field exists to stop. See `NestingRelation`. */
   nesting?: NestingRelation;
+  /** For a `nest` part: a FALLBACK-ONLY PREFERENCE (#2661, owner decisions Q363.8 as amended and Q386). The def id of
+   *  a sibling component the instance is made from WHEN THE FILE HAS IT, at the same coordinate; otherwise it is made
+   *  from `nests`, without a miss. Dialog's Cancel is Button.Neutral in a file that built the Neutral families and
+   *  the primary Button in one that did not, so no team has to build Button.Neutral to build a Dialog.
+   *
+   *  NEVER A REQUIREMENT, and that is the field's whole point. It is not `nests` and does not project as
+   *  `nestTarget`, so the plugin never builds it first (`build-deps.ts` reads `nestTarget` only) and the Q386 gate
+   *  (`test-write-components.ts`, #2808) does not count it. `nests` stays the one component the part needs.
+   *
+   *  The two components must take the same coordinate: the projection refuses an id whose set does not have exactly
+   *  `nests`'s variant axes and values, and one missing a text or swap property `overrides` sets. Refused off a
+   *  `nest` part with `nests` that is `nest-fixed` or `nest-exposed`, and when it names `nests` itself. */
+  prefersWhenBuilt?: string;
+  /** For a `nest` part (#2661, owner decision Q418): THE HOST'S PREFERENCE FOR A DEFAULT ITEM OF THE COMPONENT IT
+   *  NESTS. Keyed by the NESTED def's anatomy part name, valued by the sibling def id the instance of that item is made
+   *  from WHEN THE FILE HAS IT, at the item's own coordinate; otherwise the item stays what the nested def made it, with
+   *  no miss. Dialog's footer nests Button.Group and prefers Button.Neutral for the group's Cancel
+   *  (`{ cancel: 'button-neutral' }`), while the group on its own keeps the primary outline Button, and Banner or Card
+   *  nest the same group and choose their own.
+   *
+   *  It is `prefersWhenBuilt` one level down, for the same reason and with the same rule: NEVER A REQUIREMENT. It is not
+   *  `nests`, does not project as `nestTarget`, and `build-deps.ts` never reads it, so a team that skips the family
+   *  still builds the host. The nested part must be a `nest-fixed` nest of a component (the item's current owner), and
+   *  the sibling must take its coordinate (checked at projection, as `prefersWhenBuilt` is). Refused off a `nest` part
+   *  with `nests`, and (at projection) for an id that is the item's own component. */
+  nestItemPrefers?: Record<string, string>;
   /** PER-INSTANCE OVERRIDES on the nested instance (#2645): values this part sets on the instance it nests, through
    *  the nested component's OWN component properties. A nested Button reading "Cancel", a List's second item reading
    *  "2.", a close button showing the `close` glyph. Without it a nested instance shows its component's defaults
@@ -3306,13 +3366,26 @@ export type State = (typeof STATES)[number];
  * part exists and how its children run, which is why the name is the part's own: the axis is the footer's layout, and
  * `none` removes it. Naming it `orientation` would claim a missing footer is a direction. An AUTHORING axis.
  * `lint-axis-values.ts` carries the three values as a `sole` set.
+ *
+ * ── `layout`: THE TWENTY-EIGHTH NAME, FOR THE BUTTON GROUP (owner decisions Q363.9 B and Q363 "all A", #2661) ──
+ *
+ * `layout` (`inline | stacked | fill`) is HOW a group of buttons sits in the space it is given: a row at the end edge,
+ * a column of full-width buttons with the main action on top, or a row whose buttons share the width. The approved
+ * wireframe names the three ("layouts on the container"), and the owner added fill (Q363.9 B). It clears the bar
+ * with the nearest defeated: `footer` is the Dialog's own axis and includes `none`, a part that is not there, while a
+ * Button group is always there and is not always a footer (Banner and Card nest it too); `orientation` is which way
+ * a rule runs and has no fill; `width` is one control's own extent, not how a group shares its row; `alignment`
+ * places a row along its bar and never stacks it. None says "how these buttons share the space", and naming it
+ * `footer` would tell a Banner its actions are a footer. An AUTHORING axis: a product picks the layout where it
+ * places the group. Read by the slot's `directionWhen` (`PartDef.directionWhen`), so the one `items` slot runs as a
+ * row or a column per member. `lint-axis-values.ts` carries the three values as a `sole` set.
  */
 export const VARIANT_AXES = [
   'size', 'intent', 'appearance', 'tone',
   'width', 'style', 'indicator', 'offset', 'selection',
   'name', 'surface', 'weight', 'value', 'intensity', 'ratio',
   'status', 'emphasis', 'shape', 'type', 'direction', 'inset', 'orientation', 'alignment', 'expansion', 'iconPosition',
-  'placement', 'footer',
+  'placement', 'footer', 'layout',
 ] as const;
 
 /** One member of the closed axis-NAME vocabulary. Values are not constrained — see `VARIANT_AXES`. */
@@ -4464,6 +4537,17 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       if (ss.allowPreferredValuesOnly && !(p.preferred ?? []).length)
         e.push(`anatomy part '${n}' slotSettings.allowPreferredValuesOnly is true with no 'preferred' — the slot would flag every component a designer puts in it`);
     }
+    if (p.preferredWhenBuilt !== undefined) {
+      if (!p.contentSlot) e.push(`anatomy part '${n}' declares 'preferredWhenBuilt' but is not a native slot — only a \`contentSlot\` box has a SLOT property to carry it`);
+      if (!p.preferredWhenBuilt.length) e.push(`anatomy part '${n}' declares an empty 'preferredWhenBuilt' — leave it out for a slot that offers nothing optional`);
+      const seen = new Set<string>();
+      for (const id of p.preferredWhenBuilt) {
+        if (seen.has(id)) e.push(`anatomy part '${n}' names '${id}' twice in 'preferredWhenBuilt'`);
+        seen.add(id);
+        if (!/^[a-z][a-z0-9-]*$/.test(id)) e.push(`anatomy part '${n}' preferredWhenBuilt '${id}' is not a def id`);
+        if ((p.preferred ?? []).includes(id)) e.push(`anatomy part '${n}' names '${id}' in both 'preferred' and 'preferredWhenBuilt' — a slot either needs a component or offers it when the file has it`);
+      }
+    }
     if (p.preferred !== undefined) {
       if (!p.preferred.length) e.push(`anatomy part '${n}' declares an empty 'preferred' — leave it out for a slot that prefers nothing`);
       const seen = new Set<string>();
@@ -4633,19 +4717,39 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // the fixed `variant` at every coordinate (#1298). The exposed axes are the CHILD's and are NOT checked
     // here (the host does not project them — that is the whole point); their correctness against the child
     // is a projection/round-trip question (`nestVariantMatch`, `test-roundtrip.ts`), not a schema one.
-    if ((p.nesting?.kind === 'nest-fixed' || p.nesting?.kind === 'nest-exposed') && p.nesting.atState) {
-      const stateValues = def.figmaProperties?.stateAxis?.values ?? [];
-      const nesting = p.nesting;
-      for (const [hostState, coord] of Object.entries(nesting.atState ?? {})) {
-        if (!stateValues.includes(hostState))
-          e.push(`anatomy part '${n}' declares nesting 'atState' for '${hostState}', which is not a value of this def's projected state axis [${stateValues.join(', ') || 'none'}] — no member sits at it, so the mapping would never fire`);
-        for (const axis of Object.keys(coord)) {
-          if (!(axis in nesting.variant))
-            e.push(`anatomy part '${n}' declares nesting 'atState' on '${axis}', which its 'variant' does not name — 'atState' moves an axis the coordinate already accounts for, so the moved coordinate still names every axis of one member`);
-          if (nesting.follow?.includes(axis) || (nesting.kind === 'nest-exposed' && nesting.expose.includes(axis)))
-            e.push(`anatomy part '${n}' declares nesting 'atState' on '${axis}', which it also follows or exposes — one axis is driven one way`);
-        }
+    // A FALLBACK-ONLY PREFERENCE (#2661, Q386) is an in-flow nest of a named component that may come from a sibling set
+    // instead; that the sibling takes the same coordinate is checked at projection, where the registry is known.
+    if (p.prefersWhenBuilt !== undefined) {
+      if (p.kind !== 'nest' || !p.nests || (p.nesting?.kind !== 'nest-fixed' && p.nesting?.kind !== 'nest-exposed'))
+        e.push(`anatomy part '${n}' declares 'prefersWhenBuilt' but is not a 'nest' part with 'nests' and a 'nest-fixed' or 'nest-exposed' relation — the preference replaces the component an in-flow instance is made from`);
+      if (p.prefersWhenBuilt === p.nests)
+        e.push(`anatomy part '${n}' prefers '${p.prefersWhenBuilt}', which is the component it nests — name the sibling it uses when the file has it`);
+      if (!/^[a-z][a-z0-9-]*$/.test(p.prefersWhenBuilt))
+        e.push(`anatomy part '${n}' prefersWhenBuilt '${p.prefersWhenBuilt}' is not a def id`);
+    }
+    // A HOST'S ITEM PREFERENCES (#2661, Q418): an in-flow nest whose default items may come from a sibling set. The item
+    // parts and their coordinates are checked at projection, where the registry is known.
+    if (p.nestItemPrefers !== undefined) {
+      if (p.kind !== 'nest' || !p.nests)
+        e.push(`anatomy part '${n}' declares 'nestItemPrefers' but is not a 'nest' part with 'nests' — the preference is for a default item of the component it nests`);
+      for (const [item, id] of Object.entries(p.nestItemPrefers)) {
+        if (!/^[a-z][a-z0-9-]*$/.test(id)) e.push(`anatomy part '${n}' nestItemPrefers '${item}' names '${id}', which is not a def id`);
       }
+    }
+    // PER-MEMBER DIRECTION (#2661): a projected axis, every value given, on a box that lays out.
+    if (p.directionWhen !== undefined) {
+      const dw = p.directionWhen;
+      const projected = def.figmaProperties?.variantAxes ?? [];
+      const values = (def.variants as Record<string, readonly string[] | undefined> | undefined)?.[dw.axis] ?? [];
+      if (p.kind !== 'box' || !p.layout)
+        e.push(`anatomy part '${n}' declares 'directionWhen' but is not a 'box' with 'layout' — only an auto-layout frame has a direction`);
+      if (!projected.includes(dw.axis))
+        e.push(`anatomy part '${n}' directionWhen.axis '${dw.axis}' is not an axis this def projects [${projected.join(', ') || 'none'}]`);
+      for (const k of Object.keys(dw.values)) {
+        if (!values.includes(k)) e.push(`anatomy part '${n}' directionWhen gives '${k}', which is not a value of '${dw.axis}' [${values.join(', ')}]`);
+        if (dw.values[k] !== 'row' && dw.values[k] !== 'column') e.push(`anatomy part '${n}' directionWhen.${k} is '${String(dw.values[k])}' — a direction is 'row' or 'column'`);
+      }
+      for (const v of values) if (!(v in dw.values)) e.push(`anatomy part '${n}' directionWhen gives no direction for '${dw.axis}=${v}' — name every value, so no member falls back to the authored direction by omission`);
     }
     if (p.nestTexts && p.kind !== 'nest')
       e.push(`anatomy part '${n}' declares 'nestTexts' but is kind '${p.kind}' — only an in-flow nested instance carries text overrides`);
@@ -4654,6 +4758,43 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       for (const axis of p.nesting.follow)
         if (!projected.includes(axis))
           e.push(`anatomy part '${n}' declares nesting 'follow' on '${axis}', which is not an axis this def PROJECTS — the projected coordinate is [${projected.join(', ') || 'none'}] (figmaProperties.variantAxes, plus 'state' when a stateAxis is declared). A followed axis the host member does not carry never passes a value through: it falls back to the fixed 'variant' at every coordinate, which resolves a real member of the wrong coordinate rather than failing (#1298)`);
+    }
+    // `variantWhen` (#2427): the host-value → child-value mapping. Each rule is a way to author it so it validates
+    // and never fires, or fires and is then overwritten — both of which build a real member of the wrong coordinate.
+    if ((p.nesting?.kind === 'nest-fixed' || p.nesting?.kind === 'nest-exposed') && p.nesting.variantWhen !== undefined) {
+      const vw = p.nesting.variantWhen;
+      const projected = [...(def.figmaProperties?.variantAxes ?? []), ...(def.figmaProperties?.stateAxis ? ['state'] : [])];
+      const follow = p.nesting.follow ?? [];
+      const variant = p.nesting.variant;
+      const setBy = new Map<string, string>();
+      if (!Object.keys(vw).length)
+        e.push(`anatomy part '${n}' declares an EMPTY nesting 'variantWhen' — a mapping on no host axis maps nothing. Drop the field`);
+      for (const [axis, byValue] of Object.entries(vw)) {
+        if (!projected.includes(axis)) {
+          e.push(`anatomy part '${n}' declares nesting 'variantWhen' on '${axis}', which is not an axis this def PROJECTS [${projected.join(', ') || 'none'}] — the host member never carries it, so the mapping never fires and every member nests the fixed 'variant' (#1298's shape)`);
+          continue;
+        }
+        const values = axis === 'state' ? (def.figmaProperties?.stateAxis?.values ?? []) : ((variantsOf(def)[axis] ?? []) as readonly string[]);
+        if (!Object.keys(byValue).length)
+          e.push(`anatomy part '${n}' declares nesting 'variantWhen.${axis}' with no values — an empty map on an axis maps nothing`);
+        for (const [value, coord] of Object.entries(byValue)) {
+          if (!values.includes(value))
+            e.push(`anatomy part '${n}' declares nesting 'variantWhen.${axis}.${value}', but '${value}' is not a projected value of '${axis}' [${values.join(', ')}] — no member carries it, so the entry never applies`);
+          const childAxes = Object.keys(coord);
+          if (!childAxes.length)
+            e.push(`anatomy part '${n}' declares nesting 'variantWhen.${axis}.${value}' with an empty coordinate — it sets no child axis`);
+          for (const c of childAxes) {
+            if (!(c in variant))
+              e.push(`anatomy part '${n}' declares nesting 'variantWhen.${axis}.${value}' setting the child's '${c}', which its 'variant' does not name — a mapping moves an axis the coordinate already accounts for, so the moved coordinate still names every axis of one member`);
+            if (follow.includes(c))
+              e.push(`anatomy part '${n}' declares nesting 'variantWhen.${axis}.${value}' setting the child's '${c}', which is also in 'follow' — the follow is applied after the mapping and overwrites it at every member, so the mapping would read as working and never land`);
+            const prior = setBy.get(c);
+            if (prior !== undefined && prior !== axis)
+              e.push(`anatomy part '${n}' declares nesting 'variantWhen' setting the child's '${c}' from both '${prior}' and '${axis}' — both can apply at one member, and which wins would be declaration order. Set each child axis from one host axis`);
+            setBy.set(c, axis);
+          }
+        }
+      }
     }
     // PER-INSTANCE OVERRIDES (#2645) ride an instance of a NAMED component, so only a part that builds one may carry
     // them: an `absolute` or `nest` that is `nest-fixed` or `nest-exposed`. Each map, when present, names at least one
