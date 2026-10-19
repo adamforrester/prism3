@@ -377,6 +377,8 @@ const DEFAULT_FIRST: Record<string, string> = {
   'segmented-control-segment': Q1B,
   'segmented-control': Q1B,
   link: Q1B,
+  // #2427: owner Q283.6 B ("medium first") agrees with Q1 B; the Counter takes the same reason.
+  counter: Q1B,
 };
 
 const SIZE_BY_FOLLOW_ONLY: Record<string, string> = {
@@ -413,7 +415,7 @@ const MUST_COVER = [
   'button', 'button-destructive', 'button-neutral',
   'icon-button', 'icon-button-destructive', 'icon-button-neutral',
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral',
-  'field-label', 'text-field', 'textarea', 'select', 'tag',
+  'field-label', 'text-field', 'textarea', 'select', 'tag', 'counter',
   'tab', 'tabs',
   'checkbox-control', 'checkbox-row', 'checkbox-group',
   'radio-control', 'radio-row', 'radio-group',

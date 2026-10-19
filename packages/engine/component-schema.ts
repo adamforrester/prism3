@@ -200,20 +200,39 @@ export type PaddingDef = {
  * label ramp, the gap and the row height — not just the control), and only the axes that are purely the
  * control's become the consumer's. A wholesale flag could not draw that line.
  */
-/**
- * `atState` — A HOST STATE THAT MOVES THE NESTED COORDINATE (#2317). `follow` passes a host axis through BY NAME,
- * which needs the two vocabularies to agree; a field's seven states and a Button's six do not (`filled`, `read-only`
- * and `focus-visible-filled` have no Button member). `atState` names, per HOST state value, the nested axis values
- * that member takes instead: the Password field's `{ disabled: { state: 'disabled' } }` nests Button's disabled
- * member at the field's disabled member and its `variant` (rest) everywhere else. Applied after `follow`. Each key
- * must be a value of the host's projected state axis and each axis one `variant` names, and none may be
- * `follow`ed or exposed (the host would drive one axis two ways). Projector-only: the plan already carries the
- * resolved coordinate per member, so neither executor reads this field.
- */
+/** `variantWhen` — THE HOST'S VALUE PICKS A NESTED VALUE ON A DIFFERENTLY NAMED AXIS (#2427). `follow` passes a
+ * value through BY NAME, so it cannot say "where the host is `appearance=ghost`, nest the child at `shape=round`":
+ * the two axes are different words, and their values are too. `variantWhen` is that mapping, stated per host axis
+ * and host value: `{ appearance: { outline: { shape: 'flush' }, ghost: { shape: 'round' } } }`. At each projected
+ * member the projector starts from `variant`, merges the entry for the member's value of each listed host axis,
+ * then applies `follow`. A host value with no entry keeps `variant`'s coordinate.
+ *
+ * It is also how a host STATE moves the nested coordinate where `follow` cannot pass it by name because the two
+ * vocabularies differ: the Password field's seven states are not Button's six, so its Show button is mapped at the
+ * one state that moves it, `{ state: { disabled: { state: 'disabled' } } }` (#2317, which first shipped this as a
+ * separate `atState` field; one mapping field now does both jobs).
+ *
+ * On a `nest-exposed` part it may name an EXPOSED child axis: the mapping then sets the value that axis STARTS at
+ * on that member, and the consumer still drives it from there. The Counter's disabled member nests its two buttons
+ * starting at `state=disabled` this way, while each button's `state` stays the designer's to set at a limit. That is
+ * safe where a followed axis is not, because the two write at different times: a followed axis is the HOST's to
+ * drive at every member, so a mapping onto it is overwritten (refused below), while an exposed axis is driven by the
+ * CONSUMER after the instance is placed. The plan only picks the member the instance is placed AT — the same thing
+ * `variant` already does for every exposed axis — and the exposed property overrides it from there. Nothing is
+ * driven two ways at once.
+ *
+ * Refused by `anatomyErrors`: a host axis the def does not project (it would never fire, #1298's shape), a host
+ * value the axis does not have, an empty map, a child axis also in `follow` (the follow would overwrite it at
+ * every member, so the mapping would read as working and never land), and one child axis set from two host axes
+ * (both could apply at one member, and the answer would be declaration order), and a child axis `variant` does not
+ * name (the moved coordinate must still name every axis of one member). That each mapped coordinate is a
+ * REAL child member is checked against the child's own projected members by `lint-nesting.ts`. */
+export type NestVariantWhen = Readonly<Record<string, Readonly<Record<string, Readonly<Record<string, string>>>>>>;
+
 export type NestingRelation =
   | { kind: 'swap' }
-  | { kind: 'nest-fixed'; variant: Record<string, string>; follow?: readonly string[]; atState?: Record<string, Record<string, string>> }
-  | { kind: 'nest-exposed'; variant: Record<string, string>; expose: readonly string[]; follow?: readonly string[]; atState?: Record<string, Record<string, string>> };
+  | { kind: 'nest-fixed'; variant: Record<string, string>; follow?: readonly string[]; variantWhen?: NestVariantWhen }
+  | { kind: 'nest-exposed'; variant: Record<string, string>; expose: readonly string[]; follow?: readonly string[]; variantWhen?: NestVariantWhen };
 
 export type PartDef = {
   kind: PartKind;
@@ -4698,20 +4717,6 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // the fixed `variant` at every coordinate (#1298). The exposed axes are the CHILD's and are NOT checked
     // here (the host does not project them — that is the whole point); their correctness against the child
     // is a projection/round-trip question (`nestVariantMatch`, `test-roundtrip.ts`), not a schema one.
-    if ((p.nesting?.kind === 'nest-fixed' || p.nesting?.kind === 'nest-exposed') && p.nesting.atState) {
-      const stateValues = def.figmaProperties?.stateAxis?.values ?? [];
-      const nesting = p.nesting;
-      for (const [hostState, coord] of Object.entries(nesting.atState ?? {})) {
-        if (!stateValues.includes(hostState))
-          e.push(`anatomy part '${n}' declares nesting 'atState' for '${hostState}', which is not a value of this def's projected state axis [${stateValues.join(', ') || 'none'}] — no member sits at it, so the mapping would never fire`);
-        for (const axis of Object.keys(coord)) {
-          if (!(axis in nesting.variant))
-            e.push(`anatomy part '${n}' declares nesting 'atState' on '${axis}', which its 'variant' does not name — 'atState' moves an axis the coordinate already accounts for, so the moved coordinate still names every axis of one member`);
-          if (nesting.follow?.includes(axis) || (nesting.kind === 'nest-exposed' && nesting.expose.includes(axis)))
-            e.push(`anatomy part '${n}' declares nesting 'atState' on '${axis}', which it also follows or exposes — one axis is driven one way`);
-        }
-      }
-    }
     // A FALLBACK-ONLY PREFERENCE (#2661, Q386) is an in-flow nest of a named component that may come from a sibling set
     // instead; that the sibling takes the same coordinate is checked at projection, where the registry is known.
     if (p.prefersWhenBuilt !== undefined) {
@@ -4753,6 +4758,43 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       for (const axis of p.nesting.follow)
         if (!projected.includes(axis))
           e.push(`anatomy part '${n}' declares nesting 'follow' on '${axis}', which is not an axis this def PROJECTS — the projected coordinate is [${projected.join(', ') || 'none'}] (figmaProperties.variantAxes, plus 'state' when a stateAxis is declared). A followed axis the host member does not carry never passes a value through: it falls back to the fixed 'variant' at every coordinate, which resolves a real member of the wrong coordinate rather than failing (#1298)`);
+    }
+    // `variantWhen` (#2427): the host-value → child-value mapping. Each rule is a way to author it so it validates
+    // and never fires, or fires and is then overwritten — both of which build a real member of the wrong coordinate.
+    if ((p.nesting?.kind === 'nest-fixed' || p.nesting?.kind === 'nest-exposed') && p.nesting.variantWhen !== undefined) {
+      const vw = p.nesting.variantWhen;
+      const projected = [...(def.figmaProperties?.variantAxes ?? []), ...(def.figmaProperties?.stateAxis ? ['state'] : [])];
+      const follow = p.nesting.follow ?? [];
+      const variant = p.nesting.variant;
+      const setBy = new Map<string, string>();
+      if (!Object.keys(vw).length)
+        e.push(`anatomy part '${n}' declares an EMPTY nesting 'variantWhen' — a mapping on no host axis maps nothing. Drop the field`);
+      for (const [axis, byValue] of Object.entries(vw)) {
+        if (!projected.includes(axis)) {
+          e.push(`anatomy part '${n}' declares nesting 'variantWhen' on '${axis}', which is not an axis this def PROJECTS [${projected.join(', ') || 'none'}] — the host member never carries it, so the mapping never fires and every member nests the fixed 'variant' (#1298's shape)`);
+          continue;
+        }
+        const values = axis === 'state' ? (def.figmaProperties?.stateAxis?.values ?? []) : ((variantsOf(def)[axis] ?? []) as readonly string[]);
+        if (!Object.keys(byValue).length)
+          e.push(`anatomy part '${n}' declares nesting 'variantWhen.${axis}' with no values — an empty map on an axis maps nothing`);
+        for (const [value, coord] of Object.entries(byValue)) {
+          if (!values.includes(value))
+            e.push(`anatomy part '${n}' declares nesting 'variantWhen.${axis}.${value}', but '${value}' is not a projected value of '${axis}' [${values.join(', ')}] — no member carries it, so the entry never applies`);
+          const childAxes = Object.keys(coord);
+          if (!childAxes.length)
+            e.push(`anatomy part '${n}' declares nesting 'variantWhen.${axis}.${value}' with an empty coordinate — it sets no child axis`);
+          for (const c of childAxes) {
+            if (!(c in variant))
+              e.push(`anatomy part '${n}' declares nesting 'variantWhen.${axis}.${value}' setting the child's '${c}', which its 'variant' does not name — a mapping moves an axis the coordinate already accounts for, so the moved coordinate still names every axis of one member`);
+            if (follow.includes(c))
+              e.push(`anatomy part '${n}' declares nesting 'variantWhen.${axis}.${value}' setting the child's '${c}', which is also in 'follow' — the follow is applied after the mapping and overwrites it at every member, so the mapping would read as working and never land`);
+            const prior = setBy.get(c);
+            if (prior !== undefined && prior !== axis)
+              e.push(`anatomy part '${n}' declares nesting 'variantWhen' setting the child's '${c}' from both '${prior}' and '${axis}' — both can apply at one member, and which wins would be declaration order. Set each child axis from one host axis`);
+            setBy.set(c, axis);
+          }
+        }
+      }
     }
     // PER-INSTANCE OVERRIDES (#2645) ride an instance of a NAMED component, so only a part that builds one may carry
     // them: an `absolute` or `nest` that is `nest-fixed` or `nest-exposed`. Each map, when present, names at least one

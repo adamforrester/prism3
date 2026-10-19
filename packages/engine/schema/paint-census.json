@@ -504,6 +504,18 @@
         "assignments": 456,
         "sha256": "f4c8a2016d77cece81f97d359ca68dc8eff078bc1f9a52f0f7609105c65946f0"
       }
+    },
+    "counter": {
+      "set": {
+        "members": 18,
+        "assignments": 33,
+        "sha256": "acd5f49dae97ec1116531001337296adec9ab1e1f107bdc6816b884c04f048b0"
+      },
+      "grid": {
+        "members": 18,
+        "assignments": 33,
+        "sha256": "6bc23dc4a29e15cda035cf17a5a1a035f7fd5c48bb1b69a6c0d5967f1092d28a"
+      }
     }
   }
 }

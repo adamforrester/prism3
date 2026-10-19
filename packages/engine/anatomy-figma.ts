@@ -22,7 +22,7 @@
  * runs it without a live file. Verification against what the engine actually emits is a separate,
  * also-pure step (`planBindingErrors`) that takes the emitted Figma variable names as a Set.
  */
-import type { AxisKind, ComponentDef, PartDef } from './component-schema';
+import type { AxisKind, ComponentDef, NestVariantWhen, PartDef } from './component-schema';
 import { axisKindOf, densitySizeValues, densitySpacingKeys, visibleGapKeys, fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, STATE_GATE, statesOf, whenStates, variantsOf, slotAxisFigmaName, variantAxisFigmaName, swapPart, swapFigmaName, textFigmaName, booleanPartsOf, booleanFigmaName, booleanDefault, figmaVariantCount, figmaAxisNames, isExcludedCoordinate, WEIGHT_INTENTS } from './component-schema';
 import type { ControlShape, FieldStyle, ButtonIcons, ButtonContentSize, ButtonLabelWeight, ButtonTextHover, Density } from './scale';
 import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER, densitySpacingStep, ratioMinWidth, spacePx, visibleGapStep } from './scale';
@@ -1014,8 +1014,8 @@ const nestItemPrefersOf = (defId: string, part: string, p: PartDef): NestItemPre
     const where = `${defId}: anatomy part '${part}' prefers '${id}' for '${p.nests}' item '${item}'`;
     const ip = nested?.anatomy?.parts[item];
     if (!ip) throw new Error(`${where}, which '${p.nests}' has no anatomy part of that name`);
-    if (ip.kind !== 'nest' || !ip.nests || ip.nesting?.kind !== 'nest-fixed' || ip.nesting.follow?.length || ip.nesting.atState)
-      throw new Error(`${where}, which is not a plain 'nest-fixed' nest of a component (no 'follow', no 'atState') — the item's coordinate is the one the preferred set must take`);
+    if (ip.kind !== 'nest' || !ip.nests || ip.nesting?.kind !== 'nest-fixed' || ip.nesting.follow?.length || ip.nesting.variantWhen)
+      throw new Error(`${where}, which is not a plain 'nest-fixed' nest of a component (no 'follow', no 'variantWhen') — the item's coordinate is the one the preferred set must take`);
     if (id === ip.nests) throw new Error(`${where}, which is the component the item already is`);
     nestPreferOf(defId, `${part}.${item}`, { ...ip, prefersWhenBuilt: id });
     return { item, prefer: id, variant: { ...ip.nesting.variant } };
@@ -1317,16 +1317,20 @@ export const figmaAnatomyPlan = (
   // `axisValue` is deliberately NOT widened to cover this: `size` is a key of `def.variants`, so folding
   // it in there would put `size` into `coord` and retire the "structure-only plan ⇒ empty coord"
   // invariant that `lint-paint` depends on (see `coord`'s own note).
-  const nestVariantOf = (nesting: { variant: Record<string, string>; follow?: readonly string[]; atState?: Record<string, Record<string, string>> }): Record<string, string> => {
+  // `variantWhen` (#2427) is merged between the fixed `variant` and `follow`: the host member's value of each listed
+  // axis picks a partial child coordinate (the Counter's `appearance=ghost` nests `shape=round`; the Password field's
+  // `state=disabled` nests Button's disabled member, #2317). The validator keeps a mapped child axis out of `follow`,
+  // so the order below never lets one overwrite the other: the two are disjoint, and either order lands the same.
+  const nestVariantOf = (nesting: { variant: Record<string, string>; follow?: readonly string[]; variantWhen?: NestVariantWhen }): Record<string, string> => {
     const out: Record<string, string> = { ...nesting.variant };
+    for (const [axis, byValue] of Object.entries(nesting.variantWhen ?? {})) {
+      const v = paintCoord[axis];
+      if (v !== undefined && byValue[v]) Object.assign(out, byValue[v]);
+    }
     for (const axis of nesting.follow ?? []) {
       const v = paintCoord[axis];
       if (v !== undefined) out[axis] = v;
     }
-    // A HOST STATE THAT MOVES THE NESTED COORDINATE (#2317, `NestingRelation.atState`): after `follow`, so the
-    // mapped axes win at the states that name them, and nowhere else.
-    const atState = paintCoord.state !== undefined ? nesting.atState?.[paintCoord.state] : undefined;
-    if (atState) Object.assign(out, atState);
     return out;
   };
 
@@ -4970,7 +4974,7 @@ export const CANVAS_FURNITURE: ReadonlySet<string> = new Set([
   'radio-row', 'radio-group', 'switch-control', 'switch-row', 'select', 'veil', 'image-placeholder', 'badge', 'tag', 'tab', 'tabs',
   'divider', '_accordion-indicator', 'accordion', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'list-item',
   'list', 'segmented-control-segment', 'segmented-control', 'link',
-  'button-group', 'dialog', 'password-field',
+  'button-group', 'dialog', 'password-field', 'counter',
 ]);
 
 export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {

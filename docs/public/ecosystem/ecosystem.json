@@ -314,7 +314,8 @@
           "link",
           "button-group",
           "dialog",
-          "password-field"
+          "password-field",
+          "counter"
         ]
       }
     },

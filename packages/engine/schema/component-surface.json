@@ -702,6 +702,15 @@
         "placeholder:TEXT",
         "value:TEXT"
       ]
+    },
+    "counter": {
+      "members": 18,
+      "sha256": "2a891ba2e1b95c6342b378b458092f5605dd8c8f59b58f18bfb2c40a03bbe8a2",
+      "properties": [
+        "label:BOOLEAN",
+        "message:BOOLEAN",
+        "value:TEXT"
+      ]
     }
   }
 }

@@ -75,7 +75,7 @@ import type { AnatomyPlan, ButtonLayout } from './anatomy-figma';
 // ABOUT one component (`button.variants.appearance`, `textField.tokens[...]`), which a find-by-id
 // over the set would only make weaker. Completeness of the set is NOT asserted here — that is
 // `typecheck-components.ts`'s registry arm, whose oracle is git's index.
-import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioGroup, textarea, radioControl, radioRow, switchControl, switchRow, select, spinner, tag, tab, divider } from './components/index';
+import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioGroup, textarea, radioControl, radioRow, switchControl, switchRow, select, spinner, tag, tab, divider, counter } from './components/index';
 // The glyph vocabulary, for #864's geometry assertions. Imported so EXPECTED comes from the set rather
 // than from the projector that read it — the two halves `docs/34` requires.
 import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-glyphs';
@@ -14523,9 +14523,12 @@ arm: {
       // The field family on main (Q332: Text field, Textarea, Select, Password field; Number and Code input are not built).
       const FIELDS = ['password-field', 'select', 'text-field', 'textarea'];
       // The field chrome's fill is the field family's own role (the checkbox and radio share the rest border, not this).
+      // The Counter's outline borrows the field chrome (#2427, Q283.13 A) but is not a field: the lever leaves it as it is,
+      // which the identity arm below holds, until the owner decides whether it follows the field style (asked on #2693).
+      const FIELD_FILL_BORROWERS = ['counter'];
       const bindsFieldFill = componentDefs.filter((d) => Object.values(d.tokens).includes('color.field.fill')).map((d) => d.id).sort();
-      ok(JSON.stringify(bindsFieldFill) === JSON.stringify(FIELDS),
-        `#2695 reach: the defs that bind the field chrome (color.field.fill) are exactly the field family ${FIELDS.join(', ')} (got ${bindsFieldFill.join(', ')})`);
+      ok(JSON.stringify(bindsFieldFill) === JSON.stringify([...FIELDS, ...FIELD_FILL_BORROWERS].sort()),
+        `#2695 reach: the defs that bind the field chrome (color.field.fill) are exactly the field family ${FIELDS.join(', ')} and its named borrowers ${FIELD_FILL_BORROWERS.join(', ')} (got ${bindsFieldFill.join(', ')})`);
       const notIdentity = componentDefs.filter((d) => applyFieldStyle(d, 'outline') !== d || (!FIELDS.includes(d.id) && applyFieldStyle(d, 'underline') !== d)).map((d) => d.id);
       ok(notIdentity.length === 0, `#2695 identity: outline returns every def unchanged, and underline every non-field def (moved: ${notIdentity.join(', ') || 'none'})`);
       const moved = FIELDS.filter((id) => applyFieldStyle(def(id), 'underline') === def(id));
@@ -16956,6 +16959,102 @@ arm: {
         `#2457 ${d.id}'s docs.do states the 44px spacing center to center (Q296 A)`);
   }
 
+  // ---- #2427: THE COUNTER — owner decisions Q283, Q286 A and the wireframe decisions (on #2427), Q287 A (on #2457) ----
+  // EXPECTED is the decisions, typed here as literals and never read off the def (docs/34). ACTUAL is every projected
+  // member's plan. Each arm names the decision it holds, so a mutation of the def fails the arm by name:
+  //   axes        Q283.4 A `appearance: outline | ghost`; Q283.6 B sizes medium first (Q1 B's rule for every set); state rest / focus-visible / disabled
+  //   nests       Q287 A outline → flush, ghost → round; Q283.7 buttons start at rest, disabled only on a disabled Counter;
+  //               both exposing `state`, on FlushIconButton.Neutral, the size followed
+  //   row         Q287 A the row is the round button's diameter, 36 / 44 / 56; Q283.13 A insets 12 / 12 / 16 on outline,
+  //               0 on ghost, and the value at least 32 wide
+  //   paint       outline: the field's fill and edge, the disabled edge at disabled; ghost: no box paint at any state
+  //   ring        Q283.10 A the ghost ring at the control offset (2px); outline at the field offset, as Text field
+  //   label       Q283.9 B hidden by default; the message off by default
+  //   api         Q283.7 min defaults to 0; Q283.8 A the buttons are tabindex="-1"; Q283.7 C no remove-at-min prop
+  {
+    const SIZES = ['medium', 'small', 'large'];
+    const STATES = ['rest', 'focus-visible', 'disabled'];
+    const SHAPE: Record<string, string> = { outline: 'flush', ghost: 'round' };
+    const HEIGHT: Record<string, string> = { small: 'size/sm/height', medium: 'size/md/height', large: 'size/lg/height' };
+    const INSET: Record<string, Record<string, string>> = {
+      outline: { small: 'space/150', medium: 'space/150', large: 'space/200' },
+      ghost: { small: 'space/0', medium: 'space/0', large: 'space/0' },
+    };
+    const RING: Record<string, string> = { outline: 'focus/ring/offset-field', ghost: 'focus/ring/offset' };
+    const plans = figmaAnatomySet(counter, { swapTarget: 'FPO-default-icon' });
+    ok(JSON.stringify(counter.variants?.appearance) === JSON.stringify(['outline', 'ghost']) && JSON.stringify(counter.variants?.size) === JSON.stringify(SIZES)
+      && JSON.stringify(counter.figmaProperties?.stateAxis?.values) === JSON.stringify(STATES) && plans.length === 18,
+      `#2427 counter/axes: appearance [outline, ghost] (Q283.4 A), size medium first (Q283.6 B, now every ladder's rule under Q1 B), state [rest, focus-visible, disabled], 18 members (got ${JSON.stringify(counter.variants)} × ${JSON.stringify(counter.figmaProperties?.stateAxis?.values)} = ${plans.length})`);
+    const offNest: string[] = [], offRow: string[] = [], offPaint: string[] = [], offRing: string[] = [], offLabel: string[] = [];
+    for (const p of plans) {
+      const name = planComponentName(p);
+      const ap = String(p.coord.appearance), st = String(p.coord.state), sz = String(p.size);
+      const control = p.root.children.find((c) => c.name === 'control');
+      for (const side of ['decrement', 'increment']) {
+        const n = control?.children.find((c) => c.name === side);
+        const want = { shape: SHAPE[ap], size: sz, state: st === 'disabled' ? 'disabled' : 'rest' };
+        if (n?.nestTarget !== 'flush-icon-button-neutral' || JSON.stringify(n?.nestVariant) !== JSON.stringify(want) || JSON.stringify(n?.nestExpose) !== JSON.stringify(['state']))
+          offNest.push(`${name}/${side}: ${n?.nestTarget} ${JSON.stringify(n?.nestVariant)} exposing ${JSON.stringify(n?.nestExpose)}, want ${JSON.stringify(want)}`);
+      }
+      // The nested FieldLabel dims with a disabled Counter and rests otherwise (`variantWhen` on the state), held here
+      // against a literal as well as in the roundtrip and the surface digest.
+      const findPart = (n: typeof p.root | undefined, nm: string): typeof p.root | undefined => !n ? undefined : n.name === nm ? n : n.children.map((c) => findPart(c, nm)).find(Boolean);
+      const lab = findPart(p.root, 'label');
+      const wantLabel = { size: sz, emphasis: 'secondary', weight: 'regular', state: st === 'disabled' ? 'disabled' : 'rest' };
+      if (lab?.nestTarget !== 'field-label' || JSON.stringify(lab?.nestVariant) !== JSON.stringify(wantLabel))
+        offLabel.push(`${name}/label: ${lab?.nestTarget} ${JSON.stringify(lab?.nestVariant)}, want ${JSON.stringify(wantLabel)}`);
+      const entry = control?.children.find((c) => c.name === 'entry');
+      if (control?.bound?.height !== HEIGHT[sz] || control?.bound?.paddingLeft !== INSET[ap][sz] || control?.bound?.paddingRight !== INSET[ap][sz] || entry?.minWidth !== 32)
+        offRow.push(`${name}: height ${control?.bound?.height}, insets ${control?.bound?.paddingLeft}/${control?.bound?.paddingRight}, value ${entry?.minWidth} wide`);
+      const own = control ? planPaintVars({ ...control, children: [] }) : [];
+      const wantPaint = ap === 'ghost' ? [] : st === 'disabled' ? ['color/disabled/border'] : ['color/field/fill', 'color/field/border/rest'];
+      if (JSON.stringify([...own].sort()) !== JSON.stringify([...wantPaint].sort())) offPaint.push(`${name}: box paints [${own.join(', ')}], want [${wantPaint.join(', ')}]`);
+      const value = entry?.children.find((c) => c.name === 'value');
+      const ink = st === 'disabled' ? 'color/disabled/text' : 'color/text/primary';
+      if (value?.paints?.fills !== ink) offPaint.push(`${name}: value ${value?.paints?.fills}, want ${ink}`);
+      const ring = control?.children.find((c) => c.name === 'focusRing');
+      if ((st === 'focus-visible') !== !!ring || (ring && ring.absoluteInset !== RING[ap])) offRing.push(`${name}: ring ${ring ? ring.absoluteInset : 'absent'}`);
+    }
+    ok(offNest.length === 0, `#2427 counter/nests: both buttons nest FlushIconButton.Neutral exposing [state], outline → flush and ghost → round (Q287 A), at rest unless the Counter is disabled (Q283.7)${offNest.length ? ` — ${offNest.slice(0, 3).join('; ')}` : ''}`);
+    ok(offLabel.length === 0, `#2427 counter/label-dims: the nested FieldLabel is secondary and regular at the Counter's size, disabled on the Counter's disabled members and at rest on the rest${offLabel.length ? ` — ${offLabel.slice(0, 3).join('; ')}` : ''}`);
+    ok(offRow.length === 0, `#2427 counter/row: the row is 36 / 44 / 56 tall (Q287 A), inset 12 / 12 / 16 on outline and 0 on ghost, the value at least 32 wide (Q283.13 A)${offRow.length ? ` — ${offRow.slice(0, 3).join('; ')}` : ''}`);
+    ok(offPaint.length === 0, `#2427 counter/paint: outline draws the field fill and edge (the disabled edge at disabled), ghost paints no box at any state, the value full contrast until disabled${offPaint.length ? ` — ${offPaint.slice(0, 3).join('; ')}` : ''}`);
+    ok(offRing.length === 0, `#2427 counter/ring: the ring at focus-visible only, at the control offset on ghost (Q283.10 A) and the field offset on outline${offRing.length ? ` — ${offRing.slice(0, 3).join('; ')}` : ''}`);
+    const b = counter.figmaProperties?.booleans ?? {};
+    ok(b.showLabel?.part === 'label' && b.showLabel.default === false && b.showMessage?.part === 'message' && b.showMessage.default === false
+      && counter.props.find((x) => x.name === 'showLabel')?.default === false,
+      `#2427 counter/label: the label is hidden by default in Figma and in code (Q283.9 B), and the message is off (got ${JSON.stringify(b)})`);
+    const keyboardSays = /tabindex="-1"/.test(counter.accessibility.keyboard ?? '') && (counter.anatomy?.codeOnly ?? []).some((e) => /<button type="button" tabindex="-1">/.test(e));
+    ok(counter.props.find((x) => x.name === 'min')?.default === 0 && keyboardSays && !counter.props.some((x) => /remove/i.test(x.name)),
+      `#2427 counter/api: min defaults to 0 (Q283.7), the buttons are tabindex="-1" in the shipped keyboard text and in codeOnly (Q283.8 A), and no remove-at-min prop (Q283.7 C)`);
+  }
+
+  // ---- #2427: `variantWhen` — a host value picking a child value on a differently named axis. Each refusal fires on a
+  // case built for it, and the Counter's own declaration is clean (the projection half is `#2427 counter/nests` above).
+  {
+    const withNesting = (nesting: Record<string, unknown>) => ({
+      ...counter,
+      anatomy: { ...counter.anatomy!, parts: { ...counter.anatomy!.parts, decrement: { ...counter.anatomy!.parts.decrement!, nesting } } },
+    }) as unknown as ComponentDef;
+    const base = counter.anatomy!.parts.decrement!.nesting as Record<string, unknown>;
+    const CASES: Array<{ why: string; vw: unknown; want: RegExp; follow?: readonly string[] }> = [
+      { why: 'an axis the host does not project', vw: { tone: { a: { shape: 'round' } } }, want: /variantWhen' on 'tone', which is not an axis this def PROJECTS/ },
+      { why: 'a value the axis does not have', vw: { appearance: { filled: { shape: 'round' } } }, want: /'filled' is not a projected value of 'appearance'/ },
+      // The fixture states its own `follow`, so this refusal does not lean on the Counter's declaration.
+      { why: 'a child axis also followed', vw: { appearance: { ghost: { size: 'large' } } }, want: /also in 'follow'/, follow: ['size'] },
+      { why: 'a child axis the variant does not name', vw: { appearance: { ghost: { tone: 'quiet' } } }, want: /setting the child's 'tone', which its 'variant' does not name/ },
+      { why: 'one child axis set from two host axes', vw: { appearance: { ghost: { shape: 'round' } }, state: { disabled: { shape: 'flush' } } }, want: /from both 'appearance' and 'state'/ },
+      { why: 'an empty map', vw: {}, want: /EMPTY nesting 'variantWhen'/ },
+      { why: 'an axis with no values', vw: { appearance: {} }, want: /'variantWhen\.appearance' with no values/ },
+      { why: 'an empty coordinate', vw: { appearance: { ghost: {} } }, want: /'variantWhen\.appearance\.ghost' with an empty coordinate/ },
+    ];
+    for (const c of CASES) {
+      const errs = validateComponentDef(withNesting({ ...base, ...(c.follow ? { follow: c.follow } : {}), variantWhen: c.vw })).errors;
+      ok(errs.some((e) => c.want.test(e)), `#2427 variantWhen refuses ${c.why} (errors: ${errs.join(' | ') || 'none'})`);
+    }
+    ok(validateComponentDef(counter).errors.length === 0, `#2427 variantWhen: the Counter's own mapping validates clean (${validateComponentDef(counter).errors.join(' | ') || 'none'})`);
+  }
+
   // ---- #2725: THE TEXT-BEARING CONTROLS STEP THEIR GLYPH DOWN ONE RUNG — owner decision Q337 A (2026-10-15) ----
   // Segmented control, Tab and Tag follow Button (#1350): small 16, medium 20, large 24 (`icon.size.xs` / `sm` / `md`).
   // Icon button keeps its 1:1 rung (20 / 24 / 32); Flush icon button its own (20 / 20 / 24, asserted above). EXPECTED is
@@ -17812,7 +17911,13 @@ arm: {
           ok(want !== undefined, `#1700 ${d.id}: cites \`components/${cites[0]}\`, which \`schema/kb-briefs.json\` lacks — refresh it with \`npx tsx packages/engine/kb-briefs-refresh.ts <kb checkout>\`, never by hand`);
           ok(d.category === want, `#1700 ${d.id}: category is '${d.category}', and its brief \`components/${cites[0]}\` files it under '${want}' — a def takes its brief's category`);
         } else if (noBrief) {
-          const exists = briefFor(d);
+          // A NAME COLLISION, admitted by name and never by pattern (#2427): the KB's badge brief lists "Counter" as
+          // an alias for a count badge (a number shown on another element). The Counter def is the quantity control,
+          // a different component with no brief; the owner approved the name with that meaning. Any other def whose id
+          // or alias meets a brief still fails here.
+          const ALIAS_COLLISIONS: Record<string, string> = { counter: 'badge.md' };
+          const found = briefFor(d);
+          const exists = found !== undefined && ALIAS_COLLISIONS[d.id] === found ? undefined : found;
           ok(exists === undefined,
             `#2488 ${d.id}: says "No KB brief", and the knowledge base has \`components/${exists}\` (category '${exists && kbBriefs[exists].category}') — cite it as "KB brief: \`components/${exists}\`" and take its category`);
           const stated = header.match(/No KB brief[\s\S]{0,400}?Category[\s*]+`([a-z]+)`/)?.[1];
@@ -18548,6 +18653,8 @@ arm: {
       { def: select, part: 'value', axes: { size: 3 }, at: { state: 'filled' } },
       { def: textarea, part: 'placeholder', axes: { size: 3 } },
       { def: textarea, part: 'value', axes: { size: 3 }, at: { state: 'filled' } },
+      // COUNTER (#2427): the value binds the field's three body rungs, one per size.
+      { def: counter, part: 'value', axes: { size: 3 } },
       // ACCORDION (#2417): the title binds Button's three label rungs (owner, 2026-10-11), and the panel placeholder the
       // three body rungs. The placeholder exists only on an expanded member.
       { def: componentDefs.find((d) => d.id === 'accordion')!, part: 'label', axes: { size: 3 } },
@@ -22378,11 +22485,20 @@ arm: {
             // drops nodes — and a dropped `field-message` node orphans the `showMessage` visibility boolean
             // (#1426). Provisioning both mirrors the real build (the plugin builds each nested component and
             // the swap target first), where no node is dropped.
-            comps: [...new Set(plans.flatMap((p) => walkPlan(p.root)).flatMap((n) => [n.swapTarget, n.nestTarget]).filter((c): c is string => !!c))],
+            // A per-instance swap override (#2645) names a glyph component too, which the real build places first.
+            comps: [...new Set(plans.flatMap((p) => walkPlan(p.root)).flatMap((n) => [n.swapTarget, n.nestTarget,
+              ...(n.nestOverrides ?? []).filter((o) => o.type === 'INSTANCE_SWAP').map((o) => o.value)]).filter((c): c is string => !!c))],
             // #2317 — each nested component's TEXT properties, from the NESTED def's own declaration (never from the
             // host's `nestTexts`, the value under test), so a nested instance has the property a host overrides.
             compTexts: Object.fromEntries(componentDefs.filter((d) => d.figmaProperties?.texts).map((d) =>
               [d.id, Object.fromEntries(Object.entries(d.figmaProperties!.texts!).map(([k, t]) => [t.figmaName ?? k, t.default]))])),
+            // #2427 — a nested component with SWAP properties declares them, also from the nested def's own declaration
+            // (never the host's `overrides`), so the Counter's minus and plus land on a nested instance that has them.
+            componentProps: Object.fromEntries(componentDefs.filter((d) => Object.keys(d.figmaProperties?.swaps ?? {}).length).map((d) =>
+              [d.id, Object.fromEntries([
+                ...Object.entries(d.figmaProperties!.texts ?? {}).map(([k, t], i) => [`${t.figmaName ?? k}#7:${i}`, { type: 'TEXT', defaultValue: t.default }]),
+                ...Object.entries(d.figmaProperties!.swaps!).map(([k, s], i) => [`${s.figmaName ?? k}#8:${i}`, { type: 'INSTANCE_SWAP', defaultValue: '73:37' }]),
+              ])])),
           };
           // The exposure lives on a NODE deep in each member; no `runPayload` summary field carries it, so
           // it is read off the PAGE the payload appended the combined set to. Returns every nested instance
@@ -32577,18 +32693,19 @@ arm: {
   ok(sharedBad.length === 0,
     `#2317 field factory: the ${SHARED_CODE_ONLY.length} code-only entries on the shared anatomy read the same in TextField and the Password field${sharedBad.length ? ` — DIFFER or missing: ${sharedBad.join(', ')}` : ''}`);
 
-  // `atState` IS VALIDATED ON ITS OWN TERMS: a host state the def does not project, and an axis the variant does not name,
-  // are refused by name.
+  // THE STATE MAPPING IS VALIDATED ON ITS OWN TERMS (#2317, carried on `variantWhen` since #2427 folded `atState` into
+  // it): a host state the def does not project, an axis the variant does not name, and a followed axis are refused by
+  // name. Built on the Password field, not the Counter, so these refusals do not lean on the Counter's declaration.
   // The toggle follows no axis since #2804 (small at every size), so the followed-axis case adds `follow: ['size']` itself.
-  const withAtState = (atState: Record<string, Record<string, string>>, follow?: string[]): ComponentDef => {
+  const withStateMap = (byState: Record<string, Record<string, string>>, follow?: string[]): ComponentDef => {
     const t = pw.anatomy!.parts.toggle;
-    return { ...pw, anatomy: { ...pw.anatomy!, parts: { ...pw.anatomy!.parts, toggle: { ...t, nesting: { ...(t.nesting as object), atState, ...(follow ? { follow } : {}) } as typeof t.nesting } } } };
+    return { ...pw, anatomy: { ...pw.anatomy!, parts: { ...pw.anatomy!.parts, toggle: { ...t, nesting: { ...(t.nesting as object), variantWhen: { state: byState }, ...(follow ? { follow } : {}) } as typeof t.nesting } } } };
   };
   ok(validateComponentDef(pw).errors.length === 0
-    && validateComponentDef(withAtState({ pressed: { state: 'disabled' } })).errors.some((m) => /atState.*'pressed'/.test(m))
-    && validateComponentDef(withAtState({ disabled: { tone: 'quiet' } })).errors.some((m) => /atState.*'tone'/.test(m))
-    && validateComponentDef(withAtState({ disabled: { size: 'small' } }, ['size'])).errors.some((m) => /atState.*'size'.*follows/.test(m)),
-    `#2317 atState: the Password field validates clean; a host state off the state axis, an axis the variant does not name, and a followed axis are each refused by name`);
+    && validateComponentDef(withStateMap({ pressed: { state: 'disabled' } })).errors.some((m) => /variantWhen\.state\.pressed'.*not a projected value/.test(m))
+    && validateComponentDef(withStateMap({ disabled: { tone: 'quiet' } })).errors.some((m) => /variantWhen\.state\.disabled' setting the child's 'tone', which its 'variant' does not name/.test(m))
+    && validateComponentDef(withStateMap({ disabled: { size: 'small' } }, ['size'])).errors.some((m) => /variantWhen\.state\.disabled' setting the child's 'size', which is also in 'follow'/.test(m)),
+    `#2317 variantWhen.state: the Password field validates clean; a host state off the state axis, an axis the variant does not name, and a followed axis are each refused by name`);
 }
 
 // ---- #2708 / Q351 A: the Rows' and Textarea's state props ---------------------------------------------

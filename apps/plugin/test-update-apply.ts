@@ -189,7 +189,7 @@ const plansOf = (id: string): AnatomyPlan[] => {
 };
 // A swap override's component is one the file holds too (#2645): the build pre-builds it (`build-deps.ts`), so the
 // world lists it, or Dialog's close (`icon/close`, #2609) reads as a blocker the file never has.
-const planComps = (n: { swapTarget?: string; nestTarget?: string; nestOverrides?: { type: string; value: string }[]; children?: unknown[] }): string[] => [
+const planComps = (n: { swapTarget?: string; nestTarget?: string; nestOverrides?: readonly { type: string; value: string }[]; children?: unknown[] }): string[] => [
   ...(n.swapTarget ? [n.swapTarget] : []),
   ...(n.nestTarget ? [n.nestTarget] : []),
   ...(n.nestOverrides ?? []).filter((o) => o.type === 'INSTANCE_SWAP').map((o) => o.value),
