@@ -29076,38 +29076,41 @@ arm: {
 
 // #2715: RADIO GROUP, checkbox-group's twin (#1475), carries the same kinds of test the checkbox group does: what it
 // nests, how many members it projects, and the nest chain under it. Every expected value is typed here from the def's
-// brief and owner decisions (Q156 A: eight rows, rows 2 and 3 on by default; the group label secondary and bold), never
+// brief and owner decisions (Q307 A: the rows in an items slot, three by default, at least one, only a Radio.Row; the group label secondary and bold), never
 // read off the def or the projector (docs/34 shape 1). Read per projected member, so a row repointed at the control
 // atom, a row made exposed, a lost follow, or a new group axis fails the named arm.
 {
   const g = componentDefs.find((d) => d.id === 'radio-group');
   ok(!!g, '#2715 radio-group: registered in componentDefs');
-  type PN = { name: string; children: PN[]; nestTarget?: string; nestVariant?: Record<string, string>; visible?: boolean; visibleProp?: string };
+  type PN = { name: string; type?: string; children: PN[]; nestTarget?: string; nestVariant?: Record<string, string>; visible?: boolean; visibleProp?: string; layoutAlign?: string; slotSettings?: Record<string, unknown>; slotPreferred?: string[] };
   const members = figmaAnatomySet(g!, { swapTarget: 'FPO-default-icon' });
   const NAMES = ['size=medium', 'size=small', 'size=large'];
   ok(JSON.stringify(members.map(planComponentName).sort()) === JSON.stringify([...NAMES].sort()),
     `#2715 radio-group set size: exactly three members, one per size (${NAMES.join(', ')}); the rows' selection is not re-enumerated into the group's own matrix (got ${JSON.stringify(members.map(planComponentName))})`);
-  const ROWS = ['row1', 'row2', 'row3', 'row4', 'row5', 'row6', 'row7', 'row8'];
   const sorted = (r: Record<string, string> | undefined) => JSON.stringify(Object.entries(r ?? {}).sort());
+  // Owner decision Q307 A (#2649): the rows live in a native "items" slot, three by default, at least one, only a Radio.Row.
   const off = members.flatMap((m) => {
     const size = (m.size ?? (m.coord as Record<string, string>).size) as string;
     const root = m.root as PN;
     const bad: string[] = [];
-    if (JSON.stringify(root.children.map((c) => c.name)) !== JSON.stringify(['label', ...ROWS])) bad.push(`children ${root.children.map((c) => c.name).join(',')}`);
+    if (JSON.stringify(root.children.map((c) => c.name)) !== JSON.stringify(['label', 'items'])) bad.push(`children ${root.children.map((c) => c.name).join(',')}`);
     const label = root.children.find((c) => c.name === 'label');
     if (label?.nestTarget !== 'field-label' || sorted(label.nestVariant) !== sorted({ size, emphasis: 'secondary', weight: 'bold', state: 'rest' }))
       bad.push(`label ${String(label?.nestTarget)} ${JSON.stringify(label?.nestVariant)}`);
-    ROWS.forEach((r, i) => {
-      const n = root.children.find((c) => c.name === r);
-      if (n?.nestTarget !== 'radio-row' || sorted(n.nestVariant) !== sorted({ size })) bad.push(`${r} ${String(n?.nestTarget)} ${JSON.stringify(n?.nestVariant)}`);
-      const wantProp = i === 0 ? undefined : `Option ${i + 1}`;
-      const wantHidden = i >= 3;
-      if (n?.visibleProp !== wantProp || (n?.visible === false) !== wantHidden) bad.push(`${r} visibleProp ${String(n?.visibleProp)}, visible ${String(n?.visible)}`);
-    });
+    const items = root.children.find((c) => c.name === 'items');
+    if (items?.type !== 'CONTENT_SLOT' || items.layoutAlign !== 'STRETCH') bad.push(`items ${String(items?.type)} ${String(items?.layoutAlign)}`);
+    if (JSON.stringify(items?.slotSettings) !== JSON.stringify({ minChildren: 1, allowPreferredValuesOnly: true }) || JSON.stringify(items?.slotPreferred) !== JSON.stringify(['radio-row']))
+      bad.push(`items slot settings ${JSON.stringify(items?.slotSettings)} preferred ${JSON.stringify(items?.slotPreferred)}`);
+    const rows = items?.children ?? [];
+    if (JSON.stringify(rows.map((r) => r.name)) !== JSON.stringify(['row1', 'row2', 'row3'])) bad.push(`items holds ${rows.map((r) => r.name).join(',')}`);
+    for (const r of rows) {
+      if (r.nestTarget !== 'radio-row' || sorted(r.nestVariant) !== sorted({ size }) || r.layoutAlign !== 'STRETCH') bad.push(`${r.name} ${String(r.nestTarget)} ${JSON.stringify(r.nestVariant)} ${String(r.layoutAlign)}`);
+      if (r.visibleProp !== undefined || r.visible === false) bad.push(`${r.name} visibleProp ${String(r.visibleProp)}, visible ${String(r.visible)}`);
+    }
     return bad.length ? [`${planComponentName(m)}: ${bad.join('; ')}`] : [];
   });
   ok(off.length === 0,
-    `#2715 radio-group nesting: on every member, one FieldLabel (secondary, bold, rest) then eight Radio.Rows, each following the group's size; row 1 always shown, rows 2-8 behind "Option 2"-"Option 8", rows 2 and 3 on (${off.length} off — ${off[0] ?? 'none'})`);
+    `#2715 radio-group nesting: on every member, one FieldLabel (secondary, bold, rest) then an items slot (at least one, preferred-only Radio.Row, stretched) holding three Radio.Rows, each following the group's size, none behind a boolean (${off.length} off — ${off[0] ?? 'none'})`);
   const parts = Object.values(g!.anatomy!.parts);
   ok(parts.filter((p) => p.kind === 'nest' && p.nests === 'radio-row').every((p) => p.nesting?.kind === 'nest-fixed')
     && !parts.some((p) => p.nests === 'radio-control'),
