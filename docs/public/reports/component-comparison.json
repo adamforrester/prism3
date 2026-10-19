@@ -838,6 +838,104 @@
       "sizeDefault": "medium"
     },
     {
+      "id": "counter",
+      "name": "Counter",
+      "category": "form",
+      "states": [
+        "rest",
+        "focus-visible",
+        "disabled"
+      ],
+      "projectedStates": [
+        "rest",
+        "focus-visible",
+        "disabled"
+      ],
+      "axes": {
+        "appearance": [
+          "outline",
+          "ghost"
+        ],
+        "size": [
+          "medium",
+          "small",
+          "large"
+        ]
+      },
+      "props": [
+        {
+          "name": "label"
+        },
+        {
+          "name": "showLabel",
+          "default": false
+        },
+        {
+          "name": "value"
+        },
+        {
+          "name": "defaultValue"
+        },
+        {
+          "name": "onChange"
+        },
+        {
+          "name": "min",
+          "default": 0
+        },
+        {
+          "name": "max"
+        },
+        {
+          "name": "step",
+          "default": 1
+        },
+        {
+          "name": "appearance",
+          "default": "outline",
+          "values": [
+            "outline",
+            "ghost"
+          ]
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        {
+          "name": "message"
+        },
+        {
+          "name": "showMessage",
+          "default": false
+        },
+        {
+          "name": "decrementLabel"
+        },
+        {
+          "name": "incrementLabel"
+        },
+        {
+          "name": "name"
+        },
+        {
+          "name": "disabled",
+          "default": false
+        }
+      ],
+      "sizes": [
+        "medium",
+        "small",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
       "id": "dialog",
       "name": "Dialog",
       "category": "overlay",
@@ -3434,6 +3532,7 @@
       "button-neutral",
       "checkbox-control",
       "checkbox-row",
+      "counter",
       "field-label",
       "flush-icon-button",
       "flush-icon-button-destructive",
@@ -3478,6 +3577,7 @@
       "button-neutral",
       "checkbox-control",
       "checkbox-row",
+      "counter",
       "flush-icon-button",
       "flush-icon-button-destructive",
       "flush-icon-button-neutral",
@@ -3588,6 +3688,7 @@
       "checkbox-control",
       "checkbox-group",
       "checkbox-row",
+      "counter",
       "field-label",
       "flush-icon-button",
       "flush-icon-button-destructive",
@@ -3647,6 +3748,15 @@
           "button",
           "button-destructive",
           "button-neutral"
+        ]
+      },
+      {
+        "values": [
+          "ghost",
+          "outline"
+        ],
+        "components": [
+          "counter"
         ]
       }
     ],
@@ -3908,6 +4018,7 @@
           "checkbox-control",
           "checkbox-group",
           "checkbox-row",
+          "counter",
           "dialog",
           "field-label",
           "flush-icon-button",
@@ -4173,6 +4284,14 @@
         ]
       },
       {
+        "id": "counter",
+        "default": "outline",
+        "values": [
+          "outline",
+          "ghost"
+        ]
+      },
+      {
         "id": "icon-button",
         "default": "ghost",
         "values": [
@@ -4311,6 +4430,11 @@
         "default": true
       }
     ],
+    "decrementLabel": [
+      {
+        "id": "counter"
+      }
+    ],
     "defaultChecked": [
       {
         "id": "checkbox-row",
@@ -4326,6 +4450,9 @@
     "defaultValue": [
       {
         "id": "checkbox-group"
+      },
+      {
+        "id": "counter"
       },
       {
         "id": "password-field"
@@ -4389,6 +4516,10 @@
       },
       {
         "id": "checkbox-group",
+        "default": false
+      },
+      {
+        "id": "counter",
         "default": false
       },
       {
@@ -4602,6 +4733,11 @@
         "id": "text-field"
       }
     ],
+    "incrementLabel": [
+      {
+        "id": "counter"
+      }
+    ],
     "indeterminate": [
       {
         "id": "checkbox-control",
@@ -4804,6 +4940,9 @@
         "id": "checkbox-row"
       },
       {
+        "id": "counter"
+      },
+      {
         "id": "field-label"
       },
       {
@@ -4906,6 +5045,9 @@
       {
         "id": "badge",
         "default": 99
+      },
+      {
+        "id": "counter"
       }
     ],
     "maxLength": [
@@ -4920,7 +5062,16 @@
     ],
     "message": [
       {
+        "id": "counter"
+      },
+      {
         "id": "field-message"
+      }
+    ],
+    "min": [
+      {
+        "id": "counter",
+        "default": 0
       }
     ],
     "minRows": [
@@ -4931,6 +5082,9 @@
     "name": [
       {
         "id": "checkbox-group"
+      },
+      {
+        "id": "counter"
       },
       {
         "id": "icon",
@@ -5014,6 +5168,9 @@
       },
       {
         "id": "checkbox-row"
+      },
+      {
+        "id": "counter"
       },
       {
         "id": "password-field"
@@ -5313,7 +5470,17 @@
         "default": false
       }
     ],
+    "showLabel": [
+      {
+        "id": "counter",
+        "default": false
+      }
+    ],
     "showMessage": [
+      {
+        "id": "counter",
+        "default": false
+      },
       {
         "id": "password-field",
         "default": true
@@ -5413,6 +5580,15 @@
       },
       {
         "id": "checkbox-row",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "id": "counter",
         "default": "medium",
         "values": [
           "small",
@@ -5685,6 +5861,12 @@
           "warning",
           "success"
         ]
+      }
+    ],
+    "step": [
+      {
+        "id": "counter",
+        "default": 1
       }
     ],
     "style": [
@@ -6029,6 +6211,9 @@
         "id": "checkbox-row"
       },
       {
+        "id": "counter"
+      },
+      {
         "id": "list-item"
       },
       {
@@ -6257,11 +6442,12 @@
         "button",
         "button-destructive",
         "button-neutral",
+        "counter",
         "icon-button",
         "icon-button-destructive",
         "icon-button-neutral"
       ],
-      "detail": "the appearance axis takes 2 value sets — [filled, ghost, outline] in icon-button, icon-button-destructive, icon-button-neutral; [filled, outline, text] in button, button-destructive, button-neutral"
+      "detail": "the appearance axis takes 3 value sets — [filled, ghost, outline] in icon-button, icon-button-destructive, icon-button-neutral; [filled, outline, text] in button, button-destructive, button-neutral; [ghost, outline] in counter"
     },
     {
       "kind": "axis values",
@@ -6321,6 +6507,7 @@
         "checkbox-control",
         "checkbox-group",
         "checkbox-row",
+        "counter",
         "dialog",
         "field-label",
         "flush-icon-button",
@@ -6348,7 +6535,7 @@
         "text-field",
         "textarea"
       ],
-      "detail": "the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab, tabs, tag, text-field, textarea; [medium, small] in switch-control, switch-row; [large, medium, small, x-small] in spinner"
+      "detail": "the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab, tabs, tag, text-field, textarea; [medium, small] in switch-control, switch-row; [large, medium, small, x-small] in spinner"
     },
     {
       "kind": "axis values",
@@ -6453,6 +6640,14 @@
         "checkbox-row"
       ],
       "detail": "checkbox-row declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "counter",
+      "components": [
+        "counter"
+      ],
+      "detail": "counter declares its sizes as [medium, small, large], not smallest first"
     },
     {
       "kind": "size order",
@@ -6652,7 +6847,19 @@
       "components": [
         "field-label"
       ],
-      "detail": "field-label defaults size to small; 33 of 34 sized components default to medium"
+      "detail": "field-label defaults size to small; 34 of 35 sized components default to medium"
+    },
+    {
+      "kind": "prop default",
+      "subject": "prop showMessage",
+      "components": [
+        "counter",
+        "password-field",
+        "select",
+        "text-field",
+        "textarea"
+      ],
+      "detail": "showMessage defaults differ over the same values — false in counter; true in password-field, select, text-field, textarea"
     },
     {
       "kind": "axis without prop",

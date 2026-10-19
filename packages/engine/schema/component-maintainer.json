@@ -1292,6 +1292,41 @@
         ],
         "projection": []
       }
+    },
+    "counter": {
+      "codeOnly": [
+        "the spinbutton — the value is one focusable element with role=\"spinbutton\" and tabindex=\"0\", not an <input>: a counter shows its value and is not typed into (typed entry is the number input). It carries aria-valuenow, aria-valuemin, aria-valuemax only when a max is set, aria-valuetext where the number alone is unclear (\"3 items\"), and the label as its name through aria-labelledby, which works with the label shown or hidden. The message, when shown, is added through aria-describedby.",
+        "the keyboard model — Up Arrow and Down Arrow change the value by one step, Page Up and Page Down by ten steps, and Home and End go to min and to max when a max is set. The value never passes min or max. Tab reaches the counter once, at the value.",
+        "the stepper buttons — each is a <button type=\"button\" tabindex=\"-1\"> (APG), out of the Tab order because the arrow keys do the same job, and still reached by pointer, touch and voice. Each has aria-controls pointing at the value and an accessible name from decrementLabel and incrementLabel. A press does not move focus. At a limit the button takes aria-disabled=\"true\", not native disabled, so it stays in the accessibility tree, and a press does nothing.",
+        "the announcement — a button press writes the new value to the app's one shared polite live region, such as \"Quantity 3\", never a region of the counter's own. An arrow-key change is announced by the spinbutton itself and is not written there again.",
+        "touch-target-expansion — each nested button extends its hit area in code to at least 44×44px at every size (the flush icon button's own rule). On outline the medium inset is 12px, so a 20px glyph's 44px area reaches the edge exactly; the value between the two buttons keeps their areas apart, at least 44px center to center.",
+        "limits in Figma — min and max are code props. In Figma the designer shows a limit by setting that button's exposed state to disabled; in code the counter sets aria-disabled from min and max.",
+        "no wheel — the value never changes on a mouse wheel or a scroll gesture.",
+        "tabular figures — the value is set with font-variant-numeric: tabular-nums, so its width holds from one count to the next; the 32px minimum width holds two digits.",
+        "the glyphs — the minus and plus are the nested buttons' icon swap, set to the icon set's minus and plus as a per-instance override on each nested button (#2645).",
+        "RTL — the row follows the reading direction, so the minus button sits at the right edge. The minus and plus glyphs are symmetric and are not mirrored."
+      ],
+      "notes": {
+        "contested": [
+          "Appearance order: `outline` first, as Q283.4 A spelled it, so the Figma default and the code default are outline, while the wireframe decision made ghost the MVP. If ghost should be what a designer inserts, the order flips (an owner call).",
+          "The value in Figma defaults to \"1\", the Oct 9 draft, while the code default is min, which defaults to 0 (Q283.7). A product card usually starts at 1; the two defaults differ on purpose until the owner says otherwise.",
+          "TWO NESTS EXPOSING `state` ON ONE HOST are built and exposed on the shim (`test-roundtrip.ts`), but untested on a real host, where Figma lists each exposed instance's properties under its layer name (decrement, increment)."
+        ],
+        "unverified": [
+          "iOS VoiceOver's adjust gesture on role=\"spinbutton\" (APG warns of mobile support gaps); the two buttons are the fallback.",
+          "The round button's edge is decorative (about 2:1, no floor, Q305.1 A); the glyph carries the 3:1, gated on the flush icon button, not here.",
+          "The outline edge clears 3:1 through `color.field.border.rest`, gated for the field family, not re-measured here."
+        ],
+        "evolution": [
+          "2026-10-09: proposal as QuantityStepper, owning its edges (shape A, 54 members).",
+          "2026-10-12: refreshed proposal: shape B, nesting a flush icon button (18 members).",
+          "2026-10-14 Q283: shape B; outline | ghost; medium first; remove-at-min out of scope, min defaulting to 0; buttons tabindex=\"-1\"; label hidden by default in Figma; the control focus offset on ghost; glyphs 20/20/24, insets 12/12/16, value 32 wide; its own page.",
+          "2026-10-14 Q286 A: Counter and Number input are two components; the Counter displays its value and is not typed into.",
+          "2026-10-14 wireframes: the name Counter; appearances outline and ghost (round buttons), ghost the MVP; filled square buttons not built, the axis left open for them.",
+          "2026-10-14 Q287 A (on #2457): the flush icon button carries `shape: flush | round`; outline nests flush and ghost nests round."
+        ],
+        "projection": []
+      }
     }
   }
 }

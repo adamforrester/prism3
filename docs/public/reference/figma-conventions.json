@@ -160,6 +160,12 @@
             "components": [
               "dialog"
             ]
+          },
+          {
+            "name": "↳ Counter",
+            "components": [
+              "counter"
+            ]
           }
         ]
       },
@@ -2192,6 +2198,55 @@
           ]
         },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/password-field.md"
+      },
+      {
+        "id": "counter",
+        "name": "Counter",
+        "figmaName": "counter",
+        "kind": "component set",
+        "page": "↳ Counter",
+        "section": "Components",
+        "members": 18,
+        "variantProperties": [
+          {
+            "name": "appearance",
+            "values": [
+              "outline",
+              "ghost"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "focus-visible",
+              "disabled"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "value",
+            "type": "TEXT"
+          },
+          {
+            "name": "label",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "message",
+            "type": "BOOLEAN"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/counter.md"
       }
     ]
   },
@@ -2486,7 +2541,8 @@
       "link",
       "button-group",
       "dialog",
-      "password-field"
+      "password-field",
+      "counter"
     ],
     "templates": [
       {

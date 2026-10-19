@@ -210,6 +210,19 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'default is `ghost`. The code enum keeps filled, outline, ghost.',
   },
   {
+    axis: 'appearance',
+    values: ['outline', 'ghost'],
+    defs: ['counter'],
+    relation: 'overlapping',
+    reason:
+      'The Counter\'s two treatments (#2427; owner Q283.4 A, `outline | ghost`, and the wireframe decision keeping '
+      + 'both). OVERLAPPING with the canonical button ladder: `outline` is the same word for the same thing (an '
+      + 'edged control), and `ghost` is IconButton\'s word for a control with no box, here the row with no edge and '
+      + 'round buttons at its ends. No `filled` rung: the wireframe\'s filled square buttons (C) are not built now, '
+      + 'and adding them is a third value here. `outline` LEADS as Q283.4 A spells it, so the Figma default is '
+      + 'outline, while ghost is the MVP the wireframe named; which one leads is an open owner call on the PR.',
+  },
+  {
     axis: 'emphasis',
     values: ['secondary', 'primary'],
     defs: ['field-label'],
@@ -393,7 +406,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'size',
     values: ['medium', 'small', 'large'],
-    defs: ['_accordion-indicator', 'accordion', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'tag', 'tab', 'tabs', 'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'link', 'text-field', 'select', 'textarea', 'dialog', 'password-field'],
+    defs: ['_accordion-indicator', 'accordion', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'tag', 'tab', 'tabs', 'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'link', 'text-field', 'select', 'textarea', 'dialog', 'password-field', 'counter'],
     relation: 'canonical',
     reason:
       'The three-rung ladder, led by `medium` (#2752, owner decision Q1 B, 2026-10-16). Canonical on weight of use: '
