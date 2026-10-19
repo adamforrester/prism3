@@ -516,6 +516,18 @@
         "assignments": 33,
         "sha256": "6bc23dc4a29e15cda035cf17a5a1a035f7fd5c48bb1b69a6c0d5967f1092d28a"
       }
+    },
+    "banner": {
+      "set": {
+        "members": 8,
+        "assignments": 40,
+        "sha256": "580cbccd5aea0a725323b03ba2f2867d90e815284021ace2409858e5b156ee49"
+      },
+      "grid": {
+        "members": 8,
+        "assignments": 40,
+        "sha256": "b4f41a6c3b0e440f38972552508cd757dd6f94161319179e49f94dfeea1ecfc7"
+      }
     }
   }
 }
