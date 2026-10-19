@@ -56,6 +56,8 @@ Option labels are parallel and brief; the detail that distinguishes them goes in
 | `value` | string | — | yes | Required, where Checkbox.Row's is optional. This is the option's identity within its group, not a string that happens to be submitted. Selection is derived from it: `checked = (group.value === props.value)`. The option never holds a boolean of its own. |
 | `label` | node | — | no | Rich content, inline-end of the control, and part of the hit target — the Checkbox.Row label model, inherited. Option labels are parallel, mutually exclusive and brief: the same grammatical shape across the set, with no overlap that would make two options both apply. Long labels WRAP rather than truncate, with the control centered within the first line-box so it stays on the first line. Per-option detail or price belongs in `description`, not in the label. |
 | `description` | node | — | no | Per-option helper beneath the label, describedby-wired. This is where the detail that makes an option distinguishable goes — the price, the delivery estimate, the caveat. |
+| `disabled` | boolean | `false` | no | Native disabled: removed from the tab order, not submitted, contrast-exempt. Disables the whole row: the nested control takes its disabled skin and the label dims. Reserve for an option that does not apply in the current state. |
+| `readOnly` | boolean | `false` | no | Restated for the caveat Checkbox.Row carries: `<input type="radio">` has NO working `readonly`, only `disabled`, so a genuinely read-only option needs `aria-readonly` plus a prevented change, or is better rendered as static text. Usually set on every option of a group at once. Decide which explicitly; the default of doing neither is a control that looks interactive and silently is not. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | Scales the row — the control-to-label gap, the row's minimum height, the label's type — and is passed through to the nested Radio.Control by `follow`, scaling the circle's diameter and the inner dot's. |
 
 ## States
@@ -66,7 +68,7 @@ Option labels are parallel and brief; the detail that distinguishes them goes in
 
 | Axis | Values | Changes |
 | --- | --- | --- |
-| `size` | `small`, `medium`, `large` | once, when authored |
+| `size` | `medium`, `small`, `large` | once, when authored |
 
 ## Accessibility
 

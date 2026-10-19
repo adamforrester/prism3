@@ -65,7 +65,7 @@ Titles are short, parallel noun phrases or questions, in sentence case, with no 
 | --- | --- | --- |
 | `expansion` | `collapsed`, `expanded` | at runtime |
 | `iconPosition` | `leading`, `trailing` | once, when authored |
-| `size` | `small`, `medium`, `large` | once, when authored |
+| `size` | `medium`, `small`, `large` | once, when authored |
 
 ## Accessibility
 

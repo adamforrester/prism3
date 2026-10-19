@@ -137,6 +137,11 @@ export interface HostSession {
    *  KEPT AFTER THE VERDICT, unlike `styleGuideProgress`: the page shows which table failed once the run is over, and
    *  that is what Draw it again acts on. `stopped` is set when Cancel ended it. A new run replaces it. */
   readonly styleGuideRun: { readonly tables: readonly SgRunTable[]; readonly stopped: { done: number; total: number } | null } | null;
+  /** THE CLEANUP OFFER (Q412 A, #2816): the tables the generator no longer draws that the last run left in place, by node
+   *  id and name, empty when none. A new run's verdict replaces it; a confirmed cleanup drops what it removed. */
+  readonly styleGuideRetired: readonly { readonly id: string; readonly name: string }[];
+  /** The confirmed cleanup: `pending` while the host removes, then its sentence; `null` before one, and after a run. */
+  readonly styleGuideCleanup: 'pending' | { readonly ok: boolean; readonly summary: string } | null;
   /** The set the panel's own pending build is for (UI redesign S8.2), `null` when the panel has no build out. The
    *  wire's `component-result` does not name its set, so the panel remembers the one it posted, and the verdict that
    *  answers it is recorded against that set in `setBuilds`. */
@@ -211,6 +216,8 @@ export const initialHostSession = (): HostSession => ({
   styleGuideProgress: null,
   styleGuideCatalog: null,
   styleGuideRun: null,
+  styleGuideRetired: [],
+  styleGuideCleanup: null,
   componentDef: null,
   setBuilds: new Map(),
   pruneBusy: false,
@@ -316,8 +323,12 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
       // the panel's earlier run goes: its list beside this headline would read as the agent's run.
       const agents = prev.agentRun?.op === 'styleguide' && !prev.agentRun.settled && s.styleGuideState !== 'pending';
       const run = agents ? null : s.styleGuideRun && s.styleGuideState === 'pending' ? { ...s.styleGuideRun, stopped: m.stopped ?? null } : s.styleGuideRun;
-      return { ...s, styleGuideState: { ok: m.ok, headline: m.headline, summary: m.summary, lines: m.lines }, openDetail: m.ok ? null : 'styleguide', styleGuideProgress: null, styleGuideRun: run };
+      return { ...s, styleGuideState: { ok: m.ok, headline: m.headline, summary: m.summary, lines: m.lines }, openDetail: m.ok ? null : 'styleguide', styleGuideProgress: null, styleGuideRun: run,
+        styleGuideRetired: m.retired, styleGuideCleanup: null };
     }
+    case 'style-guide-cleanup-result':
+      // Q412 A: what was removed leaves the offer; what was left stays offered.
+      return { ...s, styleGuideRetired: s.styleGuideRetired.filter((t) => !m.removed.includes(t.id)), styleGuideCleanup: { ok: m.ok, summary: m.summary } };
     case 'style-guide-catalog':
       return { ...s, styleGuideCatalog: { catalog: m.catalog, error: m.error } };
     case 'style-guide-tables':
@@ -399,6 +410,7 @@ export const topicsFor = (m: HostMessage, prev: HostSession, next: HostSession):
     case 'component-progress': return next === prev ? [] : ['host:progress'];
     case 'style-guide-progress': return next === prev ? [] : ['host:progress'];
     case 'style-guide-catalog': return ['host:sgpage'];
+    case 'style-guide-cleanup-result': return ['host:sgpage'];
     case 'style-guide-tables': return next === prev ? [] : ['host:sgpage'];
     case 'style-guide-table': return next === prev ? [] : ['host:sgpage'];
     case 'prune-result': return ['host'];
