@@ -319,11 +319,11 @@ export const textarea: ComponentDef = {
         children: ['label', 'body'],
       },
       // THE NESTED LABEL — text-field's, exactly (size followed, emphasis / weight exposed, state at
-      // rest except at the field's disabled member, where `atState` dims it, #2738).
+      // rest except at the field's disabled member, where `variantWhen` dims it, #2738).
       label: {
         kind: 'nest',
         nests: 'field-label',
-        nesting: { kind: 'nest-exposed', variant: { size: 'medium', emphasis: 'secondary', weight: 'regular', state: 'rest' }, expose: ['emphasis', 'weight'], follow: ['size'], atState: { disabled: { state: 'disabled' } } },
+        nesting: { kind: 'nest-exposed', variant: { size: 'medium', emphasis: 'secondary', weight: 'regular', state: 'rest' }, expose: ['emphasis', 'weight'], follow: ['size'], variantWhen: { state: { disabled: { state: 'disabled' } } } },
         // FILLS the field's width (#1757, select's label); a long name wraps at field-label's max width (#1762).
         crossAxisFill: true,
         note: 'The accessible name, composed rather than re-declared. Its size follows the field\'s, one step below the value; its label text, required marker, emphasis and weight surface on the textarea. Starts secondary and regular. Fills the field\'s width; a long name wraps at FieldLabel\'s max width.',

@@ -337,7 +337,7 @@ export const makeTextField = (spec: FieldSpec): ComponentDef => {
       // THE NESTED LABEL (nest-exposed, mirroring select #1438). An in-flow instance of `field-label` whose
       // three author axes (size / emphasis / weight) plus its label text and `required` boolean the consumer
       // drives FROM the text-field. `state` is not the field's vocabulary (field-label has rest / disabled), so it
-      // is not followed: `atState` moves it to `disabled` at the field's disabled member and leaves it at `rest`
+      // is not followed: `variantWhen` moves it to `disabled` at the field's disabled member and leaves it at `rest`
       // everywhere else, read-only included, so a disabled field dims its label in Figma as it does in code
       // (#1339, #2738). The `variant` coordinate accounts for every field-label axis, as
       // `nestVariantMatch` requires.
@@ -371,7 +371,7 @@ export const makeTextField = (spec: FieldSpec): ComponentDef => {
         nests: 'field-label',
         // `size` FOLLOWS the field's (#2266): a small field nests the small label, so the pair stays one body step
         // apart at every size. `emphasis` and `weight` stay the consumer's.
-        nesting: { kind: 'nest-exposed', variant: { size: 'medium', emphasis: 'secondary', weight: 'regular', state: 'rest' }, expose: ['emphasis', 'weight'], follow: ['size'], atState: { disabled: { state: 'disabled' } } },
+        nesting: { kind: 'nest-exposed', variant: { size: 'medium', emphasis: 'secondary', weight: 'regular', state: 'rest' }, expose: ['emphasis', 'weight'], follow: ['size'], variantWhen: { state: { disabled: { state: 'disabled' } } } },
         // FILLS the field's width (#1757, select's #1503 shape): the label stretches across the column the
         // control holds at 320. The name wraps at field-label's own max width (#1762), not the field's.
         crossAxisFill: true,

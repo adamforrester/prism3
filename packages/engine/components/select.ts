@@ -392,7 +392,7 @@ export const select: ComponentDef = {
       // `required` BOOLEAN in Figma — the "label text, required, etc." #1438 asks for, which the fixed nest
       // could not reach (select had no text/boolean property for the label, so its text sat at field-label's
       // default and `required` was unreachable). `state` is deliberately NOT exposed: a designer sets the
-      // whole field disabled, not the label alone, so `atState` moves the label to `disabled` at select's
+      // whole field disabled, not the label alone, so `variantWhen` moves the label to `disabled` at select's
       // disabled member and leaves it at `rest` everywhere else (#1339, #2738). NOT `follow`ed either: field-label's vocabulary
       // is a different one from select's, so there is no host axis to pass through — exposure lets the
       // consumer drive the child directly, which is the mechanism `follow` is not.
@@ -405,7 +405,7 @@ export const select: ComponentDef = {
         nests: 'field-label',
         // `size` FOLLOWS the select's (#2266), so the label stays one body step below the value at every size;
         // `emphasis` and `weight` stay the consumer's.
-        nesting: { kind: 'nest-exposed', variant: { size: 'medium', emphasis: 'secondary', weight: 'regular', state: 'rest' }, expose: ['emphasis', 'weight'], follow: ['size'], atState: { disabled: { state: 'disabled' } } },
+        nesting: { kind: 'nest-exposed', variant: { size: 'medium', emphasis: 'secondary', weight: 'regular', state: 'rest' }, expose: ['emphasis', 'weight'], follow: ['size'], variantWhen: { state: { disabled: { state: 'disabled' } } } },
         // #1503 — FILLS the field's width (`layoutAlign: STRETCH`, with the instance's own FIXED mode since
         // #1751), so the label spans the 320 control rather than hugging narrower above it (Prism 2's inner
         // containers FILL). Field-label's name wraps at its own max width inside it (#1762, owner; it wrapped at
