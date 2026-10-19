@@ -66,3 +66,6 @@ and the thumbs carry it.
   instance's text and swap properties, not a boolean or a property two levels down. Filed as #2781.
 - No error members: Q354 puts an invalid control on `status`, and the approved 10 members have none, because a
   slider's own value is always in range. Held for the owner.
+- Owner QA item 1 (2026-10-19): the readout sat outside the 320 box because the nested label is built at its own 320 and
+  hugged, filling the header. The label now grows, so the readout sits at the header's end; `test.ts` measures it. The
+  state mapping moved from `atState` to `variantWhen` with main's fold (#2427). Item 2 (state styling) stays on hold.
