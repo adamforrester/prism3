@@ -15,9 +15,10 @@
  *   · The member count is the projection's length, the only honest per-set cost (a run is about 162 ms a member,
  *     #700, and the sets span 2 to 432).
  *
- * NESTED SETS are read off the PROJECTED PLANS, the same two fields the plugin's dependency pre-build reads
- * (`apps/plugin/src/build-deps.ts`): a node's `nestTarget` (a definition id) and its `swapTarget` (a component name
- * whose `<id>/` prefix names a definition built as separate components). A name no definition produces is the file's
+ * NESTED SETS are read off the PROJECTED PLANS, the same fields the plugin's dependency pre-build reads
+ * (`apps/plugin/src/build-deps.ts`): a node's `nestTarget` (a definition id), its `swapTarget` (a component name
+ * whose `<id>/` prefix names a definition built as separate components), and each `INSTANCE_SWAP` value in its
+ * `nestOverrides` (#2645; Dialog's close swaps to `icon/close`, #2609). A name no definition produces is the file's
  * to supply and is left out; a set never nests itself. Direct nests only, in first-seen order.
  *
  * WHY THE DEFINITIONS ARE HANDED IN. One reference to `componentDefs` in the web bundle carries every definition's
@@ -59,10 +60,15 @@ export type CatalogEntry = {
    *  compute (`densitySpacingStep`, then the brand's space ladder), so the catalog holds the steps, never px. Empty for
    *  a set whose spacing does not follow density. */
   spacing: { key: string; ref: string }[];
+  /** The Figma page a build places the set on (`file-taxonomy.ts`'s leaf, without the `↳ ` prefix), and the file
+   *  section that page sits under ("Components", "Subcomponents", "Foundations"), so the Components page can group the
+   *  list as the file is (#2700). `null` when the caller gave no placement (a catalog computed without the taxonomy). */
+  page: string | null;
+  section: string | null;
 };
 export type Catalog = readonly CatalogEntry[];
 
-type PlanNode = { nestTarget?: string; swapTarget?: string; children?: readonly unknown[] };
+type PlanNode = { nestTarget?: string; swapTarget?: string; nestOverrides?: readonly { type: string; value: string }[]; children?: readonly unknown[] };
 
 /** The catalog of `defs`, in their order. `project` is the projector (`figmaAnatomySet` with
  *  `CATALOG_SWAP_TARGET`); it throws for a definition it cannot build. */
@@ -76,9 +82,14 @@ export const spacingOf = (d: ComponentDef): { key: string; ref: string }[] => {
   return keys.map((key) => ({ key, ref: String(d.tokens[key]) }));
 };
 
-export const catalogOf = (defs: readonly ComponentDef[], project: (def: ComponentDef) => readonly AnatomyPlan[]): CatalogEntry[] =>
+/** Where a build places a definition: its Figma page and the file section over it. The plugin's `file-taxonomy.ts` is
+ *  the authority, and the two callers that compute the catalog hand it in (the studio cannot import the plugin). */
+export type PlaceOf = (id: string) => { page: string; section: string } | null;
+
+export const catalogOf = (defs: readonly ComponentDef[], project: (def: ComponentDef) => readonly AnatomyPlan[], placeOf: PlaceOf = () => null): CatalogEntry[] =>
   defs.map((d) => {
-    const base = { id: d.id, name: d.name, category: d.category, summary: d.summary, unit: d.figmaProperties?.emitAsComponents === true ? 'components' as const : 'variants' as const, spacing: spacingOf(d) };
+    const at = placeOf(d.id);
+    const base = { id: d.id, name: d.name, category: d.category, summary: d.summary, unit: d.figmaProperties?.emitAsComponents === true ? 'components' as const : 'variants' as const, spacing: spacingOf(d), page: at?.page ?? null, section: at?.section ?? null };
     const no = (reason: string | null): CatalogEntry => ({ ...base, buildable: false, reason, members: null, nests: [] });
     if (d.figmaProperties?.notStandalone) return no(d.figmaProperties.notStandalone);
     let plans: readonly AnatomyPlan[];
@@ -89,7 +100,11 @@ export const catalogOf = (defs: readonly ComponentDef[], project: (def: Componen
       const dep = defs.find((x) => x.id === name || (!!x.figmaProperties?.emitAsComponents && name.startsWith(`${x.id}/`)));
       if (dep && dep.id !== d.id && !nests.includes(dep.id)) nests.push(dep.id);
     };
-    const walk = (n: PlanNode): void => { add(n.nestTarget); add(n.swapTarget); for (const c of (n.children ?? []) as PlanNode[]) walk(c); };
+    const walk = (n: PlanNode): void => {
+      add(n.nestTarget); add(n.swapTarget);
+      for (const o of n.nestOverrides ?? []) if (o.type === 'INSTANCE_SWAP') add(o.value);
+      for (const c of (n.children ?? []) as PlanNode[]) walk(c);
+    };
     for (const p of plans) walk(p.root as unknown as PlanNode);
     return { ...base, buildable: true, reason: null, members: plans.length, nests };
   });

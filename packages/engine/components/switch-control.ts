@@ -165,7 +165,7 @@ export const switchControl: ComponentDef = {
   // is uncompromisingly binary. No tone/emphasis, no surface/inverse axis (#871).
   // `status` is the fields' validation axis (owner Q354, #2751), its first two values only.
   variants: {
-    size: ['small', 'medium'],
+    size: ['medium', 'small'],
     selection: ['off', 'on'],
     status: ['default', 'error'],
   },

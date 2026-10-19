@@ -113,7 +113,7 @@ export const checkboxControl: ComponentDef = {
   // the fields' validation axis (owner Q354, #2751), its first two values only: a checkbox is valid or not,
   // and has no warning or success look.
   variants: {
-    size: ['small', 'medium', 'large'],
+    size: ['medium', 'small', 'large'],
     selection: ['unchecked', 'checked', 'indeterminate'],
     status: ['default', 'error'],
   },

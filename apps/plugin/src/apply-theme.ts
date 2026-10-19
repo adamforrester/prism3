@@ -21,7 +21,7 @@ import { applyGridStylePlan } from './write-grid-styles';
 import { applyTextStylePlan } from './write-text-styles';
 import { guardApply, preflightPlanOf } from './preflight';
 import { preloadFonts } from './preload-fonts';
-import { persistInput } from './persist-figma';
+import { persistInput, restoreInput } from './persist-figma';
 import { fontPreloadApiOf, preflightApiOf, textApiOf } from './theme-ports';
 import type { ThemeHost } from './theme-ports';
 import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
@@ -66,6 +66,10 @@ export const runApplyTheme = async (input: BrandInput, host: ThemeHost) => {
   // with harbor's style name, a pair in neither plan), so this reads the file's styles as well as the
   // plan. It never throws: a typeface this Figma genuinely lacks is reported, not fatal.
   const pf = await preloadFonts(textPlan, fontPreloadApiOf(host));
+  // THE BRAND THIS APPLY REPLACES (#2695), read before the write persists the new one, so the report can say when the
+  // field style moved (`field-style-note.ts`). An unreadable store reads as none, as every other restore here does.
+  let before: BrandInput | null = null;
+  try { before = restoreInput(host.root); } catch { /* untrusted/absent → none */ }
   // THE PRE-FLIGHT (#506): read everything the write below will touch, BEFORE the first write, and on
   // any conflict — a same-named collection or style Prism3 did not create, or a variable of another
   // type — write NOTHING and report every conflict. The rename pre-pass is inside the guarded write
@@ -117,5 +121,5 @@ export const runApplyTheme = async (input: BrandInput, host: ThemeHost) => {
       return { mig, r, f, s, gs, tv, ts, mv };
     },
   );
-  return { plans, pf, guarded };
+  return { plans, pf, guarded, before };
 };

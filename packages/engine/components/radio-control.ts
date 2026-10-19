@@ -144,7 +144,7 @@ export const radioControl: ComponentDef = {
   // no surface/inverse axis (#871).
   // `status` is the fields' validation axis, its first two values only, set by the group (owner Q354, #2751).
   variants: {
-    size: ['small', 'medium', 'large'],
+    size: ['medium', 'small', 'large'],
     selection: ['unchecked', 'checked'],
     status: ['default', 'error'],
   },

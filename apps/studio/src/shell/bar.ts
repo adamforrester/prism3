@@ -32,8 +32,9 @@
  * focus is found again by its hook and its place among the controls with that hook, and focused again.
  */
 import { subscribe } from '../state/store';
-import { focusables, glyph, h, hook, pendingLabel, setBusy, tile, trapTab } from './dom';
+import { focusables, glyph, h, hook, linkTile, pendingLabel, setBusy, tile, trapTab } from './dom';
 import type { FigmaAction } from './figma';
+import { DOCS_HREF } from './pages';
 
 /** The brand menu's state, read from `main.ts` on every repaint. */
 export type BarView = {
@@ -117,6 +118,9 @@ export type BarPlaced = {
   readonly theme: HTMLElement | null;
   /** The bar's Apply Theme: its busy and off states, tooltip and function. The Figma menu does not list it (#2178). */
   readonly applyTheme: (() => FigmaAction) | null;
+  /** The plugin's Docs (#2637 Q384): asks the main thread to open the docs in the browser. Null on the web, where Docs
+   *  is a link to the site's own `/docs/`. */
+  readonly openDocs: (() => void) | null;
 };
 
 /** Mount the bar's controls into `host` (the frame's bar slot). Returns the node, which is the `brand-bar` chrome
@@ -165,6 +169,15 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
   exp.onclick = (e) => { e.stopPropagation(); act.toggleExport(); };
   exportWrap.append(exp);
 
+  // Docs (#2637, owner decision Q384 A): a bar tile before Export, on both hosts; it replaced Inspect's Docs item. On the
+  // web a link to the site's `/docs/`, opened in a new tab so the brand being edited stays put. In the plugin a button:
+  // the iframe cannot open a page, so the main thread does (`figma.openExternal`), on the studio's web address.
+  const docsTile = placed.openDocs ? tile('docs-open', 'Docs') : linkTile('docs-open', 'Docs', DOCS_HREF);
+  docsTile.mark.append(glyph('docs'));
+  docsTile.tip.textContent = 'Docs';
+  docsTile.btn.setAttribute('aria-label', 'Docs');
+  if (placed.openDocs) docsTile.btn.onclick = () => placed.openDocs!();
+
   // The dialogs sit in a layer of their own after the controls, outside every wrap, so a scrim click is never read
   // as a click inside a menu's wrap (#723).
   const layer = h('div', 'p3-bardlg-layer');
@@ -201,13 +214,13 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
     exp.setAttribute('aria-expanded', String(v.exportOpen));
 
     // The bar's order (the owner's top-bar decision, 2026-10-05, "A · Menu bar"): the mark, the brand switcher,
-    // Contrast, a spacer, Theme, the Agent tile's slot (plugin; T7 A), Activity, Export, then on the plugin the Figma
+    // Contrast, a spacer, Theme, the Agent tile's slot (plugin; T7 A), Activity, Docs (#2637 Q384), Export, then on the plugin the Figma
     // menu and Apply Theme (the Pages menu went in H12, #2289). On the web Export is the last control, and its right edge
     // is the page content's. At the narrow tier the plugin's file actions take a second row (`rowBreak`), Apply Theme
     // on its right (`spacer2`); above it both draw nothing. The shell's nodes are placed, never re-minted, so one that
     // holds focus keeps it.
     const fileRow = !!(placed.figma || applyBtn);
-    const order: (HTMLElement | null)[] = [placed.mark, brandWrap, placed.verdict, spacer, placed.theme, placed.agent, placed.activity, exportWrap,
+    const order: (HTMLElement | null)[] = [placed.mark, brandWrap, placed.verdict, spacer, placed.theme, placed.agent, placed.activity, docsTile.btn, exportWrap,
       fileRow ? rowBreak : null, placed.figma, fileRow ? spacer2 : null, applyBtn, layer];
     const want = order.filter((n): n is HTMLElement => !!n);
     if (want.length !== root.children.length || want.some((n, i) => root.children[i] !== n)) root.replaceChildren(...want);

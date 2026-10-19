@@ -62,7 +62,7 @@ The atom has no copy of its own; all label, description and error text belongs t
 
 | Axis | Values | Changes |
 | --- | --- | --- |
-| `size` | `small`, `medium` | once, when authored |
+| `size` | `medium`, `small` | once, when authored |
 | `selection` | `off`, `on` | at runtime |
 | `status` | `default`, `error` | at runtime |
 
