@@ -11802,9 +11802,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   ok(cutValBad.length === 0, `#1485 figma font: each derived cut is the role's named-instance style (subtle→Light … strong→Bold)` + (cutValBad.length ? ` — ${cutValBad.slice(0, 3).join(', ')}` : ''));
 
   // Scopes are NOT compared to the fixture any more (#2602): the fixture freezes one font scope per row,
-  // and the `core` size rows are now emitted unscoped, so a local picker never offers them. The family,
-  // weight and weight-role rows keep their font scope (owner decision Q292 A — TokenPress types them from
-  // it; #2616 is the follow-up). The expectation is a literal per group, not the fixture and not the
+  // and the `core` size and numeric weight rows are now emitted unscoped, so a local picker never offers
+  // them. The family and weight-role rows keep their font scope (owner decisions Q292 A and Q334 A — the
+  // roles are what the pickers offer). The expectation is a literal per group, not the fixture and not the
   // emitter's constant.
   // Family descriptions now lead with the fixture's stack line (fix #4) and
   // have the DTCG $description appended — assert `startsWith` on the fixture.
@@ -11812,7 +11812,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   for (const [name, fv] of fontByName) {
     const ov = emitByName.get(name); if (!ov) continue;
     if (fv.resolvedType !== ov.resolvedType) badFT.push(name);
-    const wantFS = /\/font\/family\//.test(name) ? '["FONT_FAMILY"]' : /\/font\/weight(-role)?\//.test(name) ? '["FONT_WEIGHT"]' : '[]';
+    const wantFS = /\/font\/family\//.test(name) ? '["FONT_FAMILY"]' : /\/font\/weight-role\//.test(name) ? '["FONT_WEIGHT"]' : '[]';
     if (JSON.stringify(ov.scopes) !== wantFS) badFS.push(`${name}=${JSON.stringify(ov.scopes)} (want ${wantFS})`);
     if (fv.value !== ov.value) badFV.push(name);
     if ((fv.alias ? nbFixName(fv.alias.name) : null) !== (ov.alias?.name ?? null)) badFA.push(name);
@@ -11826,7 +11826,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     }
   }
   ok(badFT.length === 0, 'figma font: resolvedType matches fixture' + (badFT.length ? ` — ${badFT.slice(0, 3).join(',')}` : ''));
-  ok(badFS.length === 0, 'figma font: fixture size rows are emitted unscoped, family rows FONT_FAMILY, weight and weight-role rows FONT_WEIGHT (#2602, Q292 A)' + (badFS.length ? ` — ${badFS.slice(0, 3).join(',')}` : ''));
+  ok(badFS.length === 0, 'figma font: fixture size and numeric weight rows are emitted unscoped, family rows FONT_FAMILY, weight-role rows FONT_WEIGHT (#2602, Q334 A)' + (badFS.length ? ` — ${badFS.slice(0, 3).join(',')}` : ''));
   ok(badFV.length === 0, 'figma font: values match fixture' + (badFV.length ? ` — ${badFV.slice(0, 3).join(',')}` : ''));
   ok(badFA.length === 0, 'figma font: weight-role aliases target the same numeric weight as fixture' + (badFA.length ? ` — ${badFA.slice(0, 3).join(',')}` : ''));
   ok(badFD.length === 0, 'figma font: family descriptions name the fixture face, then its fallback stack in order (fix #4 preserved)' + (badFD.length ? ` — ${badFD.slice(0, 3).join(',')}` : ''));
@@ -13811,9 +13811,9 @@ arm: {
 //     2026-10-13 — an unscoped palette step left the fill picker, its scoped neighbor stayed). Until
 //     #2602 this block asserted the opposite: role-family scopes, on the strength of a 2026-07-04 probe
 //     that showed `setBoundVariableForPaint` succeeding on an unscoped var. An API bind is not a picker;
-//     scopes never block one. The exception (owner decision Q292 A, 2026-10-14): font/family/* keeps
-//     FONT_FAMILY and font/weight/* + font/weight-role/* keep FONT_WEIGHT, because TokenPress types a
-//     font variable's DTCG `$type` from its scope (#2616 unscopes them once it types by name).
+//     scopes never block one. The exception (owner decisions Q292 A and Q334 A): font/family/* keeps
+//     FONT_FAMILY and font/weight-role/* keeps FONT_WEIGHT, so the pickers offer the roles. The numeric
+//     font/weight/* is unscoped; TokenPress types it by its path (#2616).
 //     NOTE: opacity is NOT in this set — it is directly consumable (#79).
 //
 // (b) SEMANTIC + DIRECTLY-CONSUMABLE TIER stays visible. `color/*`, `space`,
@@ -13836,7 +13836,7 @@ arm: {
   const layout = buildFigmaLayout(theme);
 
   // Primitive-tier: every var must have hiddenFromPublishing=true AND no scope (#2602), bar the font
-  // family and weight rows, which keep FONT_FAMILY / FONT_WEIGHT (owner decision Q292 A). The expected
+  // family and weight-role rows, which keep FONT_FAMILY / FONT_WEIGHT (owner decision Q334 A). The expected
   // scope set is a literal per group, never `PRIMITIVE_SCOPES` — the emitter's constant would agree with
   // any value it was changed to (docs/34 shape 1).
   const primitiveGroups: Array<{ tag: string; vars: any[]; expectScopes: string[] }> = [
@@ -13847,7 +13847,7 @@ arm: {
     // failure. `nbVar` derives the root from the theme, so it cannot drift from the emitter.
     { tag: 'core/font/family', vars: font.variables.filter((v) => v.name.startsWith(nbVar('core/font/family/'))), expectScopes: ['FONT_FAMILY'] },
     { tag: 'core/font/size', vars: font.variables.filter((v) => v.name.startsWith(nbVar('core/font/size/'))), expectScopes: [] },
-    { tag: 'core/font/weight', vars: font.variables.filter((v) => v.name.startsWith(nbVar('core/font/weight/'))), expectScopes: ['FONT_WEIGHT'] },
+    { tag: 'core/font/weight', vars: font.variables.filter((v) => v.name.startsWith(nbVar('core/font/weight/'))), expectScopes: [] },
     { tag: 'core/font/weight-role', vars: font.variables.filter((v) => v.name.startsWith(nbVar('core/font/weight-role/'))), expectScopes: ['FONT_WEIGHT'] },
     { tag: 'core/font/style', vars: font.variables.filter((v) => v.name.startsWith(nbVar('core/font/style/'))), expectScopes: [] },
   ];
@@ -13865,7 +13865,7 @@ arm: {
     }
   }
   ok(notHidden.length === 0, `figma primitives: every ref-tier var has hiddenFromPublishing=true (${primitiveGroups.reduce((n, g) => n + g.vars.length, 0)} vars across ${primitiveGroups.length} collections)` + (notHidden.length ? ` — ${notHidden.slice(0, 3).join(', ')}` : ''));
-  ok(wrongScope.length === 0, 'figma primitives: every `core` var carries no scope, bar font family (FONT_FAMILY) and font weight and weight-role (FONT_WEIGHT) (#2602, Q292 A — empty scopes hide it from local pickers)' + (wrongScope.length ? ` — ${wrongScope.slice(0, 3).join(', ')}` : ''));
+  ok(wrongScope.length === 0, 'figma primitives: every `core` var carries no scope, bar font family (FONT_FAMILY) and font weight-role (FONT_WEIGHT) (#2602, Q334 A — empty scopes hide it from local pickers)' + (wrongScope.length ? ` — ${wrongScope.slice(0, 3).join(', ')}` : ''));
 
   // Semantic-tier: every var must NOT be hidden.
   const semanticGroups: Array<{ tag: string; vars: any[] }> = [
@@ -13947,9 +13947,9 @@ arm: {
 }
 
 // (23b) #2602 — EVERY BRAND, EVERY WRITE PATH: the `core` collection is hidden from publishing and carries
-// no scope, bar the font family and weight rows (owner decision Q292 A: `font/family/*` keeps FONT_FAMILY,
-// `font/weight/*` and `font/weight-role/*` keep FONT_WEIGHT, so TokenPress still types them `fontFamily` /
-// `fontWeight`; #2616 is the follow-up that unscopes them), and NO variable anywhere carries ALL_SCOPES.
+// no scope, bar the font family and weight-role rows (owner decisions Q292 A and Q334 A: `font/family/*` keeps
+// FONT_FAMILY and `font/weight-role/*` keeps FONT_WEIGHT, so the pickers offer the roles; the numeric
+// `font/weight/*` is unscoped and TokenPress types it by its path, #2616), and NO variable anywhere carries ALL_SCOPES.
 // (23) holds nb's emitter output per group; this arm is the owner's rules stated once over everything that
 // reaches a Figma file:
 //   · the in-memory emission (`figmaArtifacts`) for nb and every committed `examples/*.design.md` brief;
@@ -13970,9 +13970,9 @@ arm: {
 {
   const CORE_GROUP = /\/core\/(palette|dimension|font\/family|font\/size|font\/weight-role|font\/weight|font\/style)\//;
   const GROUPS = ['palette', 'dimension', 'font/family', 'font/size', 'font/weight', 'font/weight-role', 'font/style'];
-  // Q292 A, as literals. A group absent here expects `[]`; the paste payloads carry the compact code instead.
-  const CORE_SCOPES_2602: Record<string, string> = { 'font/family': '["FONT_FAMILY"]', 'font/weight': '["FONT_WEIGHT"]', 'font/weight-role': '["FONT_WEIGHT"]' };
-  const CORE_CODES_2602: Record<string, string> = { 'font/family': 'm', 'font/weight': 'e', 'font/weight-role': 'e' };
+  // Q292 A + Q334 A, as literals. A group absent here expects `[]`; the paste payloads carry the compact code instead.
+  const CORE_SCOPES_2602: Record<string, string> = { 'font/family': '["FONT_FAMILY"]', 'font/weight-role': '["FONT_WEIGHT"]' };
+  const CORE_CODES_2602: Record<string, string> = { 'font/family': 'm', 'font/weight-role': 'e' };
   const briefs = readdirSync(resolve(HERE, './examples')).filter((f) => f.endsWith('.design.md')).sort();
   const brands: Array<[string, Theme | undefined]> = [['nb', nbTheme()], ...briefs.map((file): [string, Theme | undefined] => [file, exampleTheme(file, () => {
     const text = readFileSync(resolve(HERE, `./examples/${file}`), 'utf8');
@@ -14075,7 +14075,7 @@ arm: {
   ok(brandsSwept >= 5 && treeBrands.length >= 4 && coreSwept > 0 && varsSwept > coreSwept,
     `#2602 sweep floor: ${brandsSwept} brand(s) emitted (≥5), ${treeBrands.length} committed tree(s) (≥4), ${coreSwept} core row(s), ${varsSwept} variable row(s)`);
   ok(unrepresented.length === 0, '#2602 every `core` group (palette, dimension, font family/size/weight/weight-role/style) is represented on every path' + (unrepresented.length ? ` — MISSING: ${unrepresented.slice(0, 4).join('; ')}` : ''));
-  ok(coreBad.length === 0, `#2602 every \`core\` variable is hidden from publishing and carries no scope, bar FONT_FAMILY on font/family and FONT_WEIGHT on font/weight and font/weight-role (Q292 A), in every brand and on every write path (${coreSwept} rows)` + (coreBad.length ? ` — ${coreBad.length} wrong: ${coreBad.slice(0, 4).join('; ')}` : ''));
+  ok(coreBad.length === 0, `#2602 every \`core\` variable is hidden from publishing and carries no scope, bar FONT_FAMILY on font/family and FONT_WEIGHT on font/weight-role (Q334 A), in every brand and on every write path (${coreSwept} rows)` + (coreBad.length ? ` — ${coreBad.length} wrong: ${coreBad.slice(0, 4).join('; ')}` : ''));
   ok(allScopes.length === 0, `#2602 no emitted variable carries ALL_SCOPES, in every brand and on every write path, bar TIMING and EASING (${varsSwept - unscopedSwept} rows)` + (allScopes.length ? ` — ${allScopes.length} wrong: ${allScopes.slice(0, 4).join('; ')}` : ''));
   ok(unscopedMissing.length === 0 && unscopedSwept > 0, `#2412 TIMING and EASING rows are represented on every typed path, so the ALL_SCOPES exemption covers something (${unscopedSwept} rows)` + (unscopedMissing.length ? ` — MISSING: ${unscopedMissing.slice(0, 4).join('; ')}` : ''));
   ok(unscopedBad.length === 0, `#2412 every TIMING and EASING row holds exactly ['ALL_SCOPES'], the only scope Figma lets it hold, in every brand and on every typed path (${unscopedSwept} rows)` + (unscopedBad.length ? ` — ${unscopedBad.length} wrong: ${unscopedBad.slice(0, 4).join('; ')}` : ''));
