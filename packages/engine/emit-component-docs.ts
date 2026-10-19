@@ -5,7 +5,12 @@
  *   npx tsx packages/engine/emit-component-docs.ts
  *     → out/components/components.ai.json      (PAYLOAD, machine-readable: every registered def)
  *     → out/components/<id>.md                 (PAYLOAD, human-readable: one page per def)
- *     → schema/component-maintainer.json       (NOT payload: each def's `codeOnly` and `notes.*`)
+ *     → schema/component-maintainer.json       (NOT payload: each def's `codeOnly`, `notes.*` and `docGaps`)
+ *
+ * THE PAGE IS THE FIRST READER OF THE SECTION MODEL (#846). `component-doc-sections.ts` turns a def into
+ * the ordered sections of its usage doc, and the Figma panel and the docs-site page will read the same
+ * model. The page renders the model's sections, in its order, and nothing else; what the model could not
+ * draw is the maintainer record's `docGaps`.
  *
  * THE GAP THIS CLOSES. `component-schema.ts` carries `docs`, `accessibility`, `content`, `motion`,
  * `composition`, `ai` and `notes` "so docs are a projection, not a re-author" (docs/19 §6), and promised a
@@ -24,8 +29,8 @@
  *    `codeOnly` or a `notes` entry.
  *  · THE PAGE IS FOR PEOPLE. It leaves out the agent-only half of `ai` — `triggerKeywords` and
  *    `generationPriority` are search and tiebreak metadata a person does not act on — and keeps the
- *    decision half (purpose, when to use, when to avoid, common partners) as "Choosing it". The JSON keeps
- *    the whole `ai` block.
+ *    decision half (purpose, when to use, when to avoid in Overview; common partners in Related). The
+ *    JSON keeps the whole `ai` block, and `composition.planned`, which the page leaves out (#846).
  *  · THE MAINTAINER RECORD IS A SEPARATE, NON-SHIPPING FILE: `schema/component-maintainer.json`. It sits in
  *    `schema/` beside the engine's other contracts rather than in `out/`, because every `out/` file is
  *    scanned as shipped prose by `lint-us-english.ts` and `lint-voice.ts`, and keeping one out would mean
@@ -43,8 +48,9 @@
  *    `notes.contested` in the maintainer record. The one reshaping: `variants.<axis>` is `{ values, kind }`.
  *  · THE VERSION STAMP IS IN THE JSON'S TOP LEVEL ONLY. A page names no engine version, and the maintainer
  *    record carries none, so an engine bump rewrites one file here rather than every page.
- *  · The Figma-only and paint layers (`tokens`, `paintKeys`, `anatomy.parts`, `figmaProperties`,
- *    `weightIntent`) are NOT documentation and are not projected. They reach Figma through the plan.
+ *  · The Figma-only and paint layers (`tokens`, `paintKeys`, `figmaProperties`, `weightIntent`) are NOT
+ *    documentation and are not projected. They reach Figma through the plan. `anatomy.parts` reaches the
+ *    page only as the Anatomy section's part names and reader-register notes (#846), never the JSON.
  *
  * GATED BY `lint-component-docs.ts` — every registered def in all three files, every schema-required field
  * represented, each def field value round-tripping to its JSON path and into its own page section, no
@@ -56,6 +62,8 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { ComponentDef } from './component-schema';
 import { axisKindOf } from './component-schema';
+import type { DocField } from './component-doc-sections';
+import { docSections } from './component-doc-sections';
 import { componentDefs } from './components/index';
 import { ENGINE_VERSION } from './version';
 
@@ -131,6 +139,9 @@ export const projectMaintainer = (def: ComponentDef) => ({
     evolution: [...(def.notes?.evolution ?? [])],
     projection: [...(def.notes?.projection ?? [])],
   },
+  // What the usage doc could not draw (#846): each section's empty source fields, and each part note held
+  // back as maintainer prose. Read from the section model, the same one every surface draws from.
+  docGaps: docSections(def).gaps,
 });
 
 export const projectComponentMaintainer = (defs: readonly ComponentDef[]) => ({
@@ -139,7 +150,8 @@ export const projectComponentMaintainer = (defs: readonly ComponentDef[]) => ({
     'MAINTAINER RECORD, NOT PAYLOAD. Each definition\'s `anatomy.codeOnly` and `notes.*`, which #1623 ruled',
     'maintainer-only. Classified `ours` in `payload-manifest.json`, listed in `regen.ts`\'s MAINTAINER_ARTIFACTS',
     'rather than SCHEMA_ARTIFACTS, and so outside the shipped-prose gates by construction. Complete: entries',
-    'that cite an external reference system are kept here, because this file does not ship.',
+    'that cite an external reference system are kept here, because this file does not ship. `docGaps` (#846) lists',
+    'what each usage doc could not draw: a section\'s empty source fields, and part notes still written for maintainers.',
   ],
   generated: true,
   components: Object.fromEntries(defs.map((d) => [d.id, projectMaintainer(d)])),
@@ -158,105 +170,85 @@ export const mdEscape = (s: string): string =>
 const code = (s: string) => `\`${s}\``;
 const list = (xs: readonly string[]) => xs.map(code).join(', ');
 
+/** The page: the lede and the identity lines, then the section model's sections, in its order, and nothing
+ *  else. Every `##` heading is a model section's title, so the page cannot carry a section the model
+ *  omitted or omit one it drew (`lint-component-docs.ts` arm F holds both against a rule of its own). */
 export const renderMarkdown = (def: ComponentDef): string => {
-  const e = projectDef(def);
   const out: string[] = [];
   const para = (s: string | undefined) => { if (s) out.push(mdEscape(s), ''); };
   const bullets = (xs: readonly string[]) => { for (const x of xs) out.push(`- ${mdEscape(x)}`); if (xs.length) out.push(''); };
-  const field = (label: string, v: string | undefined) => { if (v) out.push(`- **${label}:** ${mdEscape(v)}`); };
+  const fields = (fs: readonly DocField[]) => { for (const f of fs) out.push(`- **${f.label}:** ${mdEscape(f.text)}`); if (fs.length) out.push(''); };
 
   out.push(`# ${def.name}`, '');
   out.push(`> ${mdEscape(def.summary)}`, '');
-  para(def.description);
   out.push(`- **ID:** ${code(def.id)}`);
   out.push(`- **Category:** ${def.category}`);
   out.push(`- **Status:** ${def.status}`);
-  if (e.aliases.length) out.push(`- **Also known as:** ${e.aliases.map(mdEscape).join(', ')}`);
+  if (def.aliases?.length) out.push(`- **Also known as:** ${def.aliases.map(mdEscape).join(', ')}`);
   if (def.inherits) out.push(`- **Builds on:** ${code(def.inherits)}`);
   out.push('');
 
-  out.push('## Usage', '');
-  para(def.docs.usage);
-  if (e.docs.do.length) { out.push('### Do', ''); bullets(e.docs.do); }
-  if (e.docs.dont.length) { out.push("### Don't", ''); bullets(e.docs.dont); }
-  if (def.docs.contentGuidelines) { out.push('### Content guidelines', ''); para(def.docs.contentGuidelines); }
-  if (def.content) {
-    out.push('### Copy patterns', '');
-    field('Labels', def.content.labelPattern);
-    field('Errors', def.content.errorPattern);
-    field('Empty states', def.content.emptyPattern);
-    field('Dialogs', def.content.dialogPattern);
-    field('Metaphors', def.content.metaphorRules);
-    out.push('');
-  }
-
-  out.push('## Choosing it', '');
-  field('Purpose', def.ai.primaryPurpose);
-  field('Use when', def.ai.whenToUse);
-  field('Avoid when', def.ai.avoidWhen);
-  if (e.ai.commonPartners.length) out.push(`- **Often used with:** ${list(e.ai.commonPartners)}`);
-  // `triggerKeywords` and `generationPriority` are agent-only metadata; they stay in the JSON's `ai` block.
-  out.push('');
-
-  out.push('## Props', '');
-  if (!def.props.length) out.push('No props.', '');
-  else {
-    out.push('| Name | Type | Default | Required | Description |', '| --- | --- | --- | --- | --- |');
-    for (const p of e.props) {
-      // Values are listed only when the type prose does not already name every one of them.
-      const values = p.values && !p.values.every((v) => p.type.includes(v)) ? ` (${p.values.map((v) => code(v)).join(', ')})` : '';
-      const name = p.deprecated ? `${code(p.name)} (deprecated)` : code(p.name);
-      // A slot prop (#2649): what each item may be and how many.
-      const items = p.anyOf ? ` of ${p.anyOf.map((x) => code(x)).join(' or ')}, ${p.maxItems !== undefined ? `${p.minItems} to ${p.maxItems}` : `${p.minItems} or more`}` : '';
-      out.push(`| ${name} | ${mdEscape(p.type)}${mdEscape(values)}${mdEscape(items)} | ${p.default === undefined ? '—' : code(String(p.default))} | ${p.required ? 'yes' : 'no'} | ${mdEscape(p.description)} |`);
+  // The page is brand-independent (#1701), so it passes no modes and has no Theming section.
+  for (const s of docSections(def).sections) {
+    out.push(`## ${s.title}`, '');
+    switch (s.id) {
+      case 'overview':
+        para(s.description);
+        fields(s.fields);
+        break;
+      case 'anatomy':
+        if (s.specimen.length) out.push(`Shown on the default member: ${s.specimen.map((x) => `${x.axis} ${code(x.value)}`).join(', ')}.`, '');
+        s.parts.forEach((p, i) => out.push(`${i + 1}. **${p.name}**${p.optional ? ' (optional)' : ''}${p.caption ? ` — ${mdEscape(p.caption)}` : ''}`));
+        out.push('');
+        break;
+      case 'styles':
+        if (s.axes.length) {
+          out.push('| Axis | Values | Changes | Description |', '| --- | --- | --- | --- |');
+          for (const a of s.axes) out.push(`| ${code(a.axis)} | ${list(a.values)} | ${a.kind === 'runtime' ? 'at runtime' : 'once, when authored'} | ${a.description ? mdEscape(a.description) : '—'} |`);
+          out.push('');
+        }
+        if (s.states.length) out.push('### States', '', list(s.states), '');
+        break;
+      case 'usage':
+        para(s.usage);
+        if (s.do.length) { out.push('### Do', ''); bullets(s.do); }
+        if (s.dont.length) { out.push("### Don't", ''); bullets(s.dont); }
+        break;
+      case 'accessibility':
+        fields(s.fields);
+        if (s.wcag.length) { out.push('### WCAG', ''); bullets(s.wcag); }
+        if (s.motion.length) { out.push('### Motion', ''); fields(s.motion); }
+        break;
+      case 'content':
+        para(s.guidelines);
+        fields(s.patterns);
+        break;
+      case 'theming':
+        out.push(`Modes: ${list(s.modes)}.`, '');
+        break;
+      case 'related':
+        for (const l of s.lists) out.push(`- **${l.label}:** ${list(l.ids)}`);
+        if (s.replaces.length) {
+          out.push('- **Replaces:**');
+          for (const r of s.replaces) out.push(`  - ${mdEscape(r)}`);
+        }
+        out.push('');
+        break;
+      case 'code':
+        out.push('### Props', '');
+        out.push('| Name | Type | Default | Required | Description |', '| --- | --- | --- | --- | --- |');
+        for (const p of s.props) {
+          // Values are listed only when the type prose does not already name every one of them.
+          const values = p.values && !p.values.every((v) => p.type.includes(v)) ? ` (${p.values.map((v) => code(v)).join(', ')})` : '';
+          const name = p.deprecated ? `${code(p.name)} (deprecated)` : code(p.name);
+          // A slot prop (#2649): what each item may be and how many.
+          const items = p.anyOf ? ` of ${p.anyOf.map((x) => code(x)).join(' or ')}, ${p.maxItems !== undefined ? `${p.minItems} to ${p.maxItems}` : `${p.minItems} or more`}` : '';
+          out.push(`| ${name} | ${mdEscape(p.type)}${mdEscape(values)}${mdEscape(items)} | ${p.default === undefined ? '—' : code(String(p.default))} | ${p.required ? 'yes' : 'no'} | ${mdEscape(p.description)} |`);
+        }
+        out.push('');
+        if (s.implementation.length) bullets(s.implementation);
+        break;
     }
-    out.push('');
-  }
-
-  out.push('## States', '');
-  out.push(def.states.length ? list(def.states) : 'None — not interactive.', '');
-
-  out.push('## Variants', '');
-  const axes = Object.entries(e.variants);
-  if (!axes.length) out.push('No variant axes.', '');
-  else {
-    out.push('| Axis | Values | Changes |', '| --- | --- | --- |');
-    for (const [axis, v] of axes) out.push(`| ${code(axis)} | ${list(v.values)} | ${v.kind === 'runtime' ? 'at runtime' : 'once, when authored'} |`);
-    out.push('');
-  }
-
-  out.push('## Accessibility', '');
-  field('Role', def.accessibility.role);
-  if (def.accessibility.wcag?.length) {
-    out.push('- **WCAG:**');
-    for (const w of def.accessibility.wcag) out.push(`  - ${mdEscape(w)}`);
-  }
-  field('Keyboard', def.accessibility.keyboard);
-  field('Focus', def.accessibility.focus);
-  field('ARIA', def.accessibility.aria);
-  out.push('');
-
-  if (def.motion) {
-    out.push('## Motion', '');
-    field('Enter', def.motion.enter);
-    field('Exit', def.motion.exit);
-    field('Reduced motion', def.motion.reduceMotion);
-    out.push('');
-  }
-
-  const c = e.composition;
-  if (Object.values(c).some((xs) => xs.length)) {
-    out.push('## Composition', '');
-    if (c.composesWith.length) out.push(`- **Composes with:** ${list(c.composesWith)}`);
-    if (c.alternativeTo.length) out.push(`- **Alternative to:** ${list(c.alternativeTo)}`);
-    if (c.supersedes.length) out.push(`- **Supersedes:** ${list(c.supersedes)}`);
-    if (c.supersededBy.length) out.push(`- **Superseded by:** ${list(c.supersededBy)}`);
-    if (c.planned.length) out.push(`- **Planned:** ${list(c.planned)}`);
-    if (c.replacesPatterns.length) {
-      out.push('- **Replaces:**');
-      for (const r of c.replacesPatterns) out.push(`  - ${mdEscape(r)}`);
-    }
-    out.push('');
   }
 
   out.push('---', '');

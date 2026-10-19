@@ -2,14 +2,34 @@
 
 > A thin rule between groups of content. Horizontal or vertical, and it fills its container.
 
-A 1px rule that separates groups of content when spacing alone leaves the grouping unclear: sections of a page, rows of an accordion, or a cluster of controls in a toolbar. Horizontal by default, spanning the width of its container; vertical between items in a row, spanning its height. It can run edge to edge or sit inset from the start or from both ends. It carries no content and has no interaction states. Decorative by default, so assistive technology ignores it; set decorative to false when the rule marks a real break in the content, and it becomes a separator.
-
 - **ID:** `divider`
 - **Category:** foundations
 - **Status:** draft
 - **Also known as:** separator, rule, hr
 
-## Usage
+## Overview
+
+A 1px rule that separates groups of content when spacing alone leaves the grouping unclear: sections of a page, rows of an accordion, or a cluster of controls in a toolbar. Horizontal by default, spanning the width of its container; vertical between items in a row, spanning its height. It can run edge to edge or sit inset from the start or from both ends. It carries no content and has no interaction states. Decorative by default, so assistive technology ignores it; set decorative to false when the rule marks a real break in the content, and it becomes a separator.
+
+- **Purpose:** Separate groups of content with a thin horizontal or vertical rule that spans its container.
+- **Use when:** Two groups of content sit next to each other and spacing alone does not separate them: page sections, accordion or list rows, or clusters of controls in a toolbar (vertical).
+- **Avoid when:** Spacing already separates the groups, the edge is a container's own border (a card or field draws its own), or the break needs a title (use a heading).
+
+## Anatomy
+
+Shown on the default member: orientation `horizontal`, inset `none`.
+
+1. **Divider** — The divider's footprint: the thickness one way and the length the other, with the inset as its padding. It paints nothing.
+2. **Rule** — The rule itself: one box, one fill, no children. Its thickness is the hairline border width; its length fills the container it sits in, less the inset, so the standalone length is a placeholder a host stretches.
+
+## Styles
+
+| Axis | Values | Changes | Description |
+| --- | --- | --- | --- |
+| `orientation` | `horizontal`, `vertical` | once, when authored | Which way the rule runs. horizontal spans the width of its container and separates content stacked above and below it; vertical spans the height of its container and separates items side by side. A vertical rule sets aria-orientation="vertical"; horizontal is the default and needs no attribute. |
+| `inset` | `none`, `inset`, `middle-inset` | once, when authored | How far the rule sits in from its container's edges. none runs edge to edge; inset starts the rule 16px in from the start edge, so it lines up with indented content such as list text after an avatar; middle-inset indents both ends. The start edge follows text direction. A vertical rule takes none or middle-inset only. |
+
+## Usage guidelines
 
 Use a divider to separate groups of related content when spacing alone does not make the groups clear: sections of a page, rows in an accordion or list, or a cluster of controls in a toolbar. Horizontal by default, spanning its container; vertical between items in a row. Inset it from the start to line up with indented content, or from both ends to separate within a section. It is decorative by default; set decorative to false when the rule marks a real break in the content.
 
@@ -27,54 +47,38 @@ Use a divider to separate groups of related content when spacing alone does not 
 - Use a divider as the only cue that two groups are separate when the rule is faint; add spacing too
 - Stack a divider directly against a border, such as the edge of a card, so two lines sit side by side
 
-### Content guidelines
+## Accessibility
+
+- **Role:** none with aria-hidden="true" by default, because a divider is decorative unless set otherwise; with decorative=false, separator (native \<hr> for a horizontal rule, role="separator" with aria-orientation="vertical" for a vertical one)
+- **Focus:** None. A divider is not focusable and takes no place in the tab order.
+- **ARIA:** By default the rule sets aria-hidden="true", so a screen reader does not announce a break that means nothing. With decorative=false, an \<hr> needs no attributes, and a vertical rule sets role="separator" and aria-orientation="vertical".
+
+### WCAG
+
+- 1.3.1 Info and Relationships — a rule that marks a real break in content is a separator, so assistive technology hears the break a sighted reader sees
+- 1.4.11 Non-text Contrast — a decorative divider carries no information and needs no contrast minimum. A divider that marks a real boundary (decorative=false) uses border.tertiary, which reaches 3:1 on every background.
+
+## Content guidelines
 
 A divider holds no copy.
 
-### Copy patterns
-
 - **Labels:** A divider carries no text. To title the group below it, use a heading, not a label on the rule.
 
-## Choosing it
+## Related components
 
-- **Purpose:** Separate groups of content with a thin horizontal or vertical rule that spans its container.
-- **Use when:** Two groups of content sit next to each other and spacing alone does not separate them: page sections, accordion or list rows, or clusters of controls in a toolbar (vertical).
-- **Avoid when:** Spacing already separates the groups, the edge is a container's own border (a card or field draws its own), or the break needs a title (use a heading).
 - **Often used with:** `accordion`, `list`
+- **Replaces:**
+  - a hand-drawn line or a border-bottom on one item standing in for a separator
 
-## Props
+## Building it in code
+
+### Props
 
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
 | `orientation` | enum: 'horizontal' \| 'vertical' | `horizontal` | no | Which way the rule runs. horizontal spans the width of its container and separates content stacked above and below it; vertical spans the height of its container and separates items side by side. A vertical rule sets aria-orientation="vertical"; horizontal is the default and needs no attribute. |
 | `inset` | enum: 'none' \| 'inset' \| 'middle-inset' | `none` | no | How far the rule sits in from its container's edges. none runs edge to edge; inset starts the rule 16px in from the start edge, so it lines up with indented content such as list text after an avatar; middle-inset indents both ends. The start edge follows text direction. A vertical rule takes none or middle-inset only. |
 | `decorative` | boolean | `true` | no | Whether the rule is only visual. true (the default) hides it from assistive technology with aria-hidden="true". Set false when the rule marks a real break in the content: it becomes a separator, an \<hr> for a horizontal rule, drawn in border.tertiary so it reaches 3:1 on every background. |
-
-## States
-
-None — not interactive.
-
-## Variants
-
-| Axis | Values | Changes |
-| --- | --- | --- |
-| `orientation` | `horizontal`, `vertical` | once, when authored |
-| `inset` | `none`, `inset`, `middle-inset` | once, when authored |
-
-## Accessibility
-
-- **Role:** none with aria-hidden="true" by default, because a divider is decorative unless set otherwise; with decorative=false, separator (native \<hr> for a horizontal rule, role="separator" with aria-orientation="vertical" for a vertical one)
-- **WCAG:**
-  - 1.3.1 Info and Relationships — a rule that marks a real break in content is a separator, so assistive technology hears the break a sighted reader sees
-  - 1.4.11 Non-text Contrast — a decorative divider carries no information and needs no contrast minimum. A divider that marks a real boundary (decorative=false) uses border.tertiary, which reaches 3:1 on every background.
-- **Focus:** None. A divider is not focusable and takes no place in the tab order.
-- **ARIA:** By default the rule sets aria-hidden="true", so a screen reader does not announce a break that means nothing. With decorative=false, an \<hr> needs no attributes, and a vertical rule sets role="separator" and aria-orientation="vertical".
-
-## Composition
-
-- **Planned:** `menu`, `card`, `stack`, `toolbar`
-- **Replaces:**
-  - a hand-drawn line or a border-bottom on one item standing in for a separator
 
 ---
 

@@ -111,8 +111,12 @@ characters, at most 100, one line, ending in a period (validated).
 **Every other field ships, and is written for people.** `packages/engine/regen.ts` projects each
 def's documentation fields — identity, `summary`, `description`, `props`, `states`, `variants`,
 `accessibility`, `content`, `docs`, `motion`, `composition` and `ai` — into
-`out/components/components.ai.json` and a page per component, `out/components/<id>.md`, which leaves
-out only the agent-only `ai.triggerKeywords` and `ai.generationPriority`. Everything but the two
+`out/components/components.ai.json` and a page per component, `out/components/<id>.md`. The page
+draws the sections of the doc section model (`packages/engine/component-doc-sections.ts`) and leaves
+out only the agent-only `ai.triggerKeywords` and `ai.generationPriority` and the planned components
+that are not built yet. A part's `note` is its caption in the page's Anatomy section, unless the note
+cites an issue, a doc path or a section sign, carries a code span, or names a tool: such a note is held
+back and listed in the maintainer record's `docGaps` until it is rewritten. Everything but the two
 maintainer channels, a part's `note` included, is also in the plugin bundle a designer imports. So in a shipped field:
 
 - no "brief §N" and no "per the KB" — state the behavior, not where it came from;

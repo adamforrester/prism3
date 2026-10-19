@@ -1747,13 +1747,11 @@ export type ComponentDef = {
    *  decision is filed (#846); this field stays prose and the closed key list is what makes it gateable
    *  in the meantime.
    *
-   *  AND THE FIELD HAS NO READER — measured, and the reason #846 is a decision rather than a cleanup.
-   *  `def.content` appears in exactly two places in this repo: this declaration and a quoted block in
-   *  `docs/39`. No emitter, no projection, no `.ai.json` field, no skill, no gate. Six defs author
-   *  `labelPattern` prose that is gated for voice and US English and delivered to nobody. So closing the
-   *  keys is worth doing on its own terms — an author's typo now fails instead of vanishing twice over —
-   *  but it does not make the field arrive anywhere, and reading this list as though it does is the
-   *  mistake to avoid.
+   *  ITS READERS (#846 finding 1, which corrected this comment). Since #1701 `emit-component-docs.ts`
+   *  projects the field into `out/components/components.ai.json` and, through the doc section model
+   *  (`component-doc-sections.ts`, #846), into the Content guidelines section of `out/components/<id>.md`;
+   *  the Figma panel and the docs-site page will read the same section. Closing the keys still matters on
+   *  its own terms: a misspelled key fails instead of vanishing.
    *
    *  THE INDEX SIGNATURE IS GONE (#821). `[k: string]: string | undefined` made every misspelled key
    *  valid — `lablePattern` typechecked, projected nothing, and no gate could see it, because a field
