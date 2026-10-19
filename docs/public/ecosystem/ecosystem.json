@@ -315,7 +315,10 @@
           "button-group",
           "dialog",
           "password-field",
-          "counter"
+          "counter",
+          "_breadcrumb-separator",
+          "breadcrumb-item",
+          "breadcrumbs"
         ]
       }
     },

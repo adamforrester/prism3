@@ -459,7 +459,9 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
     values: ['medium', 'small'],
     // The `switch-row` ROW keeps `size` (it scales the label ramp, gap and row height) and passes it through
     // to the nested `switch-control` by `follow`; the atom declares the same two-rung ladder (#1354).
-    defs: ['switch-row', 'switch-control'],
+    // Breadcrumbs and its item join it (#2666, owner call 7 A): one line of 14 or 16px body text, and an 18px trail
+    // stops reading as secondary wayfinding.
+    defs: ['switch-row', 'switch-control', 'breadcrumbs', 'breadcrumb-item'],
     relation: 'subset',
     reason:
       'The ladder minus its top rung, for a def with no large form, led by medium as canonical is (#2752 Q1 B): a switch above medium stops reading '
@@ -727,18 +729,6 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'sheet, or filling a small screen. No side placement, by the same decision. `center` LEADS because it is the code '
       + 'default on every screen and Figma\'s default member. One def carries it, so there is no other to stand in a '
       + 'relation with. Distinct from `alignment` and `direction`, argued in `VARIANT_AXES`.',
-  },
-  {
-    axis: 'size',
-    values: ['medium', 'small'],
-    defs: ['breadcrumbs', 'breadcrumb-item'],
-    relation: 'subset',
-    reason:
-      'The ladder minus its top rung, led by `medium` (#2666). A breadcrumb trail is one line of 14 or 16px body text, '
-      + 'and an 18px trail stops reading as secondary wayfinding (owner call 7 A on #2666). `medium` LEADS because '
-      + 'Figma\'s first member equals the code default on every axis, every size axis medium-first (owner Q347 A and '
-      + 'Q359 B, #2752). `small` and `medium` mean the same text sizes they mean in canonical. The code enum keeps the '
-      + 'ladder\'s own order; `lint-rung-names.ts` DEFAULT_FIRST admits the split.',
   },
   {
     axis: 'kind',

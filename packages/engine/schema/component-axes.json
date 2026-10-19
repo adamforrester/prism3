@@ -102,9 +102,9 @@
   },
   "breadcrumbs": {
     "axes": {
-      "layout": [
-        "parent",
-        "trail"
+      "path": [
+        "full",
+        "parent"
       ],
       "separator": [
         "chevron",

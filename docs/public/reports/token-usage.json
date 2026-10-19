@@ -12,7 +12,7 @@
     "used": 247,
     "unusedSemantic": 260,
     "unusedPrimitive": 280,
-    "components": 43
+    "components": 46
   },
   "tokens": {
     "border-width.hairline": {
@@ -3378,6 +3378,24 @@
     "color.icon.link.default": {
       "type": "color",
       "components": {
+        "breadcrumbs": {
+          "keys": [
+            "icon"
+          ],
+          "parts": {
+            "backGlyph": {
+              "members": 2,
+              "where": {
+                "path": [
+                  "parent"
+                ],
+                "separator": [
+                  "chevron"
+                ]
+              }
+            }
+          }
+        },
         "link": {
           "keys": [
             "icon"
@@ -3489,7 +3507,7 @@
           ],
           "parts": {
             "glyph": {
-              "members": 45,
+              "members": 46,
               "where": {}
             }
           }
@@ -3620,6 +3638,29 @@
     "color.icon.secondary": {
       "type": "color",
       "components": {
+        "_breadcrumb-separator": {
+          "keys": [
+            "icon"
+          ],
+          "parts": {
+            "chevron": {
+              "members": 1,
+              "where": {
+                "type": [
+                  "chevron"
+                ]
+              }
+            },
+            "slash": {
+              "members": 1,
+              "where": {
+                "type": [
+                  "slash"
+                ]
+              }
+            }
+          }
+        },
         "field-message": {
           "keys": [
             "default.icon"
@@ -11747,6 +11788,24 @@
             }
           }
         },
+        "breadcrumb-item": {
+          "keys": [
+            "label"
+          ],
+          "parts": {
+            "current": {
+              "members": 2,
+              "where": {
+                "kind": [
+                  "current"
+                ],
+                "separator": [
+                  "chevron"
+                ]
+              }
+            }
+          }
+        },
         "checkbox-row": {
           "keys": [
             "label"
@@ -15603,6 +15662,51 @@
             }
           }
         },
+        "_breadcrumb-separator": {
+          "keys": [
+            "glyph-size"
+          ],
+          "parts": {
+            "chevron": {
+              "members": 1,
+              "where": {
+                "type": [
+                  "chevron"
+                ]
+              }
+            },
+            "frame": {
+              "members": 2,
+              "where": {}
+            },
+            "slash": {
+              "members": 1,
+              "where": {
+                "type": [
+                  "slash"
+                ]
+              }
+            }
+          }
+        },
+        "breadcrumbs": {
+          "keys": [
+            "back-icon"
+          ],
+          "parts": {
+            "backGlyph": {
+              "members": 2,
+              "where": {
+                "path": [
+                  "parent"
+                ],
+                "separator": [
+                  "chevron"
+                ]
+              }
+            }
+          }
+        },
         "button": {
           "keys": [
             "size.small.icon"
@@ -17634,6 +17738,44 @@
     "space.050": {
       "type": "dimension",
       "components": {
+        "breadcrumb-item": {
+          "keys": [
+            "size.small.gap"
+          ],
+          "parts": {
+            "container": {
+              "members": 5,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
+        "breadcrumbs": {
+          "keys": [
+            "back-gap",
+            "size.small.gap"
+          ],
+          "parts": {
+            "container": {
+              "members": 6,
+              "where": {}
+            },
+            "items": {
+              "members": 2,
+              "where": {
+                "path": [
+                  "full"
+                ],
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "counter": {
           "keys": [
             "size.medium.value-pad",
@@ -17957,6 +18099,39 @@
               "where": {
                 "type": [
                   "status"
+                ]
+              }
+            }
+          }
+        },
+        "breadcrumb-item": {
+          "keys": [
+            "size.medium.gap"
+          ],
+          "parts": {
+            "container": {
+              "members": 5,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
+        "breadcrumbs": {
+          "keys": [
+            "size.medium.gap"
+          ],
+          "parts": {
+            "items": {
+              "members": 2,
+              "where": {
+                "path": [
+                  "full"
+                ],
+                "size": [
+                  "medium"
                 ]
               }
             }
@@ -19564,6 +19739,27 @@
             }
           }
         },
+        "breadcrumb-item": {
+          "keys": [
+            "size.medium.type"
+          ],
+          "parts": {
+            "current": {
+              "members": 1,
+              "where": {
+                "kind": [
+                  "current"
+                ],
+                "separator": [
+                  "chevron"
+                ],
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
         "checkbox-row": {
           "keys": [
             "size.medium.text"
@@ -19986,6 +20182,27 @@
               "where": {
                 "expansion": [
                   "expanded"
+                ],
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
+        "breadcrumb-item": {
+          "keys": [
+            "size.small.type"
+          ],
+          "parts": {
+            "current": {
+              "members": 1,
+              "where": {
+                "kind": [
+                  "current"
+                ],
+                "separator": [
+                  "chevron"
                 ],
                 "size": [
                   "small"
@@ -21315,6 +21532,21 @@
       "declaredNotDrawn": [],
       "drawnNotDeclared": []
     },
+    "_breadcrumb-separator": {
+      "members": 2,
+      "axes": {
+        "type": [
+          "chevron",
+          "slash"
+        ]
+      },
+      "tokens": [
+        "color.icon.secondary",
+        "icon.size.xs"
+      ],
+      "declaredNotDrawn": [],
+      "drawnNotDeclared": []
+    },
     "accordion": {
       "members": 24,
       "axes": {
@@ -21415,6 +21647,58 @@
         "space.100",
         "space.150",
         "type.label.sm.emphasis"
+      ],
+      "declaredNotDrawn": [],
+      "drawnNotDeclared": []
+    },
+    "breadcrumb-item": {
+      "members": 10,
+      "axes": {
+        "kind": [
+          "ancestor",
+          "current",
+          "overflow"
+        ],
+        "separator": [
+          "chevron",
+          "slash"
+        ],
+        "size": [
+          "medium",
+          "small"
+        ]
+      },
+      "tokens": [
+        "color.text.primary",
+        "space.050",
+        "space.100",
+        "type.body.md.default",
+        "type.body.sm.default"
+      ],
+      "declaredNotDrawn": [],
+      "drawnNotDeclared": []
+    },
+    "breadcrumbs": {
+      "members": 6,
+      "axes": {
+        "path": [
+          "full",
+          "parent"
+        ],
+        "separator": [
+          "chevron",
+          "slash"
+        ],
+        "size": [
+          "medium",
+          "small"
+        ]
+      },
+      "tokens": [
+        "color.icon.link.default",
+        "icon.size.xs",
+        "space.050",
+        "space.100"
       ],
       "declaredNotDrawn": [],
       "drawnNotDeclared": []
@@ -22251,7 +22535,7 @@
       ]
     },
     "icon": {
-      "members": 45,
+      "members": 46,
       "axes": {
         "name": [
           "FPO-default-icon",
@@ -22297,6 +22581,7 @@
           "plus-filled",
           "resize-grip",
           "search",
+          "slash",
           "warning-triangle",
           "warning-triangle-filled"
         ]

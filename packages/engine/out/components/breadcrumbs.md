@@ -65,7 +65,7 @@ None — not interactive.
 
 | Axis | Values | Changes |
 | --- | --- | --- |
-| `layout` | `trail`, `parent` | once, when authored |
+| `path` | `full`, `parent` | once, when authored |
 | `separator` | `chevron`, `slash` | once, when authored |
 | `size` | `medium`, `small` | once, when authored |
 

@@ -14,7 +14,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 |  | plus | `plus` | icon set | drawn | indicator: plus-minus; expansion: collapsed |
 | _breadcrumb-separator | chevron | `chevron-right` | icon set | drawn | type: chevron |
 |  | slash | `slash` | icon set | drawn | type: slash |
-| breadcrumbs | backGlyph | `chevron-left` | icon set | drawn | layout: parent |
+| breadcrumbs | backGlyph | `chevron-left` | icon set | drawn | path: parent |
 | checkbox-control | dash | `minus` | icon set | drawn | selection: indeterminate |
 |  | mark | `check` | icon set | drawn | selection: checked |
 | field-message | iconError | `warning-triangle` | icon set | drawn | status: error |

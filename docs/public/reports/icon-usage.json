@@ -106,7 +106,7 @@
           "source": "icon set",
           "how": "drawn",
           "when": {
-            "layout": [
+            "path": [
               "parent"
             ]
           }
