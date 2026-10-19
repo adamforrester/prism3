@@ -3,9 +3,10 @@
  *
  * KB brief: `components/list.md`
  *
- * A column of nested `list-item` instances, each following the list's `type` and `size`. Items 1 to 3 are shown;
- * items 4 to 8 sit behind Figma-only booleans, off (the Tabs and radio-group precedent for a variable child count,
- * #2344). So the set is `type` × `size`: 9 members (owner decisions Q273.2, Q273.3, Q273.4).
+ * A column of nested `list-item` instances, each following the list's `type` and `size`, held in a native `items` slot
+ * (#2649, owner decision Q307 A): three by default, which a designer adds to, removes and reorders on an instance. Until
+ * #2649 items 4 to 8 sat behind Figma-only booleans (#2344). The set is `type` × `size`: 9 members (owner decisions
+ * Q273.2, Q273.3, Q273.4).
  *
  * NATIVE TEXT LISTS VERSUS THIS COMPONENT (Q273.9): both are supported. A native Figma text list is for running text,
  * content that renders as rich text (an article body, terms, long help text); this component is for UI lists (password
@@ -17,15 +18,14 @@
  */
 import { ComponentDef } from '../component-schema';
 
-// THE ITEM'S NUMBER (#2645): the nth item overrides List.Item's `value` text to "n.", so an ordered List reads 1. to 8.
+// THE ITEM'S NUMBER (#2645): the nth item overrides List.Item's `value` text to "n.", so an ordered List reads 1. to 3.
 // in Figma without a designer typing them. The first item keeps List.Item's own default, "1.". The text is set on every
 // member; the number shows only where the item's type is ordered.
-const item = (n: number, optional: boolean, note: string) => ({
+const item = (n: number, note: string) => ({
   kind: 'nest' as const,
   nests: 'list-item',
   nesting: { kind: 'nest-fixed' as const, variant: { type: 'unordered', size: 'medium' }, follow: ['type', 'size'] },
   crossAxisFill: true,
-  ...(optional ? { optional: true } : {}),
   ...(n > 1 ? { overrides: { texts: { value: `${n}.` } } } : {}),
   note,
 });
@@ -46,7 +46,7 @@ export const list: ComponentDef = {
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'The text size, body small, medium or large, with the marker, the marker column and the space between items sized to it. Passed to every item.' },
     { name: 'start', type: 'number', default: 1, required: false, description: 'Ordered only: the number the first item shows.' },
     { name: 'reversed', type: 'boolean', default: false, required: false, description: 'Ordered only: count down instead of up.' },
-    { name: 'children', type: 'node', required: true, description: 'The items, each a List.Item.' },
+    { name: 'items', type: 'slot', anyOf: ['list-item'], minItems: 1, required: true, description: 'The items, each a List.Item, in order. Three by default; a designer adds, removes and reorders them in place.' },
   ],
 
   // `[]` — a read list is not interactive (no state axis, no reactions).
@@ -54,7 +54,7 @@ export const list: ComponentDef = {
 
   variants: {
     type: ['unordered', 'ordered', 'icon'],
-    size: ['small', 'medium', 'large'],
+    size: ['medium', 'small', 'large'],
   },
   axisKinds: { type: 'authoring', size: 'authoring' },
 
@@ -79,37 +79,39 @@ export const list: ComponentDef = {
         // BUILT AT 320, filling its column in use, with the fields' 120 floor: each item stretches across it and wraps.
         placementWidth: 320,
         minWidth: 120,
-        children: ['item1', 'item2', 'item3', 'item4', 'item5', 'item6', 'item7', 'item8'],
-        note: 'The list: a column of items with the item gap between them. It fills its column.',
+        children: ['items'],
+        note: 'The list: a column holding the items slot. It fills its column.',
       },
-      item1: item(1, false, 'The first item.'),
-      item2: item(2, false, 'The second item.'),
-      item3: item(3, false, 'The third item.'),
-      item4: item(4, true, 'A fourth item, off by default.'),
-      item5: item(5, true, 'A fifth item, off by default.'),
-      item6: item(6, true, 'A sixth item, off by default.'),
-      item7: item(7, true, 'A seventh item, off by default.'),
-      item8: item(8, true, 'An eighth item, off by default.'),
+      items: {
+        kind: 'box',
+        role: 'presentation',
+        contentSlot: true,
+        // Owner decision Q307 A: at least one item, and only a list-item (#2646's slot constraints).
+        slotSettings: { minChildren: 1, allowPreferredValuesOnly: true },
+        preferred: ['list-item'],
+        layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
+        gap: 'size.{size}.gap',
+        crossAxisFill: true,
+        children: ['item1', 'item2', 'item3'],
+        note: 'The items: a native slot holding List.Item instances, three by default, with the item gap between them.',
+      },
+      item1: item(1, 'The first item.'),
+      item2: item(2, 'The second item.'),
+      item3: item(3, 'The third item.'),
     },
     codeOnly: [
       'The element — <ul role="list"> for unordered and icon, <ol role="list"> for ordered, chosen from type. The explicit role is required: a list whose markers are styled off (list-style: none) loses its list role in WebKit, and VoiceOver stops announcing "list, 6 items". The component draws its own markers, so it always sets the role.',
       'Numbering — the <ol> counts its items through CSS (list-style-type: decimal, or a counter); numbers are never typed into the item text. start and reversed pass through to the <ol>. A locale with its own digits takes them through @counter-style.',
       'The item gap — row-gap on the list (or margin-block-start on every item after the first), from the size\'s gap token. Never a margin on the last item.',
       'Nested lists — a <ul> or <ol> inside an <li> sits in that item\'s text column, so it indents by the item\'s marker column and starts at the item\'s text edge, and it uses the same size. Not drawn in Figma.',
-      'Figma numbering — a Figma list cannot count, so each item of an ordered List holds its own number as text: the built items read "1." to "8.". A designer who adds or reorders items retypes the numbers.',
-      'item count — Figma shows three items, with five more behind toggles; code takes any number of children.',
+      'Figma numbering — a Figma list cannot count, so each item of an ordered List holds its own number as text: the built items read "1." to "3.". A designer who adds or reorders items retypes the numbers.',
+      'item count — Figma holds the items in the native `items` slot, three by default; code takes `items` of any length from one up.',
     ],
   },
 
   figmaProperties: {
     variantAxes: ['type', 'size'],
-    booleans: {
-      item4: { part: 'item4', default: false, figmaName: 'Item 4', figmaOnly: true },
-      item5: { part: 'item5', default: false, figmaName: 'Item 5', figmaOnly: true },
-      item6: { part: 'item6', default: false, figmaName: 'Item 6', figmaOnly: true },
-      item7: { part: 'item7', default: false, figmaName: 'Item 7', figmaOnly: true },
-      item8: { part: 'item8', default: false, figmaName: 'Item 8', figmaOnly: true },
-    },
+    booleans: {},
   },
 
   accessibility: {

@@ -161,7 +161,7 @@ export const switchControl: ComponentDef = {
   // describe what is on screen, and `role="switch"` is announced "on"/"off". No indeterminate — a switch
   // is uncompromisingly binary. No tone/emphasis, no surface/inverse axis (#871).
   variants: {
-    size: ['small', 'medium'],
+    size: ['medium', 'small'],
     selection: ['off', 'on'],
   },
   // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.

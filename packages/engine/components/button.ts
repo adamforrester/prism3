@@ -198,7 +198,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     // #1223 — `intent` is gone as an axis; it is the component identity now. `appearance` carries
     // emphasis, `surface` the ground, `size` the rung, `width` a drag (not projected).
     appearance: ['filled', 'outline', 'text'],
-    size: ['small', 'medium', 'large'],
+    size: ['medium', 'small', 'large'],
     width: ['auto', 'full'],
     // THE INVERSE GROUND (#1134), and the bindings for it are NOT in `tokens` below — that is the whole
     // mechanism, not an omission. An inverse control binds every role's inverse counterpart, which
@@ -390,29 +390,14 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     'disabled.icon': 'color.disabled.icon',
     'disabled.label.on-fill': 'color.disabled.on-fill',
     'disabled.icon.on-fill': 'color.disabled.on-fill',
-    // THE DISABLED EDGE TRACKS THE DISABLED INK (#1349), and until here it did not. It bound
-    // `color.disabled.border` — a muted neutral matched to `disabled.fill` (both resolve `neutralLow()`,
-    // gated `min: 0`) — which on a dark/inverse band paints DARKER than the disabled label/icon it
-    // surrounds (nb dark: border `neutral.750` vs ink `neutral.550`), so the disabled outline button's
-    // edge read heavier than the text inside it. A border is a NON-TEXT graphical object, so its whole
-    // a11y bar is SC 1.4.11's 3:1 against adjacent colors — it does not need to be darker than the ink,
-    // and matching the ink is both the correct weight and a real contract where the old role carried none.
-    //
-    // So the edge now binds `color.disabled.icon` — the SAME role the disabled icon ink binds two lines
-    // up, its graphical-object peer among the disabled roles (`disabled.text`/`disabled.icon` resolve
-    // identically; icon is the non-text one). It is STRUCTURAL (`anatomy-figma.ts` STRUCTURAL = {fill,
-    // border}), so it paints only on `outline`, where there is no fill and the edge sits on the page —
-    // exactly the ground `disabled.icon` is gated against (`background.primary`), so the border inherits
-    // that role's real contract rather than the old `min: 0` exemption. Measured against the page: nb/aurora
-    // 3.16:1, harbor 3.32:1 (reduced, `disabledMin` floor 3), HC modes ≥4.5:1 — clears 3:1 in every mode by
-    // construction (`disabled.icon`'s own `min` is ≥3, so nothing here can dip below the graphical-object bar).
-    // The `color.disabled.border` ROLE is unchanged and still bound by the other bordered controls
-    // (text-field, select, the *-control trio), so no token NAME moves and CONTRACT holds. Icon-button
-    // took the same rebind in #1697 (it painted 1.48–1.80:1 against the page on the old role).
-    // `test.ts` pins the equality BY NAME (border role === icon role, ≠ the old `color.disabled.border`)
-    // and re-measures the resolved ratio ≥3 across the corpus, so a revert to the darker binding fails
-    // a named assertion rather than shipping the heavier edge again (docs/34).
-    'disabled.border': 'color.disabled.icon',
+    // A BORDER NEVER BINDS AN ICON OR TEXT ROLE (Q346, #2749). The disabled edge binds `color.disabled.border`,
+    // the cross-cutting disabled edge every bordered control shares. It once bound `color.disabled.icon` to
+    // clear 3:1 against the page (#1349); the owner superseded that: a disabled control is outside SC 1.4.11,
+    // and how strong the disabled edge reads is the token tier's to decide, not each component's (which lever
+    // sets it is #2750).
+    // It is STRUCTURAL, so it paints only on `outline`. `lint-paint.ts` arm 5 refuses a stroke bound to a role
+    // the token tier does not scope for strokes, and `test.ts` pins this binding by name.
+    'disabled.border': 'color.disabled.border',
   },
 
   // The STRUCTURAL layer (#327), instantiated from the KB brief §2 — which is already an
@@ -723,7 +708,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     avoidWhen: `The target is a different location/URL → use Link (or give the button an href, which renders an <a>, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton (the accessible name is required there at the type level). ${sibling.avoidWhen}`,
     // #1697 — `spinner` (the pending state swaps it in, #1670) and `focus-ring` (every focus-visible member
     // nests it) are the two components this one always builds with, beside the icon in its slots.
-    commonPartners: ['icon', 'spinner', 'focus-ring'],
+    commonPartners: ['icon', 'spinner', 'focus-ring', 'button-group'],
     triggerKeywords: sibling.triggerKeywords,
     generationPriority: sibling.generationPriority,
   },
@@ -735,7 +720,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     // #1697 — each sibling points at the icon-button of its OWN family, so the destructive button's
     // icon-only alternative is the destructive icon-button rather than the primary one.
     alternativeTo: [family === 'primary' ? 'icon-button' : `icon-button-${family}`, 'switch-row'],
-    planned: ['tooltip', 'button-group', 'menu', 'popover', 'toggle-button', 'split-button'],
+    planned: ['tooltip', 'menu', 'popover', 'toggle-button', 'split-button'],
     replacesPatterns: ['input[type=button|submit]', 'div[role=button]'],
   },
 

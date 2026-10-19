@@ -83,9 +83,6 @@ export const LAYOUT_LABELS = { columns: 'Columns', gutter: 'Gutter', margin: 'Ma
  *  (owner decision Q23). DRAFT, pending the owner's approval (the S8.2 PR's "Copy for owner approval" block). */
 export const BUTTON_DESC = 'How buttons place their icons, size their label and set their minimum width. Applies to buttons, not icon buttons.';
 export const SETS_DESC = 'Every component set the engine defines, with what each contains and its spacing at your density.';
-/** The Components intro, with the number of sets counted from the catalog, never typed (DRAFT, S8.2). The page data's
- *  `intro` below is the same sentence without the count, for a reader of the data alone. */
-export const COMPONENTS_INTRO = (n: number): string => `Button options, and the ${n} component sets the engine defines.`;
 
 /** Which host a legacy page list applies to. Components mapped to a different legacy page per host until S8.2 (§4). */
 export type Host = 'web' | 'figma';
@@ -97,8 +94,11 @@ export const VIEWS = [
 ] as const;
 /** The views behind Inspect (F1). They open over any page's preview and are never a page's home. */
 export const INSPECT = [['contrast', 'Contrast'], ['tokens', 'Tokens'], ['log', 'Decisions log']] as const;
-/** Where the web host's Docs item points (#2637): the site serves the repo's `docs/public/` at `/docs`. */
-export const DOCS_HREF = '/docs/llms.txt';
+/** Where the web bar's Docs link points: the docs landing page (#2637, owner decision Q384 A), which replaced Inspect's
+ *  Docs item and its target, the guides' index (#2662). The site serves the repo's `docs/public/` at `/docs`, so this is
+ *  `docs/public/index.html`; the site build requires it. The trailing slash keeps the page's relative links inside
+ *  `/docs/`. */
+export const DOCS_HREF = '/docs/';
 
 export type ViewId = (typeof VIEWS)[number][0];
 export type InspectId = (typeof INSPECT)[number][0];
@@ -280,11 +280,12 @@ export const DOMAINS = [
     // S7: the owner's names (E2, 2026-10-04: "Radius" in names and headings, overriding D16's swap to "corner"); the
     // intro, Density's and Radius' descriptions are APPROVED, Base radius' is DRAFT. `radiusHairline` has no row: the
     // engine retired it (#2053, `Lever.deprecated` in the manifest), and `test-pages.ts` holds that a deprecated
-    // lever has no home rather than reading a hand list.
+    // lever has no home rather than reading a hand list. Field style (#2695) sits right after Control shape, in the
+    // Radius section, as the owner placed it in the Form group (Q333).
     id: 'shape', label: 'Shape', home: 'shape', intro: 'Control heights and corners. Padding is set per component.',
     sections: [
       { title: 'Density', desc: DENSITY_DESC, rows: [{ ctl: 'chips', keys: ['density'], drive: 'size' }] },
-      { title: 'Radius', desc: RADIUS_DESC, rows: [{ ctl: 'slider', keys: ['radiusScale'], drive: 'radius' }, { ctl: 'chips', keys: ['controlShape'], drive: 'shape' }] },
+      { title: 'Radius', desc: RADIUS_DESC, rows: [{ ctl: 'slider', keys: ['radiusScale'], drive: 'radius' }, { ctl: 'chips', keys: ['controlShape'], drive: 'shape' }, { ctl: 'chips', keys: ['fieldStyle'], drive: 'shape' }] },
       { title: 'Base radius', desc: BASE_RADIUS_DESC, advanced: true, rows: [{ ctl: 'valuePicker', keys: ['baseMd'], drive: 'radius' }] },
     ],
     // S7: moved. Its levers are `domains/shape.ts`, its preview `preview/shape.ts`.
@@ -319,12 +320,13 @@ export const DOMAINS = [
     status: 'new',
   },
   {
-    // S8.2: moved, one page on both hosts (owner decisions G2, G5, G6 A). The Button options and their preview, then the
-    // component sets: a read-only list on the web, the list with a Build button in the plugin. Each lever section and the
-    // preview section it pairs with share their heading and description (Q23); v6's "Sets" / "Component sets" pair is
-    // "Component sets" on both sides. The intro is drawn with the set count (`COMPONENTS_INTRO`). Its levers are
-    // `domains/components.ts`, its preview `preview/components.ts`.
-    id: 'components', label: 'Components', home: 'comps', intro: 'Button options, and the component sets the engine defines.',
+    // S8.2: moved, one page on both hosts (owner decisions G2, G5, G6 A). Redrawn by #2700 (the owner's approved
+    // wireframe, every call A): the levers pane draws the list of sets, grouped by Figma page, and the action bar
+    // (`domains/components.ts`, its intro `GROUPS_COPY.intro`); the preview pane draws the focused family, where the
+    // Button options now sit with the Buttons family (`preview/components.ts`, `domains/button-options.ts`). The two
+    // sections stay in this data so every lever keeps one home (`test-pages.ts`): Button's keys are drawn in the preview
+    // pane's Buttons block, the sets by the list.
+    id: 'components', label: 'Components', home: 'comps', intro: 'The component sets the engine defines, in families. A build places each on its page in this file.',
     sections: [
       {
         title: 'Button', desc: BUTTON_DESC, rows: [

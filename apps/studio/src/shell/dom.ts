@@ -59,6 +59,7 @@ const GLYPHS = {
   system: '<rect x="1.8" y="2.8" width="12.4" height="8.4" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M5.5 14h5M8 11.2V14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
   pages: '<path d="M2.5 4h11M2.5 8h11M2.5 12h11" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
   export: '<path d="M8 2.5v7.5M4.8 7L8 10.2 11.2 7M2.5 13.5h11" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>',
+  docs: '<path d="M8 4.4C6.6 3.4 4.6 3 2.2 3.2v9.2c2.4-.2 4.4.2 5.8 1.2 1.4-1 3.4-1.4 5.8-1.2V3.2C11.4 3 9.4 3.4 8 4.4zM8 4.4v9.2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>',
   x: '<path d="M4.5 4.5l7 7M11.5 4.5l-7 7" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
   layers: '<path d="M8 2.2l5.8 3L8 8.2 2.2 5.2z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M2.2 8.2L8 11.2l5.8-3M2.2 11.1L8 14.1l5.8-3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>',
   chevl: '<path d="M10 4L6 8l4 4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>',
@@ -131,6 +132,21 @@ export type Tile = { readonly btn: HTMLButtonElement; readonly mark: HTMLElement
 export const tile = (role: string, label: string, start = false): Tile => {
   const btn = hook(h('button', start ? 'p3-btn p3-tile p3-tile-start' : 'p3-btn p3-tile'), role);
   btn.type = 'button';
+  const mark = h('span', 'p3-tile-mark');
+  const lab = h('span', 'p3-tile-label', label);
+  lab.setAttribute('aria-hidden', 'true');
+  const tip = hook(h('span', 'p3-tile-tip'), `${role}-tip`);
+  tip.setAttribute('aria-hidden', 'true');
+  btn.append(mark, lab, tip);
+  return { btn, mark, tip };
+};
+/** A bar tile that is a link (#2637 Q384: the web's Docs): the same parts and tiers as `tile`, on an anchor, so it
+ *  opens in a new tab and the brand being edited stays put. */
+export const linkTile = (role: string, label: string, href: string): { readonly btn: HTMLAnchorElement; readonly mark: HTMLElement; readonly tip: HTMLElement } => {
+  const btn = hook(h('a', 'p3-btn p3-tile'), role);
+  btn.setAttribute('href', href);
+  btn.setAttribute('target', '_blank');
+  btn.setAttribute('rel', 'noopener');
   const mark = h('span', 'p3-tile-mark');
   const lab = h('span', 'p3-tile-label', label);
   lab.setAttribute('aria-hidden', 'true');

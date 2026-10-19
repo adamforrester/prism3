@@ -509,7 +509,7 @@ export const environmentProblems = async (): Promise<string[]> => {
 /** The artifact-count meta-check, taken from the drift gate's ALREADY-CAPTURED output rather than by
  *  running `regen.ts --check` a second time (it is among the slowest gates here). This is what
  *  buffering per gate buys — point 2 paying for itself. Mirrors `ci.yml`'s own step. */
-const EXPECTED_ARTIFACTS = 200;
+const EXPECTED_ARTIFACTS = 202;
 
 /* #775's window closed 2026-08-20 and the smoke suite gates in both CI and this runner, so the
  * date constant and its clock read are GONE rather than left at a passed date. They existed to stop
@@ -1061,6 +1061,13 @@ export const GATES: Gate[] = [
     id: 'lint-ecosystem',
     ciStep: "The ecosystem diagram's data matches the code (#2637)",
     cmd: engine('lint-ecosystem.ts'),
+  },
+  {
+    // #2650 — reads the COMMITTED docs/public/releases/** and git history, so it needs no `after`: the
+    // fold writes the notes, and this re-derives every release's diff from the records at both folds.
+    id: 'lint-release-notes',
+    ciStep: 'Release notes match the diff between folds (#2650)',
+    cmd: engine('lint-release-notes.ts'),
   },
   {
     // The one `tools/` battery wired into CI (#1123), and the reason its NAME is about the DETECTOR

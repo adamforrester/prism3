@@ -43,10 +43,16 @@ export type StyleGuidesLend = {
     /** The writes that change what the catalog holds (Apply Theme's and Set up file's slots): when one lands, the page
      *  asks for the catalog again. */
     readonly writes: readonly unknown[];
+    /** The cleanup offer (Q412 A, #2816): the tables the generator no longer draws that the last run left in place. */
+    readonly retired: readonly { readonly id: string; readonly name: string }[];
+    /** The confirmed cleanup: `pending` while the host removes, then its sentence. */
+    readonly cleanup: 'pending' | { readonly ok: boolean; readonly summary: string } | null;
   };
   readonly request: () => void;
   readonly draw: (o: StyleGuideOptions) => void;
   readonly cancel: () => void;
+  /** Remove the tables the designer confirmed from the offer, by node id (Q412 A). */
+  readonly cleanUp: (ids: readonly string[]) => void;
   readonly setUp: () => void;
   readonly close: () => void;
   /** Open Activity on the style guide's result (the verdict pill). */
@@ -77,6 +83,8 @@ const S = {
   opt: { ...DEFAULT_OPTIONS } as PageOptions,
   /** How many tables the page's own run asked for, until the main thread lists them (0 when none is running). */
   pending: 0,
+  /** The cleanup's list is open for the designer to confirm (Q412 A). */
+  confirmCleanup: false,
 };
 /** The run line (approved, P12, and #1784's): the table being drawn, counted from 1. */
 const runLine = (at: number, n: number): string => `Drawing table ${at} of ${n}…`;
@@ -557,14 +565,48 @@ export const mountStyleGuides = (root: HTMLElement, lend: StyleGuidesLend, narro
     return sec;
   };
 
+  /** THE CLEANUP OFFER (Q412 A, #2816), the Prune stale pattern: the run's list of tables the generator no longer draws,
+   *  opened for review, then removed only on Remove. Nothing is removed without it; the host's sentence follows. */
+  const cleanup = (): HTMLElement | null => {
+    const r = lend.read();
+    const said = r.cleanup && r.cleanup !== 'pending' ? r.cleanup : null;
+    if (r.state === 'pending' || (!r.retired.length && !said)) return null;
+    const wrap = hook(h('div', 'p3-sg-cleanup'), 'sg-cleanup');
+    if (said) wrap.append(hook(h('p', said.ok ? 'p3-sg-note' : 'p3-sg-note p3-sg-error', said.summary), 'sg-cleanup-result'));
+    const n = r.retired.length;
+    if (!n) return wrap;
+    const tables = `${n} table${n === 1 ? '' : 's'}`;
+    wrap.append(h('p', 'p3-sg-note', `${tables} the generator no longer draws ${n === 1 ? 'was' : 'were'} left in place.`));
+    const off = r.busy || r.cleanup === 'pending';
+    if (!S.confirmCleanup) {
+      const review = btn('p3-btn p3-btn-page', 'sg-cleanup-review', 'Review and remove…', () => { S.confirmCleanup = true; paint(); });
+      review.dataset.key = 'cleanup-review';
+      review.disabled = off;
+      wrap.append(review);
+      return wrap;
+    }
+    const list = hook(h('ul', 'p3-sg-cleanup-list'), 'sg-cleanup-list');
+    for (const t of r.retired) list.append(h('li', undefined, t.name));
+    const foot = h('div', 'p3-sg-cleanup-foot');
+    const cancel = btn('p3-btn p3-btn-page', 'sg-cleanup-cancel', 'Cancel', () => { S.confirmCleanup = false; paint(); });
+    cancel.dataset.key = 'cleanup-cancel';
+    const remove = btn('p3-btn p3-btn-primary', 'sg-cleanup-confirm', `Remove ${tables}`, () => { S.confirmCleanup = false; lend.cleanUp(r.retired.map((t) => t.id)); });
+    remove.dataset.key = 'cleanup-confirm';
+    remove.disabled = off;
+    foot.append(cancel, remove);
+    wrap.append(list, foot);
+    return wrap;
+  };
+
   const compose = (cat: StyleGuideCatalog | null): HTMLElement[] => {
     const r = lend.read();
     const setUp = cat?.setUp ?? true;
     const busy = r.busy;
     const prog = progress();
+    const offer = cleanup();
     if (narrow()) {
       const parts: HTMLElement[] = [header(setUp)];
-      if (prog) { const s = hook(h('section', 'p3-sg-sec p3-sg-progsec'), 'sg-run'); s.setAttribute('aria-label', 'Progress'); s.append(prog); parts.push(s); }
+      if (prog || offer) { const s = hook(h('section', 'p3-sg-sec p3-sg-progsec'), 'sg-run'); s.setAttribute('aria-label', 'Progress'); if (prog) s.append(prog); if (offer) s.append(offer); parts.push(s); }
       const cols = h('div', 'p3-sg-cols');
       cols.append(selection(cat, busy), options(cat, busy));
       const act = hook(h('div', 'p3-sg-actbar'), 'sg-actbar');
@@ -578,6 +620,7 @@ export const mountStyleGuides = (root: HTMLElement, lend: StyleGuidesLend, narro
     run.setAttribute('aria-label', 'Draw');
     run.append(runbar(cat, setUp));
     if (prog) run.append(prog);
+    if (offer) run.append(offer);
     right.append(run, options(cat, busy));
     cols.append(selection(cat, busy), right);
     return [header(setUp), cols];
