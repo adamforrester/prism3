@@ -12,7 +12,7 @@
     "used": 248,
     "unusedSemantic": 259,
     "unusedPrimitive": 280,
-    "components": 43
+    "components": 45
   },
   "tokens": {
     "border-width.hairline": {
@@ -58,6 +58,17 @@
           "parts": {
             "container": {
               "members": 576,
+              "where": {}
+            }
+          }
+        },
+        "counter": {
+          "keys": [
+            "border-width"
+          ],
+          "parts": {
+            "control": {
+              "members": 18,
               "where": {}
             }
           }
@@ -1372,6 +1383,24 @@
             }
           }
         },
+        "counter": {
+          "keys": [
+            "disabled.border"
+          ],
+          "parts": {
+            "control": {
+              "members": 3,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "state": [
+                  "disabled"
+                ]
+              }
+            }
+          }
+        },
         "flush-icon-button": {
           "keys": [
             "disabled.border"
@@ -2658,6 +2687,21 @@
           ],
           "parts": {}
         },
+        "counter": {
+          "keys": [
+            "disabled.label"
+          ],
+          "parts": {
+            "value": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "disabled"
+                ]
+              }
+            }
+          }
+        },
         "field-label": {
           "keys": [
             "disabled.indicator",
@@ -2954,6 +2998,25 @@
             }
           }
         },
+        "counter": {
+          "keys": [
+            "outline.border"
+          ],
+          "parts": {
+            "control": {
+              "members": 6,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ]
+              }
+            }
+          }
+        },
         "password-field": {
           "keys": [
             "border",
@@ -3081,6 +3144,25 @@
     "color.field.fill": {
       "type": "color",
       "components": {
+        "counter": {
+          "keys": [
+            "outline.fill"
+          ],
+          "parts": {
+            "control": {
+              "members": 6,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ]
+              }
+            }
+          }
+        },
         "password-field": {
           "keys": [
             "fill"
@@ -11900,6 +11982,23 @@
             }
           }
         },
+        "counter": {
+          "keys": [
+            "ghost.label",
+            "outline.label"
+          ],
+          "parts": {
+            "value": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ]
+              }
+            }
+          }
+        },
         "dialog": {
           "keys": [
             "body",
@@ -13828,6 +13927,24 @@
             }
           }
         },
+        "counter": {
+          "keys": [
+            "ghost.ring-offset"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 3,
+              "where": {
+                "appearance": [
+                  "ghost"
+                ],
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            }
+          }
+        },
         "flush-icon-button": {
           "keys": [
             "ring-offset"
@@ -14034,6 +14151,24 @@
             }
           }
         },
+        "counter": {
+          "keys": [
+            "outline.ring-offset"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 3,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            }
+          }
+        },
         "focus-ring": {
           "keys": [
             "offset.field"
@@ -14187,6 +14322,21 @@
           "parts": {
             "focusRing": {
               "members": 9,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            }
+          }
+        },
+        "counter": {
+          "keys": [
+            "ring-width"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 6,
               "where": {
                 "state": [
                   "focus-visible"
@@ -14578,21 +14728,6 @@
             }
           }
         },
-        "segmented-control-segment": {
-          "keys": [
-            "size.large.icon"
-          ],
-          "parts": {
-            "leadingVisual": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "large"
-                ]
-              }
-            }
-          }
-        },
         "spinner": {
           "keys": [
             "size.large"
@@ -14608,64 +14743,6 @@
             },
             "ring": {
               "members": 1,
-              "where": {
-                "size": [
-                  "large"
-                ]
-              }
-            }
-          }
-        },
-        "tab": {
-          "keys": [
-            "size.large.icon"
-          ],
-          "parts": {
-            "leadingVisual": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "large"
-                ]
-              }
-            }
-          }
-        },
-        "tag": {
-          "keys": [
-            "size.large.icon"
-          ],
-          "parts": {
-            "check": {
-              "members": 5,
-              "where": {
-                "selection": [
-                  "selected"
-                ],
-                "size": [
-                  "large"
-                ],
-                "type": [
-                  "select"
-                ]
-              }
-            },
-            "dismissGlyph": {
-              "members": 5,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "size": [
-                  "large"
-                ],
-                "type": [
-                  "dismissible"
-                ]
-              }
-            },
-            "leadingVisual": {
-              "members": 15,
               "where": {
                 "size": [
                   "large"
@@ -15097,14 +15174,14 @@
         },
         "segmented-control-segment": {
           "keys": [
-            "size.medium.icon"
+            "size.large.icon"
           ],
           "parts": {
             "leadingVisual": {
               "members": 10,
               "where": {
                 "size": [
-                  "medium"
+                  "large"
                 ]
               }
             }
@@ -15135,14 +15212,14 @@
         },
         "tab": {
           "keys": [
-            "size.medium.icon"
+            "size.large.icon"
           ],
           "parts": {
             "leadingVisual": {
               "members": 10,
               "where": {
                 "size": [
-                  "medium"
+                  "large"
                 ]
               }
             }
@@ -15150,7 +15227,7 @@
         },
         "tag": {
           "keys": [
-            "size.medium.icon"
+            "size.large.icon"
           ],
           "parts": {
             "check": {
@@ -15160,7 +15237,7 @@
                   "selected"
                 ],
                 "size": [
-                  "medium"
+                  "large"
                 ],
                 "type": [
                   "select"
@@ -15174,7 +15251,7 @@
                   "unselected"
                 ],
                 "size": [
-                  "medium"
+                  "large"
                 ],
                 "type": [
                   "dismissible"
@@ -15185,7 +15262,7 @@
               "members": 15,
               "where": {
                 "size": [
-                  "medium"
+                  "large"
                 ]
               }
             }
@@ -15655,14 +15732,14 @@
         },
         "segmented-control-segment": {
           "keys": [
-            "size.small.icon"
+            "size.medium.icon"
           ],
           "parts": {
             "leadingVisual": {
               "members": 10,
               "where": {
                 "size": [
-                  "small"
+                  "medium"
                 ]
               }
             }
@@ -15708,14 +15785,14 @@
         },
         "tab": {
           "keys": [
-            "size.small.icon"
+            "size.medium.icon"
           ],
           "parts": {
             "leadingVisual": {
               "members": 10,
               "where": {
                 "size": [
-                  "small"
+                  "medium"
                 ]
               }
             }
@@ -15723,7 +15800,7 @@
         },
         "tag": {
           "keys": [
-            "size.small.icon"
+            "size.medium.icon"
           ],
           "parts": {
             "check": {
@@ -15733,7 +15810,7 @@
                   "selected"
                 ],
                 "size": [
-                  "small"
+                  "medium"
                 ],
                 "type": [
                   "select"
@@ -15747,7 +15824,7 @@
                   "unselected"
                 ],
                 "size": [
-                  "small"
+                  "medium"
                 ],
                 "type": [
                   "dismissible"
@@ -15758,7 +15835,7 @@
               "members": 15,
               "where": {
                 "size": [
-                  "small"
+                  "medium"
                 ]
               }
             }
@@ -16057,6 +16134,21 @@
             }
           }
         },
+        "segmented-control-segment": {
+          "keys": [
+            "size.small.icon"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "spinner": {
           "keys": [
             "size.x-small"
@@ -16075,6 +16167,64 @@
               "where": {
                 "size": [
                   "x-small"
+                ]
+              }
+            }
+          }
+        },
+        "tab": {
+          "keys": [
+            "size.small.icon"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
+        "tag": {
+          "keys": [
+            "size.small.icon"
+          ],
+          "parts": {
+            "check": {
+              "members": 5,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "size": [
+                  "small"
+                ],
+                "type": [
+                  "select"
+                ]
+              }
+            },
+            "dismissGlyph": {
+              "members": 5,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "small"
+                ],
+                "type": [
+                  "dismissible"
+                ]
+              }
+            },
+            "leadingVisual": {
+              "members": 15,
+              "where": {
+                "size": [
+                  "small"
                 ]
               }
             }
@@ -16504,6 +16654,17 @@
             }
           }
         },
+        "counter": {
+          "keys": [
+            "radius"
+          ],
+          "parts": {
+            "control": {
+              "members": 18,
+              "where": {}
+            }
+          }
+        },
         "password-field": {
           "keys": [
             "radius"
@@ -16645,6 +16806,21 @@
             "size.large.min-height"
           ],
           "parts": {}
+        },
+        "counter": {
+          "keys": [
+            "size.large.height"
+          ],
+          "parts": {
+            "control": {
+              "members": 6,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
         },
         "flush-icon-button": {
           "keys": [
@@ -16910,6 +17086,21 @@
             "size.medium.min-height"
           ],
           "parts": {}
+        },
+        "counter": {
+          "keys": [
+            "size.medium.height"
+          ],
+          "parts": {
+            "control": {
+              "members": 6,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
         },
         "divider": {
           "keys": [
@@ -17251,6 +17442,21 @@
           ],
           "parts": {}
         },
+        "counter": {
+          "keys": [
+            "size.small.height"
+          ],
+          "parts": {
+            "control": {
+              "members": 6,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "flush-icon-button": {
           "keys": [
             "size.small.round"
@@ -17525,6 +17731,10 @@
             "container": {
               "members": 3,
               "where": {}
+            },
+            "items": {
+              "members": 3,
+              "where": {}
             }
           }
         },
@@ -17539,6 +17749,24 @@
             }
           }
         },
+        "counter": {
+          "keys": [
+            "ghost.size.large.pad-x",
+            "ghost.size.medium.pad-x",
+            "ghost.size.small.pad-x",
+            "pad-y"
+          ],
+          "parts": {
+            "control": {
+              "members": 18,
+              "where": {}
+            },
+            "entry": {
+              "members": 18,
+              "where": {}
+            }
+          }
+        },
         "dialog": {
           "keys": [
             "pad-none"
@@ -17548,18 +17776,11 @@
               "members": 15,
               "where": {}
             },
-            "footerInline": {
-              "members": 5,
+            "footer": {
+              "members": 10,
               "where": {
                 "footer": [
-                  "inline"
-                ]
-              }
-            },
-            "footerStacked": {
-              "members": 5,
-              "where": {
-                "footer": [
+                  "inline",
                   "stacked"
                 ]
               }
@@ -17618,6 +17839,10 @@
             "container": {
               "members": 3,
               "where": {}
+            },
+            "items": {
+              "members": 3,
+              "where": {}
             }
           }
         },
@@ -17638,6 +17863,10 @@
             "track-pad"
           ],
           "parts": {
+            "items": {
+              "members": 3,
+              "where": {}
+            },
             "track": {
               "members": 3,
               "where": {}
@@ -17685,7 +17914,7 @@
               "members": 6,
               "where": {}
             },
-            "list": {
+            "items": {
               "members": 6,
               "where": {}
             }
@@ -17786,6 +18015,23 @@
     "space.050": {
       "type": "dimension",
       "components": {
+        "counter": {
+          "keys": [
+            "size.medium.value-pad",
+            "size.small.value-pad"
+          ],
+          "parts": {
+            "entry": {
+              "members": 12,
+              "where": {
+                "size": [
+                  "medium",
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "field-label": {
           "keys": [
             "gap"
@@ -18125,6 +18371,21 @@
             }
           }
         },
+        "button-group": {
+          "keys": [
+            "layout.stacked.gap"
+          ],
+          "parts": {
+            "items": {
+              "members": 1,
+              "where": {
+                "layout": [
+                  "stacked"
+                ]
+              }
+            }
+          }
+        },
         "button-neutral": {
           "keys": [
             "size.large.padding-y",
@@ -18167,20 +18428,31 @@
             }
           }
         },
+        "counter": {
+          "keys": [
+            "root-gap",
+            "size.large.value-pad"
+          ],
+          "parts": {
+            "container": {
+              "members": 18,
+              "where": {}
+            },
+            "entry": {
+              "members": 6,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
         "dialog": {
           "keys": [
-            "footer.stacked.gap",
             "title-gap"
           ],
           "parts": {
-            "footerStacked": {
-              "members": 5,
-              "where": {
-                "footer": [
-                  "stacked"
-                ]
-              }
-            },
             "titleBox": {
               "members": 15,
               "where": {}
@@ -18226,6 +18498,14 @@
           ],
           "parts": {
             "container": {
+              "members": 3,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            },
+            "items": {
               "members": 3,
               "where": {
                 "size": [
@@ -18555,6 +18835,23 @@
             }
           }
         },
+        "button-group": {
+          "keys": [
+            "layout.fill.gap",
+            "layout.inline.gap"
+          ],
+          "parts": {
+            "items": {
+              "members": 2,
+              "where": {
+                "layout": [
+                  "fill",
+                  "inline"
+                ]
+              }
+            }
+          }
+        },
         "button-neutral": {
           "keys": [
             "size.large.gap",
@@ -18580,16 +18877,21 @@
             }
           }
         },
-        "dialog": {
+        "counter": {
           "keys": [
-            "footer.inline.gap"
+            "outline.size.medium.pad-x",
+            "outline.size.small.pad-x"
           ],
           "parts": {
-            "footerInline": {
-              "members": 5,
+            "control": {
+              "members": 6,
               "where": {
-                "footer": [
-                  "inline"
+                "appearance": [
+                  "outline"
+                ],
+                "size": [
+                  "medium",
+                  "small"
                 ]
               }
             }
@@ -18601,6 +18903,14 @@
           ],
           "parts": {
             "container": {
+              "members": 3,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            },
+            "items": {
               "members": 3,
               "where": {
                 "size": [
@@ -18775,6 +19085,24 @@
             }
           }
         },
+        "counter": {
+          "keys": [
+            "outline.size.large.pad-x"
+          ],
+          "parts": {
+            "control": {
+              "members": 3,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
         "dialog": {
           "keys": [
             "gap",
@@ -18795,25 +19123,11 @@
                 ]
               }
             },
-            "footerInline": {
-              "members": 2,
+            "footer": {
+              "members": 4,
               "where": {
                 "footer": [
-                  "inline"
-                ],
-                "placement": [
-                  "bottom",
-                  "full"
-                ],
-                "size": [
-                  "medium"
-                ]
-              }
-            },
-            "footerStacked": {
-              "members": 2,
-              "where": {
-                "footer": [
+                  "inline",
                   "stacked"
                 ],
                 "placement": [
@@ -18862,6 +19176,14 @@
           ],
           "parts": {
             "container": {
+              "members": 3,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            },
+            "items": {
               "members": 3,
               "where": {
                 "size": [
@@ -19136,21 +19458,11 @@
                 ]
               }
             },
-            "footerInline": {
-              "members": 3,
+            "footer": {
+              "members": 6,
               "where": {
                 "footer": [
-                  "inline"
-                ],
-                "placement": [
-                  "center"
-                ]
-              }
-            },
-            "footerStacked": {
-              "members": 3,
-              "where": {
-                "footer": [
+                  "inline",
                   "stacked"
                 ],
                 "placement": [
@@ -19321,6 +19633,21 @@
           "parts": {
             "label": {
               "members": 1,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
+        "counter": {
+          "keys": [
+            "size.large.type"
+          ],
+          "parts": {
+            "value": {
+              "members": 6,
               "where": {
                 "size": [
                   "large"
@@ -19647,6 +19974,21 @@
           "parts": {
             "label": {
               "members": 1,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
+        "counter": {
+          "keys": [
+            "size.medium.type"
+          ],
+          "parts": {
+            "value": {
+              "members": 6,
               "where": {
                 "size": [
                   "medium"
@@ -20062,6 +20404,21 @@
           "parts": {
             "label": {
               "members": 1,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
+        "counter": {
+          "keys": [
+            "size.small.type"
+          ],
+          "parts": {
+            "value": {
+              "members": 6,
               "where": {
                 "size": [
                   "small"
@@ -21790,6 +22147,22 @@
         "color.inverse.interactive.destructive.text.rest"
       ]
     },
+    "button-group": {
+      "members": 3,
+      "axes": {
+        "layout": [
+          "fill",
+          "inline",
+          "stacked"
+        ]
+      },
+      "tokens": [
+        "space.100",
+        "space.150"
+      ],
+      "declaredNotDrawn": [],
+      "drawnNotDeclared": []
+    },
     "button-neutral": {
       "members": 576,
       "axes": {
@@ -22020,6 +22393,50 @@
       ],
       "drawnNotDeclared": []
     },
+    "counter": {
+      "members": 18,
+      "axes": {
+        "appearance": [
+          "ghost",
+          "outline"
+        ],
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "state": [
+          "disabled",
+          "focus-visible",
+          "rest"
+        ]
+      },
+      "tokens": [
+        "border-width.hairline",
+        "color.disabled.border",
+        "color.disabled.text",
+        "color.field.border.rest",
+        "color.field.fill",
+        "color.text.primary",
+        "focus.ring.offset",
+        "focus.ring.offset-field",
+        "focus.ring.width",
+        "radius.sm",
+        "size.lg.height",
+        "size.md.height",
+        "size.sm.height",
+        "space.0",
+        "space.050",
+        "space.100",
+        "space.150",
+        "space.200",
+        "type.body.lg.default",
+        "type.body.md.default",
+        "type.body.sm.default"
+      ],
+      "declaredNotDrawn": [],
+      "drawnNotDeclared": []
+    },
     "dialog": {
       "members": 15,
       "axes": {
@@ -22048,7 +22465,6 @@
         "shadow.xl",
         "space.0",
         "space.100",
-        "space.150",
         "space.200",
         "space.300",
         "type.body.md.default",
@@ -23036,9 +23452,9 @@
         "color.interactive.neutral.text.rest",
         "focus.ring.offset",
         "focus.ring.width",
-        "icon.size.lg",
         "icon.size.md",
         "icon.size.sm",
+        "icon.size.xs",
         "radius.sm",
         "size.lg.height",
         "size.md.height",
@@ -23297,9 +23713,9 @@
         "color.interactive.primary.text.rest",
         "focus.ring.offset",
         "focus.ring.width",
-        "icon.size.lg",
         "icon.size.md",
         "icon.size.sm",
+        "icon.size.xs",
         "size.lg.height",
         "size.md.height",
         "size.sm.height",
@@ -23390,9 +23806,9 @@
         "color.interactive.primary.subtle-fill.selected",
         "focus.ring.offset",
         "focus.ring.width",
-        "icon.size.lg",
         "icon.size.md",
         "icon.size.sm",
+        "icon.size.xs",
         "radius.round",
         "size.lg.height",
         "size.md.height",

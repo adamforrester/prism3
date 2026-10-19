@@ -34,7 +34,7 @@ Place above every field as its accessible name. Wire htmlFor to the field id. Se
 - **Purpose:** Name a form field visibly and programmatically.
 - **Use when:** Above every field control — the accessible name for the input.
 - **Avoid when:** As a section heading or standalone text (use a heading) — this is bound to one control via htmlFor. Never omit it in favor of a placeholder.
-- **Often used with:** `text-field`, `password-field`, `textarea`, `select`, `checkbox-group`, `radio-group`, `segmented-control`, `slider`, `field-message`
+- **Often used with:** `text-field`, `password-field`, `textarea`, `select`, `checkbox-group`, `radio-group`, `segmented-control`, `counter`, `slider`, `field-message`
 
 ## Props
 
