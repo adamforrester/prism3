@@ -281,7 +281,12 @@
         "rest"
       ]
     },
-    "members": 18
+    "members": 18,
+    "properties": {
+      "label": "BOOLEAN",
+      "message": "BOOLEAN",
+      "value": "TEXT"
+    }
   },
   "dialog": {
     "axes": {
