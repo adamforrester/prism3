@@ -170,7 +170,7 @@ export const buttonGroup: ComponentDef = {
     primaryPurpose: 'Lay out the one to three buttons that close a task, as a row at the end edge, a full-width stack or a row that shares the width.',
     whenToUse: 'The actions at the foot of a dialog, banner, card or form: a main action with a Cancel beside it, or up to three related actions.',
     avoidWhen: 'One choice among joined options (segmented-control), a toolbar of tools, navigation (links), or a single action on its own (a Button by itself).',
-    commonPartners: ['dialog', 'button', 'button-destructive', 'button-neutral'],
+    commonPartners: ['dialog', 'banner', 'button', 'button-destructive', 'button-neutral'],
     triggerKeywords: ['button group', 'button set', 'actions', 'action buttons', 'dialog footer', 'form actions', 'cancel and save'],
     generationPriority: 2,
   },
@@ -180,7 +180,7 @@ export const buttonGroup: ComponentDef = {
     alternativeTo: ['segmented-control'],
     replacesPatterns: ['a footer of fixed nested buttons copied into each component', 'a button-set component with a variant per count and layout'],
     supersededBy: [],
-    planned: ['banner', 'card', 'toolbar'],
+    planned: ['card', 'toolbar'],
   },
 
   motion: {

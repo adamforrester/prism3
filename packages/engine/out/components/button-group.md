@@ -40,7 +40,7 @@ Button labels are short verbs or verb phrases in sentence case, each naming its 
 - **Purpose:** Lay out the one to three buttons that close a task, as a row at the end edge, a full-width stack or a row that shares the width.
 - **Use when:** The actions at the foot of a dialog, banner, card or form: a main action with a Cancel beside it, or up to three related actions.
 - **Avoid when:** One choice among joined options (segmented-control), a toolbar of tools, navigation (links), or a single action on its own (a Button by itself).
-- **Often used with:** `dialog`, `button`, `button-destructive`, `button-neutral`
+- **Often used with:** `dialog`, `banner`, `button`, `button-destructive`, `button-neutral`
 
 ## Props
 
@@ -80,7 +80,7 @@ None — not interactive.
 
 - **Composes with:** `button`
 - **Alternative to:** `segmented-control`
-- **Planned:** `banner`, `card`, `toolbar`
+- **Planned:** `card`, `toolbar`
 - **Replaces:**
   - a footer of fixed nested buttons copied into each component
   - a button-set component with a variant per count and layout

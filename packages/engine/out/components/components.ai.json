@@ -7376,6 +7376,7 @@
         "avoidWhen": "One choice among joined options (segmented-control), a toolbar of tools, navigation (links), or a single action on its own (a Button by itself).",
         "commonPartners": [
           "dialog",
+          "banner",
           "button",
           "button-destructive",
           "button-neutral"
@@ -7406,7 +7407,6 @@
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "banner",
           "card",
           "toolbar"
         ],
@@ -8298,7 +8298,8 @@
           "link",
           "list",
           "button",
-          "button-neutral"
+          "button-neutral",
+          "button-group"
         ],
         "triggerKeywords": [
           "banner",
@@ -8331,8 +8332,7 @@
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "toast",
-          "button-group"
+          "toast"
         ],
         "replacesPatterns": [
           "a colored div with an icon and role=\"alert\" on a message present at load",

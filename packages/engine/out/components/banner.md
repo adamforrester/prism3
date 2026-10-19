@@ -42,7 +42,7 @@ Titles are short, specific and in sentence case, with no period. The body states
 - **Purpose:** Show a persistent, in-flow message about an important state, with optional actions to resolve it.
 - **Use when:** A page or section error, a service or maintenance notice, or a result that has to stay visible until the user acts on it or dismisses it.
 - **Avoid when:** The message is a brief confirmation that can go away by itself (a toast), it is about one field (a field message), the user must decide before going on (a dialog), or it is a short status label beside content (a badge).
-- **Often used with:** `link`, `list`, `button`, `button-neutral`
+- **Often used with:** `link`, `list`, `button`, `button-neutral`, `button-group`
 
 ## Props
 
@@ -96,7 +96,7 @@ None — not interactive.
 
 - **Composes with:** `button-neutral`, `flush-icon-button-neutral`
 - **Alternative to:** `dialog`, `field-message`, `badge`
-- **Planned:** `toast`, `button-group`
+- **Planned:** `toast`
 - **Replaces:**
   - a colored div with an icon and role="alert" on a message present at load
   - an error shown as a toast that disappears

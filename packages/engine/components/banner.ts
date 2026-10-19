@@ -288,7 +288,7 @@ export const banner: ComponentDef = {
     primaryPurpose: 'Show a persistent, in-flow message about an important state, with optional actions to resolve it.',
     whenToUse: 'A page or section error, a service or maintenance notice, or a result that has to stay visible until the user acts on it or dismisses it.',
     avoidWhen: 'The message is a brief confirmation that can go away by itself (a toast), it is about one field (a field message), the user must decide before going on (a dialog), or it is a short status label beside content (a badge).',
-    commonPartners: ['link', 'list', 'button', 'button-neutral'],
+    commonPartners: ['link', 'list', 'button', 'button-neutral', 'button-group'],
     triggerKeywords: ['banner', 'alert banner', 'callout', 'inline alert', 'message bar', 'notice', 'page error', 'service notice', 'section message'],
     generationPriority: 2,
   },
@@ -298,7 +298,7 @@ export const banner: ComponentDef = {
     alternativeTo: ['dialog', 'field-message', 'badge'],
     replacesPatterns: ['a colored div with an icon and role="alert" on a message present at load', 'an error shown as a toast that disappears'],
     supersededBy: [],
-    planned: ['toast', 'button-group'],
+    planned: ['toast'],
   },
 
   motion: {
