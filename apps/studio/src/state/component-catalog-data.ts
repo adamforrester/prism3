@@ -1233,5 +1233,40 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
       "field-message",
       "focus-ring"
     ]
+  },
+  {
+    "id": "_slider-thumb",
+    "name": "Slider.Thumb",
+    "category": "form",
+    "summary": "The thumb a Slider moves: a filled disc with a page-colored ring. Used only inside a Slider.",
+    "unit": "variants",
+    "spacing": [],
+    "page": "Slider",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 5,
+    "nests": [
+      "focus-ring"
+    ]
+  },
+  {
+    "id": "slider",
+    "name": "Slider",
+    "category": "form",
+    "summary": "Choose a value, or a range, by moving a thumb along a track. Works with arrow keys too.",
+    "unit": "variants",
+    "spacing": [],
+    "page": "Slider",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 10,
+    "nests": [
+      "field-label",
+      "_slider-thumb",
+      "text-field",
+      "field-message"
+    ]
   }
 ];

@@ -28,7 +28,8 @@
         "rest"
       ]
     },
-    "members": 5
+    "members": 5,
+    "properties": {}
   },
   "accordion": {
     "axes": {
@@ -875,7 +876,18 @@
         "single"
       ]
     },
-    "members": 10
+    "members": 10,
+    "properties": {
+      "end labels": "BOOLEAN",
+      "helper": "BOOLEAN",
+      "inputs": "BOOLEAN",
+      "label": "BOOLEAN",
+      "max label": "TEXT",
+      "min label": "TEXT",
+      "range text": "TEXT",
+      "value": "BOOLEAN",
+      "value text": "TEXT"
+    }
   },
   "spinner": {
     "axes": {
