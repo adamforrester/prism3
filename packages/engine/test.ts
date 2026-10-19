@@ -17012,7 +17012,7 @@ arm: {
       const control = p.root.children.find((c) => c.name === 'control');
       for (const side of ['decrement', 'increment']) {
         const n = control?.children.find((c) => c.name === side);
-        const want = { shape: SHAPE[ap], size: sz, state: st === 'disabled' ? 'disabled' : 'rest' };
+        const want = { shape: SHAPE[ap], size: sz, surface: 'default', state: st === 'disabled' ? 'disabled' : 'rest' };
         if (n?.nestTarget !== 'flush-icon-button-neutral' || JSON.stringify(n?.nestVariant) !== JSON.stringify(want) || JSON.stringify(n?.nestExpose) !== JSON.stringify(['state']))
           offNest.push(`${name}/${side}: ${n?.nestTarget} ${JSON.stringify(n?.nestVariant)} exposing ${JSON.stringify(n?.nestExpose)}, want ${JSON.stringify(want)}`);
       }
@@ -32383,7 +32383,7 @@ arm: {
   // THE HEADER: the title, the description (off), and the close (on): FlushIconButton.Neutral, round, medium (Q385 A).
   const hdrBad = plans.filter((p) => {
     const r = p.root as DN, close = find(r, 'close'), desc = find(r, 'description'), title = find(r, 'title');
-    return !(close?.nestTarget === 'flush-icon-button-neutral' && JSON.stringify(close.nestVariant) === JSON.stringify({ shape: 'round', size: 'medium', state: 'rest' })
+    return !(close?.nestTarget === 'flush-icon-button-neutral' && JSON.stringify(close.nestVariant) === JSON.stringify({ shape: 'round', size: 'medium', surface: 'default', state: 'rest' })
       && close.visibleProp === 'close' && close.visible !== false && desc?.visible === false && desc.paints?.fills === 'color/text/secondary' && title?.paints?.fills === 'color/text/primary');
   });
   ok(hdrBad.length === 0, `#2609 dialog header: the close is FlushIconButton.Neutral round medium and shown, the description hidden in secondary text, the title in primary text (${hdrBad.length ? `WRONG: ${hdrBad.map(planComponentName).slice(0, 2).join('; ')}` : 'all 15'})`);

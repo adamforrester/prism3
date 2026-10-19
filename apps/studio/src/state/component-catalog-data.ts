@@ -303,7 +303,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Subcomponents",
     "buildable": true,
     "reason": null,
-    "members": 30,
+    "members": 60,
     "nests": [
       "icon",
       "focus-ring"
@@ -320,7 +320,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Subcomponents",
     "buildable": true,
     "reason": null,
-    "members": 30,
+    "members": 60,
     "nests": [
       "icon",
       "focus-ring"
@@ -337,7 +337,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Subcomponents",
     "buildable": true,
     "reason": null,
-    "members": 30,
+    "members": 60,
     "nests": [
       "icon",
       "focus-ring"
@@ -1212,6 +1212,45 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
       "icon",
       "field-message",
       "focus-ring"
+    ]
+  },
+  {
+    "id": "toast",
+    "name": "Toast",
+    "category": "feedback",
+    "summary": "A short status message over the page after an action. Announced politely; it never takes focus.",
+    "unit": "variants",
+    "spacing": [
+      {
+        "key": "pad-y",
+        "ref": "space.100"
+      },
+      {
+        "key": "pad-x",
+        "ref": "space.200"
+      },
+      {
+        "key": "pad-end",
+        "ref": "space.100"
+      },
+      {
+        "key": "gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "glyph-gap",
+        "ref": "space.150"
+      }
+    ],
+    "page": "Toast",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 2,
+    "nests": [
+      "button",
+      "flush-icon-button-neutral",
+      "icon"
     ]
   },
   {
