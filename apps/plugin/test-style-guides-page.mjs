@@ -551,6 +551,47 @@ console.log('\na quiet run\'s finish is announced once (#2508)');
   await page.close();
 }
 
+// ── the cleanup offer (Q412 A, #2816) ────────────────────────────────────────────────────────────
+console.log('\nthe cleanup offer: listed, removed only on confirm (Q412 A)');
+{
+  const { page, errors } = await openPage();
+  await post(page, { type: 'style-guide-catalog', catalog: CAT });
+  await treeDrawn(page);
+  await hooks.click(page.locator('[data-p3="sg-draw"]'));
+  await posted(page, 'style-guide', 1);
+  await post(page, { type: 'style-guide-result', ok: true, headline: '✓ style guide: 7 tables', summary: '7 tables updated in place',
+    retired: [{ id: '12:34', name: 'Style guide — Inverse' }, { id: '12:99', name: 'Style guide — Legacy' }] });
+  await until(page, 'the cleanup offer drawn', () => !!document.querySelector('[data-p3="sg-cleanup-review"]'));
+  const offer = await page.evaluate(() => document.querySelector('[data-p3="sg-cleanup"]')?.textContent ?? '');
+  ok(offer.includes('2 tables the generator no longer draws were left in place.') && await page.locator('[data-p3="sg-cleanup-list"]').count() === 0,
+    `Q412 A: the run's result offers its retired tables, the list closed until asked for ("${offer}")`);
+  await hooks.click(page.locator('[data-p3="sg-cleanup-review"]'));
+  await until(page, 'the cleanup list opened', () => !!document.querySelector('[data-p3="sg-cleanup-list"]'));
+  const names = await page.evaluate(() => [...document.querySelectorAll('[data-p3="sg-cleanup-list"] li')].map((li) => li.textContent));
+  let st = await read(page);
+  ok(JSON.stringify(names) === JSON.stringify(['Style guide — Inverse', 'Style guide — Legacy']) && sentOf(st, 'style-guide-cleanup').length === 0,
+    `Q412 A: Review lists each table by name, and removes nothing (${JSON.stringify(names)}; ${sentOf(st, 'style-guide-cleanup').length} cleanup posted)`);
+  await hooks.click(page.locator('[data-p3="sg-cleanup-cancel"]'));
+  await until(page, 'the cleanup list closed', () => !document.querySelector('[data-p3="sg-cleanup-list"]') && !!document.querySelector('[data-p3="sg-cleanup-review"]'));
+  st = await read(page);
+  ok(sentOf(st, 'style-guide-cleanup').length === 0, 'Q412 A: Cancel closes the list and removes nothing');
+  await hooks.click(page.locator('[data-p3="sg-cleanup-review"]'));
+  await until(page, 'the cleanup list opened again', () => !!document.querySelector('[data-p3="sg-cleanup-confirm"]'));
+  const label = await page.locator('[data-p3="sg-cleanup-confirm"]').textContent();
+  await hooks.click(page.locator('[data-p3="sg-cleanup-confirm"]'));
+  await posted(page, 'style-guide-cleanup', 1);
+  st = await read(page);
+  ok(label === 'Remove 2 tables' && JSON.stringify(sentOf(st, 'style-guide-cleanup')[0]?.ids) === JSON.stringify(['12:34', '12:99']),
+    `Q412 A: "${label}" asks the main thread to remove exactly the listed tables, by id (${JSON.stringify(sentOf(st, 'style-guide-cleanup')[0])})`);
+  await post(page, { type: 'style-guide-cleanup-result', ok: true, removed: ['12:34', '12:99'], summary: '2 tables removed: Style guide — Inverse, Style guide — Legacy' });
+  await until(page, "the cleanup's sentence drawn", () => !!document.querySelector('[data-p3="sg-cleanup-result"]'));
+  const after = await page.evaluate(() => ({ said: document.querySelector('[data-p3="sg-cleanup-result"]')?.textContent, review: !!document.querySelector('[data-p3="sg-cleanup-review"]') }));
+  ok(after.said === '2 tables removed: Style guide — Inverse, Style guide — Legacy' && !after.review,
+    `Q412 A: the host's sentence replaces the offer once the tables are removed (${JSON.stringify(after)})`);
+  ok(errors.length === 0, `no console errors (${errors.slice(0, 2).join(' · ')})`);
+  await page.close();
+}
+
 // ── 380 (P9) ─────────────────────────────────────────────────────────────────────────────────────
 console.log('\nat 380 (P9)');
 {

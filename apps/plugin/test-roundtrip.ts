@@ -48,6 +48,7 @@ import { applyComponentPlan } from './src/write-components';
 import { makeShim, varValue } from './component-shim';
 import { materializeForBrand } from './src/brand-def';
 import { planTargets, prebuildDependencies } from './src/build-deps';
+import { reactionMap } from './src/reactions';
 import type { ComponentDef } from '@prism3/engine/component-schema';
 import { validateComponentDef } from '@prism3/engine/component-schema';
 import type { Node, Page, ShimOpts } from './component-shim';
@@ -230,7 +231,10 @@ const SWAP_OVERRIDE = [{ ...listDef, id: 'list@swap-override', anatomy: { ...lis
   item1: { ...listDef.anatomy!.parts.item1, overrides: { swaps: { icon: SWAP_GLYPH } } } } } }];
 for (const def of [...PROJECTED, ...TINTED, ...BUTTON_LAID, ...SLOT_CONSTRAINED, ...SWAP_OVERRIDE]) {
   try {
-    const r = await roundTrip(def, SLOT_CONSTRAINED.includes(def as (typeof SLOT_CONSTRAINED)[number]) ? SLOT_FILE : {});
+    // A slot that prefers a def it also nests (#2649's `items`, preferring the item it holds) resolves that def by key,
+    // and the shim keys its components only with `identities` on, as a real file always does.
+    const prefersNest = Object.values(def.anatomy?.parts ?? {}).some((p) => (p.preferred ?? []).length > 0);
+    const r = await roundTrip(def, SLOT_CONSTRAINED.includes(def as (typeof SLOT_CONSTRAINED)[number]) ? SLOT_FILE : prefersNest ? { identities: true } : {});
     inventory.push({ def: def.id, divergences: r.divergences, members: r.members, plans: r.plans.length });
   } catch (e) {
     inventory.push({ def: def.id, divergences: [{ member: '(build)', path: '', field: 'THREW', expected: 'a built set', actual: (e as Error).message }], members: 0, plans: 0 });
@@ -266,7 +270,10 @@ ok(BUTTON_LAID.length === 6 && (EXERCISED.pin ?? 0) > 0 && (EXERCISED.paddingPx 
   const plan = figmaAnatomySet(PROJECTED.find((d) => d.id === 'list')!, { swapTarget: SWAP_TARGET })[0];
   const item = (props: unknown): HostNode => ({ name: 'item2', type: 'INSTANCE', children: [], componentProperties: props });
   const one = (props: unknown): string | null => {
-    const want = (plan.root.children.find((c) => c.name === 'item2') as { nestOverrides?: unknown }).nestOverrides;
+    // List's items sit in its `items` slot (#2649), so item2 is found at any depth.
+    type P = { name: string; children: P[]; nestOverrides?: unknown };
+    const find = (n: P): P | undefined => (n.name === 'item2' ? n : n.children.map(find).find(Boolean));
+    const want = find(plan.root as unknown as P)!.nestOverrides;
     const d = diffAnatomy([{ ...plan, root: { name: 'item2', type: 'NESTED_INSTANCE', bound: {}, children: [], nestOverrides: want } as never }], [item(props)], () => 'item2', { varName: () => null, styleName: () => null })
       .find((x) => x.field === 'nestOverrides');
     return d ? d.actual : null;
@@ -996,7 +1003,8 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   const washTail = /(^|\/)interactive\/[a-z-]+\/overlay\/(hover|pressed)$/;
   // The families the QA named — button + its two intent siblings, icon-button + its two — read off `componentDefs`
   // rather than listed, so a new intent sibling is covered without editing this gate.
-  const FAMILIES = componentDefs.filter((d) => /^(button|icon-button)(-|$)/.test(d.id)).map((d) => d.id);
+  // The button and icon-button FAMILIES (Button.Group, #2661, is a layout of Buttons and paints no wash of its own).
+  const FAMILIES = componentDefs.filter((d) => /^(button|icon-button)(-(destructive|neutral))?$/.test(d.id)).map((d) => d.id);
 
   let washBindings = 0;                       // container members whose fills bind a hover/pressed wash
   const washNames = new Set<string>();        // the distinct wash tails the containers bind
@@ -1865,40 +1873,28 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     }
   }
 
-  // ---- #2344 (owner decision Q156 A): a group carries up to eight rows, seven behind Figma-only booleans ----
-  // Read off the built set: exactly seven BOOLEAN properties, "Option 2" to "Option 8", the first two on; every
-  // member builds all eight rows, row 1 unwired and always shown, row N wired to "Option N" and built visible
-  // for N <= 3. Then every toggle turned ON (each wired row made visible, as the host does when its boolean
-  // flips): all eight rows read back, each spanning the group less its inline padding (`space/0`, the shim's
-  // synthetic `varValue`), and the group grows taller than its three-row default. Expected values are literals.
+  // ---- #2344 → #2649 (owner decision Q307 A): a group holds its rows in a native `items` slot ----
+  // Read off the built set: no BOOLEAN property, one SLOT property, `items`; every member holds an `items` SLOT of
+  // three rows, none wired to a property, each spanning the group less its inline padding (`space/0`, the shim's
+  // synthetic `varValue`). Expected values are literals.
   for (const id of ['checkbox-group', 'radio-group']) {
     const members = await setOf(id);
     const set = page.children.find((c) => c.name === id && c.type === 'COMPONENT_SET') as Node | undefined;
     const defs = (set?.componentPropertyDefinitions ?? {}) as Record<string, { type: string; defaultValue?: unknown }>;
-    const bools = Object.entries(defs).filter(([, d]) => d.type === 'BOOLEAN').map(([k, d]) => `${k.split('#')[0]}=${String(d.defaultValue)}`);
-    const WANT = ['Option 2=true', 'Option 3=true', 'Option 4=false', 'Option 5=false', 'Option 6=false', 'Option 7=false', 'Option 8=false'];
-    ok(JSON.stringify(bools) === JSON.stringify(WANT), `#2344 ${id}: the set carries exactly the seven row toggles, Option 2 and 3 on (${bools.join(', ')})`);
-    const keyOf = (name: string) => Object.keys(defs).find((k) => k.split('#')[0] === name);
+    const props = Object.entries(defs).filter(([, d]) => d.type !== 'VARIANT').map(([k, d]) => `${k.split('#')[0]}:${d.type}`);
+    ok(JSON.stringify(props) === JSON.stringify(['items:SLOT']), `#2649 ${id}: the set carries one SLOT property, items, and no row toggle (${props.join(', ')})`);
     const off: string[] = [];
     for (const m of members) {
-      const rows = [1, 2, 3, 4, 5, 6, 7, 8].map((n) => find(m, `row${n}`));
-      if (rows.some((r) => !r)) { off.push(`${m.name}: rows ${rows.map((r, i) => (r ? '' : `row${i + 1} missing`)).filter(Boolean).join(', ')}`); continue; }
-      const wired = rows.map((r) => ((r!.componentPropertyReferences ?? {}) as { visible?: string }).visible);
-      const shown = rows.map((r) => r!.visible !== false);
-      if (wired[0] !== undefined || wired.slice(1).some((k, i) => k !== keyOf(`Option ${i + 2}`)))
-        off.push(`${m.name}: wiring ${wired.map((k) => (k ? k.split('#')[0] : 'none')).join('/')}`);
-      if (JSON.stringify(shown) !== JSON.stringify([true, true, true, false, false, false, false, false]))
-        off.push(`${m.name}: built visible ${shown.join('/')}`);
-      const before = H(m);
-      for (const r of rows) r!.visible = true;
+      const slot = find(m, 'items');
+      const rows = ((slot?.children as Node[]) ?? []);
+      if (slot?.type !== 'SLOT' || JSON.stringify(rows.map((r) => r.name)) !== JSON.stringify(['row1', 'row2', 'row3'])) { off.push(`${m.name}: items ${String(slot?.type)} holding ${rows.map((r) => r.name).join(',')}`); continue; }
+      if (rows.some((r) => ((r.componentPropertyReferences ?? {}) as { visible?: string }).visible || r.visible === false)) off.push(`${m.name}: a row is wired or hidden`);
       const span = W(m) - 2 * varValue('space/0');
       const widths = rows.map((r) => W(r));
-      const after = H(m);
-      rows.forEach((r, i) => { r!.visible = shown[i]; });
-      if (!(widths.every((w) => w === span) && after > before)) off.push(`${m.name}: all on, row widths ${widths.join('/')} (want ${span}), height ${before} → ${after}`);
+      if (!widths.every((w) => w === span)) off.push(`${m.name}: row widths ${widths.join('/')} (want ${span})`);
     }
     ok(members.length === 3 && off.length === 0,
-      `#2344 ${id}: every member builds eight rows, row 1 always shown and rows 2-8 wired to Option 2-8 with three shown, and with every toggle on all eight span the group and it grows (${members.length} members, ${off.length} off — ${off[0] ?? 'none'})`);
+      `#2649 ${id}: every member holds an items SLOT of three rows, none wired or hidden, each spanning the group (${members.length} members, ${off.length} off — ${off[0] ?? 'none'})`);
   }
 }
 
@@ -2152,6 +2148,102 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     }
   }
   ok(read > 0 && off.length === 0, `reactions read-back: on ${INTERACTIVE.length} interactive defs (${read} members read off the host) Rest goes to Hover while hovering and to Pressed while pressing, Hover to Pressed while pressing only, nothing else reacts (${off.length} off${off.length ? `: ${off.slice(0, 3).join(' | ')}` : ''})`);
+}
+
+// ── #2427 — THE COUNTER'S TWO BUTTONS, BUILT AND READ BACK OFF THE HOST ──────────────────────────────────
+//
+// The Counter nests FlushIconButton.Neutral twice (decrement, increment), each `nest-exposed` with `state`, and maps
+// its own coordinate onto the button's through `variantWhen`. EXPECTED is typed here from the owner decisions, never
+// read off the def or the plan: Q287 A (on #2457) — outline nests the flush shape, ghost the round one; Q283.7 — the
+// buttons start at rest and the designer sets one disabled at a limit, so only the Counter's own disabled member
+// starts them disabled; and the size follows. ACTUAL is the member each built instance is an instance of, read off
+// the shim after the nested set was really built (`prebuildDependencies`), plus its exposure flag. The geometry arm
+// reads the two instances' centers off the shim's layout model: at least 44px apart (Q296 A), so the code-side hit
+// areas never overlap.
+{
+  const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP_TARGET });
+  const counterDef = componentDefs.find((d) => d.id === 'counter');
+  ok(!!counterDef, '#2427 counter: the def is registered');
+  if (counterDef) {
+    const all = componentDefs.flatMap((d) => { try { return project(d); } catch { return []; } });
+    const page: Page = { children: [] };
+    const shim = makeShim({ ...fullFor(all), comps: [SWAP_TARGET], liveRoot: true, page, layoutModel: true, identities: true });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+    const build = (d: ComponentDef) => applyComponentPlan(project(d), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural
+    await prebuildDependencies(counterDef, { defs: componentDefs, project, host: shim as any, build });
+    const r = await build(counterDef);
+    const set = page.children.find((c) => c.name === 'counter' && c.type === 'COMPONENT_SET') as Node | undefined;
+    const members = ((set?.children as Node[] | undefined) ?? []) as unknown as HostNode[];
+    ok(members.length === 18 && r.misses.length === 0, `#2427 counter: builds 18 members over its nested sets with 0 misses (${members.length}; ${r.misses[0] ?? 'none'})`);
+    const SHAPE: Record<string, string> = { outline: 'flush', ghost: 'round' };
+    const find = (n: HostNode | undefined, name: string): HostNode | undefined => {
+      if (!n) return undefined;
+      if (n.name === name) return n;
+      for (const c of (Array.isArray(n.children) ? n.children : []) as HostNode[]) { const f = find(c, name); if (f) return f; }
+      return undefined;
+    };
+    const coordOf = (name: string): Record<string, string> => Object.fromEntries(name.split(', ').map((kv) => kv.split('=') as [string, string]));
+    const off: string[] = [];
+    const spacing: number[] = [];
+    for (const m of members) {
+      const c = coordOf(String(m.name));
+      const want = `shape=${SHAPE[c.appearance]}, size=${c.size}, state=${c.state === 'disabled' ? 'disabled' : 'rest'}`;
+      const centers: number[] = [];
+      for (const side of ['decrement', 'increment']) {
+        const inst = find(m, side);
+        const main = inst?.mainComponent as { name?: string; parent?: { name?: string } } | undefined;
+        if (!inst || inst.type !== 'INSTANCE') { off.push(`${String(m.name)}/${side}: not an instance`); continue; }
+        if (main?.parent?.name !== 'flush-icon-button-neutral') off.push(`${String(m.name)}/${side}: an instance of ${main?.parent?.name ?? 'nothing'}`);
+        else if (main.name !== want) off.push(`${String(m.name)}/${side}: is ${main.name}, want ${want}`);
+        if (inst.isExposedInstance !== true) off.push(`${String(m.name)}/${side}: not exposed`);
+        let x = Number(inst.x); let p = inst.parent as HostNode | undefined;
+        while (p && p !== m) { x += Number(p.x); p = p.parent as HostNode | undefined; }
+        centers.push(x + Number(inst.width) / 2);
+      }
+      if (centers.length === 2) spacing.push(centers[1] - centers[0]);
+    }
+    ok(members.length === 18 && off.length === 0,
+      `#2427 counter: in all 18 members both buttons are exposed instances of FlushIconButton.Neutral at the decided member — outline → flush, ghost → round (Q287 A), the size followed, disabled only on the Counter's disabled members (${off.length ? off.slice(0, 4).join('; ') : 'none off'})`);
+    const label = members.map((m) => (find(m, 'label')?.mainComponent as { name?: string } | undefined)?.name ?? '');
+    const dimmed = members.filter((m, i) => coordOf(String(m.name)).state === 'disabled' && /state=disabled/.test(label[i])).length;
+    const lit = members.filter((m, i) => coordOf(String(m.name)).state !== 'disabled' && /state=rest/.test(label[i])).length;
+    ok(dimmed === 6 && lit === 12, `#2427 counter: the nested FieldLabel dims on the 6 disabled members and rests on the other 12 (${dimmed} dimmed, ${lit} at rest)`);
+    const closest = spacing.length ? Math.min(...spacing) : NaN;
+    ok(spacing.length === 18 && closest >= 44,
+      `#2427 counter: the two buttons' centers are at least 44px apart on every member, read off the shim's layout (Q296 A; closest ${closest}px over ${spacing.length})`);
+    // REACTIONS. The Counter's own `state` has no hover or pressed, so its members carry none. Its buttons react through
+    // the nested FlushIconButton.Neutral set, whose members must carry exactly the chain `reactionMap` plans for that
+    // set, so the Counter follows whichever chain `reactions.ts` holds (Q344 restored Rest's press). This arm checks
+    // that the set the Counter nests was written with that chain; the chain's own literal is `reactions read-back`'s.
+    const ownRx = members.reduce((n, m) => n + (((m as unknown as Node).reactions as unknown[] | undefined)?.length ?? 0), 0);
+    const nested = page.children.find((c) => c.name === 'flush-icon-button-neutral' && c.type === 'COMPONENT_SET') as Node | undefined;
+    const nm = ((nested?.children ?? []) as Node[]);
+    const nameOf = new Map(nm.map((m) => [String(m.id), String(m.name)] as const));
+    const planned = reactionMap(nm.map((m) => String(m.name)));
+    const rxOff: string[] = [];
+    let carried = 0;
+    for (const m of nm) {
+      const got = ((m.reactions ?? []) as { trigger: { type: string }; actions: { destinationId: string }[] }[])
+        .flatMap((r) => r.actions.map((a) => `${r.trigger.type}→${nameOf.get(a.destinationId) ?? '?'}`));
+      const want = (planned.get(String(m.name)) ?? []).map((r) => `${r.trigger}→${r.to}`);
+      carried += got.length;
+      if (JSON.stringify(got) !== JSON.stringify(want)) rxOff.push(`${String(m.name)}: ${got.join('; ') || 'none'}, want ${want.join('; ') || 'none'}`);
+    }
+    ok(members.length === 18 && ownRx === 0 && nm.length > 0 && planned.size === nm.length && carried > 0 && rxOff.length === 0,
+      `#2427 counter: the 18 members carry no reaction of their own (${ownRx}), and the nested FlushIconButton.Neutral set's ${nm.length} members carry exactly the chain reactions.ts plans for it (${carried} reactions; ${rxOff.length ? rxOff.slice(0, 3).join(' | ') : 'none off'})`);
+    // THE GLYPHS (#2645): each button's swap property, read off the built instance, names the icon set's minus or plus.
+    const glyphOff: string[] = [];
+    for (const m of members) for (const [side, glyph] of [['decrement', 'icon/minus'], ['increment', 'icon/plus']] as const) {
+      const props = (find(m, side)?.componentProperties ?? {}) as Record<string, { type?: string; value?: unknown }>;
+      const k = Object.keys(props).find((x) => x.split('#')[0] === 'swap icon' && props[x].type === 'INSTANCE_SWAP');
+      const v = k ? props[k].value : undefined;
+      const named = typeof v === 'string' ? ((await (shim as unknown as { getNodeByIdAsync: (id: string) => Promise<{ name: string } | null> }).getNodeByIdAsync(v))?.name ?? v) : v;
+      if (named !== glyph) glyphOff.push(`${String(m.name)}/${side}: ${String(named)}, want ${glyph}`);
+    }
+    ok(members.length === 18 && glyphOff.length === 0,
+      `#2427 counter: in all 18 members the minus button swaps to icon/minus and the plus button to icon/plus (${glyphOff.length ? glyphOff.slice(0, 3).join('; ') : 'none off'})`);
+  }
 }
 
 console.log(failed ? `\n❌ ${failed} FAILED` : '\n✅ component round-trip: ALL PASS');

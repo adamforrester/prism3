@@ -249,6 +249,18 @@ console.log('3b. component pages: alphabetical on insert, reordered by the updat
 
 // ── 3c. Subcomponents in alphabetical order too (#2568, owner decision Q265 B) ──────────────────────
 // Each section is ordered within itself; no page crosses between them. Expected orders are hand-sorted LITERALS.
+// #2427 — the Counter's own page under Components (owner Q283.14 A), alphabetical: after Checkbox, before Divider.
+{
+  const { api, children, names } = makePagesShim();
+  await scaffoldSkeleton(api, TAXONOMY);
+  for (const id of ['divider', 'counter', 'tabs', 'checkbox-row']) await resolveComponentPage(api, id, TAXONOMY);
+  const n = names(); const ci = n.indexOf('Components');
+  const span = n.slice(ci + 1, n.indexOf('---', ci + 1));
+  ok(JSON.stringify(span) === JSON.stringify(['↳ Checkbox', '↳ Counter', '↳ Divider', '↳ Tabs']),
+    `order/counter: the Counter page lands under Components between Checkbox and Divider (${JSON.stringify(span)})`);
+  ok(pagesOutOfOrder(children).length === 0, 'order/counter: a file built only by the build reads in order');
+}
+
 console.log('3c. subcomponent pages: alphabetical within their own section, no page crossing between sections');
 {
   const spanOf = (n: string[], header: string): string[] => { const h = n.indexOf(header); return n.slice(h + 1, n.indexOf('---', h + 1)); };

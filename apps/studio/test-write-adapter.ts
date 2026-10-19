@@ -64,7 +64,7 @@ accepts('file-setup-result', { type: 'file-setup-result', ok: true, headline: '�
 accepts('file-setup-result without a headline', { type: 'file-setup-result', ok: false, summary: 'p' },
   { kind: 'file-setup-result', ok: false, headline: '✗ setup failed', summary: 'p' });
 accepts('style-guide-result', { type: 'style-guide-result', ok: true, headline: '✓ 4 tables', summary: 't' },
-  { kind: 'style-guide-result', ok: true, headline: '✓ 4 tables', summary: 't' , lines: null });
+  { kind: 'style-guide-result', ok: true, headline: '✓ 4 tables', summary: 't' , lines: null, retired: [] });
 // #2177: a verdict's items, one line each in the Activity drawer. Every entry a string, or the list is dropped whole and
 // the drawer shows the summary as its one line.
 accepts('apply-result with its lines', { type: 'apply-result', ok: true, headline: '✓ applied', summary: 'a, b', lines: ['a', 'b'] },
@@ -72,11 +72,11 @@ accepts('apply-result with its lines', { type: 'apply-result', ok: true, headlin
 accepts('component-result with its lines', { type: 'component-result', ok: true, completed: true, headline: '✓ built', summary: 's. t', lines: ['s', 't'] },
   { kind: 'component-result', ok: true, headline: '✓ built', summary: 's. t', completed: true, lines: ['s', 't'] });
 accepts('style-guide-result with its lines', { type: 'style-guide-result', ok: true, headline: '✓ 4 tables', summary: 't. u', lines: ['t', 'u'] },
-  { kind: 'style-guide-result', ok: true, headline: '✓ 4 tables', summary: 't. u', lines: ['t', 'u'] });
+  { kind: 'style-guide-result', ok: true, headline: '✓ 4 tables', summary: 't. u', lines: ['t', 'u'], retired: [] });
 accepts('apply-result with a malformed lines leaves them off', { type: 'apply-result', ok: true, headline: '✓ applied', summary: 'a, b', lines: ['a', 2] },
   { kind: 'apply-result', ok: true, headline: '✓ applied', summary: 'a, b', lines: null });
 accepts('style-guide-result without a headline', { type: 'style-guide-result', ok: true, summary: 't' },
-  { kind: 'style-guide-result', ok: true, headline: '✓ style guide written', summary: 't' , lines: null });
+  { kind: 'style-guide-result', ok: true, headline: '✓ style guide written', summary: 't' , lines: null, retired: [] });
 accepts('component-progress', { type: 'component-progress', phase: 'wire', done: 3.7, total: 10, chunkMs: 41 },
   { kind: 'component-progress', phase: 'wire', done: 3, total: 10, chunkMs: 41 });
 accepts('style-guide-progress', { type: 'style-guide-progress', done: 6.4, total: 22, tableMs: 900 },
@@ -163,9 +163,14 @@ accepts('style-guide-table failed, with its reason', { type: 'style-guide-table'
 drops('style-guide-table with an unknown status', wire({ type: 'style-guide-table', index: 0, status: 'waiting' }));
 drops('style-guide-table with no index', wire({ type: 'style-guide-table', status: 'done' }));
 accepts('style-guide-result stopped by Cancel', { type: 'style-guide-result', ok: true, headline: '✓ style guide: 3 tables', summary: 's', stopped: { done: 3, total: 22 } },
-  { kind: 'style-guide-result', ok: true, headline: '✓ style guide: 3 tables', summary: 's', stopped: { done: 3, total: 22 } , lines: null });
+  { kind: 'style-guide-result', ok: true, headline: '✓ style guide: 3 tables', summary: 's', stopped: { done: 3, total: 22 } , lines: null, retired: [] });
+// Q412 A: the cleanup offer, an id and a name each; an entry that is not one is dropped.
+accepts('style-guide-result with its cleanup offer', { type: 'style-guide-result', ok: true, headline: '✓ x', summary: 's', retired: [{ id: '1:2', name: 'Style guide — Inverse' }, { id: 7, name: 'x' }, null] },
+  { kind: 'style-guide-result', ok: true, headline: '✓ x', summary: 's', lines: null, retired: [{ id: '1:2', name: 'Style guide — Inverse' }] });
+accepts('style-guide-cleanup-result', { type: 'style-guide-cleanup-result', ok: true, removed: ['1:2', 3], summary: '1 table removed: Style guide — Inverse' },
+  { kind: 'style-guide-cleanup-result', ok: true, summary: '1 table removed: Style guide — Inverse', removed: ['1:2'] });
 accepts('style-guide-result with a malformed stopped leaves it off', { type: 'style-guide-result', ok: true, headline: '✓ x', summary: 's', stopped: { done: 9, total: 3 } },
-  { kind: 'style-guide-result', ok: true, headline: '✓ x', summary: 's' , lines: null });
+  { kind: 'style-guide-result', ok: true, headline: '✓ x', summary: 's' , lines: null, retired: [] });
 
 console.log(`\n${executed - failed}/${executed} passed`);
 if (failed) process.exit(1);
