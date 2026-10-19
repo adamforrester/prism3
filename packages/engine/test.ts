@@ -15969,7 +15969,7 @@ arm: {
       // 320 (its root's placementWidth, a literal here), so a label that does not grow takes the whole row and pushes the
       // readout out of the box to the right. The readout's right edge is the sum of the widths ahead of it: a nested label
       // counts as 320 unless it grows, a growing child counts as 0, and text counts as 0 (its advance is the brand font's).
-      // The readout must start at or before the box's right edge, on every member that shows one, and the header must span it.
+      // The readout must start BEFORE the box's right edge (a start at 320 is outside), on every member that shows one, and the header must span it.
       {
         const BOX = 320, FIELD_LABEL_BUILT_AT = 320;
         const outside: string[] = [];
@@ -15984,7 +15984,7 @@ arm: {
             if (c === value) break;
             x += (c.layoutGrow === 1 ? 0 : c.type === 'NESTED_INSTANCE' ? FIELD_LABEL_BUILT_AT : 0);
           }
-          if (x > BOX) outside.push(`${planComponentName(m)}: the readout starts at ${x}px, past the ${BOX}px box`);
+          if (x >= BOX) outside.push(`${planComponentName(m)}: the readout starts at ${x}px, at or past the ${BOX}px box edge`);
         }
         ok(outside.length === 0, `#2669 QA item 1 the value readout stays inside the component's ${BOX}px, at the header's end opposite the label (${outside.length} off — ${outside.slice(0, 2).join('; ') || 'none'})`);
         // The label sits at the start and the readout is the last child, so it ends the row.
