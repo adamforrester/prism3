@@ -224,6 +224,9 @@ const ICON_OFFSET_DEFS: Record<string, string> = {
   'segmented-control-segment': 'icon.size.*',
   tab: 'icon.size.*',
   tag: 'icon.size.*',
+  // Pagination's chevrons and gap icon, one rung below the icon button's glyph (owner Q428 A, on #2796): 16/20/24 at
+  // small, medium and large, so the medium default is `sm`. The cell keeps its own `size.*.height` rung.
+  'pagination-item': 'icon.size.*',
 };
 
 /**
