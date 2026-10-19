@@ -33,7 +33,8 @@
  *        so the border is not the only cue. Code sets aria-current="page". The role is `color.border.tertiary`: of
  *        the neutral border roles it is the one with the least contrast that still clears 3:1 against
  *        `background.primary` in every committed brand × mode (lowest 4.21; `border.secondary` falls to 2.00).
- *        `test.ts` measures it.
+ *        `test.ts` measures it. Q427 A (2026-10-19) moves the border style's border to `border.secondary`; the
+ *        underline keeps `border.tertiary`.
  *   2 A  A per-instance `style: border | underline`. Underline is a 2px bar under the number in the same role.
  *
  * Owner decision Q394 A (2026-10-17, on #2783): a slot item is not a part "used only inside its parent" in Q349's sense,
@@ -45,6 +46,19 @@
  * aria-hidden and not interactive: pages are reached through the numbers and Previous and Next. So the ellipsis has
  * no text and no TEXT property, and the item has no `mark` prop. That also ends the build-time caption collapse: the
  * one `label` property is bound on page members only, behind the one caption "1" (#1567).
+ *
+ * Owner QA of 2026-10-19 (decided fixes) and owner decisions Q426 A, Q427 A and Q428 A:
+ *   QA 1     In the underline style the underline is as wide as the number, not the cell.
+ *   QA 2     The gap marker is in the page numbers' ink (`color.icon.primary`, the same value as their
+ *            `interactive.neutral.text.rest` in every brand and mode).
+ *   Q426 A   The labeled previous and next (simple's) draw no fill. Their word and chevron change ink at hover and
+ *            pressed, so they read as text links beside the page cells. The cell and its 44px target are unchanged.
+ *   Q427 A   In the border style the current page's border is `color.border.secondary`, one rung lighter than
+ *            `border.tertiary`: a subtle edge that need not clear 3:1, because the number's emphasis weight is the
+ *            second cue (WCAG 1.4.11, the reasoning in `notes.evolution`). The underline style's underline is its only
+ *            cue, so it keeps `border.tertiary` and 3:1.
+ *   Q428 A   The chevrons and the gap marker are one icon-size rung smaller at every size. Cell sizes and the 44px
+ *            targets are unchanged.
  *
  * Owner decision Q414 A (2026-10-18, answering Q-2796-1 under Q386): Pagination draws its own previous and next, so it
  * requires no Neutral button family. Pagination.Item gains `type: previous | next`: the same square cell with a chevron
@@ -83,7 +97,7 @@ export const paginationItem: ComponentDef = {
   status: 'draft',
   summary: 'A pagination cell: a page, the gap marker, previous or next. The current page is outlined.',
   description:
-    'One cell in a pagination row: a page number, the gap marker, three dots, that stands for two or more hidden pages, or the previous or next cell, a chevron that opens the page before or after. A cell is as tall as an icon button and at least as wide as it is tall, so a row of pages between previous and next lines up as equal squares; a page number past two digits, or the word "Previous" or "Next" beside a chevron, widens it. The current page is marked, not filled: a border, or a 2px underline under its number, in a gray that stands out from the page at 3:1, with its number in the emphasis weight. It keeps its width, so the row does not move. At hover and press, another page, previous and next show a light neutral wash. At the first or last page, previous or next stays in place and does nothing, drawn in the disabled ink. The gap marker is decorative: it does not respond to the pointer, takes no focus and is hidden from assistive technology. Pagination places the cells and decides which page is current.',
+    'One cell in a pagination row: a page number, the gap marker, three dots, that stands for two or more hidden pages, or the previous or next cell, a chevron that opens the page before or after. A cell is as tall as an icon button and at least as wide as it is tall, so a row of pages between previous and next lines up as equal squares; a page number past two digits, or the word "Previous" or "Next" beside a chevron, widens it. The current page is marked, not filled: its number in the emphasis weight, with a light gray border around the cell, or a 2px underline under the number in a gray that stands out from the page at 3:1. It keeps its width, so the row does not move. At hover and press, another page and an unlabeled previous or next show a light neutral wash; a labeled previous or next shows no fill and its word and chevron darken, as a text link does. At the first or last page, previous or next stays in place and does nothing, drawn in the disabled ink. The gap marker is decorative: it does not respond to the pointer, takes no focus and is hidden from assistive technology. Pagination places the cells and decides which page is current.',
 
   props: [
     { name: 'label', type: 'string', required: true, description: 'The page number as shown, such as "4". Pagination sets it, through the locale\'s number format.' },
@@ -117,7 +131,9 @@ export const paginationItem: ComponentDef = {
   // follows; it is not a color family, so it may not lead (lint-paint arm 1). The style-led template comes first and
   // binds only the current page's border (border style) and bar (underline style), at its two states. It is five
   // segments so that no four-segment key reads as it (the paint-key vocabulary check).
-  paintKeys: ['{selection}.{style}.{type}.{slot}.{state}', '{selection}.{type}.{slot}.{state}', '{selection}.{type}.{slot}'],
+  // Q426 A: the second template binds previous's and next's wash on the unlabeled cells only, so a labeled cell finds
+  // no overlay key and draws no fill. It is six segments, so no five-segment key reads as it.
+  paintKeys: ['{selection}.{style}.{type}.{slot}.{state}', '{selection}.{style}.{labeled}.{type}.{slot}.{state}', '{selection}.{type}.{slot}.{state}', '{selection}.{type}.{slot}'],
 
   tokens: {
     // Corner: IconButton square's rung, so the cells match the icon buttons a page places beside them.
@@ -148,10 +164,12 @@ export const paginationItem: ComponentDef = {
     'size.medium.type.selected': 'type.label.md.emphasis',
     'size.large.type.unselected': 'type.label.lg.default',
     'size.large.type.selected': 'type.label.lg.emphasis',
-    // Q404 A: the gap marker's glyph on IconButton's glyph rungs, so it is the size of the chevrons beside it.
-    'size.small.icon': 'icon.size.sm',
-    'size.medium.icon': 'icon.size.md',
-    'size.large.icon': 'icon.size.lg',
+    // Q404 A: the gap marker's glyph is the size of the chevrons beside it. Q428 A: both sit one icon-size rung under
+    // IconButton's glyph rung at every size (sm under md, xs under sm, md under lg); the cell and its 44px target do not
+    // change.
+    'size.small.icon': 'icon.size.xs',
+    'size.medium.icon': 'icon.size.sm',
+    'size.large.icon': 'icon.size.md',
 
     // A PAGE — no fill at rest; the neutral wash at hover and pressed, as IconButton.Neutral ghost.
     'unselected.page.label': 'color.interactive.neutral.text.rest',
@@ -159,36 +177,40 @@ export const paginationItem: ComponentDef = {
     'unselected.page.label.pressed': 'color.interactive.neutral.text.pressed',
     'unselected.page.overlay.hover': 'color.interactive.neutral.overlay.hover',
     'unselected.page.overlay.pressed': 'color.interactive.neutral.overlay.pressed',
-    // THE CURRENT PAGE (Q381 1 A): no fill. A border, or a 2px underline, in the neutral border role that clears 3:1
-    // against the page with the least contrast above it; the number in the neutral ink, in the emphasis weight. Rest
-    // and focus-visible only (call 7 A).
-    'selected.border.page.border.rest': 'color.border.tertiary',
-    'selected.border.page.border.focus-visible': 'color.border.tertiary',
+    // THE CURRENT PAGE (Q381 1 A): no fill; the number in the neutral ink, in the emphasis weight. Rest and
+    // focus-visible only (call 7 A). Q427 A: the border style's border is border.secondary, one rung lighter than
+    // border.tertiary, a subtle edge that need not clear 3:1, because the emphasis weight is the second cue (WCAG 1.4.11,
+    // in `notes`). The underline is that style's only cue, so it keeps border.tertiary and 3:1.
+    'selected.border.page.border.rest': 'color.border.secondary',
+    'selected.border.page.border.focus-visible': 'color.border.secondary',
     'selected.underline.page.fill.rest': 'color.border.tertiary',
     'selected.underline.page.fill.focus-visible': 'color.border.tertiary',
     'selected.page.label': 'color.interactive.neutral.text.rest',
-    // THE ELLIPSIS — the more-horizontal icon (Q404 A) in the secondary icon ink, the icon role beside the secondary
-    // text the mark used before; no fill, no state.
-    'unselected.ellipsis.icon': 'color.icon.secondary',
+    // THE ELLIPSIS — the more-horizontal icon (Q404 A), no fill, no state. Owner QA (2026-10-19): in the page numbers'
+    // ink, so two inks do not sit side by side. icon.primary is the icon role with the same value as the numbers'
+    // interactive.neutral.text.rest in every brand and mode (test.ts measures it); the glyph is not a control, so it
+    // takes the plain icon role, not an interactive one.
+    'unselected.ellipsis.icon': 'color.icon.primary',
     // PREVIOUS AND NEXT (Q414 A) — a page cell's neutral ink and wash: the chevron in the neutral icon ink (IconButton.Neutral
     // ghost's glyph roles), the word in the neutral text ink, the wash at hover and pressed. Inactive at an end (call 9 A):
-    // the cross-cutting disabled inks, no wash.
+    // the cross-cutting disabled inks, no wash. Q426 A: the labeled cells (simple's) take no wash; their word and chevron
+    // change ink at hover and pressed, as a text link does. So the wash is keyed on `labeled: false` only.
     'unselected.previous.icon': 'color.interactive.neutral.icon.rest',
     'unselected.previous.icon.hover': 'color.interactive.neutral.icon.hover',
     'unselected.previous.icon.pressed': 'color.interactive.neutral.icon.pressed',
     'unselected.previous.label': 'color.interactive.neutral.text.rest',
     'unselected.previous.label.hover': 'color.interactive.neutral.text.hover',
     'unselected.previous.label.pressed': 'color.interactive.neutral.text.pressed',
-    'unselected.previous.overlay.hover': 'color.interactive.neutral.overlay.hover',
-    'unselected.previous.overlay.pressed': 'color.interactive.neutral.overlay.pressed',
+    'unselected.border.false.previous.overlay.hover': 'color.interactive.neutral.overlay.hover',
+    'unselected.border.false.previous.overlay.pressed': 'color.interactive.neutral.overlay.pressed',
     'unselected.next.icon': 'color.interactive.neutral.icon.rest',
     'unselected.next.icon.hover': 'color.interactive.neutral.icon.hover',
     'unselected.next.icon.pressed': 'color.interactive.neutral.icon.pressed',
     'unselected.next.label': 'color.interactive.neutral.text.rest',
     'unselected.next.label.hover': 'color.interactive.neutral.text.hover',
     'unselected.next.label.pressed': 'color.interactive.neutral.text.pressed',
-    'unselected.next.overlay.hover': 'color.interactive.neutral.overlay.hover',
-    'unselected.next.overlay.pressed': 'color.interactive.neutral.overlay.pressed',
+    'unselected.border.false.next.overlay.hover': 'color.interactive.neutral.overlay.hover',
+    'unselected.border.false.next.overlay.pressed': 'color.interactive.neutral.overlay.pressed',
     'disabled.icon': 'color.disabled.icon',
     'disabled.label': 'color.disabled.text',
   },
@@ -208,14 +230,14 @@ export const paginationItem: ComponentDef = {
         padding: { block: 'pad-y', inlineLabel: 'padding-x' },
         radius: 'radius',
         strokeWidth: 'border-width',
-        note: 'The cell: as tall as an icon button and at least as wide as it is tall, and the whole pointer target. The current page has a gray border in the border style; another page, previous and next take a light neutral wash at hover and press.',
+        note: 'The cell: as tall as an icon button and at least as wide as it is tall, and the whole pointer target. The current page has a light gray border in the border style; another page and an unlabeled previous or next take a light neutral wash at hover and press. A labeled previous or next has no fill.',
       },
       previousIcon: {
         kind: 'vector',
         glyph: 'chevron-left',
         size: 'size.{size}.icon',
         presentWhen: { type: ['previous'] },
-        note: 'The previous cell\'s left chevron (Q414 A), at the gap icon\'s size.',
+        note: 'The previous cell\'s left chevron (Q414 A), at the gap icon\'s size, one rung under the icon button\'s glyph (Q428 A).',
       },
       previousText: {
         kind: 'text',
@@ -236,8 +258,12 @@ export const paginationItem: ComponentDef = {
         role: 'presentation',
         presentWhen: { selection: ['selected'], style: ['underline'] },
         height: 'underline-height',
-        layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'hug', y: 'fixed' } },
-        note: 'An empty 2px frame above the number, as tall as the underline below it, so the underlined number sits on the same line as its neighbors.',
+        // Owner QA (2026-10-19): the underline spanned the cell. This frame is childless, so a hug width has nothing to
+        // hug and the host keeps a new frame's default width; the box held it, and the underline stretched to it. It
+        // stretches to the number instead, like the underline, so the number alone sets both widths.
+        crossAxisFill: true,
+        layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'fill', y: 'fixed' } },
+        note: 'An empty 2px frame above the number, as tall as the underline below it and as wide as the number, so the underlined number sits on the same line as its neighbors.',
       },
       reserve: {
         kind: 'box',
@@ -266,7 +292,7 @@ export const paginationItem: ComponentDef = {
         height: 'underline-height',
         crossAxisFill: true,
         layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'fill', y: 'fixed' } },
-        note: 'The 2px line under the current page\'s number, in the underline style, in the same gray as the border.',
+        note: 'The 2px line under the current page\'s number, in the underline style: as wide as the number, not the cell, in a gray that stands out from the page at 3:1.',
       },
       gapIcon: {
         kind: 'vector',
@@ -346,7 +372,7 @@ export const paginationItem: ComponentDef = {
       '1.3.1 Info and Relationships (each cell is a list item; the current page carries aria-current="page")',
       '1.4.1 Use of Color (the current page has a border or an underline and a heavier weight, and aria-current)',
       '1.4.3 Contrast (Minimum) (every number on the page at 4.5:1)',
-      '1.4.11 Non-text Contrast (the current page\'s border or underline at 3:1 against the page; the decorative gap icon is exempt)',
+      '1.4.11 Non-text Contrast (the underline at 3:1 against the page; the border style\'s lighter border is not the only cue, the number\'s emphasis weight marks the current page too; the decorative gap icon is exempt)',
       '2.4.4 Link Purpose (In Context) (each page is named "Page N"; previous and next "Previous page" and "Next page")',
       '2.5.3 Label in Name (a labeled cell\'s visible "Previous" or "Next" starts its accessible name)',
       '2.4.7 Focus Visible (the shared focus ring)',
@@ -394,15 +420,17 @@ export const paginationItem: ComponentDef = {
     contested: [
       'HELD FOR THE OWNER (#2665): the name Pagination.Item (the proposal said PaginationItem; the skill names a family part Family.Part; the id is `pagination-item` by Q394 A), the aliases page-item and pagination-page, the label inset past two digits (space.100), and the forced-colors system color on the current page.',
       'HELD FOR THE OWNER (Q414 A built): the `labeled` axis name and its false/true values (the word beside the chevron in simple), the two TEXT properties "previous label" and "next label" with their props previousLabel and nextLabel (one caption per property, #1567), the 4px (space.050) gap between chevron and word, the chevrons at the gap icon\'s glyph rung in the neutral icon ink, and the disabled inks at an end.',
-      'HELD FOR THE OWNER: the gap icon\'s size and ink, IconButton\'s glyph rungs (icon.size.sm, md, lg, the chevrons\' size) in color.icon.secondary, the icon role beside the secondary text the mark used before (Q404 A named the glyph, not these).',
+      'HELD FOR THE OWNER: the gap icon\'s ink role, color.icon.primary: the owner asked for the page numbers\' ink (QA, 2026-10-19), and this is the plain icon role with that value in every brand and mode, rather than the numbers\' interactive.neutral.text.rest itself, since the icon is not a control.',
     ],
     unverified: [
-      'The current page\'s border against color.background.secondary (lowest 3.88 by the same measure) is measured only against color.background.primary in test.ts.',
+      'The underline against color.background.secondary is measured only against color.background.primary in test.ts.',
     ],
     evolution: [
       '2026-10-16 (#2665): owner decision, every numbered call A: a new page cell (3), filled primary current page in the emphasis weight with the width held (5), rest and focus-visible only on the current page (7), small, medium and large on IconButton\'s rungs (8).',
       '2026-10-16 (Q381, after QA): the current page loses the primary fill for a border in color.border.tertiary (3:1 against the page) with its number semibold, and a `style: border | underline` axis adds the 2px underline. The ellipsis gets its own text part and property, since one TEXT property read "1" on every member.',
       '2026-10-18 (Q414 A): `type` gains previous and next, the square cell with a chevron in the neutral ink and wash, with a disabled state for an end; `labeled` adds the word for simple.',
+      '2026-10-19 (owner QA, Q426 A, Q427 A, Q428 A): the underline is as wide as the number (its childless balance frame stretches to the number instead of keeping a new frame\'s default width); the gap icon is in the page numbers\' ink; the labeled previous and next lose the wash and change ink only; the chevrons and the gap icon are one icon-size rung smaller (xs, sm, md), the cells unchanged.',
+      '2026-10-19 (Q427 A), WCAG 1.4.11 and the second cue: in the border style the current page\'s border is color.border.secondary, one rung lighter than border.tertiary (lowest 2.00 against color.background.primary in light and dark; 9.8 and up in high contrast). 1.4.11 asks 3:1 of the visual information needed to identify a state. Here the border is not needed: the current page\'s number is in the emphasis weight, and each page keeps the width of that weight, so the weight alone identifies it, with aria-current in code. The border is a second, decorative cue, so it may be subtle. The underline style has no other visual cue in its box, so its underline keeps border.tertiary at 3:1. The exception is this part only: test.ts holds the border to the emphasis weight and the underline to 3:1.',
       '2026-10-17 (Q394 A, Q395 A, Q404 A): the id loses the `_` prefix and the item becomes the items slot\'s preferred item, preferred-only; border.tertiary at 1px kept; the ellipsis becomes the decorative more-horizontal icon, so its text part, its TEXT property and the `mark` prop go.',
     ],
   },
@@ -574,7 +602,7 @@ export const pagination: ComponentDef = {
       '1.4.1 Use of Color (the current page has a border or an underline and a heavier weight, and aria-current)',
       '1.4.3 Contrast (Minimum) (every number and the compact text at 4.5:1)',
       '1.4.10 Reflow (a numbered row switches to compact in a narrow container)',
-      '1.4.11 Non-text Contrast (the current page\'s border or underline at 3:1 against the page)',
+      '1.4.11 Non-text Contrast (the current page\'s underline at 3:1 against the page; its border, in the border style, is a second cue beside the emphasis weight, so it may be lighter)',
       '2.1.1 Keyboard (every control is reachable with Tab)',
       '2.4.3 Focus Order (after an in-place page change focus moves to the results, and inactive controls at an end keep focus in place)',
       '2.4.4 Link Purpose (In Context) (previous, next and every page have a full name)',

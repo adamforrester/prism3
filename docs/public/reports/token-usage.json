@@ -961,6 +961,35 @@
             }
           }
         },
+        "pagination-item": {
+          "keys": [
+            "selected.border.page.border.focus-visible",
+            "selected.border.page.border.rest"
+          ],
+          "parts": {
+            "container": {
+              "members": 6,
+              "where": {
+                "labeled": [
+                  "false"
+                ],
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            }
+          }
+        },
         "tab": {
           "keys": [
             "unselected.fill.hover",
@@ -1157,33 +1186,10 @@
         },
         "pagination-item": {
           "keys": [
-            "selected.border.page.border.focus-visible",
-            "selected.border.page.border.rest",
             "selected.underline.page.fill.focus-visible",
             "selected.underline.page.fill.rest"
           ],
           "parts": {
-            "container": {
-              "members": 6,
-              "where": {
-                "labeled": [
-                  "false"
-                ],
-                "selection": [
-                  "selected"
-                ],
-                "state": [
-                  "focus-visible",
-                  "rest"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "page"
-                ]
-              }
-            },
             "underline": {
               "members": 6,
               "where": {
@@ -3724,6 +3730,33 @@
             }
           }
         },
+        "pagination-item": {
+          "keys": [
+            "unselected.ellipsis.icon"
+          ],
+          "parts": {
+            "gapIcon": {
+              "members": 3,
+              "where": {
+                "labeled": [
+                  "false"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "rest"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "ellipsis"
+                ]
+              }
+            }
+          }
+        },
         "password-field": {
           "keys": [
             "icon"
@@ -3837,33 +3870,6 @@
             "tone.secondary"
           ],
           "parts": {}
-        },
-        "pagination-item": {
-          "keys": [
-            "unselected.ellipsis.icon"
-          ],
-          "parts": {
-            "gapIcon": {
-              "members": 3,
-              "where": {
-                "labeled": [
-                  "false"
-                ],
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "rest"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "ellipsis"
-                ]
-              }
-            }
-          }
         },
         "textarea": {
           "keys": [
@@ -6293,14 +6299,17 @@
         },
         "pagination-item": {
           "keys": [
-            "unselected.next.overlay.hover",
-            "unselected.page.overlay.hover",
-            "unselected.previous.overlay.hover"
+            "unselected.border.false.next.overlay.hover",
+            "unselected.border.false.previous.overlay.hover",
+            "unselected.page.overlay.hover"
           ],
           "parts": {
             "container": {
-              "members": 15,
+              "members": 9,
               "where": {
+                "labeled": [
+                  "false"
+                ],
                 "selection": [
                   "unselected"
                 ],
@@ -6487,14 +6496,17 @@
         },
         "pagination-item": {
           "keys": [
-            "unselected.next.overlay.pressed",
-            "unselected.page.overlay.pressed",
-            "unselected.previous.overlay.pressed"
+            "unselected.border.false.next.overlay.pressed",
+            "unselected.border.false.previous.overlay.pressed",
+            "unselected.page.overlay.pressed"
           ],
           "parts": {
             "container": {
-              "members": 15,
+              "members": 9,
               "where": {
+                "labeled": [
+                  "false"
+                ],
                 "selection": [
                   "unselected"
                 ],
@@ -15134,70 +15146,6 @@
             }
           }
         },
-        "pagination-item": {
-          "keys": [
-            "size.large.icon"
-          ],
-          "parts": {
-            "gapIcon": {
-              "members": 1,
-              "where": {
-                "labeled": [
-                  "false"
-                ],
-                "selection": [
-                  "unselected"
-                ],
-                "size": [
-                  "large"
-                ],
-                "state": [
-                  "rest"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "ellipsis"
-                ]
-              }
-            },
-            "nextIcon": {
-              "members": 10,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "size": [
-                  "large"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "next"
-                ]
-              }
-            },
-            "previousIcon": {
-              "members": 10,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "size": [
-                  "large"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "previous"
-                ]
-              }
-            }
-          }
-        },
         "spinner": {
           "keys": [
             "size.large"
@@ -15644,7 +15592,7 @@
         },
         "pagination-item": {
           "keys": [
-            "size.medium.icon"
+            "size.large.icon"
           ],
           "parts": {
             "gapIcon": {
@@ -15657,7 +15605,7 @@
                   "unselected"
                 ],
                 "size": [
-                  "medium"
+                  "large"
                 ],
                 "state": [
                   "rest"
@@ -15677,7 +15625,7 @@
                   "unselected"
                 ],
                 "size": [
-                  "medium"
+                  "large"
                 ],
                 "style": [
                   "border"
@@ -15694,7 +15642,7 @@
                   "unselected"
                 ],
                 "size": [
-                  "medium"
+                  "large"
                 ],
                 "style": [
                   "border"
@@ -16255,7 +16203,7 @@
         },
         "pagination-item": {
           "keys": [
-            "size.small.icon"
+            "size.medium.icon"
           ],
           "parts": {
             "gapIcon": {
@@ -16268,7 +16216,7 @@
                   "unselected"
                 ],
                 "size": [
-                  "small"
+                  "medium"
                 ],
                 "state": [
                   "rest"
@@ -16288,7 +16236,7 @@
                   "unselected"
                 ],
                 "size": [
-                  "small"
+                  "medium"
                 ],
                 "style": [
                   "border"
@@ -16305,7 +16253,7 @@
                   "unselected"
                 ],
                 "size": [
-                  "small"
+                  "medium"
                 ],
                 "style": [
                   "border"
@@ -16727,6 +16675,70 @@
                 ],
                 "style": [
                   "standalone"
+                ]
+              }
+            }
+          }
+        },
+        "pagination-item": {
+          "keys": [
+            "size.small.icon"
+          ],
+          "parts": {
+            "gapIcon": {
+              "members": 1,
+              "where": {
+                "labeled": [
+                  "false"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "small"
+                ],
+                "state": [
+                  "rest"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "ellipsis"
+                ]
+              }
+            },
+            "nextIcon": {
+              "members": 10,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "small"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "next"
+                ]
+              }
+            },
+            "previousIcon": {
+              "members": 10,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "small"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "previous"
                 ]
               }
             }
@@ -24332,10 +24344,11 @@
         "border-width.hairline",
         "border-width.thick",
         "color.border.focus",
+        "color.border.secondary",
         "color.border.tertiary",
         "color.disabled.icon",
         "color.disabled.text",
-        "color.icon.secondary",
+        "color.icon.primary",
         "color.interactive.neutral.icon.hover",
         "color.interactive.neutral.icon.pressed",
         "color.interactive.neutral.icon.rest",
@@ -24346,9 +24359,9 @@
         "color.interactive.neutral.text.rest",
         "focus.ring.offset",
         "focus.ring.width",
-        "icon.size.lg",
         "icon.size.md",
         "icon.size.sm",
+        "icon.size.xs",
         "radius.md",
         "size.lg.height",
         "size.md.height",

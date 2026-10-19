@@ -143,7 +143,7 @@ Type: color. Bound by 1 component(s).
 
 ### `color.border.secondary`
 
-Type: color. Bound by 5 component(s).
+Type: color. Bound by 6 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -151,6 +151,7 @@ Type: color. Bound by 5 component(s).
 | flush-icon-button | `round.border` | container | shape: round · state: focus-visible, hover, pressed, rest (12 of 30) |
 | flush-icon-button-destructive | `round.border` | container | shape: round · state: focus-visible, hover, pressed, rest (12 of 30) |
 | flush-icon-button-neutral | `round.border` | container | shape: round · state: focus-visible, hover, pressed, rest (12 of 30) |
+| pagination-item | `selected.border.page.border.focus-visible`, `selected.border.page.border.rest` | container | labeled: false · selection: selected · state: focus-visible, rest · style: border · type: page (6 of 87) |
 | tab | `unselected.fill.hover`, `unselected.fill.pressed` | indicator | selection: unselected · state: hover, pressed (6 of 30) |
 
 ### `color.border.success`
@@ -173,8 +174,7 @@ Type: color. Bound by 3 component(s).
 |---|---|---|---|
 | badge | `neutral.status.subtle.border` | surface | emphasis: subtle · tone: neutral · type: status (1 of 20) |
 | divider | `separator.fill` | (not drawn) | — |
-| pagination-item | `selected.border.page.border.focus-visible`, `selected.border.page.border.rest`, `selected.underline.page.fill.focus-visible`, `selected.underline.page.fill.rest` | container | labeled: false · selection: selected · state: focus-visible, rest · style: border · type: page (6 of 87) |
-|  |  | underline | labeled: false · selection: selected · state: focus-visible, rest · style: underline · type: page (6 of 87) |
+| pagination-item | `selected.underline.page.fill.focus-visible`, `selected.underline.page.fill.rest` | underline | labeled: false · selection: selected · state: focus-visible, rest · style: underline · type: page (6 of 87) |
 
 ### `color.border.warning`
 
@@ -492,13 +492,14 @@ Type: color. Bound by 1 component(s).
 
 ### `color.icon.primary`
 
-Type: color. Bound by 6 component(s).
+Type: color. Bound by 7 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | icon | `icon`, `tone.primary` | glyph | every member (45 of 45) |
 | list-item | `icon`, `indicator` | bullet | type: unordered (3 of 9) |
 |  |  | icon | type: icon (3 of 9) |
+| pagination-item | `unselected.ellipsis.icon` | gapIcon | labeled: false · selection: unselected · state: rest · style: border · type: ellipsis (3 of 87) |
 | password-field | `icon` | leadingVisual | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest (72 of 84) |
 | select | `icon` | chevron | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest (72 of 84) |
 |  |  | leadingVisual | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest (72 of 84) |
@@ -508,13 +509,12 @@ Type: color. Bound by 6 component(s).
 
 ### `color.icon.secondary`
 
-Type: color. Bound by 4 component(s).
+Type: color. Bound by 3 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | field-message | `default.icon` | (not drawn) | — |
 | icon | `tone.secondary` | (not drawn) | — |
-| pagination-item | `unselected.ellipsis.icon` | gapIcon | labeled: false · selection: unselected · state: rest · style: border · type: ellipsis (3 of 87) |
 | textarea | `icon` | grip | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest (72 of 84) |
 
 ### `color.icon.success`
@@ -833,7 +833,7 @@ Type: color. Bound by 10 component(s).
 | button-neutral | `outline.overlay.hover` | container | appearance: outline · inset: default · state: hover · surface: default (12 of 576) |
 | flush-icon-button-neutral | `round.overlay.hover` | container | shape: round · state: hover (3 of 30) |
 | icon-button-neutral | `ghost.overlay.hover`, `outline.overlay.hover` | container | appearance: ghost, outline · state: hover · surface: default (12 of 216) |
-| pagination-item | `unselected.next.overlay.hover`, `unselected.page.overlay.hover`, `unselected.previous.overlay.hover` | container | selection: unselected · state: hover · style: border · type: next, page, previous (15 of 87) |
+| pagination-item | `unselected.border.false.next.overlay.hover`, `unselected.border.false.previous.overlay.hover`, `unselected.page.overlay.hover` | container | labeled: false · selection: unselected · state: hover · style: border · type: next, page, previous (9 of 87) |
 | password-field | `overlay.hover` | control | state: hover (12 of 84) |
 | segmented-control-segment | `unselected.overlay.hover` | indicator | selection: unselected · state: hover (3 of 30) |
 | select | `overlay.hover` | control | state: hover (12 of 84) |
@@ -850,7 +850,7 @@ Type: color. Bound by 6 component(s).
 | button-neutral | `outline.overlay.pressed` | container | appearance: outline · inset: default · state: pressed · surface: default (12 of 576) |
 | flush-icon-button-neutral | `round.overlay.pressed` | container | shape: round · state: pressed (3 of 30) |
 | icon-button-neutral | `ghost.overlay.pressed`, `outline.overlay.pressed` | container | appearance: ghost, outline · state: pressed · surface: default (12 of 216) |
-| pagination-item | `unselected.next.overlay.pressed`, `unselected.page.overlay.pressed`, `unselected.previous.overlay.pressed` | container | selection: unselected · state: pressed · style: border · type: next, page, previous (15 of 87) |
+| pagination-item | `unselected.border.false.next.overlay.pressed`, `unselected.border.false.previous.overlay.pressed`, `unselected.page.overlay.pressed` | container | labeled: false · selection: unselected · state: pressed · style: border · type: next, page, previous (9 of 87) |
 | segmented-control-segment | `unselected.overlay.pressed` | indicator | selection: unselected · state: pressed (3 of 30) |
 | tag | `unselected.overlay.pressed` | container | selection: unselected · state: pressed (6 of 45) |
 
@@ -2185,7 +2185,7 @@ Type: dimension. Bound by 23 component(s).
 
 ### `icon.size.lg`
 
-Type: dimension. Bound by 7 component(s).
+Type: dimension. Bound by 6 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2197,9 +2197,6 @@ Type: dimension. Bound by 7 component(s).
 | icon-button-neutral | `size.large.icon` | icon | size: large · state: disabled, focus-visible, hover, pressed, rest (60 of 216) |
 |  |  | spinner | size: large · state: pending (12 of 216) |
 | list-item | `size.large.icon` | icon | size: large · type: icon (1 of 9) |
-| pagination-item | `size.large.icon` | gapIcon | labeled: false · selection: unselected · size: large · state: rest · style: border · type: ellipsis (1 of 87) |
-|  |  | nextIcon | selection: unselected · size: large · style: border · type: next (10 of 87) |
-|  |  | previousIcon | selection: unselected · size: large · style: border · type: previous (10 of 87) |
 | spinner | `size.large` | frame | size: large (1 of 4) |
 |  |  | ring | size: large (1 of 4) |
 
@@ -2237,9 +2234,9 @@ Type: dimension. Bound by 17 component(s).
 | icon-button-neutral | `size.medium.icon` | icon | size: medium · state: disabled, focus-visible, hover, pressed, rest (60 of 216) |
 |  |  | spinner | size: medium · state: pending (12 of 216) |
 | list-item | `size.medium.icon` | icon | size: medium · type: icon (1 of 9) |
-| pagination-item | `size.medium.icon` | gapIcon | labeled: false · selection: unselected · size: medium · state: rest · style: border · type: ellipsis (1 of 87) |
-|  |  | nextIcon | selection: unselected · size: medium · style: border · type: next (10 of 87) |
-|  |  | previousIcon | selection: unselected · size: medium · style: border · type: previous (10 of 87) |
+| pagination-item | `size.large.icon` | gapIcon | labeled: false · selection: unselected · size: large · state: rest · style: border · type: ellipsis (1 of 87) |
+|  |  | nextIcon | selection: unselected · size: large · style: border · type: next (10 of 87) |
+|  |  | previousIcon | selection: unselected · size: large · style: border · type: previous (10 of 87) |
 | segmented-control-segment | `size.large.icon` | leadingVisual | size: large (10 of 30) |
 | spinner | `size.medium` | frame | size: medium (1 of 4) |
 |  |  | ring | size: medium (1 of 4) |
@@ -2283,9 +2280,9 @@ Type: dimension. Bound by 21 component(s).
 |  |  | spinner | size: small · state: pending (12 of 216) |
 | link | `size.large.icon` | trailingVisual | size: large · style: standalone (16 of 96) |
 | list-item | `size.small.icon` | icon | size: small · type: icon (1 of 9) |
-| pagination-item | `size.small.icon` | gapIcon | labeled: false · selection: unselected · size: small · state: rest · style: border · type: ellipsis (1 of 87) |
-|  |  | nextIcon | selection: unselected · size: small · style: border · type: next (10 of 87) |
-|  |  | previousIcon | selection: unselected · size: small · style: border · type: previous (10 of 87) |
+| pagination-item | `size.medium.icon` | gapIcon | labeled: false · selection: unselected · size: medium · state: rest · style: border · type: ellipsis (1 of 87) |
+|  |  | nextIcon | selection: unselected · size: medium · style: border · type: next (10 of 87) |
+|  |  | previousIcon | selection: unselected · size: medium · style: border · type: previous (10 of 87) |
 | password-field | `icon-size` | leadingVisual | every member (84 of 84) |
 | segmented-control-segment | `size.medium.icon` | leadingVisual | size: medium (10 of 30) |
 | select | `icon-size` | chevron | every member (84 of 84) |
@@ -2301,7 +2298,7 @@ Type: dimension. Bound by 21 component(s).
 
 ### `icon.size.xs`
 
-Type: dimension. Bound by 12 component(s).
+Type: dimension. Bound by 13 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2325,6 +2322,9 @@ Type: dimension. Bound by 12 component(s).
 |  |  | message | every member (4 of 4) |
 | icon | `size.x-small` | (not drawn) | — |
 | link | `size.medium.icon`, `size.small.icon` | trailingVisual | size: medium, small · style: standalone (32 of 96) |
+| pagination-item | `size.small.icon` | gapIcon | labeled: false · selection: unselected · size: small · state: rest · style: border · type: ellipsis (1 of 87) |
+|  |  | nextIcon | selection: unselected · size: small · style: border · type: next (10 of 87) |
+|  |  | previousIcon | selection: unselected · size: small · style: border · type: previous (10 of 87) |
 | segmented-control-segment | `size.small.icon` | leadingVisual | size: small (10 of 30) |
 | spinner | `size.x-small` | frame | size: x-small (1 of 4) |
 |  |  | ring | size: x-small (1 of 4) |
@@ -3248,9 +3248,9 @@ Drawn, not declared: `color.inverse.icon.link.default`, `color.inverse.icon.link
 
 ### pagination-item
 
-33 token(s); 87 design-file member(s).
+34 token(s); 87 design-file member(s).
 
-`border-width.hairline`, `border-width.thick`, `color.border.focus`, `color.border.tertiary`, `color.disabled.icon`, `color.disabled.text`, `color.icon.secondary`, `color.interactive.neutral.icon.hover`, `color.interactive.neutral.icon.pressed`, `color.interactive.neutral.icon.rest`, `color.interactive.neutral.overlay.hover`, `color.interactive.neutral.overlay.pressed`, `color.interactive.neutral.text.hover`, `color.interactive.neutral.text.pressed`, `color.interactive.neutral.text.rest`, `focus.ring.offset`, `focus.ring.width`, `icon.size.lg`, `icon.size.md`, `icon.size.sm`, `radius.md`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.0`, `space.050`, `space.100`, `type.label.lg.default`, `type.label.lg.emphasis`, `type.label.md.default`, `type.label.md.emphasis`, `type.label.sm.default`, `type.label.sm.emphasis`
+`border-width.hairline`, `border-width.thick`, `color.border.focus`, `color.border.secondary`, `color.border.tertiary`, `color.disabled.icon`, `color.disabled.text`, `color.icon.primary`, `color.interactive.neutral.icon.hover`, `color.interactive.neutral.icon.pressed`, `color.interactive.neutral.icon.rest`, `color.interactive.neutral.overlay.hover`, `color.interactive.neutral.overlay.pressed`, `color.interactive.neutral.text.hover`, `color.interactive.neutral.text.pressed`, `color.interactive.neutral.text.rest`, `focus.ring.offset`, `focus.ring.width`, `icon.size.md`, `icon.size.sm`, `icon.size.xs`, `radius.md`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.0`, `space.050`, `space.100`, `type.label.lg.default`, `type.label.lg.emphasis`, `type.label.md.default`, `type.label.md.emphasis`, `type.label.sm.default`, `type.label.sm.emphasis`
 
 Declared, not drawn: `color.border.focus`
 

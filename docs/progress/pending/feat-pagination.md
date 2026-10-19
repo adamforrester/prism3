@@ -113,6 +113,29 @@ the word on from the row). Each word has its own TEXT property ("previous label"
 (#1567). The item grows from 27 to 87 members; Pagination keeps 12, and the #2808 arms now pass for both defs.
 `labeled` is the 28th axis name in `VARIANT_AXES`, registered as a `sole` set in `lint-axis-values.ts`.
 
+### Owner QA on the copy file and decisions Q426 A, Q427 A and Q428 A (2026-10-19)
+
+- **The underline was as wide as the cell.** The balance frame above the number has no children, so a hug width had
+  nothing to hug and the host kept a new frame's default width. The label box took that width, and the underline
+  stretched to it. The balance now stretches to the number, like the underline, so only the number sets the width. A
+  `test.ts` arm holds it over every underline member: the label box hugs, its childless frames stretch, and only the
+  number's reserve and text size it.
+- **The gap icon is in the page numbers' ink.** It is `color.icon.primary`, the plain icon role, which resolves to the
+  same color as the numbers' `interactive.neutral.text.rest` in all 20 brand × mode cells. `test.ts` compares the two
+  resolved colors cell by cell.
+- **Q426 A:** the labeled previous and next (simple's) draw no fill. Their word and chevron change ink at hover and
+  pressed, so they read as text links. The wash is now keyed on `labeled: false` through a six-segment paint template.
+  The cells and their 44px targets are unchanged.
+- **Q427 A:** in the border style, the current page's border is `color.border.secondary`, the neutral border rung one
+  lighter than `border.tertiary`. Against `background.primary` it is 2.00 to 2.40 in light and dark, and 9.84 and up in
+  high contrast. It need not clear 3:1, because the number's emphasis weight is a second cue (WCAG 1.4.11; the
+  reasoning is in the def's notes). The underline is that style's only cue, so it keeps `border.tertiary` and its
+  3:1 arm. The old "lightest role that clears 3:1" arm is replaced by a Q427 arm: the border is the rung directly
+  lighter than the underline, the current number is in the emphasis weight and every other in the regular one, and the
+  notes record the reasoning. The exception is scoped to this part.
+- **Q428 A:** the chevrons and the gap icon step down one icon-size rung at every size: `icon.size.xs`, `sm` and `md`
+  at small, medium and large. Cell sizes and targets are unchanged.
+
 ### Held for the owner (also in the PR)
 
 The `labeled` axis name and its false/true values; the two words' TEXT properties and their props `previousLabel`
@@ -121,4 +144,5 @@ ink; and the disabled inks at an end (all Q414 A follow-through).
 
 The name Pagination.Item (the proposal said PaginationItem; the skill's Family.Part canon decides); the `getStatusText` prop and its Figma name "status text"; the
 simple member's 428px build width; the item's label inset past two digits (`space.100`); the item aliases `page-item`
-and `pagination-page`; the forced-colors system color on the current page; and the gap icon's size and ink.
+and `pagination-page`; the forced-colors system color on the current page; and the gap icon's ink role (`color.icon.primary`, the
+numbers' color in every brand and mode, rather than their interactive role).

@@ -32453,6 +32453,8 @@ arm: {
   const items = figmaAnatomySet(itemDef, { swapTarget: 'FPO-default-icon' });
   const pags = figmaAnatomySet(pagDef, { swapTarget: 'FPO-default-icon' });
   const RUNG: Record<string, string> = { small: 'sm', medium: 'md', large: 'lg' };
+  // Q428 A: the chevrons and the gap icon one icon-size rung under IconButton's glyph rung (RUNG), at every size. Typed.
+  const GLYPH: Record<string, string> = { small: 'xs', medium: 'sm', large: 'md' };
   const SIZES = ['medium', 'small', 'large'];
 
   // (1) THE ITEM'S 87 MEMBERS (calls 7 A and 3 A, Q381 2 A, Q414 A): every page state unselected, rest and focus-visible
@@ -32482,11 +32484,11 @@ arm: {
     'page/unselected/border/hover': { fill: 'color/interactive/neutral/overlay/hover', ink: 'color/interactive/neutral/text/hover' },
     'page/unselected/border/pressed': { fill: 'color/interactive/neutral/overlay/pressed', ink: 'color/interactive/neutral/text/pressed' },
     'page/unselected/border/focus-visible': { ink: 'color/interactive/neutral/text/rest' },
-    'page/selected/border/rest': { stroke: 'color/border/tertiary', ink: 'color/interactive/neutral/text/rest' },
-    'page/selected/border/focus-visible': { stroke: 'color/border/tertiary', ink: 'color/interactive/neutral/text/rest' },
+    'page/selected/border/rest': { stroke: 'color/border/secondary', ink: 'color/interactive/neutral/text/rest' },
+    'page/selected/border/focus-visible': { stroke: 'color/border/secondary', ink: 'color/interactive/neutral/text/rest' },
     'page/selected/underline/rest': { bar: 'color/border/tertiary', ink: 'color/interactive/neutral/text/rest' },
     'page/selected/underline/focus-visible': { bar: 'color/border/tertiary', ink: 'color/interactive/neutral/text/rest' },
-    'ellipsis/unselected/border/rest': { ink: 'color/icon/secondary' },
+    'ellipsis/unselected/border/rest': { ink: 'color/icon/primary' },
   };
   const cellOff: string[] = [];
   const pageCells = items.filter((m) => ['page', 'ellipsis'].includes((m.coord as Record<string, string>).type));
@@ -32509,11 +32511,11 @@ arm: {
       sw: 'border-width/hairline', bar: want?.bar && [want.bar, 'border-width/thick'], balance: want?.bar && 'border-width/thick', ink: want?.ink,
       type: page ? `label/${RUNG[size]}/${c.selection === 'selected' ? 'emphasis' : 'default'}` : undefined, reserve: page ? `label/${RUNG[size]}/emphasis` : undefined, ring: c.state === 'focus-visible',
       chars: page ? '1' : undefined, ref: page ? 'label' : undefined,
-      icon: page ? undefined : ['NESTED_INSTANCE', 'icon/more-horizontal-filled', `icon/size/${RUNG[size]}`, `icon/size/${RUNG[size]}`], texts: page ? 'labelReserve,label' : '' };
+      icon: page ? undefined : ['NESTED_INSTANCE', 'icon/more-horizontal-filled', `icon/size/${GLYPH[size]}`, `icon/size/${GLYPH[size]}`], texts: page ? 'labelReserve,label' : '' };
     if (JSON.stringify(got) !== JSON.stringify(exp)) cellOff.push(`${planComponentName(m)}: ${JSON.stringify(got)} (want ${JSON.stringify(exp)})`);
   }
   ok(pageCells.length === 27 && cellOff.length === 0,
-    `#2665 call 8 / Q381 pagination item cell: size/{md,sm,lg}/height tall and as wide, radius/md, space/100 inset; the current page unfilled with a hairline border/tertiary border (border style) or a 2px border/tertiary underline balanced above (underline style), its number neutral in the emphasis weight; a page neutral text with the overlay wash at hover and pressed; the ellipsis the more-horizontal icon at icon/size/{md,sm,lg} in icon/secondary with no text node (Q404 A); the bold reserve in emphasis; the ring at focus-visible only (${cellOff.length} off — ${cellOff.slice(0, 2).join('; ') || 'none'})`);
+    `#2665 call 8 / Q381 / Q427 A / Q428 A pagination item cell: size/{md,sm,lg}/height tall and as wide, radius/md, space/100 inset; the current page unfilled with a hairline border/secondary border (border style, Q427 A) or a 2px border/tertiary underline balanced above (underline style), its number neutral in the emphasis weight; a page neutral text with the overlay wash at hover and pressed; the ellipsis the more-horizontal icon at icon/size/{sm,xs,md} (Q428 A) in icon/primary (owner QA) with no text node (Q404 A); the bold reserve in emphasis; the ring at focus-visible only (${cellOff.length} off — ${cellOff.slice(0, 2).join('; ') || 'none'})`);
 
   // (2b) PREVIOUS AND NEXT (Q414 A), per member: the page cell's box (rung height and floor, radius.md, the space.100
   // inset), a chevron (left on previous, right on next) at the chevrons' glyph rung in the neutral icon ink, and on a
@@ -32533,19 +32535,21 @@ arm: {
     const c = m.coord as Record<string, string>;
     const size = m.size!, prev = c.type === 'previous', labeled = c.labeled === 'true';
     const chev = findIn(m.root, prev ? 'previousIcon' : 'nextIcon'), word = findIn(m.root, prev ? 'previousText' : 'nextText');
-    const [icon, ink, wash] = STEP_INK[c.state];
+    const [icon, ink, stateWash] = STEP_INK[c.state];
+    // Q426 A: a labeled cell (simple's) draws no fill at any state; only its inks move.
+    const wash = labeled ? undefined : stateWash;
     const got = { h: m.root.bound?.height, minW: m.root.bound?.minWidth, r: m.root.bound?.topLeftRadius, px: m.root.bound?.paddingLeft, gap: m.root.bound?.itemSpacing,
       fill: m.root.paints?.fills, stroke: m.root.paints?.strokes, kids: m.root.children.map((k) => k.name).filter((n) => n !== 'focusRing'), ring: !!findIn(m.root, 'focusRing'),
       chev: chev && [chev.type, chev.nestTarget, chev.bound?.width, chev.bound?.height, chev.descendantFills],
       word: word && [word.characters, word.propertyRef?.prop, word.textStyle, word.paints?.fills] };
     const exp = { h: `size/${RUNG[size]}/height`, minW: `size/${RUNG[size]}/height`, r: 'radius/md', px: 'space/100', gap: 'space/050',
       fill: wash, stroke: undefined, kids: prev ? (labeled ? ['previousIcon', 'previousText'] : ['previousIcon']) : (labeled ? ['nextText', 'nextIcon'] : ['nextIcon']), ring: c.state === 'focus-visible',
-      chev: ['NESTED_INSTANCE', `icon/chevron-${prev ? 'left' : 'right'}`, `icon/size/${RUNG[size]}`, `icon/size/${RUNG[size]}`, icon],
+      chev: ['NESTED_INSTANCE', `icon/chevron-${prev ? 'left' : 'right'}`, `icon/size/${GLYPH[size]}`, `icon/size/${GLYPH[size]}`, icon],
       word: labeled ? [prev ? 'Previous' : 'Next', prev ? 'previous label' : 'next label', `label/${RUNG[size]}/default`, ink] : undefined };
     if (JSON.stringify(got) !== JSON.stringify(exp)) stepOff.push(`${planComponentName(m)}: ${JSON.stringify(got)} (want ${JSON.stringify(exp)})`);
   }
   ok(stepCells.length === 60 && stepOff.length === 0,
-    `#2665 Q414 A pagination item previous and next: the page cell's box, a chevron-left or chevron-right at icon/size/{md,sm,lg} in interactive/neutral/icon, the word "Previous" before or "Next" after it on a labeled cell (its own TEXT property, label default, neutral text, 4px gap), the neutral wash at hover and pressed, disabled inks with no wash at disabled, the ring at focus-visible only (${stepCells.length} cells, ${stepOff.length} off — ${stepOff.slice(0, 2).join('; ') || 'none'})`);
+    `#2665 Q414 A / Q426 A / Q428 A pagination item previous and next: the page cell's box, a chevron-left or chevron-right at icon/size/{sm,xs,md} in interactive/neutral/icon, the word "Previous" before or "Next" after it on a labeled cell (its own TEXT property, label default, neutral text, 4px gap), the neutral wash at hover and pressed on an unlabeled cell only (a labeled one no fill, its inks moving), disabled inks with no wash at disabled, the ring at focus-visible only (${stepCells.length} cells, ${stepOff.length} off — ${stepOff.slice(0, 2).join('; ') || 'none'})`);
 
   // Q404 A (superseding Q396): the gap marker is an icon, so the item has no `mark` prop, and the ellipsis no TEXT
   // property: the item's TEXT properties are the page number and, Q414 A, previous's and next's words, one caption each;
@@ -32584,7 +32588,8 @@ arm: {
     const BORDER = role(sel.root.paints?.strokes), BAR = role(findIn(under.root, 'underline')?.paints?.fills), CUR = role(findIn(sel.root, 'label')?.paints?.fills);
     const pairs: { what: string; ink: string; wash?: string; ground?: string; floor: number }[] = [
       { what: 'current page number on the page', ink: CUR, floor: 4.5 },
-      { what: 'current page border against the page', ink: BORDER, floor: 3 },
+      // Q427 A: the border style's border has no 3:1 floor (the emphasis weight is the second cue, held below); the
+      // underline is its style's only cue and keeps 3:1.
       { what: 'current page underline against the page', ink: BAR, floor: 3 },
       ...['rest', 'hover', 'pressed'].map((st) => ({ what: `page number at ${st}`, ink: role(findIn(at('unselected', st).root, 'label')?.paints?.fills), wash: at('unselected', st).root.paints?.fills ? role(at('unselected', st).root.paints!.fills) : undefined, floor: 4.5 })),
       // Q414 A: previous's chevron (non-text, 3:1) and its word (4.5:1) at rest, and on the wash at hover and pressed.
@@ -32596,6 +32601,12 @@ arm: {
           { what: `previous word at ${st}`, ink: role(findIn(m.root, 'previousText')?.paints?.fills), wash: w, floor: 4.5 },
         ];
       }),
+      // Q426 A moved the wash to the unlabeled cells only: their chevron on it at hover and pressed.
+      ...['hover', 'pressed'].map((st) => {
+        const m = items.find((x) => (x.coord as Record<string, string>).type === 'previous' && (x.coord as Record<string, string>).labeled === 'false' && x.size === 'medium' && (x.coord as Record<string, string>).state === st)!;
+        return { what: `unlabeled previous chevron at ${st}`, ink: role(findIn(m.root, 'previousIcon')?.descendantFills), wash: m.root.paints?.fills ? role(m.root.paints.fills) : undefined, floor: 3 };
+      }),
+      { what: 'gap icon on the page', ink: role(findIn(at('unselected', 'rest', 'ellipsis').root, 'gapIcon')?.descendantFills), floor: 3 },
       { what: 'compact text', ink: role(findIn(pags.find((p) => (p.coord as Record<string, string>).type === 'compact' && p.size === 'medium')!.root, 'status')?.paints?.fills), floor: 4.5 },
     ];
     for (const p of pairs) {
@@ -32615,20 +32626,52 @@ arm: {
       ok(measured === CELLS && low.length === 0,
         `#2665 contrast pagination (${p.what}): ${p.ink}${p.wash ? ` on ${p.wash} over the page` : p.ground ? ` on ${p.ground}` : ' on the page'} clears ${p.floor}:1 in all ${measured} of ${CELLS} brand × mode cells (lowest ${min.toFixed(2)})${low.length ? ` — ${low.join('; ')}` : ''}`);
     }
-    ok(BORDER === 'border.tertiary' && BAR === 'border.tertiary' && !sel.root.paints?.fills && !under.root.paints?.fills,
-      `#2665 Q381 1 A and 2 A: the current page has no fill, and its border and underline bind border.tertiary, the role measured above (got border ${BORDER}, underline ${BAR}, fill ${sel.root.paints?.fills ?? 'none'})`);
-    // "JUST MEETS 3:1" (Q381 1 A): the neutral border ladder, typed here lightest first, is the oracle. Every rung
-    // lighter than the bound one falls below 3:1 against the page in at least one cell, so the bound role is the one
-    // with the least contrast that still clears it everywhere (measured above).
+    ok(BAR === 'border.tertiary' && !sel.root.paints?.fills && !under.root.paints?.fills,
+      `#2665 Q381 1 A and 2 A: the current page has no fill, and its underline binds border.tertiary, the role measured at 3:1 above (got underline ${BAR}, fill ${sel.root.paints?.fills ?? 'none'})`);
+    // Q427 A: THE BORDER IS ONE RUNG LIGHTER THAN THE UNDERLINE, AND IT IS NOT THE ONLY CUE. The neutral border ladder,
+    // typed here lightest first, is the oracle: the border is the rung directly under the underline's, so it is a
+    // subtle edge (measured: lighter than the underline in every brand × mode cell, and below 3:1 in at least one,
+    // which is the deliberate exception), and the WCAG 1.4.11 second cue holds — the current page's number is in the
+    // emphasis weight while every other page's is regular, at the same reserved width. Scoped to this one part: a
+    // number in the regular weight on the current page fails this arm, and the underline keeps its 3:1 arm above.
     const LADDER = ['border.primary', 'border.secondary', 'border.tertiary'];
-    const lighter = LADDER.slice(0, Math.max(0, LADDER.indexOf(BORDER)));
-    const clears = lighter.filter((rr) => themes.every(([, th]) => resolveAllModes(th).every((m) => {
-      const r = m.roles as Record<string, { hex?: string; alpha?: number }>;
+    const lum = (rr: string, r: Record<string, { hex?: string; alpha?: number }>) => {
       const bg = hexToRgb(r['background.primary']!.hex!), ink = r[rr];
-      return !!ink?.hex && contrast(composite(bg, hexToRgb(ink.hex), ink.alpha ?? 1), bg) >= 3;
-    })));
-    ok(LADDER.includes(BORDER) && lighter.length === LADDER.indexOf(BORDER) && clears.length === 0,
-      `#2665 Q381 1 A the current page's border is the lightest neutral border role that clears 3:1 everywhere: no lighter rung of ${LADDER.join(' < ')} does (bound ${BORDER}; lighter that clear: ${clears.join(', ') || 'none'})`);
+      return ink?.hex ? contrast(composite(bg, hexToRgb(ink.hex), ink.alpha ?? 1), bg) : NaN;
+    };
+    const rows = themes.flatMap(([b, th]) => resolveAllModes(th).map((m) => ({ cell: `${b}/${m.mode}`, r: m.roles as Record<string, { hex?: string; alpha?: number }> })));
+    const lighter = rows.every(({ r }) => lum(BORDER, r) < lum(BAR, r));
+    const below3 = rows.filter(({ r }) => lum(BORDER, r) < 3).map(({ cell, r }) => `${cell} ${lum(BORDER, r).toFixed(2)}`);
+    const unsel = at('unselected', 'rest');
+    const cue = findIn(sel.root, 'label')?.textStyle === 'label/md/emphasis' && findIn(unsel.root, 'label')?.textStyle === 'label/md/default'
+      && findIn(sel.root, 'labelReserve')?.textStyle === 'label/md/emphasis' && findIn(unsel.root, 'labelReserve')?.textStyle === 'label/md/emphasis';
+    const reasoned = (itemDef.notes?.evolution ?? []).some((e) => /Q427 A/.test(e) && /1\.4\.11/.test(e) && /second, decorative cue/.test(e) && /emphasis weight/.test(e));
+    ok(BORDER === LADDER[LADDER.indexOf(BAR) - 1] && lighter && below3.length > 0 && cue && reasoned,
+      `#2665 Q427 A the current page's border (border style) is the neutral border rung one lighter than the underline's, a subtle edge below 3:1 by decision, with the emphasis weight as the second cue and the WCAG 1.4.11 reasoning in the notes (bound ${BORDER}, underline ${BAR}; lighter everywhere ${lighter}; below 3:1 in ${below3.length} of ${rows.length}, lowest ${Math.min(...rows.map(({ r }) => lum(BORDER, r))).toFixed(2)}; second cue ${cue}; reasoning recorded ${reasoned})`);
+    // Owner QA (2026-10-19): the gap icon in the page numbers' ink. Measured, never read off the def: the gap icon's
+    // role resolves to the same color as a page number's at rest in every brand × mode cell.
+    const GAP = role(findIn(at('unselected', 'rest', 'ellipsis').root, 'gapIcon')?.descendantFills), NUM = role(findIn(unsel.root, 'label')?.paints?.fills);
+    const inkOff = rows.filter(({ r }) => !r[GAP]?.hex || r[GAP]!.hex !== r[NUM]?.hex || (r[GAP]!.alpha ?? 1) !== (r[NUM]!.alpha ?? 1)).map(({ cell, r }) => `${cell} ${r[GAP]?.hex} vs ${r[NUM]?.hex}`);
+    ok(rows.length === CELLS && inkOff.length === 0,
+      `#2665 owner QA the gap icon is in the page numbers' ink: ${GAP} resolves to ${NUM}'s color in all ${rows.length} of ${CELLS} brand × mode cells (${inkOff.slice(0, 3).join('; ') || 'none off'})`);
+  }
+
+  // Owner QA (2026-10-19): IN THE UNDERLINE STYLE THE UNDERLINE IS AS WIDE AS THE NUMBER, NOT THE CELL. The label box
+  // hugs, and each of its childless frames (the balance above the number and the underline under it) STRETCHES to the
+  // box rather than holding a width of its own: a childless frame that hugs has nothing to hug, so the host keeps a new
+  // frame's default width, the box takes it, and the underline spans it. Only the number's text sets the width.
+  {
+    const off: string[] = [];
+    const unders = items.filter((m) => (m.coord as Record<string, string>).style === 'underline');
+    for (const m of unders) {
+      const box = findIn(m.root, 'labelBox')!;
+      const empties = box.children.filter((k) => k.type === 'FRAME' && !k.children.length);
+      const got = { box: [box.primaryAxisSizingMode, box.counterAxisSizingMode], empties: empties.map((k) => [k.name, k.layoutAlign]), sizers: box.children.filter((k) => !empties.includes(k)).map((k) => k.name) };
+      const exp = { box: ['AUTO', 'AUTO'], empties: [['balance', 'STRETCH'], ['underline', 'STRETCH']], sizers: ['reserve', 'label'] };
+      if (JSON.stringify(got) !== JSON.stringify(exp)) off.push(`${planComponentName(m)}: ${JSON.stringify(got)}`);
+    }
+    ok(unders.length === 6 && off.length === 0,
+      `#2665 owner QA underline under the number only: in every underline member the label box hugs, its balance and underline stretch to it, and only the number (its reserve and its text) sets the width (${unders.length} members, ${off.length} off — ${off.slice(0, 2).join('; ') || 'none'})`);
   }
 
   // (4) THE PAGINATION'S 12 MEMBERS AND WHAT EACH HOLDS (calls 1, 2, 4, 6, 16, Q381 2 A), typed out. The style is

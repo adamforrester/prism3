@@ -82,7 +82,7 @@ None — not interactive.
   - 1.4.1 Use of Color (the current page has a border or an underline and a heavier weight, and aria-current)
   - 1.4.3 Contrast (Minimum) (every number and the compact text at 4.5:1)
   - 1.4.10 Reflow (a numbered row switches to compact in a narrow container)
-  - 1.4.11 Non-text Contrast (the current page's border or underline at 3:1 against the page)
+  - 1.4.11 Non-text Contrast (the current page's underline at 3:1 against the page; its border, in the border style, is a second cue beside the emphasis weight, so it may be lighter)
   - 2.1.1 Keyboard (every control is reachable with Tab)
   - 2.4.3 Focus Order (after an in-place page change focus moves to the results, and inactive controls at an end keep focus in place)
   - 2.4.4 Link Purpose (In Context) (previous, next and every page have a full name)
