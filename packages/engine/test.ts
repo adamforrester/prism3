@@ -14256,6 +14256,42 @@ arm: {
     }
   }
 
+  // Q394 (#2831): A NATIVE SLOT'S ITEMS STAY UNPREFIXED. A def a designer places in a slot is one a consumer file
+  // places too, from the published library, and Figma hides a set whose name starts with `_` or `.` from publishing.
+  // So no slot item is a building block: not one the slot prefers (`preferred`, `preferredWhenBuilt`), and not one its
+  // default items nest, whether or not the slot still prefers it. `slotPreferredOf` already refuses a `_` id in
+  // `preferred` at projection; this reads the whole registry, so a def renamed to `_…` with its slot's `preferred`
+  // dropped or renamed with it is refused here, by name. The expected ids are literals (docs/34), never read off a def.
+  // Mutations: the prefix test dropped → `Q394 slot items: a prefixed item is refused`; the nests arm dropped →
+  // `Q394 slot items: a prefixed item the slot's default items nest is refused`.
+  {
+    type SlotPart = { contentSlot?: boolean; preferred?: readonly string[]; preferredWhenBuilt?: readonly string[]; children?: readonly string[]; nests?: string };
+    const slotItems = (defs: readonly ComponentDef[]): string[] => defs.flatMap((d) => {
+      const parts = (d.anatomy?.parts ?? {}) as Record<string, SlotPart>;
+      return Object.entries(parts).filter(([, p]) => p.contentSlot).flatMap(([name, p]) => [...new Set([
+        ...(p.preferred ?? []), ...(p.preferredWhenBuilt ?? []),
+        ...(p.children ?? []).map((c) => parts[c]?.nests).filter((x): x is string => !!x),
+      ])].map((id) => `${d.id}.${name} → ${id}`));
+    });
+    const prefixed = (defs: readonly ComponentDef[]): string[] => slotItems(defs).filter((x) => /→ [_.]/.test(x));
+    const items = slotItems(componentDefs);
+    const want = ['tabs.items → tab', 'list.items → list-item', 'segmented-control.items → segmented-control-segment', 'checkbox-group.items → checkbox-row', 'radio-group.items → radio-row'];
+    ok(want.every((w) => items.includes(w)), `Q394 slot items: the registry's slot items are read, the three the naming sweep renames among them (${want.filter((w) => !items.includes(w)).join('; ') || `${items.length} read`})`);
+    ok(prefixed(componentDefs).length === 0, `Q394 slot items: no def a native slot holds is prefixed with _ or . (${prefixed(componentDefs).join('; ') || 'none'})`);
+    // The sweep's failure, modeled on a copy: Tab renamed to `_tab`, its slot's `preferred` dropped, so only the items
+    // the slot nests by default still name it; then the same rename with `preferred` renamed too.
+    const tabsDef = componentDefs.find((d) => d.id === 'tabs')!;
+    const renamed = (keepPreferred: boolean): ComponentDef[] => {
+      const parts = { ...(tabsDef.anatomy!.parts as Record<string, SlotPart>) };
+      for (const [k, p] of Object.entries(parts)) if (p.nests === 'tab') parts[k] = { ...p, nests: '_tab' };
+      const { preferred: _p, ...slot } = parts.items;
+      parts.items = keepPreferred ? { ...slot, preferred: ['_tab'] } : slot;
+      return [{ ...tabsDef, anatomy: { ...tabsDef.anatomy!, parts } } as ComponentDef];
+    };
+    ok(JSON.stringify(prefixed(renamed(false))) === JSON.stringify(['tabs.items → _tab']), `Q394 slot items: a prefixed item the slot's default items nest is refused, by name (${JSON.stringify(prefixed(renamed(false)))})`);
+    ok(JSON.stringify(prefixed(renamed(true))) === JSON.stringify(['tabs.items → _tab']), `Q394 slot items: a prefixed item is refused, by name (${JSON.stringify(prefixed(renamed(true)))})`);
+  }
+
   // (#1623 sign-off) SHIPPED COMPONENT TEXT — names, provenance, and the names prose uses.
   //
   // The owner's rules for what a def ships (C1/X-5, C2/X-5, C2/X-4): one naming convention; no Prism 2 in

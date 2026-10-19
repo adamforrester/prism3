@@ -28,6 +28,13 @@
  *                  Mutation: the font preflight dropped → `fonts/refused`.
  *   replace/…      a child whose type changed is the one node replaced. Mutation: the old child not removed →
  *                  `replace/verdict`.
+ *   published/…    on a set in a team library (#2831), what an update breaks for consumer files is listed in its own
+ *                  section, in the headline and at the confirm: drops, layer replacements, property removals and
+ *                  retypes, and a rename to a `_` or `.` name; on a set not published, nothing changes. Mutations, each
+ *                  failing the arm it names: the publish test always true → `published/unpublished no-op`; each
+ *                  `breakingOf` arm dropped → `published/drop`, `/replace`, `/property removed`, `/retype`,
+ *                  `/private rename`; the status not read → `published/status`; the status out of the hash →
+ *                  `published/hash`; the apply's section dropped → `published/confirm`.
  *   property/…     a default the plan changed is edited in place, keeping the property's id.
  *   rename/…       a declared value rename and an added axis rename members in place, keeping keys.
  *   skip/…         an unstamped member, one with no record and one with a layer added by hand are untouched.
@@ -168,7 +175,7 @@ import { NS } from './src/persist-figma';
 import { materializeForBrand } from './src/brand-def';
 import { BASELINE_KEY } from './src/member-baseline';
 import { makeShim, STYLE_FONT, type Node, type Page } from './component-shim';
-import { adoptMembers, captureBaselines, previewLine, previewUpdate, previewVerdict, type UpdateHost, type UpdateTarget } from './src/update-plan';
+import { adoptMembers, breakingLine, breakingOf, captureBaselines, dryRunSet, hostPorts, previewLine, previewUpdate, previewVerdict, readSetView, type UpdateHost, type UpdateTarget } from './src/update-plan';
 import { drawnFaults, faultLine, varsById } from './src/drawn';
 import { BASELINE_V, baselineOf, resetStyleNames, snapshotMember } from './src/member-baseline';
 import { applyUpdate, applyVerdict, previewHashOf, namesMember, DEPRECATED_PREFIX, RETAINED_KEY, nestedFirst, type ApplyHost } from './src/update-apply';
@@ -3223,6 +3230,100 @@ for (const [D, gained] of [['checkbox-row', ['disabled']], ['radio-row', ['disab
     `${D}/dry run: every member reads current (${JSON.stringify(p.counts)})`);
   ok(applyVerdict(res).headline === '✓ already up to date' && w.api._versions.length === 0 && dump() === was,
     `${D}/nothing written: no version, every member's id, key, stamp and record as built (${applyVerdict(res).headline})`);
+}
+
+/* ── published ───────────────────────────────────────────────────────────────────────────────────────── */
+section('published — on a set in a team library, what breaks consumer files is listed on its own, and named at the confirm (#2831)');
+{
+  // One plan change carrying every breaking class a plan can: the members at state=rest dropped, and the leading icon
+  // turned into a plain frame, which replaces that layer on every member and removes its swap property.
+  const breakingPlans = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.filter((p) => !planComponentName(p).includes('state=rest')).map((p) => {
+    const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
+    const lv = planChild(planChild(q.root, 'content'), 'leadingVisual') as unknown as Record<string, unknown>;
+    lv.type = 'FRAME';
+    for (const k of ['swapTarget', 'propertyRef', 'descendantFills']) delete lv[k];
+    return q;
+  });
+  const HEAD = /^Breaks library consumers: /;
+  const SWAP = '↳ swap leading icon';
+
+  // NOTHING CHANGES FOR AN UNPUBLISHED SET.
+  {
+    const w = await world(TAG);
+    const status = await (w.set().getPublishStatusAsync as () => Promise<string>)();
+    ok(status === 'UNPUBLISHED', `premise: a set never published answers UNPUBLISHED (${status})`);
+    const next = breakingPlans(w.plans);
+    const { pre, res } = await confirm(w, [{ def: TAG, plans: next }]);
+    const p = pre.sets[0];
+    ok(p.drops.length > 0 && p.replacements.length > 0 && p.properties.remove.length > 0, `premise: the plan drops, replaces and removes a property (${p.drops.length}, ${p.replacements.length}, ${p.properties.remove.length})`);
+    const v = previewVerdict(pre);
+    const a = applyVerdict(res);
+    ok(p.publish === undefined && p.breaking === undefined && !v.lines.some((l) => HEAD.test(l)) && !/library consumers/.test(v.headline)
+      && !a.lines.some((l) => HEAD.test(l)) && !/library consumers/.test(a.headline) && res.outcomes[0]?.breaking === undefined,
+      `published/unpublished no-op: no publish status, no breaking list, no section and no headline clause in the check or the confirm (${v.headline} | ${a.headline})`);
+  }
+
+  // A PUBLISHED SET: every class listed by name, in its own section, in the headline, and at the confirm.
+  {
+    const w = await world(TAG);
+    (w.api.publish as (n: Node, s: string) => void)(w.set(), 'CURRENT');
+    const next = breakingPlans(w.plans);
+    const dropped = w.plans.filter((p) => planComponentName(p).includes('state=rest')).map(planComponentName);
+    const { pre, res } = await confirm(w, [{ def: TAG, plans: next }]);
+    const p = pre.sets[0];
+    const b = p.breaking ?? [];
+    ok(p.publish === 'CURRENT', `published/status: the check reads the set's publish status (${p.publish})`);
+    ok(dropped.length > 0 && dropped.every((m) => b.some((x) => x.kind === 'drop' && x.member === m)),
+      `published/drop: each of the ${dropped.length} dropped members is listed as breaking, by name (${b.filter((x) => x.kind === 'drop').length})`);
+    const reps = b.filter((x) => x.kind === 'replace' && x.path === 'content/leadingVisual');
+    ok(reps.length === next.length, `published/replace: the leading icon's replacement is listed on each of the ${next.length} members kept (${reps.length})`);
+    ok(b.some((x) => x.kind === 'property' && x.name === SWAP && x.change === 'removed'), `published/property removed: the swap property's removal is listed (${JSON.stringify(b.filter((x) => x.kind === 'property'))})`);
+    const v = previewVerdict(pre);
+    const head = v.lines.find((l) => HEAD.test(l)) ?? '';
+    ok(head === `Breaks library consumers: ${b.length} changes in 1 published set, passed on at the next library publish.`
+      && v.lines.includes(`${TAG} · property ${SWAP} · removed — consumer overrides of it are dropped.`)
+      && v.lines.includes(`${TAG} · ${dropped[0]} · dropped — consumer instances of it point at a deprecated member.`),
+      `published/section: the check's own section heads the breaking changes and names them (${head})`);
+    ok(v.headline.endsWith(` · ${b.length} changes break library consumers`), `published/headline: the check's headline counts them (${v.headline})`);
+    const a = applyVerdict(res);
+    ok(res.outcomes[0]?.breaking?.length === b.length && a.lines.includes(`Breaks library consumers: ${b.length} changes made in 1 published set, passed on at the next library publish.`)
+      && a.lines.includes(`${TAG} · ${dropped[0]} · dropped — consumer instances of it point at a deprecated member.`) && a.headline.endsWith(` · ${b.length} changes break library consumers`),
+      `published/confirm: the confirm names what it broke (${a.headline} | ${a.lines.find((l) => HEAD.test(l))})`);
+  }
+
+  // CHANGED is published too; a retyped property and a rename to a private name are breaking; between private names not.
+  {
+    const w = await world(TAG);
+    (w.api.publish as (n: Node, s: string) => void)(w.set(), 'CHANGED');
+    const view = await readSetView(w.set() as never);
+    ok(view.publish === 'CHANGED', `published/changed: the view reads CHANGED (${view.publish})`);
+    const ports = await hostPorts(w.host as unknown as UpdateHost);
+    const defs = { ...view.definitions! };
+    const label = Object.keys(defs).find((k) => k.startsWith('label#'))!;
+    defs[label] = { ...defs[label], type: 'BOOLEAN' };
+    const p = dryRunSet(TAG, w.plans, { ...view, definitions: defs }, ports);
+    const b = breakingOf(p);
+    ok(b.some((x) => x.kind === 'property' && x.name === 'label' && x.change === 'retyped' && x.from === 'BOOLEAN' && x.to === 'TEXT'),
+      `published/retype: a property the plan retypes is listed (${JSON.stringify(b)})`);
+    const priv = breakingOf({ ...p, setRename: { from: TAG, to: `_${TAG}` } }).filter((x) => x.kind === 'private');
+    const dot = breakingOf({ ...p, setRename: { from: TAG, to: `.${TAG}` } }).filter((x) => x.kind === 'private');
+    const both = breakingOf({ ...p, setRename: { from: `_${TAG}`, to: `_${TAG}-item` } }).filter((x) => x.kind === 'private');
+    ok(priv.length === 1 && dot.length === 1 && both.length === 0
+      && breakingLine(TAG, priv[0]) === `${TAG} · renamed ${TAG} → _${TAG} — a name starting with _ or . is not published, so the set leaves the library.`,
+      `published/private rename: a rename to a _ or . name is listed, one between two such names is not (${priv.length}, ${dot.length}, ${both.length})`);
+    const quiet = breakingOf({ ...p, publish: undefined, setRename: { from: TAG, to: `_${TAG}` } });
+    ok(quiet.length === 0, `published/unpublished rename: on a set not published, the same rename and retype list nothing (${quiet.length})`);
+  }
+
+  // PUBLISHED BETWEEN THE CHECK AND THE CONFIRM: the confirm is refused, so it never breaks what the check did not name.
+  {
+    const w = await world(TAG);
+    const next = breakingPlans(w.plans);
+    const pre = await previewUpdate(w.host, [{ def: TAG, plans: next }]);
+    (w.api.publish as (n: Node, s: string) => void)(w.set(), 'CURRENT');
+    const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: next }], previewHashOf(pre));
+    ok(!!res.refusedAll && res.outcomes.length === 0, `published/hash: a set published after the check refuses the confirm (${res.refusedAll ?? 'applied'})`);
+  }
 }
 
 void STYLE_FONT; void BASELINE_KEY;
