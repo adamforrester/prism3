@@ -50,7 +50,7 @@ const KINDS = [
   'apply-result', 'component-result', 'component-update-result', 'file-setup-result', 'style-guide-result', 'component-progress', 'style-guide-progress',
   'prune-result', 'seed-info', 'restore-input', 'restore-input-empty', 'restore-input-error', 'font-list',
   'agent-started', 'agent-progress', 'agent-finished', 'refused',
-  'style-guide-catalog', 'style-guide-tables', 'style-guide-table',
+  'style-guide-catalog', 'style-guide-tables', 'style-guide-table', 'style-guide-cleanup-result',
 ] as const;
 const exercised = new Set<string>();
 
@@ -68,7 +68,7 @@ ok(typeof (globalThis as { document?: unknown }).document === 'undefined', 'prem
 const init = initialHostSession();
 ok(same(plain(init), {
   seedOutcome: null, inputRecovered: false, restoreError: null, applyState: null, componentState: null, componentUpdate: null, componentLatest: null,
-  fileSetupState: null, styleGuideState: null, componentProgress: null, styleGuideProgress: null, styleGuideCatalog: null, styleGuideRun: null, componentDef: null, setBuilds: [], pruneBusy: false, prunePreview: null,
+  fileSetupState: null, styleGuideState: null, componentProgress: null, styleGuideProgress: null, styleGuideCatalog: null, styleGuideRun: null, styleGuideRetired: [], styleGuideCleanup: null, componentDef: null, setBuilds: [], pruneBusy: false, prunePreview: null,
   pruneVerdict: null, openDetail: null, hostFonts: [], hostFontStyles: [], agentRun: null, refused: null,
 }), 'initial session: every slot empty');
 
@@ -82,11 +82,13 @@ const verdictCases = [
 ] as const;
 for (const c of verdictCases) {
   const from: HostSession = { ...init, [c.slot]: 'pending', openDetail: 'apply' };
-  const good = step(from, { kind: c.kind, ok: true, headline: 'H', summary: 'S' });
+  // A style-guide verdict carries its cleanup offer (Q412 A), empty here.
+  const offer = c.kind === 'style-guide-result' ? { retired: [] } : {};
+  const good = step(from, { kind: c.kind, ok: true, headline: 'H', summary: 'S', ...offer } as HostMessage);
   ok(same(plain(good.next), plain({ ...from, [c.slot]: { ok: true, headline: 'H', summary: 'S' }, openDetail: null, ...c.also })),
     `${c.kind}: a clean verdict fills ${c.slot} and closes the open detail, touching nothing else`);
   ok(same(good.topics, ['host', 'host:detail', ...c.row]) && good.effect === null, `${c.kind}: invalidates ${['host', 'host:detail', ...c.row].join(', ')}`);
-  const bad = step(from, { kind: c.kind, ok: false, headline: 'X', summary: 'why' });
+  const bad = step(from, { kind: c.kind, ok: false, headline: 'X', summary: 'why', ...offer } as HostMessage);
   ok(same(bad.next[c.slot], { ok: false, headline: 'X', summary: 'why' }) && bad.next.openDetail === c.detail,
     `${c.kind}: a bad verdict opens its own detail ('${c.detail}')`);
 }
@@ -338,6 +340,20 @@ ok(refuses, 'premise: the engine refuses an empty object as a BrandInput');
   ok(same(res.next.styleGuideRun?.stopped, { done: 1, total: 2 }) && res.next.styleGuideRun?.tables.length === 2,
     'style-guide-result: the run is kept after the verdict, with where Cancel stopped it');
   ok(step(res.next, { kind: 'style-guide-table', index: 0, status: 'done', reason: null }).next === res.next, 'style-guide-table: a move after the verdict is dropped');
+}
+
+// ---- the cleanup offer (Q412 A, #2816) ---------------------------------------------------------------------
+// A run's verdict carries the offer; a confirmed cleanup drops what it removed, by id, and keeps what it left. A new
+// run's verdict replaces the offer and clears the last cleanup's sentence.
+{
+  const offered = step({ ...init, styleGuideState: 'pending', styleGuideCleanup: { ok: true, summary: 'old' } },
+    { kind: 'style-guide-result', ok: true, headline: 'H', summary: 'S', lines: null, retired: [{ id: '1:1', name: 'Style guide — Inverse' }, { id: '1:2', name: 'Style guide — Inverse' }] });
+  ok(same(offered.next.styleGuideRetired, [{ id: '1:1', name: 'Style guide — Inverse' }, { id: '1:2', name: 'Style guide — Inverse' }]) && offered.next.styleGuideCleanup === null,
+    'style-guide-result: the run\'s cleanup offer is kept, and the last cleanup\'s sentence goes');
+  const cleaned = step({ ...offered.next, styleGuideCleanup: 'pending' }, { kind: 'style-guide-cleanup-result', ok: false, removed: ['1:1'], summary: '1 table removed' });
+  ok(same(cleaned.next.styleGuideRetired, [{ id: '1:2', name: 'Style guide — Inverse' }]) && same(cleaned.next.styleGuideCleanup, { ok: false, summary: '1 table removed' })
+    && same(cleaned.topics, ['host:sgpage']),
+    'style-guide-cleanup-result: a removed table leaves the offer by id (a copy of the same name stays), its sentence is kept, and the page repaints');
 }
 
 for (const k of KINDS) ok(exercised.has(k), `coverage: ${k} was exercised`);

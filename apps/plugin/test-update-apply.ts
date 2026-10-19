@@ -135,10 +135,22 @@
  *                  stops dropped from the draw check → `veil/dry run`, `veil/repaired`, `veil/verify`; verify's draw check dropped → `veil/verify`.
  *                  Stops at their color but 100% alpha read "to update" and fail verify; the alpha comparison dropped from
  *                  the draw check's gradient branch → `veil/alpha dry run`, `veil/alpha verify`.
+ *   stepdown/…     Segmented control, Tab and Tag, built while their glyph sat on the 1:1 rung (20 / 24 / 32), update in
+ *                  place to the rung below (16 / 20 / 24, owner Q337 A, #2725): every glyph rebound and resized, every
+ *                  key and id kept, current after. The expected names and px are typed here from the decision.
+ *                  Mutation: the executor's bind loop skipping width and height on an existing node →
+ *                  `stepdown/<id> rebound`, `stepdown/<id> verdict`.
+ *   stretch/…      an axis the parent stretches (Accordion's indicator, FIXED on the host at medium and large where the
+ *                  plan says AUTO): the verify and the dry run accept it alike, and both name a node nothing stretches
+ *                  on that axis, or one whose stretch the host lost (#2696). Mutations in the section's own comment.
  *   overrides/…    a List built before its items carried their numbers (#2645): the dry run lists the override on
  *                  items 2 to 8 as a change and replaces nothing; Update writes each in place, every key and id kept,
  *                  and a number a designer typed is kept as a hand edit. Mutation: the in-place branch skipping the
  *                  override write → `overrides/written in place`.
+ *   <row>/…, textarea/…  Checkbox.Row, Radio.Row, Switch.Row and Textarea built from their defs before #2708 (the state
+ *                  props taken back out) read current under today's plans, and the apply writes nothing: the props are
+ *                  code API and move no Figma member (owner Q351 A). Mutation: `figmaAnatomySet` projecting a
+ *                  `disabled` prop as a Figma boolean on the label → `<row>/dry run`, `<row>/nothing written`.
  *   noop/…         a set already current: no version, no write.
  *   order/…        nested sets are updated first.
  *
@@ -150,7 +162,7 @@
 import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, planComponentName } from '@prism3/engine/anatomy-figma';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { componentDefs } from '@prism3/engine/components/index';
-import { applyComponentPlan, respaceSets, STAMP_KEY } from './src/write-components';
+import { adoptions, applyComponentPlan, respaceSets, STAMP_KEY } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
 import { NS } from './src/persist-figma';
 import { materializeForBrand } from './src/brand-def';
@@ -175,9 +187,12 @@ const plansOf = (id: string): AnatomyPlan[] => {
   if (!d) throw new Error(`no def ${id}`);
   return figmaAnatomySet(d, { swapTarget: SWAP_TARGET });
 };
-const planComps = (n: { swapTarget?: string; nestTarget?: string; children?: unknown[] }): string[] => [
+// A swap override's component is one the file holds too (#2645): the build pre-builds it (`build-deps.ts`), so the
+// world lists it, or Dialog's close (`icon/close`, #2609) reads as a blocker the file never has.
+const planComps = (n: { swapTarget?: string; nestTarget?: string; nestOverrides?: readonly { type: string; value: string }[]; children?: unknown[] }): string[] => [
   ...(n.swapTarget ? [n.swapTarget] : []),
   ...(n.nestTarget ? [n.nestTarget] : []),
+  ...(n.nestOverrides ?? []).filter((o) => o.type === 'INSTANCE_SWAP').map((o) => o.value),
   ...((n.children ?? []) as (typeof n)[]).flatMap(planComps),
 ];
 type PlanNode = AnatomyPlan['root'];
@@ -186,7 +201,7 @@ const planChild = (n: PlanNode, name: string): PlanNode => n.children!.find((c) 
 type World = { host: ApplyHost; api: Record<string, any>; page: Page; set: () => Node; plans: AnatomyPlan[] };
 /** A fresh file holding one set, built by the executor, with identities on. `extraVars` are variables the file
  *  holds beyond the plans', for a later plan to bind. */
-const world = async (id: string, plans = plansOf(id), o: { extraVars?: string[]; extraStyles?: string[]; extraComps?: string[]; componentProps?: Record<string, Record<string, { type: string; defaultValue: string | boolean }>>; keyPrefix?: string; styleIdPrefix?: string; unavailableFonts?: { family: string; style: string }[]; refuseVersion?: boolean; allowMisses?: string[] } = {}): Promise<World> => {
+const world = async (id: string, plans = plansOf(id), o: { extraVars?: string[]; extraStyles?: string[]; extraComps?: string[]; varPx?: Record<string, number>; componentProps?: Record<string, Record<string, { type: string; defaultValue: string | boolean }>>; keyPrefix?: string; styleIdPrefix?: string; unavailableFonts?: { family: string; style: string }[]; refuseVersion?: boolean; allowMisses?: string[] } = {}): Promise<World> => {
   const page: Page = { children: [] };
   const api = makeShim({
     vars: [...new Set([...plans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), 'space/0', ...(o.extraVars ?? [])])],
@@ -200,6 +215,7 @@ const world = async (id: string, plans = plansOf(id), o: { extraVars?: string[];
     keyPrefix: o.keyPrefix,
     styleIdPrefix: o.styleIdPrefix,
     refuseVersion: o.refuseVersion,
+    varPx: o.varPx,
     componentProps: o.componentProps,
   }) as any;
   const built = await applyComponentPlan(plans, api);
@@ -410,11 +426,13 @@ section('stop — a run that stops part-way finishes when the update runs again'
   const w = await world(TAG, plansOf(TAG), { extraVars: ['space/999'] });
   const before = identityOf(w.set());
   const next = moveGap(w.plans);
-  // The host refuses one write on the 20th member's content, once: the run stops there.
+  // The host throws once on the 20th member's content: the run stops there. `unlockAspectRatio` stands for the class
+  // of stop (a host throw, a closed plugin window) because the executor calls it on every node and no rule catches
+  // it. It was a refused `setBoundVariable` until #982 made a refused property a MISS, which no longer stops a run.
   const victim = childNamed(membersOf(w.set())[20], 'content');
-  const real = victim.setBoundVariable as (f: string, v: unknown) => void;
+  const real = victim.unlockAspectRatio as () => void;
   let armed = true;
-  victim.setBoundVariable = (f: string, v: unknown) => { if (armed && f === 'itemSpacing') { armed = false; throw new Error('in setBoundVariable: the host stopped'); } real.call(victim, f, v); };
+  victim.unlockAspectRatio = () => { if (armed) { armed = false; throw new Error('in unlockAspectRatio: the host stopped'); } real.call(victim); };
   const { res } = await confirm(w, [{ def: TAG, plans: next }]);
   ok(!!res.outcomes[0]?.stopped && /the host stopped/.test(res.outcomes[0].stopped!), `premise: the run stopped (${res.outcomes[0]?.stopped})`);
   ok(/^✗ update stopped at /.test(applyVerdict(res).headline), `stop/verdict: ${applyVerdict(res).headline}`);
@@ -821,6 +839,17 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
     `misses/other: any other miss leaves the set not verified, quoted, the updated count as it was (${JSON.stringify(v)})`);
 }
 {
+  // FURNITURE DRAWN FOR A SET WHOSE MEMBERS WERE ALL LEFT (#2803 review): every member skipped (`noBaseline: 'skip'`
+  // here) while the dry run also listed furniture. The furniture is drawn and named, but the members still hold what
+  // the dry run listed, so the set is NOT UPDATED (#2364's rule), never a ✓. An outcome written out by hand, so the
+  // expected lines are the test's. Mutation: the idle count skipping a set with furniture due → `idle/furniture`.
+  const o = { def: 'button', set: 'button', updated: [], added: 0, renamed: 0, deprecated: [], skipped: [{ member: 'size=md', reason: 'no as-built record' }], kept: [], unrecorded: [], handEdits: 'keep' as const,
+    identity: [], content: [], misses: [], furniture: { labels: 3, backdrops: 0, clear: 0 } };
+  const v = applyVerdict({ outcomes: [o], refused: [], missing: [] } as any);
+  ok(!v.ok && v.headline === '✗ 1 set not updated' && v.lines[0] === 'button: 3 canvas labels drawn, 1 left as they are.',
+    `idle/furniture: a set whose members were all left is not updated, though its furniture was drawn (${JSON.stringify(v)})`);
+}
+{
   // A RECORD-LESS SINGLE COMPONENT (#2373): the icons with no as-built record, as the NB master's unrecorded sets were.
   // By default each is updated and named as updated without one, and is recorded after; under `noBaseline: 'skip'` it
   // is left exactly as it is, and named. Mutations: the default skipping → `unrecorded single/updated`; the skip
@@ -1144,6 +1173,123 @@ section('grid — a set laid out in another axis order reads its members as move
     `grid/resized: an update that resizes members moves ${changed} the dry run could not list, and the apply counts every one (${previewLine(pre.sets[0])} → ${v.lines[0]})`);
 }
 
+section('default member — Q347\'s three reorders reach an existing set in place: every id, key and placed instance kept (#2752)');
+{
+  // A SET BUILT BEFORE #2752, with the axis in its old order (typed here, the order each def held before), updated to
+  // the def as it is. Figma inserts a set's top-left-most member (`ComponentSetNode.defaultVariant`), so the update has
+  // to MOVE the code default's members to the top-left, and nothing else: no member rebuilt, renamed or dropped, so
+  // every id and key holds and an instance placed from the old set still points at a member of it. The expected
+  // default is the owner's decision, typed here, never read from the def. Mutation: the grid move dropped from the
+  // apply → `default member/<def> inserted`.
+  const OLD: [string, string, string[], string][] = [
+    ['icon-button', 'appearance', ['filled', 'outline', 'ghost'], 'appearance=ghost'],
+    ['veil', 'intensity', ['subtle', 'medium', 'strong'], 'intensity=medium'],
+    ['image-placeholder', 'ratio', ['2:3', '3:4', '4:5', '1:1', '4:3', '3:2', '16:9'], 'ratio=4:3'],
+  ];
+  /** Figma's default variant: the top-left-most member, spatially. Topmost row first, then leftmost in it. */
+  const insertedOf = (set: Node): string => String([...membersOf(set)].sort((a, b) => Number(a.y) - Number(b.y) || Number(a.x) - Number(b.x))[0]?.name);
+  for (const [id, axis, old, want] of OLD) {
+    const d = structuredClone(componentDefs.find((x) => x.id === id)!) as unknown as { variants: Record<string, string[]> };
+    d.variants[axis] = old;
+    const w = await world(id, figmaAnatomySet(d as never, { swapTarget: SWAP_TARGET }));
+    const set = w.set();
+    const was = insertedOf(set);
+    ok(!was.split(', ').includes(want), `premise: ${id} built in the old order inserts ${was}`);
+    // TWO PLACED INSTANCES, on the page beside the set: one of the member the old set inserted, one of the member the
+    // new one will. Each points at the live member node, as a placed instance's main component does.
+    const mainOf = (name: string): Node => membersOf(set).find((m) => String(m.name) === name)!;
+    const newDefault = membersOf(set).find((m) => String(m.name).split(', ').includes(want) && String(m.name) === planComponentName(plansOf(id)[0]))!;
+    const placed = [mainOf(was), newDefault].map((main, i) => {
+      const inst = { type: 'INSTANCE', id: `I:${id}:${i}`, name: String(main.name), x: -500, y: 100 * i, mainComponent: main, children: [] } as unknown as Node;
+      w.page.children.push(inst);
+      return { inst, main, mainId: String(main.id) };
+    });
+    const before = identityOf(set);
+    const plans = plansOf(id);
+    const pre = await previewUpdate(w.host, [{ def: id, plans }]);
+    const c = pre.sets[0].counts;
+    ok((c.move ?? 0) > 0 && c.update + c.add + c.drop + c.rename + c.handEdited + c.noBaseline === 0,
+      `default member/${id} dry run: the reorder reads as moves and nothing else (${previewLine(pre.sets[0])})`);
+    const res = await applyUpdate(w.host, w.api as any, [{ def: id, plans }], previewHashOf(pre));
+    const now = w.set();
+    const after = identityOf(now);
+    const keptIds = now === set && after.set.join() === before.set.join() && after.members.size === before.members.size
+      && [...before.members].every(([k, b]) => after.members.get(k)?.id === b.id && after.members.get(k)?.key === b.key);
+    ok(applyVerdict(res).ok && keptIds, `default member/${id} in place: the set and every member keep their key and id (${applyVerdict(res).headline}; ids ${keptIds ? 'kept' : 'changed'})`);
+    const inserted = insertedOf(now);
+    ok(inserted.split(', ').includes(want) && inserted === planComponentName(plans[0]),
+      `default member/${id} inserted: after the update Figma inserts the ${want} member, the set's first plan (inserts ${inserted})`);
+    const live = placed.every(({ inst, main, mainId }) => w.page.children.includes(inst) && (inst as unknown as { mainComponent: Node }).mainComponent === main
+      && membersOf(now).includes(main) && String(main.id) === mainId && inst.x === -500);
+    ok(live, `default member/${id} instances: both placed instances stay on the page, unmoved, each on a member still in the set with its id`);
+    const next = (await previewUpdate(w.host, [{ def: id, plans }])).sets[0];
+    ok(previewLine(next) === `${String(now.name)}: up to date (${after.members.size} members).`, `default member/${id} current: the next dry run reads up to date (${previewLine(next)})`);
+  }
+}
+
+section('default member — #2752\'s Q1 B and Q2 A reorders reach an existing set in place: every id, key and placed instance kept');
+{
+  // The same proof as the section above, for the two decisions recorded on #2752 after Q347: every size ladder leads
+  // with medium (Q1 B), and Button's icon slots lead with false (Q2 A). The OLD sets are built the way #2501 (Q213)
+  // left them: sizes small to large and, on Button, each slot true before false. The slot order is no `variants` list,
+  // so the old Button is the new plan list with each run of four slot members (trailing × leading, innermost in
+  // `figmaAnatomySet`) put back in the old order: leading/trailing true/true, true/false, false/true, false/false.
+  // The expected default member is the owner's decision, typed here, never read from the def. Mutation: the grid move
+  // dropped from the apply → `default member/<def> inserted`.
+  const OLD: [string, string[], boolean, string[]][] = [
+    ['button', ['small', 'medium', 'large'], true, ['size=medium', 'leading icon=false', 'trailing icon=false']],
+    ['tag', ['small', 'medium', 'large'], false, ['size=medium']],
+    ['switch-control', ['small', 'medium'], false, ['size=medium']],
+  ];
+  const insertedOf = (set: Node): string => String([...membersOf(set)].sort((a, b) => Number(a.y) - Number(b.y) || Number(a.x) - Number(b.x))[0]?.name);
+  const carries = (name: string, want: string[]): boolean => want.every((seg) => name.split(', ').includes(seg));
+  for (const [id, oldSizes, slotsTrueFirst, want] of OLD) {
+    const d = structuredClone(componentDefs.find((x) => x.id === id)!) as unknown as { variants: Record<string, string[]> };
+    d.variants.size = oldSizes;
+    let oldPlans = figmaAnatomySet(d as never, { swapTarget: SWAP_TARGET });
+    if (slotsTrueFirst) {
+      const OLD_SLOTS = ['leading icon=true, trailing icon=true', 'leading icon=true, trailing icon=false',
+        'leading icon=false, trailing icon=true', 'leading icon=false, trailing icon=false'];
+      const slotsOf = (p: (typeof oldPlans)[number]) => OLD_SLOTS.findIndex((k) => planComponentName(p).endsWith(k));
+      ok(oldPlans.length % 4 === 0 && oldPlans.every((p, i) => i % 4 !== 0 || new Set(oldPlans.slice(i, i + 4).map(slotsOf)).size === 4),
+        `premise: ${id}'s slot members come in runs of four, one of each slot pair (${planComponentName(oldPlans[0])})`);
+      oldPlans = oldPlans.flatMap((p, i, all) => (i % 4 === 0 ? [...all.slice(i, i + 4)].sort((a, b) => slotsOf(a) - slotsOf(b)) : []));
+    }
+    const w = await world(id, oldPlans);
+    const set = w.set();
+    const was = insertedOf(set);
+    ok(!carries(was, want), `premise: ${id} built in the old order inserts ${was}`);
+    const mainOf = (name: string): Node => membersOf(set).find((m) => String(m.name) === name)!;
+    const newDefault = membersOf(set).find((m) => carries(String(m.name), want) && String(m.name) === planComponentName(plansOf(id)[0]))!;
+    ok(!!newDefault, `premise: ${id}'s old set already holds the member the update will put top-left`);
+    const placed = [mainOf(was), newDefault].map((main, i) => {
+      const inst = { type: 'INSTANCE', id: `I:${id}:q1q2:${i}`, name: String(main.name), x: -500, y: 100 * i, mainComponent: main, children: [] } as unknown as Node;
+      w.page.children.push(inst);
+      return { inst, main, mainId: String(main.id) };
+    });
+    const before = identityOf(set);
+    const plans = plansOf(id);
+    const pre = await previewUpdate(w.host, [{ def: id, plans }]);
+    const c = pre.sets[0].counts;
+    ok((c.move ?? 0) > 0 && c.update + c.add + c.drop + c.rename + c.handEdited + c.noBaseline === 0,
+      `default member/${id} dry run: the Q1/Q2 reorder reads as moves and nothing else (${previewLine(pre.sets[0])})`);
+    const res = await applyUpdate(w.host, w.api as any, [{ def: id, plans }], previewHashOf(pre));
+    const now = w.set();
+    const after = identityOf(now);
+    const keptIds = now === set && after.set.join() === before.set.join() && after.members.size === before.members.size
+      && [...before.members].every(([k, b]) => after.members.get(k)?.id === b.id && after.members.get(k)?.key === b.key);
+    ok(applyVerdict(res).ok && keptIds, `default member/${id} in place (Q1/Q2): the set and every member keep their key and id (${applyVerdict(res).headline}; ids ${keptIds ? 'kept' : 'changed'})`);
+    const inserted = insertedOf(now);
+    ok(carries(inserted, want) && inserted === planComponentName(plans[0]),
+      `default member/${id} inserted (Q1/Q2): after the update Figma inserts ${want.join(', ')}, the set's first plan (inserts ${inserted})`);
+    const live = placed.every(({ inst, main, mainId }) => w.page.children.includes(inst) && (inst as unknown as { mainComponent: Node }).mainComponent === main
+      && membersOf(now).includes(main) && String(main.id) === mainId && inst.x === -500);
+    ok(live, `default member/${id} instances (Q1/Q2): both placed instances stay on the page, unmoved, each on a member still in the set with its id`);
+    const next = (await previewUpdate(w.host, [{ def: id, plans }])).sets[0];
+    ok(previewLine(next) === `${String(now.name)}: up to date (${after.members.size} members).`, `default member/${id} current (Q1/Q2): the next dry run reads up to date (${previewLine(next)})`);
+  }
+}
+
 /* ── re-lay ────────────────────────────────────────────────────────────────────────────────────────────── */
 section('re-lay — an update over a set leaves a member Prism3 didn\'t build where it is, even on a planned coordinate (#2494)');
 {
@@ -1370,6 +1516,83 @@ section('page — an update re-spaces the sets Prism3 built on a page as a new b
   nm.forEach((m, k) => { putM(m, STAMP_KEY, was6[k][0]); putM(m, BASELINE_KEY, was6[k][1]); });
   ok(malformed === 2964 && copied === 2964,
     `page/not ours by its stamps: a set whose stamps are all malformed, or whose one stamp is a copy, is a designer's set the moving set goes around (malformed → ${malformed}, copied → ${copied}; want 2964 each)`);
+}
+
+/* ── sets beside a wide page header go below it (#2802, owner decision Q379 A) ───────────────────────────── */
+// LIVE (#2802): on a Checkbox page whose `_section-header` (0, -232, 2517 × 125) is wider than its sets, an earlier
+// build had put `checkbox-control` 160 right of the header, at the header's `y`, and the Update re-spaced its siblings
+// beside it: (2677, -232), (3389, -232), (4845, -232). The oracle is a FRESH BUILD of the same three sets on an empty
+// page, by the real executor, with the header placed as `page-header.ts` places one over fresh content: on the content's
+// left edge, its bottom 80 above the content's top (written here, not imported). The Update must leave every set where
+// that build put it relative to the header. Mutation: the header-row case dropped from `respaceSets` (`besideHeader`
+// always false) → `header row/dry run`, `header row/applied`, `header row/one set`.
+section('header row — sets an earlier build put beside a wide page header move below it, as a fresh build places them (#2802)');
+{
+  const IDS = ['checkbox-control', 'checkbox-row', 'checkbox-group'];
+  const plansBy = new Map(IDS.map((id) => [id, plansOf(id)] as const));
+  const all = [...plansBy.values()].flat();
+  const page: Page = { children: [] };
+  const api = makeShim({
+    vars: [...new Set([...all.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), 'space/0'])],
+    styles: [...new Set(all.flatMap((p) => planTextStyles(p.root)))],
+    effects: [...new Set(all.flatMap((p) => planEffectStyles(p.root)))],
+    comps: [...new Set([SWAP_TARGET, 'focus-ring', ...all.flatMap((p) => planComps(p.root))])],
+    page, liveRoot: true, identities: true, scaleConstrained: true,
+  }) as any;
+  for (const id of IDS) { const r = await applyComponentPlan(plansBy.get(id)!, api); if (r.misses.length) throw new Error(`premise: ${id} built with ${r.misses.length} miss(es): ${r.misses[0]}`); }
+  const sets = page.children.filter((n) => n.type === 'COMPONENT_SET') as Node[];
+  for (const set of sets) (set as { parent?: unknown }).parent = page;
+  // THE FRESH BUILD, relative to its header: the header on the content's left edge, 80 above its top.
+  const top = Math.min(...sets.map((n) => Number(n.y)));
+  const left = Math.min(...sets.map((n) => Number(n.x)));
+  const HEADER_H = 125;
+  const freshRel = sets.map((n) => [Number(n.x) - left, Number(n.y) - (top - 80 - HEADER_H)]);
+  const span = Math.max(...sets.map((n) => Number(n.x) + Number(n.width))) - left;
+  // THE LIVE PAGE: a header wider than the row of sets, and the sets in its row, 160 apart, the first 160 past its right.
+  const header = { type: 'INSTANCE', name: '_section-header', x: 0, y: -232, width: span + 1000, height: HEADER_H, children: [] } as unknown as Node;
+  page.children.push(header);
+  sets[0].x = Number(header.x) + Number(header.width) + 160;
+  for (let k = 1; k < sets.length; k++) sets[k].x = Number(sets[k - 1].x) + Number(sets[k - 1].width) + 160;
+  for (const set of sets) set.y = Number(header.y);
+  const headerAt = JSON.stringify([header.x, header.y]);
+  const rel = (): number[][] => sets.map((n) => [Number(n.x) - Number(header.x), Number(n.y) - Number(header.y)]);
+  const host = { ...api, root: { ...api.root, findAllWithCriteria: (c: { types: string[] }) => (c.types.length === 1 && c.types[0] === 'COMPONENT_SET' ? page.children.filter((n) => n.type === 'COMPONENT_SET') : api.root.findAllWithCriteria(c)) } } as unknown as ApplyHost;
+  const targets = IDS.map((id) => ({ def: id, plans: plansBy.get(id)! }));
+  const ids = (): string => JSON.stringify(sets.map((st) => [st.id, ...membersOf(st).map((m) => m.id)]));
+  const idsWas = ids();
+  const pre = await previewUpdate(host, targets);
+  const to = pre.sets.map((p) => (p.setMove ? [p.setMove.to.x - Number(header.x), p.setMove.to.y - Number(header.y)] : null));
+  ok(JSON.stringify(to) === JSON.stringify(freshRel) && previewLine(pre.sets[0]) === `checkbox-control: ${membersOf(sets[0]).length} members. The set moves to its place on the page.`,
+    `header row/dry run: all three sets, the first included, move to where a fresh build puts them under the header (${JSON.stringify(to)}; fresh ${JSON.stringify(freshRel)}; ${previewLine(pre.sets[0])})`);
+  const res = await applyUpdate(host, api, targets, previewHashOf(pre));
+  const next = await previewUpdate(host, targets);
+  ok(JSON.stringify(rel()) === JSON.stringify(freshRel) && ids() === idsWas && JSON.stringify([header.x, header.y]) === headerAt
+    && applyVerdict(res).headline === '✓ 3 sets moved' && previewVerdict(next).headline === '✓ All sets up to date',
+    `header row/applied: every set lands where a fresh build put it relative to the header, every id kept, the header unmoved, and the next dry run up to date (${JSON.stringify(rel())}; ${applyVerdict(res).headline}; ${previewVerdict(next).headline})`);
+  // ONE SET ALONE in the header's row moves too: the "fewer than two sets" short cut must not skip it. Read as a function.
+  const lone = respaceSets([
+    { id: 'H', type: 'INSTANCE', header: true, x: 0, y: -232, width: 2517, height: 125 },
+    { id: 'A', type: 'COMPONENT_SET', prism3: true, x: 2677, y: -232, width: 312, height: 600 },
+  ]);
+  ok(JSON.stringify(lone.map((m) => [m.id, m.to.x, m.to.y])) === JSON.stringify([['A', 0, -232 + 125 + 80]]),
+    `header row/one set: a single set beside the header goes on its left edge, 80 below it (${JSON.stringify(lone)})`);
+  // A SET BELOW THE HEADER STAYS: the header is not a row member, so a set under it, wider spaced, is the designer's.
+  const under = respaceSets([
+    { id: 'H', type: 'INSTANCE', header: true, x: 0, y: -302, width: 2416, height: 125 },
+    { id: 'A', type: 'COMPONENT_SET', prism3: true, x: 0, y: 0, width: 864, height: 600 },
+    { id: 'B', type: 'COMPONENT_SET', prism3: true, x: 1264, y: 0, width: 864, height: 600 },
+  ]);
+  ok(under.length === 0, `header row/below stays: sets already under a wide header, a fresh build's spacing apart, do not move (${JSON.stringify(under)})`);
+  // A LIFTED SET JOINS THE ROW ALREADY UNDER THE HEADER, at that row's top, not at the header's bottom plus the gap
+  // (here the row sits 177 below the header, not 80), and after its sets. Mutation: `underY` ignoring the sets below
+  // the header → `header row/joins below`.
+  const joins = respaceSets([
+    { id: 'H', type: 'INSTANCE', header: true, x: 0, y: -302, width: 4000, height: 125 },
+    { id: 'B', type: 'COMPONENT_SET', prism3: true, x: 0, y: 0, width: 864, height: 600 },
+    { id: 'A', type: 'COMPONENT_SET', prism3: true, x: 4160, y: -302, width: 312, height: 600 },
+  ]);
+  ok(JSON.stringify(joins.map((m) => [m.id, m.to.x, m.to.y])) === JSON.stringify([['A', 864 + 400, 0]]),
+    `header row/joins below: a set beside the header joins the row under it, at that row's top, after its sets (${JSON.stringify(joins)})`);
 }
 
 /* ── set moves and page order together (#2542 × #2568) ─────────────────────────────────────────────────── */
@@ -2312,6 +2535,48 @@ section('edge — a file built when the disabled edge bound an icon role is corr
   }
 }
 
+section('field style — a field set built in one Field style is redrawn in place in the other, both ways, in one Update (#2695 Q16 A, #2774)');
+{
+  // Each field is built from `materializeForBrand` under one style, then updated with the plans of the other: the
+  // brand switching its Field style on a file that already holds the sets. Q16 A promises Update redraws them in
+  // place. Underline → Outline is the direction #2774 found: an underline hover paints the opaque `field.fill`, an
+  // outline hover the translucent wash, and the host resets a bound paint's opacity on the first assignment that
+  // changes its variable. Everything below is read off the shim's nodes, never off the plans' own claims, except
+  // which members carry a wash, which is what the plan asks for.
+  const findPart = (n: Node, name: string): Node | undefined => n.name === name ? n : (n.type === 'INSTANCE' ? undefined : ((n.children as Node[] | undefined) ?? []).map((c) => findPart(c, name)).find(Boolean));
+  for (const id of ['text-field', 'password-field', 'select', 'textarea']) {
+    const def = componentDefs.find((d) => d.id === id)!;
+    const outline = figmaAnatomySet(materializeForBrand(def, { fieldStyle: 'outline' } as never), { swapTarget: SWAP_TARGET });
+    const underline = figmaAnatomySet(materializeForBrand(def, { fieldStyle: 'underline' } as never), { swapTarget: SWAP_TARGET });
+    // Password field's Show button is Button's instance: its TEXT property is the one Button's own def declares.
+    const buttonTexts = Object.fromEntries(Object.entries(componentDefs.find((d) => d.id === 'button')!.figmaProperties?.texts ?? {}).map(([k, t], i) => [`${k}#7:${i}`, { type: 'TEXT', defaultValue: t.default }]));
+    const extra = (ps: AnatomyPlan[]) => ({ extraVars: ps.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), extraStyles: ps.flatMap((p) => planTextStyles(p.root)), extraComps: ps.flatMap((p) => planComps(p.root)), componentProps: { button: buttonTexts } });
+    for (const [from, to, fromName, toName] of [[underline, outline, 'underline', 'outline'], [outline, underline, 'outline', 'underline']] as const) {
+      const tag = `${id} ${fromName}→${toName}`;
+      const w = await world(id, [...from], extra([...to]));
+      const n = membersOf(w.set()).length;
+      const before = identityOf(w.set());
+      const { pre, res } = await confirm(w, [{ def: id, plans: [...to] }]);
+      const v = applyVerdict(res);
+      ok(pre.sets[0].counts.update === n && v.ok, `field style/${tag}: all ${n} members read to update, and one apply succeeds (${JSON.stringify(pre.sets[0].counts)}; ${v.headline}${v.ok ? '' : ` — ${v.lines.slice(0, 2).join(' | ').slice(0, 240)}`})`);
+      const after = identityOf(w.set());
+      const lost = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || [...b.kids].some(([path, kid]) => after.members.get(name)?.kids.get(path) !== kid)).map(([x]) => x);
+      ok(lost.length === 0 && JSON.stringify(after.set) === JSON.stringify(before.set), `field style/${tag} in place: the set, every member and every node under it keep their keys and ids (${lost.slice(0, 2).join('; ') || 'all kept'})`);
+      // THE WASH (#2774): every control the plan washes draws it translucent, read off the stored paint.
+      const washed = to.filter((p) => /\/overlay\//.test(String(findPart(p.root as unknown as Node, 'control')?.paints?.fills ?? ''))).map((p) => planComponentName(p));
+      const solid = membersOf(w.set()).filter((m) => washed.includes(String(m.name))).map((m) => ({ m: String(m.name), o: ((findPart(m, 'control')?.fills as { opacity?: number }[] | undefined) ?? [])[0]?.opacity ?? 1 })).filter((x) => !(x.o < 1));
+      ok(toName === 'underline' ? washed.length === 0 : washed.length > 0 && solid.length === 0,
+        `field style/${tag} wash: ${toName === 'underline' ? 'no member asks for the wash' : `all ${washed.length} washed controls draw it translucent`} (${solid.slice(0, 2).map((x) => `${x.m}: opacity ${x.o}`).join('; ') || 'ok'})`);
+      // Q346 on the line: a disabled member's edge binds the disabled BORDER role, never an icon or text role.
+      const vars = new Map<string, string>((await w.api.variables.getLocalVariablesAsync()).map((x: { id: string; name: string }) => [x.id, x.name.slice(x.name.indexOf('/') + 1)] as [string, string]));
+      const edges = membersOf(w.set()).filter((m) => /state=disabled/.test(String(m.name))).map((m) => vars.get(String(((findPart(m, 'control')?.strokes as { boundVariables?: { color?: { id: string } } }[] | undefined) ?? [])[0]?.boundVariables?.color?.id)));
+      ok(edges.length > 0 && edges.every((e) => e === 'color/disabled/border'), `field style/${tag} Q346: every disabled edge binds color/disabled/border (${[...new Set(edges)].join(', ')})`);
+      const post = (await previewUpdate(w.host, [{ def: id, plans: [...to] }])).sets[0];
+      ok(post.counts.current === n, `field style/${tag} converges: the next dry run reads all ${n} current (${JSON.stringify(post.counts)})`);
+    }
+  }
+}
+
 section('corpus — every def, re-applied in place by an executor revision bump, keeps every key and reads back as its plan');
 {
   // A newer executor revision makes every member out of date with nothing else moved, so the update configures
@@ -2540,6 +2805,16 @@ section('accordion — a set built before the header row (#2594, owner Q276 A) t
     `acc/dry run: all 24 members read update, none added, dropped, renamed or replaced, and nothing refused (${JSON.stringify(p.counts)}, ${p.blockers.join('; ') || 'no blockers'}, ${p.replacements.length} replacements)`);
   ok(p.changes.some((c) => c.part === 'header' && c.field === 'counterAxisAlignItems' && c.from === 'MIN' && c.to === 'CENTER' && c.members === 24) && p.changes.some((c) => c.part === 'header/titleRow' && c.field === 'children' && c.to === 'present'),
     `acc/dry run: the header's centering and the added row are named differences (${JSON.stringify(p.changes.map((c) => [c.part, c.field, c.members])).slice(0, 240)})`);
+  // THE MOVES, as the dry run lists them (#2595): the indicators and the title move into the row and are kept, never
+  // listed as removed. Typed here from the def's anatomy (the leading or trailing indicator on half the members each,
+  // the title on all 24) and the issue's option A wording.
+  const lines = previewVerdict(pre).lines;
+  const moveLines = ['header/leadingIndicator', 'header/titleBox', 'header/trailingIndicator'].map((part) => p.changes.find((c) => c.part === part));
+  ok(JSON.stringify(moveLines.map((c) => [c?.field, c?.to, c?.members])) === JSON.stringify([['moves into', 'header/titleRow', 12], ['moves into', 'header/titleRow', 24], ['moves into', 'header/titleRow', 12]])
+    && lines.includes('accordion · header/titleBox · moves into header/titleRow, kept (24 members).')
+    && lines.includes('accordion · header/leadingIndicator · moves into header/titleRow, kept (12 members).')
+    && !p.changes.some((c) => /removed/.test(c.to)),
+    `acc/dry run moves: the indicators and the title are listed as moving into the row, kept, and nothing as removed (${JSON.stringify(p.changes.map((c) => [c.part, c.field, c.to, c.members]))})`);
   const v = applyVerdict(res);
   ok(v.ok, `acc/verdict: ${v.headline} (${v.lines.slice(0, 2).join(' | ').slice(0, 240)})`);
   const after = identityOf(w.set());
@@ -2559,16 +2834,23 @@ section('accordion — a set built before the header row (#2594, owner Q276 A) t
   ok(shape.every((x) => x.ok), `acc/structure: every header is centered and holds the row, which holds the indicator and the title top-aligned (${shape.filter((x) => !x.ok).slice(0, 2).map((x) => `${x.m}: ${x.got}`).join('; ') || 'all 24'})`);
   const post = (await previewUpdate(w.host, [{ def: ACC, plans: newPlans }])).sets[0];
   ok(post.counts.current === 24 && post.handEdits.length === 0, `acc/current: the next dry run reads all 24 current (${JSON.stringify(post.counts)})`);
-  // THE COST, stated rather than hidden: the indicators and the title move into a frame the file did not have, and
-  // the in-place update pairs a node's children by name under the SAME parent, so they are built fresh inside the row
-  // and the old ones removed. Their ids change; a placed instance's own choice on the nested indicator does not carry
-  // over (the title is a text property, so its text does). Typed here so a change to that pairing is seen.
-  const rebuilt = [...before.members].every(([name, b]) => {
-    const now2 = new Set(after.members.get(name)?.kids.values() ?? []);
-    const was = [...b.kids].filter(([path]) => /^header#0\/(titleBox|leadingIndicator|trailingIndicator)#/.test(path)).map(([, id]) => id);
-    return was.length > 0 && was.every((id) => !now2.has(id));
-  });
-  ok(rebuilt, 'acc/moved children: the indicator and the title are built fresh inside the row, so their ids change');
+  // MOVED, NOT REBUILT (#2595): the indicators and the title move into the row the update inserts, so every node in
+  // them, their nested glyph instances included, keeps its id, now under the row. A placed instance's override on
+  // them carries over. Read off the shim's nodes by id. Mutations: the executor offering a new frame no children
+  // (`offer` empty) → `acc/moved children`, `acc/agree`, `acc/edited agree`; the dry run listing no moves →
+  // `acc/dry run moves`, `acc/edited dry run`.
+  const lost: string[] = [];
+  for (const [name, b] of before.members) {
+    const was = [...b.kids].filter(([path]) => /^header#0\/(titleBox|leadingIndicator|trailingIndicator)#/.test(path));
+    const underRow = new Set([...(after.members.get(name)?.kids ?? [])].filter(([path]) => /^header#0\/titleRow#\d+\//.test(path)).map(([, id]) => id));
+    if (!was.length || !was.every(([, id]) => underRow.has(id))) lost.push(`${name}: ${was.filter(([, id]) => !underRow.has(id)).map(([path]) => path).slice(0, 2).join(', ') || 'nothing to move'}`);
+  }
+  ok(lost.length === 0, `acc/moved children: the indicator and the title, and every node in them, keep their ids under the row (${lost.slice(0, 2).join('; ') || 'all 24'})`);
+  // THE DRY RUN SAID SO: no node under a part the dry run listed as moving was removed. Counted off the shim's own
+  // removals, by id.
+  const movedIds = new Set([...before.members.values()].flatMap((b) => [...b.kids].filter(([path]) => /^header#0\/(titleBox|leadingIndicator|trailingIndicator)#/.test(path)).map(([, id]) => id)));
+  const gone = (w.api._removed as Node[]).filter((x) => movedIds.has(String(x.id)));
+  ok(movedIds.size > 0 && gone.length === 0, `acc/agree: the apply removed none of the ${movedIds.size} nodes the dry run listed as moving (${gone.slice(0, 3).map((x) => `${String(x.name)} ${String(x.id)}`).join(', ') || 'none removed'})`);
   // ADOPTED, NOT RE-CREATED, ONCE THERE: a later update (here an executor revision bump, every member out of date
   // with nothing else moved) pairs the row the first update added, and every node under it keeps its id.
   for (const m of membersOf(w.set())) {
@@ -2581,6 +2863,215 @@ section('accordion — a set built before the header row (#2594, owner Q276 A) t
   ok(again.pre.sets[0].counts.update === 24 && applyVerdict(again.res).ok, `acc/again: a revision bump reads all 24 out of date and updates them (${JSON.stringify(again.pre.sets[0].counts)}; ${applyVerdict(again.res).headline})`);
   const reRow = membersOf(w.set()).filter((m) => rowIds(m) !== beforeRow.get(String(m.name))).map((m) => String(m.name));
   ok(reRow.length === 0, `acc/row adopted: a later update keeps the row and every node under it, by id, on every member (${reRow.slice(0, 2).join('; ') || 'all 24'})`);
+}
+// A NODE A DESIGNER EDITED IS NOT MOVED (#2595): the move is decided before the hand-edit choice is made, so a node
+// with a hand edit at or under it is left out of the moves whatever the choice. The dry run lists it as removed on that
+// member and moved on the rest, and the apply rebuilds it there, as before #2595, and moves it on the rest. (Its hand
+// edit is not carried into the rebuilt node, as before #2595: #2673.) Twice: an edit ON the moved node, and one UNDER
+// it (its label), which must block the move as surely (#2595 review). Mutations: the executor ignoring `edited` →
+// `acc/edited agree`; `adoptions` dropping its under-a-node arm → `acc/edited under agree`, `acc/edited under dry run`.
+const ACC_BEFORE_ROW = (patch: (parts: Record<string, any>) => Record<string, any> = (x) => x) => {
+  const now = componentDefs.find((x) => x.id === 'accordion')!;
+  const { titleRow, ...restParts } = now.anatomy.parts;
+  return {
+    ...now,
+    anatomy: { ...now.anatomy, parts: patch({ ...restParts, header: { ...now.anatomy.parts.header, layout: { ...now.anatomy.parts.header.layout!, align: 'start' }, gap: titleRow.gap, children: [...titleRow.children!, 'focusRing'] } }) },
+  } as typeof now;
+};
+for (const edit of [
+  { tag: 'edited', path: 'header/titleBox', on: (m: Node) => childNamed(childNamed(m, 'header'), 'titleBox'), apply: async (w: any, n: Node) => (n.setBoundVariable as (f: string, v: { id: string }) => void)('itemSpacing', { id: await varIdOf(w, 'space/0') }) },
+  { tag: 'edited under', path: 'header/titleBox/label', on: (m: Node) => childNamed(childNamed(childNamed(m, 'header'), 'titleBox'), 'label'), apply: async (_w: any, n: Node) => { (n as unknown as { opacity: number }).opacity = 0.5; } },
+]) {
+  const ACC = 'accordion';
+  const w = await world(ACC, figmaAnatomySet(ACC_BEFORE_ROW(), { swapTarget: SWAP_TARGET }));
+  const m = membersOf(w.set())[0];
+  await edit.apply(w, edit.on(m));
+  const boxId = String(childNamed(childNamed(m, 'header'), 'titleBox').id);
+  const others = membersOf(w.set()).slice(1).map((x) => String(childNamed(childNamed(x, 'header'), 'titleBox').id));
+  // Under the default choice (keep). The dry run is made before any choice, so it is the same under every one.
+  const pre = await previewUpdate(w.host, [{ def: ACC, plans: plansOf(ACC) }]);
+  const p = pre.sets[0];
+  const edits = p.handEdits.filter((h) => h.member === String(m.name)).map((h) => h.path);
+  const move = p.changes.find((c) => c.part === 'header/titleBox' && c.field === 'moves into');
+  const removed = p.changes.find((c) => c.part === 'header/titleBox' && /removed/.test(c.to));
+  ok(JSON.stringify(edits) === JSON.stringify([edit.path]) && move?.members === 23 && removed?.members === 1 && removed.sample[0] === String(m.name),
+    `acc/${edit.tag} dry run: with ${edit.path} edited, the title is listed as removed on its member, moved on the other 23 (${JSON.stringify(edits)}; moves ${move?.members}; removed ${removed?.members} on ${removed?.sample.join(', ')})`);
+  const res = await applyUpdate(w.host, w.api as any, [{ def: ACC, plans: plansOf(ACC) }], previewHashOf(pre), { choices: { handEdits: 'keep' } });
+  void res;
+  const row = (x: Node): Node | undefined => childNamed(childNamed(x, 'header'), 'titleRow');
+  const nowBox = String(childNamed(row(m)!, 'titleBox')?.id);
+  const kept = membersOf(w.set()).slice(1).map((x) => String(childNamed(row(x)!, 'titleBox')?.id));
+  ok(nowBox !== boxId && (w.api._removed as Node[]).some((x) => String(x.id) === boxId) && JSON.stringify(kept) === JSON.stringify(others),
+    `acc/${edit.tag} agree: with ${edit.path} edited, the title is rebuilt in the row on its member, as the dry run listed it, and moved, by id, on the other 23 (${boxId} → ${nowBox}; ${kept.filter((id, i) => id !== others[i]).length} others changed)`);
+}
+{
+  // A MOVED NODE IS STILL COMPARED TO ITS PLAN (#2595 review): the dry run diffs each moved subtree at its new path,
+  // so a field the apply changes on a moved node is listed beside the move line, never hidden by it. Here the file's
+  // title column has no top padding where the plan pads it, so `paddingTop` is a named difference at the title's NEW
+  // path on every member. Mutation: the moved subtrees not diffed → `acc/moved diffed`.
+  const ACC = 'accordion';
+  const w = await world(ACC, figmaAnatomySet(ACC_BEFORE_ROW((parts) => ({ ...parts, titleBox: { ...parts.titleBox, paddingTop: undefined } })), { swapTarget: SWAP_TARGET }));
+  const p = (await previewUpdate(w.host, [{ def: ACC, plans: plansOf(ACC) }])).sets[0];
+  const field = p.changes.filter((c) => c.part === 'header/titleRow/titleBox' && /paddingTop/.test(`${c.field} ${c.from} ${c.to}`));
+  const move = p.changes.find((c) => c.part === 'header/titleBox' && c.field === 'moves into');
+  ok(field.length > 0 && field.reduce((a, c) => a + c.members, 0) === 24 && move?.members === 24,
+    `acc/moved diffed: the title's missing top padding is listed at its new path on all 24 members, beside its move (${JSON.stringify(field.map((c) => [c.field, c.from, c.to, c.members]))}; moves ${move?.members})`);
+}
+{
+  // THE MOVE RULE ITSELF (#2595 review), on hand-built inputs whose answers are known in advance (docs/34). Each case
+  // is one guard of `adoptions`; dropping that guard fails its line by name.
+  const row = [{ name: 'row', type: 'FRAME', children: [{ name: 'a', type: 'FRAME' }, { name: 'b', type: 'TEXT' }] }];
+  const got = (m: Map<string, string>) => JSON.stringify([...m]);
+  ok(got(adoptions(row, ['a', 'b'])) === '[["a","row"],["b","row"]]', `acc/adoptions: both children the new row names move into it (${got(adoptions(row, ['a', 'b']))})`);
+  ok(got(adoptions(row, ['a', 'a', 'b'])) === '[["b","row"]]', `acc/adoptions once: a name the file holds twice moves neither, since picking one would be order deciding (${got(adoptions(row, ['a', 'a', 'b']))})`);
+  ok(got(adoptions(row, ['a', 'b', 'row'])) === '[]', `acc/adoptions present: a row the file already holds takes nothing (${got(adoptions(row, ['a', 'b', 'row']))})`);
+  ok(got(adoptions([...row, { name: 'a', type: 'TEXT' }], ['a', 'b'])) === '[["b","row"]]', `acc/adoptions claimed: a name another plan child claims stays (${got(adoptions([...row, { name: 'a', type: 'TEXT' }], ['a', 'b']))})`);
+  ok(got(adoptions(row, ['a', 'b'], new Set(['header/a/inner']), 'header')) === '[["b","row"]]', `acc/adoptions edited under: an edit under a child keeps it out (${got(adoptions(row, ['a', 'b'], new Set(['header/a/inner']), 'header'))})`);
+  ok(got(adoptions(row, ['a', 'b'], new Set(['header/ab']), 'header')) === '[["a","row"],["b","row"]]', `acc/adoptions edited prefix: an edit on a sibling whose name merely starts the same blocks nothing (${got(adoptions(row, ['a', 'b'], new Set(['header/ab']), 'header'))})`);
+  const swapRow = [{ name: 'row', type: 'FRAME', children: [{ name: 's', type: 'INSTANCE_SWAP' }] }];
+  ok(got(adoptions(swapRow, ['s'])) === '[]', `acc/adoptions swap: an INSTANCE_SWAP is never moved, since its host type depends on the file and the dry run cannot read it (${got(adoptions(swapRow, ['s']))})`);
+  const slotRow = [{ name: 'row', type: 'CONTENT_SLOT', children: [{ name: 'a', type: 'FRAME' }] }];
+  ok(got(adoptions(slotRow, ['a'])) === '[]', `acc/adoptions frame only: only a FRAME the plan inserts is offered children, never another type that carries them (${got(adoptions(slotRow, ['a']))})`);
+}
+
+section('stepdown — Segmented control, Tab and Tag move their glyph one rung down in place (#2725, owner Q337 A)');
+{
+  // THE FILE AS A BUILD BEFORE #2725 LEFT IT: each def's glyph on the 1:1 rung. Reconstructed from today's def by
+  // putting those three bindings back, so the subject is the real def's projection on both sides (as `accordion` does).
+  const OLD_RUNG: Record<string, string> = { 'size.small.icon': 'icon.size.sm', 'size.medium.icon': 'icon.size.md', 'size.large.icon': 'icon.size.lg' };
+  // EXPECTED, typed from the decision: the variable each size binds and the px it carries (the shim's `varPx`).
+  const WANT: Record<string, [string, number]> = { small: ['icon/size/xs', 16], medium: ['icon/size/sm', 20], large: ['icon/size/md', 24] };
+  const PX = { 'icon/size/xs': 16, 'icon/size/sm': 20, 'icon/size/md': 24, 'icon/size/lg': 32 };
+  const CASES: Array<{ id: string; parts: string[]; members: number }> = [
+    { id: 'segmented-control-segment', parts: ['leadingVisual'], members: 30 },
+    { id: 'tab', parts: ['leadingVisual'], members: 30 },
+    { id: 'tag', parts: ['leadingVisual', 'check', 'dismissGlyph'], members: 45 },
+  ];
+  const sizeOf = (m: Node): string => /size=(small|medium|large)/.exec(String(m.name))?.[1] ?? '?';
+  const glyphsOf = (m: Node, parts: string[]): Node[] => {
+    const out: Node[] = [];
+    const walk = (n: Node) => { if (parts.includes(String(n.name))) out.push(n); if (n.type !== 'INSTANCE') for (const c of (n.children as Node[] | undefined) ?? []) walk(c); };
+    walk(m);
+    return out;
+  };
+  for (const { id, parts, members } of CASES) {
+    const now = componentDefs.find((x) => x.id === id)!;
+    const old = { ...now, tokens: { ...now.tokens, ...OLD_RUNG } } as typeof now;
+    const oldPlans = figmaAnatomySet(old, { swapTarget: SWAP_TARGET });
+    const newPlans = plansOf(id);
+    const w = await world(id, oldPlans, { extraVars: ['icon/size/xs'], varPx: PX });
+    const names = new Map(((await w.api.variables.getLocalVariablesAsync()) as { id: string; name: string }[]).map((v) => [v.id, v.name]));
+    const boundName = (n: Node, f: 'width' | 'height'): string => {
+      const vid = (n.boundVariables as Record<string, { id?: string }> | undefined)?.[f]?.id;
+      const full = vid ? names.get(vid) ?? '' : '';
+      return Object.keys(PX).find((k) => full === k || full.endsWith(`/${k}`)) ?? (full || 'unbound');
+    };
+    const wrongGlyph = (want: Record<string, [string, number]>): string[] => membersOf(w.set()).flatMap((m) => {
+      const [wv, wpx] = want[sizeOf(m)] ?? ['?', NaN];
+      return glyphsOf(m, parts).filter((g) => boundName(g, 'width') !== wv || boundName(g, 'height') !== wv || g.width !== wpx || g.height !== wpx)
+        .map((g) => `${String(m.name)} ${String(g.name)} (${boundName(g, 'width')} ${String(g.width)}×${String(g.height)}, want ${wv} ${wpx})`);
+    });
+    const seen = new Set(membersOf(w.set()).flatMap((m) => glyphsOf(m, parts).map((g) => `${String(g.name)}@${sizeOf(m)}`)));
+    const want1to1: Record<string, [string, number]> = { small: ['icon/size/sm', 20], medium: ['icon/size/md', 24], large: ['icon/size/lg', 32] };
+    const pre1 = wrongGlyph(want1to1);
+    ok(membersOf(w.set()).length === members && parts.every((n) => ['small', 'medium', 'large'].every((s) => seen.has(`${n}@${s}`))) && pre1.length === 0,
+      `premise: ${id}'s ${members} members were built on the 1:1 rung, 20 / 24 / 32, every glyph part [${parts.join(', ')}] at every size (${pre1.slice(0, 2).join('; ') || 'all'})`);
+    const before = identityOf(w.set());
+    const { pre, res } = await confirm(w, [{ def: id, plans: newPlans }]);
+    const p = pre.sets[0];
+    ok(p.counts.update > 0 && p.counts.add === 0 && p.counts.drop === 0 && !p.blockers.length,
+      `stepdown/${id} dry run: members read update, none added or dropped, nothing refused (${JSON.stringify(p.counts)}, ${p.blockers.join('; ') || 'no blockers'})`);
+    ok(applyVerdict(res).ok, `stepdown/${id} verdict: ${applyVerdict(res).headline} (${applyVerdict(res).lines.slice(0, 2).join(' | ').slice(0, 200)})`);
+    const wrong = wrongGlyph(WANT);
+    ok(wrong.length === 0, `stepdown/${id} rebound: every glyph binds icon/size/xs / sm / md and is 16 / 20 / 24px at small / medium / large (${wrong.slice(0, 3).join('; ') || 'all'})`);
+    const after = identityOf(w.set());
+    const moved = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || after.members.get(name)?.id !== b.id).map(([n]) => n);
+    ok(JSON.stringify(after.set) === JSON.stringify(before.set) && moved.length === 0 && after.members.size === members,
+      `stepdown/${id} kept: the set and all ${members} members keep their keys and ids (${moved.slice(0, 2).join('; ') || 'none moved'})`);
+    const post = (await previewUpdate(w.host, [{ def: id, plans: newPlans }])).sets[0];
+    ok(post.counts.current === members && post.handEdits.length === 0, `stepdown/${id} current: the next dry run reads all ${members} current (${JSON.stringify(post.counts)})`);
+  }
+}
+
+/* ── stretched mode (#2696) ──────────────────────────────────────────────────────────────────────────── */
+// A HUGGING AXIS THE PARENT STRETCHES IS THE PARENT'S SIZE, so the host may hold FIXED there where the plan says AUTO.
+// The host is modeled by the test: Accordion's indicator (a row in the row `titleRow`, `layoutAlign: STRETCH`) switches
+// its counter axis to FIXED when the stretch is written, at medium and large and not at small, as the live file read.
+// One member's `titleRow`, which nothing stretches, and its `header`, stretched on its other axis, hold FIXED whatever is
+// written (the record cleared, so the update writes them rather than keeping a hand edit): the controls the rule must
+// still fail, with an open member's `content` held AUTO where the plan holds its stretched axis FIXED. The expected
+// lines are literals from the def's anatomy, never the read-back's output. Mutations: the rule dropped, or the parent's
+// plan not threaded to it → `stretch/verify`, `stretch/dry run`, `stretch/agree`, `stretch/lost`; the host's stretch
+// not required → `stretch/lost`; the axis ignored → the same four; a planned FIXED relaxed too → the same four; the
+// plan's stretch not required (the control's `titleRow` is stretched on the host alone) → `stretch/verify`,
+// `stretch/dry run`, `stretch/agree`, `stretch/lost`.
+section('stretched mode — an axis the parent stretches: the verify and the dry run agree on it, both ways (#2696)');
+{
+  const ACC = 'accordion';
+  const w = await world(ACC);
+  const titleRow = (m: Node): Node => childNamed(childNamed(m, 'header'), 'titleRow');
+  const indicator = (m: Node): Node => (titleRow(m).children as Node[]).find((c) => /^(leading|trailing)Indicator$/.test(String(c.name)))!;
+  const sizeOf = (m: Node): string => /size=(\w+)/.exec(String(m.name))?.[1] ?? '';
+  const members = membersOf(w.set());
+  for (const m of members) {
+    if (sizeOf(m) === 'small') continue;
+    const n = indicator(m) as Record<string, unknown>;
+    let la = n.layoutAlign;
+    Object.defineProperty(n, 'layoutAlign', { configurable: true, enumerable: true, get: () => la, set: (v: unknown) => { la = v; if (v === 'STRETCH') n.counterAxisSizingMode = 'FIXED'; } });
+  }
+  const control = members.find((m) => sizeOf(m) === 'medium')!;
+  Object.defineProperty(titleRow(control), 'counterAxisSizingMode', { configurable: true, enumerable: true, get: () => 'FIXED', set: () => {} });
+  // The host also holds it STRETCHED where the plan does not stretch it (a designer's stretch). It shares `header`'s
+  // row direction, so the stretch would fill its counter axis: only the plan's half of the rule keeps it named, and
+  // no `layoutAlign` comparison exists for a part the plan does not stretch (`FIELDS.layoutAlign`).
+  Object.defineProperty(titleRow(control), 'layoutAlign', { configurable: true, enumerable: true, get: () => 'STRETCH', set: () => {} });
+  // …and its `header`, a row the column root stretches ACROSS, which is the header's primary axis, not its counter one.
+  Object.defineProperty(childNamed(control, 'header'), 'counterAxisSizingMode', { configurable: true, enumerable: true, get: () => 'FIXED', set: () => {} });
+  // Its record cleared, so the FIXED reads as the host's and not a designer's: the update writes it and records it after.
+  (control.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, BASELINE_KEY, '');
+  // THE OTHER DIRECTION: a stretched axis the plan holds FIXED is never relaxed (#1751: left AUTO, it hugs). An open
+  // member's `content`, a column the column root stretches across, held AUTO whatever is written, record cleared too.
+  const open = members.find((m) => sizeOf(m) === 'small' && /expansion=expanded/.test(String(m.name)))!;
+  Object.defineProperty(childNamed(open, 'content'), 'counterAxisSizingMode', { configurable: true, enumerable: true, get: () => 'AUTO', set: () => {} });
+  (open.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, BASELINE_KEY, '');
+  const outOfDate = (): void => {
+    for (const m of membersOf(w.set())) {
+      const st = (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY);
+      (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, STAMP_KEY, st.replace(/\|[^|]*$/, '|0'));
+    }
+  };
+  const want = [`${control.name}/header.counterAxisSizingMode: FIXED (the plan says AUTO)`, `${control.name}/header/titleRow.counterAxisSizingMode: FIXED (the plan says AUTO)`,
+    `${open.name}/content.counterAxisSizingMode: AUTO (the plan says FIXED)`].sort();
+  outOfDate();
+  const first = await confirm(w, [{ def: ACC, plans: w.plans }]);
+  const modes = members.map((m) => `${sizeOf(m)}:${String(indicator(m).counterAxisSizingMode)}:${String(indicator(m).layoutAlign)}`);
+  ok(members.length === 24 && modes.filter((x) => x === 'small:AUTO:STRETCH').length === 8 && modes.filter((x) => /^(medium|large):FIXED:STRETCH$/.test(x)).length === 16,
+    `premise: after the update the host holds the indicator FIXED at medium and large, AUTO at small, stretched at all three (${[...new Set(modes)].join(', ')})`);
+  ok(JSON.stringify([...first.res.outcomes[0].content].sort()) === JSON.stringify(want),
+    `stretch/verify: the apply's verify names the controls (a header, a titleRow, an open content) and no indicator (${JSON.stringify(first.res.outcomes[0].content.slice(0, 3))})`);
+  const current = (await previewUpdate(w.host, [{ def: ACC, plans: w.plans }])).sets[0];
+  ok(current.counts.current === 24, `stretch/current: the next dry run reads all 24 current (${JSON.stringify(current.counts)})`);
+  // THE DRY RUN COMPARING: every member out of date, so it diffs each one against its plan, by the same predicate.
+  outOfDate();
+  const second = await confirm(w, [{ def: ACC, plans: w.plans }]);
+  const modeLines = second.pre.sets[0].changes.filter((c) => /SizingMode$/.test(c.field)).map((c) => `${c.part}.${c.field}: ${c.from} → ${c.to} × ${c.members}`).sort();
+  ok(JSON.stringify(modeLines) === JSON.stringify(['content.counterAxisSizingMode: AUTO → FIXED × 1', 'header.counterAxisSizingMode: FIXED → AUTO × 1', 'header/titleRow.counterAxisSizingMode: FIXED → AUTO × 1']),
+    `stretch/dry run: the dry run lists the same three controls and no indicator (${JSON.stringify(modeLines)})`);
+  ok(JSON.stringify([...second.res.outcomes[0].content].sort()) === JSON.stringify(want), `stretch/agree: the apply's verify names the same three nodes (${JSON.stringify(second.res.outcomes[0].content.slice(0, 3))})`);
+  // A NODE THAT LOST ITS STRETCH IS COMPARED RAW: the host holds INHERIT where the plan stretches it, and FIXED,
+  // whatever is written (its record cleared, as the control's was).
+  const lost = members.find((m) => sizeOf(m) === 'large')!;
+  const ind = indicator(lost) as Record<string, unknown>;
+  Object.defineProperty(ind, 'layoutAlign', { configurable: true, enumerable: true, get: () => 'INHERIT', set: () => {} });
+  Object.defineProperty(ind, 'counterAxisSizingMode', { configurable: true, enumerable: true, get: () => 'FIXED', set: () => {} });
+  (lost.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, BASELINE_KEY, '');
+  const lostAt = String(ind.name);
+  outOfDate();
+  const third = await confirm(w, [{ def: ACC, plans: w.plans }]);
+  const thirdModes = third.pre.sets[0].changes.filter((c) => /SizingMode$/.test(c.field)).map((c) => `${c.part}.${c.field}: ${c.from} → ${c.to} × ${c.members}`).sort();
+  ok(JSON.stringify(thirdModes) === JSON.stringify(['content.counterAxisSizingMode: AUTO → FIXED × 1', 'header.counterAxisSizingMode: FIXED → AUTO × 1', 'header/titleRow.counterAxisSizingMode: FIXED → AUTO × 1', `header/titleRow/${lostAt}.counterAxisSizingMode: FIXED → AUTO × 1`].sort())
+    && third.res.outcomes[0].content.includes(`${lost.name}/header/titleRow/${lostAt}.counterAxisSizingMode: FIXED (the plan says AUTO)`),
+    `stretch/lost: an indicator the host no longer stretches is listed by the dry run and named by the verify (${JSON.stringify(thirdModes)}; ${JSON.stringify(third.res.outcomes[0].content.slice(0, 4))})`);
 }
 
 /* ── segmented control (#2724) ───────────────────────────────────────────────────────────────────────── */
@@ -2685,32 +3176,53 @@ section('overrides — a nested instance with no override yet gains it in place 
     'premise: every List plan carries overrides, and the plans the file was built from carry none');
   const NUM = 'number#7:2';
   const w = await world(LIST, old, { componentProps: { 'list-item': { 'text#7:1': { type: 'TEXT', defaultValue: 'List item' }, [NUM]: { type: 'TEXT', defaultValue: '1.' } } } });
-  const items = (m: Node): Node[] => [1, 2, 3, 4, 5, 6, 7, 8].map((i) => childNamed(m, `item${i}`));
+  // List's items sit in its `items` slot (#2649), three of them, so each is found at any depth under the member.
+  const deep = (n: Node, name: string): Node | undefined => ((n.children as Node[] | undefined) ?? []).map((c) => (c.name === name ? c : deep(c, name))).find(Boolean);
+  const items = (m: Node): Node[] => [1, 2, 3].map((i) => deep(m, `item${i}`)!);
   const numberOf = (n: Node): unknown => (n.componentProperties as Record<string, { value: unknown }>)[NUM]?.value;
   ok(membersOf(w.set()).every((m) => items(m).every((n) => numberOf(n) === '1.')), 'premise: as built, every item of every member reads "1."');
   // A designer's own number on ONE item of ONE member, typed before the update.
   const edited = membersOf(w.set())[0];
-  (childNamed(edited, 'item2').setProperties as (p: Record<string, string>) => void)({ [NUM]: '2)' });
+  (items(edited)[1].setProperties as (p: Record<string, string>) => void)({ [NUM]: '2)' });
   const before = identityOf(w.set());
   const { pre, res } = await confirm(w, [{ def: LIST, plans: planned }]);
   const set0 = pre.sets[0];
   const fields = new Set(set0.changes.map((c) => `${c.part}:${c.field}`));
-  ok([2, 3, 4, 5, 6, 7, 8].every((i) => fields.has(`item${i}:nestOverrides`)) && !fields.has('item1:nestOverrides') && set0.replacements.length === 0,
-    `overrides/dry run: the dry run lists the override on items 2 to 8 as a change, not on item 1, and replaces nothing (${[...fields].filter((f) => f.endsWith('nestOverrides')).join(', ')}; ${set0.replacements.length} replacements)`);
-  ok(set0.handEdits.some((h) => h.member === String(edited.name) && h.path === 'item2'),
+  ok([2, 3].every((i) => fields.has(`items/item${i}:nestOverrides`)) && !fields.has('items/item1:nestOverrides') && set0.replacements.length === 0,
+    `overrides/dry run: the dry run lists the override on items 2 and 3 as a change, not on item 1, and replaces nothing (${[...fields].filter((f) => f.endsWith('nestOverrides')).join(', ')}; ${set0.replacements.length} replacements)`);
+  ok(set0.handEdits.some((h) => h.member === String(edited.name) && h.path === 'items/item2'),
     `overrides/hand edit reported: the typed number reads as a hand edit (${JSON.stringify(set0.handEdits).slice(0, 200)})`);
   ok(applyVerdict(res).ok, `overrides/verdict: ${applyVerdict(res).headline} (${applyVerdict(res).lines.slice(0, 2).join(' | ').slice(0, 240)})`);
   const wrong = membersOf(w.set()).flatMap((m) => items(m).map((n, i) => {
     const want = m === edited && i === 1 ? '2)' : `${i + 1}.`;
     return numberOf(n) === want ? null : `${String(m.name)}/item${i + 1}=${String(numberOf(n))} (want ${want})`;
   })).filter(Boolean);
-  ok(wrong.length === 0, `overrides/written in place: every item now reads its own number, "1." to "8.", and the hand-typed "2)" is kept (${wrong.length} off: ${wrong.slice(0, 3).join('; ')})`);
+  ok(wrong.length === 0, `overrides/written in place: every item now reads its own number, "1." to "3.", and the hand-typed "2)" is kept (${wrong.length} off: ${wrong.slice(0, 3).join('; ')})`);
   const after = identityOf(w.set());
   ok([...before.members].every(([name, b]) => after.members.get(name)?.key === b.key && [...b.kids].every(([p, id]) => after.members.get(name)?.kids.get(p) === id)),
     'overrides/ids: every member and every nested item keeps its key and id: nothing was rebuilt');
   const post = (await previewUpdate(w.host, [{ def: LIST, plans: planned }])).sets[0];
-  ok(post.counts.update === 0 && post.counts.current === 8 && post.handEdits.some((h) => h.member === String(edited.name) && h.path === 'item2'),
+  ok(post.counts.update === 0 && post.counts.current === 8 && post.handEdits.some((h) => h.member === String(edited.name) && h.path === 'items/item2'),
     `overrides/current: the next dry run reads the other 8 members current and still reports the hand edit (${JSON.stringify(post.counts)}; ${JSON.stringify(post.changes).slice(0, 200)})`);
+}
+
+section('state props — the Rows and Textarea gaining their state props (#2708, owner Q351 A) leave a built file current');
+for (const [D, gained] of [['checkbox-row', ['disabled']], ['radio-row', ['disabled', 'readOnly']], ['switch-row', ['disabled']], ['textarea', ['label', 'onChange', 'helpText', 'required', 'disabled', 'readOnly', 'isPending', 'id', 'name']]] as const) {
+  // THE FILE AS A BUILD AT MAIN BEFORE #2708 LEFT IT: today's def with the gained props taken back out. The props
+  // are code API, so the Figma projection must not move: Update over that file has nothing to correct, and must
+  // say so rather than rewrite every member.
+  const now = componentDefs.find((x) => x.id === D)!;
+  const before2708 = { ...now, props: now.props.filter((p) => !(gained as readonly string[]).includes(p.name)) } as typeof now;
+  ok(before2708.props.length === now.props.length - gained.length, `${D}/premise: the def at main lacked ${gained.join(', ')}`);
+  const w = await world(D, figmaAnatomySet(before2708, { swapTarget: SWAP_TARGET }));
+  const dump = (): string => JSON.stringify(membersOf(w.set()).map((m) => [m.name, m.id, m.key, [...(m._pluginData as Map<string, string>)]]));
+  const was = dump();
+  const { pre, res } = await confirm(w, [{ def: D, plans: plansOf(D) }]);
+  const p = pre.sets[0];
+  ok(p.counts.update === 0 && p.counts.add === 0 && p.counts.drop === 0 && p.counts.current === p.counts.members && p.counts.members > 0,
+    `${D}/dry run: every member reads current (${JSON.stringify(p.counts)})`);
+  ok(applyVerdict(res).headline === '✓ already up to date' && w.api._versions.length === 0 && dump() === was,
+    `${D}/nothing written: no version, every member's id, key, stamp and record as built (${applyVerdict(res).headline})`);
 }
 
 void STYLE_FONT; void BASELINE_KEY;

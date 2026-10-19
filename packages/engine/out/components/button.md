@@ -53,7 +53,7 @@ Verb-first, specific, sentence case, no terminal punctuation, ≤3 words to boun
 - **Purpose:** Trigger an action in place.
 - **Use when:** The user needs to DO something on this surface — submit, confirm, open, apply, or start async work.
 - **Avoid when:** The target is a different location/URL → use Link (or give the button an href, which renders an \<a>, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton (the accessible name is required there at the type level). The action deletes or removes something → use Button.Destructive. The action carries no brand emphasis (a toolbar control, a dense row) → use Button.Neutral.
-- **Often used with:** `icon`, `spinner`, `focus-ring`
+- **Often used with:** `icon`, `spinner`, `focus-ring`, `button-group`
 
 ## Props
 
@@ -84,7 +84,7 @@ Verb-first, specific, sentence case, no terminal punctuation, ≤3 words to boun
 | Axis | Values | Changes |
 | --- | --- | --- |
 | `appearance` | `filled`, `outline`, `text` | at runtime |
-| `size` | `small`, `medium`, `large` | once, when authored |
+| `size` | `medium`, `small`, `large` | once, when authored |
 | `width` | `auto`, `full` | once, when authored |
 | `surface` | `default`, `inverse` | once, when authored |
 | `inset` | `default`, `flush` | once, when authored |
@@ -114,7 +114,7 @@ Verb-first, specific, sentence case, no terminal punctuation, ≤3 words to boun
 
 - **Composes with:** `focus-ring`, `spinner`
 - **Alternative to:** `icon-button`, `switch-row`
-- **Planned:** `tooltip`, `button-group`, `menu`, `popover`, `toggle-button`, `split-button`
+- **Planned:** `tooltip`, `menu`, `popover`, `toggle-button`, `split-button`
 - **Replaces:**
   - input[type=button\|submit]
   - div[role=button]
