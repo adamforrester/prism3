@@ -15964,6 +15964,34 @@ arm: {
       }
       ok(stateOff.length === 0, `#2669 call 2 A the state is on the maximum thumb; the minimum thumb of a range stays at rest except disabled (${stateOff.length} off — ${stateOff.slice(0, 3).join('; ') || 'none'})`);
 
+      // (3b) Owner QA 2026-10-19, item 1: the value readout sits INSIDE the component, at the header row's end opposite the
+      // label. Figma lays the header out left to right across the component's 320; a nested FieldLabel is built at its OWN
+      // 320 (its root's placementWidth, a literal here), so a label that does not grow takes the whole row and pushes the
+      // readout out of the box to the right. The readout's right edge is the sum of the widths ahead of it: a nested label
+      // counts as 320 unless it grows, a growing child counts as 0, and text counts as 0 (its advance is the brand font's).
+      // The readout must start at or before the box's right edge, on every member that shows one, and the header must span it.
+      {
+        const BOX = 320, FIELD_LABEL_BUILT_AT = 320;
+        const outside: string[] = [];
+        for (const m of sMembers) {
+          const header = findIn(m.root, 'header');
+          const value = findIn(m.root, m.coord.type === 'range' ? 'valueRange' : 'valueSingle');
+          if (!header || !value || m.root.placementWidth !== BOX || header.layoutAlign !== 'STRETCH') {
+            outside.push(`${planComponentName(m)}: no header spanning the ${BOX}px box (${String(header?.layoutAlign)}) or no readout`); continue;
+          }
+          let x = 0;
+          for (const c of header.children) {
+            if (c === value) break;
+            x += (c.layoutGrow === 1 ? 0 : c.type === 'NESTED_INSTANCE' ? FIELD_LABEL_BUILT_AT : 0);
+          }
+          if (x > BOX) outside.push(`${planComponentName(m)}: the readout starts at ${x}px, past the ${BOX}px box`);
+        }
+        ok(outside.length === 0, `#2669 QA item 1 the value readout stays inside the component's ${BOX}px, at the header's end opposite the label (${outside.length} off — ${outside.slice(0, 2).join('; ') || 'none'})`);
+        // The label sits at the start and the readout is the last child, so it ends the row.
+        const order = sMembers.filter((m) => { const h = findIn(m.root, 'header'); return h?.children[0]?.name === 'label' && h.children[h.children.length - 1].name.startsWith('value'); });
+        ok(order.length === sMembers.length, `#2669 QA item 1 the header holds the label first and the readout last on every member (${order.length} of ${sMembers.length})`);
+      }
+
       // (4) Call 6 A: the thumb, a 24px thumb (control/size/md/thumb) whose outer disc is the page color, padded 2px
       // (space/025) around an inner disc in the primary fill stepping rest → hover → pressed. Q346: no stroke at all, since
       // a stroke binds a border role and no border role is the page color. Disabled: the inner disc color/disabled/fill.

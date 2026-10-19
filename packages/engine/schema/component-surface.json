@@ -719,7 +719,7 @@
     },
     "slider": {
       "members": 10,
-      "sha256": "1797575c355f9a8b88b7e272bc675dfba5b1db46be69de2529d8a79181cde251",
+      "sha256": "9e62b003d9b69945602385e43925134e77c881c0da6b4a13c1d03ce89725e081",
       "properties": [
         "end labels:BOOLEAN",
         "helper:BOOLEAN",

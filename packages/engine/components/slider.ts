@@ -25,7 +25,7 @@
  * ── WHY THE THUMB IS ITS OWN COMPONENT ───────────────────────────────────────────────────────────────────
  * A range member shows its state on the maximum thumb while the minimum thumb stays at rest (call 2). `paintOf` is
  * part-blind, so two boxes in one def that take the same slot paint the same variable at a coordinate: the two thumbs
- * could not differ. Nesting one Thumb component twice, each `nest-fixed` at rest and moved by `atState`, lets the
+ * could not differ. Nesting one Thumb component twice, each `nest-fixed` at rest and moved by `variantWhen`, lets the
  * maximum thumb follow every host state and the minimum one follow only `disabled`. The focus ring sits inside the
  * Thumb, so it lands on the thumb and never on the track.
  *
@@ -193,7 +193,7 @@ export const sliderThumb: ComponentDef = {
   },
 };
 
-// Each thumb nests the Thumb at rest; `atState` moves it with the host. The maximum thumb follows every state; the
+// Each thumb nests the Thumb at rest; `variantWhen` moves it with the host. The maximum thumb follows every state; the
 // minimum thumb of a range follows only `disabled`, so the state shows on one thumb (call 2 A).
 const thumbNest = (states: readonly string[]) => ({
   kind: 'nest' as const,
@@ -201,7 +201,7 @@ const thumbNest = (states: readonly string[]) => ({
   nesting: {
     kind: 'nest-fixed' as const,
     variant: { state: 'rest' },
-    atState: Object.fromEntries(states.map((s) => [s, { state: s }])),
+    variantWhen: { state: Object.fromEntries(states.map((s) => [s, { state: s }])) },
   },
 });
 
@@ -219,7 +219,7 @@ const segment = (height: string) => ({
 const inputNest = (value: string) => ({
   kind: 'nest' as const,
   nests: 'text-field',
-  nesting: { kind: 'nest-fixed' as const, variant: { size: 'medium', status: 'default', state: 'filled' }, atState: { disabled: { state: 'disabled' } } },
+  nesting: { kind: 'nest-fixed' as const, variant: { size: 'medium', status: 'default', state: 'filled' }, variantWhen: { state: { disabled: { state: 'disabled' } } } },
   overrides: { texts: { value } },
   grow: true,
 });
@@ -315,9 +315,12 @@ export const slider: ComponentDef = {
       label: {
         kind: 'nest',
         nests: 'field-label',
-        nesting: { kind: 'nest-fixed', variant: { size: 'medium', emphasis: 'secondary', weight: 'bold', state: 'rest' }, atState: { disabled: { state: 'disabled' } } },
+        nesting: { kind: 'nest-fixed', variant: { size: 'medium', emphasis: 'secondary', weight: 'bold', state: 'rest' }, variantWhen: { state: { disabled: { state: 'disabled' } } } },
         optional: true,
-        note: 'The visible label, naming the dimension being set.',
+        // The nested FieldLabel is built at its own 320, so left to hug it fills the header and pushes the value out of the
+        // component to the right. It grows into what the value leaves instead, so the value sits at the header's end.
+        grow: true,
+        note: 'The visible label, naming the dimension being set; it fills the room the value leaves.',
       },
       valueSingle: {
         kind: 'text',
