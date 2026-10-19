@@ -66,7 +66,7 @@ Option labels are parallel and brief; the detail that distinguishes them goes in
 
 | Axis | Values | Changes |
 | --- | --- | --- |
-| `size` | `small`, `medium`, `large` | once, when authored |
+| `size` | `medium`, `small`, `large` | once, when authored |
 
 ## Accessibility
 

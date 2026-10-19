@@ -152,7 +152,10 @@ export const textarea: ComponentDef = {
   // `notes.contested` carries both arguments with their named alternatives.
   variants: {
     size: ['medium', 'small', 'large'],
-    style: ['outline'], // filled / underline are theming, not an API axis (brief §4)
+    // ONE value, though the brand may set `underline` (#2695, Field style; `applyFieldStyle` rewrites the def before
+    // projection). A second value here would be a code coordinate: the paint census and the axis register read
+    // `variants` as the code surface, and Q14 A rules out a per-instance prop. The codeOnly `style` entry names both.
+    style: ['outline'],
     status: ['default', 'error', 'warning', 'success'],
   },
   // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
@@ -462,7 +465,7 @@ export const textarea: ComponentDef = {
     },
     codeOnly: [
       'the SMALL textarea on a COARSE POINTER (#2266, owner decision Q7 A) — iOS Safari zooms the page when it focuses a field whose text is under 16px, and the small textarea\'s value is 14px. So `small` is for fine pointers: under `@media (pointer: coarse)` the code sets the small textarea\'s font size to 16px. The token (`type.body.sm`) and the Figma member stay at 14, because Figma has no focus zoom. Never `maximum-scale=1` in the viewport meta: it blocks pinch zoom as well (WCAG 1.4.4).',
-      'style — the outline / filled / underline treatment is theming, not an API axis: `style` carries the single value `outline`, so there is nothing for a Figma variant to enumerate.',
+      'style — the field\'s edge is the brand\'s Field style setting, not a prop or a Figma variant: `outline` draws a box, `underline` one line under the value. The brand sets it once, every field takes it, and the field sets are built in that style (#2695).',
       'pending — a real STATE (content streaming into the field, with aria-busy), deliberately NOT a Figma variant: its delta is runtime behavior with no distinct static skin, so it stays in `states` and is admitted out of the projected `stateAxis`.',
       'empty — a real STATE in code (the field holds no value, so it shows the placeholder), NOT a Figma variant, text-field\'s posture: in Figma the empty field IS the rest, hover and focus-visible members, showing the `placeholder` layer in `text.secondary`, and `filled` is the member showing the `value` layer in `text.primary`. It and `pending` are the two states held back, leaving the projected set at size(3) × status(4) × state(7) = 84 members. In code the placeholder and the value are one <textarea>: its `placeholder` attribute and its value, never two elements.',
       'the FOCUS CARET — Figma draws a static bar before the placeholder on the focus-visible member. Code draws the browser\'s native caret, blinking, at the insertion point, with `caret-color` set from `color.text.primary` (the `caret` binding), so it keeps the value ink over the placeholder\'s muted one.',

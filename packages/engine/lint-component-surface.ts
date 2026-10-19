@@ -202,7 +202,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ENGINE_VERSION, satisfiesBump } from './version';
 import { componentDefs } from './components/index';
-import { figmaAnatomySet, planComponentName, planStamp, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, DEFAULT_WEIGHT_AVAILABILITY, DEFAULT_BUTTON_LAYOUT } from './anatomy-figma';
+import { figmaAnatomySet, planComponentName, planSetProperties, planStamp, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, DEFAULT_WEIGHT_AVAILABILITY, DEFAULT_BUTTON_LAYOUT } from './anatomy-figma';
 import type { ButtonLayout } from './anatomy-figma';
 import { componentSizes, sizeRefPx, SPACE_BASE } from './scale';
 import type { AnatomyPlan, WeightAvailability } from './anatomy-figma';
@@ -215,8 +215,10 @@ const repo = resolve(here, '../..');
 const SURFACE_REL = 'packages/engine/schema/component-surface.json';
 const SURFACE_PATH = join(repo, SURFACE_REL);
 
-/** One def's default projection. `null` = the def projects no Figma set (no `figmaProperties`). */
-type Surface = { members: number; sha256: string } | null;
+/** One def's default projection. `null` = the def projects no Figma set (no `figmaProperties`). `properties` (#2649) are
+ *  the set's non-variant component properties, `name:TYPE` sorted, so a removed row boolean or an added slot is named in
+ *  the baseline's own diff rather than only moving the digest. */
+type Surface = { members: number; sha256: string; properties: string[] } | null;
 type Baseline = { note: string; defs: Record<string, Surface> };
 
 const git = (...args: string[]): { ok: boolean; out: string; err: string } => {
@@ -276,7 +278,11 @@ const surfaceOf = (def: ComponentDef): Surface => {
     ]);
   }
   const rows = plans.map((p) => `${planComponentName(p)}|${planStamp(p)}`).sort();
-  return { members: plans.length, sha256: createHash('sha256').update(rows.join('\n')).digest('hex') };
+  return {
+    members: plans.length,
+    sha256: createHash('sha256').update(rows.join('\n')).digest('hex'),
+    properties: planSetProperties(plans).map((p) => `${p.name}:${p.type}`).sort(),
+  };
 };
 
 // BRAND-CONDITIONAL SURFACE (#1602). A def whose weight axis carries intents (`weightIntent`) projects a
@@ -371,8 +377,8 @@ const NOTE =
   'explicit `npx tsx packages/engine/lint-component-surface.ts --accept`, which refuses unless an engine ' +
   'bump is already declared (a change note in packages/engine/changes/, #1807) — a gate allowed to ' +
   'rewrite what it reads has no memory. Per def: ' +
-  'the member count of the DEFAULT Figma projection and a sha256 over its sorted ' +
-  '`planComponentName|planStamp` rows. `null` means the def declares no figmaProperties and projects ' +
+  'the member count of the DEFAULT Figma projection, a sha256 over its sorted ' +
+  '`planComponentName|planStamp` rows, and its non-variant component properties as sorted `name:TYPE` (#2649). `null` means the def declares no figmaProperties and projects ' +
   'no set. Mostly brand-independent: figmaAnatomySet takes a def and no theme. The exception is a def ' +
   'with weightIntent (#1602), whose weight axis resolves per brand — for those, extra `<id>@<scenario>` ' +
   'rows record the surface under canonical availability scenarios (body-emphasis = NB\'s bold→emphasis, ' +
@@ -633,6 +639,10 @@ const doCheck = (): void => {
     const before = fails.length;
     if (got.members !== want.members)
       fails.push(`surface/${id}: ${got.members} projected member(s), baseline ${want.members} — the set ${got.members > want.members ? 'GREW' : 'SHRANK'}`);
+    // THE PROPERTIES (#2649), named both ways. A baseline row written before them carries none, which reads as drift.
+    const gone = (want.properties ?? []).filter((p) => !got.properties.includes(p)), added = got.properties.filter((p) => !(want.properties ?? []).includes(p));
+    if (!want.properties || gone.length || added.length)
+      fails.push(`surface/${id}: component properties ${want.properties ? `moved — gone [${gone.join(', ')}], added [${added.join(', ')}]` : 'not recorded in the baseline'}`);
     if (got.sha256 !== want.sha256)
       fails.push(`surface/${id}: plan digest ${got.sha256.slice(0, 12)}…, baseline ${want.sha256.slice(0, 12)}…${got.members === want.members ? ' — the same member COUNT, projecting different plans' : ''}`);
     console.log(`  ${id.padEnd(18)} ${String(got.members).padStart(4)} members  ${got.sha256.slice(0, 12)}… ${fails.length === before ? '… ok' : '… DRIFTED'}`);

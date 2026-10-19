@@ -44,7 +44,7 @@ export const accordionIndicator: ComponentDef = {
   variants: {
     indicator: ['chevron', 'plus-minus'],
     expansion: ['collapsed', 'expanded'],
-    size: ['small', 'medium', 'large'],
+    size: ['medium', 'small', 'large'],
   },
   // The pair is chosen where the Accordion is placed; the glyph turns when the section opens and closes.
   axisKinds: { indicator: 'authoring', expansion: 'runtime', size: 'authoring' },
@@ -138,7 +138,7 @@ export const accordionIndicator: ComponentDef = {
   notes: {
     contested: [
       'THE BUILDING-BLOCK SHAPE (owner Q183): four glyphs in one subcomponent, its `indicator` exposed on the Accordion, instead of an `indicator` axis on the Accordion (which would double its set). The name `_accordion-indicator` is the owner\'s; `Accordion.Indicator` as the display name is approved (Q241).',
-      'THE GLYPH SIZES (owner QA, 2026-10-12, superseding Q241.3): one rung below the control\'s, `icon.size.xs`, `sm`, `md` (16/20/24px). The first set, 20/24/32px as Tab and Tag map theirs, read too large on the live build.',
+      'THE GLYPH SIZES (owner QA, 2026-10-12, superseding Q241.3): one rung below the control\'s, `icon.size.xs`, `sm`, `md` (16/20/24px). The first set, 20/24/32px, as Tab and Tag mapped theirs until #2725, read too large on the live build.',
     ],
     unverified: [
       'That a designer\'s plus-minus choice survives a switch of the Accordion\'s ICON POSITION (leading to trailing). The leading and trailing indicators are two parts, so the exposed override sits on two different nested instances; an expansion switch keeps it (measured), a position switch is expected to drop it.',
