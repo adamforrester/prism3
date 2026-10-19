@@ -245,6 +245,14 @@ export type ShimOpts = {
    */
   nestedInstanceParts?: string[];
   /**
+   * A NESTED INSTANCE'S DEFAULT ITEMS (#2661, owner decision Q418). With this set, an instance of a component this run
+   * built carries its main's own nested instances as real INSTANCE children, each pointing at the component it came from
+   * and holding its overrides, and `swapComponent` on one re-points it as the host does. A Dialog's instance of
+   * Button.Group then has a Cancel to swap to Button.Neutral, and the swap is read off the built page. Opt-in, so every
+   * other case keeps its opaque nested instances.
+   */
+  nestedItems?: boolean;
+  /**
    * THE TEXT PROPERTIES AN OPAQUE COMPONENT'S INSTANCES CARRY (#2317), by component or set name: property name →
    * its default. A component this run builds reports its set's real definitions; one named only in `comps` or
    * `fileNodes` has none to report, so a harness states them here, from the NESTED def's own
@@ -1168,6 +1176,27 @@ export const makeShim = (opts: ShimOpts = {}) => {
         },
       });
     }
+    // #2695 — A LITERAL STROKE WEIGHT DETACHES THE WEIGHT BINDINGS, as a literal write after a binding does on the
+    // host (#1266, the rule both executors' 1px fallback is gated on). A bound weight lives on the four per-side keys
+    // (#1332), so the write drops all four and sets each side to the value. Modelled so the underline field's per-side
+    // binding (`strokeEdges`) is witnessed surviving the build: an executor that wrote the 1px fallback over it would
+    // read back here with no weight bound, as it would on the host.
+    {
+      let weight = node.strokeWeight as number | undefined;
+      Object.defineProperty(node, 'strokeWeight', {
+        configurable: true,
+        enumerable: true,
+        get() { return weight; },
+        set(v: number) {
+          weight = v;
+          const bv = node.boundVariables as Record<string, unknown> | undefined;
+          for (const side of ['strokeTopWeight', 'strokeRightWeight', 'strokeBottomWeight', 'strokeLeftWeight']) {
+            if (bv) delete bv[side];
+            (node as Record<string, unknown>)[side] = v;
+          }
+        },
+      });
+    }
     // A FIXED-WIDTH TEXT NODE KEEPS THE WIDTH IT WAS SET AT (#1757, `layoutModel` only). Switching a text from
     // auto width to `HEIGHT` (or `NONE`) freezes its width where its content left it, and nothing but a resize
     // or a parent that FILLS it moves that width again — new characters reflow inside it. The executors write
@@ -1538,6 +1567,22 @@ export const makeShim = (opts: ShimOpts = {}) => {
               (kid as Record<string, unknown>)._inNestedInstance = true;
               kid.parent = inst;   // #1428 — so `insideNestedInstance`'s ancestry walk sees the INSTANCE
               (inst.children as Node[]).push(kid);
+            }
+            // #2661 (Q418) — A NESTED INSTANCE'S DEFAULT ITEMS (`nestedItems`): the main's own nested instances, as
+            // children of this one, found by the layer name a host's item preference names.
+            if (opts.nestedItems && main) {
+              const items: Node[] = [];
+              const take = (n: Node): void => {
+                for (const c of (n.children as Node[] | undefined) ?? []) {
+                  if (c.type === 'INSTANCE') {
+                    const kid = mkNode('INSTANCE'); kid.name = c.name; kid.parent = inst;
+                    carryMain(c, kid);
+                    (inst.children as Node[]).push(kid); items.push(kid);
+                  } else take(c);
+                }
+              };
+              take(main);
+              if (items.length) inst.findAll = (pred?: (n: unknown) => boolean) => [vec, ...items].filter((k) => !pred || pred(k));
             }
             // AN INSTANCE INHERITS ITS MAIN COMPONENT'S ROOT BINDINGS (#1388, #1290) — the focus-ring
             // component binds width/height to its `nominal-side`, so a nested ring carries those bindings

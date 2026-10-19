@@ -54,7 +54,7 @@
  * assertion instead, because with no caller the port could have drifted out of satisfaction with the
  * whole suite green; the trigger retired it rather than leaving two mechanisms for one guarantee.
  */
-import { planSetLayout, nestMissAdvice, nestVariantMatch, nestVariantMissAdvice, resolveNestMember, applyNestOverrides, swapMissAdvice, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, planComponentName, planStamp, glyphLayerOpacities } from '@prism3/engine/anatomy-figma';
+import { planSetLayout, nestMissAdvice, nestVariantMatch, nestVariantMissAdvice, resolveNestMember, applyNestOverrides, applyNestItemPrefers, swapMissAdvice, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, planComponentName, planStamp, glyphLayerOpacities } from '@prism3/engine/anatomy-figma';
 import type { AnatomyPlan, FigmaNodePlan, SwapFound } from '@prism3/engine/anatomy-figma';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { tailOf } from '@prism3/engine/figma-names';
@@ -108,6 +108,8 @@ export interface CompMemberRef { name?: string; type?: string; createInstance?()
 
 /** The four PER-SIDE stroke-weight keys the real host binds a `strokeWeight` variable onto (#1332). */
 const STROKE_WEIGHT_SIDES = ['strokeTopWeight', 'strokeRightWeight', 'strokeBottomWeight', 'strokeLeftWeight'];
+/** Every key a stroke weight can be bound on: the scalar and its four sides (#2695, `PartDef.strokeEdges`). */
+const STROKE_WEIGHT_KEYS = ['strokeWeight', ...STROKE_WEIGHT_SIDES];
 
 /**
  * Does the host hold a binding for `field`? (#1332)
@@ -959,7 +961,7 @@ export type RespaceBox = PageBox & { id: string; prism3?: boolean; furniture?: b
  * else is the designer's placement, and it wins, as it does in `placeNewSet`:
  *   · a set spaced WIDER stays exactly where it is;
  *   · a set with no Prism3 set to its left in its row (the first of a row, a SECOND ROW below the first) stays, so a
- *     second row is never lifted into the first, and `y` never changes;
+ *     second row is never lifted into the first, and `y` never changes, save in the header's row (below);
  *   · if the spot a moving set needs overlaps something that stays put, it is pushed just past it, `SET_GAP` clear.
  *     "Something" includes the OTHER Prism3 sets (#2548): every set already placed, where it now sits, and a set not
  *     reached yet once the spot is at or past its left edge. Short of that edge, the later set still has this one as
@@ -970,20 +972,38 @@ export type RespaceBox = PageBox & { id: string; prism3?: boolean; furniture?: b
  * NEVER MOVES CONTENT PRISM3 DIDN'T BUILD (#2464, #2494): a set with no stamped member, the page header and any other
  * node stay exactly where they are, as obstacles. The canvas furniture is left out: it is drawn for a set after the
  * update lands, from where the set then sits, so it follows the move.
+ *
+ * A SET IN THE PAGE HEADER'S ROW GOES BELOW IT (#2802, owner decision Q379 A). A page built before #2405 put its first
+ * set `SET_GAP` right of a header wider than the sets, at the header's own `y`, and its siblings beside that. The rule
+ * above kept that row where it was, since its first set has no set to its left, so an update re-spaced the siblings
+ * and left the whole row beside the header. Such a set is the one case where the move changes `y`: it is placed as
+ * `placeNewSet` places a new set under a header. Its top is the top of the sets already below the header, else the
+ * header's bottom plus `PAGE_HEADER_GAP`; the first of them goes on the header's left edge, each later one `SET_GAP`
+ * right of the set before it, always, since its old spacing was measured in a row it is leaving; and it is pushed
+ * past anything that would overlap it there, as any moving set is. So an update and a fresh build lay the page out
+ * the same, relative to the header. A set wholly above or below the header's band is not in its row, and stays.
  */
 export const respaceSets = (nodes: readonly RespaceBox[]): { id: string; from: { x: number; y: number }; to: { x: number; y: number } }[] => {
   const ours = nodes.filter((b) => b.type === 'COMPONENT_SET' && b.prism3 && !b.header).sort((a, b) => a.x - b.x || a.y - b.y);
-  if (ours.length < 2) return [];
+  const h = nodes.find((b) => b.header);
+  const besideHeader = (b: PageBox): boolean => !!h && b.y < h.y + h.height && b.y + b.height > h.y;
+  if (ours.length < 2 && !ours.some(besideHeader)) return [];
   const fixed = nodes.filter((b) => !(b.type === 'COMPONENT_SET' && b.prism3) && !b.furniture);
   const sameRow = (a: PageBox, b: PageBox): boolean => a.y < b.y + b.height && a.y + a.height > b.y;
+  // The row under the header, at `placeNewSet`'s `y`: the top of the sets already below the header, else its bottom plus the gap.
+  const below = h ? nodes.filter((b) => b.type === 'COMPONENT_SET' && !b.header && b.y >= h.y + h.height) : [];
+  const underY = !h ? 0 : below.length ? Math.min(...below.map((b) => b.y)) : h.y + h.height + PAGE_HEADER_GAP;
   const placed: PageBox[] = [];
   const moves: { id: string; from: { x: number; y: number }; to: { x: number; y: number } }[] = [];
-  for (const [i, b] of ours.entries()) {
-    const left = placed.filter((p) => sameRow(p, b) && p.x < b.x);
-    if (!left.length) { placed.push(b); continue; }
-    const right = Math.max(...left.map((p) => p.x + p.width));
+  for (const [i, was] of ours.entries()) {
+    const lifted = besideHeader(was);
+    const b = lifted ? { ...was, y: underY } : was;
+    // A lifted set's left neighbours are every set already placed in the row it joins, wherever it sat before.
+    const left = placed.filter((p) => sameRow(p, b) && (lifted || p.x < b.x));
+    if (!left.length && !lifted) { placed.push(b); continue; }
+    const right = left.length ? Math.max(...left.map((p) => p.x + p.width)) : h!.x - SET_GAP;
     // Too close only: a set spaced the fresh gap or wider is the designer's, and stays.
-    if (b.x - right >= SET_GAP - 0.5) { placed.push(b); continue; }
+    if (!lifted && b.x - right >= SET_GAP - 0.5) { placed.push(b); continue; }
     let x = right + SET_GAP;
     // Past anything that stays and would overlap the set at this spot; again, until the spot is clear.
     const later = ours.slice(i + 1);
@@ -992,7 +1012,7 @@ export const respaceSets = (nodes: readonly RespaceBox[]): { id: string; from: {
       for (const f of [...fixed, ...placed, ...later.filter((u) => x >= u.x)])
         if (f.y < b.y + b.height && f.y + f.height > b.y && f.x < x + b.width && f.x + f.width > x) { x = f.x + f.width + SET_GAP; pushed = true; }
     }
-    moves.push({ id: b.id, from: { x: b.x, y: b.y }, to: { x, y: b.y } });
+    moves.push({ id: b.id, from: { x: was.x, y: was.y }, to: { x, y: b.y } });
     placed.push({ ...b, x });
   }
   return moves;
@@ -1330,7 +1350,8 @@ const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode
         // three selection controls do: checkbox at `checked`/`indeterminate` and switch at `on` bind a
         // thickness and paint no border. `strokeAlign` needs no gate — no def can bind it, and INSIDE here
         // agrees with the two sites that write it beside a stroke.
-        if (!('strokeWeight' in (n?.bound ?? {}))) set('strokeWeight', 1);
+        // A per-side weight (#2695, `strokeEdges`) is a binding this would unbind too.
+        if (!STROKE_WEIGHT_KEYS.some((k) => k in (n?.bound ?? {}))) set('strokeWeight', 1);
         set('strokeAlign', 'INSIDE');
       }
       set('dashPattern', []);
@@ -1836,7 +1857,13 @@ const writeComponentSet = async (
       // is the unambiguous one — it needs no coordinate to identify a member, so a def carrying a
       // `nestVariant` against a file that has flattened its ring to a component still resolves rather
       // than reporting a coordinate the file no longer has axes for.
-      const nested = n.nestTarget ? compByName.get(n.nestTarget) : undefined;
+      // #2661 — A FALLBACK-ONLY PREFERENCE first (`nestPrefer`, owner decisions Q363.8 as amended and Q386): the sibling
+      // set's member at the same coordinate when the file has that set, else `nestTarget` below, with no miss — the part
+      // needs `nestTarget` and only prefers this one. A set of that name that cannot yield the member is named once the
+      // instance is made (below), and it falls back the same way. Worded byte-identically to the paste payload's twin.
+      const pre = n.nestPrefer && n.nestVariant ? resolveNestMember(compSets, n.nestPrefer, n.nestVariant, nestVariantMatch, nestVariantMissAdvice) : null;
+      const preMember = pre && pre.miss === undefined ? pre.member : undefined;
+      const nested = !preMember && n.nestTarget ? compByName.get(n.nestTarget) : undefined;
       // THE SET AND ITS MEMBER, resolved together and only together (#1781) — see `resolveNestMember`, which
       // this executor and the paste payload share, decision AND wording. The member comes out of the named
       // set's own `children`. It used to be re-looked-up by NAME in `compByName`, where `size=small` is every
@@ -1850,7 +1877,7 @@ const writeComponentSet = async (
       // `nestTarget` — the FILE is the problem), the FIFTH MISS (the def's coordinate matches no member, or
       // more than one — `nestVariantMatch` refuses both, #656), and a matched child that is not a COMPONENT.
       // Nothing is nested in any of them: a valid wrong member looks like a success.
-      const res = !nested && n.nestTarget && n.nestVariant ? resolveNestMember(compSets, n.nestTarget, n.nestVariant, nestVariantMatch, nestVariantMissAdvice) : null;
+      const res = preMember ? { member: preMember } : !nested && n.nestTarget && n.nestVariant ? resolveNestMember(compSets, n.nestTarget, n.nestVariant, nestVariantMatch, nestVariantMissAdvice) : null;
       if (res && res.miss !== undefined) {
         misses.push(`${n.name}${res.miss}`);
         return null;
@@ -1908,8 +1935,16 @@ const writeComponentSet = async (
       // `applyNestOverrides` is shared with the paste payload, decision and wording.
       const firstVisit = !!node && !instanceValuesWritten.has(node);
       if (node) instanceValuesWritten.add(node);
+      // The preference that did not resolve (#2661), named once per instance: `toSlots` visits a slot's items twice.
+      if (node && firstVisit && pre && pre.miss !== undefined) misses.push(`${n.name}.nestPrefer -> ${n.nestPrefer} (in this file, but it did not resolve: ${pre.miss.slice(1)}; made from ${n.nestTarget} instead)`);
       if (node && firstVisit && n.nestOverrides && !kept)
         for (const m of applyNestOverrides(node as Parameters<typeof applyNestOverrides>[0], n.nestOverrides, (name) => { const c = compByName.get(name); return c?.id ? String(c.id) : null; }))
+          misses.push(`${n.name}${m}`);
+      // THE HOST'S PREFERENCE FOR THE NESTED COMPONENT'S DEFAULT ITEMS (#2661, owner decision Q418): Dialog's group has its
+      // Cancel swapped to Button.Neutral when the file has it. Once per instance like the overrides, and not onto an
+      // instance a designer changed by hand (`kept`). `applyNestItemPrefers` is shared with the paste payload, decision and wording.
+      if (node && firstVisit && n.nestItemPrefer && !kept)
+        for (const m of applyNestItemPrefers(node as Parameters<typeof applyNestItemPrefers>[0], n.nestItemPrefer, (set, variant) => resolveNestMember(compSets, set, variant, nestVariantMatch, nestVariantMissAdvice)))
           misses.push(`${n.name}${m}`);
       // THE NESTED INSTANCE'S OWN TEXT (#2317). A set has one default per text property, so the Password field's
       // nested Button would read its set's "Button"; the plan's `nestTexts` names what this instance says instead,
@@ -2184,6 +2219,16 @@ const writeComponentSet = async (
         } catch { /* unresolvable here: the black base, as before */ }
         return api.variables.setBoundVariableForPaint({ type: 'SOLID', color: base, ...(alpha < 1 ? { opacity: alpha } : {}) }, 'color', v);
       };
+      // A TRANSLUCENT BOUND PAINT IS ASSIGNED TWICE (#2774). The host resets a bound paint's opacity to 1 on the first
+      // assignment that lands where the node does not already hold a paint bound to that same variable; assigning again
+      // once the binding is in place keeps it (the shim's host-measured model). A fresh build is rescued by the combine's
+      // re-resolve, and an in-place rewrite of the same wash by the binding already there, but an in-place rewrite from
+      // an opaque variable to a wash (Field style Underline → Outline at hover, #2695) kept the wash at 100%, and only a
+      // second Update converged it.
+      const assignPaint = (key: 'fills' | 'strokes', p: unknown): void => {
+        node[key] = [p];
+        if (((p as { opacity?: number }).opacity ?? 1) < 1) node[key] = [p];
+      };
       // Same reason as `wrote`: only a paint that was actually assigned can have been discarded.
       let paintedFills = false;
       let paintedStrokes = false;
@@ -2192,7 +2237,7 @@ const writeComponentSet = async (
       // so a tint carried on the paint lasted only until the next re-apply. Lockstep with the paste executor.
       if (n.paints?.fills) {
         const p = paint(n.paints.fills, 'fills');
-        if (p) { node.fills = [p]; paintedFills = true; }
+        if (p) { assignPaint('fills', p); paintedFills = true; }
         // DECLARED BUT UNRESOLVABLE → transparent, NEVER Figma's opaque white default (#1387). The
         // component set is brand-agnostic — it binds `interactive.<family>.overlay.{hover,pressed}` on
         // outline/text hover/pressed unconditionally — while that wash is EMITTED only under
@@ -2243,7 +2288,7 @@ const writeComponentSet = async (
       if (n.paints?.strokes) {
         const p = paint(n.paints.strokes, 'strokes');
         if (p) {
-          node.strokes = [p];
+          assignPaint('strokes', p);
           paintedStrokes = true;
           // A stroke variable with no weight binds correctly and paints nothing visible.
           //
@@ -2252,7 +2297,8 @@ const writeComponentSet = async (
           // right paint at a hardcoded 1px, re-theming on color and frozen on width. That is what the focus
           // ring shipped as. `wrote` rather than `n.bound`, so a name that failed to resolve still gets the
           // fallback and paints something.
-          if (!node.strokeWeight && !wrote.includes('strokeWeight')) node.strokeWeight = 1;
+          // A per-side weight (#2695, `strokeEdges`) counts as written: the literal would overwrite all four sides.
+          if (!node.strokeWeight && !STROKE_WEIGHT_KEYS.some((k) => wrote.includes(k))) node.strokeWeight = 1;
           node.strokeAlign = 'INSIDE';
           // BORDER-BOX, and Figma defaults the other way: left alone, the stroke is ADDED to the
           // auto-layout size, so an outline button measured 62 where its filled sibling measured 60 —
@@ -3260,16 +3306,21 @@ const writeComponentSet = async (
     const had = (defs[key] ?? {}) as { slotSettings?: Record<string, unknown>; preferredValues?: readonly unknown[] };
     const hs = had.slotSettings ?? {};
     const hostHas = hs.minChildren != null || hs.maxChildren != null || hs.allowPreferredValuesOnly === true || hs.displayEmptyByDefault === true || (had.preferredValues ?? []).length > 0;
-    if (!p.slotSettings && !p.preferred && !hostHas) continue;
+    if (!p.slotSettings && !p.preferred && !p.preferredWhenBuilt && !hostHas) continue;
     const preferredValues: SlotPreferredValue[] = [];
-    if (p.preferred?.length) {
+    // #2661 — `preferredWhenBuilt` is offered after `preferred` when the file has it, and left out WITHOUT a miss when
+    // it does not: the slot does not need it (Q386). A stale copy or a keyless host is still named, as for `preferred`.
+    const optional = p.preferredWhenBuilt ?? [];
+    const ids = [...(p.preferred ?? []), ...optional];
+    if (ids.length) {
       // A def with variants builds a set under its id; a single-component def (#2296) builds one component under it.
       const sets = api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly CompSetRef[];
       const singles = api.root.findAllWithCriteria({ types: ['COMPONENT'] }) as readonly CompRef[];
-      for (const id of p.preferred) {
+      for (const id of ids) {
         const asSet = sets.filter((x) => x.name === id);
         const named: { key?: string }[] = asSet.length ? asSet : singles.filter((x) => x.name === id);
         if (named.length === 1 && named[0].key) { preferredValues.push({ type: asSet.length ? 'COMPONENT_SET' : 'COMPONENT', key: named[0].key }); continue; }
+        if (!named.length && optional.includes(id)) continue;
         misses.push(named.length > 1
           ? `property ${p.name}.preferred -> ${id} (found ${named.length} components named ${id}; not offered in the slot. Rename or remove the stale copy, then rebuild)`
           : named.length === 1

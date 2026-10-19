@@ -391,7 +391,7 @@
     "text-field": {
       "codeOnly": [
         "the SMALL field on a COARSE POINTER (#2266, owner decision Q7 A) — iOS Safari zooms the page when it focuses an input whose text is under 16px, and the small field's input is 14px. So `small` is for fine pointers: under `@media (pointer: coarse)` the code sets the small input's font size to 16px, which keeps the page still. The token (`type.body.sm`) and the Figma member stay at 14, because Figma has no focus zoom. On a touch device the small field therefore pairs a 12px label with a 16px input. Never `maximum-scale=1` in the viewport meta: it blocks pinch zoom as well (WCAG 1.4.4).",
-        "style — the outline / filled / underline treatment is theming, not an API axis: `style` carries the single value `outline` and filled/underline are a brand skin over the same anatomy, so there is nothing for a Figma variant to enumerate. Admitted here rather than projected.",
+        "style — the field's edge is the brand's Field style setting, not a prop or a Figma variant: `outline` draws a box, `underline` one line under the value. The brand sets it once, every field takes it, and the field sets are built in that style (#2695).",
         "pending — a real STATE (a spinner replaces an adornment while async validation/value resolves, and the field sets aria-busy), deliberately NOT a Figma variant. Its delta is a runtime spinner swap with no distinct static skin a designer picks from a matrix — the pending member would differ from `rest` only by a node Figma cannot animate — so it stays in `states` (the code tier carries it) and is admitted OUT of the projected `stateAxis`.",
         "empty — a real STATE in code (the field holds no value, so it shows the placeholder), NOT a Figma variant: in Figma the empty field IS the rest, hover and focus-visible members, which show the `placeholder` layer in `text.secondary`, and `filled` is the member showing the `value` layer in `text.primary`. In code emptiness is a content condition that co-occurs with every interaction, so `empty` stays in `states` (`label.empty` and `error.border.empty` keep the \"required field left blank\" coordinate) and is held out of the projected `stateAxis` with `pending`, leaving size(3) × status(4) × state(7) = 84 members over rest / hover / filled / focus-visible / focus-visible-filled / disabled / read-only. In code the placeholder and the value are one <input>: its `placeholder` attribute and its value, never two elements.",
         "the FOCUS CARET — Figma draws a static bar before the placeholder on the focus-visible member. Code draws the browser's native caret, blinking, at the insertion point, with `caret-color` set from `color.text.primary` (the `caret` binding), so it keeps the value ink over the placeholder's muted one.",
@@ -433,7 +433,7 @@
     "textarea": {
       "codeOnly": [
         "the SMALL textarea on a COARSE POINTER (#2266, owner decision Q7 A) — iOS Safari zooms the page when it focuses a field whose text is under 16px, and the small textarea's value is 14px. So `small` is for fine pointers: under `@media (pointer: coarse)` the code sets the small textarea's font size to 16px. The token (`type.body.sm`) and the Figma member stay at 14, because Figma has no focus zoom. Never `maximum-scale=1` in the viewport meta: it blocks pinch zoom as well (WCAG 1.4.4).",
-        "style — the outline / filled / underline treatment is theming, not an API axis: `style` carries the single value `outline`, so there is nothing for a Figma variant to enumerate.",
+        "style — the field's edge is the brand's Field style setting, not a prop or a Figma variant: `outline` draws a box, `underline` one line under the value. The brand sets it once, every field takes it, and the field sets are built in that style (#2695).",
         "pending — a real STATE (content streaming into the field, with aria-busy), deliberately NOT a Figma variant: its delta is runtime behavior with no distinct static skin, so it stays in `states` and is admitted out of the projected `stateAxis`.",
         "empty — a real STATE in code (the field holds no value, so it shows the placeholder), NOT a Figma variant, text-field's posture: in Figma the empty field IS the rest, hover and focus-visible members, showing the `placeholder` layer in `text.secondary`, and `filled` is the member showing the `value` layer in `text.primary`. It and `pending` are the two states held back, leaving the projected set at size(3) × status(4) × state(7) = 84 members. In code the placeholder and the value are one <textarea>: its `placeholder` attribute and its value, never two elements.",
         "the FOCUS CARET — Figma draws a static bar before the placeholder on the focus-visible member. Code draws the browser's native caret, blinking, at the insertion point, with `caret-color` set from `color.text.primary` (the `caret` binding), so it keeps the value ink over the placeholder's muted one.",
@@ -1195,6 +1195,33 @@
         "projection": []
       }
     },
+    "button-group": {
+      "codeOnly": [
+        "the element — a `<div>` holding the buttons in order, with no role: each button is its own control, and a group of separate actions is not a radio group or a toolbar. Give it `role=\"group\"` and an `aria-label` only when the buttons need a shared name the page does not already give them.",
+        "order — the DOM order is the order the buttons are given, which is also the focus order. Inline and fill take the main action last (Cancel, then Save); stacked takes it first (Save, then Cancel), so the visual order and the focus order match in every layout. Never reverse the order with CSS alone: focus would then move against what the eye reads.",
+        "the inline row — `display: flex; justify-content: flex-end; flex-wrap: wrap` with the row gap, so a row too wide for its container wraps instead of overflowing; nothing switches to stacked by itself. Fill gives each button `flex: 1 1 0` so the buttons share the width; stacked is a column with each button at full width.",
+        "button count — Figma holds the buttons in the native `items` slot, two by default and three at most; code takes `items` of one to three Button elements.",
+        "Cancel — in Figma the group's own default Cancel is an outline Button; a host that nests the group (Dialog) may prefer another, such as Button.Neutral when the file has that set. In code, pass whichever the product uses.",
+        "right-to-left — the row mirrors through logical properties: the end edge is the left, and the main action sits leftmost."
+      ],
+      "notes": {
+        "contested": [
+          "HELD FOR THE OWNER (#2661): the built width (400), the 12px gap at fill (the row's), the aliases, the summary and description, and the category `form`.",
+          "HELD FOR THE OWNER (#2661): no size axis. The buttons are medium, which Dialog's footer needs; Banner's small actions (#2787) would add one, medium first (Q347)."
+        ],
+        "unverified": [
+          "A host built before Button.Neutral keeps the group's primary Cancel: the host's preference is read when the host is built, so a file that builds the Neutral families later rebuilds the host to pick them up.",
+          "That Figma keeps the \"Cancel\" label when the host swaps the group's Cancel instance to Button.Neutral (`swapComponent` preserves overrides by property name; the shim models it, a real file has not been read).",
+          "That a designer's buttons in the slot survive a layout switch on a real host, as the accordion's panel content survives its expansion switch (one SLOT property per part name)."
+        ],
+        "evolution": [
+          "Owner decision Q363 (2026-10-16, #2661): the wireframe approved, all calls A except 8 (Cancel is Button.Neutral) and 9 (a fill layout too); a shared public Button group that Dialog nests now and Banner and Card later; the Button family preferred, preferred-only; stacked with the main action first; one to three buttons, two by default; three inline all at the end edge.",
+          "Owner decision (2026-10-16, #2661, amending Q363.8) and Q386 (#2808): Cancel uses Button.Neutral when the file has it and the primary Button otherwise; no component requires the Neutral families.",
+          "Owner decision Q418 (2026-10-18, #2661): the component that nests the group decides its buttons' defaults. Button.Group on its own defaults the secondary to the primary outline Button, with no Neutral preference; Dialog's nest prefers Button.Neutral, falling back to the primary Button; designers can still swap any button in the slot."
+        ],
+        "projection": []
+      }
+    },
     "dialog": {
       "codeOnly": [
         "role — `role=\"dialog\"` with `aria-modal=\"true\"`; the native `<dialog>` opened with `showModal()` provides both. `role: \"alertdialog\"` is a code prop with no Figma property: set it for a confirmation that interrupts and needs an answer. An alertdialog hides the close button (the Figma `close` toggle shows the result), keeps a backdrop click from closing it, and must hold at least one focusable control.",
@@ -1216,15 +1243,17 @@
       ],
       "notes": {
         "contested": [
-          "HELD FOR THE OWNER (#2609): the bottom and full members' build size (360 wide, and 640 tall for full), the title-to-description gap (space.100) and the title-to-close gap (space.200), the body placeholder copy, the description text property's Figma name (\"description text\"), the `actions` prop, and Cancel as an outline Button beside a filled Save.",
+          "HELD FOR THE OWNER (#2609): the bottom and full members' build size (360 wide, and 640 tall for full), the title-to-description gap (space.100) and the title-to-close gap (space.200), the body placeholder copy, and the description text property's Figma name (\"description text\").",
           "The close button sits at the header's top edge, beside the first line of the title, without an offset that centers it on that line: whether the title moves down to center on the 44px button is held for the owner's visual QA."
         ],
         "unverified": [
-          "The nested close button shows the file's default icon until a designer swaps it to close, and the nested footer buttons read \"Button\" until a designer types \"Cancel\" and \"Save\": a per-instance override on a nested instance is executor work no def can ask for yet (#2645).",
           "That the native slot keeps a designer's body content across a placement or footer switch in every Figma plan, as it does across the accordion's expansion switch."
         ],
         "evolution": [
-          "Owner decisions: the proposal on #2609 (one component, the anatomy, the tokens, the accessibility contract), and Q303 (2026-10-14): no side or drawer placement; `placement` center, bottom or full, with no automatic switch; the backdrop `color.scrim.default` as canvas furniture and `::backdrop`; def-level widths; footer inline, stacked or none; Escape, close and backdrop click dismiss a dialog, and an alertdialog only through its buttons or Escape; `role` a code prop that hides close on an alertdialog; close on by default; corners per placement; the names and aliases; the placeholder wording."
+          "Owner decisions: the proposal on #2609 (one component, the anatomy, the tokens, the accessibility contract), and Q303 (2026-10-14): no side or drawer placement; `placement` center, bottom or full, with no automatic switch; the backdrop `color.scrim.default` as canvas furniture and `::backdrop`; def-level widths; footer inline, stacked or none; Escape, close and backdrop click dismiss a dialog, and an alertdialog only through its buttons or Escape; `role` a code prop that hides close on an alertdialog; close on by default; corners per placement; the names and aliases; the placeholder wording.",
+          "Owner decision (2026-10-16, #2609): the close button is always the X. It shows the close icon on every member, and Dialog has no icon swap property; a product that needs another X changes the close glyph in its icon set or edits the component.",
+          "Owner decision Q385 A (2026-10-16, #2806), settling Q377 A on #2609: the close button is a FlushIconButton.Neutral, not an IconButton.Neutral, so a file without the IconButton sets still builds Dialog. It is round at medium, the closest match to the earlier ghost medium IconButton.",
+          "Owner decision Q363 (2026-10-16, #2661): the footer is a nested Button group whose native slot holds the buttons, replacing two fixed nested Buttons per layout. Cancel reads \"Cancel\" and Save \"Save\"; Cancel is Button.Neutral when the file has it and the primary Button otherwise (Q363.8 as amended, Q386), and since Q418 that is the Dialog's own preference on its nest of the group, which on its own keeps the primary outline Button; the `actions` prop is a slot of one to three Button elements (Q363.10 A)."
         ],
         "projection": []
       }
@@ -1232,7 +1261,7 @@
     "password-field": {
       "codeOnly": [
         "the SMALL field on a COARSE POINTER (#2266, owner decision Q7 A) — iOS Safari zooms the page when it focuses an input whose text is under 16px, and the small field's input is 14px. So `small` is for fine pointers: under `@media (pointer: coarse)` the code sets the small input's font size to 16px, which keeps the page still. The token (`type.body.sm`) and the Figma member stay at 14, because Figma has no focus zoom. On a touch device the small field therefore pairs a 12px label with a 16px input. Never `maximum-scale=1` in the viewport meta: it blocks pinch zoom as well (WCAG 1.4.4).",
-        "style — the outline / filled / underline treatment is theming, not an API axis: `style` carries the single value `outline` and filled/underline are a brand skin over the same anatomy, so there is nothing for a Figma variant to enumerate. Admitted here rather than projected.",
+        "style — the field's edge is the brand's Field style setting, not a prop or a Figma variant: `outline` draws a box, `underline` one line under the value. The brand sets it once, every field takes it, and the field sets are built in that style (#2695).",
         "pending — a real STATE (a spinner replaces an adornment while async validation/value resolves, and the field sets aria-busy), deliberately NOT a Figma variant. Its delta is a runtime spinner swap with no distinct static skin a designer picks from a matrix — the pending member would differ from `rest` only by a node Figma cannot animate — so it stays in `states` (the code tier carries it) and is admitted OUT of the projected `stateAxis`.",
         "empty — a real STATE in code (the field holds no value, so it shows the placeholder), NOT a Figma variant: in Figma the empty field IS the rest, hover and focus-visible members, which show the `placeholder` layer in `text.secondary`, and `filled` is the member showing the `value` layer in `text.primary`. In code emptiness is a content condition that co-occurs with every interaction, so `empty` stays in `states` (`label.empty` and `error.border.empty` keep the \"required field left blank\" coordinate) and is held out of the projected `stateAxis` with `pending`, leaving size(3) × status(4) × state(7) = 84 members over rest / hover / filled / focus-visible / focus-visible-filled / disabled / read-only. In code the placeholder and the value are one <input>: its `placeholder` attribute and its value, never two elements.",
         "the FOCUS CARET — Figma draws a static bar before the placeholder on the focus-visible member. Code draws the browser's native caret, blinking, at the insertion point, with `caret-color` set from `color.text.primary` (the `caret` binding), so it keeps the value ink over the placeholder's muted one.",
@@ -1241,7 +1270,7 @@
         "BACK TO HIDDEN ON SUBMIT (owner decision Q301.7 A) — the field returns to `type=\"password\"` when its form submits, so a browser never stores or restores the value as plain text.",
         "ONE TOGGLE ONLY — the browser's own reveal button is hidden (`input::-ms-reveal { display: none }`), so the field never shows two.",
         "the INPUT'S ATTRIBUTES — `autocomplete` is required, `current-password` or `new-password`, and never `off` (SC 1.3.5). Paste is never blocked: blocking it fails SC 3.3.8 Accessible Authentication, and a password manager needs it. `spellcheck=\"false\"` and `autocapitalize=\"none\"`, so the value is not sent to a spelling service or changed by the keyboard. `passwordrules` passes through when the host provides one.",
-        "the BUTTON'S HIT AREA — Figma draws the flush button at its label's width. In code the flush button's hit area is at least 44×44 at medium and large sizes and at least 24×24 at small, through a transparent `::before` inset outward (Button's flush rule, #2408), so the label row does not move.",
+        "the LABEL ROW'S HEIGHT and the BUTTON'S HIT AREA (#2804, owner decision Q380 A) — the button is a small Button at every field size, and the row is one label line tall: 18px for a small field, 21 for a medium one and 24 for a large one. In Figma the button stretches to the row. In code the button inside the row sets `block-size: auto` and `padding-block: 0`, so it is one line of its 14px label and the row takes the label's height. Figma draws the flush button at its label's width. In code the flush button's hit area is at least 44×44 at medium and large sizes, and at least 24×24 at small, through a transparent `::before` inset outward (Button's flush rule, #2408), so the label row does not move. At medium and large the row (21 and 24px) is shorter than 44, so the extension is ANCHORED: its bottom edge sits on the label row's bottom edge and it reaches up and sideways, never down into the input box (a centered 44 would reach 3.5 and 2px into the box). At small the 24×24 is centered and reaches 3px past the row, inside the 8px gap above the box. Either way it never overlaps the input's target.",
         "RIGHT TO LEFT — the label row mirrors, so the button sits at the row's left end; the masked value follows the input's direction.",
         "the label / describedby WIRING — the host generates ids (useId), ties the FieldLabel to the input, stitches the FieldMessage into aria-describedby, and sets aria-invalid on error. Figma has no accessibility tree and no node-to-node reference, so the nested label and message sit near the input and are associated by proximity alone (the same ceiling `field-label` and `field-message` each hit).",
         "the nested LABEL's disabled dimming — the field fixes the FieldLabel to `state=rest` because field-label's state vocabulary (rest / disabled) is not the field's, so it cannot be followed by value. In code a disabled field dims its label; in Figma the nested label reads at its rest configuration regardless. A projection limit, not a design choice.",
@@ -1249,14 +1278,52 @@
       ],
       "notes": {
         "contested": [
-          "The button's position (owner decision Q301.2 B): on the label row, end-aligned, rather than beside the box (A) or below the field (C). The label row grows to the button's height; the button's code hit area does not move the row.",
+          "The button's position (owner decision Q301.2 B): on the label row, end-aligned, rather than beside the box (A) or below the field (C). The button's code hit area does not move the row.",
+          "The button's size and the row's height (owner decision Q380 A, #2804): a small text Button at every field size, and a row one label line tall, rather than a button that follows the field's size and a row as tall as the button (36, 44 and 56px at small, medium and large). The label now sits 8px above the box at every size, where TextField's label sits, instead of 17, 19.5 and 24px. Link was considered for the control and declined: Show is an action, so it is a button for assistive tech (WCAG 4.1.2); the text appearance gives it the link look.",
+          "The button's code-side hit area at medium and large (owner question on #2809, option A built): 44×44, anchored so its bottom edge sits on the label row's bottom edge, which keeps Button's 44 floor for a nested flush Button (#1741, Q170 B) without reaching into the input box. The alternatives: 24×24 at every size as a named exception to the floor (B), or a row that grows to 44 on coarse pointers only (C).",
           "A changing name versus aria-pressed (owner decision Q301.5 A): the name changes Show/Hide and a polite announcement says the new state. The constant name with aria-pressed was declined, because the visible text could not then change to \"Hide\"."
         ],
         "unverified": [
+          "The button stretches to the label row (`STRETCH`, #2804) while Button's own height is bound to a 36px size. That a live host lets the row hug the label alone and sizes the instance to the row, with its label centered and not clipped, is modeled offline only.",
           "The nested button's text is set to \"Show\" on every member by a property override on the nested instance (`nestTexts`). Whether the live host keeps that override when a designer swaps a placed field's variant is the standing nesting caveat."
         ],
         "evolution": [
           "A later idea (owner, Q301.6): the Show/Hide button as its own subcomponent with a shown and a hidden variant, the field's value still changed by hand. Filed separately; not part of this def."
+        ],
+        "projection": []
+      }
+    },
+    "counter": {
+      "codeOnly": [
+        "the spinbutton — the value is one focusable element with role=\"spinbutton\" and tabindex=\"0\", not an <input>: a counter shows its value and is not typed into (typed entry is the number input). It carries aria-valuenow, aria-valuemin, aria-valuemax only when a max is set, aria-valuetext where the number alone is unclear (\"3 items\"), and the label as its name through aria-labelledby, which works with the label shown or hidden. The message, when shown, is added through aria-describedby.",
+        "the keyboard model — Up Arrow and Down Arrow change the value by one step, Page Up and Page Down by ten steps, and Home and End go to min and to max when a max is set. The value never passes min or max. Tab reaches the counter once, at the value.",
+        "the stepper buttons — each is a <button type=\"button\" tabindex=\"-1\"> (APG), out of the Tab order because the arrow keys do the same job, and still reached by pointer, touch and voice. Each has aria-controls pointing at the value and an accessible name from decrementLabel and incrementLabel. A press does not move focus. At a limit the button takes aria-disabled=\"true\", not native disabled, so it stays in the accessibility tree, and a press does nothing.",
+        "the announcement — a button press writes the new value to the app's one shared polite live region, such as \"Quantity 3\", never a region of the counter's own. An arrow-key change is announced by the spinbutton itself and is not written there again.",
+        "touch-target-expansion — each nested button extends its hit area in code to at least 44×44px at every size (the flush icon button's own rule). On outline the medium inset is 12px, so a 20px glyph's 44px area reaches the edge exactly; the value between the two buttons keeps their areas apart, at least 44px center to center.",
+        "limits in Figma — min and max are code props. In Figma the designer shows a limit by setting that button's exposed state to disabled; in code the counter sets aria-disabled from min and max.",
+        "no wheel — the value never changes on a mouse wheel or a scroll gesture.",
+        "tabular figures — the value is set with font-variant-numeric: tabular-nums, so its width holds from one count to the next; the 32px minimum width holds two digits.",
+        "the glyphs — the minus and plus are the nested buttons' icon swap, set to the icon set's minus and plus as a per-instance override on each nested button (#2645).",
+        "RTL — the row follows the reading direction, so the minus button sits at the right edge. The minus and plus glyphs are symmetric and are not mirrored."
+      ],
+      "notes": {
+        "contested": [
+          "Appearance order: `outline` first, as Q283.4 A spelled it, so the Figma default and the code default are outline, while the wireframe decision made ghost the MVP. If ghost should be what a designer inserts, the order flips (an owner call).",
+          "The value in Figma defaults to \"1\", the Oct 9 draft, while the code default is min, which defaults to 0 (Q283.7). A product card usually starts at 1; the two defaults differ on purpose until the owner says otherwise.",
+          "TWO NESTS EXPOSING `state` ON ONE HOST are built and exposed on the shim (`test-roundtrip.ts`), but untested on a real host, where Figma lists each exposed instance's properties under its layer name (decrement, increment)."
+        ],
+        "unverified": [
+          "iOS VoiceOver's adjust gesture on role=\"spinbutton\" (APG warns of mobile support gaps); the two buttons are the fallback.",
+          "The round button's edge is decorative (about 2:1, no floor, Q305.1 A); the glyph carries the 3:1, gated on the flush icon button, not here.",
+          "The outline edge clears 3:1 through `color.field.border.rest`, gated for the field family, not re-measured here."
+        ],
+        "evolution": [
+          "2026-10-09: proposal as QuantityStepper, owning its edges (shape A, 54 members).",
+          "2026-10-12: refreshed proposal: shape B, nesting a flush icon button (18 members).",
+          "2026-10-14 Q283: shape B; outline | ghost; medium first; remove-at-min out of scope, min defaulting to 0; buttons tabindex=\"-1\"; label hidden by default in Figma; the control focus offset on ghost; glyphs 20/20/24, insets 12/12/16, value 32 wide; its own page.",
+          "2026-10-14 Q286 A: Counter and Number input are two components; the Counter displays its value and is not typed into.",
+          "2026-10-14 wireframes: the name Counter; appearances outline and ghost (round buttons), ghost the MVP; filled square buttons not built, the axis left open for them.",
+          "2026-10-14 Q287 A (on #2457): the flush icon button carries `shape: flush | round`; outline nests flush and ghost nests round."
         ],
         "projection": []
       }

@@ -70,7 +70,7 @@ Keep the label to one word where possible. Use the words the data or the user su
 | --- | --- | --- |
 | `type` | `select`, `dismissible` | once, when authored |
 | `selection` | `unselected`, `selected` | at runtime |
-| `size` | `small`, `medium`, `large` | once, when authored |
+| `size` | `medium`, `small`, `large` | once, when authored |
 
 ## Accessibility
 

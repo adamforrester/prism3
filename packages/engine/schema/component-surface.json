@@ -347,7 +347,7 @@
     },
     "text-field": {
       "members": 84,
-      "sha256": "2e074a4c323ea4389a8c27b7082b08b3340ded4d61561f89928e9bf96b3b55a0",
+      "sha256": "8fd49b01b784492705ddc2b61988f889496c9cd603e66b63798a904ce2c82be5",
       "properties": [
         "leading icon:BOOLEAN",
         "message:BOOLEAN",
@@ -358,7 +358,7 @@
     },
     "text-field@outline-solid-tint": {
       "members": 84,
-      "sha256": "46f8c8f941ef63118550556e66f90af296e5faec5c04f6c95bd5c0efff59f8cc",
+      "sha256": "1ae7f3f26b01456c5a885a4a706ec03dda818ecb35f21515b7a4f69271589fd5",
       "properties": [
         "leading icon:BOOLEAN",
         "message:BOOLEAN",
@@ -369,7 +369,7 @@
     },
     "text-field@outline-none": {
       "members": 84,
-      "sha256": "c86e5b29d6b8394e49bf67d8dcc99f94654acb2f8c8ea41850eddc91b287fa1b",
+      "sha256": "343a17b25d8a3ccbb82c8e2cbeb2daf2043e03061822b972488a1c839c2cd362",
       "properties": [
         "leading icon:BOOLEAN",
         "message:BOOLEAN",
@@ -380,7 +380,7 @@
     },
     "textarea": {
       "members": 84,
-      "sha256": "d2ee41cc6a9bde66ee362d6ded72b94492476361f92143960673fcb9852ab829",
+      "sha256": "ff393868d88d94bbd1405bf562d9fdff820fc193ebd582410a62eaba516d20e4",
       "properties": [
         "character count:BOOLEAN",
         "count:TEXT",
@@ -392,7 +392,7 @@
     },
     "textarea@outline-solid-tint": {
       "members": 84,
-      "sha256": "a06dacc11df204d61095240790c0c51dba185eb45af7ff6f066064718c69a330",
+      "sha256": "8f9b8c39612bbae7df79827c13bdff880fa639ec88a45ef8b22d78f5c7c1f714",
       "properties": [
         "character count:BOOLEAN",
         "count:TEXT",
@@ -404,7 +404,7 @@
     },
     "textarea@outline-none": {
       "members": 84,
-      "sha256": "28cc77dd1041c94fb1105a72ba9bf83e781301ef43c103a80780f0777a253507",
+      "sha256": "2d7b12eaa3849ada29c396951466a0441a46fdde446704573b03e35b6af70007",
       "properties": [
         "character count:BOOLEAN",
         "count:TEXT",
@@ -654,9 +654,16 @@
         "trailing icon:BOOLEAN"
       ]
     },
+    "button-group": {
+      "members": 3,
+      "sha256": "c74587caf9edee460be6ad103657fe8388bc74f1e46d314fd1fd637b2d5e5b21",
+      "properties": [
+        "items:SLOT"
+      ]
+    },
     "dialog": {
       "members": 15,
-      "sha256": "52e5b73053983f2cea897178e46d02f0c32027a37f31f1a72d5b334f8cdb4dad",
+      "sha256": "6284e15233d3c43b9563932e6b716fa6e2271029be1b783344529bbb902daba4",
       "properties": [
         "body:SLOT",
         "close:BOOLEAN",
@@ -668,7 +675,7 @@
     },
     "password-field": {
       "members": 84,
-      "sha256": "9430a9c0c84d97fef7bd7a66c2a734a32524dd5d8869b18326f2dcaa2434cfce",
+      "sha256": "c56491df8445fcd6e3b90f20732a5559eb7efdd82dabfca1a7d023bd240ead90",
       "properties": [
         "leading icon:BOOLEAN",
         "message:BOOLEAN",
@@ -678,7 +685,7 @@
     },
     "password-field@outline-solid-tint": {
       "members": 84,
-      "sha256": "5ca248ba2b9487f87c8fba480d52a652fbe8a4c89ffb4118baa582f91b24a10a",
+      "sha256": "3e6c45337a196db17a4ac1071fd2388d9684800704646a5c06e2704470da3c9e",
       "properties": [
         "leading icon:BOOLEAN",
         "message:BOOLEAN",
@@ -688,11 +695,20 @@
     },
     "password-field@outline-none": {
       "members": 84,
-      "sha256": "771e3974cfb329db2abcf42bc98f0914a3851b1813a867dba8b83d0fa3c97946",
+      "sha256": "48490c55041e9d9c4e794516ef45e201442931d4909eeda9fa1791d6e571ee4d",
       "properties": [
         "leading icon:BOOLEAN",
         "message:BOOLEAN",
         "placeholder:TEXT",
+        "value:TEXT"
+      ]
+    },
+    "counter": {
+      "members": 18,
+      "sha256": "2a891ba2e1b95c6342b378b458092f5605dd8c8f59b58f18bfb2c40a03bbe8a2",
+      "properties": [
+        "label:BOOLEAN",
+        "message:BOOLEAN",
         "value:TEXT"
       ]
     }

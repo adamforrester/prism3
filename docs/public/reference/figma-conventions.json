@@ -38,7 +38,8 @@
             "components": [
               "button",
               "button-destructive",
-              "button-neutral"
+              "button-neutral",
+              "button-group"
             ]
           },
           {
@@ -158,6 +159,12 @@
             "name": "↳ Dialog",
             "components": [
               "dialog"
+            ]
+          },
+          {
+            "name": "↳ Counter",
+            "components": [
+              "counter"
             ]
           }
         ]
@@ -362,8 +369,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -381,15 +388,15 @@
           {
             "name": "leading icon",
             "values": [
-              "true",
-              "false"
+              "false",
+              "true"
             ]
           },
           {
             "name": "trailing icon",
             "values": [
-              "true",
-              "false"
+              "false",
+              "true"
             ]
           }
         ],
@@ -443,8 +450,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -462,15 +469,15 @@
           {
             "name": "leading icon",
             "values": [
-              "true",
-              "false"
+              "false",
+              "true"
             ]
           },
           {
             "name": "trailing icon",
             "values": [
-              "true",
-              "false"
+              "false",
+              "true"
             ]
           }
         ],
@@ -524,8 +531,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -543,15 +550,15 @@
           {
             "name": "leading icon",
             "values": [
-              "true",
-              "false"
+              "false",
+              "true"
             ]
           },
           {
             "name": "trailing icon",
             "values": [
-              "true",
-              "false"
+              "false",
+              "true"
             ]
           }
         ],
@@ -605,8 +612,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -664,8 +671,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -723,8 +730,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -767,8 +774,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -805,8 +812,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -843,8 +850,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -1112,8 +1119,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -1144,8 +1151,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
@@ -1181,8 +1188,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
@@ -1214,8 +1221,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -1245,8 +1252,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
@@ -1281,8 +1288,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
@@ -1314,8 +1321,8 @@
           {
             "name": "size",
             "values": [
-              "small",
-              "medium"
+              "medium",
+              "small"
             ]
           },
           {
@@ -1350,8 +1357,8 @@
           {
             "name": "size",
             "values": [
-              "small",
-              "medium"
+              "medium",
+              "small"
             ]
           }
         ],
@@ -1603,8 +1610,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -1659,8 +1666,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -1710,8 +1717,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
@@ -1779,8 +1786,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
@@ -1814,8 +1821,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -1855,8 +1862,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
@@ -1898,8 +1905,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
@@ -1926,8 +1933,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -1966,8 +1973,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           }
@@ -2018,8 +2025,8 @@
           {
             "name": "size",
             "values": [
-              "small",
               "medium",
+              "small",
               "large"
             ]
           },
@@ -2044,6 +2051,27 @@
           }
         ],
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/link.md"
+      },
+      {
+        "id": "button-group",
+        "name": "Button.Group",
+        "figmaName": "button-group",
+        "kind": "component set",
+        "page": "↳ Buttons",
+        "section": "Components",
+        "members": 3,
+        "variantProperties": [
+          {
+            "name": "layout",
+            "values": [
+              "inline",
+              "stacked",
+              "fill"
+            ]
+          }
+        ],
+        "properties": [],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/button-group.md"
       },
       {
         "id": "dialog",
@@ -2170,6 +2198,55 @@
           ]
         },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/password-field.md"
+      },
+      {
+        "id": "counter",
+        "name": "Counter",
+        "figmaName": "counter",
+        "kind": "component set",
+        "page": "↳ Counter",
+        "section": "Components",
+        "members": 18,
+        "variantProperties": [
+          {
+            "name": "appearance",
+            "values": [
+              "outline",
+              "ghost"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "focus-visible",
+              "disabled"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "value",
+            "type": "TEXT"
+          },
+          {
+            "name": "label",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "message",
+            "type": "BOOLEAN"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/counter.md"
       }
     ]
   },
@@ -2290,6 +2367,18 @@
         },
         "preferred": [
           "segmented-control-segment"
+        ]
+      },
+      {
+        "component": "button-group",
+        "property": "items",
+        "settings": {
+          "minChildren": 1,
+          "maxChildren": 3,
+          "allowPreferredValuesOnly": true
+        },
+        "preferred": [
+          "button"
         ]
       },
       {
@@ -2450,8 +2539,10 @@
       "segmented-control-segment",
       "segmented-control",
       "link",
+      "button-group",
       "dialog",
-      "password-field"
+      "password-field",
+      "counter"
     ],
     "templates": [
       {

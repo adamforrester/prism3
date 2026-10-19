@@ -52,3 +52,9 @@ payload` loop for the first time. That loop provisioned every nested target as a
 group's new `items` slot could not offer its preferred set and reported two misses. On main neither side alone
 reached it. The loop now provisions a slot's preferred sets as keyed sets of their real members, as the real build
 has them.
+
+**Merge with #2693 (Counter).** One conflict, in `test.ts`'s `#1392` paste-payload loop. Main had widened that loop's
+`comps:` line so it also provisions per-instance swap-override glyphs (#2645). The resolution keeps both: main's
+glyph targets, and this PR's keyed slot sets taken out of `comps` and supplied as `fileNodes`. Counter landed with
+its FieldLabel `nest-fixed` at secondary/regular. That label is outside this PR: Q348 A names the three groups, and
+#2748 scopes Counter out.

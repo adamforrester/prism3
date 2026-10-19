@@ -39,7 +39,7 @@ The accessible name is a verb naming the action ("Close", "Increase quantity"), 
 - **Purpose:** Trigger an action inside another component, with a bare glyph that sits flush with the content edge or a glyph in a light circle.
 - **Use when:** The minus and plus of a counter, a card's close, or any icon action inside a component. shape=flush where the glyph must line up with the content edge; shape=round where the buttons stand on their own beside a value.
 - **Avoid when:** The action carries the brand (use FlushIconButton) or deletes something (use FlushIconButton.Destructive). It stands on its own in a toolbar or a header (use IconButton.Neutral, which has a visible box and a hover wash). It would sit inside an element that is already a button, such as an accordion header or a tab. You cannot supply an accessible name.
-- **Often used with:** `icon`, `focus-ring`
+- **Often used with:** `icon`, `focus-ring`, `counter`
 
 ## Props
 
@@ -62,7 +62,7 @@ The accessible name is a verb naming the action ("Close", "Increase quantity"), 
 | Axis | Values | Changes |
 | --- | --- | --- |
 | `shape` | `flush`, `round` | once, when authored |
-| `size` | `small`, `medium`, `large` | once, when authored |
+| `size` | `medium`, `small`, `large` | once, when authored |
 
 ## Accessibility
 
@@ -87,7 +87,7 @@ The accessible name is a verb naming the action ("Close", "Increase quantity"), 
 
 - **Composes with:** `focus-ring`
 - **Alternative to:** `icon-button-neutral`
-- **Planned:** `counter`, `number-input`, `card`
+- **Planned:** `number-input`, `card`
 - **Replaces:**
   - an \<svg> with a click handler and no button
   - an IconButton with its padding overridden to zero
