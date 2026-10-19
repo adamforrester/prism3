@@ -190,8 +190,8 @@ Get those two right and you match the engine's own compliance contract.
 Web is whole: a stock Style Dictionary 4 or later build reads the base and overlay set and writes CSS,
 SCSS and JavaScript that carry every type usably, apart from gradients on CSS and SCSS. Native is not
 covered yet. A stock build for Swift, Android resource XML or Compose reaches every token, but several
-types come out wrong or uncompilable. These are stock Style Dictionary's gaps, not defects in the
-DTCG, and `packages/tokens/` pins each as a `[GAP]`:
+types come out wrong or uncompilable. `packages/tokens/` pins each as a `[GAP]`. The first five are
+stock Style Dictionary's gaps, not defects in the DTCG; the sixth, #2434, is ours:
 
 - **Sizes (#2430).** The stock native transforms multiply every dimension by 16, so `16px` becomes
   `CGFloat(256.00)` or `256.00.dp`. Our literals mix `px` and `rem`, and no stock transform reads the
@@ -209,7 +209,7 @@ DTCG, and `packages/tokens/` pins each as a `[GAP]`:
   units, and native writes them as absolute values: `-0.04em` becomes `-0.64`. Resolve letter spacing
   against the font size yourself, and give `container.fluid` no absolute value.
 
-So on native, bring your own size, quoting and composite handling, and take composites from the
+So on native, supply your own size, quoting and composite handling, and take composites from the
 JavaScript or JSON output until that is done. The no-custom-code rule stands: the gate admits no
 custom transforms, and no reference production config with custom transforms ships for now. Do not
 look for one, and do not describe native output as supported or compiled when you hand off work.
