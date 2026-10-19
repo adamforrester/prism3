@@ -272,6 +272,57 @@
               "$description": "primary interactive fill — selected, clears 7:1 on background.secondary"
             }
           },
+          "text": {
+            "rest": {
+              "$type": "color",
+              "$value": "{ads.core.palette.accent.650}",
+              "$description": "primary interactive ink — rest (outline / text appearance)"
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{ads.core.palette.accent.750}",
+              "$description": "primary interactive ink — hover (outline / text appearance)"
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{ads.core.palette.accent.850}",
+              "$description": "primary interactive ink — pressed (outline / text appearance)"
+            }
+          },
+          "icon": {
+            "rest": {
+              "$type": "color",
+              "$value": "{ads.core.palette.accent.650}",
+              "$description": "primary interactive icon ink — rest (the glyph in an outline / ghost / text control)"
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{ads.core.palette.accent.750}",
+              "$description": "primary interactive icon ink — hover (the glyph in an outline / ghost / text control)"
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{ads.core.palette.accent.850}",
+              "$description": "primary interactive icon ink — pressed (the glyph in an outline / ghost / text control)"
+            }
+          },
+          "border": {
+            "rest": {
+              "$type": "color",
+              "$value": "{ads.core.palette.accent.650}",
+              "$description": "primary interactive border — rest (the outline edge; follows the ink)"
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{ads.core.palette.accent.750}",
+              "$description": "primary interactive border — hover (the outline edge; follows the ink)"
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{ads.core.palette.accent.850}",
+              "$description": "primary interactive border — pressed (the outline edge; follows the ink)"
+            }
+          },
           "subtle-fill": {
             "selected": {
               "$type": "color",

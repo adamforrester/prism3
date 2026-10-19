@@ -134,27 +134,27 @@
         "link": {
           "default": {
             "$type": "color",
-            "$value": "{ads.core.palette.accent.350}",
+            "$value": "{ads.core.palette.accent.400}",
             "$description": "Link text — default, 4.5:1 on background.secondary"
           },
           "hover": {
             "$type": "color",
-            "$value": "{ads.core.palette.accent.250}",
+            "$value": "{ads.core.palette.accent.300}",
             "$description": "Link text — hover, 4.5:1 on background.secondary"
           },
           "visited": {
             "$type": "color",
-            "$value": "{ads.core.palette.accent.050}",
+            "$value": "{ads.core.palette.accent.100}",
             "$description": "Link text — visited, 4.5:1 on background.secondary"
           },
           "focused": {
             "$type": "color",
-            "$value": "{ads.core.palette.accent.350}",
+            "$value": "{ads.core.palette.accent.400}",
             "$description": "Link text — focused, 4.5:1 on background.secondary"
           },
           "pressed": {
             "$type": "color",
-            "$value": "{ads.core.palette.accent.150}",
+            "$value": "{ads.core.palette.accent.200}",
             "$description": "Link text — pressed, 4.5:1 on background.secondary"
           }
         }
@@ -206,11 +206,6 @@
           "$description": "Muted info icon — low-emphasis accent, 3:1 on background.primary"
         },
         "link": {
-          "default": {
-            "$type": "color",
-            "$value": "{ads.core.palette.accent.500}",
-            "$description": "Link icon — default, 3:1 on background.secondary"
-          },
           "hover": {
             "$type": "color",
             "$value": "{ads.core.palette.accent.400}",
@@ -220,11 +215,6 @@
             "$type": "color",
             "$value": "{ads.core.palette.accent.200}",
             "$description": "Link icon — visited, 3:1 on background.secondary"
-          },
-          "focused": {
-            "$type": "color",
-            "$value": "{ads.core.palette.accent.500}",
-            "$description": "Link icon — focused, 3:1 on background.secondary"
           },
           "pressed": {
             "$type": "color",
@@ -250,51 +240,51 @@
           "text": {
             "rest": {
               "$type": "color",
-              "$value": "{ads.core.palette.accent.350}",
+              "$value": "{ads.core.palette.accent.400}",
               "$description": "primary interactive ink — rest (outline / text appearance)"
             },
             "hover": {
               "$type": "color",
-              "$value": "{ads.core.palette.accent.250}",
+              "$value": "{ads.core.palette.accent.300}",
               "$description": "primary interactive ink — hover (outline / text appearance)"
             },
             "pressed": {
               "$type": "color",
-              "$value": "{ads.core.palette.accent.150}",
+              "$value": "{ads.core.palette.accent.200}",
               "$description": "primary interactive ink — pressed (outline / text appearance)"
             }
           },
           "icon": {
             "rest": {
               "$type": "color",
-              "$value": "{ads.core.palette.accent.350}",
+              "$value": "{ads.core.palette.accent.400}",
               "$description": "primary interactive icon ink — rest (the glyph in an outline / ghost / text control)"
             },
             "hover": {
               "$type": "color",
-              "$value": "{ads.core.palette.accent.250}",
+              "$value": "{ads.core.palette.accent.300}",
               "$description": "primary interactive icon ink — hover (the glyph in an outline / ghost / text control)"
             },
             "pressed": {
               "$type": "color",
-              "$value": "{ads.core.palette.accent.150}",
+              "$value": "{ads.core.palette.accent.200}",
               "$description": "primary interactive icon ink — pressed (the glyph in an outline / ghost / text control)"
             }
           },
           "border": {
             "rest": {
               "$type": "color",
-              "$value": "{ads.core.palette.accent.350}",
+              "$value": "{ads.core.palette.accent.400}",
               "$description": "primary interactive border — rest (the outline edge; follows the ink)"
             },
             "hover": {
               "$type": "color",
-              "$value": "{ads.core.palette.accent.250}",
+              "$value": "{ads.core.palette.accent.300}",
               "$description": "primary interactive border — hover (the outline edge; follows the ink)"
             },
             "pressed": {
               "$type": "color",
-              "$value": "{ads.core.palette.accent.150}",
+              "$value": "{ads.core.palette.accent.200}",
               "$description": "primary interactive border — pressed (the outline edge; follows the ink)"
             }
           },

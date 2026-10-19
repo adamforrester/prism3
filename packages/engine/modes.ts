@@ -1440,23 +1440,24 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
         `${name} interactive border${where} — ${stKey} (the outline edge; follows the ink)`, against, cfg.nonTextMin);
   };
 
-  // THE PRIMARY AND LINK INKS CLEAR EVERY SURFACE A COMPONENT PLACES THEM ON (#2817, owner Q415 A). An outline or
-  // text primary Button and a link are drawn on more than the page: on the page tiers, on a raised panel
-  // (`foreground.*`, Dialog's footer) and on a status tint (`foreground.<status>-subtle`, Banner's actions).
-  // Gated on the page alone, the action ink measured 2.90:1 on `foreground.tertiary` and 3.30:1 on a tint in a
-  // light mode, and the link 3.62:1 and 4.02:1 — 130 cells under the body floor across the corpus' light and
-  // dark modes. So both picks take every one of these grounds as `alsoClear` (the semantic-ink and
-  // `border.tertiary` mechanism): the anchor stays where it clears them all, otherwise the nearest step on the
+  // THE PRIMARY AND LINK INKS CLEAR EVERY SURFACE A COMPONENT PLACES THEM ON (#2817, owner Q415 A, narrowed by
+  // Q419 A). An outline or text primary Button and a link are drawn on the page, on Dialog's panel
+  // (`foreground.primary`, its footer's Button group) and on a status tint (`foreground.<status>-subtle`, Banner's
+  // actions, #2786; resolves Q398). Gated on the page alone, the action ink measured 3.76:1 on `foreground.primary`
+  // and 3.30:1 on a tint in a light mode. So both picks take these seven grounds as `alsoClear` (the semantic-ink
+  // and `border.tertiary` mechanism): the anchor stays where it clears them all, otherwise the nearest step on the
   // SAME ramp that does — darker in a light mode, lighter in a dark one, so the hue holds and only the depth
   // moves. The page keeps the mode's own bar (7:1 in HC); every other surface is held to the 4.5:1 body floor
   // (`BODY_TEXT_FLOOR`, the owner's bar; HC's flat grounds already clear it). Only the page sets: the inverse
   // band's twins are not placed on these grounds. Names do not move; values do.
   //
-  // `test.ts` (#2817 block) measures every ink × surface cell from the emitted hexes against grounds written
-  // there as literals, never from this list, so dropping a ground here fails it by name.
+  // NOT every ground (Q419 A): no component places these inks on `background.secondary` / `.tertiary` or
+  // `foreground.secondary` / `.tertiary`, and holding them there cost ΔE 8–15 in nearly every brand. A def that
+  // places them on another ground adds it here; `test.ts` (#2817 block) derives the grounds from the defs and
+  // fails by name if one is missing from its own literal list, and measures every ink × surface cell from the
+  // emitted hexes against those literals, never this list, so dropping a ground here fails it by name.
   const INK_SURFACES = [
-    'background.primary', 'background.secondary', 'background.tertiary',
-    'foreground.primary', 'foreground.secondary', 'foreground.tertiary',
+    'background.primary', 'foreground.primary',
     ...SEMANTICS.map((r) => `foreground.${r}-subtle`),
   ];
   const inkSurfaceRgbs = (): RGB[] => INK_SURFACES.map((k) => asGround(k, rgbByRole.get(k)!));

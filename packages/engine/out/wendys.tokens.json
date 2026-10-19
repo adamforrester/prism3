@@ -6809,20 +6809,20 @@
         "link": {
           "default": {
             "$type": "color",
-            "$value": "{wds.core.palette.primary.600}",
+            "$value": "{wds.core.palette.primary.550}",
             "$description": "Link text — default, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "wds.core.palette.primary.600",
-                "contrast": 6.82,
+                "aliasOf": "wds.core.palette.primary.550",
+                "contrast": 5.73,
                 "against": "neutral.050",
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{wds.core.palette.primary.300}",
-                    "aliasOf": "wds.core.palette.primary.300",
-                    "contrast": 6.59,
+                    "$value": "{wds.core.palette.primary.400}",
+                    "aliasOf": "wds.core.palette.primary.400",
+                    "contrast": 4.56,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -6857,20 +6857,20 @@
           },
           "hover": {
             "$type": "color",
-            "$value": "{wds.core.palette.primary.700}",
+            "$value": "{wds.core.palette.primary.650}",
             "$description": "Link text — hover, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "wds.core.palette.primary.700",
-                "contrast": 9.41,
+                "aliasOf": "wds.core.palette.primary.650",
+                "contrast": 8.05,
                 "against": "neutral.050",
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{wds.core.palette.primary.200}",
-                    "aliasOf": "wds.core.palette.primary.200",
-                    "contrast": 9.27,
+                    "$value": "{wds.core.palette.primary.300}",
+                    "aliasOf": "wds.core.palette.primary.300",
+                    "contrast": 6.59,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -6905,20 +6905,20 @@
           },
           "visited": {
             "$type": "color",
-            "$value": "{wds.core.palette.primary.900}",
+            "$value": "{wds.core.palette.primary.850}",
             "$description": "Link text — visited, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "wds.core.palette.primary.900",
-                "contrast": 15.14,
+                "aliasOf": "wds.core.palette.primary.850",
+                "contrast": 13.92,
                 "against": "neutral.050",
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{wds.core.palette.primary.025}",
-                    "aliasOf": "wds.core.palette.primary.025",
-                    "contrast": 16.6,
+                    "$value": "{wds.core.palette.primary.100}",
+                    "aliasOf": "wds.core.palette.primary.100",
+                    "contrast": 12.56,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -6953,20 +6953,20 @@
           },
           "focused": {
             "$type": "color",
-            "$value": "{wds.core.palette.primary.600}",
+            "$value": "{wds.core.palette.primary.550}",
             "$description": "Link text — focused, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "wds.core.palette.primary.600",
-                "contrast": 6.82,
+                "aliasOf": "wds.core.palette.primary.550",
+                "contrast": 5.73,
                 "against": "neutral.050",
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{wds.core.palette.primary.300}",
-                    "aliasOf": "wds.core.palette.primary.300",
-                    "contrast": 6.59,
+                    "$value": "{wds.core.palette.primary.400}",
+                    "aliasOf": "wds.core.palette.primary.400",
+                    "contrast": 4.56,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -7001,20 +7001,20 @@
           },
           "pressed": {
             "$type": "color",
-            "$value": "{wds.core.palette.primary.800}",
+            "$value": "{wds.core.palette.primary.750}",
             "$description": "Link text — pressed, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "wds.core.palette.primary.800",
-                "contrast": 12.43,
+                "aliasOf": "wds.core.palette.primary.750",
+                "contrast": 10.91,
                 "against": "neutral.050",
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{wds.core.palette.primary.100}",
-                    "aliasOf": "wds.core.palette.primary.100",
-                    "contrast": 12.56,
+                    "$value": "{wds.core.palette.primary.200}",
+                    "aliasOf": "wds.core.palette.primary.200",
+                    "contrast": 9.27,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -7905,20 +7905,20 @@
         "link": {
           "default": {
             "$type": "color",
-            "$value": "{wds.core.palette.primary.600}",
+            "$value": "{wds.core.palette.primary.550}",
             "$description": "Link icon — default, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "wds.core.palette.primary.600",
-                "contrast": 6.82,
+                "aliasOf": "wds.core.palette.primary.550",
+                "contrast": 5.73,
                 "against": "neutral.050",
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{wds.core.palette.primary.300}",
-                    "aliasOf": "wds.core.palette.primary.300",
-                    "contrast": 6.59,
+                    "$value": "{wds.core.palette.primary.400}",
+                    "aliasOf": "wds.core.palette.primary.400",
+                    "contrast": 4.56,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -7953,20 +7953,20 @@
           },
           "hover": {
             "$type": "color",
-            "$value": "{wds.core.palette.primary.700}",
+            "$value": "{wds.core.palette.primary.650}",
             "$description": "Link icon — hover, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "wds.core.palette.primary.700",
-                "contrast": 9.41,
+                "aliasOf": "wds.core.palette.primary.650",
+                "contrast": 8.05,
                 "against": "neutral.050",
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{wds.core.palette.primary.200}",
-                    "aliasOf": "wds.core.palette.primary.200",
-                    "contrast": 9.27,
+                    "$value": "{wds.core.palette.primary.300}",
+                    "aliasOf": "wds.core.palette.primary.300",
+                    "contrast": 6.59,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -8001,20 +8001,20 @@
           },
           "visited": {
             "$type": "color",
-            "$value": "{wds.core.palette.primary.900}",
+            "$value": "{wds.core.palette.primary.850}",
             "$description": "Link icon — visited, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "wds.core.palette.primary.900",
-                "contrast": 15.14,
+                "aliasOf": "wds.core.palette.primary.850",
+                "contrast": 13.92,
                 "against": "neutral.050",
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{wds.core.palette.primary.025}",
-                    "aliasOf": "wds.core.palette.primary.025",
-                    "contrast": 16.6,
+                    "$value": "{wds.core.palette.primary.100}",
+                    "aliasOf": "wds.core.palette.primary.100",
+                    "contrast": 12.56,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -8049,20 +8049,20 @@
           },
           "focused": {
             "$type": "color",
-            "$value": "{wds.core.palette.primary.600}",
+            "$value": "{wds.core.palette.primary.550}",
             "$description": "Link icon — focused, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "wds.core.palette.primary.600",
-                "contrast": 6.82,
+                "aliasOf": "wds.core.palette.primary.550",
+                "contrast": 5.73,
                 "against": "neutral.050",
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{wds.core.palette.primary.300}",
-                    "aliasOf": "wds.core.palette.primary.300",
-                    "contrast": 6.59,
+                    "$value": "{wds.core.palette.primary.400}",
+                    "aliasOf": "wds.core.palette.primary.400",
+                    "contrast": 4.56,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -8097,20 +8097,20 @@
           },
           "pressed": {
             "$type": "color",
-            "$value": "{wds.core.palette.primary.800}",
+            "$value": "{wds.core.palette.primary.750}",
             "$description": "Link icon — pressed, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "wds.core.palette.primary.800",
-                "contrast": 12.43,
+                "aliasOf": "wds.core.palette.primary.750",
+                "contrast": 10.91,
                 "against": "neutral.050",
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{wds.core.palette.primary.100}",
-                    "aliasOf": "wds.core.palette.primary.100",
-                    "contrast": 12.56,
+                    "$value": "{wds.core.palette.primary.200}",
+                    "aliasOf": "wds.core.palette.primary.200",
+                    "contrast": 9.27,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -8438,20 +8438,20 @@
           "text": {
             "rest": {
               "$type": "color",
-              "$value": "{wds.core.palette.primary.600}",
+              "$value": "{wds.core.palette.primary.550}",
               "$description": "primary interactive ink — rest (outline / text appearance)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "wds.core.palette.primary.600",
-                  "contrast": 8.28,
+                  "aliasOf": "wds.core.palette.primary.550",
+                  "contrast": 6.95,
                   "against": "background.primary",
                   "min": 4.5,
                   "modes": {
                     "dark": {
-                      "$value": "{wds.core.palette.primary.300}",
-                      "aliasOf": "wds.core.palette.primary.300",
-                      "contrast": 7.14,
+                      "$value": "{wds.core.palette.primary.400}",
+                      "aliasOf": "wds.core.palette.primary.400",
+                      "contrast": 4.94,
                       "against": "background.primary",
                       "min": 4.5
                     },
@@ -8484,20 +8484,20 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{wds.core.palette.primary.700}",
+              "$value": "{wds.core.palette.primary.650}",
               "$description": "primary interactive ink — hover (outline / text appearance)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "wds.core.palette.primary.700",
-                  "contrast": 11.42,
+                  "aliasOf": "wds.core.palette.primary.650",
+                  "contrast": 9.77,
                   "against": "background.primary",
                   "min": 4.5,
                   "modes": {
                     "dark": {
-                      "$value": "{wds.core.palette.primary.200}",
-                      "aliasOf": "wds.core.palette.primary.200",
-                      "contrast": 10.05,
+                      "$value": "{wds.core.palette.primary.300}",
+                      "aliasOf": "wds.core.palette.primary.300",
+                      "contrast": 7.14,
                       "against": "background.primary",
                       "min": 4.5
                     },
@@ -8530,20 +8530,20 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{wds.core.palette.primary.800}",
+              "$value": "{wds.core.palette.primary.750}",
               "$description": "primary interactive ink — pressed (outline / text appearance)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "wds.core.palette.primary.800",
-                  "contrast": 15.09,
+                  "aliasOf": "wds.core.palette.primary.750",
+                  "contrast": 13.25,
                   "against": "background.primary",
                   "min": 4.5,
                   "modes": {
                     "dark": {
-                      "$value": "{wds.core.palette.primary.100}",
-                      "aliasOf": "wds.core.palette.primary.100",
-                      "contrast": 13.62,
+                      "$value": "{wds.core.palette.primary.200}",
+                      "aliasOf": "wds.core.palette.primary.200",
+                      "contrast": 10.05,
                       "against": "background.primary",
                       "min": 4.5
                     },
@@ -8578,20 +8578,20 @@
           "icon": {
             "rest": {
               "$type": "color",
-              "$value": "{wds.core.palette.primary.600}",
+              "$value": "{wds.core.palette.primary.550}",
               "$description": "primary interactive icon ink — rest (the glyph in an outline / ghost / text control)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "wds.core.palette.primary.600",
-                  "contrast": 8.28,
+                  "aliasOf": "wds.core.palette.primary.550",
+                  "contrast": 6.95,
                   "against": "background.primary",
                   "min": 4.5,
                   "modes": {
                     "dark": {
-                      "$value": "{wds.core.palette.primary.300}",
-                      "aliasOf": "wds.core.palette.primary.300",
-                      "contrast": 7.14,
+                      "$value": "{wds.core.palette.primary.400}",
+                      "aliasOf": "wds.core.palette.primary.400",
+                      "contrast": 4.94,
                       "against": "background.primary",
                       "min": 4.5
                     },
@@ -8624,20 +8624,20 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{wds.core.palette.primary.700}",
+              "$value": "{wds.core.palette.primary.650}",
               "$description": "primary interactive icon ink — hover (the glyph in an outline / ghost / text control)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "wds.core.palette.primary.700",
-                  "contrast": 11.42,
+                  "aliasOf": "wds.core.palette.primary.650",
+                  "contrast": 9.77,
                   "against": "background.primary",
                   "min": 4.5,
                   "modes": {
                     "dark": {
-                      "$value": "{wds.core.palette.primary.200}",
-                      "aliasOf": "wds.core.palette.primary.200",
-                      "contrast": 10.05,
+                      "$value": "{wds.core.palette.primary.300}",
+                      "aliasOf": "wds.core.palette.primary.300",
+                      "contrast": 7.14,
                       "against": "background.primary",
                       "min": 4.5
                     },
@@ -8670,20 +8670,20 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{wds.core.palette.primary.800}",
+              "$value": "{wds.core.palette.primary.750}",
               "$description": "primary interactive icon ink — pressed (the glyph in an outline / ghost / text control)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "wds.core.palette.primary.800",
-                  "contrast": 15.09,
+                  "aliasOf": "wds.core.palette.primary.750",
+                  "contrast": 13.25,
                   "against": "background.primary",
                   "min": 4.5,
                   "modes": {
                     "dark": {
-                      "$value": "{wds.core.palette.primary.100}",
-                      "aliasOf": "wds.core.palette.primary.100",
-                      "contrast": 13.62,
+                      "$value": "{wds.core.palette.primary.200}",
+                      "aliasOf": "wds.core.palette.primary.200",
+                      "contrast": 10.05,
                       "against": "background.primary",
                       "min": 4.5
                     },
@@ -8718,20 +8718,20 @@
           "border": {
             "rest": {
               "$type": "color",
-              "$value": "{wds.core.palette.primary.600}",
+              "$value": "{wds.core.palette.primary.550}",
               "$description": "primary interactive border — rest (the outline edge; follows the ink)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "wds.core.palette.primary.600",
-                  "contrast": 8.28,
+                  "aliasOf": "wds.core.palette.primary.550",
+                  "contrast": 6.95,
                   "against": "background.primary",
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{wds.core.palette.primary.300}",
-                      "aliasOf": "wds.core.palette.primary.300",
-                      "contrast": 7.14,
+                      "$value": "{wds.core.palette.primary.400}",
+                      "aliasOf": "wds.core.palette.primary.400",
+                      "contrast": 4.94,
                       "against": "background.primary",
                       "min": 3
                     },
@@ -8764,20 +8764,20 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{wds.core.palette.primary.700}",
+              "$value": "{wds.core.palette.primary.650}",
               "$description": "primary interactive border — hover (the outline edge; follows the ink)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "wds.core.palette.primary.700",
-                  "contrast": 11.42,
+                  "aliasOf": "wds.core.palette.primary.650",
+                  "contrast": 9.77,
                   "against": "background.primary",
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{wds.core.palette.primary.200}",
-                      "aliasOf": "wds.core.palette.primary.200",
-                      "contrast": 10.05,
+                      "$value": "{wds.core.palette.primary.300}",
+                      "aliasOf": "wds.core.palette.primary.300",
+                      "contrast": 7.14,
                       "against": "background.primary",
                       "min": 3
                     },
@@ -8810,20 +8810,20 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{wds.core.palette.primary.800}",
+              "$value": "{wds.core.palette.primary.750}",
               "$description": "primary interactive border — pressed (the outline edge; follows the ink)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "wds.core.palette.primary.800",
-                  "contrast": 15.09,
+                  "aliasOf": "wds.core.palette.primary.750",
+                  "contrast": 13.25,
                   "against": "background.primary",
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{wds.core.palette.primary.100}",
-                      "aliasOf": "wds.core.palette.primary.100",
-                      "contrast": 13.62,
+                      "$value": "{wds.core.palette.primary.200}",
+                      "aliasOf": "wds.core.palette.primary.200",
+                      "contrast": 10.05,
                       "against": "background.primary",
                       "min": 3
                     },
@@ -9031,7 +9031,7 @@
                     "color": "{wds.color.interactive.primary.fill.rest}",
                     "opacity": "{wds.opacity.30}"
                   },
-                  "contrast": 8.78,
+                  "contrast": 7.71,
                   "against": "background.primary",
                   "contrastModel": "ink-on-composite",
                   "legibleFor": "interactive.primary.text.pressed",
@@ -9042,7 +9042,7 @@
                         "color": "{wds.color.interactive.primary.fill.rest}",
                         "opacity": "{wds.opacity.30}"
                       },
-                      "contrast": 10.18,
+                      "contrast": 7.51,
                       "against": "background.primary",
                       "contrastModel": "ink-on-composite",
                       "legibleFor": "interactive.primary.text.pressed"

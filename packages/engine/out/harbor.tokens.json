@@ -5980,20 +5980,20 @@
         "link": {
           "default": {
             "$type": "color",
-            "$value": "{hds.core.palette.primary.650}",
+            "$value": "{hds.core.palette.primary.600}",
             "$description": "Link text — default, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "hds.core.palette.primary.650",
-                "contrast": 5.99,
+                "aliasOf": "hds.core.palette.primary.600",
+                "contrast": 4.91,
                 "against": "neutral.100",
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{hds.core.palette.primary.350}",
-                    "aliasOf": "hds.core.palette.primary.350",
-                    "contrast": 6.37,
+                    "$value": "{hds.core.palette.primary.450}",
+                    "aliasOf": "hds.core.palette.primary.450",
+                    "contrast": 4.61,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -6028,20 +6028,20 @@
           },
           "hover": {
             "$type": "color",
-            "$value": "{hds.core.palette.primary.750}",
+            "$value": "{hds.core.palette.primary.700}",
             "$description": "Link text — hover, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "hds.core.palette.primary.750",
-                "contrast": 8.53,
+                "aliasOf": "hds.core.palette.primary.700",
+                "contrast": 7.21,
                 "against": "neutral.100",
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{hds.core.palette.primary.250}",
-                    "aliasOf": "hds.core.palette.primary.250",
-                    "contrast": 8.62,
+                    "$value": "{hds.core.palette.primary.350}",
+                    "aliasOf": "hds.core.palette.primary.350",
+                    "contrast": 6.37,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -6076,20 +6076,20 @@
           },
           "visited": {
             "$type": "color",
-            "$value": "{hds.core.palette.primary.950}",
+            "$value": "{hds.core.palette.primary.900}",
             "$description": "Link text — visited, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "hds.core.palette.primary.950",
-                "contrast": 13.97,
+                "aliasOf": "hds.core.palette.primary.900",
+                "contrast": 12.95,
                 "against": "neutral.100",
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{hds.core.palette.primary.050}",
-                    "aliasOf": "hds.core.palette.primary.050",
-                    "contrast": 14.71,
+                    "$value": "{hds.core.palette.primary.150}",
+                    "aliasOf": "hds.core.palette.primary.150",
+                    "contrast": 11.37,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -6124,20 +6124,20 @@
           },
           "focused": {
             "$type": "color",
-            "$value": "{hds.core.palette.primary.650}",
+            "$value": "{hds.core.palette.primary.600}",
             "$description": "Link text — focused, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "hds.core.palette.primary.650",
-                "contrast": 5.99,
+                "aliasOf": "hds.core.palette.primary.600",
+                "contrast": 4.91,
                 "against": "neutral.100",
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{hds.core.palette.primary.350}",
-                    "aliasOf": "hds.core.palette.primary.350",
-                    "contrast": 6.37,
+                    "$value": "{hds.core.palette.primary.450}",
+                    "aliasOf": "hds.core.palette.primary.450",
+                    "contrast": 4.61,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -6172,20 +6172,20 @@
           },
           "pressed": {
             "$type": "color",
-            "$value": "{hds.core.palette.primary.850}",
+            "$value": "{hds.core.palette.primary.800}",
             "$description": "Link text — pressed, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "hds.core.palette.primary.850",
-                "contrast": 11.52,
+                "aliasOf": "hds.core.palette.primary.800",
+                "contrast": 10.11,
                 "against": "neutral.100",
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{hds.core.palette.primary.150}",
-                    "aliasOf": "hds.core.palette.primary.150",
-                    "contrast": 11.37,
+                    "$value": "{hds.core.palette.primary.250}",
+                    "aliasOf": "hds.core.palette.primary.250",
+                    "contrast": 8.62,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -7076,20 +7076,20 @@
         "link": {
           "default": {
             "$type": "color",
-            "$value": "{hds.core.palette.primary.650}",
+            "$value": "{hds.core.palette.primary.600}",
             "$description": "Link icon — default, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "hds.core.palette.primary.650",
-                "contrast": 5.99,
+                "aliasOf": "hds.core.palette.primary.600",
+                "contrast": 4.91,
                 "against": "neutral.100",
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{hds.core.palette.primary.350}",
-                    "aliasOf": "hds.core.palette.primary.350",
-                    "contrast": 6.37,
+                    "$value": "{hds.core.palette.primary.450}",
+                    "aliasOf": "hds.core.palette.primary.450",
+                    "contrast": 4.61,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -7124,20 +7124,20 @@
           },
           "hover": {
             "$type": "color",
-            "$value": "{hds.core.palette.primary.750}",
+            "$value": "{hds.core.palette.primary.700}",
             "$description": "Link icon — hover, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "hds.core.palette.primary.750",
-                "contrast": 8.53,
+                "aliasOf": "hds.core.palette.primary.700",
+                "contrast": 7.21,
                 "against": "neutral.100",
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{hds.core.palette.primary.250}",
-                    "aliasOf": "hds.core.palette.primary.250",
-                    "contrast": 8.62,
+                    "$value": "{hds.core.palette.primary.350}",
+                    "aliasOf": "hds.core.palette.primary.350",
+                    "contrast": 6.37,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -7172,20 +7172,20 @@
           },
           "visited": {
             "$type": "color",
-            "$value": "{hds.core.palette.primary.950}",
+            "$value": "{hds.core.palette.primary.900}",
             "$description": "Link icon — visited, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "hds.core.palette.primary.950",
-                "contrast": 13.97,
+                "aliasOf": "hds.core.palette.primary.900",
+                "contrast": 12.95,
                 "against": "neutral.100",
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{hds.core.palette.primary.050}",
-                    "aliasOf": "hds.core.palette.primary.050",
-                    "contrast": 14.71,
+                    "$value": "{hds.core.palette.primary.150}",
+                    "aliasOf": "hds.core.palette.primary.150",
+                    "contrast": 11.37,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -7220,20 +7220,20 @@
           },
           "focused": {
             "$type": "color",
-            "$value": "{hds.core.palette.primary.650}",
+            "$value": "{hds.core.palette.primary.600}",
             "$description": "Link icon — focused, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "hds.core.palette.primary.650",
-                "contrast": 5.99,
+                "aliasOf": "hds.core.palette.primary.600",
+                "contrast": 4.91,
                 "against": "neutral.100",
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{hds.core.palette.primary.350}",
-                    "aliasOf": "hds.core.palette.primary.350",
-                    "contrast": 6.37,
+                    "$value": "{hds.core.palette.primary.450}",
+                    "aliasOf": "hds.core.palette.primary.450",
+                    "contrast": 4.61,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -7268,20 +7268,20 @@
           },
           "pressed": {
             "$type": "color",
-            "$value": "{hds.core.palette.primary.850}",
+            "$value": "{hds.core.palette.primary.800}",
             "$description": "Link icon — pressed, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "hds.core.palette.primary.850",
-                "contrast": 11.52,
+                "aliasOf": "hds.core.palette.primary.800",
+                "contrast": 10.11,
                 "against": "neutral.100",
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{hds.core.palette.primary.150}",
-                    "aliasOf": "hds.core.palette.primary.150",
-                    "contrast": 11.37,
+                    "$value": "{hds.core.palette.primary.250}",
+                    "aliasOf": "hds.core.palette.primary.250",
+                    "contrast": 8.62,
                     "against": "neutral.900",
                     "min": 4.5
                   },
@@ -7609,20 +7609,20 @@
           "text": {
             "rest": {
               "$type": "color",
-              "$value": "{hds.core.palette.primary.650}",
+              "$value": "{hds.core.palette.primary.600}",
               "$description": "primary interactive ink — rest (outline / text appearance)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "hds.core.palette.primary.650",
-                  "contrast": 6.81,
+                  "aliasOf": "hds.core.palette.primary.600",
+                  "contrast": 5.59,
                   "against": "background.primary",
                   "min": 4.5,
                   "modes": {
                     "dark": {
-                      "$value": "{hds.core.palette.primary.350}",
-                      "aliasOf": "hds.core.palette.primary.350",
-                      "contrast": 6.91,
+                      "$value": "{hds.core.palette.primary.450}",
+                      "aliasOf": "hds.core.palette.primary.450",
+                      "contrast": 5,
                       "against": "background.primary",
                       "min": 4.5
                     },
@@ -7655,20 +7655,20 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{hds.core.palette.primary.750}",
+              "$value": "{hds.core.palette.primary.700}",
               "$description": "primary interactive ink — hover (outline / text appearance)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "hds.core.palette.primary.750",
-                  "contrast": 9.7,
+                  "aliasOf": "hds.core.palette.primary.700",
+                  "contrast": 8.2,
                   "against": "background.primary",
                   "min": 4.5,
                   "modes": {
                     "dark": {
-                      "$value": "{hds.core.palette.primary.250}",
-                      "aliasOf": "hds.core.palette.primary.250",
-                      "contrast": 9.34,
+                      "$value": "{hds.core.palette.primary.350}",
+                      "aliasOf": "hds.core.palette.primary.350",
+                      "contrast": 6.91,
                       "against": "background.primary",
                       "min": 4.5
                     },
@@ -7701,20 +7701,20 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{hds.core.palette.primary.850}",
+              "$value": "{hds.core.palette.primary.800}",
               "$description": "primary interactive ink — pressed (outline / text appearance)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "hds.core.palette.primary.850",
-                  "contrast": 13.1,
+                  "aliasOf": "hds.core.palette.primary.800",
+                  "contrast": 11.49,
                   "against": "background.primary",
                   "min": 4.5,
                   "modes": {
                     "dark": {
-                      "$value": "{hds.core.palette.primary.150}",
-                      "aliasOf": "hds.core.palette.primary.150",
-                      "contrast": 12.33,
+                      "$value": "{hds.core.palette.primary.250}",
+                      "aliasOf": "hds.core.palette.primary.250",
+                      "contrast": 9.34,
                       "against": "background.primary",
                       "min": 4.5
                     },
@@ -7749,20 +7749,20 @@
           "icon": {
             "rest": {
               "$type": "color",
-              "$value": "{hds.core.palette.primary.650}",
+              "$value": "{hds.core.palette.primary.600}",
               "$description": "primary interactive icon ink — rest (the glyph in an outline / ghost / text control)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "hds.core.palette.primary.650",
-                  "contrast": 6.81,
+                  "aliasOf": "hds.core.palette.primary.600",
+                  "contrast": 5.59,
                   "against": "background.primary",
                   "min": 4.5,
                   "modes": {
                     "dark": {
-                      "$value": "{hds.core.palette.primary.350}",
-                      "aliasOf": "hds.core.palette.primary.350",
-                      "contrast": 6.91,
+                      "$value": "{hds.core.palette.primary.450}",
+                      "aliasOf": "hds.core.palette.primary.450",
+                      "contrast": 5,
                       "against": "background.primary",
                       "min": 4.5
                     },
@@ -7795,20 +7795,20 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{hds.core.palette.primary.750}",
+              "$value": "{hds.core.palette.primary.700}",
               "$description": "primary interactive icon ink — hover (the glyph in an outline / ghost / text control)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "hds.core.palette.primary.750",
-                  "contrast": 9.7,
+                  "aliasOf": "hds.core.palette.primary.700",
+                  "contrast": 8.2,
                   "against": "background.primary",
                   "min": 4.5,
                   "modes": {
                     "dark": {
-                      "$value": "{hds.core.palette.primary.250}",
-                      "aliasOf": "hds.core.palette.primary.250",
-                      "contrast": 9.34,
+                      "$value": "{hds.core.palette.primary.350}",
+                      "aliasOf": "hds.core.palette.primary.350",
+                      "contrast": 6.91,
                       "against": "background.primary",
                       "min": 4.5
                     },
@@ -7841,20 +7841,20 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{hds.core.palette.primary.850}",
+              "$value": "{hds.core.palette.primary.800}",
               "$description": "primary interactive icon ink — pressed (the glyph in an outline / ghost / text control)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "hds.core.palette.primary.850",
-                  "contrast": 13.1,
+                  "aliasOf": "hds.core.palette.primary.800",
+                  "contrast": 11.49,
                   "against": "background.primary",
                   "min": 4.5,
                   "modes": {
                     "dark": {
-                      "$value": "{hds.core.palette.primary.150}",
-                      "aliasOf": "hds.core.palette.primary.150",
-                      "contrast": 12.33,
+                      "$value": "{hds.core.palette.primary.250}",
+                      "aliasOf": "hds.core.palette.primary.250",
+                      "contrast": 9.34,
                       "against": "background.primary",
                       "min": 4.5
                     },
@@ -7889,20 +7889,20 @@
           "border": {
             "rest": {
               "$type": "color",
-              "$value": "{hds.core.palette.primary.650}",
+              "$value": "{hds.core.palette.primary.600}",
               "$description": "primary interactive border — rest (the outline edge; follows the ink)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "hds.core.palette.primary.650",
-                  "contrast": 6.81,
+                  "aliasOf": "hds.core.palette.primary.600",
+                  "contrast": 5.59,
                   "against": "background.primary",
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{hds.core.palette.primary.350}",
-                      "aliasOf": "hds.core.palette.primary.350",
-                      "contrast": 6.91,
+                      "$value": "{hds.core.palette.primary.450}",
+                      "aliasOf": "hds.core.palette.primary.450",
+                      "contrast": 5,
                       "against": "background.primary",
                       "min": 3
                     },
@@ -7935,20 +7935,20 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{hds.core.palette.primary.750}",
+              "$value": "{hds.core.palette.primary.700}",
               "$description": "primary interactive border — hover (the outline edge; follows the ink)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "hds.core.palette.primary.750",
-                  "contrast": 9.7,
+                  "aliasOf": "hds.core.palette.primary.700",
+                  "contrast": 8.2,
                   "against": "background.primary",
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{hds.core.palette.primary.250}",
-                      "aliasOf": "hds.core.palette.primary.250",
-                      "contrast": 9.34,
+                      "$value": "{hds.core.palette.primary.350}",
+                      "aliasOf": "hds.core.palette.primary.350",
+                      "contrast": 6.91,
                       "against": "background.primary",
                       "min": 3
                     },
@@ -7981,20 +7981,20 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{hds.core.palette.primary.850}",
+              "$value": "{hds.core.palette.primary.800}",
               "$description": "primary interactive border — pressed (the outline edge; follows the ink)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "hds.core.palette.primary.850",
-                  "contrast": 13.1,
+                  "aliasOf": "hds.core.palette.primary.800",
+                  "contrast": 11.49,
                   "against": "background.primary",
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{hds.core.palette.primary.150}",
-                      "aliasOf": "hds.core.palette.primary.150",
-                      "contrast": 12.33,
+                      "$value": "{hds.core.palette.primary.250}",
+                      "aliasOf": "hds.core.palette.primary.250",
+                      "contrast": 9.34,
                       "against": "background.primary",
                       "min": 3
                     },
@@ -8202,7 +8202,7 @@
                     "color": "{hds.color.interactive.primary.fill.rest}",
                     "opacity": "{hds.opacity.30}"
                   },
-                  "contrast": 8.35,
+                  "contrast": 7.33,
                   "against": "background.primary",
                   "contrastModel": "ink-on-composite",
                   "legibleFor": "interactive.primary.text.pressed",
@@ -8213,7 +8213,7 @@
                         "color": "{hds.color.interactive.primary.fill.rest}",
                         "opacity": "{hds.opacity.30}"
                       },
-                      "contrast": 8.86,
+                      "contrast": 6.72,
                       "against": "background.primary",
                       "contrastModel": "ink-on-composite",
                       "legibleFor": "interactive.primary.text.pressed"
