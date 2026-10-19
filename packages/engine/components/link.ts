@@ -68,8 +68,8 @@ export const link: ComponentDef = {
     { name: 'weight', type: "enum: 'emphasis' | 'default'", values: ['emphasis', 'default'], default: 'emphasis', required: false, description: 'Emphasis is the starting value; choose Default for a lighter weight link.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'The body type size: 14, 16 or 18px. The box is one text line tall; the icon (16px at small and medium, 20px at large) sits inside it.' },
     { name: 'surface', type: "enum: 'default' | 'inverse'", values: ['default', 'inverse'], default: 'default', required: false, description: 'The ground the link sits on: the page, or a dark or brand-filled band, which takes the inverse link colors.' },
-    { name: 'isExternal', type: 'boolean', default: 'false', required: false, description: 'Opens in a new tab: adds the trailing external icon, visually hidden "(opens in new tab)" text and rel="noopener noreferrer". Keep it for narrow cases.' },
-    { name: 'asChild', type: 'boolean', default: 'false', required: false, description: 'Merges the link\'s styling and accessibility onto a router\'s link child, so one anchor renders and the component depends on no router.' },
+    { name: 'isExternal', type: 'boolean', default: false, required: false, description: 'Opens in a new tab: adds the trailing external icon, visually hidden "(opens in new tab)" text and rel="noopener noreferrer". Keep it for narrow cases.' },
+    { name: 'asChild', type: 'boolean', default: false, required: false, description: 'Merges the link\'s styling and accessibility onto a router\'s link child, so one anchor renders and the component depends on no router.' },
     { name: 'trailingIcon', type: 'slot', required: false, description: 'An icon after the label, such as an arrow or the external icon. Not for inline links.' },
   ],
 
@@ -77,7 +77,7 @@ export const link: ComponentDef = {
   variants: {
     style: ['standalone', 'inline'],
     weight: ['emphasis', 'default'],
-    size: ['small', 'medium', 'large'],
+    size: ['medium', 'small', 'large'],
     surface: ['default', 'inverse'],
   },
   axisKinds: { style: 'authoring', weight: 'authoring', size: 'authoring', surface: 'authoring' },

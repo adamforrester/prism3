@@ -54,7 +54,7 @@
  * assertion instead, because with no caller the port could have drifted out of satisfaction with the
  * whole suite green; the trigger retired it rather than leaving two mechanisms for one guarantee.
  */
-import { planSetLayout, nestMissAdvice, nestVariantMatch, nestVariantMissAdvice, resolveNestMember, applyNestOverrides, swapMissAdvice, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, planComponentName, planStamp, glyphLayerOpacities } from '@prism3/engine/anatomy-figma';
+import { planSetLayout, nestMissAdvice, nestVariantMatch, nestVariantMissAdvice, resolveNestMember, applyNestOverrides, applyNestItemPrefers, swapMissAdvice, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, planComponentName, planStamp, glyphLayerOpacities } from '@prism3/engine/anatomy-figma';
 import type { AnatomyPlan, FigmaNodePlan, SwapFound } from '@prism3/engine/anatomy-figma';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { tailOf } from '@prism3/engine/figma-names';
@@ -108,6 +108,8 @@ export interface CompMemberRef { name?: string; type?: string; createInstance?()
 
 /** The four PER-SIDE stroke-weight keys the real host binds a `strokeWeight` variable onto (#1332). */
 const STROKE_WEIGHT_SIDES = ['strokeTopWeight', 'strokeRightWeight', 'strokeBottomWeight', 'strokeLeftWeight'];
+/** Every key a stroke weight can be bound on: the scalar and its four sides (#2695, `PartDef.strokeEdges`). */
+const STROKE_WEIGHT_KEYS = ['strokeWeight', ...STROKE_WEIGHT_SIDES];
 
 /**
  * Does the host hold a binding for `field`? (#1332)
@@ -652,10 +654,38 @@ export type ComponentApplyOptions = {
 export type ComponentUpdate = {
   /** Existing members to configure in place, by coordinate (after the update's renames), each with the paths of
    *  the nodes a designer edited by hand: those are left as they are (owner decision Q1, keep and report). */
-  members: ReadonlyMap<string, { keep: ReadonlySet<string>; accept?: boolean }>;
+  members: ReadonlyMap<string, { keep: ReadonlySet<string>; accept?: boolean;
+    /** #2595 — every path the dry run read as edited by hand, whatever the choice: a node at or above one is never
+     *  moved into a new frame (`adoptions`), so the dry run, which runs before the choice, says what the apply does. */
+    edited?: ReadonlySet<string> }>;
   /** Members the plan no longer has, kept in the set and marked deprecated (Q2). The layout pass leaves them
    *  where they are, as it leaves any child it has no cell for, and does not report them as strays. */
   retained?: ReadonlySet<string>;
+};
+
+/** #2595 — the children an in-place update MOVES into a frame the plan inserts, rather than rebuilding them. Under a
+ *  node the file already holds (at `path`, `.` for the member), a plan child FRAME with no child of its name in the
+ *  file is built fresh; each child of that FRAME in the plan that the file holds directly under the node, under that
+ *  name exactly once, and that no other plan child of the node claims by name, is moved into it and configured in
+ *  place there, so it keeps its id. Two children stay out and are rebuilt, as before:
+ *  - one a designer edited by hand, at it or anywhere under it (`edited`, the dry run's hand-edit paths);
+ *  - an INSTANCE_SWAP, whose host type depends on whether its target is in the file, which the dry run cannot read.
+ *  Returns the file child's name → the new frame's name. ONE function, edit rule included, read by the executor and by
+ *  the dry run, so the dry run lists exactly the moves the apply makes. */
+export const adoptions = (planKids: readonly { name: string; type: string; children?: readonly { name: string; type: string }[] }[], fileKids: readonly string[], edited: ReadonlySet<string> = new Set(), path = '.'): Map<string, string> => {
+  const claimed = new Set(planKids.map((c) => c.name));
+  const once = (name: string): boolean => fileKids.filter((k) => k === name).length === 1;
+  const at = (name: string): string => (path === '.' ? name : `${path}/${name}`);
+  const blocked = (name: string): boolean => [...edited].some((e) => e === at(name) || e.startsWith(`${at(name)}/`));
+  const out = new Map<string, string>();
+  for (const c of planKids) {
+    if (c.type !== 'FRAME' || fileKids.includes(c.name)) continue;
+    for (const g of c.children ?? []) {
+      if (g.type === 'INSTANCE_SWAP' || claimed.has(g.name) || out.has(g.name) || !once(g.name) || blocked(g.name)) continue;
+      out.set(g.name, c.name);
+    }
+  }
+  return out;
 };
 
 /** The value of a single-axis member coordinate — `name=search` → `search` (#1012). The
@@ -931,7 +961,7 @@ export type RespaceBox = PageBox & { id: string; prism3?: boolean; furniture?: b
  * else is the designer's placement, and it wins, as it does in `placeNewSet`:
  *   · a set spaced WIDER stays exactly where it is;
  *   · a set with no Prism3 set to its left in its row (the first of a row, a SECOND ROW below the first) stays, so a
- *     second row is never lifted into the first, and `y` never changes;
+ *     second row is never lifted into the first, and `y` never changes, save in the header's row (below);
  *   · if the spot a moving set needs overlaps something that stays put, it is pushed just past it, `SET_GAP` clear.
  *     "Something" includes the OTHER Prism3 sets (#2548): every set already placed, where it now sits, and a set not
  *     reached yet once the spot is at or past its left edge. Short of that edge, the later set still has this one as
@@ -942,20 +972,38 @@ export type RespaceBox = PageBox & { id: string; prism3?: boolean; furniture?: b
  * NEVER MOVES CONTENT PRISM3 DIDN'T BUILD (#2464, #2494): a set with no stamped member, the page header and any other
  * node stay exactly where they are, as obstacles. The canvas furniture is left out: it is drawn for a set after the
  * update lands, from where the set then sits, so it follows the move.
+ *
+ * A SET IN THE PAGE HEADER'S ROW GOES BELOW IT (#2802, owner decision Q379 A). A page built before #2405 put its first
+ * set `SET_GAP` right of a header wider than the sets, at the header's own `y`, and its siblings beside that. The rule
+ * above kept that row where it was, since its first set has no set to its left, so an update re-spaced the siblings
+ * and left the whole row beside the header. Such a set is the one case where the move changes `y`: it is placed as
+ * `placeNewSet` places a new set under a header. Its top is the top of the sets already below the header, else the
+ * header's bottom plus `PAGE_HEADER_GAP`; the first of them goes on the header's left edge, each later one `SET_GAP`
+ * right of the set before it, always, since its old spacing was measured in a row it is leaving; and it is pushed
+ * past anything that would overlap it there, as any moving set is. So an update and a fresh build lay the page out
+ * the same, relative to the header. A set wholly above or below the header's band is not in its row, and stays.
  */
 export const respaceSets = (nodes: readonly RespaceBox[]): { id: string; from: { x: number; y: number }; to: { x: number; y: number } }[] => {
   const ours = nodes.filter((b) => b.type === 'COMPONENT_SET' && b.prism3 && !b.header).sort((a, b) => a.x - b.x || a.y - b.y);
-  if (ours.length < 2) return [];
+  const h = nodes.find((b) => b.header);
+  const besideHeader = (b: PageBox): boolean => !!h && b.y < h.y + h.height && b.y + b.height > h.y;
+  if (ours.length < 2 && !ours.some(besideHeader)) return [];
   const fixed = nodes.filter((b) => !(b.type === 'COMPONENT_SET' && b.prism3) && !b.furniture);
   const sameRow = (a: PageBox, b: PageBox): boolean => a.y < b.y + b.height && a.y + a.height > b.y;
+  // The row under the header, at `placeNewSet`'s `y`: the top of the sets already below the header, else its bottom plus the gap.
+  const below = h ? nodes.filter((b) => b.type === 'COMPONENT_SET' && !b.header && b.y >= h.y + h.height) : [];
+  const underY = !h ? 0 : below.length ? Math.min(...below.map((b) => b.y)) : h.y + h.height + PAGE_HEADER_GAP;
   const placed: PageBox[] = [];
   const moves: { id: string; from: { x: number; y: number }; to: { x: number; y: number } }[] = [];
-  for (const [i, b] of ours.entries()) {
-    const left = placed.filter((p) => sameRow(p, b) && p.x < b.x);
-    if (!left.length) { placed.push(b); continue; }
-    const right = Math.max(...left.map((p) => p.x + p.width));
+  for (const [i, was] of ours.entries()) {
+    const lifted = besideHeader(was);
+    const b = lifted ? { ...was, y: underY } : was;
+    // A lifted set's left neighbours are every set already placed in the row it joins, wherever it sat before.
+    const left = placed.filter((p) => sameRow(p, b) && (lifted || p.x < b.x));
+    if (!left.length && !lifted) { placed.push(b); continue; }
+    const right = left.length ? Math.max(...left.map((p) => p.x + p.width)) : h!.x - SET_GAP;
     // Too close only: a set spaced the fresh gap or wider is the designer's, and stays.
-    if (b.x - right >= SET_GAP - 0.5) { placed.push(b); continue; }
+    if (!lifted && b.x - right >= SET_GAP - 0.5) { placed.push(b); continue; }
     let x = right + SET_GAP;
     // Past anything that stays and would overlap the set at this spot; again, until the spot is clear.
     const later = ours.slice(i + 1);
@@ -964,7 +1012,7 @@ export const respaceSets = (nodes: readonly RespaceBox[]): { id: string; from: {
       for (const f of [...fixed, ...placed, ...later.filter((u) => x >= u.x)])
         if (f.y < b.y + b.height && f.y + f.height > b.y && f.x < x + b.width && f.x + f.width > x) { x = f.x + f.width + SET_GAP; pushed = true; }
     }
-    moves.push({ id: b.id, from: { x: b.x, y: b.y }, to: { x, y: b.y } });
+    moves.push({ id: b.id, from: { x: was.x, y: was.y }, to: { x, y: b.y } });
     placed.push({ ...b, x });
   }
   return moves;
@@ -1302,7 +1350,8 @@ const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode
         // three selection controls do: checkbox at `checked`/`indeterminate` and switch at `on` bind a
         // thickness and paint no border. `strokeAlign` needs no gate — no def can bind it, and INSIDE here
         // agrees with the two sites that write it beside a stroke.
-        if (!('strokeWeight' in (n?.bound ?? {}))) set('strokeWeight', 1);
+        // A per-side weight (#2695, `strokeEdges`) is a binding this would unbind too.
+        if (!STROKE_WEIGHT_KEYS.some((k) => k in (n?.bound ?? {}))) set('strokeWeight', 1);
         set('strokeAlign', 'INSIDE');
       }
       set('dashPattern', []);
@@ -1374,6 +1423,23 @@ const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode
     set('leadingTrim', 'NONE');
   }
 };
+
+// ── A HOST REFUSAL IS A MISS OR A STOP, BY WHAT WAS REFUSED (#982) ─────────────────────────────
+//
+// THE RULE, decided once so that no call site decides it again:
+//
+//   • A refused PROPERTY — one write onto a node that exists (a variable binding, a text or effect style,
+//     a font load, `characters`, a component-property definition or reference) — is a MISS. Record it,
+//     name the node and the field, and keep building that member. What is left is usable and labelled:
+//     one wrong colour, or a set that is not switchable.
+//   • A refused STRUCTURE — creating or parenting a node, `createComponentFromNode`, `combineAsVariants` —
+//     STOPS the member or set. Continuing would produce something worse than nothing (a member with no
+//     paint, a set that is not a set), and the throw reaches the guard in `applyComponentPlan`, which
+//     marks what was left behind (#913) and rethrows.
+//
+// The classifier is the question "does the node I am writing to still exist, whole, after this fails?"
+// A property refusal leaves the node as it was; a structure refusal leaves a half-made one.
+// `test-write-components.ts` pins both halves against a host that refuses, by name (#982).
 
 // ── A PARTIAL WRITE, MARKED (#913) ─────────────────────────────────────────────────────────────
 //
@@ -1698,6 +1764,11 @@ const writeComponentSet = async (
    * BEFORE the combine: Figma merges every member's slot of one name into one SLOT property there, measured.
    * A host without `createSlot` keeps the frame, and the miss says what that costs a designer.
    */
+  /** THE INSTANCES WHOSE OWN VALUES THIS RUN HAS WRITTEN (#2649 × #2645). `toSlots` runs `build` over a new SLOT to
+   *  write the slot's own fields, and that pass visits the items it holds a second time. The per-instance writes
+   *  (`nestOverrides`, `nestTexts`) land once per instance per run, so each miss is reported once, as the paste
+   *  twin `__slotsNow` does: it only moves the items. */
+  const instanceValuesWritten = new WeakSet<object>();
   const slotPlans = (n: FigmaNodePlan): FigmaNodePlan[] => [...(n.type === 'CONTENT_SLOT' ? [n] : []), ...n.children.flatMap(slotPlans)];
   const toSlots = async (comp: Wr, plan: FigmaNodePlan, parts: Map<string, Wr>, expose: Wr[], member: string): Promise<void> => {
     for (const sp of slotPlans(plan)) {
@@ -1780,7 +1851,7 @@ const writeComponentSet = async (
    *  `keep` holds the paths (`.` for the member, then child names joined by `/`) of the nodes a designer edited
    *  by hand (owner decision Q1): such a node keeps every field of its own, and only its children are visited.
    *  A build passes none of `ex`, `keep` or `path`, and runs exactly as it always has. */
-  const build = async (n: FigmaNodePlan, parts?: Map<string, Wr>, expose?: Wr[], ex?: Wr, keep?: ReadonlySet<string>, path = '.'): Promise<Wr | null> => {
+  const build = async (n: FigmaNodePlan, parts?: Map<string, Wr>, expose?: Wr[], ex?: Wr, keep?: ReadonlySet<string>, path = '.', edited?: ReadonlySet<string>, adopt?: { from: Wr[]; take: (k: Wr) => void }): Promise<Wr | null> => {
     let node: Wr;
     const kept = !!ex && !!keep?.has(path);
     if (n.type === 'TEXT') node = ex ?? wr(api.createText());
@@ -1803,7 +1874,13 @@ const writeComponentSet = async (
       // is the unambiguous one — it needs no coordinate to identify a member, so a def carrying a
       // `nestVariant` against a file that has flattened its ring to a component still resolves rather
       // than reporting a coordinate the file no longer has axes for.
-      const nested = n.nestTarget ? compByName.get(n.nestTarget) : undefined;
+      // #2661 — A FALLBACK-ONLY PREFERENCE first (`nestPrefer`, owner decisions Q363.8 as amended and Q386): the sibling
+      // set's member at the same coordinate when the file has that set, else `nestTarget` below, with no miss — the part
+      // needs `nestTarget` and only prefers this one. A set of that name that cannot yield the member is named once the
+      // instance is made (below), and it falls back the same way. Worded byte-identically to the paste payload's twin.
+      const pre = n.nestPrefer && n.nestVariant ? resolveNestMember(compSets, n.nestPrefer, n.nestVariant, nestVariantMatch, nestVariantMissAdvice) : null;
+      const preMember = pre && pre.miss === undefined ? pre.member : undefined;
+      const nested = !preMember && n.nestTarget ? compByName.get(n.nestTarget) : undefined;
       // THE SET AND ITS MEMBER, resolved together and only together (#1781) — see `resolveNestMember`, which
       // this executor and the paste payload share, decision AND wording. The member comes out of the named
       // set's own `children`. It used to be re-looked-up by NAME in `compByName`, where `size=small` is every
@@ -1817,7 +1894,7 @@ const writeComponentSet = async (
       // `nestTarget` — the FILE is the problem), the FIFTH MISS (the def's coordinate matches no member, or
       // more than one — `nestVariantMatch` refuses both, #656), and a matched child that is not a COMPONENT.
       // Nothing is nested in any of them: a valid wrong member looks like a success.
-      const res = !nested && n.nestTarget && n.nestVariant ? resolveNestMember(compSets, n.nestTarget, n.nestVariant, nestVariantMatch, nestVariantMissAdvice) : null;
+      const res = preMember ? { member: preMember } : !nested && n.nestTarget && n.nestVariant ? resolveNestMember(compSets, n.nestTarget, n.nestVariant, nestVariantMatch, nestVariantMissAdvice) : null;
       if (res && res.miss !== undefined) {
         misses.push(`${n.name}${res.miss}`);
         return null;
@@ -1873,14 +1950,24 @@ const writeComponentSet = async (
       // unlike the exposure above. On Update the same write lands on the instance kept in place, so a nested instance
       // that has no override yet gains it without a rebuild; one a designer changed by hand (`kept`) is left as it is.
       // `applyNestOverrides` is shared with the paste payload, decision and wording.
-      if (node && n.nestOverrides && !kept)
+      const firstVisit = !!node && !instanceValuesWritten.has(node);
+      if (node) instanceValuesWritten.add(node);
+      // The preference that did not resolve (#2661), named once per instance: `toSlots` visits a slot's items twice.
+      if (node && firstVisit && pre && pre.miss !== undefined) misses.push(`${n.name}.nestPrefer -> ${n.nestPrefer} (in this file, but it did not resolve: ${pre.miss.slice(1)}; made from ${n.nestTarget} instead)`);
+      if (node && firstVisit && n.nestOverrides && !kept)
         for (const m of applyNestOverrides(node as Parameters<typeof applyNestOverrides>[0], n.nestOverrides, (name) => { const c = compByName.get(name); return c?.id ? String(c.id) : null; }))
+          misses.push(`${n.name}${m}`);
+      // THE HOST'S PREFERENCE FOR THE NESTED COMPONENT'S DEFAULT ITEMS (#2661, owner decision Q418): Dialog's group has its
+      // Cancel swapped to Button.Neutral when the file has it. Once per instance like the overrides, and not onto an
+      // instance a designer changed by hand (`kept`). `applyNestItemPrefers` is shared with the paste payload, decision and wording.
+      if (node && firstVisit && n.nestItemPrefer && !kept)
+        for (const m of applyNestItemPrefers(node as Parameters<typeof applyNestItemPrefers>[0], n.nestItemPrefer, (set, variant) => resolveNestMember(compSets, set, variant, nestVariantMatch, nestVariantMissAdvice)))
           misses.push(`${n.name}${m}`);
       // THE NESTED INSTANCE'S OWN TEXT (#2317). A set has one default per text property, so the Password field's
       // nested Button would read its set's "Button"; the plan's `nestTexts` names what this instance says instead,
       // written as an instance override. The property is found by its name before the `#id` Figma appends, and
       // only among TEXT properties; one the instance does not have is a miss, and the instance keeps its default.
-      if (node && n.nestTexts) {
+      if (node && firstVisit && n.nestTexts) {
         const props = node.componentProperties ?? {};
         const set: Record<string, string> = {};
         for (const [prop, value] of Object.entries(n.nestTexts)) {
@@ -2009,8 +2096,10 @@ const writeComponentSet = async (
             try { await api.loadFontAsync(st.fontName); }
             catch (err) { misses.push(`${n.name}.font -> ${st.fontName.family} ${st.fontName.style} (${(err as Error).message})`); }
           }
-          await node.setTextStyleIdAsync?.(st.id);
-          appliedStyle = st;
+          // A PROPERTY write (#982): refused, it is a miss and the member keeps building. `appliedStyle` stays
+          // unset, so the #1567 re-apply below does not try the style a second time.
+          try { await node.setTextStyleIdAsync?.(st.id); appliedStyle = st; }
+          catch (err) { misses.push(`${n.name}.textStyle -> ${n.textStyle} REFUSED (${(err as Error).message})`); }
         }
       }
       // The PLACEHOLDER copy, after the style so it is written on a node already carrying the right font.
@@ -2066,7 +2155,10 @@ const writeComponentSet = async (
       if (n.effectStyle) {
         const ef = effectByName.get(n.effectStyle);
         if (!ef) misses.push(`${n.name}.effectStyle -> ${n.effectStyle}`);
-        else await node.setEffectStyleIdAsync?.(ef.id);
+        else {
+          try { await node.setEffectStyleIdAsync?.(ef.id); }
+          catch (err) { misses.push(`${n.name}.effectStyle -> ${n.effectStyle} REFUSED (${(err as Error).message})`); }
+        }
       }
       if (n.layoutMode) {
         // THE ROOT'S BUILD WIDTH (#1757, `FigmaNodePlan.placementWidth`): a root whose `fill` has no placement
@@ -2115,8 +2207,10 @@ const writeComponentSet = async (
       for (const [prop, varName] of Object.entries(n.bound)) {
         const v = byName.get(varName);
         if (!v) { misses.push(`${n.name}.${prop} -> ${varName}`); continue; }
-        node.setBoundVariable?.(prop, v);
-        wrote.push(prop);
+        // A PROPERTY write (#982): a refused binding is one miss, not the end of a 648-member build. It is not
+        // pushed to `wrote`, so the read-back does not also report a write that never landed.
+        try { node.setBoundVariable?.(prop, v); wrote.push(prop); }
+        catch (err) { misses.push(`${n.name}.${prop} -> ${varName} REFUSED (${(err as Error).message})`); }
       }
       // IN PLACE, a binding the plan no longer declares is removed. Paints are bound in their arrays, below, and a
       // bound `strokeWeight` reads back on its four sides (#1332), so neither is a stray here. An INSTANCE's
@@ -2149,6 +2243,16 @@ const writeComponentSet = async (
         } catch { /* unresolvable here: the black base, as before */ }
         return api.variables.setBoundVariableForPaint({ type: 'SOLID', color: base, ...(alpha < 1 ? { opacity: alpha } : {}) }, 'color', v);
       };
+      // A TRANSLUCENT BOUND PAINT IS ASSIGNED TWICE (#2774). The host resets a bound paint's opacity to 1 on the first
+      // assignment that lands where the node does not already hold a paint bound to that same variable; assigning again
+      // once the binding is in place keeps it (the shim's host-measured model). A fresh build is rescued by the combine's
+      // re-resolve, and an in-place rewrite of the same wash by the binding already there, but an in-place rewrite from
+      // an opaque variable to a wash (Field style Underline → Outline at hover, #2695) kept the wash at 100%, and only a
+      // second Update converged it.
+      const assignPaint = (key: 'fills' | 'strokes', p: unknown): void => {
+        node[key] = [p];
+        if (((p as { opacity?: number }).opacity ?? 1) < 1) node[key] = [p];
+      };
       // Same reason as `wrote`: only a paint that was actually assigned can have been discarded.
       let paintedFills = false;
       let paintedStrokes = false;
@@ -2157,7 +2261,7 @@ const writeComponentSet = async (
       // so a tint carried on the paint lasted only until the next re-apply. Lockstep with the paste executor.
       if (n.paints?.fills) {
         const p = paint(n.paints.fills, 'fills');
-        if (p) { node.fills = [p]; paintedFills = true; }
+        if (p) { assignPaint('fills', p); paintedFills = true; }
         // DECLARED BUT UNRESOLVABLE → transparent, NEVER Figma's opaque white default (#1387). The
         // component set is brand-agnostic — it binds `interactive.<family>.overlay.{hover,pressed}` on
         // outline/text hover/pressed unconditionally — while that wash is EMITTED only under
@@ -2208,7 +2312,7 @@ const writeComponentSet = async (
       if (n.paints?.strokes) {
         const p = paint(n.paints.strokes, 'strokes');
         if (p) {
-          node.strokes = [p];
+          assignPaint('strokes', p);
           paintedStrokes = true;
           // A stroke variable with no weight binds correctly and paints nothing visible.
           //
@@ -2217,7 +2321,8 @@ const writeComponentSet = async (
           // right paint at a hardcoded 1px, re-theming on color and frozen on width. That is what the focus
           // ring shipped as. `wrote` rather than `n.bound`, so a name that failed to resolve still gets the
           // fallback and paints something.
-          if (!node.strokeWeight && !wrote.includes('strokeWeight')) node.strokeWeight = 1;
+          // A per-side weight (#2695, `strokeEdges`) counts as written: the literal would overwrite all four sides.
+          if (!node.strokeWeight && !STROKE_WEIGHT_KEYS.some((k) => wrote.includes(k))) node.strokeWeight = 1;
           node.strokeAlign = 'INSIDE';
           // BORDER-BOX, and Figma defaults the other way: left alone, the stroke is ADDED to the
           // auto-layout size, so an outline button measured 62 where its filled sibling measured 60 —
@@ -2272,15 +2377,23 @@ const writeComponentSet = async (
     const byPart = new Map<string, Wr>();
     // IN PLACE (#2265 PR 2): the node's existing children, each paired at most once with the plan child of its name.
     // A GLYPH's are the fresh import's, never the plan's, so they are not paired; an INSTANCE's are its main's.
-    const pool = ex && n.type !== 'GLYPH' && node.type !== 'INSTANCE' ? [...((node.children ?? []) as Wr[])] : [];
+    // A FRESH FRAME THE PLAN INSERTS under an in-place node (#2595) is offered that node's children it is to hold
+    // (`adoptions`): they are paired here as an in-place node's own are, and each one that fits is moved in.
+    const pool = ex && n.type !== 'GLYPH' && node.type !== 'INSTANCE' ? [...((node.children ?? []) as Wr[])] : adopt?.from ?? [];
     const paired = new Set<Wr>();
+    const at$ = (name: string): string => (path === '.' ? name : `${path}/${name}`);
+    const moves = ex && pool.length ? adoptions(n.children, pool.map((k) => String(k.name ?? '')), edited, path) : new Map<string, string>();
     let at = 0;
     for (const c of n.children) {
       const cand = pool.find((k) => !paired.has(k) && k.name === c.name);
       if (cand) paired.add(cand);
       const fits = !!cand && fitsHost(c, cand);
-      const kid = await build(c, parts, expose, fits ? cand : undefined, keep, path === '.' ? c.name : `${path}/${c.name}`);
+      const offer = !cand && ex ? pool.filter((k) => !paired.has(k) && moves.get(String(k.name ?? '')) === c.name) : [];
+      const kid = await build(c, parts, expose, fits ? cand : undefined, keep, at$(c.name), edited,
+        offer.length ? { from: offer, take: (k) => paired.add(k) } : undefined);
       if (!kid) continue;   // a missing shared component — one precise miss, the rest still builds
+      // Moved in: its in-place parent no longer removes it.
+      if (adopt && cand && fits) adopt.take(cand);
       if (ex) {
         // A TYPE CHANGE IS A REPLACEMENT, the one way an update changes a child's id; the dry run lists each one.
         if (cand && !fits) wr(cand).remove?.();
@@ -2362,7 +2475,8 @@ const writeComponentSet = async (
     }
     // IN PLACE, a child the plan no longer has is removed: the member then holds what the plan says, and the
     // dry run listed it ("removed — not in the plan").
-    for (const k of pool) if (!paired.has(k)) k.remove?.();
+    // A fresh frame's offered children stay its in-place parent's to remove: one that did not fit is removed there.
+    if (ex) for (const k of pool) if (!paired.has(k)) k.remove?.();
     // A CENTERED absolute child (#612's pending spinner with no visual cell to take). NOT resized:
     // unlike the ring it keeps its own square size, and its `size` binding is already on it — `resize`
     // would clear that binding.
@@ -2724,7 +2838,7 @@ const writeComponentSet = async (
       wr(existing).setSharedPluginData?.(NS, UPDATING_KEY, JSON.stringify([...inPlace.keep]));
       const parts = new Map<string, Wr>();
       const expose: Wr[] = [];
-      await build(spec.root, parts, expose, wr(existing), inPlace.keep, '.');
+      await build(spec.root, parts, expose, wr(existing), inPlace.keep, '.', inPlace.edited);
       // A slot the plan GAINED, or one a type change rebuilt, came back a frame: the member is a component already,
       // so it becomes a native slot here as on a fresh build (#2417). A slot the member already held is left alone.
       await toSlots(wr(existing), spec.root, parts, expose, spec.name);
@@ -3216,16 +3330,21 @@ const writeComponentSet = async (
     const had = (defs[key] ?? {}) as { slotSettings?: Record<string, unknown>; preferredValues?: readonly unknown[] };
     const hs = had.slotSettings ?? {};
     const hostHas = hs.minChildren != null || hs.maxChildren != null || hs.allowPreferredValuesOnly === true || hs.displayEmptyByDefault === true || (had.preferredValues ?? []).length > 0;
-    if (!p.slotSettings && !p.preferred && !hostHas) continue;
+    if (!p.slotSettings && !p.preferred && !p.preferredWhenBuilt && !hostHas) continue;
     const preferredValues: SlotPreferredValue[] = [];
-    if (p.preferred?.length) {
+    // #2661 — `preferredWhenBuilt` is offered after `preferred` when the file has it, and left out WITHOUT a miss when
+    // it does not: the slot does not need it (Q386). A stale copy or a keyless host is still named, as for `preferred`.
+    const optional = p.preferredWhenBuilt ?? [];
+    const ids = [...(p.preferred ?? []), ...optional];
+    if (ids.length) {
       // A def with variants builds a set under its id; a single-component def (#2296) builds one component under it.
       const sets = api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly CompSetRef[];
       const singles = api.root.findAllWithCriteria({ types: ['COMPONENT'] }) as readonly CompRef[];
-      for (const id of p.preferred) {
+      for (const id of ids) {
         const asSet = sets.filter((x) => x.name === id);
         const named: { key?: string }[] = asSet.length ? asSet : singles.filter((x) => x.name === id);
         if (named.length === 1 && named[0].key) { preferredValues.push({ type: asSet.length ? 'COMPONENT_SET' : 'COMPONENT', key: named[0].key }); continue; }
+        if (!named.length && optional.includes(id)) continue;
         misses.push(named.length > 1
           ? `property ${p.name}.preferred -> ${id} (found ${named.length} components named ${id}; not offered in the slot. Rename or remove the stale copy, then rebuild)`
           : named.length === 1

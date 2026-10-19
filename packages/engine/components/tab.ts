@@ -29,7 +29,7 @@
 import { ComponentDef } from '../component-schema';
 
 export const tab: ComponentDef = {
-  id: '_tab-item',
+  id: 'tab-item',
   name: 'Tab.Item',
   aliases: ['tab-trigger', 'tab-item'],
   category: 'navigation',
@@ -41,17 +41,17 @@ export const tab: ComponentDef = {
   props: [
     { name: 'label', type: 'string', required: true, description: 'The tab text: a short noun, one or two words. One line; a tab list that runs out of room scrolls rather than wrapping.' },
     { name: 'value', type: 'string', required: true, description: 'The key that ties this tab to its panel. The tab list selects by key, never by position.' },
-    { name: 'selected', type: 'boolean', default: 'false', required: false, description: 'Whether this tab is the selected one. Set by the tab list from its value; do not set it on a tab inside a list.' },
+    { name: 'selected', type: 'boolean', default: false, required: false, description: 'Whether this tab is the selected one. Set by the tab list from its value; do not set it on a tab inside a list.' },
     { name: 'leadingIcon', type: 'slot', required: false, description: 'An icon before the label. Decorative when a label is present.' },
     { name: 'count', type: 'number', required: false, description: 'A count after the label, drawn as a count badge and read as part of the tab name, such as "Reviews, 12".' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Tab height, padding and label type. Medium clears 44px on comfortable and spacious density.' },
-    { name: 'disabled', type: 'boolean', default: 'false', required: false, description: 'Dims the tab and skips it during arrow-key movement.' },
+    { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Dims the tab and skips it during arrow-key movement.' },
   ],
 
   states: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled'],
   variants: {
     selection: ['unselected', 'selected'],
-    size: ['small', 'medium', 'large'],
+    size: ['medium', 'small', 'large'],
   },
   axisKinds: { selection: 'runtime', size: 'authoring' },
 
@@ -68,22 +68,25 @@ export const tab: ComponentDef = {
     'ring-width': 'focus.ring.width',
     'ring-offset': 'focus.ring.offset',
 
+    // The leading icon sits ONE RUNG BELOW the control rung, as Button's does (#1350): small → icon.size.xs (16),
+    // medium → sm (20), large → md (24). A label already carries the control, so the glyph beside it reads better
+    // smaller (owner Q337 A, #2725). `lint-rung-names.ts` records it in `ICON_OFFSET_DEFS`.
     'size.small.height': 'size.sm.height',
     'size.small.padding-x': 'space.150',
     'size.small.gap': 'space.075',
-    'size.small.icon': 'icon.size.sm',
+    'size.small.icon': 'icon.size.xs',
     'size.small.type.selected': 'type.label.sm.emphasis',
     'size.small.type.unselected': 'type.label.sm.default',
     'size.medium.height': 'size.md.height',
     'size.medium.padding-x': 'space.200',
     'size.medium.gap': 'space.100',
-    'size.medium.icon': 'icon.size.md',
+    'size.medium.icon': 'icon.size.sm',
     'size.medium.type.selected': 'type.label.md.emphasis',
     'size.medium.type.unselected': 'type.label.md.default',
     'size.large.height': 'size.lg.height',
     'size.large.padding-x': 'space.250',
     'size.large.gap': 'space.100',
-    'size.large.icon': 'icon.size.lg',
+    'size.large.icon': 'icon.size.md',
     'size.large.type.selected': 'type.label.lg.emphasis',
     'size.large.type.unselected': 'type.label.lg.default',
 

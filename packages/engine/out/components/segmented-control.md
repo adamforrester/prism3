@@ -40,13 +40,14 @@ One or two words per option, nouns, sentence case: "List", not "Show list".
 - **Purpose:** Choose exactly one of two to five short, always-visible options that change a value in place.
 - **Use when:** A short single choice the user changes often or that changes the current view at once, such as list or grid, a time range or a delivery method.
 - **Avoid when:** The options switch panels of content (use tabs), there are more than five or the labels are long (use a select or a radio group), options need descriptions (use a radio group), it is one on/off setting (use a switch), or selecting goes to another page (a navigation of links).
-- **Often used with:** `_segmented-control-segment`, `field-label`, `icon`
+- **Often used with:** `segmented-control-segment`, `field-label`, `icon`
 
 ## Props
 
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
 | `label` | string | — | yes | What is being chosen, such as "View". Shown above the track, or given as an accessible name only when the page already shows it. |
+| `items` | slot of `segmented-control-segment`, 1 to 5 | — | yes | The options, each a SegmentedControl.Segment, in order. Three by default with the first selected, five at most. |
 | `value` | string | — | no | The selected option's value. Controlled; pair it with onChange. |
 | `defaultValue` | string | — | no | The option selected first, when the control manages its own state. A segmented control always has one option selected. |
 | `onChange` | function | — | no | Called with the new value when the selection changes. Never called with an empty value. |
@@ -64,7 +65,7 @@ One or two words per option, nouns, sentence case: "List", not "Show list".
 
 | Axis | Values | Changes |
 | --- | --- | --- |
-| `size` | `small`, `medium`, `large` | once, when authored |
+| `size` | `medium`, `small`, `large` | once, when authored |
 
 ## Accessibility
 
@@ -91,7 +92,7 @@ One or two words per option, nouns, sentence case: "List", not "Show list".
 
 ## Composition
 
-- **Composes with:** `field-label`, `_segmented-control-segment`
+- **Composes with:** `field-label`, `segmented-control-segment`
 - **Alternative to:** `tabs`, `radio-group`, `select`, `switch-row`
 - **Replaces:**
   - a radio group restyled as a compact switcher for a view that changes at once

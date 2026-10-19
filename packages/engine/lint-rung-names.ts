@@ -219,6 +219,11 @@ const ICON_OFFSET_DEFS: Record<string, string> = {
   'flush-icon-button': 'icon.size.*',
   'flush-icon-button-destructive': 'icon.size.*',
   'flush-icon-button-neutral': 'icon.size.*',
+  // The text-bearing controls follow Button (owner Q337 A, #2725): the leading icon is 16/20/24, so the medium
+  // default is `sm`. Icon button and Flush icon button keep their own rung.
+  'segmented-control-segment': 'icon.size.*',
+  tab: 'icon.size.*',
+  tag: 'icon.size.*',
 };
 
 /**
@@ -278,6 +283,7 @@ const NO_SIZE_AXIS: Record<string, string> = {
   'field-message': 'validation copy takes one type role; its axis is `status`, and size follows the field it belongs to',
   'veil': 'a media wash is full-bleed and has no size RUNG — its axes are `value` × `intensity`, and its only dimension binding is a NOMINAL standalone square (`container.narrow`), overwritten by the designer resizing it over the image; there is no size ladder to compare against the tier',
   'image-placeholder': 'a media frame has no size RUNG — its axis is `ratio` (an aspect PROPORTION, not a scale ladder), its one dimension binding is a NOMINAL width (`container.narrow`) the designer resizes, and its glyph size is a def-local literal (`glyphPx`, #1340), not a rung; there is no size ladder to compare against the tier (#1316)',
+  'button-group': 'a layout of Buttons has no size RUNG of its own — its axis is `layout`, its gaps are `space.*` steps, and each nested Button is medium and measured under its own name; a size axis for smaller actions is held for the owner (#2661)',
   'divider': 'a rule has no size RUNG — its axis is `orientation`, its thickness is one border-width role (`border-width.hairline`), and its length is a NOMINAL standalone placeholder (`container.narrow` across, `size.md.height` tall) a host stretches; there is no size ladder to compare against the tier (#2455)',
 };
 
@@ -335,6 +341,7 @@ const SPACING_ONLY_LADDER: Record<string, string> = {
  * hold the SAME values, and the variants must lead with the prop's default; any other reordering still fails.
  * Both directions: an admitted def whose two orders already agree is a stale admission.
  */
+const Q1B = 'the Figma default is `medium`, the code default, by owner decision Q1 B on #2752 (every size ladder leads with medium)';
 const DEFAULT_FIRST: Record<string, string> = {
   'text-field': 'the Figma default and the in-place-update landing value are `medium`, the field before #2266',
   select: 'the Figma default and the in-place-update landing value are `medium`, the select before #2266',
@@ -342,6 +349,36 @@ const DEFAULT_FIRST: Record<string, string> = {
   dialog: 'the Figma default is the 560px medium panel, the proposal\'s table approved by the owner\'s Q303 (#2609)',
   // #2317: TextField's size order through the shared field factory (Q301 builds it medium first, the field family's order).
   'password-field': 'the Figma default is `medium`, the field family\'s order from the shared field factory (#2317)',
+  // #2752 (owner decision Q1 B, 2026-10-16): every size ladder leads with medium, so Figma inserts the code default.
+  button: Q1B,
+  'button-destructive': Q1B,
+  'button-neutral': Q1B,
+  'icon-button': Q1B,
+  'icon-button-destructive': Q1B,
+  'icon-button-neutral': Q1B,
+  'flush-icon-button': Q1B,
+  'flush-icon-button-destructive': Q1B,
+  'flush-icon-button-neutral': Q1B,
+  'checkbox-control': Q1B,
+  'checkbox-row': Q1B,
+  'checkbox-group': Q1B,
+  'radio-control': Q1B,
+  'radio-row': Q1B,
+  'radio-group': Q1B,
+  'switch-control': Q1B,
+  'switch-row': Q1B,
+  tag: Q1B,
+  tab: Q1B,
+  tabs: Q1B,
+  '_accordion-indicator': Q1B,
+  accordion: Q1B,
+  'list-item': Q1B,
+  list: Q1B,
+  'segmented-control-segment': Q1B,
+  'segmented-control': Q1B,
+  link: Q1B,
+  // #2427: owner Q283.6 B ("medium first") agrees with Q1 B; the Counter takes the same reason.
+  counter: Q1B,
 };
 
 const SIZE_BY_FOLLOW_ONLY: Record<string, string> = {
@@ -378,14 +415,14 @@ const MUST_COVER = [
   'button', 'button-destructive', 'button-neutral',
   'icon-button', 'icon-button-destructive', 'icon-button-neutral',
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral',
-  'field-label', 'text-field', 'textarea', 'select', 'tag',
-  '_tab-item', 'tabs',
+  'field-label', 'text-field', 'textarea', 'select', 'tag', 'counter',
+  'tab-item', 'tabs',
   'checkbox-control', 'checkbox-row', 'checkbox-group',
   'radio-control', 'radio-row', 'radio-group',
   'switch-control', 'switch-row',
   '_accordion-indicator', 'accordion',
-  '_list-item', 'list',
-  '_segmented-control-segment', 'segmented-control', 'link',
+  'list-item', 'list',
+  'segmented-control-segment', 'segmented-control', 'link',
   'dialog', 'password-field',
 ];
 

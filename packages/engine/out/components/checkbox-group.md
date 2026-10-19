@@ -11,7 +11,7 @@ A labeled set for selecting any number — zero to many — from a bounded list 
 
 ## Usage
 
-Use to select any number — zero to many — from a bounded set, where the change is committed on save rather than applied instantly. Give the group a label that names the decision; let it own the value array, required and validation, and derive each row's checked state from the value array rather than wiring it on the row. Compose the rows as `children`. Past roughly 7-10 options, a filtering multi-select combobox (not built yet) scans better; for exactly-one selection use Radio.Group, and for a single independent opt-in a lone Checkbox.Row.
+Use to select any number — zero to many — from a bounded set, where the change is committed on save rather than applied instantly. Give the group a label that names the decision; let it own the value array, required and validation, and derive each row's checked state from the value array rather than wiring it on the row. Compose the rows as `items`. Past roughly 7-10 options, a filtering multi-select combobox (not built yet) scans better; for exactly-one selection use Radio.Group, and for a single independent opt-in a lone Checkbox.Row.
 
 ### Do
 
@@ -50,6 +50,7 @@ The group label names the decision; the rows carry the short options. Group erro
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
 | `label` | string \| node | — | yes | The group heading, rendered as the nested FieldLabel and the group's accessible name (role="group" + aria-labelledby). Names the decision the set answers ("Notification preferences"), letting its rows read the abstracted-up short labels ("Email", "SMS", "Push"). |
+| `items` | slot of `checkbox-row`, 1 or more | — | yes | The options, each a Checkbox.Row, in order. Three by default; a designer adds, removes and reorders them in place. |
 | `value` | string[] | — | no | The controlled array of checked option values. The GROUP owns it; each row's checked appearance is DERIVED (`checked = value.includes(row.value)`), never wired on the row. Pair with `onChange`; use `defaultValue` for the uncontrolled form. |
 | `defaultValue` | string[] | — | no | Uncontrolled initial selection. Never pre-check a consent option — a dark pattern, and for marketing consent often unlawful. |
 | `onChange` | (value: string[], event) => void | — | no | Fires with the NEW value array when any row toggles. The group dispatches it; a row never owns its own onChange inside a group. |
@@ -66,7 +67,7 @@ The group label names the decision; the rows carry the short options. Group erro
 
 | Axis | Values | Changes |
 | --- | --- | --- |
-| `size` | `small`, `medium`, `large` | once, when authored |
+| `size` | `medium`, `small`, `large` | once, when authored |
 
 ## Accessibility
 

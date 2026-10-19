@@ -40,13 +40,14 @@ One or two words per tab, nouns, sentence case.
 - **Purpose:** Switch between peer panels of related content in place, one at a time.
 - **Use when:** Two to about six peer sections of one subject, viewed one at a time, where switching is quick and the address need not change.
 - **Avoid when:** The selection changes the page or the address (a navigation of links), filters or re-sorts the current view (SegmentedControl, or Select), is a required sequence (a stepper, not built yet), or has many independent sections (Accordion).
-- **Often used with:** `_tab-item`, `badge`, `icon`
+- **Often used with:** `tab-item`, `badge`, `icon`
 
 ## Props
 
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
 | `value` | string | — | no | The key of the selected tab. Controlled; pair it with onChange. |
+| `items` | slot of `tab-item`, 1 to 6 | — | yes | The tabs, each a Tab, in order, one per panel. Three by default with the first selected, six at most. |
 | `defaultValue` | string | — | no | The key of the tab selected first, when the list manages its own state. |
 | `onChange` | function | — | no | Called with the new key when the selected tab changes. |
 | `activation` | enum: 'automatic' \| 'manual' | `automatic` | no | automatic: moving focus with the arrow keys selects the tab. manual: arrows move focus only, and Enter or Space selects. Use manual when showing a panel is slow. |
@@ -62,7 +63,7 @@ One or two words per tab, nouns, sentence case.
 
 | Axis | Values | Changes |
 | --- | --- | --- |
-| `size` | `small`, `medium`, `large` | once, when authored |
+| `size` | `medium`, `small`, `large` | once, when authored |
 | `alignment` | `start`, `center` | once, when authored |
 
 ## Accessibility
@@ -87,7 +88,7 @@ One or two words per tab, nouns, sentence case.
 
 ## Composition
 
-- **Composes with:** `_tab-item`
+- **Composes with:** `tab-item`
 - **Alternative to:** `select`, `accordion`, `segmented-control`
 - **Replaces:**
   - show and hide divs with no tab semantics

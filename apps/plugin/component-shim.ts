@@ -212,7 +212,9 @@ export type ShimOpts = {
    *
    * Opt-in per run: every other case in this file drives a host that accepts everything.
    */
-  refuse?: { combine?: boolean; createFrame?: 'always' | 'on-failure-path' };
+  refuse?: { combine?: boolean; createFrame?: 'always' | 'on-failure-path'; createText?: boolean;
+    /** PROPERTY refusals (#982) — a write onto a node that exists. `setBoundVariable` names the field it refuses. */
+    setBoundVariable?: string; setTextStyleId?: boolean; setEffectStyleId?: boolean };
   /**
    * COMBINE DETACHES THE PRE-COMBINE DESCENDANT HANDLES (#1337) — the one host behavior this shim could
    * not otherwise reach, and the reason #866's `refsRepaired` and #1279's `boundRepaired` were UNCONFIRMED
@@ -244,6 +246,14 @@ export type ShimOpts = {
    * exactly as on the live host. Opt-in, so the corpus loop above keeps its opaque nested instances.
    */
   nestedInstanceParts?: string[];
+  /**
+   * A NESTED INSTANCE'S DEFAULT ITEMS (#2661, owner decision Q418). With this set, an instance of a component this run
+   * built carries its main's own nested instances as real INSTANCE children, each pointing at the component it came from
+   * and holding its overrides, and `swapComponent` on one re-points it as the host does. A Dialog's instance of
+   * Button.Group then has a Cancel to swap to Button.Neutral, and the swap is read off the built page. Opt-in, so every
+   * other case keeps its opaque nested instances.
+   */
+  nestedItems?: boolean;
   /**
    * THE TEXT PROPERTIES AN OPAQUE COMPONENT'S INSTANCES CARRY (#2317), by component or set name: property name →
    * its default. A component this run builds reports its set's real definitions; one named only in `comps` or
@@ -977,6 +987,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
       // shim reproduces it rather than merely counting the call — without this, `unlockAspectRatio()`
       // could be deleted from the executor and every geometry assertion here would still pass.
       setBoundVariable(prop: string, v: { id: string; value?: number } | null) {
+        if (v && opts.refuse?.setBoundVariable === prop) throw new Error(`in setBoundVariable: refused "${prop}"`);
         const was = opts.scaleConstrained && (prop === 'width' || prop === 'height') ? [node.width as number, node.height as number] as const : null;
         try {
         const bv = node.boundVariables as Record<string, unknown>;
@@ -1005,6 +1016,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
       // executor's `loadFontAsync` call deletable with the whole suite green: the `catch` that reports a
       // font it could not load is a check that runs and cannot fire. The message is Figma's own.
       setTextStyleIdAsync: async (id: string) => {
+        if (opts.refuse?.setTextStyleId) throw new Error('in setTextStyleIdAsync: refused');
         const fn = fontOfStyle(id);
         if (fn && !loadedFonts.has(fontKey(fn)))
           throw new Error(`in setTextStyleIdAsync: unloaded font "${fn.family} ${fn.style}". Please call figma.loadFontAsync({ family: "${fn.family}", style: "${fn.style}" }) and await the returned promise first.`);
@@ -1032,7 +1044,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
       // `undefined` from this shim and reported every styled node as unstyled — a harness defect
       // presenting as a subject defect, which is the worst shape a false positive can take. Both names
       // are set from the one setter, so they cannot disagree.
-      setEffectStyleIdAsync: async (id: string) => { node._effectStyleId = id; node.effectStyleId = id; },
+      setEffectStyleIdAsync: async (id: string) => { if (opts.refuse?.setEffectStyleId) throw new Error('in setEffectStyleIdAsync: refused'); node._effectStyleId = id; node.effectStyleId = id; },
       // ABSOLUTE POSITIONING with its REJECTION CASE, which is the only part worth modelling: Figma
       // ignores `layoutPositioning` on a child of a non-auto-layout parent, and it ignores it SILENTLY.
       get layoutPositioning() {
@@ -1070,7 +1082,9 @@ export const makeShim = (opts: ShimOpts = {}) => {
         Object.defineProperty(node, 'height', { configurable: true, get: () => (bv.height ? bv.height.value ?? 0 : h), set: (v: number) => { h = v; } });
         }
       },
-      appendChild(c: Node) { c.parent = node; (node.children as Node[]).push(c); },
+      // A MOVE, as Figma's `appendChild` is for a node that already has a parent (#2595): it leaves its old parent and
+      // keeps its id. A fresh node's only parent is the page, which it leaves as it does in Figma.
+      appendChild(c: Node) { detach(c); c.parent = node; (node.children as Node[]).push(c); },
       // #2265 PR 2 — REORDER WITHOUT REPLACING: Figma's `insertChild` moves a node that already has a parent, and
       // the node keeps its id. Modelled as a move for that reason, so an update that reorders keeps identity.
       insertChild(i: number, c: Node) {
@@ -1166,6 +1180,27 @@ export const makeShim = (opts: ShimOpts = {}) => {
         get() { return undefined; },
         set(_v: string | undefined) {
           throw new Error(`in set_textAlignVertical: Cannot write to node with unsupported type: ${type}`);
+        },
+      });
+    }
+    // #2695 — A LITERAL STROKE WEIGHT DETACHES THE WEIGHT BINDINGS, as a literal write after a binding does on the
+    // host (#1266, the rule both executors' 1px fallback is gated on). A bound weight lives on the four per-side keys
+    // (#1332), so the write drops all four and sets each side to the value. Modelled so the underline field's per-side
+    // binding (`strokeEdges`) is witnessed surviving the build: an executor that wrote the 1px fallback over it would
+    // read back here with no weight bound, as it would on the host.
+    {
+      let weight = node.strokeWeight as number | undefined;
+      Object.defineProperty(node, 'strokeWeight', {
+        configurable: true,
+        enumerable: true,
+        get() { return weight; },
+        set(v: number) {
+          weight = v;
+          const bv = node.boundVariables as Record<string, unknown> | undefined;
+          for (const side of ['strokeTopWeight', 'strokeRightWeight', 'strokeBottomWeight', 'strokeLeftWeight']) {
+            if (bv) delete bv[side];
+            (node as Record<string, unknown>)[side] = v;
+          }
         },
       });
     }
@@ -1487,6 +1522,9 @@ export const makeShim = (opts: ShimOpts = {}) => {
         // share one — which a swap override, whose value IS an id, cannot survive.
         const mkRef = (name: string, _i: number, main?: Node, owner: { name: string; type: string } = PAGE_OWNER) => ({
           name, id: componentIdFor(owner.name, name), type: 'COMPONENT',
+          // With `identities` a component carries the key its instances' `mainComponent` reads (#2649: a slot's preferred
+          // value names a component by key, so a nested component the slot prefers must have one, as on a real file).
+          ...(opts.identities ? { key: `${opts.keyPrefix ?? 'K'}:${name}` } : {}),
           createInstance: () => {
             const inst = mkNode('INSTANCE'); const vec = mkNode('VECTOR'); inst.findAll = () => [vec]; inst.findOne = () => null;
             // #2645 — ITS PROPERTIES: a live member's are its set's (a plain live component's, its own), read when
@@ -1536,6 +1574,22 @@ export const makeShim = (opts: ShimOpts = {}) => {
               (kid as Record<string, unknown>)._inNestedInstance = true;
               kid.parent = inst;   // #1428 — so `insideNestedInstance`'s ancestry walk sees the INSTANCE
               (inst.children as Node[]).push(kid);
+            }
+            // #2661 (Q418) — A NESTED INSTANCE'S DEFAULT ITEMS (`nestedItems`): the main's own nested instances, as
+            // children of this one, found by the layer name a host's item preference names.
+            if (opts.nestedItems && main) {
+              const items: Node[] = [];
+              const take = (n: Node): void => {
+                for (const c of (n.children as Node[] | undefined) ?? []) {
+                  if (c.type === 'INSTANCE') {
+                    const kid = mkNode('INSTANCE'); kid.name = c.name; kid.parent = inst;
+                    carryMain(c, kid);
+                    (inst.children as Node[]).push(kid); items.push(kid);
+                  } else take(c);
+                }
+              };
+              take(main);
+              if (items.length) inst.findAll = (pred?: (n: unknown) => boolean) => [vec, ...items].filter((k) => !pred || pred(k));
             }
             // AN INSTANCE INHERITS ITS MAIN COMPONENT'S ROOT BINDINGS (#1388, #1290) — the focus-ring
             // component binds width/height to its `nominal-side`, so a nested ring carries those bindings
@@ -1616,7 +1670,10 @@ export const makeShim = (opts: ShimOpts = {}) => {
         ...(opts.fileNodes ?? []).filter((f) => f.name === name).map((f) => ({ name: f.name, type: f.type })),
       ],
     },
-    createText: () => mkNode('TEXT'),
+    createText: () => {
+      if (opts.refuse?.createText) throw new Error('in createText: The document is not editable');
+      return mkNode('TEXT');
+    },
     createFrame: () => {
       // #913: either the BUILD's first frame or the MARKING's, depending on the setting. Figma's message
       // for a file the plugin may not write to.

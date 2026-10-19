@@ -40,7 +40,7 @@ One phrase or sentence per item, sentence case, every item the same grammatical 
 - **Purpose:** A short run of text items, each after a bullet, a number or an icon, laid out with bound spacing and markers.
 - **Use when:** A short set of points a designer lays out in UI: password rules, feature lists, icon checklists, steps. Ordered when the order means something.
 - **Avoid when:** Running text, such as an article body, terms or long help text. The test: if a writer could edit it as normal copy, use the native list; if a designer controls its spacing, markers or icons, use the component. Also avoid it for a choice the user makes (Select, or a listbox), a command menu, navigation links, or values compared across columns (a table).
-- **Often used with:** `_list-item`, `icon`, `text-field`
+- **Often used with:** `list-item`, `icon`, `text-field`
 
 ## Props
 
@@ -50,7 +50,7 @@ One phrase or sentence per item, sentence case, every item the same grammatical 
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The text size, body small, medium or large, with the marker, the marker column and the space between items sized to it. Passed to every item. |
 | `start` | number | `1` | no | Ordered only: the number the first item shows. |
 | `reversed` | boolean | `false` | no | Ordered only: count down instead of up. |
-| `children` | node | — | yes | The items, each a List.Item. |
+| `items` | slot of `list-item`, 1 or more | — | yes | The items, each a List.Item, in order. Three by default; a designer adds, removes and reorders them in place. |
 
 ## States
 
@@ -61,7 +61,7 @@ None — not interactive.
 | Axis | Values | Changes |
 | --- | --- | --- |
 | `type` | `unordered`, `ordered`, `icon` | once, when authored |
-| `size` | `small`, `medium`, `large` | once, when authored |
+| `size` | `medium`, `small`, `large` | once, when authored |
 
 ## Accessibility
 
@@ -81,7 +81,7 @@ None — not interactive.
 
 ## Composition
 
-- **Composes with:** `_list-item`
+- **Composes with:** `list-item`
 - **Planned:** `data-list`, `checklist`, `table`, `menu`, `navigation`
 - **Replaces:**
   - a \<ul> with list-style: none and no role="list"

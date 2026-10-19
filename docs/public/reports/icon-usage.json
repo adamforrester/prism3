@@ -71,36 +71,6 @@
       ],
       "iconSlots": []
     },
-    "_list-item": {
-      "glyphs": [
-        {
-          "part": "icon",
-          "glyph": "check",
-          "source": "icon set",
-          "how": "swap default",
-          "when": {
-            "type": [
-              "icon"
-            ]
-          }
-        }
-      ],
-      "iconSlots": [
-        "icon"
-      ]
-    },
-    "_segmented-control-segment": {
-      "glyphs": [],
-      "iconSlots": [
-        "leadingVisual"
-      ]
-    },
-    "_tab-item": {
-      "glyphs": [],
-      "iconSlots": [
-        "leadingVisual"
-      ]
-    },
     "button": {
       "glyphs": [],
       "iconSlots": [
@@ -251,7 +221,31 @@
         "trailingVisual"
       ]
     },
+    "list-item": {
+      "glyphs": [
+        {
+          "part": "icon",
+          "glyph": "check",
+          "source": "icon set",
+          "how": "swap default",
+          "when": {
+            "type": [
+              "icon"
+            ]
+          }
+        }
+      ],
+      "iconSlots": [
+        "icon"
+      ]
+    },
     "password-field": {
+      "glyphs": [],
+      "iconSlots": [
+        "leadingVisual"
+      ]
+    },
+    "segmented-control-segment": {
       "glyphs": [],
       "iconSlots": [
         "leadingVisual"
@@ -307,6 +301,12 @@
         }
       ],
       "iconSlots": []
+    },
+    "tab-item": {
+      "glyphs": [],
+      "iconSlots": [
+        "leadingVisual"
+      ]
     },
     "tag": {
       "glyphs": [
@@ -367,8 +367,8 @@
     "arrow-up-left": [],
     "arrow-up-right": [],
     "check": [
-      "_list-item",
       "checkbox-control",
+      "list-item",
       "switch-control",
       "tag"
     ],

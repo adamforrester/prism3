@@ -64,7 +64,7 @@ export const accordion: ComponentDef = {
   variants: {
     expansion: ['collapsed', 'expanded'],
     iconPosition: ['leading', 'trailing'],
-    size: ['small', 'medium', 'large'],
+    size: ['medium', 'small', 'large'],
   },
   axisKinds: { expansion: 'runtime', iconPosition: 'authoring', size: 'authoring' },
 

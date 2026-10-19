@@ -12,7 +12,7 @@
     "used": 247,
     "unusedSemantic": 260,
     "unusedPrimitive": 280,
-    "components": 41
+    "components": 43
   },
   "tokens": {
     "border-width.hairline": {
@@ -58,6 +58,17 @@
           "parts": {
             "container": {
               "members": 576,
+              "where": {}
+            }
+          }
+        },
+        "counter": {
+          "keys": [
+            "border-width"
+          ],
+          "parts": {
+            "control": {
+              "members": 18,
               "where": {}
             }
           }
@@ -263,17 +274,6 @@
     "border-width.thick": {
       "type": "dimension",
       "components": {
-        "_tab-item": {
-          "keys": [
-            "indicator-height"
-          ],
-          "parts": {
-            "indicator": {
-              "members": 30,
-              "where": {}
-            }
-          }
-        },
         "checkbox-control": {
           "keys": [
             "border-width"
@@ -307,6 +307,17 @@
             }
           }
         },
+        "tab-item": {
+          "keys": [
+            "indicator-height"
+          ],
+          "parts": {
+            "indicator": {
+              "members": 30,
+              "where": {}
+            }
+          }
+        },
         "tag": {
           "keys": [
             "selected.border-width"
@@ -330,7 +341,7 @@
     "color.background.primary": {
       "type": "color",
       "components": {
-        "_segmented-control-segment": {
+        "segmented-control-segment": {
           "keys": [
             "disabled.fill",
             "selected.fill"
@@ -596,18 +607,6 @@
     "color.border.focus": {
       "type": "color",
       "components": {
-        "_segmented-control-segment": {
-          "keys": [
-            "focus-ring"
-          ],
-          "parts": {}
-        },
-        "_tab-item": {
-          "keys": [
-            "focus-ring"
-          ],
-          "parts": {}
-        },
         "button": {
           "keys": [
             "focus-ring"
@@ -691,6 +690,12 @@
           ],
           "parts": {}
         },
+        "segmented-control-segment": {
+          "keys": [
+            "focus-ring"
+          ],
+          "parts": {}
+        },
         "select": {
           "keys": [
             "border.focus-visible",
@@ -712,6 +717,12 @@
           }
         },
         "switch-control": {
+          "keys": [
+            "focus-ring"
+          ],
+          "parts": {}
+        },
+        "tab-item": {
           "keys": [
             "focus-ring"
           ],
@@ -810,26 +821,6 @@
     "color.border.secondary": {
       "type": "color",
       "components": {
-        "_tab-item": {
-          "keys": [
-            "unselected.fill.hover",
-            "unselected.fill.pressed"
-          ],
-          "parts": {
-            "indicator": {
-              "members": 6,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "hover",
-                  "pressed"
-                ]
-              }
-            }
-          }
-        },
         "divider": {
           "keys": [
             "fill"
@@ -899,6 +890,26 @@
                   "hover",
                   "pressed",
                   "rest"
+                ]
+              }
+            }
+          }
+        },
+        "tab-item": {
+          "keys": [
+            "unselected.fill.hover",
+            "unselected.fill.pressed"
+          ],
+          "parts": {
+            "indicator": {
+              "members": 6,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "hover",
+                  "pressed"
                 ]
               }
             }
@@ -1225,24 +1236,6 @@
     "color.disabled.border": {
       "type": "color",
       "components": {
-        "_tab-item": {
-          "keys": [
-            "disabled.fill"
-          ],
-          "parts": {
-            "indicator": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "selected"
-                ],
-                "state": [
-                  "disabled"
-                ]
-              }
-            }
-          }
-        },
         "button": {
           "keys": [
             "disabled.border"
@@ -1325,6 +1318,24 @@
               "where": {
                 "selection": [
                   "unchecked"
+                ],
+                "state": [
+                  "disabled"
+                ]
+              }
+            }
+          }
+        },
+        "counter": {
+          "keys": [
+            "disabled.border"
+          ],
+          "parts": {
+            "control": {
+              "members": 3,
+              "where": {
+                "appearance": [
+                  "outline"
                 ],
                 "state": [
                   "disabled"
@@ -1528,6 +1539,24 @@
               "where": {
                 "selection": [
                   "off"
+                ],
+                "state": [
+                  "disabled"
+                ]
+              }
+            }
+          }
+        },
+        "tab-item": {
+          "keys": [
+            "disabled.fill"
+          ],
+          "parts": {
+            "indicator": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "selected"
                 ],
                 "state": [
                   "disabled"
@@ -1838,36 +1867,6 @@
     "color.disabled.icon": {
       "type": "color",
       "components": {
-        "_segmented-control-segment": {
-          "keys": [
-            "disabled.icon"
-          ],
-          "parts": {
-            "leadingVisual": {
-              "members": 6,
-              "where": {
-                "state": [
-                  "disabled"
-                ]
-              }
-            }
-          }
-        },
-        "_tab-item": {
-          "keys": [
-            "disabled.icon"
-          ],
-          "parts": {
-            "leadingVisual": {
-              "members": 6,
-              "where": {
-                "state": [
-                  "disabled"
-                ]
-              }
-            }
-          }
-        },
         "button": {
           "keys": [
             "disabled.icon"
@@ -2091,6 +2090,36 @@
                 ],
                 "surface": [
                   "default"
+                ]
+              }
+            }
+          }
+        },
+        "segmented-control-segment": {
+          "keys": [
+            "disabled.icon"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "disabled"
+                ]
+              }
+            }
+          }
+        },
+        "tab-item": {
+          "keys": [
+            "disabled.icon"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "disabled"
                 ]
               }
             }
@@ -2490,52 +2519,6 @@
     "color.disabled.text": {
       "type": "color",
       "components": {
-        "_segmented-control-segment": {
-          "keys": [
-            "disabled.label"
-          ],
-          "parts": {
-            "label": {
-              "members": 6,
-              "where": {
-                "state": [
-                  "disabled"
-                ]
-              }
-            },
-            "labelReserve": {
-              "members": 6,
-              "where": {
-                "state": [
-                  "disabled"
-                ]
-              }
-            }
-          }
-        },
-        "_tab-item": {
-          "keys": [
-            "disabled.label"
-          ],
-          "parts": {
-            "label": {
-              "members": 6,
-              "where": {
-                "state": [
-                  "disabled"
-                ]
-              }
-            },
-            "labelReserve": {
-              "members": 6,
-              "where": {
-                "state": [
-                  "disabled"
-                ]
-              }
-            }
-          }
-        },
         "button": {
           "keys": [
             "disabled.label"
@@ -2608,6 +2591,21 @@
           ],
           "parts": {}
         },
+        "counter": {
+          "keys": [
+            "disabled.label"
+          ],
+          "parts": {
+            "value": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "disabled"
+                ]
+              }
+            }
+          }
+        },
         "field-label": {
           "keys": [
             "disabled.indicator",
@@ -2638,11 +2636,57 @@
           ],
           "parts": {}
         },
+        "segmented-control-segment": {
+          "keys": [
+            "disabled.label"
+          ],
+          "parts": {
+            "label": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "disabled"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "disabled"
+                ]
+              }
+            }
+          }
+        },
         "switch-row": {
           "keys": [
             "disabled.label"
           ],
           "parts": {}
+        },
+        "tab-item": {
+          "keys": [
+            "disabled.label"
+          ],
+          "parts": {
+            "label": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "disabled"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "disabled"
+                ]
+              }
+            }
+          }
         },
         "tag": {
           "keys": [
@@ -2812,6 +2856,25 @@
             }
           }
         },
+        "counter": {
+          "keys": [
+            "outline.border"
+          ],
+          "parts": {
+            "control": {
+              "members": 6,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ]
+              }
+            }
+          }
+        },
         "password-field": {
           "keys": [
             "border",
@@ -2921,6 +2984,25 @@
     "color.field.fill": {
       "type": "color",
       "components": {
+        "counter": {
+          "keys": [
+            "outline.fill"
+          ],
+          "parts": {
+            "control": {
+              "members": 6,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ]
+              }
+            }
+          }
+        },
         "password-field": {
           "keys": [
             "fill"
@@ -3400,7 +3482,19 @@
     "color.icon.primary": {
       "type": "color",
       "components": {
-        "_list-item": {
+        "icon": {
+          "keys": [
+            "icon",
+            "tone.primary"
+          ],
+          "parts": {
+            "glyph": {
+              "members": 45,
+              "where": {}
+            }
+          }
+        },
+        "list-item": {
           "keys": [
             "icon",
             "indicator"
@@ -3421,18 +3515,6 @@
                   "icon"
                 ]
               }
-            }
-          }
-        },
-        "icon": {
-          "keys": [
-            "icon",
-            "tone.primary"
-          ],
-          "parts": {
-            "glyph": {
-              "members": 45,
-              "where": {}
             }
           }
         },
@@ -5052,42 +5134,6 @@
     "color.interactive.neutral.icon.hover": {
       "type": "color",
       "components": {
-        "_segmented-control-segment": {
-          "keys": [
-            "unselected.icon.hover"
-          ],
-          "parts": {
-            "leadingVisual": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "hover"
-                ]
-              }
-            }
-          }
-        },
-        "_tab-item": {
-          "keys": [
-            "unselected.icon.hover"
-          ],
-          "parts": {
-            "leadingVisual": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "hover"
-                ]
-              }
-            }
-          }
-        },
         "button-neutral": {
           "keys": [
             "outline.icon.hover",
@@ -5171,6 +5217,42 @@
             }
           }
         },
+        "segmented-control-segment": {
+          "keys": [
+            "unselected.icon.hover"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "hover"
+                ]
+              }
+            }
+          }
+        },
+        "tab-item": {
+          "keys": [
+            "unselected.icon.hover"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "hover"
+                ]
+              }
+            }
+          }
+        },
         "tag": {
           "keys": [
             "selected.icon.hover",
@@ -5220,42 +5302,6 @@
     "color.interactive.neutral.icon.pressed": {
       "type": "color",
       "components": {
-        "_segmented-control-segment": {
-          "keys": [
-            "unselected.icon.pressed"
-          ],
-          "parts": {
-            "leadingVisual": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "pressed"
-                ]
-              }
-            }
-          }
-        },
-        "_tab-item": {
-          "keys": [
-            "unselected.icon.pressed"
-          ],
-          "parts": {
-            "leadingVisual": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "pressed"
-                ]
-              }
-            }
-          }
-        },
         "button-neutral": {
           "keys": [
             "outline.icon.pressed",
@@ -5334,6 +5380,42 @@
                 ],
                 "surface": [
                   "default"
+                ]
+              }
+            }
+          }
+        },
+        "segmented-control-segment": {
+          "keys": [
+            "unselected.icon.pressed"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "pressed"
+                ]
+              }
+            }
+          }
+        },
+        "tab-item": {
+          "keys": [
+            "unselected.icon.pressed"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "pressed"
                 ]
               }
             }
@@ -5434,44 +5516,6 @@
                 ],
                 "indicator": [
                   "plus-minus"
-                ]
-              }
-            }
-          }
-        },
-        "_segmented-control-segment": {
-          "keys": [
-            "selected.icon",
-            "unselected.icon"
-          ],
-          "parts": {
-            "leadingVisual": {
-              "members": 18,
-              "where": {
-                "state": [
-                  "focus-visible",
-                  "hover",
-                  "pressed",
-                  "rest"
-                ]
-              }
-            }
-          }
-        },
-        "_tab-item": {
-          "keys": [
-            "unselected.icon"
-          ],
-          "parts": {
-            "leadingVisual": {
-              "members": 6,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "focus-visible",
-                  "rest"
                 ]
               }
             }
@@ -5590,6 +5634,44 @@
                 ],
                 "surface": [
                   "default"
+                ]
+              }
+            }
+          }
+        },
+        "segmented-control-segment": {
+          "keys": [
+            "selected.icon",
+            "unselected.icon"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 18,
+              "where": {
+                "state": [
+                  "focus-visible",
+                  "hover",
+                  "pressed",
+                  "rest"
+                ]
+              }
+            }
+          }
+        },
+        "tab-item": {
+          "keys": [
+            "unselected.icon"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 6,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
                 ]
               }
             }
@@ -5783,24 +5865,6 @@
     "color.interactive.neutral.overlay.hover": {
       "type": "color",
       "components": {
-        "_segmented-control-segment": {
-          "keys": [
-            "unselected.overlay.hover"
-          ],
-          "parts": {
-            "indicator": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "hover"
-                ]
-              }
-            }
-          }
-        },
         "button-neutral": {
           "keys": [
             "outline.overlay.hover"
@@ -5881,6 +5945,24 @@
             }
           }
         },
+        "segmented-control-segment": {
+          "keys": [
+            "unselected.overlay.hover"
+          ],
+          "parts": {
+            "indicator": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "hover"
+                ]
+              }
+            }
+          }
+        },
         "select": {
           "keys": [
             "overlay.hover"
@@ -5949,24 +6031,6 @@
     "color.interactive.neutral.overlay.pressed": {
       "type": "color",
       "components": {
-        "_segmented-control-segment": {
-          "keys": [
-            "unselected.overlay.pressed"
-          ],
-          "parts": {
-            "indicator": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "pressed"
-                ]
-              }
-            }
-          }
-        },
         "button-neutral": {
           "keys": [
             "outline.overlay.pressed"
@@ -6032,6 +6096,24 @@
             }
           }
         },
+        "segmented-control-segment": {
+          "keys": [
+            "unselected.overlay.pressed"
+          ],
+          "parts": {
+            "indicator": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "pressed"
+                ]
+              }
+            }
+          }
+        },
         "tag": {
           "keys": [
             "unselected.overlay.pressed"
@@ -6055,64 +6137,6 @@
     "color.interactive.neutral.text.hover": {
       "type": "color",
       "components": {
-        "_segmented-control-segment": {
-          "keys": [
-            "unselected.label.hover"
-          ],
-          "parts": {
-            "label": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "hover"
-                ]
-              }
-            },
-            "labelReserve": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "hover"
-                ]
-              }
-            }
-          }
-        },
-        "_tab-item": {
-          "keys": [
-            "unselected.label.hover"
-          ],
-          "parts": {
-            "label": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "hover"
-                ]
-              }
-            },
-            "labelReserve": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "hover"
-                ]
-              }
-            }
-          }
-        },
         "button-neutral": {
           "keys": [
             "outline.label.hover",
@@ -6131,6 +6155,64 @@
                 ],
                 "surface": [
                   "default"
+                ]
+              }
+            }
+          }
+        },
+        "segmented-control-segment": {
+          "keys": [
+            "unselected.label.hover"
+          ],
+          "parts": {
+            "label": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "hover"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "hover"
+                ]
+              }
+            }
+          }
+        },
+        "tab-item": {
+          "keys": [
+            "unselected.label.hover"
+          ],
+          "parts": {
+            "label": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "hover"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "hover"
                 ]
               }
             }
@@ -6157,64 +6239,6 @@
     "color.interactive.neutral.text.pressed": {
       "type": "color",
       "components": {
-        "_segmented-control-segment": {
-          "keys": [
-            "unselected.label.pressed"
-          ],
-          "parts": {
-            "label": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "pressed"
-                ]
-              }
-            },
-            "labelReserve": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "pressed"
-                ]
-              }
-            }
-          }
-        },
-        "_tab-item": {
-          "keys": [
-            "unselected.label.pressed"
-          ],
-          "parts": {
-            "label": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "pressed"
-                ]
-              }
-            },
-            "labelReserve": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "pressed"
-                ]
-              }
-            }
-          }
-        },
         "button-neutral": {
           "keys": [
             "outline.label.pressed",
@@ -6233,6 +6257,64 @@
                 ],
                 "surface": [
                   "default"
+                ]
+              }
+            }
+          }
+        },
+        "segmented-control-segment": {
+          "keys": [
+            "unselected.label.pressed"
+          ],
+          "parts": {
+            "label": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "pressed"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "pressed"
+                ]
+              }
+            }
+          }
+        },
+        "tab-item": {
+          "keys": [
+            "unselected.label.pressed"
+          ],
+          "parts": {
+            "label": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "pressed"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "pressed"
                 ]
               }
             }
@@ -6259,67 +6341,6 @@
     "color.interactive.neutral.text.rest": {
       "type": "color",
       "components": {
-        "_segmented-control-segment": {
-          "keys": [
-            "selected.label",
-            "unselected.label"
-          ],
-          "parts": {
-            "label": {
-              "members": 18,
-              "where": {
-                "state": [
-                  "focus-visible",
-                  "hover",
-                  "pressed",
-                  "rest"
-                ]
-              }
-            },
-            "labelReserve": {
-              "members": 18,
-              "where": {
-                "state": [
-                  "focus-visible",
-                  "hover",
-                  "pressed",
-                  "rest"
-                ]
-              }
-            }
-          }
-        },
-        "_tab-item": {
-          "keys": [
-            "unselected.label"
-          ],
-          "parts": {
-            "label": {
-              "members": 6,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "focus-visible",
-                  "rest"
-                ]
-              }
-            },
-            "labelReserve": {
-              "members": 6,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "focus-visible",
-                  "rest"
-                ]
-              }
-            }
-          }
-        },
         "accordion": {
           "keys": [
             "label"
@@ -6356,6 +6377,67 @@
             }
           }
         },
+        "segmented-control-segment": {
+          "keys": [
+            "selected.label",
+            "unselected.label"
+          ],
+          "parts": {
+            "label": {
+              "members": 18,
+              "where": {
+                "state": [
+                  "focus-visible",
+                  "hover",
+                  "pressed",
+                  "rest"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 18,
+              "where": {
+                "state": [
+                  "focus-visible",
+                  "hover",
+                  "pressed",
+                  "rest"
+                ]
+              }
+            }
+          }
+        },
+        "tab-item": {
+          "keys": [
+            "unselected.label"
+          ],
+          "parts": {
+            "label": {
+              "members": 6,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 6,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ]
+              }
+            }
+          }
+        },
         "tag": {
           "keys": [
             "selected.label",
@@ -6378,24 +6460,6 @@
     "color.interactive.primary.border.hover": {
       "type": "color",
       "components": {
-        "_tab-item": {
-          "keys": [
-            "selected.fill.hover"
-          ],
-          "parts": {
-            "indicator": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "selected"
-                ],
-                "state": [
-                  "hover"
-                ]
-              }
-            }
-          }
-        },
         "button": {
           "keys": [
             "outline.border.hover"
@@ -6459,6 +6523,24 @@
             }
           }
         },
+        "tab-item": {
+          "keys": [
+            "selected.fill.hover"
+          ],
+          "parts": {
+            "indicator": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "hover"
+                ]
+              }
+            }
+          }
+        },
         "tag": {
           "keys": [
             "selected.border.hover"
@@ -6485,24 +6567,6 @@
     "color.interactive.primary.border.pressed": {
       "type": "color",
       "components": {
-        "_tab-item": {
-          "keys": [
-            "selected.fill.pressed"
-          ],
-          "parts": {
-            "indicator": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "selected"
-                ],
-                "state": [
-                  "pressed"
-                ]
-              }
-            }
-          }
-        },
         "button": {
           "keys": [
             "outline.border.pressed"
@@ -6566,6 +6630,24 @@
             }
           }
         },
+        "tab-item": {
+          "keys": [
+            "selected.fill.pressed"
+          ],
+          "parts": {
+            "indicator": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "pressed"
+                ]
+              }
+            }
+          }
+        },
         "tag": {
           "keys": [
             "selected.border.pressed"
@@ -6592,25 +6674,6 @@
     "color.interactive.primary.border.rest": {
       "type": "color",
       "components": {
-        "_tab-item": {
-          "keys": [
-            "selected.fill"
-          ],
-          "parts": {
-            "indicator": {
-              "members": 6,
-              "where": {
-                "selection": [
-                  "selected"
-                ],
-                "state": [
-                  "focus-visible",
-                  "rest"
-                ]
-              }
-            }
-          }
-        },
         "button": {
           "keys": [
             "outline.border"
@@ -6670,6 +6733,25 @@
               "where": {
                 "selection": [
                   "checked"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ]
+              }
+            }
+          }
+        },
+        "tab-item": {
+          "keys": [
+            "selected.fill"
+          ],
+          "parts": {
+            "indicator": {
+              "members": 6,
+              "where": {
+                "selection": [
+                  "selected"
                 ],
                 "state": [
                   "focus-visible",
@@ -7020,24 +7102,6 @@
     "color.interactive.primary.icon.hover": {
       "type": "color",
       "components": {
-        "_tab-item": {
-          "keys": [
-            "selected.icon.hover"
-          ],
-          "parts": {
-            "leadingVisual": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "selected"
-                ],
-                "state": [
-                  "hover"
-                ]
-              }
-            }
-          }
-        },
         "button": {
           "keys": [
             "outline.icon.hover",
@@ -7120,15 +7184,10 @@
               }
             }
           }
-        }
-      }
-    },
-    "color.interactive.primary.icon.pressed": {
-      "type": "color",
-      "components": {
-        "_tab-item": {
+        },
+        "tab-item": {
           "keys": [
-            "selected.icon.pressed"
+            "selected.icon.hover"
           ],
           "parts": {
             "leadingVisual": {
@@ -7138,12 +7197,17 @@
                   "selected"
                 ],
                 "state": [
-                  "pressed"
+                  "hover"
                 ]
               }
             }
           }
-        },
+        }
+      }
+    },
+    "color.interactive.primary.icon.pressed": {
+      "type": "color",
+      "components": {
         "button": {
           "keys": [
             "outline.icon.pressed",
@@ -7226,31 +7290,30 @@
               }
             }
           }
+        },
+        "tab-item": {
+          "keys": [
+            "selected.icon.pressed"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "pressed"
+                ]
+              }
+            }
+          }
         }
       }
     },
     "color.interactive.primary.icon.rest": {
       "type": "color",
       "components": {
-        "_tab-item": {
-          "keys": [
-            "selected.icon"
-          ],
-          "parts": {
-            "leadingVisual": {
-              "members": 6,
-              "where": {
-                "selection": [
-                  "selected"
-                ],
-                "state": [
-                  "focus-visible",
-                  "rest"
-                ]
-              }
-            }
-          }
-        },
         "button": {
           "keys": [
             "outline.icon",
@@ -7364,6 +7427,25 @@
                 ],
                 "surface": [
                   "default"
+                ]
+              }
+            }
+          }
+        },
+        "tab-item": {
+          "keys": [
+            "selected.icon"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 6,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
                 ]
               }
             }
@@ -7725,7 +7807,30 @@
     "color.interactive.primary.text.hover": {
       "type": "color",
       "components": {
-        "_tab-item": {
+        "button": {
+          "keys": [
+            "outline.label.hover",
+            "text.label.hover"
+          ],
+          "parts": {
+            "label": {
+              "members": 36,
+              "where": {
+                "appearance": [
+                  "outline",
+                  "text"
+                ],
+                "state": [
+                  "hover"
+                ],
+                "surface": [
+                  "default"
+                ]
+              }
+            }
+          }
+        },
+        "tab-item": {
           "keys": [
             "selected.label.hover"
           ],
@@ -7753,11 +7858,16 @@
               }
             }
           }
-        },
+        }
+      }
+    },
+    "color.interactive.primary.text.pressed": {
+      "type": "color",
+      "components": {
         "button": {
           "keys": [
-            "outline.label.hover",
-            "text.label.hover"
+            "outline.label.pressed",
+            "text.label.pressed"
           ],
           "parts": {
             "label": {
@@ -7768,7 +7878,7 @@
                   "text"
                 ],
                 "state": [
-                  "hover"
+                  "pressed"
                 ],
                 "surface": [
                   "default"
@@ -7776,13 +7886,8 @@
               }
             }
           }
-        }
-      }
-    },
-    "color.interactive.primary.text.pressed": {
-      "type": "color",
-      "components": {
-        "_tab-item": {
+        },
+        "tab-item": {
           "keys": [
             "selected.label.pressed"
           ],
@@ -7810,22 +7915,29 @@
               }
             }
           }
-        },
+        }
+      }
+    },
+    "color.interactive.primary.text.rest": {
+      "type": "color",
+      "components": {
         "button": {
           "keys": [
-            "outline.label.pressed",
-            "text.label.pressed"
+            "outline.label",
+            "text.label"
           ],
           "parts": {
             "label": {
-              "members": 36,
+              "members": 108,
               "where": {
                 "appearance": [
                   "outline",
                   "text"
                 ],
                 "state": [
-                  "pressed"
+                  "focus-visible",
+                  "pending",
+                  "rest"
                 ],
                 "surface": [
                   "default"
@@ -7833,13 +7945,8 @@
               }
             }
           }
-        }
-      }
-    },
-    "color.interactive.primary.text.rest": {
-      "type": "color",
-      "components": {
-        "_tab-item": {
+        },
+        "tab-item": {
           "keys": [
             "selected.label"
           ],
@@ -7865,31 +7972,6 @@
                 "state": [
                   "focus-visible",
                   "rest"
-                ]
-              }
-            }
-          }
-        },
-        "button": {
-          "keys": [
-            "outline.label",
-            "text.label"
-          ],
-          "parts": {
-            "label": {
-              "members": 108,
-              "where": {
-                "appearance": [
-                  "outline",
-                  "text"
-                ],
-                "state": [
-                  "focus-visible",
-                  "pending",
-                  "rest"
-                ],
-                "surface": [
-                  "default"
                 ]
               }
             }
@@ -11629,25 +11711,6 @@
     "color.text.primary": {
       "type": "color",
       "components": {
-        "_list-item": {
-          "keys": [
-            "label"
-          ],
-          "parts": {
-            "number": {
-              "members": 3,
-              "where": {
-                "type": [
-                  "ordered"
-                ]
-              }
-            },
-            "text": {
-              "members": 9,
-              "where": {}
-            }
-          }
-        },
         "accordion": {
           "keys": [
             "body"
@@ -11695,6 +11758,23 @@
             }
           }
         },
+        "counter": {
+          "keys": [
+            "ghost.label",
+            "outline.label"
+          ],
+          "parts": {
+            "value": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ]
+              }
+            }
+          }
+        },
         "dialog": {
           "keys": [
             "body",
@@ -11738,6 +11818,25 @@
                   "rest"
                 ]
               }
+            }
+          }
+        },
+        "list-item": {
+          "keys": [
+            "label"
+          ],
+          "parts": {
+            "number": {
+              "members": 3,
+              "where": {
+                "type": [
+                  "ordered"
+                ]
+              }
+            },
+            "text": {
+              "members": 9,
+              "where": {}
             }
           }
         },
@@ -12350,7 +12449,7 @@
     "control.size.lg.dot": {
       "type": "dimension",
       "components": {
-        "_list-item": {
+        "list-item": {
           "keys": [
             "size.large.dot"
           ],
@@ -12478,13 +12577,13 @@
     "control.size.lg.line-box": {
       "type": "dimension",
       "components": {
-        "_list-item": {
+        "checkbox-row": {
           "keys": [
-            "size.large.line-box"
+            "size.large.control-box"
           ],
           "parts": {
-            "markerBox": {
-              "members": 3,
+            "controlBox": {
+              "members": 1,
               "where": {
                 "size": [
                   "large"
@@ -12493,13 +12592,13 @@
             }
           }
         },
-        "checkbox-row": {
+        "list-item": {
           "keys": [
-            "size.large.control-box"
+            "size.large.line-box"
           ],
           "parts": {
-            "controlBox": {
-              "members": 1,
+            "markerBox": {
+              "members": 3,
               "where": {
                 "size": [
                   "large"
@@ -12624,7 +12723,7 @@
     "control.size.md.dot": {
       "type": "dimension",
       "components": {
-        "_list-item": {
+        "list-item": {
           "keys": [
             "size.medium.dot"
           ],
@@ -12772,13 +12871,13 @@
     "control.size.md.line-box": {
       "type": "dimension",
       "components": {
-        "_list-item": {
+        "checkbox-row": {
           "keys": [
-            "size.medium.line-box"
+            "size.medium.control-box"
           ],
           "parts": {
-            "markerBox": {
-              "members": 3,
+            "controlBox": {
+              "members": 1,
               "where": {
                 "size": [
                   "medium"
@@ -12787,13 +12886,13 @@
             }
           }
         },
-        "checkbox-row": {
+        "list-item": {
           "keys": [
-            "size.medium.control-box"
+            "size.medium.line-box"
           ],
           "parts": {
-            "controlBox": {
-              "members": 1,
+            "markerBox": {
+              "members": 3,
               "where": {
                 "size": [
                   "medium"
@@ -13030,24 +13129,6 @@
     "control.size.sm.dot": {
       "type": "dimension",
       "components": {
-        "_list-item": {
-          "keys": [
-            "size.small.dot"
-          ],
-          "parts": {
-            "bullet": {
-              "members": 1,
-              "where": {
-                "size": [
-                  "small"
-                ],
-                "type": [
-                  "unordered"
-                ]
-              }
-            }
-          }
-        },
         "badge": {
           "keys": [
             "dot-size"
@@ -13061,6 +13142,24 @@
                 ],
                 "type": [
                   "dot"
+                ]
+              }
+            }
+          }
+        },
+        "list-item": {
+          "keys": [
+            "size.small.dot"
+          ],
+          "parts": {
+            "bullet": {
+              "members": 1,
+              "where": {
+                "size": [
+                  "small"
+                ],
+                "type": [
+                  "unordered"
                 ]
               }
             }
@@ -13196,13 +13295,13 @@
     "control.size.sm.line-box": {
       "type": "dimension",
       "components": {
-        "_list-item": {
+        "checkbox-row": {
           "keys": [
-            "size.small.line-box"
+            "size.small.control-box"
           ],
           "parts": {
-            "markerBox": {
-              "members": 3,
+            "controlBox": {
+              "members": 1,
               "where": {
                 "size": [
                   "small"
@@ -13211,13 +13310,13 @@
             }
           }
         },
-        "checkbox-row": {
+        "list-item": {
           "keys": [
-            "size.small.control-box"
+            "size.small.line-box"
           ],
           "parts": {
-            "controlBox": {
-              "members": 1,
+            "markerBox": {
+              "members": 3,
               "where": {
                 "size": [
                   "small"
@@ -13454,36 +13553,6 @@
     "focus.ring.offset": {
       "type": "dimension",
       "components": {
-        "_segmented-control-segment": {
-          "keys": [
-            "ring-offset"
-          ],
-          "parts": {
-            "focusRing": {
-              "members": 6,
-              "where": {
-                "state": [
-                  "focus-visible"
-                ]
-              }
-            }
-          }
-        },
-        "_tab-item": {
-          "keys": [
-            "ring-offset"
-          ],
-          "parts": {
-            "focusRing": {
-              "members": 6,
-              "where": {
-                "state": [
-                  "focus-visible"
-                ]
-              }
-            }
-          }
-        },
         "button": {
           "keys": [
             "ring-offset"
@@ -13537,6 +13606,24 @@
             "focusRing": {
               "members": 9,
               "where": {
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            }
+          }
+        },
+        "counter": {
+          "keys": [
+            "ghost.ring-offset"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 3,
+              "where": {
+                "appearance": [
+                  "ghost"
+                ],
                 "state": [
                   "focus-visible"
                 ]
@@ -13670,6 +13757,21 @@
             }
           }
         },
+        "segmented-control-segment": {
+          "keys": [
+            "ring-offset"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            }
+          }
+        },
         "switch-control": {
           "keys": [
             "ring-offset"
@@ -13677,6 +13779,21 @@
           "parts": {
             "focusRing": {
               "members": 4,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            }
+          }
+        },
+        "tab-item": {
+          "keys": [
+            "ring-offset"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 6,
               "where": {
                 "state": [
                   "focus-visible"
@@ -13713,6 +13830,24 @@
             "focusRing": {
               "members": 12,
               "where": {
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            }
+          }
+        },
+        "counter": {
+          "keys": [
+            "outline.ring-offset"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 3,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
                 "state": [
                   "focus-visible"
                 ]
@@ -13806,36 +13941,6 @@
     "focus.ring.width": {
       "type": "dimension",
       "components": {
-        "_segmented-control-segment": {
-          "keys": [
-            "ring-width"
-          ],
-          "parts": {
-            "focusRing": {
-              "members": 6,
-              "where": {
-                "state": [
-                  "focus-visible"
-                ]
-              }
-            }
-          }
-        },
-        "_tab-item": {
-          "keys": [
-            "ring-width"
-          ],
-          "parts": {
-            "focusRing": {
-              "members": 6,
-              "where": {
-                "state": [
-                  "focus-visible"
-                ]
-              }
-            }
-          }
-        },
         "button": {
           "keys": [
             "ring-width"
@@ -13888,6 +13993,21 @@
           "parts": {
             "focusRing": {
               "members": 9,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            }
+          }
+        },
+        "counter": {
+          "keys": [
+            "ring-width"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 6,
               "where": {
                 "state": [
                   "focus-visible"
@@ -14043,6 +14163,21 @@
             }
           }
         },
+        "segmented-control-segment": {
+          "keys": [
+            "ring-width"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            }
+          }
+        },
         "select": {
           "keys": [
             "ring-width"
@@ -14066,6 +14201,21 @@
           "parts": {
             "focusRing": {
               "members": 4,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            }
+          }
+        },
+        "tab-item": {
+          "keys": [
+            "ring-width"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 6,
               "where": {
                 "state": [
                   "focus-visible"
@@ -14126,54 +14276,6 @@
     "icon.size.lg": {
       "type": "dimension",
       "components": {
-        "_list-item": {
-          "keys": [
-            "size.large.icon"
-          ],
-          "parts": {
-            "icon": {
-              "members": 1,
-              "where": {
-                "size": [
-                  "large"
-                ],
-                "type": [
-                  "icon"
-                ]
-              }
-            }
-          }
-        },
-        "_segmented-control-segment": {
-          "keys": [
-            "size.large.icon"
-          ],
-          "parts": {
-            "leadingVisual": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "large"
-                ]
-              }
-            }
-          }
-        },
-        "_tab-item": {
-          "keys": [
-            "size.large.icon"
-          ],
-          "parts": {
-            "leadingVisual": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "large"
-                ]
-              }
-            }
-          }
-        },
         "icon": {
           "keys": [
             "size.large"
@@ -14279,6 +14381,24 @@
             }
           }
         },
+        "list-item": {
+          "keys": [
+            "size.large.icon"
+          ],
+          "parts": {
+            "icon": {
+              "members": 1,
+              "where": {
+                "size": [
+                  "large"
+                ],
+                "type": [
+                  "icon"
+                ]
+              }
+            }
+          }
+        },
         "spinner": {
           "keys": [
             "size.large"
@@ -14294,49 +14414,6 @@
             },
             "ring": {
               "members": 1,
-              "where": {
-                "size": [
-                  "large"
-                ]
-              }
-            }
-          }
-        },
-        "tag": {
-          "keys": [
-            "size.large.icon"
-          ],
-          "parts": {
-            "check": {
-              "members": 5,
-              "where": {
-                "selection": [
-                  "selected"
-                ],
-                "size": [
-                  "large"
-                ],
-                "type": [
-                  "select"
-                ]
-              }
-            },
-            "dismissGlyph": {
-              "members": 5,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "size": [
-                  "large"
-                ],
-                "type": [
-                  "dismissible"
-                ]
-              }
-            },
-            "leadingVisual": {
-              "members": 15,
               "where": {
                 "size": [
                   "large"
@@ -14416,54 +14493,6 @@
                 ],
                 "size": [
                   "large"
-                ]
-              }
-            }
-          }
-        },
-        "_list-item": {
-          "keys": [
-            "size.medium.icon"
-          ],
-          "parts": {
-            "icon": {
-              "members": 1,
-              "where": {
-                "size": [
-                  "medium"
-                ],
-                "type": [
-                  "icon"
-                ]
-              }
-            }
-          }
-        },
-        "_segmented-control-segment": {
-          "keys": [
-            "size.medium.icon"
-          ],
-          "parts": {
-            "leadingVisual": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "medium"
-                ]
-              }
-            }
-          }
-        },
-        "_tab-item": {
-          "keys": [
-            "size.medium.icon"
-          ],
-          "parts": {
-            "leadingVisual": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "medium"
                 ]
               }
             }
@@ -14796,6 +14825,39 @@
             }
           }
         },
+        "list-item": {
+          "keys": [
+            "size.medium.icon"
+          ],
+          "parts": {
+            "icon": {
+              "members": 1,
+              "where": {
+                "size": [
+                  "medium"
+                ],
+                "type": [
+                  "icon"
+                ]
+              }
+            }
+          }
+        },
+        "segmented-control-segment": {
+          "keys": [
+            "size.large.icon"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
         "spinner": {
           "keys": [
             "size.medium"
@@ -14819,9 +14881,24 @@
             }
           }
         },
+        "tab-item": {
+          "keys": [
+            "size.large.icon"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
         "tag": {
           "keys": [
-            "size.medium.icon"
+            "size.large.icon"
           ],
           "parts": {
             "check": {
@@ -14831,7 +14908,7 @@
                   "selected"
                 ],
                 "size": [
-                  "medium"
+                  "large"
                 ],
                 "type": [
                   "select"
@@ -14845,7 +14922,7 @@
                   "unselected"
                 ],
                 "size": [
-                  "medium"
+                  "large"
                 ],
                 "type": [
                   "dismissible"
@@ -14856,7 +14933,7 @@
               "members": 15,
               "where": {
                 "size": [
-                  "medium"
+                  "large"
                 ]
               }
             }
@@ -14933,54 +15010,6 @@
                 ],
                 "size": [
                   "medium"
-                ]
-              }
-            }
-          }
-        },
-        "_list-item": {
-          "keys": [
-            "size.small.icon"
-          ],
-          "parts": {
-            "icon": {
-              "members": 1,
-              "where": {
-                "size": [
-                  "small"
-                ],
-                "type": [
-                  "icon"
-                ]
-              }
-            }
-          }
-        },
-        "_segmented-control-segment": {
-          "keys": [
-            "size.small.icon"
-          ],
-          "parts": {
-            "leadingVisual": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "small"
-                ]
-              }
-            }
-          }
-        },
-        "_tab-item": {
-          "keys": [
-            "size.small.icon"
-          ],
-          "parts": {
-            "leadingVisual": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "small"
                 ]
               }
             }
@@ -15343,6 +15372,24 @@
             }
           }
         },
+        "list-item": {
+          "keys": [
+            "size.small.icon"
+          ],
+          "parts": {
+            "icon": {
+              "members": 1,
+              "where": {
+                "size": [
+                  "small"
+                ],
+                "type": [
+                  "icon"
+                ]
+              }
+            }
+          }
+        },
         "password-field": {
           "keys": [
             "icon-size"
@@ -15351,6 +15398,21 @@
             "leadingVisual": {
               "members": 84,
               "where": {}
+            }
+          }
+        },
+        "segmented-control-segment": {
+          "keys": [
+            "size.medium.icon"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
             }
           }
         },
@@ -15392,9 +15454,24 @@
             }
           }
         },
+        "tab-item": {
+          "keys": [
+            "size.medium.icon"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
         "tag": {
           "keys": [
-            "size.small.icon"
+            "size.medium.icon"
           ],
           "parts": {
             "check": {
@@ -15404,7 +15481,7 @@
                   "selected"
                 ],
                 "size": [
-                  "small"
+                  "medium"
                 ],
                 "type": [
                   "select"
@@ -15418,7 +15495,7 @@
                   "unselected"
                 ],
                 "size": [
-                  "small"
+                  "medium"
                 ],
                 "type": [
                   "dismissible"
@@ -15429,7 +15506,7 @@
               "members": 15,
               "where": {
                 "size": [
-                  "small"
+                  "medium"
                 ]
               }
             }
@@ -15728,6 +15805,21 @@
             }
           }
         },
+        "segmented-control-segment": {
+          "keys": [
+            "size.small.icon"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "spinner": {
           "keys": [
             "size.x-small"
@@ -15746,6 +15838,64 @@
               "where": {
                 "size": [
                   "x-small"
+                ]
+              }
+            }
+          }
+        },
+        "tab-item": {
+          "keys": [
+            "size.small.icon"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
+        "tag": {
+          "keys": [
+            "size.small.icon"
+          ],
+          "parts": {
+            "check": {
+              "members": 5,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "size": [
+                  "small"
+                ],
+                "type": [
+                  "select"
+                ]
+              }
+            },
+            "dismissGlyph": {
+              "members": 5,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "small"
+                ],
+                "type": [
+                  "dismissible"
+                ]
+              }
+            },
+            "leadingVisual": {
+              "members": 15,
+              "where": {
+                "size": [
+                  "small"
                 ]
               }
             }
@@ -15955,21 +16105,6 @@
     "radius.round": {
       "type": "dimension",
       "components": {
-        "_list-item": {
-          "keys": [
-            "radius"
-          ],
-          "parts": {
-            "bullet": {
-              "members": 3,
-              "where": {
-                "type": [
-                  "unordered"
-                ]
-              }
-            }
-          }
-        },
         "badge": {
           "keys": [
             "count.radius",
@@ -16080,6 +16215,21 @@
             }
           }
         },
+        "list-item": {
+          "keys": [
+            "radius"
+          ],
+          "parts": {
+            "bullet": {
+              "members": 3,
+              "where": {
+                "type": [
+                  "unordered"
+                ]
+              }
+            }
+          }
+        },
         "radio-control": {
           "keys": [
             "radius"
@@ -16130,17 +16280,6 @@
     "radius.sm": {
       "type": "dimension",
       "components": {
-        "_segmented-control-segment": {
-          "keys": [
-            "indicator-radius"
-          ],
-          "parts": {
-            "indicator": {
-              "members": 30,
-              "where": {}
-            }
-          }
-        },
         "badge": {
           "keys": [
             "status.radius"
@@ -16156,6 +16295,17 @@
             }
           }
         },
+        "counter": {
+          "keys": [
+            "radius"
+          ],
+          "parts": {
+            "control": {
+              "members": 18,
+              "where": {}
+            }
+          }
+        },
         "password-field": {
           "keys": [
             "radius"
@@ -16163,6 +16313,17 @@
           "parts": {
             "control": {
               "members": 84,
+              "where": {}
+            }
+          }
+        },
+        "segmented-control-segment": {
+          "keys": [
+            "indicator-radius"
+          ],
+          "parts": {
+            "indicator": {
+              "members": 30,
               "where": {}
             }
           }
@@ -16221,36 +16382,6 @@
     "size.lg.height": {
       "type": "dimension",
       "components": {
-        "_segmented-control-segment": {
-          "keys": [
-            "size.large.height"
-          ],
-          "parts": {
-            "container": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "large"
-                ]
-              }
-            }
-          }
-        },
-        "_tab-item": {
-          "keys": [
-            "size.large.height"
-          ],
-          "parts": {
-            "container": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "large"
-                ]
-              }
-            }
-          }
-        },
         "accordion": {
           "keys": [
             "size.large.min-height"
@@ -16316,6 +16447,21 @@
             "size.large.min-height"
           ],
           "parts": {}
+        },
+        "counter": {
+          "keys": [
+            "size.large.height"
+          ],
+          "parts": {
+            "control": {
+              "members": 6,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
         },
         "flush-icon-button": {
           "keys": [
@@ -16437,6 +16583,21 @@
           ],
           "parts": {}
         },
+        "segmented-control-segment": {
+          "keys": [
+            "size.large.height"
+          ],
+          "parts": {
+            "container": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
         "select": {
           "keys": [
             "size.large.min-height"
@@ -16444,6 +16605,21 @@
           "parts": {
             "control": {
               "members": 28,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
+        "tab-item": {
+          "keys": [
+            "size.large.height"
+          ],
+          "parts": {
+            "container": {
+              "members": 10,
               "where": {
                 "size": [
                   "large"
@@ -16501,36 +16677,6 @@
     "size.md.height": {
       "type": "dimension",
       "components": {
-        "_segmented-control-segment": {
-          "keys": [
-            "size.medium.height"
-          ],
-          "parts": {
-            "container": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "medium"
-                ]
-              }
-            }
-          }
-        },
-        "_tab-item": {
-          "keys": [
-            "size.medium.height"
-          ],
-          "parts": {
-            "container": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "medium"
-                ]
-              }
-            }
-          }
-        },
         "button": {
           "keys": [
             "size.medium.height"
@@ -16581,6 +16727,21 @@
             "size.medium.min-height"
           ],
           "parts": {}
+        },
+        "counter": {
+          "keys": [
+            "size.medium.height"
+          ],
+          "parts": {
+            "control": {
+              "members": 6,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
         },
         "divider": {
           "keys": [
@@ -16717,11 +16878,41 @@
           ],
           "parts": {}
         },
+        "segmented-control-segment": {
+          "keys": [
+            "size.medium.height"
+          ],
+          "parts": {
+            "container": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
         "switch-row": {
           "keys": [
             "size.medium.min-height"
           ],
           "parts": {}
+        },
+        "tab-item": {
+          "keys": [
+            "size.medium.height"
+          ],
+          "parts": {
+            "container": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
         },
         "tag": {
           "keys": [
@@ -16830,36 +17021,6 @@
     "size.sm.height": {
       "type": "dimension",
       "components": {
-        "_segmented-control-segment": {
-          "keys": [
-            "size.small.height"
-          ],
-          "parts": {
-            "container": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "small"
-                ]
-              }
-            }
-          }
-        },
-        "_tab-item": {
-          "keys": [
-            "size.small.height"
-          ],
-          "parts": {
-            "container": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "small"
-                ]
-              }
-            }
-          }
-        },
         "button": {
           "keys": [
             "size.small.height"
@@ -16910,6 +17071,21 @@
             "size.small.min-height"
           ],
           "parts": {}
+        },
+        "counter": {
+          "keys": [
+            "size.small.height"
+          ],
+          "parts": {
+            "control": {
+              "members": 6,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
         },
         "flush-icon-button": {
           "keys": [
@@ -17016,11 +17192,41 @@
           ],
           "parts": {}
         },
+        "segmented-control-segment": {
+          "keys": [
+            "size.small.height"
+          ],
+          "parts": {
+            "container": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "switch-row": {
           "keys": [
             "size.small.min-height"
           ],
           "parts": {}
+        },
+        "tab-item": {
+          "keys": [
+            "size.small.height"
+          ],
+          "parts": {
+            "container": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
         },
         "tag": {
           "keys": [
@@ -17056,49 +17262,6 @@
     "space.0": {
       "type": "dimension",
       "components": {
-        "_list-item": {
-          "keys": [
-            "gap"
-          ],
-          "parts": {
-            "row": {
-              "members": 9,
-              "where": {}
-            }
-          }
-        },
-        "_segmented-control-segment": {
-          "keys": [
-            "pad-y",
-            "reserve-height"
-          ],
-          "parts": {
-            "content": {
-              "members": 30,
-              "where": {}
-            },
-            "reserve": {
-              "members": 30,
-              "where": {}
-            }
-          }
-        },
-        "_tab-item": {
-          "keys": [
-            "pad-y",
-            "reserve-height"
-          ],
-          "parts": {
-            "content": {
-              "members": 30,
-              "where": {}
-            },
-            "reserve": {
-              "members": 30,
-              "where": {}
-            }
-          }
-        },
         "accordion": {
           "keys": [
             "size.large.panel-pad-top",
@@ -17198,6 +17361,10 @@
             "container": {
               "members": 3,
               "where": {}
+            },
+            "items": {
+              "members": 3,
+              "where": {}
             }
           }
         },
@@ -17212,6 +17379,24 @@
             }
           }
         },
+        "counter": {
+          "keys": [
+            "ghost.size.large.pad-x",
+            "ghost.size.medium.pad-x",
+            "ghost.size.small.pad-x",
+            "pad-y"
+          ],
+          "parts": {
+            "control": {
+              "members": 18,
+              "where": {}
+            },
+            "entry": {
+              "members": 18,
+              "where": {}
+            }
+          }
+        },
         "dialog": {
           "keys": [
             "pad-none"
@@ -17221,18 +17406,11 @@
               "members": 15,
               "where": {}
             },
-            "footerInline": {
-              "members": 5,
+            "footer": {
+              "members": 10,
               "where": {
                 "footer": [
-                  "inline"
-                ]
-              }
-            },
-            "footerStacked": {
-              "members": 5,
-              "where": {
-                "footer": [
+                  "inline",
                   "stacked"
                 ]
               }
@@ -17271,6 +17449,17 @@
             }
           }
         },
+        "list-item": {
+          "keys": [
+            "gap"
+          ],
+          "parts": {
+            "row": {
+              "members": 9,
+              "where": {}
+            }
+          }
+        },
         "radio-group": {
           "keys": [
             "gap",
@@ -17278,6 +17467,10 @@
           ],
           "parts": {
             "container": {
+              "members": 3,
+              "where": {}
+            },
+            "items": {
               "members": 3,
               "where": {}
             }
@@ -17300,8 +17493,44 @@
             "track-pad"
           ],
           "parts": {
+            "items": {
+              "members": 3,
+              "where": {}
+            },
             "track": {
               "members": 3,
+              "where": {}
+            }
+          }
+        },
+        "segmented-control-segment": {
+          "keys": [
+            "pad-y",
+            "reserve-height"
+          ],
+          "parts": {
+            "content": {
+              "members": 30,
+              "where": {}
+            },
+            "reserve": {
+              "members": 30,
+              "where": {}
+            }
+          }
+        },
+        "tab-item": {
+          "keys": [
+            "pad-y",
+            "reserve-height"
+          ],
+          "parts": {
+            "content": {
+              "members": 30,
+              "where": {}
+            },
+            "reserve": {
+              "members": 30,
               "where": {}
             }
           }
@@ -17315,7 +17544,7 @@
               "members": 6,
               "where": {}
             },
-            "list": {
+            "items": {
               "members": 6,
               "where": {}
             }
@@ -17405,14 +17634,20 @@
     "space.050": {
       "type": "dimension",
       "components": {
-        "_segmented-control-segment": {
+        "counter": {
           "keys": [
-            "inset"
+            "size.medium.value-pad",
+            "size.small.value-pad"
           ],
           "parts": {
-            "container": {
-              "members": 30,
-              "where": {}
+            "entry": {
+              "members": 12,
+              "where": {
+                "size": [
+                  "medium",
+                  "small"
+                ]
+              }
             }
           }
         },
@@ -17441,6 +17676,17 @@
                   "small"
                 ]
               }
+            }
+          }
+        },
+        "segmented-control-segment": {
+          "keys": [
+            "inset"
+          ],
+          "parts": {
+            "container": {
+              "members": 30,
+              "where": {}
             }
           }
         },
@@ -17480,36 +17726,6 @@
     "space.075": {
       "type": "dimension",
       "components": {
-        "_segmented-control-segment": {
-          "keys": [
-            "size.small.gap"
-          ],
-          "parts": {
-            "content": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "small"
-                ]
-              }
-            }
-          }
-        },
-        "_tab-item": {
-          "keys": [
-            "size.small.gap"
-          ],
-          "parts": {
-            "content": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "small"
-                ]
-              }
-            }
-          }
-        },
         "badge": {
           "keys": [
             "count.pad-x"
@@ -17599,6 +17815,21 @@
             }
           }
         },
+        "segmented-control-segment": {
+          "keys": [
+            "size.small.gap"
+          ],
+          "parts": {
+            "content": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "select": {
           "keys": [
             "size.small.pad-y"
@@ -17606,6 +17837,21 @@
           "parts": {
             "control": {
               "members": 28,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
+        "tab-item": {
+          "keys": [
+            "size.small.gap"
+          ],
+          "parts": {
+            "content": {
+              "members": 10,
               "where": {
                 "size": [
                   "small"
@@ -17677,40 +17923,6 @@
     "space.100": {
       "type": "dimension",
       "components": {
-        "_segmented-control-segment": {
-          "keys": [
-            "size.large.gap",
-            "size.medium.gap"
-          ],
-          "parts": {
-            "content": {
-              "members": 20,
-              "where": {
-                "size": [
-                  "large",
-                  "medium"
-                ]
-              }
-            }
-          }
-        },
-        "_tab-item": {
-          "keys": [
-            "size.large.gap",
-            "size.medium.gap"
-          ],
-          "parts": {
-            "content": {
-              "members": 20,
-              "where": {
-                "size": [
-                  "large",
-                  "medium"
-                ]
-              }
-            }
-          }
-        },
         "accordion": {
           "keys": [
             "size.small.gap",
@@ -17778,6 +17990,21 @@
             }
           }
         },
+        "button-group": {
+          "keys": [
+            "layout.stacked.gap"
+          ],
+          "parts": {
+            "items": {
+              "members": 1,
+              "where": {
+                "layout": [
+                  "stacked"
+                ]
+              }
+            }
+          }
+        },
         "button-neutral": {
           "keys": [
             "size.large.padding-y",
@@ -17820,20 +18047,31 @@
             }
           }
         },
+        "counter": {
+          "keys": [
+            "root-gap",
+            "size.large.value-pad"
+          ],
+          "parts": {
+            "container": {
+              "members": 18,
+              "where": {}
+            },
+            "entry": {
+              "members": 6,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
         "dialog": {
           "keys": [
-            "footer.stacked.gap",
             "title-gap"
           ],
           "parts": {
-            "footerStacked": {
-              "members": 5,
-              "where": {
-                "footer": [
-                  "stacked"
-                ]
-              }
-            },
             "titleBox": {
               "members": 15,
               "where": {}
@@ -17879,6 +18117,14 @@
           ],
           "parts": {
             "container": {
+              "members": 3,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            },
+            "items": {
               "members": 3,
               "where": {
                 "size": [
@@ -17955,6 +18201,23 @@
             }
           }
         },
+        "segmented-control-segment": {
+          "keys": [
+            "size.large.gap",
+            "size.medium.gap"
+          ],
+          "parts": {
+            "content": {
+              "members": 20,
+              "where": {
+                "size": [
+                  "large",
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
         "select": {
           "keys": [
             "root-gap",
@@ -17988,6 +18251,23 @@
             "row": {
               "members": 2,
               "where": {}
+            }
+          }
+        },
+        "tab-item": {
+          "keys": [
+            "size.large.gap",
+            "size.medium.gap"
+          ],
+          "parts": {
+            "content": {
+              "members": 20,
+              "where": {
+                "size": [
+                  "large",
+                  "medium"
+                ]
+              }
             }
           }
         },
@@ -18084,36 +18364,6 @@
     "space.150": {
       "type": "dimension",
       "components": {
-        "_segmented-control-segment": {
-          "keys": [
-            "size.small.padding-x"
-          ],
-          "parts": {
-            "content": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "small"
-                ]
-              }
-            }
-          }
-        },
-        "_tab-item": {
-          "keys": [
-            "size.small.padding-x"
-          ],
-          "parts": {
-            "content": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "small"
-                ]
-              }
-            }
-          }
-        },
         "accordion": {
           "keys": [
             "size.medium.gap",
@@ -18193,6 +18443,23 @@
             }
           }
         },
+        "button-group": {
+          "keys": [
+            "layout.fill.gap",
+            "layout.inline.gap"
+          ],
+          "parts": {
+            "items": {
+              "members": 2,
+              "where": {
+                "layout": [
+                  "fill",
+                  "inline"
+                ]
+              }
+            }
+          }
+        },
         "button-neutral": {
           "keys": [
             "size.large.gap",
@@ -18218,16 +18485,21 @@
             }
           }
         },
-        "dialog": {
+        "counter": {
           "keys": [
-            "footer.inline.gap"
+            "outline.size.medium.pad-x",
+            "outline.size.small.pad-x"
           ],
           "parts": {
-            "footerInline": {
-              "members": 5,
+            "control": {
+              "members": 6,
               "where": {
-                "footer": [
-                  "inline"
+                "appearance": [
+                  "outline"
+                ],
+                "size": [
+                  "medium",
+                  "small"
                 ]
               }
             }
@@ -18239,6 +18511,14 @@
           ],
           "parts": {
             "container": {
+              "members": 3,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            },
+            "items": {
               "members": 3,
               "where": {
                 "size": [
@@ -18257,6 +18537,36 @@
             "row": {
               "members": 3,
               "where": {}
+            }
+          }
+        },
+        "segmented-control-segment": {
+          "keys": [
+            "size.small.padding-x"
+          ],
+          "parts": {
+            "content": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
+        "tab-item": {
+          "keys": [
+            "size.small.padding-x"
+          ],
+          "parts": {
+            "content": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
             }
           }
         },
@@ -18283,36 +18593,6 @@
     "space.200": {
       "type": "dimension",
       "components": {
-        "_segmented-control-segment": {
-          "keys": [
-            "size.medium.padding-x"
-          ],
-          "parts": {
-            "content": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "medium"
-                ]
-              }
-            }
-          }
-        },
-        "_tab-item": {
-          "keys": [
-            "size.medium.padding-x"
-          ],
-          "parts": {
-            "content": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "medium"
-                ]
-              }
-            }
-          }
-        },
         "accordion": {
           "keys": [
             "size.large.gap",
@@ -18402,6 +18682,24 @@
             }
           }
         },
+        "counter": {
+          "keys": [
+            "outline.size.large.pad-x"
+          ],
+          "parts": {
+            "control": {
+              "members": 3,
+              "where": {
+                "appearance": [
+                  "outline"
+                ],
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
         "dialog": {
           "keys": [
             "gap",
@@ -18422,25 +18720,11 @@
                 ]
               }
             },
-            "footerInline": {
-              "members": 2,
+            "footer": {
+              "members": 4,
               "where": {
                 "footer": [
-                  "inline"
-                ],
-                "placement": [
-                  "bottom",
-                  "full"
-                ],
-                "size": [
-                  "medium"
-                ]
-              }
-            },
-            "footerStacked": {
-              "members": 2,
-              "where": {
-                "footer": [
+                  "inline",
                   "stacked"
                 ],
                 "placement": [
@@ -18495,6 +18779,14 @@
                   "large"
                 ]
               }
+            },
+            "items": {
+              "members": 3,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
             }
           }
         },
@@ -18515,6 +18807,21 @@
             }
           }
         },
+        "segmented-control-segment": {
+          "keys": [
+            "size.medium.padding-x"
+          ],
+          "parts": {
+            "content": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
         "select": {
           "keys": [
             "size.medium.pad-x",
@@ -18527,6 +18834,21 @@
                 "size": [
                   "medium",
                   "small"
+                ]
+              }
+            }
+          }
+        },
+        "tab-item": {
+          "keys": [
+            "size.medium.padding-x"
+          ],
+          "parts": {
+            "content": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "medium"
                 ]
               }
             }
@@ -18587,36 +18909,6 @@
     "space.250": {
       "type": "dimension",
       "components": {
-        "_segmented-control-segment": {
-          "keys": [
-            "size.large.padding-x"
-          ],
-          "parts": {
-            "content": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "large"
-                ]
-              }
-            }
-          }
-        },
-        "_tab-item": {
-          "keys": [
-            "size.large.padding-x"
-          ],
-          "parts": {
-            "content": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "large"
-                ]
-              }
-            }
-          }
-        },
         "accordion": {
           "keys": [
             "size.large.pad-x"
@@ -18642,27 +18934,42 @@
               }
             }
           }
+        },
+        "segmented-control-segment": {
+          "keys": [
+            "size.large.padding-x"
+          ],
+          "parts": {
+            "content": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
+        "tab-item": {
+          "keys": [
+            "size.large.padding-x"
+          ],
+          "parts": {
+            "content": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
         }
       }
     },
     "space.300": {
       "type": "dimension",
       "components": {
-        "_list-item": {
-          "keys": [
-            "size.small.marker-column"
-          ],
-          "parts": {
-            "markerBox": {
-              "members": 3,
-              "where": {
-                "size": [
-                  "small"
-                ]
-              }
-            }
-          }
-        },
         "accordion": {
           "keys": [
             "size.large.panel-pad-end"
@@ -18748,21 +19055,11 @@
                 ]
               }
             },
-            "footerInline": {
-              "members": 3,
+            "footer": {
+              "members": 6,
               "where": {
                 "footer": [
-                  "inline"
-                ],
-                "placement": [
-                  "center"
-                ]
-              }
-            },
-            "footerStacked": {
-              "members": 3,
-              "where": {
-                "footer": [
+                  "inline",
                   "stacked"
                 ],
                 "placement": [
@@ -18783,6 +19080,21 @@
               "where": {
                 "placement": [
                   "center"
+                ]
+              }
+            }
+          }
+        },
+        "list-item": {
+          "keys": [
+            "size.small.marker-column"
+          ],
+          "parts": {
+            "markerBox": {
+              "members": 3,
+              "where": {
+                "size": [
+                  "small"
                 ]
               }
             }
@@ -18853,7 +19165,7 @@
     "space.400": {
       "type": "dimension",
       "components": {
-        "_list-item": {
+        "list-item": {
           "keys": [
             "size.medium.marker-column"
           ],
@@ -18873,7 +19185,7 @@
     "space.500": {
       "type": "dimension",
       "components": {
-        "_list-item": {
+        "list-item": {
           "keys": [
             "size.large.marker-column"
           ],
@@ -18893,32 +19205,6 @@
     "type.body.lg.default": {
       "type": "typography",
       "components": {
-        "_list-item": {
-          "keys": [
-            "size.large.text"
-          ],
-          "parts": {
-            "number": {
-              "members": 1,
-              "where": {
-                "size": [
-                  "large"
-                ],
-                "type": [
-                  "ordered"
-                ]
-              }
-            },
-            "text": {
-              "members": 3,
-              "where": {
-                "size": [
-                  "large"
-                ]
-              }
-            }
-          }
-        },
         "accordion": {
           "keys": [
             "size.large.panel-type"
@@ -18952,6 +19238,21 @@
             }
           }
         },
+        "counter": {
+          "keys": [
+            "size.large.type"
+          ],
+          "parts": {
+            "value": {
+              "members": 6,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
         "link": {
           "keys": [
             "size.large.type.default.standalone.rest"
@@ -18971,6 +19272,32 @@
                 ],
                 "weight": [
                   "default"
+                ]
+              }
+            }
+          }
+        },
+        "list-item": {
+          "keys": [
+            "size.large.text"
+          ],
+          "parts": {
+            "number": {
+              "members": 1,
+              "where": {
+                "size": [
+                  "large"
+                ],
+                "type": [
+                  "ordered"
+                ]
+              }
+            },
+            "text": {
+              "members": 3,
+              "where": {
+                "size": [
+                  "large"
                 ]
               }
             }
@@ -19219,32 +19546,6 @@
     "type.body.md.default": {
       "type": "typography",
       "components": {
-        "_list-item": {
-          "keys": [
-            "size.medium.text"
-          ],
-          "parts": {
-            "number": {
-              "members": 1,
-              "where": {
-                "size": [
-                  "medium"
-                ],
-                "type": [
-                  "ordered"
-                ]
-              }
-            },
-            "text": {
-              "members": 3,
-              "where": {
-                "size": [
-                  "medium"
-                ]
-              }
-            }
-          }
-        },
         "accordion": {
           "keys": [
             "size.medium.panel-type"
@@ -19270,6 +19571,21 @@
           "parts": {
             "label": {
               "members": 1,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
+        "counter": {
+          "keys": [
+            "size.medium.type"
+          ],
+          "parts": {
+            "value": {
+              "members": 6,
               "where": {
                 "size": [
                   "medium"
@@ -19342,6 +19658,32 @@
                 ],
                 "weight": [
                   "default"
+                ]
+              }
+            }
+          }
+        },
+        "list-item": {
+          "keys": [
+            "size.medium.text"
+          ],
+          "parts": {
+            "number": {
+              "members": 1,
+              "where": {
+                "size": [
+                  "medium"
+                ],
+                "type": [
+                  "ordered"
+                ]
+              }
+            },
+            "text": {
+              "members": 3,
+              "where": {
+                "size": [
+                  "medium"
                 ]
               }
             }
@@ -19634,32 +19976,6 @@
     "type.body.sm.default": {
       "type": "typography",
       "components": {
-        "_list-item": {
-          "keys": [
-            "size.small.text"
-          ],
-          "parts": {
-            "number": {
-              "members": 1,
-              "where": {
-                "size": [
-                  "small"
-                ],
-                "type": [
-                  "ordered"
-                ]
-              }
-            },
-            "text": {
-              "members": 3,
-              "where": {
-                "size": [
-                  "small"
-                ]
-              }
-            }
-          }
-        },
         "accordion": {
           "keys": [
             "size.small.panel-type"
@@ -19685,6 +20001,21 @@
           "parts": {
             "label": {
               "members": 1,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
+        "counter": {
+          "keys": [
+            "size.small.type"
+          ],
+          "parts": {
+            "value": {
+              "members": 6,
               "where": {
                 "size": [
                   "small"
@@ -19741,6 +20072,32 @@
                 ],
                 "weight": [
                   "default"
+                ]
+              }
+            }
+          }
+        },
+        "list-item": {
+          "keys": [
+            "size.small.text"
+          ],
+          "parts": {
+            "number": {
+              "members": 1,
+              "where": {
+                "size": [
+                  "small"
+                ],
+                "type": [
+                  "ordered"
+                ]
+              }
+            },
+            "text": {
+              "members": 3,
+              "where": {
+                "size": [
+                  "small"
                 ]
               }
             }
@@ -20128,7 +20485,7 @@
     "type.label.lg.default": {
       "type": "typography",
       "components": {
-        "_segmented-control-segment": {
+        "segmented-control-segment": {
           "keys": [
             "size.large.type.unselected"
           ],
@@ -20146,7 +20503,7 @@
             }
           }
         },
-        "_tab-item": {
+        "tab-item": {
           "keys": [
             "size.large.type.unselected"
           ],
@@ -20169,58 +20526,6 @@
     "type.label.lg.emphasis": {
       "type": "typography",
       "components": {
-        "_segmented-control-segment": {
-          "keys": [
-            "size.large.type.selected"
-          ],
-          "parts": {
-            "label": {
-              "members": 5,
-              "where": {
-                "selection": [
-                  "selected"
-                ],
-                "size": [
-                  "large"
-                ]
-              }
-            },
-            "labelReserve": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "large"
-                ]
-              }
-            }
-          }
-        },
-        "_tab-item": {
-          "keys": [
-            "size.large.type.selected"
-          ],
-          "parts": {
-            "label": {
-              "members": 5,
-              "where": {
-                "selection": [
-                  "selected"
-                ],
-                "size": [
-                  "large"
-                ]
-              }
-            },
-            "labelReserve": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "large"
-                ]
-              }
-            }
-          }
-        },
         "accordion": {
           "keys": [
             "size.large.type"
@@ -20316,6 +20621,58 @@
             }
           }
         },
+        "segmented-control-segment": {
+          "keys": [
+            "size.large.type.selected"
+          ],
+          "parts": {
+            "label": {
+              "members": 5,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "size": [
+                  "large"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
+        "tab-item": {
+          "keys": [
+            "size.large.type.selected"
+          ],
+          "parts": {
+            "label": {
+              "members": 5,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "size": [
+                  "large"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
         "tag": {
           "keys": [
             "size.large.type"
@@ -20395,7 +20752,7 @@
     "type.label.md.default": {
       "type": "typography",
       "components": {
-        "_segmented-control-segment": {
+        "segmented-control-segment": {
           "keys": [
             "size.medium.type.unselected"
           ],
@@ -20413,7 +20770,7 @@
             }
           }
         },
-        "_tab-item": {
+        "tab-item": {
           "keys": [
             "size.medium.type.unselected"
           ],
@@ -20436,58 +20793,6 @@
     "type.label.md.emphasis": {
       "type": "typography",
       "components": {
-        "_segmented-control-segment": {
-          "keys": [
-            "size.medium.type.selected"
-          ],
-          "parts": {
-            "label": {
-              "members": 5,
-              "where": {
-                "selection": [
-                  "selected"
-                ],
-                "size": [
-                  "medium"
-                ]
-              }
-            },
-            "labelReserve": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "medium"
-                ]
-              }
-            }
-          }
-        },
-        "_tab-item": {
-          "keys": [
-            "size.medium.type.selected"
-          ],
-          "parts": {
-            "label": {
-              "members": 5,
-              "where": {
-                "selection": [
-                  "selected"
-                ],
-                "size": [
-                  "medium"
-                ]
-              }
-            },
-            "labelReserve": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "medium"
-                ]
-              }
-            }
-          }
-        },
         "accordion": {
           "keys": [
             "size.medium.type"
@@ -20565,6 +20870,58 @@
                 "inset": [
                   "default"
                 ],
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
+        "segmented-control-segment": {
+          "keys": [
+            "size.medium.type.selected"
+          ],
+          "parts": {
+            "label": {
+              "members": 5,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "size": [
+                  "medium"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
+        "tab-item": {
+          "keys": [
+            "size.medium.type.selected"
+          ],
+          "parts": {
+            "label": {
+              "members": 5,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "size": [
+                  "medium"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 10,
+              "where": {
                 "size": [
                   "medium"
                 ]
@@ -20651,7 +21008,7 @@
     "type.label.sm.default": {
       "type": "typography",
       "components": {
-        "_segmented-control-segment": {
+        "segmented-control-segment": {
           "keys": [
             "size.small.type.unselected"
           ],
@@ -20669,7 +21026,7 @@
             }
           }
         },
-        "_tab-item": {
+        "tab-item": {
           "keys": [
             "size.small.type.unselected"
           ],
@@ -20692,58 +21049,6 @@
     "type.label.sm.emphasis": {
       "type": "typography",
       "components": {
-        "_segmented-control-segment": {
-          "keys": [
-            "size.small.type.selected"
-          ],
-          "parts": {
-            "label": {
-              "members": 5,
-              "where": {
-                "selection": [
-                  "selected"
-                ],
-                "size": [
-                  "small"
-                ]
-              }
-            },
-            "labelReserve": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "small"
-                ]
-              }
-            }
-          }
-        },
-        "_tab-item": {
-          "keys": [
-            "size.small.type.selected"
-          ],
-          "parts": {
-            "label": {
-              "members": 5,
-              "where": {
-                "selection": [
-                  "selected"
-                ],
-                "size": [
-                  "small"
-                ]
-              }
-            },
-            "labelReserve": {
-              "members": 10,
-              "where": {
-                "size": [
-                  "small"
-                ]
-              }
-            }
-          }
-        },
         "accordion": {
           "keys": [
             "size.small.type"
@@ -20854,6 +21159,58 @@
             }
           }
         },
+        "segmented-control-segment": {
+          "keys": [
+            "size.small.type.selected"
+          ],
+          "parts": {
+            "label": {
+              "members": 5,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "size": [
+                  "small"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
+        "tab-item": {
+          "keys": [
+            "size.small.type.selected"
+          ],
+          "parts": {
+            "label": {
+              "members": 5,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "size": [
+                  "small"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 10,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "tag": {
           "keys": [
             "size.small.type"
@@ -20956,173 +21313,6 @@
         "icon.size.xs"
       ],
       "declaredNotDrawn": [],
-      "drawnNotDeclared": []
-    },
-    "_list-item": {
-      "members": 9,
-      "axes": {
-        "size": [
-          "large",
-          "medium",
-          "small"
-        ],
-        "type": [
-          "icon",
-          "ordered",
-          "unordered"
-        ]
-      },
-      "tokens": [
-        "color.icon.primary",
-        "color.text.primary",
-        "control.size.lg.dot",
-        "control.size.lg.line-box",
-        "control.size.md.dot",
-        "control.size.md.line-box",
-        "control.size.sm.dot",
-        "control.size.sm.line-box",
-        "icon.size.lg",
-        "icon.size.md",
-        "icon.size.sm",
-        "radius.round",
-        "space.0",
-        "space.300",
-        "space.400",
-        "space.500",
-        "type.body.lg.default",
-        "type.body.md.default",
-        "type.body.sm.default"
-      ],
-      "declaredNotDrawn": [],
-      "drawnNotDeclared": []
-    },
-    "_segmented-control-segment": {
-      "members": 30,
-      "axes": {
-        "selection": [
-          "selected",
-          "unselected"
-        ],
-        "size": [
-          "large",
-          "medium",
-          "small"
-        ],
-        "state": [
-          "disabled",
-          "focus-visible",
-          "hover",
-          "pressed",
-          "rest"
-        ]
-      },
-      "tokens": [
-        "color.background.primary",
-        "color.border.focus",
-        "color.disabled.icon",
-        "color.disabled.text",
-        "color.interactive.neutral.icon.hover",
-        "color.interactive.neutral.icon.pressed",
-        "color.interactive.neutral.icon.rest",
-        "color.interactive.neutral.overlay.hover",
-        "color.interactive.neutral.overlay.pressed",
-        "color.interactive.neutral.text.hover",
-        "color.interactive.neutral.text.pressed",
-        "color.interactive.neutral.text.rest",
-        "focus.ring.offset",
-        "focus.ring.width",
-        "icon.size.lg",
-        "icon.size.md",
-        "icon.size.sm",
-        "radius.sm",
-        "size.lg.height",
-        "size.md.height",
-        "size.sm.height",
-        "space.0",
-        "space.050",
-        "space.075",
-        "space.100",
-        "space.150",
-        "space.200",
-        "space.250",
-        "type.label.lg.default",
-        "type.label.lg.emphasis",
-        "type.label.md.default",
-        "type.label.md.emphasis",
-        "type.label.sm.default",
-        "type.label.sm.emphasis"
-      ],
-      "declaredNotDrawn": [
-        "color.border.focus"
-      ],
-      "drawnNotDeclared": []
-    },
-    "_tab-item": {
-      "members": 30,
-      "axes": {
-        "selection": [
-          "selected",
-          "unselected"
-        ],
-        "size": [
-          "large",
-          "medium",
-          "small"
-        ],
-        "state": [
-          "disabled",
-          "focus-visible",
-          "hover",
-          "pressed",
-          "rest"
-        ]
-      },
-      "tokens": [
-        "border-width.thick",
-        "color.border.focus",
-        "color.border.secondary",
-        "color.disabled.border",
-        "color.disabled.icon",
-        "color.disabled.text",
-        "color.interactive.neutral.icon.hover",
-        "color.interactive.neutral.icon.pressed",
-        "color.interactive.neutral.icon.rest",
-        "color.interactive.neutral.text.hover",
-        "color.interactive.neutral.text.pressed",
-        "color.interactive.neutral.text.rest",
-        "color.interactive.primary.border.hover",
-        "color.interactive.primary.border.pressed",
-        "color.interactive.primary.border.rest",
-        "color.interactive.primary.icon.hover",
-        "color.interactive.primary.icon.pressed",
-        "color.interactive.primary.icon.rest",
-        "color.interactive.primary.text.hover",
-        "color.interactive.primary.text.pressed",
-        "color.interactive.primary.text.rest",
-        "focus.ring.offset",
-        "focus.ring.width",
-        "icon.size.lg",
-        "icon.size.md",
-        "icon.size.sm",
-        "size.lg.height",
-        "size.md.height",
-        "size.sm.height",
-        "space.0",
-        "space.075",
-        "space.100",
-        "space.150",
-        "space.200",
-        "space.250",
-        "type.label.lg.default",
-        "type.label.lg.emphasis",
-        "type.label.md.default",
-        "type.label.md.emphasis",
-        "type.label.sm.default",
-        "type.label.sm.emphasis"
-      ],
-      "declaredNotDrawn": [
-        "color.border.focus"
-      ],
       "drawnNotDeclared": []
     },
     "accordion": {
@@ -21487,6 +21677,22 @@
         "color.inverse.interactive.destructive.text.rest"
       ]
     },
+    "button-group": {
+      "members": 3,
+      "axes": {
+        "layout": [
+          "fill",
+          "inline",
+          "stacked"
+        ]
+      },
+      "tokens": [
+        "space.100",
+        "space.150"
+      ],
+      "declaredNotDrawn": [],
+      "drawnNotDeclared": []
+    },
     "button-neutral": {
       "members": 576,
       "axes": {
@@ -21717,6 +21923,50 @@
       ],
       "drawnNotDeclared": []
     },
+    "counter": {
+      "members": 18,
+      "axes": {
+        "appearance": [
+          "ghost",
+          "outline"
+        ],
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "state": [
+          "disabled",
+          "focus-visible",
+          "rest"
+        ]
+      },
+      "tokens": [
+        "border-width.hairline",
+        "color.disabled.border",
+        "color.disabled.text",
+        "color.field.border.rest",
+        "color.field.fill",
+        "color.text.primary",
+        "focus.ring.offset",
+        "focus.ring.offset-field",
+        "focus.ring.width",
+        "radius.sm",
+        "size.lg.height",
+        "size.md.height",
+        "size.sm.height",
+        "space.0",
+        "space.050",
+        "space.100",
+        "space.150",
+        "space.200",
+        "type.body.lg.default",
+        "type.body.md.default",
+        "type.body.sm.default"
+      ],
+      "declaredNotDrawn": [],
+      "drawnNotDeclared": []
+    },
     "dialog": {
       "members": 15,
       "axes": {
@@ -21745,7 +21995,6 @@
         "shadow.xl",
         "space.0",
         "space.100",
-        "space.150",
         "space.200",
         "space.300",
         "type.body.md.default",
@@ -22484,6 +22733,44 @@
       "declaredNotDrawn": [],
       "drawnNotDeclared": []
     },
+    "list-item": {
+      "members": 9,
+      "axes": {
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "type": [
+          "icon",
+          "ordered",
+          "unordered"
+        ]
+      },
+      "tokens": [
+        "color.icon.primary",
+        "color.text.primary",
+        "control.size.lg.dot",
+        "control.size.lg.line-box",
+        "control.size.md.dot",
+        "control.size.md.line-box",
+        "control.size.sm.dot",
+        "control.size.sm.line-box",
+        "icon.size.lg",
+        "icon.size.md",
+        "icon.size.sm",
+        "radius.round",
+        "space.0",
+        "space.300",
+        "space.400",
+        "space.500",
+        "type.body.lg.default",
+        "type.body.md.default",
+        "type.body.sm.default"
+      ],
+      "declaredNotDrawn": [],
+      "drawnNotDeclared": []
+    },
     "password-field": {
       "members": 84,
       "axes": {
@@ -22660,6 +22947,67 @@
       "declaredNotDrawn": [],
       "drawnNotDeclared": []
     },
+    "segmented-control-segment": {
+      "members": 30,
+      "axes": {
+        "selection": [
+          "selected",
+          "unselected"
+        ],
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "state": [
+          "disabled",
+          "focus-visible",
+          "hover",
+          "pressed",
+          "rest"
+        ]
+      },
+      "tokens": [
+        "color.background.primary",
+        "color.border.focus",
+        "color.disabled.icon",
+        "color.disabled.text",
+        "color.interactive.neutral.icon.hover",
+        "color.interactive.neutral.icon.pressed",
+        "color.interactive.neutral.icon.rest",
+        "color.interactive.neutral.overlay.hover",
+        "color.interactive.neutral.overlay.pressed",
+        "color.interactive.neutral.text.hover",
+        "color.interactive.neutral.text.pressed",
+        "color.interactive.neutral.text.rest",
+        "focus.ring.offset",
+        "focus.ring.width",
+        "icon.size.md",
+        "icon.size.sm",
+        "icon.size.xs",
+        "radius.sm",
+        "size.lg.height",
+        "size.md.height",
+        "size.sm.height",
+        "space.0",
+        "space.050",
+        "space.075",
+        "space.100",
+        "space.150",
+        "space.200",
+        "space.250",
+        "type.label.lg.default",
+        "type.label.lg.emphasis",
+        "type.label.md.default",
+        "type.label.md.emphasis",
+        "type.label.sm.default",
+        "type.label.sm.emphasis"
+      ],
+      "declaredNotDrawn": [
+        "color.border.focus"
+      ],
+      "drawnNotDeclared": []
+    },
     "select": {
       "members": 84,
       "axes": {
@@ -22817,6 +23165,74 @@
       ],
       "drawnNotDeclared": []
     },
+    "tab-item": {
+      "members": 30,
+      "axes": {
+        "selection": [
+          "selected",
+          "unselected"
+        ],
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "state": [
+          "disabled",
+          "focus-visible",
+          "hover",
+          "pressed",
+          "rest"
+        ]
+      },
+      "tokens": [
+        "border-width.thick",
+        "color.border.focus",
+        "color.border.secondary",
+        "color.disabled.border",
+        "color.disabled.icon",
+        "color.disabled.text",
+        "color.interactive.neutral.icon.hover",
+        "color.interactive.neutral.icon.pressed",
+        "color.interactive.neutral.icon.rest",
+        "color.interactive.neutral.text.hover",
+        "color.interactive.neutral.text.pressed",
+        "color.interactive.neutral.text.rest",
+        "color.interactive.primary.border.hover",
+        "color.interactive.primary.border.pressed",
+        "color.interactive.primary.border.rest",
+        "color.interactive.primary.icon.hover",
+        "color.interactive.primary.icon.pressed",
+        "color.interactive.primary.icon.rest",
+        "color.interactive.primary.text.hover",
+        "color.interactive.primary.text.pressed",
+        "color.interactive.primary.text.rest",
+        "focus.ring.offset",
+        "focus.ring.width",
+        "icon.size.md",
+        "icon.size.sm",
+        "icon.size.xs",
+        "size.lg.height",
+        "size.md.height",
+        "size.sm.height",
+        "space.0",
+        "space.075",
+        "space.100",
+        "space.150",
+        "space.200",
+        "space.250",
+        "type.label.lg.default",
+        "type.label.lg.emphasis",
+        "type.label.md.default",
+        "type.label.md.emphasis",
+        "type.label.sm.default",
+        "type.label.sm.emphasis"
+      ],
+      "declaredNotDrawn": [
+        "color.border.focus"
+      ],
+      "drawnNotDeclared": []
+    },
     "tabs": {
       "members": 6,
       "axes": {
@@ -22886,9 +23302,9 @@
         "color.interactive.primary.subtle-fill.selected",
         "focus.ring.offset",
         "focus.ring.width",
-        "icon.size.lg",
         "icon.size.md",
         "icon.size.sm",
+        "icon.size.xs",
         "radius.round",
         "size.lg.height",
         "size.md.height",
