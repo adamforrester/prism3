@@ -711,6 +711,18 @@
         "message:BOOLEAN",
         "value:TEXT"
       ]
+    },
+    "progress": {
+      "members": 10,
+      "sha256": "d3db9a17e06a4f3a108eaac649dabfd66696786bdf8139781f1d0ea8c90b4e7b",
+      "properties": [
+        "complete value text:TEXT",
+        "label text:TEXT",
+        "label:BOOLEAN",
+        "message:BOOLEAN",
+        "value text:TEXT",
+        "value:BOOLEAN"
+      ]
     }
   }
 }

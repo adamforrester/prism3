@@ -315,7 +315,8 @@
           "button-group",
           "dialog",
           "password-field",
-          "counter"
+          "counter",
+          "progress"
         ]
       }
     },

@@ -459,7 +459,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
     values: ['medium', 'small'],
     // The `switch-row` ROW keeps `size` (it scales the label ramp, gap and row height) and passes it through
     // to the nested `switch-control` by `follow`; the atom declares the same two-rung ladder (#1354).
-    defs: ['switch-row', 'switch-control'],
+    defs: ['switch-row', 'switch-control', 'progress'],
     relation: 'subset',
     reason:
       'The ladder minus its top rung, for a def with no large form, led by medium as canonical is (#2752 Q1 B): a switch above medium stops reading '
@@ -467,19 +467,8 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'in canonical, which is what makes this weighable instead of a second ladder. `field-label` shared '
       + 'this entry until #872 and now takes the full three: the reason given for its shortness ("a label '
       + 'tracks the field it labels rather than setting its own scale") turned out to be the argument FOR '
-      + 'three, since `text-field` and `textarea` have declared three rungs since tranche 1.',
-  },
-  {
-    axis: 'size',
-    values: ['medium', 'small'],
-    defs: ['progress'],
-    relation: 'subset',
-    reason:
-      'The progress RING\'s two sizes (#2670): 40px and 24px on the icon ladder (`icon.size.xl`, `icon.size.md`), a ring '
-      + 'with its value beside it at medium and one inline in a list row at small. The canonical words minus `large`, '
-      + 'and led by `medium` because it is the code default and Figma\'s default member: the approved proposal\'s axis '
-      + 'table lists it first, and owner Q347 puts the code default first on every axis. A linear bar has one thickness '
-      + 'and is built at `medium` only (`excludeCoordinates`). `lint-rung-names.ts` DEFAULT_FIRST admits the order split.',
+      + 'three, since `text-field` and `textarea` have declared three rungs since tranche 1. `progress` (#2670) joins for its '
+      + 'RING: 40px and 24px on the icon ladder, with no large form; a linear bar has one thickness and is built at `medium` only.',
   },
   {
     axis: 'shape',
