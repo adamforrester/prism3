@@ -87,7 +87,7 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     lastEdited = key;
     clearFloorReset();   // a floor reset's notice lasts until the next edit (Q69 A)
     write();
-    noteSectionEdit();   // QA-B9: the edit, and only an edit, reveals its preview section
+    noteSectionEdit(key, key.startsWith('row:') ? key.slice(4) : undefined);   // QA-B9: the edit, and only an edit, reveals its preview section
     rebuild();
   };
 

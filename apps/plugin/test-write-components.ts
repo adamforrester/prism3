@@ -3487,8 +3487,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   // Re-apply = rewrite every color variable of the brand's plan, in every mode, with the value its alias row
   // carries — the fill's alias, laid at the wash's opacity where the row has one. Then read each hover/pressed
   // member's EFFECTIVE tint: the paint's opacity times the opacity its bound variable holds, in every mode.
-  // Expected steps are HAND-NAMED (nb-redesign's primary hover steps down to opacity.10 on both grounds; pressed
-  // stays at opacity.30) — never read off the plan. Bind the fill with a paint opacity again (the pre-#1646
+  // Expected steps are HAND-NAMED (the example's primary hover is opacity.20 on the page since #2817 deepened its
+  // hover ink, and steps down to opacity.10 on the inverse band; pressed stays at opacity.30) — never read off the plan. Bind the fill with a paint opacity again (the pre-#1646
   // path) and the re-apply leaves that paint at 1 on a variable that holds no opacity: this arm fails by name.
   const tintColor = buildWritePlan(buildFigmaColor(brandTheme(tint))).color;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the shim's variables, structurally
@@ -3507,7 +3507,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
       rewritten++;
     });
   }
-  const WANT_TINT: Record<string, number> = { hover: 0.1, pressed: 0.3 };
+  const WANT_TINT: Record<string, Record<string, number>> = { default: { hover: 0.2, pressed: 0.3 }, inverse: { hover: 0.1, pressed: 0.3 } };
   const effective = (n: Node): string[] => {
     const f = ((n.fills as { opacity?: number; boundVariables?: { color?: { id?: string } } }[] | undefined) ?? [])[0];
     const v = tintVars.find((x) => x.id === f?.boundVariables?.color?.id);
@@ -3516,12 +3516,13 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     return tintColor.modes.flatMap((m) => {
       const held = v?.valuesByMode[m];
       const got = (f?.opacity ?? 1) * ((held?.opacity ?? 100) / 100);
-      return Math.abs(got - WANT_TINT[st]) < 1e-6 && held?.color ? [] : [`${n.name} @${m}: ${fillVar(n)} paint ${f?.opacity ?? 1} × variable ${held?.opacity ?? 'no opacity'}`];
+      const ground = /surface=inverse/.test(String(n.name)) ? 'inverse' : 'default';
+      return Math.abs(got - WANT_TINT[ground][st]) < 1e-6 && held?.color ? [] : [`${n.name} @${m}: ${fillVar(n)} paint ${f?.opacity ?? 1} × variable ${held?.opacity ?? 'no opacity'}`];
     });
   };
   const survived = [...tintDefault, ...tintInverse].flatMap(effective);
   ok(rewritten > 0 && tintDefault.length + tintInverse.length === 96 && survived.length === 0,
-    `#1646 solid-tint NB button SURVIVES APPLY THEME: after ${rewritten} color-variable rewrites, all 96 hover/pressed members still resolve to the tint (0.1 hover / 0.3 pressed, paint opacity 1 × the wash variable's own opacity) in every mode (${survived.length} lost${survived.length ? ` — ${survived.slice(0, 3).join('; ')}` : ''})`);
+    `#1646 solid-tint NB button SURVIVES APPLY THEME: after ${rewritten} color-variable rewrites, all 96 hover/pressed members still resolve to the tint (hover 0.2 on the page and 0.1 on the band / 0.3 pressed, paint opacity 1 × the wash variable's own opacity) in every mode (${survived.length} lost${survived.length ? ` — ${survived.slice(0, 3).join('; ')}` : ''})`);
   // The rule the arm leans on is live in the model, not assumed: a paint carrying its own opacity on a
   // rewritten variable reads back at 1. Precondition, so the survive line cannot pass on an inert shim.
   const probePage: Page = { children: [] };

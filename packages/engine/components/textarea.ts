@@ -330,11 +330,12 @@ export const textarea: ComponentDef = {
         gap: 'root-gap',
         children: ['label', 'body'],
       },
-      // THE NESTED LABEL — text-field's, exactly (size followed, emphasis / weight exposed, state fixed at rest).
+      // THE NESTED LABEL — text-field's, exactly (size followed, emphasis / weight exposed, state at
+      // rest except at the field's disabled member, where `variantWhen` dims it, #2738).
       label: {
         kind: 'nest',
         nests: 'field-label',
-        nesting: { kind: 'nest-exposed', variant: { size: 'medium', emphasis: 'secondary', weight: 'regular', state: 'rest' }, expose: ['emphasis', 'weight'], follow: ['size'] },
+        nesting: { kind: 'nest-exposed', variant: { size: 'medium', emphasis: 'secondary', weight: 'regular', state: 'rest' }, expose: ['emphasis', 'weight'], follow: ['size'], variantWhen: { state: { disabled: { state: 'disabled' } } } },
         // FILLS the field's width (#1757, select's label); a long name wraps at field-label's max width (#1762).
         crossAxisFill: true,
         note: 'The accessible name, composed rather than re-declared. Its size follows the field\'s, one step below the value; its label text, required marker, emphasis and weight surface on the textarea. Starts secondary and regular. Fills the field\'s width; a long name wraps at FieldLabel\'s max width.',
@@ -476,15 +477,14 @@ export const textarea: ComponentDef = {
     },
     codeOnly: [
       'the SMALL textarea on a COARSE POINTER (#2266, owner decision Q7 A) — iOS Safari zooms the page when it focuses a field whose text is under 16px, and the small textarea\'s value is 14px. So `small` is for fine pointers: under `@media (pointer: coarse)` the code sets the small textarea\'s font size to 16px. The token (`type.body.sm`) and the Figma member stay at 14, because Figma has no focus zoom. Never `maximum-scale=1` in the viewport meta: it blocks pinch zoom as well (WCAG 1.4.4).',
-      'style — the field\'s edge is the brand\'s Field style setting, not a prop or a Figma variant: `outline` draws a box, `underline` one line under the value. The brand sets it once, every field takes it, and the field sets are built in that style (#2695).',
-      'pending — a real STATE (content streaming into the field, with aria-busy), deliberately NOT a Figma variant: its delta is runtime behavior with no distinct static skin, so it stays in `states` and is admitted out of the projected `stateAxis`.',
-      'empty — a real STATE in code (the field holds no value, so it shows the placeholder), NOT a Figma variant, text-field\'s posture: in Figma the empty field IS the rest, hover and focus-visible members, showing the `placeholder` layer in `text.secondary`, and `filled` is the member showing the `value` layer in `text.primary`. It and `pending` are the two states held back, leaving the projected set at size(3) × status(4) × state(7) = 84 members. In code the placeholder and the value are one <textarea>: its `placeholder` attribute and its value, never two elements.',
+      'style — not projected: the field\'s edge is the brand\'s Field style setting, not a prop or a Figma variant: `outline` draws a box, `underline` one line under the value. In code the brand sets it once, every field takes it, and the field sets are built in that style (#2695).',
+      'pending — not projected: its delta is runtime behavior with no distinct static skin. In code content streams into the field, with aria-busy. It stays in `states` and is admitted out of the projected `stateAxis`.',
+      'empty — not projected: in Figma the empty field IS the rest, hover and focus-visible members, showing the `placeholder` layer in `text.secondary`, and `filled` is the member showing the `value` layer in `text.primary`. It and `pending` are the two states held back, leaving the projected set at size(3) × status(4) × state(7) = 84 members. In code the field holds no value, so it shows the placeholder (text-field\'s posture); the placeholder and the value are one <textarea>: its `placeholder` attribute and its value, never two elements.',
       'the FOCUS CARET — Figma draws a static bar before the placeholder on the focus-visible member. Code draws the browser\'s native caret, blinking, at the insertion point, with `caret-color` set from `color.text.primary` (the `caret` binding), so it keeps the value ink over the placeholder\'s muted one.',
       'rows / minRows / maxRows and auto-grow — Figma has no numeric component property, so `rows` is not a Figma property: the value text reserves the `rows` prop\'s DEFAULT line count (3) of its own line height, frozen at paste. A designer wanting more rows types more lines (the box grows) or resizes the instance; `minRows` / `maxRows` and the auto-grow measurement are runtime behavior.',
       'the RESIZE HANDLE\'s behavior (`resize`) — Figma draws a decorative grip behind the `resize handle` boolean, on by default because `resize` defaults to `vertical`. In code the handle is the browser\'s own, drawn at the inline-end corner (bottom-left in a right-to-left layout); Figma members are drawn left to right, so the grip sits bottom-right. `auto` and `none` draw no handle in code; in Figma, switch the boolean off.',
       'the CHARACTER COUNTER\'s live value (`maxLength` / `showCount`) — Figma draws a static "0 / 200" caption trailing the message, behind the `character count` boolean, off by default like `showCount`. Code counts graphemes, sets tabular numerals (`font-variant-numeric: tabular-nums`, which the type tokens do not carry, so Figma uses the caption style as it is) and paints the counter in the error role past the limit. In Figma, as in code, the counter and the message switch independently. In a right-to-left layout the counter anchors to the inline end, the LEFT, with the resize handle (brief §9); Figma members are drawn left to right.',
       'the label / describedby WIRING and the counter\'s two-node live region — the host generates ids, ties the FieldLabel to the textarea, stitches the FieldMessage and the counter into aria-describedby, and sets aria-invalid. Figma has no accessibility tree, so the nested parts are associated by proximity alone.',
-      'the nested LABEL\'s disabled dimming — the field fixes the FieldLabel to `state=rest` (its state vocabulary is not the field\'s), so in Figma the nested label reads at rest regardless. A projection limit, not a design choice.',
       'the KEYBOARD MODEL — native multi-line editing, the Enter key (a newline unless submitOnEnter), IME composition guards and the resize drag. All of it is runtime interaction the closed static member cannot carry.',
     ],
   },

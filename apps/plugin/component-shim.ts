@@ -460,7 +460,17 @@ export const makeShim = (opts: ShimOpts = {}) => {
   /** Every node `remove()` took out, in order — read by a test, never by the executor. */
   const removedNodes: Node[] = [];
   let keySeq = 0;
+  /** #2831 — WHETHER A COMPONENT OR SET IS IN A PUBLISHED TEAM LIBRARY, as Figma's `getPublishStatusAsync` answers it:
+   *  `UNPUBLISHED`, `CURRENT` (published, unchanged since) or `CHANGED` (published, edited since). Every node starts
+   *  `UNPUBLISHED`, which is what the host answers for a file never published; a test publishes one with
+   *  `publish(node, status)`. Installed non-enumerable on every node that becomes a COMPONENT or COMPONENT_SET. */
+  const publishStatus = new WeakMap<Node, string>();
+  const givePublish = (n: Node): void => {
+    if (Object.getOwnPropertyDescriptor(n, 'getPublishStatusAsync')) return;
+    Object.defineProperty(n, 'getPublishStatusAsync', { configurable: false, enumerable: false, value: async () => publishStatus.get(n) ?? 'UNPUBLISHED' });
+  };
   const giveKey = (n: Node): void => {
+    givePublish(n);
     if (!opts.identities || Object.getOwnPropertyDescriptor(n, 'key')) return;
     const k = `${opts.keyPrefix ?? 'K'}:${++keySeq}`;
     Object.defineProperty(n, 'key', { configurable: false, enumerable: false, get: () => k });
@@ -1491,6 +1501,8 @@ export const makeShim = (opts: ShimOpts = {}) => {
     // that one was saved and in what order against the writes; refusable, so the refusal path is reachable.
     _versions: [] as string[],
     _removed: removedNodes,
+    /** #2831 — publish a COMPONENT or COMPONENT_SET, as its team library would: what `getPublishStatusAsync` answers next. */
+    publish: (n: Node, status: 'UNPUBLISHED' | 'CURRENT' | 'CHANGED'): void => { publishStatus.set(n, status); },
     saveVersionHistoryAsync: async (title: string) => {
       if (opts.refuseVersion) throw new Error('in saveVersionHistoryAsync: this plugin may not save versions');
       (shim._versions as string[]).push(title);
