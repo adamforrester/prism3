@@ -17090,7 +17090,8 @@ arm: {
     {
       const a11y = counter.accessibility;
       const code = (counter.anatomy?.codeOnly ?? []).join('\n');
-      const keyMap: Array<[string, RegExp]> = [['Up Arrow', /Up/], ['Down Arrow', /Down/], ['Page Up', /Page Up/], ['Page Down', /Page Down/], ['Home', /Home/], ['End', /End/]];
+      // Each key alone: a bare /Up/ would also be satisfied by "Page Up", so Up and Down skip a preceding "Page ".
+      const keyMap: Array<[string, RegExp]> = [['Up Arrow', /(?<!Page )\bUp\b/], ['Down Arrow', /(?<!Page )\bDown\b/], ['Page Up', /\bPage Up\b/], ['Page Down', /\bPage Down\b/], ['Home', /\bHome\b/], ['End', /\bEnd\b/]];
       const dropped = keyMap.filter(([, re]) => !re.test(a11y.keyboard ?? '') || !re.test(code)).map(([k]) => k);
       ok(dropped.length === 0, `#2427 counter/keyboard-map: the keyboard text and codeOnly both name every spinbutton key${dropped.length ? ` — missing ${dropped.join(', ')}` : ''}`);
       const buttonLine = (/the stepper buttons[^\n]*/.exec(code) ?? [''])[0];
