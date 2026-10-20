@@ -794,9 +794,7 @@
       "id": "checkbox-group",
       "name": "Checkbox.Group",
       "category": "form",
-      "states": [
-        "rest"
-      ],
+      "states": [],
       "projectedStates": [],
       "axes": {
         "size": [
@@ -893,6 +891,10 @@
         },
         {
           "name": "value"
+        },
+        {
+          "name": "disabled",
+          "default": false
         },
         {
           "name": "readOnly",
@@ -2431,9 +2433,7 @@
       "id": "radio-group",
       "name": "Radio.Group",
       "category": "form",
-      "states": [
-        "rest"
-      ],
+      "states": [],
       "projectedStates": [],
       "axes": {
         "size": [
@@ -2517,6 +2517,14 @@
           "name": "description"
         },
         {
+          "name": "disabled",
+          "default": false
+        },
+        {
+          "name": "readOnly",
+          "default": false
+        },
+        {
           "name": "size",
           "default": "medium",
           "values": [
@@ -2537,9 +2545,7 @@
       "id": "segmented-control",
       "name": "SegmentedControl",
       "category": "form",
-      "states": [
-        "rest"
-      ],
+      "states": [],
       "projectedStates": [],
       "axes": {
         "size": [
@@ -2921,6 +2927,10 @@
           ]
         },
         {
+          "name": "disabled",
+          "default": false
+        },
+        {
           "name": "isPending",
           "default": false
         },
@@ -3018,9 +3028,7 @@
       "id": "tabs",
       "name": "Tabs",
       "category": "navigation",
-      "states": [
-        "rest"
-      ],
+      "states": [],
       "projectedStates": [],
       "axes": {
         "size": [
@@ -3370,10 +3378,19 @@
       },
       "props": [
         {
+          "name": "label"
+        },
+        {
           "name": "value"
         },
         {
+          "name": "onChange"
+        },
+        {
           "name": "placeholder"
+        },
+        {
+          "name": "helpText"
         },
         {
           "name": "showMessage",
@@ -3426,6 +3443,22 @@
           "name": "validationMessage"
         },
         {
+          "name": "required",
+          "default": false
+        },
+        {
+          "name": "disabled",
+          "default": false
+        },
+        {
+          "name": "readOnly",
+          "default": false
+        },
+        {
+          "name": "isPending",
+          "default": false
+        },
+        {
           "name": "size",
           "default": "medium",
           "values": [
@@ -3433,6 +3466,12 @@
             "medium",
             "large"
           ]
+        },
+        {
+          "name": "id"
+        },
+        {
+          "name": "name"
         }
       ],
       "sizes": [
@@ -3764,7 +3803,6 @@
       "button-destructive",
       "button-neutral",
       "checkbox-control",
-      "checkbox-group",
       "checkbox-row",
       "counter",
       "field-label",
@@ -3777,15 +3815,12 @@
       "link",
       "password-field",
       "radio-control",
-      "radio-group",
       "radio-row",
-      "segmented-control",
       "segmented-control-segment",
       "select",
       "switch-control",
       "switch-row",
       "tab",
-      "tabs",
       "tag",
       "text-field",
       "textarea"
@@ -4633,6 +4668,10 @@
         "default": false
       },
       {
+        "id": "checkbox-row",
+        "default": false
+      },
+      {
         "id": "counter",
         "default": false
       },
@@ -4673,6 +4712,10 @@
         "default": false
       },
       {
+        "id": "radio-row",
+        "default": false
+      },
+      {
         "id": "segmented-control",
         "default": false
       },
@@ -4689,6 +4732,10 @@
         "default": false
       },
       {
+        "id": "switch-row",
+        "default": false
+      },
+      {
         "id": "tab",
         "default": false
       },
@@ -4698,6 +4745,10 @@
       },
       {
         "id": "text-field",
+        "default": false
+      },
+      {
+        "id": "textarea",
         "default": false
       }
     ],
@@ -4793,6 +4844,9 @@
       },
       {
         "id": "text-field"
+      },
+      {
+        "id": "textarea"
       }
     ],
     "href": [
@@ -4865,6 +4919,9 @@
       },
       {
         "id": "text-field"
+      },
+      {
+        "id": "textarea"
       }
     ],
     "incrementLabel": [
@@ -5032,6 +5089,10 @@
       {
         "id": "text-field",
         "default": false
+      },
+      {
+        "id": "textarea",
+        "default": false
       }
     ],
     "items": [
@@ -5121,6 +5182,9 @@
       },
       {
         "id": "text-field"
+      },
+      {
+        "id": "textarea"
       }
     ],
     "labelPosition": [
@@ -5284,6 +5348,9 @@
       },
       {
         "id": "text-field"
+      },
+      {
+        "id": "textarea"
       }
     ],
     "offset": [
@@ -5323,6 +5390,9 @@
       },
       {
         "id": "text-field"
+      },
+      {
+        "id": "textarea"
       }
     ],
     "onClick": [
@@ -5458,6 +5528,10 @@
         "default": false
       },
       {
+        "id": "radio-row",
+        "default": false
+      },
+      {
         "id": "select",
         "default": false
       },
@@ -5471,6 +5545,10 @@
       },
       {
         "id": "text-field",
+        "default": false
+      },
+      {
+        "id": "textarea",
         "default": false
       }
     ],
@@ -5497,6 +5575,10 @@
       },
       {
         "id": "text-field",
+        "default": false
+      },
+      {
+        "id": "textarea",
         "default": false
       }
     ],
@@ -6462,14 +6544,6 @@
         "switch-row"
       ],
       "detail": "no state set is shared by most of the group — checkbox-row [rest, hover, pressed, focus-visible, disabled, read-only, error]; radio-row [rest, hover, pressed, focus-visible, disabled, read-only]; switch-row [rest, hover, pressed, pending, focus-visible, disabled, read-only, error]"
-    },
-    {
-      "kind": "state set",
-      "subject": "role peers: *.Group",
-      "components": [
-        "button-group"
-      ],
-      "detail": "button-group differs from the group's common set [rest] — lacks rest"
     },
     {
       "kind": "state set",

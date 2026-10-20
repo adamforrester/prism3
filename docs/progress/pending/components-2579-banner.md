@@ -4,8 +4,8 @@ Built from the proposal on #2579, approved as recommended (Q327), and the KB bri
 `tone` [info, success, warning, danger] × `width` [contained, full], no size or state axis. The container is the
 tone's subtle surface with a 1px edge in the tone's **border** role (Q346: an edge never binds an icon or text role;
 `color.border.{tone}` exists in every example brand, so no owner question was needed). Title and body in
-`color.text.primary`; the glyph in `color.icon.{tone}`. The body is a native slot. Two nested Button.Neutral actions
-(outline, then text, small) and a flush FlushIconButton.Neutral dismiss (owner QA 2026-10-19: flush, not round) with the close glyph fixed and no swap (Q386, #2808),
+`color.text.primary`; the glyph in `color.icon.{tone}`. The body is a native slot. Two nested Button actions
+(outline, then text, small; Button.Neutral instead when the file has it, never required: Q386, Q398 resolved by Q419 A) and a flush FlushIconButton.Neutral dismiss (owner QA 2026-10-19: flush, not round) with the close glyph fixed and no swap (Q386, #2808),
 all off by default.
 
 ### Decisions the diff does not show
@@ -23,8 +23,10 @@ all off by default.
 - **The title is padded down 4px** (`space.050`) to center its first line on the 24px glyph, the accordion's
   construction. The pad sits on a `titleBox`, which the `title` toggle hides with it, so a body-only banner has no
   stray offset.
-- **Button group is not built yet** (Q363, #2661), so the actions are two fixed nested Buttons. Moving them into Button
-  group is filed as #2787.
+- **The actions are two fixed nested Buttons, not the Button group.** The group's buttons are medium and Banner's are
+  small, so the move (Q363, #2661) stays filed as #2787. Each action is made from `button` with `prefersWhenBuilt:
+  'button-neutral'`, so no file has to build the Neutral family (#2808 passes); the primary ink on the tints clears 4.5:1
+  through #2820's surface contract.
 
 ### Gates
 
@@ -33,8 +35,8 @@ the four fills are admitted by name in `PROVENANCE_EXCEPTIONS`, as Badge's subtl
 ordering scope learned the bare `pad` tail, so a def whose one padding is named `pad` is now required to state its
 orderings. Banner's own block in `test.ts` holds the 8 member names, each member's fill, edge, corner, glyph and inks,
 the nested actions and dismiss, the defaults, the lowercase Figma property names (Q345), the first member being the code
-default (Q347), and 20 contrast pairs as literals over 5 brands × 4 modes: text 4.5:1 (lowest 13.92), the edge against
-the page 3:1 (lowest 3.75), the glyph on the fill 3:1 (lowest 3.31), and the neutral action label and dismiss glyph on
+default (Q347), and 24 contrast pairs as literals over 5 brands × 4 modes: text 4.5:1 (lowest 13.92), the edge against
+the page 3:1 (lowest 3.75), the glyph on the fill 3:1 (lowest 3.31), and the neutral and primary action labels and the dismiss glyph on
 each fill. The studio's set list shows Banner's `pad` beside `gap` (the owner's C2 A: padding and gap only) and hides
 `actions-gap` and `action-gap`, as it hides Accordion's `panel-pad-end`.
 

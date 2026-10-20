@@ -24,6 +24,11 @@
  * Base radius (S7), whose preview is the Radius section. Scrim and Fields (S4f) are headed as their preview sections
  * are, so they need no row. A lever section with no preview section reveals nothing.
  *
+ * ANCHORED TO THE TOKEN, MOVED BY A NEW LEVER (#2832). Where a lever is one token's row (Surfaces & fills' rows), the
+ * reveal targets that token's own card in the paired section, not the section's top; a card already in view stays
+ * where it is; and a further edit on the same lever, the preview left where it was, never moves it, so a value
+ * change does not pull the preview back on every step. `revealEdit` holds the rule.
+ *
  * EASED, ON THE STUDIO'S OWN MOTION TOKENS (QA-B9, QA-B17). `scrollTo({ behavior: 'smooth' })` takes neither a
  * duration nor a curve, so the scroll is stepped here, one position per animation frame, along the chrome's
  * default transition: `--p3-scroll-dur` and `--p3-scroll-ease`, which `chrome.css` sets on the two panes from
@@ -38,9 +43,17 @@
 
 // ── the notes ─────────────────────────────────────────────────────────────────────────────────────
 
+/** What an edit in the levers noted: the lever section it was in, the lever it edited (a key, when the page names
+ *  one) and the token whose preview card the edit changes (when the lever is one token's row). */
+export type SectionEdit = { readonly section: string; readonly lever: string | null; readonly role: string | null };
+
 let pending: string | null = null;
-let pendingSection: string | null = null;
+let pendingSection: SectionEdit | null = null;
 let lastSection: string | null = null;
+/** The lever the last edit was on, and where the preview rested once that edit was dealt with, so an edit on the
+ *  SAME lever with the preview where it was left (a value change) does not move it (#2832). */
+let lastLever: string | null = null;
+let lastRest = 0;
 
 /** Note the palette an edit changes. The next preview repaint reveals it. */
 export const noteEdit = (palette: string | null): void => { pending = palette; };
@@ -50,14 +63,16 @@ export const takeEdit = (): string | null => { const p = pending; pending = null
 
 /** Note that an edit happened, in the lever section the last interaction in the levers pane was in. An edit
  *  handler calls it before it rebuilds; the next preview repaint reveals that section's preview pair. */
-export const noteSectionEdit = (): void => { pendingSection = lastSection; };
+export const noteSectionEdit = (lever?: string, role?: string): void => {
+  pendingSection = lastSection ? { section: lastSection, lever: lever ?? null, role: role ?? null } : null;
+};
 
 /** Take the section note, once. */
-export const takeSectionEdit = (): string | null => { const s = pendingSection; pendingSection = null; return s; };
+export const takeSectionEdit = (): SectionEdit | null => { const s = pendingSection; pendingSection = null; return s; };
 
 /** Drop every note and record: the page they were made on has gone (the frame calls this when it releases
  *  the panes). */
-export const dropEdits = (): void => { pending = null; pendingSection = null; lastSection = null; };
+export const dropEdits = (): void => { pending = null; pendingSection = null; lastSection = null; lastLever = null; };
 
 /** Record, on `pane`, the lever section each interaction happens in (by its heading). Records only: nothing
  *  here scrolls or notes. Capture phase, so the record is made before the control's own handler edits; a
@@ -213,15 +228,35 @@ export const previewSection = (body: HTMLElement, title: string): HTMLElement | 
   return head?.closest<HTMLElement>('.psec') ?? null;
 };
 
-/** Scroll `body` so the preview section paired with the lever section `title` is in view: its top a little
- *  under the body's top, unless it is already wholly visible or already fills the view (the viewer is reading
- *  inside it). Returns whether the section was found. */
-export const revealSection = (body: HTMLElement, title: string): boolean => {
-  const el = previewSection(body, title);
-  if (!el) return false;
-  const b = body.getBoundingClientRect(), r = el.getBoundingClientRect();
+/** The preview card for `role` inside `sec`: the painted node that carries the token (`data-sg-role`, the mode the
+ *  preview shows), widened to its card wrapper where it has one. Null when the section draws no card for it. */
+const roleCard = (sec: HTMLElement, role: string): HTMLElement | null => {
+  const n = [...sec.querySelectorAll<HTMLElement>('[data-sg-role]')].find((x) => x.dataset.sgRole === role && !x.dataset.sgMode);
+  return n ? n.closest<HTMLElement>('.sg-cw') ?? n : null;
+};
+
+/** Reveal an edit's preview (#2832). The target is the edited token's own card where the lever is one token's row,
+ *  else the paired section. Nothing moves when the target is already in view, or when the edit is on the same lever
+ *  as the last one and the viewer has not scrolled the preview since (a value change; focus moving to another lever
+ *  is what moves it). A target below or above
+ *  the view comes in a little under the body's top: the section's top when it is wholly out of view and the card
+ *  still fits under it, else the card's own top. Returns whether the section was found. */
+export const revealEdit = (body: HTMLElement, note: SectionEdit): boolean => {
+  const sec = previewSection(body, note.section);
+  const sameLever = note.lever !== null && note.lever === lastLever && Math.abs(body.scrollTop - lastRest) < 2;
+  lastLever = note.lever;
+  lastRest = body.scrollTop;
+  if (!sec) return false;
+  if (sameLever) return true;
+  const b = body.getBoundingClientRect();
+  const card = note.role ? roleCard(sec, note.role) : null;
+  const r = (card ?? sec).getBoundingClientRect();
   if (r.top >= b.top && r.bottom <= b.bottom) return true;
-  if (r.top <= b.top && r.bottom >= b.bottom) return true;
-  easedScrollTo(body, topIn(body, el) - inset(body));
+  if (!card && r.top <= b.top && r.bottom >= b.bottom) return true;
+  const s = sec.getBoundingClientRect();
+  const sectionOut = s.bottom <= b.top || s.top >= b.bottom;
+  const top = !card || (sectionOut && r.bottom - s.top + inset(body) <= b.height) ? topIn(body, sec) : topIn(body, card);
+  easedScrollTo(body, top - inset(body));
+  lastRest = Math.max(0, Math.min(Math.round(top - inset(body)), body.scrollHeight - body.clientHeight));
   return true;
 };

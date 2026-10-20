@@ -49,7 +49,7 @@ export type FigmaVar = {
    *  `core/font/*` row) and the motion primitives. (opacity is directly consumable — #79 — so it is NOT
    *  hidden.) Figma's official mechanism for "consumers of this file (as a library) shouldn't see this
    *  in the picker." It works across the library boundary only; the LOCAL hide is the empty `scopes`
-   *  the `core` rows also carry, bar the font family and weight rows (#2602, Q292 A — see the
+   *  the `core` rows also carry, bar the font family and weight-role rows (#2602, Q334 A — see the
    *  module-level PRIMITIVE marker comment). Omitted on
    *  semantic-tier vars → JSON stays free of the noise field. */
   hiddenFromPublishing?: boolean;
@@ -65,11 +65,10 @@ export type FigmaCollectionFile = { $collection: string; $mode: string; variable
  *  - `hiddenFromPublishing: true` — hides it from files that consume this one as a library; and
  *  - `scopes: []` — hides it from every LOCAL property picker in the file that defines it.
  *
- *  ONE EXCEPTION (owner decision Q292 A, 2026-10-14): `core/font/family/*` keeps FONT_FAMILY, and
- *  `core/font/weight/*` and `core/font/weight-role/*` keep FONT_WEIGHT (`emit-figma-font.ts`). TokenPress
- *  types a font variable's DTCG `$type` from its scope, so unscoped they would export as `string` /
- *  `dimension` / `number`. They still appear in the family and weight pickers, and nowhere else. Fully
- *  unscoping them once TokenPress types font rows by name is #2616.
+ *  ONE EXCEPTION (owner decisions Q292 A, 2026-10-14, and Q334 A, 2026-10-15): `core/font/family/*` keeps
+ *  FONT_FAMILY and `core/font/weight-role/*` keeps FONT_WEIGHT (`emit-figma-font.ts`), so the family and
+ *  weight pickers offer the roles and nothing else. The numeric `core/font/weight/*` is unscoped like every
+ *  other primitive: TokenPress types an unscoped font row by its path (#2616).
  *
  *  So a designer reaches for the semantic layer everywhere, and nobody de-scopes the primitives by hand
  *  after each Apply. (opacity is NOT hidden — #79 — it has no semantic layer to prefer.)

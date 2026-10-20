@@ -102,18 +102,24 @@ export const textarea: ComponentDef = {
   description:
     'A control for free-form text expected to wrap across multiple lines — comments, descriptions, messages, feedback. Shares the form-field substrate with TextField (label, helper/error, the aria-describedby wiring); differs in the sizing model, the prominence of the character counter, and who owns the Enter key. Not single-line (TextField), not formatted or structured (a rich-text editor), not code (a code editor), not a value from a known set (Select, or a combobox, not built yet).',
 
-  // THE DELTA ONLY (brief §3, §15). Everything the substrate contract already carries — label,
-  // value/defaultValue, onChange/onBlur/onFocus, placeholder, helpText, disabled, readOnly,
-  // required, autoComplete, id, name, and the bundled-props/composed-slots hybrid with its internal
-  // aria wiring — is `text-field`'s and is not restated. `size` is one exception and the header
-  // says why; `validation` + `validationMessage` are the other, for the same reason: a gate reads them
+  // THE DELTA, PLUS THE FIELD PROPS A CONSUMER CANNOT DO WITHOUT (#2708). `inherits` is prose that
+  // nothing resolves, so a prop left to it is a prop `components.ai.json` and the docs page do not have:
+  // until #2708 this def declared `disabled`, `read-only` and `pending` states with no prop to reach
+  // them, and no `label`. It now restates, in Text field's exact shapes and with Text field's
+  // descriptions where they hold, `label`, `onChange`, `helpText`, `required`, `disabled`, `readOnly`,
+  // `isPending`, `id` and `name`. What stays `text-field`'s and unrestated: `defaultValue`,
+  // `autoComplete`, and the bundled-props/composed-slots hybrid with its internal aria wiring. Restated
+  // before #2708: `size`, which the header explains; `validation` + `validationMessage`, for the same reason: a gate reads them
   // (`test.ts` pins the field family's shared validation contract — text-field, textarea and select
   // carry the same two names and the same value set, #1623 sign-off C1/TA-4). `value`, `placeholder` and
-  // `showMessage` are the third exception (`placeholder` since Option C, owner decision 2026-09-26), and the reason is the same one: the Figma projection keys its text property
+  // `showMessage` are the third (`placeholder` since Option C, owner decision 2026-09-26), and the reason is the same one: the Figma projection keys its text property
   // and its message switch by code prop, and `figmaPropertyErrors` validates each key against `props`.
   props: [
+    { name: 'label', type: 'string | node', required: true, description: 'The visible, persistent label (rendered as FieldLabel). Required — a visually-hidden label is the only label-less case, and it still exists in the DOM. Never the placeholder. The same prop as TextField\'s.' },
     { name: 'value', type: 'string', required: false, description: 'Controlled value; pair with onChange. The same prop as TextField\'s.' },
+    { name: 'onChange', type: 'function', required: false, description: 'Change handler (also onBlur / onFocus). The same prop as TextField\'s.' },
     { name: 'placeholder', type: 'string', required: false, description: 'An example only; vanishes on input; nothing load-bearing lives here. The same prop as TextField\'s.' },
+    { name: 'helpText', type: 'string | node', required: false, description: 'Persistent guidance (rendered as FieldMessage, default status); wired via aria-describedby. Show the format and any length limit BEFORE failure. The same prop as TextField\'s.' },
     { name: 'showMessage', type: 'boolean', default: true, required: false, description: 'Whether the composed FieldMessage is shown. ON, the default, renders the helper or validation message below the field; turning it off hides the message entirely. The same prop as TextField\'s. Never hides a message the field needs.' },
     { name: 'rows', type: 'number', default: 3, required: false, description: 'Initial and minimum height, in LINES not pixels — a line count recomputes against the current line-height when the user raises their font size, where a pixel floor does not. Also a content cue: two rows signals brevity, six signals "write more". `cols` is dead on the web; width comes from CSS.' },
     { name: 'resize', type: "enum: 'none' | 'vertical' | 'auto'", values: ['none', 'vertical', 'auto'], default: 'vertical', required: false, description: 'The sizing model in ONE prop, so two props cannot contradict each other. `vertical` (the drag handle) for standalone form fields; `auto` (grow within minRows/maxRows) for composers; `none` where layout stability wins. NEVER horizontal or both — altering the inline dimension shatters grid and flex layouts for no user gain.' },
@@ -125,7 +131,13 @@ export const textarea: ComponentDef = {
     { name: 'submitOnEnter', type: 'boolean', default: false, required: false, description: 'Composer opt-in: Enter submits, Shift+Enter inserts a newline. NOT the base default — Enter inserting a newline is the platform contract a multi-line field advertises via aria-multiline, and hijacking it silently can lose a screen-reader user a drafted message. Whenever true, pair it with a real visible submit button and a visible "Shift+Enter for a new line" hint (SC 3.3.2). A composer that submits on Enter by default is its own specialization, named MessageComposer or ChatInput (brief §3, §10), not this base field.' },
     { name: 'validation', type: "enum: 'default' | 'error' | 'warning' | 'success'", values: ['default', 'error', 'warning', 'success'], default: 'default', required: false, description: 'The validation state. Each non-default status swaps the field border to its own boundary (border-only — `error` → danger, `warning` → warning, `success` → success) and sets the composed message to the matching status; `default` is neutral. `error` also sets aria-invalid. The same prop, with the same values, as TextField and Select.' },
     { name: 'validationMessage', type: 'string | node', required: false, description: 'The validation text shown at error / warning / success, added to aria-describedby. For error, say what is wrong AND how to fix it, with the number when it is a length limit (SC 3.3.3), never "Invalid".' },
+    { name: 'required', type: 'boolean', default: false, required: false, description: 'Sets required / aria-required, and turns on the FieldLabel\'s required marker. The same prop as TextField\'s.' },
+    { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Native disabled — removed from tab order, not submitted, silent to AT, contrast-exempt. Reserve for fields irrelevant in the current state. The same prop as TextField\'s.' },
+    { name: 'readOnly', type: 'boolean', default: false, required: false, description: 'Distinct from disabled: focusable, selectable and copyable, submitted with the form, and passes contrast. Use for text the user may read or copy but not edit (a submitted message, a generated summary). The same prop as TextField\'s.' },
+    { name: 'isPending', type: 'boolean', default: false, required: false, description: 'Content arriving asynchronously, such as a draft streaming into the field: sets aria-busy; does not block typing unless intended. The same prop as TextField\'s.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Scales the value type with the field (small 14px, medium 16px, large 18px, `type.body.{sm,md,lg}`), the nested label one step below it (12 / 14 / 16), and the padding. NOT the height: that belongs to rows / auto-grow, so the reserved rows grow with the type\'s line height. `small` is for fine pointers only: on a coarse pointer (`@media (pointer: coarse)`) the code sets the small textarea to 16px, because iOS Safari zooms the page when it focuses a field under 16px. The same prop, with the same values, as TextField and Select.' },
+    { name: 'id', type: 'string', required: false, description: 'Wiring + form submission; auto-generated with useId if omitted, tying label→textarea and the aria-describedby chain. The same prop as TextField\'s.' },
+    { name: 'name', type: 'string', required: false, description: 'A real <textarea name> so the field works uncontrolled, in a native <form>, with useFormStatus / Server Actions, and the Constraint Validation API. The same prop as TextField\'s.' },
   ],
 
   // Identical to `text-field`'s set, and stated rather than inherited for the reason in the header.
@@ -318,11 +330,12 @@ export const textarea: ComponentDef = {
         gap: 'root-gap',
         children: ['label', 'body'],
       },
-      // THE NESTED LABEL — text-field's, exactly (size followed, emphasis / weight exposed, state fixed at rest).
+      // THE NESTED LABEL — text-field's, exactly (size followed, emphasis / weight exposed, state at
+      // rest except at the field's disabled member, where `variantWhen` dims it, #2738).
       label: {
         kind: 'nest',
         nests: 'field-label',
-        nesting: { kind: 'nest-exposed', variant: { size: 'medium', emphasis: 'secondary', weight: 'regular', state: 'rest' }, expose: ['emphasis', 'weight'], follow: ['size'] },
+        nesting: { kind: 'nest-exposed', variant: { size: 'medium', emphasis: 'secondary', weight: 'regular', state: 'rest' }, expose: ['emphasis', 'weight'], follow: ['size'], variantWhen: { state: { disabled: { state: 'disabled' } } } },
         // FILLS the field's width (#1757, select's label); a long name wraps at field-label's max width (#1762).
         crossAxisFill: true,
         note: 'The accessible name, composed rather than re-declared. Its size follows the field\'s, one step below the value; its label text, required marker, emphasis and weight surface on the textarea. Starts secondary and regular. Fills the field\'s width; a long name wraps at FieldLabel\'s max width.',
@@ -464,15 +477,14 @@ export const textarea: ComponentDef = {
     },
     codeOnly: [
       'the SMALL textarea on a COARSE POINTER (#2266, owner decision Q7 A) — iOS Safari zooms the page when it focuses a field whose text is under 16px, and the small textarea\'s value is 14px. So `small` is for fine pointers: under `@media (pointer: coarse)` the code sets the small textarea\'s font size to 16px. The token (`type.body.sm`) and the Figma member stay at 14, because Figma has no focus zoom. Never `maximum-scale=1` in the viewport meta: it blocks pinch zoom as well (WCAG 1.4.4).',
-      'style — the field\'s edge is the brand\'s Field style setting, not a prop or a Figma variant: `outline` draws a box, `underline` one line under the value. The brand sets it once, every field takes it, and the field sets are built in that style (#2695).',
-      'pending — a real STATE (content streaming into the field, with aria-busy), deliberately NOT a Figma variant: its delta is runtime behavior with no distinct static skin, so it stays in `states` and is admitted out of the projected `stateAxis`.',
-      'empty — a real STATE in code (the field holds no value, so it shows the placeholder), NOT a Figma variant, text-field\'s posture: in Figma the empty field IS the rest, hover and focus-visible members, showing the `placeholder` layer in `text.secondary`, and `filled` is the member showing the `value` layer in `text.primary`. It and `pending` are the two states held back, leaving the projected set at size(3) × status(4) × state(7) = 84 members. In code the placeholder and the value are one <textarea>: its `placeholder` attribute and its value, never two elements.',
+      'style — not projected: the field\'s edge is the brand\'s Field style setting, not a prop or a Figma variant: `outline` draws a box, `underline` one line under the value. In code the brand sets it once, every field takes it, and the field sets are built in that style (#2695).',
+      'pending — not projected: its delta is runtime behavior with no distinct static skin. In code content streams into the field, with aria-busy. It stays in `states` and is admitted out of the projected `stateAxis`.',
+      'empty — not projected: in Figma the empty field IS the rest, hover and focus-visible members, showing the `placeholder` layer in `text.secondary`, and `filled` is the member showing the `value` layer in `text.primary`. It and `pending` are the two states held back, leaving the projected set at size(3) × status(4) × state(7) = 84 members. In code the field holds no value, so it shows the placeholder (text-field\'s posture); the placeholder and the value are one <textarea>: its `placeholder` attribute and its value, never two elements.',
       'the FOCUS CARET — Figma draws a static bar before the placeholder on the focus-visible member. Code draws the browser\'s native caret, blinking, at the insertion point, with `caret-color` set from `color.text.primary` (the `caret` binding), so it keeps the value ink over the placeholder\'s muted one.',
       'rows / minRows / maxRows and auto-grow — Figma has no numeric component property, so `rows` is not a Figma property: the value text reserves the `rows` prop\'s DEFAULT line count (3) of its own line height, frozen at paste. A designer wanting more rows types more lines (the box grows) or resizes the instance; `minRows` / `maxRows` and the auto-grow measurement are runtime behavior.',
       'the RESIZE HANDLE\'s behavior (`resize`) — Figma draws a decorative grip behind the `resize handle` boolean, on by default because `resize` defaults to `vertical`. In code the handle is the browser\'s own, drawn at the inline-end corner (bottom-left in a right-to-left layout); Figma members are drawn left to right, so the grip sits bottom-right. `auto` and `none` draw no handle in code; in Figma, switch the boolean off.',
       'the CHARACTER COUNTER\'s live value (`maxLength` / `showCount`) — Figma draws a static "0 / 200" caption trailing the message, behind the `character count` boolean, off by default like `showCount`. Code counts graphemes, sets tabular numerals (`font-variant-numeric: tabular-nums`, which the type tokens do not carry, so Figma uses the caption style as it is) and paints the counter in the error role past the limit. In Figma, as in code, the counter and the message switch independently. In a right-to-left layout the counter anchors to the inline end, the LEFT, with the resize handle (brief §9); Figma members are drawn left to right.',
       'the label / describedby WIRING and the counter\'s two-node live region — the host generates ids, ties the FieldLabel to the textarea, stitches the FieldMessage and the counter into aria-describedby, and sets aria-invalid. Figma has no accessibility tree, so the nested parts are associated by proximity alone.',
-      'the nested LABEL\'s disabled dimming — the field fixes the FieldLabel to `state=rest` (its state vocabulary is not the field\'s), so in Figma the nested label reads at rest regardless. A projection limit, not a design choice.',
       'the KEYBOARD MODEL — native multi-line editing, the Enter key (a newline unless submitOnEnter), IME composition guards and the resize drag. All of it is runtime interaction the closed static member cannot carry.',
     ],
   },

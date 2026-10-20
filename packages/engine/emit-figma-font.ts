@@ -168,13 +168,12 @@ export const buildFigmaFont = (theme: Theme): FigmaCollectionFile[] => {
   const ns = (name: string): string => coreName(root, name);
 
   // EVERY row in this collection is hidden from publishing (#2602), and every row is unscoped EXCEPT the
-  // family, weight and weight-role rows (owner decision Q292 A, 2026-10-14). Those three keep FONT_FAMILY /
-  // FONT_WEIGHT, so they stay in the font-family and font-weight pickers and nowhere else: TokenPress
-  // types a font variable's DTCG `$type` from that scope, and unscoped they export as `string`, `dimension`
-  // and `number` instead of `fontFamily` / `fontWeight` (the exporter agreement gate). The size and cut
-  // rows carry none; the Text Styles reach them through the API, which scopes do not limit. Fully
-  // unscoping the three once TokenPress types font rows by name is #2616. See the PRIMITIVE marker
-  // comment in `emit-figma-color.ts`.
+  // family and weight-role rows. Those two keep FONT_FAMILY / FONT_WEIGHT, so they stay in the font-family
+  // and font-weight pickers and nowhere else: they are the layer a designer picks from (owner decision
+  // Q334 A, 2026-10-15). The numeric weight, size and cut rows carry none; the Text Styles reach them
+  // through the API, which scopes do not limit. TokenPress types an unscoped font row by its path (#2616),
+  // so the exporter agreement gate holds without the scope. See the PRIMITIVE marker comment in
+  // `emit-figma-color.ts`.
   const varsFor = (mode: string): FigmaVar[] => {
     const variables: FigmaVar[] = [];
     // font/family/* — STRING PRIMITIVES (ref tier). Primary face is the bound value; full
@@ -231,7 +230,7 @@ export const buildFigmaFont = (theme: Theme): FigmaCollectionFile[] => {
       variables.push({
         name: ns(`font/weight/${key}`),
         resolvedType: 'FLOAT',
-        scopes: ['FONT_WEIGHT'],
+        scopes: PRIMITIVE_SCOPES,
         description: figmaFontWeightDescription(Number(key)),
         value: Number(key),
         alias: null,

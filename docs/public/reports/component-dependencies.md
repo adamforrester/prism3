@@ -12,9 +12,8 @@ Generated from the component definitions and the emission by `packages/engine/em
 |---|---|---|
 | _accordion-indicator | accordion | accordion |
 | badge | tab | tab, tabs |
-| button | button-group, password-field | button-group, dialog, password-field |
+| button | banner, button-group, password-field | banner, button-group, dialog, password-field |
 | button-group | dialog | dialog |
-| button-neutral | banner | banner |
 | checkbox-control | checkbox-row | checkbox-group, checkbox-row |
 | checkbox-row | checkbox-group | checkbox-group |
 | divider | accordion, dialog | accordion, dialog |
@@ -39,7 +38,7 @@ A component not in this table is nested by nothing; a change to it reaches only 
 | _accordion-indicator | 0 | — | — |
 | accordion | 1 | _accordion-indicator, divider, focus-ring | _accordion-indicator, divider, focus-ring |
 | badge | 0 | — | — |
-| banner | 2 | button-neutral, flush-icon-button-neutral | button-neutral, flush-icon-button-neutral, focus-ring, spinner |
+| banner | 2 | button, flush-icon-button-neutral | button, flush-icon-button-neutral, focus-ring, spinner |
 | button | 1 | focus-ring, spinner | focus-ring, spinner |
 | button-destructive | 1 | focus-ring, spinner | focus-ring, spinner |
 | button-group | 2 | button | button, focus-ring, spinner |
@@ -91,8 +90,8 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | accordion | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | accordion | leadingGlyph | nest | _accordion-indicator | nest-exposed | indicator=chevron, expansion=collapsed, size=medium | expansion, size | indicator |
 | accordion | trailingGlyph | nest | _accordion-indicator | nest-exposed | indicator=chevron, expansion=collapsed, size=medium | expansion, size | indicator |
-| banner | action1 | nest | button-neutral | nest-fixed | appearance=outline, size=small, surface=default, inset=default, state=rest, leading icon=false, trailing icon=false | — | — |
-| banner | action2 | nest | button-neutral | nest-fixed | appearance=text, size=small, surface=default, inset=default, state=rest, leading icon=false, trailing icon=false | — | — |
+| banner | action1 | nest | button | nest-fixed | appearance=outline, size=small, surface=default, inset=default, state=rest, leading icon=false, trailing icon=false | — | — |
+| banner | action2 | nest | button | nest-fixed | appearance=text, size=small, surface=default, inset=default, state=rest, leading icon=false, trailing icon=false | — | — |
 | banner | dismiss | nest | flush-icon-button-neutral | nest-fixed | shape=flush, size=small, state=rest | — | — |
 | button | focusRing | absolute | focus-ring | nest-fixed | surface=default | surface | — |
 | button | spinner | overlay | spinner | swap | — | — | — |
@@ -107,7 +106,7 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | button-neutral | focusRing | absolute | focus-ring | nest-fixed | surface=default | surface | — |
 | button-neutral | spinner | overlay | spinner | swap | — | — | — |
 | checkbox-control | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
-| checkbox-group | label | nest | field-label | nest-fixed | size=medium, emphasis=secondary, weight=bold, state=rest | size | — |
+| checkbox-group | label | nest | field-label | nest-exposed | size=medium, emphasis=secondary, weight=bold, state=rest | size | emphasis, weight |
 | checkbox-group | row1 | nest | checkbox-row | nest-fixed | size=medium | size | — |
 | checkbox-group | row2 | nest | checkbox-row | nest-fixed | size=medium | size | — |
 | checkbox-group | row3 | nest | checkbox-row | nest-fixed | size=medium | size | — |
@@ -115,11 +114,11 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | counter | decrement | nest | flush-icon-button-neutral | nest-exposed | shape=flush, size=medium, state=rest | size | state |
 | counter | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | counter | increment | nest | flush-icon-button-neutral | nest-exposed | shape=flush, size=medium, state=rest | size | state |
-| counter | label | nest | field-label | nest-fixed | size=medium, emphasis=secondary, weight=regular, state=rest | size | — |
+| counter | label | nest | field-label | nest-exposed | size=medium, emphasis=secondary, weight=regular, state=rest | size | emphasis, weight |
 | counter | message | nest | field-message | nest-fixed | status=default | — | — |
 | dialog | actionsInline | nest | button-group | nest-fixed | layout=inline | — | — |
 | dialog | actionsStacked | nest | button-group | nest-fixed | layout=stacked | — | — |
-| dialog | close | nest | flush-icon-button-neutral | nest-fixed | shape=round, size=medium, state=rest | — | — |
+| dialog | close | nest | flush-icon-button-neutral | nest-fixed | shape=flush, size=medium, state=rest | — | — |
 | dialog | footerDivider | nest | divider | nest-fixed | orientation=horizontal, inset=none | — | — |
 | dialog | headerDivider | nest | divider | nest-fixed | orientation=horizontal, inset=none | — | — |
 | flush-icon-button | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
@@ -140,12 +139,12 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | password-field | message | nest | field-message | nest-fixed | status=default | status | — |
 | password-field | toggle | nest | button | nest-exposed | appearance=text, size=small, surface=default, inset=flush, state=rest, leading icon=false, trailing icon=false | — | label |
 | radio-control | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
-| radio-group | label | nest | field-label | nest-fixed | size=medium, emphasis=secondary, weight=bold, state=rest | size | — |
+| radio-group | label | nest | field-label | nest-exposed | size=medium, emphasis=secondary, weight=bold, state=rest | size | emphasis, weight |
 | radio-group | row1 | nest | radio-row | nest-fixed | size=medium | size | — |
 | radio-group | row2 | nest | radio-row | nest-fixed | size=medium | size | — |
 | radio-group | row3 | nest | radio-row | nest-fixed | size=medium | size | — |
 | radio-row | control | nest | radio-control | nest-exposed | selection=unchecked, state=rest | size | selection, state |
-| segmented-control | label | nest | field-label | nest-fixed | size=medium, emphasis=secondary, weight=bold, state=rest | size | — |
+| segmented-control | label | nest | field-label | nest-exposed | size=medium, emphasis=secondary, weight=bold, state=rest | size | emphasis, weight |
 | segmented-control | segment1 | nest | segmented-control-segment | nest-fixed | selection=selected, size=medium, state=rest | size | — |
 | segmented-control | segment2 | nest | segmented-control-segment | nest-fixed | selection=unselected, size=medium, state=rest | size | — |
 | segmented-control | segment3 | nest | segmented-control-segment | nest-fixed | selection=unselected, size=medium, state=rest | size | — |

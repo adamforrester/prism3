@@ -4242,7 +4242,6 @@
                 "figma": {
                   "kind": "variable",
                   "field": "fontSize",
-                  "scope": "FONT_SIZE",
                   "unit": "px",
                   "value": 10
                 }
@@ -4261,7 +4260,6 @@
                 "figma": {
                   "kind": "variable",
                   "field": "fontSize",
-                  "scope": "FONT_SIZE",
                   "unit": "px",
                   "value": 11
                 }
@@ -4280,7 +4278,6 @@
                 "figma": {
                   "kind": "variable",
                   "field": "fontSize",
-                  "scope": "FONT_SIZE",
                   "unit": "px",
                   "value": 12
                 }
@@ -4299,7 +4296,6 @@
                 "figma": {
                   "kind": "variable",
                   "field": "fontSize",
-                  "scope": "FONT_SIZE",
                   "unit": "px",
                   "value": 14
                 }
@@ -4318,7 +4314,6 @@
                 "figma": {
                   "kind": "variable",
                   "field": "fontSize",
-                  "scope": "FONT_SIZE",
                   "unit": "px",
                   "value": 16
                 }
@@ -4337,7 +4332,6 @@
                 "figma": {
                   "kind": "variable",
                   "field": "fontSize",
-                  "scope": "FONT_SIZE",
                   "unit": "px",
                   "value": 18
                 }
@@ -4356,7 +4350,6 @@
                 "figma": {
                   "kind": "variable",
                   "field": "fontSize",
-                  "scope": "FONT_SIZE",
                   "unit": "px",
                   "value": 20
                 }
@@ -4375,7 +4368,6 @@
                 "figma": {
                   "kind": "variable",
                   "field": "fontSize",
-                  "scope": "FONT_SIZE",
                   "unit": "px",
                   "value": 24
                 }
@@ -4394,7 +4386,6 @@
                 "figma": {
                   "kind": "variable",
                   "field": "fontSize",
-                  "scope": "FONT_SIZE",
                   "unit": "px",
                   "value": 28
                 }
@@ -4413,7 +4404,6 @@
                 "figma": {
                   "kind": "variable",
                   "field": "fontSize",
-                  "scope": "FONT_SIZE",
                   "unit": "px",
                   "value": 32
                 }
@@ -4432,7 +4422,6 @@
                 "figma": {
                   "kind": "variable",
                   "field": "fontSize",
-                  "scope": "FONT_SIZE",
                   "unit": "px",
                   "value": 36
                 }
@@ -4451,7 +4440,6 @@
                 "figma": {
                   "kind": "variable",
                   "field": "fontSize",
-                  "scope": "FONT_SIZE",
                   "unit": "px",
                   "value": 40
                 }
@@ -4470,7 +4458,6 @@
                 "figma": {
                   "kind": "variable",
                   "field": "fontSize",
-                  "scope": "FONT_SIZE",
                   "unit": "px",
                   "value": 48
                 }
@@ -4489,7 +4476,6 @@
                 "figma": {
                   "kind": "variable",
                   "field": "fontSize",
-                  "scope": "FONT_SIZE",
                   "unit": "px",
                   "value": 56
                 }
@@ -4508,7 +4494,6 @@
                 "figma": {
                   "kind": "variable",
                   "field": "fontSize",
-                  "scope": "FONT_SIZE",
                   "unit": "px",
                   "value": 64
                 }
@@ -4527,7 +4512,6 @@
                 "figma": {
                   "kind": "variable",
                   "field": "fontSize",
-                  "scope": "FONT_SIZE",
                   "unit": "px",
                   "value": 72
                 }
@@ -4546,7 +4530,6 @@
                 "figma": {
                   "kind": "variable",
                   "field": "fontSize",
-                  "scope": "FONT_SIZE",
                   "unit": "px",
                   "value": 80
                 }
@@ -4565,7 +4548,6 @@
                 "figma": {
                   "kind": "variable",
                   "field": "fontSize",
-                  "scope": "FONT_SIZE",
                   "unit": "px",
                   "value": 96
                 }
@@ -4584,7 +4566,6 @@
                 "figma": {
                   "kind": "variable",
                   "field": "fontSize",
-                  "scope": "FONT_SIZE",
                   "unit": "px",
                   "value": 112
                 }
@@ -4603,7 +4584,6 @@
                 "figma": {
                   "kind": "variable",
                   "field": "fontSize",
-                  "scope": "FONT_SIZE",
                   "unit": "px",
                   "value": 128
                 }
@@ -4622,7 +4602,6 @@
                 "figma": {
                   "kind": "variable",
                   "field": "fontSize",
-                  "scope": "FONT_SIZE",
                   "unit": "px",
                   "value": 144
                 }
@@ -4641,7 +4620,6 @@
                 "figma": {
                   "kind": "variable",
                   "field": "fontSize",
-                  "scope": "FONT_SIZE",
                   "unit": "px",
                   "value": 160
                 }
@@ -4659,8 +4637,7 @@
                 "generated": true,
                 "figma": {
                   "kind": "variable",
-                  "field": "fontWeight",
-                  "scope": "FONT_WEIGHT"
+                  "field": "fontWeight"
                 }
               }
             }
@@ -4674,8 +4651,7 @@
                 "generated": true,
                 "figma": {
                   "kind": "variable",
-                  "field": "fontWeight",
-                  "scope": "FONT_WEIGHT"
+                  "field": "fontWeight"
                 }
               }
             }
@@ -4689,8 +4665,7 @@
                 "generated": true,
                 "figma": {
                   "kind": "variable",
-                  "field": "fontWeight",
-                  "scope": "FONT_WEIGHT"
+                  "field": "fontWeight"
                 }
               }
             }
@@ -4704,8 +4679,7 @@
                 "generated": true,
                 "figma": {
                   "kind": "variable",
-                  "field": "fontWeight",
-                  "scope": "FONT_WEIGHT"
+                  "field": "fontWeight"
                 }
               }
             }
@@ -4719,8 +4693,7 @@
                 "generated": true,
                 "figma": {
                   "kind": "variable",
-                  "field": "fontWeight",
-                  "scope": "FONT_WEIGHT"
+                  "field": "fontWeight"
                 }
               }
             }
@@ -6809,13 +6782,13 @@
         "link": {
           "default": {
             "$type": "color",
-            "$value": "{wds.core.palette.primary.500}",
+            "$value": "{wds.core.palette.primary.550}",
             "$description": "Link text — default, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "wds.core.palette.primary.500",
-                "contrast": 4.85,
+                "aliasOf": "wds.core.palette.primary.550",
+                "contrast": 5.73,
                 "against": "neutral.050",
                 "min": 4.5,
                 "modes": {
@@ -6857,13 +6830,13 @@
           },
           "hover": {
             "$type": "color",
-            "$value": "{wds.core.palette.primary.600}",
+            "$value": "{wds.core.palette.primary.650}",
             "$description": "Link text — hover, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "wds.core.palette.primary.600",
-                "contrast": 6.82,
+                "aliasOf": "wds.core.palette.primary.650",
+                "contrast": 8.05,
                 "against": "neutral.050",
                 "min": 4.5,
                 "modes": {
@@ -6905,13 +6878,13 @@
           },
           "visited": {
             "$type": "color",
-            "$value": "{wds.core.palette.primary.800}",
+            "$value": "{wds.core.palette.primary.850}",
             "$description": "Link text — visited, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "wds.core.palette.primary.800",
-                "contrast": 12.43,
+                "aliasOf": "wds.core.palette.primary.850",
+                "contrast": 13.92,
                 "against": "neutral.050",
                 "min": 4.5,
                 "modes": {
@@ -6953,13 +6926,13 @@
           },
           "focused": {
             "$type": "color",
-            "$value": "{wds.core.palette.primary.500}",
+            "$value": "{wds.core.palette.primary.550}",
             "$description": "Link text — focused, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "wds.core.palette.primary.500",
-                "contrast": 4.85,
+                "aliasOf": "wds.core.palette.primary.550",
+                "contrast": 5.73,
                 "against": "neutral.050",
                 "min": 4.5,
                 "modes": {
@@ -7001,13 +6974,13 @@
           },
           "pressed": {
             "$type": "color",
-            "$value": "{wds.core.palette.primary.700}",
+            "$value": "{wds.core.palette.primary.750}",
             "$description": "Link text — pressed, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "wds.core.palette.primary.700",
-                "contrast": 9.41,
+                "aliasOf": "wds.core.palette.primary.750",
+                "contrast": 10.91,
                 "against": "neutral.050",
                 "min": 4.5,
                 "modes": {
@@ -7905,13 +7878,13 @@
         "link": {
           "default": {
             "$type": "color",
-            "$value": "{wds.core.palette.primary.500}",
+            "$value": "{wds.core.palette.primary.550}",
             "$description": "Link icon — default, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "wds.core.palette.primary.500",
-                "contrast": 4.85,
+                "aliasOf": "wds.core.palette.primary.550",
+                "contrast": 5.73,
                 "against": "neutral.050",
                 "min": 4.5,
                 "modes": {
@@ -7953,13 +7926,13 @@
           },
           "hover": {
             "$type": "color",
-            "$value": "{wds.core.palette.primary.600}",
+            "$value": "{wds.core.palette.primary.650}",
             "$description": "Link icon — hover, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "wds.core.palette.primary.600",
-                "contrast": 6.82,
+                "aliasOf": "wds.core.palette.primary.650",
+                "contrast": 8.05,
                 "against": "neutral.050",
                 "min": 4.5,
                 "modes": {
@@ -8001,13 +7974,13 @@
           },
           "visited": {
             "$type": "color",
-            "$value": "{wds.core.palette.primary.800}",
+            "$value": "{wds.core.palette.primary.850}",
             "$description": "Link icon — visited, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "wds.core.palette.primary.800",
-                "contrast": 12.43,
+                "aliasOf": "wds.core.palette.primary.850",
+                "contrast": 13.92,
                 "against": "neutral.050",
                 "min": 4.5,
                 "modes": {
@@ -8049,13 +8022,13 @@
           },
           "focused": {
             "$type": "color",
-            "$value": "{wds.core.palette.primary.500}",
+            "$value": "{wds.core.palette.primary.550}",
             "$description": "Link icon — focused, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "wds.core.palette.primary.500",
-                "contrast": 4.85,
+                "aliasOf": "wds.core.palette.primary.550",
+                "contrast": 5.73,
                 "against": "neutral.050",
                 "min": 4.5,
                 "modes": {
@@ -8097,13 +8070,13 @@
           },
           "pressed": {
             "$type": "color",
-            "$value": "{wds.core.palette.primary.700}",
+            "$value": "{wds.core.palette.primary.750}",
             "$description": "Link icon — pressed, 4.5:1 on background.secondary",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "wds.core.palette.primary.700",
-                "contrast": 9.41,
+                "aliasOf": "wds.core.palette.primary.750",
+                "contrast": 10.91,
                 "against": "neutral.050",
                 "min": 4.5,
                 "modes": {
@@ -8438,13 +8411,13 @@
           "text": {
             "rest": {
               "$type": "color",
-              "$value": "{wds.core.palette.primary.500}",
+              "$value": "{wds.core.palette.primary.550}",
               "$description": "primary interactive ink — rest (outline / text appearance)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "wds.core.palette.primary.500",
-                  "contrast": 5.88,
+                  "aliasOf": "wds.core.palette.primary.550",
+                  "contrast": 6.95,
                   "against": "background.primary",
                   "min": 4.5,
                   "modes": {
@@ -8484,13 +8457,13 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{wds.core.palette.primary.600}",
+              "$value": "{wds.core.palette.primary.650}",
               "$description": "primary interactive ink — hover (outline / text appearance)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "wds.core.palette.primary.600",
-                  "contrast": 8.28,
+                  "aliasOf": "wds.core.palette.primary.650",
+                  "contrast": 9.77,
                   "against": "background.primary",
                   "min": 4.5,
                   "modes": {
@@ -8530,13 +8503,13 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{wds.core.palette.primary.700}",
+              "$value": "{wds.core.palette.primary.750}",
               "$description": "primary interactive ink — pressed (outline / text appearance)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "wds.core.palette.primary.700",
-                  "contrast": 11.42,
+                  "aliasOf": "wds.core.palette.primary.750",
+                  "contrast": 13.25,
                   "against": "background.primary",
                   "min": 4.5,
                   "modes": {
@@ -8578,13 +8551,13 @@
           "icon": {
             "rest": {
               "$type": "color",
-              "$value": "{wds.core.palette.primary.500}",
+              "$value": "{wds.core.palette.primary.550}",
               "$description": "primary interactive icon ink — rest (the glyph in an outline / ghost / text control)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "wds.core.palette.primary.500",
-                  "contrast": 5.88,
+                  "aliasOf": "wds.core.palette.primary.550",
+                  "contrast": 6.95,
                   "against": "background.primary",
                   "min": 4.5,
                   "modes": {
@@ -8624,13 +8597,13 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{wds.core.palette.primary.600}",
+              "$value": "{wds.core.palette.primary.650}",
               "$description": "primary interactive icon ink — hover (the glyph in an outline / ghost / text control)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "wds.core.palette.primary.600",
-                  "contrast": 8.28,
+                  "aliasOf": "wds.core.palette.primary.650",
+                  "contrast": 9.77,
                   "against": "background.primary",
                   "min": 4.5,
                   "modes": {
@@ -8670,13 +8643,13 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{wds.core.palette.primary.700}",
+              "$value": "{wds.core.palette.primary.750}",
               "$description": "primary interactive icon ink — pressed (the glyph in an outline / ghost / text control)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "wds.core.palette.primary.700",
-                  "contrast": 11.42,
+                  "aliasOf": "wds.core.palette.primary.750",
+                  "contrast": 13.25,
                   "against": "background.primary",
                   "min": 4.5,
                   "modes": {
@@ -8718,13 +8691,13 @@
           "border": {
             "rest": {
               "$type": "color",
-              "$value": "{wds.core.palette.primary.500}",
+              "$value": "{wds.core.palette.primary.550}",
               "$description": "primary interactive border — rest (the outline edge; follows the ink)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "wds.core.palette.primary.500",
-                  "contrast": 5.88,
+                  "aliasOf": "wds.core.palette.primary.550",
+                  "contrast": 6.95,
                   "against": "background.primary",
                   "min": 3,
                   "modes": {
@@ -8764,13 +8737,13 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{wds.core.palette.primary.600}",
+              "$value": "{wds.core.palette.primary.650}",
               "$description": "primary interactive border — hover (the outline edge; follows the ink)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "wds.core.palette.primary.600",
-                  "contrast": 8.28,
+                  "aliasOf": "wds.core.palette.primary.650",
+                  "contrast": 9.77,
                   "against": "background.primary",
                   "min": 3,
                   "modes": {
@@ -8810,13 +8783,13 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{wds.core.palette.primary.700}",
+              "$value": "{wds.core.palette.primary.750}",
               "$description": "primary interactive border — pressed (the outline edge; follows the ink)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "wds.core.palette.primary.700",
-                  "contrast": 11.42,
+                  "aliasOf": "wds.core.palette.primary.750",
+                  "contrast": 13.25,
                   "against": "background.primary",
                   "min": 3,
                   "modes": {
@@ -9031,7 +9004,7 @@
                     "color": "{wds.color.interactive.primary.fill.rest}",
                     "opacity": "{wds.opacity.30}"
                   },
-                  "contrast": 6.64,
+                  "contrast": 7.71,
                   "against": "background.primary",
                   "contrastModel": "ink-on-composite",
                   "legibleFor": "interactive.primary.text.pressed",

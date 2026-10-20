@@ -54,7 +54,7 @@ Titles are short, specific and in sentence case, with no period. The body states
 | `children` | node | — | yes | The body: what happened and what to do next, in one or two sentences. It can hold a link or a short list. Never repeat the title. |
 | `headingLevel` | enum: 2 \| 3 \| 4 \| 5 \| 6 | `2` | no | The heading level of the title, matched to where the banner sits in the page outline, so the outline stays in order. |
 | `icon` | node \| false | — | no | Replaces the tone glyph, or false to hide it in a dense layout. The glyph is hidden from assistive technology either way. |
-| `actions` | node | — | no | Up to two buttons that resolve the message, the main one first: an outline Button.Neutral, then a text Button.Neutral. Name each by what it does ("Retry", "Update billing"). |
+| `actions` | node | — | no | Up to two buttons that resolve the message, the main one first: an outline Button, then a text Button (Button.Neutral when the file has it). Name each by what it does ("Retry", "Update billing"). |
 | `dismissible` | boolean | `false` | no | Whether the banner shows a dismiss button. Set it together with onDismiss. Leave a banner about a condition that still blocks the user not dismissible. |
 | `onDismiss` | function | — | no | Called when the dismiss button is pressed. Remove the banner, store the dismissal so it does not return on reload, and move focus to a sensible place. |
 | `announce` | enum: 'auto' \| 'none' | `auto` | no | Whether a banner inserted after the page loads is announced: auto announces it through the page's live region, assertively for danger and politely otherwise. A banner present when the page loads is never announced; it is read in order. |
@@ -94,7 +94,7 @@ None — not interactive.
 
 ## Composition
 
-- **Composes with:** `button-neutral`, `flush-icon-button-neutral`
+- **Composes with:** `button`, `flush-icon-button-neutral`
 - **Alternative to:** `dialog`, `field-message`, `badge`
 - **Planned:** `toast`
 - **Replaces:**

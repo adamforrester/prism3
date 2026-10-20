@@ -168,15 +168,17 @@ export const counter: ComponentDef = {
       label: {
         kind: 'nest',
         nests: 'field-label',
-        // Follows the size, and dims with a disabled Counter (`variantWhen` on the state).
+        // Nested as the fields nest it (owner decision Q399 A on #2693): `emphasis` and `weight` are EXPOSED and start
+        // secondary and regular. Follows the size, and dims with a disabled Counter (`variantWhen` on the state).
         nesting: {
-          kind: 'nest-fixed',
+          kind: 'nest-exposed',
           variant: { size: 'medium', emphasis: 'secondary', weight: 'regular', state: 'rest' },
+          expose: ['emphasis', 'weight'],
           follow: ['size'],
           variantWhen: { state: { disabled: { state: 'disabled' } } },
         },
         optional: true,
-        note: 'What is counted, such as "Quantity". Hidden by default: the label is always the value\'s accessible name, and shown only where nothing around the counter says what it counts.',
+        note: 'What is counted, such as "Quantity". Its label text, required marker, emphasis and weight surface on the Counter. Hidden by default: the label is always the value\'s accessible name, and shown only where nothing around the counter says what it counts.',
       },
       control: {
         kind: 'box',
@@ -302,7 +304,7 @@ export const counter: ComponentDef = {
     avoidWhen: 'The number is typed, large, precise or decimal, such as a price or a measurement (use a number input). The count is shown on another element rather than set by the user, such as unread messages (use Badge). The options are a short fixed list to compare (use Select or SegmentedControl).',
     commonPartners: ['flush-icon-button-neutral', 'field-label', 'field-message', 'button'],
     triggerKeywords: ['counter', 'quantity', 'quantity stepper', 'quantity selector', 'plus minus', 'item count', 'add to bag quantity'],
-    generationPriority: 4,
+    generationPriority: 2,
   },
 
   composition: {

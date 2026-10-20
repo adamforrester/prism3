@@ -2659,12 +2659,13 @@ Type: dimension. Bound by 16 component(s).
 
 ### `space.250`
 
-Type: dimension. Bound by 3 component(s).
+Type: dimension. Bound by 4 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `size.large.pad-x` | content | expansion: expanded · size: large (4 of 24) |
 |  |  | header | size: large (8 of 24) |
+| list-item | `size.small.ordered.marker-column`, `size.small.unordered.marker-column` | markerBox | size: small · type: ordered, unordered (2 of 9) |
 | segmented-control-segment | `size.large.padding-x` | content | size: large (10 of 30) |
 | tab | `size.large.padding-x` | content | size: large (10 of 30) |
 
@@ -2682,7 +2683,7 @@ Type: dimension. Bound by 10 component(s).
 |  |  | footer | footer: inline, stacked · placement: center (6 of 15) |
 |  |  | header | placement: center (9 of 15) |
 |  |  | panel | placement: center (9 of 15) |
-| list-item | `size.small.marker-column` | markerBox | size: small (3 of 9) |
+| list-item | `size.medium.ordered.marker-column`, `size.medium.unordered.marker-column`, `size.small.icon.marker-column` | markerBox | size: medium, small (3 of 9) |
 | password-field | `size.large.pad-x` | control | size: large (28 of 84) |
 | select | `size.large.pad-x` | control | size: large (28 of 84) |
 | text-field | `size.large.pad-x` | control | size: large (28 of 84) |
@@ -2694,7 +2695,7 @@ Type: dimension. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| list-item | `size.medium.marker-column` | markerBox | size: medium (3 of 9) |
+| list-item | `size.large.ordered.marker-column`, `size.large.unordered.marker-column`, `size.medium.icon.marker-column` | markerBox | size: large, medium (3 of 9) |
 
 ### `space.500`
 
@@ -2702,7 +2703,7 @@ Type: dimension. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| list-item | `size.large.marker-column` | markerBox | size: large (3 of 9) |
+| list-item | `size.large.icon.marker-column` | markerBox | size: large · type: icon (1 of 9) |
 
 ### `type.body.lg.default`
 
@@ -3199,9 +3200,9 @@ Drawn, not declared: `color.inverse.icon.link.default`, `color.inverse.icon.link
 
 ### list-item
 
-19 token(s); 9 design-file member(s).
+20 token(s); 9 design-file member(s).
 
-`color.icon.primary`, `color.text.primary`, `control.size.lg.dot`, `control.size.lg.line-box`, `control.size.md.dot`, `control.size.md.line-box`, `control.size.sm.dot`, `control.size.sm.line-box`, `icon.size.lg`, `icon.size.md`, `icon.size.sm`, `radius.round`, `space.0`, `space.300`, `space.400`, `space.500`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
+`color.icon.primary`, `color.text.primary`, `control.size.lg.dot`, `control.size.lg.line-box`, `control.size.md.dot`, `control.size.md.line-box`, `control.size.sm.dot`, `control.size.sm.line-box`, `icon.size.lg`, `icon.size.md`, `icon.size.sm`, `radius.round`, `space.0`, `space.250`, `space.300`, `space.400`, `space.500`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
 
 ### password-field
 

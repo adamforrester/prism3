@@ -77,6 +77,10 @@
  *                  cleared: the dry run blocks the axis change, and Adopt, which exists to clear that blocker, claims the
  *                  member, so the next dry run has none (#2603 review). Mutation: Adopt refused by every blocker again →
  *                  `adopt/axis change`.
+ *   list column/…  a List.Item built at the old 24/32/40 marker column updates in place to Q340 A's 20/24/32 for bullet
+ *                  and number (#2727): 6 members updated, the 3 icon members current, every key and id kept; the List
+ *                  set, whose plan moves only by its nested-list note, updates in place too. Mutation: the def back at the old column → `list column/dry
+ *                  run`, `list column/written`.
  *   display rename/…  an Accordion built while its icon axis was `position`, or `iconPosition`, updates in place to the
  *                  def's `icon position`: every member renamed, every key and id the test captured kept (#2592).
  *                  Mutation: the ledger entries dropped → `display rename/position …`, `display rename/iconPosition …`.
@@ -135,6 +139,12 @@
  *                  stops dropped from the draw check → `veil/dry run`, `veil/repaired`, `veil/verify`; verify's draw check dropped → `veil/verify`.
  *                  Stops at their color but 100% alpha read "to update" and fail verify; the alpha comparison dropped from
  *                  the draw check's gradient branch → `veil/alpha dry run`, `veil/alpha verify`.
+ *   <group>/…      Checkbox group, Radio group and Segmented control, each built with its FieldLabel `nest-fixed` (as
+ *                  before #2748), update in place to the `nest-exposed` label (owner Q348 A): every key and id kept,
+ *                  each label an exposed instance, still the secondary, bold member at its group's size, then
+ *                  current. FieldLabel's real set is in the file, so the coordinate is read off the host. Mutations:
+ *                  the in-place branch's expose pass skipped → `<group>/exposed`; a group label's starting weight
+ *                  moved to regular → `<group>/bold kept`.
  *   stepdown/…     Segmented control, Tab and Tag, built while their glyph sat on the 1:1 rung (20 / 24 / 32), update in
  *                  place to the rung below (16 / 20 / 24, owner Q337 A, #2725): every glyph rebound and resized, every
  *                  key and id kept, current after. The expected names and px are typed here from the decision.
@@ -147,6 +157,14 @@
  *                  items 2 to 8 as a change and replaces nothing; Update writes each in place, every key and id kept,
  *                  and a number a designer typed is kept as a hand edit. Mutation: the in-place branch skipping the
  *                  override write → `overrides/written in place`.
+ *   label/…        a Text field, Password field, Select and Textarea each built while their nested FieldLabel read at rest on
+ *                  every member (#2738): the 12 disabled members read update, and Update swaps each one's label to
+ *                  FieldLabel's disabled member in place, every key and label id kept. Mutation: the in-place nested
+ *                  branch skipping the swap → `label/dimmed`.
+ *   <row>/…, textarea/…  Checkbox.Row, Radio.Row, Switch.Row and Textarea built from their defs before #2708 (the state
+ *                  props taken back out) read current under today's plans, and the apply writes nothing: the props are
+ *                  code API and move no Figma member (owner Q351 A). Mutation: `figmaAnatomySet` projecting a
+ *                  `disabled` prop as a Figma boolean on the label → `<row>/dry run`, `<row>/nothing written`.
  *   noop/…         a set already current: no version, no write.
  *   order/…        nested sets are updated first.
  *
@@ -197,13 +215,16 @@ const planChild = (n: PlanNode, name: string): PlanNode => n.children!.find((c) 
 type World = { host: ApplyHost; api: Record<string, any>; page: Page; set: () => Node; plans: AnatomyPlan[] };
 /** A fresh file holding one set, built by the executor, with identities on. `extraVars` are variables the file
  *  holds beyond the plans', for a later plan to bind. */
-const world = async (id: string, plans = plansOf(id), o: { extraVars?: string[]; extraStyles?: string[]; extraComps?: string[]; varPx?: Record<string, number>; componentProps?: Record<string, Record<string, { type: string; defaultValue: string | boolean }>>; keyPrefix?: string; styleIdPrefix?: string; unavailableFonts?: { family: string; style: string }[]; refuseVersion?: boolean; allowMisses?: string[] } = {}): Promise<World> => {
+const world = async (id: string, plans = plansOf(id), o: { extraVars?: string[]; extraStyles?: string[]; extraComps?: string[]; varPx?: Record<string, number>; componentProps?: Record<string, Record<string, { type: string; defaultValue: string | boolean }>>; keyPrefix?: string; styleIdPrefix?: string; unavailableFonts?: { family: string; style: string }[]; refuseVersion?: boolean; allowMisses?: string[]; fileSets?: { name: string; variants: string[] }[] } = {}): Promise<World> => {
   const page: Page = { children: [] };
   const api = makeShim({
     vars: [...new Set([...plans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), 'space/0', ...(o.extraVars ?? [])])],
     styles: [...new Set([...plans.flatMap((p) => planTextStyles(p.root)), ...(o.extraStyles ?? [])])],
     effects: [...new Set(plans.flatMap((p) => planEffectStyles(p.root)))],
-    comps: [...new Set([SWAP_TARGET, 'focus-ring', ...plans.flatMap((p) => planComps(p.root)), ...(o.extraComps ?? [])])],
+    // A name in `fileSets` is in the file as a SET, its members under their own coordinates, so a nested instance
+    // resolves by member (#2738); every other component the plans name is a plain one.
+    comps: [...new Set([SWAP_TARGET, 'focus-ring', ...plans.flatMap((p) => planComps(p.root)), ...(o.extraComps ?? [])])].filter((c) => !(o.fileSets ?? []).some((x) => x.name === c)),
+    fileNodes: (o.fileSets ?? []).map((x) => ({ ...x, type: 'COMPONENT_SET' as const })),
     page,
     liveRoot: true,
     identities: true,
@@ -608,6 +629,64 @@ for (const old of ['position', 'iconPosition']) {
     `display rename/${old} in place: every member renamed onto icon position, its key and id kept (${res.outcomes[0]?.renamed}; ${after.members.size}; ${applyVerdict(res).headline}; ${res.outcomes[0]?.refused ?? ''})`);
   const post = (await previewUpdate(w.host, [{ def: 'accordion', plans: w.plans }])).sets[0];
   ok(post?.counts.current === n, `display rename/${old} current: every member reads current after (${JSON.stringify(post?.counts)})`);
+}
+
+section('list marker column — a file built at the old 24/32/40 column updates in place to 20/24/32 for bullet and number (#2727, Q340 A)');
+{
+  // The file as main built it before Q340: every type's marker column at space/300, 400, 500 (24/32/40px). The
+  // literals are the test's own; the plan it updates to is the engine's current one.
+  const OLD: Record<string, string> = { small: 'space/300', medium: 'space/400', large: 'space/500' };
+  const NEXT: Record<string, Record<string, string>> = {
+    unordered: { small: 'space/250', medium: 'space/300', large: 'space/400' },
+    ordered: { small: 'space/250', medium: 'space/300', large: 'space/400' },
+    icon: { small: 'space/300', medium: 'space/400', large: 'space/500' },
+  };
+  const atOld = plansOf('list-item').map((p) => {
+    const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
+    (planChild(q.root, 'markerBox').bound as Record<string, string>).width = OLD[q.size!];
+    return q;
+  });
+  const w = await world('list-item', atOld, { extraVars: ['space/250'] });
+  const typeOf = (m: Node) => /(?:^|, )type=(\w+)/.exec(String(m.name))?.[1] ?? '';
+  const sizeOf = (m: Node) => /(?:^|, )size=(\w+)/.exec(String(m.name))?.[1] ?? '';
+  const ids = new Map<string, string>();
+  for (const v of ['space/250', 'space/300', 'space/400', 'space/500']) ids.set(await varIdOf(w, v), v);
+  const columnOf = (m: Node) => ids.get((childNamed(m, 'markerBox').boundVariables as Record<string, { id: string }>).width?.id) ?? 'none';
+  ok(membersOf(w.set()).length === 9 && membersOf(w.set()).every((m) => columnOf(m) === OLD[sizeOf(m)]),
+    `premise: the 9 members carry the old column, space/300, 400, 500 by size in every type (${membersOf(w.set()).map(columnOf).join(', ')})`);
+  const before = identityOf(w.set());
+  const plans = plansOf('list-item');
+  const { pre, res } = await confirm(w, [{ def: 'list-item', plans }]);
+  const p = pre.sets[0];
+  ok(!!p && !p.blockers.length && p.counts.update === 6 && p.counts.current === 3 && p.counts.add === 0 && p.counts.drop === 0,
+    `list column/dry run: the 6 bullet and number members to update, the 3 icon members current, nothing added or dropped (${JSON.stringify(p?.counts)})`);
+  const after = identityOf(w.set());
+  const moved = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || after.members.get(name)?.id !== b.id).map(([n]) => n);
+  const kidsMoved = [...before.members].flatMap(([name, b]) => [...b.kids].filter(([path, id]) => after.members.get(name)?.kids.get(path) !== id).map(([path]) => `${name}/${path}`));
+  ok(applyVerdict(res).ok && moved.length === 0 && kidsMoved.length === 0 && after.members.size === 9,
+    `list column/in place: every member and child keeps its key and id (${applyVerdict(res).headline}; ${moved.length} members, ${kidsMoved.length} children moved)`);
+  const wrong = membersOf(w.set()).filter((m) => columnOf(m) !== NEXT[typeOf(m)]?.[sizeOf(m)]).map((m) => `${m.name}: ${columnOf(m)}`);
+  ok(wrong.length === 0, `list column/written: bullet and number bind space/250, 300, 400 (20/24/32px), icon keeps space/300, 400, 500 (24/32/40px) (${wrong.slice(0, 3).join('; ')})`);
+  const post = (await previewUpdate(w.host, [{ def: 'list-item', plans }])).sets[0];
+  ok(post?.counts.current === 9, `list column/current: every member reads current after (${JSON.stringify(post?.counts)})`);
+  // THE LIST holds nested List.Item instances and binds no column of its own, so its items show the new column from
+  // their main once List.Item is updated (above); the shim's instances are stubs, so that part is Figma's and not
+  // measured here. What this PR moves in the List's own plan is the nested-list code note, which the plan carries:
+  // a List built with main's note updates in place to the new one, every key and id kept.
+  const OLD_NOTE = 'Nested lists — a <ul> or <ol> inside an <li> indents by one marker column and uses the same size. Not drawn in Figma.';
+  const listOld = plansOf('list').map((q) => JSON.parse(JSON.stringify(q).replace(/Nested lists — [^"]*?Not drawn in Figma\./g, OLD_NOTE)) as AnatomyPlan);
+  ok(JSON.stringify(listOld) !== JSON.stringify(plansOf('list')), 'premise: the List built with the old nested-list note differs from the current plan');
+  // Since #2683 every List plan carries per-item `nestOverrides` (each item's number), so List.Item's TEXT properties are
+  // declared on the host, as in `overrides/…` below; without them the build misses every override and `world()` throws.
+  const lw = await world('list', listOld, { componentProps: { 'list-item': { 'text#7:1': { type: 'TEXT', defaultValue: 'List item' }, 'number#7:2': { type: 'TEXT', defaultValue: '1.' } } } });
+  const lbefore = identityOf(lw.set());
+  const lplans = plansOf('list');
+  const l = await confirm(lw, [{ def: 'list', plans: lplans }]);
+  const lafter = identityOf(lw.set());
+  const lmoved = [...lbefore.members].filter(([name, b]) => lafter.members.get(name)?.key !== b.key || lafter.members.get(name)?.id !== b.id).length;
+  const lpost = (await previewUpdate(lw.host, [{ def: 'list', plans: lplans }])).sets[0];
+  ok(!l.pre.sets[0].blockers.length && l.pre.sets[0].counts.add === 0 && l.pre.sets[0].counts.drop === 0 && applyVerdict(l.res).ok && lmoved === 0 && lafter.members.size === 9 && lpost?.counts.current === 9,
+    `list column/List: the List set updates in place to the new note, nothing added or dropped, every member's key and id kept, all 9 current after (${JSON.stringify(l.pre.sets[0].counts)}; ${applyVerdict(l.res).headline}; ${lmoved} moved)`);
 }
 
 section('accordion side padding — a file built at the old large 24px updates in place to 20px (#2726, Q338 A)');
@@ -3070,6 +3149,46 @@ section('stretched mode — an axis the parent stretches: the verify and the dry
     `stretch/lost: an indicator the host no longer stretches is listed by the dry run and named by the verify (${JSON.stringify(thirdModes)}; ${JSON.stringify(third.res.outcomes[0].content.slice(0, 4))})`);
 }
 
+section('group labels — a group built with its FieldLabel fixed exposes emphasis and weight in place, bold kept (#2748, owner Q348 A)');
+for (const G of ['checkbox-group', 'radio-group', 'segmented-control']) {
+  // THE FILE AS A BUILD AT MAIN BEFORE #2748 LEFT IT: the label nested `nest-fixed` at the same coordinate, nothing
+  // exposed. Reconstructed from today's def by putting that one fact back, so both sides are the real def's projection.
+  const now = componentDefs.find((x) => x.id === G)!;
+  const label = now.anatomy.parts.label;
+  const nesting = label.nesting as { kind: string; variant: Record<string, string>; follow?: readonly string[] };
+  const before2748 = { ...now, anatomy: { ...now.anatomy, parts: { ...now.anatomy.parts, label: { ...label, nesting: { kind: 'nest-fixed', variant: nesting.variant, follow: nesting.follow } } } } } as typeof now;
+  const oldPlans = figmaAnatomySet(before2748, { swapTarget: SWAP_TARGET });
+  const newPlans = plansOf(G);
+  // FieldLabel's real set in the file, so each label instances a MEMBER and its coordinate is readable off the host.
+  const w = await world(G, oldPlans, { fileSets: [{ name: 'field-label', variants: plansOf('field-label').map(planComponentName) }] });
+  const labelOf = (m: Node): Node => childNamed(m, 'label');
+  const n = membersOf(w.set()).length;
+  ok(n === 3 && membersOf(w.set()).every((m) => labelOf(m)?.isExposedInstance === false),
+    `${G}/premise: the file holds ${n} members built before #2748, each nested label not exposed`);
+  const before = identityOf(w.set());
+  const labelIds = new Map(membersOf(w.set()).map((m) => [String(m.name), String(labelOf(m).id)] as const));
+  const { pre, res } = await confirm(w, [{ def: G, plans: newPlans }]);
+  const p = pre.sets[0];
+  ok(p.counts.update === 3 && p.counts.add === 0 && p.counts.drop === 0 && !p.blockers.length && !p.replacements.length,
+    `${G}/dry run: all 3 members read update, none added, dropped or replaced, nothing refused (${JSON.stringify(p.counts)}, ${p.blockers.join('; ') || 'no blockers'})`);
+  const v = applyVerdict(res);
+  ok(v.ok, `${G}/verdict: ${v.headline} (${v.lines.slice(0, 2).join(' | ').slice(0, 240)})`);
+  const after = identityOf(w.set());
+  const moved = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || after.members.get(name)?.id !== b.id).map(([x]) => x);
+  ok(JSON.stringify(after.set) === JSON.stringify(before.set) && moved.length === 0 && after.members.size === 3,
+    `${G}/kept: the set and all 3 members keep their keys and ids (${moved.join('; ') || 'none moved'})`);
+  const lost = [...before.members].filter(([name, b]) => [...b.kids].some(([path, id]) => after.members.get(name)?.kids.get(path) !== id)).map(([x]) => x);
+  ok(lost.length === 0 && membersOf(w.set()).every((m) => String(labelOf(m).id) === labelIds.get(String(m.name))),
+    `${G}/ids: every node under every member, the nested label included, keeps its id (${lost.join('; ') || 'all kept'})`);
+  // The exposure and the look, read off the shim's nodes. The weight is typed here from Q348 A: bold stays.
+  const read = membersOf(w.set()).map((m) => ({ m: String(m.name), exposed: labelOf(m).isExposedInstance, main: String((labelOf(m).mainComponent as { name?: string } | undefined)?.name) }));
+  ok(read.every((x) => x.exposed === true), `${G}/exposed: every member's nested label is now an exposed instance (${read.filter((x) => x.exposed !== true).map((x) => x.m).join('; ') || 'all 3'})`);
+  ok(read.every((x) => /emphasis=secondary/.test(x.main) && /weight=bold/.test(x.main) && x.main.includes(`size=${/size=(\w+)/.exec(x.m)?.[1]}`)),
+    `${G}/bold kept: every label still instances the secondary, bold member at its group's size (${[...new Set(read.map((x) => x.main))].join(' | ')})`);
+  const post = (await previewUpdate(w.host, [{ def: G, plans: newPlans }])).sets[0];
+  ok(post.counts.current === 3 && post.handEdits.length === 0, `${G}/current: the next dry run reads all 3 current (${JSON.stringify(post.counts)})`);
+}
+
 /* ── segmented control (#2724) ───────────────────────────────────────────────────────────────────────── */
 section('segmented control — sets built with the tinted, outlined look (#2418) take the flat pill and the filled track in place (#2724, owner Q336 A, Q342 A)');
 {
@@ -3200,6 +3319,74 @@ section('overrides — a nested instance with no override yet gains it in place 
   const post = (await previewUpdate(w.host, [{ def: LIST, plans: planned }])).sets[0];
   ok(post.counts.update === 0 && post.counts.current === 8 && post.handEdits.some((h) => h.member === String(edited.name) && h.path === 'items/item2'),
     `overrides/current: the next dry run reads the other 8 members current and still reports the hand edit (${JSON.stringify(post.counts)}; ${JSON.stringify(post.changes).slice(0, 200)})`);
+}
+
+/* ── the fields' nested label (#2738) ───────────────────────────────────────────────────────────────── */
+section("label dims — a field built while its label read at rest on every member dims it on the disabled members in place (#2738)");
+{
+  // THE FILE AS A BUILD BEFORE #2738 LEFT IT: every member's nested FieldLabel at `state=rest`. Reconstructed from
+  // today's plans by putting that one fact back, so both sides are the real def's projection. FieldLabel is in the
+  // file as a SET (its members named by coordinate, typed here), so the instance resolves to a member and an update
+  // can only reach the disabled one by swapping it.
+  const LABEL_MEMBERS = ['medium', 'small', 'large'].flatMap((size) => ['primary', 'secondary'].flatMap((emphasis) => ['regular', 'bold'].flatMap((weight) =>
+    ['rest', 'disabled'].map((state) => `size=${size}, emphasis=${emphasis}, weight=${weight}, state=${state}`))));
+  const atRest = (n: PlanNode): PlanNode => ({
+    ...n,
+    ...((n as { nestTarget?: string }).nestTarget === 'field-label' ? { nestVariant: { ...(n as { nestVariant: Record<string, string> }).nestVariant, state: 'rest' } } : {}),
+    children: (n.children ?? []).map(atRest),
+  } as PlanNode);
+  const labelOf = (m: Node): Node | undefined => {
+    const walk = (n: Node): Node | undefined => n.name === 'label' && n.type === 'INSTANCE' ? n : ((n.children as Node[] | undefined) ?? []).map(walk).find(Boolean);
+    return walk(m);
+  };
+  const stateOf = (n: Node | undefined): string => /state=([a-z-]+)/.exec(String((n?.mainComponent as { name?: string } | undefined)?.name ?? ''))?.[1] ?? '(none)';
+  for (const id of ['text-field', 'password-field', 'select', 'textarea']) {
+    const planned = plansOf(id);
+    const old = planned.map((p) => ({ ...p, root: atRest(p.root) }));
+    // The Password field's Show button sets its own text, so the file's Button declares its `label` TEXT property.
+    const componentProps = id === 'password-field' ? { button: { 'label#7:1': { type: 'TEXT', defaultValue: 'Button' } } } : undefined;
+    const w = await world(id, old, { fileSets: [{ name: 'field-label', variants: LABEL_MEMBERS }], componentProps });
+    const members = membersOf(w.set());
+    const disabled = (m: Node): boolean => String(m.name).split(', ').includes('state=disabled');
+    ok(members.length === 84 && members.filter(disabled).length === 12 && members.every((m) => stateOf(labelOf(m)) === 'rest'),
+      `premise: the ${id} file holds 84 members, 12 disabled, each label instancing FieldLabel at state=rest (${members.length}; ${[...new Set(members.map((m) => stateOf(labelOf(m))))].join(', ')})`);
+    const labelIds = new Map(members.map((m) => [String(m.name), String(labelOf(m)?.id)] as const));
+    const before = identityOf(w.set());
+    const { pre, res } = await confirm(w, [{ def: id, plans: planned }]);
+    const p = pre.sets[0];
+    ok(p.counts.update === 12 && p.counts.current === 72 && p.counts.add + p.counts.drop === 0 && !p.blockers.length && !p.replacements.length,
+      `${id} label/dry run: the 12 disabled members read update, the other 72 current, nothing added, dropped or replaced (${JSON.stringify(p.counts)}; ${p.replacements.length} replacements)`);
+    const v = applyVerdict(res);
+    ok(v.ok, `${id} label/verdict: ${v.headline} (${v.lines.slice(0, 2).join(' | ').slice(0, 240)})`);
+    const wrong = membersOf(w.set()).filter((m) => stateOf(labelOf(m)) !== (disabled(m) ? 'disabled' : 'rest')).map((m) => `${String(m.name)}=${stateOf(labelOf(m))}`);
+    ok(wrong.length === 0, `${id} label/dimmed: the label instances FieldLabel at state=disabled on the 12 disabled members and at state=rest on the 72 others (${wrong.length} off: ${wrong.slice(0, 2).join('; ')})`);
+    const after = identityOf(w.set());
+    const moved = membersOf(w.set()).filter((m) => String(labelOf(m)?.id) !== labelIds.get(String(m.name))
+      || after.members.get(String(m.name))?.key !== before.members.get(String(m.name))?.key).map((m) => String(m.name));
+    ok(moved.length === 0 && JSON.stringify(after.set) === JSON.stringify(before.set),
+      `${id} label/in place: the set, every member's key and every label instance's id are kept, so the label was swapped, not rebuilt (${moved.slice(0, 2).join('; ') || 'all 84'})`);
+    const post = (await previewUpdate(w.host, [{ def: id, plans: planned }])).sets[0];
+    ok(post.counts.current === 84, `${id} label/current: the next dry run reads all 84 current (${JSON.stringify(post.counts)})`);
+  }
+}
+
+section('state props — the Rows and Textarea gaining their state props (#2708, owner Q351 A) leave a built file current');
+for (const [D, gained] of [['checkbox-row', ['disabled']], ['radio-row', ['disabled', 'readOnly']], ['switch-row', ['disabled']], ['textarea', ['label', 'onChange', 'helpText', 'required', 'disabled', 'readOnly', 'isPending', 'id', 'name']]] as const) {
+  // THE FILE AS A BUILD AT MAIN BEFORE #2708 LEFT IT: today's def with the gained props taken back out. The props
+  // are code API, so the Figma projection must not move: Update over that file has nothing to correct, and must
+  // say so rather than rewrite every member.
+  const now = componentDefs.find((x) => x.id === D)!;
+  const before2708 = { ...now, props: now.props.filter((p) => !(gained as readonly string[]).includes(p.name)) } as typeof now;
+  ok(before2708.props.length === now.props.length - gained.length, `${D}/premise: the def at main lacked ${gained.join(', ')}`);
+  const w = await world(D, figmaAnatomySet(before2708, { swapTarget: SWAP_TARGET }));
+  const dump = (): string => JSON.stringify(membersOf(w.set()).map((m) => [m.name, m.id, m.key, [...(m._pluginData as Map<string, string>)]]));
+  const was = dump();
+  const { pre, res } = await confirm(w, [{ def: D, plans: plansOf(D) }]);
+  const p = pre.sets[0];
+  ok(p.counts.update === 0 && p.counts.add === 0 && p.counts.drop === 0 && p.counts.current === p.counts.members && p.counts.members > 0,
+    `${D}/dry run: every member reads current (${JSON.stringify(p.counts)})`);
+  ok(applyVerdict(res).headline === '✓ already up to date' && w.api._versions.length === 0 && dump() === was,
+    `${D}/nothing written: no version, every member's id, key, stamp and record as built (${applyVerdict(res).headline})`);
 }
 
 void STYLE_FONT; void BASELINE_KEY;

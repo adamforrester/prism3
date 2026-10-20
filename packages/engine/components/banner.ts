@@ -23,9 +23,11 @@
  * danger banner and an errored field show the same mark), a content column (title, the body as a native slot, the
  * actions row), and a dismiss button (FlushIconButton.Neutral, flush, small, always the `close` glyph with no swap: Q386 on
  * #2808; flush per owner QA 2026-10-19, as Dialog's close). The actions are up to
- * two nested Button.Neutral, outline then text, off by default (Q327.6 A). Q363 (#2661) decided a shared Button group
- * container for action sets; it is not built yet, so the actions are nested Buttons here and the move is filed as
- * #2787. Mints nothing.
+ * two nested Buttons, outline then text, off by default (Q327.6 A), each made from Button.Neutral when the file has it
+ * (`prefersWhenBuilt`, never a requirement: Q386 on #2808, Q398 resolved by Q419 A) and from the primary Button
+ * otherwise, whose ink clears 4.5:1 on the five tinted fills through #2820's surface contract. Q363 (#2661) decided a
+ * shared Button group container for action sets, but its buttons are medium and Banner's are small, so the actions stay
+ * two nested Buttons here and the move is filed as #2787. Mints nothing.
  */
 import { ComponentDef } from '../component-schema';
 
@@ -56,7 +58,7 @@ export const banner: ComponentDef = {
     { name: 'children', type: 'node', required: true, description: 'The body: what happened and what to do next, in one or two sentences. It can hold a link or a short list. Never repeat the title.' },
     { name: 'headingLevel', type: "enum: 2 | 3 | 4 | 5 | 6", values: ['2', '3', '4', '5', '6'], default: '2', required: false, description: 'The heading level of the title, matched to where the banner sits in the page outline, so the outline stays in order.' },
     { name: 'icon', type: 'node | false', required: false, description: 'Replaces the tone glyph, or false to hide it in a dense layout. The glyph is hidden from assistive technology either way.' },
-    { name: 'actions', type: 'node', required: false, description: 'Up to two buttons that resolve the message, the main one first: an outline Button.Neutral, then a text Button.Neutral. Name each by what it does ("Retry", "Update billing").' },
+    { name: 'actions', type: 'node', required: false, description: 'Up to two buttons that resolve the message, the main one first: an outline Button, then a text Button (Button.Neutral when the file has it). Name each by what it does ("Retry", "Update billing").' },
     { name: 'dismissible', type: 'boolean', default: false, required: false, description: 'Whether the banner shows a dismiss button. Set it together with onDismiss. Leave a banner about a condition that still blocks the user not dismissible.' },
     { name: 'onDismiss', type: 'function', required: false, description: 'Called when the dismiss button is pressed. Remove the banner, store the dismissal so it does not return on reload, and move focus to a sensible place.' },
     { name: 'announce', type: "enum: 'auto' | 'none'", values: ['auto', 'none'], default: 'auto', required: false, description: 'Whether a banner inserted after the page loads is announced: auto announces it through the page\'s live region, assertively for danger and politely otherwise. A banner present when the page loads is never announced; it is read in order.' },
@@ -193,18 +195,20 @@ export const banner: ComponentDef = {
       },
       action1: {
         kind: 'nest',
-        nests: 'button-neutral',
+        nests: 'button',
+        prefersWhenBuilt: 'button-neutral',
         nesting: { kind: 'nest-fixed', variant: { appearance: 'outline', size: 'small', surface: 'default', inset: 'default', state: 'rest', 'leading icon': 'false', 'trailing icon': 'false' } },
         overrides: { texts: { label: 'Action' } },
-        note: 'The main action: a Button.Neutral, outline, small.',
+        note: 'The main action: a Button, outline, small; Button.Neutral when the file has it (Q386).',
       },
       action2: {
         kind: 'nest',
-        nests: 'button-neutral',
+        nests: 'button',
+        prefersWhenBuilt: 'button-neutral',
         optional: true,
         nesting: { kind: 'nest-fixed', variant: { appearance: 'text', size: 'small', surface: 'default', inset: 'default', state: 'rest', 'leading icon': 'false', 'trailing icon': 'false' } },
         overrides: { texts: { label: 'Action' } },
-        note: 'The second action: a Button.Neutral, text, small. Off by default.',
+        note: 'The second action: a Button, text, small; Button.Neutral when the file has it (Q386). Off by default.',
       },
       dismiss: {
         kind: 'nest',
@@ -294,7 +298,7 @@ export const banner: ComponentDef = {
   },
 
   composition: {
-    composesWith: ['button-neutral', 'flush-icon-button-neutral'],
+    composesWith: ['button', 'flush-icon-button-neutral'],
     alternativeTo: ['dialog', 'field-message', 'badge'],
     replacesPatterns: ['a colored div with an icon and role="alert" on a message present at load', 'an error shown as a toast that disappears'],
     supersededBy: [],
@@ -318,7 +322,7 @@ export const banner: ComponentDef = {
       'Whether the nested buttons\' Rest, Hover and Pressed prototype reactions fire inside a nested instance (the open nesting item on #2466).',
     ],
     evolution: [
-      'Q386 (#2808): no component requires the Neutral button families, so the dismiss nests FlushIconButton.Neutral with the close glyph fixed and no swap, as Dialog\'s close does (Q385).',
+      'Q386 (#2808): no component requires the Neutral button families, so the dismiss nests FlushIconButton.Neutral with the close glyph fixed and no swap, as Dialog\'s close does (Q385), and the actions nest the primary Button, preferring Button.Neutral only when the file has it.',
       'Owner decisions: the proposal on #2579 and Q327 (2026-10-16): tones info, success, warning and danger; subtle emphasis only; placement on a width axis, contained or full; title and body in text.primary; the body a native content slot; up to two actions, outline then text, off by default; the name Banner with the aliases alert, callout and inline-alert; a full 1px border in the tone color. Q346: the edge binds the border role, never an icon or text role.',
     ],
   },
