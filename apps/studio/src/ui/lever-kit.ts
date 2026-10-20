@@ -300,7 +300,7 @@ export const perFrame = <T>(el: HTMLElement, run: (v: T) => void): ((v: T) => vo
 export const pageEdit = (seen: (key: string) => void) => (key: string, write: () => void): void => {
   seen(key);
   write();
-  noteSectionEdit();
+  noteSectionEdit(key);
   rebuild();
 };
 

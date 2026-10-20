@@ -148,6 +148,12 @@
  *                  stops dropped from the draw check → `veil/dry run`, `veil/repaired`, `veil/verify`; verify's draw check dropped → `veil/verify`.
  *                  Stops at their color but 100% alpha read "to update" and fail verify; the alpha comparison dropped from
  *                  the draw check's gradient branch → `veil/alpha dry run`, `veil/alpha verify`.
+ *   <group>/…      Checkbox group, Radio group and Segmented control, each built with its FieldLabel `nest-fixed` (as
+ *                  before #2748), update in place to the `nest-exposed` label (owner Q348 A): every key and id kept,
+ *                  each label an exposed instance, still the secondary, bold member at its group's size, then
+ *                  current. FieldLabel's real set is in the file, so the coordinate is read off the host. Mutations:
+ *                  the in-place branch's expose pass skipped → `<group>/exposed`; a group label's starting weight
+ *                  moved to regular → `<group>/bold kept`.
  *   stepdown/…     Segmented control, Tab and Tag, built while their glyph sat on the 1:1 rung (20 / 24 / 32), update in
  *                  place to the rung below (16 / 20 / 24, owner Q337 A, #2725): every glyph rebound and resized, every
  *                  key and id kept, current after. The expected names and px are typed here from the decision.
@@ -3150,6 +3156,46 @@ section('stretched mode — an axis the parent stretches: the verify and the dry
   ok(JSON.stringify(thirdModes) === JSON.stringify(['content.counterAxisSizingMode: AUTO → FIXED × 1', 'header.counterAxisSizingMode: FIXED → AUTO × 1', 'header/titleRow.counterAxisSizingMode: FIXED → AUTO × 1', `header/titleRow/${lostAt}.counterAxisSizingMode: FIXED → AUTO × 1`].sort())
     && third.res.outcomes[0].content.includes(`${lost.name}/header/titleRow/${lostAt}.counterAxisSizingMode: FIXED (the plan says AUTO)`),
     `stretch/lost: an indicator the host no longer stretches is listed by the dry run and named by the verify (${JSON.stringify(thirdModes)}; ${JSON.stringify(third.res.outcomes[0].content.slice(0, 4))})`);
+}
+
+section('group labels — a group built with its FieldLabel fixed exposes emphasis and weight in place, bold kept (#2748, owner Q348 A)');
+for (const G of ['checkbox-group', 'radio-group', 'segmented-control']) {
+  // THE FILE AS A BUILD AT MAIN BEFORE #2748 LEFT IT: the label nested `nest-fixed` at the same coordinate, nothing
+  // exposed. Reconstructed from today's def by putting that one fact back, so both sides are the real def's projection.
+  const now = componentDefs.find((x) => x.id === G)!;
+  const label = now.anatomy.parts.label;
+  const nesting = label.nesting as { kind: string; variant: Record<string, string>; follow?: readonly string[] };
+  const before2748 = { ...now, anatomy: { ...now.anatomy, parts: { ...now.anatomy.parts, label: { ...label, nesting: { kind: 'nest-fixed', variant: nesting.variant, follow: nesting.follow } } } } } as typeof now;
+  const oldPlans = figmaAnatomySet(before2748, { swapTarget: SWAP_TARGET });
+  const newPlans = plansOf(G);
+  // FieldLabel's real set in the file, so each label instances a MEMBER and its coordinate is readable off the host.
+  const w = await world(G, oldPlans, { fileSets: [{ name: 'field-label', variants: plansOf('field-label').map(planComponentName) }] });
+  const labelOf = (m: Node): Node => childNamed(m, 'label');
+  const n = membersOf(w.set()).length;
+  ok(n === 3 && membersOf(w.set()).every((m) => labelOf(m)?.isExposedInstance === false),
+    `${G}/premise: the file holds ${n} members built before #2748, each nested label not exposed`);
+  const before = identityOf(w.set());
+  const labelIds = new Map(membersOf(w.set()).map((m) => [String(m.name), String(labelOf(m).id)] as const));
+  const { pre, res } = await confirm(w, [{ def: G, plans: newPlans }]);
+  const p = pre.sets[0];
+  ok(p.counts.update === 3 && p.counts.add === 0 && p.counts.drop === 0 && !p.blockers.length && !p.replacements.length,
+    `${G}/dry run: all 3 members read update, none added, dropped or replaced, nothing refused (${JSON.stringify(p.counts)}, ${p.blockers.join('; ') || 'no blockers'})`);
+  const v = applyVerdict(res);
+  ok(v.ok, `${G}/verdict: ${v.headline} (${v.lines.slice(0, 2).join(' | ').slice(0, 240)})`);
+  const after = identityOf(w.set());
+  const moved = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || after.members.get(name)?.id !== b.id).map(([x]) => x);
+  ok(JSON.stringify(after.set) === JSON.stringify(before.set) && moved.length === 0 && after.members.size === 3,
+    `${G}/kept: the set and all 3 members keep their keys and ids (${moved.join('; ') || 'none moved'})`);
+  const lost = [...before.members].filter(([name, b]) => [...b.kids].some(([path, id]) => after.members.get(name)?.kids.get(path) !== id)).map(([x]) => x);
+  ok(lost.length === 0 && membersOf(w.set()).every((m) => String(labelOf(m).id) === labelIds.get(String(m.name))),
+    `${G}/ids: every node under every member, the nested label included, keeps its id (${lost.join('; ') || 'all kept'})`);
+  // The exposure and the look, read off the shim's nodes. The weight is typed here from Q348 A: bold stays.
+  const read = membersOf(w.set()).map((m) => ({ m: String(m.name), exposed: labelOf(m).isExposedInstance, main: String((labelOf(m).mainComponent as { name?: string } | undefined)?.name) }));
+  ok(read.every((x) => x.exposed === true), `${G}/exposed: every member's nested label is now an exposed instance (${read.filter((x) => x.exposed !== true).map((x) => x.m).join('; ') || 'all 3'})`);
+  ok(read.every((x) => /emphasis=secondary/.test(x.main) && /weight=bold/.test(x.main) && x.main.includes(`size=${/size=(\w+)/.exec(x.m)?.[1]}`)),
+    `${G}/bold kept: every label still instances the secondary, bold member at its group's size (${[...new Set(read.map((x) => x.main))].join(' | ')})`);
+  const post = (await previewUpdate(w.host, [{ def: G, plans: newPlans }])).sets[0];
+  ok(post.counts.current === 3 && post.handEdits.length === 0, `${G}/current: the next dry run reads all 3 current (${JSON.stringify(post.counts)})`);
 }
 
 /* ── segmented control (#2724) ───────────────────────────────────────────────────────────────────────── */

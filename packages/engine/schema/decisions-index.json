@@ -292,6 +292,13 @@
       "title": "emit a conforming DTCG projection beside the canonical tree",
       "doc": "docs/19-code-library-and-dx.md",
       "section": null
+    },
+    {
+      "date": "2026-10-19",
+      "issue": null,
+      "title": "Inverse colors is its own group, never clipped, never overlapping",
+      "doc": "docs/45-style-guide-generator.md",
+      "section": null
     }
   ]
 }

@@ -350,4 +350,4 @@ export const ground = (c: SgCtx, sec: HTMLElement, surf: SgSurface, bgHex?: stri
 };
 
 /** The five semantic families the Foreground and Icon sections draw, in the Style guide's order. */
-export const SEM: ReadonlyArray<readonly [string, string]> = [['Brand', 'brand'], ['Danger', 'danger'], ['Success', 'success'], ['Warning', 'warning'], ['Info', 'info']];
+export const SEM: ReadonlyArray<readonly [string, string]> = [['Brand', 'brand'], ['Success', 'success'], ['Warning', 'warning'], ['Danger', 'danger'], ['Info', 'info']];
