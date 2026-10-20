@@ -2,14 +2,46 @@
 
 > Single-line text field: label, input, and helper or validation message.
 
-A single-line control for free-form, non-enumerable text — names, emails, SKUs, short queries. A composed host: label + input + helper/validation message, with the accessibility wiring (id generation, aria-describedby chain, aria-invalid) handled internally. Not multi-line (Textarea), not a known set (Select, or a combobox), not numeric-formatted (a number field), not suggestion-backed (a combobox). The combobox and number field are not built yet.
-
 - **ID:** `text-field`
 - **Category:** form
 - **Status:** draft
 - **Also known as:** text-input, input, textbox, formfield
 
-## Usage
+## Overview
+
+A single-line control for free-form, non-enumerable text — names, emails, SKUs, short queries. A composed host: label + input + helper/validation message, with the accessibility wiring (id generation, aria-describedby chain, aria-invalid) handled internally. Not multi-line (Textarea), not a known set (Select, or a combobox), not numeric-formatted (a number field), not suggestion-backed (a combobox). The combobox and number field are not built yet.
+
+- **Purpose:** Capture a single line of free-form, non-enumerable text with an associated label and helper/validation message.
+- **Use when:** Names, emails, titles, SKUs, identifiers, short queries — any single-line text the system cannot offer as a fixed set.
+- **Avoid when:** The value comes from a known set (Select, Radio.Group, or a combobox), spans multiple lines (Textarea), is numeric-formatted (a number field), is boolean (Checkbox.Row or Switch.Row), is a date (a date picker), or needs suggestions (a combobox — the moment a suggestion list attaches you are in combobox territory with a different ARIA contract).
+
+## Anatomy
+
+Shown on the default member: size `medium`, style `outline`, status `default`.
+
+1. **Label** — The accessible name, composed rather than re-declared. Its size follows the field's, one step below the input; its label text, required marker, emphasis and weight surface on the text-field. A fix to FieldLabel still reaches this without a copy. Starts secondary and regular. Fills the field's width; a long name wraps at FieldLabel's max width.
+2. **Leading visual** (optional) — An optional purpose glyph before the value, aria-hidden. Absent by default; the caller nominates the icon.
+3. **Caret**
+4. **Caret end** — The insertion point on the focused field that holds a value, immediately after the value, in the value ink. Code draws the native caret where the user is typing.
+5. **Placeholder** — The placeholder, in the placeholder ink (the disabled ink when disabled). Shown on the empty field: rest, hover, focus and disabled. One line; a long one clips at the value row's edge.
+6. **Value**
+7. **Trailing visual** (optional) — An optional trailing affix at the trailing edge (a clear / reveal glyph), aria-hidden as a glyph. Absent by default; the caller nominates the icon. Its interactive behavior is code-only.
+8. **Focus ring**
+9. **Message** (optional)
+
+## Styles
+
+| Axis | Values | Changes | Description |
+| --- | --- | --- | --- |
+| `size` | `medium`, `small`, `large` | once, when authored | Three tiers that scale the input type with the field (small 14px, medium 16px, large 18px, `type.body.{sm,md,lg}`), the nested label one step below it (12 / 14 / 16), and the padding. Every size keeps the 44px target: small is smaller type and padding, not a smaller target; large is taller. `small` is for fine pointers only: on a coarse pointer (`@media (pointer: coarse)`) the code sets the small input to 16px, because iOS Safari zooms the page when it focuses an input under 16px. The field's edge, outline or underline, is the brand's Field style setting, not a prop. |
+| `style` | `outline` | once, when authored | — |
+| `status` | `default`, `error`, `warning`, `success` | at runtime | — |
+
+### States
+
+`rest`, `hover`, `pending`, `filled`, `focus-visible`, `focus-visible-filled`, `disabled`, `read-only`, `empty`
+
+## Usage guidelines
 
 Use for free-form, non-enumerable single-line input — names, titles, SKUs, identifiers, short queries. Always render a visible label; show the format in helper text before failure; keep validation timing with the form library. The field nests FieldLabel above and FieldMessage below; the host wires the ids and aria-describedby chain. Pick the size with the form: medium is the default, large for a roomy form, small for a dense one on fine pointers only — on a touch screen the small input renders at 16px, because a smaller input makes iOS zoom the page on focus.
 
@@ -28,24 +60,50 @@ Use for free-form, non-enumerable single-line input — names, titles, SKUs, ide
 - Bake a validation engine or timing into the field — render the error you are handed
 - Signal error with the border color alone — the message carries the text + icon
 
-### Content guidelines
+## Accessibility
+
+- **Keyboard:** Native text editing. Tab focuses the input; interactive affixes (clear / reveal) are SEPARATE tab stops with their own accessible names. Escape clears when clearable.
+- **Focus:** :focus-visible ring, boundary ≥3:1 (1.4.11 / 2.4.13) — the field is a primary focus target. forwardRef must reach the \<input>, not the wrapper, so consumers can focus on load / focus the first invalid field on submit.
+- **Screen readers:** textbox (native \<input>)
+
+  The host generates ids (useId) and stitches aria-describedby across helper + error, and sets aria-invalid on error — the consumer never hand-manages ids (the highest-frequency real a11y failure). placeholder is NOT the accessible name. Error timing: validate on blur, re-validate on input after the first error, announce politely, and on submit move focus to the first invalid field (with an error summary on a long form). While pending, aria-busy; the field stays focusable. Do not fire validation mid-IME-composition. Set dir="auto" on the input so content direction can differ from UI direction.
+
+### WCAG
+
+- 1.3.5 Identify Input Purpose (autocomplete — the most field-specific SC)
+- 1.3.1 Info and Relationships (label + describedby association)
+- 3.3.1 Error Identification / 3.3.2 Labels or Instructions / 3.3.3 Error Suggestion
+- 1.4.3 Contrast (value + placeholder) / 1.4.11 Non-text Contrast (field boundary ≥3:1 — the rest, hover and read-only borders are gated on `background.secondary`, the darkest permissible ground) / 2.4.13 Focus Appearance
+- 4.1.2 Name/Role/Value / 2.5.8 Target Size
+- 3.3.7 Redundant Entry / 3.3.8 Accessible Authentication (WCAG 2.2) — page-level criteria: the form and its flow meet them on login and checkout; the field supports them through autocomplete and by allowing paste
+
+### Motion
+
+- **Enter:** none (present on mount)
+- **Exit:** none
+- **Reduced motion:** State transitions — the border color on focus or status, the helper-to-validation message swap — are short, token-driven and eased out, ~100–150ms. A validation message must not jolt the layout: reserve its space or grow the height gently. Under prefers-reduced-motion these resolve to an instant color or position change so the state stays perceivable. The pending spinner is functional; aria-busy carries its state regardless.
+
+## Content guidelines
 
 Label = noun phrase, sentence case, no trailing colon. Placeholder = example only. Helper carries the format up front. Error says what + how to fix, never "Invalid input".
-
-### Copy patterns
 
 - **Labels:** Noun phrase, sentence case, ≤3 words, no trailing colon; never the placeholder (see field-label).
 - **Errors:** What is wrong AND how to fix it (SC 3.3.3); icon + text, not color-only (see field-message).
 - **Empty states:** The empty state is the label plus an optional placeholder — there is no separate empty UI.
 
-## Choosing it
+## Related components
 
-- **Purpose:** Capture a single line of free-form, non-enumerable text with an associated label and helper/validation message.
-- **Use when:** Names, emails, titles, SKUs, identifiers, short queries — any single-line text the system cannot offer as a fixed set.
-- **Avoid when:** The value comes from a known set (Select, Radio.Group, or a combobox), spans multiple lines (Textarea), is numeric-formatted (a number field), is boolean (Checkbox.Row or Switch.Row), is a date (a date picker), or needs suggestions (a combobox — the moment a suggestion list attaches you are in combobox territory with a different ARIA contract).
-- **Often used with:** `field-label`, `field-message`, `icon`, `button`, `spinner`
+- **Built from:** `field-label`, `field-message`, `focus-ring`
+- **Instead, consider:** `textarea`, `select`, `checkbox-row`, `switch-row`, `password-field`
+- **Often used with:** `icon`, `button`, `spinner`
+- **Replaces:**
+  - bare input without label wiring
+  - placeholder-as-label
+  - type=number for formatted numeric
 
-## Props
+## Building it in code
+
+### Props
 
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
@@ -73,48 +131,6 @@ Label = noun phrase, sentence case, no trailing colon. Placeholder = example onl
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | Three tiers that scale the input type with the field (small 14px, medium 16px, large 18px, `type.body.{sm,md,lg}`), the nested label one step below it (12 / 14 / 16), and the padding. Every size keeps the 44px target: small is smaller type and padding, not a smaller target; large is taller. `small` is for fine pointers only: on a coarse pointer (`@media (pointer: coarse)`) the code sets the small input to 16px, because iOS Safari zooms the page when it focuses an input under 16px. The field's edge, outline or underline, is the brand's Field style setting, not a prop. |
 | `id` | string | — | no | Wiring + form submission; auto-generated with useId if omitted, tying label→input and the aria-describedby chain. |
 | `name` | string | — | no | A real \<input name> so the field works uncontrolled, in a native \<form>, with useFormStatus / Server Actions, and the Constraint Validation API. |
-
-## States
-
-`rest`, `hover`, `pending`, `filled`, `focus-visible`, `focus-visible-filled`, `disabled`, `read-only`, `empty`
-
-## Variants
-
-| Axis | Values | Changes |
-| --- | --- | --- |
-| `size` | `medium`, `small`, `large` | once, when authored |
-| `style` | `outline` | once, when authored |
-| `status` | `default`, `error`, `warning`, `success` | at runtime |
-
-## Accessibility
-
-- **Role:** textbox (native \<input>)
-- **WCAG:**
-  - 1.3.5 Identify Input Purpose (autocomplete — the most field-specific SC)
-  - 1.3.1 Info and Relationships (label + describedby association)
-  - 3.3.1 Error Identification / 3.3.2 Labels or Instructions / 3.3.3 Error Suggestion
-  - 1.4.3 Contrast (value + placeholder) / 1.4.11 Non-text Contrast (field boundary ≥3:1 — the rest, hover and read-only borders are gated on `background.secondary`, the darkest permissible ground) / 2.4.13 Focus Appearance
-  - 4.1.2 Name/Role/Value / 2.5.8 Target Size
-  - 3.3.7 Redundant Entry / 3.3.8 Accessible Authentication (WCAG 2.2) — page-level criteria: the form and its flow meet them on login and checkout; the field supports them through autocomplete and by allowing paste
-- **Keyboard:** Native text editing. Tab focuses the input; interactive affixes (clear / reveal) are SEPARATE tab stops with their own accessible names. Escape clears when clearable.
-- **Focus:** :focus-visible ring, boundary ≥3:1 (1.4.11 / 2.4.13) — the field is a primary focus target. forwardRef must reach the \<input>, not the wrapper, so consumers can focus on load / focus the first invalid field on submit.
-- **ARIA:** The host generates ids (useId) and stitches aria-describedby across helper + error, and sets aria-invalid on error — the consumer never hand-manages ids (the highest-frequency real a11y failure). placeholder is NOT the accessible name. Error timing: validate on blur, re-validate on input after the first error, announce politely, and on submit move focus to the first invalid field (with an error summary on a long form). While pending, aria-busy; the field stays focusable. Do not fire validation mid-IME-composition. Set dir="auto" on the input so content direction can differ from UI direction.
-
-## Motion
-
-- **Enter:** none (present on mount)
-- **Exit:** none
-- **Reduced motion:** State transitions — the border color on focus or status, the helper-to-validation message swap — are short, token-driven and eased out, ~100–150ms. A validation message must not jolt the layout: reserve its space or grow the height gently. Under prefers-reduced-motion these resolve to an instant color or position change so the state stays perceivable. The pending spinner is functional; aria-busy carries its state regardless.
-
-## Composition
-
-- **Composes with:** `field-label`, `field-message`, `focus-ring`
-- **Alternative to:** `textarea`, `select`, `checkbox-row`, `switch-row`, `password-field`
-- **Planned:** `form`, `tooltip`, `combobox`, `number-field`, `search-field`, `date-picker`
-- **Replaces:**
-  - bare input without label wiring
-  - placeholder-as-label
-  - type=number for formatted numeric
 
 ---
 

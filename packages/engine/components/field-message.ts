@@ -388,7 +388,7 @@ export const fieldMessage: ComponentDef = {
     // lives here, not in `composesWith` (#1700).
     commonPartners: ['text-field', 'textarea', 'select', 'checkbox-row', 'counter', 'field-label', 'icon'],
     triggerKeywords: ['helper text', 'help text', 'error message', 'validation message', 'field error', 'caption', 'hint'],
-    generationPriority: 3,
+    generationPriority: 6,
   },
 
   composition: {

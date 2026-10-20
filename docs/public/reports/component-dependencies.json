@@ -238,7 +238,7 @@
       "to": "field-label",
       "part": "label",
       "partKind": "nest",
-      "relation": "nest-fixed",
+      "relation": "nest-exposed",
       "variant": {
         "size": "medium",
         "emphasis": "secondary",
@@ -247,6 +247,23 @@
       },
       "follow": [
         "size"
+      ],
+      "expose": [
+        "emphasis",
+        "weight"
+      ]
+    },
+    {
+      "from": "checkbox-group",
+      "to": "field-message",
+      "part": "message",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "status": "error"
+      },
+      "follow": [
+        "status"
       ]
     },
     {
@@ -256,10 +273,12 @@
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
-        "size": "medium"
+        "size": "medium",
+        "status": "default"
       },
       "follow": [
-        "size"
+        "size",
+        "status"
       ]
     },
     {
@@ -269,10 +288,12 @@
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
-        "size": "medium"
+        "size": "medium",
+        "status": "default"
       },
       "follow": [
-        "size"
+        "size",
+        "status"
       ]
     },
     {
@@ -282,10 +303,12 @@
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
-        "size": "medium"
+        "size": "medium",
+        "status": "default"
       },
       "follow": [
-        "size"
+        "size",
+        "status"
       ]
     },
     {
@@ -296,10 +319,12 @@
       "relation": "nest-exposed",
       "variant": {
         "selection": "unchecked",
-        "state": "rest"
+        "state": "rest",
+        "status": "default"
       },
       "follow": [
-        "size"
+        "size",
+        "status"
       ],
       "expose": [
         "selection",
@@ -661,7 +686,7 @@
       "to": "field-label",
       "part": "label",
       "partKind": "nest",
-      "relation": "nest-fixed",
+      "relation": "nest-exposed",
       "variant": {
         "size": "medium",
         "emphasis": "secondary",
@@ -670,6 +695,23 @@
       },
       "follow": [
         "size"
+      ],
+      "expose": [
+        "emphasis",
+        "weight"
+      ]
+    },
+    {
+      "from": "radio-group",
+      "to": "field-message",
+      "part": "message",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "status": "error"
+      },
+      "follow": [
+        "status"
       ]
     },
     {
@@ -679,10 +721,12 @@
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
-        "size": "medium"
+        "size": "medium",
+        "status": "default"
       },
       "follow": [
-        "size"
+        "size",
+        "status"
       ]
     },
     {
@@ -692,10 +736,12 @@
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
-        "size": "medium"
+        "size": "medium",
+        "status": "default"
       },
       "follow": [
-        "size"
+        "size",
+        "status"
       ]
     },
     {
@@ -705,10 +751,12 @@
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
-        "size": "medium"
+        "size": "medium",
+        "status": "default"
       },
       "follow": [
-        "size"
+        "size",
+        "status"
       ]
     },
     {
@@ -719,10 +767,12 @@
       "relation": "nest-exposed",
       "variant": {
         "selection": "unchecked",
-        "state": "rest"
+        "state": "rest",
+        "status": "default"
       },
       "follow": [
-        "size"
+        "size",
+        "status"
       ],
       "expose": [
         "selection",
@@ -734,7 +784,7 @@
       "to": "field-label",
       "part": "label",
       "partKind": "nest",
-      "relation": "nest-fixed",
+      "relation": "nest-exposed",
       "variant": {
         "size": "medium",
         "emphasis": "secondary",
@@ -743,6 +793,10 @@
       },
       "follow": [
         "size"
+      ],
+      "expose": [
+        "emphasis",
+        "weight"
       ]
     },
     {
@@ -861,10 +915,12 @@
       "relation": "nest-exposed",
       "variant": {
         "selection": "off",
-        "state": "rest"
+        "state": "rest",
+        "status": "default"
       },
       "follow": [
-        "size"
+        "size",
+        "status"
       ],
       "expose": [
         "selection",
@@ -1163,12 +1219,14 @@
     "checkbox-group": {
       "nests": [
         "checkbox-row",
-        "field-label"
+        "field-label",
+        "field-message"
       ],
       "nestsTransitively": [
         "checkbox-control",
         "checkbox-row",
         "field-label",
+        "field-message",
         "focus-ring"
       ],
       "nestedBy": [],
@@ -1272,15 +1330,19 @@
       "nests": [],
       "nestsTransitively": [],
       "nestedBy": [
+        "checkbox-group",
         "counter",
         "password-field",
+        "radio-group",
         "select",
         "text-field",
         "textarea"
       ],
       "affectedByChange": [
+        "checkbox-group",
         "counter",
         "password-field",
+        "radio-group",
         "select",
         "text-field",
         "textarea"
@@ -1523,10 +1585,12 @@
     "radio-group": {
       "nests": [
         "field-label",
+        "field-message",
         "radio-row"
       ],
       "nestsTransitively": [
         "field-label",
+        "field-message",
         "focus-ring",
         "radio-control",
         "radio-row"

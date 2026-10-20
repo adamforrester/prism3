@@ -373,6 +373,65 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
     'status `error` maps to the `danger` border role — the filled coordinate (owner decision, 2026-09-25), bound so a field holding an invalid value keeps the danger boundary',
   'textarea|error.border.focus-visible-filled':
     'status `error` maps to the `danger` border role — the focused coordinate that holds a value (#2318, owner Q157), bound so an invalid value keeps the danger boundary while the field is focused (the ring carries the focus signal on top)',
+  // #2751 (owner Q354): the choice controls took the fields' `status` axis, so they carry the same `error` → `danger`
+  // border mapping, one key per selection and per non-disabled state (the status template is 4-segment so it cannot
+  // read the 3-segment selection keys). ONLY `error` exists on their axis; `default` binds none.
+  'checkbox-control|error.unchecked.border.rest':
+    'status `error` maps to the `danger` border role — the unchecked rest coordinate, so the error edge persists through the interaction states',
+  'checkbox-control|error.unchecked.border.hover':
+    'status `error` maps to the `danger` border role — the unchecked hover coordinate, so the error edge persists through the interaction states',
+  'checkbox-control|error.unchecked.border.pressed':
+    'status `error` maps to the `danger` border role — the unchecked pressed coordinate, so the error edge persists through the interaction states',
+  'checkbox-control|error.unchecked.border.focus-visible':
+    'status `error` maps to the `danger` border role — the unchecked focus-visible coordinate, so the error edge persists through the interaction states',
+  'checkbox-control|error.checked.border.rest':
+    'status `error` maps to the `danger` border role — the checked rest coordinate, so the error edge persists through the interaction states',
+  'checkbox-control|error.checked.border.hover':
+    'status `error` maps to the `danger` border role — the checked hover coordinate, so the error edge persists through the interaction states',
+  'checkbox-control|error.checked.border.pressed':
+    'status `error` maps to the `danger` border role — the checked pressed coordinate, so the error edge persists through the interaction states',
+  'checkbox-control|error.checked.border.focus-visible':
+    'status `error` maps to the `danger` border role — the checked focus-visible coordinate, so the error edge persists through the interaction states',
+  'checkbox-control|error.indeterminate.border.rest':
+    'status `error` maps to the `danger` border role — the indeterminate rest coordinate, so the error edge persists through the interaction states',
+  'checkbox-control|error.indeterminate.border.hover':
+    'status `error` maps to the `danger` border role — the indeterminate hover coordinate, so the error edge persists through the interaction states',
+  'checkbox-control|error.indeterminate.border.pressed':
+    'status `error` maps to the `danger` border role — the indeterminate pressed coordinate, so the error edge persists through the interaction states',
+  'checkbox-control|error.indeterminate.border.focus-visible':
+    'status `error` maps to the `danger` border role — the indeterminate focus-visible coordinate, so the error edge persists through the interaction states',
+  'radio-control|error.unchecked.border.rest':
+    'status `error` maps to the `danger` border role — the unchecked rest coordinate, so the error edge persists through the interaction states',
+  'radio-control|error.unchecked.border.hover':
+    'status `error` maps to the `danger` border role — the unchecked hover coordinate, so the error edge persists through the interaction states',
+  'radio-control|error.unchecked.border.pressed':
+    'status `error` maps to the `danger` border role — the unchecked pressed coordinate, so the error edge persists through the interaction states',
+  'radio-control|error.unchecked.border.focus-visible':
+    'status `error` maps to the `danger` border role — the unchecked focus-visible coordinate, so the error edge persists through the interaction states',
+  'radio-control|error.checked.border.rest':
+    'status `error` maps to the `danger` border role — the checked rest coordinate, so the error edge persists through the interaction states',
+  'radio-control|error.checked.border.hover':
+    'status `error` maps to the `danger` border role — the checked hover coordinate, so the error edge persists through the interaction states',
+  'radio-control|error.checked.border.pressed':
+    'status `error` maps to the `danger` border role — the checked pressed coordinate, so the error edge persists through the interaction states',
+  'radio-control|error.checked.border.focus-visible':
+    'status `error` maps to the `danger` border role — the checked focus-visible coordinate, so the error edge persists through the interaction states',
+  'switch-control|error.off.border.rest':
+    'status `error` maps to the `danger` border role — the off rest coordinate, so the error edge persists through the interaction states',
+  'switch-control|error.off.border.hover':
+    'status `error` maps to the `danger` border role — the off hover coordinate, so the error edge persists through the interaction states',
+  'switch-control|error.off.border.pressed':
+    'status `error` maps to the `danger` border role — the off pressed coordinate, so the error edge persists through the interaction states',
+  'switch-control|error.off.border.focus-visible':
+    'status `error` maps to the `danger` border role — the off focus-visible coordinate, so the error edge persists through the interaction states',
+  'switch-control|error.on.border.rest':
+    'status `error` maps to the `danger` border role — the on rest coordinate, so the error edge persists through the interaction states',
+  'switch-control|error.on.border.hover':
+    'status `error` maps to the `danger` border role — the on hover coordinate, so the error edge persists through the interaction states',
+  'switch-control|error.on.border.pressed':
+    'status `error` maps to the `danger` border role — the on pressed coordinate, so the error edge persists through the interaction states',
+  'switch-control|error.on.border.focus-visible':
+    'status `error` maps to the `danger` border role — the on focus-visible coordinate, so the error edge persists through the interaction states',
   // `badge` keys its paint `{tone}.{type}.{emphasis}.{slot}`, so the TONE leads and arm 1 reads it. Three
   // shapes need an exception, and every other badge key satisfies the rule on its own: the bold fills
   // (`foreground.<tone>`), the subtle labels (`text.<tone>`) and the subtle edges (`border.<tone>`) carry the
