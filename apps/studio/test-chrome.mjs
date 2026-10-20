@@ -8224,6 +8224,9 @@ for (const host of ['web', 'figma']) {
 // Oracle: the hooks and the family names are literals typed here; "under its row" is read off the DOM's own nesting and
 // order, never from the page's `focusedRow`.
 //
+// Mutation this fails by name (focus): the `inSettings` restore dropped from `paintList` → `#2815 step 1: <host> <w>: a
+// focused Button option keeps its focus across the list's redraw at the tier flip (on BODY)`, at both hosts and widths.
+//
 // Mutation this fails by name: the block drawn under the Buttons row whatever the preview shows (`shownKey === row.key`
 // turned into `row.page === PREVIEW_DEFAULT_PAGE` in `domains/components.ts`) → `#2815 step 1: <host> <w>: focusing Badge
 // takes the Button options away …`, at both hosts and both widths.
@@ -8268,6 +8271,13 @@ for (const host of ['web', 'figma']) {
       await page.waitForTimeout(120);
       const f = await page.evaluate(() => document.activeElement?.getAttribute('data-p3') ?? null);
       ok(f === 'button-icons-choice-edges', `#2815 step 1: ${host} ${w}: a Button option keeps its focus after its write (on ${f})`);
+      // A chip's write does not redraw the list, so the check above cannot tell a restored focus from one never lost. A
+      // tier flip does redraw it (the tier observer calls paintList): the chip, focused, keeps its focus across that.
+      await page.evaluate(() => document.querySelector('[data-p3="button-icons-choice-edges"]')?.focus());
+      await page.setViewportSize({ width: w === 1280 ? 380 : 1280, height: h });
+      await page.waitForTimeout(400);
+      const f2 = await page.evaluate(() => document.activeElement?.getAttribute('data-p3') ?? document.activeElement?.tagName ?? null);
+      ok(f2 === 'button-icons-choice-edges', `#2815 step 1: ${host} ${w}: a focused Button option keeps its focus across the list's redraw at the tier flip (on ${f2})`);
       ok(errors.length === 0, `#2815 step 1 ${host} ${w}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
       ok(false, `#2815 step 1 ${host} ${w}: the case stopped at a step that threw — ${stopped(e)}`);
