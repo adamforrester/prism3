@@ -1254,7 +1254,6 @@ section('def rename, nested — a set renamed in the same run counts as present 
   // Each nested instance's main is a member the run renames in place, so Tabs' items read as Tab item's, not the wrong set.
   const wrong = JSON.stringify(tabsP ?? null).match(/[^"]*WRONG SET[^"]*/g) ?? [];
   ok(!!tabsP && wrong.length === 0, `def rename, nested/together: Tabs' items read as instances of tab-item, with no WRONG SET line (${wrong.length}: ${wrong[0] ?? 'none'})`);
-  console.log('DEBUG', previewLine(tabsP!));
   const alone = (await previewUpdate(host, [{ def: 'tabs', plans: plansOf('tabs') }])).sets[0];
   ok(alone.blockers.some((b) => b.startsWith('Not in this file: tab-item')), `def rename, nested/alone: without Tab item in the run, Tabs is refused, naming it (${JSON.stringify(alone.blockers)})`);
 }

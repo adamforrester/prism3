@@ -54,7 +54,7 @@ Type: dimension. Bound by 5 component(s).
 | checkbox-control | `border-width` | control | every member (90 of 90) |
 | radio-control | `border-width` | control | every member (60 of 60) |
 | switch-control | `border-width` | track | every member (40 of 40) |
-| tab | `indicator-height` | indicator | every member (30 of 30) |
+| tab-item | `indicator-height` | indicator | every member (30 of 30) |
 | tag | `selected.border-width` | container | selection: selected · type: select (15 of 45) |
 
 ### `color.background.primary`
@@ -206,7 +206,7 @@ Type: color. Bound by 19 component(s).
 | switch-control | `disabled.border`, `disabled.icon.on-fill` | offGlyph | selection: off · state: disabled (4 of 40) |
 |  |  | onGlyph | selection: on · state: disabled (4 of 40) |
 |  |  | track | selection: off · state: disabled (4 of 40) |
-| tab | `disabled.fill` | indicator | selection: selected · state: disabled (3 of 30) |
+| tab-item | `disabled.fill` | indicator | selection: selected · state: disabled (3 of 30) |
 | tag | `disabled.border` | container | state: disabled (9 of 45) |
 | text-field | `disabled.border` | control | state: disabled (12 of 84) |
 | textarea | `disabled.border` | control | state: disabled (12 of 84) |
@@ -885,7 +885,7 @@ Type: color. Bound by 5 component(s).
 | button | `outline.border.hover` | container | appearance: outline · inset: default · state: hover · surface: default (12 of 576) |
 | icon-button | `outline.border.hover` | container | appearance: outline · state: hover · surface: default (6 of 216) |
 | radio-control | `checked.border.hover` | control | selection: checked · state: hover · status: default (3 of 60) |
-| tab | `selected.fill.hover` | indicator | selection: selected · state: hover (3 of 30) |
+| tab-item | `selected.fill.hover` | indicator | selection: selected · state: hover (3 of 30) |
 | tag | `selected.border.hover` | container | selection: selected · state: hover · type: select (3 of 45) |
 
 ### `color.interactive.primary.border.pressed`
@@ -897,7 +897,7 @@ Type: color. Bound by 5 component(s).
 | button | `outline.border.pressed` | container | appearance: outline · inset: default · state: pressed · surface: default (12 of 576) |
 | icon-button | `outline.border.pressed` | container | appearance: outline · state: pressed · surface: default (6 of 216) |
 | radio-control | `checked.border.pressed` | control | selection: checked · state: pressed · status: default (3 of 60) |
-| tab | `selected.fill.pressed` | indicator | selection: selected · state: pressed (3 of 30) |
+| tab-item | `selected.fill.pressed` | indicator | selection: selected · state: pressed (3 of 30) |
 | tag | `selected.border.pressed` | container | selection: selected · state: pressed · type: select (3 of 45) |
 
 ### `color.interactive.primary.border.rest`
@@ -909,7 +909,7 @@ Type: color. Bound by 5 component(s).
 | button | `outline.border` | container | appearance: outline · inset: default · state: focus-visible, pending, rest · surface: default (36 of 576) |
 | icon-button | `outline.border` | container | appearance: outline · state: focus-visible, pending, rest · surface: default (18 of 216) |
 | radio-control | `checked.border` | control | selection: checked · state: focus-visible, rest · status: default (6 of 60) |
-| tab | `selected.fill` | indicator | selection: selected · state: focus-visible, rest (6 of 30) |
+| tab-item | `selected.fill` | indicator | selection: selected · state: focus-visible, rest (6 of 30) |
 | tag | `selected.border` | container | selection: selected · state: focus-visible, rest · type: select (6 of 45) |
 
 ### `color.interactive.primary.fill.hover`
@@ -2096,7 +2096,7 @@ Type: dimension. Bound by 18 component(s).
 | radio-control | `ring-offset` | focusRing | state: focus-visible (12 of 60) |
 | segmented-control-segment | `ring-offset` | focusRing | state: focus-visible (6 of 30) |
 | switch-control | `ring-offset` | focusRing | state: focus-visible (8 of 40) |
-| tab | `ring-offset` | focusRing | state: focus-visible (6 of 30) |
+| tab-item | `ring-offset` | focusRing | state: focus-visible (6 of 30) |
 | tag | `ring-offset` | focusRing | state: focus-visible (9 of 45) |
 
 ### `focus.ring.offset-field`
@@ -2145,7 +2145,7 @@ Type: dimension. Bound by 22 component(s).
 | segmented-control-segment | `ring-width` | focusRing | state: focus-visible (6 of 30) |
 | select | `ring-width` | focusRing | state: focus-visible, focus-visible-filled (24 of 84) |
 | switch-control | `ring-width` | focusRing | state: focus-visible (8 of 40) |
-| tab | `ring-width` | focusRing | state: focus-visible (6 of 30) |
+| tab-item | `ring-width` | focusRing | state: focus-visible (6 of 30) |
 | tag | `ring-width` | focusRing | state: focus-visible (9 of 45) |
 | text-field | `ring-width` | focusRing | state: focus-visible, focus-visible-filled (24 of 84) |
 | textarea | `ring-width` | focusRing | state: focus-visible, focus-visible-filled (24 of 84) |
@@ -2568,7 +2568,7 @@ Type: dimension. Bound by 24 component(s).
 |  |  | content | every member (84 of 84) |
 |  |  | control | every member (84 of 84) |
 | switch-row | `size.medium.gap`, `size.small.gap` | row | every member (4 of 4) |
-| tab | `size.large.gap`, `size.medium.gap` | content | size: large, medium (20 of 30) |
+| tab-item | `size.large.gap`, `size.medium.gap` | content | size: large, medium (20 of 30) |
 | tag | `group-gap`, `size.large.check-gap`, `size.large.dismissible.visible-gap`, `size.medium.dismissible.visible-gap`, `size.medium.select.gap`, `size.small.padding-x`, `size.small.select.padding-end` | content | size: medium, small (25 of 45) |
 |  |  | labelCheck | size: large (15 of 45) |
 | text-field | `root-gap`, `size.large.gap`, `size.large.pad-y`, `size.medium.gap`, `size.medium.pad-y`, `size.small.gap` | container | every member (84 of 84) |

@@ -81,7 +81,7 @@ Name the state, not the color: "Failed", not "Red". Use the same word for the sa
 ## Related components
 
 - **Instead, consider:** `tag`
-- **Often used with:** `icon-button`, `button`, `tab`
+- **Often used with:** `icon-button`, `button`, `tab-item`
 - **Replaces:**
   - a hand-drawn colored pill
   - a red circle with a number drawn over an icon

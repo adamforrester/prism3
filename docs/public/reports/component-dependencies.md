@@ -152,11 +152,11 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | select | message | nest | field-message | nest-fixed | status=default | status | — |
 | switch-control | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | switch-row | control | nest | switch-control | nest-exposed | selection=off, state=rest, status=default | size, status | selection, state, showStateLabel |
-| tab | count | nest | badge | nest-fixed | type=count, emphasis=bold, tone=neutral | — | — |
-| tab | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
-| tabs | tab1 | nest | tab | nest-fixed | selection=selected, size=medium, state=rest | size | — |
-| tabs | tab2 | nest | tab | nest-fixed | selection=unselected, size=medium, state=rest | size | — |
-| tabs | tab3 | nest | tab | nest-fixed | selection=unselected, size=medium, state=rest | size | — |
+| tab-item | count | nest | badge | nest-fixed | type=count, emphasis=bold, tone=neutral | — | — |
+| tab-item | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
+| tabs | tab1 | nest | tab-item | nest-fixed | selection=selected, size=medium, state=rest | size | — |
+| tabs | tab2 | nest | tab-item | nest-fixed | selection=unselected, size=medium, state=rest | size | — |
+| tabs | tab3 | nest | tab-item | nest-fixed | selection=unselected, size=medium, state=rest | size | — |
 | tag | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | text-field | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | text-field | label | nest | field-label | nest-exposed | size=medium, emphasis=secondary, weight=regular, state=rest | size | emphasis, weight |

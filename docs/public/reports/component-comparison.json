@@ -3841,7 +3841,7 @@
       "select",
       "switch-control",
       "switch-row",
-      "tab",
+      "tab-item",
       "tag",
       "text-field",
       "textarea"

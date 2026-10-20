@@ -2,7 +2,7 @@
 
 > One trigger in a tab list. Selected, it shows an underline and switches the panel below.
 
-- **ID:** `tab`
+- **ID:** `tab-item`
 - **Category:** navigation
 - **Status:** draft
 - **Also known as:** tab-trigger, tab-item
