@@ -36,7 +36,8 @@
  *                  `/private rename`; the status not read → `published/status`; the status out of the hash →
  *                  `published/hash`; the apply's section dropped → `published/confirm`; the blocked-set guard dropped →
  *                  `published/blocked`; the member-itself exclusion dropped → `published/member replaced`;
- *                  `readSingleView` carrying no status → `published/single`.
+ *                  `readSingleView` carrying no status → `published/single`; `breakingSection`'s per-set cap dropped →
+ *                  `published/cap`.
  *   property/…     a default the plan changed is edited in place, keeping the property's id.
  *   rename/…       a declared value rename and an added axis rename members in place, keeping keys.
  *   skip/…         an unstamped member, one with no record and one with a layer added by hand are untouched.
@@ -191,7 +192,7 @@ import { NS } from './src/persist-figma';
 import { materializeForBrand } from './src/brand-def';
 import { BASELINE_KEY } from './src/member-baseline';
 import { makeShim, STYLE_FONT, type Node, type Page } from './component-shim';
-import { adoptMembers, breakingLine, breakingOf, captureBaselines, dryRunSet, hostPorts, previewLine, previewUpdate, previewVerdict, readSetView, readSingleView, type UpdateHost, type UpdateTarget } from './src/update-plan';
+import { adoptMembers, breakingLine, breakingOf, breakingSection, captureBaselines, dryRunSet, hostPorts, previewLine, previewUpdate, previewVerdict, readSetView, readSingleView, type UpdateHost, type UpdateTarget } from './src/update-plan';
 import { drawnFaults, faultLine, varsById } from './src/drawn';
 import { BASELINE_V, baselineOf, resetStyleNames, snapshotMember } from './src/member-baseline';
 import { applyUpdate, applyVerdict, previewHashOf, namesMember, DEPRECATED_PREFIX, RETAINED_KEY, nestedFirst, type ApplyHost } from './src/update-apply';
@@ -3487,6 +3488,19 @@ section('published — on a set in a team library, what breaks consumer files is
       .filter((x) => x.kind === 'replace');
     ok(self.length === 1 && self[0].kind === 'replace' && self[0].path === 'content/label',
       `published/member replaced: a replacement of the member itself (path .) is not listed, one of a layer is (${JSON.stringify(self)})`);
+    // THE PER-SET CAP (Q435 A, the copy as built): at most 8 lines per set, then one overflow line counting the rest. The
+    // 8 and the wording are literals typed from the approved copy, never read off `DIFFERENCE_LINES` or `breakingSection`.
+    const many = Array.from({ length: 11 }, (_, i) => ({ kind: 'drop' as const, member: `size=s${i}` }));
+    const few = [{ kind: 'drop' as const, member: 'size=a' }, { kind: 'drop' as const, member: 'size=b' }];
+    const capped = breakingSection([{ set: TAG, breaking: many }, { set: 'other', breaking: few }], false);
+    const wantCap = [
+      'Breaks library consumers: 13 changes in 2 published sets, passed on at the next library publish.',
+      ...many.slice(0, 8).map((d) => `${TAG} · ${d.member} · dropped — consumer instances of it point at a deprecated member.`),
+      `${TAG}: 3 more breaking changes not listed.`,
+      ...few.map((d) => `other · ${d.member} · dropped — consumer instances of it point at a deprecated member.`),
+    ];
+    ok(JSON.stringify(capped) === JSON.stringify(wantCap),
+      `published/cap: each set lists at most 8 breaking changes, then "N more breaking changes not listed." (${capped.length} lines: ${JSON.stringify(capped.slice(9))})`);
   }
 
   // A SINGLE-COMPONENT DEF (the icons, #2296): each component is published on its own, and the def reads as its most
