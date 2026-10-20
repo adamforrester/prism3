@@ -222,7 +222,7 @@ const ICON_OFFSET_DEFS: Record<string, string> = {
   // The text-bearing controls follow Button (owner Q337 A, #2725): the leading icon is 16/20/24, so the medium
   // default is `sm`. Icon button and Flush icon button keep their own rung.
   'segmented-control-segment': 'icon.size.*',
-  tab: 'icon.size.*',
+  'tab-item': 'icon.size.*',
   tag: 'icon.size.*',
 };
 
@@ -368,7 +368,7 @@ const DEFAULT_FIRST: Record<string, string> = {
   'switch-control': Q1B,
   'switch-row': Q1B,
   tag: Q1B,
-  tab: Q1B,
+  'tab-item': Q1B,
   tabs: Q1B,
   '_accordion-indicator': Q1B,
   accordion: Q1B,
