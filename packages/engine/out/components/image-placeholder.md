@@ -12,7 +12,7 @@
 An empty-state media frame that holds a photograph at a fixed aspect ratio. Pick a ratio (portrait 2:3, 3:4 or 4:5; square 1:1; landscape 4:3, 3:2 or 16:9) and the frame keeps that proportion while its size flexes to its container; a designer drops an image fill onto it (not a modeled slot). Before an image arrives it shows a neutral fill and a centered "no image" marker that scales with the frame, and it clips its content so a mismatched photo cannot overflow the frame. Turn the marker off once an image is in.
 
 - **Purpose:** Reserve space for a photograph at a fixed aspect ratio, holding the proportion while the frame flexes to its container, and show a neutral empty state until an image is dropped in.
-- **Use when:** A layout needs a media slot at a known proportion before the image is chosen — a card's photo area, a hero, a gallery cell. Pick a ratio from the media it will hold (2:3, 3:4 or 4:5 portrait, 1:1, 4:3, 3:2 or 16:9 landscape); the frame keeps that ratio as it resizes and clips whatever image is dropped onto it. Once an image is supplied, turn the Marker property off so the "no image" marker does not draw over it.
+- **Use when:** A layout needs a media slot at a known proportion before the image is chosen — a card's photo area, a hero, a gallery cell. Pick a ratio from the media it will hold (2:3, 3:4 or 4:5 portrait, 1:1, 4:3, 3:2 or 16:9 landscape); the frame keeps that ratio as it resizes and clips whatever image is dropped onto it. Once an image is supplied, turn the marker property off so the "no image" marker does not draw over it.
 - **Avoid when:** The surface is a decorative wash over an existing photo (that is the `veil` component), the image is already present and fixed (place it directly), or the space needs a play button or a legibility scrim over the media (not built yet — this is the core empty-state frame only).
 
 ## Anatomy
@@ -20,7 +20,7 @@ An empty-state media frame that holds a photograph at a fixed aspect ratio. Pick
 Shown on the default member: ratio `4:3`.
 
 1. **Frame** — The media frame: a neutral fill, an aspect-ratio lock, and clipping so a dropped image stays inside. Its width is nominal (720px) and a designer resizes it; the ratio holds while the size flexes.
-2. **Marker** (optional) — The centered "no image" marker — a muted glyph shown until a photograph is dropped in. It scales with the frame, so it reads as the same proportion at any size. The Marker boolean hides it once an image is in.
+2. **Marker** (optional) — The centered "no image" marker — a muted glyph shown until a photograph is dropped in. It scales with the frame, so it reads as the same proportion at any size. The marker boolean hides it once an image is in.
 
 ## Styles
 
