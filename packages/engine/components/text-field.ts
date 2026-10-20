@@ -336,8 +336,10 @@ export const makeTextField = (spec: FieldSpec): ComponentDef => {
       },
       // THE NESTED LABEL (nest-exposed, mirroring select #1438). An in-flow instance of `field-label` whose
       // three author axes (size / emphasis / weight) plus its label text and `required` boolean the consumer
-      // drives FROM the text-field; `state` stays fixed at `rest` (the disabled dim is code-driven from the
-      // field's context — see codeOnly). The `variant` coordinate accounts for every field-label axis, as
+      // drives FROM the text-field. `state` is not the field's vocabulary (field-label has rest / disabled), so it
+      // is not followed: `variantWhen` moves it to `disabled` at the field's disabled member and leaves it at `rest`
+      // everywhere else, read-only included, so a disabled field dims its label in Figma as it does in code
+      // (#1339, #2738). The `variant` coordinate accounts for every field-label axis, as
       // `nestVariantMatch` requires.
       // THE LABEL ROW (`edge: 'toggle'` only; owner decision Q301.2 B). The label and the Show/Hide button share
       // a row above the box, the button at the row's end. The row is as tall as the label's line, not the button
@@ -369,7 +371,7 @@ export const makeTextField = (spec: FieldSpec): ComponentDef => {
         nests: 'field-label',
         // `size` FOLLOWS the field's (#2266): a small field nests the small label, so the pair stays one body step
         // apart at every size. `emphasis` and `weight` stay the consumer's.
-        nesting: { kind: 'nest-exposed', variant: { size: 'medium', emphasis: 'secondary', weight: 'regular', state: 'rest' }, expose: ['emphasis', 'weight'], follow: ['size'] },
+        nesting: { kind: 'nest-exposed', variant: { size: 'medium', emphasis: 'secondary', weight: 'regular', state: 'rest' }, expose: ['emphasis', 'weight'], follow: ['size'], variantWhen: { state: { disabled: { state: 'disabled' } } } },
         // FILLS the field's width (#1757, select's #1503 shape): the label stretches across the column the
         // control holds at 320. The name wraps at field-label's own max width (#1762), not the field's.
         crossAxisFill: true,
@@ -686,7 +688,6 @@ export const textField: ComponentDef = makeTextField({
     'the TRAILING AFFIX is an INTERACTIVE control in code — a clear or reveal button that is its own Tab stop with its own accessible name (see the `trailingIcon` / `clearable` props and the a11y block) and RETURNS focus to the input when it acts. Figma has no accessibility tree and no node-to-node reference, so `trailingVisual` projects ONLY the glyph: a member cannot express that the affix is focusable, labeled, or that activating it clears the field. The presence boolean + swap carry which glyph shows and whether it shows; the interaction is the host\'s.',
     'prefix / suffix — the TEXT affixes (a currency symbol, a unit) are code-API props with no Figma part. The field projects the two glyph slots (`leadingIcon` / `trailingIcon`); a text affix is a string beside the value in the same row, and adding it to the projection is a separate anatomy decision (#1699).',
     'the label / describedby WIRING — the host generates ids (useId), ties the FieldLabel to the input, stitches the FieldMessage into aria-describedby, and sets aria-invalid on error. Figma has no accessibility tree and no node-to-node reference, so the nested label and message sit near the input and are associated by proximity alone (the same ceiling `field-label` and `field-message` each hit).',
-    'the nested LABEL\'s disabled dimming — the field fixes the FieldLabel to `state=rest` because field-label\'s state vocabulary (rest / disabled) is not the field\'s, so it cannot be followed by value. In code a disabled field dims its label; in Figma the nested label reads at its rest configuration regardless. A projection limit, not a design choice.',
     'the KEYBOARD MODEL — native text editing, Escape-to-clear when clearable, and IME composition guards (do not validate mid-composition). All of it is runtime interaction the closed static member cannot carry.',
   ],
 
