@@ -33,10 +33,6 @@ Shown on the default member: size `medium`, alignment `start`.
 | `size` | `medium`, `small`, `large` | once, when authored | Passed to every tab. |
 | `alignment` | `start`, `center` | once, when authored | start: the tabs sit at the start of the bar. center: the tabs sit centered in the bar, which spans its container; the baseline spans the full width either way. |
 
-### States
-
-`rest`
-
 ## Usage guidelines
 
 Use tabs to switch between peer sections of related content in one place, one at a time, such as a product's description, specifications and reviews. Don't use tabs to go to another page (use links in a navigation), to change a setting or filter the current view (use a segmented control or a select), or for content people need to compare side by side.

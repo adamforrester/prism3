@@ -20,7 +20,7 @@ A compact row of two to five short options in one neutral track, where exactly o
 Shown on the default member: size `medium`.
 
 1. **Container** — The control: a label above the track. It fills its column.
-2. **Label** (optional) — The visible label, naming what is being chosen. Shown by default.
+2. **Label** (optional) — The visible label, naming what is being chosen. Shown by default. Starts secondary and bold; its label text, required marker, emphasis and weight surface on the control (Q348 A).
 3. **Track** — The track: a neutral fill behind every option, with no outline. Each option fills an equal share of it, and the selected one shows a pill on it.
 4. **Items** — The options: a native slot holding Segment instances, three by default, the first selected. Each option fills an equal share of the track.
 5. **Segment1** — The first option, selected.
@@ -32,10 +32,6 @@ Shown on the default member: size `medium`.
 | Axis | Values | Changes | Description |
 | --- | --- | --- | --- |
 | `size` | `medium`, `small`, `large` | once, when authored | Passed to every option. Medium is a button's height, 44px on comfortable and spacious density. |
-
-### States
-
-`rest`
 
 ## Usage guidelines
 

@@ -19,7 +19,7 @@ A labeled set for selecting any number — zero to many — from a bounded list 
 
 Shown on the default member: size `medium`.
 
-1. **Label**
+1. **Label** — The group heading and accessible name, composed rather than re-declared. Starts secondary and bold; its label text, required marker, emphasis and weight surface on the group. Its size follows the group; a fix to FieldLabel reaches here without a copy. Fills the group's width; a long heading wraps at FieldLabel's max width.
 2. **Items** — The items: a native slot holding the Checkbox.Row instances, three by default. A designer adds, removes and reorders rows in place.
 3. **Row1** — The first Checkbox.Row — always present. Nests the labeled row (which nests the control), following the group's size. Fills the group's width. Its checked state is derived from the group's value array, not wired here.
 4. **Row2** — The second default item: a Checkbox.Row, the same nest configuration as the first, including the group-width fill.
@@ -30,10 +30,6 @@ Shown on the default member: size `medium`.
 | Axis | Values | Changes | Description |
 | --- | --- | --- | --- |
 | `size` | `medium`, `small`, `large` | once, when authored | Scales the group — the label's type and every row (control square, label ramp, gap) together, passed into the nested FieldLabel and rows by `follow`, so the group scales with the rest of the form. |
-
-### States
-
-`rest`
 
 ## Usage guidelines
 

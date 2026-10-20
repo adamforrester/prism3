@@ -1195,11 +1195,6 @@
           }
         ],
         "properties": [],
-        "codeOnly": {
-          "states": [
-            "rest"
-          ]
-        },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/checkbox-group.md"
       },
       {
@@ -1295,11 +1290,6 @@
           }
         ],
         "properties": [],
-        "codeOnly": {
-          "states": [
-            "rest"
-          ]
-        },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/radio-group.md"
       },
       {
@@ -1724,11 +1714,6 @@
           }
         ],
         "properties": [],
-        "codeOnly": {
-          "states": [
-            "rest"
-          ]
-        },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/tabs.md"
       },
       {
@@ -1985,11 +1970,6 @@
             "type": "BOOLEAN"
           }
         ],
-        "codeOnly": {
-          "states": [
-            "rest"
-          ]
-        },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/segmented-control.md"
       },
       {
