@@ -32453,12 +32453,20 @@ arm: {
   ok(li.category === 'data' && ls.category === 'data' && li.name === 'List.Item' && ls.name === 'List' && JSON.stringify(ls.aliases) === JSON.stringify(['unordered-list', 'ordered-list', 'bullet-list']),
     `#2319 list: named List and List.Item, category data, aliases unordered-list, ordered-list and bullet-list (Q273.7) (got ${ls.name}/${li.name}, ${ls.category}, ${JSON.stringify(ls.aliases)})`);
 
-  // THE MARKER COLUMN: one fixed width per size, the same in every type, never filling or hugging, so the text edge
-  // never moves and the column never shrinks with the text. Widths 24/32/40 (space.300/400/500), approved (Q280 A).
-  const COLUMN: Record<string, string> = { small: 'space/300', medium: 'space/400', large: 'space/500' };
-  const colBad = liPlans.filter((p) => { const m = find(p.root as PN, 'markerBox'); return !(m && m.bound?.width === COLUMN[coord(p).size] && m.primaryAxisSizingMode === 'FIXED'); });
+  // THE MARKER COLUMN: one fixed width per size AND type, never filling or hugging, so every item of a type keeps one
+  // text edge and the column never shrinks with the text. Bullet and number 20/24/32px (space.250/300/400, Q340 A,
+  // #2727, one step tighter than Q280.1 A); icon 24/32/40px (space.300/400/500, Q280.1 A, kept by Q340 A). EXPECTED is
+  // typed here in px and as the variable; ACTUAL is the projected plan's binding read through the space scale.
+  const COLUMN_PX: Record<string, Record<string, number>> = {
+    unordered: { small: 20, medium: 24, large: 32 }, ordered: { small: 20, medium: 24, large: 32 }, icon: { small: 24, medium: 32, large: 40 },
+  };
+  const COLUMN: Record<string, Record<string, string>> = {
+    unordered: { small: 'space/250', medium: 'space/300', large: 'space/400' }, ordered: { small: 'space/250', medium: 'space/300', large: 'space/400' }, icon: { small: 'space/300', medium: 'space/400', large: 'space/500' },
+  };
+  const COL_PX = new Map(spaceScale(SPACE_BASE).map((sp) => [`space/${sp.key}`, sp.px]));
+  const colBad = liPlans.filter((p) => { const c = coord(p), m = find(p.root as PN, 'markerBox'); return !(m && m.bound?.width === COLUMN[c.type]?.[c.size] && COL_PX.get(m.bound.width) === COLUMN_PX[c.type]?.[c.size] && m.primaryAxisSizingMode === 'FIXED'); });
   ok(colBad.length === 0,
-    `#2319 list-item marker column: a fixed width per size (space/300, 400, 500), the same in every type, never hugging or filling, so it never shrinks with the text (${colBad.length ? `WRONG: ${colBad.map((p) => `${planComponentName(p)} ${JSON.stringify(find(p.root as PN, 'markerBox')?.bound)}`).slice(0, 2).join('; ')}` : 'all 9'})`);
+    `#2727 list-item marker column (Q340 A): a fixed width per size and type, bullet and number 20/24/32px (space/250, 300, 400), icon 24/32/40px (space/300, 400, 500), never hugging or filling, so it never shrinks with the text (${colBad.length ? `WRONG: ${colBad.map((p) => `${planComponentName(p)} ${JSON.stringify(find(p.root as PN, 'markerBox')?.bound)}`).slice(0, 3).join('; ')}` : 'all 9'})`);
   // The text takes the rest of the row and wraps under itself (the hanging indent).
   ok(liPlans.every((p) => { const t = find(p.root as PN, 'text'); return t?.layoutGrow === 1 && t.textAutoResize === 'HEIGHT' && t.textStyle === `body/${RUNG[coord(p).size]}/default` && t.paints?.fills === 'color/text/primary'; }),
     `#2319 list-item text: body sm / md / lg default in text.primary, filling the rest of the row and wrapping under itself (Q273.4)`);
@@ -32908,7 +32916,7 @@ arm: {
   // THE SHARED CODE-ONLY ENTRIES are written out in each def (the plugin build needs a string literal per entry), so
   // their identity is held here: each of TextField's entries on the shared anatomy, by its leading subject, appears
   // verbatim in the Password field's list. The subjects are typed here, not read off either def.
-  const SHARED_CODE_ONLY = ['the SMALL field on a COARSE POINTER', 'style', 'pending', 'empty', 'the FOCUS CARET', 'the label / describedby WIRING', "the nested LABEL's disabled dimming"];
+  const SHARED_CODE_ONLY = ['the SMALL field on a COARSE POINTER', 'style', 'pending', 'empty', 'the FOCUS CARET', 'the label / describedby WIRING'];
   const bySubject = (list: readonly string[], subject: string) => list.filter((e) => e.startsWith(`${subject} `) || e.startsWith(`${subject} —`));
   const sharedBad = SHARED_CODE_ONLY.filter((sub) => {
     const t = bySubject(textField.anatomy!.codeOnly, sub); const p = bySubject(pw.anatomy!.codeOnly, sub);
@@ -32930,6 +32938,40 @@ arm: {
     && validateComponentDef(withStateMap({ disabled: { tone: 'quiet' } })).errors.some((m) => /variantWhen\.state\.disabled' setting the child's 'tone', which its 'variant' does not name/.test(m))
     && validateComponentDef(withStateMap({ disabled: { size: 'small' } }, ['size'])).errors.some((m) => /variantWhen\.state\.disabled' setting the child's 'size', which is also in 'follow'/.test(m)),
     `#2317 variantWhen.state: the Password field validates clean; a host state off the state axis, an axis the variant does not name, and a followed axis are each refused by name`);
+}
+
+// ------------------------------------------------------------------- #2738: the fields' nested label dims with them
+// Text field, Password field, Select and Textarea each nest FieldLabel. In code a disabled field dims its label (#1339);
+// in Figma the nested label used to read at rest on every member, recorded as a projection limit in `codeOnly`. Each
+// field now moves the label to FieldLabel's disabled member at its own disabled member, and only there: read-only keeps
+// a full-contrast label, as it keeps a full-contrast value. EXPECTED is typed here, per member, from the member's own
+// coordinate; ACTUAL is each def's projected plan and the FieldLabel member the coordinate resolves to.
+{
+  type PN = { name: string; children: PN[]; nestTarget?: string; nestVariant?: Record<string, string> };
+  const find = (n: PN, name: string): PN | undefined => (n.name === name ? n : n.children.map((c) => find(c, name)).find(Boolean));
+  const sorted = (r: Record<string, string> | undefined) => JSON.stringify(Object.entries(r ?? {}).sort());
+  const labelNames = figmaAnatomySet(componentDefs.find((d) => d.id === 'field-label')!, { swapTarget: 'FPO-default-icon' }).map(planComponentName);
+  // 84 members each (size 3 × status 4 × state 7); 12 of them disabled.
+  const FIELDS = ['text-field', 'password-field', 'select', 'textarea'];
+  for (const id of FIELDS) {
+    const def = componentDefs.find((d) => d.id === id)!;
+    const plans = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
+    const bad: string[] = [];
+    let dimmed = 0;
+    for (const p of plans) {
+      const c = p.coord as Record<string, string>;
+      const want = { size: p.size!, emphasis: 'secondary', weight: 'regular', state: c.state === 'disabled' ? 'disabled' : 'rest' };
+      const label = find(p.root as PN, 'label');
+      const member = label?.nestVariant ? nestVariantMatch(label.nestVariant, labelNames) : null;
+      if (!label || label.nestTarget !== 'field-label' || sorted(label.nestVariant) !== sorted(want) || !member || !member.split(', ').includes(`state=${want.state}`))
+        bad.push(`${planComponentName(p)}: ${JSON.stringify({ target: label?.nestTarget, variant: label?.nestVariant, member })}`);
+      else if (want.state === 'disabled') dimmed++;
+    }
+    ok(plans.length === 84 && dimmed === 12 && bad.length === 0,
+      `#2738 ${id} label-dims: the nested FieldLabel is at state=disabled on the 12 disabled members and at state=rest on the other 72, read-only included, and each coordinate resolves to one FieldLabel member (${plans.length} members, ${dimmed} dimmed)${bad.length ? ` — WRONG on ${bad.length}: ${bad.slice(0, 2).join(' | ')}` : ''}`);
+    const limit = def.anatomy!.codeOnly.filter((e) => /LABEL's disabled dimming/i.test(e));
+    ok(limit.length === 0, `#2738 ${id} codeOnly: no entry records the label's disabled dimming as a projection limit (found ${JSON.stringify(limit)})`);
+  }
 }
 
 // ---- #2708 / Q351 A: the Rows' and Textarea's state props ---------------------------------------------
