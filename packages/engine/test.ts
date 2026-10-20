@@ -31551,8 +31551,8 @@ arm: {
 // code that carries it. The list is the owner's, and its reasoning lives with the constant, not here.
 {
   const EXPECTED_FAMILY_ORDER = [
-    'background', 'foreground', 'text', 'icon', 'interactive',
-    'disabled', 'border', 'scrim', 'veil', 'field', 'inverse',
+    'background', 'foreground', 'text', 'interactive', 'border', 'icon',
+    'disabled', 'scrim', 'veil', 'field', 'inverse',
   ];
 
   // ---- (a) THE DTCG SIDE: object-key insertion order, read off the committed tree ----
@@ -31619,6 +31619,118 @@ arm: {
   })();
   ok(figmaFamilies.join('|') === dtcgFamilies.join('|') && figmaFamilies.length > 1,
     `#1150: the Figma creation order and the DTCG key order are the SAME sequence — one list drives both materialisations (figma: ${figmaFamilies.join(' → ')} | dtcg: ${dtcgFamilies.join(' → ')})`);
+}
+
+// ------------------------------------------------------------ #2860: ONE CANONICAL COLOUR-VARIABLE ORDER
+//
+// The #1150 block above pins the FAMILY order. This one pins what is inside a family, for default and inverse
+// alike: every group contiguous, every inverse group in its default counterpart's order, every status run in
+// the engine's SEMANTICS order, and the order a designer reaches for rather than the alphabetical one.
+//
+// docs/34: every expectation is a LITERAL typed below. `color-order.ts` is the subject and is not imported,
+// so a reorder there fails here by name instead of agreeing with itself. The studio's status-order gate
+// (`apps/studio/test-status-order.ts`, #2843) reads the same emission against its own copy of the statuses.
+//
+// Mutations that fail here by name: `foreground.danger` ranked last again (the #2836 shape) → `statuses in
+// canonical order`; an inverse family's segment order changed in `SEGMENT_ORDER` only for `inverse` → `inverse
+// mirrors default`; `.sort()` on the role keys in `orderedRoleKeys` → `design-UX order, not alphabetical`;
+// a role appended after the collection → `every group is contiguous`.
+{
+  const STATUSES = ['brand', 'success', 'warning', 'danger', 'info'];
+  const kindOf = (seg: string): { kind: string; status: string } | null => {
+    const m = /^(on-)?(brand|success|warning|danger|info)(-subtle)?$/.exec(seg);
+    return m ? { kind: m[1] ? 'on' : m[3] ? 'subtle' : 'bare', status: m[2] } : null;
+  };
+  const leafPaths = (n: any, pre: string[] = []): string[][] =>
+    Object.keys(n).filter((k) => k[0] !== '$').flatMap((k) =>
+      n[k] && n[k].$value !== undefined ? [[...pre, k]] : n[k] && typeof n[k] === 'object' ? leafPaths(n[k], [...pre, k]) : []);
+  /** Every prefix (at every depth) whose leaves are not one unbroken run, as `prefix`. */
+  const splitGroups = (paths: string[][]): string[] => {
+    const split = new Set<string>(), closed = new Set<string>();
+    let open: string[] = [];
+    for (const p of paths) {
+      const now = p.slice(0, -1).map((_, i) => p.slice(0, i + 1).join('.'));
+      for (const g of open) if (!now.includes(g)) closed.add(g);
+      for (const g of now) if (closed.has(g)) split.add(g);
+      open = now;
+    }
+    return [...split];
+  };
+  /** Every group whose status run (bare / subtle / on-) is not brand, success, warning, danger, info. */
+  const statusBreaks = (paths: string[][]): string[] => {
+    const seen = new Map<string, string[]>();
+    for (const p of paths) {
+      const k = kindOf(p[p.length - 1]);
+      if (!k) continue;
+      const key = `${p.slice(0, -1).join('.')}|${k.kind}`;
+      seen.set(key, [...(seen.get(key) ?? []), k.status]);
+    }
+    return [...seen].filter(([, v]) => v.join() !== STATUSES.join()).map(([k, v]) => `${k.replace('|', ' ')}: ${v.join(' → ')}`);
+  };
+  const strip = (paths: string[][]): string[] => paths.map((p) => p.join('.'));
+
+  const brands = ['nb', 'prism3', 'aurora', 'harbor', 'wendys'].filter((b) => existsSync(resolve(HERE, `./out/${b}.tokens.json`)));
+  ok(brands.length >= 5, `#2860: the colour order is checked on ${brands.length} brands (floor 5) — a dropped brand must not read as a clean pass`);
+  for (const brand of brands) {
+    const tree = JSON.parse(readFileSync(resolve(HERE, `./out/${brand}.tokens.json`), 'utf8'));
+    const color = tree[Object.keys(tree).find((k) => !k.startsWith('$'))!].color;
+    const { inverse, ...roles } = color;
+    const defLeaves = leafPaths(roles), invLeaves = leafPaths(inverse);
+    const all = [...defLeaves, ...invLeaves.map((p) => ['inverse', ...p])];
+
+    ok(splitGroups(all).length === 0, `#2860 ${brand}: every group is contiguous in the emission${splitGroups(all).length ? ` — SPLIT: ${splitGroups(all).join(', ')}` : ` (${all.length} leaves)`}`);
+    const breaks = statusBreaks(all);
+    ok(breaks.length === 0, `#2860 ${brand}: statuses in canonical order (brand, success, warning, danger, info) in every group, default and inverse${breaks.length ? ` — OUT OF ORDER: ${breaks.slice(0, 4).join(' | ')}` : ''}`);
+
+    // The inverse groups are the default groups' order, restricted to what the inverse has. A key the inverse
+    // has and the default lacks is its own failure: nothing then says where it should read.
+    const inv = new Set(strip(invLeaves));
+    const def = strip(defLeaves);
+    const mirrored = def.filter((k) => inv.has(k));
+    const orphans = [...inv].filter((k) => !def.includes(k));
+    ok(orphans.length === 0, `#2860 ${brand}: every inverse role has a default counterpart${orphans.length ? ` — NONE FOR: ${orphans.slice(0, 4).join(', ')}` : ''}`);
+    const firstDiff = strip(invLeaves).findIndex((k, i) => k !== mirrored[i]);
+    ok(firstDiff < 0 && mirrored.length === inv.size,
+      `#2860 ${brand}: inverse mirrors default — same keys in the same order, minus the groups with no inverse${firstDiff >= 0 ? ` — FIRST DIFFERENCE at inverse.${strip(invLeaves)[firstDiff]} (default order puts ${mirrored[firstDiff]} there)` : ''}`);
+    const noInverse = Object.keys(roles).filter((g) => !(g in inverse));
+    ok(noInverse.join() === 'scrim,veil', `#2860 ${brand}: the families without an inverse are exactly scrim and veil (got ${noInverse.join(', ')})`);
+
+    // Design-UX order, not alphabetical: a literal spot-check per axis that an alphabetical sort breaks.
+    const at = (k: string): number => def.indexOf(k);
+    ok(at('text.brand') < at('text.success') && at('text.success') < at('text.danger') && at('text.danger') < at('text.info') && at('text.info') < at('text.brand-subtle'),
+      `#2860 ${brand}: design-UX order, not alphabetical — the statuses run brand, success, danger, info ahead of their subtle tints on text`);
+    ok(at('interactive.primary.fill.rest') < at('interactive.primary.fill.hover')
+      && at('interactive.primary.fill.hover') < at('interactive.primary.fill.pressed')
+      && at('interactive.primary.fill.pressed') < at('interactive.primary.fill.focused')
+      && at('interactive.primary.fill.focused') < at('interactive.primary.fill.selected'),
+      `#2860 ${brand}: design-UX order, not alphabetical — states run rest, hover, pressed, focused, selected`);
+    ok(at('text.primary') < at('text.secondary') && at('text.secondary') < at('text.tertiary') && at('text.tertiary') < at('text.brand'),
+      `#2860 ${brand}: design-UX order, not alphabetical — primary, secondary, tertiary before the statuses`);
+    ok(at('foreground.danger') < at('foreground.info') && at('foreground.info') < at('foreground.brand-subtle'),
+      `#2860 ${brand}: foreground lists danger with the statuses, ahead of the subtle tints (#2836)`);
+    const inkParts = def.filter((k) => k.startsWith('interactive.primary.')).map((k) => k.split('.')[2]).filter((p, i, a) => a.indexOf(p) === i);
+    ok(inkParts.join() === 'fill,on-fill,text,icon,border,overlay,subtle-fill',
+      `#2860 ${brand}: interactive runs fill, on-fill, text, icon, border, overlay, subtle-fill (got ${inkParts.join(', ')})`);
+  }
+
+  // The Figma creation order is the same sequence, in every mode file, and contiguous at every depth.
+  const figmaBrands = ['nb', 'prism3', 'aurora', 'wendys'].filter((b) => existsSync(resolve(HERE, `./out/figma/${b}/color.light.json`)));
+  ok(figmaBrands.length >= 4, `#2860 figma: the colour order is checked on ${figmaBrands.length} brands (floor 4)`);
+  for (const brand of figmaBrands) {
+    const pfx = `${rootOfBrand(brand)}/color/`;
+    const seqs = ['light', 'dark', 'hc-light', 'hc-dark'].map((m) =>
+      (JSON.parse(readFileSync(resolve(HERE, `./out/figma/${brand}/color.${m}.json`), 'utf8')).variables as Array<{ name: string }>)
+        .map((v) => v.name.slice(pfx.length).split('/')));
+    const split = splitGroups(seqs[0]);
+    ok(split.length === 0, `#2860 figma(${brand}): every group is contiguous in the creation order${split.length ? ` — SPLIT: ${split.join(', ')}` : ` (${seqs[0].length} rows)`}`);
+    const fb = statusBreaks(seqs[0]);
+    ok(fb.length === 0, `#2860 figma(${brand}): statuses in canonical order in every group${fb.length ? ` — OUT OF ORDER: ${fb.slice(0, 4).join(' | ')}` : ''}`);
+    const light = strip(seqs[0]);
+    ok(seqs.every((q) => strip(q).join('|') === light.join('|')), `#2860 figma(${brand}): all four mode files create the variables in the same order`);
+    const invF = light.filter((k) => k.startsWith('inverse.')).map((k) => k.slice('inverse.'.length));
+    const mir = light.filter((k) => !k.startsWith('inverse.') && invF.includes(k));
+    ok(mir.join('|') === invF.join('|'), `#2860 figma(${brand}): inverse mirrors default in the creation order`);
+  }
 }
 
 // ---- #1816 RENAME STAMPS: the fold fills a rename rule's `since`, and the gate checks it did ----------
