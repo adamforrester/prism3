@@ -1885,6 +1885,12 @@ export type ComponentDef = {
 /** The ceiling on `ComponentDef.summary`. The plugin register is about 90 characters; 100 leaves room
  *  for a precise sentence without admitting a second one. */
 export const SUMMARY_MAX = 100;
+/** An items-slot host with a `size` carries one more sentence in its summary (#2829, owner decision Q438 A): how the
+ *  host's size reaches its items. The cap grows by that sentence, so the host's own line keeps the room every
+ *  other summary has. `lint-component-docs.ts` holds the sentence itself, as its own literal. */
+export const ITEMS_SIZE_NOTE_LENGTH = " Size applies to the items you haven't edited. After editing an item, select the items and set their size.".length;
+export const summaryMaxOf = (def: Pick<ComponentDef, 'props'>): number =>
+  def.props?.some((p) => p.name === 'items' && p.type === 'slot') && def.props.some((p) => p.name === 'size') ? SUMMARY_MAX + ITEMS_SIZE_NOTE_LENGTH : SUMMARY_MAX;
 
 export const statesOf = (def: ComponentDef): readonly string[] => def.states ?? [];
 /** The states a part's `when` names, one or a list (#2318): empty when it names none. */
@@ -1941,7 +1947,7 @@ export const validateComponentDef = (
   req(!!def.description, 'description is required');
   req(typeof def.summary === 'string' && def.summary.length > 0, 'summary is required — the one-line Figma description');
   if (typeof def.summary === 'string' && def.summary.length > 0) {
-    if (def.summary.length > SUMMARY_MAX) errors.push(`summary is ${def.summary.length} characters — at most ${SUMMARY_MAX} (the plugin register is one line of about 90)`);
+    if (def.summary.length > summaryMaxOf(def)) errors.push(`summary is ${def.summary.length} characters — at most ${summaryMaxOf(def)} (the plugin register is one line of about 90)`);
     if (/\n/.test(def.summary)) errors.push('summary must be one line');
     if (!/\.$/.test(def.summary)) errors.push('summary must end with a period');
   }

@@ -1,6 +1,6 @@
 # SegmentedControl
 
-> A row of two to five options in one track, where exactly one is selected and all stay visible.
+> A row of two to five options in one track, where exactly one is selected and all stay visible. Size applies to the items you haven't edited. After editing an item, select the items and set their size.
 
 A compact row of two to five short options in one neutral track, where exactly one is always selected and every option stays visible. Selecting an option changes a value in place: a parameter of the current view, such as list or grid, or a form value. The options share the track equally. A visible label, or an accessible name, says what is being chosen.
 

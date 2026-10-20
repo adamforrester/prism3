@@ -1,6 +1,6 @@
 # Tabs
 
-> A row of tabs that switches between panels of related content in place.
+> A row of tabs that switches between panels of related content in place. Size applies to the items you haven't edited. After editing an item, select the items and set their size.
 
 A row of tabs above a baseline. Each tab names one panel of related content; selecting a tab shows its panel in place and hides the rest, without changing the page or the address. One tab is always selected. Arrow keys move between tabs, and Tab moves on into the panel.
 
