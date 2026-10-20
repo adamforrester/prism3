@@ -81,7 +81,7 @@ export const radioGroup: ComponentDef = {
   aliases: ['radio-set', 'radios', 'radio-list', 'single-select', 'radio-fieldset', 'radio-button-group', 'choice-list'],
   category: 'form',
   status: 'draft',
-  summary: 'Labeled stack of Radio rows. Owns the shared name, one value and validation.',
+  summary: 'Labeled stack of Radio rows. Owns the shared name, one value and validation. Size applies to the items you haven\'t edited. After editing an item, select the items and set their size.',
   description:
     'A labeled set for choosing EXACTLY ONE from a small set of mutually exclusive, all-visible options. A required section label (FieldLabel) above a vertical stack of Radio.Row options. Owns the contract a single radio cannot — and without which the radios are not radios at all: the shared name that enforces exclusivity, the single scalar value, the single tab stop with roving focus, and all validation, announced once for the group. Use for 2 to about 7 options where seeing them all aids the decision; past that, a Select or a filtering combobox (not built yet) scans better. Not any-number selection (Checkbox.Group), not a single independent opt-in (a lone Checkbox.Row), not an immediate-effect setting list (a list of Switch.Row), not the same choice collapsed (Select) or in a compact skin (SegmentedControl).',
 
@@ -101,23 +101,33 @@ export const radioGroup: ComponentDef = {
     // REQUIRED (#1698, decision 2) — the brief's §15 marks it `required: true`, and this prop's own text
     // says it is what makes the set exclusive. `test.ts` #1698 pins it by name.
     { name: 'name', type: 'string', required: true, description: 'The shared control name — LOAD-BEARING here, not a submission convenience: it is what enforces browser-level exclusivity across the set, so every group sets one. An individual option NEVER sets its own, which would break exclusivity outright.' },
+    // THE FIELDS' VALIDATION API (owner Q354, #2751), over its first two values. Radio error is the GROUP's.
+    { name: 'validation', type: "enum: 'default' | 'error'", values: ['default', 'error'], default: 'default', required: false, description: 'The group\'s validation status. `error` passes to every option, which draws the danger ring on each, shows `validationMessage` under the options, and sets aria-invalid on the group. `default` is neutral. A radio is never invalid on its own, so this is the only place to set it.' },
+    { name: 'validationMessage', type: 'string | node', required: false, description: 'The error text shown under the options at `error`, added to the group\'s aria-describedby. Say what is wrong and how to fix it (SC 3.3.3): "Select a shipping method", never "Invalid".' },
     { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Disables the whole set — every row and the label dim, driven by the group\'s context (the native disabled is the source of truth). The group has no disabled treatment of its own.' },
   ],
 
   // No interactive state of the group's OWN — Prism 2's group is a single configuration. The rows and the
-  // label carry their own states through their own defs. `disabled` and group `error` are HELD (not
-  // projected) rather than invented here — see the header and `codeOnly`.
+  // label carry their own states through their own defs. `disabled` is HELD (not projected) rather than
+  // invented here — see the header and `codeOnly`. Group error is the `status` axis below.
   states: [],
 
   // `size` ONLY — the family-universal axis (see the header `[HELD]` note). No tone/emphasis (a radio set is
   // neutral), no surface/inverse axis (#871 — a control set does not ask which ground it stands on), no
   // `orientation` axis (Prism 2 is vertical only; horizontal is HELD, not invented). `size` `follow`s into
   // the nested FieldLabel and rows, so the whole group scales as one.
+  //
+  // `status` (owner Q354, #2751) — the fields' validation axis, its first two values only, and the reason
+  // radio error lives here: a radio is never invalid alone. The group FOLLOWS it into every option (each
+  // option into its control, whose ring draws the danger border) and into a nested FieldMessage under the
+  // options, present only at `error`. Mirrors `checkbox-group` exactly.
   variants: {
     size: ['medium', 'small', 'large'],
+    status: ['default', 'error'],
   },
   // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
-  axisKinds: { size: 'authoring' },
+  // `status` changes as validation runs; the message it adds is exempt through `footprintVaries`.
+  axisKinds: { size: 'authoring', status: 'runtime' },
 
   // THE GROUP PAINTS NOTHING OF ITS OWN — identical to `checkbox-group`. The label ink is FieldLabel's,
   // every row's ink is `radio-row`'s (whose control ink is `radio-control`'s); the container is a
@@ -181,7 +191,7 @@ export const radioGroup: ComponentDef = {
         // column down to the fields' 120 floor (Q152.2); the rows still stretch to whatever it is.
         placementWidth: 320,
         minWidth: 120,
-        children: ['label', 'items'],
+        children: ['label', 'items', 'message'],
       },
       // THE NESTED GROUP LABEL (nest-exposed, FOLLOWING size; owner decision Q348 A). An in-flow instance of
       // `field-label`, starting at Prism 2's group `formLabel`: emphasis SECONDARY, weight BOLD, and `required` at its
@@ -230,23 +240,33 @@ export const radioGroup: ComponentDef = {
       row1: {
         kind: 'nest',
         nests: 'radio-row',
-        nesting: { kind: 'nest-fixed', variant: { size: 'medium' }, follow: ['size'] },
+        nesting: { kind: 'nest-fixed', variant: { size: 'medium', status: 'default' }, follow: ['size', 'status'] },
         crossAxisFill: true,
         note: 'The first Radio.Row — always present. Nests the labeled row (which nests the control), following the group\'s size. Fills the group\'s width. Its checked state is derived from the group\'s scalar value (`checked = value === row.value`), not wired here.',
       },
       row2: {
         kind: 'nest',
         nests: 'radio-row',
-        nesting: { kind: 'nest-fixed', variant: { size: 'medium' }, follow: ['size'] },
+        nesting: { kind: 'nest-fixed', variant: { size: 'medium', status: 'default' }, follow: ['size', 'status'] },
         crossAxisFill: true,
         note: 'The second default item: a Radio.Row, the same nest configuration as the first, including the group-width fill.',
       },
       row3: {
         kind: 'nest',
         nests: 'radio-row',
-        nesting: { kind: 'nest-fixed', variant: { size: 'medium' }, follow: ['size'] },
+        nesting: { kind: 'nest-fixed', variant: { size: 'medium', status: 'default' }, follow: ['size', 'status'] },
         crossAxisFill: true,
         note: 'The third default item: a Radio.Row, the same nest configuration as the first, including the group-width fill.',
+      },
+      // THE GROUP'S MESSAGE (owner Q354, #2751) — `checkbox-group`'s part exactly: a nested `field-message`
+      // under the options, present only at `status=error`, its status following the group's.
+      message: {
+        kind: 'nest',
+        nests: 'field-message',
+        nesting: { kind: 'nest-fixed', variant: { status: 'error' }, follow: ['status'] },
+        presentWhen: { status: ['error'] },
+        crossAxisFill: true,
+        note: 'The group\'s validation message under the options, a nested FieldMessage present only when the group is at error. Its status follows the group\'s, so it shows the error glyph and ink. Fills the group\'s width, so a long message wraps.',
       },
     },
     codeOnly: [
@@ -254,7 +274,7 @@ export const radioGroup: ComponentDef = {
       'value / onChange — the GROUP owns the SCALAR selected value and the change callback (`value: string`, exactly one — where CheckboxGroup owns an array), and each row\'s checked appearance is DERIVED from it (`checked = value === row.value`), never wired on a row inside the group. Figma has no data model, so the projected rows show a fixed default selection; the scalar and its wiring are the code projection\'s. This is the contract the group owns and a single `radio-row` structurally cannot express — and for radio it is what makes the options mutually exclusive at all.',
       'name — the SHARED control name that enforces browser-level EXCLUSIVITY, owned by the group and load-bearing rather than a submission convenience. An individual option setting its own name breaks exclusivity outright. Figma has no DOM naming, so the shared name is the code projection\'s; the projected rows cannot show the exclusivity that makes them radios rather than toggles.',
       'roving tabindex / single tab stop — THE OPPOSITE OF CHECKBOX-GROUP, and radio\'s headline keyboard difference. The whole group is ONE tab stop: Tab moves into it and the next Tab moves out, while arrow keys move between options (wrapping, Home/End to first/last) and Space/selection-follows-focus selects. Implement with roving tabindex (the checked option at tabindex="0", siblings at -1). Making each option its own tab stop is the most common radio a11y failure. Figma has no accessibility tree and no keyboard model, so none of this is projectable — it lives in `accessibility.keyboard` and here.',
-      'error / validation — GROUP-LEVEL and [HELD]. The brief says the group owns validation and carries the error message ("Select a shipping method", SC 3.3.3), with the individual rows staying neutral. Prism 2\'s spec settles no error visual for the group (no error state, no group field-message), so this def deliberately does NOT invent one: whether the group composes a nested `field-message` for the error, and what an errored group looks like, is held for owner decision. `required` IS carried (via the nested FieldLabel and aria-required); error is not. Same [HELD] as `checkbox-group`.',
+      'validationMessage — the error text is the code projection\'s; the Figma member at `status=error` shows FieldMessage\'s own placeholder text, which a designer overrides on the instance. aria-invalid on the group and the message\'s place in aria-describedby are DOM wiring the host owns, as on the fields.',
       'variable row count — in code the rows are `items: RadioRow[]`, any number from one up. Figma holds them in the native `items` slot (#2649, owner decision Q307 A), three by default: a designer adds, removes and reorders rows on an instance in place, and only a radio-row belongs there. Until #2649 the group carried eight fixed rows behind Figma-only booleans (#2344).',
       'orientation — [HELD]. The group `orientation` (vertical / horizontal) is `RadioGroup`\'s own axis (`radio-row` records it there); Prism 2 is vertical only. Vertical scans better and lets long option labels wrap, so it is the built default and horizontal is not invented here — a horizontal axis is held rather than guessed at, the same as `checkbox-group`.',
       'the disabled dim — a disabled GROUP dims every row and the label, driven by the group\'s context (the CSS cascade / a data-attribute), not by a prop on each row. It is [HELD] out of the Figma projection (Prism 2 shows no group disabled treatment), so a designer sees the rest configuration and a code consumer gets the dim from the group.',
@@ -268,7 +288,11 @@ export const radioGroup: ComponentDef = {
   // no state of its own — `rest` alone), the rows in the native `items` slot (#2649, no row booleans), no `texts`/`swaps` (the group has no text or swap part of its own;
   // the label text is the nested FieldLabel's). Identical projection shape to `checkbox-group`.
   figmaProperties: {
-    variantAxes: ['size'],
+    // `status` (owner Q354, #2751) joins `size`: 3 sizes × 2 statuses = 6 members. An update adds `status=default`
+    // to each existing member in place; the error members are new.
+    variantAxes: ['size', 'status'],
+    // The nested message is present only at `status=error`, so the footprint grows along `status` by design.
+    footprintVaries: ['status'],
   },
 
   accessibility: {
@@ -276,19 +300,19 @@ export const radioGroup: ComponentDef = {
     wcag: [
       '1.3.1 Info and Relationships (the group structure — role="radiogroup" + the shared label — is the meaning)',
       '3.3.2 Labels or Instructions (the group label, announced once for the set)',
-      '3.3.1 Error Identification / 3.3.3 Error Suggestion — the intent, at the GROUP level and announced once. The group error display is not designed yet, so this def does not meet either today.',
+      '3.3.1 Error Identification / 3.3.3 Error Suggestion — at the GROUP level, announced once: at `status=error` every option draws the danger ring and the message under the options says what is wrong and how to fix it. The ring is never the only signal.',
       '4.1.2 Name Role Value (the group name via aria-labelledby; each option carries its own checked)',
       '2.4.13 Focus Appearance / 1.4.11 Non-text Contrast (the control boundary and focus indicator, on each option)',
       '2.5.8 Target Size (each row is its own target — the group does not change that)',
     ],
     keyboard: 'The keyboard model is the opposite of Checkbox.Group\'s. The group is a single tab stop: Tab moves into the group and the next Tab moves out, while arrow keys move between options, wrapping at the ends, with Home/End jumping to first/last. Space selects the focused option, and selection FOLLOWS FOCUS by default (arrowing moves focus and selects — native <input type="radio"> behavior and the APG default). Implement with ROVING TABINDEX — one radio at tabindex="0" (the checked one, or the first if none), siblings at -1, arrow handling moving focus and calling .focus() — not aria-activedescendant. Making each option its own tab stop is the most common radio accessibility failure. NEVER override Enter (it submits the enclosing form).',
     focus: 'Focus lands on ONE option at a time (roving), not on every option in turn. On focus restore into the group (a validation error, a legend click), focus the CHECKED radio rather than blindly the first; if none is checked, the first non-disabled option. The group container is not itself focusable. Keep the :focus-visible ring INSTANT (a fade lags rapid arrow navigation) and circular (the control is full-round).',
-    aria: 'Prefer role="radiogroup" on a div plus aria-labelledby over <fieldset>/<legend>: both are valid, but fieldset has flexbox/grid quirks that make it hard to style, and role="radiogroup" keeps the layout freedom while preserving the shared-label announcement. THE GROUP LABEL IS MANDATORY FOR MEANING: without it assistive tech announces an orphaned "radio button, 1 of 3". The GROUP owns required and error — aria-required and aria-invalid associate to the group and announce once; an individual option never owns its own required or error. Native inputs sharing a name give the grouping, the exclusivity and the roving-tabindex keyboard model for free. Do not double-label: the rows carry their short labels, the group carries the decision.',
+    aria: 'Prefer role="radiogroup" on a div plus aria-labelledby over <fieldset>/<legend>: both are valid, but fieldset has flexbox/grid quirks that make it hard to style, and role="radiogroup" keeps the layout freedom while preserving the shared-label announcement. THE GROUP LABEL IS MANDATORY FOR MEANING: without it assistive tech announces an orphaned "radio button, 1 of 3". The GROUP owns required and error — aria-required and aria-invalid associate to the group and announce once, and the group\'s message joins its aria-describedby; an individual option never owns its own required or error. The group passes its `status` to every option, so the options show the error without each claiming it. Native inputs sharing a name give the grouping, the exclusivity and the roving-tabindex keyboard model for free. Do not double-label: the rows carry their short labels, the group carries the decision.',
   },
 
   content: {
     labelPattern: 'The group label NAMES THE DECISION or asks the question ("Shipping method", "How should we contact you?"), abstracting the shared word up so its rows read the short remainder ("Standard", "Express", "Overnight"). Sentence case, no trailing colon — FieldLabel\'s rules. May be visually hidden when an enclosing labeled section already frames it, but must stay programmatically present.',
-    errorPattern: 'GROUP-LEVEL and specific — "Select a shipping method", stating what is wrong and how to fix it (SC 3.3.3), never "Invalid". The options stay neutral; the group carries the message. The error visual is not designed yet.',
+    errorPattern: 'GROUP-LEVEL and specific — "Select a shipping method", stating what is wrong and how to fix it (SC 3.3.3), never "Invalid". The group sets `status=error` on every option (the danger ring on each) and shows the message once, under the options.',
     emptyPattern: 'The group starts EMPTY by default, so no option carries a pre-selected state — this forces a deliberate choice. Pre-select only where a genuinely safe recommended default exists. A radio cannot be deselected, so once chosen the group cannot return to empty: an optional group must carry an explicit "None" or "N/A" option, or a stray click permanently pollutes the data. If a "None" option would corrupt the data model, the choice belongs in a clearable Select instead.',
   },
 
@@ -322,9 +346,9 @@ export const radioGroup: ComponentDef = {
   },
 
   composition: {
-    // WHAT THIS DEF NESTS, and only that (#1698, the #1700 rule): the label and the rows. `field-message`
-    // is a partner (the held group-error display), carried in `ai.commonPartners`.
-    composesWith: ['radio-row', 'field-label'],
+    // WHAT THIS DEF NESTS, and only that (#1698, the #1700 rule): the label, the rows and, since owner Q354
+    // (#2751), the error message under them.
+    composesWith: ['radio-row', 'field-label', 'field-message'],
     alternativeTo: ['checkbox-group', 'select', 'switch-row', 'segmented-control'],
     replacesPatterns: [
       'a bare set of <input type="radio"> with no shared label or group wiring',
@@ -352,11 +376,11 @@ export const radioGroup: ComponentDef = {
       'THE `size` AXIS IS A GENERALIZATION OF PRISM 2, NOT A REPRODUCTION — Prism 2\'s group is single-size (a Large label). The family-universal `size` axis is carried so the group is not the one form def frozen at one size, scaling the label and rows together by `follow`. `[HELD]`: the owner may prefer a single-size group; if so, drop the axis and pin the nested label/rows to one rung. Inherited from `checkbox-group` verbatim — the two groups match by sharing this fork\'s resolution, not by each deciding it.',
       'THE GROUP PAINTS NOTHING and so declares no `paintKeys` — like `checkbox-group`, its whole color surface is its nested children\'s. The alternative (inventing a group fill or border) is exactly the surface Prism 2\'s transparent container does not have; a stack is structure, and its ink lives one level down in `field-label` and `radio-row` (whose control ink is `radio-control`\'s).',
       '`orientation` AND `density` ARE OMITTED. Brief §3, §4 and §15 give the group `orientation` (vertical default) and `density` (comfortable, compact; touch targets hold to 44/48 on mobile). Prism 2\'s group is vertical and single-density, so neither is an axis here; vertical is the built default and horizontal is held (see `codeOnly`). Same as `checkbox-group`.',
-      'THE GROUP `description` PROP IS DEFERRED (#1698, decision 3). The brief puts a group-level `description` beside `isRequired` and the error message. It would compose the same part the group error does, and that part is the held field-message decision, so it waits for it rather than inventing a helper slot the error design may reshape.',
+      'THE GROUP `description` PROP IS DEFERRED (#1698, decision 3). The brief puts a group-level `description` beside `isRequired` and the error message. It would compose the same part the group error does. Q354 (#2751) built that part as a nested FieldMessage present only at `status=error`, so a valid group looks as it did; showing the same part at `default` as helper text is the remaining decision, and it is the owner\'s.',
       'OPTIONS ARRAY VERSUS COMPOSITION (brief §3, §13). The configuration pattern passes `options={[{label, value}]}` (Atlassian, Fluent v8 `ChoiceGroup`) — terse and layout-safe, but a bottleneck once an option needs a thumbnail, tooltip or rich description. The composition pattern renders option children inside the group (Primer, Spectrum, Base Web, and Fluent v9, which deprecated its array `ChoiceGroup` for this reason). The practice defaults to COMPOSITION, bound through context — the checkbox-group model, scalar instead of array — and this def follows it: the stack is `children: RadioRow[]`.',
     ],
     unverified: [
-      'GROUP-LEVEL ERROR / VALIDATION DISPLAY IS `[HELD]`. The brief puts validation and the error message on the group; Prism 2 settles no visual for it. This def carries `required` (settled) and no error skin (unsettled). Whether the group nests a `field-message` for the group error, and what an errored group looks like, needs the owner — the same open question `checkbox-group` holds.',
+      'THE GROUP ERROR IS UNVERIFIED ON A REAL HOST (owner Q354, #2751), as on `checkbox-group`: the group follows `status` two levels down (group → option → control) and gates a nested FieldMessage on it. The symptom to look for: an errored group with one option showing a neutral ring.',
       'THE VARIABLE ROW COUNT IS A NATIVE SLOT, matching `checkbox-group` (#2649, owner decision Q307 A). The rows sit in the `items` slot, three by default, replacing #2344\'s eight rows behind Figma-only booleans, three on by default. Prism 2\'s radio group had six rows with two on by default; the owner set three for both groups, so the two match.',
       'THE NESTING IS UNVERIFIED ON A REAL HOST, the same way `checkbox-group`\'s is: the group nests `radio-row` (which nests `radio-control` `nest-exposed`), the deepest chain in the corpus, and whether a doubly-nested instance\'s inherited sizing and exposed properties cooperate with the group\'s auto-layout is a real-host question the offline shim cannot answer. `test:roundtrip` builds every projected def and reads it back; the symptom to look for is a row instance stretched or an exposed selection that does not surface at the group.',
     ],

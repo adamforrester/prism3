@@ -128,8 +128,12 @@ characters, at most 100, one line, ending in a period (validated).
 **Every other field ships, and is written for people.** `packages/engine/regen.ts` projects each
 def's documentation fields — identity, `summary`, `description`, `props`, `states`, `variants`,
 `accessibility`, `content`, `docs`, `motion`, `composition` and `ai` — into
-`out/components/components.ai.json` and a page per component, `out/components/<id>.md`, which leaves
-out only the agent-only `ai.triggerKeywords` and `ai.generationPriority`. Everything but the two
+`out/components/components.ai.json` and a page per component, `out/components/<id>.md`. The page
+draws the sections of the doc section model (`packages/engine/component-doc-sections.ts`) and leaves
+out only the agent-only `ai.triggerKeywords` and `ai.generationPriority` and the planned components
+that are not built yet. A part's `note` is its caption in the page's Anatomy section, unless the note
+cites an issue, a doc path or a section sign, carries a code span, or names a tool: such a note is held
+back and listed in the maintainer record's `docGaps` until it is rewritten. Everything but the two
 maintainer channels, a part's `note` included, is also in the plugin bundle a designer imports. So in a shipped field:
 
 - no "brief §N" and no "per the KB" — state the behavior, not where it came from;
@@ -318,6 +322,23 @@ whose actual value comes from the host, not from the plan.
   (text-field and select, owner-directed in #1517). The status-led paint key leads the grammar
   (`{status}.{slot}.{state}` before `{slot}.{state}`), so the status boundary wins over the
   interactive-state progression and persists at rest, hover and focus.
+- **Error is a `status` axis, never a state.** Every control that can be invalid takes the
+  fields' `status` axis and the fields' `validation` prop (owner Q354, #2751). A choice control
+  carries the first two values, `[default, error]`, because it has no warning or success look;
+  `status` is orthogonal to the interaction states, so an errored box still hovers and focuses.
+  The error look is a danger border on the box, track or ring, bound per selection and per
+  non-disabled state under a status template one segment longer than the selection template
+  (`{status}.{selection}.{slot}.{state}`), so the two grammars cannot read each other's keys.
+  Who sets it depends on whether the choice stands alone:
+  - **A standalone choice sets its own.** A lone Checkbox.Row (a consent line) or a Switch.Row
+    takes `status` itself; the host shows the message.
+  - **A set's group sets it, and passes it down.** Checkbox.Group and Radio.Group carry
+    `status`, `follow` it into every row (each row into its control), and nest a FieldMessage
+    under the options, present only at `error`. A radio is never invalid alone, so Radio.Row and
+    Radio.Control carry the axis only to receive the group's value; their docs say so.
+  A row or group paints nothing by `status` itself: it follows the axis to the part that draws it.
+  Moving an existing `error` state onto the axis is a `move` entry in `COMPONENT_RENAMES`, so an
+  update renames the error member in place and a placed error instance keeps showing it.
 - **A border never binds an icon or text role** (owner decision Q346). An edge binds a border
   role: `border.*`, `interactive.<intent>.border.*`, `field.border.*`, or `color.disabled.border`.
   Every disabled edge binds `color.disabled.border`; a field-specific disabled border is fine only

@@ -1022,10 +1022,11 @@ const gapSeen = new Map(KNOWN_CONTRAST_GAPS.map((k) => [k, { drawn: 0, under: 0 
  * BOTH ARMS ARE EXERCISED, NOT ASSUMED (docs/34: represented, not counted). ⚠ is drawn wherever a brand face does not
  * resolve on the device; ✓ only where one does, which in CI and a bare container is nowhere. So this sweep runs with
  * `INTER_INSTALLED`: an init script, in this test only, that answers the studio's canvas font probe as though Inter
- * were installed. Every corpus brand uses Inter and also a face that stays absent (JetBrains Mono), so each state
- * draws both labels, and a state that drew either one zero times fails as NOT EXERCISED. The stub changes no shipped
- * code: it widens `measureText` for the probe's exact font string (`72px "Inter", <base>`), which is all
- * `fontAvailable` reads.
+ * were installed AND every other family as absent, whatever fonts the host has (#2837: a container that ships
+ * JetBrains Mono otherwise drew no ⚠ at all). Every corpus brand uses Inter and also a second face (JetBrains Mono),
+ * so each state draws both labels, and a state that drew either one zero times fails as NOT EXERCISED. The stub
+ * changes no shipped code: it answers `measureText` for the probe's font string (`72px "<family>", <base>`), which
+ * is all `fontAvailable` reads: Inter's width widened, any other family's the bare base's.
  */
 const FONT_STATUS = { place: 'type', labels: [
   { cls: 'span.tf-stat.ok', text: '✓ Installed', role: 'text.success' },
@@ -1034,8 +1035,16 @@ const FONT_STATUS = { place: 'type', labels: [
 const INTER_INSTALLED = () => {
   const measure = CanvasRenderingContext2D.prototype.measureText;
   CanvasRenderingContext2D.prototype.measureText = function (t) {
-    const m = measure.call(this, t);
-    return /^72px "?Inter"?, (monospace|sans-serif|serif)$/.test(this.font) ? { width: m.width + 10 } : m;
+    const probe = /^72px "?([^",]+)"?, (monospace|sans-serif|serif)$/.exec(this.font);
+    if (!probe) return measure.call(this, t);
+    if (probe[1] === 'Inter') return { width: measure.call(this, t).width + 10 };
+    // Every other family reads as absent whatever this host has installed (#2837): measure the bare base, so the
+    // probe sees no width change and "⚠ Not installed" is drawn on every brand, not only on a bare container.
+    const font = this.font;
+    this.font = `72px ${probe[2]}`;
+    const bare = measure.call(this, t);
+    this.font = font;
+    return bare;
   };
 };
 const fontStatusSeen = new Map();   // `${brand} / ${mode} / ${text}` -> { drawn, worst }
@@ -4157,9 +4166,10 @@ for (const brand of BRANDS) {
         nodesMeasured += probe.text.length;
         const chromeRows = probe.text.filter((r) => !r.specimen);
         specimensMeasured += probe.text.length - chromeRows.length;
-        // #2700: the preview shows the focused family (Buttons: its head, the specimen, Button options and its three sets),
-        // no longer every set's three lines. Measured 61 when it landed; the floor is a literal under that.
-        const COMPONENTS_TEXT_FLOOR = 55;
+        // #2700: the preview shows the focused family (Buttons: its head, the specimen and its sets), no longer every set's
+        // three lines; #2815 step 1 moved Button options out of it, into the list. Measured 44 when that landed; the floor
+        // is a literal under that.
+        const COMPONENTS_TEXT_FLOOR = 40;
         ok(probe.rootFound && probe.text.length >= COMPONENTS_TEXT_FLOOR, `${lw}: the probe measured the Components preview (${probe.text.length} text nodes, floor ${COMPONENTS_TEXT_FLOOR})`);
         const under = chromeRows.filter((r) => r.ratio < barOf(r));
         ok(under.length === 0, `${lw}: every chrome text node in the preview meets WCAG 1.4.3${under.length ? ` — ${under.slice(0, 3).map((u) => `${u.cls} "${u.text}" at ${u.ratio}:1`).join(' | ')}` : ''}`);
@@ -4203,9 +4213,9 @@ ok(componentChipGroups >= COMPONENT_CHIPS.length * 2 && buttonSpecimens === BRAN
   // `setViewportSize` resolves. Measured before it, the levers sit in the wide layout's 42% column at 380 (each group
   // about 90px wide) and all three groups overflow. Wait on the tier itself, a real condition, and name it below.
   await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow', null, { timeout: 5000 }).catch(() => {});
-  // #2700: at the narrow tier the Button options open inline under the Buttons row once it is focused.
+  // #2815 step 1: the Button options sit under the Buttons row in the list, at every width; focus it, as a designer would.
   await hooks.click(page.locator('[data-p3="cp-name"][data-key^="name=components|Buttons="]'));
-  await page.waitForFunction(() => !!document.querySelector('[data-p3="components-inline"] [role="radiogroup"]'), null, { timeout: 5000 }).catch(() => {});
+  await page.waitForFunction(() => !!document.querySelector('[data-p3="components-levers"] [data-p3="button-options-section"] [role="radiogroup"]'), null, { timeout: 5000 }).catch(() => {});
   const { tier, groups, over } = await page.evaluate(() => {
     const gs = [...document.querySelectorAll('[data-p3="components-levers"] [role="radiogroup"]')];
     return { tier: document.querySelector('[data-p3="frame"]')?.dataset.w, groups: gs.length, over: gs.map((g) => g.scrollWidth - g.clientWidth).filter((x) => x > 1).length };
@@ -4213,18 +4223,18 @@ ok(componentChipGroups >= COMPONENT_CHIPS.length * 2 && buttonSpecimens === BRAN
   ok(tier === 'narrow' && groups === 4 && over === 0, `at 380px every Button option chip group fits the levers panel (${groups} groups, ${over} overflow, frame tier ${tier})`);
   await ctx.close();
 }
-// #2812 S2: the Button options sit on the card in the chrome's inks, never on a specimen ground, which is the brand's page
-// for the previewed mode: there the chrome's light inks measured 1:1 on a dark mode's page. Measured as rendered, in
-// each mode, in the preview pane at the wide tier and inline under the Buttons row at 380. The floor on the count keeps
-// the ratio assertion from passing over nothing.
-// MUTATION: the options drawn on the specimen ground (`ground(c, opts, SG_SURFACES[0])` in `preview/components.ts`) →
-// `#2812 S2 … dark at 1280 …` and `… at 380 …`, at 1:1.
+// #2812 S2: the Button options sit in the chrome's inks, never on a specimen ground, which is the brand's page for the
+// previewed mode: there the chrome's light inks measured 1:1 on a dark mode's page. Measured as rendered, in each mode,
+// under the Buttons row in the list (#2815 step 1) at the wide tier and at 380. The floor on the count keeps the ratio
+// assertion from passing over nothing.
+// MUTATION: the options' block given the light chrome ink as its ground (`.p3-icol.p3-cp-optsec { background: var(--p3-text) }`)
+// → `#2812 S2 … at 1280 …` and `… at 380 …`.
 {
   const OPTIONS_TEXT_FLOOR = 10;
   const { ctx, page } = await openBrand(BRANDS[0]);
   await gotoComponents(page);
   for (const mode of ['light', 'dark', 'hc-dark']) {
-    for (const [w, sel] of [[1280, '[data-p3="components-style-guide"] [data-p3="button-options-section"]'], [380, '[data-p3="components-inline"] [data-p3="button-options-section"]']]) {
+    for (const [w, sel] of [[1280, '[data-p3="components-levers"] [data-p3="button-options-section"]'], [380, '[data-p3="components-levers"] [data-p3="button-options-section"]']]) {
       await page.setViewportSize({ width: w, height: 900 });
       await page.waitForFunction((t) => document.querySelector('[data-p3="frame"]')?.dataset.w === t, w === 380 ? 'narrow' : 'wide', { timeout: 5000 }).catch(() => {});
       if (w === 1280) await chooseMode(page, mode);
