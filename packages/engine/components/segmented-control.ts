@@ -319,7 +319,7 @@ export const segmentedControl: ComponentDef = {
   aliases: ['segmented-button', 'segmented-buttons', 'toggle-button-group', 'content-switcher', 'connected-button-group'],
   category: 'form',
   status: 'draft',
-  summary: 'A row of two to five options in one track, where exactly one is selected and all stay visible.',
+  summary: 'A row of two to five options in one track, where exactly one is selected and all stay visible. Size applies to the items you haven\'t edited. After editing an item, select the items and set their size.',
   description:
     'A compact row of two to five short options in one neutral track, where exactly one is always selected and every option stays visible. Selecting an option changes a value in place: a parameter of the current view, such as list or grid, or a form value. The options share the track equally. A visible label, or an accessible name, says what is being chosen.',
 

@@ -2,15 +2,38 @@
 
 > Labeled switch for a setting that applies immediately. Label leads, switch trails.
 
-A control for a binary on/off setting that takes effect immediately — no save, no submit; the flip is both the input and the execution command. The labeled row: it nests a Switch.Control (the track, thumb and state glyph) and carries the setting label, with the whole row as the hit target and the control at the trailing edge. Independent by definition: there is no Switch.Group, which closes the selection-control decomposition arc (checkbox has an optional group, radio a mandatory one, switch none). A settings list of switches is a list of rows, not a selection group. Not a staged binary submitted with a form (Checkbox.Row — if a submit button sits anywhere in the flow, it is a Checkbox.Row), not an action or view-mode toggle (a toggle button with aria-pressed, not built yet), not a one-of-two exclusive labeled choice (Radio.Group, or SegmentedControl).
-
 - **ID:** `switch-row`
 - **Category:** form
 - **Status:** draft
 - **Also known as:** switch, toggle, toggle-switch, on-off, switch-group
 - **Builds on:** `checkbox-row`
 
-## Usage
+## Overview
+
+A control for a binary on/off setting that takes effect immediately — no save, no submit; the flip is both the input and the execution command. The labeled row: it nests a Switch.Control (the track, thumb and state glyph) and carries the setting label, with the whole row as the hit target and the control at the trailing edge. Independent by definition: there is no Switch.Group, which closes the selection-control decomposition arc (checkbox has an optional group, radio a mandatory one, switch none). A settings list of switches is a list of rows, not a selection group. Not a staged binary submitted with a form (Checkbox.Row — if a submit button sits anywhere in the flow, it is a Checkbox.Row), not an action or view-mode toggle (a toggle button with aria-pressed, not built yet), not a one-of-two exclusive labeled choice (Radio.Group, or SegmentedControl).
+
+- **Purpose:** Set a binary on/off value that takes effect immediately, with no save step, via a labeled row that nests the track-and-thumb control.
+- **Use when:** A single independent setting that applies the moment it is flipped — a notification preference, dark mode, a feature flag — usually in a settings row or list with the label leading.
+- **Avoid when:** The change is staged and committed by a Save or Submit button (Checkbox.Row — the presence of that button anywhere in the flow is the tell), the toggle reveals a sub-form that must be completed for the data to be valid (Checkbox.Row again; the most common misuse), it is a single consent or agreement (Checkbox.Row), it performs an action or sets a view mode rather than holding a setting (a toggle button with aria-pressed, not built yet), it is a one-of-two exclusive labeled choice (Radio.Group, or SegmentedControl), or a third indeterminate state is needed (Checkbox.Row). Also do not reach for Switch.Row expecting a group: there is no Switch.Group by decision.
+
+## Anatomy
+
+Shown on the default member: size `medium`.
+
+1. **Label**
+2. **Control**
+
+## Styles
+
+| Axis | Values | Changes | Description |
+| --- | --- | --- | --- |
+| `size` | `medium`, `small` | once, when authored | Two rungs, not three: switches rarely warrant a large. Scales the row: the label-to-control gap, the row's minimum height, the label's type, and — passed through to the nested control by follow — the track's height and length and the thumb's diameter. |
+
+### States
+
+`rest`, `hover`, `pressed`, `pending`, `focus-visible`, `disabled`, `read-only`, `error`
+
+## Usage guidelines
 
 Use for a binary on/off setting that applies immediately — notifications, dark mode, Wi-Fi, a feature flag in a settings panel. Compose into a list or settings row with the label leading and the switch at the trailing edge, which is the habitat this control comes from. There is no group: a panel of switches is a list of rows, and each switch owns its own independent boolean and fires its own mutation. Default to optimistic updates with revert-and-message on failure, and reach for pending only where an inconsistent intermediate would genuinely harm.
 
@@ -36,23 +59,48 @@ Use for a binary on/off setting that applies immediately — notifications, dark
 - Use a switch for a consequential or destructive change — its immediacy is wrong for a costly or hard-to-reverse effect; pair it with a confirmation, or use a Checkbox.Row with an explicit Save
 - Use a switch where the user cannot observe the result — immediacy is the contract, so an effect nobody can perceive is a reason to reconsider the control
 
-### Content guidelines
+## Accessibility
+
+- **Keyboard:** Each switch is its own tab stop — like Checkbox.Row, unlike Radio.Row, and there is no group to traverse. Space toggles, which is the canonical W3C activation; some systems also accept Enter. Nothing else: no arrow keys, because a switch is never one of a mutually-related set.
+- **Focus:** :focus-visible ring on the track, never the thumb — the thumb moves, and a ring that travels with it reads as two indicators. Offset, at least 3:1, keyboard traversal only. A read-only switch stays in the tab order and stays focusable; a disabled one is removed from it.
+- **Screen readers:** switch (native \<input type="checkbox" role="switch">), with aria-checked true/false — announced "on"/"off", not "checked"
+
+  Three roles are easily confused: checkbox is role="checkbox" (announced "checked"), switch is role="switch" (announced "on"/"off"), and a toggle button is role="button" + aria-pressed (announced "pressed"). Putting aria-pressed on a switch is a recurring and severe error that corrupts the announcement. Prefer the styled native input — \<input type="checkbox" role="switch"> keeps focus, activation and the a11y tree for free. Announce the immediate effect: aria-checked flips on toggle; for an async effect set aria-busy during flight and announce the outcome politely (4.1.3). If the toggle changes the page layout (it reveals or removes content), announce that change through an aria-live region. The thumb glyph is decorative (aria-hidden) — the role and state already carry on/off. Two implementation traps: the IA2 quirk, where both aria-pressed buttons and role="switch" map internally to IA2_ROLE_TOGGLE_BUTTON — author to the ARIA spec regardless; and shadow-DOM label detachment, where wrapping a web-component switch in a native \<label> does not associate the name with the input inside the shadow root, so set aria-label or aria-labelledby explicitly.
+
+### WCAG
+
+- 4.1.2 Name Role Value (the switch role and aria-checked doing the work)
+- 1.4.1 Use of Color (thumb position distinguishes on from off, never track color alone; the thumb glyph is a legibility aid on top of that)
+- 1.4.11 Non-text Contrast (the off-state track must be distinguishable from the background) / 2.4.13 Focus Appearance
+- 2.5.8 Target Size — intent: the whole row is the target, as in Checkbox.Row. No padding is bound, so the 24×24 minimum is met by the consumer's layout, not by a number Switch.Row carries
+- 4.1.3 Status Messages (the async outcome or error of an immediate change)
+
+### Motion
+
+- **Enter:** none (present on mount)
+- **Exit:** none
+- **Reduced motion:** The nested control carries the thumb slide (~150–200ms, ease-in-out, snapping to 0ms under prefers-reduced-motion). The Row's motion is the async outcome: on an optimistic toggle the thumb snaps to the new state and a spinner cross-fades onto it while pending; on failure the thumb slides back, the track flashes the error color, and a message says what did not happen, so the reversal is explained. Under prefers-reduced-motion the slide back snaps too; the message still appears.
+
+## Content guidelines
 
 The label names the setting and never changes. The description says what turning it on will do. Async failures say what did not happen and that it reverted.
-
-### Copy patterns
 
 - **Labels:** Names the setting, not the state and not the action — "Airplane mode", "Location services"; not "Airplane mode is on" and not "Turn on airplane mode". A stable noun or adjective phrase that does not change on toggle: a label flipping between Enable and Disable is disorienting and is a common bug. Positive framing is mandatory — the on state is the affirmative, so off never means a double negative. Sentence case, no terminal punctuation. Long labels wrap; the fixed-width track does not shrink. And reject hardcoded adjacent "On"/"Off" text, which is the label rule this control has and its siblings do not: it competes with the track state, produces duplicative screen-reader output, and does not localize. The track plus the role="switch" announcement already carries it; where legibility genuinely demands more, use the thumb glyph affordance (showStateLabel) rather than words.
 - **Errors:** An outcome failure, not a validation failure: say what did not happen and that it reverted — "Couldn't turn on notifications. Try again." Near the control, as a status message rather than a field error. Never "Invalid input"; there was no input to invalidate.
 
-## Choosing it
+## Related components
 
-- **Purpose:** Set a binary on/off value that takes effect immediately, with no save step, via a labeled row that nests the track-and-thumb control.
-- **Use when:** A single independent setting that applies the moment it is flipped — a notification preference, dark mode, a feature flag — usually in a settings row or list with the label leading.
-- **Avoid when:** The change is staged and committed by a Save or Submit button (Checkbox.Row — the presence of that button anywhere in the flow is the tell), the toggle reveals a sub-form that must be completed for the data to be valid (Checkbox.Row again; the most common misuse), it is a single consent or agreement (Checkbox.Row), it performs an action or sets a view mode rather than holding a setting (a toggle button with aria-pressed, not built yet), it is a one-of-two exclusive labeled choice (Radio.Group, or SegmentedControl), or a third indeterminate state is needed (Checkbox.Row). Also do not reach for Switch.Row expecting a group: there is no Switch.Group by decision.
-- **Often used with:** `switch-control`, `focus-ring`
+- **Built from:** `switch-control`
+- **Instead, consider:** `checkbox-row`, `radio-row`, `segmented-control`
+- **Often used with:** `focus-ring`
+- **Replaces:**
+  - a checkbox misused for an immediate-effect setting
+  - two radios standing in for an obvious binary on/off
+  - an aria-pressed toggle button misused to hold a state setting
 
-## Props
+## Building it in code
+
+### Props
 
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
@@ -65,45 +113,6 @@ The label names the setting and never changes. The description says what turning
 | `readOnly` | boolean | `false` | no | Supported, which is not obvious for a toggle. Enterprise dashboards need users to review permission sets and system config they lack authority to change, and disabling those drops them from the tab order while swapping to static text hides the setting from screen readers. So: aria-readonly="true", focusable and in the tab order, at full WCAG contrast (unlike disabled), and visually distinct from disabled. |
 | `showStateLabel` | boolean | `true` | no | The on/off affordance — a checkmark in the thumb when on, an X when off. On by default; turn it off where thumb position plus track color are enough. Never the sole state signal. Exposed from the nested Switch.Control, which carries the glyph. This is not hardcoded "On"/"Off" text adjacent to the label, which is rejected outright: it competes with the track, duplicates the screen-reader output, and does not localize. |
 | `size` | enum: 'small' \| 'medium' | `medium` | no | Two rungs, not three: switches rarely warrant a large. Scales the row: the label-to-control gap, the row's minimum height, the label's type, and — passed through to the nested control by follow — the track's height and length and the thumb's diameter. |
-
-## States
-
-`rest`, `hover`, `pressed`, `pending`, `focus-visible`, `disabled`, `read-only`, `error`
-
-## Variants
-
-| Axis | Values | Changes |
-| --- | --- | --- |
-| `size` | `medium`, `small` | once, when authored |
-
-## Accessibility
-
-- **Role:** switch (native \<input type="checkbox" role="switch">), with aria-checked true/false — announced "on"/"off", not "checked"
-- **WCAG:**
-  - 4.1.2 Name Role Value (the switch role and aria-checked doing the work)
-  - 1.4.1 Use of Color (thumb position distinguishes on from off, never track color alone; the thumb glyph is a legibility aid on top of that)
-  - 1.4.11 Non-text Contrast (the off-state track must be distinguishable from the background) / 2.4.13 Focus Appearance
-  - 2.5.8 Target Size — intent: the whole row is the target, as in Checkbox.Row. No padding is bound, so the 24×24 minimum is met by the consumer's layout, not by a number Switch.Row carries
-  - 4.1.3 Status Messages (the async outcome or error of an immediate change)
-- **Keyboard:** Each switch is its own tab stop — like Checkbox.Row, unlike Radio.Row, and there is no group to traverse. Space toggles, which is the canonical W3C activation; some systems also accept Enter. Nothing else: no arrow keys, because a switch is never one of a mutually-related set.
-- **Focus:** :focus-visible ring on the track, never the thumb — the thumb moves, and a ring that travels with it reads as two indicators. Offset, at least 3:1, keyboard traversal only. A read-only switch stays in the tab order and stays focusable; a disabled one is removed from it.
-- **ARIA:** Three roles are easily confused: checkbox is role="checkbox" (announced "checked"), switch is role="switch" (announced "on"/"off"), and a toggle button is role="button" + aria-pressed (announced "pressed"). Putting aria-pressed on a switch is a recurring and severe error that corrupts the announcement. Prefer the styled native input — \<input type="checkbox" role="switch"> keeps focus, activation and the a11y tree for free. Announce the immediate effect: aria-checked flips on toggle; for an async effect set aria-busy during flight and announce the outcome politely (4.1.3). If the toggle changes the page layout (it reveals or removes content), announce that change through an aria-live region. The thumb glyph is decorative (aria-hidden) — the role and state already carry on/off. Two implementation traps: the IA2 quirk, where both aria-pressed buttons and role="switch" map internally to IA2_ROLE_TOGGLE_BUTTON — author to the ARIA spec regardless; and shadow-DOM label detachment, where wrapping a web-component switch in a native \<label> does not associate the name with the input inside the shadow root, so set aria-label or aria-labelledby explicitly.
-
-## Motion
-
-- **Enter:** none (present on mount)
-- **Exit:** none
-- **Reduced motion:** The nested control carries the thumb slide (~150–200ms, ease-in-out, snapping to 0ms under prefers-reduced-motion). The Row's motion is the async outcome: on an optimistic toggle the thumb snaps to the new state and a spinner cross-fades onto it while pending; on failure the thumb slides back, the track flashes the error color, and a message says what did not happen, so the reversal is explained. Under prefers-reduced-motion the slide back snaps too; the message still appears.
-
-## Composition
-
-- **Composes with:** `switch-control`
-- **Alternative to:** `checkbox-row`, `radio-row`, `segmented-control`
-- **Planned:** `card`, `toggle-button`
-- **Replaces:**
-  - a checkbox misused for an immediate-effect setting
-  - two radios standing in for an obvious binary on/off
-  - an aria-pressed toggle button misused to hold a state setting
 
 ---
 
