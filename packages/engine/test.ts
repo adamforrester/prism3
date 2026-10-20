@@ -32419,13 +32419,13 @@ arm: {
   ok(scrimIn.length === 0 && plans.every((p) => (p.root as DN).paints?.fills === 'color/foreground/primary' && (p.root as DN).effectStyle === 'shadow/xl'),
     `#2609 dialog panel: foreground.primary with the shadow.xl effect style on every member, and no scrim, veil or backdrop node anywhere in the set${scrimIn.length ? ` — FOUND: ${scrimIn.slice(0, 3).join('; ')}` : ''}`);
 
-  // THE HEADER: the title, the description (off), and the close (on): FlushIconButton.Neutral, round, medium (Q385 A).
+  // THE HEADER: the title, the description (off), and the close (on): FlushIconButton.Neutral, flush, medium (Q385 A; flush per owner QA 2026-10-19).
   const hdrBad = plans.filter((p) => {
     const r = p.root as DN, close = find(r, 'close'), desc = find(r, 'description'), title = find(r, 'title');
-    return !(close?.nestTarget === 'flush-icon-button-neutral' && JSON.stringify(close.nestVariant) === JSON.stringify({ shape: 'round', size: 'medium', state: 'rest' })
+    return !(close?.nestTarget === 'flush-icon-button-neutral' && JSON.stringify(close.nestVariant) === JSON.stringify({ shape: 'flush', size: 'medium', state: 'rest' })
       && close.visibleProp === 'close' && close.visible !== false && desc?.visible === false && desc.paints?.fills === 'color/text/secondary' && title?.paints?.fills === 'color/text/primary');
   });
-  ok(hdrBad.length === 0, `#2609 dialog header: the close is FlushIconButton.Neutral round medium and shown, the description hidden in secondary text, the title in primary text (${hdrBad.length ? `WRONG: ${hdrBad.map(planComponentName).slice(0, 2).join('; ')}` : 'all 15'})`);
+  ok(hdrBad.length === 0, `#2609 dialog header: the close is FlushIconButton.Neutral flush medium and shown (owner QA 2026-10-19: never round), the description hidden in secondary text, the title in primary text (${hdrBad.length ? `WRONG: ${hdrBad.map(planComponentName).slice(0, 2).join('; ')}` : 'all 15'})`);
 
   // THE FOOTERS (Q303.6 A; Q363, #2661): inline and stacked each nest ONE Button group, at its own layout, stretched
   // across a footer inset like the header; none has no footer and no rule above it. What the group holds is its own
