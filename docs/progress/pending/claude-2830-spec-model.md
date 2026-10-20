@@ -55,6 +55,10 @@ so `EXPECTED_ARTIFACTS` in `verify.ts` and the count in `ci.yml` move to 203 tog
   read back against the host's main-component name, which found a third model gap: the model dropped `variantWhen`
   (#2427), so Counter's ghost members, which nest the round shape, read as flush. A nest now carries `when`, and its
   Specs line says which host value takes which nested value.
+- **After #846's section model landed:** each page renders the section model's sections, then Specs, last.
+  `lint-component-docs.ts` F4 now expects a trailing `Specs` heading exactly on the pages of defs the committed
+  `specs.json` covers. It reads the emitted file, not the emitter's condition, and fails `SECTION PARITY` by name
+  both ways: a page that drops Specs, and a `specs.json` that drops a def.
 
 ### Next (phase 2, not built)
 
