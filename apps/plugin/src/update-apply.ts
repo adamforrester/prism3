@@ -57,7 +57,7 @@ import { baselineDiff, baselineOf, readBaseline, snapshotMember } from './member
 import { drawnFaults, faultLine, varsById } from './drawn';
 import { reorderPages, stripNestPrefix } from './file-setup';
 import { furnitureDueCount, type FurnitureDue } from './canvas-furniture';
-import { REACTIONS, furnitureParts, withSetSlots, hostPorts, pageSetMoves, previewLine, previewUpdate, readSetView, readSingleView, setUpToDate, slotMigrationFor, type SetPreview, type UpdateHost, type UpdatePreview, type UpdateTarget } from './update-plan';
+import { REACTIONS, breakingClause, breakingSection, furnitureParts, withSetSlots, hostPorts, pageSetMoves, previewLine, previewUpdate, readSetView, readSingleView, setUpToDate, slotMigrationFor, type Breaking, type SetPreview, type UpdateHost, type UpdatePreview, type UpdateTarget } from './update-plan';
 import { fillSlots, type FillOutcome, type MigNode } from './slot-migration';
 import { slotMigrationOf } from '@prism3/engine/component-renames';
 import { REACTIONS_PATH, plannedRead, reactionMap, reactionVerdict, reactionsText } from './reactions';
@@ -149,6 +149,9 @@ export type SetOutcome = {
   furniture?: FurnitureDue;
   /** #2649 — the placed instances whose rows were carried into the set's new slot. A miss is also in `content`. */
   carried?: FillOutcome;
+  /** #2831 — what this update broke for library consumers, as its dry run listed it (`breakingOf`). Absent for a set
+   *  that is not published, or where nothing broke. */
+  breaking?: Breaking[];
 };
 
 export type ApplyResult = {
@@ -603,6 +606,8 @@ export const applyUpdate = async (
     const mig = p.slotMigration ? await slotMigrationFor(t, fresh as unknown as MigNode, opts.ledger, opts.breathe) : null;
     const o = await applySet(host, api, t, p, fresh, { description: opts.descriptionOf?.(t.def), yieldTo: opts.yieldTo, handEdits: choiceFor(opts.choices, p.set), noBaseline: noRecordFor(opts.choices, p.set) });
     if (p.furniture && !o.refused && !o.stopped) o.furniture = p.furniture;
+    // #2831: the confirm names what it broke for library consumers, as the check listed it.
+    if (p.breaking && !o.refused && !o.stopped) o.breaking = p.breaking;
     const entry = slotMigrationOf(t.def, opts.ledger);
     if (mig && entry && !o.stopped && !o.refused) {
       o.carried = await fillSlots(p.set, entry, mig.live, mig.migration, opts.breathe);
@@ -726,6 +731,8 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
     // DRAFT wording for the owner (#2477): any other miss the build's pass reported, with its own reason.
     if (others.length) lines.push(`${o.set}: ${n(others.length, 'part')} not written as planned — ${others.slice(0, 3).join('; ')}${others.length > 3 ? '; …' : ''}.`);
   }
+  // #2831: what the update broke for library consumers, in its own section, as the dry run's.
+  lines.push(...breakingSection(r.outcomes, true));
   for (const x of r.refused) lines.push(`${x.def}: not updated. ${x.reason}.`);
   // Owner-approved wording (#2568, Q264 A), the dry run's "to reorder" as done.
   if (reordered) lines.push(`Component pages: ${reordered} reordered (${r.reordered!.map(stripNestPrefix).join(', ')}).`);
@@ -745,5 +752,5 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
                     : setsMoved ? `✓ ${n(setsMoved, 'set')} moved` : reordered ? `✓ reordered ${n(reordered, 'page')}`
                       // DRAFT wording for the owner (#2803, Q379 A): a run whose only work was the canvas furniture.
                       : furnished ? `✓ canvas furniture drawn for ${n(furnished, 'set')}` : r.outcomes.some((o) => o.asPreviewed && !o.asPreviewed.upToDate) ? '✓ No changes found' : '✓ already up to date';
-  return { ok: !stopped && !failed.length && !refused, headline, summary: lines.join('\n'), lines };
+  return { ok: !stopped && !failed.length && !refused, headline: `${headline}${breakingClause(r.outcomes)}`, summary: lines.join('\n'), lines };
 };
