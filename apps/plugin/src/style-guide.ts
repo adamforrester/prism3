@@ -2897,6 +2897,8 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   /** Where what a frame runs over starts, when not at its own top: a group placed under another pushes everything
    *  below the other's bottom edge, the gap between them included. */
   const pushFrom = new Map<SgNode, number>();
+  /** The groups `placeUnder` put in place this run: they follow their anchor, and nothing else ever moves them. */
+  const placed = new Set<SgNode>();
   const pageOf = (n: SgNode): SgPage => [...pages.values()].find((p) => onPage(n, p))!;
   /** The pages this run lays out: every page with groups on a full run, only the pages it drew on otherwise (#1778). */
   const laidOut = (p: SgPage): boolean => !partial || drawnOn.has(p);
@@ -2908,6 +2910,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     u.y = num(top.y) + num(top.height) + GROUP_GAP;
     u.setPluginData?.(GROUP_AT_KEY, `${num(u.x)},${num(u.y)}`);
     pushFrom.set(u, num(top.y) + num(top.height));
+    placed.add(u);
   };
   for (const p of pagesWithGroups) for (const u of (p.children as readonly SgNode[]).filter((n) => isOurGroup(n))) {
     const def = styleGuideGroup(u.getPluginData?.(GROUP_KEY) || '');
@@ -3086,12 +3089,18 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   // NEVER OVERLAP (owner decision, 2026-10-19; live: a hand-made Semantic colors frame grew from about 4,700 to 9,175
   // tall when the inverse row was added, and ran over the Borders and Fonts frames that sat just below it). Last, on
   // every page this run laid out. A frame this run changed — a group drawn, placed, moved or grown, or a frame that holds
-  // guides and grew — that now runs over a top-level frame below it pushes that frame down, with everything below it in
-  // the columns they span, all by the same distance, so their order and the gaps between them are kept. "Below" is a
-  // top at or under the changed frame's own top, or, for a group placed under another, under the other's bottom edge.
-  // The distance restores the gap the first of them had below the frame before the run, or GROUP_GAP for a frame that
-  // was not there. Nothing moves up or sideways, a frame above or beside is never moved, and a frame that changed
-  // nothing pushes nothing. A moved frame Prism3 placed keeps its record, so it is still where Prism3 left it.
+  // guides and grew — that now runs over a top-level frame pushes it clear, by the frame's side it sits on:
+  //   • BESIDE (owner question on #2827, review of 4be045f4: a frame 100px to the right of a fixed frame that grew 516px
+  //     wide to stop clipping was pushed down, dragging Inverse colors off "directly below", and the next run moved
+  //     things again): a frame that sat clear of it to its right before the run, its top above the frame's bottom edge
+  //     then. It moves right, with everything to its right in the rows they span, so it keeps the gap it had.
+  //   • BELOW: any other, its top at or under the changed frame's own top, or, for a group placed under another, under
+  //     the other's bottom edge. It moves down, with everything below it in the columns they span, all by the same
+  //     distance, so their order and the gaps between them are kept. The distance restores the gap the first of them
+  //     had below the frame before the run, or GROUP_GAP for a frame that was not there.
+  // A group `placeUnder` put in place is never pushed: it follows its anchor, and is placed under it again when the
+  // anchor moves. Nothing moves up or left, a frame above is never moved, and a frame that changed nothing pushes
+  // nothing. A moved frame Prism3 placed keeps its record, so it is still where Prism3 left it.
   for (const p of [...new Set([...drawnOn, ...pagesWithGroups])].filter(laidOut)) {
     const sibs = (p.children as readonly SgNode[]).filter((n) => n.visible !== false);
     const holdsGuides = (n: SgNode): boolean => n.type === 'FRAME' && (isOurGroup(n) || (!n.getPluginData?.(TABLE_KEY) && !!n.findOne?.((k) => !!(k as SgNode).getPluginData?.(TABLE_KEY))));
@@ -3099,29 +3108,57 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
       const b = boxesBefore.get(n), now = boxOf(n);
       return !b || !near(b.x, now.x) || !near(b.y, now.y) || now.w > b.w + 0.5 || now.h > b.h + 0.5;
     };
+    /** Moves a frame, and moves its record with it while it is where Prism3 left it. */
+    const shift = (n: SgNode, dx: number, dy: number): void => {
+      const ours = isOurGroup(n) && groupAt(n);
+      const table = !!n.getPluginData?.(TABLE_KEY) && leftAt(n);
+      n.x = num(n.x) + dx;
+      n.y = num(n.y) + dy;
+      if (ours) n.setPluginData?.(GROUP_AT_KEY, `${num(n.x)},${num(n.y)}`);
+      if (table) n.setPluginData?.(AT_KEY, `${num(n.x)},${num(n.y)}`);
+    };
     const queue = sibs.filter((n) => holdsGuides(n) && changed(n));
+    /** A frame moved: what it pushes is looked at again, and the groups placed under it follow it. */
+    const moved = (n: SgNode): void => {
+      if (!queue.includes(n)) queue.push(n);
+      for (const [u, anchor] of followers) if (anchor.frame === n && placed.has(u)) { placeUnder(u, anchor); if (!queue.includes(u)) queue.push(u); }
+    };
+    const overlapsY = (a: Box, b: Box): boolean => a.y < b.y + b.h && b.y < a.y + a.h;
     for (let guard = 0; queue.length && guard < 512; guard++) {
       queue.sort((a, b) => num(a.y) - num(b.y));
       const f = queue.shift()!;
       const fb = boxOf(f), fb0 = boxesBefore.get(f);
       const line = pushFrom.get(f) ?? fb.y;
-      const hits = sibs.filter((n) => n !== f && num(n.y) >= line && intersects(fb, boxOf(n)));
-      if (!hits.length) continue;
-      const gapOf = (n: SgNode): number => { const b = boxesBefore.get(n); return fb0 && b && b.y >= fb0.y + fb0.h ? b.y - (fb0.y + fb0.h) : GROUP_GAP; };
-      const dy = Math.max(...hits.map((n) => fb.y + fb.h + gapOf(n) - num(n.y)));
-      const from = Math.min(...hits.map((n) => num(n.y)));
-      const moving = new Set<SgNode>(hits);
-      for (let more = true; more;) {
-        more = false;
-        for (const n of sibs) if (n !== f && !moving.has(n) && num(n.y) >= from && [...moving].some((m) => overlapsX(boxOf(m), boxOf(n)))) { moving.add(n); more = true; }
+      const pushable = (n: SgNode): boolean => n !== f && !placed.has(n);
+      const hits = sibs.filter((n) => pushable(n) && intersects(fb, boxOf(n)));
+      // Beside: clear of the frame, to its right, before the run (where the frame was then, or where it is, if new).
+      const was = fb0 ?? fb;
+      const beside = hits.filter((n) => { const b = boxesBefore.get(n); return !!b && b.x >= was.x + was.w && b.y < was.y + was.h; });
+      const below = hits.filter((n) => !beside.includes(n) && num(n.y) >= line);
+      if (below.length) {
+        const gapOf = (n: SgNode): number => { const b = boxesBefore.get(n); return fb0 && b && b.y >= fb0.y + fb0.h ? b.y - (fb0.y + fb0.h) : GROUP_GAP; };
+        const dy = Math.max(...below.map((n) => fb.y + fb.h + gapOf(n) - num(n.y)));
+        const from = Math.min(...below.map((n) => num(n.y)));
+        const moving = new Set<SgNode>(below);
+        for (let more = true; more;) {
+          more = false;
+          for (const n of sibs) if (pushable(n) && !moving.has(n) && num(n.y) >= from && [...moving].some((m) => overlapsX(boxOf(m), boxOf(n)))) { moving.add(n); more = true; }
+        }
+        for (const n of moving) shift(n, 0, dy);
+        for (const n of moving) moved(n);
       }
-      for (const n of moving) {
-        const ours = isOurGroup(n) && groupAt(n);
-        const table = !!n.getPluginData?.(TABLE_KEY) && leftAt(n);
-        n.y = num(n.y) + dy;
-        if (ours) n.setPluginData?.(GROUP_AT_KEY, `${num(n.x)},${num(n.y)}`);
-        if (table) n.setPluginData?.(AT_KEY, `${num(n.x)},${num(n.y)}`);
-        if (!queue.includes(n)) queue.push(n);
+      if (beside.length) {
+        const gapOf = (n: SgNode): number => boxesBefore.get(n)!.x - (was.x + was.w);
+        const dx = Math.max(...beside.map((n) => fb.x + fb.w + gapOf(n) - num(n.x)));
+        if (dx <= 0) continue;
+        const from = Math.min(...beside.map((n) => num(n.x)));
+        const moving = new Set<SgNode>(beside);
+        for (let more = true; more;) {
+          more = false;
+          for (const n of sibs) if (pushable(n) && !moving.has(n) && num(n.x) >= from && [...moving].some((m) => overlapsY(boxOf(m), boxOf(n)))) { moving.add(n); more = true; }
+        }
+        for (const n of moving) shift(n, dx, 0);
+        for (const n of moving) moved(n);
       }
     }
   }

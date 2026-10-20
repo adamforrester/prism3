@@ -4298,35 +4298,39 @@ const main = async (): Promise<void> => {
   {
     const KEY = 'prism3-style-guide';
     const keyOf = (k: N): string => k.pluginData[KEY] ?? '';
-    const f = await fullFile();
-    await draw(f.api, contract);
-    // AS #2818'S RUN LEFT THE OWNER'S PAGE: their own "Semantic colors" frame, a horizontal auto layout FIXED at a width
-    // narrower than what it holds, clipping, inset 161, holding a `Guides` grid of the defaults in row 1 and each inverse
-    // guide under its default in row 2. Their own "Borders" and "Fonts" frames sat just below its bottom edge before the
-    // inverse row was added, so the taller group now runs over both. Prism3's own groups are gone from the page.
-    const ours = groupFrame(f.sem, 'Semantic colors')!, oursInv = groupFrame(f.sem, 'Inverse colors')!;
-    const grid = guidesOf(ours)!;
-    const owner = new N('FRAME'); owner.name = 'Semantic colors'; owner.layoutMode = 'HORIZONTAL'; owner.primaryAxisSizingMode = 'FIXED'; owner.counterAxisSizingMode = 'AUTO';
-    owner.clipsContent = true; owner.paddingLeft = 161; owner.paddingRight = 161; owner.paddingTop = 161; owner.paddingBottom = 161; owner.itemSpacing = 0;
-    f.sem.appendChild(owner); owner.x = 0; owner.y = 0;
-    owner.appendChild(grid);
-    const oneRowH = owner.height;
-    const inverses = guidesOf(oursInv)!.children.slice();
-    grid.gridRowCount = 2; grid.gridColumnSizes = grid.gridColumnSizes.map(() => ({ type: 'HUG' })); grid.gridRowSizes = [{ type: 'HUG' }, { type: 'HUG' }];
-    for (const v of inverses) {
-      const mate = grid.children.find((d) => d.gridRow === 0 && keyOf(d) === keyOf(v).replace('/inverse', ''));
-      grid.appendChildAt(v, 1, mate!.gridCol!);
-    }
-    owner.w = grid.width + 322 - 516;
-    ours.remove(); oursInv.remove();
-    const sibling = (name: string, y: number): N => {
-      const n = new N('FRAME'); n.name = name; n.w = 4000; n.h = 1500; f.sem.appendChild(n); n.x = 0; n.y = y; return n;
+    const measured = async () => {
+      const f = await fullFile();
+      await draw(f.api, contract);
+      // AS #2818'S RUN LEFT THE OWNER'S PAGE: their own "Semantic colors" frame, a horizontal auto layout FIXED at a width
+      // narrower than what it holds, clipping, inset 161, holding a `Guides` grid of the defaults in row 1 and each inverse
+      // guide under its default in row 2. Their own "Borders" and "Fonts" frames sat just below its bottom edge before the
+      // inverse row was added, so the taller group now runs over both. Prism3's own groups are gone from the page.
+      const ours = groupFrame(f.sem, 'Semantic colors')!, oursInv = groupFrame(f.sem, 'Inverse colors')!;
+      const grid = guidesOf(ours)!;
+      const owner = new N('FRAME'); owner.name = 'Semantic colors'; owner.layoutMode = 'HORIZONTAL'; owner.primaryAxisSizingMode = 'FIXED'; owner.counterAxisSizingMode = 'AUTO';
+      owner.clipsContent = true; owner.paddingLeft = 161; owner.paddingRight = 161; owner.paddingTop = 161; owner.paddingBottom = 161; owner.itemSpacing = 0;
+      f.sem.appendChild(owner); owner.x = 0; owner.y = 0;
+      owner.appendChild(grid);
+      const oneRowH = owner.height;
+      const inverses = guidesOf(oursInv)!.children.slice();
+      grid.gridRowCount = 2; grid.gridColumnSizes = grid.gridColumnSizes.map(() => ({ type: 'HUG' })); grid.gridRowSizes = [{ type: 'HUG' }, { type: 'HUG' }];
+      for (const v of inverses) {
+        const mate = grid.children.find((d) => d.gridRow === 0 && keyOf(d) === keyOf(v).replace('/inverse', ''));
+        grid.appendChildAt(v, 1, mate!.gridCol!);
+      }
+      owner.w = grid.width + 322 - 516;
+      ours.remove(); oursInv.remove();
+      const sibling = (name: string, y: number): N => {
+        const n = new N('FRAME'); n.name = name; n.w = 4000; n.h = 1500; f.sem.appendChild(n); n.x = 0; n.y = y; return n;
+      };
+      const borders = sibling('Borders', oneRowH + 200);
+      const fonts = sibling('Fonts', oneRowH + 200 + 1500 + 300);
+      // A retired legacy table in its own frame to the right: left alone (its removal waits on the owner's confirm).
+      const legacy = new N('FRAME'); legacy.name = 'Inverse'; legacy.w = 3000; legacy.h = 2000; f.sem.appendChild(legacy); legacy.x = owner.width + 2000; legacy.y = 0;
+      const clipped = (): number => (owner.x + owner.width - 161) - (owner.x + grid.x + grid.width);
+      return { f, owner, grid, inverses, borders, fonts, legacy, clipped };
     };
-    const borders = sibling('Borders', oneRowH + 200);
-    const fonts = sibling('Fonts', oneRowH + 200 + 1500 + 300);
-    // A retired legacy table in its own frame to the right: left alone (its removal waits on the owner's confirm).
-    const legacy = new N('FRAME'); legacy.name = 'Inverse'; legacy.w = 3000; legacy.h = 2000; f.sem.appendChild(legacy); legacy.x = owner.width + 2000; legacy.y = 0;
-    const clipped = (): number => (owner.x + owner.width - 161) - (owner.x + grid.x + grid.width);
+    const { f, owner, grid, inverses, borders, fonts, legacy, clipped } = await measured();
     const want = inverses.length;
     ok(want === 8 && grid.gridRowCount === 2 && clipped() < 0 && pageOverlaps(f.sem).some((o) => o.startsWith('Semantic colors')) && grid.parent === owner,
       `39: the precondition: ${want} inverse guides in the second row of a grid in a frame you made, its right column clipped by ${-clipped()}px, the frame over Borders and Fonts`);
@@ -4359,6 +4363,25 @@ const main = async (): Promise<void> => {
     const r2 = await draw(f.api, contract);
     const again = pageFrames(f.sem).map((n) => `${n.name} ${n.x},${n.y} ${n.width}×${n.height}`).join('; ');
     ok(again === snap && !r2.groups?.rearranged.length, `39: a rerun moves and resizes nothing (${again === snap ? 'same' : `${snap} → ${again}`})`);
+
+    // A FRAME BESIDE, WITHIN THE GROWTH (owner question on #2827, review of 4be045f4): a frame of the owner's 100px to the
+    // right of their fixed frame, at its top, which the frame's no-clip growth now reaches. It moves right by the growth,
+    // keeping its 100px gap; it is never pushed down, and it never drags Inverse colors off directly below.
+    const m = await measured();
+    const note = new N('FRAME'); note.name = 'RightNote'; note.w = 2000; note.h = 800; m.f.sem.appendChild(note);
+    note.x = m.owner.x + m.owner.width + 100; note.y = 0;
+    m.legacy.x = note.x + note.width + 2000;
+    const [nw0, lx0] = [m.owner.width, m.legacy.x];
+    await draw(m.f.api, contract);
+    const mInv = groupFrame(m.f.sem, 'Inverse colors');
+    const grew = m.owner.width - nw0;
+    ok(grew > 0 && note.y === 0 && note.x === m.owner.x + m.owner.width + 100 && m.legacy.x === lx0 + grew && m.legacy.y === 0
+      && !!mInv && mInv.y === m.owner.y + m.owner.height + 320 && pageOverlaps(m.f.sem).length === 0,
+      `39: a frame beside that the growth reaches moves right by it, keeping its gap, and Inverse colors stays directly below (grew ${grew}; RightNote at ${note.x},${note.y}, want ${m.owner.x + m.owner.width + 100},0; Inverse colors at ${mInv?.y}, want ${m.owner.y + m.owner.height + 320}; ${pageOverlaps(m.f.sem).join('; ') || 'no overlap'})`);
+    const mSnap = pageFrames(m.f.sem).map((n) => `${n.name} ${n.x},${n.y} ${n.width}×${n.height}`).join('; ');
+    await draw(m.f.api, contract);
+    const mAgain = pageFrames(m.f.sem).map((n) => `${n.name} ${n.x},${n.y} ${n.width}×${n.height}`).join('; ');
+    ok(mAgain === mSnap, `39: with a frame beside, a rerun moves and resizes nothing (${mAgain === mSnap ? 'same' : `${mSnap} → ${mAgain}`})`);
   }
 
   if (failures) { console.error(`\n${failures} style-guide check(s) failed`); process.exit(1); }
