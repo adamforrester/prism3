@@ -1022,10 +1022,11 @@ const gapSeen = new Map(KNOWN_CONTRAST_GAPS.map((k) => [k, { drawn: 0, under: 0 
  * BOTH ARMS ARE EXERCISED, NOT ASSUMED (docs/34: represented, not counted). ⚠ is drawn wherever a brand face does not
  * resolve on the device; ✓ only where one does, which in CI and a bare container is nowhere. So this sweep runs with
  * `INTER_INSTALLED`: an init script, in this test only, that answers the studio's canvas font probe as though Inter
- * were installed. Every corpus brand uses Inter and also a face that stays absent (JetBrains Mono), so each state
- * draws both labels, and a state that drew either one zero times fails as NOT EXERCISED. The stub changes no shipped
- * code: it widens `measureText` for the probe's exact font string (`72px "Inter", <base>`), which is all
- * `fontAvailable` reads.
+ * were installed AND every other family as absent, whatever fonts the host has (#2837: a container that ships
+ * JetBrains Mono otherwise drew no ⚠ at all). Every corpus brand uses Inter and also a second face (JetBrains Mono),
+ * so each state draws both labels, and a state that drew either one zero times fails as NOT EXERCISED. The stub
+ * changes no shipped code: it answers `measureText` for the probe's font string (`72px "<family>", <base>`), which
+ * is all `fontAvailable` reads: Inter's width widened, any other family's the bare base's.
  */
 const FONT_STATUS = { place: 'type', labels: [
   { cls: 'span.tf-stat.ok', text: '✓ Installed', role: 'text.success' },
@@ -1034,8 +1035,16 @@ const FONT_STATUS = { place: 'type', labels: [
 const INTER_INSTALLED = () => {
   const measure = CanvasRenderingContext2D.prototype.measureText;
   CanvasRenderingContext2D.prototype.measureText = function (t) {
-    const m = measure.call(this, t);
-    return /^72px "?Inter"?, (monospace|sans-serif|serif)$/.test(this.font) ? { width: m.width + 10 } : m;
+    const probe = /^72px "?([^",]+)"?, (monospace|sans-serif|serif)$/.exec(this.font);
+    if (!probe) return measure.call(this, t);
+    if (probe[1] === 'Inter') return { width: measure.call(this, t).width + 10 };
+    // Every other family reads as absent whatever this host has installed (#2837): measure the bare base, so the
+    // probe sees no width change and "⚠ Not installed" is drawn on every brand, not only on a bare container.
+    const font = this.font;
+    this.font = `72px ${probe[2]}`;
+    const bare = measure.call(this, t);
+    this.font = font;
+    return bare;
   };
 };
 const fontStatusSeen = new Map();   // `${brand} / ${mode} / ${text}` -> { drawn, worst }
