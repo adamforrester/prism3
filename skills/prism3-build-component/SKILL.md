@@ -196,12 +196,9 @@ Every part declares a `kind` from a closed vocabulary (`packages/engine/componen
 | `nest` | an in-flow instance of another component — takes a cell like a box, content resolved from `nests` |
 | `vector` | a filled outline whose content is geometry — names a `glyph` from the icon vocabulary |
 
-**The root part is named for its role, never `root`.** The corpus names it semantically:
-`container` for button, icon-button, select, text-field, textarea and the two groups; `row` for
-checkbox-row, radio-row and switch-row; `control` for checkbox-control and radio-control; `track`
-for switch-control; `label` for field-label; `message` for field-message; `ring` for focus-ring;
-`glyph` for icon; `frame` for image-placeholder and spinner; `wash` for veil. Pick the existing key
-that fits the shape rather than inventing one.
+**The root part is named for its role, never `root` and never the component's own id.** Pick it
+from the role list in §6's naming table (`container` for most controls, `row` for the Rows, `track`
+for switch-control, `panel` for dialog, and so on) rather than inventing one.
 
 **`anatomy.codeOnly` is required and non-empty** — what will not survive the Figma leg, stated per
 def rather than discovered. It carries two kinds of entry: structure Figma cannot hold, and the
@@ -373,6 +370,36 @@ whose actual value comes from the host, not from the plan.
 
 ## 6. Naming canon — settled, not yours to re-decide
 
+**Part and layer names (owner decision Q350).** Part keys are the layer names a designer reads in
+Figma, so one job takes one name across every def:
+
+| Job | Name | Examples |
+|---|---|---|
+| Root part | named for its role, from this list: `container`, `row`, `control`, `track`, `label`, `message`, `ring`, `glyph`, `frame`, `wash`, `surface`, `panel`. Never the component's own id | Divider's root is `container`, not `divider` |
+| Main text | `label` | Button, Tag and the Rows already use it |
+| Glyph layer (a non-root `vector` part) | `<shape>Glyph` | `checkGlyph`, `chevronGlyph`, `dismissGlyph` |
+| A Row's control cell (the box holding a nested `*-control`) | `controlCell` | Checkbox, Radio and Switch rows |
+
+**The `_` prefix (owner decisions Q349, Q355, Q394).** A component that should not be used outside its
+parent takes the `_` prefix on its id, which Figma reads as a building block and leaves out of a published
+library. Its `ai.whenToUse` opens with one of two wordings: "Only as a child of …" or "Never directly
+…". The prefixed set is `_accordion-indicator`. A native slot's preferred item never takes the prefix
+(Q394): a designer inserts it from the assets panel, which works only for a published set, so it stays
+unprefixed even where its `ai.whenToUse` says "Only as a child of …". The slot items are `tab`,
+`list-item` and `segmented-control-segment`. The checkbox and radio controls (`checkbox-control`,
+`radio-control`) stay unprefixed because they may be used on their own.
+
+**Figma property names are lowercase (owner decision Q345).** Every name a designer reads in the
+properties panel is lowercase: each `figmaName` (or the key, when there is none), and each variant axis
+under its display name. So `check icon`, `state icon`, `marker`, `label`, never `Check icon`.
+
+`packages/engine/lint-naming.ts` checks all of this except the main-text row, which is a judgment
+(a dialog has a title and a description). Its rules are literals in the gate, never read off a def,
+and the gate reads this section's root list, prefixed set, slot items and exempt controls back and fails if they
+differ from its literals.
+Until the sweep in #2759 finishes, breaches the gate already knows about are listed as `PENDING` in
+`packages/engine/lint-naming.ts`. Entries leave it as the renames land. Never add one: a new def follows the table.
+
 **Boolean props (#1326 decision 2).** DOM-backed booleans are bare; synthetic-state booleans
 are `is`-prefixed. So switch-row carries `readOnly` and `checked` (DOM-backed) beside `isPending`
 (synthetic); button and icon-button carry `disabled` (DOM-backed) beside `isPending`/`isInactive`
@@ -474,6 +501,9 @@ so a new def fails by name until you add it — or, for a floor list, stays unco
 | `packages/engine/test.ts`, field and gap floors | a def whose `densitySpacing` names a gap in `GAP_KEYS`; a def with an error, warning or success status in `SH_DEFS` (or `SH_EXEMPT` with the reason); a def with a read-only member in `RO_PINNED`. A def missing from these fails. |
 | `packages/engine/test.ts` | nothing for the brief: `KB_BRIEF_CATEGORY` is derived from `schema/kb-briefs.json` (refresh it if the brief is new). A def with a `presentWhen` part in `GATED_EXPECTED`, and a def binding a `size.<size>.control`, `dot` or `track` key in `CONTROL_DEFS`: both are exact-equality lists. |
 | `apps/plugin/src/file-taxonomy.ts` | the def on a page in `TAXONOMY` (§3). |
+
+`lint-naming` needs no entry either: its rules (§6) apply to every registered def, so a new def that
+breaks one fails by name.
 
 `lint-component-docs` needs no entry: it reads the registry, so after `packages/engine/regen.ts` a
 new def must appear in `components.ai.json`, in its own `<id>.md` page and in the maintainer record, or
