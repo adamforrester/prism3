@@ -351,6 +351,12 @@ Re-derive the load-bearing ones yourself:
 - Include the verify table, the mutations you ran with the line each failed on, and, for a
   merge conflict with `main` or a sibling PR, a resolution recipe per conflicted hunk (never
   "take theirs" for a whole file).
+- **End every verdict, delta and re-gate with a `Gaps` section** (#2850): what you did not do,
+  what you did not check, the risks that remain. Write `Gaps: none` when there are none; never
+  leave it out.
+- **Did the PR re-implement something that exists?** Search the lint gates, the harnesses and
+  the shared helpers for a mechanism that already does the job. The PR body should say what it
+  reused or why nothing fit; a new mechanism with neither is a should-fix.
 - Merge only when your instructions say you may. Otherwise post the verdict and stop. If
   anything blocking or should-fix survives verification: hold and flag.
 
