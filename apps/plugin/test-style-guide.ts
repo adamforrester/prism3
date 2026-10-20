@@ -311,7 +311,8 @@
  *   - (#2856, each on a committed head, the suite run on it) the wrap branch dropped from `fitToContent`'s `need` →
  *     "40: a wrapped frame you made grows to its widest row…", "40: its height is its two rows…" and "40: a wrapped
  *     frame the one-row sum widened is put back…"; the repair disabled (`widened` false) → "40: a wrapped frame the
- *     one-row sum widened is put back…".
+ *     one-row sum widened is put back…"; `rowsHigh` ignoring `counterAxisSpacing` (`between = gap`) or returning only
+ *     `padV` → "40: a wrapped frame with a fixed height grows to its two rows…".
  *
  * THE SHIM IGNORES A RESIZE THE HOST IGNORES: a FIXED text inside an instance keeps its main component's width under
  * `resize` (live, 2026-09-28). Before the shim modeled it, every width assertion passed over one-word-a-line text.
@@ -4435,7 +4436,7 @@ const main = async (): Promise<void> => {
     // wide, hugging its height, padding 240, 48 between items and 96 between rows. Their own `_section-header` sits on
     // the first row and the `Guides` grid wraps below it; the grid is wider than the frame's inside, so it clipped.
     const PAD = 240, GAP = 48, ROWGAP = 96;
-    const wrapped = async (width: (headerW: number, gridW: number) => number) => {
+    const wrapped = async (width: (headerW: number, gridW: number) => number, fixedHeight?: number) => {
       const f = await fullFile();
       await draw(f.api, contract);
       const ours = groupFrame(f.sem, 'Semantic colors')!;
@@ -4448,6 +4449,7 @@ const main = async (): Promise<void> => {
       owner.appendChild(header); owner.appendChild(grid);
       ours.remove();
       owner.w = width(header.width, grid.width);
+      if (fixedHeight !== undefined) { owner.counterAxisSizingMode = 'FIXED'; owner.h = fixedHeight; }
       return { f, owner, header, grid };
     };
     // EXPECTED FROM THE LAYOUT RULE, never from `fitToContent`: a wrapped row needs its widest child and its padding;
@@ -4489,6 +4491,18 @@ const main = async (): Promise<void> => {
     const cw0 = c.owner.width;
     await draw(c.f.api, contract);
     ok(c.owner.width === cw0, `40: a wrapped frame you made wider than its rows need is never made smaller (${cw0} → ${c.owner.width})`);
+
+    // 4. A FIXED height shorter than the two rows clips the second: it grows to the rows' height (the only case the
+    //    wrapped-height arithmetic decides; a hugging frame's height is the shim's own). Typed here, not read off the code.
+    const d = await wrapped((hw) => PAD + hw + 100 + PAD, 500);
+    const dH = PAD + d.header.height + ROWGAP + d.grid.height + PAD;
+    ok(d.owner.height === 500 && d.owner.height < dH, `40: the precondition: a fixed height (${d.owner.height}) shorter than the two rows (${dH})`);
+    await draw(d.f.api, contract);
+    ok(d.owner.height === dH && d.owner.counterAxisSizingMode === 'FIXED',
+      `40: a wrapped frame with a fixed height grows to its two rows, ${ROWGAP} apart, and stays fixed (${d.owner.height} tall, want ${dH})`);
+    const e = await wrapped((hw) => PAD + hw + 100 + PAD, dH + 700);
+    await draw(e.f.api, contract);
+    ok(e.owner.height === dH + 700, `40: a wrapped frame taller than its rows is never made shorter (${dH + 700} → ${e.owner.height})`);
   }
 
   if (failures) { console.error(`\n${failures} style-guide check(s) failed`); process.exit(1); }
