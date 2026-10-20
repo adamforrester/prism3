@@ -361,7 +361,7 @@
           "focus visible",
           "keyboard focus"
         ],
-        "generationPriority": 2
+        "generationPriority": 6
       },
       "composition": {
         "composesWith": [],
@@ -2550,7 +2550,7 @@
           "form label",
           "required indicator"
         ],
-        "generationPriority": 3
+        "generationPriority": 6
       },
       "motion": {
         "enter": "none (present on mount)",
@@ -2682,7 +2682,7 @@
           "caption",
           "hint"
         ],
-        "generationPriority": 3
+        "generationPriority": 6
       },
       "motion": {
         "enter": "A short fade as the message is inserted. The field grows to hold it and pushes the content below down (dynamic expansion). Never positioned absolutely to avoid that shift — it would overlap the next field's label.",
@@ -3461,7 +3461,7 @@
           "check box atom",
           "checkbox square"
         ],
-        "generationPriority": 3
+        "generationPriority": 6
       },
       "motion": {
         "enter": "On check, the check glyph draws in as a pen stroke (SVG stroke-dashoffset) while the fill crossfades in, about 100-150ms, eased. Indeterminate to checked morphs the dash into the check.",
@@ -3691,7 +3691,7 @@
       ],
       "category": "form",
       "status": "draft",
-      "summary": "Labeled stack of Checkbox rows. Owns the value array, required and validation.",
+      "summary": "Labeled stack of Checkbox rows. Owns the value array, required and validation. Size applies to the items you haven't edited. After editing an item, select the items and set their size.",
       "description": "A labeled set for selecting any number — zero to many — from a bounded list of options. A required section label (FieldLabel) above a vertical stack of Checkbox.Row options. Owns the contract a single row cannot: the value array, group-level required, and all validation, announced once for the group. Use for a small bounded multi-select; past roughly 7-10 options a filtering multi-select combobox (not built yet) scans better. Not exactly-one selection (Radio.Group), not a single independent opt-in (a lone Checkbox.Row), not an immediate-effect setting list (a list of Switch.Row).",
       "props": [
         {
@@ -3761,9 +3761,7 @@
           "description": "Disables the whole set — every row and the label dim, driven by the group's context (the field's native disabled is the source of truth). The group has no disabled treatment of its own."
         }
       ],
-      "states": [
-        "rest"
-      ],
+      "states": [],
       "variants": {
         "size": {
           "values": [
@@ -3976,7 +3974,7 @@
           "radio dot",
           "option control"
         ],
-        "generationPriority": 3
+        "generationPriority": 6
       },
       "motion": {
         "enter": "On select, the inner dot scales in with a border-color crossfade on the ring, about 100-150ms. The focus ring appears instantly — a fade lags rapid arrow navigation through the group.",
@@ -4181,7 +4179,7 @@
       ],
       "category": "form",
       "status": "draft",
-      "summary": "Labeled stack of Radio rows. Owns the shared name, one value and validation.",
+      "summary": "Labeled stack of Radio rows. Owns the shared name, one value and validation. Size applies to the items you haven't edited. After editing an item, select the items and set their size.",
       "description": "A labeled set for choosing EXACTLY ONE from a small set of mutually exclusive, all-visible options. A required section label (FieldLabel) above a vertical stack of Radio.Row options. Owns the contract a single radio cannot — and without which the radios are not radios at all: the shared name that enforces exclusivity, the single scalar value, the single tab stop with roving focus, and all validation, announced once for the group. Use for 2 to about 7 options where seeing them all aids the decision; past that, a Select or a filtering combobox (not built yet) scans better. Not any-number selection (Checkbox.Group), not a single independent opt-in (a lone Checkbox.Row), not an immediate-effect setting list (a list of Switch.Row), not the same choice collapsed (Select) or in a compact skin (SegmentedControl).",
       "props": [
         {
@@ -4251,9 +4249,7 @@
           "description": "Disables the whole set — every row and the label dim, driven by the group's context (the native disabled is the source of truth). The group has no disabled treatment of its own."
         }
       ],
-      "states": [
-        "rest"
-      ],
+      "states": [],
       "variants": {
         "size": {
           "values": [
@@ -4477,7 +4473,7 @@
           "switch thumb",
           "toggle handle"
         ],
-        "generationPriority": 3
+        "generationPriority": 6
       },
       "motion": {
         "enter": "none (present on mount)",
@@ -5895,7 +5891,7 @@
           "tab trigger",
           "tab item"
         ],
-        "generationPriority": 3
+        "generationPriority": 9
       },
       "motion": {
         "enter": "None. On selection the underline slides from the previous tab to this one, about 150–200ms.",
@@ -5927,7 +5923,7 @@
       ],
       "category": "navigation",
       "status": "draft",
-      "summary": "A row of tabs that switches between panels of related content in place.",
+      "summary": "A row of tabs that switches between panels of related content in place. Size applies to the items you haven't edited. After editing an item, select the items and set their size.",
       "description": "A row of tabs above a baseline. Each tab names one panel of related content; selecting a tab shows its panel in place and hides the rest, without changing the page or the address. One tab is always selected. Arrow keys move between tabs, and Tab moves on into the panel.",
       "props": [
         {
@@ -6000,9 +5996,7 @@
           "description": "start: the tabs sit at the start of the bar. center: the tabs sit centered in the bar, which spans its container; the baseline spans the full width either way."
         }
       ],
-      "states": [
-        "rest"
-      ],
+      "states": [],
       "variants": {
         "size": {
           "values": [
@@ -6655,7 +6649,7 @@
           "bullet point",
           "list entry"
         ],
-        "generationPriority": 3
+        "generationPriority": 9
       },
       "motion": {
         "enter": "None.",
@@ -6687,7 +6681,7 @@
       ],
       "category": "data",
       "status": "draft",
-      "summary": "Short UI items after a bullet, number or icon. For running text, use a native text list.",
+      "summary": "Short UI items after a bullet, number or icon. For running text, use a native text list. Size applies to the items you haven't edited. After editing an item, select the items and set their size.",
       "description": "A vertical run of short items, each after a bullet, a number or an icon, with the marker, its size and color, the indent and the space between items all bound to tokens. Unordered when the order carries no meaning, ordered when it does (steps, a ranking), and icon for a set of points such as requirements or features. Every item's text starts at one edge and wraps under itself. Use it for lists a designer lays out: password rules, feature lists, icon checklists, steps. For lists inside running text that a writer edits as normal copy, such as an article body, terms or long help text, use a native text list instead.",
       "props": [
         {
@@ -6987,7 +6981,7 @@
       ],
       "category": "form",
       "status": "draft",
-      "summary": "A row of two to five options in one track, where exactly one is selected and all stay visible.",
+      "summary": "A row of two to five options in one track, where exactly one is selected and all stay visible. Size applies to the items you haven't edited. After editing an item, select the items and set their size.",
       "description": "A compact row of two to five short options in one neutral track, where exactly one is always selected and every option stays visible. Selecting an option changes a value in place: a parameter of the current view, such as list or grid, or a form value. The options share the track equally. A visible label, or an accessible name, says what is being chosen.",
       "props": [
         {
@@ -7073,9 +7067,7 @@
           "description": "Disables every option and takes the control out of the Tab order."
         }
       ],
-      "states": [
-        "rest"
-      ],
+      "states": [],
       "variants": {
         "size": {
           "values": [
@@ -7139,7 +7131,7 @@
           "toggle group",
           "list grid toggle"
         ],
-        "generationPriority": 4
+        "generationPriority": 3
       },
       "motion": {
         "enter": "None. On selection the pill moves to the new option, about 150–200ms, or cross-fades.",
@@ -8190,7 +8182,7 @@
           "item count",
           "add to bag quantity"
         ],
-        "generationPriority": 4
+        "generationPriority": 2
       },
       "motion": {
         "enter": "none (present on mount)",

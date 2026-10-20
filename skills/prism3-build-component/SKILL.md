@@ -73,7 +73,7 @@ The brief's sections follow one locked spine, so each lands in a known place:
 | §1 Framing | `description`, and the one-line `summary` |
 | §2 Anatomy and parts | `anatomy` (§2 below) |
 | §3 Properties / API | `props` |
-| §4 States and variants | `states`, `variants`, `axisKinds`. A brief state or axis the def omits is a `contested` entry in `notes` that says so |
+| §4 States and variants | `states`, `variants`, `axisKinds`. A brief state or axis the def omits is a `contested` entry in `notes` that says so. A component with no interaction states of its own, including a container whose states live on its children, declares `states: []`, never `['rest']` (the validator refuses it) |
 | §5 Usage guidance | `docs` (`usage`, `do`, `dont`) |
 | §6 Accessibility | `accessibility` (`role`, `wcag`, `keyboard`, `focus`, `aria`) |
 | §7 Content guidelines | `content` (`labelPattern`, `errorPattern`, `emptyPattern`, `dialogPattern`, `metaphorRules` — a closed key list) and `docs.contentGuidelines` |
@@ -91,8 +91,25 @@ highest-value field, because an agent otherwise uses whatever it finds.
 **Siblings must be distinguishable.** When one file exports several defs (`makeButton` builds
 `button`, `button-destructive` and `button-neutral`), give each its own `ai.triggerKeywords`, an
 `ai.avoidWhen` that names the better-fitting sibling, and an `ai.generationPriority` for the
-tiebreak. `packages/engine/test.ts` pins that the button families' sibling keyword sets differ. The brief sets no
-priority, so the numbers are a judgment call to flag in the PR.
+tiebreak. `packages/engine/test.ts` pins that the button families' sibling keyword sets differ.
+
+**`ai.generationPriority` is a written scale.** Every def carries one, not only siblings. An agent
+choosing between candidates takes the lower number. The brief sets no priority, so pick the tier
+from what the component is:
+
+| Priority | Tier | For example |
+|---|---|---|
+| 1 | The default pick: the one component an agent reaches for when nothing in the prompt narrows the choice | Button |
+| 2 | A top-level component an agent places on its own | Text field, Select, Counter, Button group, Tabs, Dialog, Icon, Button.Neutral |
+| 3 | A top-level component that supports another (a status, a separator, a wait, a wash), or a sibling that loses the tiebreak to its family's 2 | Badge, Divider, Spinner, IconButton.Destructive, Segmented control |
+| 4–5 | A specialization of a top-level component for a narrower place | the three flush icon buttons |
+| 6 | A part a host nests, placed alone only in the case its `whenToUse` names | the three controls, Field label, Field message, Focus ring |
+| 9 | A part never generated alone: the agent generates its host instead | Tab, List item, the segment, the accordion indicator |
+
+7 and 8 are unused. A def at 6 or 9 must be nested by a registered host. `packages/engine/test.ts`
+(`#2713 generationPriority`) holds every def to its listed tier, so a new def adds itself to that
+list, and a number off the scale or a 6 or 9 with no host fails by name. Flag a new def's tier in
+the PR.
 
 ### What ships, and who reads it
 
@@ -111,8 +128,12 @@ characters, at most 100, one line, ending in a period (validated).
 **Every other field ships, and is written for people.** `packages/engine/regen.ts` projects each
 def's documentation fields — identity, `summary`, `description`, `props`, `states`, `variants`,
 `accessibility`, `content`, `docs`, `motion`, `composition` and `ai` — into
-`out/components/components.ai.json` and a page per component, `out/components/<id>.md`, which leaves
-out only the agent-only `ai.triggerKeywords` and `ai.generationPriority`. Everything but the two
+`out/components/components.ai.json` and a page per component, `out/components/<id>.md`. The page
+draws the sections of the doc section model (`packages/engine/component-doc-sections.ts`) and leaves
+out only the agent-only `ai.triggerKeywords` and `ai.generationPriority` and the planned components
+that are not built yet. A part's `note` is its caption in the page's Anatomy section, unless the note
+cites an issue, a doc path or a section sign, carries a code span, or names a tool: such a note is held
+back and listed in the maintainer record's `docGaps` until it is rewritten. Everything but the two
 maintainer channels, a part's `note` included, is also in the plugin bundle a designer imports. So in a shipped field:
 
 - no "brief §N" and no "per the KB" — state the behavior, not where it came from;
@@ -206,11 +227,12 @@ brief's code-tier rules (§9 i18n, §11 implementation) that have no other field
 maintainer-only.
 
 **The `admits()` trap.** `codeOnly` is also how a def admits an axis or state it does not project:
-an entry that leads with the name (`pending — why Figma cannot carry it`) licenses dropping `pending`
-from the Figma state axis. So an entry that merely opens with an axis or state name — a note about a
+an entry that leads with the name licenses dropping `pending` from the Figma state axis. Every
+admission uses one template, `pending — not projected: <why Figma cannot carry it>. <what the code
+does>`, and `packages/engine/test.ts` (`#2711 codeOnly admissions`) refuses any other phrasing. So an entry that merely opens with an axis or state name — a note about a
 state you do project — silently permits that state to vanish from Figma with every gate green (#867).
 Lead such entries with something else (`the spinner swap —`, `RTL —`). Both #1697 and #1699 retired
-an instance of this.
+an instance of this, and the same test now refuses an entry that leads with a name the set projects.
 
 ## 3. Nesting — how a part points at another component
 

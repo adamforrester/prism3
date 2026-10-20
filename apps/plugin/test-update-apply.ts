@@ -28,6 +28,16 @@
  *                  Mutation: the font preflight dropped → `fonts/refused`.
  *   replace/…      a child whose type changed is the one node replaced. Mutation: the old child not removed →
  *                  `replace/verdict`.
+ *   published/…    on a set in a team library (#2831), what an update breaks for consumer files is listed in its own
+ *                  section, in the headline and at the confirm: drops, layer replacements, property removals and
+ *                  retypes, and a rename to a `_` or `.` name; on a set not published, nothing changes. Mutations, each
+ *                  failing the arm it names: the publish test always true → `published/unpublished no-op`; each
+ *                  `breakingOf` arm dropped → `published/drop`, `/replace`, `/property removed`, `/retype`,
+ *                  `/private rename`; the status not read → `published/status`; the status out of the hash →
+ *                  `published/hash`; the apply's section dropped → `published/confirm`; the blocked-set guard dropped →
+ *                  `published/blocked`; the member-itself exclusion dropped → `published/member replaced`;
+ *                  `readSingleView` carrying no status → `published/single`; `breakingSection`'s per-set cap dropped →
+ *                  `published/cap`.
  *   property/…     a default the plan changed is edited in place, keeping the property's id.
  *   rename/…       a declared value rename and an added axis rename members in place, keeping keys.
  *   skip/…         an unstamped member, one with no record and one with a layer added by hand are untouched.
@@ -139,6 +149,12 @@
  *                  stops dropped from the draw check → `veil/dry run`, `veil/repaired`, `veil/verify`; verify's draw check dropped → `veil/verify`.
  *                  Stops at their color but 100% alpha read "to update" and fail verify; the alpha comparison dropped from
  *                  the draw check's gradient branch → `veil/alpha dry run`, `veil/alpha verify`.
+ *   <group>/…      Checkbox group, Radio group and Segmented control, each built with its FieldLabel `nest-fixed` (as
+ *                  before #2748), update in place to the `nest-exposed` label (owner Q348 A): every key and id kept,
+ *                  each label an exposed instance, still the secondary, bold member at its group's size, then
+ *                  current. FieldLabel's real set is in the file, so the coordinate is read off the host. Mutations:
+ *                  the in-place branch's expose pass skipped → `<group>/exposed`; a group label's starting weight
+ *                  moved to regular → `<group>/bold kept`.
  *   stepdown/…     Segmented control, Tab and Tag, built while their glyph sat on the 1:1 rung (20 / 24 / 32), update in
  *                  place to the rung below (16 / 20 / 24, owner Q337 A, #2725): every glyph rebound and resized, every
  *                  key and id kept, current after. The expected names and px are typed here from the decision.
@@ -176,7 +192,7 @@ import { NS } from './src/persist-figma';
 import { materializeForBrand } from './src/brand-def';
 import { BASELINE_KEY } from './src/member-baseline';
 import { makeShim, STYLE_FONT, type Node, type Page } from './component-shim';
-import { adoptMembers, captureBaselines, previewLine, previewUpdate, previewVerdict, type UpdateHost, type UpdateTarget } from './src/update-plan';
+import { adoptMembers, breakingLine, breakingOf, breakingSection, captureBaselines, dryRunSet, hostPorts, previewLine, previewUpdate, previewVerdict, readSetView, readSingleView, type UpdateHost, type UpdateTarget } from './src/update-plan';
 import { drawnFaults, faultLine, varsById } from './src/drawn';
 import { BASELINE_V, baselineOf, resetStyleNames, snapshotMember } from './src/member-baseline';
 import { applyUpdate, applyVerdict, previewHashOf, namesMember, DEPRECATED_PREFIX, RETAINED_KEY, nestedFirst, type ApplyHost } from './src/update-apply';
@@ -3143,6 +3159,46 @@ section('stretched mode — an axis the parent stretches: the verify and the dry
     `stretch/lost: an indicator the host no longer stretches is listed by the dry run and named by the verify (${JSON.stringify(thirdModes)}; ${JSON.stringify(third.res.outcomes[0].content.slice(0, 4))})`);
 }
 
+section('group labels — a group built with its FieldLabel fixed exposes emphasis and weight in place, bold kept (#2748, owner Q348 A)');
+for (const G of ['checkbox-group', 'radio-group', 'segmented-control']) {
+  // THE FILE AS A BUILD AT MAIN BEFORE #2748 LEFT IT: the label nested `nest-fixed` at the same coordinate, nothing
+  // exposed. Reconstructed from today's def by putting that one fact back, so both sides are the real def's projection.
+  const now = componentDefs.find((x) => x.id === G)!;
+  const label = now.anatomy.parts.label;
+  const nesting = label.nesting as { kind: string; variant: Record<string, string>; follow?: readonly string[] };
+  const before2748 = { ...now, anatomy: { ...now.anatomy, parts: { ...now.anatomy.parts, label: { ...label, nesting: { kind: 'nest-fixed', variant: nesting.variant, follow: nesting.follow } } } } } as typeof now;
+  const oldPlans = figmaAnatomySet(before2748, { swapTarget: SWAP_TARGET });
+  const newPlans = plansOf(G);
+  // FieldLabel's real set in the file, so each label instances a MEMBER and its coordinate is readable off the host.
+  const w = await world(G, oldPlans, { fileSets: [{ name: 'field-label', variants: plansOf('field-label').map(planComponentName) }] });
+  const labelOf = (m: Node): Node => childNamed(m, 'label');
+  const n = membersOf(w.set()).length;
+  ok(n === 3 && membersOf(w.set()).every((m) => labelOf(m)?.isExposedInstance === false),
+    `${G}/premise: the file holds ${n} members built before #2748, each nested label not exposed`);
+  const before = identityOf(w.set());
+  const labelIds = new Map(membersOf(w.set()).map((m) => [String(m.name), String(labelOf(m).id)] as const));
+  const { pre, res } = await confirm(w, [{ def: G, plans: newPlans }]);
+  const p = pre.sets[0];
+  ok(p.counts.update === 3 && p.counts.add === 0 && p.counts.drop === 0 && !p.blockers.length && !p.replacements.length,
+    `${G}/dry run: all 3 members read update, none added, dropped or replaced, nothing refused (${JSON.stringify(p.counts)}, ${p.blockers.join('; ') || 'no blockers'})`);
+  const v = applyVerdict(res);
+  ok(v.ok, `${G}/verdict: ${v.headline} (${v.lines.slice(0, 2).join(' | ').slice(0, 240)})`);
+  const after = identityOf(w.set());
+  const moved = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || after.members.get(name)?.id !== b.id).map(([x]) => x);
+  ok(JSON.stringify(after.set) === JSON.stringify(before.set) && moved.length === 0 && after.members.size === 3,
+    `${G}/kept: the set and all 3 members keep their keys and ids (${moved.join('; ') || 'none moved'})`);
+  const lost = [...before.members].filter(([name, b]) => [...b.kids].some(([path, id]) => after.members.get(name)?.kids.get(path) !== id)).map(([x]) => x);
+  ok(lost.length === 0 && membersOf(w.set()).every((m) => String(labelOf(m).id) === labelIds.get(String(m.name))),
+    `${G}/ids: every node under every member, the nested label included, keeps its id (${lost.join('; ') || 'all kept'})`);
+  // The exposure and the look, read off the shim's nodes. The weight is typed here from Q348 A: bold stays.
+  const read = membersOf(w.set()).map((m) => ({ m: String(m.name), exposed: labelOf(m).isExposedInstance, main: String((labelOf(m).mainComponent as { name?: string } | undefined)?.name) }));
+  ok(read.every((x) => x.exposed === true), `${G}/exposed: every member's nested label is now an exposed instance (${read.filter((x) => x.exposed !== true).map((x) => x.m).join('; ') || 'all 3'})`);
+  ok(read.every((x) => /emphasis=secondary/.test(x.main) && /weight=bold/.test(x.main) && x.main.includes(`size=${/size=(\w+)/.exec(x.m)?.[1]}`)),
+    `${G}/bold kept: every label still instances the secondary, bold member at its group's size (${[...new Set(read.map((x) => x.main))].join(' | ')})`);
+  const post = (await previewUpdate(w.host, [{ def: G, plans: newPlans }])).sets[0];
+  ok(post.counts.current === 3 && post.handEdits.length === 0, `${G}/current: the next dry run reads all 3 current (${JSON.stringify(post.counts)})`);
+}
+
 /* ── segmented control (#2724) ───────────────────────────────────────────────────────────────────────── */
 section('segmented control — sets built with the tinted, outlined look (#2418) take the flat pill and the filled track in place (#2724, owner Q336 A, Q342 A)');
 {
@@ -3341,6 +3397,139 @@ for (const [D, gained] of [['checkbox-row', ['disabled']], ['radio-row', ['disab
     `${D}/dry run: every member reads current (${JSON.stringify(p.counts)})`);
   ok(applyVerdict(res).headline === '✓ already up to date' && w.api._versions.length === 0 && dump() === was,
     `${D}/nothing written: no version, every member's id, key, stamp and record as built (${applyVerdict(res).headline})`);
+}
+
+/* ── published ───────────────────────────────────────────────────────────────────────────────────────── */
+section('published — on a set in a team library, what breaks consumer files is listed on its own, and named at the confirm (#2831)');
+{
+  // One plan change carrying every breaking class a plan can: the members at state=rest dropped, and the leading icon
+  // turned into a plain frame, which replaces that layer on every member and removes its swap property.
+  const breakingPlans = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.filter((p) => !planComponentName(p).includes('state=rest')).map((p) => {
+    const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
+    const lv = planChild(planChild(q.root, 'content'), 'leadingVisual') as unknown as Record<string, unknown>;
+    lv.type = 'FRAME';
+    for (const k of ['swapTarget', 'propertyRef', 'descendantFills']) delete lv[k];
+    return q;
+  });
+  const HEAD = /^Breaks library consumers: /;
+  const SWAP = '↳ swap leading icon';
+
+  // NOTHING CHANGES FOR AN UNPUBLISHED SET.
+  {
+    const w = await world(TAG);
+    const status = await (w.set().getPublishStatusAsync as () => Promise<string>)();
+    ok(status === 'UNPUBLISHED', `premise: a set never published answers UNPUBLISHED (${status})`);
+    const next = breakingPlans(w.plans);
+    const { pre, res } = await confirm(w, [{ def: TAG, plans: next }]);
+    const p = pre.sets[0];
+    ok(p.drops.length > 0 && p.replacements.length > 0 && p.properties.remove.length > 0, `premise: the plan drops, replaces and removes a property (${p.drops.length}, ${p.replacements.length}, ${p.properties.remove.length})`);
+    const v = previewVerdict(pre);
+    const a = applyVerdict(res);
+    ok(p.publish === undefined && p.breaking === undefined && !v.lines.some((l) => HEAD.test(l)) && !/library consumers/.test(v.headline)
+      && !a.lines.some((l) => HEAD.test(l)) && !/library consumers/.test(a.headline) && res.outcomes[0]?.breaking === undefined,
+      `published/unpublished no-op: no publish status, no breaking list, no section and no headline clause in the check or the confirm (${v.headline} | ${a.headline})`);
+  }
+
+  // A PUBLISHED SET: every class listed by name, in its own section, in the headline, and at the confirm.
+  {
+    const w = await world(TAG);
+    (w.api.publish as (n: Node, s: string) => void)(w.set(), 'CURRENT');
+    const next = breakingPlans(w.plans);
+    const dropped = w.plans.filter((p) => planComponentName(p).includes('state=rest')).map(planComponentName);
+    const { pre, res } = await confirm(w, [{ def: TAG, plans: next }]);
+    const p = pre.sets[0];
+    const b = p.breaking ?? [];
+    ok(p.publish === 'CURRENT', `published/status: the check reads the set's publish status (${p.publish})`);
+    ok(dropped.length > 0 && dropped.every((m) => b.some((x) => x.kind === 'drop' && x.member === m)),
+      `published/drop: each of the ${dropped.length} dropped members is listed as breaking, by name (${b.filter((x) => x.kind === 'drop').length})`);
+    const reps = b.filter((x) => x.kind === 'replace' && x.path === 'content/leadingVisual');
+    ok(reps.length === next.length, `published/replace: the leading icon's replacement is listed on each of the ${next.length} members kept (${reps.length})`);
+    ok(b.some((x) => x.kind === 'property' && x.name === SWAP && x.change === 'removed'), `published/property removed: the swap property's removal is listed (${JSON.stringify(b.filter((x) => x.kind === 'property'))})`);
+    const v = previewVerdict(pre);
+    const head = v.lines.find((l) => HEAD.test(l)) ?? '';
+    ok(head === `Breaks library consumers: ${b.length} changes in 1 published set, passed on at the next library publish.`
+      && v.lines.includes(`${TAG} · property ${SWAP} · removed — consumer overrides of it are dropped.`)
+      && v.lines.includes(`${TAG} · ${dropped[0]} · dropped — consumer instances of it point at a deprecated member.`),
+      `published/section: the check's own section heads the breaking changes and names them (${head})`);
+    ok(v.headline.endsWith(` · ${b.length} changes break library consumers`), `published/headline: the check's headline counts them (${v.headline})`);
+    const a = applyVerdict(res);
+    ok(res.outcomes[0]?.breaking?.length === b.length && a.lines.includes(`Breaks library consumers: ${b.length} changes made in 1 published set, passed on at the next library publish.`)
+      && a.lines.includes(`${TAG} · ${dropped[0]} · dropped — consumer instances of it point at a deprecated member.`) && a.headline.endsWith(` · ${b.length} changes break library consumers`),
+      `published/confirm: the confirm names what it broke (${a.headline} | ${a.lines.find((l) => HEAD.test(l))})`);
+  }
+
+  // CHANGED is published too; a retyped property and a rename to a private name are breaking; between private names not.
+  {
+    const w = await world(TAG);
+    (w.api.publish as (n: Node, s: string) => void)(w.set(), 'CHANGED');
+    const view = await readSetView(w.set() as never);
+    ok(view.publish === 'CHANGED', `published/changed: the view reads CHANGED (${view.publish})`);
+    const ports = await hostPorts(w.host as unknown as UpdateHost);
+    const defs = { ...view.definitions! };
+    const label = Object.keys(defs).find((k) => k.startsWith('label#'))!;
+    defs[label] = { ...defs[label], type: 'BOOLEAN' };
+    const p = dryRunSet(TAG, w.plans, { ...view, definitions: defs }, ports);
+    const b = breakingOf(p);
+    ok(b.some((x) => x.kind === 'property' && x.name === 'label' && x.change === 'retyped' && x.from === 'BOOLEAN' && x.to === 'TEXT'),
+      `published/retype: a property the plan retypes is listed (${JSON.stringify(b)})`);
+    const priv = breakingOf({ ...p, setRename: { from: TAG, to: `_${TAG}` } }).filter((x) => x.kind === 'private');
+    const dot = breakingOf({ ...p, setRename: { from: TAG, to: `.${TAG}` } }).filter((x) => x.kind === 'private');
+    const both = breakingOf({ ...p, setRename: { from: `_${TAG}`, to: `_${TAG}-item` } }).filter((x) => x.kind === 'private');
+    ok(priv.length === 1 && dot.length === 1 && both.length === 0
+      && breakingLine(TAG, priv[0]) === `${TAG} · renamed ${TAG} → _${TAG} — a name starting with _ or . is not published, so the set leaves the library.`,
+      `published/private rename: a rename to a _ or . name is listed, one between two such names is not (${priv.length}, ${dot.length}, ${both.length})`);
+    const quiet = breakingOf({ ...p, publish: undefined, setRename: { from: TAG, to: `_${TAG}` } });
+    ok(quiet.length === 0, `published/unpublished rename: on a set not published, the same rename and retype list nothing (${quiet.length})`);
+    // A set the update refuses changes nothing, so nothing on it breaks, however much its plan would.
+    const refused = breakingOf({ ...p, blockers: ['the set is refused'] });
+    ok(b.length > 0 && refused.length === 0, `published/blocked: a published set the update refuses lists nothing as breaking (${b.length} → ${refused.length})`);
+    // A replacement of the member itself is refused for that member, so it is not a change consumers get.
+    const self = breakingOf({ ...p, replacements: [{ member: 'size=small', path: '.', reason: 'the member itself' }, { member: 'size=small', path: 'content/label', reason: 'a layer' }] })
+      .filter((x) => x.kind === 'replace');
+    ok(self.length === 1 && self[0].kind === 'replace' && self[0].path === 'content/label',
+      `published/member replaced: a replacement of the member itself (path .) is not listed, one of a layer is (${JSON.stringify(self)})`);
+    // THE PER-SET CAP (Q435 A, the copy as built): at most 8 lines per set, then one overflow line counting the rest. The
+    // 8 and the wording are literals typed from the approved copy, never read off `DIFFERENCE_LINES` or `breakingSection`.
+    const many = Array.from({ length: 11 }, (_, i) => ({ kind: 'drop' as const, member: `size=s${i}` }));
+    const few = [{ kind: 'drop' as const, member: 'size=a' }, { kind: 'drop' as const, member: 'size=b' }];
+    const capped = breakingSection([{ set: TAG, breaking: many }, { set: 'other', breaking: few }], false);
+    const wantCap = [
+      'Breaks library consumers: 13 changes in 2 published sets, passed on at the next library publish.',
+      ...many.slice(0, 8).map((d) => `${TAG} · ${d.member} · dropped — consumer instances of it point at a deprecated member.`),
+      `${TAG}: 3 more breaking changes not listed.`,
+      ...few.map((d) => `other · ${d.member} · dropped — consumer instances of it point at a deprecated member.`),
+    ];
+    ok(JSON.stringify(capped) === JSON.stringify(wantCap),
+      `published/cap: each set lists at most 8 breaking changes, then "N more breaking changes not listed." (${capped.length} lines: ${JSON.stringify(capped.slice(9))})`);
+  }
+
+  // A SINGLE-COMPONENT DEF (the icons, #2296): each component is published on its own, and the def reads as its most
+  // published one, CHANGED over CURRENT. The icon set is exactly what a library publish ships (#2831).
+  {
+    const plans = plansOf('icon');
+    const w = await singleWorld(plans);
+    const t = { def: 'icon', plans, single: true };
+    const read = async () => (await readSingleView(w.host as unknown as UpdateHost, t)).view.publish;
+    const none = await read();
+    const [one, two] = w.comps();
+    (w.api.publish as (n: Node, s: string) => void)(one, 'CURRENT');
+    const current = await read();
+    (w.api.publish as (n: Node, s: string) => void)(two, 'CHANGED');
+    const changed = await read();
+    const p = (await previewUpdate(w.host, [t])).sets[0];
+    ok(none === 'UNPUBLISHED' && current === 'CURRENT' && changed === 'CHANGED' && p?.publish === 'CHANGED',
+      `published/single: a single-component def reads its components' status, CHANGED over CURRENT (${none}, ${current}, ${changed}, check ${p?.publish})`);
+  }
+
+  // PUBLISHED BETWEEN THE CHECK AND THE CONFIRM: the confirm is refused, so it never breaks what the check did not name.
+  {
+    const w = await world(TAG);
+    const next = breakingPlans(w.plans);
+    const pre = await previewUpdate(w.host, [{ def: TAG, plans: next }]);
+    (w.api.publish as (n: Node, s: string) => void)(w.set(), 'CURRENT');
+    const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: next }], previewHashOf(pre));
+    ok(!!res.refusedAll && res.outcomes.length === 0, `published/hash: a set published after the check refuses the confirm (${res.refusedAll ?? 'applied'})`);
+  }
 }
 
 void STYLE_FONT; void BASELINE_KEY;
