@@ -8573,7 +8573,7 @@
           "pin input",
           "2fa code"
         ],
-        "generationPriority": 3
+        "generationPriority": 2
       },
       "motion": {
         "enter": "none (present on mount)",

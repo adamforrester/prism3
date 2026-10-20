@@ -14672,7 +14672,7 @@ arm: {
         if (under.length !== 28) off.push(`${under.length} members`);
         for (const p of under) {
           const st = String(p.coord.state), at = `${p.size}/${st}`;
-          const c = find(p.root, 'cell'), b = c?.bound ?? {};
+          const c = find(p.root, 'container'), b = c?.bound ?? {};
           const wantLine = FOCUS.includes(st) ? 'border-width/thick' : 'border-width/hairline';
           if (b.strokeBottomWeight !== wantLine || b.strokeTopWeight !== 'border-width/none' || b.strokeLeftWeight !== 'border-width/none' || b.strokeRightWeight !== 'border-width/none' || 'strokeWeight' in b)
             off.push(`${at} line ${b.strokeTopWeight}/${b.strokeRightWeight}/${b.strokeBottomWeight}/${b.strokeLeftWeight}`);
@@ -16842,12 +16842,12 @@ arm: {
     const TIER: Record<string, number> = {
       button: 1,
       'button-destructive': 2, 'button-neutral': 2, 'icon-button': 2, 'icon-button-neutral': 2, icon: 2,
-      'text-field': 2, textarea: 2, 'password-field': 2, select: 2, 'checkbox-row': 2, 'checkbox-group': 2,
+      'text-field': 2, textarea: 2, 'password-field': 2, 'code-input': 2, select: 2, 'checkbox-row': 2, 'checkbox-group': 2,
       'radio-row': 2, 'radio-group': 2, 'switch-row': 2, counter: 2, 'button-group': 2, tabs: 2, accordion: 2, list: 2, link: 2, dialog: 2,
       'icon-button-destructive': 3, 'segmented-control': 3, badge: 3, tag: 3, divider: 3, spinner: 3, veil: 3, 'image-placeholder': 3,
       'flush-icon-button-neutral': 4, 'flush-icon-button': 5, 'flush-icon-button-destructive': 5,
       'checkbox-control': 6, 'radio-control': 6, 'switch-control': 6, 'field-label': 6, 'field-message': 6, 'focus-ring': 6,
-      tab: 9, 'list-item': 9, 'segmented-control-segment': 9, '_accordion-indicator': 9,
+      tab: 9, 'list-item': 9, 'segmented-control-segment': 9, '_accordion-indicator': 9, 'code-input-cell': 9,
     };
     const prio = (d: ComponentDef) => d.ai.generationPriority;
     const offScale = componentDefs.filter((d) => !SCALE.includes(prio(d) as number));
@@ -24475,7 +24475,7 @@ arm: {
       'icon-button:inactive', 'icon-button-destructive:inactive', 'icon-button-neutral:inactive',
       'icon:tone', 'focus-ring:offset', 'tag:read-only',
       'text-field:style', 'text-field:pending', 'text-field:empty', 'password-field:style', 'password-field:pending', 'password-field:empty',
-      'textarea:style', 'textarea:pending', 'textarea:empty', 'select:pending', 'select:empty',
+      'textarea:style', 'textarea:pending', 'textarea:empty', 'select:pending', 'select:empty', 'code-input:pending',
       'checkbox-row:read-only', 'radio-row:read-only', 'switch-row:read-only', 'switch-row:pending',
     ];
     ok(JSON.stringify([...found].sort()) === JSON.stringify([...EXPECTED_ADMISSIONS].sort()),
@@ -32153,10 +32153,13 @@ arm: {
   ok(caretOff.length === 0,
     `#2428 code-input: the caret on the active empty cell is as tall as the character, 16 / 20 / 24 / 40px (off: ${caretOff.join('; ') || 'none'})`);
   // (3c) THE ONE INPUT carries no native maxlength: the browser cuts a pasted "123-456" to the limit before any handler
-  // strips the hyphen, so a valid code would read as incomplete (review of #2789, S1).
-  const oneInput = (fieldDef.anatomy.codeOnly ?? []).find((l) => l.startsWith('ONE INPUT'));
-  ok(!!oneInput && !/maxlength/i.test(oneInput.replace(/The input carries no native `maxlength`[^.]*\./, '')),
-    '#2428 code-input: the one input in the code contract carries no native maxlength, so a pasted code with separators is not cut before it is normalized');
+  // strips the hyphen, so a valid code would read as incomplete (review of #2789, S1). Every line of the contract is read,
+  // not only ONE INPUT's, so a maxlength written into any other entry is caught; the one sentence saying there is none is
+  // the only exemption.
+  const codeOnlyLines = fieldDef.anatomy.codeOnly ?? [];
+  const withMaxlength = codeOnlyLines.filter((l) => /maxlength/i.test(l.replace(/The input carries no native `maxlength`[^.]*\./, '')));
+  ok(codeOnlyLines.some((l) => l.startsWith('ONE INPUT')) && withMaxlength.length === 0,
+    `#2428 code-input: the one input in the code contract carries no native maxlength, so a pasted code with separators is not cut before it is normalized (off: ${withMaxlength.map((l) => l.split(' — ')[0]).join('; ') || 'none'})`);
   // (3b) OPTICAL CENTERING (owner QA on #2428, 2026-10-16; option A on #2789): every character's text box is trimmed to the
   // cap height and the baseline, centered on both axes in a `content` frame with no padding that fills the cell. A centered
   // LINE box is not enough: it leaves the figure off center by the font's own metrics. And no other def's text is trimmed,

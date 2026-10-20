@@ -2443,7 +2443,7 @@ export const FIELD_FRAME_PARTS: Readonly<Record<string, string>> = {
   textarea: 'control',
   // #2719 (Q332 A names Code input a field; Q12 A on #2695): each cell is a field box, so each draws its own line.
   // The row's gaps belong to `code-input`, which binds no field chrome and stays as authored.
-  'code-input-cell': 'cell',
+  'code-input-cell': 'container',
 };
 
 /**

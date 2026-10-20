@@ -25,7 +25,7 @@ Type: dimension. Bound by 19 component(s).
 | button-destructive | `border-width` | container | every member (576 of 576) |
 | button-neutral | `border-width` | container | every member (576 of 576) |
 | code-input-cell | `border-width`, `caret-width` | caret | state: focus-visible (4 of 28) |
-|  |  | cell | every member (28 of 28) |
+|  |  | container | every member (28 of 28) |
 | counter | `border-width` | control | every member (18 of 18) |
 | divider | `horizontal.height`, `vertical.width` | divider | every member (5 of 5) |
 | flush-icon-button | `border-width` | container | every member (30 of 30) |
@@ -93,7 +93,7 @@ Type: color. Bound by 8 component(s).
 |---|---|---|---|
 | badge | `danger.status.subtle.border` | surface | emphasis: subtle · tone: danger · type: status (1 of 20) |
 | checkbox-control | `checked.border.error`, `indeterminate.border.error`, `unchecked.border.error` | control | state: error (9 of 54) |
-| code-input-cell | `border.error` | cell | state: error (4 of 28) |
+| code-input-cell | `border.error` | container | state: error (4 of 28) |
 | password-field | `error.border.empty`, `error.border.filled`, `error.border.focus-visible`, `error.border.focus-visible-filled`, `error.border.hover`, `error.border.read-only`, `error.border.rest` | control | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest · status: error (18 of 84) |
 | select | `error.border.empty`, `error.border.filled`, `error.border.focus-visible`, `error.border.focus-visible-filled`, `error.border.hover`, `error.border.read-only`, `error.border.rest` | control | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest · status: error (18 of 84) |
 | switch-control | `off.border.error`, `on.border.error` | track | state: error (4 of 24) |
@@ -110,7 +110,7 @@ Type: color. Bound by 18 component(s).
 | button-destructive | `focus-ring` | (not drawn) | — |
 | button-neutral | `focus-ring` | (not drawn) | — |
 | checkbox-control | `focus-ring` | (not drawn) | — |
-| code-input-cell | `border.focus-visible`, `border.focus-visible-filled` | cell | state: focus-visible, focus-visible-filled (8 of 28) |
+| code-input-cell | `border.focus-visible`, `border.focus-visible-filled` | container | state: focus-visible, focus-visible-filled (8 of 28) |
 | focus-ring | `border` | ring | surface: default (1 of 2) |
 | icon-button | `focus-ring` | (not drawn) | — |
 | icon-button-destructive | `focus-ring` | (not drawn) | — |
@@ -196,7 +196,7 @@ Type: color. Bound by 20 component(s).
 | button-destructive | `disabled.border` | container | appearance: outline · inset: default · state: disabled · surface: default (12 of 576) |
 | button-neutral | `disabled.border` | container | appearance: outline · inset: default · state: disabled · surface: default (12 of 576) |
 | checkbox-control | `disabled.border` | control | selection: unchecked · state: disabled (3 of 54) |
-| code-input-cell | `disabled.border` | cell | state: disabled (4 of 28) |
+| code-input-cell | `disabled.border` | container | state: disabled (4 of 28) |
 | counter | `disabled.border` | control | appearance: outline · state: disabled (3 of 18) |
 | flush-icon-button | `disabled.border` | container | shape: round · state: disabled (3 of 30) |
 | flush-icon-button-destructive | `disabled.border` | container | shape: round · state: disabled (3 of 30) |
@@ -225,7 +225,7 @@ Type: color. Bound by 14 component(s).
 | button-destructive | `disabled.fill` | container | appearance: filled · inset: default · state: disabled · surface: default (12 of 576) |
 | button-neutral | `disabled.fill` | container | appearance: filled · inset: default · state: disabled · surface: default (12 of 576) |
 | checkbox-control | `disabled.fill` | control | selection: checked, indeterminate · state: disabled (6 of 54) |
-| code-input-cell | `disabled.fill` | cell | state: disabled (4 of 28) |
+| code-input-cell | `disabled.fill` | container | state: disabled (4 of 28) |
 | icon-button | `disabled.fill` | container | appearance: filled · state: disabled · surface: default (6 of 216) |
 | icon-button-destructive | `disabled.fill` | container | appearance: filled · state: disabled · surface: default (6 of 216) |
 | icon-button-neutral | `disabled.fill` | container | appearance: filled · state: disabled · surface: default (6 of 216) |
@@ -317,7 +317,7 @@ Type: color. Bound by 7 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | checkbox-control | `unchecked.border.hover` | control | selection: unchecked · state: hover (3 of 54) |
-| code-input-cell | `border.hover` | cell | state: hover (4 of 28) |
+| code-input-cell | `border.hover` | container | state: hover (4 of 28) |
 | password-field | `border.hover` | control | state: hover · status: default (3 of 84) |
 | radio-control | `unchecked.border.hover` | control | selection: unchecked · state: hover (3 of 30) |
 | select | `border.hover` | control | state: hover · status: default (3 of 84) |
@@ -331,7 +331,7 @@ Type: color. Bound by 8 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | checkbox-control | `unchecked.border` | control | selection: unchecked · state: focus-visible, pressed, rest (9 of 54) |
-| code-input-cell | `border` | cell | state: filled, rest (8 of 28) |
+| code-input-cell | `border` | container | state: filled, rest (8 of 28) |
 | counter | `outline.border` | control | appearance: outline · state: focus-visible, rest (6 of 18) |
 | password-field | `border`, `border.read-only` | control | state: filled, read-only, rest · status: default (9 of 84) |
 | radio-control | `unchecked.border` | control | selection: unchecked · state: focus-visible, pressed, rest (9 of 30) |
@@ -345,7 +345,7 @@ Type: color. Bound by 6 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| code-input-cell | `fill` | cell | state: error, filled, focus-visible, focus-visible-filled, rest (20 of 28) |
+| code-input-cell | `fill` | container | state: error, filled, focus-visible, focus-visible-filled, rest (20 of 28) |
 | counter | `outline.fill` | control | appearance: outline · state: focus-visible, rest (6 of 18) |
 | password-field | `fill` | control | state: filled, focus-visible, focus-visible-filled, read-only, rest (60 of 84) |
 | select | `fill` | control | state: filled, focus-visible, focus-visible-filled, read-only, rest (60 of 84) |
@@ -823,7 +823,7 @@ Type: color. Bound by 10 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | button-neutral | `outline.overlay.hover` | container | appearance: outline · inset: default · state: hover · surface: default (12 of 576) |
-| code-input-cell | `overlay.hover` | cell | state: hover (4 of 28) |
+| code-input-cell | `overlay.hover` | container | state: hover (4 of 28) |
 | flush-icon-button-neutral | `round.overlay.hover` | container | shape: round · state: hover (3 of 30) |
 | icon-button-neutral | `ghost.overlay.hover`, `outline.overlay.hover` | container | appearance: ghost, outline · state: hover · surface: default (12 of 216) |
 | password-field | `overlay.hover` | control | state: hover (12 of 84) |
@@ -2330,7 +2330,7 @@ Type: dimension. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| code-input-cell | `size.xlarge.radius` | cell | size: xlarge (7 of 28) |
+| code-input-cell | `size.xlarge.radius` | container | size: xlarge (7 of 28) |
 
 ### `radius.md`
 
@@ -2384,7 +2384,7 @@ Type: dimension. Bound by 8 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `status.radius` | surface | type: status (10 of 20) |
-| code-input-cell | `size.large.radius`, `size.medium.radius`, `size.small.radius` | cell | size: large, medium, small (21 of 28) |
+| code-input-cell | `size.large.radius`, `size.medium.radius`, `size.small.radius` | container | size: large, medium, small (21 of 28) |
 | counter | `radius` | control | every member (18 of 18) |
 | password-field | `radius` | control | every member (84 of 84) |
 | segmented-control-segment | `indicator-radius` | indicator | every member (30 of 30) |

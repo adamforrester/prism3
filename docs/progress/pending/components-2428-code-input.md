@@ -27,6 +27,10 @@ Built on #2660's items-slot pattern (merged), with current `main` merged in.
   `atState` on main in #2693): a fresh insert's picture of that
   state. A placed field's cells stay the designer's (Q329's accepted trade-off). Status has no nested mechanism, so an
   error member's default cells are not in error.
+- **The cell's root part is `container`.** #2763's `lint-naming` names a root for its role; `cell` was the def's own
+  noun. `container` is Text field's root name for the same bordered box.
+- **Generation priority (#2713's scale).** Code input is 2, a top-level component an agent places on its own; the
+  cell is 9, a part never generated alone. Its `pending` admission reads `pending — not projected: …` (#2711).
 - **Active is spelled `focus-visible`.** The closed state vocabulary has no `active`; Text field's names for the same
   ring and caret are used, and the rename is held for the owner.
 
@@ -37,7 +41,7 @@ Built on #2660's items-slot pattern (merged), with current `main` merged in.
   keyed set, as the real build does.
 - **Field style (#2719's Code input half, built here).** Q332 A names Code input a field and #2695's Q12 A sets its
   underline: one bottom line per cell, gaps unchanged, the 2px focus line and the 2px ring offset on the active cell,
-  `border.danger` in error. The cell joins `FIELD_FRAME_PARTS` (`cell`); `applyFieldStyle` now squares a per-size corner
+  `border.danger` in error. The cell joins `FIELD_FRAME_PARTS` (`container`); `applyFieldStyle` now squares a per-size corner
   key (`size.{size}.radius`) rather than writing the template as a key. The field def binds no field chrome, so it and
   its gaps stay as authored. `test.ts` holds the cell's underline per state at every size (`#2719 code-input`).
 
