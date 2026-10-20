@@ -32433,13 +32433,13 @@ arm: {
   ok(scrimIn.length === 0 && plans.every((p) => (p.root as DN).paints?.fills === 'color/foreground/primary' && (p.root as DN).effectStyle === 'shadow/xl'),
     `#2609 dialog panel: foreground.primary with the shadow.xl effect style on every member, and no scrim, veil or backdrop node anywhere in the set${scrimIn.length ? ` — FOUND: ${scrimIn.slice(0, 3).join('; ')}` : ''}`);
 
-  // THE HEADER: the title, the description (off), and the close (on): FlushIconButton.Neutral, round, medium (Q385 A).
+  // THE HEADER: the title, the description (off), and the close (on): FlushIconButton.Neutral, flush, medium (Q385 A; flush per owner QA 2026-10-19).
   const hdrBad = plans.filter((p) => {
     const r = p.root as DN, close = find(r, 'close'), desc = find(r, 'description'), title = find(r, 'title');
-    return !(close?.nestTarget === 'flush-icon-button-neutral' && JSON.stringify(close.nestVariant) === JSON.stringify({ shape: 'round', size: 'medium', state: 'rest' })
+    return !(close?.nestTarget === 'flush-icon-button-neutral' && JSON.stringify(close.nestVariant) === JSON.stringify({ shape: 'flush', size: 'medium', state: 'rest' })
       && close.visibleProp === 'close' && close.visible !== false && desc?.visible === false && desc.paints?.fills === 'color/text/secondary' && title?.paints?.fills === 'color/text/primary');
   });
-  ok(hdrBad.length === 0, `#2609 dialog header: the close is FlushIconButton.Neutral round medium and shown, the description hidden in secondary text, the title in primary text (${hdrBad.length ? `WRONG: ${hdrBad.map(planComponentName).slice(0, 2).join('; ')}` : 'all 15'})`);
+  ok(hdrBad.length === 0, `#2609 dialog header: the close is FlushIconButton.Neutral flush medium and shown (owner QA 2026-10-19: never round), the description hidden in secondary text, the title in primary text (${hdrBad.length ? `WRONG: ${hdrBad.map(planComponentName).slice(0, 2).join('; ')}` : 'all 15'})`);
 
   // THE FOOTERS (Q303.6 A; Q363, #2661): inline and stacked each nest ONE Button group, at its own layout, stretched
   // across a footer inset like the header; none has no footer and no rule above it. What the group holds is its own
@@ -32757,7 +32757,7 @@ arm: {
   // THE SHARED CODE-ONLY ENTRIES are written out in each def (the plugin build needs a string literal per entry), so
   // their identity is held here: each of TextField's entries on the shared anatomy, by its leading subject, appears
   // verbatim in the Password field's list. The subjects are typed here, not read off either def.
-  const SHARED_CODE_ONLY = ['the SMALL field on a COARSE POINTER', 'style', 'pending', 'empty', 'the FOCUS CARET', 'the label / describedby WIRING', "the nested LABEL's disabled dimming"];
+  const SHARED_CODE_ONLY = ['the SMALL field on a COARSE POINTER', 'style', 'pending', 'empty', 'the FOCUS CARET', 'the label / describedby WIRING'];
   const bySubject = (list: readonly string[], subject: string) => list.filter((e) => e.startsWith(`${subject} `) || e.startsWith(`${subject} —`));
   const sharedBad = SHARED_CODE_ONLY.filter((sub) => {
     const t = bySubject(textField.anatomy!.codeOnly, sub); const p = bySubject(pw.anatomy!.codeOnly, sub);
@@ -32779,6 +32779,40 @@ arm: {
     && validateComponentDef(withStateMap({ disabled: { tone: 'quiet' } })).errors.some((m) => /variantWhen\.state\.disabled' setting the child's 'tone', which its 'variant' does not name/.test(m))
     && validateComponentDef(withStateMap({ disabled: { size: 'small' } }, ['size'])).errors.some((m) => /variantWhen\.state\.disabled' setting the child's 'size', which is also in 'follow'/.test(m)),
     `#2317 variantWhen.state: the Password field validates clean; a host state off the state axis, an axis the variant does not name, and a followed axis are each refused by name`);
+}
+
+// ------------------------------------------------------------------- #2738: the fields' nested label dims with them
+// Text field, Password field, Select and Textarea each nest FieldLabel. In code a disabled field dims its label (#1339);
+// in Figma the nested label used to read at rest on every member, recorded as a projection limit in `codeOnly`. Each
+// field now moves the label to FieldLabel's disabled member at its own disabled member, and only there: read-only keeps
+// a full-contrast label, as it keeps a full-contrast value. EXPECTED is typed here, per member, from the member's own
+// coordinate; ACTUAL is each def's projected plan and the FieldLabel member the coordinate resolves to.
+{
+  type PN = { name: string; children: PN[]; nestTarget?: string; nestVariant?: Record<string, string> };
+  const find = (n: PN, name: string): PN | undefined => (n.name === name ? n : n.children.map((c) => find(c, name)).find(Boolean));
+  const sorted = (r: Record<string, string> | undefined) => JSON.stringify(Object.entries(r ?? {}).sort());
+  const labelNames = figmaAnatomySet(componentDefs.find((d) => d.id === 'field-label')!, { swapTarget: 'FPO-default-icon' }).map(planComponentName);
+  // 84 members each (size 3 × status 4 × state 7); 12 of them disabled.
+  const FIELDS = ['text-field', 'password-field', 'select', 'textarea'];
+  for (const id of FIELDS) {
+    const def = componentDefs.find((d) => d.id === id)!;
+    const plans = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
+    const bad: string[] = [];
+    let dimmed = 0;
+    for (const p of plans) {
+      const c = p.coord as Record<string, string>;
+      const want = { size: p.size!, emphasis: 'secondary', weight: 'regular', state: c.state === 'disabled' ? 'disabled' : 'rest' };
+      const label = find(p.root as PN, 'label');
+      const member = label?.nestVariant ? nestVariantMatch(label.nestVariant, labelNames) : null;
+      if (!label || label.nestTarget !== 'field-label' || sorted(label.nestVariant) !== sorted(want) || !member || !member.split(', ').includes(`state=${want.state}`))
+        bad.push(`${planComponentName(p)}: ${JSON.stringify({ target: label?.nestTarget, variant: label?.nestVariant, member })}`);
+      else if (want.state === 'disabled') dimmed++;
+    }
+    ok(plans.length === 84 && dimmed === 12 && bad.length === 0,
+      `#2738 ${id} label-dims: the nested FieldLabel is at state=disabled on the 12 disabled members and at state=rest on the other 72, read-only included, and each coordinate resolves to one FieldLabel member (${plans.length} members, ${dimmed} dimmed)${bad.length ? ` — WRONG on ${bad.length}: ${bad.slice(0, 2).join(' | ')}` : ''}`);
+    const limit = def.anatomy!.codeOnly.filter((e) => /LABEL's disabled dimming/i.test(e));
+    ok(limit.length === 0, `#2738 ${id} codeOnly: no entry records the label's disabled dimming as a projection limit (found ${JSON.stringify(limit)})`);
+  }
 }
 
 // ---- #2708 / Q351 A: the Rows' and Textarea's state props ---------------------------------------------
