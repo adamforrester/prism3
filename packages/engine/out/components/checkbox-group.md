@@ -147,7 +147,7 @@ Keyed by nothing: one row covers every member.
 
 ### Nesting and properties
 
-- `container/label` nests `field-label` at `size=medium, emphasis=secondary, weight=bold, state=rest`; follows `size`
+- `container/label` nests `field-label` at `size=medium, emphasis=secondary, weight=bold, state=rest`; follows `size`; exposes `emphasis`, `weight`
 - `container/items` is a slot, preferring `checkbox-row`
 - `container/items/row1` nests `checkbox-row` at `size=medium`; follows `size`
 - `container/items/row2` nests `checkbox-row` at `size=medium`; follows `size`

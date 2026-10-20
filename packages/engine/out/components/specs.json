@@ -19389,7 +19389,10 @@
           "follows": [
             "size"
           ],
-          "exposes": []
+          "exposes": [
+            "emphasis",
+            "weight"
+          ]
         },
         {
           "part": "container/items",
@@ -20291,7 +20294,10 @@
           "follows": [
             "size"
           ],
-          "exposes": []
+          "exposes": [
+            "emphasis",
+            "weight"
+          ]
         },
         {
           "part": "container/items",
@@ -28872,7 +28878,10 @@
           "follows": [
             "size"
           ],
-          "exposes": []
+          "exposes": [
+            "emphasis",
+            "weight"
+          ]
         },
         {
           "part": "container/track/items",

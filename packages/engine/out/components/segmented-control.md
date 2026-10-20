@@ -156,7 +156,7 @@ Keyed by nothing: one row covers every member.
 
 ### Nesting and properties
 
-- `container/label` nests `field-label` at `size=medium, emphasis=secondary, weight=bold, state=rest`; follows `size`
+- `container/label` nests `field-label` at `size=medium, emphasis=secondary, weight=bold, state=rest`; follows `size`; exposes `emphasis`, `weight`
 - `container/track/items` is a slot, preferring `segmented-control-segment`
 - `container/track/items/segment1` nests `segmented-control-segment` at `selection=selected, size=medium, state=rest`; follows `size`
 - `container/track/items/segment2` nests `segmented-control-segment` at `selection=unselected, size=medium, state=rest`; follows `size`
