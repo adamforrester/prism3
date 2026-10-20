@@ -239,6 +239,7 @@ const MUST_COVER = [
   'checkbox-control.focusRing', 'radio-control.focusRing', 'switch-control.focusRing',
   'tag.focusRing', 'tab.focusRing', 'accordion.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing',
   'counter.focusRing',
+  'pagination-item.focusRing',
 ];
 
 /**
@@ -257,6 +258,7 @@ const MUST_CLEAR_STROKE = [
   'checkbox-control.focusRing', 'radio-control.focusRing', 'switch-control.focusRing',
   'tag.focusRing', 'tab.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing',
   'counter.focusRing',
+  'pagination-item.focusRing',
 ];
 
 /**

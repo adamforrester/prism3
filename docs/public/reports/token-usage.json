@@ -12,7 +12,7 @@
     "used": 247,
     "unusedSemantic": 260,
     "unusedPrimitive": 280,
-    "components": 43
+    "components": 45
   },
   "tokens": {
     "border-width.hairline": {
@@ -151,6 +151,17 @@
             }
           }
         },
+        "pagination-item": {
+          "keys": [
+            "border-width"
+          ],
+          "parts": {
+            "container": {
+              "members": 87,
+              "where": {}
+            }
+          }
+        },
         "password-field": {
           "keys": [
             "border-width",
@@ -282,6 +293,55 @@
             "control": {
               "members": 54,
               "where": {}
+            }
+          }
+        },
+        "pagination-item": {
+          "keys": [
+            "underline-height"
+          ],
+          "parts": {
+            "balance": {
+              "members": 6,
+              "where": {
+                "labeled": [
+                  "false"
+                ],
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ],
+                "style": [
+                  "underline"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            },
+            "underline": {
+              "members": 6,
+              "where": {
+                "labeled": [
+                  "false"
+                ],
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ],
+                "style": [
+                  "underline"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
             }
           }
         },
@@ -664,6 +724,12 @@
           ],
           "parts": {}
         },
+        "pagination-item": {
+          "keys": [
+            "focus-ring"
+          ],
+          "parts": {}
+        },
         "password-field": {
           "keys": [
             "border.focus-visible",
@@ -895,6 +961,35 @@
             }
           }
         },
+        "pagination-item": {
+          "keys": [
+            "selected.border.page.border.focus-visible",
+            "selected.border.page.border.rest"
+          ],
+          "parts": {
+            "container": {
+              "members": 6,
+              "where": {
+                "labeled": [
+                  "false"
+                ],
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            }
+          }
+        },
         "tab": {
           "keys": [
             "unselected.fill.hover",
@@ -1088,6 +1183,35 @@
             "separator.fill"
           ],
           "parts": {}
+        },
+        "pagination-item": {
+          "keys": [
+            "selected.underline.page.fill.focus-visible",
+            "selected.underline.page.fill.rest"
+          ],
+          "parts": {
+            "underline": {
+              "members": 6,
+              "where": {
+                "labeled": [
+                  "false"
+                ],
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ],
+                "style": [
+                  "underline"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            }
+          }
         }
       }
     },
@@ -2095,6 +2219,47 @@
             }
           }
         },
+        "pagination-item": {
+          "keys": [
+            "disabled.icon"
+          ],
+          "parts": {
+            "nextIcon": {
+              "members": 6,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "disabled"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "next"
+                ]
+              }
+            },
+            "previousIcon": {
+              "members": 6,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "disabled"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "previous"
+                ]
+              }
+            }
+          }
+        },
         "segmented-control-segment": {
           "keys": [
             "disabled.icon"
@@ -2625,6 +2790,53 @@
               "where": {
                 "state": [
                   "disabled"
+                ]
+              }
+            }
+          }
+        },
+        "pagination-item": {
+          "keys": [
+            "disabled.label"
+          ],
+          "parts": {
+            "nextText": {
+              "members": 3,
+              "where": {
+                "labeled": [
+                  "true"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "disabled"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "next"
+                ]
+              }
+            },
+            "previousText": {
+              "members": 3,
+              "where": {
+                "labeled": [
+                  "true"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "disabled"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "previous"
                 ]
               }
             }
@@ -3513,6 +3725,33 @@
               "where": {
                 "type": [
                   "icon"
+                ]
+              }
+            }
+          }
+        },
+        "pagination-item": {
+          "keys": [
+            "unselected.ellipsis.icon"
+          ],
+          "parts": {
+            "gapIcon": {
+              "members": 3,
+              "where": {
+                "labeled": [
+                  "false"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "rest"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "ellipsis"
                 ]
               }
             }
@@ -5217,6 +5456,48 @@
             }
           }
         },
+        "pagination-item": {
+          "keys": [
+            "unselected.next.icon.hover",
+            "unselected.previous.icon.hover"
+          ],
+          "parts": {
+            "nextIcon": {
+              "members": 6,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "hover"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "next"
+                ]
+              }
+            },
+            "previousIcon": {
+              "members": 6,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "hover"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "previous"
+                ]
+              }
+            }
+          }
+        },
         "segmented-control-segment": {
           "keys": [
             "unselected.icon.hover"
@@ -5380,6 +5661,48 @@
                 ],
                 "surface": [
                   "default"
+                ]
+              }
+            }
+          }
+        },
+        "pagination-item": {
+          "keys": [
+            "unselected.next.icon.pressed",
+            "unselected.previous.icon.pressed"
+          ],
+          "parts": {
+            "nextIcon": {
+              "members": 6,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "pressed"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "next"
+                ]
+              }
+            },
+            "previousIcon": {
+              "members": 6,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "pressed"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "previous"
                 ]
               }
             }
@@ -5634,6 +5957,50 @@
                 ],
                 "surface": [
                   "default"
+                ]
+              }
+            }
+          }
+        },
+        "pagination-item": {
+          "keys": [
+            "unselected.next.icon",
+            "unselected.previous.icon"
+          ],
+          "parts": {
+            "nextIcon": {
+              "members": 12,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "next"
+                ]
+              }
+            },
+            "previousIcon": {
+              "members": 12,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "previous"
                 ]
               }
             }
@@ -5930,6 +6297,37 @@
             }
           }
         },
+        "pagination-item": {
+          "keys": [
+            "unselected.border.false.next.overlay.hover",
+            "unselected.border.false.previous.overlay.hover",
+            "unselected.page.overlay.hover"
+          ],
+          "parts": {
+            "container": {
+              "members": 9,
+              "where": {
+                "labeled": [
+                  "false"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "hover"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "next",
+                  "page",
+                  "previous"
+                ]
+              }
+            }
+          }
+        },
         "password-field": {
           "keys": [
             "overlay.hover"
@@ -6096,6 +6494,37 @@
             }
           }
         },
+        "pagination-item": {
+          "keys": [
+            "unselected.border.false.next.overlay.pressed",
+            "unselected.border.false.previous.overlay.pressed",
+            "unselected.page.overlay.pressed"
+          ],
+          "parts": {
+            "container": {
+              "members": 9,
+              "where": {
+                "labeled": [
+                  "false"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "pressed"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "next",
+                  "page",
+                  "previous"
+                ]
+              }
+            }
+          }
+        },
         "segmented-control-segment": {
           "keys": [
             "unselected.overlay.pressed"
@@ -6155,6 +6584,95 @@
                 ],
                 "surface": [
                   "default"
+                ]
+              }
+            }
+          }
+        },
+        "pagination-item": {
+          "keys": [
+            "unselected.next.label.hover",
+            "unselected.page.label.hover",
+            "unselected.previous.label.hover"
+          ],
+          "parts": {
+            "label": {
+              "members": 3,
+              "where": {
+                "labeled": [
+                  "false"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "hover"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 3,
+              "where": {
+                "labeled": [
+                  "false"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "hover"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            },
+            "nextText": {
+              "members": 3,
+              "where": {
+                "labeled": [
+                  "true"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "hover"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "next"
+                ]
+              }
+            },
+            "previousText": {
+              "members": 3,
+              "where": {
+                "labeled": [
+                  "true"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "hover"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "previous"
                 ]
               }
             }
@@ -6257,6 +6775,95 @@
                 ],
                 "surface": [
                   "default"
+                ]
+              }
+            }
+          }
+        },
+        "pagination-item": {
+          "keys": [
+            "unselected.next.label.pressed",
+            "unselected.page.label.pressed",
+            "unselected.previous.label.pressed"
+          ],
+          "parts": {
+            "label": {
+              "members": 3,
+              "where": {
+                "labeled": [
+                  "false"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "pressed"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 3,
+              "where": {
+                "labeled": [
+                  "false"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "pressed"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            },
+            "nextText": {
+              "members": 3,
+              "where": {
+                "labeled": [
+                  "true"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "pressed"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "next"
+                ]
+              }
+            },
+            "previousText": {
+              "members": 3,
+              "where": {
+                "labeled": [
+                  "true"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "pressed"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "previous"
                 ]
               }
             }
@@ -6372,6 +6979,88 @@
                 ],
                 "surface": [
                   "default"
+                ]
+              }
+            }
+          }
+        },
+        "pagination-item": {
+          "keys": [
+            "selected.page.label",
+            "unselected.next.label",
+            "unselected.page.label",
+            "unselected.previous.label"
+          ],
+          "parts": {
+            "label": {
+              "members": 18,
+              "where": {
+                "labeled": [
+                  "false"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 18,
+              "where": {
+                "labeled": [
+                  "false"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            },
+            "nextText": {
+              "members": 6,
+              "where": {
+                "labeled": [
+                  "true"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "next"
+                ]
+              }
+            },
+            "previousText": {
+              "members": 6,
+              "where": {
+                "labeled": [
+                  "true"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "previous"
                 ]
               }
             }
@@ -11840,6 +12529,24 @@
             }
           }
         },
+        "pagination": {
+          "keys": [
+            "label"
+          ],
+          "parts": {
+            "status": {
+              "members": 3,
+              "where": {
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "compact"
+                ]
+              }
+            }
+          }
+        },
         "password-field": {
           "keys": [
             "caret",
@@ -13742,6 +14449,26 @@
             }
           }
         },
+        "pagination-item": {
+          "keys": [
+            "ring-offset"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 21,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ],
+                "type": [
+                  "next",
+                  "page",
+                  "previous"
+                ]
+              }
+            }
+          }
+        },
         "radio-control": {
           "keys": [
             "ring-offset"
@@ -14127,6 +14854,26 @@
               "where": {
                 "state": [
                   "focus-visible"
+                ]
+              }
+            }
+          }
+        },
+        "pagination-item": {
+          "keys": [
+            "ring-width"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 21,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ],
+                "type": [
+                  "next",
+                  "page",
+                  "previous"
                 ]
               }
             }
@@ -14843,6 +15590,70 @@
             }
           }
         },
+        "pagination-item": {
+          "keys": [
+            "size.large.icon"
+          ],
+          "parts": {
+            "gapIcon": {
+              "members": 1,
+              "where": {
+                "labeled": [
+                  "false"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "large"
+                ],
+                "state": [
+                  "rest"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "ellipsis"
+                ]
+              }
+            },
+            "nextIcon": {
+              "members": 10,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "large"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "next"
+                ]
+              }
+            },
+            "previousIcon": {
+              "members": 10,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "large"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "previous"
+                ]
+              }
+            }
+          }
+        },
         "segmented-control-segment": {
           "keys": [
             "size.large.icon"
@@ -15390,6 +16201,70 @@
             }
           }
         },
+        "pagination-item": {
+          "keys": [
+            "size.medium.icon"
+          ],
+          "parts": {
+            "gapIcon": {
+              "members": 1,
+              "where": {
+                "labeled": [
+                  "false"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "medium"
+                ],
+                "state": [
+                  "rest"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "ellipsis"
+                ]
+              }
+            },
+            "nextIcon": {
+              "members": 10,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "medium"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "next"
+                ]
+              }
+            },
+            "previousIcon": {
+              "members": 10,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "medium"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "previous"
+                ]
+              }
+            }
+          }
+        },
         "password-field": {
           "keys": [
             "icon-size"
@@ -15805,6 +16680,70 @@
             }
           }
         },
+        "pagination-item": {
+          "keys": [
+            "size.small.icon"
+          ],
+          "parts": {
+            "gapIcon": {
+              "members": 1,
+              "where": {
+                "labeled": [
+                  "false"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "small"
+                ],
+                "state": [
+                  "rest"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "ellipsis"
+                ]
+              }
+            },
+            "nextIcon": {
+              "members": 10,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "small"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "next"
+                ]
+              }
+            },
+            "previousIcon": {
+              "members": 10,
+              "where": {
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "small"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "previous"
+                ]
+              }
+            }
+          }
+        },
         "segmented-control-segment": {
           "keys": [
             "size.small.icon"
@@ -16015,6 +16954,17 @@
                   "square"
                 ]
               }
+            }
+          }
+        },
+        "pagination-item": {
+          "keys": [
+            "radius"
+          ],
+          "parts": {
+            "container": {
+              "members": 87,
+              "where": {}
             }
           }
         },
@@ -16562,6 +17512,21 @@
             }
           }
         },
+        "pagination-item": {
+          "keys": [
+            "size.large.height"
+          ],
+          "parts": {
+            "container": {
+              "members": 29,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
         "password-field": {
           "keys": [
             "size.large.height"
@@ -16864,6 +17829,21 @@
           "parts": {
             "container": {
               "members": 72,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
+        "pagination-item": {
+          "keys": [
+            "size.medium.height"
+          ],
+          "parts": {
+            "container": {
+              "members": 29,
               "where": {
                 "size": [
                   "medium"
@@ -17186,6 +18166,21 @@
             }
           }
         },
+        "pagination-item": {
+          "keys": [
+            "size.small.height"
+          ],
+          "parts": {
+            "container": {
+              "members": 29,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "radio-row": {
           "keys": [
             "size.small.min-height"
@@ -17460,6 +18455,35 @@
             }
           }
         },
+        "pagination-item": {
+          "keys": [
+            "pad-y",
+            "reserve-height"
+          ],
+          "parts": {
+            "container": {
+              "members": 87,
+              "where": {}
+            },
+            "reserve": {
+              "members": 24,
+              "where": {
+                "labeled": [
+                  "false"
+                ],
+                "state": [
+                  "focus-visible",
+                  "hover",
+                  "pressed",
+                  "rest"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            }
+          }
+        },
         "radio-group": {
           "keys": [
             "gap",
@@ -17676,6 +18700,52 @@
                   "small"
                 ]
               }
+            }
+          }
+        },
+        "pagination": {
+          "keys": [
+            "gap"
+          ],
+          "parts": {
+            "items": {
+              "members": 6,
+              "where": {
+                "type": [
+                  "numbered"
+                ]
+              }
+            },
+            "row": {
+              "members": 9,
+              "where": {
+                "type": [
+                  "compact",
+                  "numbered"
+                ]
+              }
+            },
+            "simpleRow": {
+              "members": 3,
+              "where": {
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "simple"
+                ]
+              }
+            }
+          }
+        },
+        "pagination-item": {
+          "keys": [
+            "gap"
+          ],
+          "parts": {
+            "container": {
+              "members": 87,
+              "where": {}
             }
           }
         },
@@ -18131,6 +19201,17 @@
                   "small"
                 ]
               }
+            }
+          }
+        },
+        "pagination-item": {
+          "keys": [
+            "padding-x"
+          ],
+          "parts": {
+            "container": {
+              "members": 87,
+              "where": {}
             }
           }
         },
@@ -20485,6 +21566,100 @@
     "type.label.lg.default": {
       "type": "typography",
       "components": {
+        "pagination": {
+          "keys": [
+            "size.large.type"
+          ],
+          "parts": {
+            "status": {
+              "members": 1,
+              "where": {
+                "size": [
+                  "large"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "compact"
+                ]
+              }
+            }
+          }
+        },
+        "pagination-item": {
+          "keys": [
+            "size.large.type.unselected"
+          ],
+          "parts": {
+            "label": {
+              "members": 4,
+              "where": {
+                "labeled": [
+                  "false"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "large"
+                ],
+                "state": [
+                  "focus-visible",
+                  "hover",
+                  "pressed",
+                  "rest"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            },
+            "nextText": {
+              "members": 5,
+              "where": {
+                "labeled": [
+                  "true"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "large"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "next"
+                ]
+              }
+            },
+            "previousText": {
+              "members": 5,
+              "where": {
+                "labeled": [
+                  "true"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "large"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "previous"
+                ]
+              }
+            }
+          }
+        },
         "segmented-control-segment": {
           "keys": [
             "size.large.type.unselected"
@@ -20621,6 +21796,54 @@
             }
           }
         },
+        "pagination-item": {
+          "keys": [
+            "size.large.type.selected"
+          ],
+          "parts": {
+            "label": {
+              "members": 4,
+              "where": {
+                "labeled": [
+                  "false"
+                ],
+                "selection": [
+                  "selected"
+                ],
+                "size": [
+                  "large"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 8,
+              "where": {
+                "labeled": [
+                  "false"
+                ],
+                "size": [
+                  "large"
+                ],
+                "state": [
+                  "focus-visible",
+                  "hover",
+                  "pressed",
+                  "rest"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            }
+          }
+        },
         "segmented-control-segment": {
           "keys": [
             "size.large.type.selected"
@@ -20752,6 +21975,100 @@
     "type.label.md.default": {
       "type": "typography",
       "components": {
+        "pagination": {
+          "keys": [
+            "size.medium.type"
+          ],
+          "parts": {
+            "status": {
+              "members": 1,
+              "where": {
+                "size": [
+                  "medium"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "compact"
+                ]
+              }
+            }
+          }
+        },
+        "pagination-item": {
+          "keys": [
+            "size.medium.type.unselected"
+          ],
+          "parts": {
+            "label": {
+              "members": 4,
+              "where": {
+                "labeled": [
+                  "false"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "medium"
+                ],
+                "state": [
+                  "focus-visible",
+                  "hover",
+                  "pressed",
+                  "rest"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            },
+            "nextText": {
+              "members": 5,
+              "where": {
+                "labeled": [
+                  "true"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "medium"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "next"
+                ]
+              }
+            },
+            "previousText": {
+              "members": 5,
+              "where": {
+                "labeled": [
+                  "true"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "medium"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "previous"
+                ]
+              }
+            }
+          }
+        },
         "segmented-control-segment": {
           "keys": [
             "size.medium.type.unselected"
@@ -20872,6 +22189,54 @@
                 ],
                 "size": [
                   "medium"
+                ]
+              }
+            }
+          }
+        },
+        "pagination-item": {
+          "keys": [
+            "size.medium.type.selected"
+          ],
+          "parts": {
+            "label": {
+              "members": 4,
+              "where": {
+                "labeled": [
+                  "false"
+                ],
+                "selection": [
+                  "selected"
+                ],
+                "size": [
+                  "medium"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 8,
+              "where": {
+                "labeled": [
+                  "false"
+                ],
+                "size": [
+                  "medium"
+                ],
+                "state": [
+                  "focus-visible",
+                  "hover",
+                  "pressed",
+                  "rest"
+                ],
+                "type": [
+                  "page"
                 ]
               }
             }
@@ -21008,6 +22373,100 @@
     "type.label.sm.default": {
       "type": "typography",
       "components": {
+        "pagination": {
+          "keys": [
+            "size.small.type"
+          ],
+          "parts": {
+            "status": {
+              "members": 1,
+              "where": {
+                "size": [
+                  "small"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "compact"
+                ]
+              }
+            }
+          }
+        },
+        "pagination-item": {
+          "keys": [
+            "size.small.type.unselected"
+          ],
+          "parts": {
+            "label": {
+              "members": 4,
+              "where": {
+                "labeled": [
+                  "false"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "small"
+                ],
+                "state": [
+                  "focus-visible",
+                  "hover",
+                  "pressed",
+                  "rest"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            },
+            "nextText": {
+              "members": 5,
+              "where": {
+                "labeled": [
+                  "true"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "small"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "next"
+                ]
+              }
+            },
+            "previousText": {
+              "members": 5,
+              "where": {
+                "labeled": [
+                  "true"
+                ],
+                "selection": [
+                  "unselected"
+                ],
+                "size": [
+                  "small"
+                ],
+                "style": [
+                  "border"
+                ],
+                "type": [
+                  "previous"
+                ]
+              }
+            }
+          }
+        },
         "segmented-control-segment": {
           "keys": [
             "size.small.type.unselected"
@@ -21154,6 +22613,54 @@
                 ],
                 "size": [
                   "small"
+                ]
+              }
+            }
+          }
+        },
+        "pagination-item": {
+          "keys": [
+            "size.small.type.selected"
+          ],
+          "parts": {
+            "label": {
+              "members": 4,
+              "where": {
+                "labeled": [
+                  "false"
+                ],
+                "selection": [
+                  "selected"
+                ],
+                "size": [
+                  "small"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ],
+                "type": [
+                  "page"
+                ]
+              }
+            },
+            "labelReserve": {
+              "members": 8,
+              "where": {
+                "labeled": [
+                  "false"
+                ],
+                "size": [
+                  "small"
+                ],
+                "state": [
+                  "focus-visible",
+                  "hover",
+                  "pressed",
+                  "rest"
+                ],
+                "type": [
+                  "page"
                 ]
               }
             }
@@ -22769,6 +24276,109 @@
         "type.body.sm.default"
       ],
       "declaredNotDrawn": [],
+      "drawnNotDeclared": []
+    },
+    "pagination": {
+      "members": 12,
+      "axes": {
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "style": [
+          "border",
+          "underline"
+        ],
+        "type": [
+          "compact",
+          "numbered",
+          "simple"
+        ]
+      },
+      "tokens": [
+        "color.text.primary",
+        "space.050",
+        "type.label.lg.default",
+        "type.label.md.default",
+        "type.label.sm.default"
+      ],
+      "declaredNotDrawn": [],
+      "drawnNotDeclared": []
+    },
+    "pagination-item": {
+      "members": 87,
+      "axes": {
+        "labeled": [
+          "false",
+          "true"
+        ],
+        "selection": [
+          "selected",
+          "unselected"
+        ],
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "state": [
+          "disabled",
+          "focus-visible",
+          "hover",
+          "pressed",
+          "rest"
+        ],
+        "style": [
+          "border",
+          "underline"
+        ],
+        "type": [
+          "ellipsis",
+          "next",
+          "page",
+          "previous"
+        ]
+      },
+      "tokens": [
+        "border-width.hairline",
+        "border-width.thick",
+        "color.border.focus",
+        "color.border.secondary",
+        "color.border.tertiary",
+        "color.disabled.icon",
+        "color.disabled.text",
+        "color.icon.primary",
+        "color.interactive.neutral.icon.hover",
+        "color.interactive.neutral.icon.pressed",
+        "color.interactive.neutral.icon.rest",
+        "color.interactive.neutral.overlay.hover",
+        "color.interactive.neutral.overlay.pressed",
+        "color.interactive.neutral.text.hover",
+        "color.interactive.neutral.text.pressed",
+        "color.interactive.neutral.text.rest",
+        "focus.ring.offset",
+        "focus.ring.width",
+        "icon.size.md",
+        "icon.size.sm",
+        "icon.size.xs",
+        "radius.md",
+        "size.lg.height",
+        "size.md.height",
+        "size.sm.height",
+        "space.0",
+        "space.050",
+        "space.100",
+        "type.label.lg.default",
+        "type.label.lg.emphasis",
+        "type.label.md.default",
+        "type.label.md.emphasis",
+        "type.label.sm.default",
+        "type.label.sm.emphasis"
+      ],
+      "declaredNotDrawn": [
+        "color.border.focus"
+      ],
       "drawnNotDeclared": []
     },
     "password-field": {

@@ -297,6 +297,29 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'on both defs, so none is shared. Shared by List and List.Item because the List passes its type to every item '
       + '(`follow`), so the two must hold one set; one entry records both, and a drift between them fails here.',
   },
+  {
+    axis: 'type',
+    values: ['numbered', 'compact', 'simple'],
+    defs: ['pagination'],
+    relation: 'disjoint',
+    reason:
+      'Which STRUCTURE a pagination row has (owner decision on #2665, calls 1 A and 15 A): page numbers between previous '
+      + 'and next, the "Page 5 of 10" text between them, or a Previous and a Next button alone. Structural kinds, not '
+      + 'looks, which is why the axis is `type` and not Link\'s `style` (call 15). `numbered` LEADS because it is the code '
+      + 'default and Figma\'s default member. DISJOINT from Badge\'s canonical set, the loud kind of divergence: a badge '
+      + 'type is a content kind and a pagination type a layout kind, and no value would mean the same thing on both defs.',
+  },
+  {
+    axis: 'type',
+    values: ['page', 'ellipsis', 'previous', 'next'],
+    defs: ['pagination-item'],
+    relation: 'disjoint',
+    reason:
+      'Which CELL a pagination item is (#2665, owner calls 3 A and 7 A, Q414 A): a page number the user opens, the inert '
+      + 'mark that stands for two or more hidden pages, or the cell that opens the page before or after the current one. '
+      + 'The words of the window algorithm\'s own item model (`page`, `ellipsis`, `previous`, `next`). `page` LEADS because it is the code default and Figma\'s default member. DISJOINT from Badge\'s '
+      + 'canonical set: a pagination item type is a cell kind, and no value would mean the same thing on both defs.',
+  },
   // `indicator` IS GONE FROM THE REGISTER (#1338), and its absence is the point rather than an omission —
   // the same shape the `intent` note below records. field-label carried a three-way
   // `[none/required/optional]` axis whose most important value was ABSENCE, which is exactly why it never
@@ -332,6 +355,16 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'set, so `icon.ts` cannot spell one wrong and the synonym failure mode this whole register guards '
       + 'has no way in. Declared here anyway, at full width, because the register\'s claim is that every '
       + 'set is accounted for — an axis exempted for being safe is an axis nobody is watching.',
+  },
+  {
+    axis: 'labeled',
+    values: ['false', 'true'],
+    defs: ['pagination-item'],
+    relation: 'sole',
+    reason:
+      'Whether Pagination.Item\'s previous or next cell shows its word, "Previous" or "Next", beside the chevron (owner '
+      + 'decision Q414 A: simple\'s two controls are the same cells with a label plus chevron). `false | true` so Figma '
+      + 'draws it as a switch. `false` LEADS, the code default and so Figma\'s default member.',
   },
   {
     axis: 'offset',
@@ -390,7 +423,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'selection',
     values: ['unselected', 'selected'],
-    defs: ['tag', 'tab', 'segmented-control-segment'],
+    defs: ['tag', 'tab', 'segmented-control-segment', 'pagination-item'],
     relation: 'disjoint',
     reason:
       'A selectable tag\'s two values, in the words the Tag brief uses (§4, §15) — `selected` is what a filter '
@@ -401,12 +434,13 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'once they do not match. `unselected` leads because it is the rest coordinate. The spelling is an '
       + 'axis-value choice held for the owner in the Tag PR (2026-09-27). Tab joins it (#2416, owner Q177.2): a '
       + 'tab\'s state IS aria-selected, so `selected` is its ARIA word too, and one spelling serves both. A segmented '
-      + 'control\'s option joins it (#2418, owner Q269): Tag\'s values, its state riding aria-current or a native radio.',
+      + 'control\'s option joins it (#2418, owner Q269): Tag\'s values, its state riding aria-current or a native radio. '
+      + 'A pagination item joins it (#2665): the current page, its state riding aria-current="page".',
   },
   {
     axis: 'size',
     values: ['medium', 'small', 'large'],
-    defs: ['_accordion-indicator', 'accordion', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'tag', 'tab', 'tabs', 'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'link', 'text-field', 'select', 'textarea', 'dialog', 'password-field', 'counter'],
+    defs: ['_accordion-indicator', 'accordion', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'tag', 'tab', 'tabs', 'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'link', 'text-field', 'select', 'textarea', 'dialog', 'password-field', 'counter', 'pagination-item', 'pagination'],
     relation: 'canonical',
     reason:
       'The three-rung ladder, led by `medium` (#2752, owner decision Q1 B, 2026-10-16). Canonical on weight of use: '
@@ -514,6 +548,20 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + '`style` (a line treatment), hence the name. DISJOINT, the loud kind: a field outline and a link placement '
       + 'share no value that would mean the same thing on both. `standalone` LEADS, the code default and so Figma\'s '
       + 'default member. No `quiet` for now (Q289.2 A).',
+  },
+  {
+    axis: 'style',
+    values: ['border', 'underline'],
+    defs: ['pagination-item', 'pagination'],
+    relation: 'disjoint',
+    reason:
+      'How the current page is marked (owner decision Q381, 2 A): a border around the cell, or a 2px line under its '
+      + 'number, both in `color.border.tertiary`. The owner named the values. DISJOINT by spelling from the field\'s '
+      + 'canonical `outline`, and named here because it is a near-overlap: `border` draws what a field calls `outline`, '
+      + 'and the field reserves `underline` for a future treatment of its own, which would then share a word with this '
+      + 'set. Neither def reads the other\'s, so no paint key crosses them. `border` LEADS, the code default and so '
+      + 'Figma\'s default member. Shared by Pagination and Pagination.Item because the row passes it to its current '
+      + 'page (`follow`), so the two must hold one set.',
   },
   {
     axis: 'surface',

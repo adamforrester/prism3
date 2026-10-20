@@ -2204,9 +2204,13 @@ export const gridColumnAxis = (
 export const figmaVariantCount = (def: ComponentDef): number => {
   const fp = def.figmaProperties;
   if (!fp) return 0;
-  const axes = fp.variantAxes ?? [];
-  const declared = (a: string): string[] => (variantsOf(def)[a] ?? []).map(String);
-  const variants = axes.reduce((n, a) => n * ((variantsOf(def)[a]?.length) ?? 1), 1);
+  // THE STATE AXIS IS ONE MORE DIMENSION OF THE GRID (#2665): an entry may name it (Pagination.Item's current page has
+  // no hover or press), so the box product runs over it too. With no entry naming it, its factor multiplies out of
+  // every term and the count is the old (variants - excluded) × states.
+  const stateName = fp.stateAxis?.name;
+  const axes = [...(fp.variantAxes ?? []), ...(stateName ? [stateName] : [])];
+  const declared = (a: string): string[] => (a === stateName ? fp.stateAxis!.values : (variantsOf(def)[a] ?? []).map(String));
+  const variants = axes.reduce((n, a) => n * (a === stateName ? fp.stateAxis!.values.length : ((variantsOf(def)[a]?.length) ?? 1)), 1);
   const entries = fp.excludeCoordinates ?? [];
   // The size of the box where every entry in `subset` holds at once.
   const boxSize = (subset: Record<string, string[]>[]): number =>
@@ -2220,7 +2224,7 @@ export const figmaVariantCount = (def: ComponentDef): number => {
     const subset = entries.filter((_, i) => mask & (1 << i));
     excluded += (subset.length % 2 ? 1 : -1) * boxSize(subset);
   }
-  return (variants - excluded) * (fp.stateAxis?.values.length ?? 1) * 2 ** ((fp.slotAxes ?? []).length);
+  return (variants - excluded) * 2 ** ((fp.slotAxes ?? []).length);
 };
 
 /** Is this variant coordinate one the def's `excludeCoordinates` removes? The PROJECTOR's predicate —
@@ -2365,14 +2369,16 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
   // member that does not exist. The grid is enumerated here from the declaration, with its own matcher,
   // rather than through `isExcludedCoordinate`.
   if (fp.excludeCoordinates !== undefined) {
-    const axes = fp.variantAxes ?? [];
-    const values = (a: string): string[] => (variantsOf(def)[a] ?? []).map(String);
+    // The state axis is a dimension an entry may name (#2665), with its values from `stateAxis`.
+    const stateName = fp.stateAxis?.name;
+    const axes = [...(fp.variantAxes ?? []), ...(stateName ? [stateName] : [])];
+    const values = (a: string): string[] => (a === stateName ? [...fp.stateAxis!.values] : (variantsOf(def)[a] ?? []).map(String));
     let wellFormed = true;
     fp.excludeCoordinates.forEach((entry, i) => {
       const at = `figmaProperties.excludeCoordinates[${i}]`;
       if (!Object.keys(entry).length) { e.push(`${at} names no axis — an empty coordinate matches every member, so it would exclude the whole set`); wellFormed = false; }
       for (const [axis, vs] of Object.entries(entry)) {
-        if (!axes.includes(axis)) { e.push(`${at} names axis '${axis}', which is not a projected variant axis [${axes.join(', ')}] — an exclusion can only remove a coordinate the set enumerates (the state and slot axes have their own presence mechanisms)`); wellFormed = false; continue; }
+        if (!axes.includes(axis)) { e.push(`${at} names axis '${axis}', which is not a projected variant axis or the state axis [${axes.join(', ')}] — an exclusion can only remove a coordinate the set enumerates (the slot axes have their own presence mechanism)`); wellFormed = false; continue; }
         if (!Array.isArray(vs) || !vs.length) { e.push(`${at}.${axis} lists no values — an entry that matches nothing reads as a decision and removes no member`); wellFormed = false; continue; }
         for (const v of vs) if (!values(axis).includes(v)) { e.push(`${at}.${axis} names '${v}', which is not a value of '${axis}' [${values(axis).join(', ')}] — it matches no member, so the exclusion would remove nothing`); wellFormed = false; }
       }
@@ -3380,12 +3386,26 @@ export type State = (typeof STATES)[number];
  * places the group. Read by the slot's `directionWhen` (`PartDef.directionWhen`), so the one `items` slot runs as a
  * row or a column per member. `lint-axis-values.ts` carries the three values as a `sole` set.
  */
+/*
+ * ── `labeled`: THE TWENTY-EIGHTH NAME, FOR PAGINATION'S PREVIOUS AND NEXT (owner decision Q414 A, 2026-10-18, #2665) ──
+ *
+ * `labeled` (`false | true`) is WHETHER a control shows its word beside its icon: Pagination.Item's previous and next
+ * cells are a chevron alone in the numbered and compact rows, and a chevron with "Previous" or "Next" in the simple
+ * row. The owner decided the shape (the same cell, with a label plus chevron, in simple); the axis name and its values
+ * are held as an owner item on #2796. It clears the bar with the nearest defeated: `type` is which cell it is (page,
+ * ellipsis, previous, next), and a labeled previous is still a previous; `width` is how much of its container a
+ * control takes, while a labeled cell hugs its word; `iconPosition` is which side a part sits on, not whether a word is
+ * there; `footer` names a part's layout. None says "the word is shown or not". A Figma BOOLEAN would say it, but a nest
+ * sets only variant values on the instance it places, so the simple row could not turn the word on; a variant axis
+ * is what the row's `nesting.variant` can set. `false | true` so Figma draws it as a switch. An AUTHORING axis: the
+ * row type decides it and nothing switches it on screen. `lint-axis-values.ts` carries the two values as a `sole` set.
+ */
 export const VARIANT_AXES = [
   'size', 'intent', 'appearance', 'tone',
   'width', 'style', 'indicator', 'offset', 'selection',
   'name', 'surface', 'weight', 'value', 'intensity', 'ratio',
   'status', 'emphasis', 'shape', 'type', 'direction', 'inset', 'orientation', 'alignment', 'expansion', 'iconPosition',
-  'placement', 'footer', 'layout',
+  'placement', 'footer', 'layout', 'labeled',
 ] as const;
 
 /** One member of the closed axis-NAME vocabulary. Values are not constrained — see `VARIANT_AXES`. */

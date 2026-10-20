@@ -224,6 +224,9 @@ const ICON_OFFSET_DEFS: Record<string, string> = {
   'segmented-control-segment': 'icon.size.*',
   tab: 'icon.size.*',
   tag: 'icon.size.*',
+  // Pagination's chevrons and gap icon, one rung below the icon button's glyph (owner Q428 A, on #2796): 16/20/24 at
+  // small, medium and large, so the medium default is `sm`. The cell keeps its own `size.*.height` rung.
+  'pagination-item': 'icon.size.*',
 };
 
 /**
@@ -379,6 +382,8 @@ const DEFAULT_FIRST: Record<string, string> = {
   link: Q1B,
   // #2427: owner Q283.6 B ("medium first") agrees with Q1 B; the Counter takes the same reason.
   counter: Q1B,
+  'pagination-item': Q1B,
+  pagination: Q1B,
 };
 
 const SIZE_BY_FOLLOW_ONLY: Record<string, string> = {
@@ -424,6 +429,7 @@ const MUST_COVER = [
   'list-item', 'list',
   'segmented-control-segment', 'segmented-control', 'link',
   'dialog', 'password-field',
+  'pagination-item', 'pagination',
 ];
 
 /** Every token path in a brand's canonical tree, below the root — `icon.size.md`, `size.lg.height`. */

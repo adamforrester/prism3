@@ -166,6 +166,13 @@
             "components": [
               "counter"
             ]
+          },
+          {
+            "name": "↳ Pagination",
+            "components": [
+              "pagination-item",
+              "pagination"
+            ]
           }
         ]
       },
@@ -2247,6 +2254,121 @@
           }
         ],
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/counter.md"
+      },
+      {
+        "id": "pagination-item",
+        "name": "Pagination.Item",
+        "figmaName": "pagination-item",
+        "kind": "component set",
+        "page": "↳ Pagination",
+        "section": "Components",
+        "members": 87,
+        "variantProperties": [
+          {
+            "name": "type",
+            "values": [
+              "page",
+              "ellipsis",
+              "previous",
+              "next"
+            ]
+          },
+          {
+            "name": "selection",
+            "values": [
+              "unselected",
+              "selected"
+            ]
+          },
+          {
+            "name": "style",
+            "values": [
+              "border",
+              "underline"
+            ]
+          },
+          {
+            "name": "labeled",
+            "values": [
+              "false",
+              "true"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "hover",
+              "pressed",
+              "focus-visible",
+              "disabled"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "label",
+            "type": "TEXT"
+          },
+          {
+            "name": "previous label",
+            "type": "TEXT"
+          },
+          {
+            "name": "next label",
+            "type": "TEXT"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/pagination-item.md"
+      },
+      {
+        "id": "pagination",
+        "name": "Pagination",
+        "figmaName": "pagination",
+        "kind": "component set",
+        "page": "↳ Pagination",
+        "section": "Components",
+        "members": 12,
+        "variantProperties": [
+          {
+            "name": "type",
+            "values": [
+              "numbered",
+              "compact",
+              "simple"
+            ]
+          },
+          {
+            "name": "style",
+            "values": [
+              "border",
+              "underline"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "status text",
+            "type": "TEXT"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/pagination.md"
       }
     ]
   },
@@ -2384,6 +2506,17 @@
       {
         "component": "dialog",
         "property": "body"
+      },
+      {
+        "component": "pagination",
+        "property": "items",
+        "settings": {
+          "minChildren": 1,
+          "allowPreferredValuesOnly": true
+        },
+        "preferred": [
+          "pagination-item"
+        ]
       }
     ]
   },
@@ -2542,7 +2675,9 @@
       "button-group",
       "dialog",
       "password-field",
-      "counter"
+      "counter",
+      "pagination-item",
+      "pagination"
     ],
     "templates": [
       {

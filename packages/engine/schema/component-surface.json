@@ -711,6 +711,41 @@
         "message:BOOLEAN",
         "value:TEXT"
       ]
+    },
+    "pagination-item": {
+      "members": 87,
+      "sha256": "e417af814a01ed30e33341d5ef818a632a40872f13d5f64c7b81d6f034f773ea",
+      "properties": [
+        "label:TEXT",
+        "next label:TEXT",
+        "previous label:TEXT"
+      ]
+    },
+    "pagination-item@outline-solid-tint": {
+      "members": 87,
+      "sha256": "be8428763b99c86b33c6892cc415868700693a4f8ae7a45eb76047b30bb01d0f",
+      "properties": [
+        "label:TEXT",
+        "next label:TEXT",
+        "previous label:TEXT"
+      ]
+    },
+    "pagination-item@outline-none": {
+      "members": 87,
+      "sha256": "b071f39e66bc8e6c51d223b2b3d10330eb00d121bdcbfdde5de1abbf6b02333a",
+      "properties": [
+        "label:TEXT",
+        "next label:TEXT",
+        "previous label:TEXT"
+      ]
+    },
+    "pagination": {
+      "members": 12,
+      "sha256": "6730d0bd4b611e074b9aa2f911f9ec41cb26e918768c45d3eea4cf318a0989c2",
+      "properties": [
+        "items:SLOT",
+        "status text:TEXT"
+      ]
     }
   }
 }
