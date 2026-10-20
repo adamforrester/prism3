@@ -783,13 +783,20 @@
         "kind": "component set",
         "page": "↳ Flush Icon Button",
         "section": "Subcomponents",
-        "members": 30,
+        "members": 60,
         "variantProperties": [
           {
             "name": "shape",
             "values": [
               "flush",
               "round"
+            ]
+          },
+          {
+            "name": "surface",
+            "values": [
+              "default",
+              "inverse"
             ]
           },
           {
@@ -821,13 +828,20 @@
         "kind": "component set",
         "page": "↳ Flush Icon Button",
         "section": "Subcomponents",
-        "members": 30,
+        "members": 60,
         "variantProperties": [
           {
             "name": "shape",
             "values": [
               "flush",
               "round"
+            ]
+          },
+          {
+            "name": "surface",
+            "values": [
+              "default",
+              "inverse"
             ]
           },
           {
@@ -859,13 +873,20 @@
         "kind": "component set",
         "page": "↳ Flush Icon Button",
         "section": "Subcomponents",
-        "members": 30,
+        "members": 60,
         "variantProperties": [
           {
             "name": "shape",
             "values": [
               "flush",
               "round"
+            ]
+          },
+          {
+            "name": "surface",
+            "values": [
+              "default",
+              "inverse"
             ]
           },
           {

@@ -303,7 +303,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Subcomponents",
     "buildable": true,
     "reason": null,
-    "members": 30,
+    "members": 60,
     "nests": [
       "icon",
       "focus-ring"
@@ -320,7 +320,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Subcomponents",
     "buildable": true,
     "reason": null,
-    "members": 30,
+    "members": 60,
     "nests": [
       "icon",
       "focus-ring"
@@ -337,7 +337,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Subcomponents",
     "buildable": true,
     "reason": null,
-    "members": 30,
+    "members": 60,
     "nests": [
       "icon",
       "focus-ring"

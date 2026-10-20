@@ -182,7 +182,7 @@ export const spinner: ComponentDef = {
     composesWith: [],
     alternativeTo: [],
     // `toast` — brief §12: a background wait that ends in a success or failure toast closes the loop.
-    planned: ['progress', 'skeleton', 'toast'],
+    planned: ['progress', 'skeleton'],
     replacesPatterns: ['an animated loading GIF', 'a static loading glyph in the icon set'],
   },
 

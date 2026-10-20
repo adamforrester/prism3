@@ -28,7 +28,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | radio-control | radio-row | radio-group, radio-row |
 | radio-row | radio-group | radio-group |
 | segmented-control-segment | segmented-control | segmented-control |
-| spinner | button, button-destructive, button-neutral, icon-button, icon-button-destructive, icon-button-neutral | button, button-destructive, button-group, button-neutral, dialog, icon-button, icon-button-destructive, icon-button-neutral, password-field |
+| spinner | button, button-destructive, button-neutral, icon-button, icon-button-destructive, icon-button-neutral | button, button-destructive, button-group, button-neutral, dialog, icon-button, icon-button-destructive, icon-button-neutral, password-field, toast |
 | switch-control | switch-row | switch-row |
 | tab | tabs | tabs |
 
@@ -85,6 +85,7 @@ A component not in this table is nested by nothing; a change to it reaches only 
 | tag | 1 | focus-ring | focus-ring |
 | text-field | 1 | field-label, field-message, focus-ring | field-label, field-message, focus-ring |
 | textarea | 1 | field-label, field-message, focus-ring | field-label, field-message, focus-ring |
+| toast | 2 | button, flush-icon-button-neutral | button, flush-icon-button-neutral, focus-ring, spinner |
 | veil | 0 | — | — |
 
 Depth is 0 for a component that nests nothing, and one more than its deepest child otherwise.
@@ -123,7 +124,7 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | checkbox-group | row2 | nest | checkbox-row | nest-fixed | size=medium | size | — |
 | checkbox-group | row3 | nest | checkbox-row | nest-fixed | size=medium | size | — |
 | checkbox-row | control | nest | checkbox-control | nest-exposed | selection=unchecked, state=rest | size | selection, state |
-| counter | decrement | nest | flush-icon-button-neutral | nest-exposed | shape=flush, size=medium, state=rest | size | state |
+| counter | decrement | nest | flush-icon-button-neutral | nest-exposed | shape=flush, size=medium, surface=default, state=rest | size | state |
 | counter | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | counter | increment | nest | flush-icon-button-neutral | nest-exposed | shape=flush, size=medium, state=rest | size | state |
 | counter | label | nest | field-label | nest-exposed | size=medium, emphasis=secondary, weight=regular, state=rest | size | emphasis, weight |
@@ -133,9 +134,9 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | dialog | close | nest | flush-icon-button-neutral | nest-fixed | shape=flush, size=medium, state=rest | — | — |
 | dialog | footerDivider | nest | divider | nest-fixed | orientation=horizontal, inset=none | — | — |
 | dialog | headerDivider | nest | divider | nest-fixed | orientation=horizontal, inset=none | — | — |
-| flush-icon-button | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
-| flush-icon-button-destructive | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
-| flush-icon-button-neutral | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
+| flush-icon-button | focusRing | absolute | focus-ring | nest-fixed | surface=default | surface | — |
+| flush-icon-button-destructive | focusRing | absolute | focus-ring | nest-fixed | surface=default | surface | — |
+| flush-icon-button-neutral | focusRing | absolute | focus-ring | nest-fixed | surface=default | surface | — |
 | icon-button | focusRing | absolute | focus-ring | nest-fixed | surface=default | surface | — |
 | icon-button | spinner | overlay | spinner | swap | — | — | — |
 | icon-button-destructive | focusRing | absolute | focus-ring | nest-fixed | surface=default | surface | — |
@@ -190,6 +191,8 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | textarea | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | textarea | label | nest | field-label | nest-exposed | size=medium, emphasis=secondary, weight=regular, state=rest | size | emphasis, weight |
 | textarea | message | nest | field-message | nest-fixed | status=default | status | — |
+| toast | action | nest | button | nest-fixed | appearance=text, size=small, surface=inverse, inset=default, state=rest, leading icon=false, trailing icon=false | — | — |
+| toast | close | nest | flush-icon-button-neutral | nest-fixed | shape=flush, size=small, surface=inverse, state=rest | — | — |
 
 ## Inherits
 

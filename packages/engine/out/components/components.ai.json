@@ -1969,6 +1969,17 @@
           "description": "The glyph size: 20px at small and medium, 24px at large. A flush box is the glyph, with no padding. A round circle is 36, 44 or 56px across. The hit area in code is at least 44×44px at every size."
         },
         {
+          "name": "surface",
+          "type": "enum: 'default' | 'inverse'",
+          "default": "default",
+          "required": false,
+          "values": [
+            "default",
+            "inverse"
+          ],
+          "description": "The ground the button sits on, following IconButton. `default` for a normal page; `inverse` for a dark or brand-filled card or band, where the glyph binds its `color.inverse.*` counterpart so it keeps contrast against the flipped surface. Flush has no fill, so the glyph ink is all the axis changes. A host that cannot know its ground picks `default`, and the designer sets `inverse` on the instance, the same answer the nested focus ring gives."
+        },
+        {
           "name": "disabled",
           "type": "boolean",
           "default": false,
@@ -1996,6 +2007,13 @@
             "medium",
             "small",
             "large"
+          ],
+          "kind": "authoring"
+        },
+        "surface": {
+          "values": [
+            "default",
+            "inverse"
           ],
           "kind": "authoring"
         }
@@ -2138,6 +2156,17 @@
           "description": "The glyph size: 20px at small and medium, 24px at large. A flush box is the glyph, with no padding. A round circle is 36, 44 or 56px across. The hit area in code is at least 44×44px at every size."
         },
         {
+          "name": "surface",
+          "type": "enum: 'default' | 'inverse'",
+          "default": "default",
+          "required": false,
+          "values": [
+            "default",
+            "inverse"
+          ],
+          "description": "The ground the button sits on, following IconButton. `default` for a normal page; `inverse` for a dark or brand-filled card or band, where the glyph binds its `color.inverse.*` counterpart so it keeps contrast against the flipped surface. Flush has no fill, so the glyph ink is all the axis changes. A host that cannot know its ground picks `default`, and the designer sets `inverse` on the instance, the same answer the nested focus ring gives."
+        },
+        {
           "name": "disabled",
           "type": "boolean",
           "default": false,
@@ -2165,6 +2194,13 @@
             "medium",
             "small",
             "large"
+          ],
+          "kind": "authoring"
+        },
+        "surface": {
+          "values": [
+            "default",
+            "inverse"
           ],
           "kind": "authoring"
         }
@@ -2308,6 +2344,17 @@
           "description": "The glyph size: 20px at small and medium, 24px at large. A flush box is the glyph, with no padding. A round circle is 36, 44 or 56px across. The hit area in code is at least 44×44px at every size."
         },
         {
+          "name": "surface",
+          "type": "enum: 'default' | 'inverse'",
+          "default": "default",
+          "required": false,
+          "values": [
+            "default",
+            "inverse"
+          ],
+          "description": "The ground the button sits on, following IconButton. `default` for a normal page; `inverse` for a dark or brand-filled card or band, where the glyph binds its `color.inverse.*` counterpart so it keeps contrast against the flipped surface. Flush has no fill, so the glyph ink is all the axis changes. A host that cannot know its ground picks `default`, and the designer sets `inverse` on the instance, the same answer the nested focus ring gives."
+        },
+        {
           "name": "disabled",
           "type": "boolean",
           "default": false,
@@ -2335,6 +2382,13 @@
             "medium",
             "small",
             "large"
+          ],
+          "kind": "authoring"
+        },
+        "surface": {
+          "values": [
+            "default",
+            "inverse"
           ],
           "kind": "authoring"
         }
@@ -5330,8 +5384,7 @@
         "supersededBy": [],
         "planned": [
           "progress",
-          "skeleton",
-          "toast"
+          "skeleton"
         ],
         "replacesPatterns": [
           "an animated loading GIF",
@@ -5530,7 +5583,6 @@
         "supersededBy": [],
         "planned": [
           "avatar",
-          "toast",
           "banner"
         ],
         "replacesPatterns": [
@@ -7719,7 +7771,6 @@
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "toast",
           "popover",
           "menu"
         ],

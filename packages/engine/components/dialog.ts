@@ -185,7 +185,7 @@ export const dialog: ComponentDef = {
         // build's shape, drew a circle and an edge around the X.
         nests: 'flush-icon-button-neutral',
         optional: true,
-        nesting: { kind: 'nest-fixed', variant: { shape: 'flush', size: 'medium', state: 'rest' } },
+        nesting: { kind: 'nest-fixed', variant: { shape: 'flush', size: 'medium', surface: 'default', state: 'rest' } },
         // Always the X (owner decision, 2026-10-16, #2609): the nested button's own `swap icon` is set to `close` on every
         // member (#2645), and Dialog exposes no swap of its own. A product that wants another X changes the icon set's
         // `close` glyph, or edits the component.
@@ -354,7 +354,7 @@ export const dialog: ComponentDef = {
     alternativeTo: ['accordion'],
     replacesPatterns: ['a div overlay with a z-index and a hand-written focus trap', 'a backdrop built from a veil'],
     supersededBy: [],
-    planned: ['toast', 'popover', 'menu'],
+    planned: ['popover', 'menu'],
   },
 
   motion: {
