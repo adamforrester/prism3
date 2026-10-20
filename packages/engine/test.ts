@@ -17086,6 +17086,20 @@ arm: {
     const keyboardSays = /tabindex="-1"/.test(counter.accessibility.keyboard ?? '') && (counter.anatomy?.codeOnly ?? []).some((e) => /<button type="button" tabindex="-1">/.test(e));
     ok(counter.props.find((x) => x.name === 'min')?.default === 0 && keyboardSays && !counter.props.some((x) => /remove/i.test(x.name)),
       `#2427 counter/api: min defaults to 0 (Q283.7), the buttons are tabindex="-1" in the shipped keyboard text and in codeOnly (Q283.8 A), and no remove-at-min prop (Q283.7 C)`);
+    // Q425 A (#2693): the Counter is ONE tab stop, the WAI-ARIA spinbutton. Read from the def's own shipped fields.
+    {
+      const a11y = counter.accessibility;
+      const code = (counter.anatomy?.codeOnly ?? []).join('\n');
+      const keyMap: Array<[string, RegExp]> = [['Up Arrow', /Up/], ['Down Arrow', /Down/], ['Page Up', /Page Up/], ['Page Down', /Page Down/], ['Home', /Home/], ['End', /End/]];
+      const dropped = keyMap.filter(([, re]) => !re.test(a11y.keyboard ?? '') || !re.test(code)).map(([k]) => k);
+      ok(dropped.length === 0, `#2427 counter/keyboard-map: the keyboard text and codeOnly both name every spinbutton key${dropped.length ? ` — missing ${dropped.join(', ')}` : ''}`);
+      const buttonLine = (/the stepper buttons[^\n]*/.exec(code) ?? [''])[0];
+      const tabStop = /one Tab stop/.test(a11y.keyboard ?? '') && /tabindex="0"/.test(code) && /role="spinbutton"/.test(code) && /^spinbutton/.test(a11y.role ?? '');
+      const buttonsOut = /tabindex="-1"/.test(buttonLine) && !/tabindex="0"/.test(buttonLine) && /outside the Tab order/.test(a11y.keyboard ?? '') && !/Tab order/.test(a11y.keyboard?.replace(/outside the Tab order/g, '') ?? '');
+      ok(tabStop && buttonsOut, `#2427 counter/one-tab-stop: the value is the only Tab stop (role spinbutton, tabindex 0) and the buttons are tabindex="-1" outside the Tab order (Q425 A)`);
+      ok(/aria-valuetext/.test(code) && /aria-valuetext/.test(a11y.aria ?? '') && /not aria-hidden/.test(a11y.aria ?? '') && /not aria-hidden/.test(buttonLine) && !/aria-hidden="true"/.test(buttonLine),
+        `#2427 counter/buttons-not-hidden: aria-valuetext is named, and the buttons stay in the accessibility tree, not aria-hidden (Q425 A, APG)`);
+    }
   }
 
   // ---- #2427: `variantWhen` — a host value picking a child value on a differently named axis. Each refusal fires on a

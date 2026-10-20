@@ -237,8 +237,8 @@ export const counter: ComponentDef = {
     },
     codeOnly: [
       'the spinbutton — the value is one focusable element with role="spinbutton" and tabindex="0", not an <input>: a counter shows its value and is not typed into (typed entry is the number input). It carries aria-valuenow, aria-valuemin, aria-valuemax only when a max is set, aria-valuetext where the number alone is unclear ("3 items"), and the label as its name through aria-labelledby, which works with the label shown or hidden. The message, when shown, is added through aria-describedby.',
-      'the keyboard model — Up Arrow and Down Arrow change the value by one step, Page Up and Page Down by ten steps, and Home and End go to min and to max when a max is set. The value never passes min or max. Tab reaches the counter once, at the value.',
-      'the stepper buttons — each is a <button type="button" tabindex="-1"> (APG), out of the Tab order because the arrow keys do the same job, and still reached by pointer, touch and voice. Each has aria-controls pointing at the value and an accessible name from decrementLabel and incrementLabel. A press does not move focus. At a limit the button takes aria-disabled="true", not native disabled, so it stays in the accessibility tree, and a press does nothing.',
+      'the keyboard model — Up Arrow and Down Arrow change the value by one step, Page Up and Page Down by ten steps, and Home and End go to min and to max when a max is set. The value never passes min or max. The counter is one Tab stop, at the value.',
+      'the stepper buttons — each is a <button type="button" tabindex="-1"> (APG), out of the Tab order because the arrow keys do the same job, and still reached by pointer, touch and voice. They are not aria-hidden: the ARIA Authoring Practices spin button example keeps such buttons in the accessibility tree, so pointer and touch users of assistive technology can still find them by name. Each has aria-controls pointing at the value and an accessible name from decrementLabel and incrementLabel. A press does not move focus. At a limit the button takes aria-disabled="true", not native disabled, so it stays in the accessibility tree, and a press does nothing.',
       'the announcement — a button press writes the new value to the app\'s one shared polite live region, such as "Quantity 3", never a region of the counter\'s own. An arrow-key change is announced by the spinbutton itself and is not written there again.',
       'touch-target-expansion — each nested button extends its hit area in code to at least 44×44px at every size (the flush icon button\'s own rule). On outline the medium inset is 12px, so a 20px glyph\'s 44px area reaches the edge exactly; the value between the two buttons keeps their areas apart, at least 44px center to center.',
       'limits in Figma — min and max are code props. In Figma the designer shows a limit by setting that button\'s exposed state to disabled; in code the counter sets aria-disabled from min and max.',
@@ -272,9 +272,9 @@ export const counter: ComponentDef = {
       '2.5.8 Target Size (Minimum) (24×24, as intent, through each button\'s code-side hit area)',
       '2.5.5 Target Size (Enhanced) (targets 44×44 for each button at every size, through its code-side hit area)',
     ],
-    keyboard: 'Tab reaches the value once. Up and Down Arrow change it by one step, Page Up and Page Down by ten, Home and End go to min and max. The minus and plus buttons are outside the Tab order (tabindex="-1").',
-    focus: 'A focus ring around the whole row while the value has keyboard focus: on the edge for outline, 2px outside the buttons for ghost.',
-    aria: 'The value has role="spinbutton", aria-valuenow, aria-valuemin, aria-valuemax when a max is set, and the label as its name, shown or not. Each button has aria-controls pointing at the value and its own name, a verb with the object ("Increase quantity"); in a list of line items, the name includes the item. At a limit the button takes aria-disabled="true" and stays in the accessibility tree. Every name is translatable, and the row mirrors right to left.',
+    keyboard: 'The counter is one Tab stop: focus lands on the value. Up and Down Arrow change it by one step, Page Up and Page Down by ten steps, Home and End go to min and max. The minus and plus buttons are for pointer and touch and are outside the Tab order (tabindex="-1").',
+    focus: 'One focus ring around the whole row while the value has keyboard focus, as built in Figma: on the edge for outline, 2px outside the buttons for ghost. The buttons never take focus from the keyboard, so they draw no ring of their own.',
+    aria: 'The value has role="spinbutton", aria-valuenow, aria-valuemin, aria-valuemax when a max is set, aria-valuetext where the number is shown formatted ("3 items"), and the label as its name, shown or not. Each button has aria-controls pointing at the value and its own name, a verb with the object ("Increase quantity"); in a list of line items, the name includes the item. At a limit the button takes aria-disabled="true" and stays in the accessibility tree. The buttons are not aria-hidden: they keep their names for pointer and touch users of assistive technology, as the ARIA Authoring Practices spin button example does. Every name is translatable, and the row mirrors right to left.',
   },
 
   content: {
@@ -293,6 +293,7 @@ export const counter: ComponentDef = {
       'Use it for a large or precise number, such as a price or a measurement; use a number input',
       'Use it for a count shown on another element, such as unread messages; use a badge',
       'Put the minus and plus buttons in the Tab order; the arrow keys already step the value',
+      'Hide the minus and plus buttons with aria-hidden; they stay in the accessibility tree for pointer and touch users of assistive technology',
       'Change the value on a mouse wheel or scroll',
     ],
     contentGuidelines: 'The label is a noun ("Quantity"). Button names are a verb with the object. A limit message states the limit and why ("Limit 5 per order").',

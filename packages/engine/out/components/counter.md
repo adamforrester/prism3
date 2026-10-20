@@ -25,6 +25,7 @@ Use for a small whole-number quantity that usually changes by one, such as the i
 - Use it for a large or precise number, such as a price or a measurement; use a number input
 - Use it for a count shown on another element, such as unread messages; use a badge
 - Put the minus and plus buttons in the Tab order; the arrow keys already step the value
+- Hide the minus and plus buttons with aria-hidden; they stay in the accessibility tree for pointer and touch users of assistive technology
 - Change the value on a mouse wheel or scroll
 
 ### Content guidelines
@@ -85,9 +86,9 @@ The label is a noun ("Quantity"). Button names are a verb with the object. A lim
   - 2.4.7 Focus Visible (the shared focus ring around the row)
   - 2.5.8 Target Size (Minimum) (24×24, as intent, through each button's code-side hit area)
   - 2.5.5 Target Size (Enhanced) (targets 44×44 for each button at every size, through its code-side hit area)
-- **Keyboard:** Tab reaches the value once. Up and Down Arrow change it by one step, Page Up and Page Down by ten, Home and End go to min and max. The minus and plus buttons are outside the Tab order (tabindex="-1").
-- **Focus:** A focus ring around the whole row while the value has keyboard focus: on the edge for outline, 2px outside the buttons for ghost.
-- **ARIA:** The value has role="spinbutton", aria-valuenow, aria-valuemin, aria-valuemax when a max is set, and the label as its name, shown or not. Each button has aria-controls pointing at the value and its own name, a verb with the object ("Increase quantity"); in a list of line items, the name includes the item. At a limit the button takes aria-disabled="true" and stays in the accessibility tree. Every name is translatable, and the row mirrors right to left.
+- **Keyboard:** The counter is one Tab stop: focus lands on the value. Up and Down Arrow change it by one step, Page Up and Page Down by ten steps, Home and End go to min and max. The minus and plus buttons are for pointer and touch and are outside the Tab order (tabindex="-1").
+- **Focus:** One focus ring around the whole row while the value has keyboard focus, as built in Figma: on the edge for outline, 2px outside the buttons for ghost. The buttons never take focus from the keyboard, so they draw no ring of their own.
+- **ARIA:** The value has role="spinbutton", aria-valuenow, aria-valuemin, aria-valuemax when a max is set, aria-valuetext where the number is shown formatted ("3 items"), and the label as its name, shown or not. Each button has aria-controls pointing at the value and its own name, a verb with the object ("Increase quantity"); in a list of line items, the name includes the item. At a limit the button takes aria-disabled="true" and stays in the accessibility tree. The buttons are not aria-hidden: they keep their names for pointer and touch users of assistive technology, as the ARIA Authoring Practices spin button example does. Every name is translatable, and the row mirrors right to left.
 
 ## Motion
 
