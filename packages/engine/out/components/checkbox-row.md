@@ -18,7 +18,7 @@ A control for an independent binary choice that is staged into a form and submit
 
 ## Anatomy
 
-Shown on the default member: size `medium`.
+Shown on the default member: size `medium`, status `default`.
 
 1. **Control**
 2. **Label**
@@ -28,10 +28,11 @@ Shown on the default member: size `medium`.
 | Axis | Values | Changes | Description |
 | --- | --- | --- | --- |
 | `size` | `medium`, `small`, `large` | once, when authored | Scales the control square, the label's type ramp, the box↔label gap and the row's minimum height. The square reads `control.size.<rung>.height` on BOTH axes — square by construction rather than by two tokens agreeing — and not `icon.size.*`, which is 16/20/24 in every brand the engine ships and so would hold a control rigid that should move with brand density. |
+| `status` | `default`, `error` | at runtime | — |
 
 ### States
 
-`rest`, `hover`, `pressed`, `focus-visible`, `disabled`, `read-only`, `error`
+`rest`, `hover`, `pressed`, `focus-visible`, `disabled`, `read-only`
 
 ## Usage guidelines
 
@@ -60,7 +61,7 @@ Use a single Checkbox.Row for one independent opt-in (a consent line, "Remember 
 - **Focus:** :focus-visible ring on the CONTROL, offset, at least 3:1 — keyboard traversal only, not mouse or touch. The visual box stays tight while the interactive footprint is generous: the hit target is expanded by padding on the row WRAPPER (the icon-button parallel), so clicking the label or the surrounding space toggles. The target aims for at least 24x24, scaling to 44 (Apple) / 48 (Material) on touch. The label sits inline-end of the control, not above it.
 - **Screen readers:** checkbox (native \<input type="checkbox">), with aria-checked true / false / mixed
 
-  Prefer the styled native input — `appearance: none` plus a pseudo-element or SVG keeps role, checked state and Space-to-toggle for free; a `role="checkbox"` div is a last resort and must reproduce aria-checked (true/false/mixed) exactly. Relying on the visual dash glyph alone to convey indeterminate is an accessibility failure. For a set, `role="group"` plus `aria-labelledby` is the default over `fieldset`/`legend` — both are valid, but fieldset has flexbox and grid quirks that make it hard to style predictably, and role=group on a div keeps the layout freedom while preserving the shared-label announcement. Group error and required associate to the GROUP and announce once; an individual row never owns its own required or error. When the control is nested in a host row, the host provides the accessible name through aria-labelledby — never double-label.
+  Prefer the styled native input — `appearance: none` plus a pseudo-element or SVG keeps role, checked state and Space-to-toggle for free; a `role="checkbox"` div is a last resort and must reproduce aria-checked (true/false/mixed) exactly. Relying on the visual dash glyph alone to convey indeterminate is an accessibility failure. For a set, `role="group"` plus `aria-labelledby` is the default over `fieldset`/`legend` — both are valid, but fieldset has flexbox and grid quirks that make it hard to style predictably, and role=group on a div keeps the layout freedom while preserving the shared-label announcement. Group error and required associate to the GROUP and announce once; a row inside a group never owns its own required or error — the group sets its `status`. A STANDALONE row (a consent line) is the one that sets its own: `status=error` with aria-invalid on the input and the host's message in its aria-describedby. When the control is nested in a host row, the host provides the accessible name through aria-labelledby — never double-label.
 
 ### WCAG
 
@@ -68,7 +69,7 @@ Use a single Checkbox.Row for one independent opt-in (a consent line, "Remember 
 - 4.1.2 Name Role Value (role, checked AND mixed — `aria-checked="mixed"` must be set explicitly)
 - 1.3.1 Info and Relationships (group structure)
 - 3.3.2 Labels or Instructions (the visible row label)
-- 3.3.1 Error Identification / 3.3.3 Error Suggestion — the intent, not met today. In a set, the group carries the message and announces it once, and the group error display is not designed yet. An isolated row recolors its own boundary but nests no message part, so the text that names the error is its host's.
+- 3.3.1 Error Identification / 3.3.3 Error Suggestion — in a set, the group sets `status=error` on every row and shows its message under them, announced once. A standalone row draws the danger border at `status=error` but nests no message part, so the text that names the error is its host's.
 - 1.4.11 Non-text Contrast / 2.4.13 Focus Appearance (control boundary and focus indicator)
 - 3.3.7 Redundant Entry (repeated consents)
 
@@ -83,7 +84,7 @@ Use a single Checkbox.Row for one independent opt-in (a consent line, "Remember 
 The label states what becomes true when checked. Group errors read "Select at least one option" rather than "Invalid". Consent labels name the thing agreed to in full.
 
 - **Labels:** A POSITIVE statement of what becomes true when checked — "Subscribe to newsletter", never "Do not send me emails", which a user has to mentally invert in order to uncheck. Sentence case, no terminal period for a terse single-sentence label; apply punctuation only for multi-sentence or legal labels. Abstract shared words up into the group label, so "Notification preferences" lets its rows read "Email", "SMS", "Push".
-- **Errors:** Group-level for a set — "Select at least one option" — stating what is wrong and how to fix it (SC 3.3.3). An isolated row recolors its own boundary; inside a group the rows stay neutral and the group carries the message.
+- **Errors:** Group-level for a set — "Select at least one option" — stating what is wrong and how to fix it (SC 3.3.3). Inside a group the group sets `status=error` on every row and carries the message. A standalone row sets its own `status=error` ("Accept the terms to continue"), and its host shows the message.
 
 ## Related components
 
@@ -109,6 +110,7 @@ The label states what becomes true when checked. Group errors read "Select at le
 | `value` | string | — | no | The string submitted when checked (the platform default is `"on"`), and the element this row contributes to a Checkbox.Group's array. An unchecked box submits nothing at all rather than a false value — the missing-key trap. |
 | `disabled` | boolean | `false` | no | Native disabled: removed from the tab order, not submitted, contrast-exempt. Disables the whole row: the nested control takes its disabled skin and the label dims. Reserve for an option that does not apply in the current state. |
 | `readOnly` | boolean | `false` | no | Restated only for the caveat: `<input type="checkbox">` has NO working `readonly` — only `disabled` — so a genuinely read-only checkbox needs `aria-readonly` plus a prevented toggle, or is better rendered as static text. Decide which explicitly; the default of doing neither is a control that looks interactive and silently is not. |
+| `validation` | enum: 'default' \| 'error' | `default` | no | The validation status of a standalone checkbox — a consent line that must be checked. `error` draws the danger border on the box and sets aria-invalid; pair it with an error message the host shows. Inside a Checkbox.Group the group sets this on every row; never set it on one row of a group. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | Scales the control square, the label's type ramp, the box↔label gap and the row's minimum height. The square reads `control.size.<rung>.height` on BOTH axes — square by construction rather than by two tokens agreeing — and not `icon.size.*`, which is 16/20/24 in every brand the engine ships and so would hold a control rigid that should move with brand density. |
 
 ---
