@@ -1491,9 +1491,11 @@ export const makeShim = (opts: ShimOpts = {}) => {
     // that one was saved and in what order against the writes; refusable, so the refusal path is reachable.
     _versions: [] as string[],
     _removed: removedNodes,
-    saveVersionHistoryAsync: async (title: string) => {
+    _versionNotes: [] as string[],
+    saveVersionHistoryAsync: async (title: string, description?: string) => {
       if (opts.refuseVersion) throw new Error('in saveVersionHistoryAsync: this plugin may not save versions');
       (shim._versions as string[]).push(title);
+      (shim._versionNotes as string[]).push(description ?? '');
       return { id: `VER:${(shim._versions as string[]).length}` };
     },
     // WHAT A CRITERIA SEARCH ACTUALLY RETURNS (#681). `types: ['COMPONENT']` matches `ComponentNode`

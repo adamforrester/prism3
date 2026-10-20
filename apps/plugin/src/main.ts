@@ -37,6 +37,7 @@ import { fieldStyleNote } from './field-style-note';
 import { gridSkippedNote } from './write-grid-styles';
 import { applyComponentPlan, partialWriteOf } from './write-components';
 import type { ComponentProgress, CompPageTarget, CompNode, ComponentsApi } from './write-components';
+import { saveBeforeBuild, saveVersion } from './version-title';
 import { applyUpdate, applyVerdict, previewHashOf, type ApplyHost, type UpdateChoices } from './update-apply';
 import { scaffoldSkeleton, resolveComponentPage } from './file-setup';
 import { ensureFileComponents } from './file-components';
@@ -204,7 +205,7 @@ const applyTheme = async (input: BrandInput, sink: ActionSink): Promise<void> =>
     // The write sequence — fonts first, pre-flight, then the guarded executor calls — lives in
     // `apply-theme.ts` since #111, so the MCP paste harness can prove parity against this exact path. The
     // global `figma` is the host; everything below this line (the report) is unchanged.
-    const { plans, pf, guarded, before } = await runApplyTheme(input, figma);
+    const { plans, pf, guarded, before } = await runApplyTheme(input, figma, () => saveVersion(figma, { run: 'apply-theme' }).then(() => undefined));
     const { colorFiles, floatPlan, fontPlan, motionPlan } = plans;
     if (!guarded.ok) {
       sink.data({ conflicts: guarded.conflicts });
@@ -728,6 +729,9 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
     // rebuilding it would orphan its placed instances, so it keeps its STALE reading exactly as before. A
     // dependency that fails stops here, so the parent is never built against a missing nest.
     await figma.loadAllPagesAsync();
+    // A NAMED VERSION BEFORE THE FIRST WRITE (#2828), for the def and the sets it adds first. A host that refuses
+    // lands in the catch below with nothing written.
+    await saveBeforeBuild(figma, def, { defs: componentDefs, project });
     // Every reading kept, for the end-of-run summary. 54 objects for a 648 build — the memory is nothing
     // and the alternative is a running aggregate that cannot report a distribution.
     const reports: ComponentProgress[] = [];
@@ -942,7 +946,8 @@ const updateComponents = async (defId: string | undefined, previewHash: string |
     // THE APPLY (#2265 PR 2): the same plans the check laid against the file, applied over it only while it still
     // hashes as the check did. `figma` is both the file the check reads and the executor's port.
     const descriptionOf = (def: string): string | undefined => componentDefs.find((d) => d.id === def)?.summary;
-    const r = await applyUpdate(figma as unknown as ApplyHost, figma as unknown as ComponentsApi, targets, previewHash, { descriptionOf, breathe, ...(choices ? { choices } : {}) });
+    const nameOf = (def: string): string | undefined => componentDefs.find((d) => d.id === def)?.name;
+    const r = await applyUpdate(figma as unknown as ApplyHost, figma as unknown as ComponentsApi, targets, previewHash, { descriptionOf, nameOf, breathe, ...(choices ? { choices } : {}) });
     r.refused.push(...refused);
     // THE CANVAS FURNITURE (#2406, #2188), redrawn for every piloted set the apply acted on — from the members as they
     // now sit, so the labels follow the update. Reported in the data, and in the verdict only where a part was skipped.
@@ -1075,6 +1080,8 @@ const styleGuide = async (options: StyleGuideOptions, sink: ActionSink): Promise
     // the pending pill and, logged, to the console: a hung run's last line names the table it hung on, and
     // `tableMs` is the live figure `CELLS_PER_YIELD` is calibrated against.
     const result = await runStyleGuide(figma, contract, options, {
+      // A NAMED VERSION BEFORE THE FIRST WRITE (#2828); a host that refuses ends the run in the catch below.
+      beforeWrite: (tables) => saveVersion(figma, { run: 'style-guide', tables }).then(() => undefined),
       onProgress: (p) => {
         if (p.done > 0) console.log(`[prism3 #1778] style guide: table ${p.done} of ${p.total}, ${p.title}, ${p.tableMs}ms`);
         sink.post({ type: 'style-guide-progress', done: p.done, total: p.total, tableMs: p.tableMs });

@@ -4400,6 +4400,19 @@ const main = async (): Promise<void> => {
     ok(hAgain === hSnap, `39: with a frame below the growth, a rerun moves and resizes nothing (${hAgain === hSnap ? 'same' : `${hSnap} → ${hAgain}`})`);
   }
 
+  console.log('40. the named version (#2828): saved once, with the table count, before the first table is drawn');
+  {
+    const v = await fullFile();
+    const seen: { tables: number; drawn: number }[] = [];
+    const r = await draw(v.api, contract, {}, { beforeWrite: async (tables) => { seen.push({ tables, drawn: tablesOn(v.sem).length + tablesOn(v.prim).length }); } });
+    ok(seen.length === 1 && seen[0].drawn === 0 && seen[0].tables === r.tables.length && r.tables.length > 0,
+      `40: one call, with the plan's ${r.tables.length} tables, before any is drawn (${JSON.stringify(seen)})`);
+    const refused = await fullFile();
+    let threw = '';
+    try { await draw(refused.api, contract, {}, { beforeWrite: async () => { throw new Error('no version'); } }); } catch (e) { threw = (e as Error).message; }
+    ok(threw === 'no version' && tablesOn(refused.sem).length + tablesOn(refused.prim).length === 0, `40: a version that cannot be saved ends the run with nothing drawn (${threw})`);
+  }
+
   if (failures) { console.error(`\n${failures} style-guide check(s) failed`); process.exit(1); }
   console.log('\nstyle guide: all checks pass');
 };
