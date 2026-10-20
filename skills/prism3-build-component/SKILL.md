@@ -91,8 +91,25 @@ highest-value field, because an agent otherwise uses whatever it finds.
 **Siblings must be distinguishable.** When one file exports several defs (`makeButton` builds
 `button`, `button-destructive` and `button-neutral`), give each its own `ai.triggerKeywords`, an
 `ai.avoidWhen` that names the better-fitting sibling, and an `ai.generationPriority` for the
-tiebreak. `packages/engine/test.ts` pins that the button families' sibling keyword sets differ. The brief sets no
-priority, so the numbers are a judgment call to flag in the PR.
+tiebreak. `packages/engine/test.ts` pins that the button families' sibling keyword sets differ.
+
+**`ai.generationPriority` is a written scale.** Every def carries one, not only siblings. An agent
+choosing between candidates takes the lower number. The brief sets no priority, so pick the tier
+from what the component is:
+
+| Priority | Tier | For example |
+|---|---|---|
+| 1 | The default pick: the one component an agent reaches for when nothing in the prompt narrows the choice | Button |
+| 2 | A top-level component an agent places on its own | Text field, Select, Counter, Button group, Tabs, Dialog, Icon, Button.Neutral |
+| 3 | A top-level component that supports another (a status, a separator, a wait, a wash), or a sibling that loses the tiebreak to its family's 2 | Badge, Divider, Spinner, IconButton.Destructive, Segmented control |
+| 4–5 | A specialization of a top-level component for a narrower place | the three flush icon buttons |
+| 6 | A part a host nests, placed alone only in the case its `whenToUse` names | the three controls, Field label, Field message, Focus ring |
+| 9 | A part never generated alone: the agent generates its host instead | Tab, List item, the segment, the accordion indicator |
+
+7 and 8 are unused. A def at 6 or 9 must be nested by a registered host. `packages/engine/test.ts`
+(`#2713 generationPriority`) holds every def to its listed tier, so a new def adds itself to that
+list, and a number off the scale or a 6 or 9 with no host fails by name. Flag a new def's tier in
+the PR.
 
 ### What ships, and who reads it
 

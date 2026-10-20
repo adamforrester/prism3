@@ -471,7 +471,7 @@ export const segmentedControl: ComponentDef = {
     avoidWhen: 'The options switch panels of content (use tabs), there are more than five or the labels are long (use a select or a radio group), options need descriptions (use a radio group), it is one on/off setting (use a switch), or selecting goes to another page (a navigation of links).',
     commonPartners: ['segmented-control-segment', 'field-label', 'icon'],
     triggerKeywords: ['segmented control', 'segmented button', 'view switcher', 'content switcher', 'toggle group', 'list grid toggle'],
-    generationPriority: 4,
+    generationPriority: 3,
   },
 
   composition: {

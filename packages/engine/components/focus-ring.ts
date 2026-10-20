@@ -385,7 +385,7 @@ export const focusRing: ComponentDef = {
     // in `composesWith`, which names what a def nests itself.
     commonPartners: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'text-field', 'textarea', 'select', 'checkbox-control', 'radio-control', 'switch-control', 'link', 'counter'],
     triggerKeywords: ['focus ring', 'focus indicator', 'focus outline', 'focus visible', 'keyboard focus'],
-    generationPriority: 2,
+    generationPriority: 6,
   },
 
   composition: {

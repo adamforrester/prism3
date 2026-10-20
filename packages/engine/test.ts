@@ -16785,6 +16785,44 @@ arm: {
     const want = d.id === 'button' ? 'icon-button' : d.id.replace(/^button-/, 'icon-button-');
     ok(d.composition?.alternativeTo?.[0] === want, `#1697 ${d.id} names its own family's icon-only alternative (${want}; got ${d.composition?.alternativeTo?.[0]})`);
   }
+  // #2713 — `ai.generationPriority` follows the build-component skill's written scale. Before it, each def's
+  // number was set alone, so parts an agent must never generate on their own ranked from 2 to 9 and the
+  // focus ring sat level with Text field. The tier of each def is a HAND-WRITTEN literal here, not read
+  // off the defs, so a def's number moving is a failure that names it (docs/34: the expected value is
+  // not derived from the subject). Two arms do not need the literal at all: every number is a scale
+  // point, and a def at 6 or 9 (a part) is nested by a registered host, read from the anatomy of the
+  // OTHER defs. A part with no host is not a part, and that fact is independent of the number.
+  {
+    const SCALE = [1, 2, 3, 4, 5, 6, 9];
+    const TIER: Record<string, number> = {
+      button: 1,
+      'button-destructive': 2, 'button-neutral': 2, 'icon-button': 2, 'icon-button-neutral': 2, icon: 2,
+      'text-field': 2, textarea: 2, 'password-field': 2, select: 2, 'checkbox-row': 2, 'checkbox-group': 2,
+      'radio-row': 2, 'radio-group': 2, 'switch-row': 2, counter: 2, 'button-group': 2, tabs: 2, accordion: 2, list: 2, link: 2, dialog: 2,
+      'icon-button-destructive': 3, 'segmented-control': 3, badge: 3, tag: 3, divider: 3, spinner: 3, veil: 3, 'image-placeholder': 3,
+      'flush-icon-button-neutral': 4, 'flush-icon-button': 5, 'flush-icon-button-destructive': 5,
+      'checkbox-control': 6, 'radio-control': 6, 'switch-control': 6, 'field-label': 6, 'field-message': 6, 'focus-ring': 6,
+      tab: 9, 'list-item': 9, 'segmented-control-segment': 9, '_accordion-indicator': 9,
+    };
+    const prio = (d: ComponentDef) => d.ai.generationPriority;
+    const offScale = componentDefs.filter((d) => !SCALE.includes(prio(d) as number));
+    ok(offScale.length === 0,
+      `#2713 generationPriority: every def carries a number on the scale [${SCALE.join(', ')}]${offScale.length ? ` — off it: ${offScale.map((d) => `${d.id}=${prio(d)}`).join(', ')}` : ''}`);
+    const unlisted = componentDefs.filter((d) => !(d.id in TIER)).map((d) => d.id);
+    const stale = Object.keys(TIER).filter((id) => !componentDefs.some((d) => d.id === id));
+    ok(unlisted.length === 0 && stale.length === 0,
+      `#2713 generationPriority: the tier list names every registered def and nothing else (unlisted: ${unlisted.join(', ') || 'none'}; not registered: ${stale.join(', ') || 'none'})`);
+    const moved = componentDefs.filter((d) => d.id in TIER && TIER[d.id] !== prio(d));
+    ok(moved.length === 0,
+      `#2713 generationPriority: every def is at its listed tier${moved.length ? ` — ${moved.map((d) => `${d.id} is ${prio(d)}, listed ${TIER[d.id]}`).join(', ')}` : ''}`);
+    const hosts = (id: string) => componentDefs.filter((h) => h.id !== id
+      && Object.values(h.anatomy?.parts ?? {}).some((p) => (p as { nests?: string }).nests === id)).map((h) => h.id);
+    const hostless = componentDefs.filter((d) => (prio(d) as number) >= 6 && hosts(d.id).length === 0).map((d) => d.id);
+    ok(hostless.length === 0,
+      `#2713 generationPriority: every def at 6 or 9 is a part some registered host nests${hostless.length ? ` — no host: ${hostless.join(', ')}` : ''}`);
+    ok(componentDefs.filter((d) => prio(d) === 1).length === 1,
+      `#2713 generationPriority: exactly one def is the default pick at 1 (got ${componentDefs.filter((d) => prio(d) === 1).map((d) => d.id).join(', ') || 'none'})`);
+  }
   // NON-colour tokens (radius, per-size geometry incl. #326 padding, gap, height, icon, type, and the
   // cross-cutting disabled.*) identical across all three, byte-for-byte.
   const nonFamilyTokens = (d: ComponentDef) => JSON.stringify(Object.fromEntries(Object.entries(d.tokens!).filter(([, v]) => !FAMILY_RE.test(v as string))));
