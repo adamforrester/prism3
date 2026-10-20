@@ -33,7 +33,7 @@
  *
  * ── PARTS ─────────────────────────────────────────────────────────────────────────────────────────────────
  *
- * A header (the title, an optional description, and the close button: FlushIconButton.Neutral, round, medium, always
+ * A header (the title, an optional description, and the close button: FlushIconButton.Neutral, flush, medium, always
  * the `close` glyph with no swap of its own, owner 2026-10-16 on #2609 and Q385 A on #2806), an optional
  * divider above and below the body (the Divider, nested), the body (a native Figma slot, as the accordion's panel is,
  * #2417), and a footer that nests a Button group (owner decision Q363, #2661), whose slot holds the buttons. The title
@@ -180,17 +180,17 @@ export const dialog: ComponentDef = {
       close: {
         kind: 'nest',
         // FlushIconButton.Neutral, not IconButton.Neutral (Q385 A, settling Q377 A): a file built without the IconButton
-        // sets still builds Dialog. Round at medium is the closest match to the approved ghost medium IconButton: the
-        // same 44px box at the default density, so the header keeps its height, the same neutral glyph ink and hover
-        // wash, and the shared focus ring. It adds the decorative round edge, which the ghost button did not draw.
+        // sets still builds Dialog. The shape is flush, not round (owner QA, 2026-10-19): the bare glyph with no edge and
+        // no fill, glyph ink alone moving at hover and press, and the 44×44 hit area drawn in code. Round, the first
+        // build's shape, drew a circle and an edge around the X.
         nests: 'flush-icon-button-neutral',
         optional: true,
-        nesting: { kind: 'nest-fixed', variant: { shape: 'round', size: 'medium', surface: 'default', state: 'rest' } },
+        nesting: { kind: 'nest-fixed', variant: { shape: 'flush', size: 'medium', surface: 'default', state: 'rest' } },
         // Always the X (owner decision, 2026-10-16, #2609): the nested button's own `swap icon` is set to `close` on every
         // member (#2645), and Dialog exposes no swap of its own. A product that wants another X changes the icon set's
         // `close` glyph, or edits the component.
         overrides: { swaps: { icon: 'close' } },
-        note: 'The close button: a FlushIconButton.Neutral, round, medium, labeled "Close", always showing the close icon. Shown by default; an alertdialog hides it.',
+        note: 'The close button: a FlushIconButton.Neutral, flush, medium, labeled "Close", always showing the close icon. Shown by default; an alertdialog hides it.',
       },
       headerDivider: {
         kind: 'nest',
@@ -309,7 +309,7 @@ export const dialog: ComponentDef = {
       '2.4.7 Focus Visible (every control inside shows the shared focus ring)',
       '2.4.11 Focus Not Obscured (only the body scrolls, so the footer never covers a focused field)',
       '1.4.10 Reflow (a bottom sheet or full-screen dialog keeps a 320px screen usable)',
-      '2.5.8 Target Size (Minimum) (the close button is a medium round icon button, 44px across at the default density)',
+      '2.5.8 Target Size (Minimum) (the close button is a medium flush icon button, a 20px glyph with a 44×44px hit area in code)',
       '4.1.2 Name, Role, Value (role, aria-modal and the accessible name are set)',
     ],
     keyboard: 'Tab and Shift+Tab cycle through the controls inside the dialog. Escape closes it (an alertdialog as Cancel). Enter and Space act on the focused button.',
@@ -375,6 +375,7 @@ export const dialog: ComponentDef = {
       'Owner decisions: the proposal on #2609 (one component, the anatomy, the tokens, the accessibility contract), and Q303 (2026-10-14): no side or drawer placement; `placement` center, bottom or full, with no automatic switch; the backdrop `color.scrim.default` as canvas furniture and `::backdrop`; def-level widths; footer inline, stacked or none; Escape, close and backdrop click dismiss a dialog, and an alertdialog only through its buttons or Escape; `role` a code prop that hides close on an alertdialog; close on by default; corners per placement; the names and aliases; the placeholder wording.',
       'Owner decision (2026-10-16, #2609): the close button is always the X. It shows the close icon on every member, and Dialog has no icon swap property; a product that needs another X changes the close glyph in its icon set or edits the component.',
       'Owner decision Q385 A (2026-10-16, #2806), settling Q377 A on #2609: the close button is a FlushIconButton.Neutral, not an IconButton.Neutral, so a file without the IconButton sets still builds Dialog. It is round at medium, the closest match to the earlier ghost medium IconButton.',
+      'Owner QA (2026-10-19): the close button takes the flush shape, not round. The X is the bare glyph with no edge or fill, and its 44×44px hit area is drawn in code.',
       'Owner decision Q363 (2026-10-16, #2661): the footer is a nested Button group whose native slot holds the buttons, replacing two fixed nested Buttons per layout. Cancel reads "Cancel" and Save "Save"; Cancel is Button.Neutral when the file has it and the primary Button otherwise (Q363.8 as amended, Q386), and since Q418 that is the Dialog\'s own preference on its nest of the group, which on its own keeps the primary outline Button; the `actions` prop is a slot of one to three Button elements (Q363.10 A).',
     ],
   },

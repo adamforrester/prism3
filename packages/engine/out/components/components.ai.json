@@ -7698,7 +7698,7 @@
           "2.4.7 Focus Visible (every control inside shows the shared focus ring)",
           "2.4.11 Focus Not Obscured (only the body scrolls, so the footer never covers a focused field)",
           "1.4.10 Reflow (a bottom sheet or full-screen dialog keeps a 320px screen usable)",
-          "2.5.8 Target Size (Minimum) (the close button is a medium round icon button, 44px across at the default density)",
+          "2.5.8 Target Size (Minimum) (the close button is a medium flush icon button, a 20px glyph with a 44×44px hit area in code)",
           "4.1.2 Name, Role, Value (role, aria-modal and the accessible name are set)"
         ],
         "keyboard": "Tab and Shift+Tab cycle through the controls inside the dialog. Escape closes it (an alertdialog as Cancel). Enter and Space act on the focused button.",
