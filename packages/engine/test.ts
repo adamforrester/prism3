@@ -31989,6 +31989,11 @@ arm: {
   }).map((s) => `${s}: ${String(findIn(cellAt(s, 'focus-visible')!.root, 'caret')?.bound.height)}`);
   ok(caretOff.length === 0,
     `#2428 code-input: the caret on the active empty cell is as tall as the character, 16 / 20 / 24 / 40px (off: ${caretOff.join('; ') || 'none'})`);
+  // (3c) THE ONE INPUT carries no native maxlength: the browser cuts a pasted "123-456" to the limit before any handler
+  // strips the hyphen, so a valid code would read as incomplete (review of #2789, S1).
+  const oneInput = (fieldDef.codeOnly ?? []).find((l) => l.startsWith('ONE INPUT'));
+  ok(!!oneInput && !/maxlength/i.test(oneInput.replace(/The input carries no native `maxlength`[^.]*\./, '')),
+    '#2428 code-input: the one input in the code contract carries no native maxlength, so a pasted code with separators is not cut before it is normalized');
   // (3b) OPTICAL CENTERING (owner QA on #2428, 2026-10-16; option A on #2789): every character's text box is trimmed to the
   // cap height and the baseline, centered on both axes in a `content` frame with no padding that fills the cell. A centered
   // LINE box is not enough: it leaves the figure off center by the font's own metrics. And no other def's text is trimmed,
