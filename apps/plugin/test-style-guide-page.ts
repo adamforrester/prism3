@@ -42,7 +42,7 @@ const SEM = '↳ Semantic tokens';
 const pageNode = (name: string) => ({ name, type: 'PAGE', children: [] as unknown[], appendChild: () => undefined, findAllWithCriteria: () => [] });
 const SETS = [{ name: '_style-guide-swatches', type: 'COMPONENT_SET', children: [] }, { name: '_style-guide-text-cells', type: 'COMPONENT_SET', children: [] }];
 /** Which cell sets the file holds: both, one of the two, or none. */
-const file = { sets: true as boolean | 'swatch' | 'text', pages: [] as string[], throwOnRead: false };
+const file = { sets: true as boolean | 'swatch' | 'text', pages: [] as string[], throwOnRead: false, versions: [] as string[][] };
 const root = {
   name: 'style guide page test file',
   type: 'DOCUMENT',
@@ -74,6 +74,8 @@ const host: Record<string, unknown> = {
   root,
   currentPage: { name: 'Page 1', children: [] },
   loadAllPagesAsync: async () => { if (file.throwOnRead) throw new Error('the file could not be read'); },
+  // The named version a style-guide run saves before its first table (#2828); recorded so a run can be checked against it.
+  saveVersionHistoryAsync: async (title: string, description?: string) => { file.versions.push([title, description ?? '']); return { id: 'v' }; },
   loadFontAsync: async () => undefined,
   createFrame: () => ({}),
   variables: {

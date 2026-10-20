@@ -139,7 +139,7 @@ console.log('\n4. bypass: no second caller, and each command reaches the builder
   ok(JSON.stringify(callers) === JSON.stringify(['version-title.ts']), `bypass/no second caller: ${JSON.stringify(callers)}`);
   const has = (file: string, needle: string): boolean => (text.get(file) ?? '').includes(needle);
   ok(has('update-apply.ts', "run: 'update'"), 'bypass/update: Update saves through the builder');
-  ok(has('main.ts', 'saveBeforeBuild(figma, def'), 'bypass/build: Build saves through the builder');
+  ok(has('main.ts', 'saveBeforeBuild(figma as unknown'), 'bypass/build: Build saves through the builder');
   ok(has('main.ts', "run: 'style-guide'") && has('style-guide.ts', 'run.beforeWrite?.('), 'bypass/style guide: Style guide saves through the builder');
   ok(has('main.ts', "run: 'apply-theme'") && has('apply-theme.ts', 'await beforeWrite?.()'), 'bypass/apply theme: Apply theme saves through the builder');
 }

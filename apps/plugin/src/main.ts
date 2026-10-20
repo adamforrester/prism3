@@ -731,7 +731,7 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
     await figma.loadAllPagesAsync();
     // A NAMED VERSION BEFORE THE FIRST WRITE (#2828), for the def and the sets it adds first. A host that refuses
     // lands in the catch below with nothing written.
-    await saveBeforeBuild(figma, def, { defs: componentDefs, project });
+    await saveBeforeBuild(figma as unknown as Parameters<typeof saveBeforeBuild>[0], def, { defs: componentDefs, project });
     // Every reading kept, for the end-of-run summary. 54 objects for a 648 build — the memory is nothing
     // and the alternative is a running aggregate that cannot report a distribution.
     const reports: ComponentProgress[] = [];

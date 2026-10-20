@@ -970,7 +970,7 @@ section('due — furniture the page lacks is listed by the dry run, drawn by the
   const av = applyVerdict(res);
   const bds = furnitureOn(page).filter((n) => tagOf(n).kind === 'backdrop');
   ok(!res.refusedAll && drawn[0]?.backdrops === 1 && bds.length === 1 && members() === membersWas
-    && av.headline === '✓ canvas furniture drawn for 1 set' && av.lines[0] === 'button: 1 backdrop drawn.' && (versions ?? []).at(-1) === 'Before Prism3 updated button',
+    && av.headline === '✓ canvas furniture drawn for 1 set' && av.lines[0] === 'button: 1 backdrop drawn.' && (versions ?? []).at(-1) === 'Saved before Prism3 updated button',
     `due/apply draws: the apply saves a version and draws the backdrop, and every member keeps its id, place and stamp (${res.refusedAll ?? 'applied'}; ${bds.length} backdrop(s); ${av.headline} / ${av.lines[0]}; ${JSON.stringify((versions ?? []).at(-1))})`);
   const next = await previewUpdate(host, targets);
   ok(!next.sets[0].furniture && previewVerdict(next).headline === '✓ All sets up to date',
