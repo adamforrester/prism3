@@ -72,7 +72,9 @@ export type SpecRedlineRow = { where: SpecWhere; parts: { part: string; values: 
 export type SpecTypeRow = { where: SpecWhere; parts: { part: string; textStyle: string }[] };
 export type SpecColorRow = { where: SpecWhere; parts: { part: string; fill?: string; stroke?: string; ink?: string; icon?: string; gradient?: string[] }[] };
 export type SpecNest =
-  | { part: string; kind: 'instance'; component: string; variant: Record<string, string>; follows: string[]; exposes: string[] }
+  /** `when` (#2427's `variantWhen`): a host axis value that moves the nested variant, e.g. Counter's ghost members
+   *  nest the round shape. Absent when the variant moves only with `follows`. */
+  | { part: string; kind: 'instance'; component: string; variant: Record<string, string>; when?: Record<string, Record<string, Record<string, string>>>; follows: string[]; exposes: string[] }
   | { part: string; kind: 'swap'; property: string; visibility?: string; default?: string }
   /** An instance the BUILD places and a designer does not swap (Button's pending spinner, #1670): which component
    *  depends on the member, so every one the set uses is listed, in member order. */
@@ -313,7 +315,8 @@ export const componentSpec = (authored: ComponentDef, opts: { def?: ComponentDef
     if (n.type === 'NESTED_INSTANCE' && n.nestTarget) {
       const rel = partDef?.nesting;
       const variant = rel && rel.kind !== 'swap' ? { ...rel.variant } : { ...n.nestVariant ?? {} };
-      nesting.push({ part: path, kind: 'instance', component: n.nestTarget, variant, follows: rel && rel.kind !== 'swap' ? [...rel.follow ?? []] : [], exposes: [...n.nestExpose ?? []] });
+      const when = rel && rel.kind !== 'swap' && rel.variantWhen ? (JSON.parse(JSON.stringify(rel.variantWhen)) as Record<string, Record<string, Record<string, string>>>) : undefined;
+      nesting.push({ part: path, kind: 'instance', component: n.nestTarget, variant, ...(when ? { when } : {}), follows: rel && rel.kind !== 'swap' ? [...rel.follow ?? []] : [], exposes: [...n.nestExpose ?? []] });
     } else if (n.type === 'INSTANCE_SWAP' && n.propertyRef?.field === 'mainComponent') {
       nesting.push({ part: path, kind: 'swap', property: n.propertyRef.prop, ...(n.visibleProp ? { visibility: n.visibleProp } : {}), ...(partDef?.swapDefault ? { default: partDef.swapDefault } : {}) });
     } else if (n.type === 'INSTANCE_SWAP' && n.swapTarget) {
@@ -419,7 +422,8 @@ export const renderSpecsMarkdown = (spec: ComponentSpec | undefined): string[] =
     for (const n of spec.nesting) {
       if (n.kind === 'instance') {
         const variant = Object.entries(n.variant).map(([a, v]) => `${a}=${v}`).join(', ');
-        out.push(`- ${code(n.part)} nests ${code(n.component)}${variant ? ` at ${code(variant)}` : ''}${n.follows.length ? `; follows ${n.follows.map(code).join(', ')}` : ''}${n.exposes.length ? `; exposes ${n.exposes.map(code).join(', ')}` : ''}`);
+        const when = Object.entries(n.when ?? {}).flatMap(([axis, byValue]) => Object.entries(byValue).map(([v, to]) => `${code(`${axis}=${v}`)} takes ${code(Object.entries(to).map(([a, x]) => `${a}=${x}`).join(', '))}`));
+        out.push(`- ${code(n.part)} nests ${code(n.component)}${variant ? ` at ${code(variant)}` : ''}${when.length ? `; ${when.join(', ')}` : ''}${n.follows.length ? `; follows ${n.follows.map(code).join(', ')}` : ''}${n.exposes.length ? `; exposes ${n.exposes.map(code).join(', ')}` : ''}`);
       } else if (n.kind === 'fixed') {
         out.push(`- ${code(n.part)} holds ${n.components.map(code).join(', ')}, by member; it is not a swap`);
       } else if (n.kind === 'swap') {

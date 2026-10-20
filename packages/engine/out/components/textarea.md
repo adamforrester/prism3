@@ -463,7 +463,7 @@ Keyed by `status`, `state`.
 
 ### Nesting and properties
 
-- `container/label` nests `field-label` at `size=medium, emphasis=secondary, weight=regular, state=rest`; follows `size`; exposes `emphasis`, `weight`
+- `container/label` nests `field-label` at `size=medium, emphasis=secondary, weight=regular, state=rest`; `state=disabled` takes `state=disabled`; follows `size`; exposes `emphasis`, `weight`
 - `container/body/control/grip` nests `icon/resize-grip`
 - `container/body/messageRow/messageCell/message` nests `field-message` at `status=default`; follows `status`
 - `container/body/control/focusRing` nests `focus-ring` at `surface=default`

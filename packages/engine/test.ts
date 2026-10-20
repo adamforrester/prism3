@@ -32925,6 +32925,15 @@ arm: {
   const rest = btn.colors.find((r) => r.where.appearance === 'filled' && r.where.surface === 'default' && r.where.inset === 'default' && r.where.state === 'rest');
   ok(rest?.parts.find((p) => p.part === 'container')?.fill === 'color.interactive.primary.fill.rest' && rest?.parts.find((p) => p.part === 'container/label')?.ink === 'color.interactive.primary.on-fill',
     `#2830 spec: Button filled at rest fills color.interactive.primary.fill.rest under on-fill ink (${JSON.stringify(rest?.parts)})`);
+  ok(rest?.parts.find((p) => p.part === 'container/leadingVisual')?.icon === 'color.interactive.primary.on-fill' && rest?.parts.find((p) => p.part === 'container/trailingVisual')?.icon === 'color.interactive.primary.on-fill',
+    `#2830 spec: Button filled at rest inks both visuals color.interactive.primary.on-fill (${JSON.stringify(rest?.parts.filter((p) => p.part.endsWith('Visual')))})`);
+  // A nest's fixed variant and the host values that move it: Text field's label rests at secondary, regular, and
+  // dims with the field; Counter's ghost members nest the round shape, its outline ones the flush (Q287 A).
+  ok(JSON.stringify(label?.kind === 'instance' && label.variant) === '{"size":"medium","emphasis":"secondary","weight":"regular","state":"rest"}' && JSON.stringify(label?.kind === 'instance' && label.when) === '{"state":{"disabled":{"state":"disabled"}}}',
+    `#2830 spec: Text field's label nests field-label at secondary, regular, rest, and takes state=disabled on a disabled field (${JSON.stringify(label)})`);
+  const dec = specOf('counter').nesting.find((n) => n.part === 'container/control/decrement');
+  ok(dec?.kind === 'instance' && dec.variant.shape === 'flush' && dec.when?.appearance?.ghost?.shape === 'round' && dec.when?.appearance?.outline?.shape === 'flush',
+    `#2830 spec: Counter's minus nests the flush shape, and the round one on a ghost Counter (${JSON.stringify(dec)})`);
   // A token carries px only when a caller passes a brand's resolver; the emitted model carries none.
   const withPx = specOf('button', (r) => (r === 'space.200' ? 16 : undefined));
   const wp = withPx.redlines.find((r) => Object.entries(bare).every(([a, v]) => r.where[a] === v))?.parts[0].values.paddingLeft;

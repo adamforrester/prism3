@@ -429,8 +429,8 @@ Keyed by `status`, `state`.
 
 ### Nesting and properties
 
-- `container/labelRow/labelCell/label` nests `field-label` at `size=medium, emphasis=secondary, weight=regular, state=rest`; follows `size`; exposes `emphasis`, `weight`
-- `container/labelRow/toggle` nests `button` at `appearance=text, size=small, surface=default, inset=flush, state=rest, leading icon=false, trailing icon=false`; exposes `label`
+- `container/labelRow/labelCell/label` nests `field-label` at `size=medium, emphasis=secondary, weight=regular, state=rest`; `state=disabled` takes `state=disabled`; follows `size`; exposes `emphasis`, `weight`
+- `container/labelRow/toggle` nests `button` at `appearance=text, size=small, surface=default, inset=flush, state=rest, leading icon=false, trailing icon=false`; `state=disabled` takes `state=disabled`; exposes `label`
 - `container/control/content/leadingVisual` is a swap slot, property `↳ swap leading icon`, shown by `leading icon`
 - `container/message` nests `field-message` at `status=default`; follows `status`
 - `container/control/focusRing` nests `focus-ring` at `surface=default`

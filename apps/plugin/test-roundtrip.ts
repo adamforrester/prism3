@@ -213,11 +213,16 @@ console.log(`component round-trip (#874) — ${INVENTORY ? 'INVENTORY' : 'GATE'}
 //
 // WHERE ITS COVERAGE STOPS (docs/34 shape 17), stated so the count below does not read as more: model and host both
 // descend from the plan, so a WRONG PLAN agrees with itself here — that is the round-trip diff above and the
-// projection gates in `test.ts`. An instance's descendant fill (`icon` on a swap slot) is applied to nodes the SVG
-// importer made, which no reader here names (`anatomy-readback.ts`'s `descendantFills`), so the CLAIMED direction
-// counts those as unreadable rather than passing them, and prints the count.
+// projection gates in `test.ts`. A nest's `exposes` list is checked only as the host's one boolean
+// (`isExposedInstance`): the host does not hold which axes are exposed, so that list is pinned by hand in `test.ts`,
+// not read back here. A nest's fixed variant (with its `when` rules) is read off the host instance's main component
+// name only where that main is a member of a built set — the defs whose nested sets this harness prebuilds; elsewhere
+// the shim's nested target is a bare catalog component with no coordinate, and `test.ts` pins the variant by hand.
+// An instance's icon color (`icon` on a swap slot or a placed instance) sits on the VECTORs
+// inside it; the walk stops at instances, so this reader reaches them through the instance's own `findAll`, both
+// directions, and floors the count (`icons`) so a model that drops every instance icon cannot read as a pass.
 type SpecFinding = { member: string; path: string; property: string; expected: string; actual: string };
-type SpecCheck = { def: string; findings: SpecFinding[]; facts: Record<string, number>; unreadable: number };
+type SpecCheck = { def: string; findings: SpecFinding[]; facts: Record<string, number> };
 const specChecks: SpecCheck[] = [];
 
 /** The Figma keys this reader reads as redlines, and the model property each is. RESTATED, not imported from the
@@ -231,8 +236,7 @@ const DRAWN = new Set(['VECTOR', 'BOOLEAN_OPERATION', 'STAR', 'ELLIPSE', 'POLYGO
 
 const specReadback = (spec: ComponentSpec, members: HostNode[], set: HostNode | undefined, ports: ReadPorts): Omit<SpecCheck, 'def'> => {
   const findings: SpecFinding[] = [];
-  const facts: Record<string, number> = { parts: 0, redlines: 0, type: 0, colors: 0, nests: 0, properties: 0, claimed: 0 };
-  let unreadable = 0;
+  const facts: Record<string, number> = { parts: 0, redlines: 0, type: 0, colors: 0, icons: 0, nests: 0, variants: 0, properties: 0, claimed: 0 };
   const miss = (member: string, path: string, property: string, expected: string, actual: string) => findings.push({ member, path, property, expected, actual });
   // A host variable name is brand-rooted; the plan's (and so a token's Figma name) is not. Compared on the tail.
   const varIs = (host: string | null, token: string): boolean => host !== null && (host === figmaVarName(token) || host.endsWith(`/${figmaVarName(token)}`));
@@ -259,6 +263,12 @@ const specReadback = (spec: ComponentSpec, members: HostNode[], set: HostNode | 
     const first = Array.isArray(arr) ? (arr[0] as { boundVariables?: { color?: { id?: unknown } } } | undefined) : undefined;
     const id = first?.boundVariables?.color?.id;
     return typeof id === 'string' ? ports.varName(id) : null;
+  };
+  /** The ink on the first VECTOR inside an instance: another component's insides, which the walk does not enter. */
+  const instanceInk = (n: HostNode): string | null => {
+    const findAll = (n as { findAll?: (f: (x: HostNode) => boolean) => HostNode[] }).findAll;
+    const vecs = typeof findAll === 'function' ? findAll.call(n, (x) => String(x.type) === 'VECTOR') : [];
+    return vecs.map((v) => paintVar(v.fills)).find((v) => v !== null) ?? null;
   };
 
   // ── DROPPED: host → model ──
@@ -313,6 +323,11 @@ const specReadback = (spec: ComponentSpec, members: HostNode[], set: HostNode | 
         const want = colors?.gradient;
         if (!want || want.length !== gradient.length || want.some((t, i) => !varIs(gradient[i], t))) miss(h.name, path, 'gradient', want ? JSON.stringify(want) : 'in the model', `host stops ${JSON.stringify(gradient)}`);
       }
+      const ink = String(n.type) === 'INSTANCE' ? instanceInk(n) : null;
+      if (ink) {
+        facts.icons++;
+        if (!colors?.icon || !varIs(ink, colors.icon)) miss(h.name, path, 'icon', colors?.icon ?? 'in the model', `host instance inks ${ink}`);
+      }
       const stroke = paintVar(n.strokes);
       if (stroke) {
         facts.colors++;
@@ -332,7 +347,20 @@ const specReadback = (spec: ComponentSpec, members: HostNode[], set: HostNode | 
           const owner = main?.parent?.type === 'COMPONENT_SET' ? String(main.parent.name) : String(main?.name);
           if (entry?.kind === 'fixed') { if (!entry.components.includes(owner)) miss(h.name, path, 'nesting', `one of ${entry.components.join(', ')}`, `host instance of ${owner}`); }
           else if (entry?.kind !== 'instance' || entry.component !== owner) miss(h.name, path, 'nesting', `an instance of ${owner}`, entry ? JSON.stringify(entry) : 'ABSENT from the model');
-          else if (!!n.isExposedInstance !== entry.exposes.length > 0) miss(h.name, path, 'exposes', JSON.stringify(entry.exposes), `host isExposedInstance=${String(n.isExposedInstance)}`);
+          else {
+            if (!!n.isExposedInstance !== entry.exposes.length > 0) miss(h.name, path, 'exposes', JSON.stringify(entry.exposes), `host isExposedInstance=${String(n.isExposedInstance)}`);
+            // The fixed variant: the host's main component is named by its variant coordinate. Every axis it pins
+            // that the nest neither follows nor exposes is the nest's fixed variant, and must be the model's.
+            if (main?.parent?.type === 'COMPONENT_SET') {
+              const pinned = Object.fromEntries(String(main.name).split(', ').filter(Boolean).map((seg) => seg.split('=') as [string, string]));
+              const fixedOf = (rec: Record<string, string>) => Object.entries(rec).filter(([k]) => ![...entry.follows, ...entry.exposes].some((a) => a === k || a.toLowerCase() === k.toLowerCase())).map(([k, v]) => `${k.toLowerCase()}=${String(v).toLowerCase()}`).sort().join(', ');
+              // A `when` rule moves it with the member's own value on another axis (Counter's ghost nests round).
+              const expect: Record<string, string> = { ...entry.variant };
+              for (const [axis, byValue] of Object.entries(entry.when ?? {})) Object.assign(expect, byValue[h.coord[axis]] ?? {});
+              facts.variants++;
+              if (fixedOf(pinned) !== fixedOf(expect)) miss(h.name, path, 'variant', `{${fixedOf(expect)}}`, `host instance of ${String(main.name)}`);
+            }
+          }
         }
       }
     }
@@ -383,16 +411,13 @@ const specReadback = (spec: ComponentSpec, members: HostNode[], set: HostNode | 
       const host = paintVar(k === 'stroke' ? n.strokes : n.fills);
       if (!varIs(host, t)) miss(h.name, part.part, k, t, `host ${k === 'stroke' ? 'strokes' : 'fills'} ${host}`);
     }
-    // A drawn glyph's fill is on the geometry the importer made inside it, which this reader can reach; an
-    // instance's is inside another component, which it does not (header).
+    // A drawn glyph's fill is on the geometry the importer made inside it; an instance's is on the VECTORs inside
+    // the instance, read through its own `findAll` (header).
     if (want.icon) {
-      if (String(n.type) === 'INSTANCE') unreadable++;
-      else {
-        facts.claimed++;
-        const drawn = (x: HostNode): HostNode[] => ((Array.isArray(x.children) ? x.children : []) as HostNode[]).flatMap((c) => (DRAWN.has(String(c.type)) ? [c] : drawn(c)));
-        const host = paintVar(n.fills) ?? drawn(n).map((d) => paintVar(d.fills)).find((v) => v !== null) ?? null;
-        if (!varIs(host, want.icon)) miss(h.name, part.part, 'icon', want.icon, `host fills ${host}`);
-      }
+      facts.claimed++;
+      const drawn = (x: HostNode): HostNode[] => ((Array.isArray(x.children) ? x.children : []) as HostNode[]).flatMap((c) => (DRAWN.has(String(c.type)) ? [c] : drawn(c)));
+      const host = String(n.type) === 'INSTANCE' ? instanceInk(n) : paintVar(n.fills) ?? drawn(n).map((d) => paintVar(d.fills)).find((v) => v !== null) ?? null;
+      if (!varIs(host, want.icon)) miss(h.name, part.part, 'icon', want.icon, `host fills ${host}`);
     }
     if (want.gradient) {
       facts.claimed++;
@@ -409,7 +434,7 @@ const specReadback = (spec: ComponentSpec, members: HostNode[], set: HostNode | 
     const want = nest.kind === 'slot' ? 'SLOT' : 'INSTANCE';
     if (String(n.type) !== want) miss(h.name, nest.part, 'nesting', `${nest.kind} (${want})`, `host ${String(n.type)}`);
   }
-  return { findings, facts, unreadable };
+  return { findings, facts };
 };
 
 // ---- THE ROUND TRIP, over every def in the corpus ---------------------------------------------
@@ -555,9 +580,9 @@ ok(inventory.length > 0 && inventory.some((i) => i.plans > 0), `the corpus produ
 // ── SPEC READ-BACK VERDICT (#2830) ───────────────────────────────────────────────────────────────────────────────
 {
   const total = (k: string) => specChecks.reduce((n, c) => n + (c.facts[k] ?? 0), 0);
-  console.log(`\n  spec read-back (#2830): ${specChecks.length} def(s); host facts read — ${['parts', 'redlines', 'type', 'colors', 'nests', 'properties'].map((k) => `${total(k)} ${k}`).join(', ')}; ${total('claimed')} model claims checked, ${specChecks.reduce((n, c) => n + c.unreadable, 0)} instance icon fill(s) unreadable here`);
+  console.log(`\n  spec read-back (#2830): ${specChecks.length} def(s); host facts read — ${['parts', 'redlines', 'type', 'colors', 'icons', 'nests', 'variants', 'properties'].map((k) => `${total(k)} ${k}`).join(', ')}; ${total('claimed')} model claims checked`);
   // SCOPE FLOOR: every block the model carries must have been compared against something, or a zero reads as a pass.
-  for (const k of ['parts', 'redlines', 'type', 'colors', 'nests', 'properties', 'claimed']) ok(total(k) > 0, `spec read-back: the ${k} block compared ${total(k)} host fact(s) (scope floor)`);
+  for (const k of ['parts', 'redlines', 'type', 'colors', 'icons', 'nests', 'variants', 'properties', 'claimed']) ok(total(k) > 0, `spec read-back: the ${k} block compared ${total(k)} host fact(s) (scope floor)`);
   ok(specChecks.length === inventory.length, `spec read-back: every round-tripped def was read back against its spec model (${specChecks.length}/${inventory.length})`);
   for (const c of specChecks) {
     if (!c.findings.length) continue;
@@ -575,12 +600,20 @@ ok(inventory.length > 0 && inventory.some((i) => i.plans > 0), `the corpus produ
     ...spec,
     anatomy: spec.anatomy.filter((p) => p.part !== 'container/label'),
     redlines: spec.redlines.map((row) => ({ ...row, parts: row.parts.map((p) => (p.part === 'container' ? { ...p, values: Object.fromEntries(Object.entries(p.values).filter(([k]) => k !== 'paddingLeft')) } : p)) })),
-    colors: spec.colors.map((row) => ({ ...row, parts: row.parts.map((p) => (p.part === 'container' ? { ...p, stroke: undefined } : p)) })),
+    colors: spec.colors.map((row) => ({ ...row, parts: row.parts.map((p) => (p.part === 'container' ? { ...p, stroke: undefined } : p.part === 'container/leadingVisual' ? { ...p, icon: undefined } : p)) })),
   };
   const got = specReadback(dropped, r.hostMembers, r.set, r.ports).findings;
   ok(specReadback(spec, r.hostMembers, r.set, r.ports).findings.length === 0, 'spec read-back premise: Button\'s own model reads back clean');
-  for (const [path, property] of [['container/label', 'part'], ['container', 'paddingLeft'], ['container', 'stroke']] as const)
+  for (const [path, property] of [['container/label', 'part'], ['container', 'paddingLeft'], ['container', 'stroke'], ['container/leadingVisual', 'icon']] as const)
     ok(got.some((f) => f.path === path && f.property === property), `spec read-back speaks: a model that drops ${path} · ${property} fails by name (${got.filter((f) => f.path === path && f.property === property).length} member(s))`);
+  // …and on a nest's fixed variant: Counter's model with its `when` rules dropped claims flush on a ghost Counter.
+  const counter = PROJECTED.find((d) => d.id === 'counter')!;
+  const rc = await roundTrip(counter);
+  const cs = componentSpec(counter, { def: counter });
+  const noWhen: ComponentSpec = { ...cs, nesting: cs.nesting.map((n) => (n.kind === 'instance' ? { ...n, when: undefined } : n)) };
+  ok(specReadback(cs, rc.hostMembers, rc.set, rc.ports).findings.length === 0, 'spec read-back premise: Counter\'s own model reads back clean');
+  const gotC = specReadback(noWhen, rc.hostMembers, rc.set, rc.ports).findings.filter((f) => f.path === 'container/control/decrement' && f.property === 'variant');
+  ok(gotC.length > 0, `spec read-back speaks: a model that drops a nest's variant rule fails by name (container/control/decrement · variant, ${gotC.length} member(s))`);
 
   // THE TWO MATERIALIZATIONS AGREE: the model's `specMaterialize` restates the plugin's `materializeForBrand(def, null)`,
   // which is what Apply builds for a file with no brand settings; a lever in one and not the other fails here by def.

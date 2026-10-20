@@ -16967,6 +16967,13 @@
             "weight": "regular",
             "state": "rest"
           },
+          "when": {
+            "state": {
+              "disabled": {
+                "state": "disabled"
+              }
+            }
+          },
           "follows": [
             "size"
           ],
@@ -18246,6 +18253,13 @@
             "emphasis": "secondary",
             "weight": "regular",
             "state": "rest"
+          },
+          "when": {
+            "state": {
+              "disabled": {
+                "state": "disabled"
+              }
+            }
           },
           "follows": [
             "size"
@@ -22135,6 +22149,13 @@
             "emphasis": "secondary",
             "weight": "regular",
             "state": "rest"
+          },
+          "when": {
+            "state": {
+              "disabled": {
+                "state": "disabled"
+              }
+            }
           },
           "follows": [
             "size"
@@ -32743,6 +32764,13 @@
             "weight": "regular",
             "state": "rest"
           },
+          "when": {
+            "state": {
+              "disabled": {
+                "state": "disabled"
+              }
+            }
+          },
           "follows": [
             "size"
           ],
@@ -32763,6 +32791,13 @@
             "state": "rest",
             "leading icon": "false",
             "trailing icon": "false"
+          },
+          "when": {
+            "state": {
+              "disabled": {
+                "state": "disabled"
+              }
+            }
           },
           "follows": [],
           "exposes": [
@@ -33402,6 +33437,13 @@
             "weight": "regular",
             "state": "rest"
           },
+          "when": {
+            "state": {
+              "disabled": {
+                "state": "disabled"
+              }
+            }
+          },
           "follows": [
             "size"
           ],
@@ -33419,6 +33461,21 @@
             "size": "medium",
             "state": "rest"
           },
+          "when": {
+            "appearance": {
+              "outline": {
+                "shape": "flush"
+              },
+              "ghost": {
+                "shape": "round"
+              }
+            },
+            "state": {
+              "disabled": {
+                "state": "disabled"
+              }
+            }
+          },
           "follows": [
             "size"
           ],
@@ -33434,6 +33491,21 @@
             "shape": "flush",
             "size": "medium",
             "state": "rest"
+          },
+          "when": {
+            "appearance": {
+              "outline": {
+                "shape": "flush"
+              },
+              "ghost": {
+                "shape": "round"
+              }
+            },
+            "state": {
+              "disabled": {
+                "state": "disabled"
+              }
+            }
           },
           "follows": [
             "size"

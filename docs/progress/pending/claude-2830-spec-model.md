@@ -47,8 +47,14 @@ so `EXPECTED_ARTIFACTS` in `verify.ts` and the count in `ci.yml` move to 203 tog
   Button's real model and asserts each fails by name. The two materializations are compared on all defs.
 - **Where its coverage stops:** a wrong plan agrees with itself here (both sides descend from it); `test.ts` pins the
   wireframe's hand-read values (Button's slot-aware padding and floor, Text field's literals and nested label, the
-  code-only states). An instance's own icon fill is inside another component, so the claim direction counts those as
-  unreadable and prints the count.
+  code-only states, Button's visual icon ink, Text field's and Counter's nest variants). A nest's `exposes` list is
+  checked only as the host's one boolean; its fixed variant is read off the host only where the nested set is built
+  in the same file (188 instances), and pinned in `test.ts` otherwise.
+- **Review round (2026-10-20):** an instance's icon color, first counted as unreadable, is now read off the VECTORs
+  inside the instance (`findAll`), both directions, with an `icons` scope floor (10,132). A nest's fixed variant is
+  read back against the host's main-component name, which found a third model gap: the model dropped `variantWhen`
+  (#2427), so Counter's ghost members, which nest the round shape, read as flush. A nest now carries `when`, and its
+  Specs line says which host value takes which nested value.
 
 ### Next (phase 2, not built)
 
