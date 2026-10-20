@@ -36,7 +36,7 @@ One or two words, a noun, sentence case.
 ## Choosing it
 
 - **Purpose:** One trigger inside Tabs that shows its panel in place when selected.
-- **Use when:** Only inside Tabs. Generate Tabs, which places one tab per panel and sets which one is selected.
+- **Use when:** Only as a child of Tabs. Generate Tabs, which places one tab per panel and sets which one is selected.
 - **Avoid when:** Changing the page or the address (a navigation of links), or switching a value within the current view (SegmentedControl).
 - **Often used with:** `tabs`, `icon`, `badge`
 

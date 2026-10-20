@@ -33,7 +33,7 @@ The indicator holds no copy.
 ## Choosing it
 
 - **Purpose:** Show whether an Accordion section is open, with a chevron or a plus and minus inside its header.
-- **Use when:** Only inside an Accordion. Generate an Accordion, which places the indicator in each header.
+- **Use when:** Only as a child of an Accordion. Generate an Accordion, which places the indicator in each header.
 - **Avoid when:** Always on its own. Use an Accordion; for a plain icon, use an Icon.
 - **Often used with:** `accordion`, `icon`
 

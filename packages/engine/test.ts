@@ -14422,19 +14422,19 @@ arm: {
     const childBad: string[] = []; let templated = 0;
     for (const d of componentDefs) {
       const w = d.ai.whenToUse;
-      const only = /^Only inside (?:an? |the )?([A-Z][A-Za-z.]*)\. Generate (?:an? |the )?([A-Z][A-Za-z.]*), which \S/.exec(w);
+      const only = /^Only as a child of (?:an? |the )?([A-Z][A-Za-z.]*)\. Generate (?:an? |the )?([A-Z][A-Za-z.]*), which \S/.exec(w);
       const inside = /^Inside ([A-Z][A-Za-z.]*), the common case\. On its own only \S/.exec(w);
       if (only) {
         templated++;
         const host = byName(only[1]);
-        if (only[1] !== only[2] || !host || !nests(host, d.id)) childBad.push(`${d.id}: "Only inside ${only[1]}" names no registered host that nests it`);
+        if (only[1] !== only[2] || !host || !nests(host, d.id)) childBad.push(`${d.id}: "Only as a child of ${only[1]}" names no registered host that nests it`);
       } else if (inside) {
         templated++;
         const host = byName(inside[1]);
         if (!host || !nests(host, d.id)) childBad.push(`${d.id}: "Inside ${inside[1]}" names no registered host that nests it`);
       } else if (/^(Only|Never|Nested by|Inside)\b/.test(w)) childBad.push(`${d.id}: a child-only whenToUse off the two templates: "${w.slice(0, 60)}"`);
     }
-    ok(childBad.length === 0 && templated >= 7, `#2714 child-only whenToUse: "Only inside <Host>. Generate <Host>, which …" or "Inside <Host>, the common case. On its own only …", naming a host that nests the part (${templated} templated)${childBad.length ? ` — ${childBad.join(' | ')}` : ''}`);
+    ok(childBad.length === 0 && templated >= 7, `#2714 child-only whenToUse: "Only as a child of <Host>. Generate <Host>, which …" or "Inside <Host>, the common case. On its own only …", naming a host that nests the part (${templated} templated)${childBad.length ? ` — ${childBad.join(' | ')}` : ''}`);
   }
 
   // (#1134) THE BOUNDED INVERSE SET BINDS ONLY COVERED ROLES — the enforceable half of the gap rule, one

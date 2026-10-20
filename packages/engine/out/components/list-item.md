@@ -36,7 +36,7 @@ One phrase or sentence per item, sentence case, parallel with the items around i
 ## Choosing it
 
 - **Purpose:** One item inside a List: a marker in a fixed column, then text that wraps under itself.
-- **Use when:** Only inside a List. Generate a List, which places its items and sets their marker type and size.
+- **Use when:** Only as a child of a List. Generate a List, which places its items and sets their marker type and size.
 - **Avoid when:** Content a writer edits as normal copy (use a native text list in the text itself), a choice the user makes (a listbox), a command (a menu), or a navigation link (a navigation, not built yet).
 - **Often used with:** `list`, `icon`
 

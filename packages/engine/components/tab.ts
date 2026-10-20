@@ -251,7 +251,7 @@ export const tab: ComponentDef = {
 
   ai: {
     primaryPurpose: 'One trigger inside Tabs that shows its panel in place when selected.',
-    whenToUse: 'Only inside Tabs. Generate Tabs, which places one tab per panel and sets which one is selected.',
+    whenToUse: 'Only as a child of Tabs. Generate Tabs, which places one tab per panel and sets which one is selected.',
     avoidWhen: 'Changing the page or the address (a navigation of links), or switching a value within the current view (SegmentedControl).',
     commonPartners: ['tabs', 'icon', 'badge'],
     triggerKeywords: ['tab', 'tab trigger', 'tab item'],

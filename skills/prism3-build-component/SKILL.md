@@ -128,8 +128,8 @@ maintainer channels, a part's `note` included, is also in the plugin bundle a de
 - Button's implementation `do` items are held as they are (owner Q362); the register gate exempts
   them by name until the owner decides where they belong.
 
-A part that is never generated on its own words `ai.whenToUse` as "Only inside Tabs. Generate Tabs, which
-places one tab per panel …"; a part a host nests that may stand alone words it as "Inside Checkbox.Row,
+A part that is never generated on its own words `ai.whenToUse` as "Only as a child of Tabs. Generate Tabs,
+which places one tab per panel …", opening with the private-part wording `lint-naming` reads; a part a host nests that may stand alone words it as "Inside Checkbox.Row,
 the common case. On its own only when …". The host named is a registered component that nests the part.
 
 `packages/engine/test.ts` (`component-refs`, `component-names`, `component-prose`), `lint-us-english`

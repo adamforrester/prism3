@@ -36,7 +36,7 @@ One or two words, a noun, sentence case.
 ## Choosing it
 
 - **Purpose:** One option inside a segmented control.
-- **Use when:** Only inside a SegmentedControl. Generate the SegmentedControl, which places its options and sets which one is selected.
+- **Use when:** Only as a child of a SegmentedControl. Generate the SegmentedControl, which places its options and sets which one is selected.
 - **Avoid when:** Anywhere outside a segmented control: a single toggle is a switch or a select tag, and a lone action is a button.
 - **Often used with:** `segmented-control`, `icon`
 

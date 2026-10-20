@@ -5888,7 +5888,7 @@
       },
       "ai": {
         "primaryPurpose": "One trigger inside Tabs that shows its panel in place when selected.",
-        "whenToUse": "Only inside Tabs. Generate Tabs, which places one tab per panel and sets which one is selected.",
+        "whenToUse": "Only as a child of Tabs. Generate Tabs, which places one tab per panel and sets which one is selected.",
         "avoidWhen": "Changing the page or the address (a navigation of links), or switching a value within the current view (SegmentedControl).",
         "commonPartners": [
           "tabs",
@@ -6323,7 +6323,7 @@
       },
       "ai": {
         "primaryPurpose": "Show whether an Accordion section is open, with a chevron or a plus and minus inside its header.",
-        "whenToUse": "Only inside an Accordion. Generate an Accordion, which places the indicator in each header.",
+        "whenToUse": "Only as a child of an Accordion. Generate an Accordion, which places the indicator in each header.",
         "avoidWhen": "Always on its own. Use an Accordion; for a plain icon, use an Icon.",
         "commonPartners": [
           "accordion",
@@ -6651,7 +6651,7 @@
       },
       "ai": {
         "primaryPurpose": "One item inside a List: a marker in a fixed column, then text that wraps under itself.",
-        "whenToUse": "Only inside a List. Generate a List, which places its items and sets their marker type and size.",
+        "whenToUse": "Only as a child of a List. Generate a List, which places its items and sets their marker type and size.",
         "avoidWhen": "Content a writer edits as normal copy (use a native text list in the text itself), a choice the user makes (a listbox), a command (a menu), or a navigation link (a navigation, not built yet).",
         "commonPartners": [
           "list",
@@ -6953,7 +6953,7 @@
       },
       "ai": {
         "primaryPurpose": "One option inside a segmented control.",
-        "whenToUse": "Only inside a SegmentedControl. Generate the SegmentedControl, which places its options and sets which one is selected.",
+        "whenToUse": "Only as a child of a SegmentedControl. Generate the SegmentedControl, which places its options and sets which one is selected.",
         "avoidWhen": "Anywhere outside a segmented control: a single toggle is a switch or a select tag, and a lone action is a button.",
         "commonPartners": [
           "segmented-control",
