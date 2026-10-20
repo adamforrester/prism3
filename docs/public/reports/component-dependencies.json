@@ -1012,6 +1012,26 @@
       ]
     },
     {
+      "from": "progress",
+      "to": "field-message",
+      "part": "messageComplete",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "status": "success"
+      }
+    },
+    {
+      "from": "progress",
+      "to": "field-message",
+      "part": "messageError",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "status": "error"
+      }
+    },
+    {
       "from": "radio-control",
       "to": "focus-ring",
       "part": "focusRing",
@@ -1799,6 +1819,7 @@
       "nestedBy": [
         "counter",
         "password-field",
+        "progress",
         "select",
         "slider",
         "text-field",
@@ -1807,6 +1828,7 @@
       "affectedByChange": [
         "counter",
         "password-field",
+        "progress",
         "select",
         "slider",
         "text-field",
@@ -2073,6 +2095,17 @@
         "field-message",
         "focus-ring",
         "spinner"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
+    "progress": {
+      "nests": [
+        "field-message"
+      ],
+      "nestsTransitively": [
+        "field-message"
       ],
       "nestedBy": [],
       "affectedByChange": [],
@@ -2377,6 +2410,7 @@
     "pagination": 2,
     "pagination-item": 1,
     "password-field": 2,
+    "progress": 1,
     "radio-control": 1,
     "radio-group": 3,
     "radio-row": 2,

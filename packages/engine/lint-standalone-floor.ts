@@ -236,6 +236,7 @@ const MUST_PROJECT = [
   '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs',
   'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'link', 'button-group', 'dialog', 'counter', 'toast',
   '_slider-thumb', 'slider',
+  'progress',
 ];
 
 /** Whether the def declares the floor. Read here, ONCE, off the def — the EXPECTED half. */

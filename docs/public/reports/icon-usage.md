@@ -75,6 +75,7 @@ Parts that take any icon from the set. The file nominates the default unless the
 | `minus` | _accordion-indicator, checkbox-control |
 | `more-horizontal-filled` | pagination-item |
 | `plus` | _accordion-indicator |
+| `progress-stop` | progress |
 | `resize-grip` | textarea |
 | `slash` | _breadcrumb-separator |
 | `spinner` | spinner |

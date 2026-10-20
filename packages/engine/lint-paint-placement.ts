@@ -299,6 +299,7 @@ const EXPECT_ANATOMY = [
   // #2665: the page cell and the pagination row.
   'pagination-item', 'pagination',
   '_slider-thumb', 'slider',
+  'segmented-control-segment', 'segmented-control', 'link', 'button-group', 'dialog', 'password-field', 'counter', 'progress',
 ];
 const EXPECT_PAINTERS = [
   'focus-ring', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive',
@@ -317,6 +318,8 @@ const EXPECT_PAINTERS = [
   'toast',
   // #2427: the outline Counter's fill and edge. A ghost member's box resolves none of them.
   'counter',
+  // #2670: the track's pale fill, the progress fill, and the ring's track stroke.
+  'progress',
 ];
 const closedSet = (what: string, expected: string[], live: string[], remedy: string): void => {
   for (const id of expected.filter((x) => !live.includes(x))) {

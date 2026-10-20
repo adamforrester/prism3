@@ -2695,6 +2695,113 @@
       "sizeDefault": "medium"
     },
     {
+      "id": "progress",
+      "name": "Progress",
+      "category": "feedback",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "shape": [
+          "linear",
+          "circular"
+        ],
+        "type": [
+          "determinate",
+          "indeterminate"
+        ],
+        "status": [
+          "active",
+          "complete",
+          "error"
+        ],
+        "size": [
+          "medium",
+          "small"
+        ]
+      },
+      "props": [
+        {
+          "name": "type",
+          "default": "determinate",
+          "values": [
+            "determinate",
+            "indeterminate"
+          ]
+        },
+        {
+          "name": "value"
+        },
+        {
+          "name": "min",
+          "default": 0
+        },
+        {
+          "name": "max",
+          "default": 100
+        },
+        {
+          "name": "label"
+        },
+        {
+          "name": "valueText"
+        },
+        {
+          "name": "shape",
+          "default": "linear",
+          "values": [
+            "linear",
+            "circular"
+          ]
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium"
+          ]
+        },
+        {
+          "name": "status",
+          "default": "active",
+          "values": [
+            "active",
+            "complete",
+            "error"
+          ]
+        },
+        {
+          "name": "message"
+        },
+        {
+          "name": "showValue",
+          "default": true
+        },
+        {
+          "name": "announce",
+          "default": "milestones",
+          "values": [
+            "milestones",
+            "end",
+            "none"
+          ]
+        },
+        {
+          "name": "delay",
+          "default": 400
+        },
+        {
+          "name": "minDisplay",
+          "default": 500
+        }
+      ],
+      "sizes": [
+        "medium",
+        "small"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
       "id": "radio-control",
       "name": "Radio.Control",
       "category": "form",
@@ -4667,6 +4774,15 @@
           "flush-icon-button-destructive",
           "flush-icon-button-neutral"
         ]
+      },
+      {
+        "values": [
+          "circular",
+          "linear"
+        ],
+        "components": [
+          "progress"
+        ]
       }
     ],
     "size": [
@@ -4751,6 +4867,16 @@
           "select",
           "text-field",
           "textarea"
+        ]
+      },
+      {
+        "values": [
+          "active",
+          "complete",
+          "error"
+        ],
+        "components": [
+          "progress"
         ]
       }
     ],
@@ -4870,6 +4996,15 @@
       },
       {
         "values": [
+          "determinate",
+          "indeterminate"
+        ],
+        "components": [
+          "progress"
+        ]
+      },
+      {
+        "values": [
           "dismissible",
           "select"
         ],
@@ -4962,6 +5097,17 @@
         "values": [
           "start",
           "center"
+        ]
+      }
+    ],
+    "announce": [
+      {
+        "id": "progress",
+        "default": "milestones",
+        "values": [
+          "milestones",
+          "end",
+          "none"
         ]
       }
     ],
@@ -5208,6 +5354,12 @@
       },
       {
         "id": "text-field"
+      }
+    ],
+    "delay": [
+      {
+        "id": "progress",
+        "default": 400
       }
     ],
     "description": [
@@ -5817,6 +5969,9 @@
       },
       {
         "id": "password-field"
+      },
+      {
+        "id": "progress"
       },
       {
         "id": "radio-group"
@@ -6452,6 +6607,14 @@
           "square",
           "circular"
         ]
+      },
+      {
+        "id": "progress",
+        "default": "linear",
+        "values": [
+          "linear",
+          "circular"
+        ]
       }
     ],
     "showCheck": [
@@ -6769,6 +6932,14 @@
         ]
       },
       {
+        "id": "progress",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium"
+        ]
+      },
+      {
         "id": "radio-control",
         "default": "medium",
         "values": [
@@ -6914,6 +7085,15 @@
           "error",
           "warning",
           "success"
+        ]
+      },
+      {
+        "id": "progress",
+        "default": "active",
+        "values": [
+          "active",
+          "complete",
+          "error"
         ]
       }
     ],
@@ -7361,6 +7541,9 @@
         "id": "password-field"
       },
       {
+        "id": "progress"
+      },
+      {
         "id": "radio-group"
       },
       {
@@ -7397,6 +7580,11 @@
           "dark",
           "light"
         ]
+      }
+    ],
+    "valueText": [
+      {
+        "id": "progress"
       }
     ],
     "weight": [
@@ -7653,9 +7841,10 @@
         "flush-icon-button-neutral",
         "icon-button",
         "icon-button-destructive",
-        "icon-button-neutral"
+        "icon-button-neutral",
+        "progress"
       ],
-      "detail": "the shape axis takes 2 value sets — [circular, square] in icon-button, icon-button-destructive, icon-button-neutral; [flush, round] in flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral"
+      "detail": "the shape axis takes 3 value sets — [circular, square] in icon-button, icon-button-destructive, icon-button-neutral; [flush, round] in flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral; [circular, linear] in progress"
     },
     {
       "kind": "axis values",
@@ -7686,6 +7875,7 @@
         "pagination",
         "pagination-item",
         "password-field",
+        "progress",
         "radio-control",
         "radio-group",
         "radio-row",
@@ -7939,6 +8129,14 @@
         "password-field"
       ],
       "detail": "password-field declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "progress",
+      "components": [
+        "progress"
+      ],
+      "detail": "progress declares its sizes as [medium, small], not smallest first"
     },
     {
       "kind": "size order",

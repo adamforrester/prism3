@@ -91,6 +91,17 @@
       "hiddenFromPublishing": true
     },
     {
+      "name": "nbds/motion/duration-ms/1600",
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
+      "description": "1600ms — duration primitive",
+      "value": 1.6,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
       "name": "nbds/motion/duration-ms/2600",
       "resolvedType": "TIMING",
       "scopes": [
@@ -193,6 +204,19 @@
       }
     },
     {
+      "name": "nbds/motion/duration/sweep",
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
+      "description": "1600ms per progress sweep, at every tempo",
+      "value": 1.6,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/motion/duration-ms/1600"
+      }
+    },
+    {
       "name": "nbds/motion/duration-reduced/instant",
       "resolvedType": "TIMING",
       "scopes": [
@@ -277,6 +301,19 @@
         "ALL_SCOPES"
       ],
       "description": "2600ms per spinner turn with reduce motion on",
+      "value": 2.6,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/motion/duration-ms/2600"
+      }
+    },
+    {
+      "name": "nbds/motion/duration-reduced/sweep",
+      "resolvedType": "TIMING",
+      "scopes": [
+        "ALL_SCOPES"
+      ],
+      "description": "2600ms per progress sweep with reduce motion on",
       "value": 2.6,
       "alias": {
         "type": "VARIABLE_ALIAS",

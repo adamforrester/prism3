@@ -72,6 +72,7 @@ A component not in this table is nested by nothing; a change to it reaches only 
 | pagination | 2 | pagination-item | focus-ring, pagination-item |
 | pagination-item | 1 | focus-ring | focus-ring |
 | password-field | 2 | button, field-label, field-message, focus-ring | button, field-label, field-message, focus-ring, spinner |
+| progress | 1 | field-message | field-message |
 | radio-control | 1 | focus-ring | focus-ring |
 | radio-group | 3 | field-label, radio-row | field-label, focus-ring, radio-control, radio-row |
 | radio-row | 2 | radio-control | focus-ring, radio-control |
@@ -166,6 +167,8 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | password-field | label | nest | field-label | nest-exposed | size=medium, emphasis=secondary, weight=regular, state=rest | size | emphasis, weight |
 | password-field | message | nest | field-message | nest-fixed | status=default | status | — |
 | password-field | toggle | nest | button | nest-exposed | appearance=text, size=small, surface=default, inset=flush, state=rest, leading icon=false, trailing icon=false | — | label |
+| progress | messageComplete | nest | field-message | nest-fixed | status=success | — | — |
+| progress | messageError | nest | field-message | nest-fixed | status=error | — | — |
 | radio-control | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | radio-group | label | nest | field-label | nest-fixed | size=medium, emphasis=secondary, weight=bold, state=rest | size | — |
 | radio-group | row1 | nest | radio-row | nest-fixed | size=medium | size | — |

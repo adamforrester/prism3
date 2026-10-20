@@ -12,6 +12,9 @@ export const USED_BY = {
       "radius.2xl": [
         "Dialog"
       ],
+      "radius.capsule": [
+        "Progress"
+      ],
       "radius.md": [
         "Button",
         "IconButton",
@@ -51,7 +54,8 @@ export const USED_BY = {
       ],
       "radius.capsule": [
         "Button",
-        "IconButton"
+        "IconButton",
+        "Progress"
       ],
       "radius.md": [
         "SegmentedControl",
@@ -87,6 +91,9 @@ export const USED_BY = {
     boxed: {
       "radius.2xl": [
         "Dialog"
+      ],
+      "radius.capsule": [
+        "Progress"
       ],
       "radius.md": [
         "SegmentedControl",
@@ -125,6 +132,9 @@ export const USED_BY = {
     hairline: {
       "radius.2xl": [
         "Dialog"
+      ],
+      "radius.capsule": [
+        "Progress"
       ],
       "radius.hairline": [
         "Button",

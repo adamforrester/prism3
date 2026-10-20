@@ -79,6 +79,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 - **pagination** — pagination declares its sizes as [medium, small, large], not smallest first
 - **pagination-item** — pagination-item declares its sizes as [medium, small, large], not smallest first
 - **password-field** — password-field declares its sizes as [medium, small, large], not smallest first
+- **progress** — progress declares its sizes as [medium, small], not smallest first
 - **radio-control** — radio-control declares its sizes as [medium, small, large], not smallest first
 - **radio-group** — radio-group declares its sizes as [medium, small, large], not smallest first
 - **radio-row** — radio-row declares its sizes as [medium, small, large], not smallest first
@@ -176,6 +177,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | pagination | navigation | — | — |
 | pagination-item | navigation | rest, hover, pressed, focus-visible, disabled | rest, hover, pressed, focus-visible, disabled |
 | password-field | form | rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled, read-only, empty | rest, hover, filled, focus-visible, focus-visible-filled, disabled, read-only |
+| progress | feedback | — | — |
 | radio-control | form | rest, hover, pressed, focus-visible, disabled | rest, hover, pressed, focus-visible, disabled |
 | radio-group | form | rest | — |
 | radio-row | form | rest, hover, pressed, focus-visible, disabled, read-only | — |
@@ -247,6 +249,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 |  | medium, small | switch-control, switch-row |
 |  | large, medium, small, x-small | spinner |
 | status | default, error, success, warning | field-message, password-field, select, text-field, textarea |
+|  | active, complete, error | progress |
 | style | outline | password-field, text-field, textarea |
 |  | border, underline | pagination, pagination-item |
 |  | inline, standalone | link |
@@ -256,6 +259,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | type | icon, ordered, unordered | list, list-item |
 |  | compact, numbered, simple | pagination |
 |  | count, dot, status | badge |
+|  | determinate, indeterminate | progress |
 |  | dismissible, select | tag |
 |  | ellipsis, next, page, previous | pagination-item |
 | value | dark, light | veil |
@@ -294,6 +298,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 | pagination | medium, small, large | medium |
 | pagination-item | medium, small, large | medium |
 | password-field | medium, small, large | medium |
+| progress | medium, small | medium |
 | radio-control | medium, small, large | medium |
 | radio-group | medium, small, large | medium |
 | radio-row | medium, small, large | medium |
@@ -462,6 +467,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | pagination | Pagination | — |
 |  | pagination-item | — | — |
 |  | password-field | — | — |
+|  | progress | — | — |
 |  | radio-group | — | — |
 |  | radio-row | — | — |
 |  | segmented-control | — | — |
@@ -555,6 +561,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | icon-button | square | square, circular |
 |  | icon-button-destructive | square | square, circular |
 |  | icon-button-neutral | square | square, circular |
+|  | progress | linear | linear, circular |
 | showMessage | counter | false | — |
 |  | password-field | true | — |
 |  | select | true | — |
@@ -588,6 +595,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | pagination | medium | small, medium, large |
 |  | pagination-item | medium | small, medium, large |
 |  | password-field | medium | small, medium, large |
+|  | progress | medium | small, medium |
 |  | radio-control | medium | small, medium, large |
 |  | radio-group | medium | small, medium, large |
 |  | radio-row | medium | small, medium, large |
@@ -659,6 +667,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | counter | — | — |
 |  | list-item | — | — |
 |  | password-field | — | — |
+|  | progress | — | — |
 |  | radio-group | — | — |
 |  | radio-row | — | — |
 |  | segmented-control | — | — |
