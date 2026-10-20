@@ -45,7 +45,10 @@
  *      (`NO-DATA SECTION DRAWN` / `SECTION NOT DRAWN` / `SECTION ORDER` / `SECTION TITLE`); F3 each section,
  *      emptied of its fields on every def, is not drawn and comes back as a gap — the corpus alone has
  *      almost no empty section, so without F3 the no-data rule would be checked on nothing; F4 each
- *      committed page's `##` headings are exactly the def's sections, in order (`SECTION PARITY`); F5 the
+ *      committed page's `##` headings are exactly the def's sections, in order (`SECTION PARITY`), and its
+ *      Anatomy is the gate's reading of the def: the default member, each noted part's line, and no held-back
+ *      note anywhere on the page (`SPECIMEN` / `ANATOMY LINE` / `HELD-BACK NOTE`), with role and ARIA under
+ *      one Screen readers row (`SCREEN READERS`); F5 the
  *      maintainer record's `docGaps` names every section not drawn and every part note held back.
  *
  * ── INDEPENDENCE (docs/34) ──────────────────────────────────────────────────────────────────────
@@ -72,7 +75,10 @@
  * Overview (`SOURCE DROPPED`) · Content drawn with no data (`NO-DATA SECTION DRAWN`, corpus and emptied) ·
  * maintainer notes captioned (`MAINTAINER CAPTION`) · a Theming section appended to a page (`SECTION
  * PARITY`) · Anatomy gaps left out of the record (`GAP NOT RECORDED`) · a section retitled (`SECTION
- * TITLE`) · the sections reversed (`SECTION ORDER`).
+ * TITLE`) · the sections reversed (`SECTION ORDER`) · the raw part notes rendered on the page (`ANATOMY
+ * LINE (page)`, `HELD-BACK NOTE (page)`) · each axis's last value as the specimen (`SPECIMEN (page)`) · a
+ * partner already under Built from repeated under Often used with (`EXTRA VALUE (page)`) · role and ARIA as
+ * two rows (`SCREEN READERS (page)`).
  *
  * WHAT THIS DOES NOT CHECK: that the committed forms match what the projector emits NOW — that is
  * `regen.ts --check`'s job — and whether a sentence reads well; the prose gates own that for the payload.
@@ -319,7 +325,9 @@ for (const def of componentDefs) {
 
   const onPage = (v: string | number | boolean, path: Path) => {
     if (!page) return; // arm A already named it
-    const place = SECTION(path);
+    // A partner the def is already built from is drawn once, on the Built from line (the #846 wireframe).
+    const place = path[0] === 'ai' && path[1] === 'commonPartners' && (def.composition?.composesWith ?? []).includes(String(v))
+      ? { kind: 'list' as const, heading: '## Related components', label: LABEL.composesWith } : SECTION(path);
     if (!place) { note(`NO SECTION: ${where(path)} has no page section in this gate's SECTION map — add one, or \`none\` with a reason`); return; }
     if (place.kind === 'none') return;
     if (place.kind === 'text' && typeof v !== 'string') return; // numbers and booleans outside tables are JSON-only
@@ -408,7 +416,7 @@ for (const def of componentDefs) {
     extra('the ID line', [def.id], listSpans(page, { heading: null, label: LABEL.id }));
     extra('the Builds on line', def.inherits ? [def.inherits] : [], listSpans(page, { heading: null, label: LABEL.inherits }));
     extra('### States', def.states, listSpans(page, { heading: '### States' }));
-    extra('the Often used with line', def.ai.commonPartners ?? [], listSpans(page, { heading: '## Related components', label: LABEL.commonPartners }));
+    extra('the Often used with line', (def.ai.commonPartners ?? []).filter((id) => !(def.composition?.composesWith ?? []).includes(id)), listSpans(page, { heading: '## Related components', label: LABEL.commonPartners }));
     for (const k of ['composesWith', 'alternativeTo', 'supersedes', 'supersededBy'] as const)
       extra(`the ${LABEL[k]} line`, def.composition?.[k] ?? [], listSpans(page, { heading: '## Related components', label: LABEL[k] }));
     for (const [axis, values] of Object.entries(def.variants)) extra(`the Styles \`Values\` cell of \`${axis}\``, values ?? [], cell('## Styles', axis, 'Values'));
@@ -517,6 +525,7 @@ const leaves = (v: unknown, out = new Set<string>()): Set<string> => {
 
 let sourceChecked = 0;
 let sectionsChecked = 0;
+let anatomyChecked = 0;
 let stripped = 0;
 const pageHeadings = (md: string) => md.split('\n').filter((l) => /^## /.test(l)).map((l) => l.slice(3).trim());
 for (const def of componentDefs) {
@@ -564,6 +573,48 @@ for (const def of componentDefs) {
     const want = expectedSections(def, []).map((r) => r.title);
     const got = pageHeadings(md);
     if (got.join('|') !== want.join('|')) note(`SECTION PARITY (page): out/components/${def.id}.md has sections [${got.join(', ')}]; the def's data gives [${want.join(', ')}]`);
+
+    // F4, Anatomy as the page draws it. The page is the surface that ships (docs/34), so the hold-back is
+    // checked here too, not only on the model: an emitter that skipped the model's captions and rendered
+    // the raw notes would pass every model check above. Each list line is the model's part name, then the
+    // note verbatim when it is written for readers and nothing when it is not; the specimen line names
+    // the default member by the gate's own reading — each axis's first value, Figma's default variant.
+    const noted = notedParts(def);
+    const body = readPage(md).raw.get('## Anatomy') ?? [];
+    if (noted.length && body.length) {
+      const names = new Map(((docSections(def).sections.find((x) => x.id === 'anatomy') as { parts?: { id: string; name: string }[] } | undefined)?.parts ?? []).map((x) => [x.id, x.name]));
+      const spec = Object.entries(def.variants).filter(([, v]) => v?.length).map(([axis, v]) => `${axis} \`${v![0]}\``).join(', ');
+      const wantSpec = spec ? `Shown on the default member: ${spec}.` : undefined;
+      const gotSpec = body.find((l) => l.startsWith('Shown on the default member:'));
+      anatomyChecked++;
+      if (gotSpec !== wantSpec) note(`SPECIMEN (page): out/components/${def.id}.md's Anatomy reads ${JSON.stringify(gotSpec ?? null)}; the default member is ${JSON.stringify(wantSpec ?? null)}`);
+      const lines = body.filter((l) => /^\d+\. /.test(l));
+      if (lines.length !== noted.length) note(`ANATOMY LINES (page): out/components/${def.id}.md's Anatomy lists ${lines.length} parts; the def notes ${noted.length}`);
+      noted.forEach(([id, p], i) => {
+        const reader = !MAINTAINER_MARK.test(p.note!);
+        const want = `${i + 1}. **${names.get(id) ?? id}**${p.optional ? ' (optional)' : ''}${reader ? ` — ${norm(p.note!)}` : ''}`;
+        const got = lines[i] === undefined ? undefined : unescape(lines[i]);
+        anatomyChecked++;
+        if (got !== want) note(`ANATOMY LINE (page): out/components/${def.id}.md part ${i + 1} reads ${JSON.stringify(got?.slice(0, 90) ?? null)}; the def gives ${JSON.stringify(want.slice(0, 90))}${reader ? '' : ' (its note is held back)'}`);
+      });
+    }
+    // F4, Screen readers: the wireframe draws \`accessibility.role\` and \`.aria\` under that one label, role first.
+    const sr = [def.accessibility.role, def.accessibility.aria].filter((t): t is string => !!t?.trim()).map(norm);
+    if (sr.length) {
+      const acc = readPage(md).raw.get('## Accessibility') ?? [];
+      const at0 = acc.findIndex((l) => l.startsWith('- **Screen readers:** '));
+      const got = at0 < 0 ? [] : [acc[at0].slice('- **Screen readers:** '.length), ...acc.slice(at0 + 1).filter((l, i, xs) => /^ {2}\S/.test(l) && xs.slice(0, i).every((y) => y === '' || /^ {2}\S/.test(y)))].map(unescape);
+      if (got.join('\n') !== sr.join('\n')) note(`SCREEN READERS (page): out/components/${def.id}.md's Accessibility does not draw ${sr.length > 1 ? 'the role, then the ARIA notes,' : 'its screen-reader notes'} under "Screen readers" (found ${JSON.stringify(got.join(' / ').slice(0, 80) || null)})`);
+    }
+    // No held-back note reaches the page, anywhere on it: each half of a long note, or a short one whole.
+    const text = unescape(md);
+    for (const [id, p] of noted) {
+      if (!MAINTAINER_MARK.test(p.note!)) continue;
+      const n = norm(p.note!);
+      const mid = Math.floor(n.length / 2);
+      for (const probe of n.length < 40 ? [n] : [n.slice(0, mid).trim(), n.slice(mid).trim()])
+        if (text.includes(probe)) { note(`HELD-BACK NOTE (page): out/components/${def.id}.md carries part \`${id}\`'s note, which is held back as maintainer prose: ${JSON.stringify(probe.slice(0, 60))}`); break; }
+    }
   }
 
   // F5 — what is not drawn is recorded: each omitted section, and each part note held back.
@@ -586,7 +637,7 @@ for (const def of componentDefs) for (const r of RULE) {
   if (model.sections.some((s) => s.id === r.id)) note(`NO-DATA SECTION DRAWN (model): \`${def.id}\` with every ${r.title} field emptied still draws \`${r.id}\``);
   if (!model.gaps.some((g) => g.section === r.id)) note(`GAP NOT RETURNED (model): \`${def.id}\` with every ${r.title} field emptied returns no ${r.id} gap`);
 }
-if (sourceChecked < 2_700 || sectionsChecked < 600 || stripped < 290) note(`SECTION FLOOR: ${sourceChecked} source values, ${sectionsChecked} sections and ${stripped} emptied sections checked — the walk is not reaching the defs`);
+if (sourceChecked < 2_700 || sectionsChecked < 600 || stripped < 290 || anatomyChecked < 200) note(`SECTION FLOOR: ${sourceChecked} source values, ${sectionsChecked} sections, ${stripped} emptied sections and ${anatomyChecked} page Anatomy lines checked — the walk is not reaching the defs`);
 
 // ---- ARM D: maintainer prose does not ship ---------------------------------------------------
 /** The parts of an entry that must be absent. A `codeOnly` entry leads with the name it admits (`size — …`),
@@ -662,4 +713,4 @@ if (fail.length) {
 console.log(`  ✓ clean — ${ids.length} defs in all three files; ${declared.length - UNUSED_IN_CORPUS.size} schema fields represented (${UNUSED_IN_CORPUS.size} unused in the corpus, exempt); ` +
   `${jsonChecked} def leaves round-trip to the JSON, ${pageChecked} strings to their page section, ${cellChecked} values to their table cell, ${kindChecked} axis kinds to both; ` +
   `${maintChecked} maintainer entries in the record and none of ${probed} in either payload form (${shared} shared verbatim with a shipped field of the same def); no Prism 2 in the payload (${keptInRecord} maintainer entries name it, kept in the record only); ` +
-  `section model: ${sourceChecked} source values in their own section, ${sectionsChecked} sections drawn as the data gives, ${stripped} emptied sections not drawn, every page's sections matching.`);
+  `section model: ${sourceChecked} source values in their own section, ${sectionsChecked} sections drawn as the data gives, ${stripped} emptied sections not drawn, every page's sections matching, ${anatomyChecked} page Anatomy lines as the def gives.`);

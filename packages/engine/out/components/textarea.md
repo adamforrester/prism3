@@ -64,10 +64,11 @@ Use for free-form text expected to exceed one line — comments, descriptions, m
 
 ## Accessibility
 
-- **Role:** textbox (native \<textarea>), with the implicit aria-multiline="true"
 - **Keyboard:** Native multi-line editing with undo/redo, spellcheck and IME. Enter inserts a newline — that is the contract aria-multiline advertises and the default. submitOnEnter inverts it for composers, and then Shift+Enter inserts the newline, a real submit button still exists, and the swap is stated visibly near the field.
 - **Focus:** :focus-visible with the field ring (`focus.ring.offset-field`, 0 offset). An inset indicator for large surfaces is not built. forwardRef must reach the \<textarea> itself, not the wrapper. Auto-resize must not move the caret or scroll the viewport — the measurement is synchronous with input, and it must also run on PROGRAMMATIC value changes (a reset, or AI-inserted text), which is the common auto-grow bug.
-- **ARIA:** The counter is the central problem and it is two nodes, not one: the visual counter is aria-hidden and updates instantly, while a separate visually-hidden node carries announcements. Two channels — the static limit folded into aria-describedby so tabbing in announces the ceiling, and a threshold-based polite live region that speaks only near the limit (per-keystroke counting makes the field unusable), escalating to assertive only on breach. Over-limit sets aria-invalid and is ANNOUNCED, never color-only. aria-busy while content streams. Preserve the native aria-multiline; do not reconstruct a textarea from contenteditable, which loses undo/redo, spellcheck, reliable IME and form submission. Set dir="auto" so content direction can differ from UI direction, and do not run counting or auto-grow measurement mid-IME-composition.
+- **Screen readers:** textbox (native \<textarea>), with the implicit aria-multiline="true"
+
+  The counter is the central problem and it is two nodes, not one: the visual counter is aria-hidden and updates instantly, while a separate visually-hidden node carries announcements. Two channels — the static limit folded into aria-describedby so tabbing in announces the ceiling, and a threshold-based polite live region that speaks only near the limit (per-keystroke counting makes the field unusable), escalating to assertive only on breach. Over-limit sets aria-invalid and is ANNOUNCED, never color-only. aria-busy while content streams. Preserve the native aria-multiline; do not reconstruct a textarea from contenteditable, which loses undo/redo, spellcheck, reliable IME and form submission. Set dir="auto" so content direction can differ from UI direction, and do not run counting or auto-grow measurement mid-IME-composition.
 
 ### WCAG
 
@@ -97,7 +98,7 @@ Counter reads "240 / 280" or "40 characters remaining"; over-limit reads "12 cha
 
 - **Built from:** `field-label`, `field-message`, `focus-ring`
 - **Instead, consider:** `text-field`, `select`
-- **Often used with:** `field-label`, `field-message`, `button`, `icon`, `spinner`
+- **Often used with:** `button`, `icon`, `spinner`
 - **Replaces:**
   - a one-row textarea used as a tall input
   - a contenteditable div used for plain multi-line text

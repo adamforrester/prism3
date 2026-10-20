@@ -62,10 +62,11 @@ Use for free-form, non-enumerable single-line input — names, titles, SKUs, ide
 
 ## Accessibility
 
-- **Role:** textbox (native \<input>)
 - **Keyboard:** Native text editing. Tab focuses the input; interactive affixes (clear / reveal) are SEPARATE tab stops with their own accessible names. Escape clears when clearable.
 - **Focus:** :focus-visible ring, boundary ≥3:1 (1.4.11 / 2.4.13) — the field is a primary focus target. forwardRef must reach the \<input>, not the wrapper, so consumers can focus on load / focus the first invalid field on submit.
-- **ARIA:** The host generates ids (useId) and stitches aria-describedby across helper + error, and sets aria-invalid on error — the consumer never hand-manages ids (the highest-frequency real a11y failure). placeholder is NOT the accessible name. Error timing: validate on blur, re-validate on input after the first error, announce politely, and on submit move focus to the first invalid field (with an error summary on a long form). While pending, aria-busy; the field stays focusable. Do not fire validation mid-IME-composition. Set dir="auto" on the input so content direction can differ from UI direction.
+- **Screen readers:** textbox (native \<input>)
+
+  The host generates ids (useId) and stitches aria-describedby across helper + error, and sets aria-invalid on error — the consumer never hand-manages ids (the highest-frequency real a11y failure). placeholder is NOT the accessible name. Error timing: validate on blur, re-validate on input after the first error, announce politely, and on submit move focus to the first invalid field (with an error summary on a long form). While pending, aria-busy; the field stays focusable. Do not fire validation mid-IME-composition. Set dir="auto" on the input so content direction can differ from UI direction.
 
 ### WCAG
 
@@ -94,7 +95,7 @@ Label = noun phrase, sentence case, no trailing colon. Placeholder = example onl
 
 - **Built from:** `field-label`, `field-message`, `focus-ring`
 - **Instead, consider:** `textarea`, `select`, `checkbox-row`, `switch-row`, `password-field`
-- **Often used with:** `field-label`, `field-message`, `icon`, `button`, `spinner`
+- **Often used with:** `icon`, `button`, `spinner`
 - **Replaces:**
   - bare input without label wiring
   - placeholder-as-label

@@ -54,10 +54,11 @@ Use a Button.Group for the actions that close a task: the foot of a dialog, the 
 
 ## Accessibility
 
-- **Role:** None of its own. Each button is a native \<button> with its own name; add role="group" with an aria-label only when the buttons need a shared name.
 - **Keyboard:** Tab moves through the buttons in order. Enter and Space act on the focused one.
 - **Focus:** Each button takes focus in turn and shows the shared focus ring.
-- **ARIA:** Nothing on the group by default. Name each button by what it does; translated labels make a row longer, and a row that no longer fits wraps.
+- **Screen readers:** None of its own. Each button is a native \<button> with its own name; add role="group" with an aria-label only when the buttons need a shared name.
+
+  Nothing on the group by default. Name each button by what it does; translated labels make a row longer, and a row that no longer fits wraps.
 
 ### WCAG
 
@@ -81,7 +82,7 @@ Button labels are short verbs or verb phrases in sentence case, each naming its 
 
 - **Built from:** `button`
 - **Instead, consider:** `segmented-control`
-- **Often used with:** `dialog`, `button`, `button-destructive`, `button-neutral`
+- **Often used with:** `dialog`, `button-destructive`, `button-neutral`
 - **Replaces:**
   - a footer of fixed nested buttons copied into each component
   - a button-set component with a variant per count and layout

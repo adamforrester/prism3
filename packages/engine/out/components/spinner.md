@@ -52,9 +52,10 @@ Use a spinner for a short wait with no known end — about 200ms to 5s — insid
 
 ## Accessibility
 
-- **Role:** `status` with `aria-live="polite"`, named by `label` — "Loading" by default. Hidden (`aria-hidden="true"`) inside a host that announces its own busy state.
 - **Focus:** None. The spinner takes no focus. A pending host control keeps its own: it takes `aria-disabled="true"`, not native `disabled`, which takes the control out of the focus order and sends focus to the page body (USWDS), and it suppresses the repeat click in script — see Button's `isPending`.
-- **ARIA:** Standalone, the default: a `role="status"` wrapper with `aria-live="polite"`, named by `label` ("Loading" unless a more specific label is given), around an `aria-hidden` drawing. Inside a host that already announces its busy state — a Button or IconButton `isPending`, which set `aria-busy` and carry their own polite live region — the host sets `aria-hidden="true"` on the spinner, so the state is announced once rather than twice. Never `aria-valuenow` and never `role="progressbar"`: a spinner has no value, and an indeterminate progressbar can make some screen readers keep announcing the missing value.
+- **Screen readers:** `status` with `aria-live="polite"`, named by `label` — "Loading" by default. Hidden (`aria-hidden="true"`) inside a host that announces its own busy state.
+
+  Standalone, the default: a `role="status"` wrapper with `aria-live="polite"`, named by `label` ("Loading" unless a more specific label is given), around an `aria-hidden` drawing. Inside a host that already announces its busy state — a Button or IconButton `isPending`, which set `aria-busy` and carry their own polite live region — the host sets `aria-hidden="true"` on the spinner, so the state is announced once rather than twice. Never `aria-valuenow` and never `role="progressbar"`: a spinner has no value, and an indeterminate progressbar can make some screen readers keep announcing the missing value.
 
 ### WCAG
 

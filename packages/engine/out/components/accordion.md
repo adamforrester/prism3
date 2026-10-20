@@ -65,10 +65,11 @@ Use an Accordion to compress a set of independent sections into scannable header
 
 ## Accessibility
 
-- **Role:** A native \<button> with aria-expanded and aria-controls, inside an \<hN>; the panel is role="region" with aria-labelledby pointing at the button. Native \<details> and \<summary> are the alternative where their styling and animation support are enough.
 - **Keyboard:** Tab moves from header to header, and into an open panel's content. Enter or Space opens and closes the focused header. There is no roving tab index. Up and Down between headers, and Home and End, are optional extras and must not trap focus.
 - **Focus:** A focus ring around the header row on :focus-visible. Opening a section does not move focus.
-- **ARIA:** Hide the indicator glyph from assistive technology (aria-hidden="true"); the button's aria-expanded carries the state. Do not put role="tab" or a tablist on an accordion.
+- **Screen readers:** A native \<button> with aria-expanded and aria-controls, inside an \<hN>; the panel is role="region" with aria-labelledby pointing at the button. Native \<details> and \<summary> are the alternative where their styling and animation support are enough.
+
+  Hide the indicator glyph from assistive technology (aria-hidden="true"); the button's aria-expanded carries the state. Do not put role="tab" or a tablist on an accordion.
 
 ### WCAG
 
@@ -97,7 +98,7 @@ Titles are short, parallel noun phrases or questions, in sentence case, with no 
 
 - **Built from:** `_accordion-indicator`, `focus-ring`, `divider`
 - **Instead, consider:** `tabs`
-- **Often used with:** `tabs`, `divider`, `icon`, `button`, `text-field`
+- **Often used with:** `tabs`, `icon`, `button`, `text-field`
 - **Replaces:**
   - a show/hide div with no aria-expanded or heading
   - a tablist used for vertical sections that open together

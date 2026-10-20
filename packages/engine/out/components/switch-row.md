@@ -61,10 +61,11 @@ Use for a binary on/off setting that applies IMMEDIATELY — notifications, dark
 
 ## Accessibility
 
-- **Role:** switch (native \<input type="checkbox" role="switch">), with aria-checked true/false — announced "on"/"off", NOT "checked"
 - **Keyboard:** Each switch is its own tab stop — like Checkbox.Row, unlike Radio.Row, and there is no group to traverse. SPACE toggles, which is the canonical W3C activation; some systems also accept Enter. Nothing else: no arrow keys, because a switch is never one of a mutually-related set.
 - **Focus:** :focus-visible ring on the TRACK, never the thumb — the thumb moves, and a ring that travels with it reads as two indicators. Offset, at least 3:1, keyboard traversal only. A read-only switch STAYS in the tab order and stays focusable; a disabled one is removed from it.
-- **ARIA:** Three roles are easily confused: checkbox is role="checkbox" (announced "checked"), switch is role="switch" (announced "on"/"off"), and a toggle button is role="button" + aria-pressed (announced "pressed"). Putting aria-pressed on a switch is a recurring and severe error that CORRUPTS the announcement. Prefer the styled native input — \<input type="checkbox" role="switch"> keeps focus, activation and the a11y tree for free. ANNOUNCE THE IMMEDIATE EFFECT: aria-checked flips on toggle; for an async effect set aria-busy during flight and announce the outcome politely (4.1.3). If the toggle changes the page layout (it reveals or removes content), announce that change through an aria-live region. The thumb glyph is decorative (aria-hidden) — the role and state already carry on/off. TWO IMPLEMENTATION TRAPS: the IA2 quirk, where both aria-pressed buttons and role="switch" map internally to IA2_ROLE_TOGGLE_BUTTON — author to the ARIA spec regardless; and shadow-DOM label detachment, where wrapping a web-component switch in a native \<label> does NOT associate the name with the input inside the shadow root, so set aria-label or aria-labelledby explicitly.
+- **Screen readers:** switch (native \<input type="checkbox" role="switch">), with aria-checked true/false — announced "on"/"off", NOT "checked"
+
+  Three roles are easily confused: checkbox is role="checkbox" (announced "checked"), switch is role="switch" (announced "on"/"off"), and a toggle button is role="button" + aria-pressed (announced "pressed"). Putting aria-pressed on a switch is a recurring and severe error that CORRUPTS the announcement. Prefer the styled native input — \<input type="checkbox" role="switch"> keeps focus, activation and the a11y tree for free. ANNOUNCE THE IMMEDIATE EFFECT: aria-checked flips on toggle; for an async effect set aria-busy during flight and announce the outcome politely (4.1.3). If the toggle changes the page layout (it reveals or removes content), announce that change through an aria-live region. The thumb glyph is decorative (aria-hidden) — the role and state already carry on/off. TWO IMPLEMENTATION TRAPS: the IA2 quirk, where both aria-pressed buttons and role="switch" map internally to IA2_ROLE_TOGGLE_BUTTON — author to the ARIA spec regardless; and shadow-DOM label detachment, where wrapping a web-component switch in a native \<label> does NOT associate the name with the input inside the shadow root, so set aria-label or aria-labelledby explicitly.
 
 ### WCAG
 
@@ -91,7 +92,7 @@ The label names the setting and never changes. The description says what turning
 
 - **Built from:** `switch-control`
 - **Instead, consider:** `checkbox-row`, `radio-row`, `segmented-control`
-- **Often used with:** `switch-control`, `focus-ring`
+- **Often used with:** `focus-ring`
 - **Replaces:**
   - a checkbox misused for an immediate-effect setting
   - two radios standing in for an obvious binary on/off

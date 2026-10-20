@@ -56,10 +56,11 @@ Use inside SegmentedControl only. An option names one value; selecting it change
 
 ## Accessibility
 
-- **Role:** a \<button> with aria-current in the view behavior, or a native radio with its label in the form behavior; the control sets which
 - **Keyboard:** Set by the control: in the view behavior each option is a Tab stop and Enter or Space selects it; in the form behavior arrow keys move between options and select.
 - **Focus:** A focus ring around the indicator on :focus-visible. It can sit on a different option from the selected one.
-- **ARIA:** A leading icon is aria-hidden when a label is shown. An icon-only option needs an aria-label and a tooltip.
+- **Screen readers:** a \<button> with aria-current in the view behavior, or a native radio with its label in the form behavior; the control sets which
+
+  A leading icon is aria-hidden when a label is shown. An icon-only option needs an aria-label and a tooltip.
 
 ### WCAG
 

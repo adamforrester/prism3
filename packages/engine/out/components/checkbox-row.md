@@ -56,10 +56,11 @@ Use a single Checkbox.Row for one independent opt-in (a consent line, "Remember 
 
 ## Accessibility
 
-- **Role:** checkbox (native \<input type="checkbox">), with aria-checked true / false / mixed
 - **Keyboard:** Each checkbox is its OWN Tab stop and Space toggles — the key cross-control difference from Radio.Group, which is one Tab stop for the group with arrows moving within it. NEVER override Enter: Enter submits the enclosing form, and hijacking it breaks universal web behavior.
 - **Focus:** :focus-visible ring on the CONTROL, offset, at least 3:1 — keyboard traversal only, not mouse or touch. The visual box stays tight while the interactive footprint is generous: the hit target is expanded by padding on the row WRAPPER (the icon-button parallel), so clicking the label or the surrounding space toggles. The target aims for at least 24x24, scaling to 44 (Apple) / 48 (Material) on touch. The label sits inline-end of the control, not above it.
-- **ARIA:** Prefer the styled native input — `appearance: none` plus a pseudo-element or SVG keeps role, checked state and Space-to-toggle for free; a `role="checkbox"` div is a last resort and must reproduce aria-checked (true/false/mixed) exactly. Relying on the visual dash glyph alone to convey indeterminate is an accessibility failure. For a set, `role="group"` plus `aria-labelledby` is the default over `fieldset`/`legend` — both are valid, but fieldset has flexbox and grid quirks that make it hard to style predictably, and role=group on a div keeps the layout freedom while preserving the shared-label announcement. Group error and required associate to the GROUP and announce once; an individual row never owns its own required or error. When the control is nested in a host row, the host provides the accessible name through aria-labelledby — never double-label.
+- **Screen readers:** checkbox (native \<input type="checkbox">), with aria-checked true / false / mixed
+
+  Prefer the styled native input — `appearance: none` plus a pseudo-element or SVG keeps role, checked state and Space-to-toggle for free; a `role="checkbox"` div is a last resort and must reproduce aria-checked (true/false/mixed) exactly. Relying on the visual dash glyph alone to convey indeterminate is an accessibility failure. For a set, `role="group"` plus `aria-labelledby` is the default over `fieldset`/`legend` — both are valid, but fieldset has flexbox and grid quirks that make it hard to style predictably, and role=group on a div keeps the layout freedom while preserving the shared-label announcement. Group error and required associate to the GROUP and announce once; an individual row never owns its own required or error. When the control is nested in a host row, the host provides the accessible name through aria-labelledby — never double-label.
 
 ### WCAG
 
@@ -88,7 +89,7 @@ The label states what becomes true when checked. Group errors read "Select at le
 
 - **Built from:** `checkbox-control`
 - **Instead, consider:** `switch-row`, `radio-row`
-- **Often used with:** `checkbox-control`, `checkbox-group`, `field-label`, `field-message`, `focus-ring`, `button`
+- **Often used with:** `checkbox-group`, `field-label`, `field-message`, `focus-ring`, `button`
 - **Replaces:**
   - a bare \<input type="checkbox"> with no label wiring
   - a role="checkbox" div where a styled native input would do

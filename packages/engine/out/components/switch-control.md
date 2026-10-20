@@ -56,10 +56,11 @@ Do not place this on its own. It is the track-and-thumb Switch.Row nests, so a f
 
 ## Accessibility
 
-- **Role:** The visual control only — the accessible switch role, name and aria-checked (announced "on"/"off", never "checked") belong to the host input the Row wires. A standalone use must supply role and name itself.
 - **Keyboard:** None of its own — the atom is not a tab stop. Focus, Space-to-toggle and the tab order belong to the host input; the ring here renders the host's `:focus-visible` state.
 - **Focus:** The nested focus ring surrounds the TRACK on `:focus-visible`, never the thumb (the thumb moves, so a ring traveling with it reads as two indicators). Offset, keyboard traversal only.
-- **ARIA:** When nested in a host row, the host provides the accessible name through `aria-labelledby` — never double-label. The role is `switch`, announced "on"/"off"; putting `aria-pressed` on it corrupts the announcement (that is a toggle button). The glyph is decorative (`aria-hidden`) — the role+state already carries on/off.
+- **Screen readers:** The visual control only — the accessible switch role, name and aria-checked (announced "on"/"off", never "checked") belong to the host input the Row wires. A standalone use must supply role and name itself.
+
+  When nested in a host row, the host provides the accessible name through `aria-labelledby` — never double-label. The role is `switch`, announced "on"/"off"; putting `aria-pressed` on it corrupts the announcement (that is a toggle button). The glyph is decorative (`aria-hidden`) — the role+state already carries on/off.
 
 ### WCAG
 
@@ -84,7 +85,7 @@ The atom has no copy of its own; all label, description and error text belongs t
 
 - **Built from:** `focus-ring`
 - **Instead, consider:** `checkbox-control`, `radio-control`
-- **Often used with:** `switch-row`, `focus-ring`
+- **Often used with:** `switch-row`
 - **Replaces:**
   - the painted track and thumb inlined in a switch row
 

@@ -41,6 +41,19 @@ emptied) · maintainer notes captioned (`MAINTAINER CAPTION`) · a Theming secti
 (`SECTION PARITY`) · Anatomy gaps left out of the record (`GAP NOT RECORDED`) · Usage retitled (`SECTION
 TITLE`) · the sections reversed (`SECTION ORDER`).
 
+**Review fixes (2026-10-20).** Two placements now match the approved wireframe: Accessibility draws
+`role` and `aria` under one "Screen readers" row, after Keyboard and Focus, and "Often used with" leaves
+out a partner already under "Built from" (29 defs repeated one). F4 now also checks each page's Anatomy:
+every part line is the model's name plus the note only when the note is for readers, no held-back note's
+text is anywhere on the page, and the "Shown on the default member" line names each axis's first value.
+Before this, an emitter that rendered the raw notes, or the wrong default member, passed the gate. The
+wireframe's "Combinations" block in Usage guidelines is not built and is put to the owner.
+
+**More mutations, each failing by name (exit 1):** the raw part notes rendered (`ANATOMY LINE (page)`,
+`HELD-BACK NOTE (page)`) · each axis's last value as the specimen (`SPECIMEN (page)`) · the partner filter
+dropped (`EXTRA VALUE (page)` on the Often used with line) · Role and ARIA as two rows (`SCREEN READERS
+(page)`).
+
 **Trap for the next phase.** The panel and the site page must call `docSections(def, { modes })` with
 the brand's modes, or they will silently have no Theming section. F2 already checks the model with modes;
 each surface's own gate should check that it passed them.

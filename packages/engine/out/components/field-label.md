@@ -52,8 +52,9 @@ Place above every field as its accessible name. Wire htmlFor to the field id. Se
 
 ## Accessibility
 
-- **Role:** none (native \<label> element)
-- **ARIA:** Prefer a native \<label for=id>; use aria-label / aria-labelledby only when a visible label genuinely cannot be shown (a search field with a hidden label — and it still exists in the DOM). The required marker is visual; the field carries required / aria-required so the state is not marker-only.
+- **Screen readers:** none (native \<label> element)
+
+  Prefer a native \<label for=id>; use aria-label / aria-labelledby only when a visible label genuinely cannot be shown (a search field with a hidden label — and it still exists in the DOM). The required marker is visual; the field carries required / aria-required so the state is not marker-only.
 
 ### WCAG
 

@@ -48,9 +48,10 @@ Part of an Accordion. Choose chevron or plus-minus on the Accordion; the glyph f
 
 ## Accessibility
 
-- **Role:** none: the glyph is decorative and hidden from assistive technology (aria-hidden="true"); the Accordion header button carries the role and the expanded state
 - **Focus:** None. The Accordion header around the glyph takes focus.
-- **ARIA:** Hide the glyph from assistive technology with aria-hidden="true". The header button's aria-expanded says whether the section is open.
+- **Screen readers:** none: the glyph is decorative and hidden from assistive technology (aria-hidden="true"); the Accordion header button carries the role and the expanded state
+
+  Hide the glyph from assistive technology with aria-hidden="true". The header button's aria-expanded says whether the section is open.
 
 ### WCAG
 

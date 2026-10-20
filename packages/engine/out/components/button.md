@@ -70,10 +70,11 @@ Use for an immediate action in the current context — submit/save/reset a form,
 
 ## Accessibility
 
-- **Role:** button (native \<button>; never div[role=button] — it inherits Space/Enter activation, focus, and HC affordances for free)
 - **Keyboard:** Native \<button>: Enter activates on keydown, Space on keyup. (This asymmetry vs a link — which activates on Enter only, Space scrolls — is exactly why a navigating "button" must be a real link.)
 - **Focus:** A :focus-visible ring (color.border.focus) with an outline-offset so a sliver of background separates ring from border — it does not blend into the button's own fill (WCAG 1.4.11, target 3:1). Never suppressed. Focus is retained through pending and inactive (aria-disabled, not native disabled).
-- **ARIA:** State attributes are distinct, not interchangeable: aria-pressed only for a toggle-button; aria-expanded (+ aria-haspopup) for a menu/disclosure trigger; aria-checked only for the switch role. Do not conflate them. Busy: while isPending, set aria-busy and announce via a polite live region ("Saving…"), and set aria-hidden="true" on the embedded spinner, which otherwise announces its own "Loading" status (a double announcement); keep the control focusable so the busy state is discoverable. isInactive/isPending use aria-disabled (not native disabled) so focus and the explanatory name/description stay reachable. Localization (brief §9): the label wraps rather than truncating and has no fixed English width, the row mirrors under RTL through logical properties, and only directional glyphs flip.
+- **Screen readers:** button (native \<button>; never div[role=button] — it inherits Space/Enter activation, focus, and HC affordances for free)
+
+  State attributes are distinct, not interchangeable: aria-pressed only for a toggle-button; aria-expanded (+ aria-haspopup) for a menu/disclosure trigger; aria-checked only for the switch role. Do not conflate them. Busy: while isPending, set aria-busy and announce via a polite live region ("Saving…"), and set aria-hidden="true" on the embedded spinner, which otherwise announces its own "Loading" status (a double announcement); keep the control focusable so the busy state is discoverable. isInactive/isPending use aria-disabled (not native disabled) so focus and the explanatory name/description stay reachable. Localization (brief §9): the label wraps rather than truncating and has no fixed English width, the row mirrors under RTL through logical properties, and only directional glyphs flip.
 
 ### WCAG
 
@@ -103,7 +104,7 @@ Verb-first, specific, sentence case, no terminal punctuation, ≤3 words to boun
 
 - **Built from:** `focus-ring`, `spinner`
 - **Instead, consider:** `icon-button`, `switch-row`
-- **Often used with:** `icon`, `spinner`, `focus-ring`, `button-group`
+- **Often used with:** `icon`, `button-group`
 - **Replaces:**
   - input[type=button\|submit]
   - div[role=button]

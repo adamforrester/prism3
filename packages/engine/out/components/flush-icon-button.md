@@ -53,10 +53,11 @@ Use inside another component where the icon is itself the control: the minus and
 
 ## Accessibility
 
-- **Role:** button (native \<button>)
 - **Keyboard:** Native \<button>: Enter on keydown, Space on keyup. A host may take it out of the tab order (tabindex="-1") where its own keys do the same job, as a counter's arrow keys do.
 - **Focus:** An offset :focus-visible ring around the glyph square, or around the circle on the round shape.
-- **ARIA:** aria-label is the accessible name (required), a verb naming the action. Inside a host that disables it at a limit, set aria-disabled="true" so it stays in the accessibility tree. Never nest it inside another interactive element, such as an accordion header or a tab: a button inside a button is invalid HTML and breaks assistive technology. Under RTL, only a directional glyph flips.
+- **Screen readers:** button (native \<button>)
+
+  aria-label is the accessible name (required), a verb naming the action. Inside a host that disables it at a limit, set aria-disabled="true" so it stays in the accessibility tree. Never nest it inside another interactive element, such as an accordion header or a tab: a button inside a button is invalid HTML and breaks assistive technology. Under RTL, only a directional glyph flips.
 
 ### WCAG
 
@@ -82,7 +83,7 @@ The accessible name is a verb naming the action ("Close", "Increase quantity"), 
 
 - **Built from:** `focus-ring`
 - **Instead, consider:** `icon-button`
-- **Often used with:** `icon`, `focus-ring`, `counter`
+- **Often used with:** `icon`, `counter`
 - **Replaces:**
   - an \<svg> with a click handler and no button
   - an IconButton with its padding overridden to zero

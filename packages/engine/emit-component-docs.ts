@@ -177,7 +177,14 @@ export const renderMarkdown = (def: ComponentDef): string => {
   const out: string[] = [];
   const para = (s: string | undefined) => { if (s) out.push(mdEscape(s), ''); };
   const bullets = (xs: readonly string[]) => { for (const x of xs) out.push(`- ${mdEscape(x)}`); if (xs.length) out.push(''); };
-  const fields = (fs: readonly DocField[]) => { for (const f of fs) out.push(`- **${f.label}:** ${mdEscape(f.text)}`); if (fs.length) out.push(''); };
+  // A row's later paragraphs are indented under its bullet, so they stay part of that row.
+  const fields = (fs: readonly DocField[]) => {
+    for (const f of fs) {
+      out.push(`- **${f.label}:** ${mdEscape(f.text[0])}`);
+      for (const t of f.text.slice(1)) out.push('', `  ${mdEscape(t)}`);
+    }
+    if (fs.length) out.push('');
+  };
 
   out.push(`# ${def.name}`, '');
   out.push(`> ${mdEscape(def.summary)}`, '');

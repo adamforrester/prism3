@@ -49,9 +49,10 @@ Use a divider to separate groups of related content when spacing alone does not 
 
 ## Accessibility
 
-- **Role:** none with aria-hidden="true" by default, because a divider is decorative unless set otherwise; with decorative=false, separator (native \<hr> for a horizontal rule, role="separator" with aria-orientation="vertical" for a vertical one)
 - **Focus:** None. A divider is not focusable and takes no place in the tab order.
-- **ARIA:** By default the rule sets aria-hidden="true", so a screen reader does not announce a break that means nothing. With decorative=false, an \<hr> needs no attributes, and a vertical rule sets role="separator" and aria-orientation="vertical".
+- **Screen readers:** none with aria-hidden="true" by default, because a divider is decorative unless set otherwise; with decorative=false, separator (native \<hr> for a horizontal rule, role="separator" with aria-orientation="vertical" for a vertical one)
+
+  By default the rule sets aria-hidden="true", so a screen reader does not announce a break that means nothing. With decorative=false, an \<hr> needs no attributes, and a vertical rule sets role="separator" and aria-orientation="vertical".
 
 ### WCAG
 

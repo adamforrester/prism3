@@ -49,9 +49,10 @@ Use inside a List only. Each item is one short phrase or sentence after its mark
 
 ## Accessibility
 
-- **Role:** listitem (a native \<li>), inside the List's list
 - **Focus:** None. An item is not focusable; a link inside it takes focus on its own.
-- **ARIA:** None on the item: a native \<li> is a list item. An icon marker is aria-hidden="true". When an icon stands for a state (met, not met), the state is also in the item text or in visually hidden text, never in the icon alone.
+- **Screen readers:** listitem (a native \<li>), inside the List's list
+
+  None on the item: a native \<li> is a list item. An icon marker is aria-hidden="true". When an icon stands for a state (met, not met), the state is also in the item text or in visually hidden text, never in the icon alone.
 
 ### WCAG
 

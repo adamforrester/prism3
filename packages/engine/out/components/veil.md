@@ -50,9 +50,10 @@ Place a veil between a photograph (or video) and the text set over it, so the te
 
 ## Accessibility
 
-- **Role:** none — a presentational overlay. The veil conveys no information of its own; it is a wash behind text, so it is aria-hidden and the text on top carries the accessible content.
 - **Focus:** None — the veil is not focusable and takes no place in the tab order. It is a decorative layer behind content; the interactive elements sit on top of it and own their own focus.
-- **ARIA:** Mark the veil aria-hidden — it is presentational and announcing it would add nothing to the text it sits behind. Never place text INSIDE the veil node as its only home; the veil is a background layer, and the text is a sibling on top so assistive tech reads the text directly. The veil is a legibility aid, not a substitute for verified contrast: check the text against the actual image, because the wash cannot promise a ratio over an unknown photo.
+- **Screen readers:** none — a presentational overlay. The veil conveys no information of its own; it is a wash behind text, so it is aria-hidden and the text on top carries the accessible content.
+
+  Mark the veil aria-hidden — it is presentational and announcing it would add nothing to the text it sits behind. Never place text INSIDE the veil node as its only home; the veil is a background layer, and the text is a sibling on top so assistive tech reads the text directly. The veil is a legibility aid, not a substitute for verified contrast: check the text against the actual image, because the wash cannot promise a ratio over an unknown photo.
 
 ### WCAG
 

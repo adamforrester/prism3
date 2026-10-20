@@ -58,10 +58,11 @@ Use to choose exactly one of 2 to about 7 mutually exclusive, all-visible option
 
 ## Accessibility
 
-- **Role:** radiogroup (role="radiogroup" on the container, or a native \<fieldset>) with aria-labelledby pointing at the FieldLabel; each row is a native \<input type="radio"> sharing the group's name
 - **Keyboard:** The keyboard model is the opposite of Checkbox.Group's. The group is a single tab stop: Tab moves into the group and the next Tab moves out, while arrow keys move between options, wrapping at the ends, with Home/End jumping to first/last. Space selects the focused option, and selection FOLLOWS FOCUS by default (arrowing moves focus and selects — native \<input type="radio"> behavior and the APG default). Implement with ROVING TABINDEX — one radio at tabindex="0" (the checked one, or the first if none), siblings at -1, arrow handling moving focus and calling .focus() — not aria-activedescendant. Making each option its own tab stop is the most common radio accessibility failure. NEVER override Enter (it submits the enclosing form).
 - **Focus:** Focus lands on ONE option at a time (roving), not on every option in turn. On focus restore into the group (a validation error, a legend click), focus the CHECKED radio rather than blindly the first; if none is checked, the first non-disabled option. The group container is not itself focusable. Keep the :focus-visible ring INSTANT (a fade lags rapid arrow navigation) and circular (the control is full-round).
-- **ARIA:** Prefer role="radiogroup" on a div plus aria-labelledby over \<fieldset>/\<legend>: both are valid, but fieldset has flexbox/grid quirks that make it hard to style, and role="radiogroup" keeps the layout freedom while preserving the shared-label announcement. THE GROUP LABEL IS MANDATORY FOR MEANING: without it assistive tech announces an orphaned "radio button, 1 of 3". The GROUP owns required and error — aria-required and aria-invalid associate to the group and announce once; an individual option never owns its own required or error. Native inputs sharing a name give the grouping, the exclusivity and the roving-tabindex keyboard model for free. Do not double-label: the rows carry their short labels, the group carries the decision.
+- **Screen readers:** radiogroup (role="radiogroup" on the container, or a native \<fieldset>) with aria-labelledby pointing at the FieldLabel; each row is a native \<input type="radio"> sharing the group's name
+
+  Prefer role="radiogroup" on a div plus aria-labelledby over \<fieldset>/\<legend>: both are valid, but fieldset has flexbox/grid quirks that make it hard to style, and role="radiogroup" keeps the layout freedom while preserving the shared-label announcement. THE GROUP LABEL IS MANDATORY FOR MEANING: without it assistive tech announces an orphaned "radio button, 1 of 3". The GROUP owns required and error — aria-required and aria-invalid associate to the group and announce once; an individual option never owns its own required or error. Native inputs sharing a name give the grouping, the exclusivity and the roving-tabindex keyboard model for free. Do not double-label: the rows carry their short labels, the group carries the decision.
 
 ### WCAG
 
@@ -90,7 +91,7 @@ The group label names the decision; the rows carry the short options. Group erro
 
 - **Built from:** `radio-row`, `field-label`
 - **Instead, consider:** `checkbox-group`, `select`, `switch-row`, `segmented-control`
-- **Often used with:** `radio-row`, `radio-control`, `field-label`, `field-message`
+- **Often used with:** `radio-control`, `field-message`
 - **Replaces:**
   - a bare set of \<input type="radio"> with no shared label or group wiring
   - a set of checkboxes misused for a mutually exclusive choice

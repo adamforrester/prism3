@@ -52,9 +52,10 @@ Use a List for a short set of points that a designer lays out: password rules, f
 
 ## Accessibility
 
-- **Role:** list (a native \<ul> or \<ol> with role="list" set explicitly), its items listitem
 - **Focus:** None. A list is not focusable; a link inside an item takes focus on its own.
-- **ARIA:** role="list" on the \<ul> or \<ol>, always, because the markers are drawn by the component (see the element note). Markers are not text: a bullet or number drawn by CSS is not read twice, and an icon marker is aria-hidden="true". When icons stand for states (met, not met), each item says its state in text or in visually hidden text.
+- **Screen readers:** list (a native \<ul> or \<ol> with role="list" set explicitly), its items listitem
+
+  role="list" on the \<ul> or \<ol>, always, because the markers are drawn by the component (see the element note). Markers are not text: a bullet or number drawn by CSS is not read twice, and an icon marker is aria-hidden="true". When icons stand for states (met, not met), each item says its state in text or in visually hidden text.
 
 ### WCAG
 
@@ -77,7 +78,7 @@ One phrase or sentence per item, sentence case, every item the same grammatical 
 ## Related components
 
 - **Built from:** `list-item`
-- **Often used with:** `list-item`, `icon`, `text-field`
+- **Often used with:** `icon`, `text-field`
 - **Replaces:**
   - a \<ul> with list-style: none and no role="list"
   - a column of text boxes with typed bullet characters

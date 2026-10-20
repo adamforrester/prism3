@@ -63,10 +63,11 @@ Use for a password, a PIN typed as text, or any other secret a user types. The f
 
 ## Accessibility
 
-- **Role:** textbox (native \<input type="password">, switched to type="text" while shown), plus a native \<button type="button">
 - **Keyboard:** Tab reaches the input, then the Show/Hide button. Enter or Space on the button shows or hides the password, and focus stays on the button. Tab order follows the visual order in left-to-right and right-to-left layouts.
 - **Focus:** The input takes TextField's focus ring. The button takes Button's own focus ring. Pressing the button never moves focus.
-- **ARIA:** The host wires the label, aria-describedby and aria-invalid as TextField does. The button carries aria-controls naming the input and a name that changes ("Show password" / "Hide password"), not aria-pressed. Each change is announced once through the app's shared polite live region: "Your password is shown" / "Your password is hidden".
+- **Screen readers:** textbox (native \<input type="password">, switched to type="text" while shown), plus a native \<button type="button">
+
+  The host wires the label, aria-describedby and aria-invalid as TextField does. The button carries aria-controls naming the input and a name that changes ("Show password" / "Hide password"), not aria-pressed. Each change is announced once through the app's shared polite live region: "Your password is shown" / "Your password is hidden".
 
 ### WCAG
 
@@ -97,7 +98,7 @@ Label = noun phrase, sentence case, no trailing colon. Button = "Show" / "Hide",
 
 - **Built from:** `field-label`, `field-message`, `focus-ring`, `button`
 - **Instead, consider:** `text-field`
-- **Often used with:** `field-label`, `field-message`, `button`, `list`
+- **Often used with:** `list`
 - **Replaces:**
   - eye icon inside a password field
   - password field with no way to show the characters

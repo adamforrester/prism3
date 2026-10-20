@@ -57,10 +57,11 @@ Use inside Tabs only. A tab names one panel of related content; selecting it sho
 
 ## Accessibility
 
-- **Role:** tab (a \<button role="tab">) inside a role="tablist"; aria-selected on every tab and aria-controls naming its panel
 - **Keyboard:** Owned by the tab list: arrow keys move between tabs, Home and End go to the first and last, and Tab moves on into the panel.
 - **Focus:** The focus ring marks the focused tab, which can differ from the selected tab when activation is manual.
-- **ARIA:** aria-selected="true" or "false" on every tab, and aria-controls pointing at its panel. An icon-only tab needs an aria-label and a tooltip. A count is part of the accessible name.
+- **Screen readers:** tab (a \<button role="tab">) inside a role="tablist"; aria-selected on every tab and aria-controls naming its panel
+
+  aria-selected="true" or "false" on every tab, and aria-controls pointing at its panel. An icon-only tab needs an aria-label and a tooltip. A count is part of the accessible name.
 
 ### WCAG
 
@@ -85,7 +86,7 @@ One or two words, a noun, sentence case.
 ## Related components
 
 - **Built from:** `badge`, `focus-ring`
-- **Often used with:** `tabs`, `icon`, `badge`
+- **Often used with:** `tabs`, `icon`
 - **Replaces:**
   - a styled button that shows and hides a div with no tab semantics
 

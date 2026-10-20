@@ -57,10 +57,11 @@ Use a segmented control for a choice between two to five short options that chan
 
 ## Accessibility
 
-- **Role:** view behavior: role="group" of buttons, the selected one with aria-current="true". form behavior: a radio group (a fieldset with a legend, or role="radiogroup"), native radios inside. Never role="tablist".
 - **Keyboard:** view behavior: Tab moves to each option and Enter or Space selects it. form behavior: Tab enters at the selected option, arrow keys move to the next or previous option and select it, wrapping at the ends, and Tab leaves.
 - **Focus:** A focus ring around the focused option's indicator on :focus-visible.
-- **ARIA:** The label names the group (aria-labelledby, or a legend in the form behavior); without it a screen reader announces options with no subject. Some screen readers do not announce aria-current on a button, so test the view behavior. Every name is translatable, and the row mirrors right to left.
+- **Screen readers:** view behavior: role="group" of buttons, the selected one with aria-current="true". form behavior: a radio group (a fieldset with a legend, or role="radiogroup"), native radios inside. Never role="tablist".
+
+  The label names the group (aria-labelledby, or a legend in the form behavior); without it a screen reader announces options with no subject. Some screen readers do not announce aria-current on a button, so test the view behavior. Every name is translatable, and the row mirrors right to left.
 
 ### WCAG
 
@@ -90,7 +91,7 @@ One or two words per option, nouns, sentence case: "List", not "Show list".
 
 - **Built from:** `field-label`, `segmented-control-segment`
 - **Instead, consider:** `tabs`, `radio-group`, `select`, `switch-row`
-- **Often used with:** `segmented-control-segment`, `field-label`, `icon`
+- **Often used with:** `icon`
 - **Replaces:**
   - a radio group restyled as a compact switcher for a view that changes at once
   - a row of buttons with a hand-rolled active state and no group semantics

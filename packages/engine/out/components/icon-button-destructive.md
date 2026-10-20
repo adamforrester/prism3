@@ -56,10 +56,11 @@ Use for a self-evident action where space is tight and a text label would be red
 
 ## Accessibility
 
-- **Role:** button (native \<button>)
 - **Keyboard:** Native \<button> — Enter on keydown, Space on keyup. Identical to Button.
 - **Focus:** Same offset :focus-visible ring as Button; retained through pending/inactive.
-- **ARIA:** aria-label is the accessible name (required). If it triggers a menu, add aria-haspopup + aria-expanded; aria-pressed only if it is a toggle. While isPending, set aria-busy, keep it focusable, and announce the busy state through a polite live region ("Saving…"), and set aria-hidden="true" on the embedded spinner, which otherwise announces its own "Loading" status (a double announcement). Do not put a tooltip on a natively-disabled icon button (unreachable) — use isInactive so the reason stays reachable. Under RTL, only a directional glyph flips (a back chevron).
+- **Screen readers:** button (native \<button>)
+
+  aria-label is the accessible name (required). If it triggers a menu, add aria-haspopup + aria-expanded; aria-pressed only if it is a toggle. While isPending, set aria-busy, keep it focusable, and announce the busy state through a polite live region ("Saving…"), and set aria-hidden="true" on the embedded spinner, which otherwise announces its own "Loading" status (a double announcement). Do not put a tooltip on a natively-disabled icon button (unreachable) — use isInactive so the reason stays reachable. Under RTL, only a directional glyph flips (a back chevron).
 
 ### WCAG
 
@@ -88,7 +89,7 @@ The accessible name is a verb naming the action ("Close", "More actions"), never
 
 - **Built from:** `focus-ring`, `spinner`
 - **Instead, consider:** `button-destructive`
-- **Often used with:** `icon`, `spinner`, `focus-ring`
+- **Often used with:** `icon`
 - **Replaces:**
   - div[role=button] wrapping an icon
   - a \<button> holding only an \<svg> and no accessible name

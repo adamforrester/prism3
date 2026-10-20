@@ -54,10 +54,11 @@ Do not place this on its own. It is the circle Radio.Row nests, so a fix to its 
 
 ## Accessibility
 
-- **Role:** The visual control only — the accessible radio role, name and aria-checked belong to the host input the Row wires, and the exclusivity and roving-tabindex keyboard model to Radio.Group. A standalone use must supply role and name itself.
 - **Keyboard:** None of its own — the atom is not a tab stop. Focus, Space-to-select and the group's roving tabindex / arrow navigation belong to the host input and Radio.Group; the ring here renders the host's `:focus-visible` state.
 - **Focus:** The nested focus ring surrounds the circle on `:focus-visible`, offset so an unbroken sliver of background separates the ring from the control's own border (WCAG 1.4.11). Circular, because the host is full-round. Keyboard traversal only.
-- **ARIA:** When nested in a host row, the host provides the accessible name through `aria-labelledby` — never double-label. The role is `radio`; a lone radio announces "radio button, 1 of N" with no indication of what is being chosen, which is why the group label is mandatory and lives on Radio.Group, not here.
+- **Screen readers:** The visual control only — the accessible radio role, name and aria-checked belong to the host input the Row wires, and the exclusivity and roving-tabindex keyboard model to Radio.Group. A standalone use must supply role and name itself.
+
+  When nested in a host row, the host provides the accessible name through `aria-labelledby` — never double-label. The role is `radio`; a lone radio announces "radio button, 1 of N" with no indication of what is being chosen, which is why the group label is mandatory and lives on Radio.Group, not here.
 
 ### WCAG
 
@@ -82,7 +83,7 @@ The atom has no copy of its own; all label, description and error text belongs t
 
 - **Built from:** `focus-ring`
 - **Instead, consider:** `checkbox-control`, `switch-control`
-- **Often used with:** `radio-row`, `focus-ring`, `radio-group`
+- **Often used with:** `radio-row`, `radio-group`
 - **Replaces:**
   - the painted circle and dot inlined in a radio row
   - a filled-disc radio that signals selection by the ring filling in

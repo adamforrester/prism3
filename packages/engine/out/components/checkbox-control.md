@@ -56,10 +56,11 @@ Do not place this on its own as a form control. It is the box Checkbox.Row nests
 
 ## Accessibility
 
-- **Role:** The visual control only — the accessible checkbox role, name and aria-checked (true/false/mixed) belong to the host input the Row wires. A standalone use must supply role and name itself.
 - **Keyboard:** None of its own — the atom is not a tab stop. Focus, Space-to-toggle and the tab order belong to the host input; the ring here renders the host's `:focus-visible` state.
 - **Focus:** The nested focus ring surrounds the square on `:focus-visible`, offset so an unbroken sliver of background separates the ring from the control's own border (WCAG 1.4.11). Keyboard traversal only, never mouse or touch.
-- **ARIA:** When nested in a host row, the host provides the accessible name through `aria-labelledby` — never double-label. Relying on the visual dash glyph alone to convey indeterminate is a failure; `aria-checked="mixed"` carries it, and the host sets it.
+- **Screen readers:** The visual control only — the accessible checkbox role, name and aria-checked (true/false/mixed) belong to the host input the Row wires. A standalone use must supply role and name itself.
+
+  When nested in a host row, the host provides the accessible name through `aria-labelledby` — never double-label. Relying on the visual dash glyph alone to convey indeterminate is a failure; `aria-checked="mixed"` carries it, and the host sets it.
 
 ### WCAG
 
@@ -84,7 +85,7 @@ The atom has no copy of its own; all label, description and error text belongs t
 
 - **Built from:** `focus-ring`
 - **Instead, consider:** `radio-control`, `switch-control`
-- **Often used with:** `checkbox-row`, `focus-ring`, `checkbox-group`
+- **Often used with:** `checkbox-row`, `checkbox-group`
 - **Replaces:**
   - the painted control inlined in a checkbox row
 

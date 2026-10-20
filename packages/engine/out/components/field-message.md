@@ -48,8 +48,9 @@ Place directly below a field to carry persistent helper guidance (default status
 
 ## Accessibility
 
-- **Role:** none (rendered text; the host associates it via aria-describedby)
-- **ARIA:** The status icon is aria-hidden — the caption text carries the meaning, so a non-default status starts with a visually hidden prefix that names it ("Error:"), announced even where the glyph is not. The prefix is translatable, like the message after it — a hard-coded English prefix before a localized message is a broken reading. The message does NOT self-announce; the host field references its id in aria-describedby (and sets aria-invalid on error). If the message appears/changes dynamically, the host wraps it in a polite live region so it is announced without stealing focus.
+- **Screen readers:** none (rendered text; the host associates it via aria-describedby)
+
+  The status icon is aria-hidden — the caption text carries the meaning, so a non-default status starts with a visually hidden prefix that names it ("Error:"), announced even where the glyph is not. The prefix is translatable, like the message after it — a hard-coded English prefix before a localized message is a broken reading. The message does NOT self-announce; the host field references its id in aria-describedby (and sets aria-invalid on error). If the message appears/changes dynamically, the host wraps it in a polite live region so it is announced without stealing focus.
 
 ### WCAG
 

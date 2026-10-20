@@ -58,10 +58,11 @@ Use to choose ONE value from a known, bounded set where the options are not wort
 
 ## Accessibility
 
-- **Role:** Trigger: a native \<select>, or a custom button or role="combobox" (ARIA 1.2) with aria-haspopup="listbox", aria-expanded and aria-controls. Popup: role="listbox" with role="option" children carrying aria-selected — the platform's or a listbox component's, not modeled here.
 - **Keyboard:** The closed control is one Tab stop; Space / Enter / Down open it. Inside the open list (not modeled here) arrows move, typeahead jumps, Enter commits, Escape closes and returns focus to the control. SC 1.4.13 (the list stays open while hovered and Escape dismisses it) and SC 2.1.1 (every option, including scrolled ones, is reachable without a pointer) apply to that open list, which the platform or a listbox component owns, so this closed control does not claim them.
 - **Focus:** :focus-visible ring on the control, boundary ≥3:1 (1.4.11 / 2.4.13). The control is the focus target; forwardRef reaches it so a form can focus the first invalid field on submit.
-- **ARIA:** The host generates ids, ties the label to the control and the message into aria-describedby, and sets aria-invalid on error. The placeholder is NOT the accessible name. A custom control mirrors the native listbox contract (aria-expanded, aria-activedescendant); prefer the native \<select> where its OS menu is acceptable, because it is correct for free.
+- **Screen readers:** Trigger: a native \<select>, or a custom button or role="combobox" (ARIA 1.2) with aria-haspopup="listbox", aria-expanded and aria-controls. Popup: role="listbox" with role="option" children carrying aria-selected — the platform's or a listbox component's, not modeled here.
+
+  The host generates ids, ties the label to the control and the message into aria-describedby, and sets aria-invalid on error. The placeholder is NOT the accessible name. A custom control mirrors the native listbox contract (aria-expanded, aria-activedescendant); prefer the native \<select> where its OS menu is acceptable, because it is correct for free.
 
 ### WCAG
 
@@ -88,7 +89,7 @@ Label = noun phrase, sentence case, no trailing colon. Placeholder = the plain n
 
 - **Built from:** `field-label`, `field-message`, `focus-ring`
 - **Instead, consider:** `text-field`, `radio-group`, `checkbox-group`, `segmented-control`
-- **Often used with:** `field-label`, `field-message`, `focus-ring`, `icon`
+- **Often used with:** `icon`
 - **Replaces:**
   - a bare \<select> with no label wiring
   - placeholder-as-label

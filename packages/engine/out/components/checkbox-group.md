@@ -57,10 +57,11 @@ Use to select any number — zero to many — from a bounded set, where the chan
 
 ## Accessibility
 
-- **Role:** group (role="group" on the container, or a native \<fieldset>) with aria-labelledby pointing at the FieldLabel; each row is a native \<input type="checkbox">
 - **Keyboard:** Each checkbox row is its OWN Tab stop and Space toggles it — the same model as a standalone Checkbox.Row, and the key difference from Radio.Group (one Tab stop, arrows within). The group adds no roving tabindex and no arrow navigation; it is a labeled container, not a single composite widget. NEVER override Enter (it submits the enclosing form).
 - **Focus:** Focus lands on each row's control in turn; the group container is not itself focusable. On a validation error, move focus to the first invalid group (its label / first row) and announce the group-level message.
-- **ARIA:** Prefer role="group" on a div plus aria-labelledby over \<fieldset>/\<legend>: both are valid, but fieldset has flexbox/grid quirks that make it hard to style, and role="group" keeps the layout freedom while preserving the shared-label announcement. The GROUP owns required and error — aria-required and aria-invalid associate to the group and announce once; an individual row never owns its own required or error. Do not double-label: the rows carry their short labels, the group carries the decision.
+- **Screen readers:** group (role="group" on the container, or a native \<fieldset>) with aria-labelledby pointing at the FieldLabel; each row is a native \<input type="checkbox">
+
+  Prefer role="group" on a div plus aria-labelledby over \<fieldset>/\<legend>: both are valid, but fieldset has flexbox/grid quirks that make it hard to style, and role="group" keeps the layout freedom while preserving the shared-label announcement. The GROUP owns required and error — aria-required and aria-invalid associate to the group and announce once; an individual row never owns its own required or error. Do not double-label: the rows carry their short labels, the group carries the decision.
 
 ### WCAG
 
@@ -89,7 +90,7 @@ The group label names the decision; the rows carry the short options. Group erro
 
 - **Built from:** `checkbox-row`, `field-label`
 - **Instead, consider:** `radio-group`, `switch-row`
-- **Often used with:** `checkbox-row`, `checkbox-control`, `field-label`, `field-message`
+- **Often used with:** `checkbox-control`, `field-message`
 - **Replaces:**
   - a bare set of \<input type="checkbox"> with no shared label or group wiring
   - per-row required / error scattered across the options instead of owned by the group

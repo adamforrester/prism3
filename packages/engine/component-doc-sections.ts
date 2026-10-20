@@ -11,11 +11,13 @@
  *                         the page's lede, above every section)
  *   Anatomy               the default member as the specimen; each part with a `note`, the note as its caption
  *   Styles                `variants` + `axisKinds`, each axis prop's `description`, `states`
- *   Usage guidelines      `docs.usage`, `docs.do`, `docs.dont`
- *   Accessibility         `accessibility.*`, and `motion.*` beside it
+ *   Usage guidelines      `docs.usage`, `docs.do`, `docs.dont` (the map's "Combinations" block is not built:
+ *                         the wireframe does not draw it, and an owner question is open on the PR)
+ *   Accessibility         `accessibility.*`, `role` and `aria` together as "Screen readers"; `motion.*` beside it
  *   Content guidelines    `docs.contentGuidelines`, `content.*`
  *   Theming               the brand's modes; no def field
- *   Related components    `composition.composesWith`, `.alternativeTo`, `ai.commonPartners`, and
+ *   Related components    `composition.composesWith`, `.alternativeTo`, `ai.commonPartners` (less any id
+ *                         already under "Built from"), and
  *                         `.supersedes`, `.supersededBy`, `.replacesPatterns`
  *   Building it in code   `props`; `docs.implementation` once Q362 adds it
  *
@@ -68,7 +70,8 @@ export const NAMES_A_TOOL = /\b(?:figma|figjam|dev\s+mode|code\s+connect|style\s
 
 export type DocPart = { id: string; name: string; optional: boolean; caption?: string };
 export type DocAxis = { axis: string; values: string[]; kind: 'runtime' | 'authoring'; description?: string };
-export type DocField = { label: string; text: string };
+/** A labeled row. `text` is one paragraph per source field: Screen readers draws `role`, then `aria`. */
+export type DocField = { label: string; text: string[] };
 
 export type DocSection =
   | { id: 'overview'; title: string; description: string; fields: DocField[] }
@@ -99,16 +102,20 @@ export const partName = (id: string) => {
 export const docSections = (def: ComponentDef, ctx: DocContext = {}): { sections: DocSection[]; gaps: DocGap[] } => {
   const gaps: DocGap[] = [];
   const gap = (section: DocSectionId, field: string, reason: DocGap['reason'] = 'empty') => gaps.push({ section, field, reason });
-  const fields = (section: DocSectionId, rows: [string, string, string | undefined][]): DocField[] =>
-    rows.flatMap(([label, path, text]) => (has(text) ? [{ label, text }] : (gap(section, path), [])));
+  /** Each row is a label and the fields that feed it, in order; a row with no value is no row. */
+  const fields = (section: DocSectionId, rows: [string, ...[string, string | undefined][]][]): DocField[] =>
+    rows.flatMap(([label, ...srcs]) => {
+      const text = srcs.flatMap(([path, t]) => (has(t) ? [t] : (gap(section, path), [])));
+      return text.length ? [{ label, text }] : [];
+    });
   const all: (DocSection | undefined)[] = [];
 
   // Overview. `summary` is required and is the lede above the sections, so it is not a field here.
   {
     const f = fields('overview', [
-      ['Purpose', 'ai.primaryPurpose', def.ai.primaryPurpose],
-      ['Use when', 'ai.whenToUse', def.ai.whenToUse],
-      ['Avoid when', 'ai.avoidWhen', def.ai.avoidWhen],
+      ['Purpose', ['ai.primaryPurpose', def.ai.primaryPurpose]],
+      ['Use when', ['ai.whenToUse', def.ai.whenToUse]],
+      ['Avoid when', ['ai.avoidWhen', def.ai.avoidWhen]],
     ]);
     if (!has(def.description)) gap('overview', 'description');
     all.push(has(def.description) || f.length ? { id: 'overview', title: title('overview'), description: def.description ?? '', fields: f } : undefined);
@@ -155,17 +162,17 @@ export const docSections = (def: ComponentDef, ctx: DocContext = {}): { sections
   {
     const a = def.accessibility;
     const f = fields('accessibility', [
-      ['Role', 'accessibility.role', a.role],
-      ['Keyboard', 'accessibility.keyboard', a.keyboard],
-      ['Focus', 'accessibility.focus', a.focus],
-      ['ARIA', 'accessibility.aria', a.aria],
+      ['Keyboard', ['accessibility.keyboard', a.keyboard]],
+      ['Focus', ['accessibility.focus', a.focus]],
+      // The wireframe draws the role and the ARIA notes together, under one label.
+      ['Screen readers', ['accessibility.role', a.role], ['accessibility.aria', a.aria]],
     ]);
     const wcag = [...(a.wcag ?? [])];
     if (!wcag.length) gap('accessibility', 'accessibility.wcag');
     const motion = fields('accessibility', [
-      ['Enter', 'motion.enter', def.motion?.enter],
-      ['Exit', 'motion.exit', def.motion?.exit],
-      ['Reduced motion', 'motion.reduceMotion', def.motion?.reduceMotion],
+      ['Enter', ['motion.enter', def.motion?.enter]],
+      ['Exit', ['motion.exit', def.motion?.exit]],
+      ['Reduced motion', ['motion.reduceMotion', def.motion?.reduceMotion]],
     ]);
     all.push(f.length || wcag.length || motion.length ? { id: 'accessibility', title: title('accessibility'), fields: f, wcag, motion } : undefined);
   }
@@ -174,11 +181,11 @@ export const docSections = (def: ComponentDef, ctx: DocContext = {}): { sections
   {
     const c = def.content ?? {};
     const patterns = fields('content', [
-      ['Labels', 'content.labelPattern', c.labelPattern],
-      ['Errors', 'content.errorPattern', c.errorPattern],
-      ['Empty states', 'content.emptyPattern', c.emptyPattern],
-      ['Dialogs', 'content.dialogPattern', c.dialogPattern],
-      ['Metaphors', 'content.metaphorRules', c.metaphorRules],
+      ['Labels', ['content.labelPattern', c.labelPattern]],
+      ['Errors', ['content.errorPattern', c.errorPattern]],
+      ['Empty states', ['content.emptyPattern', c.emptyPattern]],
+      ['Dialogs', ['content.dialogPattern', c.dialogPattern]],
+      ['Metaphors', ['content.metaphorRules', c.metaphorRules]],
     ]);
     const g = def.docs.contentGuidelines;
     if (!has(g)) gap('content', 'docs.contentGuidelines');
@@ -191,13 +198,15 @@ export const docSections = (def: ComponentDef, ctx: DocContext = {}): { sections
     all.push(modes.length ? { id: 'theming', title: title('theming'), modes } : undefined);
   }
 
-  // Related components. `planned` ids are not built, so they stay off the doc.
+  // Related components. `planned` ids are not built, so they stay off the doc. A partner the def is already
+  // built from is not repeated under "Often used with", as the wireframe draws it.
   {
     const c = def.composition ?? {};
+    const partners = (def.ai.commonPartners ?? []).filter((id) => !(c.composesWith ?? []).includes(id));
     const lists = ([
       ['Built from', 'composition.composesWith', c.composesWith],
       ['Instead, consider', 'composition.alternativeTo', c.alternativeTo],
-      ['Often used with', 'ai.commonPartners', def.ai.commonPartners],
+      ['Often used with', 'ai.commonPartners', partners],
       ['Supersedes', 'composition.supersedes', c.supersedes],
       ['Superseded by', 'composition.supersededBy', c.supersededBy],
     ] as [string, string, string[] | undefined][]).flatMap(([label, path, ids]) => (ids?.length ? [{ label, ids: [...ids] }] : (gap('related', path), [])));

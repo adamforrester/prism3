@@ -49,9 +49,10 @@ Use to reinforce meaning, speed scanning, or anchor an action alongside text. Fe
 
 ## Accessibility
 
-- **Role:** img when meaningful (with aria-label); none when decorative (aria-hidden="true")
 - **Focus:** None of its own. An icon takes no focus; the control wrapping it does, and the focus ring is that control's (see `focus-ring`).
-- **ARIA:** A three-way matrix, and almost every icon bug is picking the wrong cell. DECORATIVE (text beside it, or ornament): omit `label` → `aria-hidden="true"`; this is the default. MEANINGFUL STANDALONE: `label` → `role="img"` + `aria-label`, and `role="img"` is MANDATORY — without it many screen readers ignore an `aria-label` on a raw `<svg>` and leave the user on an unannounced stop. INSIDE AN ICON-ONLY CONTROL: the wrapper carries the name and the glyph stays `aria-hidden`; reversing it causes ghost focus rings and unpredictable AT behavior. Never name both.
+- **Screen readers:** img when meaningful (with aria-label); none when decorative (aria-hidden="true")
+
+  A three-way matrix, and almost every icon bug is picking the wrong cell. DECORATIVE (text beside it, or ornament): omit `label` → `aria-hidden="true"`; this is the default. MEANINGFUL STANDALONE: `label` → `role="img"` + `aria-label`, and `role="img"` is MANDATORY — without it many screen readers ignore an `aria-label` on a raw `<svg>` and leave the user on an unannounced stop. INSIDE AN ICON-ONLY CONTROL: the wrapper carries the name and the glyph stays `aria-hidden`; reversing it causes ghost focus rings and unpredictable AT behavior. Never name both.
 
 ### WCAG
 

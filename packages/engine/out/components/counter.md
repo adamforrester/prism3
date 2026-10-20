@@ -60,10 +60,11 @@ Use for a small whole-number quantity that usually changes by one, such as the i
 
 ## Accessibility
 
-- **Role:** spinbutton (the value), with two buttons outside the Tab order
 - **Keyboard:** Tab reaches the value once. Up and Down Arrow change it by one step, Page Up and Page Down by ten, Home and End go to min and max. The minus and plus buttons are outside the Tab order (tabindex="-1").
 - **Focus:** A focus ring around the whole row while the value has keyboard focus: on the edge for outline, 2px outside the buttons for ghost.
-- **ARIA:** The value has role="spinbutton", aria-valuenow, aria-valuemin, aria-valuemax when a max is set, and the label as its name, shown or not. Each button has aria-controls pointing at the value and its own name, a verb with the object ("Increase quantity"); in a list of line items, the name includes the item. At a limit the button takes aria-disabled="true" and stays in the accessibility tree. Every name is translatable, and the row mirrors right to left.
+- **Screen readers:** spinbutton (the value), with two buttons outside the Tab order
+
+  The value has role="spinbutton", aria-valuenow, aria-valuemin, aria-valuemax when a max is set, and the label as its name, shown or not. Each button has aria-controls pointing at the value and its own name, a verb with the object ("Increase quantity"); in a list of line items, the name includes the item. At a limit the button takes aria-disabled="true" and stays in the accessibility tree. Every name is translatable, and the row mirrors right to left.
 
 ### WCAG
 
@@ -91,7 +92,7 @@ The label is a noun ("Quantity"). Button names are a verb with the object. A lim
 
 - **Built from:** `field-label`, `flush-icon-button-neutral`, `focus-ring`, `field-message`
 - **Instead, consider:** `select`, `segmented-control`, `text-field`
-- **Often used with:** `flush-icon-button-neutral`, `field-label`, `field-message`, `button`
+- **Often used with:** `button`
 - **Replaces:**
   - an \<input type="number"> for an item count
   - a select of 1 to 10 for a bag quantity

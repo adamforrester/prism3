@@ -57,10 +57,11 @@ Use a link to go somewhere: another page, a place on the page, a file or another
 
 ## Accessibility
 
-- **Role:** link (a real \<a href>, with the label text inside the anchor)
 - **Keyboard:** Tab moves to the link; Enter follows it. Space does not activate a link: it scrolls the page.
 - **Focus:** The shared focus ring at :focus-visible, so a mouse click leaves no ring behind.
-- **ARIA:** Usually none: the anchor and its text carry the role and the name. aria-current="page" marks the current page in a navigation. A link that opens a new tab adds visually hidden "(opens in new tab)" text; the icons are aria-hidden. Where space forces generic text such as "Read more", an aria-label names the destination. The hidden text and any aria-label are translated; in right-to-left text the trailing icon moves to the leading edge and directional icons mirror.
+- **Screen readers:** link (a real \<a href>, with the label text inside the anchor)
+
+  Usually none: the anchor and its text carry the role and the name. aria-current="page" marks the current page in a navigation. A link that opens a new tab adds visually hidden "(opens in new tab)" text; the icons are aria-hidden. Where space forces generic text such as "Read more", an aria-label names the destination. The hidden text and any aria-label are translated; in right-to-left text the trailing icon moves to the leading edge and directional icons mirror.
 
 ### WCAG
 

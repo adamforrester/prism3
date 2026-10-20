@@ -49,9 +49,10 @@ Build this component first, then leave it to hosts: every focusable component ne
 
 ## Accessibility
 
-- **Role:** none — a presentational sibling. The ring has no role of its own; it renders the focus state of the control it surrounds.
 - **Focus:** This component IS the focus appearance. It is drawn for `:focus-visible` rather than `:focus`, so a pointer click does not raise it while keyboard navigation does — the distinction browsers make and the one a design system must not flatten. Never suppress it without replacing it: removing the indicator is the single most common 2.4.7 failure.
-- **ARIA:** None, and that is a contract rather than an absence. The ring is presentational — the focus state is already conveyed by the platform focus itself, so an `aria-*` attribute here would announce something assistive tech already knows. It must never be given a role that makes it a stop in the tab order: a focusable focus ring is a node the user can land on with nothing to do.
+- **Screen readers:** none — a presentational sibling. The ring has no role of its own; it renders the focus state of the control it surrounds.
+
+  None, and that is a contract rather than an absence. The ring is presentational — the focus state is already conveyed by the platform focus itself, so an `aria-*` attribute here would announce something assistive tech already knows. It must never be given a role that makes it a stop in the tab order: a focusable focus ring is a node the user can land on with nothing to do.
 
 ### WCAG
 
