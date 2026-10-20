@@ -363,7 +363,7 @@
           "focus visible",
           "keyboard focus"
         ],
-        "generationPriority": 2
+        "generationPriority": 6
       },
       "composition": {
         "composesWith": [],
@@ -2553,7 +2553,7 @@
           "form label",
           "required indicator"
         ],
-        "generationPriority": 3
+        "generationPriority": 6
       },
       "motion": {
         "enter": "none (present on mount)",
@@ -2685,7 +2685,7 @@
           "caption",
           "hint"
         ],
-        "generationPriority": 3
+        "generationPriority": 6
       },
       "motion": {
         "enter": "A short fade as the message is inserted. The field grows to hold it and pushes the content below down (dynamic expansion). Never positioned absolutely to avoid that shift — it would overlap the next field's label.",
@@ -3464,7 +3464,7 @@
           "check box atom",
           "checkbox square"
         ],
-        "generationPriority": 3
+        "generationPriority": 6
       },
       "motion": {
         "enter": "On check, the check glyph draws in as a pen stroke (SVG stroke-dashoffset) while the fill crossfades in, about 100-150ms, eased. Indeterminate to checked morphs the dash into the check.",
@@ -3764,9 +3764,7 @@
           "description": "Disables the whole set — every row and the label dim, driven by the group's context (the field's native disabled is the source of truth). The group has no disabled treatment of its own."
         }
       ],
-      "states": [
-        "rest"
-      ],
+      "states": [],
       "variants": {
         "size": {
           "values": [
@@ -3979,7 +3977,7 @@
           "radio dot",
           "option control"
         ],
-        "generationPriority": 3
+        "generationPriority": 6
       },
       "motion": {
         "enter": "On select, the inner dot scales in with a border-color crossfade on the ring, about 100-150ms. The focus ring appears instantly — a fade lags rapid arrow navigation through the group.",
@@ -4254,9 +4252,7 @@
           "description": "Disables the whole set — every row and the label dim, driven by the group's context (the native disabled is the source of truth). The group has no disabled treatment of its own."
         }
       ],
-      "states": [
-        "rest"
-      ],
+      "states": [],
       "variants": {
         "size": {
           "values": [
@@ -4480,7 +4476,7 @@
           "switch thumb",
           "toggle handle"
         ],
-        "generationPriority": 3
+        "generationPriority": 6
       },
       "motion": {
         "enter": "none (present on mount)",
@@ -5900,7 +5896,7 @@
           "tab trigger",
           "tab item"
         ],
-        "generationPriority": 3
+        "generationPriority": 9
       },
       "motion": {
         "enter": "None. On selection the underline slides from the previous tab to this one, about 150–200ms.",
@@ -6005,9 +6001,7 @@
           "description": "start: the tabs sit at the start of the bar. center: the tabs sit centered in the bar, which spans its container; the baseline spans the full width either way."
         }
       ],
-      "states": [
-        "rest"
-      ],
+      "states": [],
       "variants": {
         "size": {
           "values": [
@@ -6662,7 +6656,7 @@
           "bullet point",
           "list entry"
         ],
-        "generationPriority": 3
+        "generationPriority": 9
       },
       "motion": {
         "enter": "None.",
@@ -7082,9 +7076,7 @@
           "description": "Disables every option and takes the control out of the Tab order."
         }
       ],
-      "states": [
-        "rest"
-      ],
+      "states": [],
       "variants": {
         "size": {
           "values": [
@@ -7148,7 +7140,7 @@
           "toggle group",
           "list grid toggle"
         ],
-        "generationPriority": 4
+        "generationPriority": 3
       },
       "motion": {
         "enter": "None. On selection the pill moves to the new option, about 150–200ms, or cross-fades.",
@@ -8199,7 +8191,7 @@
           "item count",
           "add to bag quantity"
         ],
-        "generationPriority": 4
+        "generationPriority": 2
       },
       "motion": {
         "enter": "none (present on mount)",

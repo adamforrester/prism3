@@ -312,7 +312,7 @@ export const checkboxControl: ComponentDef = {
     avoidWhen: 'You want the labeled case (that is Checkbox.Row), a mutually-exclusive one-of-many (Radio.Control), or an immediate-effect toggle (Switch.Control). Never place a bare control square as the clickable element — the hit target is the labeled row.',
     commonPartners: ['checkbox-row', 'focus-ring', 'checkbox-group'],
     triggerKeywords: ['checkbox control', 'checkbox box', 'check box atom', 'checkbox square'],
-    generationPriority: 3,
+    generationPriority: 6,
   },
 
   composition: {

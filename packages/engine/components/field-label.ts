@@ -462,7 +462,7 @@ export const fieldLabel: ComponentDef = {
     // only what a def nests, and this one nests nothing (#1700).
     commonPartners: ['text-field', 'password-field', 'textarea', 'select', 'checkbox-group', 'radio-group', 'segmented-control', 'counter', 'field-message'],
     triggerKeywords: ['label', 'field label', 'form label', 'required indicator'],
-    generationPriority: 3,
+    generationPriority: 6,
   },
 
   composition: {

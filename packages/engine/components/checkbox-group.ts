@@ -93,7 +93,7 @@ export const checkboxGroup: ComponentDef = {
   // No interactive state of the group's OWN — Prism 2's group is a single configuration. The rows and the
   // label carry their own states (dimming, etc.) through their own defs. `disabled` and group `error` are
   // HELD (not projected) rather than invented here — see the header and `codeOnly`.
-  states: ['rest'],
+  states: [],
 
   // `size` ONLY — the family-universal axis (see the header `[HELD]` note). No tone/emphasis (a checkbox
   // set is neutral), no surface/inverse axis (#871 — a control set does not ask which ground it stands on),
@@ -132,7 +132,7 @@ export const checkboxGroup: ComponentDef = {
   // ── ANATOMY — a column: the nested FieldLabel above a stack of nested Checkbox rows ─────────────────
   //
   // container (column) → nested `field-label` · the `items` slot holding the rows. The label and rows are in-flow `nest`s
-  // (the select precedent, #1226). The label `follow`s the group's size and pins Prism 2's Secondary/Bold styling;
+  // (the select precedent, #1226). The label `follow`s the group's size and starts at Prism 2's Secondary/Bold styling, emphasis and weight exposed (Q348 A);
   // each row `follow`s the size too. The slot stands in for the code's `items: CheckboxRow[]` (#2649, owner decision Q307 A;
   // until then eight rows behind Figma-only booleans, #2344).
   anatomy: {
@@ -169,20 +169,21 @@ export const checkboxGroup: ComponentDef = {
         minWidth: 120,
         children: ['label', 'items'],
       },
-      // THE NESTED GROUP LABEL (nest-fixed, FOLLOWING size). An in-flow instance of `field-label`,
-      // configured to Prism 2's group `formLabel`: emphasis SECONDARY, weight BOLD, and `required` at its own
-      // default (off since #1699, matching this group's `required: false`). `size` is `follow`ed from the group so the
-      // heading scales with the set; `variant` pins the fallback (medium) plus the three axes that do NOT
-      // follow (emphasis, weight, state) — `nestVariantMatch` requires the coordinate to name every axis
-      // field-label projects (size, emphasis, weight, state), exactly as select pins all four.
+      // THE NESTED GROUP LABEL (nest-exposed, FOLLOWING size; owner decision Q348 A). An in-flow instance of
+      // `field-label`, starting at Prism 2's group `formLabel`: emphasis SECONDARY, weight BOLD, and `required` at
+      // its own default (off since #1699, matching this group's `required: false`). `size` is `follow`ed from the
+      // group so the heading scales with the set. `emphasis` and `weight` are EXPOSED, as on the four fields: a
+      // designer sets them on the group, and bold stays the starting weight, so the group looks as it did.
+      // `variant` names every axis field-label projects (size, emphasis, weight, state), as `nestVariantMatch`
+      // requires; `state` stays fixed at rest.
       label: {
         kind: 'nest',
         nests: 'field-label',
-        nesting: { kind: 'nest-fixed', variant: { size: 'medium', emphasis: 'secondary', weight: 'bold', state: 'rest' }, follow: ['size'] },
+        nesting: { kind: 'nest-exposed', variant: { size: 'medium', emphasis: 'secondary', weight: 'bold', state: 'rest' }, expose: ['emphasis', 'weight'], follow: ['size'] },
         // FILLS the group's width (#1757, select's label): the heading stretches across the 320 container, and
         // a long one wraps at field-label's own max width (#1762) instead of running past it.
         crossAxisFill: true,
-        note: 'The group heading and accessible name, composed rather than re-declared, configured secondary and bold, with its required marker following the group\'s `required`. Its size follows the group; a fix to FieldLabel reaches here without a copy. Fills the group\'s width; a long heading wraps at FieldLabel\'s max width.',
+        note: 'The group heading and accessible name, composed rather than re-declared. Starts secondary and bold; its label text, required marker, emphasis and weight surface on the group. Its size follows the group; a fix to FieldLabel reaches here without a copy. Fills the group\'s width; a long heading wraps at FieldLabel\'s max width.',
       },
       // THE STACKED ROWS (nest-fixed, FOLLOWING size). Three in-flow instances of `checkbox-row`, each
       // `follow`ing the group's size (a `large` group nests `large` rows). `nest-fixed`, NOT `nest-exposed`:
