@@ -45,6 +45,8 @@ import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { isTemplateSet } from './file-components';
 import { LABEL_SET, BACKDROP_COMPONENT, SCRIM_COMPONENT, SCRIM_BACKDROP, BRACKET_PROPERTY, labelVariant, bindBackdrop } from './furniture-templates';
 import type { BackdropVariables } from './furniture-templates';
+import { DOC_BLOCK_SET } from './doc-block';
+import { panelItems, type PanelOutcome } from './doc-panel';
 
 export { CANVAS_FURNITURE };
 /** Shared plugin data namespace and key the tag lives under. The namespace is `persist-figma.ts`'s `NS`. */
@@ -280,6 +282,8 @@ export interface FurnitureOutcome {
   backdropBinding?: 'bound' | 'kept' | 'no-variable';
   /** The same for the scrim template and `color/scrim/default` (#2609). */
   scrimBinding?: 'bound' | 'kept' | 'no-variable';
+  /** The usage panel beside the set (#846, `doc-panel.ts`); its missing `_Doc-block` is in `missing`. */
+  panel?: PanelOutcome;
 }
 
 /** What the executor reads of `planSetLayout`: each member's cell by name, and the axis lists. */
@@ -422,8 +426,8 @@ const templatePicker = (api: Pick<FurnitureApi, 'root'>): ((type: string, name: 
 /** What a set's furniture lacks, as the dry run lists it (#2803). Each count is a part the draw would place and the page
  *  does not hold where the draw would place it; `clear` counts the def's furniture on the set's parent that no wanted
  *  part matched, which the draw clears. All zero when the furniture is current. */
-export interface FurnitureDue { labels: number; backdrops: number; clear: number }
-export const furnitureDueCount = (d: FurnitureDue | undefined): number => (d ? d.labels + d.backdrops + d.clear : 0);
+export interface FurnitureDue { labels: number; backdrops: number; clear: number; /** The usage panel to draw (#846, `docPanelDue`). */ panels?: number }
+export const furnitureDueCount = (d: FurnitureDue | undefined): number => (d ? d.labels + d.backdrops + d.clear + (d.panels ?? 0) : 0);
 
 /**
  * THE DRY RUN'S FURNITURE CHECK (#2803, owner decision Q379 A). The update compared a set's members only, so furniture
@@ -631,6 +635,8 @@ export const furnishUpdate = async (
   api: FurnitureApi,
   r: { outcomes: readonly { def: string }[]; refusedAll?: string },
   targets: readonly { def: string; plans: AnatomyPlan[] }[],
+  /** The usage panel's draw for a set (#846), after its labels; absent, no panel is drawn. */
+  panel?: (set: XNode, defId: string) => Promise<PanelOutcome>,
 ): Promise<FurnitureOutcome[]> => {
   const out: FurnitureOutcome[] = [];
   if (r.refusedAll) return out;
@@ -640,7 +646,11 @@ export const furnishUpdate = async (
     const name = t.plans[0]?.component ?? t.def;
     const sets = (api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly XNode[]).filter((n) => n.type === 'COMPONENT_SET' && n.name === name);
     if (sets.length !== 1) continue;
-    try { out.push(await drawFurniture(api, sets[0], furnitureLayout(t.plans), o.def)); }
+    try {
+      const f = await drawFurniture(api, sets[0], furnitureLayout(t.plans), o.def);
+      if (panel) withPanel(f, await panel(sets[0], o.def));
+      out.push(f);
+    }
     catch (e) { out.push({ def: o.def, parent: '', columns: 0, rows: 0, backdrops: 0, scrims: 0, cleared: 0, skipped: [`No canvas labels for ${o.def}: Figma refused the write (${(e as Error)?.message ?? String(e)})`], fontMisses: [] }); }
   }
   return out;
@@ -677,14 +687,21 @@ export const furniturePruneText = (n: number, applied: boolean): string => {
     : `${what} ${n === 1 ? 'belongs' : 'belong'} to a set no longer in this file. Deleting ${n === 1 ? 'it' : 'them'} touches no component.`;
 };
 
+/** A set's usage panel folded into its furniture outcome, so the run's template line and warning cover both. */
+export const withPanel = (f: FurnitureOutcome, p: PanelOutcome): FurnitureOutcome => {
+  f.panel = p;
+  if (p.missing?.length) f.missing = [...(f.missing ?? []), ...p.missing];
+  return f;
+};
+
 /**
  * THE MISSING-TEMPLATE LINE (#2598), once per run, naming every template a set needed and the file lacks, and what to
  * do: run Set up file, then the same action again. Empty when nothing is missing. Wording approved, Q284.1 A.
  */
 export const templatesLine = (outcomes: readonly FurnitureOutcome[], action: 'build' | 'update'): string => {
-  const missing = [LABEL_SET, BACKDROP_COMPONENT, SCRIM_COMPONENT].filter((t) => outcomes.some((o) => o.missing?.includes(t)));
+  const missing = [LABEL_SET, BACKDROP_COMPONENT, SCRIM_COMPONENT, DOC_BLOCK_SET].filter((t) => outcomes.some((o) => o.missing?.includes(t)));
   if (!missing.length) return '';
-  const what = missing.map((t) => (t === LABEL_SET ? 'canvas labels' : t === SCRIM_COMPONENT ? 'scrim backdrops' : 'inverse backdrops')).join(' or ');
+  const what = missing.map((t) => (t === LABEL_SET ? 'canvas labels' : t === SCRIM_COMPONENT ? 'scrim backdrops' : t === DOC_BLOCK_SET ? 'usage panels' : 'inverse backdrops')).join(' or ');
   const names = missing.join(' or ');
   return `No ${what} drawn: this file has no ${names} component. Run Set up file, then ${action === 'build' ? 'build' : 'update'} again`;
 };
@@ -699,6 +716,7 @@ export const furnitureItems = (outcomes: readonly FurnitureOutcome[], action: 'b
     if (o.fontMisses.length) parts.push(`Some canvas labels for ${o.def} kept their placeholder text (${[...new Set(o.fontMisses)].join('; ')})`);
     if (o.backdropBinding === 'no-variable') parts.push(`The inverse backdrop for ${o.def} is not bound yet: apply the theme, then build again`);
     if (o.scrimBinding === 'no-variable') parts.push(`The scrim backdrop for ${o.def} is not bound yet: apply the theme, then build again`);
+    parts.push(...panelItems(o.panel));
   }
   return parts;
 };

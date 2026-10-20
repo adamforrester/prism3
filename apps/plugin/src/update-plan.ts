@@ -55,6 +55,8 @@ import { EXECUTOR_REVISION } from './executor-revision';
 import { adoptions, memberStamp, planHalf, revHalf, respaceSets, STAMP_KEY, type RespaceBox } from './write-components';
 import { furnitureDue, furnitureDueCount, furnitureLayout, hasFurniture, readTag, type FurnitureApi, type FurnitureDue, type XNode } from './canvas-furniture';
 import { NS } from './persist-figma';
+import { docPanelDue, docPanelReach, isLivePanel, panelModes, planDocPanel, type PanelApi, type PNode } from './doc-panel';
+import type { ComponentDef } from '@prism3/engine/component-schema';
 import { BASELINE_V, UPDATING_KEY, baselineDiff, baselineOf, builtByPrism3, readBaseline, recordFormat, snapshotMember, writeBaseline, type Baseline, type OwnershipRead, type SnapNode } from './member-baseline';
 import { drawnFaults, faultLine, type DrawnFault, type DrawVar } from './drawn';
 import { REACTIONS_PATH, plannedRead, reactionMap, reactionVerdict, reactionsText, type PlannedReaction, type ReadReaction } from './reactions';
@@ -849,6 +851,9 @@ export type UpdateTarget = {
   def: string; plans: AnatomyPlan[];
   /** #2296 — built as single top-level components (`emitAsComponents`: the icons, the spinner), not as a set. */
   single?: boolean;
+  /** #846 — the def itself, for its usage panel (`docPanelDue`), and each component's display name for its chips.
+   *  Absent, the dry run reads no panel. */
+  doc?: { def: ComponentDef; names?: (id: string) => string };
 };
 
 /** The ports, from the FILE's catalogues. A resolver built from the plan would map every id to the name
@@ -969,7 +974,7 @@ const setBuiltByPrism3 = (n: { children?: readonly unknown[] }): boolean => {
  * wasn't asked about. Read from the page's top-level nodes as they sit (`respaceSets`), so the dry run lists the moves
  * the file shows now, and the apply, called again after its sets land, moves them by their new sizes.
  */
-export const pageSetMoves = (found: readonly { name: string; set: LiveSet; blocked: boolean }[]): Map<string, { from: { x: number; y: number }; to: { x: number; y: number } }> => {
+export const pageSetMoves = (found: readonly { name: string; set: LiveSet; blocked: boolean }[], reach = 0): Map<string, { from: { x: number; y: number }; to: { x: number; y: number } }> => {
   const out = new Map<string, { from: { x: number; y: number }; to: { x: number; y: number } }>();
   const pages = new Map<unknown, typeof found[number][]>();
   for (const f of found) {
@@ -983,12 +988,18 @@ export const pageSetMoves = (found: readonly { name: string; set: LiveSet; block
     const ours = kids.filter((k) => k.type === 'COMPONENT_SET' && setBuiltByPrism3(k));
     if (here.some((f) => f.blocked) || !ours.every((k) => read.has(k as LiveSet))) continue;
     // Keyed by the node's place on the page, never by its id: what maps a move back to its set is the node itself.
-    const boxes: RespaceBox[] = kids.map((k, i) => ({
-      id: String(i), type: String(k.type ?? ''), x: Number(k.x ?? 0), y: Number(k.y ?? 0), width: Number(k.width ?? 0), height: Number(k.height ?? 0),
-      header: (k.type === 'INSTANCE' || k.type === 'FRAME') && String(k.name ?? '').toLowerCase() === '_section-header',
-      prism3: k.type === 'COMPONENT_SET' && setBuiltByPrism3(k),
-      furniture: !!readTag(k as never),
-    }));
+    // A SET'S BOX REACHES PAST ITS USAGE PANEL (#846) when the file can draw one (`docPanelReach`): the panel sits right
+    // of the set, so the next set is spaced from the panel's edge, and the live panel itself follows its set, as the
+    // labels do. A panel kept aside after a hand edit is the designer's, and stays put like any other node.
+    const boxes: RespaceBox[] = kids.map((k, i) => {
+      const prism3 = k.type === 'COMPONENT_SET' && setBuiltByPrism3(k);
+      return {
+        id: String(i), type: String(k.type ?? ''), x: Number(k.x ?? 0), y: Number(k.y ?? 0), width: Number(k.width ?? 0) + (prism3 ? reach : 0), height: Number(k.height ?? 0),
+        header: (k.type === 'INSTANCE' || k.type === 'FRAME') && String(k.name ?? '').toLowerCase() === '_section-header',
+        prism3,
+        furniture: !!readTag(k as never) || isLivePanel(k as PNode),
+      };
+    });
     for (const m of respaceSets(boxes)) {
       const f = here.find((x) => x.set === (kids[Number(m.id)] as LiveSet));
       if (f) out.set(f.name, { from: m.from, to: m.to });
@@ -1004,6 +1015,9 @@ export const previewUpdate = async (host: UpdateHost, targets: readonly UpdateTa
   const ports = await hostPorts(host);
   const out: UpdatePreview = { sets: [], missing: [], refused: [] };
   const found: { preview: SetPreview; set: LiveSet }[] = [];
+  // The file's modes for the panels' Theming, read once, and only when a target has a panel to check.
+  let modesRead: ReturnType<typeof panelModes> | undefined;
+  const modes = () => (modesRead ??= panelModes(host as unknown as Pick<PanelApi, 'variables'>));
   for (const t of targets) {
     const v = await locateView(host, t, breathe, ports.drawVars);
     if (v.kind === 'missing') { out.missing.push(t.def); continue; }
@@ -1020,6 +1034,11 @@ export const previewUpdate = async (host: UpdateHost, targets: readonly UpdateTa
     // after Set up file adds a template draws it, and "No changes found" means the furniture is current too.
     if (!t.single && !preview.blockers.length && hasFurniture(t.def)) {
       const due = furnitureDue(host as unknown as Pick<FurnitureApi, 'root'>, v.set as unknown as XNode, furnitureLayout(t.plans), t.def);
+      // THE USAGE PANEL (#846): due when missing, drawn from another plan, or not where the set puts it.
+      if (t.doc) {
+        const panels = docPanelDue(host as unknown as Pick<PanelApi, 'root'>, v.set as unknown as PNode, planDocPanel(t.doc.def, { modes: (await modes()).modes, names: t.doc.names }));
+        if (panels) due.panels = panels;
+      }
       if (furnitureDueCount(due)) preview.furniture = due;
     }
     // REPEATING ROWS INTO A SLOT (#2649): a set still holding them the old way lists every placed instance it carries.
@@ -1031,7 +1050,7 @@ export const previewUpdate = async (host: UpdateHost, targets: readonly UpdateTa
     if (!t.single) found.push({ preview, set: v.set });
   }
   // #2542: the sets that move on their pages, read once every set has been.
-  const moves = pageSetMoves(found.map((f) => ({ name: f.preview.set, set: f.set, blocked: f.preview.blockers.length > 0 })));
+  const moves = pageSetMoves(found.map((f) => ({ name: f.preview.set, set: f.set, blocked: f.preview.blockers.length > 0 })), docPanelReach(host as unknown as Pick<PanelApi, 'root'>));
   for (const f of found) { const m = moves.get(f.preview.set); if (m) f.preview.setMove = m; }
   // THE PAGE ORDER (#2568): read once for the file, whichever sets the targets name, since the pages are the file's.
   const pages = host.root.children ? pagesOutOfOrder(host.root.children) : [];
@@ -1202,7 +1221,7 @@ const namedLines = (where: string, list: { part: string; field: string; plan: st
  *  What is left over to clear is named only when nothing is drawn: a redraw clears the old instances anyway. */
 export const furnitureParts = (d: FurnitureDue | undefined, draw: string, clear: string): string[] => {
   if (!d) return [];
-  const parts = [d.labels ? `${n(d.labels, 'canvas label')} ${draw}` : '', d.backdrops ? `${n(d.backdrops, 'backdrop')} ${draw}` : ''].filter(Boolean);
+  const parts = [d.labels ? `${n(d.labels, 'canvas label')} ${draw}` : '', d.backdrops ? `${n(d.backdrops, 'backdrop')} ${draw}` : '', d.panels ? `${n(d.panels, 'usage panel')} ${draw}` : ''].filter(Boolean);
   return parts.length ? parts : d.clear ? [`${n(d.clear, 'canvas label or backdrop', 'canvas labels or backdrops')} ${clear}`] : [];
 };
 

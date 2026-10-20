@@ -57,6 +57,7 @@ import { baselineDiff, baselineOf, readBaseline, snapshotMember } from './member
 import { drawnFaults, faultLine, varsById } from './drawn';
 import { reorderPages, stripNestPrefix } from './file-setup';
 import { furnitureDueCount, type FurnitureDue } from './canvas-furniture';
+import { docPanelReach, type PanelApi } from './doc-panel';
 import { REACTIONS, furnitureParts, withSetSlots, hostPorts, pageSetMoves, previewLine, previewUpdate, readSetView, readSingleView, setUpToDate, slotMigrationFor, type SetPreview, type UpdateHost, type UpdatePreview, type UpdateTarget } from './update-plan';
 import { fillSlots, type FillOutcome, type MigNode } from './slot-migration';
 import { slotMigrationOf } from '@prism3/engine/component-renames';
@@ -624,7 +625,7 @@ export const applyUpdate = async (
       if (!p || !set) continue;
       live.push({ name: p.set, set, blocked: p.blockers.length > 0 || res.outcomes.some((o) => o.set === p.set && !!o.refused) });
     }
-    const moves = pageSetMoves(live as never);
+    const moves = pageSetMoves(live as never, docPanelReach(host as unknown as Pick<PanelApi, 'root'>));
     for (const { name, set } of live) {
       const m = moves.get(name);
       if (!m) continue;

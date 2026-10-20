@@ -2564,6 +2564,59 @@
         "source": "apps/plugin/src/furniture-templates.ts#export const SCRIM_COMPONENT"
       }
     ],
+    "usagePanel": {
+      "rule": "A usage panel is a frame drawn beside each component set, right of it, from the component's usage docs, and is never part of the set. It carries shared plugin data under namespace \"prism3\", key \"docPanel\": state \"live\" for the panel the plugin redraws, \"kept\" for one a designer edited, which the plugin keeps aside and never removes.",
+      "source": "apps/plugin/src/doc-panel.ts#export const DOC_PANEL_KEY",
+      "tag": {
+        "namespace": "prism3",
+        "key": "docPanel"
+      },
+      "template": {
+        "name": "_Doc-block",
+        "variantProperties": [
+          {
+            "name": "Type",
+            "values": [
+              "Heading",
+              "Paragraph",
+              "Field",
+              "Do-Dont",
+              "Specimen",
+              "Part-marker",
+              "Chips",
+              "Divider"
+            ]
+          },
+          {
+            "name": "Size",
+            "values": [
+              "sm",
+              "md",
+              "lg"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "Top padding",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "Bottom padding",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "Caption",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "Specimen",
+            "type": "INSTANCE_SWAP"
+          }
+        ],
+        "source": "apps/plugin/src/doc-block.ts#export const DOC_BLOCK_SET"
+      }
+    },
     "fileTemplates": {
       "rule": "Page headers are instances of these sets. They live on the Sandbox section's file components page with the furniture templates, and their names start with \"_\" so a library leaves them out.",
       "names": [

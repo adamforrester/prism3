@@ -1567,7 +1567,7 @@ const near = (a: number, b: number): boolean => Math.abs(a - b) < 0.5;
  * `planStamp` (`anatomy-figma.ts`, which holds the reasoning), written here because that helper is not exported
  * and this runs in the Figma sandbox, where `node:crypto` does not exist.
  */
-const fnv = (s: string, reverse: boolean): string => {
+export const fnv = (s: string, reverse: boolean): string => {
   let h = 0x811c9dc5;
   for (let i = 0; i < s.length; i++) {
     h ^= s.charCodeAt(reverse ? s.length - 1 - i : i);
@@ -1635,7 +1635,7 @@ const FONT_FIELDS = ['fontName', 'fontSize', 'fontWeight', 'textStyleId'] as con
  * since the other one deletes a designer's work. Async because an instance's main component is read with
  * `getMainComponentAsync` under dynamic-page.
  */
-const fingerprintOf = async (wrap: SgNode): Promise<string> => {
+export const fingerprintOf = async (wrap: SgNode): Promise<string> => {
   const parts: string[] = [];
   // A TITLE CELL IS NOT AN EDIT (owner decision 15): a designer renames rows there, so a table with a title column
   // leaves the title column out (its cells and its "Name" header, which fills the column), and with it the widths that follow the title column's width: the table's own, its
