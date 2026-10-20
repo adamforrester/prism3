@@ -4,7 +4,8 @@
     "MAINTAINER RECORD, NOT PAYLOAD. Each definition's `anatomy.codeOnly` and `notes.*`, which #1623 ruled",
     "maintainer-only. Classified `ours` in `payload-manifest.json`, listed in `regen.ts`'s MAINTAINER_ARTIFACTS",
     "rather than SCHEMA_ARTIFACTS, and so outside the shipped-prose gates by construction. Complete: entries",
-    "that cite an external reference system are kept here, because this file does not ship."
+    "that cite an external reference system are kept here, because this file does not ship. `docGaps` (#846) lists",
+    "what each usage doc could not draw: a section's empty source fields, and part notes still written for maintainers."
   ],
   "generated": true,
   "components": {
@@ -33,7 +34,69 @@
           "Multi-tone and variable fill became a state pair (outlined and filled) rather than two unrelated glyphs, and the set-as-versioned-API discipline hardened into alias maps, deprecation entry points and rename codemods. The consensus the practice adopts: the delivery mechanism is secondary to a strict, declarative, correctly labeled accessible API."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.glyph.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "accessibility.keyboard",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "docs.contentGuidelines",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.composesWith",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.alternativeTo",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "focus-ring": {
       "codeOnly": [
@@ -53,7 +116,94 @@
           "Offset values — the field ships 2px broadly and 0 for inputs. Both emit, and this def exposes the choice as the `offset` axis rather than picking one."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.ring.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "accessibility.keyboard",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "motion.enter",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "motion.exit",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "motion.reduceMotion",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.labelPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "docs.contentGuidelines",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.composesWith",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.alternativeTo",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "button": {
       "codeOnly": [
@@ -91,7 +241,49 @@
           "1.4.13 Content on Hover or Focus is left out of `accessibility.wcag` (#1697): the brief lists it \"only if a tooltip is attached\", and this def attaches none — tooltip is planned, and the criterion belongs to its def."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.trailingVisual.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.spinner.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.focusRing.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "button-destructive": {
       "codeOnly": [
@@ -129,7 +321,49 @@
           "1.4.13 Content on Hover or Focus is left out of `accessibility.wcag` (#1697): the brief lists it \"only if a tooltip is attached\", and this def attaches none — tooltip is planned, and the criterion belongs to its def."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.trailingVisual.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.spinner.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.focusRing.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "button-neutral": {
       "codeOnly": [
@@ -167,7 +401,49 @@
           "1.4.13 Content on Hover or Focus is left out of `accessibility.wcag` (#1697): the brief lists it \"only if a tooltip is attached\", and this def attaches none — tooltip is planned, and the criterion belongs to its def."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.trailingVisual.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.spinner.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.focusRing.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "icon-button": {
       "codeOnly": [
@@ -196,7 +472,59 @@
           "RESOLVED (#1697): the pending member swaps in the real spinner. The disabled edge #1697 also rebound to the disabled icon ink was superseded by Q346 (#2749): a border never binds an icon or text role, so it binds `color.disabled.border`."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.icon.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.spinner.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.focusRing.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "icon-button-destructive": {
       "codeOnly": [
@@ -225,7 +553,59 @@
           "RESOLVED (#1697): the pending member swaps in the real spinner. The disabled edge #1697 also rebound to the disabled icon ink was superseded by Q346 (#2749): a border never binds an icon or text role, so it binds `color.disabled.border`."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.icon.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.spinner.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.focusRing.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "icon-button-neutral": {
       "codeOnly": [
@@ -254,7 +634,59 @@
           "RESOLVED (#1697): the pending member swaps in the real spinner. The disabled edge #1697 also rebound to the disabled icon ink was superseded by Q346 (#2749): a border never binds an icon or text role, so it binds `color.disabled.border`."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.icon.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.spinner.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.focusRing.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "flush-icon-button": {
       "codeOnly": [
@@ -283,7 +715,44 @@
           "Q305.1 A (2026-10-14): the round edge stays the decorative color.border.secondary (color.disabled.border at disabled) on all three families; the glyph carries the family color."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "flush-icon-button-destructive": {
       "codeOnly": [
@@ -312,7 +781,44 @@
           "Q305.1 A (2026-10-14): the round edge stays the decorative color.border.secondary (color.disabled.border at disabled) on all three families; the glyph carries the family color."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "flush-icon-button-neutral": {
       "codeOnly": [
@@ -341,7 +847,44 @@
           "Q305.1 A (2026-10-14): the round edge stays the decorative color.border.secondary (color.disabled.border at disabled) on all three families; the glyph carries the family color."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "field-label": {
       "codeOnly": [
@@ -366,7 +909,79 @@
         "projection": [
           "In Figma the name wraps at a fixed max width — the default field width, 320, less the 4px gap before the marker — so the marker sits right after a one-line name. Three limits follow: a field stretched wider in Figma still wraps its name at that width; on a name long enough to wrap, the marker sits beside the wrapped name, not after its last word; and that required name runs past the field by the marker's width. (Moved from docs.usage, #2411.)"
         ]
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.text.note",
+          "reason": "names a tool"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.indicator.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "accessibility",
+          "field": "accessibility.keyboard",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "accessibility.focus",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "docs.contentGuidelines",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.composesWith",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.alternativeTo",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "field-message": {
       "codeOnly": [
@@ -386,7 +1001,89 @@
         ],
         "evolution": [],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.iconError.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.iconWarning.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.iconSuccess.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.text.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "accessibility.keyboard",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "accessibility.focus",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.composesWith",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.alternativeTo",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.replacesPatterns",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "text-field": {
       "codeOnly": [
@@ -427,7 +1124,54 @@
         "projection": [
           "The trailingIcon slot: Figma carries the glyph, not the action's behavior. (Moved from props.trailingIcon.description, #2411.)"
         ]
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.caret.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.value.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.focusRing.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.message.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "textarea": {
       "codeOnly": [
@@ -474,7 +1218,59 @@
           "The value and placeholder props restate TextField's because the Figma text property is keyed by them. (Moved from props.value and props.placeholder, #2411.)",
           "The 16px grip drawn in Figma is decorative, not the resize handle's target. (Moved from accessibility.wcag, #2411.)"
         ]
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.caret.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.grip.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.focusRing.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.message.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.counter.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "checkbox-control": {
       "codeOnly": [
@@ -499,7 +1295,59 @@
           "The `indeterminate` ref callback superseded `useLayoutEffect` for performance in large lists (brief §13) — the mixed state is a DOM property the host sets, which is why this atom only draws the dash."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.control.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.mark.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.dash.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.focusRing.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "checkbox-row": {
       "codeOnly": [
@@ -535,7 +1383,49 @@
           "Field POV (brief §13): styling the native input won over the `role=checkbox` div and the hidden-input hacks; the group became a first-class component owning the value array and validation; `role=\"group\"` + `aria-labelledby` replaced `fieldset`/`legend`; the decomposition converged on a labeled row, a distinct group and an exposed atomic primitive — the shape this family is; and the `indeterminate` ref callback superseded `useLayoutEffect` for large lists."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.control.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.label.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "checkbox-group": {
       "codeOnly": [
@@ -570,7 +1460,44 @@
         "projection": [
           "`disabled` is not projected as a Figma state. (Moved from props.disabled.description, #2411.)"
         ]
-      }
+      },
+      "docGaps": [
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "radio-control": {
       "codeOnly": [
@@ -599,7 +1526,54 @@
           "Styled native inputs sharing a `name`, for free roving tabindex and exclusivity, won over hand-rolled `role=radio` div groups (brief §13). That is the input this atom paints."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.control.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.dot.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.focusRing.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "radio-row": {
       "codeOnly": [
@@ -632,7 +1606,39 @@
           "Field POV (brief §13): the group became the mandatory first-class component and the bare radio an incomplete unit; composition (a group wrapping option children) replaced the options array; styled native inputs sharing a `name` replaced hand-rolled `role=radio` groups, with `role=\"radiogroup\"` + `aria-labelledby` over `fieldset`; the segmented control split out as a compact presentation of the same semantics; and selection-follows-focus was affirmed as the default, with the cheap-`onChange` caveat."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.control.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.label.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "radio-group": {
       "codeOnly": [
@@ -669,7 +1675,44 @@
         "projection": [
           "`disabled` is not projected as a Figma state. (Moved from props.disabled.description, #2411.)"
         ]
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.row1.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "switch-control": {
       "codeOnly": [
@@ -701,7 +1744,64 @@
         "projection": [
           "The Figma set carries `showStateLabel` as the `State icon` boolean, default on, so both surfaces start from the same default. (Moved from props.showStateLabel.description, #2411.)"
         ]
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.track.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.thumb.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.onGlyph.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.offGlyph.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.focusRing.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "switch-row": {
       "codeOnly": [
@@ -741,7 +1841,49 @@
         "projection": [
           "`showStateLabel`'s default matches the `State icon` boolean in the Figma set. (Moved from props.showStateLabel.description, #2411.)"
         ]
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.label.note",
+          "reason": "names a tool"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.control.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "select": {
       "codeOnly": [
@@ -772,7 +1914,64 @@
           "PLATFORM ERA (2025–present): the Popover API, CSS Anchor Positioning and `appearance: base-select` let a native <select> carry custom styling and rich option content, collapsing the native-versus-custom trade. Directional and unverified in the brief — the reason this def stays native-first and models only the closed control."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.label.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.value.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.chevron.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.focusRing.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.message.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "veil": {
       "codeOnly": [
@@ -792,7 +1991,79 @@
         ],
         "evolution": [],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "accessibility.keyboard",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "motion.enter",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "motion.exit",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "motion.reduceMotion",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.composesWith",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.alternativeTo",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "image-placeholder": {
       "codeOnly": [
@@ -817,7 +2088,79 @@
         "projection": [
           "Dropping an image fill onto the frame is a native Figma action, not a modeled slot. (Moved from description and docs.usage, #2411.)"
         ]
-      }
+      },
+      "docGaps": [
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "accessibility.keyboard",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "motion.enter",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "motion.exit",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "motion.reduceMotion",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.composesWith",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.alternativeTo",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "spinner": {
       "codeOnly": [
@@ -865,7 +2208,69 @@
           "FIELD (brief §13.5): the anti-flash discipline, the reduced-motion substitute and `currentColor` theming, carried over from the perceived-performance and motion-accessibility work."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.frame.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "accessibility.keyboard",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.composesWith",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.alternativeTo",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "badge": {
       "codeOnly": [
@@ -898,7 +2303,54 @@
           "A size axis (small, medium, large) for the count and status label, once a host needs more than one."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.composesWith",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "tag": {
       "codeOnly": [
@@ -953,7 +2405,49 @@
           "The glyph rung moved one below the control rung, as Button's did (#1350): 16 / 20 / 24px, where the 1:1 rung was 20 / 24 / 32px (owner Q337 A, #2725). The one rung sizes the leading icon, the check and the ×, so all three step down together; the × keeps its 44px slot at medium (owner Q356 A)."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.label.note",
+          "reason": "names a tool"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "tab": {
       "codeOnly": [
@@ -977,7 +2471,49 @@
           "2026-10-09 (#2416): owner decisions Q177 (the nested Tab + Tabs shape, line tabs only, its own page), Q178.1 A (primary label plus a 2px primary bar on a 1px border.primary baseline, one weight), Q178.2 B (no hover wash; a 2px neutral bar previews the selected bar), Q179 A (names Tab and Tabs, S/M/L, the count as a nested Badge, automatic activation). The hover bar's role, border.secondary, was the build PR's technical pick: contracted at 3:1 against the page when picked (#1745), and a decorative ~2:1 rung since #2569 (owner Q259 C), which the bar keeps: a pointer-only preview reads lighter than the selected bar."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.alternativeTo",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "tabs": {
       "codeOnly": [
@@ -1000,7 +2536,49 @@
           "2026-10-09 (#2416): owner decisions Q177 (Tab nested in Tabs, the radio-group pattern for a variable child count; line tabs only; its own page), Q178 (primary label and 2px primary bar on the 1px border.primary baseline; no hover wash) and Q179 A (names, sizes, the count badge, six tabs at most with three shown, automatic activation, vertical and overflow code-only)."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "divider": {
       "codeOnly": [
@@ -1023,7 +2601,79 @@
         ],
         "evolution": [],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "accessibility.keyboard",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "motion.enter",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "motion.exit",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "motion.reduceMotion",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.composesWith",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.alternativeTo",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "_accordion-indicator": {
       "codeOnly": [
@@ -1041,7 +2691,79 @@
         ],
         "evolution": [],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "accessibility.keyboard",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "motion.enter",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "motion.exit",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "motion.reduceMotion",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.composesWith",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.alternativeTo",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "accordion": {
       "codeOnly": [
@@ -1069,7 +2791,44 @@
           "Owner decisions: Q180 (a design proposal), Q182 (one item, no group def; an indicator before or after the title, before the default; no hover; the content a swappable slot; a nested Divider; the expansion axis; the body type; the 44px floor; three sizes; reduced motion through the duration tokens; the two engine fixes), Q183 (the building-block indicator, 24 members, no disabled and no pressed), Q242 (the position values `leading | trailing`, as Button and Switch row name theirs), Q243 (the header's focus ring on its edge, `focus.ring.offset-field`), and the owner's QA of the live build (2026-10-12): the header centered, the glyphs one rung smaller (16/20/24), Q257 A (the ring drawn inside the header's edge), and `position` renamed `iconPosition`; Q262 A and Q266 A (the glyph beside the title's first line, the title padded 2px down); Q276 A (the glyph and the title in a `titleRow` the header centers, so a single line is centered under the 44px floor at every size); Q338 A (the large inline padding 24 → 20, `space.250`, so the side padding steps 12/16/20) and Q339 A (no change: the panel keeps its own padding)."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "list-item": {
       "codeOnly": [
@@ -1090,7 +2849,69 @@
           "2026-10-15 (#2727): owner decision Q340 A — the bullet and number marker column one step tighter, 20/24/32 (`space.250` / `300` / `400`), revising Q280.1 A's 24/32/40 for those two types; the icon column keeps 24/32/40, so the column is fixed per type rather than in every type, and an icon item's text edge sits further in."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.number.note",
+          "reason": "names a tool"
+        },
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "accessibility.keyboard",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.composesWith",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.alternativeTo",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "list": {
       "codeOnly": [
@@ -1113,7 +2934,59 @@
           "2026-10-13 (#2319): owner decisions Q273 — the read list now (Q273.1), two components with every marker bound (Q273.2), the icon marker as a third type (Q273.3), body sm / md / lg (Q273.4), no nested list in Figma (Q273.5), no tone (Q273.6), names, category data and its own page (Q273.7), markers at the text's strength (Q273.8), and native text lists for running text, the component for UI lists (Q273.9). Native list fields verified against the plugin typings (Q273.10): paragraph spacing and indent bind, list spacing and the marker do not."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "accessibility.keyboard",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.alternativeTo",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "segmented-control-segment": {
       "codeOnly": [
@@ -1138,7 +3011,49 @@
           "2026-10-15 (#2724): owner decisions Q336 A and Q342 A supersede Q269.3's tint and 2px outline: the selected option is a flat pill in color.background.primary with no border and no shadow, the emphasis-weight label is the state cue, and the pill holds at hover and press. The hover wash, the shape and the bold reserve are unchanged."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.alternativeTo",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "segmented-control": {
       "codeOnly": [
@@ -1161,7 +3076,49 @@
           "2026-10-15 (#2724): owner decisions Q336 A and Q342 A: the track is filled with color.background.secondary and loses its 1px outline; the selected option is a flat pill in color.background.primary. They supersede the outlined track Q278 kept and Q269.3's tint and outline."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "link": {
       "codeOnly": [
@@ -1191,7 +3148,44 @@
           "2026-10-14 (#2580, owner decisions Q297): the body type tier for both styles, 14 / 16 / 18px, with no 12px link (1); a trailing icon only, on standalone links only, 16px with 14px and 16px text and 20px with 18px text (2); the weight wording, with the values kept as emphasis | default (3)."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "button-group": {
       "codeOnly": [
@@ -1218,7 +3212,49 @@
           "Owner decision Q418 (2026-10-18, #2661): the component that nests the group decides its buttons' defaults. Button.Group on its own defaults the secondary to the primary outline Button, with no Neutral preference; Dialog's nest prefers Button.Neutral, falling back to the primary Button; designers can still swap any button in the slot."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "dialog": {
       "codeOnly": [
@@ -1255,7 +3291,49 @@
           "Owner decision Q363 (2026-10-16, #2661): the footer is a nested Button group whose native slot holds the buttons, replacing two fixed nested Buttons per layout. Cancel reads \"Cancel\" and Save \"Save\"; Cancel is Button.Neutral when the file has it and the primary Button otherwise (Q363.8 as amended, Q386), and since Q418 that is the Dialog's own preference on its nest of the group, which on its own keeps the primary outline Button; the `actions` prop is a slot of one to three Button elements (Q363.10 A)."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "password-field": {
       "codeOnly": [
@@ -1289,7 +3367,54 @@
           "A later idea (owner, Q301.6): the Show/Hide button as its own subcomponent with a shown and a hidden variant, the field's value still changed by hand. Filed separately; not part of this def."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.caret.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.value.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.focusRing.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.message.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "counter": {
       "codeOnly": [
@@ -1324,7 +3449,44 @@
           "2026-10-14 Q287 A (on #2457): the flush icon button carries `shape: flush | round`; outline nests flush and ghost nests round."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     }
   }
 }

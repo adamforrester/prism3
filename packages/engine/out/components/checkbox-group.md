@@ -2,14 +2,36 @@
 
 > Labeled stack of Checkbox rows. Owns the value array, required and validation. Size applies to the items you haven't edited. After editing an item, select the items and set their size.
 
-A labeled set for selecting any number — zero to many — from a bounded list of options. A required section label (FieldLabel) above a vertical stack of Checkbox.Row options. Owns the contract a single row cannot: the value array, group-level required, and all validation, announced once for the group. Use for a small bounded multi-select; past roughly 7-10 options a filtering multi-select combobox (not built yet) scans better. Not exactly-one selection (Radio.Group), not a single independent opt-in (a lone Checkbox.Row), not an immediate-effect setting list (a list of Switch.Row).
-
 - **ID:** `checkbox-group`
 - **Category:** form
 - **Status:** draft
 - **Also known as:** checkbox-set, checkboxes, checkbox-list, multiselect, checkbox-fieldset, choice-list
 
-## Usage
+## Overview
+
+A labeled set for selecting any number — zero to many — from a bounded list of options. A required section label (FieldLabel) above a vertical stack of Checkbox.Row options. Owns the contract a single row cannot: the value array, group-level required, and all validation, announced once for the group. Use for a small bounded multi-select; past roughly 7-10 options a filtering multi-select combobox (not built yet) scans better. Not exactly-one selection (Radio.Group), not a single independent opt-in (a lone Checkbox.Row), not an immediate-effect setting list (a list of Switch.Row).
+
+- **Purpose:** Select any number — zero to many — from a bounded set via a labeled stack of Checkbox.Row options, with the group owning the value array, group-level required and all validation.
+- **Use when:** A small bounded multi-select committed on save (notification preferences, feature opt-ins, a filter set), where seeing all the options aids the choice and the group needs one label, one required rule and one validation message.
+- **Avoid when:** Exactly one option may be chosen (Radio.Group — any-number versus exactly-one), a single independent opt-in with no siblings (a lone Checkbox.Row — a consent line, "remember me"), the change takes effect the instant it is toggled (a list of Switch.Row — staged versus immediate), or the set runs past roughly 7-10 options (a filtering multi-select combobox or listbox, not built yet).
+
+## Anatomy
+
+Shown on the default member: size `medium`.
+
+1. **Label** — The group heading and accessible name, composed rather than re-declared. Starts secondary and bold; its label text, required marker, emphasis and weight surface on the group. Its size follows the group; a fix to FieldLabel reaches here without a copy. Fills the group's width; a long heading wraps at FieldLabel's max width.
+2. **Items** — The items: a native slot holding the Checkbox.Row instances, three by default. A designer adds, removes and reorders rows in place.
+3. **Row1** — The first Checkbox.Row — always present. Nests the labeled row (which nests the control), following the group's size. Fills the group's width. Its checked state is derived from the group's value array, not wired here.
+4. **Row2** — The second default item: a Checkbox.Row, the same nest configuration as the first, including the group-width fill.
+5. **Row3** — The third default item: a Checkbox.Row, the same nest configuration as the first, including the group-width fill.
+
+## Styles
+
+| Axis | Values | Changes | Description |
+| --- | --- | --- | --- |
+| `size` | `medium`, `small`, `large` | once, when authored | Scales the group — the label's type and every row (control square, label ramp, gap) together, passed into the nested FieldLabel and rows by `follow`, so the group scales with the rest of the form. |
+
+## Usage guidelines
 
 Use to select any number — zero to many — from a bounded set, where the change is committed on save rather than applied instantly. Give the group a label that names the decision; let it own the value array, required and validation, and derive each row's checked state from the value array rather than wiring it on the row. Compose the rows as `items`. Past roughly 7-10 options, a filtering multi-select combobox (not built yet) scans better; for exactly-one selection use Radio.Group, and for a single independent opt-in a lone Checkbox.Row.
 
@@ -29,23 +51,49 @@ Use to select any number — zero to many — from a bounded set, where the chan
 - Reach for a checkbox group past roughly 7-10 options — a filtering multi-select combobox (not built yet) scans better
 - Override Enter to toggle — Enter submits the form, and that expectation is universal
 
-### Content guidelines
+## Accessibility
+
+- **Keyboard:** Each checkbox row is its OWN Tab stop and Space toggles it — the same model as a standalone Checkbox.Row, and the key difference from Radio.Group (one Tab stop, arrows within). The group adds no roving tabindex and no arrow navigation; it is a labeled container, not a single composite widget. NEVER override Enter (it submits the enclosing form).
+- **Focus:** Focus lands on each row's control in turn; the group container is not itself focusable. On a validation error, move focus to the first invalid group (its label / first row) and announce the group-level message.
+- **Screen readers:** group (role="group" on the container, or a native \<fieldset>) with aria-labelledby pointing at the FieldLabel; each row is a native \<input type="checkbox">
+
+  Prefer role="group" on a div plus aria-labelledby over \<fieldset>/\<legend>: both are valid, but fieldset has flexbox/grid quirks that make it hard to style, and role="group" keeps the layout freedom while preserving the shared-label announcement. The GROUP owns required and error — aria-required and aria-invalid associate to the group and announce once; an individual row never owns its own required or error. Do not double-label: the rows carry their short labels, the group carries the decision.
+
+### WCAG
+
+- 1.3.1 Info and Relationships (the group structure — role="group" + the shared label — is the meaning)
+- 3.3.2 Labels or Instructions (the group label, announced once for the set)
+- 3.3.1 Error Identification / 3.3.3 Error Suggestion — the intent, at the GROUP level and announced once. The group error display is not designed yet, so this def does not meet either today.
+- 4.1.2 Name Role Value (the group name via aria-labelledby; each row carries its own checked / mixed)
+- 2.4.13 Focus Appearance / 1.4.11 Non-text Contrast (the control boundary and focus indicator, on each row)
+- 2.5.8 Target Size (each row is its own target — the group does not change that)
+- 3.3.7 Redundant Entry (repeated consents across a form)
+
+### Motion
+
+- **Enter:** None (present on mount). Each row's nested control draws its own check, about 100-150ms.
+- **Exit:** None. Rows do not animate in or out of the stack.
+- **Reduced motion:** No layout motion at any setting. Under prefers-reduced-motion, each nested control flips instantly.
+
+## Content guidelines
 
 The group label names the decision; the rows carry the short options. Group errors read "Select at least one option" rather than "Invalid".
-
-### Copy patterns
 
 - **Labels:** The group label NAMES THE DECISION or asks the question ("Notification preferences", "Which contact methods?"), abstracting the shared word up so its rows read the short remainder ("Email", "SMS", "Push"). Sentence case, no trailing colon — FieldLabel's rules.
 - **Errors:** GROUP-LEVEL and specific — "Select at least one option", stating what is wrong and how to fix it (SC 3.3.3), never "Invalid". The rows stay neutral; the group carries the message. The error visual is not designed yet.
 
-## Choosing it
+## Related components
 
-- **Purpose:** Select any number — zero to many — from a bounded set via a labeled stack of Checkbox.Row options, with the group owning the value array, group-level required and all validation.
-- **Use when:** A small bounded multi-select committed on save (notification preferences, feature opt-ins, a filter set), where seeing all the options aids the choice and the group needs one label, one required rule and one validation message.
-- **Avoid when:** Exactly one option may be chosen (Radio.Group — any-number versus exactly-one), a single independent opt-in with no siblings (a lone Checkbox.Row — a consent line, "remember me"), the change takes effect the instant it is toggled (a list of Switch.Row — staged versus immediate), or the set runs past roughly 7-10 options (a filtering multi-select combobox or listbox, not built yet).
-- **Often used with:** `checkbox-row`, `checkbox-control`, `field-label`, `field-message`
+- **Built from:** `checkbox-row`, `field-label`
+- **Instead, consider:** `radio-group`, `switch-row`
+- **Often used with:** `checkbox-control`, `field-message`
+- **Replaces:**
+  - a bare set of \<input type="checkbox"> with no shared label or group wiring
+  - per-row required / error scattered across the options instead of owned by the group
 
-## Props
+## Building it in code
+
+### Props
 
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
@@ -58,46 +106,6 @@ The group label names the decision; the rows carry the short options. Group erro
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | Scales the group — the label's type and every row (control square, label ramp, gap) together, passed into the nested FieldLabel and rows by `follow`, so the group scales with the rest of the form. |
 | `name` | string | — | no | A shared control name so the set submits as one field and works uncontrolled in a native form. |
 | `disabled` | boolean | `false` | no | Disables the whole set — every row and the label dim, driven by the group's context (the field's native disabled is the source of truth). The group has no disabled treatment of its own. |
-
-## States
-
-None — not interactive.
-
-## Variants
-
-| Axis | Values | Changes |
-| --- | --- | --- |
-| `size` | `medium`, `small`, `large` | once, when authored |
-
-## Accessibility
-
-- **Role:** group (role="group" on the container, or a native \<fieldset>) with aria-labelledby pointing at the FieldLabel; each row is a native \<input type="checkbox">
-- **WCAG:**
-  - 1.3.1 Info and Relationships (the group structure — role="group" + the shared label — is the meaning)
-  - 3.3.2 Labels or Instructions (the group label, announced once for the set)
-  - 3.3.1 Error Identification / 3.3.3 Error Suggestion — the intent, at the GROUP level and announced once. The group error display is not designed yet, so this def does not meet either today.
-  - 4.1.2 Name Role Value (the group name via aria-labelledby; each row carries its own checked / mixed)
-  - 2.4.13 Focus Appearance / 1.4.11 Non-text Contrast (the control boundary and focus indicator, on each row)
-  - 2.5.8 Target Size (each row is its own target — the group does not change that)
-  - 3.3.7 Redundant Entry (repeated consents across a form)
-- **Keyboard:** Each checkbox row is its OWN Tab stop and Space toggles it — the same model as a standalone Checkbox.Row, and the key difference from Radio.Group (one Tab stop, arrows within). The group adds no roving tabindex and no arrow navigation; it is a labeled container, not a single composite widget. NEVER override Enter (it submits the enclosing form).
-- **Focus:** Focus lands on each row's control in turn; the group container is not itself focusable. On a validation error, move focus to the first invalid group (its label / first row) and announce the group-level message.
-- **ARIA:** Prefer role="group" on a div plus aria-labelledby over \<fieldset>/\<legend>: both are valid, but fieldset has flexbox/grid quirks that make it hard to style, and role="group" keeps the layout freedom while preserving the shared-label announcement. The GROUP owns required and error — aria-required and aria-invalid associate to the group and announce once; an individual row never owns its own required or error. Do not double-label: the rows carry their short labels, the group carries the decision.
-
-## Motion
-
-- **Enter:** None (present on mount). Each row's nested control draws its own check, about 100-150ms.
-- **Exit:** None. Rows do not animate in or out of the stack.
-- **Reduced motion:** No layout motion at any setting. Under prefers-reduced-motion, each nested control flips instantly.
-
-## Composition
-
-- **Composes with:** `checkbox-row`, `field-label`
-- **Alternative to:** `radio-group`, `switch-row`
-- **Planned:** `form`, `combobox`
-- **Replaces:**
-  - a bare set of \<input type="checkbox"> with no shared label or group wiring
-  - per-row required / error scattered across the options instead of owned by the group
 
 ---
 
