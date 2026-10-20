@@ -584,7 +584,7 @@
     },
     "list-item": {
       "members": 9,
-      "sha256": "fe7450e9de9e4e51368e45ad3a560934cc76cc7f17c9328bea32977a40563ddf",
+      "sha256": "d9c69f2a518be6c1711f637cfabe8596438661fd27f9a3e7e1438fe02efcea37",
       "properties": [
         "number:TEXT",
         "swap icon:INSTANCE_SWAP",
@@ -593,7 +593,7 @@
     },
     "list": {
       "members": 9,
-      "sha256": "84e793e50d06a8c4a9d46a694e6a4897e0182ebc745898bb6390670d7afba10a",
+      "sha256": "5dd88072e139b07445f5f9b928b94a4c9303242f3a1d0d05666c58ec2a65efc5",
       "properties": [
         "items:SLOT"
       ]
