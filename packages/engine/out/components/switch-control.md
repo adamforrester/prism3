@@ -17,7 +17,7 @@ The atomic switch control — the painted pill track, its traveling thumb, the X
 
 ## Anatomy
 
-Shown on the default member: size `medium`, selection `off`.
+Shown on the default member: size `medium`, selection `off`, status `default`.
 
 1. **Track**
 2. **Thumb**
@@ -31,10 +31,11 @@ Shown on the default member: size `medium`, selection `off`.
 | --- | --- | --- | --- |
 | `size` | `medium`, `small` | once, when authored | Two rungs, not three: switches rarely warrant a large. Scales the track's height and length and the thumb's diameter. All read `control.size.*`, which moves a rung with brand density; `icon.size.*` would measure the wrong thing. The host row passes its own size through by `follow`. |
 | `selection` | `off`, `on` | at runtime | — |
+| `status` | `default`, `error` | at runtime | — |
 
 ### States
 
-`rest`, `hover`, `pressed`, `focus-visible`, `disabled`, `error`
+`rest`, `hover`, `pressed`, `focus-visible`, `disabled`
 
 ## Usage guidelines
 
@@ -60,7 +61,7 @@ Do not place this on its own. It is the track-and-thumb Switch.Row nests, so a f
 - **Focus:** The nested focus ring surrounds the TRACK on `:focus-visible`, never the thumb (the thumb moves, so a ring traveling with it reads as two indicators). Offset, keyboard traversal only.
 - **Screen readers:** The visual control only — the accessible switch role, name and aria-checked (announced "on"/"off", never "checked") belong to the host input the Row wires. A standalone use must supply role and name itself.
 
-  When nested in a host row, the host provides the accessible name through `aria-labelledby` — never double-label. The role is `switch`, announced "on"/"off"; putting `aria-pressed` on it corrupts the announcement (that is a toggle button). The glyph is decorative (`aria-hidden`) — the role+state already carries on/off.
+  When nested in a host row, the host provides the accessible name through `aria-labelledby` — never double-label. The role is `switch`, announced "on"/"off"; putting `aria-pressed` on it corrupts the announcement (that is a toggle button). The glyph is decorative (`aria-hidden`) — the role+state already carries on/off. The danger border at `status=error` is never the only signal: the host row sets aria-invalid and its message names the error.
 
 ### WCAG
 
@@ -79,7 +80,7 @@ Do not place this on its own. It is the track-and-thumb Switch.Row nests, so a f
 The atom has no copy of its own; all label, description and error text belongs to the row that composes it.
 
 - **Labels:** None — the atom carries no label. The setting name and its rules live on Switch.Row (`switch-row`).
-- **Errors:** None of its own — an outcome-error boundary is a color treatment the host coordinate selects; the message is the Row's.
+- **Errors:** None of its own — the error boundary is the `status=error` danger border the host row sets; the message is the Row's.
 
 ## Related components
 
@@ -99,6 +100,7 @@ The atom has no copy of its own; all label, description and error text belongs t
 | `showStateLabel` | boolean | `true` | no | The X/checkmark-in-the-thumb affordance — a check when on, an X when off, a cue beyond track color and thumb position. On by default; turn it off where the thumb position and track color are enough. Never the sole state signal — thumb position carries the state. Not hardcoded "On"/"Off" text, which is rejected outright. |
 | `size` | enum: 'small' \| 'medium' | `medium` | no | Two rungs, not three: switches rarely warrant a large. Scales the track's height and length and the thumb's diameter. All read `control.size.*`, which moves a rung with brand density; `icon.size.*` would measure the wrong thing. The host row passes its own size through by `follow`. |
 | `disabled` | boolean | `false` | no | The disabled skin — a contrast-exempt fill/border/thumb treatment. Set on the host, followed here. |
+| `validation` | enum: 'default' \| 'error' | `default` | no | The validation status. `error` draws the danger border on the track at every interaction state; `default` is neutral. Set by the host row and followed here. |
 | `aria-label` | string | — | no | Required only for a genuinely standalone control with no host row to name it — the Row provides the accessible name, so a nested control must NOT double-label. |
 
 ---
