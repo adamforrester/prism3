@@ -73,7 +73,7 @@ The brief's sections follow one locked spine, so each lands in a known place:
 | §1 Framing | `description`, and the one-line `summary` |
 | §2 Anatomy and parts | `anatomy` (§2 below) |
 | §3 Properties / API | `props` |
-| §4 States and variants | `states`, `variants`, `axisKinds`. A brief state or axis the def omits is a `contested` entry in `notes` that says so |
+| §4 States and variants | `states`, `variants`, `axisKinds`. A brief state or axis the def omits is a `contested` entry in `notes` that says so. A component with no interaction states of its own, including a container whose states live on its children, declares `states: []`, never `['rest']` (the validator refuses it) |
 | §5 Usage guidance | `docs` (`usage`, `do`, `dont`) |
 | §6 Accessibility | `accessibility` (`role`, `wcag`, `keyboard`, `focus`, `aria`) |
 | §7 Content guidelines | `content` (`labelPattern`, `errorPattern`, `emptyPattern`, `dialogPattern`, `metaphorRules` — a closed key list) and `docs.contentGuidelines` |
@@ -206,11 +206,12 @@ brief's code-tier rules (§9 i18n, §11 implementation) that have no other field
 maintainer-only.
 
 **The `admits()` trap.** `codeOnly` is also how a def admits an axis or state it does not project:
-an entry that leads with the name (`pending — why Figma cannot carry it`) licenses dropping `pending`
-from the Figma state axis. So an entry that merely opens with an axis or state name — a note about a
+an entry that leads with the name licenses dropping `pending` from the Figma state axis. Every
+admission uses one template, `pending — not projected: <why Figma cannot carry it>. <what the code
+does>`, and `packages/engine/test.ts` (`#2711 codeOnly admissions`) refuses any other phrasing. So an entry that merely opens with an axis or state name — a note about a
 state you do project — silently permits that state to vanish from Figma with every gate green (#867).
 Lead such entries with something else (`the spinner swap —`, `RTL —`). Both #1697 and #1699 retired
-an instance of this.
+an instance of this, and the same test now refuses an entry that leads with a name the set projects.
 
 ## 3. Nesting — how a part points at another component
 

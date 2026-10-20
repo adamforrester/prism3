@@ -432,7 +432,7 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
       // carries ONE disabled skin per coordinate, and the three components' disabled skins are identical to
       // each other (the shared `disabled.*` block), which is the token tier being correct one level up.
       // There is no per-intent redundancy left to admit, so the entry retires — nothing declares `intent`.
-      'inactive — a real state (isInactive), deliberately NOT a Figma variant, and the two reasons fail it independently. Its whole delta from `disabled` is behavioral (retains tab order, keeps the control in the a11y tree, carries aria-disabled rather than the native attribute, surfaces the blockage reason on focus), so a variant has nothing to encode; and the emitter special-cases `state === \'disabled\'` only, so an `inactive` column would fall through to the `rest` paints and read as a normal enabled control.',
+      'inactive — not projected: its whole delta from `disabled` is behavioral, so a variant has nothing to encode; and the emitter special-cases `state === \'disabled\'` only, so an `inactive` column would fall through to the `rest` paints and read as a normal enabled control. The two reasons fail it independently. In code (isInactive) it retains tab order, keeps the control in the a11y tree, carries aria-disabled rather than the native attribute, and surfaces the blockage reason on focus.',
       // #1697 — the `pending — the SPINNER…` ceiling is GONE: the spinner projects (see `parts.spinner`).
       // Its removal also retires this def's instance of #867 — that entry LED with `pending`, so `admits()`
       // read it as licensing `pending`'s omission from the state axis. The entries below lead with other

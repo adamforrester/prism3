@@ -1970,6 +1970,12 @@ export const validateComponentDef = (
 
   // states + variants
   req(Array.isArray(def.states), 'states must be an array (use [] for non-interactive)');
+  // `rest` alone is not a state set (#2711). `rest` is the baseline other states depart from, so a list
+  // holding nothing else claims an interaction ladder of one rung. Containers whose states live on their
+  // children declared it two ways, `['rest']` and `[]`, and the agent metadata could not tell them apart.
+  // `[]` is the schema's own instruction above and the majority, so it is the one form.
+  if (Array.isArray(def.states) && def.states.length === 1 && def.states[0] === 'rest')
+    errors.push("states: ['rest'] declares no interaction. A component with no states of its own declares states: [] — `rest` is the baseline other states depart from, not a state set");
   req(!!def.variants && typeof def.variants === 'object', 'variants must be an object');
 
   // The CLOSED vocabularies (#821). Not redundant with the types on those two fields: `State[]` and

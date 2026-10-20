@@ -19226,6 +19226,15 @@ arm: {
       ok(errs.some((x) => re.test(x)), `anatomy gate: ${label}${errs.some((x) => re.test(x)) ? '' : ` — got [${errs.join('; ')}]`}`);
     };
     broke('an empty codeOnly list fails (the false claim that Figma holds everything)', /codeOnly/, (x) => ({ ...x, codeOnly: [] }));
+    // #2711: a container with no states of its own declares `states: []`, not `['rest']`. Driven on the real
+    // Checkbox group so the mutation is the one an author makes: putting `rest` back.
+    {
+      const errs = validateComponentDef({ ...checkboxGroup, states: ['rest'] }, nbTree, nbT.root).errors;
+      ok(errs.some((x) => /^states: \['rest'\] declares no interaction/.test(x)),
+        `#2711 states: a def declaring states ['rest'] alone fails — a component with no states of its own declares [] (got [${errs.join('; ')}])`);
+      ok(componentDefs.every((d) => !(d.states.length === 1 && d.states[0] === 'rest')),
+        `#2711 states: no shipped def declares states ['rest'] alone (got ${componentDefs.filter((d) => d.states.length === 1 && d.states[0] === 'rest').map((d) => d.id).join(', ')})`);
+    }
     broke('a binding key tokens does not bind fails', /is not a slot in tokens/, (x) => ({ ...x, parts: { ...x.parts, container: { ...x.parts.container, gap: 'size.{size}.nope' } } }));
     broke('an orphan part fails (a materializer would silently drop it)', /unreachable/, (x) => ({ ...x, parts: { ...x.parts, container: { ...x.parts.container, children: ['label', 'trailingVisual'] } } }));
     broke('two interaction targets fail', /exactly one part must have role/, (x) => ({ ...x, parts: { ...x.parts, label: { ...x.parts.label, role: 'target' } } }));
@@ -24295,6 +24304,57 @@ arm: {
     const unreachable = wanted.filter((v) => !dimsCreate.includes(`"${nbFixName(v)}"`));
     ok(unreachable.length === 0, `anatomy: every variable the plan binds is in the dims-create payload${unreachable.length ? ` — UNREACHABLE: ${unreachable.join(', ')}` : ` (${wanted.length} vars)`}`);
     ok(passOrder().indexOf('dims-create') < passOrder().indexOf('dims-aliases'), 'materialise: dims-create is pasted before dims-aliases (a target must exist before it can be bound)');
+  }
+
+  // ---- #2711: one phrasing for a `codeOnly` admission ---------------------------------------
+  // An axis or state the def declares and Figma does not carry is admitted by a `codeOnly` entry that
+  // LEADS with its name (`admits()` in `figmaPropertyErrors`). The admissions were written five ways, so
+  // a reader comparing defs could not tell whether five phrasings were five stances. They now read
+  // `<name> — not projected: <why Figma cannot carry it>. <what the code does>`, and this holds it.
+  //
+  // `admits()` itself stays loose on purpose: the plugin bundle cuts each entry to its leading term
+  // (`strip-maintainer-prose.mjs`), and the validator runs there on the cut entries. So the template is
+  // checked here, on the source defs, and never in the validator.
+  //
+  // Three arms, each reading the prose against the projection, which the prose does not write:
+  //   1. an entry leading with a name the set DOES project is the #867 trap (it licenses dropping that
+  //      name with every gate green), so it is refused outright;
+  //   2. an entry leading with an unprojected name must follow the template;
+  //   3. an entry written in the template must name an axis or state the def declares and does not
+  //      project, so a stale admission cannot outlive its axis.
+  // And the set of admissions found is a hand-written literal, so a projection read that silently
+  // returned nothing would fail here rather than pass three empty arms.
+  {
+    const leads = (entry: string, name: string) => { const t = entry.trim(); return t.startsWith(name) && /^$|^[\s—:(]/.test(t.slice(name.length)); };
+    const TEMPLATE = / — not projected: \S/;
+    const found: string[] = []; const bad: string[] = [];
+    for (const d of componentDefs) {
+      const fp = d.figmaProperties;
+      const names = [...Object.keys(d.variants ?? {}), ...d.states];
+      const projected = new Set<string>([...(fp?.variantAxes ?? []), ...(fp?.stateAxis?.values ?? [])]);
+      for (const raw of d.anatomy?.codeOnly ?? []) {
+        const c = raw.trim();
+        for (const n of names) {
+          if (!leads(c, n)) continue;
+          if (projected.has(n)) bad.push(`${d.id}: an entry leads with '${n}', which the set projects (the #867 trap): "${c.slice(0, 60)}…"`);
+          else if (!c.startsWith(`${n} — not projected: `) || !TEMPLATE.test(c)) bad.push(`${d.id}: the '${n}' admission does not read "${n} — not projected: <why>": "${c.slice(0, 60)}…"`);
+          else found.push(`${d.id}:${n}`);
+        }
+        const m = /^(\S+) — not projected:/.exec(c);
+        if (m && (!names.includes(m[1]) || projected.has(m[1]))) bad.push(`${d.id}: '${m[1]} — not projected' names no axis or state the def declares and leaves out of Figma`);
+      }
+    }
+    ok(bad.length === 0, `#2711 codeOnly admissions: every admission reads "<name> — not projected: <why>", and none leads with a projected name${bad.length ? ` — ${bad.join(' | ')}` : ''}`);
+    const EXPECTED_ADMISSIONS = [
+      'button:width', 'button:inactive', 'button-destructive:width', 'button-destructive:inactive', 'button-neutral:width', 'button-neutral:inactive',
+      'icon-button:inactive', 'icon-button-destructive:inactive', 'icon-button-neutral:inactive',
+      'icon:tone', 'focus-ring:offset', 'tag:read-only',
+      'text-field:style', 'text-field:pending', 'text-field:empty', 'password-field:style', 'password-field:pending', 'password-field:empty',
+      'textarea:style', 'textarea:pending', 'textarea:empty', 'select:pending', 'select:empty',
+      'checkbox-row:read-only', 'radio-row:read-only', 'switch-row:read-only', 'switch-row:pending',
+    ];
+    ok(JSON.stringify([...found].sort()) === JSON.stringify([...EXPECTED_ADMISSIONS].sort()),
+      `#2711 codeOnly admissions: the admissions found are exactly the ${EXPECTED_ADMISSIONS.length} listed (got ${found.length}: ${[...found].sort().join(', ')})`);
   }
 
   // ---- the Figma COMPONENT-PROPERTY projection (#487 §5) ------------------------------------

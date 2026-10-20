@@ -336,7 +336,7 @@ export const segmentedControl: ComponentDef = {
     { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Disables every option and takes the control out of the Tab order.' },
   ],
 
-  states: ['rest'],
+  states: [],
   variants: { size: ['medium', 'small', 'large'] },
   axisKinds: { size: 'authoring' },
 
