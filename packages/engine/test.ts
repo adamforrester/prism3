@@ -1727,11 +1727,13 @@ for (const b of brands) {
   // `roleColors.action` rebase anchors at primary's step): fixing #1896 moves the fill and these together.
   // BY-NAME MUTATION: `const linkAnchor = theme.linkAnchorStep;` in modes.ts → deep lands on 850 in light
   // and hc-light, pale on 050 in dark and hc-dark, and both asserts below fail.
+  // #2817: from that anchor the link then steps as far as it must to clear every surface it is placed on, so
+  // light deep (550 → 600) sits one notch deeper than the anchor; dark pale and HC already cleared.
   const stepsOf = (t: ReturnType<typeof brandTheme>): Record<string, string | undefined> =>
     Object.fromEntries(linkByMode(t).map((r) => [r.mode, r.link?.path.split('.').slice(-2).join('.')]));
   const deep = stepsOf(build({ brandColors: [{ name: 'deep', oklch: { l: 0.25, c: 0.08, h: 30 } }], roleColors: { action: 'deep' } }));
-  ok(deep.light === 'deep.550' && deep['hc-light'] === 'deep.700',
-    `#1895: a dark rebased action color (deep, l 0.25) anchors the link where the action fill anchors — light deep.550, hc-light deep.700 (got ${JSON.stringify(deep)})`);
+  ok(deep.light === 'deep.600' && deep['hc-light'] === 'deep.700',
+    `#1895: a dark rebased action color (deep, l 0.25) anchors the link where the action fill anchors — light deep.600 (anchor 550, #2817), hc-light deep.700 (got ${JSON.stringify(deep)})`);
   const pale = stepsOf(build({ brandColors: [{ name: 'pale', oklch: { l: 0.92, c: 0.06, h: 95 } }], roleColors: { action: 'pale' } }));
   ok(pale.dark === 'pale.450' && pale['hc-dark'] === 'pale.300',
     `#1895: a pale rebased action color (pale, l 0.92) anchors the link where the action fill anchors — dark pale.450, hc-dark pale.300 (got ${JSON.stringify(pale)})`);
@@ -2795,7 +2797,9 @@ for (const b of brands) {
       const aur = auroraRow && light(auroraRow[1]);
       const HAND: Array<[string, any, string, string, number, string]> = loadedRows([
         // brand, roles, prefix, ground, step, composite
-        ['nb-redesign', nbr, '', 'background.primary', 10, '#e8e8e8'],
+        // 20 since #2817: the primary hover ink deepened to clear every surface, so it clears opacity.20 and
+        // the down-step no longer engages on this page (the two rows below still exercise it).
+        ['nb-redesign', nbr, '', 'background.primary', 20, '#d0d0d0'],
         ['nb-redesign', nbr, 'inverse.', 'inverse.background.primary', 10, '#252525'],
         ['aurora', aur, '', 'background.primary', 20, '#cce5f1'],
         ['aurora', aur, 'inverse.', 'inverse.background.primary', 10, '#252526'],
@@ -2809,7 +2813,8 @@ for (const b of brands) {
 
       // THE DOWN-STEP GUARD ENGAGES where 20 fails the label, asserted with its PRECONDITION measured here
       // (if 20 stops failing, the arm is no longer testing the guard) and recorded in the description.
-      for (const [id, R, prefix, groundKey] of loadedRows([['nb-redesign', nbr, '', 'background.primary'], ['nb-redesign', nbr, 'inverse.', 'inverse.background.primary'], ['aurora', aur, 'inverse.', 'inverse.background.primary']] as any[][])) {
+      // (the example's page row left in #2817: its deeper hover ink clears opacity.20, as the HAND row above says.)
+      for (const [id, R, prefix, groundKey] of loadedRows([['nb-redesign', nbr, 'inverse.', 'inverse.background.primary'], ['aurora', aur, 'inverse.', 'inverse.background.primary']] as any[][])) {
         const ink = R[`${prefix}interactive.primary.text.hover`];
         const fillHex = R[`${prefix}interactive.primary.fill.rest`].hex;
         const at20 = contrast(hexToRgb(ink.hex), hexToRgb(mixHex(fillHex, R[groundKey].hex, 0.2)));
@@ -2905,7 +2910,9 @@ for (const b of brands) {
       // the owner makes it, every mode must carry the same value.
       {
         const STANDARD = { 'interactive.primary.hover': 20, 'interactive.primary.pressed': 30, 'interactive.primary.selected': 30, 'interactive.neutral.hover': 50, 'interactive.neutral.pressed': 60, 'interactive.neutral.selected': 60, 'interactive.destructive.hover': 20, 'interactive.destructive.pressed': 30, 'interactive.destructive.selected': 30, 'inverse.interactive.primary.hover': 10, 'inverse.interactive.primary.pressed': 30, 'inverse.interactive.primary.selected': 30, 'inverse.interactive.neutral.hover': 20, 'inverse.interactive.neutral.pressed': 30, 'inverse.interactive.neutral.selected': 30, 'inverse.interactive.destructive.hover': 10, 'inverse.interactive.destructive.pressed': 30, 'inverse.interactive.destructive.selected': 30 } as Record<string, number>;
-        const NB_REDESIGN = { ...STANDARD, 'interactive.primary.hover': 10, 'interactive.neutral.hover': 20, 'interactive.neutral.pressed': 30, 'interactive.neutral.selected': 30, 'inverse.interactive.destructive.hover': 20 } as Record<string, number>;
+        // `interactive.primary.hover` was 10 until #2817 deepened the primary hover ink, which then clears the
+        // standard 20 (the only wash that moved, and the step rule's own answer, not an emitter change).
+        const NB_REDESIGN = { ...STANDARD, 'interactive.neutral.hover': 20, 'interactive.neutral.pressed': 30, 'interactive.neutral.selected': 30, 'inverse.interactive.destructive.hover': 20 } as Record<string, number>;
         const examples: Array<[string, any, Record<string, number>]> = loadedRows([
           ['nb', nbTheme(), STANDARD],
           ['aurora', exampleTheme('aurora', () => brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/aurora.design.md'), 'utf8')).input)), STANDARD],
@@ -11108,6 +11115,161 @@ arm: {
     `#2569 Q270.6 border.secondary's HC description drops "decorative" (and light and dark keep it), in the emitted DTCG of every brand (${descCells} cells, floor 20)${wrongDesc.length ? ` — ${wrongDesc.join('; ')}` : ''}`);
 }
 
+// (10g-iv) #2817 — THE PRIMARY AND LINK INKS CLEAR 4.5:1 ON EVERY SURFACE A COMPONENT PLACES THEM ON (owner Q415 A,
+// narrowed to those surfaces by Q419 A).
+//
+// An outline or text primary Button and a link are drawn on the page, on Dialog's panel (`foreground.primary`, its
+// footer's Button group) and on a status tint (`foreground.<status>-subtle`, Banner's actions, #2786; Q398). Four
+// claims, each measured from the RESOLVED hexes and never from a role's own `ratio`, `min`, `against` or `modes.ts`'s
+// `INK_SURFACES` list, which is the subject (`docs/34`): the inks and the seven grounds are written here as literals,
+// so dropping a ground from the picker's list cannot shrink this proof.
+//   0. Coverage, from the DEFS (a second, independent source): every ground a component paints as a fill under a
+//      nested def that paints a primary or link ink is in the literal list, and every literal ground is either such
+//      a ground, the page, or a tint Banner will place them on (`PENDING_2817`). A new def that puts these inks on
+//      another ground fails here by name; a literal no component places them on fails too (Q419: no wider), and so
+//      does a pending tint missing from the literals (no narrower).
+//   1. Every ink × surface cell clears 4.5:1, in every mode of every brand — one `ok` per cell, so a miss names
+//      its brand, mode, ink and surface. The icon and border followers share the ink's candidate (the same hex);
+//      the icon link clears its brand's icon bar (3:1 under `iconContrast: '3:1'`) on the same grounds.
+//   2. The ink stays in its hue: the primary ink is on the same ramp as the primary fill, the link on the
+//      brand's link palette. Only the depth moves.
+//   3. "Just enough": in light and dark, where the primary rest ink or the link base left its anchor step, the ramp
+//      step one notch back toward the anchor misses 4.5:1 on at least one of the grounds. A pick that overshoots fails.
+{
+  const BAR_2817 = 4.5;
+  const INKS_2817 = [
+    'interactive.primary.text.rest', 'interactive.primary.text.hover', 'interactive.primary.text.pressed',
+    'text.link.default', 'text.link.hover', 'text.link.pressed', 'text.link.visited', 'text.link.focused',
+  ];
+  const GROUNDS_2817 = [
+    'background.primary', 'foreground.primary',
+    'foreground.brand-subtle', 'foreground.success-subtle', 'foreground.warning-subtle', 'foreground.danger-subtle', 'foreground.info-subtle',
+  ];
+  // Banner (#2786) has not merged: its tints are in the contract by Q419 A ahead of the def that places the inks there.
+  const PENDING_2817 = ['foreground.brand-subtle', 'foreground.success-subtle', 'foreground.warning-subtle', 'foreground.danger-subtle', 'foreground.info-subtle'];
+
+  // 0. Coverage from the defs: a def's own fill on a ground, over the transitive closure of the defs it nests (fixed
+  //    nests, slot offers and a host's `nestItemPrefers`), where one of those paints a primary or link ink.
+  {
+    const INK_RE = /^color\.(interactive\.primary\.(text|icon|border)\.|text\.link\.|icon\.link\.)/;
+    const GROUND_RE = /^color\.((background|foreground)\.[a-z-]+)$/;
+    const defById = new Map<string, any>(componentDefs.map((d: any) => [d.id, d]));
+    const nestedOf = (d: any): string[] => {
+      const out: string[] = [];
+      const walk = (o: any): void => {
+        if (!o || typeof o !== 'object') return;
+        if (Array.isArray(o)) { o.forEach(walk); return; }
+        if (typeof o.nests === 'string') out.push(o.nests);
+        for (const k of ['anyOf', 'preferred', 'preferredWhenBuilt']) if (Array.isArray(o[k])) out.push(...o[k].filter((x: unknown) => typeof x === 'string'));
+        if (o.nestItemPrefers && typeof o.nestItemPrefers === 'object') out.push(...(Object.values(o.nestItemPrefers) as string[]));
+        for (const v of Object.values(o)) walk(v);
+      };
+      walk(d.anatomy); walk(d.props);
+      return out.filter((x) => defById.has(x));
+    };
+    const paintsInk = (d: any) => Object.values(d.tokens ?? {}).some((v) => typeof v === 'string' && INK_RE.test(v));
+    const derived = new Map<string, string[]>(); // ground → the hosts that place an inked def on it
+    let inkedDefs = 0;
+    for (const d of componentDefs as any[]) {
+      if (paintsInk(d)) inkedDefs++;
+      const grounds = Object.entries(d.tokens ?? {}).flatMap(([k, v]) => (/(^|\.)fill$/.test(k) && typeof v === 'string' && GROUND_RE.test(v) ? [v.replace(/^color\./, '')] : []));
+      if (!grounds.length) continue;
+      const seen = new Set<string>(), queue = nestedOf(d);
+      while (queue.length) { const id = queue.pop()!; if (seen.has(id)) continue; seen.add(id); queue.push(...nestedOf(defById.get(id))); }
+      const inked = [...seen].filter((id) => paintsInk(defById.get(id)));
+      if (inked.length) for (const g of grounds) derived.set(g, [...(derived.get(g) ?? []), `${d.id} (nests ${inked.join(', ')})`]);
+    }
+    const missing = [...derived].filter(([g]) => !GROUNDS_2817.includes(g)).map(([g, hosts]) => `${g} (${hosts.join('; ')})`);
+    const unplaced = GROUNDS_2817.filter((g) => g !== 'background.primary' && !derived.has(g) && !PENDING_2817.includes(g));
+    const landed = PENDING_2817.filter((g) => derived.has(g));
+    ok(missing.length === 0 && inkedDefs >= 5 && derived.has('foreground.primary'),
+      `#2817 every ground a component places the primary or link ink on is in the contract's literal list (derived from ${componentDefs.length} defs, ${inkedDefs} that paint the inks: ${[...derived].map(([g, h]) => `${g} ← ${h.join('; ')}`).join(' | ') || 'none'})${missing.length ? ` — NOT IN THE LIST: ${missing.join('; ')}` : ''}`);
+    ok(unplaced.length === 0,
+      `#2817 every ground in the contract is one a component places the inks on, the page, or a pending Banner tint (Q419 A: no wider)${unplaced.length ? ` — NO COMPONENT PLACES THEM ON: ${unplaced.join(', ')}` : ''}`);
+    const unlisted = PENDING_2817.filter((g) => !GROUNDS_2817.includes(g));
+    ok(unlisted.length === 0,
+      `#2817 every pending Banner tint is in the contract's literal list (Q419 A: the seven grounds, no narrower)${unlisted.length ? ` — PENDING BUT NOT MEASURED: ${unlisted.join(', ')}` : ''}`);
+    ok(landed.length === 0,
+      `#2817 the pending tints are still pending (when Banner lands and places the inks on them, drop them from PENDING_2817)${landed.length ? ` — NOW PLACED: ${landed.join(', ')}` : ''}`);
+  }
+
+  const rows2817: { id: string; theme: any }[] = [
+    ...corpus(),
+    ...loadedRows([['prism3 (example)', exampleTheme('prism3', () => brandTheme(exampleBrands()['prism3'] as BrandInput))]]).map(([id, theme]) => ({ id: id as string, theme })),
+  ];
+  let cells2817 = 0, modes2817 = 0, followerCells = 0, iconLinkCells = 0;
+  const offHue: string[] = [], overshoot: string[] = [], strayFollowers: string[] = [];
+  let hueCells = 0, minimalCells = 0, linkMinimalCells = 0;
+  const paletteOf = (path: string | undefined) => path?.split('.').slice(-2)[0];
+  for (const { id, theme } of rows2817) for (const m of resolveAllModes(theme)) {
+    modes2817++;
+    const hexOf = (k: string) => m.roles[k]?.hex;
+    for (const ink of INKS_2817) for (const g of GROUNDS_2817) {
+      const ih = hexOf(ink), gh = hexOf(g);
+      if (!ih || !gh) { ok(false, `#2817 ${id}/${m.mode}: ${!ih ? ink : g} absent, so ${ink} on ${g} cannot be measured`); continue; }
+      cells2817++;
+      const r = contrast(hexToRgb(ih), hexToRgb(gh));
+      ok(r >= BAR_2817, `#2817 ${id}/${m.mode} ${ink} (${ih}) on ${g} (${gh}): ${r.toFixed(2)}:1, under the ${BAR_2817}:1 body floor`);
+    }
+    // 1b. The followers: the primary icon and border share the text ink's hex, state for state.
+    for (const st of ['rest', 'hover', 'pressed']) for (const f of ['icon', 'border']) {
+      followerCells++;
+      const fh = hexOf(`interactive.primary.${f}.${st}`), th = hexOf(`interactive.primary.text.${st}`);
+      if (!fh || fh.toLowerCase() !== th?.toLowerCase()) strayFollowers.push(`${id}/${m.mode}: interactive.primary.${f}.${st} ${fh ?? 'absent'} ≠ interactive.primary.text.${st} ${th}`);
+    }
+    // 1c. The icon link clears its brand's icon bar on the same grounds (3:1 under iconContrast '3:1', else the text bar).
+    const iconBar = theme.iconContrast === '3:1' ? 3 : BAR_2817;
+    for (const st of ['default', 'hover', 'pressed', 'focused']) for (const g of GROUNDS_2817) {
+      const ih = hexOf(`icon.link.${st}`), gh = hexOf(g);
+      if (!ih || !gh) { ok(false, `#2817 ${id}/${m.mode}: icon.link.${st} or ${g} absent`); continue; }
+      iconLinkCells++;
+      const r = contrast(hexToRgb(ih), hexToRgb(gh));
+      if (r < iconBar) ok(false, `#2817 ${id}/${m.mode} icon.link.${st} (${ih}) on ${g} (${gh}): ${r.toFixed(2)}:1, under the ${iconBar}:1 icon bar`);
+    }
+    // 2. Same ramp as before: the primary ink beside the primary fill, the link on the theme's link palette
+    //    (wireframe greys every chromatic role, so there the link is on the neutral ramp).
+    hueCells++;
+    const inkPal = paletteOf(m.roles['interactive.primary.text.rest']?.path), fillPal = paletteOf(m.roles['interactive.primary.fill.rest']?.path);
+    if (!inkPal || inkPal !== fillPal) offHue.push(`${id}/${m.mode}: interactive.primary.text.rest on '${inkPal}', the primary fill on '${fillPal}'`);
+    const linkWant = m.mode === 'wireframe' ? theme.roleToPalette.neutral : theme.linkPalette;
+    for (const st of ['default', 'hover', 'pressed', 'visited', 'focused']) {
+      const lp = paletteOf(m.roles[`text.link.${st}`]?.path);
+      if (lp !== linkWant) offHue.push(`${id}/${m.mode}: text.link.${st} on '${lp}', the link palette is '${linkWant}'`);
+    }
+    // 3. Just enough, in the standard modes (HC's page bar is 7:1, so its pick is held by the page, not here). The
+    //    anchors are the theme's own inputs: the action anchor for the primary ink; for the link, the action anchor
+    //    when it follows the action palette, else its own. The link's floor ground counts as a ground here.
+    if (m.mode !== 'light' && m.mode !== 'dark') continue;
+    const linkAnchorNum = theme.linkPalette === theme.roleToPalette.action ? (theme.actionAnchorStep ?? theme.roleAnchorStep.action) : theme.linkAnchorStep;
+    for (const [ink, anchorNum, extra] of [
+      ['interactive.primary.text.rest', theme.roleAnchorStep.action, [] as string[]],
+      ['text.link.default', linkAnchorNum, ['background.secondary']],
+    ] as [string, number, string[]][]) {
+      const role = m.roles[ink];
+      const segs = role?.path.split('.') ?? [];
+      const steps = [...(theme.palettes.find((p: any) => p.palette === segs[segs.length - 2])?.steps ?? [])].sort((a: any, b: any) => a.num - b.num);
+      const at = steps.findIndex((s: any) => s.key === segs[segs.length - 1]);
+      const anchorAt = steps.findIndex((s: any) => s.num === anchorNum);
+      if (!role || at < 0 || anchorAt < 0 || steps[at].hex.toLowerCase() !== role.hex.toLowerCase()) { overshoot.push(`${id}/${m.mode}: ${ink} ${role?.path ?? 'absent'} or its anchor ${anchorNum} not found on its ramp`); continue; }
+      if (ink === 'interactive.primary.text.rest') minimalCells++; else linkMinimalCells++;
+      if (at === anchorAt) continue;
+      const back = steps[at + Math.sign(anchorAt - at)];
+      const clearsAll = [...GROUNDS_2817, ...extra].every((g) => m.roles[g] && contrast(hexToRgb(back.hex), hexToRgb(m.roles[g].hex)) >= BAR_2817);
+      if (clearsAll) overshoot.push(`${id}/${m.mode}: ${ink} sits at ${segs[segs.length - 1]}, but ${back.key} (one notch back toward the anchor ${steps[anchorAt].key}) already clears ${BAR_2817}:1 on every ground`);
+    }
+  }
+  ok(cells2817 === modes2817 * INKS_2817.length * GROUNDS_2817.length && modes2817 >= 20,
+    `#2817 every primary and link ink was measured on all ${GROUNDS_2817.length} grounds in every mode of every brand (${cells2817} cells over ${modes2817} modes, floor 20 modes)`);
+  ok(strayFollowers.length === 0 && followerCells >= 120,
+    `#2817 the primary icon and border follow the text ink, state for state, in every mode (${followerCells} cells, floor 120)${strayFollowers.length ? ` — ${strayFollowers.slice(0, 6).join('; ')}` : ''}`);
+  ok(iconLinkCells === modes2817 * 4 * GROUNDS_2817.length,
+    `#2817 the icon link was measured on all ${GROUNDS_2817.length} grounds in every mode (${iconLinkCells} cells; a miss fails above, by name)`);
+  ok(offHue.length === 0 && hueCells >= 20,
+    `#2817 the primary and link inks stay on their own ramp (the hue holds, only the depth moves) in every mode (${hueCells} modes, floor 20)${offHue.length ? ` — ${offHue.join('; ')}` : ''}`);
+  ok(overshoot.length === 0 && minimalCells >= 10 && linkMinimalCells >= 10,
+    `#2817 the primary ink and the link base move only as far as the worst surface needs: one notch back toward the anchor misses ${BAR_2817}:1 somewhere, in every light and dark mode they moved in (${minimalCells} primary / ${linkMinimalCells} link modes, floor 10 each)${overshoot.length ? ` — ${overshoot.join('; ')}` : ''}`);
+}
+
 // (10h) #575 — the OUTLINE-METHOD contract: for every `outlineInteraction` value, the role
 // `outlineFillFamily` names is the role the engine actually emits, and the family it does NOT name
 // is absent.
@@ -11354,10 +11516,19 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // `text` and `icon` link families move together (NB's `iconContrast` is 'text', so icon == text). The
   // NEW `link/pressed` leaf is an engine addition NB's export predates — it is not a divergence of an
   // existing var, so it lives in `ENGINE_ADDED_VARS` below, not here.
-  { mode: 'light', name: 'color/text/link/hover', nb: 'palette/red/600', engine: 'palette/red/650' },
-  { mode: 'light', name: 'color/text/link/visited', nb: 'palette/red/650', engine: 'palette/red/850' },
-  { mode: 'light', name: 'color/icon/link/hover', nb: 'palette/red/600', engine: 'palette/red/650' },
-  { mode: 'light', name: 'color/icon/link/visited', nb: 'palette/red/650', engine: 'palette/red/850' },
+  //
+  // #2817 (owner Q415 A, narrowed by Q419 A) moved the LIGHT rows one rung further and added the light BASE (`default`,
+  // with `focused`, its colour twin): the link now clears 4.5:1 on every surface a component places it on, and the
+  // fixture's authored base measured 4.02:1 on the success tint in light. The base steps 550 → 600 and the engaged
+  // states walk from it. Dark and HC rows are unchanged: the authored base already cleared there.
+  { mode: 'light', name: 'color/text/link/default', nb: 'palette/red/550', engine: 'palette/red/600' },
+  { mode: 'light', name: 'color/text/link/focused', nb: 'palette/red/550', engine: 'palette/red/600' },
+  { mode: 'light', name: 'color/text/link/hover', nb: 'palette/red/600', engine: 'palette/red/700' },
+  { mode: 'light', name: 'color/text/link/visited', nb: 'palette/red/650', engine: 'palette/red/900' },
+  { mode: 'light', name: 'color/icon/link/default', nb: 'palette/red/550', engine: 'palette/red/600' },
+  { mode: 'light', name: 'color/icon/link/focused', nb: 'palette/red/550', engine: 'palette/red/600' },
+  { mode: 'light', name: 'color/icon/link/hover', nb: 'palette/red/600', engine: 'palette/red/700' },
+  { mode: 'light', name: 'color/icon/link/visited', nb: 'palette/red/650', engine: 'palette/red/900' },
   { mode: 'dark', name: 'color/text/link/hover', nb: 'palette/red/400', engine: 'palette/red/350' },
   { mode: 'dark', name: 'color/text/link/visited', nb: 'palette/red/350', engine: 'palette/red/150' },
   { mode: 'dark', name: 'color/icon/link/hover', nb: 'palette/red/400', engine: 'palette/red/350' },
@@ -32770,14 +32941,12 @@ arm: {
       }
     }
   }
-  // A KNOWN GAP, PINNED (#2817): the outline primary label, which is Cancel only in a file without the Neutral families,
-  // misses 4.5:1 on the panel in aurora's light and dark modes. It is the engine's contract, measured on the page only,
-  // not this component's. Typed here; when the contract lands these two cells pass and this arm fails, naming them, so
-  // the pin is flipped then. Every other pair, the Neutral Cancel included, must clear its floor.
-  const KNOWN_BELOW = ['aurora/light interactive.primary.text.rest on foreground.primary', 'aurora/dark interactive.primary.text.rest on foreground.primary'];
-  const belowKeys = below.map((b) => b.replace(/ [0-9.]+ < [0-9.]+$/, ''));
-  ok(measured >= PAIRS.length * EXAMPLE_IDS.length && JSON.stringify(belowKeys) === JSON.stringify(KNOWN_BELOW),
-    `#2661 button group contrast on the Dialog panel: the Neutral Cancel and Save clear their floors in every example brand × mode, and the primary fallback misses only the two cells #2817 pins (${measured} ratios; lowest ${Object.entries(low).map(([k, v]) => `${k} ${v.toFixed(2)}`).join(', ')}; below: ${below.join('; ') || 'none — #2817 is fixed, flip this pin'})`);
+  // The known gap #2817 closed (pin flipped there): the outline primary label, which is Cancel only in a file without the
+  // Neutral families, missed 4.5:1 on the panel in aurora's light and dark modes while the engine gated it on the page
+  // only. The engine now holds it on `foreground.primary` too (Q419 A), so every pair, the primary fallback included,
+  // must clear its floor.
+  ok(measured >= PAIRS.length * EXAMPLE_IDS.length && below.length === 0,
+    `#2661 button group contrast on the Dialog panel: the Neutral Cancel, the primary fallback and Save clear their floors in every example brand × mode (${measured} ratios; lowest ${Object.entries(low).map(([k, v]) => `${k} ${v.toFixed(2)}`).join(', ')}${below.length ? `; below: ${below.join('; ')}` : ''})`);
 }
 
 // ------------------------------------------------------------------- #2317: the Password field
