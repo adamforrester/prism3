@@ -1893,7 +1893,8 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
       const widths = rows.map((r) => W(r));
       if (!widths.every((w) => w === span)) off.push(`${m.name}: row widths ${widths.join('/')} (want ${span})`);
     }
-    ok(members.length === 3 && off.length === 0,
+    // 6 since #2751: `status` (default, error) joins `size`.
+    ok(members.length === 6 && off.length === 0,
       `#2649 ${id}: every member holds an items SLOT of three rows, none wired or hidden, each spanning the group (${members.length} members, ${off.length} off — ${off[0] ?? 'none'})`);
   }
 }
@@ -1960,7 +1961,8 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
 // leaves behind; the plan is untouched. Mutation by name: revert `nestTarget` to the type-only check and
 // `#1781 read-back` fails.
 {
-  const SET_IDS = ['checkbox-control', 'radio-control', 'switch-control', 'field-label', 'checkbox-row', 'radio-row', 'switch-row', 'checkbox-group', 'radio-group'];
+  // `field-message` since #2751: an errored group nests its message under the rows.
+  const SET_IDS = ['checkbox-control', 'radio-control', 'switch-control', 'field-label', 'field-message', 'checkbox-row', 'radio-row', 'switch-row', 'checkbox-group', 'radio-group'];
   const defOf = (id: string) => componentDefs.find((d) => d.id === id)!;
   const membersOf = (id: string): string[] => figmaAnatomySet(defOf(id), { swapTarget: SWAP_TARGET }).map(planComponentName);
   const fileNodes = [
@@ -1995,11 +1997,12 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   const rowClean = row.nestDiv();
   ok((row.counted.nestTarget ?? 0) > 0 && rowClean.length === 0,
     `#1781 read-back reachable: checkbox-row built against sets sharing member names reads back with every nest in its own set — ${row.counted.nestTarget ?? 0} nests compared, ${rowClean.length} divergent${rowClean.length ? ` (${rowClean[0].member} :: ${rowClean[0].path} → ${rowClean[0].actual})` : ''}`);
-  const small = row.members.find((m) => m.name === 'size=small');
+  // Every row and group member carries `status` since #2751.
+  const small = row.members.find((m) => m.name === 'status=default, size=small');
   const ctl = small && findPart(small, 'control');
   if (ctl) repoint(ctl, 'radio-control');
   const rowWrong = row.nestDiv();
-  ok(!!ctl && rowWrong.length === 1 && rowWrong[0].member === 'size=small' && rowWrong[0].path.endsWith('/control')
+  ok(!!ctl && rowWrong.length === 1 && rowWrong[0].member === 'status=default, size=small' && rowWrong[0].path.endsWith('/control')
     && rowWrong[0].actual.includes('radio-control/') && rowWrong[0].actual.includes('WRONG SET'),
     `#1781 read-back: a row control pointing at radio-control's same-named member fails by name — ${rowWrong.map((d) => `${d.member} :: ${d.path} — plan: ${d.expected}; host: ${d.actual}`).join(' | ') || 'NOTHING REPORTED'}`);
 
@@ -2007,11 +2010,11 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   const grpClean = grp.nestDiv();
   ok((grp.counted.nestTarget ?? 0) > 0 && grpClean.length === 0,
     `#1781 read-back reachable: checkbox-group reads back with every row and label in its own set — ${grp.counted.nestTarget ?? 0} nests compared, ${grpClean.length} divergent`);
-  const large = grp.members.find((m) => m.name === 'size=large');
+  const large = grp.members.find((m) => m.name === 'status=default, size=large');
   const row1 = large && findPart(large, 'row1');
   if (row1) repoint(row1, '__old__checkbox-row');
   const grpWrong = grp.nestDiv();
-  ok(!!row1 && grpWrong.length === 1 && grpWrong[0].member === 'size=large' && grpWrong[0].path.endsWith('/row1')
+  ok(!!row1 && grpWrong.length === 1 && grpWrong[0].member === 'status=default, size=large' && grpWrong[0].path.endsWith('/row1')
     && grpWrong[0].actual.includes('__old__checkbox-row/'),
     `#1781 read-back: a group row pointing at the renamed-aside __old__checkbox-row fails by name — ${grpWrong.map((d) => `${d.member} :: ${d.path} — plan: ${d.expected}; host: ${d.actual}`).join(' | ') || 'NOTHING REPORTED'}`);
 
@@ -2022,11 +2025,11 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   const UNNAMED = 'an instance whose main component the host cannot name';
   for (const [label, value] of [['no mainComponent', undefined], ['a mainComponent with no name', { type: 'COMPONENT', parent: { name: 'checkbox-control', type: 'COMPONENT_SET' } }]] as const) {
     const fresh = await readBack('checkbox-row');
-    const medium = fresh.members.find((m) => m.name === 'size=medium');
+    const medium = fresh.members.find((m) => m.name === 'status=default, size=medium');
     const inst = medium && findPart(medium, 'control');
     if (inst) Object.defineProperty(inst, 'mainComponent', { configurable: true, enumerable: false, writable: true, value });
     const got = fresh.nestDiv();
-    ok(!!inst && inst.type === 'INSTANCE' && got.length === 1 && got[0].member === 'size=medium' && got[0].path.endsWith('/control')
+    ok(!!inst && inst.type === 'INSTANCE' && got.length === 1 && got[0].member === 'status=default, size=medium' && got[0].path.endsWith('/control')
       && got[0].actual === UNNAMED,
       `#1781 read-back: an INSTANCE with ${label} fails with "${UNNAMED}" — ${got.map((d) => `${d.member} :: ${d.path} — host: ${d.actual}`).join(' | ') || 'NOTHING REPORTED'}`);
   }

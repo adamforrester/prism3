@@ -484,7 +484,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 54,
+    "members": 90,
     "nests": [
       "focus-ring",
       "icon"
@@ -514,7 +514,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 3,
+    "members": 6,
     "nests": [
       "checkbox-control"
     ]
@@ -530,10 +530,11 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 3,
+    "members": 6,
     "nests": [
       "field-label",
-      "checkbox-row"
+      "checkbox-row",
+      "field-message"
     ]
   },
   {
@@ -547,7 +548,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 30,
+    "members": 60,
     "nests": [
       "focus-ring"
     ]
@@ -576,7 +577,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 3,
+    "members": 6,
     "nests": [
       "radio-control"
     ]
@@ -592,10 +593,11 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 3,
+    "members": 6,
     "nests": [
       "field-label",
-      "radio-row"
+      "radio-row",
+      "field-message"
     ]
   },
   {
@@ -609,7 +611,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 24,
+    "members": 40,
     "nests": [
       "icon",
       "focus-ring"
@@ -635,7 +637,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 2,
+    "members": 4,
     "nests": [
       "switch-control"
     ]

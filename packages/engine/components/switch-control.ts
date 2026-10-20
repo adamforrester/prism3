@@ -49,7 +49,7 @@
  * **`State icon` — ONE Figma BOOLEAN over both glyphs, default ON (owner, 2026-09-28).** The glyph is a
  * component property of the set, not a code-only gate: `figmaProperties.booleans` maps `showStateLabel`
  * to BOTH glyph parts under the panel name `State icon`. It is #1331's NODE-VISIBILITY mechanism — the
- * glyph node is built and its `visible` rides the property — so the set does NOT grow (24 members). A
+ * glyph node is built and its `visible` rides the property — so the set does NOT grow (40 members). A
  * boolean VARIANT axis stays rejected: it would add a name to the closed `VARIANT_AXES` vocabulary for one
  * def and DOUBLE the set to 48. One property drives TWO parts because the check and the X never coexist:
  * each is `presentWhen`-gated on `selection`, and between them they cover both values, so every member
@@ -148,30 +148,37 @@ export const switchControl: ComponentDef = {
     { name: 'showStateLabel', type: 'boolean', required: false, default: true, description: 'The X/checkmark-in-the-thumb affordance — a check when on, an X when off, a cue beyond track color and thumb position. On by default; turn it off where the thumb position and track color are enough. Never the sole state signal — thumb position carries the state. Not hardcoded "On"/"Off" text, which is rejected outright.' },
     { name: 'size', type: "enum: 'small' | 'medium'", values: ['small', 'medium'], default: 'medium', required: false, description: 'Two rungs, not three: switches rarely warrant a large. Scales the track\'s height and length and the thumb\'s diameter. All read control.size.*, which moves a rung with brand density; icon.size.* would measure the wrong thing. The host row passes its own size through by follow.' },
     { name: 'disabled', type: 'boolean', default: false, required: false, description: 'The disabled skin — a contrast-exempt fill/border/thumb treatment. Set on the host, followed here.' },
+    // THE FIELDS' VALIDATION API (owner Q354, #2751), projected as the `status` axis, its first two values only.
+    { name: 'validation', type: "enum: 'default' | 'error'", values: ['default', 'error'], default: 'default', required: false, description: 'The validation status. error draws the danger border on the track at every interaction state; default is neutral. Set by the host row and followed here.' },
     { name: 'aria-label', type: 'string', required: false, description: 'Required only for a genuinely standalone control with no host row to name it — the Row provides the accessible name, so a nested control must not double-label.' },
   ],
 
-  // The six that paint. `read-only` and `pending` are field/row-level concerns (the Row decides them,
+  // The five that paint. `read-only` and `pending` are field/row-level concerns (the Row decides them,
   // and the brief recommends a lock affordance / a spinner swap respectively), so the atom carries no
-  // treatment and does not list them — exactly as `checkbox-control` drops `read-only`.
-  states: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled', 'error'],
+  // treatment and does not list them — exactly as `checkbox-control` drops `read-only`. `error` is NOT a
+  // state (owner Q354, #2751): validation is the `status` axis, as on the fields and the checkbox.
+  states: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled'],
 
   // `size` and `selection` — the two the control actually varies by. `[off, on]` is the family decision
   // `switch` took against the ARIA recommendation (argued at length in `switch.ts` history): the values
   // describe what is on screen, and `role="switch"` is announced "on"/"off". No indeterminate — a switch
   // is uncompromisingly binary. No tone/emphasis, no surface/inverse axis (#871).
+  // `status` is the fields' validation axis (owner Q354, #2751), its first two values only.
   variants: {
     size: ['medium', 'small'],
     selection: ['off', 'on'],
+    status: ['default', 'error'],
   },
   // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
-  // `selection` is the live toggle.
-  axisKinds: { size: 'authoring', selection: 'runtime' },
+  // `selection` is the live toggle; `status` changes as validation runs and only recolors the border.
+  axisKinds: { size: 'authoring', selection: 'runtime', status: 'runtime' },
 
   // Axis-led, most specific first — checkbox's grammar, which radio and switch inherit. `selection`
   // leads; the bare `{slot}` answers the bindings outside the grammar (`focus-ring`, `disabled.*`,
   // geometry). `lint-paint.ts` arm 1 exempts `selection` in `NON_FAMILY_AXES`.
-  paintKeys: ['{selection}.{slot}.{state}', '{selection}.{slot}', '{slot}'],
+  // The STATUS template leads (owner Q354, #2751), four segments for `checkbox-control`'s reason: the danger
+  // edge wins over the selection's border at every non-disabled state, and `default` falls through.
+  paintKeys: ['{status}.{selection}.{slot}.{state}', '{selection}.{slot}.{state}', '{selection}.{slot}', '{slot}'],
 
   tokens: {
     // ── THE OFF TRACK — a LIGHT SURFACE STEP, not the neutral button fill (owner, 2026-09-28; the
@@ -185,7 +192,6 @@ export const switchControl: ComponentDef = {
     'off.border': 'color.interactive.neutral.border.rest',
     'off.border.hover': 'color.interactive.neutral.border.hover',
     'off.border.pressed': 'color.interactive.neutral.border.pressed',
-    'off.border.error': 'color.border.danger',
     // The OFF thumb — DARK on the light track (12.36–21:1), in the border's own ink (Material 3 shares one
     // `outline` role between the unselected handle and the track outline). Not `neutral.on-fill`: that ink
     // flips light when `neutralEmphasis: 'strong'` darkens the neutral fill. Keyed by selection because no
@@ -204,7 +210,6 @@ export const switchControl: ComponentDef = {
     'on.fill': 'color.interactive.primary.fill.selected',
     'on.fill.hover': 'color.interactive.primary.fill.hover',
     'on.fill.pressed': 'color.interactive.primary.fill.pressed',
-    'on.border.error': 'color.border.danger',
     // The ON thumb — `primary.on-fill` on the on track, 4.56–19.36:1 in every mode (#1763: 2.32–2.62:1 in
     // dark before `fill.selected` took the rest step).
     'on.indicator': 'color.interactive.primary.on-fill',
@@ -212,6 +217,18 @@ export const switchControl: ComponentDef = {
     // thumb. `primary.fill.selected` is the on-track color, so the check clears the thumb at exactly the
     // on-thumb ratio (the same pairing read the other way round).
     'on.icon': 'color.interactive.primary.fill.selected',
+
+    // ── THE ERROR EDGE (owner Q354, #2751) — `status=error`, the look the old `error` state had: the danger
+    // border on the track, off and on. Bound per selection and per non-disabled state, so it holds while
+    // the pointer moves and while the track has focus. A border role, never an icon or text role (Q346).
+    'error.off.border.rest': 'color.border.danger',
+    'error.off.border.hover': 'color.border.danger',
+    'error.off.border.pressed': 'color.border.danger',
+    'error.off.border.focus-visible': 'color.border.danger',
+    'error.on.border.rest': 'color.border.danger',
+    'error.on.border.hover': 'color.border.danger',
+    'error.on.border.pressed': 'color.border.danger',
+    'error.on.border.focus-visible': 'color.border.danger',
 
     // ── FOCUS RING — on the TRACK, never the thumb (the thumb moves). The CONTROL ring
     // (`focus.ring.offset`), not a field's flush one. 4.56–5.88:1 against the page.
@@ -354,13 +371,15 @@ export const switchControl: ComponentDef = {
   figmaProperties: {
     // BOTH axes; `selection` is NOT optional — the thumb's `positionWhen` and the two glyphs' `presentWhen`
     // are keyed on it, so an unprojected `selection` would build every member with the thumb at the
-    // track's declared `justify` and no glyph. 2 selections × 2 sizes × 6 states = 24 members.
-    variantAxes: ['selection', 'size'],
-    stateAxis: { name: 'state', values: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled', 'error'] },
+    // track's declared `justify` and no glyph. `status` is orthogonal to the states (owner Q354, #2751):
+    // 2 selections × 2 sizes × 2 statuses × 5 states = 40 members. The set used to carry `state=error` (24
+    // members); `COMPONENT_RENAMES` moves each of those onto `status=error, state=rest` in place.
+    variantAxes: ['selection', 'size', 'status'],
+    stateAxis: { name: 'state', values: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled'] },
     // No `texts` (no text part), no `swaps` (the thumb is geometry this def owns), no `slotAxes` (the
     // glyphs are gated by a coordinate, which is what `presentWhen` draws). ONE boolean (owner, 2026-09-28):
     // `State icon` shows or hides the thumb glyph — the check at `on` and the X at `off` ride the one
-    // property, each carrying `visibleProp` on its own node, so the set stays at 24 (#1331's mechanism, not
+    // property, each carrying `visibleProp` on its own node, so the set stays at 40 (#1331's mechanism, not
     // a variant axis). Default ON, matching `showStateLabel`'s code default.
     booleans: { showStateLabel: { part: ['onGlyph', 'offGlyph'], default: true, figmaName: 'State icon' } },
   },
@@ -374,12 +393,12 @@ export const switchControl: ComponentDef = {
     ],
     keyboard: 'None of its own — the atom is not a tab stop. Focus, Space-to-toggle and the tab order belong to the host input; the ring here renders the host\'s :focus-visible state.',
     focus: 'The nested focus ring surrounds the track on :focus-visible, never the thumb (the thumb moves, so a ring traveling with it reads as two indicators). Offset, keyboard traversal only.',
-    aria: 'When nested in a host row, the host provides the accessible name through aria-labelledby — never double-label. The role is switch, announced "on"/"off"; putting aria-pressed on it corrupts the announcement (that is a toggle button). The glyph is decorative (aria-hidden) — the role+state already carries on/off.',
+    aria: 'When nested in a host row, the host provides the accessible name through aria-labelledby — never double-label. The role is switch, announced "on"/"off"; putting aria-pressed on it corrupts the announcement (that is a toggle button). The glyph is decorative (aria-hidden) — the role+state already carries on/off. The danger border at status=error is never the only signal: the host row sets aria-invalid and its message names the error.',
   },
 
   content: {
     labelPattern: 'None — the atom carries no label. The setting name and its rules live on Switch.Row (switch-row).',
-    errorPattern: 'None of its own — an outcome-error boundary is a color treatment the host coordinate selects; the message is the Row\'s.',
+    errorPattern: 'None of its own — the error boundary is the status=error danger border the host row sets; the message is the Row\'s.',
   },
 
   docs: {

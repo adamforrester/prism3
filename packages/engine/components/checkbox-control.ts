@@ -96,29 +96,45 @@ export const checkboxControl: ComponentDef = {
     { name: 'indeterminate', type: 'boolean', default: false, required: false, description: 'The mixed appearance — the dash glyph. Presentational, for parent/child select-all hierarchy, never a third value a user clicks to; the host carries aria-checked="mixed".' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Scales the control square (both axes from one key, square by construction), its corner and its glyph. The host row passes its own size through by follow, so the nested control tracks the row.' },
     { name: 'disabled', type: 'boolean', default: false, required: false, description: 'The disabled skin — a contrast-exempt fill/border/glyph treatment. Set on the host, followed here.' },
+    // THE FIELDS' VALIDATION API (owner Q354, #2751): one prop name across every control that can be invalid,
+    // projected as the `status` axis. A checkbox carries the first two of the fields' four values only.
+    { name: 'validation', type: "enum: 'default' | 'error'", values: ['default', 'error'], default: 'default', required: false, description: 'The validation status. error draws the danger border on the box at every interaction state; default is neutral. Set by the host row, or by the group around it, and followed here.' },
     { name: 'aria-label', type: 'string', required: false, description: 'Required only for a genuinely standalone control with no host row to name it — the Row provides the accessible name through the label, so a nested control must not double-label.' },
   ],
 
-  // The six that paint. `read-only` is a field-level concern (the Row/Group decide it, and the brief
+  // The five that paint. `read-only` is a field-level concern (the Row/Group decide it, and the brief
   // recommends static text over a styled locked control), so the atom carries no read-only treatment and
-  // does not list the state — there is nothing here for it to be.
-  states: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled', 'error'],
+  // does not list the state — there is nothing here for it to be. `error` is NOT a state (owner Q354,
+  // #2751): validation is the `status` axis, as on the fields, so an errored box still hovers and focuses.
+  states: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled'],
 
-  // `size` and `selection` — the two the box actually varies by. No tone/emphasis (a checkbox is
-  // neutral), no surface/inverse axis (a control does not ask which ground it stands on, #871).
+  // `size`, `selection` and `status` — what the box actually varies by. No tone/emphasis (a checkbox is
+  // neutral), no surface/inverse axis (a control does not ask which ground it stands on, #871). `status` is
+  // the fields' validation axis (owner Q354, #2751), its first two values only: a checkbox is valid or not,
+  // and has no warning or success look.
   variants: {
     size: ['medium', 'small', 'large'],
     selection: ['unchecked', 'checked', 'indeterminate'],
+    status: ['default', 'error'],
   },
   // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
-  // `selection` is the live toggle — a checked box must measure what an unchecked one does.
-  axisKinds: { size: 'authoring', selection: 'runtime' },
+  // `selection` is the live toggle — a checked box must measure what an unchecked one does. `status` changes
+  // as validation runs, and only recolors the border.
+  axisKinds: { size: 'authoring', selection: 'runtime', status: 'runtime' },
 
   // Axis-led, most specific first — the grammar `checkbox` established and `radio`/`switch` inherit.
   // `selection` leads; the bare `{slot}` answers the bindings that do not vary by selection and the ones
   // outside the grammar (`focus-ring`, `disabled.*`, geometry). `lint-paint.ts` arm 1 exempts `selection`
   // in `NON_FAMILY_AXES`; this def is now the first consumer that exercises that exemption.
-  paintKeys: ['{selection}.{slot}.{state}', '{selection}.{slot}', '{slot}'],
+  //
+  // THE STATUS TEMPLATE LEADS (owner Q354, #2751): `error.<selection>.border.<state>` is bound per selection
+  // and per non-disabled state, so the danger edge WINS over the selection's own border at every
+  // interaction and does not blink off as the pointer moves. `default` binds nothing and falls through to
+  // the selection keys. A disabled box takes the disabled skin whatever its status, as a disabled field does.
+  // FOUR segments, deliberately: a 3-segment `{status}.{slot}.{state}` has the arity of
+  // `{selection}.{slot}.{state}`, so each would read the other's keys with an unsupplied value (the trap the
+  // fields avoid the same way, by keeping their two vocabularies at different lengths).
+  paintKeys: ['{status}.{selection}.{slot}.{state}', '{selection}.{slot}.{state}', '{selection}.{slot}', '{slot}'],
 
   tokens: {
     // ── THE UNCHECKED BOX — the form-field substrate's chrome; an empty checkbox is a small empty
@@ -134,16 +150,14 @@ export const checkboxControl: ComponentDef = {
     // is deliberate and correct — a reader must not "fix" it by adding a pressed border token.
     'unchecked.border': 'color.field.border.rest',
     'unchecked.border.hover': 'color.field.border.hover',
-    'unchecked.border.error': 'color.border.danger',
 
     // ── THE CHECKED BOX — a filled control off the primary interactive family. No structural border
     // (#1011): a primary fill clears SC 1.4.11 against the page everywhere, so the fill IS the boundary
-    // and a same-family border can only agree invisibly or disagree visibly. `border.error` stays — a
-    // cross-family danger edge is signaling, not bounding.
+    // and a same-family border can only agree invisibly or disagree visibly. The status=error edge below
+    // still draws on it — a cross-family danger edge is signaling, not bounding.
     'checked.fill': 'color.interactive.primary.fill.selected',
     'checked.fill.hover': 'color.interactive.primary.fill.hover',
     'checked.fill.pressed': 'color.interactive.primary.fill.pressed',
-    'checked.border.error': 'color.border.danger',
     'checked.icon': 'color.interactive.primary.on-fill',
 
     // ── THE INDETERMINATE BOX — identical to checked at every coordinate; only the GLYPH differs (dash,
@@ -152,8 +166,24 @@ export const checkboxControl: ComponentDef = {
     'indeterminate.fill': 'color.interactive.primary.fill.selected',
     'indeterminate.fill.hover': 'color.interactive.primary.fill.hover',
     'indeterminate.fill.pressed': 'color.interactive.primary.fill.pressed',
-    'indeterminate.border.error': 'color.border.danger',
     'indeterminate.icon': 'color.interactive.primary.on-fill',
+
+    // ── THE ERROR EDGE (owner Q354, #2751) — `status=error`, the look the old `error` state had: the danger
+    // border on the box, at every selection. Bound per selection and per non-disabled state so it holds
+    // while the pointer moves and while the box has focus. A border role, never an icon or text role (owner
+    // rule Q346).
+    'error.unchecked.border.rest': 'color.border.danger',
+    'error.unchecked.border.hover': 'color.border.danger',
+    'error.unchecked.border.pressed': 'color.border.danger',
+    'error.unchecked.border.focus-visible': 'color.border.danger',
+    'error.checked.border.rest': 'color.border.danger',
+    'error.checked.border.hover': 'color.border.danger',
+    'error.checked.border.pressed': 'color.border.danger',
+    'error.checked.border.focus-visible': 'color.border.danger',
+    'error.indeterminate.border.rest': 'color.border.danger',
+    'error.indeterminate.border.hover': 'color.border.danger',
+    'error.indeterminate.border.pressed': 'color.border.danger',
+    'error.indeterminate.border.focus-visible': 'color.border.danger',
 
     // ── FOCUS RING — the CONTROL ring (offset 2), not the field's flush ring. Bound, not authored: the
     // ring is a separate def reached through the `focusRing` part's `nests`.
@@ -261,11 +291,13 @@ export const checkboxControl: ComponentDef = {
   },
 
   figmaProperties: {
-    // BOTH axes; `selection` is not optional — `presentWhen` gates the two glyph parts on it, so an
-    // unprojected `selection` would make the mark absent from every member. 3 selections × 3 sizes × 6
-    // states = 54 members.
-    variantAxes: ['selection', 'size'],
-    stateAxis: { name: 'state', values: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled', 'error'] },
+    // ALL THREE axes; `selection` is not optional — `presentWhen` gates the two glyph parts on it, so an
+    // unprojected `selection` would make the mark absent from every member. `status` is orthogonal to the
+    // states (owner Q354, #2751): 3 selections × 3 sizes × 2 statuses × 5 states = 90 members. The set used to
+    // carry `state=error` (54 members); `COMPONENT_RENAMES` moves each of those onto `status=error, state=rest`
+    // in place, so an instance placed at error keeps showing it.
+    variantAxes: ['selection', 'size', 'status'],
+    stateAxis: { name: 'state', values: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled'] },
     // No `texts` (no text part), no `swaps` (the mark is geometry this def owns), no `slotAxes` (both
     // glyph parts are gated by a coordinate, which is what `presentWhen` draws).
     booleans: {},
@@ -280,12 +312,12 @@ export const checkboxControl: ComponentDef = {
     ],
     keyboard: 'None of its own — the atom is not a tab stop. Focus, Space-to-toggle and the tab order belong to the host input; the ring here renders the host\'s :focus-visible state.',
     focus: 'The nested focus ring surrounds the square on :focus-visible, offset so an unbroken sliver of background separates the ring from the control\'s own border (WCAG 1.4.11). Keyboard traversal only, never mouse or touch.',
-    aria: 'When nested in a host row, the host provides the accessible name through aria-labelledby — never double-label. Relying on the visual dash glyph alone to convey indeterminate is a failure; aria-checked="mixed" carries it, and the host sets it.',
+    aria: 'When nested in a host row, the host provides the accessible name through aria-labelledby — never double-label. Relying on the visual dash glyph alone to convey indeterminate is a failure; aria-checked="mixed" carries it, and the host sets it. The danger border at status=error is never the only signal: the host sets aria-invalid (on the row for a standalone choice, on the group for a set) and its message names the error.',
   },
 
   content: {
     labelPattern: 'None — the atom carries no label. The consent line and its rules live on Checkbox.Row (checkbox-row).',
-    errorPattern: 'None of its own — an error boundary is a color treatment the host coordinate selects; the message is Checkbox.Group\'s (checkbox-group).',
+    errorPattern: 'None of its own — the error boundary is the status=error danger border, set by the host row or group; the message is the host\'s (Checkbox.Group shows it under its options).',
   },
 
   docs: {

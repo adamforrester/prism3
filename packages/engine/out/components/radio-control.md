@@ -17,7 +17,7 @@ The atomic radio control — the painted circle with its inner selection dot and
 
 ## Anatomy
 
-Shown on the default member: size `medium`, selection `unchecked`.
+Shown on the default member: size `medium`, selection `unchecked`, status `default`.
 
 1. **Control**
 2. **Dot**
@@ -29,6 +29,7 @@ Shown on the default member: size `medium`, selection `unchecked`.
 | --- | --- | --- | --- |
 | `size` | `medium`, `small`, `large` | once, when authored | Scales the control circle (both axes from one key, round by construction) and the inner dot. Both read control.size.*, which moves a rung with brand density; icon.size.* would resolve and measure the wrong thing (the glyph artboard ladder). The host row passes its own size through by follow, so the nested control tracks the row. |
 | `selection` | `unchecked`, `checked` | at runtime | — |
+| `status` | `default`, `error` | at runtime | — |
 
 ### States
 
@@ -58,7 +59,7 @@ Do not place this on its own. It is the circle Radio.Row nests, so a fix to its 
 - **Focus:** The nested focus ring surrounds the circle on :focus-visible, offset so an unbroken sliver of background separates the ring from the control's own border (WCAG 1.4.11). Circular, because the host is full-round. Keyboard traversal only.
 - **Screen readers:** The visual control only — the accessible radio role, name and aria-checked belong to the host input the Row wires, and the exclusivity and roving-tabindex keyboard model to Radio.Group. A standalone use must supply role and name itself.
 
-  When nested in a host row, the host provides the accessible name through aria-labelledby — never double-label. The role is radio; a lone radio announces "radio button, 1 of N" with no indication of what is being chosen, which is why the group label is mandatory and lives on Radio.Group, not here.
+  When nested in a host row, the host provides the accessible name through aria-labelledby — never double-label. The role is radio; a lone radio announces "radio button, 1 of N" with no indication of what is being chosen, which is why the group label is mandatory and lives on Radio.Group, not here. The danger ring at status=error comes from the group and is never the only signal: aria-invalid and the error message belong to the group, announced once.
 
 ### WCAG
 
@@ -77,7 +78,7 @@ Do not place this on its own. It is the circle Radio.Row nests, so a fix to its 
 The atom has no copy of its own; all label, description and error text belongs to the row and the group that compose it.
 
 - **Labels:** None — the atom carries no label. The option label and its rules live on Radio.Row (radio-row); the decision it belongs to lives on Radio.Group (radio-group).
-- **Errors:** None — radio error is group-level only, never per-option, so this atom has no error state and no error ring. The group carries the message and the error display.
+- **Errors:** None of its own — radio error is group-level only. The Radio group sets status=error on every option, which draws the danger ring, and shows the message under them.
 
 ## Related components
 
@@ -97,6 +98,7 @@ The atom has no copy of its own; all label, description and error text belongs t
 | `checked` | boolean | — | no | The selected appearance — the inner dot present. Driven by the host row from the group's scalar value — a bare Radio.Control is styled by the coordinate, not wired to state here, and never holds a boolean of its own (selection is group.value === option.value). |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | Scales the control circle (both axes from one key, round by construction) and the inner dot. Both read control.size.*, which moves a rung with brand density; icon.size.* would resolve and measure the wrong thing (the glyph artboard ladder). The host row passes its own size through by follow, so the nested control tracks the row. |
 | `disabled` | boolean | `false` | no | The disabled skin — a contrast-exempt border/dot treatment. Set on the host, followed here. |
+| `validation` | enum: 'default' \| 'error' | `default` | no | The validation status, set by the Radio group and never by one radio alone: the group passes it to every option, so error draws the danger ring on all of them at once. default is neutral. |
 | `aria-label` | string | — | no | Required only for a genuinely standalone control with no host row to name it — the Row provides the accessible name, so a nested control must not double-label. |
 
 ---

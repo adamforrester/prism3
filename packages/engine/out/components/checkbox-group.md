@@ -17,19 +17,21 @@ A labeled set for selecting any number — zero to many — from a bounded list 
 
 ## Anatomy
 
-Shown on the default member: size `medium`.
+Shown on the default member: size `medium`, status `default`.
 
 1. **Label** — The group heading and accessible name, composed rather than re-declared. Starts secondary and bold; its label text, required marker, emphasis and weight surface on the group. Its size follows the group; a fix to FieldLabel reaches here without a copy. Fills the group's width; a long heading wraps at FieldLabel's max width.
 2. **Items** — The items: a native slot holding the Checkbox.Row instances, three by default. A designer adds, removes and reorders rows in place.
 3. **Row1** — The first Checkbox.Row — always present. Nests the labeled row (which nests the control), following the group's size. Fills the group's width. Its checked state is derived from the group's value array, not wired here.
 4. **Row2** — The second default item: a Checkbox.Row, the same nest configuration as the first, including the group-width fill.
 5. **Row3** — The third default item: a Checkbox.Row, the same nest configuration as the first, including the group-width fill.
+6. **Message** — The group's validation message under the options, a nested FieldMessage present only when the group is at error. Its status follows the group's, so it shows the error glyph and ink. Fills the group's width, so a long message wraps.
 
 ## Styles
 
 | Axis | Values | Changes | Description |
 | --- | --- | --- | --- |
 | `size` | `medium`, `small`, `large` | once, when authored | Scales the group — the label's type and every row (control square, label ramp, gap) together, passed into the nested FieldLabel and rows by follow, so the group scales with the rest of the form. |
+| `status` | `default`, `error` | at runtime | — |
 
 ## Usage guidelines
 
@@ -57,13 +59,13 @@ Use to select any number — zero to many — from a bounded set, where the chan
 - **Focus:** Focus lands on each row's control in turn; the group container is not itself focusable. On a validation error, move focus to the first invalid group (its label / first row) and announce the group-level message.
 - **Screen readers:** group (role="group" on the container, or a native \<fieldset>) with aria-labelledby pointing at the FieldLabel; each row is a native \<input type="checkbox">
 
-  Prefer role="group" on a div plus aria-labelledby over \<fieldset>/\<legend>: both are valid, but fieldset has flexbox/grid quirks that make it hard to style, and role="group" keeps the layout freedom while preserving the shared-label announcement. The group owns required and error — aria-required and aria-invalid associate to the group and announce once; an individual row never owns its own required or error. Do not double-label: the rows carry their short labels, the group carries the decision.
+  Prefer role="group" on a div plus aria-labelledby over \<fieldset>/\<legend>: both are valid, but fieldset has flexbox/grid quirks that make it hard to style, and role="group" keeps the layout freedom while preserving the shared-label announcement. The group owns required and error — aria-required and aria-invalid associate to the group and announce once, and the group's message joins its aria-describedby; an individual row never owns its own required or error. The group passes its status to every row, so the rows show the error without each claiming it. Do not double-label: the rows carry their short labels, the group carries the decision.
 
 ### WCAG
 
 - 1.3.1 Info and Relationships (the group structure — role="group" + the shared label — is the meaning)
 - 3.3.2 Labels or Instructions (the group label, announced once for the set)
-- 3.3.1 Error Identification / 3.3.3 Error Suggestion — the intent, at the group level and announced once. The group error display is not designed yet, so Checkbox.Group does not meet either today.
+- 3.3.1 Error Identification / 3.3.3 Error Suggestion — at the group level, announced once: at status=error every row draws the danger border and the message under the options says what is wrong and how to fix it. The border is never the only signal.
 - 4.1.2 Name Role Value (the group name via aria-labelledby; each row carries its own checked / mixed)
 - 2.4.13 Focus Appearance / 1.4.11 Non-text Contrast (the control boundary and focus indicator, on each row)
 - 2.5.8 Target Size (each row is its own target — the group does not change that)
@@ -80,13 +82,13 @@ Use to select any number — zero to many — from a bounded set, where the chan
 The group label names the decision; the rows carry the short options. Group errors read "Select at least one option" rather than "Invalid".
 
 - **Labels:** The group label names the decision or asks the question ("Notification preferences", "Which contact methods?"), abstracting the shared word up so its rows read the short remainder ("Email", "SMS", "Push"). Sentence case, no trailing colon — FieldLabel's rules.
-- **Errors:** Group-level and specific — "Select at least one option", stating what is wrong and how to fix it (SC 3.3.3), never "Invalid". The rows stay neutral; the group carries the message. The error visual is not designed yet.
+- **Errors:** Group-level and specific — "Select at least one option", stating what is wrong and how to fix it (SC 3.3.3), never "Invalid". The group sets status=error on every row (the danger border on each box) and shows the message once, under the options.
 
 ## Related components
 
-- **Built from:** `checkbox-row`, `field-label`
+- **Built from:** `checkbox-row`, `field-label`, `field-message`
 - **Instead, consider:** `radio-group`, `switch-row`
-- **Often used with:** `checkbox-control`, `field-message`
+- **Often used with:** `checkbox-control`
 - **Replaces:**
   - a bare set of \<input type="checkbox"> with no shared label or group wiring
   - per-row required / error scattered across the options instead of owned by the group
@@ -105,6 +107,8 @@ The group label names the decision; the rows carry the short options. Group erro
 | `required` | boolean | `false` | no | Whether at least one option must be chosen. Off by default. Drives the nested FieldLabel's required marker and aria-required on the group. Group-level: an individual row never owns its own required. A form that marks the optional minority instead sets this false. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | Scales the group — the label's type and every row (control square, label ramp, gap) together, passed into the nested FieldLabel and rows by follow, so the group scales with the rest of the form. |
 | `name` | string | — | no | A shared control name so the set submits as one field and works uncontrolled in a native form. |
+| `validation` | enum: 'default' \| 'error' | `default` | no | The group's validation status. error passes to every row, which draws the danger border on each box, shows validationMessage under the options, and sets aria-invalid on the group. default is neutral. Set it here, never on one row. |
+| `validationMessage` | string \| node | — | no | The error text shown under the options at error, added to the group's aria-describedby. Say what is wrong and how to fix it (SC 3.3.3): "Select at least one option", never "Invalid". |
 | `disabled` | boolean | `false` | no | Disables the whole set — every row and the label dim, driven by the group's context (the field's native disabled is the source of truth). The group has no disabled treatment of its own. |
 
 ---

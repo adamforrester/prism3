@@ -17,7 +17,7 @@ The atomic checkbox control — the painted square with its check or dash glyph 
 
 ## Anatomy
 
-Shown on the default member: size `medium`, selection `unchecked`.
+Shown on the default member: size `medium`, selection `unchecked`, status `default`.
 
 1. **Control**
 2. **Mark**
@@ -30,10 +30,11 @@ Shown on the default member: size `medium`, selection `unchecked`.
 | --- | --- | --- | --- |
 | `size` | `medium`, `small`, `large` | once, when authored | Scales the control square (both axes from one key, square by construction), its corner and its glyph. The host row passes its own size through by follow, so the nested control tracks the row. |
 | `selection` | `unchecked`, `checked`, `indeterminate` | at runtime | — |
+| `status` | `default`, `error` | at runtime | — |
 
 ### States
 
-`rest`, `hover`, `pressed`, `focus-visible`, `disabled`, `error`
+`rest`, `hover`, `pressed`, `focus-visible`, `disabled`
 
 ## Usage guidelines
 
@@ -60,7 +61,7 @@ Do not place this on its own as a form control. It is the box Checkbox.Row nests
 - **Focus:** The nested focus ring surrounds the square on :focus-visible, offset so an unbroken sliver of background separates the ring from the control's own border (WCAG 1.4.11). Keyboard traversal only, never mouse or touch.
 - **Screen readers:** The visual control only — the accessible checkbox role, name and aria-checked (true/false/mixed) belong to the host input the Row wires. A standalone use must supply role and name itself.
 
-  When nested in a host row, the host provides the accessible name through aria-labelledby — never double-label. Relying on the visual dash glyph alone to convey indeterminate is a failure; aria-checked="mixed" carries it, and the host sets it.
+  When nested in a host row, the host provides the accessible name through aria-labelledby — never double-label. Relying on the visual dash glyph alone to convey indeterminate is a failure; aria-checked="mixed" carries it, and the host sets it. The danger border at status=error is never the only signal: the host sets aria-invalid (on the row for a standalone choice, on the group for a set) and its message names the error.
 
 ### WCAG
 
@@ -79,7 +80,7 @@ Do not place this on its own as a form control. It is the box Checkbox.Row nests
 The atom has no copy of its own; all label, description and error text belongs to the row and the group that compose it.
 
 - **Labels:** None — the atom carries no label. The consent line and its rules live on Checkbox.Row (checkbox-row).
-- **Errors:** None of its own — an error boundary is a color treatment the host coordinate selects; the message is Checkbox.Group's (checkbox-group).
+- **Errors:** None of its own — the error boundary is the status=error danger border, set by the host row or group; the message is the host's (Checkbox.Group shows it under its options).
 
 ## Related components
 
@@ -99,6 +100,7 @@ The atom has no copy of its own; all label, description and error text belongs t
 | `indeterminate` | boolean | `false` | no | The mixed appearance — the dash glyph. Presentational, for parent/child select-all hierarchy, never a third value a user clicks to; the host carries aria-checked="mixed". |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | Scales the control square (both axes from one key, square by construction), its corner and its glyph. The host row passes its own size through by follow, so the nested control tracks the row. |
 | `disabled` | boolean | `false` | no | The disabled skin — a contrast-exempt fill/border/glyph treatment. Set on the host, followed here. |
+| `validation` | enum: 'default' \| 'error' | `default` | no | The validation status. error draws the danger border on the box at every interaction state; default is neutral. Set by the host row, or by the group around it, and followed here. |
 | `aria-label` | string | — | no | Required only for a genuinely standalone control with no host row to name it — the Row provides the accessible name through the label, so a nested control must not double-label. |
 
 ---
