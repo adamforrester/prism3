@@ -255,7 +255,7 @@ export const tab: ComponentDef = {
     avoidWhen: 'Changing the page or the address (a navigation of links), or switching a value within the current view (SegmentedControl).',
     commonPartners: ['tabs', 'icon', 'badge'],
     triggerKeywords: ['tab', 'tab trigger', 'tab item'],
-    generationPriority: 3,
+    generationPriority: 9,
   },
 
   composition: {

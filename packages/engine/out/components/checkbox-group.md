@@ -61,7 +61,7 @@ The group label names the decision; the rows carry the short options. Group erro
 
 ## States
 
-`rest`
+None — not interactive.
 
 ## Variants
 

@@ -45,7 +45,7 @@
  * wash, the focus ring 3:1 against the track and the page (`test.ts`, #2724).
  *
  * ── THE CONTROL ────────────────────────────────────────────────────────────────────────────────────────
- * `size` only = 3 members. An optional nested FieldLabel above a filled TRACK with no outline, holding a native `items`
+ * `size` only = 3 members. An optional nested FieldLabel (emphasis and weight exposed, bold by default; Q348 A) above a filled TRACK with no outline, holding a native `items`
  * slot (#2649, owner decision Q307 A) of nested segments following `size`: three by default, five at most, segment 1
  * selected. Until #2649 the track held five segments, `nest-exposed` (`selection`, `state`), 3 to 5 behind Figma-only
  * booleans (#2344); in the slot they are `nest-fixed`, and a designer sets each one's selection on the segment itself.
@@ -336,7 +336,7 @@ export const segmentedControl: ComponentDef = {
     { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Disables every option and takes the control out of the Tab order.' },
   ],
 
-  states: ['rest'],
+  states: [],
   variants: { size: ['medium', 'small', 'large'] },
   axisKinds: { size: 'authoring' },
 
@@ -368,10 +368,10 @@ export const segmentedControl: ComponentDef = {
       label: {
         kind: 'nest',
         nests: 'field-label',
-        nesting: { kind: 'nest-fixed', variant: { size: 'medium', emphasis: 'secondary', weight: 'bold', state: 'rest' }, follow: ['size'] },
+        nesting: { kind: 'nest-exposed', variant: { size: 'medium', emphasis: 'secondary', weight: 'bold', state: 'rest' }, expose: ['emphasis', 'weight'], follow: ['size'] },
         crossAxisFill: true,
         optional: true,
-        note: 'The visible label, naming what is being chosen. Shown by default.',
+        note: 'The visible label, naming what is being chosen. Shown by default. Starts secondary and bold; its label text, required marker, emphasis and weight surface on the control (Q348 A).',
       },
       track: {
         kind: 'box',
@@ -471,7 +471,7 @@ export const segmentedControl: ComponentDef = {
     avoidWhen: 'The options switch panels of content (use tabs), there are more than five or the labels are long (use a select or a radio group), options need descriptions (use a radio group), it is one on/off setting (use a switch), or selecting goes to another page (a navigation of links).',
     commonPartners: ['segmented-control-segment', 'field-label', 'icon'],
     triggerKeywords: ['segmented control', 'segmented button', 'view switcher', 'content switcher', 'toggle group', 'list grid toggle'],
-    generationPriority: 4,
+    generationPriority: 3,
   },
 
   composition: {
