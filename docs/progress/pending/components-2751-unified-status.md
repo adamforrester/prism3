@@ -19,3 +19,8 @@
 
 **Merged `main` at `36f2e0fc` (cloud lane, landing train 3).** `test-update-apply.ts` conflicted with #2742's list
 marker-column section; the two are independent sections and both are kept.
+
+**Merged `main` at `64949a01` (cloud lane, landing train 3).** #2765 (#2715) landed first with Radio group's sibling
+tests, written against the size-only group. Its two literal arms now state this PR's shape, as checkbox-group's twin arm
+already does: six members (status × size), each row following the group's size and status, and the nested message under
+the items at `status=error` only. Mutation: one row's `follow` back to `['size']` → `#2715 radio-group nesting`.

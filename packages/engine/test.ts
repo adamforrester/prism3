@@ -29221,16 +29221,20 @@ arm: {
   ok(!!g, '#2715 radio-group: registered in componentDefs');
   type PN = { name: string; type?: string; children: PN[]; nestTarget?: string; nestVariant?: Record<string, string>; visible?: boolean; visibleProp?: string; layoutAlign?: string; slotSettings?: Record<string, unknown>; slotPreferred?: string[] };
   const members = figmaAnatomySet(g!, { swapTarget: 'FPO-default-icon' });
-  const NAMES = ['size=medium', 'size=small', 'size=large'];
+  // 6 since #2751 (owner Q354): `status` (default, error) joins `size`, as on checkbox-group.
+  const NAMES = ['default', 'error'].flatMap((status) => ['medium', 'small', 'large'].map((size) => `status=${status}, size=${size}`));
   ok(JSON.stringify(members.map(planComponentName).sort()) === JSON.stringify([...NAMES].sort()),
-    `#2715 radio-group set size: exactly three members, one per size (${NAMES.join(', ')}); the rows' selection is not re-enumerated into the group's own matrix (got ${JSON.stringify(members.map(planComponentName))})`);
+    `#2715 radio-group set size: exactly six members, one per status × size (${NAMES.join(', ')}); the rows' selection is not re-enumerated into the group's own matrix (got ${JSON.stringify(members.map(planComponentName))})`);
   const sorted = (r: Record<string, string> | undefined) => JSON.stringify(Object.entries(r ?? {}).sort());
   // Owner decision Q307 A (#2649): the rows live in a native "items" slot, three by default, at least one, only a Radio.Row.
   const off = members.flatMap((m) => {
     const size = (m.size ?? (m.coord as Record<string, string>).size) as string;
+    const status = (m.coord as Record<string, string>).status;
     const root = m.root as PN;
     const bad: string[] = [];
-    if (JSON.stringify(root.children.map((c) => c.name)) !== JSON.stringify(['label', 'items'])) bad.push(`children ${root.children.map((c) => c.name).join(',')}`);
+    // #2751 (owner Q354): an errored group adds its message under the items (its nest pinned by the `#2751 radio-group` arm).
+    const want = status === 'error' ? ['label', 'items', 'message'] : ['label', 'items'];
+    if (JSON.stringify(root.children.map((c) => c.name)) !== JSON.stringify(want)) bad.push(`children ${root.children.map((c) => c.name).join(',')}`);
     const label = root.children.find((c) => c.name === 'label');
     if (label?.nestTarget !== 'field-label' || sorted(label.nestVariant) !== sorted({ size, emphasis: 'secondary', weight: 'bold', state: 'rest' }))
       bad.push(`label ${String(label?.nestTarget)} ${JSON.stringify(label?.nestVariant)}`);
@@ -29241,13 +29245,13 @@ arm: {
     const rows = items?.children ?? [];
     if (JSON.stringify(rows.map((r) => r.name)) !== JSON.stringify(['row1', 'row2', 'row3'])) bad.push(`items holds ${rows.map((r) => r.name).join(',')}`);
     for (const r of rows) {
-      if (r.nestTarget !== 'radio-row' || sorted(r.nestVariant) !== sorted({ size }) || r.layoutAlign !== 'STRETCH') bad.push(`${r.name} ${String(r.nestTarget)} ${JSON.stringify(r.nestVariant)} ${String(r.layoutAlign)}`);
+      if (r.nestTarget !== 'radio-row' || sorted(r.nestVariant) !== sorted({ size, status }) || r.layoutAlign !== 'STRETCH') bad.push(`${r.name} ${String(r.nestTarget)} ${JSON.stringify(r.nestVariant)} ${String(r.layoutAlign)}`);
       if (r.visibleProp !== undefined || r.visible === false) bad.push(`${r.name} visibleProp ${String(r.visibleProp)}, visible ${String(r.visible)}`);
     }
     return bad.length ? [`${planComponentName(m)}: ${bad.join('; ')}`] : [];
   });
   ok(off.length === 0,
-    `#2715 radio-group nesting: on every member, one FieldLabel (secondary, bold, rest) then an items slot (at least one, preferred-only Radio.Row, stretched) holding three Radio.Rows, each following the group's size, none behind a boolean (${off.length} off — ${off[0] ?? 'none'})`);
+    `#2715 radio-group nesting: on every member, one FieldLabel (secondary, bold, rest) then an items slot (at least one, preferred-only Radio.Row, stretched) holding three Radio.Rows, each following the group's size and status, none behind a boolean (${off.length} off — ${off[0] ?? 'none'})`);
   const parts = Object.values(g!.anatomy!.parts);
   ok(parts.filter((p) => p.kind === 'nest' && p.nests === 'radio-row').every((p) => p.nesting?.kind === 'nest-fixed')
     && !parts.some((p) => p.nests === 'radio-control'),
