@@ -4328,7 +4328,7 @@ const main = async (): Promise<void> => {
       // A retired legacy table in its own frame to the right: left alone (its removal waits on the owner's confirm).
       const legacy = new N('FRAME'); legacy.name = 'Inverse'; legacy.w = 3000; legacy.h = 2000; f.sem.appendChild(legacy); legacy.x = owner.width + 2000; legacy.y = 0;
       const clipped = (): number => (owner.x + owner.width - 161) - (owner.x + grid.x + grid.width);
-      return { f, owner, grid, inverses, borders, fonts, legacy, clipped };
+      return { f, owner, grid, inverses, borders, fonts, legacy, clipped, oneRowH };
     };
     const { f, owner, grid, inverses, borders, fonts, legacy, clipped } = await measured();
     const want = inverses.length;
@@ -4382,6 +4382,22 @@ const main = async (): Promise<void> => {
     await draw(m.f.api, contract);
     const mAgain = pageFrames(m.f.sem).map((n) => `${n.name} ${n.x},${n.y} ${n.width}×${n.height}`).join('; ');
     ok(mAgain === mSnap, `39: with a frame beside, a rerun moves and resizes nothing (${mAgain === mSnap ? 'same' : `${mSnap} → ${mAgain}`})`);
+
+    // A FRAME BELOW, WITHIN A HEIGHT GROWTH: the owner's frame FIXED in height too, shorter than its one-row grid, with a
+    // caption of theirs 100 under it. The frame grows to fit and pushes the caption down; Inverse colors, placed under the
+    // frame, is never swept along with the caption, so it stays directly below and a rerun moves nothing.
+    const h = await measured();
+    const hh = h.oneRowH - 1000;
+    h.owner.counterAxisSizingMode = 'FIXED'; h.owner.h = hh;
+    const cap = new N('FRAME'); cap.name = 'Caption'; cap.w = 2000; cap.h = 200; h.f.sem.appendChild(cap); cap.x = 0; cap.y = hh + 100;
+    await draw(h.f.api, contract);
+    const hInv = groupFrame(h.f.sem, 'Inverse colors');
+    ok(h.owner.height > hh && !!hInv && hInv.y === h.owner.y + h.owner.height + 320 && cap.y >= h.owner.y + h.owner.height && pageOverlaps(h.f.sem).length === 0,
+      `39: a frame below that a height growth reaches moves down, and Inverse colors stays directly below, never pushed with it (frame ${hh} → ${h.owner.height} tall; Caption at ${cap.y}; Inverse colors at ${hInv?.y}, want ${h.owner.y + h.owner.height + 320}; ${pageOverlaps(h.f.sem).join('; ') || 'no overlap'})`);
+    const hSnap = pageFrames(h.f.sem).map((n) => `${n.name} ${n.x},${n.y} ${n.width}×${n.height}`).join('; ');
+    await draw(h.f.api, contract);
+    const hAgain = pageFrames(h.f.sem).map((n) => `${n.name} ${n.x},${n.y} ${n.width}×${n.height}`).join('; ');
+    ok(hAgain === hSnap, `39: with a frame below the growth, a rerun moves and resizes nothing (${hAgain === hSnap ? 'same' : `${hSnap} → ${hAgain}`})`);
   }
 
   if (failures) { console.error(`\n${failures} style-guide check(s) failed`); process.exit(1); }
