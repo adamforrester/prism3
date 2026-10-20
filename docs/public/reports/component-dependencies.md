@@ -114,7 +114,7 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | counter | message | nest | field-message | nest-fixed | status=default | — | — |
 | dialog | actionsInline | nest | button-group | nest-fixed | layout=inline | — | — |
 | dialog | actionsStacked | nest | button-group | nest-fixed | layout=stacked | — | — |
-| dialog | close | nest | flush-icon-button-neutral | nest-fixed | shape=round, size=medium, state=rest | — | — |
+| dialog | close | nest | flush-icon-button-neutral | nest-fixed | shape=flush, size=medium, state=rest | — | — |
 | dialog | footerDivider | nest | divider | nest-fixed | orientation=horizontal, inset=none | — | — |
 | dialog | headerDivider | nest | divider | nest-fixed | orientation=horizontal, inset=none | — | — |
 | flush-icon-button | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
