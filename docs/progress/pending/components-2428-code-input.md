@@ -3,14 +3,14 @@
 Built from the owner's decisions on #2428: Q321 A (all but cell count), Q329 A (cell count is a native `items` slot of
 a Code cell part, 6 by default, 4 to 8), Q330 A (four sizes plus fill width), and the as-built wireframe approved
 2026-10-16. Two defs in `packages/engine/components/code-input.ts`: `code-input` (48 members) and `code-input-cell` (28).
-Stacked on #2660 (the items-slot pattern, not yet merged), with current `main` merged in.
+Built on #2660's items-slot pattern (merged), with current `main` merged in.
 
 ### What the build had to decide
 
-- **The cell has no `_` yet.** Q349 gives a parent-only part the `_` prefix, and Q329 makes the cell the slot's
+- **The cell has no `_`.** Q349 gives a parent-only part the `_` prefix, and Q329 makes the cell the slot's
   preferred value. #2657's slot projection refuses a `_` id as a preferred value, because Figma leaves a `_` component
   out of a published library and a consuming file's slot could not offer it. Built as `code-input-cell` (recommendation
-  A), with an Owner question on #2428. The rename sweep meets the same collision for the segmented-control segment,
+  A), confirmed by Q394 A on #2783. The rename sweep meets the same collision for the segmented-control segment,
   `_tab-item` and `_list-item`, each a preferred slot value in #2660.
 - **The characters' type.** No guaranteed type role is above 18px (the contract guarantees body, label and caption),
   and the title roles' weights differ by brand (the default `strong`, prism3 `emphasis` and `strong`, nb-redesign

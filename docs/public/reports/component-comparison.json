@@ -817,6 +817,10 @@
           "name": "value"
         },
         {
+          "name": "disabled",
+          "default": false
+        },
+        {
           "name": "readOnly",
           "default": false
         },
@@ -2628,6 +2632,14 @@
           "name": "description"
         },
         {
+          "name": "disabled",
+          "default": false
+        },
+        {
+          "name": "readOnly",
+          "default": false
+        },
+        {
           "name": "size",
           "default": "medium",
           "values": [
@@ -3030,6 +3042,10 @@
             "leading",
             "trailing"
           ]
+        },
+        {
+          "name": "disabled",
+          "default": false
         },
         {
           "name": "isPending",
@@ -3481,10 +3497,19 @@
       },
       "props": [
         {
+          "name": "label"
+        },
+        {
           "name": "value"
         },
         {
+          "name": "onChange"
+        },
+        {
           "name": "placeholder"
+        },
+        {
+          "name": "helpText"
         },
         {
           "name": "showMessage",
@@ -3537,6 +3562,22 @@
           "name": "validationMessage"
         },
         {
+          "name": "required",
+          "default": false
+        },
+        {
+          "name": "disabled",
+          "default": false
+        },
+        {
+          "name": "readOnly",
+          "default": false
+        },
+        {
+          "name": "isPending",
+          "default": false
+        },
+        {
           "name": "size",
           "default": "medium",
           "values": [
@@ -3544,6 +3585,12 @@
             "medium",
             "large"
           ]
+        },
+        {
+          "name": "id"
+        },
+        {
+          "name": "name"
         }
       ],
       "sizes": [
@@ -4764,6 +4811,10 @@
         "default": false
       },
       {
+        "id": "checkbox-row",
+        "default": false
+      },
+      {
         "id": "code-input",
         "default": false
       },
@@ -4812,6 +4863,10 @@
         "default": false
       },
       {
+        "id": "radio-row",
+        "default": false
+      },
+      {
         "id": "segmented-control",
         "default": false
       },
@@ -4828,6 +4883,10 @@
         "default": false
       },
       {
+        "id": "switch-row",
+        "default": false
+      },
+      {
         "id": "tab",
         "default": false
       },
@@ -4837,6 +4896,10 @@
       },
       {
         "id": "text-field",
+        "default": false
+      },
+      {
+        "id": "textarea",
         "default": false
       }
     ],
@@ -4918,6 +4981,9 @@
       },
       {
         "id": "text-field"
+      },
+      {
+        "id": "textarea"
       }
     ],
     "href": [
@@ -4990,6 +5056,9 @@
       },
       {
         "id": "text-field"
+      },
+      {
+        "id": "textarea"
       }
     ],
     "incrementLabel": [
@@ -5181,6 +5250,10 @@
       {
         "id": "text-field",
         "default": false
+      },
+      {
+        "id": "textarea",
+        "default": false
       }
     ],
     "items": [
@@ -5273,6 +5346,9 @@
       },
       {
         "id": "text-field"
+      },
+      {
+        "id": "textarea"
       }
     ],
     "labelPosition": [
@@ -5445,6 +5521,9 @@
       },
       {
         "id": "text-field"
+      },
+      {
+        "id": "textarea"
       }
     ],
     "offset": [
@@ -5487,6 +5566,9 @@
       },
       {
         "id": "text-field"
+      },
+      {
+        "id": "textarea"
       }
     ],
     "onClick": [
@@ -5622,6 +5704,10 @@
         "default": false
       },
       {
+        "id": "radio-row",
+        "default": false
+      },
+      {
         "id": "select",
         "default": false
       },
@@ -5635,6 +5721,10 @@
       },
       {
         "id": "text-field",
+        "default": false
+      },
+      {
+        "id": "textarea",
         "default": false
       }
     ],
@@ -5661,6 +5751,10 @@
       },
       {
         "id": "text-field",
+        "default": false
+      },
+      {
+        "id": "textarea",
         "default": false
       }
     ],

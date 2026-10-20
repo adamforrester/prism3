@@ -24,10 +24,10 @@
  * default, so medium leads; Q344 the cell carries the prototype reactions (Rest: While hovering and While pressing;
  * Hover: While pressing).
  *
- * THE CELL'S ID HAS NO `_` YET (owner question on #2428). Q349 gives a part used only inside its parent the `_` prefix,
- * and Q329 makes the cell the slot's preferred value. The two collide: Figma leaves a `_` component out of a published
- * library, so a file using the library could not add a cell from the slot, and the slot projection refuses a `_` id as
- * a preferred value (#2657). Built on the recommendation that keeps the slot working, `code-input-cell`; the
+ * THE CELL'S ID HAS NO `_` (Q394 A on #2783). Q349 gives a part used only inside its parent the `_` prefix, and Q329
+ * makes the cell the slot's preferred value. The two collide: Figma leaves a `_` component out of a published library,
+ * so a file using the library could not add a cell from the slot, and the slot projection refuses a `_` id as a
+ * preferred value (#2657). The cell is `code-input-cell`, unprefixed and preferred in the slot, as decided; the
  * segmented-control segment, `_tab-item` and `_list-item` (Q353, Q355) meet the same collision in the rename sweep.
  *
  * ── THE CELL ─────────────────────────────────────────────────────────────────────────────────────────────────
@@ -385,8 +385,8 @@ export const codeInput: ComponentDef = {
     },
     codeOnly: [
       'code delivery pending: behavior layer (#2454). The entries below are a framework-neutral behavior contract.',
-      'ONE INPUT — `<input type="text" inputmode="numeric" autocomplete="one-time-code" maxlength pattern="[0-9]*" spellcheck="false">` lies over the cells, which are aria-hidden. Assistive technology meets one textbox with one name and one value. A code with letters sets inputMode text, autocapitalize characters, and drops the pattern. Never one input per cell: paste and the phone\'s code suggestion then fill one cell (W3C Understanding SC 3.3.8).',
-      'NORMALIZE, THEN FILL — spaces, hyphens and dashes are removed before counting, and characters past `length` are dropped without an error. A pasted or suggested code fills every cell. Paste is never blocked.',
+      'ONE INPUT — `<input type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" spellcheck="false">` lies over the cells, which are aria-hidden. Assistive technology meets one textbox with one name and one value. A code with letters sets inputMode text, autocapitalize characters, and drops the pattern. Never one input per cell: paste and the phone\'s code suggestion then fill one cell (W3C Understanding SC 3.3.8).',
+      'NORMALIZE, THEN FILL — spaces, hyphens and dashes are removed before counting, and characters past `length` are dropped without an error. The input carries no native `maxlength`: a browser cuts pasted text to it before any handler runs, so `123-456` would arrive as `123-45` and a valid code would read as incomplete. The handler strips first, then caps at `length`. A pasted or suggested code fills every cell. Paste is never blocked.',
       'onComplete — fires once when the value reaches `length`, again only after the value changes and reaches it again. No auto-submit: the page decides, so a typo never locks a user out (SC 3.2.2).',
       'the drawn caret and the active cell — DOM focus never moves. Typing advances the active cell; Backspace removes the last character and moves the ring back; arrow keys, Home and End move the native caret and the ring follows. A click on any cell focuses the input with the caret at the end.',
       'AFTER AN ERROR — the value stays, with the caret at the end and the text selected: the next keystroke replaces the code and Backspace edits it. The field never clears itself.',
