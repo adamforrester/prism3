@@ -18336,7 +18336,7 @@
     "checkbox-control": {
       "id": "checkbox-control",
       "name": "Checkbox.Control",
-      "members": 54,
+      "members": 90,
       "axes": [
         {
           "name": "selection",
@@ -18345,6 +18345,15 @@
             "unchecked",
             "checked",
             "indeterminate"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "status",
+          "figmaName": "status",
+          "values": [
+            "default",
+            "error"
           ],
           "kind": "variant"
         },
@@ -18366,8 +18375,7 @@
             "hover",
             "pressed",
             "focus-visible",
-            "disabled",
-            "error"
+            "disabled"
           ],
           "kind": "state"
         }
@@ -18377,12 +18385,12 @@
         {
           "part": "control",
           "kind": "frame",
-          "members": 54
+          "members": 90
         },
         {
           "part": "control/focusRing",
           "kind": "instance",
-          "members": 9,
+          "members": 18,
           "when": {
             "state": [
               "focus-visible"
@@ -18392,7 +18400,7 @@
         {
           "part": "control/mark",
           "kind": "frame",
-          "members": 18,
+          "members": 30,
           "when": {
             "selection": [
               "checked"
@@ -18402,7 +18410,7 @@
         {
           "part": "control/mark/glyph",
           "kind": "instance",
-          "members": 18,
+          "members": 30,
           "when": {
             "selection": [
               "checked"
@@ -18412,7 +18420,7 @@
         {
           "part": "control/dash",
           "kind": "frame",
-          "members": 18,
+          "members": 30,
           "when": {
             "selection": [
               "indeterminate"
@@ -18422,7 +18430,7 @@
         {
           "part": "control/dash/glyph",
           "kind": "instance",
-          "members": 18,
+          "members": 30,
           "when": {
             "selection": [
               "indeterminate"
@@ -18580,12 +18588,14 @@
       ],
       "colorKey": [
         "selection",
+        "status",
         "state"
       ],
       "colors": [
         {
           "where": {
             "selection": "unchecked",
+            "status": "default",
             "state": "rest"
           },
           "parts": [
@@ -18598,6 +18608,7 @@
         {
           "where": {
             "selection": "unchecked",
+            "status": "default",
             "state": "hover"
           },
           "parts": [
@@ -18610,6 +18621,7 @@
         {
           "where": {
             "selection": "unchecked",
+            "status": "default",
             "state": "pressed"
           },
           "parts": [
@@ -18622,6 +18634,7 @@
         {
           "where": {
             "selection": "unchecked",
+            "status": "default",
             "state": "focus-visible"
           },
           "parts": [
@@ -18634,6 +18647,7 @@
         {
           "where": {
             "selection": "unchecked",
+            "status": "default",
             "state": "disabled"
           },
           "parts": [
@@ -18646,7 +18660,8 @@
         {
           "where": {
             "selection": "unchecked",
-            "state": "error"
+            "status": "error",
+            "state": "rest"
           },
           "parts": [
             {
@@ -18657,7 +18672,60 @@
         },
         {
           "where": {
+            "selection": "unchecked",
+            "status": "error",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "control",
+              "stroke": "color.border.danger"
+            }
+          ]
+        },
+        {
+          "where": {
+            "selection": "unchecked",
+            "status": "error",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "control",
+              "stroke": "color.border.danger"
+            }
+          ]
+        },
+        {
+          "where": {
+            "selection": "unchecked",
+            "status": "error",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "control",
+              "stroke": "color.border.danger"
+            }
+          ]
+        },
+        {
+          "where": {
+            "selection": "unchecked",
+            "status": "error",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "control",
+              "stroke": "color.disabled.border"
+            }
+          ]
+        },
+        {
+          "where": {
             "selection": "checked",
+            "status": "default",
             "state": "rest"
           },
           "parts": [
@@ -18674,6 +18742,7 @@
         {
           "where": {
             "selection": "checked",
+            "status": "default",
             "state": "hover"
           },
           "parts": [
@@ -18690,6 +18759,7 @@
         {
           "where": {
             "selection": "checked",
+            "status": "default",
             "state": "pressed"
           },
           "parts": [
@@ -18706,6 +18776,7 @@
         {
           "where": {
             "selection": "checked",
+            "status": "default",
             "state": "focus-visible"
           },
           "parts": [
@@ -18722,6 +18793,7 @@
         {
           "where": {
             "selection": "checked",
+            "status": "default",
             "state": "disabled"
           },
           "parts": [
@@ -18738,7 +18810,8 @@
         {
           "where": {
             "selection": "checked",
-            "state": "error"
+            "status": "error",
+            "state": "rest"
           },
           "parts": [
             {
@@ -18754,7 +18827,79 @@
         },
         {
           "where": {
+            "selection": "checked",
+            "status": "error",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "control",
+              "fill": "color.interactive.primary.fill.hover",
+              "stroke": "color.border.danger"
+            },
+            {
+              "part": "control/mark/glyph",
+              "icon": "color.interactive.primary.on-fill"
+            }
+          ]
+        },
+        {
+          "where": {
+            "selection": "checked",
+            "status": "error",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "control",
+              "fill": "color.interactive.primary.fill.pressed",
+              "stroke": "color.border.danger"
+            },
+            {
+              "part": "control/mark/glyph",
+              "icon": "color.interactive.primary.on-fill"
+            }
+          ]
+        },
+        {
+          "where": {
+            "selection": "checked",
+            "status": "error",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "control",
+              "fill": "color.interactive.primary.fill.selected",
+              "stroke": "color.border.danger"
+            },
+            {
+              "part": "control/mark/glyph",
+              "icon": "color.interactive.primary.on-fill"
+            }
+          ]
+        },
+        {
+          "where": {
+            "selection": "checked",
+            "status": "error",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "control",
+              "fill": "color.disabled.fill"
+            },
+            {
+              "part": "control/mark/glyph",
+              "icon": "color.disabled.on-fill"
+            }
+          ]
+        },
+        {
+          "where": {
             "selection": "indeterminate",
+            "status": "default",
             "state": "rest"
           },
           "parts": [
@@ -18771,6 +18916,7 @@
         {
           "where": {
             "selection": "indeterminate",
+            "status": "default",
             "state": "hover"
           },
           "parts": [
@@ -18787,6 +18933,7 @@
         {
           "where": {
             "selection": "indeterminate",
+            "status": "default",
             "state": "pressed"
           },
           "parts": [
@@ -18803,6 +18950,7 @@
         {
           "where": {
             "selection": "indeterminate",
+            "status": "default",
             "state": "focus-visible"
           },
           "parts": [
@@ -18819,6 +18967,7 @@
         {
           "where": {
             "selection": "indeterminate",
+            "status": "default",
             "state": "disabled"
           },
           "parts": [
@@ -18835,7 +18984,8 @@
         {
           "where": {
             "selection": "indeterminate",
-            "state": "error"
+            "status": "error",
+            "state": "rest"
           },
           "parts": [
             {
@@ -18846,6 +18996,77 @@
             {
               "part": "control/dash/glyph",
               "icon": "color.interactive.primary.on-fill"
+            }
+          ]
+        },
+        {
+          "where": {
+            "selection": "indeterminate",
+            "status": "error",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "control",
+              "fill": "color.interactive.primary.fill.hover",
+              "stroke": "color.border.danger"
+            },
+            {
+              "part": "control/dash/glyph",
+              "icon": "color.interactive.primary.on-fill"
+            }
+          ]
+        },
+        {
+          "where": {
+            "selection": "indeterminate",
+            "status": "error",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "control",
+              "fill": "color.interactive.primary.fill.pressed",
+              "stroke": "color.border.danger"
+            },
+            {
+              "part": "control/dash/glyph",
+              "icon": "color.interactive.primary.on-fill"
+            }
+          ]
+        },
+        {
+          "where": {
+            "selection": "indeterminate",
+            "status": "error",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "control",
+              "fill": "color.interactive.primary.fill.selected",
+              "stroke": "color.border.danger"
+            },
+            {
+              "part": "control/dash/glyph",
+              "icon": "color.interactive.primary.on-fill"
+            }
+          ]
+        },
+        {
+          "where": {
+            "selection": "indeterminate",
+            "status": "error",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "control",
+              "fill": "color.disabled.fill"
+            },
+            {
+              "part": "control/dash/glyph",
+              "icon": "color.disabled.on-fill"
             }
           ]
         }
@@ -18883,8 +19104,17 @@
     "checkbox-row": {
       "id": "checkbox-row",
       "name": "Checkbox.Row",
-      "members": 3,
+      "members": 6,
       "axes": [
+        {
+          "name": "status",
+          "figmaName": "status",
+          "values": [
+            "default",
+            "error"
+          ],
+          "kind": "variant"
+        },
         {
           "name": "size",
           "figmaName": "size",
@@ -18901,22 +19131,22 @@
         {
           "part": "row",
           "kind": "frame",
-          "members": 3
+          "members": 6
         },
         {
           "part": "row/controlBox",
           "kind": "frame",
-          "members": 3
+          "members": 6
         },
         {
           "part": "row/controlBox/control",
           "kind": "instance",
-          "members": 3
+          "members": 6
         },
         {
           "part": "row/label",
           "kind": "text",
-          "members": 3
+          "members": 6
         }
       ],
       "redlineKey": [
@@ -19124,10 +19354,25 @@
           ]
         }
       ],
-      "colorKey": [],
+      "colorKey": [
+        "status"
+      ],
       "colors": [
         {
-          "where": {},
+          "where": {
+            "status": "default"
+          },
+          "parts": [
+            {
+              "part": "row/label",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "error"
+          },
           "parts": [
             {
               "part": "row/label",
@@ -19143,10 +19388,12 @@
           "component": "checkbox-control",
           "variant": {
             "selection": "unchecked",
-            "state": "rest"
+            "state": "rest",
+            "status": "default"
           },
           "follows": [
-            "size"
+            "size",
+            "status"
           ],
           "exposes": [
             "selection",
@@ -19165,8 +19412,17 @@
     "checkbox-group": {
       "id": "checkbox-group",
       "name": "Checkbox.Group",
-      "members": 3,
+      "members": 6,
       "axes": [
+        {
+          "name": "status",
+          "figmaName": "status",
+          "values": [
+            "default",
+            "error"
+          ],
+          "kind": "variant"
+        },
         {
           "name": "size",
           "figmaName": "size",
@@ -19183,32 +19439,42 @@
         {
           "part": "container",
           "kind": "frame",
-          "members": 3
+          "members": 6
         },
         {
           "part": "container/label",
           "kind": "instance",
-          "members": 3
+          "members": 6
         },
         {
           "part": "container/items",
           "kind": "slot",
-          "members": 3
+          "members": 6
         },
         {
           "part": "container/items/row1",
           "kind": "instance",
-          "members": 3
+          "members": 6
         },
         {
           "part": "container/items/row2",
           "kind": "instance",
-          "members": 3
+          "members": 6
         },
         {
           "part": "container/items/row3",
           "kind": "instance",
-          "members": 3
+          "members": 6
+        },
+        {
+          "part": "container/message",
+          "kind": "instance",
+          "members": 3,
+          "when": {
+            "status": [
+              "error"
+            ]
+          }
         }
       ],
       "redlineKey": [
@@ -19368,10 +19634,20 @@
           "parts": []
         }
       ],
-      "colorKey": [],
+      "colorKey": [
+        "status"
+      ],
       "colors": [
         {
-          "where": {},
+          "where": {
+            "status": "default"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "status": "error"
+          },
           "parts": []
         }
       ],
@@ -19406,10 +19682,12 @@
           "kind": "instance",
           "component": "checkbox-row",
           "variant": {
-            "size": "medium"
+            "size": "medium",
+            "status": "default"
           },
           "follows": [
-            "size"
+            "size",
+            "status"
           ],
           "exposes": []
         },
@@ -19418,10 +19696,12 @@
           "kind": "instance",
           "component": "checkbox-row",
           "variant": {
-            "size": "medium"
+            "size": "medium",
+            "status": "default"
           },
           "follows": [
-            "size"
+            "size",
+            "status"
           ],
           "exposes": []
         },
@@ -19430,10 +19710,24 @@
           "kind": "instance",
           "component": "checkbox-row",
           "variant": {
-            "size": "medium"
+            "size": "medium",
+            "status": "default"
           },
           "follows": [
-            "size"
+            "size",
+            "status"
+          ],
+          "exposes": []
+        },
+        {
+          "part": "container/message",
+          "kind": "instance",
+          "component": "field-message",
+          "variant": {
+            "status": "error"
+          },
+          "follows": [
+            "status"
           ],
           "exposes": []
         }
@@ -19448,7 +19742,7 @@
     "radio-control": {
       "id": "radio-control",
       "name": "Radio.Control",
-      "members": 30,
+      "members": 60,
       "axes": [
         {
           "name": "selection",
@@ -19456,6 +19750,15 @@
           "values": [
             "unchecked",
             "checked"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "status",
+          "figmaName": "status",
+          "values": [
+            "default",
+            "error"
           ],
           "kind": "variant"
         },
@@ -19487,12 +19790,12 @@
         {
           "part": "control",
           "kind": "frame",
-          "members": 30
+          "members": 60
         },
         {
           "part": "control/focusRing",
           "kind": "instance",
-          "members": 6,
+          "members": 12,
           "when": {
             "state": [
               "focus-visible"
@@ -19502,7 +19805,7 @@
         {
           "part": "control/dot",
           "kind": "frame",
-          "members": 15,
+          "members": 30,
           "when": {
             "selection": [
               "checked"
@@ -19627,12 +19930,14 @@
       ],
       "colorKey": [
         "selection",
+        "status",
         "state"
       ],
       "colors": [
         {
           "where": {
             "selection": "unchecked",
+            "status": "default",
             "state": "rest"
           },
           "parts": [
@@ -19645,6 +19950,7 @@
         {
           "where": {
             "selection": "unchecked",
+            "status": "default",
             "state": "hover"
           },
           "parts": [
@@ -19657,6 +19963,7 @@
         {
           "where": {
             "selection": "unchecked",
+            "status": "default",
             "state": "pressed"
           },
           "parts": [
@@ -19669,6 +19976,7 @@
         {
           "where": {
             "selection": "unchecked",
+            "status": "default",
             "state": "focus-visible"
           },
           "parts": [
@@ -19681,6 +19989,72 @@
         {
           "where": {
             "selection": "unchecked",
+            "status": "default",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "control",
+              "stroke": "color.disabled.border"
+            }
+          ]
+        },
+        {
+          "where": {
+            "selection": "unchecked",
+            "status": "error",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "control",
+              "stroke": "color.border.danger"
+            }
+          ]
+        },
+        {
+          "where": {
+            "selection": "unchecked",
+            "status": "error",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "control",
+              "stroke": "color.border.danger"
+            }
+          ]
+        },
+        {
+          "where": {
+            "selection": "unchecked",
+            "status": "error",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "control",
+              "stroke": "color.border.danger"
+            }
+          ]
+        },
+        {
+          "where": {
+            "selection": "unchecked",
+            "status": "error",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "control",
+              "stroke": "color.border.danger"
+            }
+          ]
+        },
+        {
+          "where": {
+            "selection": "unchecked",
+            "status": "error",
             "state": "disabled"
           },
           "parts": [
@@ -19693,6 +20067,7 @@
         {
           "where": {
             "selection": "checked",
+            "status": "default",
             "state": "rest"
           },
           "parts": [
@@ -19709,6 +20084,7 @@
         {
           "where": {
             "selection": "checked",
+            "status": "default",
             "state": "hover"
           },
           "parts": [
@@ -19725,6 +20101,7 @@
         {
           "where": {
             "selection": "checked",
+            "status": "default",
             "state": "pressed"
           },
           "parts": [
@@ -19741,6 +20118,7 @@
         {
           "where": {
             "selection": "checked",
+            "status": "default",
             "state": "focus-visible"
           },
           "parts": [
@@ -19757,6 +20135,92 @@
         {
           "where": {
             "selection": "checked",
+            "status": "default",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "control",
+              "stroke": "color.disabled.border"
+            },
+            {
+              "part": "control/dot",
+              "fill": "color.disabled.fill"
+            }
+          ]
+        },
+        {
+          "where": {
+            "selection": "checked",
+            "status": "error",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "control",
+              "stroke": "color.border.danger"
+            },
+            {
+              "part": "control/dot",
+              "fill": "color.interactive.primary.fill.selected"
+            }
+          ]
+        },
+        {
+          "where": {
+            "selection": "checked",
+            "status": "error",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "control",
+              "stroke": "color.border.danger"
+            },
+            {
+              "part": "control/dot",
+              "fill": "color.interactive.primary.fill.selected"
+            }
+          ]
+        },
+        {
+          "where": {
+            "selection": "checked",
+            "status": "error",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "control",
+              "stroke": "color.border.danger"
+            },
+            {
+              "part": "control/dot",
+              "fill": "color.interactive.primary.fill.selected"
+            }
+          ]
+        },
+        {
+          "where": {
+            "selection": "checked",
+            "status": "error",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "control",
+              "stroke": "color.border.danger"
+            },
+            {
+              "part": "control/dot",
+              "fill": "color.interactive.primary.fill.selected"
+            }
+          ]
+        },
+        {
+          "where": {
+            "selection": "checked",
+            "status": "error",
             "state": "disabled"
           },
           "parts": [
@@ -19788,8 +20252,17 @@
     "radio-row": {
       "id": "radio-row",
       "name": "Radio.Row",
-      "members": 3,
+      "members": 6,
       "axes": [
+        {
+          "name": "status",
+          "figmaName": "status",
+          "values": [
+            "default",
+            "error"
+          ],
+          "kind": "variant"
+        },
         {
           "name": "size",
           "figmaName": "size",
@@ -19806,22 +20279,22 @@
         {
           "part": "row",
           "kind": "frame",
-          "members": 3
+          "members": 6
         },
         {
           "part": "row/controlBox",
           "kind": "frame",
-          "members": 3
+          "members": 6
         },
         {
           "part": "row/controlBox/control",
           "kind": "instance",
-          "members": 3
+          "members": 6
         },
         {
           "part": "row/label",
           "kind": "text",
-          "members": 3
+          "members": 6
         }
       ],
       "redlineKey": [
@@ -20029,10 +20502,25 @@
           ]
         }
       ],
-      "colorKey": [],
+      "colorKey": [
+        "status"
+      ],
       "colors": [
         {
-          "where": {},
+          "where": {
+            "status": "default"
+          },
+          "parts": [
+            {
+              "part": "row/label",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "error"
+          },
           "parts": [
             {
               "part": "row/label",
@@ -20048,10 +20536,12 @@
           "component": "radio-control",
           "variant": {
             "selection": "unchecked",
-            "state": "rest"
+            "state": "rest",
+            "status": "default"
           },
           "follows": [
-            "size"
+            "size",
+            "status"
           ],
           "exposes": [
             "selection",
@@ -20070,8 +20560,17 @@
     "radio-group": {
       "id": "radio-group",
       "name": "Radio.Group",
-      "members": 3,
+      "members": 6,
       "axes": [
+        {
+          "name": "status",
+          "figmaName": "status",
+          "values": [
+            "default",
+            "error"
+          ],
+          "kind": "variant"
+        },
         {
           "name": "size",
           "figmaName": "size",
@@ -20088,32 +20587,42 @@
         {
           "part": "container",
           "kind": "frame",
-          "members": 3
+          "members": 6
         },
         {
           "part": "container/label",
           "kind": "instance",
-          "members": 3
+          "members": 6
         },
         {
           "part": "container/items",
           "kind": "slot",
-          "members": 3
+          "members": 6
         },
         {
           "part": "container/items/row1",
           "kind": "instance",
-          "members": 3
+          "members": 6
         },
         {
           "part": "container/items/row2",
           "kind": "instance",
-          "members": 3
+          "members": 6
         },
         {
           "part": "container/items/row3",
           "kind": "instance",
-          "members": 3
+          "members": 6
+        },
+        {
+          "part": "container/message",
+          "kind": "instance",
+          "members": 3,
+          "when": {
+            "status": [
+              "error"
+            ]
+          }
         }
       ],
       "redlineKey": [
@@ -20273,10 +20782,20 @@
           "parts": []
         }
       ],
-      "colorKey": [],
+      "colorKey": [
+        "status"
+      ],
       "colors": [
         {
-          "where": {},
+          "where": {
+            "status": "default"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "status": "error"
+          },
           "parts": []
         }
       ],
@@ -20311,10 +20830,12 @@
           "kind": "instance",
           "component": "radio-row",
           "variant": {
-            "size": "medium"
+            "size": "medium",
+            "status": "default"
           },
           "follows": [
-            "size"
+            "size",
+            "status"
           ],
           "exposes": []
         },
@@ -20323,10 +20844,12 @@
           "kind": "instance",
           "component": "radio-row",
           "variant": {
-            "size": "medium"
+            "size": "medium",
+            "status": "default"
           },
           "follows": [
-            "size"
+            "size",
+            "status"
           ],
           "exposes": []
         },
@@ -20335,10 +20858,24 @@
           "kind": "instance",
           "component": "radio-row",
           "variant": {
-            "size": "medium"
+            "size": "medium",
+            "status": "default"
           },
           "follows": [
-            "size"
+            "size",
+            "status"
+          ],
+          "exposes": []
+        },
+        {
+          "part": "container/message",
+          "kind": "instance",
+          "component": "field-message",
+          "variant": {
+            "status": "error"
+          },
+          "follows": [
+            "status"
           ],
           "exposes": []
         }
@@ -20353,7 +20890,7 @@
     "switch-control": {
       "id": "switch-control",
       "name": "Switch.Control",
-      "members": 24,
+      "members": 40,
       "axes": [
         {
           "name": "selection",
@@ -20361,6 +20898,15 @@
           "values": [
             "off",
             "on"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "status",
+          "figmaName": "status",
+          "values": [
+            "default",
+            "error"
           ],
           "kind": "variant"
         },
@@ -20381,8 +20927,7 @@
             "hover",
             "pressed",
             "focus-visible",
-            "disabled",
-            "error"
+            "disabled"
           ],
           "kind": "state"
         }
@@ -20392,17 +20937,17 @@
         {
           "part": "track",
           "kind": "frame",
-          "members": 24
+          "members": 40
         },
         {
           "part": "track/thumb",
           "kind": "frame",
-          "members": 24
+          "members": 40
         },
         {
           "part": "track/thumb/offGlyph",
           "kind": "instance",
-          "members": 12,
+          "members": 20,
           "when": {
             "selection": [
               "off"
@@ -20412,7 +20957,7 @@
         {
           "part": "track/focusRing",
           "kind": "instance",
-          "members": 4,
+          "members": 8,
           "when": {
             "state": [
               "focus-visible"
@@ -20422,7 +20967,7 @@
         {
           "part": "track/thumb/onGlyph",
           "kind": "instance",
-          "members": 12,
+          "members": 20,
           "when": {
             "selection": [
               "on"
@@ -20580,12 +21125,14 @@
       ],
       "colorKey": [
         "selection",
+        "status",
         "state"
       ],
       "colors": [
         {
           "where": {
             "selection": "off",
+            "status": "default",
             "state": "rest"
           },
           "parts": [
@@ -20607,6 +21154,7 @@
         {
           "where": {
             "selection": "off",
+            "status": "default",
             "state": "hover"
           },
           "parts": [
@@ -20628,6 +21176,7 @@
         {
           "where": {
             "selection": "off",
+            "status": "default",
             "state": "pressed"
           },
           "parts": [
@@ -20649,6 +21198,7 @@
         {
           "where": {
             "selection": "off",
+            "status": "default",
             "state": "focus-visible"
           },
           "parts": [
@@ -20670,6 +21220,7 @@
         {
           "where": {
             "selection": "off",
+            "status": "default",
             "state": "disabled"
           },
           "parts": [
@@ -20691,7 +21242,8 @@
         {
           "where": {
             "selection": "off",
-            "state": "error"
+            "status": "error",
+            "state": "rest"
           },
           "parts": [
             {
@@ -20711,7 +21263,96 @@
         },
         {
           "where": {
+            "selection": "off",
+            "status": "error",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "track",
+              "fill": "color.background.tertiary",
+              "stroke": "color.border.danger"
+            },
+            {
+              "part": "track/thumb",
+              "fill": "color.interactive.neutral.border.rest"
+            },
+            {
+              "part": "track/thumb/offGlyph",
+              "icon": "color.background.tertiary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "selection": "off",
+            "status": "error",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "track",
+              "fill": "color.background.tertiary",
+              "stroke": "color.border.danger"
+            },
+            {
+              "part": "track/thumb",
+              "fill": "color.interactive.neutral.border.rest"
+            },
+            {
+              "part": "track/thumb/offGlyph",
+              "icon": "color.background.tertiary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "selection": "off",
+            "status": "error",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "track",
+              "fill": "color.background.tertiary",
+              "stroke": "color.border.danger"
+            },
+            {
+              "part": "track/thumb",
+              "fill": "color.interactive.neutral.border.rest"
+            },
+            {
+              "part": "track/thumb/offGlyph",
+              "icon": "color.background.tertiary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "selection": "off",
+            "status": "error",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "track",
+              "fill": "color.disabled.fill",
+              "stroke": "color.disabled.border"
+            },
+            {
+              "part": "track/thumb",
+              "fill": "color.disabled.on-fill"
+            },
+            {
+              "part": "track/thumb/offGlyph",
+              "icon": "color.disabled.border"
+            }
+          ]
+        },
+        {
+          "where": {
             "selection": "on",
+            "status": "default",
             "state": "rest"
           },
           "parts": [
@@ -20732,6 +21373,7 @@
         {
           "where": {
             "selection": "on",
+            "status": "default",
             "state": "hover"
           },
           "parts": [
@@ -20752,6 +21394,7 @@
         {
           "where": {
             "selection": "on",
+            "status": "default",
             "state": "pressed"
           },
           "parts": [
@@ -20772,6 +21415,7 @@
         {
           "where": {
             "selection": "on",
+            "status": "default",
             "state": "focus-visible"
           },
           "parts": [
@@ -20792,6 +21436,7 @@
         {
           "where": {
             "selection": "on",
+            "status": "default",
             "state": "disabled"
           },
           "parts": [
@@ -20812,7 +21457,8 @@
         {
           "where": {
             "selection": "on",
-            "state": "error"
+            "status": "error",
+            "state": "rest"
           },
           "parts": [
             {
@@ -20827,6 +21473,93 @@
             {
               "part": "track/thumb/onGlyph",
               "icon": "color.interactive.primary.fill.selected"
+            }
+          ]
+        },
+        {
+          "where": {
+            "selection": "on",
+            "status": "error",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "track",
+              "fill": "color.interactive.primary.fill.hover",
+              "stroke": "color.border.danger"
+            },
+            {
+              "part": "track/thumb",
+              "fill": "color.interactive.primary.on-fill"
+            },
+            {
+              "part": "track/thumb/onGlyph",
+              "icon": "color.interactive.primary.fill.selected"
+            }
+          ]
+        },
+        {
+          "where": {
+            "selection": "on",
+            "status": "error",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "track",
+              "fill": "color.interactive.primary.fill.pressed",
+              "stroke": "color.border.danger"
+            },
+            {
+              "part": "track/thumb",
+              "fill": "color.interactive.primary.on-fill"
+            },
+            {
+              "part": "track/thumb/onGlyph",
+              "icon": "color.interactive.primary.fill.selected"
+            }
+          ]
+        },
+        {
+          "where": {
+            "selection": "on",
+            "status": "error",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "track",
+              "fill": "color.interactive.primary.fill.selected",
+              "stroke": "color.border.danger"
+            },
+            {
+              "part": "track/thumb",
+              "fill": "color.interactive.primary.on-fill"
+            },
+            {
+              "part": "track/thumb/onGlyph",
+              "icon": "color.interactive.primary.fill.selected"
+            }
+          ]
+        },
+        {
+          "where": {
+            "selection": "on",
+            "status": "error",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "track",
+              "fill": "color.disabled.fill"
+            },
+            {
+              "part": "track/thumb",
+              "fill": "color.disabled.on-fill"
+            },
+            {
+              "part": "track/thumb/onGlyph",
+              "icon": "color.disabled.border"
             }
           ]
         }
@@ -20870,8 +21603,17 @@
     "switch-row": {
       "id": "switch-row",
       "name": "Switch.Row",
-      "members": 2,
+      "members": 4,
       "axes": [
+        {
+          "name": "status",
+          "figmaName": "status",
+          "values": [
+            "default",
+            "error"
+          ],
+          "kind": "variant"
+        },
         {
           "name": "size",
           "figmaName": "size",
@@ -20887,22 +21629,22 @@
         {
           "part": "row",
           "kind": "frame",
-          "members": 2
+          "members": 4
         },
         {
           "part": "row/label",
           "kind": "text",
-          "members": 2
+          "members": 4
         },
         {
           "part": "row/trackBox",
           "kind": "frame",
-          "members": 2
+          "members": 4
         },
         {
           "part": "row/trackBox/control",
           "kind": "instance",
-          "members": 2
+          "members": 4
         }
       ],
       "redlineKey": [
@@ -20999,10 +21741,25 @@
           ]
         }
       ],
-      "colorKey": [],
+      "colorKey": [
+        "status"
+      ],
       "colors": [
         {
-          "where": {},
+          "where": {
+            "status": "default"
+          },
+          "parts": [
+            {
+              "part": "row/label",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "error"
+          },
           "parts": [
             {
               "part": "row/label",
@@ -21018,10 +21775,12 @@
           "component": "switch-control",
           "variant": {
             "selection": "off",
-            "state": "rest"
+            "state": "rest",
+            "status": "default"
           },
           "follows": [
-            "size"
+            "size",
+            "status"
           ],
           "exposes": [
             "selection",

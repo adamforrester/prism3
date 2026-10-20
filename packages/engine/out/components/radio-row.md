@@ -114,7 +114,7 @@ Option labels are parallel and brief; the detail that distinguishes them goes in
 
 ## Specs
 
-Generated from the plan that builds the design-file component: 3 members. Values are token names; a px value appears only where the build writes a number.
+Generated from the plan that builds the design-file component: 6 members. Values are token names; a px value appears only where the build writes a number.
 
 ### Anatomy
 
@@ -167,9 +167,15 @@ Keyed by `size`.
 
 ### Color
 
-Keyed by nothing: one row covers every member.
+Keyed by `status`.
 
-**every member**
+**status=default**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `row/label` | — | — | `color.text.primary` | — |
+
+**status=error**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
@@ -177,7 +183,7 @@ Keyed by nothing: one row covers every member.
 
 ### Nesting and properties
 
-- `row/controlBox/control` nests `radio-control` at `selection=unchecked, state=rest`; follows `size`; exposes `selection`, `state`
+- `row/controlBox/control` nests `radio-control` at `selection=unchecked, state=rest, status=default`; follows `size`, `status`; exposes `selection`, `state`
 
 | Property | Type | Default |
 | --- | --- | --- |

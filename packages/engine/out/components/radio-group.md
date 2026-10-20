@@ -115,7 +115,7 @@ The group label names the decision; the rows carry the short options. Group erro
 
 ## Specs
 
-Generated from the plan that builds the design-file component: 3 members. Values are token names; a px value appears only where the build writes a number.
+Generated from the plan that builds the design-file component: 6 members. Values are token names; a px value appears only where the build writes a number.
 
 ### Anatomy
 
@@ -127,6 +127,7 @@ Generated from the plan that builds the design-file component: 3 members. Values
 | `container/items/row1` | instance | every member |
 | `container/items/row2` | instance | every member |
 | `container/items/row3` | instance | every member |
+| `container/message` | instance | status=error |
 
 ### Spacing and size
 
@@ -157,15 +158,16 @@ Keyed by `size`.
 
 ### Color
 
-Keyed by nothing: one row covers every member.
+Keyed by `status`.
 
 ### Nesting and properties
 
 - `container/label` nests `field-label` at `size=medium, emphasis=secondary, weight=bold, state=rest`; follows `size`; exposes `emphasis`, `weight`
 - `container/items` is a slot, preferring `radio-row`
-- `container/items/row1` nests `radio-row` at `size=medium`; follows `size`
-- `container/items/row2` nests `radio-row` at `size=medium`; follows `size`
-- `container/items/row3` nests `radio-row` at `size=medium`; follows `size`
+- `container/items/row1` nests `radio-row` at `size=medium, status=default`; follows `size`, `status`
+- `container/items/row2` nests `radio-row` at `size=medium, status=default`; follows `size`, `status`
+- `container/items/row3` nests `radio-row` at `size=medium, status=default`; follows `size`, `status`
+- `container/message` nests `field-message` at `status=error`; follows `status`
 
 | Property | Type | Default |
 | --- | --- | --- |

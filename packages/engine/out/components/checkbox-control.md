@@ -105,7 +105,7 @@ The atom has no copy of its own; all label, description and error text belongs t
 
 ## Specs
 
-Generated from the plan that builds the design-file component: 54 members. Values are token names; a px value appears only where the build writes a number.
+Generated from the plan that builds the design-file component: 90 members. Values are token names; a px value appears only where the build writes a number.
 
 ### Anatomy
 
@@ -150,127 +150,207 @@ Keyed by `size`.
 
 ### Color
 
-Keyed by `selection`, `state`.
+Keyed by `selection`, `status`, `state`.
 
-**selection=unchecked, state=rest**
+**selection=unchecked, status=default, state=rest**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `control` | — | `color.field.border.rest` | — | — |
 
-**selection=unchecked, state=hover**
+**selection=unchecked, status=default, state=hover**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `control` | — | `color.field.border.hover` | — | — |
 
-**selection=unchecked, state=pressed**
+**selection=unchecked, status=default, state=pressed**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `control` | — | `color.field.border.rest` | — | — |
 
-**selection=unchecked, state=focus-visible**
+**selection=unchecked, status=default, state=focus-visible**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `control` | — | `color.field.border.rest` | — | — |
 
-**selection=unchecked, state=disabled**
+**selection=unchecked, status=default, state=disabled**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `control` | — | `color.disabled.border` | — | — |
 
-**selection=unchecked, state=error**
+**selection=unchecked, status=error, state=rest**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `control` | — | `color.border.danger` | — | — |
 
-**selection=checked, state=rest**
+**selection=unchecked, status=error, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | — | `color.border.danger` | — | — |
+
+**selection=unchecked, status=error, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | — | `color.border.danger` | — | — |
+
+**selection=unchecked, status=error, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | — | `color.border.danger` | — | — |
+
+**selection=unchecked, status=error, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | — | `color.disabled.border` | — | — |
+
+**selection=checked, status=default, state=rest**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `control` | `color.interactive.primary.fill.selected` | — | — | — |
 | `control/mark/glyph` | — | — | — | `color.interactive.primary.on-fill` |
 
-**selection=checked, state=hover**
+**selection=checked, status=default, state=hover**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `control` | `color.interactive.primary.fill.hover` | — | — | — |
 | `control/mark/glyph` | — | — | — | `color.interactive.primary.on-fill` |
 
-**selection=checked, state=pressed**
+**selection=checked, status=default, state=pressed**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `control` | `color.interactive.primary.fill.pressed` | — | — | — |
 | `control/mark/glyph` | — | — | — | `color.interactive.primary.on-fill` |
 
-**selection=checked, state=focus-visible**
+**selection=checked, status=default, state=focus-visible**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `control` | `color.interactive.primary.fill.selected` | — | — | — |
 | `control/mark/glyph` | — | — | — | `color.interactive.primary.on-fill` |
 
-**selection=checked, state=disabled**
+**selection=checked, status=default, state=disabled**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `control` | `color.disabled.fill` | — | — | — |
 | `control/mark/glyph` | — | — | — | `color.disabled.on-fill` |
 
-**selection=checked, state=error**
+**selection=checked, status=error, state=rest**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `control` | `color.interactive.primary.fill.selected` | `color.border.danger` | — | — |
 | `control/mark/glyph` | — | — | — | `color.interactive.primary.on-fill` |
 
-**selection=indeterminate, state=rest**
+**selection=checked, status=error, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | `color.interactive.primary.fill.hover` | `color.border.danger` | — | — |
+| `control/mark/glyph` | — | — | — | `color.interactive.primary.on-fill` |
+
+**selection=checked, status=error, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | `color.interactive.primary.fill.pressed` | `color.border.danger` | — | — |
+| `control/mark/glyph` | — | — | — | `color.interactive.primary.on-fill` |
+
+**selection=checked, status=error, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | `color.interactive.primary.fill.selected` | `color.border.danger` | — | — |
+| `control/mark/glyph` | — | — | — | `color.interactive.primary.on-fill` |
+
+**selection=checked, status=error, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | `color.disabled.fill` | — | — | — |
+| `control/mark/glyph` | — | — | — | `color.disabled.on-fill` |
+
+**selection=indeterminate, status=default, state=rest**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `control` | `color.interactive.primary.fill.selected` | — | — | — |
 | `control/dash/glyph` | — | — | — | `color.interactive.primary.on-fill` |
 
-**selection=indeterminate, state=hover**
+**selection=indeterminate, status=default, state=hover**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `control` | `color.interactive.primary.fill.hover` | — | — | — |
 | `control/dash/glyph` | — | — | — | `color.interactive.primary.on-fill` |
 
-**selection=indeterminate, state=pressed**
+**selection=indeterminate, status=default, state=pressed**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `control` | `color.interactive.primary.fill.pressed` | — | — | — |
 | `control/dash/glyph` | — | — | — | `color.interactive.primary.on-fill` |
 
-**selection=indeterminate, state=focus-visible**
+**selection=indeterminate, status=default, state=focus-visible**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `control` | `color.interactive.primary.fill.selected` | — | — | — |
 | `control/dash/glyph` | — | — | — | `color.interactive.primary.on-fill` |
 
-**selection=indeterminate, state=disabled**
+**selection=indeterminate, status=default, state=disabled**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `control` | `color.disabled.fill` | — | — | — |
 | `control/dash/glyph` | — | — | — | `color.disabled.on-fill` |
 
-**selection=indeterminate, state=error**
+**selection=indeterminate, status=error, state=rest**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `control` | `color.interactive.primary.fill.selected` | `color.border.danger` | — | — |
 | `control/dash/glyph` | — | — | — | `color.interactive.primary.on-fill` |
+
+**selection=indeterminate, status=error, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | `color.interactive.primary.fill.hover` | `color.border.danger` | — | — |
+| `control/dash/glyph` | — | — | — | `color.interactive.primary.on-fill` |
+
+**selection=indeterminate, status=error, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | `color.interactive.primary.fill.pressed` | `color.border.danger` | — | — |
+| `control/dash/glyph` | — | — | — | `color.interactive.primary.on-fill` |
+
+**selection=indeterminate, status=error, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | `color.interactive.primary.fill.selected` | `color.border.danger` | — | — |
+| `control/dash/glyph` | — | — | — | `color.interactive.primary.on-fill` |
+
+**selection=indeterminate, status=error, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | `color.disabled.fill` | — | — | — |
+| `control/dash/glyph` | — | — | — | `color.disabled.on-fill` |
 
 ### Nesting and properties
 

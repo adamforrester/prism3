@@ -105,7 +105,7 @@ The atom has no copy of its own; all label, description and error text belongs t
 
 ## Specs
 
-Generated from the plan that builds the design-file component: 24 members. Values are token names; a px value appears only where the build writes a number.
+Generated from the plan that builds the design-file component: 40 members. Values are token names; a px value appears only where the build writes a number.
 
 ### Anatomy
 
@@ -143,9 +143,9 @@ Keyed by `size`.
 
 ### Color
 
-Keyed by `selection`, `state`.
+Keyed by `selection`, `status`, `state`.
 
-**selection=off, state=rest**
+**selection=off, status=default, state=rest**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
@@ -153,7 +153,7 @@ Keyed by `selection`, `state`.
 | `track/thumb` | `color.interactive.neutral.border.rest` | — | — | — |
 | `track/thumb/offGlyph` | — | — | — | `color.background.tertiary` |
 
-**selection=off, state=hover**
+**selection=off, status=default, state=hover**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
@@ -161,7 +161,7 @@ Keyed by `selection`, `state`.
 | `track/thumb` | `color.interactive.neutral.border.rest` | — | — | — |
 | `track/thumb/offGlyph` | — | — | — | `color.background.tertiary` |
 
-**selection=off, state=pressed**
+**selection=off, status=default, state=pressed**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
@@ -169,7 +169,7 @@ Keyed by `selection`, `state`.
 | `track/thumb` | `color.interactive.neutral.border.rest` | — | — | — |
 | `track/thumb/offGlyph` | — | — | — | `color.background.tertiary` |
 
-**selection=off, state=focus-visible**
+**selection=off, status=default, state=focus-visible**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
@@ -177,7 +177,7 @@ Keyed by `selection`, `state`.
 | `track/thumb` | `color.interactive.neutral.border.rest` | — | — | — |
 | `track/thumb/offGlyph` | — | — | — | `color.background.tertiary` |
 
-**selection=off, state=disabled**
+**selection=off, status=default, state=disabled**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
@@ -185,7 +185,7 @@ Keyed by `selection`, `state`.
 | `track/thumb` | `color.disabled.on-fill` | — | — | — |
 | `track/thumb/offGlyph` | — | — | — | `color.disabled.border` |
 
-**selection=off, state=error**
+**selection=off, status=error, state=rest**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
@@ -193,7 +193,39 @@ Keyed by `selection`, `state`.
 | `track/thumb` | `color.interactive.neutral.border.rest` | — | — | — |
 | `track/thumb/offGlyph` | — | — | — | `color.background.tertiary` |
 
-**selection=on, state=rest**
+**selection=off, status=error, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `track` | `color.background.tertiary` | `color.border.danger` | — | — |
+| `track/thumb` | `color.interactive.neutral.border.rest` | — | — | — |
+| `track/thumb/offGlyph` | — | — | — | `color.background.tertiary` |
+
+**selection=off, status=error, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `track` | `color.background.tertiary` | `color.border.danger` | — | — |
+| `track/thumb` | `color.interactive.neutral.border.rest` | — | — | — |
+| `track/thumb/offGlyph` | — | — | — | `color.background.tertiary` |
+
+**selection=off, status=error, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `track` | `color.background.tertiary` | `color.border.danger` | — | — |
+| `track/thumb` | `color.interactive.neutral.border.rest` | — | — | — |
+| `track/thumb/offGlyph` | — | — | — | `color.background.tertiary` |
+
+**selection=off, status=error, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `track` | `color.disabled.fill` | `color.disabled.border` | — | — |
+| `track/thumb` | `color.disabled.on-fill` | — | — | — |
+| `track/thumb/offGlyph` | — | — | — | `color.disabled.border` |
+
+**selection=on, status=default, state=rest**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
@@ -201,7 +233,7 @@ Keyed by `selection`, `state`.
 | `track/thumb` | `color.interactive.primary.on-fill` | — | — | — |
 | `track/thumb/onGlyph` | — | — | — | `color.interactive.primary.fill.selected` |
 
-**selection=on, state=hover**
+**selection=on, status=default, state=hover**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
@@ -209,7 +241,7 @@ Keyed by `selection`, `state`.
 | `track/thumb` | `color.interactive.primary.on-fill` | — | — | — |
 | `track/thumb/onGlyph` | — | — | — | `color.interactive.primary.fill.selected` |
 
-**selection=on, state=pressed**
+**selection=on, status=default, state=pressed**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
@@ -217,7 +249,7 @@ Keyed by `selection`, `state`.
 | `track/thumb` | `color.interactive.primary.on-fill` | — | — | — |
 | `track/thumb/onGlyph` | — | — | — | `color.interactive.primary.fill.selected` |
 
-**selection=on, state=focus-visible**
+**selection=on, status=default, state=focus-visible**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
@@ -225,7 +257,7 @@ Keyed by `selection`, `state`.
 | `track/thumb` | `color.interactive.primary.on-fill` | — | — | — |
 | `track/thumb/onGlyph` | — | — | — | `color.interactive.primary.fill.selected` |
 
-**selection=on, state=disabled**
+**selection=on, status=default, state=disabled**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
@@ -233,13 +265,45 @@ Keyed by `selection`, `state`.
 | `track/thumb` | `color.disabled.on-fill` | — | — | — |
 | `track/thumb/onGlyph` | — | — | — | `color.disabled.border` |
 
-**selection=on, state=error**
+**selection=on, status=error, state=rest**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `track` | `color.interactive.primary.fill.selected` | `color.border.danger` | — | — |
 | `track/thumb` | `color.interactive.primary.on-fill` | — | — | — |
 | `track/thumb/onGlyph` | — | — | — | `color.interactive.primary.fill.selected` |
+
+**selection=on, status=error, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `track` | `color.interactive.primary.fill.hover` | `color.border.danger` | — | — |
+| `track/thumb` | `color.interactive.primary.on-fill` | — | — | — |
+| `track/thumb/onGlyph` | — | — | — | `color.interactive.primary.fill.selected` |
+
+**selection=on, status=error, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `track` | `color.interactive.primary.fill.pressed` | `color.border.danger` | — | — |
+| `track/thumb` | `color.interactive.primary.on-fill` | — | — | — |
+| `track/thumb/onGlyph` | — | — | — | `color.interactive.primary.fill.selected` |
+
+**selection=on, status=error, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `track` | `color.interactive.primary.fill.selected` | `color.border.danger` | — | — |
+| `track/thumb` | `color.interactive.primary.on-fill` | — | — | — |
+| `track/thumb/onGlyph` | — | — | — | `color.interactive.primary.fill.selected` |
+
+**selection=on, status=error, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `track` | `color.disabled.fill` | — | — | — |
+| `track/thumb` | `color.disabled.on-fill` | — | — | — |
+| `track/thumb/onGlyph` | — | — | — | `color.disabled.border` |
 
 ### Nesting and properties
 
