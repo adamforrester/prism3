@@ -2,7 +2,7 @@
 
 > One list item: a bullet, number or icon at a fixed indent, then text that wraps under itself.
 
-One item in a List: a marker in a fixed-width column, then short text that wraps under itself rather than under the marker. The marker is a bullet, a number or an icon, and it sits on the first line of the text however many lines the item runs to. The marker column keeps the same width in every type, so the text of every item starts at one edge. Used inside a List; the List sets the type and size of every item it holds.
+One item in a List: a marker in a fixed-width column, then short text that wraps under itself rather than under the marker. The marker is a bullet, a number or an icon, and it sits on the first line of the text however many lines the item runs to. The marker column has one width for each type, so the text of every item in a list starts at one edge. Used inside a List; the List sets the type and size of every item it holds.
 
 - **ID:** `list-item`
 - **Category:** data
@@ -44,7 +44,7 @@ One phrase or sentence per item, sentence case, parallel with the items around i
 
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
-| `children` | node | — | yes | The item text: a short phrase or sentence. It wraps under itself. Inline content such as a link is allowed; a block such as a second list is a nested list, indented by one marker column. |
+| `children` | node | — | yes | The item text: a short phrase or sentence. It wraps under itself. Inline content such as a link is allowed; a block such as a second list is a nested list, indented by this item's marker column, so it starts at this item's text edge. |
 | `type` | enum: 'unordered' \| 'ordered' \| 'icon' | `unordered` | no | Which marker the item shows. Set by the List from its own type; do not set it on an item inside a List. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The text size (body small, medium or large) and the marker sized to it. Set by the List. |
 | `value` | number | — | no | In an ordered list, the number this item shows; the items after it count on from it. Leave it unset to let the list count. |
