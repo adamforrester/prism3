@@ -29,6 +29,17 @@
             }
           }
         },
+        "banner": {
+          "keys": [
+            "border-width"
+          ],
+          "parts": {
+            "container": {
+              "members": 8,
+              "where": {}
+            }
+          }
+        },
         "button": {
           "keys": [
             "border-width"
@@ -593,6 +604,21 @@
             }
           }
         },
+        "banner": {
+          "keys": [
+            "danger.border"
+          ],
+          "parts": {
+            "container": {
+              "members": 2,
+              "where": {
+                "tone": [
+                  "danger"
+                ]
+              }
+            }
+          }
+        },
         "checkbox-control": {
           "keys": [
             "checked.border.error",
@@ -951,6 +977,21 @@
               }
             }
           }
+        },
+        "banner": {
+          "keys": [
+            "info.border"
+          ],
+          "parts": {
+            "container": {
+              "members": 2,
+              "where": {
+                "tone": [
+                  "info"
+                ]
+              }
+            }
+          }
         }
       }
     },
@@ -1126,6 +1167,21 @@
                 ],
                 "type": [
                   "status"
+                ]
+              }
+            }
+          }
+        },
+        "banner": {
+          "keys": [
+            "success.border"
+          ],
+          "parts": {
+            "container": {
+              "members": 2,
+              "where": {
+                "tone": [
+                  "success"
                 ]
               }
             }
@@ -1329,6 +1385,21 @@
                 ],
                 "type": [
                   "status"
+                ]
+              }
+            }
+          }
+        },
+        "banner": {
+          "keys": [
+            "warning.border"
+          ],
+          "parts": {
+            "container": {
+              "members": 2,
+              "where": {
+                "tone": [
+                  "warning"
                 ]
               }
             }
@@ -3557,6 +3628,21 @@
               }
             }
           }
+        },
+        "banner": {
+          "keys": [
+            "danger.fill"
+          ],
+          "parts": {
+            "container": {
+              "members": 2,
+              "where": {
+                "tone": [
+                  "danger"
+                ]
+              }
+            }
+          }
         }
       }
     },
@@ -3604,6 +3690,21 @@
                 ],
                 "type": [
                   "status"
+                ]
+              }
+            }
+          }
+        },
+        "banner": {
+          "keys": [
+            "info.fill"
+          ],
+          "parts": {
+            "container": {
+              "members": 2,
+              "where": {
+                "tone": [
+                  "info"
                 ]
               }
             }
@@ -3701,6 +3802,21 @@
               }
             }
           }
+        },
+        "banner": {
+          "keys": [
+            "success.fill"
+          ],
+          "parts": {
+            "container": {
+              "members": 2,
+              "where": {
+                "tone": [
+                  "success"
+                ]
+              }
+            }
+          }
         }
       }
     },
@@ -3748,6 +3864,21 @@
                 ],
                 "type": [
                   "status"
+                ]
+              }
+            }
+          }
+        },
+        "banner": {
+          "keys": [
+            "warning.fill"
+          ],
+          "parts": {
+            "container": {
+              "members": 2,
+              "where": {
+                "tone": [
+                  "warning"
                 ]
               }
             }
@@ -3822,6 +3953,21 @@
     "color.icon.danger": {
       "type": "color",
       "components": {
+        "banner": {
+          "keys": [
+            "danger.icon"
+          ],
+          "parts": {
+            "iconDanger": {
+              "members": 2,
+              "where": {
+                "tone": [
+                  "danger"
+                ]
+              }
+            }
+          }
+        },
         "field-message": {
           "keys": [
             "error.icon"
@@ -3904,6 +4050,21 @@
     "color.icon.info": {
       "type": "color",
       "components": {
+        "banner": {
+          "keys": [
+            "info.icon"
+          ],
+          "parts": {
+            "iconInfo": {
+              "members": 2,
+              "where": {
+                "tone": [
+                  "info"
+                ]
+              }
+            }
+          }
+        },
         "icon": {
           "keys": [
             "tone.info"
@@ -4262,6 +4423,21 @@
     "color.icon.success": {
       "type": "color",
       "components": {
+        "banner": {
+          "keys": [
+            "success.icon"
+          ],
+          "parts": {
+            "iconSuccess": {
+              "members": 2,
+              "where": {
+                "tone": [
+                  "success"
+                ]
+              }
+            }
+          }
+        },
         "field-message": {
           "keys": [
             "success.icon"
@@ -4366,6 +4542,21 @@
     "color.icon.warning": {
       "type": "color",
       "components": {
+        "banner": {
+          "keys": [
+            "warning.icon"
+          ],
+          "parts": {
+            "iconWarning": {
+              "members": 2,
+              "where": {
+                "tone": [
+                  "warning"
+                ]
+              }
+            }
+          }
+        },
         "field-message": {
           "keys": [
             "warning.icon"
@@ -16472,6 +16663,45 @@
             }
           }
         },
+        "banner": {
+          "keys": [
+            "glyph-size"
+          ],
+          "parts": {
+            "iconDanger": {
+              "members": 2,
+              "where": {
+                "tone": [
+                  "danger"
+                ]
+              }
+            },
+            "iconInfo": {
+              "members": 2,
+              "where": {
+                "tone": [
+                  "info"
+                ]
+              }
+            },
+            "iconSuccess": {
+              "members": 2,
+              "where": {
+                "tone": [
+                  "success"
+                ]
+              }
+            },
+            "iconWarning": {
+              "members": 2,
+              "where": {
+                "tone": [
+                  "warning"
+                ]
+              }
+            }
+          }
+        },
         "button": {
           "keys": [
             "size.large.icon"
@@ -18275,6 +18505,21 @@
     "radius.md": {
       "type": "dimension",
       "components": {
+        "banner": {
+          "keys": [
+            "width.contained.radius"
+          ],
+          "parts": {
+            "container": {
+              "members": 4,
+              "where": {
+                "width": [
+                  "contained"
+                ]
+              }
+            }
+          }
+        },
         "button": {
           "keys": [
             "radius"
@@ -18380,6 +18625,21 @@
     "radius.none": {
       "type": "dimension",
       "components": {
+        "banner": {
+          "keys": [
+            "width.full.radius"
+          ],
+          "parts": {
+            "container": {
+              "members": 4,
+              "where": {
+                "width": [
+                  "full"
+                ]
+              }
+            }
+          }
+        },
         "dialog": {
           "keys": [
             "placement.bottom.radius-bottom",
@@ -21125,6 +21385,22 @@
             }
           }
         },
+        "banner": {
+          "keys": [
+            "actions-gap",
+            "gap"
+          ],
+          "parts": {
+            "actions": {
+              "members": 8,
+              "where": {}
+            },
+            "container": {
+              "members": 8,
+              "where": {}
+            }
+          }
+        },
         "button": {
           "keys": [
             "size.large.gap",
@@ -21358,6 +21634,17 @@
                   "large"
                 ]
               }
+            }
+          }
+        },
+        "banner": {
+          "keys": [
+            "pad"
+          ],
+          "parts": {
+            "container": {
+              "members": 8,
+              "where": {}
             }
           }
         },
@@ -23944,6 +24231,17 @@
                   "medium"
                 ]
               }
+            }
+          }
+        },
+        "banner": {
+          "keys": [
+            "title-type"
+          ],
+          "parts": {
+            "title": {
+              "members": 8,
+              "where": {}
             }
           }
         },

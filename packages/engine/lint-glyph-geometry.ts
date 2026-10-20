@@ -138,6 +138,7 @@ const MUST_COVER = [
   'toast.icon',
   // Progress's own glyphs (#2670), measured by the RING_GLYPH arm.
   'progress.ringTrack', 'progress.arc', 'progress.arcFull', 'progress.stop',
+  'banner.iconInfo', 'banner.iconSuccess', 'banner.iconWarning', 'banner.iconDanger',
 ];
 
 /** The component name prefix an icon-set glyph is an instance of (#2380): `icon/<glyph>`, the component the
@@ -402,6 +403,28 @@ const FIXED_GLYPH: Record<string, { glyph: string; at: Record<string, readonly s
     glyph: 'check-circle',
     at: { intent: ['success'] },
     why: "the success mark, FieldMessage's circled check, so success reads the same in a field and in a toast. `glyph: '{intent}'` cannot express it: the vocabulary has no glyph named `success`, and neutral draws nothing (call 3 A)",
+  },
+  // Banner (#2579): FieldMessage's mark per status, so a danger banner and an errored field show one shape. Held for
+  // the owner on the PR, since the proposal listed the glyph names in tone order.
+  'banner.iconInfo': {
+    glyph: 'info-circle',
+    at: { tone: ['info'] },
+    why: 'the info mark: an i in a circle, the ring `error-circle` and `check-circle` share with the bar and dot swapped. `glyph: \'{tone}\'` would ask the vocabulary for a glyph named `info`, which it does not hold',
+  },
+  'banner.iconSuccess': {
+    glyph: 'check-circle',
+    at: { tone: ['success'] },
+    why: 'the success mark: a circled check, outline, as FieldMessage\'s success status draws it',
+  },
+  'banner.iconWarning': {
+    glyph: 'error-circle',
+    at: { tone: ['warning'] },
+    why: 'the warning mark: an exclamation in a CIRCLE, FieldMessage\'s warning glyph. The name is the enclosure, not the tone; do not "correct" it to `warning-triangle`, which would give warning and danger one shape',
+  },
+  'banner.iconDanger': {
+    glyph: 'warning-triangle',
+    at: { tone: ['danger'] },
+    why: 'the danger mark: an exclamation in a TRIANGLE, FieldMessage\'s error glyph, the one enclosure that is not a circle, so the most serious tone is told apart by shape',
   },
 };
 

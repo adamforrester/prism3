@@ -16,6 +16,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | breadcrumb-item | breadcrumbs | breadcrumbs |
 | button | button-group, password-field | button-group, dialog, password-field |
 | button-group | dialog | dialog |
+| button-neutral | banner | banner |
 | checkbox-control | checkbox-row | checkbox-group, checkbox-row |
 | checkbox-row | checkbox-group | checkbox-group |
 | divider | accordion, dialog | accordion, dialog |

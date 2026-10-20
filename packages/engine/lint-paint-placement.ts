@@ -299,12 +299,12 @@ const EXPECT_ANATOMY = [
   // #2665: the page cell and the pagination row.
   'pagination-item', 'pagination',
   '_slider-thumb', 'slider',
-  'segmented-control-segment', 'segmented-control', 'link', 'button-group', 'dialog', 'password-field', 'counter', 'progress',
+  'progress', 'banner',
 ];
 const EXPECT_PAINTERS = [
   'focus-ring', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive',
   'icon-button-neutral', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'veil',
-  'image-placeholder', 'badge', 'tag', 'tab', 'tabs', 'divider', 'list-item', 'segmented-control-segment', 'segmented-control', 'dialog',
+  'image-placeholder', 'badge', 'tag', 'tab', 'tabs', 'divider', 'list-item', 'segmented-control-segment', 'segmented-control', 'dialog', 'banner',
   // #2665: the page cell's current-page fill and hover wash.
   'pagination-item',
   // #2669: the thumb's disc and ring; the Slider's rail and selected bar.

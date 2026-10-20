@@ -70,8 +70,9 @@ Parts that take any icon from the set. The file nominates the default unless the
 | `chevron-right` | pagination-item |
 | `chevron-up` | _accordion-indicator |
 | `close` | switch-control, tag |
-| `error-circle` | field-message |
+| `error-circle` | banner, field-message |
 | `image` | image-placeholder |
+| `info-circle` | banner |
 | `minus` | _accordion-indicator, checkbox-control |
 | `more-horizontal-filled` | pagination-item |
 | `plus` | _accordion-indicator |
@@ -79,7 +80,7 @@ Parts that take any icon from the set. The file nominates the default unless the
 | `resize-grip` | textarea |
 | `slash` | _breadcrumb-separator |
 | `spinner` | spinner |
-| `warning-triangle` | field-message |
+| `warning-triangle` | banner, field-message |
 
 ## Glyphs no component names (31)
 

@@ -57,6 +57,8 @@ const EXPECTED: Record<string, { slotSettings?: Record<string, unknown>; preferr
   // Constrained (#2666, the approved proposal's properties table): at least two steps, an ancestor and the current page,
   // and BreadcrumbItem the only component the slot offers.
   'breadcrumbs.items': { slotSettings: { minChildren: 2, allowPreferredValuesOnly: true }, preferred: ['breadcrumb-item'] },
+  // Open (#2579, as built): the body holds the message, a link or a short list, so no limit and no preferred component.
+  'banner.body': {},
   // The Button group's buttons (#2661, owner decisions Q363.4 A and Q363.6 A): one to three, the Button family only, the
   // primary Button required, the Destructive and Neutral families offered when the file has them (Q386).
   'button-group.items': { slotSettings: { minChildren: 1, maxChildren: 3, allowPreferredValuesOnly: true }, preferred: ['button'], preferredWhenBuilt: ['button-destructive', 'button-neutral'] },

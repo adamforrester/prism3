@@ -5580,7 +5580,8 @@
       "composition": {
         "composesWith": [],
         "alternativeTo": [
-          "tag"
+          "tag",
+          "banner"
         ],
         "supersedes": [],
         "supersededBy": [],
@@ -7519,6 +7520,7 @@
         "avoidWhen": "One choice among joined options (segmented-control), a toolbar of tools, navigation (links), or a single action on its own (a Button by itself).",
         "commonPartners": [
           "dialog",
+          "banner",
           "button",
           "button-destructive",
           "button-neutral"
@@ -7549,7 +7551,6 @@
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "banner",
           "card",
           "toolbar"
         ],

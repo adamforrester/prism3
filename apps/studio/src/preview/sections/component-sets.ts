@@ -58,10 +58,11 @@ export type SetEntryView = {
 const cap = (s: string): string => (s ? s[0].toUpperCase() + s.slice(1) : s);
 
 /** Which density-following keys the set list shows (owner decision C2 A, "only the padding and gap values"): a key whose
- *  name, after its `size.<size>.` lead, is exactly `padding-x`, `padding-y`, `pad-x`, `pad-y` or `gap`. Left out: every
- *  qualified name, the visual padding (`padding-x-visual`), the per-part gaps and paddings (`select.gap`,
- *  `dismissible.visible-gap`, `check-gap`, `select.padding-end`, accordion's `panel-pad-end`). */
-export const SPACING_SHOWN = /^(?:padding-x|padding-y|pad-x|pad-y|gap)$/;
+ *  name, after its `size.<size>.` lead, is exactly `padding-x`, `padding-y`, `pad-x`, `pad-y`, `pad` (Banner's one padding,
+ *  block and inline alike) or `gap`. Left out: every qualified name, the visual padding (`padding-x-visual`), the per-part
+ *  gaps and paddings (`select.gap`, `dismissible.visible-gap`, `check-gap`, `select.padding-end`, accordion's
+ *  `panel-pad-end`, Banner's `actions-gap` and `action-gap`). */
+export const SPACING_SHOWN = /^(?:padding-x|padding-y|pad-x|pad-y|pad|gap)$/;
 
 /** What each entry of `catalog` says, in its order. `spacePx` resolves a `space.*` step to px on the brand's ladder;
  *  `density` is the brand's; `plugin` says whether this host builds; `lastOf` is the session's result per set. */

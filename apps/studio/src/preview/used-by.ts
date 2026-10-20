@@ -23,7 +23,8 @@ export const USED_BY = {
       ],
       "radius.none": [
         "FlushIconButton",
-        "Dialog"
+        "Dialog",
+        "Banner"
       ],
       "radius.round": [
         "IconButton",
@@ -63,7 +64,8 @@ export const USED_BY = {
       ],
       "radius.none": [
         "FlushIconButton",
-        "Dialog"
+        "Dialog",
+        "Banner"
       ],
       "radius.round": [
         "IconButton",
@@ -107,7 +109,8 @@ export const USED_BY = {
         "Textarea",
         "Checkbox.Control",
         "Select",
-        "Dialog"
+        "Dialog",
+        "Banner"
       ],
       "radius.round": [
         "IconButton",
@@ -150,7 +153,8 @@ export const USED_BY = {
       ],
       "radius.none": [
         "FlushIconButton",
-        "Dialog"
+        "Dialog",
+        "Banner"
       ],
       "radius.round": [
         "IconButton",

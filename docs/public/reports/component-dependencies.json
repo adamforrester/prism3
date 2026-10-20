@@ -1681,8 +1681,12 @@
         "focus-ring",
         "spinner"
       ],
-      "nestedBy": [],
-      "affectedByChange": [],
+      "nestedBy": [
+        "banner"
+      ],
+      "affectedByChange": [
+        "banner"
+      ],
       "inheritedBy": [
         "icon-button-neutral"
       ]
@@ -2233,6 +2237,7 @@
         "icon-button-neutral"
       ],
       "affectedByChange": [
+        "banner",
         "button",
         "button-destructive",
         "button-group",

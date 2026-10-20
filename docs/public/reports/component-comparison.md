@@ -24,6 +24,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 - **axis tone** — the tone axis takes 2 value sets — [brand, danger, info, inherit, primary, secondary, success, tertiary, warning] in icon; [danger, info, neutral, success, warning] in badge
 - **axis type** — the type axis takes 5 value sets — [icon, ordered, unordered] in list, list-item; [compact, numbered, simple] in pagination; [count, dot, status] in badge; [dismissible, select] in tag; [ellipsis, next, page, previous] in pagination-item
 - **axis weight** — the weight axis takes 2 value sets — [bold, regular] in field-label; [default, emphasis] in link
+- **axis width** — the width axis takes 2 value sets — [auto, full] in button, button-destructive, button-neutral; [contained, full] in banner
 
 ### axis without prop
 
@@ -256,6 +257,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | surface | default, inverse | button, button-destructive, button-neutral, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, focus-ring, icon-button, icon-button-destructive, icon-button-neutral, link |
 | tone | brand, danger, info, inherit, primary, secondary, success, tertiary, warning | icon |
 |  | danger, info, neutral, success, warning | badge |
+|  | danger, info, success, warning | banner |
 | type | icon, ordered, unordered | list, list-item |
 |  | compact, numbered, simple | pagination |
 |  | count, dot, status | badge |
@@ -266,6 +268,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | weight | bold, regular | field-label |
 |  | default, emphasis | link |
 | width | auto, full | button, button-destructive, button-neutral |
+|  | contained, full | banner |
 
 Icon's `name` axis is the icon set itself and is covered by the [icon usage](icon-usage.md) report.
 
@@ -318,6 +321,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 
 | Prop | Component | Default | Values |
 |---|---|---|---|
+| actions | banner | — | — |
+|  | dialog | — | — |
 | appearance | button | filled | filled, outline, text |
 |  | button-destructive | filled | filled, outline, text |
 |  | button-neutral | filled | filled, outline, text |
@@ -346,6 +351,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | switch-control | — | — |
 |  | switch-row | — | — |
 | children | accordion | — | — |
+|  | banner | — | — |
 |  | dialog | — | — |
 |  | list-item | — | — |
 | count | pagination | — | — |
@@ -395,6 +401,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 | fullWidth | button | false | — |
 |  | button-destructive | false | — |
 |  | button-neutral | false | — |
+| headingLevel | accordion | 3 | 2, 3, 4, 5, 6 |
+|  | banner | 2 | 2, 3, 4, 5, 6 |
 | helpText | password-field | — | — |
 |  | select | — | — |
 |  | slider | — | — |
@@ -625,8 +633,10 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | icon-button-neutral | default | default, inverse |
 |  | link | default | default, inverse |
 | title | accordion | — | — |
+|  | banner | — | — |
 |  | dialog | — | — |
 | tone | badge | neutral | neutral, info, success, warning, danger |
+|  | banner | info | info, success, warning, danger |
 |  | icon | inherit | 9 values |
 | trailingIcon | link | — | — |
 |  | text-field | — | — |
@@ -681,3 +691,5 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | veil | dark | dark, light |
 | weight | field-label | regular | regular, bold |
 |  | link | emphasis | emphasis, default |
+| width | banner | contained | contained, full |
+|  | segmented-control | auto | auto, full |
