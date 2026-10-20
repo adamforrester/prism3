@@ -6709,9 +6709,17 @@ console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembe
 //      Editing `foreground.success-subtle` with its card already in view leaves the preview where it is, on every
 //      value change; it used to glide back to the top of the Foreground section on each one.
 //
+//      Two rules the card in view cannot show are held on their own. A lever with no card (Gradients) whose section is
+//      taller than the preview: its second edit does not touch the preview at all, though the section is still only
+//      partly in view. And a viewer who has scrolled the preview away from the card between two edits on one lever gets
+//      the card back, because the "same lever" rule holds only while the preview rests where the last edit left it.
+//
 //      Mutations this fails by name: the reveal back on the section's top (no `sameLever` early return, no card
 //      target) → `#2832: editing a Subtle foreground fill with its card in view does not move the preview` and
-//      `#2832: a second value change on the same lever leaves the preview where it was`.
+//      `#2832: a second value change on the same lever leaves the preview where it was`; the `if (sameLever) return
+//      true;` early return dropped → `#2832: a second edit on a lever with no card never touches the preview`;
+//      `sameLever` reading the lever alone (not where the preview rests) → `#2832: after the viewer scrolls the preview
+//      away, the next edit on the same lever brings its card back into view`.
 console.log(`\n#2832 — the edit reveal anchors to the token's own card\n${'='.repeat(78)}`);
 {
   const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
@@ -6771,9 +6779,58 @@ console.log(`\n#2832 — the edit reveal anchors to the token's own card\n${'='.
     await settle();
     const moved = await read(OTHER);
     ok(moved.cardIn && moved.top > 0, `#2832: editing another lever whose card is out of view brings that card into view (scrollTop ${moved.top}; card in view ${moved.cardIn})`);
+
+    // The viewer scrolls the preview away from that card; the next edit on the SAME lever brings the card back.
+    await page.evaluate(() => { document.querySelector('[data-p3="preview-body"]').scrollTop = 0; });
+    const away = await read(OTHER);
+    await step();
+    await settle();
+    const back = await read(OTHER);
+    ok(!away.cardIn && back.cardIn, `#2832: after the viewer scrolls the preview away, the next edit on the same lever brings its card back into view (card in view ${away.cardIn} before, ${back.cardIn} after; scrollTop ${back.top})`);
     ok(errors.length === 0, `#2832: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     ok(false, `#2832: the case stopped at a step that threw — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
+// A lever with no card: Gradients is taller than the preview here, so after its first edit lands the section's top the
+// section is still only partly in view. The second edit on that lever leaves the preview alone: no scroll is issued.
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 560 });
+  try {
+    await goPlace(page, 'color-fills');
+    const read = () => page.evaluate(() => {
+      const body = document.querySelector('[data-p3="preview-body"]');
+      const b = body.getBoundingClientRect();
+      const s = [...body.querySelectorAll('[data-p3="section-title"]')].find((n) => n.textContent === 'Gradients')?.closest('.psec')?.getBoundingClientRect();
+      return { top: Math.round(body.scrollTop), tall: !!s && s.height > b.height, partly: !!s && s.top >= b.top && s.bottom > b.bottom, calls: window.__p3BodyScrolls };
+    });
+    await page.evaluate(() => {
+      const body = document.querySelector('[data-p3="preview-body"]');
+      window.__p3BodyScrolls = 0;
+      const was = Element.prototype.scrollTo;
+      Element.prototype.scrollTo = function scrollTo(...a) { if (this === body) window.__p3BodyScrolls++; return was.apply(this, a); };
+      const s = [...body.querySelectorAll('[data-p3="section-title"]')].find((n) => n.textContent === 'Gradients').closest('.psec');
+      body.scrollTop += s.getBoundingClientRect().top - body.getBoundingClientRect().top - 120;
+    });
+    const settle = () => page.evaluate(() => new Promise((res) => {
+      const b = document.querySelector('[data-p3="preview-body"]');
+      let last = -1, still = 0;
+      const tick = () => { const y = Math.round(b.scrollTop); still = y === last ? still + 1 : 0; last = y; if (still >= 12) res(y); else requestAnimationFrame(tick); };
+      requestAnimationFrame(tick);
+    }));
+    const kind = page.locator('[data-p3="levers-pane"] select[data-p3="gradient-kind"]').first();
+    const kinds = await kind.evaluate((n) => [...n.options].map((o) => o.value));
+    const pick = async (v) => { await kind.selectOption(v); await settle(); };
+    await pick(kinds.find((k) => k !== kinds[0]));   // the first edit on this lever: it may bring the section in
+    const first = await read();
+    await page.evaluate(() => { window.__p3BodyScrolls = 0; });
+    await pick(kinds[0]);
+    const second = await read();
+    ok(first.tall && first.partly, `#2832: the Gradients section is taller than the preview and still only partly in view after the first edit (${JSON.stringify(first)})`);
+    ok(second.calls === 0 && second.top === first.top, `#2832: a second edit on a lever with no card never touches the preview (${second.calls} scrolls issued; scrollTop ${second.top}, was ${first.top})`);
+    ok(errors.length === 0, `#2832: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `#2832: the no-card case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 
