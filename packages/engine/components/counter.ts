@@ -304,7 +304,7 @@ export const counter: ComponentDef = {
     avoidWhen: 'The number is typed, large, precise or decimal, such as a price or a measurement (use a number input). The count is shown on another element rather than set by the user, such as unread messages (use Badge). The options are a short fixed list to compare (use Select or SegmentedControl).',
     commonPartners: ['flush-icon-button-neutral', 'field-label', 'field-message', 'button'],
     triggerKeywords: ['counter', 'quantity', 'quantity stepper', 'quantity selector', 'plus minus', 'item count', 'add to bag quantity'],
-    generationPriority: 4,
+    generationPriority: 2,
   },
 
   composition: {

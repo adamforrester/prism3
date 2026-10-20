@@ -638,14 +638,14 @@
       ],
       "description": "Link text, default — 4.5:1 on background/secondary",
       "value": {
-        "r": 0.8117647171020508,
-        "g": 0.04313725605607033,
-        "b": 0.1725490242242813,
+        "r": 0.7215686440467834,
+        "g": 0,
+        "b": 0.1411764770746231,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/550"
+        "name": "nbds/core/palette/red/600"
       }
     },
     {
@@ -656,14 +656,14 @@
       ],
       "description": "Link text, hover — 4.5:1 on background/secondary",
       "value": {
-        "r": 0.6313725709915161,
+        "r": 0.5411764979362488,
         "g": 0,
-        "b": 0.11764705926179886,
+        "b": 0.0941176488995552,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/650"
+        "name": "nbds/core/palette/red/700"
       }
     },
     {
@@ -674,14 +674,14 @@
       ],
       "description": "Link text, visited — 4.5:1 on background/secondary",
       "value": {
-        "r": 0.2862745225429535,
+        "r": 0.2078431397676468,
         "g": 0,
-        "b": 0.0313725508749485,
+        "b": 0.01568627543747425,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/850"
+        "name": "nbds/core/palette/red/900"
       }
     },
     {
@@ -692,14 +692,14 @@
       ],
       "description": "Link text, focused — 4.5:1 on background/secondary",
       "value": {
-        "r": 0.8117647171020508,
-        "g": 0.04313725605607033,
-        "b": 0.1725490242242813,
+        "r": 0.7215686440467834,
+        "g": 0,
+        "b": 0.1411764770746231,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/550"
+        "name": "nbds/core/palette/red/600"
       }
     },
     {
@@ -710,14 +710,14 @@
       ],
       "description": "Link text, pressed — 4.5:1 on background/secondary",
       "value": {
-        "r": 0.45098039507865906,
+        "r": 0.3686274588108063,
         "g": 0,
-        "b": 0.07450980693101883,
+        "b": 0.05098039284348488,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/750"
+        "name": "nbds/core/palette/red/800"
       }
     },
     {
@@ -1071,14 +1071,14 @@
       ],
       "description": "Link icon, default — 4.5:1 on background/secondary",
       "value": {
-        "r": 0.8117647171020508,
-        "g": 0.04313725605607033,
-        "b": 0.1725490242242813,
+        "r": 0.7215686440467834,
+        "g": 0,
+        "b": 0.1411764770746231,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/550"
+        "name": "nbds/core/palette/red/600"
       }
     },
     {
@@ -1090,14 +1090,14 @@
       ],
       "description": "Link icon, hover — 4.5:1 on background/secondary",
       "value": {
-        "r": 0.6313725709915161,
+        "r": 0.5411764979362488,
         "g": 0,
-        "b": 0.11764705926179886,
+        "b": 0.0941176488995552,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/650"
+        "name": "nbds/core/palette/red/700"
       }
     },
     {
@@ -1109,14 +1109,14 @@
       ],
       "description": "Link icon, visited — 4.5:1 on background/secondary",
       "value": {
-        "r": 0.2862745225429535,
+        "r": 0.2078431397676468,
         "g": 0,
-        "b": 0.0313725508749485,
+        "b": 0.01568627543747425,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/850"
+        "name": "nbds/core/palette/red/900"
       }
     },
     {
@@ -1128,14 +1128,14 @@
       ],
       "description": "Link icon, focused — 4.5:1 on background/secondary",
       "value": {
-        "r": 0.8117647171020508,
-        "g": 0.04313725605607033,
-        "b": 0.1725490242242813,
+        "r": 0.7215686440467834,
+        "g": 0,
+        "b": 0.1411764770746231,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/550"
+        "name": "nbds/core/palette/red/600"
       }
     },
     {
@@ -1147,14 +1147,14 @@
       ],
       "description": "Link icon, pressed — 4.5:1 on background/secondary",
       "value": {
-        "r": 0.45098039507865906,
+        "r": 0.3686274588108063,
         "g": 0,
-        "b": 0.07450980693101883,
+        "b": 0.05098039284348488,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/750"
+        "name": "nbds/core/palette/red/800"
       }
     },
     {
@@ -1280,14 +1280,14 @@
       ],
       "description": "Primary label, rest — 4.5:1 on background/primary (outline, text)",
       "value": {
-        "r": 0.8117647171020508,
-        "g": 0.04313725605607033,
-        "b": 0.1725490242242813,
+        "r": 0.7215686440467834,
+        "g": 0,
+        "b": 0.1411764770746231,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/550"
+        "name": "nbds/core/palette/red/600"
       }
     },
     {
@@ -1298,14 +1298,14 @@
       ],
       "description": "Primary label, hover — 4.5:1 on background/primary (outline, text)",
       "value": {
-        "r": 0.6313725709915161,
+        "r": 0.5411764979362488,
         "g": 0,
-        "b": 0.11764705926179886,
+        "b": 0.0941176488995552,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/650"
+        "name": "nbds/core/palette/red/700"
       }
     },
     {
@@ -1316,14 +1316,14 @@
       ],
       "description": "Primary label, pressed — 4.5:1 on background/primary (outline, text)",
       "value": {
-        "r": 0.45098039507865906,
+        "r": 0.3686274588108063,
         "g": 0,
-        "b": 0.07450980693101883,
+        "b": 0.05098039284348488,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/750"
+        "name": "nbds/core/palette/red/800"
       }
     },
     {
@@ -1335,14 +1335,14 @@
       ],
       "description": "Primary icon, rest — 4.5:1 on background/primary (outline, ghost, text)",
       "value": {
-        "r": 0.8117647171020508,
-        "g": 0.04313725605607033,
-        "b": 0.1725490242242813,
+        "r": 0.7215686440467834,
+        "g": 0,
+        "b": 0.1411764770746231,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/550"
+        "name": "nbds/core/palette/red/600"
       }
     },
     {
@@ -1354,14 +1354,14 @@
       ],
       "description": "Primary icon, hover — 4.5:1 on background/primary (outline, ghost, text)",
       "value": {
-        "r": 0.6313725709915161,
+        "r": 0.5411764979362488,
         "g": 0,
-        "b": 0.11764705926179886,
+        "b": 0.0941176488995552,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/650"
+        "name": "nbds/core/palette/red/700"
       }
     },
     {
@@ -1373,14 +1373,14 @@
       ],
       "description": "Primary icon, pressed — 4.5:1 on background/primary (outline, ghost, text)",
       "value": {
-        "r": 0.45098039507865906,
+        "r": 0.3686274588108063,
         "g": 0,
-        "b": 0.07450980693101883,
+        "b": 0.05098039284348488,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/750"
+        "name": "nbds/core/palette/red/800"
       }
     },
     {
@@ -1391,14 +1391,14 @@
       ],
       "description": "Primary outline edge, rest — 3:1 on background/primary, follows the label",
       "value": {
-        "r": 0.8117647171020508,
-        "g": 0.04313725605607033,
-        "b": 0.1725490242242813,
+        "r": 0.7215686440467834,
+        "g": 0,
+        "b": 0.1411764770746231,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/550"
+        "name": "nbds/core/palette/red/600"
       }
     },
     {
@@ -1409,14 +1409,14 @@
       ],
       "description": "Primary outline edge, hover — 3:1 on background/primary, follows the label",
       "value": {
-        "r": 0.6313725709915161,
+        "r": 0.5411764979362488,
         "g": 0,
-        "b": 0.11764705926179886,
+        "b": 0.0941176488995552,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/650"
+        "name": "nbds/core/palette/red/700"
       }
     },
     {
@@ -1427,14 +1427,14 @@
       ],
       "description": "Primary outline edge, pressed — 3:1 on background/primary, follows the label",
       "value": {
-        "r": 0.45098039507865906,
+        "r": 0.3686274588108063,
         "g": 0,
-        "b": 0.07450980693101883,
+        "b": 0.05098039284348488,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/750"
+        "name": "nbds/core/palette/red/800"
       }
     },
     {

@@ -25,7 +25,7 @@ export const tabs: ComponentDef = {
   aliases: ['tab-list', 'tab-group', 'tab-bar', 'tab-panel'],
   category: 'navigation',
   status: 'draft',
-  summary: 'A row of tabs that switches between panels of related content in place.',
+  summary: 'A row of tabs that switches between panels of related content in place. Size applies to the items you haven\'t edited. After editing an item, select the items and set their size.',
   description:
     'A row of tabs above a baseline. Each tab names one panel of related content; selecting a tab shows its panel in place and hides the rest, without changing the page or the address. One tab is always selected. Arrow keys move between tabs, and Tab moves on into the panel.',
 
@@ -40,7 +40,7 @@ export const tabs: ComponentDef = {
     { name: 'alignment', type: "enum: 'start' | 'center'", values: ['start', 'center'], default: 'start', required: false, description: 'start: the tabs sit at the start of the bar. center: the tabs sit centered in the bar, which spans its container; the baseline spans the full width either way.' },
   ],
 
-  states: ['rest'],
+  states: [],
   // `alignment` (#2518, owner decision Q222 A): `start` is the approved tab list (#2416); `center` sits the same tabs
   // centered in a bar that spans its placement, the baseline full width. `start` leads: the code default and
   // Figma's default member.
