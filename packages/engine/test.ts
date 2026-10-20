@@ -11802,9 +11802,9 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   ok(cutValBad.length === 0, `#1485 figma font: each derived cut is the role's named-instance style (subtle→Light … strong→Bold)` + (cutValBad.length ? ` — ${cutValBad.slice(0, 3).join(', ')}` : ''));
 
   // Scopes are NOT compared to the fixture any more (#2602): the fixture freezes one font scope per row,
-  // and the `core` size rows are now emitted unscoped, so a local picker never offers them. The family,
-  // weight and weight-role rows keep their font scope (owner decision Q292 A — TokenPress types them from
-  // it; #2616 is the follow-up). The expectation is a literal per group, not the fixture and not the
+  // and the `core` size and numeric weight rows are now emitted unscoped, so a local picker never offers
+  // them. The family and weight-role rows keep their font scope (owner decisions Q292 A and Q334 A — the
+  // roles are what the pickers offer). The expectation is a literal per group, not the fixture and not the
   // emitter's constant.
   // Family descriptions now lead with the fixture's stack line (fix #4) and
   // have the DTCG $description appended — assert `startsWith` on the fixture.
@@ -11812,7 +11812,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   for (const [name, fv] of fontByName) {
     const ov = emitByName.get(name); if (!ov) continue;
     if (fv.resolvedType !== ov.resolvedType) badFT.push(name);
-    const wantFS = /\/font\/family\//.test(name) ? '["FONT_FAMILY"]' : /\/font\/weight(-role)?\//.test(name) ? '["FONT_WEIGHT"]' : '[]';
+    const wantFS = /\/font\/family\//.test(name) ? '["FONT_FAMILY"]' : /\/font\/weight-role\//.test(name) ? '["FONT_WEIGHT"]' : '[]';
     if (JSON.stringify(ov.scopes) !== wantFS) badFS.push(`${name}=${JSON.stringify(ov.scopes)} (want ${wantFS})`);
     if (fv.value !== ov.value) badFV.push(name);
     if ((fv.alias ? nbFixName(fv.alias.name) : null) !== (ov.alias?.name ?? null)) badFA.push(name);
@@ -11826,7 +11826,7 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     }
   }
   ok(badFT.length === 0, 'figma font: resolvedType matches fixture' + (badFT.length ? ` — ${badFT.slice(0, 3).join(',')}` : ''));
-  ok(badFS.length === 0, 'figma font: fixture size rows are emitted unscoped, family rows FONT_FAMILY, weight and weight-role rows FONT_WEIGHT (#2602, Q292 A)' + (badFS.length ? ` — ${badFS.slice(0, 3).join(',')}` : ''));
+  ok(badFS.length === 0, 'figma font: fixture size and numeric weight rows are emitted unscoped, family rows FONT_FAMILY, weight-role rows FONT_WEIGHT (#2602, Q334 A)' + (badFS.length ? ` — ${badFS.slice(0, 3).join(',')}` : ''));
   ok(badFV.length === 0, 'figma font: values match fixture' + (badFV.length ? ` — ${badFV.slice(0, 3).join(',')}` : ''));
   ok(badFA.length === 0, 'figma font: weight-role aliases target the same numeric weight as fixture' + (badFA.length ? ` — ${badFA.slice(0, 3).join(',')}` : ''));
   ok(badFD.length === 0, 'figma font: family descriptions name the fixture face, then its fallback stack in order (fix #4 preserved)' + (badFD.length ? ` — ${badFD.slice(0, 3).join(',')}` : ''));
@@ -13811,9 +13811,9 @@ arm: {
 //     2026-10-13 — an unscoped palette step left the fill picker, its scoped neighbor stayed). Until
 //     #2602 this block asserted the opposite: role-family scopes, on the strength of a 2026-07-04 probe
 //     that showed `setBoundVariableForPaint` succeeding on an unscoped var. An API bind is not a picker;
-//     scopes never block one. The exception (owner decision Q292 A, 2026-10-14): font/family/* keeps
-//     FONT_FAMILY and font/weight/* + font/weight-role/* keep FONT_WEIGHT, because TokenPress types a
-//     font variable's DTCG `$type` from its scope (#2616 unscopes them once it types by name).
+//     scopes never block one. The exception (owner decisions Q292 A and Q334 A): font/family/* keeps
+//     FONT_FAMILY and font/weight-role/* keeps FONT_WEIGHT, so the pickers offer the roles. The numeric
+//     font/weight/* is unscoped; TokenPress types it by its path (#2616).
 //     NOTE: opacity is NOT in this set — it is directly consumable (#79).
 //
 // (b) SEMANTIC + DIRECTLY-CONSUMABLE TIER stays visible. `color/*`, `space`,
@@ -13836,7 +13836,7 @@ arm: {
   const layout = buildFigmaLayout(theme);
 
   // Primitive-tier: every var must have hiddenFromPublishing=true AND no scope (#2602), bar the font
-  // family and weight rows, which keep FONT_FAMILY / FONT_WEIGHT (owner decision Q292 A). The expected
+  // family and weight-role rows, which keep FONT_FAMILY / FONT_WEIGHT (owner decision Q334 A). The expected
   // scope set is a literal per group, never `PRIMITIVE_SCOPES` — the emitter's constant would agree with
   // any value it was changed to (docs/34 shape 1).
   const primitiveGroups: Array<{ tag: string; vars: any[]; expectScopes: string[] }> = [
@@ -13847,7 +13847,7 @@ arm: {
     // failure. `nbVar` derives the root from the theme, so it cannot drift from the emitter.
     { tag: 'core/font/family', vars: font.variables.filter((v) => v.name.startsWith(nbVar('core/font/family/'))), expectScopes: ['FONT_FAMILY'] },
     { tag: 'core/font/size', vars: font.variables.filter((v) => v.name.startsWith(nbVar('core/font/size/'))), expectScopes: [] },
-    { tag: 'core/font/weight', vars: font.variables.filter((v) => v.name.startsWith(nbVar('core/font/weight/'))), expectScopes: ['FONT_WEIGHT'] },
+    { tag: 'core/font/weight', vars: font.variables.filter((v) => v.name.startsWith(nbVar('core/font/weight/'))), expectScopes: [] },
     { tag: 'core/font/weight-role', vars: font.variables.filter((v) => v.name.startsWith(nbVar('core/font/weight-role/'))), expectScopes: ['FONT_WEIGHT'] },
     { tag: 'core/font/style', vars: font.variables.filter((v) => v.name.startsWith(nbVar('core/font/style/'))), expectScopes: [] },
   ];
@@ -13865,7 +13865,7 @@ arm: {
     }
   }
   ok(notHidden.length === 0, `figma primitives: every ref-tier var has hiddenFromPublishing=true (${primitiveGroups.reduce((n, g) => n + g.vars.length, 0)} vars across ${primitiveGroups.length} collections)` + (notHidden.length ? ` — ${notHidden.slice(0, 3).join(', ')}` : ''));
-  ok(wrongScope.length === 0, 'figma primitives: every `core` var carries no scope, bar font family (FONT_FAMILY) and font weight and weight-role (FONT_WEIGHT) (#2602, Q292 A — empty scopes hide it from local pickers)' + (wrongScope.length ? ` — ${wrongScope.slice(0, 3).join(', ')}` : ''));
+  ok(wrongScope.length === 0, 'figma primitives: every `core` var carries no scope, bar font family (FONT_FAMILY) and font weight-role (FONT_WEIGHT) (#2602, Q334 A — empty scopes hide it from local pickers)' + (wrongScope.length ? ` — ${wrongScope.slice(0, 3).join(', ')}` : ''));
 
   // Semantic-tier: every var must NOT be hidden.
   const semanticGroups: Array<{ tag: string; vars: any[] }> = [
@@ -13947,9 +13947,9 @@ arm: {
 }
 
 // (23b) #2602 — EVERY BRAND, EVERY WRITE PATH: the `core` collection is hidden from publishing and carries
-// no scope, bar the font family and weight rows (owner decision Q292 A: `font/family/*` keeps FONT_FAMILY,
-// `font/weight/*` and `font/weight-role/*` keep FONT_WEIGHT, so TokenPress still types them `fontFamily` /
-// `fontWeight`; #2616 is the follow-up that unscopes them), and NO variable anywhere carries ALL_SCOPES.
+// no scope, bar the font family and weight-role rows (owner decisions Q292 A and Q334 A: `font/family/*` keeps
+// FONT_FAMILY and `font/weight-role/*` keeps FONT_WEIGHT, so the pickers offer the roles; the numeric
+// `font/weight/*` is unscoped and TokenPress types it by its path, #2616), and NO variable anywhere carries ALL_SCOPES.
 // (23) holds nb's emitter output per group; this arm is the owner's rules stated once over everything that
 // reaches a Figma file:
 //   · the in-memory emission (`figmaArtifacts`) for nb and every committed `examples/*.design.md` brief;
@@ -13970,9 +13970,9 @@ arm: {
 {
   const CORE_GROUP = /\/core\/(palette|dimension|font\/family|font\/size|font\/weight-role|font\/weight|font\/style)\//;
   const GROUPS = ['palette', 'dimension', 'font/family', 'font/size', 'font/weight', 'font/weight-role', 'font/style'];
-  // Q292 A, as literals. A group absent here expects `[]`; the paste payloads carry the compact code instead.
-  const CORE_SCOPES_2602: Record<string, string> = { 'font/family': '["FONT_FAMILY"]', 'font/weight': '["FONT_WEIGHT"]', 'font/weight-role': '["FONT_WEIGHT"]' };
-  const CORE_CODES_2602: Record<string, string> = { 'font/family': 'm', 'font/weight': 'e', 'font/weight-role': 'e' };
+  // Q292 A + Q334 A, as literals. A group absent here expects `[]`; the paste payloads carry the compact code instead.
+  const CORE_SCOPES_2602: Record<string, string> = { 'font/family': '["FONT_FAMILY"]', 'font/weight-role': '["FONT_WEIGHT"]' };
+  const CORE_CODES_2602: Record<string, string> = { 'font/family': 'm', 'font/weight-role': 'e' };
   const briefs = readdirSync(resolve(HERE, './examples')).filter((f) => f.endsWith('.design.md')).sort();
   const brands: Array<[string, Theme | undefined]> = [['nb', nbTheme()], ...briefs.map((file): [string, Theme | undefined] => [file, exampleTheme(file, () => {
     const text = readFileSync(resolve(HERE, `./examples/${file}`), 'utf8');
@@ -14075,10 +14075,56 @@ arm: {
   ok(brandsSwept >= 5 && treeBrands.length >= 4 && coreSwept > 0 && varsSwept > coreSwept,
     `#2602 sweep floor: ${brandsSwept} brand(s) emitted (≥5), ${treeBrands.length} committed tree(s) (≥4), ${coreSwept} core row(s), ${varsSwept} variable row(s)`);
   ok(unrepresented.length === 0, '#2602 every `core` group (palette, dimension, font family/size/weight/weight-role/style) is represented on every path' + (unrepresented.length ? ` — MISSING: ${unrepresented.slice(0, 4).join('; ')}` : ''));
-  ok(coreBad.length === 0, `#2602 every \`core\` variable is hidden from publishing and carries no scope, bar FONT_FAMILY on font/family and FONT_WEIGHT on font/weight and font/weight-role (Q292 A), in every brand and on every write path (${coreSwept} rows)` + (coreBad.length ? ` — ${coreBad.length} wrong: ${coreBad.slice(0, 4).join('; ')}` : ''));
+  ok(coreBad.length === 0, `#2602 every \`core\` variable is hidden from publishing and carries no scope, bar FONT_FAMILY on font/family and FONT_WEIGHT on font/weight-role (Q334 A), in every brand and on every write path (${coreSwept} rows)` + (coreBad.length ? ` — ${coreBad.length} wrong: ${coreBad.slice(0, 4).join('; ')}` : ''));
   ok(allScopes.length === 0, `#2602 no emitted variable carries ALL_SCOPES, in every brand and on every write path, bar TIMING and EASING (${varsSwept - unscopedSwept} rows)` + (allScopes.length ? ` — ${allScopes.length} wrong: ${allScopes.slice(0, 4).join('; ')}` : ''));
   ok(unscopedMissing.length === 0 && unscopedSwept > 0, `#2412 TIMING and EASING rows are represented on every typed path, so the ALL_SCOPES exemption covers something (${unscopedSwept} rows)` + (unscopedMissing.length ? ` — MISSING: ${unscopedMissing.slice(0, 4).join('; ')}` : ''));
   ok(unscopedBad.length === 0, `#2412 every TIMING and EASING row holds exactly ['ALL_SCOPES'], the only scope Figma lets it hold, in every brand and on every typed path (${unscopedSwept} rows)` + (unscopedBad.length ? ` — ${unscopedBad.length} wrong: ${unscopedBad.slice(0, 4).join('; ')}` : ''));
+}
+
+// (23c) #2736 — THE DTCG FONT HINT AGREES WITH THE FIGMA ROW. `$extensions.prism3.figma.scope` on a `core.font`
+// leaf names the one scope its Figma row carries, and an absent field means the row carries none. It ships in
+// every emitted tree, so a stale one tells a consumer a scope no Figma row has: it named FONT_SIZE and
+// FONT_WEIGHT after #2602 and #2616 had unscoped those rows. Two independent writers are compared, the DTCG tree
+// (`tree.ts`) and the Figma emission (`emit-figma-font.ts`, `core` collection, Default mode), by path, in nb and
+// every committed brief. A leaf with no Figma row (a `typeface` primitive) is not compared. The family, size and
+// numeric weight groups must each be REPRESENTED per brand, so an empty match passes over nothing by name.
+{
+  const briefs = readdirSync(resolve(HERE, './examples')).filter((f) => f.endsWith('.design.md')).sort();
+  const brands: Array<[string, Theme | undefined]> = [['nb', nbTheme()], ...briefs.map((file): [string, Theme | undefined] => [file, exampleTheme(file, () => {
+    const text = readFileSync(resolve(HERE, `./examples/${file}`), 'utf8');
+    const std = parseStandardDesignMd(text);
+    return brandTheme(isStandardDesignMd(std) ? standardToBrandInput(std).input : parseDesignMd(text).input);
+  })])];
+  const GROUPS_2736 = ['family', 'size', 'weight']; // literal
+  const bad: string[] = [], unrepresented: string[] = [];
+  let brandsSwept = 0, compared = 0;
+  for (const [id, th] of loadedRows(brands)) {
+    brandsSwept++;
+    const { tree } = buildTree(th!);
+    const root = Object.keys(tree)[0];
+    const rows = new Map<string, unknown>();
+    for (const a of figmaArtifacts(th!).artifacts) {
+      const f = JSON.parse(a.content);
+      if (f?.$collection !== 'core' || f?.$mode !== 'Default' || !Array.isArray(f?.variables)) continue;
+      for (const v of f.variables) rows.set(v.name, v.scopes);
+    }
+    const seen = new Set<string>();
+    const fontNode = (tree as any)[root]?.core?.font ?? {};
+    for (const g of GROUPS_2736) for (const [key, leaf] of Object.entries<any>(fontNode[g] ?? {})) {
+      if (key.startsWith('$') || !leaf?.$extensions?.prism3?.figma) continue;
+      const name = `${root}/core/font/${g}/${key}`;
+      if (!rows.has(name)) continue;
+      compared++; seen.add(g);
+      const hint = leaf.$extensions.prism3.figma.scope;
+      const want = JSON.stringify(rows.get(name));
+      if (JSON.stringify(hint === undefined ? [] : [hint]) !== want) bad.push(`${id} ${root}.core.font.${g}.${key}: figma.scope=${JSON.stringify(hint)}, row scopes=${want}`);
+    }
+    const missing = GROUPS_2736.filter((g) => !seen.has(g));
+    if (missing.length) unrepresented.push(`${id} [${missing.join(', ')}]`);
+  }
+  ok(brandsSwept >= 5 && compared > 0 && unrepresented.length === 0,
+    `#2736 sweep floor: ${brandsSwept} brand(s) (≥5), ${compared} DTCG font leaves compared to their Figma rows, family/size/weight each represented per brand` + (unrepresented.length ? ` — MISSING: ${unrepresented.slice(0, 4).join('; ')}` : ''));
+  ok(bad.length === 0, `#2736 every DTCG \`core.font\` leaf's figma.scope names the scope its emitted Figma row carries, absent where the row carries none (size and numeric weight), in every brand (${compared} leaves)` + (bad.length ? ` — ${bad.length} wrong: ${bad.slice(0, 3).join('; ')}` : ''));
 }
 
 // ----------------------------------------- component-definition schema (docs/14 §2, DRAFT v0)
@@ -16675,6 +16721,19 @@ arm: {
       `#1438 MUTATION: reverting the label nest to nest-fixed drops nestExpose from the projected node (got ${JSON.stringify(fixedLabelNode?.nestExpose)}), flipping '#1438 the projected label node carries nestExpose' BY NAME`);
     ok(validateComponentDef(select).errors.length === 0,
       `#1438 select validates clean as nest-exposed — expose ⊂ field-label's axes, disjoint from follow (${validateComponentDef(select).errors.join('; ')})`);
+  }
+
+  // ---- Q399 A: the COUNTER's label is nest-exposed like the fields' (owner-decided, on #2693) ----
+  // EXPECTED typed from the decision, never read off the def: the surface baseline is re-accepted with any change
+  // note, so it does not remember which axes were listed. Mutation: `expose` cut to ['emphasis'], or the label back to
+  // `nest-fixed` → this line.
+  {
+    const n = counter.anatomy?.parts.label?.nesting;
+    const got = n?.kind === 'nest-exposed'
+      ? `expose ${[...n.expose].sort().join(', ')}, follow ${(n.follow ?? []).join(', ')}, emphasis ${n.variant?.emphasis}, weight ${n.variant?.weight}`
+      : `kind ${n?.kind ?? 'MISSING'}`;
+    ok(got === 'expose emphasis, weight, follow size, emphasis secondary, weight regular',
+      `Q399 A counter's label is nest-exposed: exposes [emphasis, weight], follows [size], starts secondary and regular (got ${got})`);
   }
 
   // #1223 — INTENT IS THE COMPONENT NOW, NOT AN AXIS. The three semantic intents are three components
@@ -32360,13 +32419,13 @@ arm: {
   ok(scrimIn.length === 0 && plans.every((p) => (p.root as DN).paints?.fills === 'color/foreground/primary' && (p.root as DN).effectStyle === 'shadow/xl'),
     `#2609 dialog panel: foreground.primary with the shadow.xl effect style on every member, and no scrim, veil or backdrop node anywhere in the set${scrimIn.length ? ` — FOUND: ${scrimIn.slice(0, 3).join('; ')}` : ''}`);
 
-  // THE HEADER: the title, the description (off), and the close (on): FlushIconButton.Neutral, round, medium (Q385 A).
+  // THE HEADER: the title, the description (off), and the close (on): FlushIconButton.Neutral, flush, medium (Q385 A; flush per owner QA 2026-10-19).
   const hdrBad = plans.filter((p) => {
     const r = p.root as DN, close = find(r, 'close'), desc = find(r, 'description'), title = find(r, 'title');
-    return !(close?.nestTarget === 'flush-icon-button-neutral' && JSON.stringify(close.nestVariant) === JSON.stringify({ shape: 'round', size: 'medium', state: 'rest' })
+    return !(close?.nestTarget === 'flush-icon-button-neutral' && JSON.stringify(close.nestVariant) === JSON.stringify({ shape: 'flush', size: 'medium', state: 'rest' })
       && close.visibleProp === 'close' && close.visible !== false && desc?.visible === false && desc.paints?.fills === 'color/text/secondary' && title?.paints?.fills === 'color/text/primary');
   });
-  ok(hdrBad.length === 0, `#2609 dialog header: the close is FlushIconButton.Neutral round medium and shown, the description hidden in secondary text, the title in primary text (${hdrBad.length ? `WRONG: ${hdrBad.map(planComponentName).slice(0, 2).join('; ')}` : 'all 15'})`);
+  ok(hdrBad.length === 0, `#2609 dialog header: the close is FlushIconButton.Neutral flush medium and shown (owner QA 2026-10-19: never round), the description hidden in secondary text, the title in primary text (${hdrBad.length ? `WRONG: ${hdrBad.map(planComponentName).slice(0, 2).join('; ')}` : 'all 15'})`);
 
   // THE FOOTERS (Q303.6 A; Q363, #2661): inline and stacked each nest ONE Button group, at its own layout, stretched
   // across a footer inset like the header; none has no footer and no rule above it. What the group holds is its own
@@ -32684,7 +32743,7 @@ arm: {
   // THE SHARED CODE-ONLY ENTRIES are written out in each def (the plugin build needs a string literal per entry), so
   // their identity is held here: each of TextField's entries on the shared anatomy, by its leading subject, appears
   // verbatim in the Password field's list. The subjects are typed here, not read off either def.
-  const SHARED_CODE_ONLY = ['the SMALL field on a COARSE POINTER', 'style', 'pending', 'empty', 'the FOCUS CARET', 'the label / describedby WIRING', "the nested LABEL's disabled dimming"];
+  const SHARED_CODE_ONLY = ['the SMALL field on a COARSE POINTER', 'style', 'pending', 'empty', 'the FOCUS CARET', 'the label / describedby WIRING'];
   const bySubject = (list: readonly string[], subject: string) => list.filter((e) => e.startsWith(`${subject} `) || e.startsWith(`${subject} —`));
   const sharedBad = SHARED_CODE_ONLY.filter((sub) => {
     const t = bySubject(textField.anatomy!.codeOnly, sub); const p = bySubject(pw.anatomy!.codeOnly, sub);
@@ -32706,6 +32765,40 @@ arm: {
     && validateComponentDef(withStateMap({ disabled: { tone: 'quiet' } })).errors.some((m) => /variantWhen\.state\.disabled' setting the child's 'tone', which its 'variant' does not name/.test(m))
     && validateComponentDef(withStateMap({ disabled: { size: 'small' } }, ['size'])).errors.some((m) => /variantWhen\.state\.disabled' setting the child's 'size', which is also in 'follow'/.test(m)),
     `#2317 variantWhen.state: the Password field validates clean; a host state off the state axis, an axis the variant does not name, and a followed axis are each refused by name`);
+}
+
+// ------------------------------------------------------------------- #2738: the fields' nested label dims with them
+// Text field, Password field, Select and Textarea each nest FieldLabel. In code a disabled field dims its label (#1339);
+// in Figma the nested label used to read at rest on every member, recorded as a projection limit in `codeOnly`. Each
+// field now moves the label to FieldLabel's disabled member at its own disabled member, and only there: read-only keeps
+// a full-contrast label, as it keeps a full-contrast value. EXPECTED is typed here, per member, from the member's own
+// coordinate; ACTUAL is each def's projected plan and the FieldLabel member the coordinate resolves to.
+{
+  type PN = { name: string; children: PN[]; nestTarget?: string; nestVariant?: Record<string, string> };
+  const find = (n: PN, name: string): PN | undefined => (n.name === name ? n : n.children.map((c) => find(c, name)).find(Boolean));
+  const sorted = (r: Record<string, string> | undefined) => JSON.stringify(Object.entries(r ?? {}).sort());
+  const labelNames = figmaAnatomySet(componentDefs.find((d) => d.id === 'field-label')!, { swapTarget: 'FPO-default-icon' }).map(planComponentName);
+  // 84 members each (size 3 × status 4 × state 7); 12 of them disabled.
+  const FIELDS = ['text-field', 'password-field', 'select', 'textarea'];
+  for (const id of FIELDS) {
+    const def = componentDefs.find((d) => d.id === id)!;
+    const plans = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
+    const bad: string[] = [];
+    let dimmed = 0;
+    for (const p of plans) {
+      const c = p.coord as Record<string, string>;
+      const want = { size: p.size!, emphasis: 'secondary', weight: 'regular', state: c.state === 'disabled' ? 'disabled' : 'rest' };
+      const label = find(p.root as PN, 'label');
+      const member = label?.nestVariant ? nestVariantMatch(label.nestVariant, labelNames) : null;
+      if (!label || label.nestTarget !== 'field-label' || sorted(label.nestVariant) !== sorted(want) || !member || !member.split(', ').includes(`state=${want.state}`))
+        bad.push(`${planComponentName(p)}: ${JSON.stringify({ target: label?.nestTarget, variant: label?.nestVariant, member })}`);
+      else if (want.state === 'disabled') dimmed++;
+    }
+    ok(plans.length === 84 && dimmed === 12 && bad.length === 0,
+      `#2738 ${id} label-dims: the nested FieldLabel is at state=disabled on the 12 disabled members and at state=rest on the other 72, read-only included, and each coordinate resolves to one FieldLabel member (${plans.length} members, ${dimmed} dimmed)${bad.length ? ` — WRONG on ${bad.length}: ${bad.slice(0, 2).join(' | ')}` : ''}`);
+    const limit = def.anatomy!.codeOnly.filter((e) => /LABEL's disabled dimming/i.test(e));
+    ok(limit.length === 0, `#2738 ${id} codeOnly: no entry records the label's disabled dimming as a projection limit (found ${JSON.stringify(limit)})`);
+  }
 }
 
 // ---- #2708 / Q351 A: the Rows' and Textarea's state props ---------------------------------------------
