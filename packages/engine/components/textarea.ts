@@ -330,11 +330,12 @@ export const textarea: ComponentDef = {
         gap: 'root-gap',
         children: ['label', 'body'],
       },
-      // THE NESTED LABEL — text-field's, exactly (size followed, emphasis / weight exposed, state fixed at rest).
+      // THE NESTED LABEL — text-field's, exactly (size followed, emphasis / weight exposed, state at
+      // rest except at the field's disabled member, where `variantWhen` dims it, #2738).
       label: {
         kind: 'nest',
         nests: 'field-label',
-        nesting: { kind: 'nest-exposed', variant: { size: 'medium', emphasis: 'secondary', weight: 'regular', state: 'rest' }, expose: ['emphasis', 'weight'], follow: ['size'] },
+        nesting: { kind: 'nest-exposed', variant: { size: 'medium', emphasis: 'secondary', weight: 'regular', state: 'rest' }, expose: ['emphasis', 'weight'], follow: ['size'], variantWhen: { state: { disabled: { state: 'disabled' } } } },
         // FILLS the field's width (#1757, select's label); a long name wraps at field-label's max width (#1762).
         crossAxisFill: true,
         note: 'The accessible name, composed rather than re-declared. Its size follows the field\'s, one step below the value; its label text, required marker, emphasis and weight surface on the textarea. Starts secondary and regular. Fills the field\'s width; a long name wraps at FieldLabel\'s max width.',
@@ -484,7 +485,6 @@ export const textarea: ComponentDef = {
       'the RESIZE HANDLE\'s behavior (`resize`) — Figma draws a decorative grip behind the `resize handle` boolean, on by default because `resize` defaults to `vertical`. In code the handle is the browser\'s own, drawn at the inline-end corner (bottom-left in a right-to-left layout); Figma members are drawn left to right, so the grip sits bottom-right. `auto` and `none` draw no handle in code; in Figma, switch the boolean off.',
       'the CHARACTER COUNTER\'s live value (`maxLength` / `showCount`) — Figma draws a static "0 / 200" caption trailing the message, behind the `character count` boolean, off by default like `showCount`. Code counts graphemes, sets tabular numerals (`font-variant-numeric: tabular-nums`, which the type tokens do not carry, so Figma uses the caption style as it is) and paints the counter in the error role past the limit. In Figma, as in code, the counter and the message switch independently. In a right-to-left layout the counter anchors to the inline end, the LEFT, with the resize handle (brief §9); Figma members are drawn left to right.',
       'the label / describedby WIRING and the counter\'s two-node live region — the host generates ids, ties the FieldLabel to the textarea, stitches the FieldMessage and the counter into aria-describedby, and sets aria-invalid. Figma has no accessibility tree, so the nested parts are associated by proximity alone.',
-      'the nested LABEL\'s disabled dimming — the field fixes the FieldLabel to `state=rest` (its state vocabulary is not the field\'s), so in Figma the nested label reads at rest regardless. A projection limit, not a design choice.',
       'the KEYBOARD MODEL — native multi-line editing, the Enter key (a newline unless submitOnEnter), IME composition guards and the resize drag. All of it is runtime interaction the closed static member cannot carry.',
     ],
   },
