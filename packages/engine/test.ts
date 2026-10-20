@@ -29134,6 +29134,54 @@ arm: {
   ok(nestsOf(byId('checkbox-control')).includes('focus-ring'), '#1347: checkbox-control nests focus-ring (chain link 1) — the group→row→control→ring chain is the corpus\'s deepest');
 }
 
+// #2715: RADIO GROUP, checkbox-group's twin (#1475), carries the same kinds of test the checkbox group does: what it
+// nests, how many members it projects, and the nest chain under it. Every expected value is typed here from the def's
+// brief and owner decisions (Q307 A: the rows in an items slot, three by default, at least one, only a Radio.Row; the group label secondary and bold), never
+// read off the def or the projector (docs/34 shape 1). Read per projected member, so a row repointed at the control
+// atom, a row made exposed, a lost follow, or a new group axis fails the named arm.
+{
+  const g = componentDefs.find((d) => d.id === 'radio-group');
+  ok(!!g, '#2715 radio-group: registered in componentDefs');
+  type PN = { name: string; type?: string; children: PN[]; nestTarget?: string; nestVariant?: Record<string, string>; visible?: boolean; visibleProp?: string; layoutAlign?: string; slotSettings?: Record<string, unknown>; slotPreferred?: string[] };
+  const members = figmaAnatomySet(g!, { swapTarget: 'FPO-default-icon' });
+  const NAMES = ['size=medium', 'size=small', 'size=large'];
+  ok(JSON.stringify(members.map(planComponentName).sort()) === JSON.stringify([...NAMES].sort()),
+    `#2715 radio-group set size: exactly three members, one per size (${NAMES.join(', ')}); the rows' selection is not re-enumerated into the group's own matrix (got ${JSON.stringify(members.map(planComponentName))})`);
+  const sorted = (r: Record<string, string> | undefined) => JSON.stringify(Object.entries(r ?? {}).sort());
+  // Owner decision Q307 A (#2649): the rows live in a native "items" slot, three by default, at least one, only a Radio.Row.
+  const off = members.flatMap((m) => {
+    const size = (m.size ?? (m.coord as Record<string, string>).size) as string;
+    const root = m.root as PN;
+    const bad: string[] = [];
+    if (JSON.stringify(root.children.map((c) => c.name)) !== JSON.stringify(['label', 'items'])) bad.push(`children ${root.children.map((c) => c.name).join(',')}`);
+    const label = root.children.find((c) => c.name === 'label');
+    if (label?.nestTarget !== 'field-label' || sorted(label.nestVariant) !== sorted({ size, emphasis: 'secondary', weight: 'bold', state: 'rest' }))
+      bad.push(`label ${String(label?.nestTarget)} ${JSON.stringify(label?.nestVariant)}`);
+    const items = root.children.find((c) => c.name === 'items');
+    if (items?.type !== 'CONTENT_SLOT' || items.layoutAlign !== 'STRETCH') bad.push(`items ${String(items?.type)} ${String(items?.layoutAlign)}`);
+    if (JSON.stringify(items?.slotSettings) !== JSON.stringify({ minChildren: 1, allowPreferredValuesOnly: true }) || JSON.stringify(items?.slotPreferred) !== JSON.stringify(['radio-row']))
+      bad.push(`items slot settings ${JSON.stringify(items?.slotSettings)} preferred ${JSON.stringify(items?.slotPreferred)}`);
+    const rows = items?.children ?? [];
+    if (JSON.stringify(rows.map((r) => r.name)) !== JSON.stringify(['row1', 'row2', 'row3'])) bad.push(`items holds ${rows.map((r) => r.name).join(',')}`);
+    for (const r of rows) {
+      if (r.nestTarget !== 'radio-row' || sorted(r.nestVariant) !== sorted({ size }) || r.layoutAlign !== 'STRETCH') bad.push(`${r.name} ${String(r.nestTarget)} ${JSON.stringify(r.nestVariant)} ${String(r.layoutAlign)}`);
+      if (r.visibleProp !== undefined || r.visible === false) bad.push(`${r.name} visibleProp ${String(r.visibleProp)}, visible ${String(r.visible)}`);
+    }
+    return bad.length ? [`${planComponentName(m)}: ${bad.join('; ')}`] : [];
+  });
+  ok(off.length === 0,
+    `#2715 radio-group nesting: on every member, one FieldLabel (secondary, bold, rest) then an items slot (at least one, preferred-only Radio.Row, stretched) holding three Radio.Rows, each following the group's size, none behind a boolean (${off.length} off — ${off[0] ?? 'none'})`);
+  const parts = Object.values(g!.anatomy!.parts);
+  ok(parts.filter((p) => p.kind === 'nest' && p.nests === 'radio-row').every((p) => p.nesting?.kind === 'nest-fixed')
+    && !parts.some((p) => p.nests === 'radio-control'),
+    '#2715 radio-group: every row nest is nest-fixed, and the group never nests radio-control directly — it composes the collapsed Row');
+  const byId = (id: string) => componentDefs.find((d) => d.id === id)!;
+  const nestsOf = (d: ComponentDef): string[] =>
+    Object.values(d.anatomy?.parts ?? {}).filter((p) => p.kind === 'nest' || p.kind === 'absolute').map((p) => p.nests ?? '').filter(Boolean);
+  ok(nestsOf(byId('radio-row')).includes('radio-control') && nestsOf(byId('radio-control')).includes('focus-ring'),
+    '#2715 radio-group chain: radio-row nests radio-control, which nests focus-ring — group → row → control → ring, checkbox-group\'s four-deep chain');
+}
+
 // ---- #1354: THE SWITCH DECOMPOSITION — four invariants, each pinned independently of the producer ----
 //
 // The switch split into `switch-control` (the painted track/thumb/glyph, carrying selection+size+state) +
@@ -32287,12 +32335,20 @@ arm: {
   ok(li.category === 'data' && ls.category === 'data' && li.name === 'List.Item' && ls.name === 'List' && JSON.stringify(ls.aliases) === JSON.stringify(['unordered-list', 'ordered-list', 'bullet-list']),
     `#2319 list: named List and List.Item, category data, aliases unordered-list, ordered-list and bullet-list (Q273.7) (got ${ls.name}/${li.name}, ${ls.category}, ${JSON.stringify(ls.aliases)})`);
 
-  // THE MARKER COLUMN: one fixed width per size, the same in every type, never filling or hugging, so the text edge
-  // never moves and the column never shrinks with the text. Widths 24/32/40 (space.300/400/500), approved (Q280 A).
-  const COLUMN: Record<string, string> = { small: 'space/300', medium: 'space/400', large: 'space/500' };
-  const colBad = liPlans.filter((p) => { const m = find(p.root as PN, 'markerBox'); return !(m && m.bound?.width === COLUMN[coord(p).size] && m.primaryAxisSizingMode === 'FIXED'); });
+  // THE MARKER COLUMN: one fixed width per size AND type, never filling or hugging, so every item of a type keeps one
+  // text edge and the column never shrinks with the text. Bullet and number 20/24/32px (space.250/300/400, Q340 A,
+  // #2727, one step tighter than Q280.1 A); icon 24/32/40px (space.300/400/500, Q280.1 A, kept by Q340 A). EXPECTED is
+  // typed here in px and as the variable; ACTUAL is the projected plan's binding read through the space scale.
+  const COLUMN_PX: Record<string, Record<string, number>> = {
+    unordered: { small: 20, medium: 24, large: 32 }, ordered: { small: 20, medium: 24, large: 32 }, icon: { small: 24, medium: 32, large: 40 },
+  };
+  const COLUMN: Record<string, Record<string, string>> = {
+    unordered: { small: 'space/250', medium: 'space/300', large: 'space/400' }, ordered: { small: 'space/250', medium: 'space/300', large: 'space/400' }, icon: { small: 'space/300', medium: 'space/400', large: 'space/500' },
+  };
+  const COL_PX = new Map(spaceScale(SPACE_BASE).map((sp) => [`space/${sp.key}`, sp.px]));
+  const colBad = liPlans.filter((p) => { const c = coord(p), m = find(p.root as PN, 'markerBox'); return !(m && m.bound?.width === COLUMN[c.type]?.[c.size] && COL_PX.get(m.bound.width) === COLUMN_PX[c.type]?.[c.size] && m.primaryAxisSizingMode === 'FIXED'); });
   ok(colBad.length === 0,
-    `#2319 list-item marker column: a fixed width per size (space/300, 400, 500), the same in every type, never hugging or filling, so it never shrinks with the text (${colBad.length ? `WRONG: ${colBad.map((p) => `${planComponentName(p)} ${JSON.stringify(find(p.root as PN, 'markerBox')?.bound)}`).slice(0, 2).join('; ')}` : 'all 9'})`);
+    `#2727 list-item marker column (Q340 A): a fixed width per size and type, bullet and number 20/24/32px (space/250, 300, 400), icon 24/32/40px (space/300, 400, 500), never hugging or filling, so it never shrinks with the text (${colBad.length ? `WRONG: ${colBad.map((p) => `${planComponentName(p)} ${JSON.stringify(find(p.root as PN, 'markerBox')?.bound)}`).slice(0, 3).join('; ')}` : 'all 9'})`);
   // The text takes the rest of the row and wraps under itself (the hanging indent).
   ok(liPlans.every((p) => { const t = find(p.root as PN, 'text'); return t?.layoutGrow === 1 && t.textAutoResize === 'HEIGHT' && t.textStyle === `body/${RUNG[coord(p).size]}/default` && t.paints?.fills === 'color/text/primary'; }),
     `#2319 list-item text: body sm / md / lg default in text.primary, filling the rest of the row and wrapping under itself (Q273.4)`);
@@ -32873,6 +32929,99 @@ arm: {
   const withPx = specOf('button', (r) => (r === 'space.200' ? 16 : undefined));
   const wp = withPx.redlines.find((r) => Object.entries(bare).every(([a, v]) => r.where[a] === v))?.parts[0].values.paddingLeft;
   ok(JSON.stringify(wp) === '{"token":"space.200","px":16}' && pad(bare, 'paddingLeft') === '{"token":"space.200"}', `#2830 spec: px rides a token only under a resolver (${JSON.stringify(wp)})`);
+}
+
+// ------------------------------------------------------------------- #2715: link and tabs paint
+// Link and Tabs carry the paint and contrast kinds their siblings carry (tag and tab, segmented control). Every
+// expected value is typed here from the defs' briefs and owner decisions; the defs and their projected plans are the
+// SUBJECT (docs/34 shape 1). Contrast values come from the committed Figma color exports, four brands × four modes,
+// stated, so a missing export fails rather than shrinking the check.
+{
+  type PN = { name: string; children: PN[]; paints?: Record<string, string>; bound?: Record<string, string>; nestTarget?: string; nestVariant?: Record<string, string> };
+  const findIn = (n: PN, name: string): PN | undefined => n.name === name ? n : n.children.map((k) => findIn(k, name)).find(Boolean);
+  const walk = (n: PN, f: (x: PN) => void): void => { f(n); n.children.forEach((k) => walk(k, f)); };
+  type V = { r: number; g: number; b: number; a?: number };
+  const solid = (c: V): RGB => ({ r: c.r * 255, g: c.g * 255, b: c.b * 255 });
+  const BRANDS = ['aurora', 'nb', 'prism3', 'wendys'];
+  const MODES = ['light', 'dark', 'hc-light', 'hc-dark'];
+  const exportsOf = (): { cell: string; vars: Map<string, V> | null }[] => BRANDS.flatMap((brand) => MODES.map((mode) => {
+    const f = resolve(HERE, `./out/figma/${brand}/color.${mode}.json`);
+    return { cell: `${brand}/${mode}`, vars: existsSync(f) ? new Map((JSON.parse(readFileSync(f, 'utf8')).variables as { name: string; value: V }[]).map((v) => [v.name.replace(/^[^/]+\//, ''), v.value])) : null };
+  }));
+
+  // LINK (#2580, owner decisions Q297). (1) The label ink steps with state on its surface's link ramp: `focused` is
+  // the focus-visible rung, and an inverse link takes the inverse ramp. The link box paints nothing.
+  const link = componentDefs.find((d) => d.id === 'link')!;
+  const linkMembers = figmaAnatomySet(link, { swapTarget: 'FPO-default-icon' });
+  const RUNG: Record<string, string> = { rest: 'default', hover: 'hover', pressed: 'pressed', 'focus-visible': 'focused' };
+  const INK = (surface: string, state: string) => `color/${surface === 'inverse' ? 'inverse/' : ''}text/link/${RUNG[state]}`;
+  const inkOff: string[] = [], boxOff: string[] = [], ringOff: string[] = [];
+  for (const m of linkMembers) {
+    const c = m.coord as Record<string, string>;
+    const root = m.root as PN;
+    const ink = findIn(root, 'label')?.paints?.fills;
+    if (ink !== INK(c.surface, c.state)) inkOff.push(`${planComponentName(m)}: ${String(ink)} (want ${INK(c.surface, c.state)})`);
+    if (Object.keys(root.paints ?? {}).length) boxOff.push(`${planComponentName(m)}: ${JSON.stringify(root.paints)}`);
+    // (2) THE FOCUS RING: nested only at focus-visible, following the surface so an inverse link's ring reads on the band.
+    const ring = findIn(root, 'focusRing');
+    const want = c.state === 'focus-visible';
+    if (want !== !!ring || (ring && (ring.nestTarget !== 'focus-ring' || JSON.stringify(ring.nestVariant) !== JSON.stringify({ surface: c.surface }))))
+      ringOff.push(`${planComponentName(m)}: ${ring ? `${String(ring.nestTarget)} ${JSON.stringify(ring.nestVariant)}` : 'no ring'} (want ${want ? `focus-ring {"surface":"${c.surface}"}` : 'no ring'})`);
+  }
+  ok(linkMembers.length === 96 && inkOff.length === 0 && boxOff.length === 0,
+    `#2715 link paint: 96 members; the label takes color/text/link/{default,hover,pressed,focused} on the page and color/inverse/text/link/… on an inverse band, by state, and the link box paints nothing (${linkMembers.length} members, ${inkOff.length} ink off, ${boxOff.length} painted box(es) — ${[...inkOff, ...boxOff].slice(0, 2).join('; ') || 'none'})`);
+  ok(ringOff.filter(Boolean).length === 0 && linkMembers.filter((m) => (m.coord as Record<string, string>).state === 'focus-visible').length === 24,
+    `#2715 link focus ring: a nested focus-ring on the 24 focus-visible members only, following the member's surface (${ringOff.length} off — ${ringOff.slice(0, 2).join('; ') || 'none'})`);
+  // (3) MEASURED: every link ink the plan binds clears 4.5:1 (SC 1.4.3, body-size text) on its own ground, the page
+  // for a default link and the inverse band for an inverse one, in all 16 brand × mode cells.
+  const linkInks = new Map<string, string>();
+  for (const m of linkMembers) {
+    const c = m.coord as Record<string, string>;
+    const ink = findIn(m.root as PN, 'label')?.paints?.fills;
+    if (ink) linkInks.set(ink, c.surface === 'inverse' ? 'color/inverse/background/primary' : 'color/background/primary');
+  }
+  const linkCells: { cell: string; ratio: number }[] = [];
+  const linkMiss: string[] = [];
+  for (const { cell, vars } of exportsOf()) {
+    if (!vars) { linkMiss.push(`${cell}: no export`); continue; }
+    for (const [ink, ground] of linkInks) {
+      const fg = vars.get(ink), bg = vars.get(ground);
+      if (!fg || !bg || (fg.a ?? 1) !== 1 || (bg.a ?? 1) !== 1) { linkMiss.push(`${cell}: ${ink} on ${ground}`); continue; }
+      linkCells.push({ cell: `${cell} ${ink}`, ratio: contrast(solid(fg), solid(bg)) });
+    }
+  }
+  const linkLow = linkCells.filter((x) => !(x.ratio >= 4.5)).map((x) => `${x.cell} ${x.ratio.toFixed(2)}`);
+  ok(linkInks.size === 8 && linkCells.length === 16 * 8 && linkMiss.length === 0 && linkLow.length === 0,
+    `#2715 link contrast: the 8 link inks (4 states × 2 surfaces) each clear 4.5:1 on their ground in all 16 brand × mode cells (${linkCells.length} measured, ${linkLow.length} under — ${linkLow.slice(0, 3).join('; ') || 'none'}${linkMiss.length ? `; missing ${linkMiss.slice(0, 2).join(', ')}` : ''})`);
+
+  // TABS (#2416, owner decisions Q177, Q178, Q226). (4) The list paints one thing, the baseline: a fill of the
+  // decorative hairline border (color/border/primary), no stroke. The container, the row of tabs and every other
+  // Tabs-owned node paint nothing; the tabs nested in it paint themselves.
+  const tabs = componentDefs.find((d) => d.id === 'tabs')!;
+  const tabsMembers = figmaAnatomySet(tabs, {});
+  const tabsOff: string[] = [];
+  for (const m of tabsMembers) {
+    const painted: string[] = [];
+    walk(m.root as PN, (n) => { if (!n.nestTarget && Object.keys(n.paints ?? {}).length) painted.push(`${n.name} ${JSON.stringify(n.paints)}`); });
+    if (JSON.stringify(painted) !== JSON.stringify(['baseline {"fills":"color/border/primary"}'])) tabsOff.push(`${planComponentName(m)}: ${painted.join(', ') || 'nothing'}`);
+  }
+  ok(tabsMembers.length === 6 && tabsOff.length === 0,
+    `#2715 tabs paint: on all 6 members the only node Tabs paints is the baseline, filled color/border/primary with no stroke (${tabsMembers.length} members, ${tabsOff.length} off — ${tabsOff[0] ?? 'none'})`);
+  // (5) MEASURED: the baseline is the faint line and the selected bar reads above it. Against the page, the selected
+  // bar (color/interactive/primary/border/rest, Q226 A) measures higher contrast than the baseline in every cell, so
+  // the underline is never lost in the line it sits on. The baseline's variable is read off the plan, the bar's typed.
+  const baseVar = findIn(tabsMembers[0].root as PN, 'baseline')?.paints?.fills;
+  const BAR = 'color/interactive/primary/border/rest';
+  const tabsCells: { cell: string; base: number; bar: number }[] = [];
+  const tabsMiss: string[] = [];
+  for (const { cell, vars } of exportsOf()) {
+    const base = vars && baseVar ? vars.get(baseVar) : undefined, bar = vars?.get(BAR), page = vars?.get('color/background/primary');
+    if (!base || !bar || !page || (base.a ?? 1) !== 1 || (bar.a ?? 1) !== 1) { tabsMiss.push(`${cell}: ${String(baseVar)} ${!!base}, bar ${!!bar}, page ${!!page}`); continue; }
+    tabsCells.push({ cell, base: contrast(solid(base), solid(page)), bar: contrast(solid(bar), solid(page)) });
+  }
+  const tabsLow = tabsCells.filter((x) => !(x.bar > x.base)).map((x) => `${x.cell} bar ${x.bar.toFixed(2)} ≤ baseline ${x.base.toFixed(2)}`);
+  ok(tabsCells.length === 16 && tabsMiss.length === 0 && tabsLow.length === 0,
+    `#2715 tabs contrast: the selected bar measures above the baseline against the page in all 16 brand × mode cells (${tabsCells.length} measured, ${tabsLow.length} not above — ${tabsLow.slice(0, 2).join('; ') || 'none'}${tabsMiss.length ? `; missing ${tabsMiss.slice(0, 2).join(', ')}` : ''})`);
 }
 
 // ------------------------------------------------------------------- report

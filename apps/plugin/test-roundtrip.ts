@@ -692,6 +692,9 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     select:          { parts: fieldLayer, style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
     'checkbox-row':  { parts: ['label'], style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
     'radio-row':     { parts: ['label'], style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
+    // #2715: List.Item's text, and an ordered item's number, read in the body style of the item's size (body small,
+    // medium or large, its brief's size prop).
+    'list-item':     { parts: (c) => (c.type === 'ordered' ? ['number', 'text'] : ['text']), style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
     'field-label':   { parts: ['text', 'indicator'], style: (c) => (({
       // #2266: re-laddered 12 / 14 / 16.
       'small/regular': 'body/xs/default', 'small/bold': 'body/xs/strong',
@@ -745,6 +748,35 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
       }
     }
     ok(checked > 0, `#1514: ${id} presented text nodes to check (scope floor: ${checked})`);
+  }
+
+  // #2715 — ACCORDION.INDICATOR, BUILT. The indicator is never placed on its own, so until now its only plugin test was
+  // the page list. Built here by the real executor and read off the shim's nodes: twelve members, each holding one
+  // icon instance, the glyph its brief names for its indicator and expansion (Q183: chevron down closed and up open,
+  // plus closed and minus open), in a frame bound to the icon size of its rung. Typed here, never read off the plan.
+  {
+    const def = componentDefs.find((d) => d.id === '_accordion-indicator')!;
+    const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
+    const page: Page = { children: [] };
+    const shim = makeShim({ ...fullFor(plans), page });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+    const r = await applyComponentPlan(plans, shim as any, {});
+    const vars = await (shim as unknown as { variables: { getLocalVariablesAsync: () => Promise<{ id: string; name: string }[]> } }).variables.getLocalVariablesAsync();
+    // The host's names carry the collection first (`<collection>/icon/size/xs`); the binding is read below it.
+    const varById = new Map(vars.map((v) => [v.id, v.name.replace(/^[^/]+\//, '')] as const));
+    const GLYPH: Record<string, string> = { 'chevron/collapsed': 'icon/chevron-down', 'chevron/expanded': 'icon/chevron-up', 'plus-minus/collapsed': 'icon/plus', 'plus-minus/expanded': 'icon/minus' };
+    const ICON: Record<string, string> = { small: 'icon/size/xs', medium: 'icon/size/sm', large: 'icon/size/md' };
+    const members = (page.children[0]?.children ?? []) as unknown as (HostNode & { boundVariables?: Record<string, { id?: string }>; children?: unknown[] })[];
+    const off: string[] = [];
+    for (const indicator of ['chevron', 'plus-minus']) for (const expansion of ['collapsed', 'expanded']) for (const size of ['small', 'medium', 'large']) {
+      const m = members.find((x) => String(x.name).split(', ').sort().join(', ') === [`expansion=${expansion}`, `indicator=${indicator}`, `size=${size}`].join(', '));
+      const kids = (m?.children ?? []) as { type?: string; mainComponent?: { name?: string } }[];
+      const got = { kids: kids.length, type: kids[0]?.type, glyph: kids[0]?.mainComponent?.name, width: varById.get(String(m?.boundVariables?.width?.id)), height: varById.get(String(m?.boundVariables?.height?.id)) };
+      const want = { kids: 1, type: 'INSTANCE', glyph: GLYPH[`${indicator}/${expansion}`], width: ICON[size], height: ICON[size] };
+      if (JSON.stringify(got) !== JSON.stringify(want)) off.push(`${indicator}/${expansion}/${size}: ${m ? JSON.stringify(got) : 'no member'} (want ${JSON.stringify(want)})`);
+    }
+    ok(r.misses.length === 0 && members.length === 12 && off.length === 0,
+      `#2715 _accordion-indicator build: 12 members built with no misses, each one icon instance (chevron-down / chevron-up, plus / minus by expansion) in a frame bound to icon/size/xs, sm or md by size (${members.length} members, ${r.misses.length} misses, ${off.length} off — ${off[0] ?? r.misses[0] ?? 'none'})`);
   }
 
   // NON-VACUITY (docs/34) — the pre-fix state, reproduced explicitly: a built text node whose `textStyleId`
