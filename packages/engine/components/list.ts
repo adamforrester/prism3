@@ -37,7 +37,7 @@ export const list: ComponentDef = {
   // `data` (#1700) — the brief's own category (Q273.7).
   category: 'data',
   status: 'draft',
-  summary: 'Short UI items after a bullet, number or icon. For running text, use a native text list.',
+  summary: 'Short UI items after a bullet, number or icon. For running text, use a native text list. Size applies to the items you haven\'t edited. After editing an item, select the items and set their size.',
   description:
     'A vertical run of short items, each after a bullet, a number or an icon, with the marker, its size and color, the indent and the space between items all bound to tokens. Unordered when the order carries no meaning, ordered when it does (steps, a ranking), and icon for a set of points such as requirements or features. Every item\'s text starts at one edge and wraps under itself. Use it for lists a designer lays out: password rules, feature lists, icon checklists, steps. For lists inside running text that a writer edits as normal copy, such as an article body, terms or long help text, use a native text list instead.',
 

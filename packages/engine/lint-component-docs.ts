@@ -489,6 +489,21 @@ if (PRISM2.test(jsonText)) note('PRISM 2: components.ai.json names Prism 2 — n
 for (const [id, md] of pages) if (PRISM2.test(md)) note(`PRISM 2: out/components/${id}.md names Prism 2 — no shipped artifact may cite it`);
 const keptInRecord = componentDefs.reduce((n, d) => n + [...(d.anatomy?.codeOnly ?? []), ...MAINTAINER_NOTES.flatMap((k) => d.notes?.[k] ?? [])].filter((s) => PRISM2.test(s)).length, 0);
 
+// ---- ARM F: an items-slot host says how its size reaches the items (#2829, owner decision Q438 A) -------------
+// A host whose items sit in a native slot passes `size` to the items a designer has not edited, and no further.
+// The note is the owner's sentence, written HERE rather than imported, so a def that drops it, or a projector
+// that stops carrying the summary, fails by name. The host list is read from the props (an `items` slot beside
+// a `size` prop), not from a list in this file, so a new host is held without being added anywhere.
+const ITEMS_SIZE_NOTE = "Size applies to the items you haven't edited. After editing an item, select the items and set their size.";
+const ITEMS_SIZE_HOST_FLOOR = 5;
+const itemsSizeHosts = componentDefs.filter((d) => d.props.some((p) => p.name === 'items' && p.type === 'slot') && d.props.some((p) => p.name === 'size'));
+if (itemsSizeHosts.length < ITEMS_SIZE_HOST_FLOOR) note(`ITEMS SIZE NOTE FLOOR: only ${itemsSizeHosts.length} items-slot hosts with a size were found, expected at least ${ITEMS_SIZE_HOST_FLOOR} — the host scan is not reaching the defs`);
+for (const def of itemsSizeHosts) {
+  if (!def.summary.endsWith(ITEMS_SIZE_NOTE)) note(`ITEMS SIZE NOTE (def): \`${def.id}\` holds items in a slot and takes a size, but its summary — the Figma description — does not end with the note: "${ITEMS_SIZE_NOTE}"`);
+  if (!String(entries[def.id]?.summary ?? '').endsWith(ITEMS_SIZE_NOTE)) note(`ITEMS SIZE NOTE (json): \`${def.id}\` in components.ai.json does not carry the items size note`);
+  if (!unescape(pages.get(def.id) ?? '').includes(ITEMS_SIZE_NOTE)) note(`ITEMS SIZE NOTE (page): out/components/${def.id}.md does not carry the items size note`);
+}
+
 // ---- report ----------------------------------------------------------------------------------
 if (fail.length) {
   console.error(`\n✗ component docs — ${fail.length} problem(s):\n`);
