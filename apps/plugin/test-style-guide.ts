@@ -3320,7 +3320,7 @@ const main = async (): Promise<void> => {
     // (3) FONT WEIGHT SPLIT (owner decision Q133 A): the raw weights on Primitive tokens beside font family and size, the
     // weight roles on Semantic tokens. Which is which is read off the emission: a literal is a raw weight, an alias a role.
     const fontEm = (JSON.parse(readFileSync(join(OUT, 'core.font.json'), 'utf8')) as { variables: { name: string; resolvedType: string; alias: unknown; scopes?: string[] }[] }).variables
-      .filter((v) => v.scopes?.includes('FONT_WEIGHT'));
+      .filter((v) => /\/core\/font\/weight(-role)?\//.test(v.name));
     const rawW = fontEm.filter((v) => !v.alias).map((v) => v.name);
     const roleW = fontEm.filter((v) => v.alias).map((v) => v.name);
     const tokensOf = (w: N | undefined): string[] => (w ? gridOf(w).children.filter((k) => k.gridCol === 0 && k.gridRow! > 0).sort((a, b) => a.gridRow! - b.gridRow!).map(textIn) : []);

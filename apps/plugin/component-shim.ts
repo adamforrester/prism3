@@ -212,7 +212,9 @@ export type ShimOpts = {
    *
    * Opt-in per run: every other case in this file drives a host that accepts everything.
    */
-  refuse?: { combine?: boolean; createFrame?: 'always' | 'on-failure-path' };
+  refuse?: { combine?: boolean; createFrame?: 'always' | 'on-failure-path'; createText?: boolean;
+    /** PROPERTY refusals (#982) — a write onto a node that exists. `setBoundVariable` names the field it refuses. */
+    setBoundVariable?: string; setTextStyleId?: boolean; setEffectStyleId?: boolean };
   /**
    * COMBINE DETACHES THE PRE-COMBINE DESCENDANT HANDLES (#1337) — the one host behavior this shim could
    * not otherwise reach, and the reason #866's `refsRepaired` and #1279's `boundRepaired` were UNCONFIRMED
@@ -982,6 +984,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
       // shim reproduces it rather than merely counting the call — without this, `unlockAspectRatio()`
       // could be deleted from the executor and every geometry assertion here would still pass.
       setBoundVariable(prop: string, v: { id: string; value?: number } | null) {
+        if (v && opts.refuse?.setBoundVariable === prop) throw new Error(`in setBoundVariable: refused "${prop}"`);
         const was = opts.scaleConstrained && (prop === 'width' || prop === 'height') ? [node.width as number, node.height as number] as const : null;
         try {
         const bv = node.boundVariables as Record<string, unknown>;
@@ -1010,6 +1013,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
       // executor's `loadFontAsync` call deletable with the whole suite green: the `catch` that reports a
       // font it could not load is a check that runs and cannot fire. The message is Figma's own.
       setTextStyleIdAsync: async (id: string) => {
+        if (opts.refuse?.setTextStyleId) throw new Error('in setTextStyleIdAsync: refused');
         const fn = fontOfStyle(id);
         if (fn && !loadedFonts.has(fontKey(fn)))
           throw new Error(`in setTextStyleIdAsync: unloaded font "${fn.family} ${fn.style}". Please call figma.loadFontAsync({ family: "${fn.family}", style: "${fn.style}" }) and await the returned promise first.`);
@@ -1037,7 +1041,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
       // `undefined` from this shim and reported every styled node as unstyled — a harness defect
       // presenting as a subject defect, which is the worst shape a false positive can take. Both names
       // are set from the one setter, so they cannot disagree.
-      setEffectStyleIdAsync: async (id: string) => { node._effectStyleId = id; node.effectStyleId = id; },
+      setEffectStyleIdAsync: async (id: string) => { if (opts.refuse?.setEffectStyleId) throw new Error('in setEffectStyleIdAsync: refused'); node._effectStyleId = id; node.effectStyleId = id; },
       // ABSOLUTE POSITIONING with its REJECTION CASE, which is the only part worth modelling: Figma
       // ignores `layoutPositioning` on a child of a non-auto-layout parent, and it ignores it SILENTLY.
       get layoutPositioning() {
@@ -1663,7 +1667,10 @@ export const makeShim = (opts: ShimOpts = {}) => {
         ...(opts.fileNodes ?? []).filter((f) => f.name === name).map((f) => ({ name: f.name, type: f.type })),
       ],
     },
-    createText: () => mkNode('TEXT'),
+    createText: () => {
+      if (opts.refuse?.createText) throw new Error('in createText: The document is not editable');
+      return mkNode('TEXT');
+    },
     createFrame: () => {
       // #913: either the BUILD's first frame or the MARKING's, depending on the setting. Figma's message
       // for a file the plugin may not write to.
