@@ -96,7 +96,6 @@ None — not interactive.
 
 - **Composes with:** `button-neutral`, `flush-icon-button-neutral`
 - **Alternative to:** `dialog`, `field-message`, `badge`
-- **Planned:** `toast`
 - **Replaces:**
   - a colored div with an icon and role="alert" on a message present at load
   - an error shown as a toast that disappears

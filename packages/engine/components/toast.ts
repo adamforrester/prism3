@@ -238,7 +238,7 @@ export const toast: ComponentDef = {
     alternativeTo: ['dialog', 'field-message'],
     replacesPatterns: ['an alert() after a save', 'a status message that moves focus', 'a timed message with no pause'],
     supersededBy: [],
-    planned: ['banner'],
+    planned: [],
   },
 
   motion: {

@@ -98,6 +98,55 @@
       ],
       "iconSlots": []
     },
+    "banner": {
+      "glyphs": [
+        {
+          "part": "iconDanger",
+          "glyph": "warning-triangle",
+          "source": "icon set",
+          "how": "drawn",
+          "when": {
+            "tone": [
+              "danger"
+            ]
+          }
+        },
+        {
+          "part": "iconInfo",
+          "glyph": "info-circle",
+          "source": "icon set",
+          "how": "drawn",
+          "when": {
+            "tone": [
+              "info"
+            ]
+          }
+        },
+        {
+          "part": "iconSuccess",
+          "glyph": "check-circle",
+          "source": "icon set",
+          "how": "drawn",
+          "when": {
+            "tone": [
+              "success"
+            ]
+          }
+        },
+        {
+          "part": "iconWarning",
+          "glyph": "error-circle",
+          "source": "icon set",
+          "how": "drawn",
+          "when": {
+            "tone": [
+              "warning"
+            ]
+          }
+        }
+      ],
+      "iconSlots": []
+    },
     "breadcrumbs": {
       "glyphs": [
         {
@@ -529,6 +578,7 @@
       "tag"
     ],
     "check-circle": [
+      "banner",
       "field-message",
       "toast"
     ],
@@ -538,9 +588,11 @@
       "select"
     ],
     "chevron-left": [
+      "breadcrumbs",
       "pagination-item"
     ],
     "chevron-right": [
+      "_breadcrumb-separator",
       "pagination-item"
     ],
     "chevron-up": [

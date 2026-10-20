@@ -33532,6 +33532,7 @@ arm: {
   }
   ok(bound > 0 && spreads.length === 0,
     `#2665 / #1567 one caption per TEXT property: no def declares two captions behind one property, which the host collapses to its one default (${bound} bound text nodes; ${spreads.join('; ') || 'none'})`);
+}
 // ------------------------------------------------------------------- #2668: the toast
 // The owner's approved proposal and wireframe on #2668, every numbered call A (2026-10-16). EXPECTED is typed here as
 // literals from the proposal; ACTUAL is the projected plan and, for contrast, the committed emission under `out/`, read

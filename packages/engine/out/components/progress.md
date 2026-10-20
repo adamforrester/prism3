@@ -102,7 +102,7 @@ None — not interactive.
 
 - **Composes with:** `field-message`
 - **Alternative to:** `spinner`
-- **Planned:** `skeleton`, `meter`, `stepper`, `toast`
+- **Planned:** `skeleton`, `meter`, `stepper`
 - **Replaces:**
   - a bar that creeps to 99% while the real amount is unknown
   - a label printed inside the moving fill

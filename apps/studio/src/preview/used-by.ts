@@ -6,7 +6,7 @@
  * never imports the definitions themselves (UI redesign S7, T4; the generator's header says why).
  */
 export const USED_BY = {
-  defs: 46,
+  defs: 53,
   radius: {
     rounded: {
       "radius.2xl": [
@@ -19,7 +19,8 @@ export const USED_BY = {
         "Button",
         "IconButton",
         "SegmentedControl",
-        "Pagination"
+        "Pagination",
+        "Banner"
       ],
       "radius.none": [
         "FlushIconButton",
@@ -60,7 +61,8 @@ export const USED_BY = {
       ],
       "radius.md": [
         "SegmentedControl",
-        "Pagination"
+        "Pagination",
+        "Banner"
       ],
       "radius.none": [
         "FlushIconButton",
@@ -99,7 +101,8 @@ export const USED_BY = {
       ],
       "radius.md": [
         "SegmentedControl",
-        "Pagination"
+        "Pagination",
+        "Banner"
       ],
       "radius.none": [
         "Button",
@@ -149,7 +152,8 @@ export const USED_BY = {
       ],
       "radius.md": [
         "SegmentedControl",
-        "Pagination"
+        "Pagination",
+        "Banner"
       ],
       "radius.none": [
         "FlushIconButton",

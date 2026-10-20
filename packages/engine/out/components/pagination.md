@@ -105,7 +105,7 @@ None — not interactive.
 
 - **Composes with:** `pagination-item`
 - **Alternative to:** `tabs`
-- **Planned:** `table`, `carousel`, `breadcrumbs`
+- **Planned:** `table`, `carousel`
 - **Replaces:**
   - page links built from \<a href="#"> and click handlers
   - a disabled next button that drops focus at the last page

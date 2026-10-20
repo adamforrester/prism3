@@ -5386,7 +5386,6 @@
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "progress",
           "skeleton"
         ],
         "replacesPatterns": [
@@ -5586,8 +5585,7 @@
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "avatar",
-          "banner"
+          "avatar"
         ],
         "replacesPatterns": [
           "a hand-drawn colored pill",
@@ -8487,6 +8485,156 @@
         ]
       }
     },
+    "toast": {
+      "id": "toast",
+      "name": "Toast",
+      "aliases": [
+        "snackbar",
+        "notification",
+        "flag",
+        "flash-message"
+      ],
+      "category": "feedback",
+      "status": "draft",
+      "summary": "A short status message over the page after an action. Announced politely; it never takes focus.",
+      "description": "A short status message that appears over the page after something the user did, such as \"Added to bag\" or \"Address saved\", and goes away by itself. It confirms the user's own action, and the page already shows the change, so missing it costs nothing. It is announced politely and never takes focus. It can carry one action, which also exists elsewhere on the page, and a close button. One toast shows at a time: a new one replaces the one showing. Not a banner (a message the user must see, such as an error, stays in the page until it is resolved), not a dialog (a decision before going on), and not a field message (about one field).",
+      "props": [
+        {
+          "name": "message",
+          "type": "string",
+          "required": true,
+          "description": "The status, a few words stating the outcome (\"Added to bag\"). It wraps onto a second line rather than truncating."
+        },
+        {
+          "name": "intent",
+          "type": "enum: 'neutral' | 'success'",
+          "default": "neutral",
+          "required": false,
+          "values": [
+            "neutral",
+            "success"
+          ],
+          "description": "neutral for a plain confirmation, with no glyph. success adds a circled check beside the message. A message the user must not miss, such as an error, is a banner, not a toast."
+        },
+        {
+          "name": "action",
+          "type": "{ label: string; onAction: function }",
+          "required": false,
+          "description": "At most one action, a text button named by one verb (\"Undo\", \"View bag\"). The same action must also exist elsewhere on the page. A toast with an action does not close by itself."
+        },
+        {
+          "name": "duration",
+          "type": "number",
+          "default": 6000,
+          "required": false,
+          "description": "How long a toast with no action shows, in milliseconds. Never less than 5000; a shorter value is raised to 5000. Raise it for a longer or translated message. Ignored when there is an action."
+        },
+        {
+          "name": "dismissible",
+          "type": "boolean",
+          "default": true,
+          "required": false,
+          "description": "Shows the close button, named \"Dismiss\". On by default: it is the one exit a user can count on."
+        },
+        {
+          "name": "onDismiss",
+          "type": "function",
+          "required": false,
+          "description": "Called when the toast closes for any reason: the close button, the timer, the next toast replacing it, or the action."
+        }
+      ],
+      "states": [],
+      "variants": {
+        "intent": {
+          "values": [
+            "neutral",
+            "success"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "The toast sits in one shared role=\"status\" live region (polite, aria-atomic=\"true\"), inside a landmark labeled \"Notifications\". The toast itself takes no role and never takes focus.",
+        "wcag": [
+          "4.1.3 Status Messages (the message is announced through a live region without moving focus)",
+          "2.2.1 Timing Adjustable (a toast with no action shows for at least 5 seconds, pausing on hover, focus and a hidden window; a toast with an action does not time out)",
+          "1.4.1 Use of Color (success has a glyph shape and its text, not color alone)",
+          "1.4.3 Contrast (Minimum) (the message clears 4.5:1 on the inverse surface)",
+          "1.4.11 Non-text Contrast (the success glyph and the focus ring clear 3:1 on the inverse surface)",
+          "2.1.1 Keyboard (F6 reaches the action and the close button; the action also exists elsewhere on the page)",
+          "2.4.3 Focus Order (focus enters the region only when the user moves it there, and Escape returns it)",
+          "2.4.11 Focus Not Obscured (Minimum) (the page keeps a focused control clear of the toast)",
+          "2.5.8 Target Size (Minimum) (the close button is a 36px box, above 24px; targets 2.5.5 at 44×44 in code)"
+        ],
+        "keyboard": "F6 moves focus into the notifications region, to the newest toast's first control. Tab moves between the action and the close button. Escape or Shift+F6 returns focus to where it was. Enter and Space act on the focused button.",
+        "focus": "Showing a toast never moves focus. Focus enters only by F6, and Escape returns it.",
+        "aria": "The live region is role=\"status\" with aria-atomic=\"true\", present and empty from app start. The success glyph is aria-hidden. The close button's accessible name is \"Dismiss\" and the region's label is \"Notifications\"; both are translatable. Nothing mirrors in motion."
+      },
+      "content": {
+        "labelPattern": "State the outcome in a few words, in sentence case, with no period: \"Added to bag\", \"Address saved\". The action is one verb or a short verb phrase: \"Undo\", \"View bag\"."
+      },
+      "docs": {
+        "usage": "Use a Toast to confirm something the user did, when the page already shows the change: \"Added to bag\", \"Address saved\", \"Code copied\". If missing the message would cost the user something, use a banner. A decision before going on is a dialog; a message about one field is a field message.",
+        "do": [
+          "Confirm the user's own action in a few words",
+          "Use success when the action completed, and neutral otherwise",
+          "Keep the close button",
+          "Make the action also available elsewhere on the page",
+          "Raise the duration for a long or translated message"
+        ],
+        "dont": [
+          "Show an error or a warning in a toast. Use a banner.",
+          "Put the only route to an action in a toast",
+          "Add more than one action",
+          "Move focus to a toast",
+          "Set a duration under 5 seconds"
+        ],
+        "contentGuidelines": "Short and factual: the outcome, not a conversation. The glyph carries the tone, so the text stays plain. Name the action by what it does."
+      },
+      "ai": {
+        "primaryPurpose": "Confirm the user's own action with a short status over the page that is safe to miss.",
+        "whenToUse": "After an action whose result the page already shows (\"Added to bag\", \"Address saved\"), when a brief, polite confirmation helps and missing it costs nothing.",
+        "avoidWhen": "The message is an error, a warning or anything the user must see (a banner); it asks for a decision (a dialog); it is about one field (a field message); or its action has no other route on the page.",
+        "commonPartners": [
+          "button",
+          "flush-icon-button-neutral",
+          "field-message",
+          "dialog"
+        ],
+        "triggerKeywords": [
+          "toast",
+          "snackbar",
+          "notification",
+          "confirmation message",
+          "status message",
+          "added to bag"
+        ],
+        "generationPriority": 2
+      },
+      "motion": {
+        "enter": "An 8px slide up and a fade (motion.transition.enter: motion.duration.normal, motion.easing-role.enter).",
+        "exit": "A fade (motion.transition.exit: motion.duration.fast, motion.easing-role.exit). A replacement plays the exit, then the enter.",
+        "reduceMotion": "Under prefers-reduced-motion, the fade only, with no slide, at motion.duration-reduced.normal."
+      },
+      "composition": {
+        "composesWith": [
+          "button",
+          "flush-icon-button-neutral"
+        ],
+        "alternativeTo": [
+          "dialog",
+          "field-message"
+        ],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [],
+        "replacesPatterns": [
+          "an alert() after a save",
+          "a status message that moves focus",
+          "a timed message with no pause"
+        ]
+      }
+    },
     "counter": {
       "id": "counter",
       "name": "Counter",
@@ -9151,13 +9299,821 @@
         "supersededBy": [],
         "planned": [
           "table",
-          "carousel",
-          "breadcrumbs"
+          "carousel"
         ],
         "replacesPatterns": [
           "page links built from <a href=\"#\"> and click handlers",
           "a disabled next button that drops focus at the last page",
           "infinite scroll on a page with a footer"
+        ]
+      }
+    },
+    "_slider-thumb": {
+      "id": "_slider-thumb",
+      "name": "Slider.Thumb",
+      "aliases": [
+        "slider-handle",
+        "slider-knob"
+      ],
+      "category": "form",
+      "status": "draft",
+      "summary": "The thumb a Slider moves: a filled disc with a page-colored ring. Used only inside a Slider.",
+      "description": "The handle a Slider moves along its track: a filled disc in the primary fill with a 2px ring in the page color, which keeps it apart from the fill beside it. It darkens at hover and press, and shows the focus ring while it has keyboard focus. It lives inside a Slider, which places one thumb for a single value and two for a range, and is never placed on its own.",
+      "props": [
+        {
+          "name": "aria-label",
+          "type": "string",
+          "required": false,
+          "description": "The thumb's accessible name. Set by the Slider: the label for a single value, \"Minimum {label}\" and \"Maximum {label}\" for a range."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "The disabled look. Set by the Slider when the whole control is disabled."
+        }
+      ],
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled"
+      ],
+      "variants": {},
+      "accessibility": {
+        "role": "slider, from a visually hidden native <input type=\"range\">; the Slider wires its name, value and range",
+        "wcag": [
+          "1.4.11 Non-text Contrast (the disc targets 3:1 against the page at rest, hover and press)",
+          "2.4.7 Focus Visible / 2.4.13 Focus Appearance (the shared focus ring, as intent)",
+          "2.5.8 Target Size (targets a 44×44px hit area in code, beyond the visible disc)"
+        ],
+        "keyboard": "Set by the Slider: arrow keys move one step, Page Up and Page Down one large step, Home and End to the ends of the thumb's range.",
+        "focus": "A focus ring around the thumb on :focus-visible, never around the track.",
+        "aria": "aria-valuenow, aria-valuemin and aria-valuemax from the native input; aria-valuetext whenever the value is not a bare number. Set by the Slider."
+      },
+      "content": {
+        "labelPattern": "None of its own. The Slider names each thumb: its label for a single value, \"Minimum {label}\" and \"Maximum {label}\" for a range."
+      },
+      "docs": {
+        "usage": "Part of a Slider. The Slider places one thumb for a single value and two for a range, and sets each thumb's name, value and state.",
+        "do": [
+          "Extend its hit area in code to at least 44×44px at every size, with a transparent `::before` inset outward",
+          "Let the Slider name each thumb, so a range announces \"Minimum\" and \"Maximum\", not \"slider, slider\""
+        ],
+        "dont": [
+          "Place a thumb outside a Slider",
+          "Put the focus ring on the track instead of the thumb"
+        ],
+        "contentGuidelines": "No copy of its own."
+      },
+      "ai": {
+        "primaryPurpose": "The handle a Slider moves, inside a Slider only.",
+        "whenToUse": "Only as part of a Slider.",
+        "avoidWhen": "Anywhere outside a Slider. A switch handle is Switch.Control; a value chosen by dragging is a Slider.",
+        "commonPartners": [
+          "slider",
+          "focus-ring"
+        ],
+        "triggerKeywords": [
+          "slider thumb",
+          "slider handle",
+          "slider knob"
+        ],
+        "generationPriority": 9
+      },
+      "motion": {
+        "enter": "None.",
+        "exit": "None.",
+        "reduceMotion": "While dragging the thumb follows the pointer with no transition. After a track click or a key step it slides on the fast duration; under reduced motion it moves at once."
+      },
+      "composition": {
+        "composesWith": [
+          "focus-ring"
+        ],
+        "alternativeTo": [],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [],
+        "replacesPatterns": [
+          "the browser's own range thumb, restyled per engine"
+        ]
+      }
+    },
+    "slider": {
+      "id": "slider",
+      "name": "Slider",
+      "aliases": [
+        "range-slider",
+        "range-input",
+        "range"
+      ],
+      "category": "form",
+      "status": "draft",
+      "summary": "Choose a value, or a range, by moving a thumb along a track. Works with arrow keys too.",
+      "description": "A slider picks an approximate value, or a range between two values, by moving a thumb along a track: a price filter, a text size, a volume. It suits a value where the position within the range matters more than the exact number. One thumb sets a single value; two thumbs set a minimum and a maximum. The current value shows as text above the track. For an exact number, turn on the paired inputs, or use a text field.",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "description": "Names the dimension being set, such as \"Price\" or \"Volume\". Shown above the track, and the accessible name of a single thumb."
+        },
+        {
+          "name": "value",
+          "type": "number | [number, number]",
+          "required": false,
+          "description": "The value. A number sets one thumb; a pair of numbers, such as [40, 120], sets a range with two thumbs. Controlled; pair it with onChange."
+        },
+        {
+          "name": "defaultValue",
+          "type": "number | [number, number]",
+          "required": false,
+          "description": "The starting value when the slider manages its own state. A pair starts a range."
+        },
+        {
+          "name": "onChange",
+          "type": "function",
+          "required": false,
+          "description": "Called on every change while dragging or stepping, for a live preview."
+        },
+        {
+          "name": "onChangeEnd",
+          "type": "function",
+          "required": false,
+          "description": "Called once when the pointer is released or a key step ends. Bind costly work here, such as a network filter, so a drag does not call it for every pixel."
+        },
+        {
+          "name": "min",
+          "type": "number",
+          "default": 0,
+          "required": false,
+          "description": "The lowest value."
+        },
+        {
+          "name": "max",
+          "type": "number",
+          "default": 100,
+          "required": false,
+          "description": "The highest value."
+        },
+        {
+          "name": "step",
+          "type": "number",
+          "default": 1,
+          "required": false,
+          "description": "The amount one arrow key or one snap moves. Every value is rounded to the nearest exact multiple of the step before onChange."
+        },
+        {
+          "name": "largeStep",
+          "type": "number",
+          "required": false,
+          "description": "The amount Page Up and Page Down move. Ten steps when not set."
+        },
+        {
+          "name": "minStepsBetweenThumbs",
+          "type": "number",
+          "default": 0,
+          "required": false,
+          "description": "For a range, how many steps the two thumbs must stay apart. A thumb stops there and never crosses the other."
+        },
+        {
+          "name": "formatOptions",
+          "type": "Intl.NumberFormatOptions",
+          "required": false,
+          "description": "How the value reads: a currency, a percent, a unit. Drives the visible value text and each thumb's aria-valuetext from one formatter, so what is seen and what is heard match."
+        },
+        {
+          "name": "thumbLabels",
+          "type": "[string, string]",
+          "required": false,
+          "description": "For a range, the two thumb names. \"Minimum {label}\" and \"Maximum {label}\" when not set."
+        },
+        {
+          "name": "type",
+          "type": "enum: 'single' | 'range'",
+          "default": "single",
+          "required": false,
+          "values": [
+            "single",
+            "range"
+          ],
+          "description": "Read from value: a number is single, a pair is range. Not set on its own; listed so the two looks have a name."
+        },
+        {
+          "name": "showValue",
+          "type": "boolean",
+          "default": true,
+          "required": false,
+          "description": "Shows the value text above the track. Turn it off only when the paired inputs show the value instead."
+        },
+        {
+          "name": "showEndLabels",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Shows the minimum and maximum under the ends of the track."
+        },
+        {
+          "name": "showInputs",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Shows paired number inputs under the track: one for a single value, \"Minimum\" and \"Maximum\" for a range. Typing moves the thumb; dragging updates the input. With inputs on, turn the value text off."
+        },
+        {
+          "name": "helpText",
+          "type": "string",
+          "required": false,
+          "description": "Guidance under the slider, in a field message."
+        },
+        {
+          "name": "validation",
+          "type": "enum: 'default' | 'error'",
+          "default": "default",
+          "required": false,
+          "values": [
+            "default",
+            "error"
+          ],
+          "description": "error marks the slider invalid: the field message shows the error status and each thumb carries aria-invalid. A slider's own value is always in range, so an error comes from a paired input or from validation elsewhere in the form."
+        },
+        {
+          "name": "validationMessage",
+          "type": "string",
+          "required": false,
+          "description": "The error text, shown in the field message and added to aria-describedby. Say what is wrong and how to fix it."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Takes the slider out of interaction and out of the form payload, and dims it."
+        },
+        {
+          "name": "readOnly",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "The thumbs stay focusable and the value is still submitted, but it cannot change. Looks like rest."
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": false,
+          "description": "The form field name. A range submits two values."
+        }
+      ],
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled"
+      ],
+      "variants": {
+        "type": {
+          "values": [
+            "single",
+            "range"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "slider, once per thumb, from a visually hidden native <input type=\"range\">; a range is two sliders in a group named by the label",
+        "wcag": [
+          "4.1.2 Name, Role, Value (each thumb named, with aria-valuetext for a formatted value)",
+          "2.1.1 Keyboard (arrow, Page and Home and End keys on every thumb)",
+          "1.4.11 Non-text Contrast (the rail, the fill and the thumb target 3:1 against the page)",
+          "1.4.1 Use of Color (the fill is thicker than the rail and bounded by the thumbs, not told apart by color alone)",
+          "2.4.7 Focus Visible / 2.4.13 Focus Appearance (the focus ring on the thumb, as intent)",
+          "2.5.7 Dragging Movements (a click on the rail, the keys or the paired inputs move a thumb without dragging)",
+          "2.5.8 Target Size (targets a 44×44px hit area on each thumb in code)",
+          "3.3.2 Labels or Instructions (a visible label names the dimension)"
+        ],
+        "keyboard": "Right and Up raise one step; Left and Down lower one step; Page Up and Page Down move ten steps; Home and End go to the minimum and maximum, or for a range thumb to the other thumb. Tab moves from the minimum thumb to the maximum thumb. In right-to-left text, Right lowers and Left raises.",
+        "focus": "A focus ring around the focused thumb on :focus-visible, never around the track.",
+        "aria": "Each thumb carries aria-valuenow, aria-valuemin, aria-valuemax and, for a formatted value, aria-valuetext from the same formatter as the visible text. A range names its thumbs \"Minimum {label}\" and \"Maximum {label}\", which are translatable. Help and error text join aria-describedby; an error sets aria-invalid on each thumb. The layout mirrors right to left."
+      },
+      "content": {
+        "labelPattern": "Name the dimension, in sentence case: \"Price\", \"Volume\", \"Text size\". The value text carries the unit, currency or percent, formatted for the locale (\"$40 – $120\", \"120%\").",
+        "errorPattern": "Say what is wrong and how to fix it, in the field message: \"Enter a maximum of 200 or less.\""
+      },
+      "docs": {
+        "usage": "Use a slider for an approximate value, or a range, where seeing the position within the bounds helps more than the exact number: a price filter, a text size, a volume. Use two thumbs for a minimum and a maximum. For an exact number the user already knows, use a text field, or turn on the paired inputs. Don't use a slider for a few named options (use a segmented control or a radio group) or for on and off (use a switch).",
+        "do": [
+          "Name the dimension with a visible label",
+          "Format the value with its unit or currency, and use the same text for aria-valuetext",
+          "Turn on the paired inputs when an exact value matters",
+          "Bind costly work, such as a network filter, to onChangeEnd"
+        ],
+        "dont": [
+          "Use a slider for a precise value over a wide range; a 300px track cannot reach every value",
+          "Leave the thumbs of a range unnamed",
+          "Show the value only in a bubble during a drag; it is gone when the drag ends",
+          "Animate the thumb while it is dragged"
+        ],
+        "contentGuidelines": "The label names the dimension. The value text shows the value with its unit; a range shows both ends, \"$40 – $120\"."
+      },
+      "ai": {
+        "primaryPurpose": "Choose an approximate value, or a minimum and maximum, by moving a thumb along a track.",
+        "whenToUse": "An approximate value where the position within the range matters more than the exact number, such as a volume, a text size or a price filter window.",
+        "avoidWhen": "The user knows the exact number (use a text field, or turn on the paired inputs), there are a few named options (use a segmented control or a radio group), it is on or off (use a switch), or the range is too wide for the track to reach each value.",
+        "commonPartners": [
+          "_slider-thumb",
+          "field-label",
+          "field-message",
+          "text-field"
+        ],
+        "triggerKeywords": [
+          "slider",
+          "range slider",
+          "price filter",
+          "volume control",
+          "range input",
+          "min max slider"
+        ],
+        "generationPriority": 4
+      },
+      "motion": {
+        "enter": "None.",
+        "exit": "None.",
+        "reduceMotion": "While dragging, the thumb and the fill follow the pointer with no transition. After a click on the rail or a key step the thumb slides on the fast duration with the default easing; under reduced motion it moves at once."
+      },
+      "composition": {
+        "composesWith": [
+          "field-label",
+          "_slider-thumb",
+          "text-field",
+          "field-message"
+        ],
+        "alternativeTo": [
+          "text-field",
+          "segmented-control",
+          "radio-group",
+          "switch-row"
+        ],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [],
+        "replacesPatterns": [
+          "a native <input type=\"range\"> styled per browser engine",
+          "a drag-only custom slider with no keyboard support",
+          "two separate sliders for a minimum and a maximum"
+        ]
+      }
+    },
+    "progress": {
+      "id": "progress",
+      "name": "Progress",
+      "aliases": [
+        "progress-bar",
+        "progress-indicator",
+        "linear-progress",
+        "circular-progress"
+      ],
+      "category": "feedback",
+      "status": "draft",
+      "summary": "Shows how far a task has got, or that it is still running. Linear or circular.",
+      "description": "Shows that system work is under way and, when the system can measure it, how far along it is: an upload, an export, a batch save. A linear bar shows a known amount (determinate) or a sweeping segment while the amount is unknown (indeterminate). A ring shows a known amount in a small space, with its value beside it. At the end the bar turns to the success or danger color and a message with a glyph names the outcome. The label and the value sit outside the track, so neither loses contrast as the fill moves behind it.",
+      "props": [
+        {
+          "name": "type",
+          "type": "enum: 'determinate' | 'indeterminate'",
+          "default": "determinate",
+          "required": false,
+          "values": [
+            "determinate",
+            "indeterminate"
+          ],
+          "description": "determinate = the work can be measured, so the bar shows how far it has got. indeterminate = it cannot, so a segment sweeps along the track and there is no value. Choose indeterminate rather than faking a value."
+        },
+        {
+          "name": "value",
+          "type": "number",
+          "required": false,
+          "description": "How far the work has got, between min and max, for a determinate bar. Omitted, the bar rests at min. Out-of-range values are clamped, with a warning in development. Never fake a value: a bar that creeps toward the end and stops there breaks the contract. If the work cannot be measured, set type to indeterminate."
+        },
+        {
+          "name": "min",
+          "type": "number",
+          "default": 0,
+          "required": false,
+          "description": "The start of the range."
+        },
+        {
+          "name": "max",
+          "type": "number",
+          "default": 100,
+          "required": false,
+          "description": "The end of the range: 100 for a percentage, or the total, such as a byte count."
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "description": "What is in progress, with an active verb (\"Uploading photo.jpg\"). It is the accessible name. A linear bar shows it above the track; a ring is named by it without showing it."
+        },
+        {
+          "name": "valueText",
+          "type": "string | (value: number) => string",
+          "required": false,
+          "description": "The visible value, and the same string as aria-valuetext. A percentage by default, through Intl.NumberFormat, so \"45%\" localizes. Prefer a concrete amount when there is one (\"45 MB of 100 MB\")."
+        },
+        {
+          "name": "shape",
+          "type": "enum: 'linear' | 'circular'",
+          "default": "linear",
+          "required": false,
+          "values": [
+            "linear",
+            "circular"
+          ],
+          "description": "linear = a bar that fills its container. circular = a ring for a small space, determinate only. A ring that cannot show a value is a Spinner."
+        },
+        {
+          "name": "size",
+          "type": "enum: 'small' | 'medium'",
+          "default": "medium",
+          "required": false,
+          "values": [
+            "small",
+            "medium"
+          ],
+          "description": "The ring's size: medium is 40px with a 4px band, small is 24px with a 2px band. A linear bar has one thickness, 4px, and ignores this."
+        },
+        {
+          "name": "status",
+          "type": "enum: 'active' | 'complete' | 'error'",
+          "default": "active",
+          "required": false,
+          "values": [
+            "active",
+            "complete",
+            "error"
+          ],
+          "description": "active = the work is running. complete = it finished: the fill turns to the success color and the message names the result. error = it failed: the fill stops where it failed, turns to the danger color, and the message names the problem and the next step."
+        },
+        {
+          "name": "message",
+          "type": "string",
+          "required": false,
+          "description": "The outcome, shown below the bar at complete and error with a glyph: past tense when done (\"Upload complete\"), the problem and the next step when it fails (\"Upload failed. The connection dropped. Try again.\")."
+        },
+        {
+          "name": "showValue",
+          "type": "boolean",
+          "default": true,
+          "required": false,
+          "description": "Whether the value text shows. On by default. A ring keeps it on: it has no end to mark, so the value is how the amount reads."
+        },
+        {
+          "name": "announce",
+          "type": "enum: 'milestones' | 'end' | 'none'",
+          "default": "milestones",
+          "required": false,
+          "values": [
+            "milestones",
+            "end",
+            "none"
+          ],
+          "description": "What a screen reader hears. milestones = once as the value passes 25, 50 and 75%, and again at the end. end = the end only. none = the host announces the work itself. An error is announced when it happens, except under none."
+        },
+        {
+          "name": "delay",
+          "type": "number",
+          "default": 400,
+          "required": false,
+          "description": "Milliseconds to wait before showing the bar. If the work finishes first, nothing shows, so a fast task does not flash a bar."
+        },
+        {
+          "name": "minDisplay",
+          "type": "number",
+          "default": 500,
+          "required": false,
+          "description": "Milliseconds the bar stays once shown, so it does not vanish after one frame."
+        }
+      ],
+      "states": [],
+      "variants": {
+        "shape": {
+          "values": [
+            "linear",
+            "circular"
+          ],
+          "kind": "authoring"
+        },
+        "type": {
+          "values": [
+            "determinate",
+            "indeterminate"
+          ],
+          "kind": "runtime"
+        },
+        "status": {
+          "values": [
+            "active",
+            "complete",
+            "error"
+          ],
+          "kind": "runtime"
+        },
+        "size": {
+          "values": [
+            "medium",
+            "small"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "`progressbar`, named by the label. A polite live region beside it carries the milestone and end announcements.",
+        "wcag": [
+          "4.1.2 Name, Role, Value (role progressbar named by its label; with a value, aria-valuenow, aria-valuemin, aria-valuemax and aria-valuetext)",
+          "4.1.3 Status Messages (the milestones, the end and an error reach a screen reader through a polite live region)",
+          "1.4.1 Use of Color (the length of the fill and the value text carry the amount; complete and error carry a glyph and a message)",
+          "1.4.3 Contrast (the label, the value and the message clear 4.5:1 against the page, measured in every mode of the example brands)",
+          "1.4.11 Non-text Contrast (the fill clears 3:1 against the track, and the stop dot against the page, measured in every mode of the example brands)",
+          "2.2.2 Pause, Stop, Hide (targeted: an indeterminate bar is for work the user waits on; for long background work, show a status line or let the user hide the bar)"
+        ],
+        "keyboard": "None. Progress takes no focus and has no action.",
+        "focus": "Never focusable. Focus stays where it was when the work started.",
+        "aria": "Determinate: role=\"progressbar\", aria-labelledby pointing at the label (aria-label on a ring, whose label does not show), aria-valuenow, aria-valuemin and aria-valuemax, and aria-valuetext whenever the visible value is not a bare percentage (\"45 MB of 100 MB\"). Indeterminate: role=\"progressbar\" with no value attributes, and aria-busy=\"true\" on the region being updated. A screen reader does not reliably speak a changing aria-valuenow, and speaking every step floods it, so a polite live region, present and empty from the start, speaks the value as it passes 25, 50 and 75%, and the message at the end. An error is spoken when it happens. The message glyph is aria-hidden. Every string, the \"%\" sign included, is translatable."
+      },
+      "content": {
+        "labelPattern": "Name the work with an active verb, in sentence case: \"Uploading photo.jpg\", \"Saving your changes\". Keep one label for the whole task rather than cycling through technical steps (\"Resolving…\", \"Connecting…\"), which flickers on screen and floods a screen reader.",
+        "errorPattern": "Name what failed and the next step: \"Upload failed. The connection dropped. Try again.\" Not a bare \"Error\"."
+      },
+      "docs": {
+        "usage": "Use Progress for system work that takes more than a few seconds: a determinate bar when the work can be measured (bytes, items, a known length), an indeterminate bar when it cannot. Use a ring when the space is small, such as a row in a list. For a short wait inside a control, use a Spinner; for a first load of content, a placeholder in the layout's shape. Use the bar for work the user waits on; for long background work, show a status line, or let the user hide the bar.",
+        "do": [
+          "Name the work in the label with an active verb",
+          "Show a concrete amount when there is one (\"45 MB of 100 MB\")",
+          "Start indeterminate and switch to determinate once the amount is known",
+          "End with a message: past tense when done, the problem and the next step when it fails",
+          "Put a retry action beside the bar, not inside it"
+        ],
+        "dont": [
+          "Fake a value. A bar that creeps toward the end and stops there breaks the contract; use an indeterminate bar",
+          "Put the label or the value inside the track",
+          "Use an indeterminate ring. That is a Spinner",
+          "Use Progress for a static measurement such as storage used. That is a meter",
+          "Use Progress for a user's place in a multi-step form. That is a stepper",
+          "Show the outcome by color alone"
+        ],
+        "contentGuidelines": "Label: what is happening, with an active verb (\"Uploading photo.jpg\"), one label for the whole task. Value: a concrete amount where there is one (\"45 MB of 100 MB\", \"Step 3 of 5\"), otherwise a percentage. End: past tense when done (\"Upload complete\"); when it fails, what failed and the next step (\"Upload failed. The connection dropped. Try again.\")."
+      },
+      "ai": {
+        "primaryPurpose": "Show that system work is under way and, when it can be measured, how far along it is.",
+        "whenToUse": "An upload, export or batch job that takes more than a few seconds: determinate when the amount is known, indeterminate when it is not. A ring when the space is small.",
+        "avoidWhen": "The wait is short and inside a control (use a spinner), the content is loading for the first time (a placeholder in the layout's shape), the value is a static measurement such as storage used (a meter), it marks a user's place in a multi-step flow (a stepper), or the work cannot be measured and you want a ring (use a spinner).",
+        "commonPartners": [
+          "button",
+          "spinner",
+          "field-message"
+        ],
+        "triggerKeywords": [
+          "progress",
+          "progress bar",
+          "progress indicator",
+          "linear progress",
+          "circular progress",
+          "progress ring",
+          "upload progress",
+          "determinate",
+          "indeterminate"
+        ],
+        "generationPriority": 3
+      },
+      "motion": {
+        "enter": "Appears after a short delay (400ms), so a fast task shows nothing. The fill moves to each new value over `motion.duration.moderate` on `motion.easing-role.default`. An indeterminate bar sweeps its segment across the track once every `motion.duration.sweep` (1600ms), on `motion.easing.calm`. At complete and error the color crossfades over `motion.duration.fast`.",
+        "exit": "Stays at least 500ms once shown, then leaves with its host.",
+        "reduceMotion": "The fill snaps to each value (`motion.duration-reduced.moderate`, 0ms). The indeterminate sweep keeps moving, more slowly: one pass every `motion.duration-reduced.sweep` (2600ms). It is never removed, because a still bar reads as stuck."
+      },
+      "composition": {
+        "composesWith": [
+          "field-message"
+        ],
+        "alternativeTo": [
+          "spinner"
+        ],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [
+          "skeleton",
+          "meter",
+          "stepper"
+        ],
+        "replacesPatterns": [
+          "a bar that creeps to 99% while the real amount is unknown",
+          "a label printed inside the moving fill"
+        ]
+      }
+    },
+    "banner": {
+      "id": "banner",
+      "name": "Banner",
+      "aliases": [
+        "alert",
+        "callout",
+        "inline-alert"
+      ],
+      "category": "feedback",
+      "status": "draft",
+      "summary": "A persistent message in the page flow about an important state, with optional actions.",
+      "description": "A message that sits in the page flow and stays until the user dismisses it or the condition clears: a page-level error, a service notice, or the result of a process that has to stay visible. Because it is part of the page and the tab order, it can carry actions. Four tones, each with its own glyph shape, so the tone is never carried by color alone. Contained inside a section, or full width at the top of a page. Not a toast (it does not go away by itself), not a field message (that belongs to one field), and not a dialog (it does not block the page).",
+      "props": [
+        {
+          "name": "tone",
+          "type": "enum: 'info' | 'success' | 'warning' | 'danger'",
+          "default": "info",
+          "required": false,
+          "values": [
+            "info",
+            "success",
+            "warning",
+            "danger"
+          ],
+          "description": "How serious the message is. Sets the fill, the edge and the glyph. Match it to the message: danger for an error that blocks the user, warning for a risk, success for a finished process, info for everything else."
+        },
+        {
+          "name": "width",
+          "type": "enum: 'contained' | 'full'",
+          "default": "contained",
+          "required": false,
+          "values": [
+            "contained",
+            "full"
+          ],
+          "description": "contained is a rounded box inside a section or card. full has square corners and spans the page, for a message about the whole app at the top of the page."
+        },
+        {
+          "name": "title",
+          "type": "node",
+          "required": false,
+          "description": "A short heading that names the issue (\"Payment failed\"), with no period at the end. When present, it labels the banner's region."
+        },
+        {
+          "name": "children",
+          "type": "node",
+          "required": true,
+          "description": "The body: what happened and what to do next, in one or two sentences. It can hold a link or a short list. Never repeat the title."
+        },
+        {
+          "name": "headingLevel",
+          "type": "enum: 2 | 3 | 4 | 5 | 6",
+          "default": "2",
+          "required": false,
+          "values": [
+            "2",
+            "3",
+            "4",
+            "5",
+            "6"
+          ],
+          "description": "The heading level of the title, matched to where the banner sits in the page outline, so the outline stays in order."
+        },
+        {
+          "name": "icon",
+          "type": "node | false",
+          "required": false,
+          "description": "Replaces the tone glyph, or false to hide it in a dense layout. The glyph is hidden from assistive technology either way."
+        },
+        {
+          "name": "actions",
+          "type": "node",
+          "required": false,
+          "description": "Up to two buttons that resolve the message, the main one first: an outline Button.Neutral, then a text Button.Neutral. Name each by what it does (\"Retry\", \"Update billing\")."
+        },
+        {
+          "name": "dismissible",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Whether the banner shows a dismiss button. Set it together with onDismiss. Leave a banner about a condition that still blocks the user not dismissible."
+        },
+        {
+          "name": "onDismiss",
+          "type": "function",
+          "required": false,
+          "description": "Called when the dismiss button is pressed. Remove the banner, store the dismissal so it does not return on reload, and move focus to a sensible place."
+        },
+        {
+          "name": "announce",
+          "type": "enum: 'auto' | 'none'",
+          "default": "auto",
+          "required": false,
+          "values": [
+            "auto",
+            "none"
+          ],
+          "description": "Whether a banner inserted after the page loads is announced: auto announces it through the page's live region, assertively for danger and politely otherwise. A banner present when the page loads is never announced; it is read in order."
+        }
+      ],
+      "states": [],
+      "variants": {
+        "tone": {
+          "values": [
+            "info",
+            "success",
+            "warning",
+            "danger"
+          ],
+          "kind": "runtime"
+        },
+        "width": {
+          "values": [
+            "contained",
+            "full"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "A banner present when the page loads is a region (<section aria-labelledby> pointing at the title) and has no live role. A banner inserted after an action is announced through the page's live region: role=\"alert\" for danger, role=\"status\" for the other tones.",
+        "wcag": [
+          "4.1.3 Status Messages (a banner inserted after an action is announced without moving focus)",
+          "1.3.1 Info and Relationships (the title is a heading at the level the page outline needs, and it labels the region)",
+          "1.4.1 Use of Color (each tone has its own glyph shape, and the text says what happened)",
+          "1.4.3 Contrast (the title and body clear 4.5:1 on every tone's fill, measured in every mode of the example brands)",
+          "1.4.11 Non-text Contrast (the edge clears 3:1 against the page and the glyph 3:1 against the fill, measured in every mode of the example brands)",
+          "2.4.3 Focus Order (the actions are in the tab order, and a dismiss moves focus to a surviving element)",
+          "2.5.8 Target Size (Minimum) (the dismiss button is a 20px glyph; targets 44×44px through a code-side hit area)",
+          "2.2.1 Timing Adjustable (the reason errors go in a banner, which stays, rather than a toast, which goes away)"
+        ],
+        "keyboard": "The actions and the dismiss button are ordinary Tab stops in reading order. The banner itself takes no focus.",
+        "focus": "No focus of its own. After a dismiss, focus moves to the control that caused the banner or to the page heading, never to the page body.",
+        "aria": "The glyph is aria-hidden. A banner present at load: a section with aria-labelledby pointing at the title, and no role=\"alert\". An inserted banner: announced through a live region that already exists, role=\"alert\" for danger and role=\"status\" otherwise. The dismiss button's accessible name names what it dismisses (\"Dismiss error message\"), and is translated."
+      },
+      "content": {
+        "labelPattern": "Title: names the issue up front, in sentence case and with no period (\"Payment failed\", not \"Error\"). Body: what happened and what to do next, in one or two sentences, never repeating the title. Actions: a verb of one or two words (\"Retry\", \"Update billing\").",
+        "errorPattern": "Say what went wrong, whether anything was lost, and how to fix it. Use danger only for an error that blocks the user."
+      },
+      "docs": {
+        "usage": "Use a Banner for an important message the user should see and may need to act on, and that has to stay until it is resolved: a page-level error, a service notice, or the result of a process. Contain it inside the section it is about, or run it full width at the top of the page for a message about the whole app. Show one banner at a time in a region, the most serious one.",
+        "do": [
+          "Match the tone to how serious the message is",
+          "Name the issue in the title, and say what to do next in the body",
+          "Give each action a verb that says what it does",
+          "Move focus to a sensible place after a dismiss"
+        ],
+        "dont": [
+          "Use a banner for a short confirmation like \"Saved\". Use a toast.",
+          "Use a banner for one field's validation. Use the field's message.",
+          "Stack banners. Show the most serious one.",
+          "Mark a banner present at page load as role=\"alert\"",
+          "Let a dismissed banner come back on reload"
+        ],
+        "contentGuidelines": "Titles are short, specific and in sentence case, with no period. The body states the consequence and the fix in one or two sentences; for more, link to the details. Action labels are verbs."
+      },
+      "ai": {
+        "primaryPurpose": "Show a persistent, in-flow message about an important state, with optional actions to resolve it.",
+        "whenToUse": "A page or section error, a service or maintenance notice, or a result that has to stay visible until the user acts on it or dismisses it.",
+        "avoidWhen": "The message is a brief confirmation that can go away by itself (a toast), it is about one field (a field message), the user must decide before going on (a dialog), or it is a short status label beside content (a badge).",
+        "commonPartners": [
+          "link",
+          "list",
+          "button",
+          "button-neutral",
+          "button-group"
+        ],
+        "triggerKeywords": [
+          "banner",
+          "alert banner",
+          "callout",
+          "inline alert",
+          "message bar",
+          "notice",
+          "page error",
+          "service notice",
+          "section message"
+        ],
+        "generationPriority": 2
+      },
+      "motion": {
+        "enter": "Fades in. A banner inserted at the top of a page reserves its space, so the content below does not jump.",
+        "exit": "Collapses its height and fades (about 150 to 200ms, motion.transition.exit), so the content below moves up smoothly.",
+        "reduceMotion": "Under prefers-reduced-motion it appears and goes instantly."
+      },
+      "composition": {
+        "composesWith": [
+          "button-neutral",
+          "flush-icon-button-neutral"
+        ],
+        "alternativeTo": [
+          "dialog",
+          "field-message",
+          "badge"
+        ],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [],
+        "replacesPatterns": [
+          "a colored div with an icon and role=\"alert\" on a message present at load",
+          "an error shown as a toast that disappears"
         ]
       }
     }

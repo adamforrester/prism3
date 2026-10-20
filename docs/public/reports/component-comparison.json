@@ -88,6 +88,36 @@
       "sizes": []
     },
     {
+      "id": "_slider-thumb",
+      "name": "Slider.Thumb",
+      "category": "form",
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled"
+      ],
+      "projectedStates": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled"
+      ],
+      "axes": {},
+      "props": [
+        {
+          "name": "aria-label"
+        },
+        {
+          "name": "disabled",
+          "default": false
+        }
+      ],
+      "sizes": []
+    },
+    {
       "id": "accordion",
       "name": "Accordion",
       "category": "navigation",
@@ -245,6 +275,84 @@
           "values": [
             "rectangular",
             "circular"
+          ]
+        }
+      ],
+      "sizes": []
+    },
+    {
+      "id": "banner",
+      "name": "Banner",
+      "category": "feedback",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "tone": [
+          "info",
+          "success",
+          "warning",
+          "danger"
+        ],
+        "width": [
+          "contained",
+          "full"
+        ]
+      },
+      "props": [
+        {
+          "name": "tone",
+          "default": "info",
+          "values": [
+            "info",
+            "success",
+            "warning",
+            "danger"
+          ]
+        },
+        {
+          "name": "width",
+          "default": "contained",
+          "values": [
+            "contained",
+            "full"
+          ]
+        },
+        {
+          "name": "title"
+        },
+        {
+          "name": "children"
+        },
+        {
+          "name": "headingLevel",
+          "default": "2",
+          "values": [
+            "2",
+            "3",
+            "4",
+            "5",
+            "6"
+          ]
+        },
+        {
+          "name": "icon"
+        },
+        {
+          "name": "actions"
+        },
+        {
+          "name": "dismissible",
+          "default": false
+        },
+        {
+          "name": "onDismiss"
+        },
+        {
+          "name": "announce",
+          "default": "auto",
+          "values": [
+            "auto",
+            "none"
           ]
         }
       ],
@@ -4614,6 +4722,29 @@
         ]
       }
     ],
+    "intent": [
+      {
+        "values": [
+          "neutral",
+          "success"
+        ],
+        "components": [
+          "toast"
+        ]
+      }
+    ],
+    "kind": [
+      {
+        "values": [
+          "ancestor",
+          "current",
+          "overflow"
+        ],
+        "components": [
+          "breadcrumb-item"
+        ]
+      }
+    ],
     "labeled": [
       {
         "values": [
@@ -4837,6 +4968,7 @@
         "components": [
           "breadcrumb-item",
           "breadcrumbs",
+          "progress",
           "switch-control",
           "switch-row"
         ]
@@ -4987,6 +5119,15 @@
       },
       {
         "values": [
+          "chevron",
+          "slash"
+        ],
+        "components": [
+          "_breadcrumb-separator"
+        ]
+      },
+      {
+        "values": [
           "compact",
           "numbered",
           "simple"
@@ -5032,6 +5173,15 @@
         ],
         "components": [
           "pagination-item"
+        ]
+      },
+      {
+        "values": [
+          "range",
+          "single"
+        ],
+        "components": [
+          "slider"
         ]
       }
     ],
@@ -5124,6 +5274,14 @@
       }
     ],
     "announce": [
+      {
+        "id": "banner",
+        "default": "auto",
+        "values": [
+          "auto",
+          "none"
+        ]
+      },
       {
         "id": "progress",
         "default": "milestones",
@@ -5531,6 +5689,10 @@
     ],
     "dismissible": [
       {
+        "id": "banner",
+        "default": false
+      },
+      {
         "id": "toast",
         "default": true
       }
@@ -5539,12 +5701,6 @@
       {
         "id": "toast",
         "default": 6000
-      }
-    ],
-    "dismissible": [
-      {
-        "id": "banner",
-        "default": false
       }
     ],
     "emphasis": [
@@ -6076,6 +6232,11 @@
         "default": false
       }
     ],
+    "largeStep": [
+      {
+        "id": "slider"
+      }
+    ],
     "layout": [
       {
         "id": "button-group",
@@ -6127,6 +6288,10 @@
         "id": "counter"
       },
       {
+        "id": "progress",
+        "default": 100
+      },
+      {
         "id": "slider",
         "default": 100
       }
@@ -6155,6 +6320,9 @@
         "id": "field-message"
       },
       {
+        "id": "progress"
+      },
+      {
         "id": "toast"
       }
     ],
@@ -6164,8 +6332,18 @@
         "default": 0
       },
       {
+        "id": "progress",
+        "default": 0
+      },
+      {
         "id": "slider",
         "default": 0
+      }
+    ],
+    "minDisplay": [
+      {
+        "id": "progress",
+        "default": 500
       }
     ],
     "minRows": [
@@ -6349,6 +6527,9 @@
     ],
     "onDismiss": [
       {
+        "id": "banner"
+      },
+      {
         "id": "toast"
       }
     ],
@@ -6498,6 +6679,11 @@
     "renderItem": [
       {
         "id": "pagination"
+      }
+    ],
+    "renderLink": [
+      {
+        "id": "breadcrumbs"
       }
     ],
     "required": [
@@ -6726,6 +6912,10 @@
       }
     ],
     "showValue": [
+      {
+        "id": "progress",
+        "default": true
+      },
       {
         "id": "slider",
         "default": true
@@ -7490,6 +7680,22 @@
         ]
       },
       {
+        "id": "progress",
+        "default": "determinate",
+        "values": [
+          "determinate",
+          "indeterminate"
+        ]
+      },
+      {
+        "id": "slider",
+        "default": "single",
+        "values": [
+          "single",
+          "range"
+        ]
+      },
+      {
         "id": "tag",
         "default": "select",
         "values": [
@@ -7958,7 +8164,20 @@
         "text-field",
         "textarea"
       ],
-      "detail": "the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab, tabs, tag, text-field, textarea; [medium, small] in switch-control, switch-row; [large, medium, small, x-small] in spinner"
+      "detail": "the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab, tabs, tag, text-field, textarea; [medium, small] in breadcrumb-item, breadcrumbs, progress, switch-control, switch-row; [large, medium, small, x-small] in spinner"
+    },
+    {
+      "kind": "axis values",
+      "subject": "axis status",
+      "components": [
+        "field-message",
+        "password-field",
+        "progress",
+        "select",
+        "text-field",
+        "textarea"
+      ],
+      "detail": "the status axis takes 2 value sets — [default, error, success, warning] in field-message, password-field, select, text-field, textarea; [active, complete, error] in progress"
     },
     {
       "kind": "axis values",
@@ -7993,9 +8212,11 @@
         "list-item",
         "pagination",
         "pagination-item",
+        "progress",
+        "slider",
         "tag"
       ],
-      "detail": "the type axis takes 5 value sets — [icon, ordered, unordered] in list, list-item; [compact, numbered, simple] in pagination; [count, dot, status] in badge; [dismissible, select] in tag; [ellipsis, next, page, previous] in pagination-item"
+      "detail": "the type axis takes 8 value sets — [icon, ordered, unordered] in list, list-item; [chevron, slash] in _breadcrumb-separator; [compact, numbered, simple] in pagination; [count, dot, status] in badge; [determinate, indeterminate] in progress; [dismissible, select] in tag; [ellipsis, next, page, previous] in pagination-item; [range, single] in slider"
     },
     {
       "kind": "axis values",
@@ -8327,25 +8548,16 @@
       "components": [
         "field-label"
       ],
-      "detail": "field-label defaults size to small; 36 of 37 sized components default to medium"
+      "detail": "field-label defaults size to small; 39 of 40 sized components default to medium"
     },
     {
       "kind": "prop default",
-      "subject": "prop label",
+      "subject": "prop dismissible",
       "components": [
-        "pagination",
-        "spinner"
+        "banner",
+        "toast"
       ],
-      "detail": "label defaults differ over the same values — Loading in spinner; Pagination in pagination"
-    },
-    {
-      "kind": "prop default",
-      "subject": "prop max",
-      "components": [
-        "badge",
-        "slider"
-      ],
-      "detail": "max defaults differ over the same values — 100 in slider; 99 in badge"
+      "detail": "dismissible defaults differ over the same values — false in banner; true in toast"
     },
     {
       "kind": "prop default",
@@ -8355,6 +8567,26 @@
         "banner"
       ],
       "detail": "headingLevel defaults differ over the same values — 2 in banner; 3 in accordion"
+    },
+    {
+      "kind": "prop default",
+      "subject": "prop label",
+      "components": [
+        "breadcrumbs",
+        "pagination",
+        "spinner"
+      ],
+      "detail": "label defaults differ over the same values — Breadcrumb in breadcrumbs; Loading in spinner; Pagination in pagination"
+    },
+    {
+      "kind": "prop default",
+      "subject": "prop max",
+      "components": [
+        "badge",
+        "progress",
+        "slider"
+      ],
+      "detail": "max defaults differ over the same values — 100 in progress, slider; 99 in badge"
     },
     {
       "kind": "prop default",

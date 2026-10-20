@@ -1290,6 +1290,45 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     ]
   },
   {
+    "id": "toast",
+    "name": "Toast",
+    "category": "feedback",
+    "summary": "A short status message over the page after an action. Announced politely; it never takes focus.",
+    "unit": "variants",
+    "spacing": [
+      {
+        "key": "pad-y",
+        "ref": "space.100"
+      },
+      {
+        "key": "pad-x",
+        "ref": "space.200"
+      },
+      {
+        "key": "pad-end",
+        "ref": "space.100"
+      },
+      {
+        "key": "gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "glyph-gap",
+        "ref": "space.150"
+      }
+    ],
+    "page": "Toast",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 2,
+    "nests": [
+      "button",
+      "flush-icon-button-neutral",
+      "icon"
+    ]
+  },
+  {
     "id": "counter",
     "name": "Counter",
     "category": "form",
@@ -1340,6 +1379,92 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "members": 12,
     "nests": [
       "pagination-item"
+    ]
+  },
+  {
+    "id": "_slider-thumb",
+    "name": "Slider.Thumb",
+    "category": "form",
+    "summary": "The thumb a Slider moves: a filled disc with a page-colored ring. Used only inside a Slider.",
+    "unit": "variants",
+    "spacing": [],
+    "page": "Slider",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 5,
+    "nests": [
+      "focus-ring"
+    ]
+  },
+  {
+    "id": "slider",
+    "name": "Slider",
+    "category": "form",
+    "summary": "Choose a value, or a range, by moving a thumb along a track. Works with arrow keys too.",
+    "unit": "variants",
+    "spacing": [],
+    "page": "Slider",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 10,
+    "nests": [
+      "field-label",
+      "_slider-thumb",
+      "text-field",
+      "field-message"
+    ]
+  },
+  {
+    "id": "progress",
+    "name": "Progress",
+    "category": "feedback",
+    "summary": "Shows how far a task has got, or that it is still running. Linear or circular.",
+    "unit": "variants",
+    "spacing": [],
+    "page": "Progress",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 10,
+    "nests": [
+      "field-message"
+    ]
+  },
+  {
+    "id": "banner",
+    "name": "Banner",
+    "category": "feedback",
+    "summary": "A persistent message in the page flow about an important state, with optional actions.",
+    "unit": "variants",
+    "spacing": [
+      {
+        "key": "pad",
+        "ref": "space.200"
+      },
+      {
+        "key": "gap",
+        "ref": "space.150"
+      },
+      {
+        "key": "actions-gap",
+        "ref": "space.150"
+      },
+      {
+        "key": "action-gap",
+        "ref": "space.100"
+      }
+    ],
+    "page": "Banner",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 8,
+    "nests": [
+      "icon",
+      "button-neutral",
+      "flush-icon-button-neutral"
     ]
   }
 ];

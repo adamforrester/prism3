@@ -298,7 +298,7 @@ export const banner: ComponentDef = {
     alternativeTo: ['dialog', 'field-message', 'badge'],
     replacesPatterns: ['a colored div with an icon and role="alert" on a message present at load', 'an error shown as a toast that disappears'],
     supersededBy: [],
-    planned: ['toast'],
+    planned: [],
   },
 
   motion: {

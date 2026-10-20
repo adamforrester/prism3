@@ -92,7 +92,6 @@ None — not interactive.
 
 - **Composes with:** `button`, `flush-icon-button-neutral`
 - **Alternative to:** `dialog`, `field-message`
-- **Planned:** `banner`
 - **Replaces:**
   - an alert() after a save
   - a status message that moves focus

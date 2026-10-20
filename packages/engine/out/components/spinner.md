@@ -81,7 +81,8 @@ None — not interactive.
 
 ## Composition
 
-- **Planned:** `progress`, `skeleton`
+- **Alternative to:** `progress`
+- **Planned:** `skeleton`
 - **Replaces:**
   - an animated loading GIF
   - a static loading glyph in the icon set
