@@ -735,7 +735,7 @@
     },
     "code-input": {
       "members": 48,
-      "sha256": "5936447fdb8bb8d66606bfc9649f84c0c712a96cbd6ecdfc993b375da59ba94e",
+      "sha256": "431554a7c71a65f4e82a73c937c9134270d8c670ad395f5e68d4106ae4ef7b9e",
       "properties": [
         "items:SLOT",
         "message:BOOLEAN"
