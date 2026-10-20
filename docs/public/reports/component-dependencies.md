@@ -11,7 +11,9 @@ Generated from the component definitions and the emission by `packages/engine/em
 | Component | Nested by (direct) | Affected by a change (direct and transitive) |
 |---|---|---|
 | _accordion-indicator | accordion | accordion |
+| _breadcrumb-separator | breadcrumb-item | breadcrumb-item, breadcrumbs |
 | badge | tab | tab, tabs |
+| breadcrumb-item | breadcrumbs | breadcrumbs |
 | button | button-group, password-field | button-group, dialog, password-field |
 | button-group | dialog | dialog |
 | checkbox-control | checkbox-row | checkbox-group, checkbox-row |
@@ -37,8 +39,11 @@ A component not in this table is nested by nothing; a change to it reaches only 
 | Component | Depth | Nests (direct) | Nests (transitive) |
 |---|---|---|---|
 | _accordion-indicator | 0 | — | — |
+| _breadcrumb-separator | 0 | — | — |
 | accordion | 1 | _accordion-indicator, divider, focus-ring | _accordion-indicator, divider, focus-ring |
 | badge | 0 | — | — |
+| breadcrumb-item | 2 | _breadcrumb-separator, flush-icon-button-neutral, link | _breadcrumb-separator, flush-icon-button-neutral, focus-ring, link |
+| breadcrumbs | 3 | breadcrumb-item, link | _breadcrumb-separator, breadcrumb-item, flush-icon-button-neutral, focus-ring, link |
 | button | 1 | focus-ring, spinner | focus-ring, spinner |
 | button-destructive | 1 | focus-ring, spinner | focus-ring, spinner |
 | button-group | 2 | button | button, focus-ring, spinner |
@@ -92,6 +97,14 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | accordion | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | accordion | leadingGlyph | nest | _accordion-indicator | nest-exposed | indicator=chevron, expansion=collapsed, size=medium | expansion, size | indicator |
 | accordion | trailingGlyph | nest | _accordion-indicator | nest-exposed | indicator=chevron, expansion=collapsed, size=medium | expansion, size | indicator |
+| breadcrumb-item | crumb | nest | link | nest-exposed | style=inline, weight=default, size=medium, surface=default, state=rest | size | state |
+| breadcrumb-item | overflow | nest | flush-icon-button-neutral | nest-exposed | shape=flush, size=small, state=rest | — | state |
+| breadcrumb-item | separator | nest | _breadcrumb-separator | nest-fixed | type=chevron | — | — |
+| breadcrumb-item | separatorSlash | nest | _breadcrumb-separator | nest-fixed | type=slash | — | — |
+| breadcrumbs | item1 | nest | breadcrumb-item | nest-fixed | kind=ancestor, separator=chevron, size=medium | separator, size | — |
+| breadcrumbs | item2 | nest | breadcrumb-item | nest-fixed | kind=ancestor, separator=chevron, size=medium | separator, size | — |
+| breadcrumbs | item3 | nest | breadcrumb-item | nest-fixed | kind=current, separator=chevron, size=medium | size | — |
+| breadcrumbs | parentLink | nest | link | nest-exposed | style=inline, weight=default, size=medium, surface=default, state=rest | size | state |
 | button | focusRing | absolute | focus-ring | nest-fixed | surface=default | surface | — |
 | button | spinner | overlay | spinner | swap | — | — | — |
 | button-destructive | focusRing | absolute | focus-ring | nest-fixed | surface=default | surface | — |

@@ -64,6 +64,30 @@
       "sizeDefault": "medium"
     },
     {
+      "id": "_breadcrumb-separator",
+      "name": "BreadcrumbSeparator",
+      "category": "navigation",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "type": [
+          "chevron",
+          "slash"
+        ]
+      },
+      "props": [
+        {
+          "name": "type",
+          "default": "chevron",
+          "values": [
+            "chevron",
+            "slash"
+          ]
+        }
+      ],
+      "sizes": []
+    },
+    {
       "id": "accordion",
       "name": "Accordion",
       "category": "navigation",
@@ -225,6 +249,143 @@
         }
       ],
       "sizes": []
+    },
+    {
+      "id": "breadcrumb-item",
+      "name": "BreadcrumbItem",
+      "category": "navigation",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "kind": [
+          "ancestor",
+          "current",
+          "overflow"
+        ],
+        "separator": [
+          "chevron",
+          "slash"
+        ],
+        "size": [
+          "medium",
+          "small"
+        ]
+      },
+      "props": [
+        {
+          "name": "kind",
+          "default": "ancestor",
+          "values": [
+            "ancestor",
+            "current",
+            "overflow"
+          ]
+        },
+        {
+          "name": "label"
+        },
+        {
+          "name": "href"
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium"
+          ]
+        },
+        {
+          "name": "separator",
+          "default": "chevron",
+          "values": [
+            "chevron",
+            "slash"
+          ]
+        }
+      ],
+      "sizes": [
+        "medium",
+        "small"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
+      "id": "breadcrumbs",
+      "name": "Breadcrumbs",
+      "category": "navigation",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "path": [
+          "full",
+          "parent"
+        ],
+        "separator": [
+          "chevron",
+          "slash"
+        ],
+        "size": [
+          "medium",
+          "small"
+        ]
+      },
+      "props": [
+        {
+          "name": "items"
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium"
+          ]
+        },
+        {
+          "name": "separator",
+          "default": "chevron",
+          "values": [
+            "chevron",
+            "slash"
+          ]
+        },
+        {
+          "name": "maxItems",
+          "default": 5
+        },
+        {
+          "name": "itemsBeforeCollapse",
+          "default": 1
+        },
+        {
+          "name": "itemsAfterCollapse",
+          "default": 2
+        },
+        {
+          "name": "collapse",
+          "default": "expand",
+          "values": [
+            "expand"
+          ]
+        },
+        {
+          "name": "responsive",
+          "default": true
+        },
+        {
+          "name": "label",
+          "default": "Breadcrumb"
+        },
+        {
+          "name": "renderLink"
+        }
+      ],
+      "sizes": [
+        "medium",
+        "small"
+      ],
+      "sizeDefault": "medium"
     },
     {
       "id": "button",
@@ -1493,6 +1654,7 @@
           "plus-filled",
           "resize-grip",
           "search",
+          "slash",
           "warning-triangle",
           "warning-triangle-filled"
         ],
@@ -1555,6 +1717,7 @@
             "plus-filled",
             "resize-grip",
             "search",
+            "slash",
             "warning-triangle",
             "warning-triangle-filled"
           ]
@@ -4180,6 +4343,17 @@
         ]
       }
     ],
+    "path": [
+      {
+        "values": [
+          "full",
+          "parent"
+        ],
+        "components": [
+          "breadcrumbs"
+        ]
+      }
+    ],
     "placement": [
       {
         "values": [
@@ -4247,6 +4421,18 @@
         ],
         "components": [
           "switch-control"
+        ]
+      }
+    ],
+    "separator": [
+      {
+        "values": [
+          "chevron",
+          "slash"
+        ],
+        "components": [
+          "breadcrumb-item",
+          "breadcrumbs"
         ]
       }
     ],
@@ -4324,6 +4510,8 @@
           "small"
         ],
         "components": [
+          "breadcrumb-item",
+          "breadcrumbs",
           "switch-control",
           "switch-row"
         ]
@@ -4730,6 +4918,15 @@
         "default": false
       }
     ],
+    "collapse": [
+      {
+        "id": "breadcrumbs",
+        "default": "expand",
+        "values": [
+          "expand"
+        ]
+      }
+    ],
     "count": [
       {
         "id": "pagination"
@@ -5015,6 +5212,9 @@
     ],
     "href": [
       {
+        "id": "breadcrumb-item"
+      },
+      {
         "id": "button"
       },
       {
@@ -5265,6 +5465,9 @@
     ],
     "items": [
       {
+        "id": "breadcrumbs"
+      },
+      {
         "id": "button-group"
       },
       {
@@ -5283,9 +5486,39 @@
         "id": "tabs"
       }
     ],
+    "itemsAfterCollapse": [
+      {
+        "id": "breadcrumbs",
+        "default": 2
+      }
+    ],
+    "itemsBeforeCollapse": [
+      {
+        "id": "breadcrumbs",
+        "default": 1
+      }
+    ],
+    "kind": [
+      {
+        "id": "breadcrumb-item",
+        "default": "ancestor",
+        "values": [
+          "ancestor",
+          "current",
+          "overflow"
+        ]
+      }
+    ],
     "label": [
       {
         "id": "badge"
+      },
+      {
+        "id": "breadcrumb-item"
+      },
+      {
+        "id": "breadcrumbs",
+        "default": "Breadcrumb"
       },
       {
         "id": "button"
@@ -5429,6 +5662,12 @@
         "id": "counter"
       }
     ],
+    "maxItems": [
+      {
+        "id": "breadcrumbs",
+        "default": 5
+      }
+    ],
     "maxLength": [
       {
         "id": "textarea"
@@ -5511,6 +5750,7 @@
           "plus-filled",
           "resize-grip",
           "search",
+          "slash",
           "warning-triangle",
           "warning-triangle-filled"
         ]
@@ -5799,6 +6039,12 @@
         ]
       }
     ],
+    "responsive": [
+      {
+        "id": "breadcrumbs",
+        "default": true
+      }
+    ],
     "reversed": [
       {
         "id": "list",
@@ -5837,6 +6083,24 @@
       {
         "id": "tag",
         "default": false
+      }
+    ],
+    "separator": [
+      {
+        "id": "breadcrumb-item",
+        "default": "chevron",
+        "values": [
+          "chevron",
+          "slash"
+        ]
+      },
+      {
+        "id": "breadcrumbs",
+        "default": "chevron",
+        "values": [
+          "chevron",
+          "slash"
+        ]
       }
     ],
     "shape": [
@@ -5968,6 +6232,22 @@
           "small",
           "medium",
           "large"
+        ]
+      },
+      {
+        "id": "breadcrumb-item",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium"
+        ]
+      },
+      {
+        "id": "breadcrumbs",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium"
         ]
       },
       {
@@ -6483,6 +6763,14 @@
       }
     ],
     "type": [
+      {
+        "id": "_breadcrumb-separator",
+        "default": "chevron",
+        "values": [
+          "chevron",
+          "slash"
+        ]
+      },
       {
         "id": "badge",
         "default": "status",
@@ -7001,6 +7289,8 @@
       "components": [
         "_accordion-indicator",
         "accordion",
+        "breadcrumb-item",
+        "breadcrumbs",
         "button",
         "button-destructive",
         "button-neutral",
@@ -7065,6 +7355,7 @@
       "kind": "axis values",
       "subject": "axis type",
       "components": [
+        "_breadcrumb-separator",
         "badge",
         "list",
         "list-item",
@@ -7098,6 +7389,22 @@
         "accordion"
       ],
       "detail": "accordion declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "breadcrumb-item",
+      "components": [
+        "breadcrumb-item"
+      ],
+      "detail": "breadcrumb-item declares its sizes as [medium, small], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "breadcrumbs",
+      "components": [
+        "breadcrumbs"
+      ],
+      "detail": "breadcrumbs declares its sizes as [medium, small], not smallest first"
     },
     {
       "kind": "size order",
@@ -7399,6 +7706,14 @@
         "accordion"
       ],
       "detail": "accordion has the variant axis expansion and no prop of that name"
+    },
+    {
+      "kind": "axis without prop",
+      "subject": "breadcrumbs",
+      "components": [
+        "breadcrumbs"
+      ],
+      "detail": "breadcrumbs has the variant axis path and no prop of that name"
     },
     {
       "kind": "axis without prop",

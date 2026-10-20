@@ -3385,6 +3385,38 @@ export type State = (typeof STATES)[number];
  * `footer` would tell a Banner its actions are a footer. An AUTHORING axis: a product picks the layout where it
  * places the group. Read by the slot's `directionWhen` (`PartDef.directionWhen`), so the one `items` slot runs as a
  * row or a column per member. `lint-axis-values.ts` carries the three values as a `sole` set.
+ *
+ * ── `kind`: THE TWENTY-NINTH NAME, FOR THE BREADCRUMB ITEM (owner decision on #2666, 2026-10-16, call 1 A) ──
+ *
+ * `kind` (`ancestor | current | overflow`) is WHICH ROLE a step plays in its parent's sequence: a link to a page above,
+ * the page itself, or the stand-in for collapsed steps. The approved proposal named the axis and its values. It clears
+ * this list's bar as a distinct kind of distinction with the nearest defeated: `type` is a content format that keeps
+ * the element (a badge's count or dot, a list's markers); `selection` is a value the user picks; `state` is a
+ * transient interaction. None says "this step renders a different element (a link, text, a button) because of where
+ * it sits in the trail", and naming it `type` would put a marker style and an element's role under one name, the
+ * #756 failure. An AUTHORING axis: Breadcrumbs sets it from the item's place. `lint-axis-values.ts` carries the three
+ * values as a `sole` set.
+ *
+ * ── `path`: THE THIRTIETH NAME, FOR BREADCRUMBS (owner decision on #2666, 2026-10-16, calls 1 A and 11 A; renamed from `layout`, Q424 A) ──
+ *
+ * `path` (`full | parent`) is HOW MUCH OF THE ROUTE a navigation shows: every step down to the current page, or one link
+ * up to the parent for a small screen. The approved proposal named the axis `layout`; the Button group took that name
+ * first (#2661) for how a row of buttons shares its space, and one name for two different questions is the #756
+ * failure, so the owner renamed this one (Q424 A). It clears the bar with the nearest defeated: `footer` lays out one
+ * part's actions; `orientation` is which way a rule runs; `width` is a control's extent; `placement` is where a layer
+ * attaches. None says "how much of the route is drawn", and naming it `width` would claim the parent link is a narrower
+ * trail when it is a different element. An AUTHORING axis: a product picks it per breakpoint in code.
+ * `lint-axis-values.ts` carries the two values as a `sole` set.
+ *
+ * ── `separator`: THE THIRTY-FIRST NAME, FOR BREADCRUMBS (owner decision Q382 A, 2026-10-16) ──
+ *
+ * `separator` (`chevron | slash`) is WHICH MARK stands between the steps of a trail. The owner named it: one setting on
+ * Breadcrumbs that applies to every step. Breadcrumbs passes it to each item (`follow` passes an axis by its own name),
+ * and the item picks the matching look of `_breadcrumb-separator`, whose own axis is `type`, as Q382 names it. It
+ * clears the bar with the nearest defeated: `indicator` is a glyph that shows a state (open or closed); `style` is a
+ * line treatment of the control itself; `type` is a content format. None says "the mark drawn between items", and
+ * naming it `style` would put a link's placement and a trail's divider under one name, the #756 failure. An AUTHORING
+ * axis. `lint-axis-values.ts` carries the two values, shared by Breadcrumbs, its item and the separator.
  */
 /*
  * ── `labeled`: THE TWENTY-EIGHTH NAME, FOR PAGINATION'S PREVIOUS AND NEXT (owner decision Q414 A, 2026-10-18, #2665) ──
@@ -3405,7 +3437,7 @@ export const VARIANT_AXES = [
   'width', 'style', 'indicator', 'offset', 'selection',
   'name', 'surface', 'weight', 'value', 'intensity', 'ratio',
   'status', 'emphasis', 'shape', 'type', 'direction', 'inset', 'orientation', 'alignment', 'expansion', 'iconPosition',
-  'placement', 'footer', 'layout', 'labeled',
+  'placement', 'footer', 'layout', 'labeled', 'kind', 'path', 'separator',
 ] as const;
 
 /** One member of the closed axis-NAME vocabulary. Values are not constrained — see `VARIANT_AXES`. */

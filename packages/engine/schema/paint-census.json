@@ -3,14 +3,14 @@
   "defs": {
     "icon": {
       "set": {
-        "members": 45,
-        "assignments": 45,
-        "sha256": "411d317f62974a753f5cea5ebeaa71b988398adb653899ef92ef4ae5795b9d1f"
+        "members": 46,
+        "assignments": 46,
+        "sha256": "4050e35c90281646d097cf07a805d82ba610ad288e13c1fc5d95cec33f1cf6d3"
       },
       "grid": {
-        "members": 405,
-        "assignments": 405,
-        "sha256": "726f03a404fd52ef1c8750fdd00fab53988f79eda8591a929afaa1875bae2419"
+        "members": 414,
+        "assignments": 414,
+        "sha256": "c0daf376b461a125879a0a8f64eddc07ef4b46c502424c4849bdb9de45fded25"
       }
     },
     "focus-ring": {
@@ -503,6 +503,42 @@
         "members": 108,
         "assignments": 456,
         "sha256": "f4c8a2016d77cece81f97d359ca68dc8eff078bc1f9a52f0f7609105c65946f0"
+      }
+    },
+    "_breadcrumb-separator": {
+      "set": {
+        "members": 2,
+        "assignments": 2,
+        "sha256": "17b9956bf8caca259d76734ce43b0b34af258de8acdcb9b4f175205e039619e9"
+      },
+      "grid": {
+        "members": 2,
+        "assignments": 2,
+        "sha256": "6041e7212a0c6a06372f8aeb1a24e5d9699ca31c7aff0d106ae109d49c5990db"
+      }
+    },
+    "breadcrumb-item": {
+      "set": {
+        "members": 10,
+        "assignments": 2,
+        "sha256": "c24044ad2abdc33df23750eab33413b8195e68b60ab01c6423b9e69e310bc087"
+      },
+      "grid": {
+        "members": 10,
+        "assignments": 2,
+        "sha256": "9e0ef9db6ebdf4a4510225d6e95d19dc0580b712aa014dc453fad7adf511c7e6"
+      }
+    },
+    "breadcrumbs": {
+      "set": {
+        "members": 6,
+        "assignments": 2,
+        "sha256": "170dab417a04c35d7677eb0f113be652c93fd858997e5462e1d999a245b4f5ee"
+      },
+      "grid": {
+        "members": 6,
+        "assignments": 2,
+        "sha256": "d6e392003fd7f34ecc67f40ea9c73a71fd3bfa9742cd6e16c275b63be4d9a79f"
       }
     },
     "counter": {

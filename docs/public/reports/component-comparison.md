@@ -28,6 +28,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 ### axis without prop
 
 - **accordion** — accordion has the variant axis expansion and no prop of that name
+- **breadcrumbs** — breadcrumbs has the variant axis path and no prop of that name
 - **button** — button has the variant axis width and no prop of that name
 - **button-destructive** — button-destructive has the variant axis width and no prop of that name
 - **button-neutral** — button-neutral has the variant axis width and no prop of that name
@@ -56,6 +57,8 @@ Generated from the component definitions and the emission by `packages/engine/em
 
 - **_accordion-indicator** — _accordion-indicator declares its sizes as [medium, small, large], not smallest first
 - **accordion** — accordion declares its sizes as [medium, small, large], not smallest first
+- **breadcrumb-item** — breadcrumb-item declares its sizes as [medium, small], not smallest first
+- **breadcrumbs** — breadcrumbs declares its sizes as [medium, small], not smallest first
 - **button** — button declares its sizes as [medium, small, large], not smallest first
 - **button-destructive** — button-destructive declares its sizes as [medium, small, large], not smallest first
 - **button-neutral** — button-neutral declares its sizes as [medium, small, large], not smallest first
@@ -136,8 +139,11 @@ Generated from the component definitions and the emission by `packages/engine/em
 | Component | Category | States | Drawn in the design file |
 |---|---|---|---|
 | _accordion-indicator | navigation | — | — |
+| _breadcrumb-separator | navigation | — | — |
 | accordion | navigation | rest, focus-visible | rest, focus-visible |
 | badge | foundations | — | — |
+| breadcrumb-item | navigation | — | — |
+| breadcrumbs | navigation | — | — |
 | button | form | rest, hover, pressed, pending, focus-visible, disabled, inactive | rest, hover, pressed, pending, focus-visible, disabled |
 | button-destructive | form | rest, hover, pressed, pending, focus-visible, disabled, inactive | rest, hover, pressed, pending, focus-visible, disabled |
 | button-group | form | — | — |
@@ -220,12 +226,14 @@ Generated from the component definitions and the emission by `packages/engine/em
 | layout | fill, inline, stacked | button-group |
 | offset | control, field | focus-ring |
 | orientation | horizontal, vertical | divider |
+| path | full, parent | breadcrumbs |
 | placement | bottom, center, full | dialog |
 | ratio | 16:9, 1:1, 2:3, 3:2, 3:4, 4:3, 4:5 | image-placeholder |
 | selection | selected, unselected | pagination-item, segmented-control-segment, tab, tag |
 |  | checked, indeterminate, unchecked | checkbox-control |
 |  | checked, unchecked | radio-control |
 |  | off, on | switch-control |
+| separator | chevron, slash | breadcrumb-item, breadcrumbs |
 | shape | circular, square | icon-button, icon-button-destructive, icon-button-neutral |
 |  | flush, round | flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral |
 | size | large, medium, small | _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab, tabs, tag, text-field, textarea |
@@ -256,6 +264,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |---|---|---|
 | _accordion-indicator | medium, small, large | medium |
 | accordion | medium, small, large | medium |
+| breadcrumb-item | medium, small | medium |
+| breadcrumbs | medium, small | medium |
 | button | medium, small, large | medium |
 | button-destructive | medium, small, large | medium |
 | button-neutral | medium, small, large | medium |
@@ -373,7 +383,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | select | — | — |
 |  | text-field | — | — |
 |  | textarea | — | — |
-| href | button | — | — |
+| href | breadcrumb-item | — | — |
+|  | button | — | — |
 |  | button-destructive | — | — |
 |  | button-neutral | — | — |
 |  | link | — | — |
@@ -417,13 +428,16 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | switch-row | false | — |
 |  | text-field | false | — |
 |  | textarea | false | — |
-| items | button-group | — | — |
+| items | breadcrumbs | — | — |
+|  | button-group | — | — |
 |  | checkbox-group | — | — |
 |  | list | — | — |
 |  | radio-group | — | — |
 |  | segmented-control | — | — |
 |  | tabs | — | — |
 | label | badge | — | — |
+|  | breadcrumb-item | — | — |
+|  | breadcrumbs | Breadcrumb | — |
 |  | button | — | — |
 |  | button-destructive | — | — |
 |  | button-neutral | — | — |
@@ -463,7 +477,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | field-message | — | — |
 | name | checkbox-group | — | — |
 |  | counter | — | — |
-|  | icon | — | 45 values |
+|  | icon | — | 46 values |
 |  | password-field | — | — |
 |  | radio-group | — | — |
 |  | segmented-control | — | — |
@@ -515,6 +529,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | segmented-control-segment | false | — |
 |  | tab | false | — |
 |  | tag | false | — |
+| separator | breadcrumb-item | chevron | chevron, slash |
+|  | breadcrumbs | chevron | chevron, slash |
 | shape | flush-icon-button | flush | flush, round |
 |  | flush-icon-button-destructive | flush | flush, round |
 |  | flush-icon-button-neutral | flush | flush, round |
@@ -530,6 +546,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | switch-row | true | — |
 | size | _accordion-indicator | medium | small, medium, large |
 |  | accordion | medium | small, medium, large |
+|  | breadcrumb-item | medium | small, medium |
+|  | breadcrumbs | medium | small, medium |
 |  | button | medium | small, medium, large |
 |  | button-destructive | medium | small, medium, large |
 |  | button-neutral | medium | small, medium, large |
@@ -586,7 +604,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 | trailingVisual | button | — | — |
 |  | button-destructive | — | — |
 |  | button-neutral | — | — |
-| type | badge | status | status, count, dot |
+| type | _breadcrumb-separator | chevron | chevron, slash |
+|  | badge | status | status, count, dot |
 |  | button | button | button, submit, reset |
 |  | button-destructive | button | button, submit, reset |
 |  | button-neutral | button | button, submit, reset |

@@ -40,7 +40,7 @@ Descriptive text that stands alone, sentence case. Front-load the words that nam
 - **Purpose:** Text that navigates to a URL, a fragment or a file, rendered as a real \<a href>.
 - **Use when:** The interaction changes the address or the place on the page: a page, an in-page anchor, a document, another site. Standalone for a link on its own line (below a form, in a footer, beside a control); inline for a link that sits in body copy.
 - **Avoid when:** The interaction acts in place without changing the address: submit, open a dialog, toggle, show a password (use Button, or Button.Neutral for a light look). A navigation that needs a button's weight, such as "Continue to checkout", is a Button given an href, which renders an \<a>. Switching panels in place is Tabs.
-- **Often used with:** `icon`, `button`, `text-field`
+- **Often used with:** `icon`, `button`, `text-field`, `breadcrumbs`
 
 ## Props
 
@@ -96,7 +96,7 @@ Descriptive text that stands alone, sentence case. Front-load the words that nam
 
 - **Composes with:** `focus-ring`
 - **Alternative to:** `button`
-- **Planned:** `breadcrumbs`, `menu`
+- **Planned:** `menu`
 - **Replaces:**
   - a click handler on a div or span styled as a link
   - an \<a> with no href, href="#" or javascript:void(0)
