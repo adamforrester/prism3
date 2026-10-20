@@ -2,14 +2,43 @@
 
 > Closed control for picking one value from a known set. The menu is the platform's.
 
-A control for choosing ONE value from a known, bounded set — the closed, native-first field: label, a bordered control showing the current value or a placeholder with a trailing chevron, and a helper/validation message below. Composes the shared FieldLabel and FieldMessage. The open menu is the platform's (native or a separate listbox), not modeled here. Single-choice only: a choice of several values is a Checkbox.Group, or a multi-select, not built yet. Not free-form text (TextField), not a small always-visible set (Radio.Group, or SegmentedControl), not a set the user filters by typing (a combobox, not built yet).
-
 - **ID:** `select`
 - **Category:** form
 - **Status:** draft
 - **Also known as:** dropdown, picker, select-menu, listbox, select-panel, exposed-dropdown-menu
 
-## Usage
+## Overview
+
+A control for choosing ONE value from a known, bounded set — the closed, native-first field: label, a bordered control showing the current value or a placeholder with a trailing chevron, and a helper/validation message below. Composes the shared FieldLabel and FieldMessage. The open menu is the platform's (native or a separate listbox), not modeled here. Single-choice only: a choice of several values is a Checkbox.Group, or a multi-select, not built yet. Not free-form text (TextField), not a small always-visible set (Radio.Group, or SegmentedControl), not a set the user filters by typing (a combobox, not built yet).
+
+- **Purpose:** Choose one value from a known, bounded set, with an associated label and helper/validation message, modeling the closed control.
+- **Use when:** One-of-a-known-set choices too numerous or space-costly to show all at once — a country, a status, a category.
+- **Avoid when:** The value is free-form text (TextField), the user types to filter a suggestion list (a combobox, not built yet — a different ARIA contract), more than one value may be chosen (Checkbox.Group, or a multi-select, not built yet — this select is single-choice), the set is 4–5 options or fewer and worth showing at once (Radio.Group, or SegmentedControl), the set runs past about 15 options (a combobox), or the choice is a binary that takes effect instantly (Switch.Row).
+
+## Anatomy
+
+Shown on the default member: size `medium`, status `default`.
+
+1. **Label**
+2. **Leading visual** (optional) — An optional purpose glyph before the value, aria-hidden. Absent by default; the caller nominates the icon.
+3. **Placeholder** — The prompt before a choice is made, in the placeholder ink (the disabled ink when disabled). Shown on the empty control: rest, hover, focus and disabled. Wraps rather than truncating, and the control grows taller.
+4. **Value**
+5. **Chevron**
+6. **Focus ring**
+7. **Message** (optional)
+
+## Styles
+
+| Axis | Values | Changes | Description |
+| --- | --- | --- | --- |
+| `size` | `medium`, `small`, `large` | once, when authored | Three tiers that scale the value type with the field (small 14px, medium 16px, large 18px, `type.body.{sm,md,lg}`), the nested label one step below it (12 / 14 / 16), and the padding. Every size keeps the 44px target: small is smaller type and padding, not a smaller target; large is taller. `small` is for fine pointers only: on a coarse pointer (`@media (pointer: coarse)`) the code sets the small control to 16px, because iOS Safari zooms the page when it focuses a control under 16px. The same prop, with the same values, as TextField and Textarea. |
+| `status` | `default`, `error`, `warning`, `success` | at runtime | — |
+
+### States
+
+`rest`, `hover`, `pending`, `filled`, `focus-visible`, `focus-visible-filled`, `disabled`, `read-only`, `empty`
+
+## Usage guidelines
 
 Use to choose ONE value from a known, bounded set where the options are not worth showing all at once. Always render a visible label (the nested FieldLabel); show the constraint in helper text before failure; drive the nested FieldMessage's status from the validation state. The open menu is the platform's — prefer a native \<select> where its OS menu is acceptable. The select band is roughly 5–15 familiar options: at 4–5 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better. One value only; for several, use a Checkbox.Group. Pick the size with the form: medium is the default, large for a roomy form, small for a dense one on fine pointers only — on a touch screen the small control renders at 16px, because a smaller control makes iOS zoom the page on focus.
 
@@ -27,23 +56,47 @@ Use to choose ONE value from a known, bounded set where the options are not wort
 - Signal a status with the border color alone — the nested message carries the text + icon
 - Reach for a select when the user types to filter (a combobox, not built yet) or the set is two mutually-exclusive options (Radio.Group)
 
-### Content guidelines
+## Accessibility
+
+- **Keyboard:** The closed control is one Tab stop; Space / Enter / Down open it. Inside the open list (not modeled here) arrows move, typeahead jumps, Enter commits, Escape closes and returns focus to the control. SC 1.4.13 (the list stays open while hovered and Escape dismisses it) and SC 2.1.1 (every option, including scrolled ones, is reachable without a pointer) apply to that open list, which the platform or a listbox component owns, so this closed control does not claim them.
+- **Focus:** :focus-visible ring on the control, boundary ≥3:1 (1.4.11 / 2.4.13). The control is the focus target; forwardRef reaches it so a form can focus the first invalid field on submit.
+- **Screen readers:** Trigger: a native \<select>, or a custom button or role="combobox" (ARIA 1.2) with aria-haspopup="listbox", aria-expanded and aria-controls. Popup: role="listbox" with role="option" children carrying aria-selected — the platform's or a listbox component's, not modeled here.
+
+  The host generates ids, ties the label to the control and the message into aria-describedby, and sets aria-invalid on error. The placeholder is NOT the accessible name. A custom control mirrors the native listbox contract (aria-expanded, aria-activedescendant); prefer the native \<select> where its OS menu is acceptable, because it is correct for free.
+
+### WCAG
+
+- 1.3.5 Identify Input Purpose (autocomplete on a select collecting user information, such as a country)
+- 1.3.1 Info and Relationships (label + describedby association)
+- 3.3.1 Error Identification / 3.3.2 Labels or Instructions / 3.3.3 Error Suggestion
+- 1.4.3 Contrast (value + placeholder) / 1.4.11 Non-text Contrast (control boundary ≥3:1 — the rest, hover and read-only borders are gated on `background.secondary`, the darkest permissible ground) / 2.4.13 Focus Appearance
+- 4.1.2 Name/Role/Value (role, and the expanded state of the popup) / 2.5.8 Target Size
+
+### Motion
+
+- **Enter:** The open list (the platform's or a listbox component's): ~100–150ms opacity fade with a small vertical translate (translateY(-4px) → 0), anchored to the control. The chevron rotates on open under the same rule.
+- **Exit:** The open list closes faster than it opens — ~75ms, a fade without translate — so dismissal reads as instant.
+- **Reduced motion:** Under prefers-reduced-motion, drop the translate and scale and keep an accelerated opacity fade (~50ms); the chevron rotation follows the same rule. The closed control's border and state changes are short token-driven transitions, text-field's ~100–150ms, and resolve to an instant color change under reduced motion.
+
+## Content guidelines
 
 Label = noun phrase, sentence case, no trailing colon. Placeholder = the plain null state ("Country"), not an instruction, and omittable when the label suffices. Error says what + how to fix, never "Invalid".
-
-### Copy patterns
 
 - **Labels:** Noun phrase, sentence case, ≤3 words, no trailing colon; never the placeholder (see field-label).
 - **Errors:** What is wrong AND how to fix it (SC 3.3.3); icon + text, not color-only (carried by the nested field-message).
 
-## Choosing it
+## Related components
 
-- **Purpose:** Choose one value from a known, bounded set, with an associated label and helper/validation message, modeling the closed control.
-- **Use when:** One-of-a-known-set choices too numerous or space-costly to show all at once — a country, a status, a category.
-- **Avoid when:** The value is free-form text (TextField), the user types to filter a suggestion list (a combobox, not built yet — a different ARIA contract), more than one value may be chosen (Checkbox.Group, or a multi-select, not built yet — this select is single-choice), the set is 4–5 options or fewer and worth showing at once (Radio.Group, or SegmentedControl), the set runs past about 15 options (a combobox), or the choice is a binary that takes effect instantly (Switch.Row).
-- **Often used with:** `field-label`, `field-message`, `focus-ring`, `icon`
+- **Built from:** `field-label`, `field-message`, `focus-ring`
+- **Instead, consider:** `text-field`, `radio-group`, `checkbox-group`, `segmented-control`
+- **Often used with:** `icon`
+- **Replaces:**
+  - a bare \<select> with no label wiring
+  - placeholder-as-label
 
-## Props
+## Building it in code
+
+### Props
 
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
@@ -64,45 +117,6 @@ Label = noun phrase, sentence case, no trailing colon. Placeholder = the plain n
 | `id` | string | — | no | Wiring + form submission; auto-generated with useId if omitted, tying the label to the control and stitching the aria-describedby chain to the message. |
 | `name` | string | — | no | A real control name so the field works uncontrolled, in a native form, and with Server Actions. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | Three tiers that scale the value type with the field (small 14px, medium 16px, large 18px, `type.body.{sm,md,lg}`), the nested label one step below it (12 / 14 / 16), and the padding. Every size keeps the 44px target: small is smaller type and padding, not a smaller target; large is taller. `small` is for fine pointers only: on a coarse pointer (`@media (pointer: coarse)`) the code sets the small control to 16px, because iOS Safari zooms the page when it focuses a control under 16px. The same prop, with the same values, as TextField and Textarea. |
-
-## States
-
-`rest`, `hover`, `pending`, `filled`, `focus-visible`, `focus-visible-filled`, `disabled`, `read-only`, `empty`
-
-## Variants
-
-| Axis | Values | Changes |
-| --- | --- | --- |
-| `size` | `medium`, `small`, `large` | once, when authored |
-| `status` | `default`, `error`, `warning`, `success` | at runtime |
-
-## Accessibility
-
-- **Role:** Trigger: a native \<select>, or a custom button or role="combobox" (ARIA 1.2) with aria-haspopup="listbox", aria-expanded and aria-controls. Popup: role="listbox" with role="option" children carrying aria-selected — the platform's or a listbox component's, not modeled here.
-- **WCAG:**
-  - 1.3.5 Identify Input Purpose (autocomplete on a select collecting user information, such as a country)
-  - 1.3.1 Info and Relationships (label + describedby association)
-  - 3.3.1 Error Identification / 3.3.2 Labels or Instructions / 3.3.3 Error Suggestion
-  - 1.4.3 Contrast (value + placeholder) / 1.4.11 Non-text Contrast (control boundary ≥3:1 — the rest, hover and read-only borders are gated on `background.secondary`, the darkest permissible ground) / 2.4.13 Focus Appearance
-  - 4.1.2 Name/Role/Value (role, and the expanded state of the popup) / 2.5.8 Target Size
-- **Keyboard:** The closed control is one Tab stop; Space / Enter / Down open it. Inside the open list (not modeled here) arrows move, typeahead jumps, Enter commits, Escape closes and returns focus to the control. SC 1.4.13 (the list stays open while hovered and Escape dismisses it) and SC 2.1.1 (every option, including scrolled ones, is reachable without a pointer) apply to that open list, which the platform or a listbox component owns, so this closed control does not claim them.
-- **Focus:** :focus-visible ring on the control, boundary ≥3:1 (1.4.11 / 2.4.13). The control is the focus target; forwardRef reaches it so a form can focus the first invalid field on submit.
-- **ARIA:** The host generates ids, ties the label to the control and the message into aria-describedby, and sets aria-invalid on error. The placeholder is NOT the accessible name. A custom control mirrors the native listbox contract (aria-expanded, aria-activedescendant); prefer the native \<select> where its OS menu is acceptable, because it is correct for free.
-
-## Motion
-
-- **Enter:** The open list (the platform's or a listbox component's): ~100–150ms opacity fade with a small vertical translate (translateY(-4px) → 0), anchored to the control. The chevron rotates on open under the same rule.
-- **Exit:** The open list closes faster than it opens — ~75ms, a fade without translate — so dismissal reads as instant.
-- **Reduced motion:** Under prefers-reduced-motion, drop the translate and scale and keep an accelerated opacity fade (~50ms); the chevron rotation follows the same rule. The closed control's border and state changes are short token-driven transitions, text-field's ~100–150ms, and resolve to an instant color change under reduced motion.
-
-## Composition
-
-- **Composes with:** `field-label`, `field-message`, `focus-ring`
-- **Alternative to:** `text-field`, `radio-group`, `checkbox-group`, `segmented-control`
-- **Planned:** `form`, `menu`, `combobox`
-- **Replaces:**
-  - a bare \<select> with no label wiring
-  - placeholder-as-label
 
 ## Specs
 

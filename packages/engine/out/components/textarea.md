@@ -2,15 +2,46 @@
 
 > Multi-line text field: label, input area, and helper or validation message.
 
-A control for free-form text expected to wrap across multiple lines — comments, descriptions, messages, feedback. Shares the form-field substrate with TextField (label, helper/error, the aria-describedby wiring); differs in the sizing model, the prominence of the character counter, and who owns the Enter key. Not single-line (TextField), not formatted or structured (a rich-text editor), not code (a code editor), not a value from a known set (Select, or a combobox, not built yet).
-
 - **ID:** `textarea`
 - **Category:** form
 - **Status:** draft
 - **Also known as:** text-area, multiline-input, multiline-text-field, textbox, comment-box
 - **Builds on:** `text-field`
 
-## Usage
+## Overview
+
+A control for free-form text expected to wrap across multiple lines — comments, descriptions, messages, feedback. Shares the form-field substrate with TextField (label, helper/error, the aria-describedby wiring); differs in the sizing model, the prominence of the character counter, and who owns the Enter key. Not single-line (TextField), not formatted or structured (a rich-text editor), not code (a code editor), not a value from a known set (Select, or a combobox, not built yet).
+
+- **Purpose:** Capture multi-line free-form text with an associated label, an optional soft character limit, and a stated sizing model.
+- **Use when:** Comments, descriptions, messages, feedback, notes, commit-message bodies, a multi-line address — any input that predictably runs past the ~40–60 characters a single-line field shows comfortably, or that legitimately needs user-authored line breaks.
+- **Avoid when:** The value is a single line (TextField — and do not substitute a one-row Textarea, the Enter semantics differ), needs formatting or structure such as bold, links, @-mentions or embedded media (a rich-text editor — a \<textarea> holds a plain string and nothing else), is source code (a real code editor, for syntax highlighting and bracket matching), or comes from a known set (Select, or a combobox, not built yet). Also avoid reaching for it as a general "big box of text" when the content is genuinely structured — that is the rich-text signal.
+
+## Anatomy
+
+Shown on the default member: size `medium`, style `outline`, status `default`.
+
+1. **Label** — The accessible name, composed rather than re-declared. Its size follows the field's, one step below the value; its label text, required marker, emphasis and weight surface on the textarea. Starts secondary and regular. Fills the field's width; a long name wraps at FieldLabel's max width.
+2. **Caret**
+3. **Placeholder** — The placeholder, in the placeholder ink (the disabled ink when disabled). Shown on the empty field: rest, hover, focus and disabled. Wraps across the field width and reserves the default rows of its own line height.
+4. **Value** — The entered value, in the value ink. Shown on the filled, focused filled and read-only field. Wraps across the field width and reserves the default rows of its own line height.
+5. **Grip** (optional)
+6. **Focus ring**
+7. **Message**
+8. **Counter**
+
+## Styles
+
+| Axis | Values | Changes | Description |
+| --- | --- | --- | --- |
+| `size` | `medium`, `small`, `large` | once, when authored | Scales the value type with the field (small 14px, medium 16px, large 18px, `type.body.{sm,md,lg}`), the nested label one step below it (12 / 14 / 16), and the padding. NOT the height: that belongs to rows / auto-grow, so the reserved rows grow with the type's line height. `small` is for fine pointers only: on a coarse pointer (`@media (pointer: coarse)`) the code sets the small textarea to 16px, because iOS Safari zooms the page when it focuses a field under 16px. The same prop, with the same values, as TextField and Select. |
+| `style` | `outline` | once, when authored | — |
+| `status` | `default`, `error`, `warning`, `success` | at runtime | — |
+
+### States
+
+`rest`, `hover`, `pending`, `filled`, `focus-visible`, `focus-visible-filled`, `disabled`, `read-only`, `empty`
+
+## Usage guidelines
 
 Use for free-form text expected to exceed one line — comments, descriptions, messages, feedback, multi-line addresses. Pick the sizing model by context: fixed-height-plus-scroll for a field inside a long form (so the form does not reflow as the user types), auto-grow for a composer (so the message box follows the message). Right-size the initial rows to the expected input. Compose FieldLabel above and FieldMessage below exactly as TextField does; the host wires the ids and the aria-describedby chain. Pick the size with the form: medium is the default, large for a roomy form, small for a dense one on fine pointers only — on a touch screen the small field renders at 16px, because a smaller field makes iOS zoom the page on focus.
 
@@ -31,24 +62,50 @@ Use for free-form text expected to exceed one line — comments, descriptions, m
 - Reach for contenteditable to add formatting — cross the boundary to a real rich-text editor instead
 - Drop in a one-row Textarea as a "bigger input" — the semantics and the Enter behavior differ from TextField
 
-### Content guidelines
+## Accessibility
+
+- **Keyboard:** Native multi-line editing with undo/redo, spellcheck and IME. Enter inserts a newline — that is the contract aria-multiline advertises and the default. submitOnEnter inverts it for composers, and then Shift+Enter inserts the newline, a real submit button still exists, and the swap is stated visibly near the field.
+- **Focus:** :focus-visible with the field ring (`focus.ring.offset-field`, 0 offset). An inset indicator for large surfaces is not built. forwardRef must reach the \<textarea> itself, not the wrapper. Auto-resize must not move the caret or scroll the viewport — the measurement is synchronous with input, and it must also run on PROGRAMMATIC value changes (a reset, or AI-inserted text), which is the common auto-grow bug.
+- **Screen readers:** textbox (native \<textarea>), with the implicit aria-multiline="true"
+
+  The counter is the central problem and it is two nodes, not one: the visual counter is aria-hidden and updates instantly, while a separate visually-hidden node carries announcements. Two channels — the static limit folded into aria-describedby so tabbing in announces the ceiling, and a threshold-based polite live region that speaks only near the limit (per-keystroke counting makes the field unusable), escalating to assertive only on breach. Over-limit sets aria-invalid and is ANNOUNCED, never color-only. aria-busy while content streams. Preserve the native aria-multiline; do not reconstruct a textarea from contenteditable, which loses undo/redo, spellcheck, reliable IME and form submission. Set dir="auto" so content direction can differ from UI direction, and do not run counting or auto-grow measurement mid-IME-composition.
+
+### WCAG
+
+- 4.1.3 Status Messages (the counter and over-limit live region — the most Textarea-specific SC)
+- 1.4.4 Resize Text / 1.4.10 Reflow (the field, counter and resize handle must survive 200% zoom and 320px without colliding or clipping)
+- 3.3.2 Labels or Instructions (the "Shift+Enter for a new line" hint whenever Enter submits)
+- 1.3.5 Identify Input Purpose / 1.3.1 Info and Relationships (inherited substrate wiring)
+- 3.3.1 Error Identification / 3.3.3 Error Suggestion (over-limit states the overage and how to fix it)
+- 1.4.3 Contrast / 1.4.11 Non-text Contrast (field boundary ≥3:1 — the rest, hover and read-only borders are gated on `background.secondary`, the darkest permissible ground) / 2.4.13 Focus Appearance / 4.1.2 Name Role Value
+- 2.5.8 Target Size — intent: the resize handle is the browser's own control, sized by the browser, so this def does not set its target
+
+### Motion
+
+- **Enter:** none (present on mount)
+- **Exit:** none
+- **Reduced motion:** State transitions follow text-field's ~100–150ms token-driven contract. AUTO-GROW HAS NO HEIGHT TRANSITION: the height changes instantly on each keystroke, because an eased height lags behind the typing and reflows the layout below on every frame; if a transition is used at all it stays at or under 100ms and drops under prefers-reduced-motion. While the user drags the resize handle, strip every transition off the node, or the edge lags behind the cursor.
+
+## Content guidelines
 
 Counter reads "240 / 280" or "40 characters remaining"; over-limit reads "12 characters over the limit" — constructive and numeric, never "Too long." If Enter submits, say so near the field.
-
-### Copy patterns
 
 - **Labels:** Noun phrase, sentence case, no trailing colon — the substrate discipline (see field-label).
 - **Errors:** What is wrong AND how to fix it, with the number: "Description must be under 500 characters. Remove 24 to continue." (SC 3.3.3). May replace the helper text to conserve vertical space, provided it still carries the original constraint.
 - **Empty states:** Label plus an optional placeholder. The placeholder may model the expected SHAPE ("Describe the issue, including steps to reproduce") but still vanishes on the first keystroke — and the recall cost is higher here than on a single-line field, because a user may write several paragraphs, tab away, and come back to a prompt that is long gone. Nothing load-bearing lives in it.
 
-## Choosing it
+## Related components
 
-- **Purpose:** Capture multi-line free-form text with an associated label, an optional soft character limit, and a stated sizing model.
-- **Use when:** Comments, descriptions, messages, feedback, notes, commit-message bodies, a multi-line address — any input that predictably runs past the ~40–60 characters a single-line field shows comfortably, or that legitimately needs user-authored line breaks.
-- **Avoid when:** The value is a single line (TextField — and do not substitute a one-row Textarea, the Enter semantics differ), needs formatting or structure such as bold, links, @-mentions or embedded media (a rich-text editor — a \<textarea> holds a plain string and nothing else), is source code (a real code editor, for syntax highlighting and bracket matching), or comes from a known set (Select, or a combobox, not built yet). Also avoid reaching for it as a general "big box of text" when the content is genuinely structured — that is the rich-text signal.
-- **Often used with:** `field-label`, `field-message`, `button`, `icon`, `spinner`
+- **Built from:** `field-label`, `field-message`, `focus-ring`
+- **Instead, consider:** `text-field`, `select`
+- **Often used with:** `button`, `icon`, `spinner`
+- **Replaces:**
+  - a one-row textarea used as a tall input
+  - a contenteditable div used for plain multi-line text
 
-## Props
+## Building it in code
+
+### Props
 
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
@@ -75,48 +132,6 @@ Counter reads "240 / 280" or "40 characters remaining"; over-limit reads "12 cha
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | Scales the value type with the field (small 14px, medium 16px, large 18px, `type.body.{sm,md,lg}`), the nested label one step below it (12 / 14 / 16), and the padding. NOT the height: that belongs to rows / auto-grow, so the reserved rows grow with the type's line height. `small` is for fine pointers only: on a coarse pointer (`@media (pointer: coarse)`) the code sets the small textarea to 16px, because iOS Safari zooms the page when it focuses a field under 16px. The same prop, with the same values, as TextField and Select. |
 | `id` | string | — | no | Wiring + form submission; auto-generated with useId if omitted, tying label→textarea and the aria-describedby chain. The same prop as TextField's. |
 | `name` | string | — | no | A real \<textarea name> so the field works uncontrolled, in a native \<form>, with useFormStatus / Server Actions, and the Constraint Validation API. The same prop as TextField's. |
-
-## States
-
-`rest`, `hover`, `pending`, `filled`, `focus-visible`, `focus-visible-filled`, `disabled`, `read-only`, `empty`
-
-## Variants
-
-| Axis | Values | Changes |
-| --- | --- | --- |
-| `size` | `medium`, `small`, `large` | once, when authored |
-| `style` | `outline` | once, when authored |
-| `status` | `default`, `error`, `warning`, `success` | at runtime |
-
-## Accessibility
-
-- **Role:** textbox (native \<textarea>), with the implicit aria-multiline="true"
-- **WCAG:**
-  - 4.1.3 Status Messages (the counter and over-limit live region — the most Textarea-specific SC)
-  - 1.4.4 Resize Text / 1.4.10 Reflow (the field, counter and resize handle must survive 200% zoom and 320px without colliding or clipping)
-  - 3.3.2 Labels or Instructions (the "Shift+Enter for a new line" hint whenever Enter submits)
-  - 1.3.5 Identify Input Purpose / 1.3.1 Info and Relationships (inherited substrate wiring)
-  - 3.3.1 Error Identification / 3.3.3 Error Suggestion (over-limit states the overage and how to fix it)
-  - 1.4.3 Contrast / 1.4.11 Non-text Contrast (field boundary ≥3:1 — the rest, hover and read-only borders are gated on `background.secondary`, the darkest permissible ground) / 2.4.13 Focus Appearance / 4.1.2 Name Role Value
-  - 2.5.8 Target Size — intent: the resize handle is the browser's own control, sized by the browser, so this def does not set its target
-- **Keyboard:** Native multi-line editing with undo/redo, spellcheck and IME. Enter inserts a newline — that is the contract aria-multiline advertises and the default. submitOnEnter inverts it for composers, and then Shift+Enter inserts the newline, a real submit button still exists, and the swap is stated visibly near the field.
-- **Focus:** :focus-visible with the field ring (`focus.ring.offset-field`, 0 offset). An inset indicator for large surfaces is not built. forwardRef must reach the \<textarea> itself, not the wrapper. Auto-resize must not move the caret or scroll the viewport — the measurement is synchronous with input, and it must also run on PROGRAMMATIC value changes (a reset, or AI-inserted text), which is the common auto-grow bug.
-- **ARIA:** The counter is the central problem and it is two nodes, not one: the visual counter is aria-hidden and updates instantly, while a separate visually-hidden node carries announcements. Two channels — the static limit folded into aria-describedby so tabbing in announces the ceiling, and a threshold-based polite live region that speaks only near the limit (per-keystroke counting makes the field unusable), escalating to assertive only on breach. Over-limit sets aria-invalid and is ANNOUNCED, never color-only. aria-busy while content streams. Preserve the native aria-multiline; do not reconstruct a textarea from contenteditable, which loses undo/redo, spellcheck, reliable IME and form submission. Set dir="auto" so content direction can differ from UI direction, and do not run counting or auto-grow measurement mid-IME-composition.
-
-## Motion
-
-- **Enter:** none (present on mount)
-- **Exit:** none
-- **Reduced motion:** State transitions follow text-field's ~100–150ms token-driven contract. AUTO-GROW HAS NO HEIGHT TRANSITION: the height changes instantly on each keystroke, because an eased height lags behind the typing and reflows the layout below on every frame; if a transition is used at all it stays at or under 100ms and drops under prefers-reduced-motion. While the user drags the resize handle, strip every transition off the node, or the edge lags behind the cursor.
-
-## Composition
-
-- **Composes with:** `field-label`, `field-message`, `focus-ring`
-- **Alternative to:** `text-field`, `select`
-- **Planned:** `form`, `rich-text-editor`, `combobox`, `code-editor`
-- **Replaces:**
-  - a one-row textarea used as a tall input
-  - a contenteditable div used for plain multi-line text
 
 ## Specs
 
