@@ -1571,7 +1571,7 @@ ok(palettesStates >= BRANDS.length * 2, `the Palettes sweep visited ${palettesSt
 console.log(`\nColor › Surfaces & fills — the moved page, against each brand's emission\n${'='.repeat(78)}`);
 /** The token chips each shared section draws, in order. Literal: the Style guide's sections as `main.ts` drew
  *  them before the lift (UI redesign S4a), which both pages must keep drawing. */
-const SEM5 = ['brand', 'danger', 'success', 'warning', 'info'];
+const SEM5 = ['brand', 'success', 'warning', 'danger', 'info'];
 const EXPECT_SECTION_CHIPS = {
   // S4d (owner decision Q47): no "Inverse text" sample on the inverse Primary card, so no inverse.text.primary chip.
   Background: ['background.primary', 'background.secondary', 'background.tertiary', 'inverse.background.primary',
@@ -1606,11 +1606,11 @@ const FILLS_GROUNDS = ['Background'];
 /** GR2: the Foreground roles each measured against the contrast floor, whose badges must be drawn in the Foreground
  *  section and print the ratio of the role's EMITTED hex against the EMITTED floor (the ground the section shows).
  *  Literal: the five bold fills. */
-const FLOOR_BADGED = ['brand', 'danger', 'success', 'warning', 'info'].map((s) => `foreground.${s}`);
+const FLOOR_BADGED = ['brand', 'success', 'warning', 'danger', 'info'].map((s) => `foreground.${s}`);
 /** #1971 Q13(a) (owner, 2026-10-05): the Foreground cards whose badge describes the text drawn on the card's own fill,
  *  as [fill, text]: the three Inverse cards (their label) and the five Subtle cards. Literal. */
 const ON_FILL_CARDS = [...['primary', 'secondary', 'tertiary'].map((t) => [`inverse.foreground.${t}`, 'inverse.text.primary']),
-  ...['brand', 'danger', 'success', 'warning', 'info'].map((s) => [`foreground.${s}-subtle`, `text.${s}`])];
+  ...['brand', 'success', 'warning', 'danger', 'info'].map((s) => [`foreground.${s}-subtle`, `text.${s}`])];
 /** #2121: the minimum each of those cards' text is held to, which its badge's ✓/✗ is the verdict of. Literal, never
  *  the badge's or the resolver's own `min`: a status text 4.5:1, and 7:1 in the high-contrast modes; the inverse
  *  label 7:1, and 15:1 in the high-contrast modes (the engine's contracts, as `resolveAllModes` states them for every
