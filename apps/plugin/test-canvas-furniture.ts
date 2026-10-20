@@ -745,10 +745,17 @@ const radioPage = async () => {
     liveRoot: true,
     identities: true,
   }) as Record<string, unknown>;
-  for (const id of IDS) await applyComponentPlan(plansBy.get(id)!, api as never, { targetPage: page as never });
-  const sets = IDS.map((id) => page.children.find((c) => c.type === 'COMPONENT_SET' && c.name === id) as FNode);
-  // Their labels as a plugin before the fix drew them: each column label fixed to its column.
-  for (const [i, id] of IDS.entries()) await drawFurniture(fakeTemplates({ topChar: 0 }), sets[i], furnitureLayout(plansBy.get(id)!), id);
+  // Their labels as a plugin before the fix drew them: each column label fixed to its column. Each set is placed again
+  // once its labels are drawn, as `main.ts` builds (#2723): radio-row and radio-group draw row labels left of their
+  // frames (their status axis, #2751), so a set placed by its frame alone would start short of `SET_GAP`.
+  const sets: FNode[] = [];
+  for (const id of IDS) {
+    const built = await applyComponentPlan(plansBy.get(id)!, api as never, { targetPage: page as never });
+    const set = page.children.find((c) => c.type === 'COMPONENT_SET' && c.name === id) as FNode;
+    await drawFurniture(fakeTemplates({ topChar: 0 }), set, furnitureLayout(plansBy.get(id)!), id);
+    if (built.placed) seatNewSet(set as never, id);
+    sets.push(set);
+  }
   const host = {
     ...api,
     root: fileRoot(api, page),
