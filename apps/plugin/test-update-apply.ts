@@ -34,7 +34,9 @@
  *                  failing the arm it names: the publish test always true → `published/unpublished no-op`; each
  *                  `breakingOf` arm dropped → `published/drop`, `/replace`, `/property removed`, `/retype`,
  *                  `/private rename`; the status not read → `published/status`; the status out of the hash →
- *                  `published/hash`; the apply's section dropped → `published/confirm`.
+ *                  `published/hash`; the apply's section dropped → `published/confirm`; the blocked-set guard dropped →
+ *                  `published/blocked`; the member-itself exclusion dropped → `published/member replaced`;
+ *                  `readSingleView` carrying no status → `published/single`.
  *   property/…     a default the plan changed is edited in place, keeping the property's id.
  *   rename/…       a declared value rename and an added axis rename members in place, keeping keys.
  *   skip/…         an unstamped member, one with no record and one with a layer added by hand are untouched.
@@ -179,7 +181,7 @@ import { NS } from './src/persist-figma';
 import { materializeForBrand } from './src/brand-def';
 import { BASELINE_KEY } from './src/member-baseline';
 import { makeShim, STYLE_FONT, type Node, type Page } from './component-shim';
-import { adoptMembers, breakingLine, breakingOf, captureBaselines, dryRunSet, hostPorts, previewLine, previewUpdate, previewVerdict, readSetView, type UpdateHost, type UpdateTarget } from './src/update-plan';
+import { adoptMembers, breakingLine, breakingOf, captureBaselines, dryRunSet, hostPorts, previewLine, previewUpdate, previewVerdict, readSetView, readSingleView, type UpdateHost, type UpdateTarget } from './src/update-plan';
 import { drawnFaults, faultLine, varsById } from './src/drawn';
 import { BASELINE_V, baselineOf, resetStyleNames, snapshotMember } from './src/member-baseline';
 import { applyUpdate, applyVerdict, previewHashOf, namesMember, DEPRECATED_PREFIX, RETAINED_KEY, nestedFirst, type ApplyHost } from './src/update-apply';
@@ -3369,6 +3371,32 @@ section('published — on a set in a team library, what breaks consumer files is
       `published/private rename: a rename to a _ or . name is listed, one between two such names is not (${priv.length}, ${dot.length}, ${both.length})`);
     const quiet = breakingOf({ ...p, publish: undefined, setRename: { from: TAG, to: `_${TAG}` } });
     ok(quiet.length === 0, `published/unpublished rename: on a set not published, the same rename and retype list nothing (${quiet.length})`);
+    // A set the update refuses changes nothing, so nothing on it breaks, however much its plan would.
+    const refused = breakingOf({ ...p, blockers: ['the set is refused'] });
+    ok(b.length > 0 && refused.length === 0, `published/blocked: a published set the update refuses lists nothing as breaking (${b.length} → ${refused.length})`);
+    // A replacement of the member itself is refused for that member, so it is not a change consumers get.
+    const self = breakingOf({ ...p, replacements: [{ member: 'size=small', path: '.', reason: 'the member itself' }, { member: 'size=small', path: 'content/label', reason: 'a layer' }] })
+      .filter((x) => x.kind === 'replace');
+    ok(self.length === 1 && self[0].kind === 'replace' && self[0].path === 'content/label',
+      `published/member replaced: a replacement of the member itself (path .) is not listed, one of a layer is (${JSON.stringify(self)})`);
+  }
+
+  // A SINGLE-COMPONENT DEF (the icons, #2296): each component is published on its own, and the def reads as its most
+  // published one, CHANGED over CURRENT. The icon set is exactly what a library publish ships (#2831).
+  {
+    const plans = plansOf('icon');
+    const w = await singleWorld(plans);
+    const t = { def: 'icon', plans, single: true };
+    const read = async () => (await readSingleView(w.host as unknown as UpdateHost, t)).view.publish;
+    const none = await read();
+    const [one, two] = w.comps();
+    (w.api.publish as (n: Node, s: string) => void)(one, 'CURRENT');
+    const current = await read();
+    (w.api.publish as (n: Node, s: string) => void)(two, 'CHANGED');
+    const changed = await read();
+    const p = (await previewUpdate(w.host, [t])).sets[0];
+    ok(none === 'UNPUBLISHED' && current === 'CURRENT' && changed === 'CHANGED' && p?.publish === 'CHANGED',
+      `published/single: a single-component def reads its components' status, CHANGED over CURRENT (${none}, ${current}, ${changed}, check ${p?.publish})`);
   }
 
   // PUBLISHED BETWEEN THE CHECK AND THE CONFIRM: the confirm is refused, so it never breaks what the check did not name.
