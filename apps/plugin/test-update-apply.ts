@@ -149,6 +149,11 @@
  *                  stops dropped from the draw check → `veil/dry run`, `veil/repaired`, `veil/verify`; verify's draw check dropped → `veil/verify`.
  *                  Stops at their color but 100% alpha read "to update" and fail verify; the alpha comparison dropped from
  *                  the draw check's gradient branch → `veil/alpha dry run`, `veil/alpha verify`.
+ *   status/…       a checkbox or switch control built with an `error` STATE moves onto the `status` axis in place
+ *                  (#2751, owner Q354): the error member to `status=error, state=rest`, every other to `status=default`,
+ *                  every id and key kept, the node a placed error instance points at still drawing the danger edge.
+ *                  Mutation: the two `move` entries dropped from `COMPONENT_RENAMES` → `status/<def> dry run`,
+ *                  `status/<def> placed`.
  *   <group>/…      Checkbox group, Radio group and Segmented control, each built with its FieldLabel `nest-fixed` (as
  *                  before #2748), update in place to the `nest-exposed` label (owner Q348 A): every key and id kept,
  *                  each label an exposed instance, still the secondary, bold member at its group's size, then
@@ -639,6 +644,70 @@ for (const old of ['position', 'iconPosition']) {
     `display rename/${old} in place: every member renamed onto icon position, its key and id kept (${res.outcomes[0]?.renamed}; ${after.members.size}; ${applyVerdict(res).headline}; ${res.outcomes[0]?.refused ?? ''})`);
   const post = (await previewUpdate(w.host, [{ def: 'accordion', plans: w.plans }])).sets[0];
   ok(post?.counts.current === n, `display rename/${old} current: every member reads current after (${JSON.stringify(post?.counts)})`);
+}
+
+/* ── status ──────────────────────────────────────────────────────────────────────────────────────────── */
+// #2751 (owner Q354): error left the checkbox and switch controls' STATE axis for the fields' `status` axis. A file
+// built before holds `state=error` members and no `status` axis; the update must move each error member onto
+// `status=error, state=rest` IN PLACE, so an instance a designer placed at error keeps pointing at the same node and
+// still shows error, and give every other member `status=default`. The ledger the update reads is the engine's own
+// (`COMPONENT_RENAMES`, the default); the old names, the new names and the counts are the test's own literals.
+//
+// WHAT "A PLACED INSTANCE KEEPS SHOWING IT" IS HERE. A Figma instance tracks its main component by id, and reads its
+// variant properties off that main's name. The shim's `createInstance` copies a name descriptor rather than linking
+// the node, so the instance is modelled as Figma holds it: the main's NODE, captured before the update. The proof is
+// that node: still in the set, same id and key, now named at `status=error`, and still drawing the danger edge. What
+// the shim cannot show is Figma's own override layer on a placed Row whose nested control was switched to error by
+// hand; that instance points at the same member node, so it rides the same rename, and is named as unverified.
+//
+// Mutation: the two `move` entries dropped from `COMPONENT_RENAMES` → `status/<def> dry run`, `status/<def> placed`.
+section('status — a control built with an error STATE moves onto the status axis in place, every placed error instance kept (#2751)');
+for (const [def, errOld, errNew, n, add] of [
+  ['checkbox-control', 'selection=checked, size=medium, state=error', 'selection=checked, status=error, size=medium, state=rest', 54, 36],
+  ['switch-control', 'selection=on, size=medium, state=error', 'selection=on, status=error, size=medium, state=rest', 24, 16],
+] as const) {
+  const w = await world(def);
+  const set = w.set();
+  // The file as an earlier build left it: five states plus `error`, no `status` segment. Members at status=error and a
+  // state other than rest did not exist; the rest-state one WAS the error member.
+  (set as { children: Node[] }).children = membersOf(set).filter((m) => !/status=error/.test(String(m.name)) || /state=rest$/.test(String(m.name)));
+  for (const m of membersOf(set)) {
+    const nm = String(m.name);
+    m.name = /status=error/.test(nm) ? nm.replace(', status=error', '').replace('state=rest', 'state=error') : nm.replace(', status=default', '');
+  }
+  const names = membersOf(set).map((m) => String(m.name));
+  ok(names.length === n && names.includes(errOld) && !names.some((x) => x.includes('status=')),
+    `premise: ${def} holds the ${n} members of the old set, ${errOld} among them, none with a status (${names.length})`);
+  // THE PLACED INSTANCE: the main it points at, captured before the update. And its edge, read off the node.
+  const placed = membersOf(set).find((m) => m.name === errOld)!;
+  const placedId = String(placed.id), placedKey = String(placed.key);
+  const vars = await w.api.variables.getLocalVariablesAsync() as { id: string; name: string }[];
+  const strokeOf = (m: Node): string | undefined => {
+    const box = def === 'switch-control' ? childNamed(m, 'track') ?? m : m;
+    const id = ((box.strokes as { boundVariables?: { color?: { id?: string } } }[] | undefined) ?? [])[0]?.boundVariables?.color?.id;
+    // The variable's path below its collection (the shim names it `<collection>/color/…`, as the host shows it).
+    return vars.find((v) => v.id === id)?.name.replace(/^.*?(?=color\/)/, '');
+  };
+  ok(strokeOf(placed) === 'color/border/danger', `premise: the ${def} member at ${errOld} draws the danger edge (${strokeOf(placed)})`);
+  const before = identityOf(set);
+  const { pre, res } = await confirm(w, [{ def, plans: w.plans }]);
+  const p = pre.sets[0];
+  const moved = p?.renames.find((r) => r.from === errOld);
+  ok(!!p && !p.blockers.length && p.counts.rename === n && p.counts.add === add && p.counts.drop === 0 && moved?.to === errNew,
+    `status/${def} dry run: all ${n} renamed in place (${errOld} → ${errNew}), ${add} added, none dropped or blocked (${p ? `${p.counts.rename} renamed, ${p.counts.add} added, ${p.counts.drop} dropped; ${moved ? `${moved.from} → ${moved.to}` : 'the error member not renamed'}; ${p.blockers.join('; ') || 'no blockers'}` : 'no set'})`);
+  ok(applyVerdict(res).ok && res.outcomes[0]?.renamed === n && res.outcomes[0]?.added === add,
+    `status/${def} apply: ${applyVerdict(res).headline} (${res.outcomes[0]?.renamed} renamed, ${res.outcomes[0]?.added} added${res.outcomes[0]?.refused ? `; ${res.outcomes[0].refused}` : ''})`);
+  const now = membersOf(w.set()).find((m) => String(m.id) === placedId);
+  ok(!!now && now === placed && String(now.name) === errNew && String(now.key) === placedKey && strokeOf(now) === 'color/border/danger' && !String(now.description ?? '').startsWith(DEPRECATED_PREFIX),
+    `status/${def} placed: the node a placed error instance points at is still in the set, its id and key kept, now ${errNew}, still drawing the danger edge (${now ? `${String(now.name)}, ${strokeOf(now)}` : 'gone'})`);
+  const after = identityOf(w.set());
+  const lost = [...before.members].filter(([, b]) => ![...after.members.values()].some((a) => a.key === b.key && a.id === b.id)).map(([nm]) => nm);
+  ok(lost.length === 0 && after.members.size === n + add, `status/${def} keys: every member the file held keeps its key and id, and the set holds ${n + add} (${after.members.size}; lost ${lost.join(', ') || 'none'})`);
+  const defs = w.set().componentPropertyDefinitions as Record<string, { type: string; variantOptions?: string[] }>;
+  ok(JSON.stringify(defs.status?.variantOptions) === JSON.stringify(['default', 'error']) && !(defs.state?.variantOptions ?? []).includes('error'),
+    `status/${def} properties: the set offers status [default, error] and no state=error (status ${JSON.stringify(defs.status?.variantOptions)}, state ${JSON.stringify(defs.state?.variantOptions)})`);
+  const post = (await previewUpdate(w.host, [{ def, plans: w.plans }])).sets[0];
+  ok(post?.counts.current === n + add, `status/${def} current: every member reads current after (${JSON.stringify(post?.counts)})`);
 }
 
 section('list marker column — a file built at the old 24/32/40 column updates in place to 20/24/32 for bullet and number (#2727, Q340 A)');
@@ -3261,31 +3330,33 @@ for (const G of ['checkbox-group', 'radio-group', 'segmented-control']) {
   // FieldLabel's real set in the file, so each label instances a MEMBER and its coordinate is readable off the host.
   const w = await world(G, oldPlans, { fileSets: [{ name: 'field-label', variants: plansOf('field-label').map(planComponentName) }] });
   const labelOf = (m: Node): Node => childNamed(m, 'label');
+  // The member count each set holds, typed here: the two groups are status × size since #2751 (owner Q354).
+  const N = ({ 'checkbox-group': 6, 'radio-group': 6, 'segmented-control': 3 } as Record<string, number>)[G];
   const n = membersOf(w.set()).length;
-  ok(n === 3 && membersOf(w.set()).every((m) => labelOf(m)?.isExposedInstance === false),
+  ok(n === N && membersOf(w.set()).every((m) => labelOf(m)?.isExposedInstance === false),
     `${G}/premise: the file holds ${n} members built before #2748, each nested label not exposed`);
   const before = identityOf(w.set());
   const labelIds = new Map(membersOf(w.set()).map((m) => [String(m.name), String(labelOf(m).id)] as const));
   const { pre, res } = await confirm(w, [{ def: G, plans: newPlans }]);
   const p = pre.sets[0];
-  ok(p.counts.update === 3 && p.counts.add === 0 && p.counts.drop === 0 && !p.blockers.length && !p.replacements.length,
-    `${G}/dry run: all 3 members read update, none added, dropped or replaced, nothing refused (${JSON.stringify(p.counts)}, ${p.blockers.join('; ') || 'no blockers'})`);
+  ok(p.counts.update === N && p.counts.add === 0 && p.counts.drop === 0 && !p.blockers.length && !p.replacements.length,
+    `${G}/dry run: all ${N} members read update, none added, dropped or replaced, nothing refused (${JSON.stringify(p.counts)}, ${p.blockers.join('; ') || 'no blockers'})`);
   const v = applyVerdict(res);
   ok(v.ok, `${G}/verdict: ${v.headline} (${v.lines.slice(0, 2).join(' | ').slice(0, 240)})`);
   const after = identityOf(w.set());
   const moved = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || after.members.get(name)?.id !== b.id).map(([x]) => x);
-  ok(JSON.stringify(after.set) === JSON.stringify(before.set) && moved.length === 0 && after.members.size === 3,
-    `${G}/kept: the set and all 3 members keep their keys and ids (${moved.join('; ') || 'none moved'})`);
+  ok(JSON.stringify(after.set) === JSON.stringify(before.set) && moved.length === 0 && after.members.size === N,
+    `${G}/kept: the set and all ${N} members keep their keys and ids (${moved.join('; ') || 'none moved'})`);
   const lost = [...before.members].filter(([name, b]) => [...b.kids].some(([path, id]) => after.members.get(name)?.kids.get(path) !== id)).map(([x]) => x);
   ok(lost.length === 0 && membersOf(w.set()).every((m) => String(labelOf(m).id) === labelIds.get(String(m.name))),
     `${G}/ids: every node under every member, the nested label included, keeps its id (${lost.join('; ') || 'all kept'})`);
   // The exposure and the look, read off the shim's nodes. The weight is typed here from Q348 A: bold stays.
   const read = membersOf(w.set()).map((m) => ({ m: String(m.name), exposed: labelOf(m).isExposedInstance, main: String((labelOf(m).mainComponent as { name?: string } | undefined)?.name) }));
-  ok(read.every((x) => x.exposed === true), `${G}/exposed: every member's nested label is now an exposed instance (${read.filter((x) => x.exposed !== true).map((x) => x.m).join('; ') || 'all 3'})`);
+  ok(read.every((x) => x.exposed === true), `${G}/exposed: every member's nested label is now an exposed instance (${read.filter((x) => x.exposed !== true).map((x) => x.m).join('; ') || `all ${N}`})`);
   ok(read.every((x) => /emphasis=secondary/.test(x.main) && /weight=bold/.test(x.main) && x.main.includes(`size=${/size=(\w+)/.exec(x.m)?.[1]}`)),
     `${G}/bold kept: every label still instances the secondary, bold member at its group's size (${[...new Set(read.map((x) => x.main))].join(' | ')})`);
   const post = (await previewUpdate(w.host, [{ def: G, plans: newPlans }])).sets[0];
-  ok(post.counts.current === 3 && post.handEdits.length === 0, `${G}/current: the next dry run reads all 3 current (${JSON.stringify(post.counts)})`);
+  ok(post.counts.current === N && post.handEdits.length === 0, `${G}/current: the next dry run reads all ${N} current (${JSON.stringify(post.counts)})`);
 }
 
 /* ── segmented control (#2724) ───────────────────────────────────────────────────────────────────────── */
