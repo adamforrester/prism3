@@ -11126,7 +11126,8 @@ arm: {
 //   0. Coverage, from the DEFS (a second, independent source): every ground a component paints as a fill under a
 //      nested def that paints a primary or link ink is in the literal list, and every literal ground is either such
 //      a ground, the page, or a tint Banner will place them on (`PENDING_2817`). A new def that puts these inks on
-//      another ground fails here by name; a literal no component places them on fails too (Q419: no wider).
+//      another ground fails here by name; a literal no component places them on fails too (Q419: no wider), and so
+//      does a pending tint missing from the literals (no narrower).
 //   1. Every ink × surface cell clears 4.5:1, in every mode of every brand — one `ok` per cell, so a miss names
 //      its brand, mode, ink and surface. The icon and border followers share the ink's candidate (the same hex);
 //      the icon link clears its brand's icon bar (3:1 under `iconContrast: '3:1'`) on the same grounds.
@@ -11185,6 +11186,9 @@ arm: {
       `#2817 every ground a component places the primary or link ink on is in the contract's literal list (derived from ${componentDefs.length} defs, ${inkedDefs} that paint the inks: ${[...derived].map(([g, h]) => `${g} ← ${h.join('; ')}`).join(' | ') || 'none'})${missing.length ? ` — NOT IN THE LIST: ${missing.join('; ')}` : ''}`);
     ok(unplaced.length === 0,
       `#2817 every ground in the contract is one a component places the inks on, the page, or a pending Banner tint (Q419 A: no wider)${unplaced.length ? ` — NO COMPONENT PLACES THEM ON: ${unplaced.join(', ')}` : ''}`);
+    const unlisted = PENDING_2817.filter((g) => !GROUNDS_2817.includes(g));
+    ok(unlisted.length === 0,
+      `#2817 every pending Banner tint is in the contract's literal list (Q419 A: the seven grounds, no narrower)${unlisted.length ? ` — PENDING BUT NOT MEASURED: ${unlisted.join(', ')}` : ''}`);
     ok(landed.length === 0,
       `#2817 the pending tints are still pending (when Banner lands and places the inks on them, drop them from PENDING_2817)${landed.length ? ` — NOW PLACED: ${landed.join(', ')}` : ''}`);
   }
