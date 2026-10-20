@@ -24,3 +24,9 @@ marker-column section; the two are independent sections and both are kept.
 tests, written against the size-only group. Its two literal arms now state this PR's shape, as checkbox-group's twin arm
 already does: six members (status × size), each row following the group's size and status, and the nested message under
 the items at `status=error` only. Mutation: one row's `follow` back to `['size']` → `#2715 radio-group nesting`.
+
+**Merged `main` at `38559463` (#2756, Q348 A; #2771, #2772).** `checkbox-group.ts` and `radio-group.ts` conflicted on
+`states`: #2771 made it `[]` for containers, and this PR only rewords the comment, so `[]` with this PR's comment. #2756's
+`group labels` section in `test-update-apply.ts` typed every set at 3 members; the two groups are status × size here, so
+it now types 6 for them and 3 for Segmented control. `component-surface.json` is re-accepted on the merged tree; it
+differs from `main` in exactly the eight defs this PR moves. Reports regenerated.

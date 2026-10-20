@@ -424,7 +424,7 @@ export const switchControl: ComponentDef = {
     avoidWhen: 'You want the labeled case (that is Switch.Row), a staged binary submitted with a form (Checkbox.Row / Checkbox.Control), or a mutually-exclusive one-of-many (Radio.Control). Never place a bare track as the clickable element — the hit target is the labeled row.',
     commonPartners: ['switch-row', 'focus-ring'],
     triggerKeywords: ['switch control', 'switch track', 'toggle control', 'switch thumb', 'toggle handle'],
-    generationPriority: 3,
+    generationPriority: 6,
   },
 
   composition: {
