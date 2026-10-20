@@ -10,8 +10,9 @@
  *
  * THE PAGE IS THE FIRST READER OF THE SECTION MODEL (#846). `component-doc-sections.ts` turns a def into
  * the ordered sections of its usage doc, and the Figma panel and the docs-site page will read the same
- * model. The page renders the model's sections, in its order, and nothing else; what the model could not
- * draw is the maintainer record's `docGaps`.
+ * model. The page renders the model's sections, in its order, then the spec model's Specs section (#2830,
+ * kept apart from the section model until it joins it); what the model could not draw is the maintainer
+ * record's `docGaps`.
  *
  * THE GAP THIS CLOSES. `component-schema.ts` carries `docs`, `accessibility`, `content`, `motion`,
  * `composition`, `ai` and `notes` "so docs are a projection, not a re-author" (docs/19 §6), and promised a
