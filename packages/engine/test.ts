@@ -31991,7 +31991,7 @@ arm: {
     `#2428 code-input: the caret on the active empty cell is as tall as the character, 16 / 20 / 24 / 40px (off: ${caretOff.join('; ') || 'none'})`);
   // (3c) THE ONE INPUT carries no native maxlength: the browser cuts a pasted "123-456" to the limit before any handler
   // strips the hyphen, so a valid code would read as incomplete (review of #2789, S1).
-  const oneInput = (fieldDef.codeOnly ?? []).find((l) => l.startsWith('ONE INPUT'));
+  const oneInput = (fieldDef.anatomy.codeOnly ?? []).find((l) => l.startsWith('ONE INPUT'));
   ok(!!oneInput && !/maxlength/i.test(oneInput.replace(/The input carries no native `maxlength`[^.]*\./, '')),
     '#2428 code-input: the one input in the code contract carries no native maxlength, so a pasted code with separators is not cut before it is normalized');
   // (3b) OPTICAL CENTERING (owner QA on #2428, 2026-10-16; option A on #2789): every character's text box is trimmed to the
