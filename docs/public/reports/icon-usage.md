@@ -12,10 +12,10 @@ Generated from the component definitions and the emission by `packages/engine/em
 |  | chevronUp | `chevron-up` | icon set | drawn | indicator: chevron; expansion: expanded |
 |  | minus | `minus` | icon set | drawn | indicator: plus-minus; expansion: expanded |
 |  | plus | `plus` | icon set | drawn | indicator: plus-minus; expansion: collapsed |
-| banner | iconDanger | `warning-triangle` | icon set | drawn | tone: danger |
-|  | iconInfo | `info-circle` | icon set | drawn | tone: info |
-|  | iconSuccess | `check-circle` | icon set | drawn | tone: success |
-|  | iconWarning | `error-circle` | icon set | drawn | tone: warning |
+| banner | dangerGlyph | `warning-triangle` | icon set | drawn | tone: danger |
+|  | infoGlyph | `info-circle` | icon set | drawn | tone: info |
+|  | successGlyph | `check-circle` | icon set | drawn | tone: success |
+|  | warningGlyph | `error-circle` | icon set | drawn | tone: warning |
 | checkbox-control | dash | `minus` | icon set | drawn | selection: indeterminate |
 |  | mark | `check` | icon set | drawn | selection: checked |
 | field-message | iconError | `warning-triangle` | icon set | drawn | status: error |

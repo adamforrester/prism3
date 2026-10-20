@@ -1265,7 +1265,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "members": 8,
     "nests": [
       "icon",
-      "button-neutral",
+      "button",
       "flush-icon-button-neutral"
     ]
   }

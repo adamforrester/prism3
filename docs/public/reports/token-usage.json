@@ -3477,7 +3477,7 @@
             "danger.icon"
           ],
           "parts": {
-            "iconDanger": {
+            "dangerGlyph": {
               "members": 2,
               "where": {
                 "tone": [
@@ -3518,7 +3518,7 @@
             "info.icon"
           ],
           "parts": {
-            "iconInfo": {
+            "infoGlyph": {
               "members": 2,
               "where": {
                 "tone": [
@@ -3823,7 +3823,7 @@
             "success.icon"
           ],
           "parts": {
-            "iconSuccess": {
+            "successGlyph": {
               "members": 2,
               "where": {
                 "tone": [
@@ -3886,7 +3886,7 @@
             "warning.icon"
           ],
           "parts": {
-            "iconWarning": {
+            "warningGlyph": {
               "members": 2,
               "where": {
                 "tone": [
@@ -14710,7 +14710,7 @@
             "glyph-size"
           ],
           "parts": {
-            "iconDanger": {
+            "dangerGlyph": {
               "members": 2,
               "where": {
                 "tone": [
@@ -14718,7 +14718,7 @@
                 ]
               }
             },
-            "iconInfo": {
+            "infoGlyph": {
               "members": 2,
               "where": {
                 "tone": [
@@ -14726,7 +14726,7 @@
                 ]
               }
             },
-            "iconSuccess": {
+            "successGlyph": {
               "members": 2,
               "where": {
                 "tone": [
@@ -14734,7 +14734,7 @@
                 ]
               }
             },
-            "iconWarning": {
+            "warningGlyph": {
               "members": 2,
               "where": {
                 "tone": [

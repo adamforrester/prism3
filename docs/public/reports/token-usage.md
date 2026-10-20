@@ -446,7 +446,7 @@ Type: color. Bound by 3 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| banner | `danger.icon` | iconDanger | tone: danger (2 of 8) |
+| banner | `danger.icon` | dangerGlyph | tone: danger (2 of 8) |
 | field-message | `error.icon` | iconError | status: error (1 of 4) |
 | icon | `tone.danger` | (not drawn) | — |
 
@@ -456,7 +456,7 @@ Type: color. Bound by 2 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| banner | `info.icon` | iconInfo | tone: info (2 of 8) |
+| banner | `info.icon` | infoGlyph | tone: info (2 of 8) |
 | icon | `tone.info` | (not drawn) | — |
 
 ### `color.icon.link.default`
@@ -523,7 +523,7 @@ Type: color. Bound by 3 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| banner | `success.icon` | iconSuccess | tone: success (2 of 8) |
+| banner | `success.icon` | successGlyph | tone: success (2 of 8) |
 | field-message | `success.icon` | iconSuccess | status: success (1 of 4) |
 | icon | `tone.success` | (not drawn) | — |
 
@@ -542,7 +542,7 @@ Type: color. Bound by 3 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| banner | `warning.icon` | iconWarning | tone: warning (2 of 8) |
+| banner | `warning.icon` | warningGlyph | tone: warning (2 of 8) |
 | field-message | `warning.icon` | iconWarning | status: warning (1 of 4) |
 | icon | `tone.warning` | (not drawn) | — |
 
@@ -2192,10 +2192,10 @@ Type: dimension. Bound by 17 component(s).
 |  |  | frame | size: large (4 of 12) |
 |  |  | minus | expansion: expanded · indicator: plus-minus · size: large (1 of 12) |
 |  |  | plus | expansion: collapsed · indicator: plus-minus · size: large (1 of 12) |
-| banner | `glyph-size` | iconDanger | tone: danger (2 of 8) |
-|  |  | iconInfo | tone: info (2 of 8) |
-|  |  | iconSuccess | tone: success (2 of 8) |
-|  |  | iconWarning | tone: warning (2 of 8) |
+| banner | `glyph-size` | dangerGlyph | tone: danger (2 of 8) |
+|  |  | infoGlyph | tone: info (2 of 8) |
+|  |  | successGlyph | tone: success (2 of 8) |
+|  |  | warningGlyph | tone: warning (2 of 8) |
 | button | `size.large.icon` | leadingVisual | leading: true · size: large · state: disabled, focus-visible, hover, pressed, rest (80 of 576) |
 |  |  | spinner | size: large · state: pending (32 of 576) |
 |  |  | trailingVisual | size: large · trailing: true (88 of 576) |

@@ -131,15 +131,15 @@ export const banner: ComponentDef = {
         gap: 'gap',
         radius: 'width.{width}.radius',
         strokeWidth: 'border-width',
-        children: ['iconInfo', 'iconSuccess', 'iconWarning', 'iconDanger', 'content', 'dismiss'],
+        children: ['infoGlyph', 'successGlyph', 'warningGlyph', 'dangerGlyph', 'content', 'dismiss'],
         note: 'The banner: the tone\'s tinted surface with a 1px edge in the tone\'s border color, drawn inside so it adds no size. Rounded when contained, square when full width.',
       },
       // FieldMessage's glyph per status (its header measures the artwork): the exclamation in a triangle for the most
       // serious tone, in a circle for a warning. Held for the owner: the proposal listed the glyph names in tone order.
-      iconInfo: toneGlyph('info', 'info-circle', 'an i in a circle'),
-      iconSuccess: toneGlyph('success', 'check-circle', 'a check in a circle'),
-      iconWarning: toneGlyph('warning', 'error-circle', 'an exclamation in a circle'),
-      iconDanger: toneGlyph('danger', 'warning-triangle', 'an exclamation in a triangle'),
+      infoGlyph: toneGlyph('info', 'info-circle', 'an i in a circle'),
+      successGlyph: toneGlyph('success', 'check-circle', 'a check in a circle'),
+      warningGlyph: toneGlyph('warning', 'error-circle', 'an exclamation in a circle'),
+      dangerGlyph: toneGlyph('danger', 'warning-triangle', 'an exclamation in a triangle'),
       content: {
         kind: 'box',
         role: 'presentation',
@@ -241,7 +241,7 @@ export const banner: ComponentDef = {
     },
     booleans: {
       title: { part: 'titleBox', default: true },
-      icon: { part: ['iconInfo', 'iconSuccess', 'iconWarning', 'iconDanger'], default: true },
+      icon: { part: ['infoGlyph', 'successGlyph', 'warningGlyph', 'dangerGlyph'], default: true },
       actions: { part: 'actions', default: false },
       secondAction: { part: 'action2', default: false, figmaName: 'second action', figmaOnly: true },
       dismissible: { part: 'dismiss', default: false, figmaName: 'dismiss' },

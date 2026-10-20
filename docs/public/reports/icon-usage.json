@@ -74,7 +74,7 @@
     "banner": {
       "glyphs": [
         {
-          "part": "iconDanger",
+          "part": "dangerGlyph",
           "glyph": "warning-triangle",
           "source": "icon set",
           "how": "drawn",
@@ -85,7 +85,7 @@
           }
         },
         {
-          "part": "iconInfo",
+          "part": "infoGlyph",
           "glyph": "info-circle",
           "source": "icon set",
           "how": "drawn",
@@ -96,7 +96,7 @@
           }
         },
         {
-          "part": "iconSuccess",
+          "part": "successGlyph",
           "glyph": "check-circle",
           "source": "icon set",
           "how": "drawn",
@@ -107,7 +107,7 @@
           }
         },
         {
-          "part": "iconWarning",
+          "part": "warningGlyph",
           "glyph": "error-circle",
           "source": "icon set",
           "how": "drawn",

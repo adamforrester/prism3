@@ -134,7 +134,7 @@ const MUST_COVER = [
   'field-message.iconError', 'field-message.iconWarning', 'field-message.iconSuccess',
   'switch-control.onGlyph', 'switch-control.offGlyph', 'select.chevron', 'image-placeholder.marker',
   '_accordion-indicator.chevronDown', '_accordion-indicator.chevronUp', '_accordion-indicator.plus', '_accordion-indicator.minus',
-  'banner.iconInfo', 'banner.iconSuccess', 'banner.iconWarning', 'banner.iconDanger',
+  'banner.infoGlyph', 'banner.successGlyph', 'banner.warningGlyph', 'banner.dangerGlyph',
 ];
 
 /** The component name prefix an icon-set glyph is an instance of (#2380): `icon/<glyph>`, the component the
@@ -338,22 +338,22 @@ const FIXED_GLYPH: Record<string, { glyph: string; at: Record<string, readonly s
   },
   // Banner (#2579): FieldMessage's mark per status, so a danger banner and an errored field show one shape. Held for
   // the owner on the PR, since the proposal listed the glyph names in tone order.
-  'banner.iconInfo': {
+  'banner.infoGlyph': {
     glyph: 'info-circle',
     at: { tone: ['info'] },
     why: 'the info mark: an i in a circle, the ring `error-circle` and `check-circle` share with the bar and dot swapped. `glyph: \'{tone}\'` would ask the vocabulary for a glyph named `info`, which it does not hold',
   },
-  'banner.iconSuccess': {
+  'banner.successGlyph': {
     glyph: 'check-circle',
     at: { tone: ['success'] },
     why: 'the success mark: a circled check, outline, as FieldMessage\'s success status draws it',
   },
-  'banner.iconWarning': {
+  'banner.warningGlyph': {
     glyph: 'error-circle',
     at: { tone: ['warning'] },
     why: 'the warning mark: an exclamation in a CIRCLE, FieldMessage\'s warning glyph. The name is the enclosure, not the tone; do not "correct" it to `warning-triangle`, which would give warning and danger one shape',
   },
-  'banner.iconDanger': {
+  'banner.dangerGlyph': {
     glyph: 'warning-triangle',
     at: { tone: ['danger'] },
     why: 'the danger mark: an exclamation in a TRIANGLE, FieldMessage\'s error glyph, the one enclosure that is not a circle, so the most serious tone is told apart by shape',
