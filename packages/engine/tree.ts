@@ -275,17 +275,21 @@ const familySemanticAlias = (ref: string, face: string, description: string): To
   $extensions: { prism3: { generated: true, role: 'semantic', aliasOf: ref, face, figma: { kind: 'style-part', field: 'fontFamily', scope: 'FONT_FAMILY' } } },
 });
 // Font size: $value in rem (accessibility — scales with the user base size, KB 23);
-// px carried for the Figma exporter (Figma binds FONT_SIZE as a px FLOAT variable).
+// px carried for the Figma exporter (a font size is a px FLOAT variable in Figma).
+// NO `figma.scope` on the size and numeric weight leaves (#2736): `figma.scope` names the one scope the
+// leaf's Figma row carries, and these rows carry none (size since #2602, the numeric weights since #2616,
+// Q334 A: `emit-figma-font.ts`). A string cannot say "none", so the field is absent. The family leaves keep
+// FONT_FAMILY, which their rows still carry. `test.ts` holds every brand's DTCG hint to its emitted row.
 const fontSizeLeaf = (px: number, description: string): Token => {
   const rem = round(px / 16, 4);
   return {
     $type: 'dimension', $value: `${rem}rem`, $description: description,
-    $extensions: { prism3: { generated: true, px, rem, figma: { kind: 'variable', field: 'fontSize', scope: 'FONT_SIZE', unit: 'px', value: px } } },
+    $extensions: { prism3: { generated: true, px, rem, figma: { kind: 'variable', field: 'fontSize', unit: 'px', value: px } } },
   };
 };
 const fontWeightLeaf = (value: number, description: string): Token => ({
   $type: 'fontWeight', $value: value, $description: description,
-  $extensions: { prism3: { generated: true, figma: { kind: 'variable', field: 'fontWeight', scope: 'FONT_WEIGHT' } } },
+  $extensions: { prism3: { generated: true, figma: { kind: 'variable', field: 'fontWeight' } } },
 });
 const weightRoleAlias = (path: string, numeric: number, description: string): Token => ({
   $type: 'fontWeight', $value: `{${path}}`, $description: description,
