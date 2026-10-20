@@ -88,6 +88,118 @@ The atom has no copy of its own; all label, description and error text belongs t
   - the painted circle and dot inlined in a radio row
   - a filled-disc radio that signals selection by the ring filling in
 
+## Specs
+
+Generated from the plan that builds the design-file component: 30 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `control` | frame | every member |
+| `control/focusRing` | instance | state=focus-visible |
+| `control/dot` | frame | selection=checked |
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by `size`.
+
+**size=medium**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `control` | — | — | `control.size.md.height` | `control.size.md.height` | — | — |
+| `control/dot` | — | — | `control.size.md.dot` | `control.size.md.dot` | — | — |
+
+**size=small**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `control` | — | — | `control.size.sm.height` | `control.size.sm.height` | — | — |
+| `control/dot` | — | — | `control.size.sm.dot` | `control.size.sm.dot` | — | — |
+
+**size=large**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `control` | — | — | `control.size.lg.height` | `control.size.lg.height` | — | — |
+| `control/dot` | — | — | `control.size.lg.dot` | `control.size.lg.dot` | — | — |
+
+### Color
+
+Keyed by `selection`, `state`.
+
+**selection=unchecked, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | — | `color.field.border.rest` | — | — |
+
+**selection=unchecked, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | — | `color.field.border.hover` | — | — |
+
+**selection=unchecked, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | — | `color.field.border.rest` | — | — |
+
+**selection=unchecked, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | — | `color.field.border.rest` | — | — |
+
+**selection=unchecked, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | — | `color.disabled.border` | — | — |
+
+**selection=checked, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | — | `color.interactive.primary.border.rest` | — | — |
+| `control/dot` | `color.interactive.primary.fill.selected` | — | — | — |
+
+**selection=checked, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | — | `color.interactive.primary.border.hover` | — | — |
+| `control/dot` | `color.interactive.primary.fill.selected` | — | — | — |
+
+**selection=checked, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | — | `color.interactive.primary.border.pressed` | — | — |
+| `control/dot` | `color.interactive.primary.fill.selected` | — | — | — |
+
+**selection=checked, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | — | `color.interactive.primary.border.rest` | — | — |
+| `control/dot` | `color.interactive.primary.fill.selected` | — | — | — |
+
+**selection=checked, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | — | `color.disabled.border` | — | — |
+| `control/dot` | `color.disabled.fill` | — | — | — |
+
+### Nesting and properties
+
+- `control/focusRing` nests `focus-ring` at `surface=default`
+
 ---
 
 Generated from the `radio-control` component definition.

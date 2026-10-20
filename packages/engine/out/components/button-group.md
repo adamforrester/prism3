@@ -85,6 +85,68 @@ None — not interactive.
   - a footer of fixed nested buttons copied into each component
   - a button-set component with a variant per count and layout
 
+## Specs
+
+Generated from the plan that builds the design-file component: 3 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `container` | frame | every member |
+| `container/items` | slot | every member |
+| `container/items/cancel` | instance | layout=inline |
+| `container/items/save` | instance | layout=inline |
+| `container/items/saveStacked` | instance | layout=stacked |
+| `container/items/cancelStacked` | instance | layout=stacked |
+| `container/items/cancelFill` | instance | layout=fill |
+| `container/items/saveFill` | instance | layout=fill |
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by `layout`.
+
+**layout=inline**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | — | build width 400px (literal) |
+| `container/items` | — | `space.150` | — | — | — | — |
+
+**layout=stacked**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | — | build width 400px (literal) |
+| `container/items` | — | `space.100` | — | — | — | — |
+
+**layout=fill**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | — | build width 400px (literal) |
+| `container/items` | — | `space.150` | — | — | — | — |
+
+### Color
+
+Keyed by `layout`.
+
+### Nesting and properties
+
+- `container/items` is a slot, preferring `button`
+- `container/items/cancel` nests `button` at `appearance=outline, size=medium, surface=default, inset=default, state=rest, leading icon=false, trailing icon=false`
+- `container/items/save` nests `button` at `appearance=filled, size=medium, surface=default, inset=default, state=rest, leading icon=false, trailing icon=false`
+- `container/items/saveStacked` nests `button` at `appearance=filled, size=medium, surface=default, inset=default, state=rest, leading icon=false, trailing icon=false`
+- `container/items/cancelStacked` nests `button` at `appearance=outline, size=medium, surface=default, inset=default, state=rest, leading icon=false, trailing icon=false`
+- `container/items/cancelFill` nests `button` at `appearance=outline, size=medium, surface=default, inset=default, state=rest, leading icon=false, trailing icon=false`
+- `container/items/saveFill` nests `button` at `appearance=filled, size=medium, surface=default, inset=default, state=rest, leading icon=false, trailing icon=false`
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `items` | slot | — |
+
 ---
 
 Generated from the `button-group` component definition.

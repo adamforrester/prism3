@@ -88,6 +88,154 @@ The atom has no copy of its own; all label, description and error text belongs t
 - **Replaces:**
   - the painted track and thumb inlined in a switch row
 
+## Specs
+
+Generated from the plan that builds the design-file component: 24 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `track` | frame | every member |
+| `track/thumb` | frame | every member |
+| `track/thumb/offGlyph` | instance | selection=off |
+| `track/focusRing` | instance | state=focus-visible |
+| `track/thumb/onGlyph` | instance | selection=on |
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by `size`.
+
+**size=medium**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `track` | `control.size.md.inset` | — | `control.size.md.track` | `control.size.md.width` | — | — |
+| `track/thumb` | — | — | `control.size.md.thumb` | `control.size.md.thumb` | — | — |
+| `track/thumb/offGlyph` | — | — | `control.size.md.thumb` | `control.size.md.thumb` | — | — |
+| `track/thumb/onGlyph` | — | — | `control.size.md.thumb` | `control.size.md.thumb` | — | — |
+
+**size=small**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `track` | `control.size.sm.inset` | — | `control.size.sm.track` | `control.size.sm.width` | — | — |
+| `track/thumb` | — | — | `control.size.sm.thumb` | `control.size.sm.thumb` | — | — |
+| `track/thumb/offGlyph` | — | — | `control.size.sm.thumb` | `control.size.sm.thumb` | — | — |
+| `track/thumb/onGlyph` | — | — | `control.size.sm.thumb` | `control.size.sm.thumb` | — | — |
+
+### Color
+
+Keyed by `selection`, `state`.
+
+**selection=off, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `track` | `color.background.tertiary` | `color.interactive.neutral.border.rest` | — | — |
+| `track/thumb` | `color.interactive.neutral.border.rest` | — | — | — |
+| `track/thumb/offGlyph` | — | — | — | `color.background.tertiary` |
+
+**selection=off, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `track` | `color.background.tertiary` | `color.interactive.neutral.border.hover` | — | — |
+| `track/thumb` | `color.interactive.neutral.border.rest` | — | — | — |
+| `track/thumb/offGlyph` | — | — | — | `color.background.tertiary` |
+
+**selection=off, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `track` | `color.background.tertiary` | `color.interactive.neutral.border.pressed` | — | — |
+| `track/thumb` | `color.interactive.neutral.border.rest` | — | — | — |
+| `track/thumb/offGlyph` | — | — | — | `color.background.tertiary` |
+
+**selection=off, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `track` | `color.background.tertiary` | `color.interactive.neutral.border.rest` | — | — |
+| `track/thumb` | `color.interactive.neutral.border.rest` | — | — | — |
+| `track/thumb/offGlyph` | — | — | — | `color.background.tertiary` |
+
+**selection=off, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `track` | `color.disabled.fill` | `color.disabled.border` | — | — |
+| `track/thumb` | `color.disabled.on-fill` | — | — | — |
+| `track/thumb/offGlyph` | — | — | — | `color.disabled.border` |
+
+**selection=off, state=error**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `track` | `color.background.tertiary` | `color.border.danger` | — | — |
+| `track/thumb` | `color.interactive.neutral.border.rest` | — | — | — |
+| `track/thumb/offGlyph` | — | — | — | `color.background.tertiary` |
+
+**selection=on, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `track` | `color.interactive.primary.fill.selected` | — | — | — |
+| `track/thumb` | `color.interactive.primary.on-fill` | — | — | — |
+| `track/thumb/onGlyph` | — | — | — | `color.interactive.primary.fill.selected` |
+
+**selection=on, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `track` | `color.interactive.primary.fill.hover` | — | — | — |
+| `track/thumb` | `color.interactive.primary.on-fill` | — | — | — |
+| `track/thumb/onGlyph` | — | — | — | `color.interactive.primary.fill.selected` |
+
+**selection=on, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `track` | `color.interactive.primary.fill.pressed` | — | — | — |
+| `track/thumb` | `color.interactive.primary.on-fill` | — | — | — |
+| `track/thumb/onGlyph` | — | — | — | `color.interactive.primary.fill.selected` |
+
+**selection=on, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `track` | `color.interactive.primary.fill.selected` | — | — | — |
+| `track/thumb` | `color.interactive.primary.on-fill` | — | — | — |
+| `track/thumb/onGlyph` | — | — | — | `color.interactive.primary.fill.selected` |
+
+**selection=on, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `track` | `color.disabled.fill` | — | — | — |
+| `track/thumb` | `color.disabled.on-fill` | — | — | — |
+| `track/thumb/onGlyph` | — | — | — | `color.disabled.border` |
+
+**selection=on, state=error**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `track` | `color.interactive.primary.fill.selected` | `color.border.danger` | — | — |
+| `track/thumb` | `color.interactive.primary.on-fill` | — | — | — |
+| `track/thumb/onGlyph` | — | — | — | `color.interactive.primary.fill.selected` |
+
+### Nesting and properties
+
+- `track/thumb/offGlyph` nests `icon/close`
+- `track/focusRing` nests `focus-ring` at `surface=default`
+- `track/thumb/onGlyph` nests `icon/check`
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `State icon` | boolean | `true` |
+
 ---
 
 Generated from the `switch-control` component definition.

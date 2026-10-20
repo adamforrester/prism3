@@ -98,6 +98,146 @@ Titles are short, parallel noun phrases or questions, in sentence case, with no 
   - a show/hide div with no aria-expanded or heading
   - a tablist used for vertical sections that open together
 
+## Specs
+
+Generated from the plan that builds the design-file component: 24 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `container` | frame | every member |
+| `container/header` | frame | every member |
+| `container/header/titleRow` | frame | every member |
+| `container/header/titleRow/leadingIndicator` | frame | iconPosition=leading |
+| `container/header/titleRow/leadingIndicator/leadingGlyph` | instance | iconPosition=leading |
+| `container/header/titleRow/titleBox` | frame | every member |
+| `container/header/titleRow/titleBox/label` | text | every member |
+| `container/divider` | instance | every member |
+| `container/header/focusRing` | instance | state=focus-visible |
+| `container/header/titleRow/trailingIndicator` | frame | iconPosition=trailing |
+| `container/header/titleRow/trailingIndicator/trailingGlyph` | instance | iconPosition=trailing |
+| `container/content` | slot | expansion=expanded |
+| `container/content/placeholder` | text | expansion=expanded |
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by `size`.
+
+**size=medium**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 120px (literal) | build width 320px (literal) |
+| `container/header` | `space.150` / `space.200` / `space.150` / `space.200` | — | — | — | — | min height `size.md.min-height` |
+| `container/header/titleRow` | — | `space.150` | — | — | — | — |
+| `container/header/titleRow/titleBox` | `space.025` / — / — / — | — | — | — | — | — |
+| `container/content` | `space.0` / `space.200` / `space.200` / `space.200` | — | — | — | — | — |
+
+**size=small**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 120px (literal) | build width 320px (literal) |
+| `container/header` | `space.100` / `space.150` / `space.100` / `space.150` | — | — | — | — | min height `size.md.min-height` |
+| `container/header/titleRow` | — | `space.100` | — | — | — | — |
+| `container/header/titleRow/titleBox` | `space.025` / — / — / — | — | — | — | — | — |
+| `container/content` | `space.0` / `space.150` / `space.150` / `space.150` | — | — | — | — | — |
+
+**size=large**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 120px (literal) | build width 320px (literal) |
+| `container/header` | `space.200` / `space.250` / `space.200` / `space.250` | — | — | — | — | min height `size.lg.height` |
+| `container/header/titleRow` | — | `space.200` | — | — | — | — |
+| `container/header/titleRow/titleBox` | `space.025` / — / — / — | — | — | — | — | — |
+| `container/content` | `space.0` / `space.250` / `space.300` / `space.250` | — | — | — | — | — |
+
+### Type
+
+Keyed by `size`.
+
+| Members | Part | Text style |
+| --- | --- | --- |
+| size=medium | `container/header/titleRow/titleBox/label` | `type.label.md.emphasis` |
+| size=medium | `container/content/placeholder` | `type.body.md.default` |
+| size=small | `container/header/titleRow/titleBox/label` | `type.label.sm.emphasis` |
+| size=small | `container/content/placeholder` | `type.body.sm.default` |
+| size=large | `container/header/titleRow/titleBox/label` | `type.label.lg.emphasis` |
+| size=large | `container/content/placeholder` | `type.body.lg.default` |
+
+### Color
+
+Keyed by `expansion`, `iconPosition`, `state`.
+
+**expansion=collapsed, iconPosition=leading, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/header/titleRow/titleBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
+
+**expansion=collapsed, iconPosition=leading, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/header/titleRow/titleBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
+
+**expansion=collapsed, iconPosition=trailing, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/header/titleRow/titleBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
+
+**expansion=collapsed, iconPosition=trailing, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/header/titleRow/titleBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
+
+**expansion=expanded, iconPosition=leading, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/header/titleRow/titleBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
+| `container/content/placeholder` | — | — | `color.text.primary` | — |
+
+**expansion=expanded, iconPosition=leading, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/header/titleRow/titleBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
+| `container/content/placeholder` | — | — | `color.text.primary` | — |
+
+**expansion=expanded, iconPosition=trailing, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/header/titleRow/titleBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
+| `container/content/placeholder` | — | — | `color.text.primary` | — |
+
+**expansion=expanded, iconPosition=trailing, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/header/titleRow/titleBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
+| `container/content/placeholder` | — | — | `color.text.primary` | — |
+
+### Nesting and properties
+
+- `container/header/titleRow/leadingIndicator/leadingGlyph` nests `_accordion-indicator` at `indicator=chevron, expansion=collapsed, size=medium`; follows `expansion`, `size`; exposes `indicator`
+- `container/divider` nests `divider` at `orientation=horizontal, inset=none`
+- `container/header/focusRing` nests `focus-ring` at `surface=default`
+- `container/header/titleRow/trailingIndicator/trailingGlyph` nests `_accordion-indicator` at `indicator=chevron, expansion=collapsed, size=medium`; follows `expansion`, `size`; exposes `indicator`
+- `container/content` is a slot
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `title` | text | `Section title` |
+| `content` | slot | — |
+
 ---
 
 Generated from the `accordion` component definition.

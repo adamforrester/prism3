@@ -85,6 +85,178 @@ One or two words, a noun, sentence case.
 - **Replaces:**
   - a styled button with a hand-rolled active state
 
+## Specs
+
+Generated from the plan that builds the design-file component: 30 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `container` | frame | every member |
+| `container/indicator` | frame | every member |
+| `container/indicator/content` | frame | every member |
+| `container/indicator/content/leadingVisual` | swap | every member |
+| `container/indicator/content/labelBox` | frame | every member |
+| `container/indicator/content/labelBox/reserve` | frame | every member |
+| `container/indicator/content/labelBox/reserve/labelReserve` | text | every member |
+| `container/indicator/content/labelBox/label` | text | every member |
+| `container/indicator/focusRing` | instance | state=focus-visible |
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by `size`.
+
+**size=medium**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | `space.050` | — | `size.md.height` | — | — | build width 120px (literal) |
+| `container/indicator/content` | `space.0` / `space.200` / `space.0` / `space.200` | `space.100` | — | — | — | — |
+| `container/indicator/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/indicator/content/labelBox/reserve` | — | — | `space.0` | — | — | — |
+
+**size=small**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | `space.050` | — | `size.sm.height` | — | — | build width 120px (literal) |
+| `container/indicator/content` | `space.0` / `space.150` / `space.0` / `space.150` | `space.075` | — | — | — | — |
+| `container/indicator/content/leadingVisual` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/indicator/content/labelBox/reserve` | — | — | `space.0` | — | — | — |
+
+**size=large**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | `space.050` | — | `size.lg.height` | — | — | build width 120px (literal) |
+| `container/indicator/content` | `space.0` / `space.250` / `space.0` / `space.250` | `space.100` | — | — | — | — |
+| `container/indicator/content/leadingVisual` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+| `container/indicator/content/labelBox/reserve` | — | — | `space.0` | — | — | — |
+
+### Type
+
+Keyed by `size`, `selection`.
+
+| Members | Part | Text style |
+| --- | --- | --- |
+| size=medium, selection=unselected | `container/indicator/content/labelBox/reserve/labelReserve` | `type.label.md.emphasis` |
+| size=medium, selection=unselected | `container/indicator/content/labelBox/label` | `type.label.md.default` |
+| size=small, selection=unselected | `container/indicator/content/labelBox/reserve/labelReserve` | `type.label.sm.emphasis` |
+| size=small, selection=unselected | `container/indicator/content/labelBox/label` | `type.label.sm.default` |
+| size=large, selection=unselected | `container/indicator/content/labelBox/reserve/labelReserve` | `type.label.lg.emphasis` |
+| size=large, selection=unselected | `container/indicator/content/labelBox/label` | `type.label.lg.default` |
+| size=medium, selection=selected | `container/indicator/content/labelBox/reserve/labelReserve` | `type.label.md.emphasis` |
+| size=medium, selection=selected | `container/indicator/content/labelBox/label` | `type.label.md.emphasis` |
+| size=small, selection=selected | `container/indicator/content/labelBox/reserve/labelReserve` | `type.label.sm.emphasis` |
+| size=small, selection=selected | `container/indicator/content/labelBox/label` | `type.label.sm.emphasis` |
+| size=large, selection=selected | `container/indicator/content/labelBox/reserve/labelReserve` | `type.label.lg.emphasis` |
+| size=large, selection=selected | `container/indicator/content/labelBox/label` | `type.label.lg.emphasis` |
+
+### Color
+
+Keyed by `selection`, `state`.
+
+**selection=unselected, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/indicator/content/leadingVisual` | — | — | — | `color.interactive.neutral.icon.rest` |
+| `container/indicator/content/labelBox/reserve/labelReserve` | — | — | `color.interactive.neutral.text.rest` | — |
+| `container/indicator/content/labelBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
+
+**selection=unselected, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/indicator` | `color.interactive.neutral.overlay.hover` | — | — | — |
+| `container/indicator/content/leadingVisual` | — | — | — | `color.interactive.neutral.icon.hover` |
+| `container/indicator/content/labelBox/reserve/labelReserve` | — | — | `color.interactive.neutral.text.hover` | — |
+| `container/indicator/content/labelBox/label` | — | — | `color.interactive.neutral.text.hover` | — |
+
+**selection=unselected, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/indicator` | `color.interactive.neutral.overlay.pressed` | — | — | — |
+| `container/indicator/content/leadingVisual` | — | — | — | `color.interactive.neutral.icon.pressed` |
+| `container/indicator/content/labelBox/reserve/labelReserve` | — | — | `color.interactive.neutral.text.pressed` | — |
+| `container/indicator/content/labelBox/label` | — | — | `color.interactive.neutral.text.pressed` | — |
+
+**selection=unselected, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/indicator/content/leadingVisual` | — | — | — | `color.interactive.neutral.icon.rest` |
+| `container/indicator/content/labelBox/reserve/labelReserve` | — | — | `color.interactive.neutral.text.rest` | — |
+| `container/indicator/content/labelBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
+
+**selection=unselected, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/indicator/content/leadingVisual` | — | — | — | `color.disabled.icon` |
+| `container/indicator/content/labelBox/reserve/labelReserve` | — | — | `color.disabled.text` | — |
+| `container/indicator/content/labelBox/label` | — | — | `color.disabled.text` | — |
+
+**selection=selected, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/indicator` | `color.background.primary` | — | — | — |
+| `container/indicator/content/leadingVisual` | — | — | — | `color.interactive.neutral.icon.rest` |
+| `container/indicator/content/labelBox/reserve/labelReserve` | — | — | `color.interactive.neutral.text.rest` | — |
+| `container/indicator/content/labelBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
+
+**selection=selected, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/indicator` | `color.background.primary` | — | — | — |
+| `container/indicator/content/leadingVisual` | — | — | — | `color.interactive.neutral.icon.rest` |
+| `container/indicator/content/labelBox/reserve/labelReserve` | — | — | `color.interactive.neutral.text.rest` | — |
+| `container/indicator/content/labelBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
+
+**selection=selected, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/indicator` | `color.background.primary` | — | — | — |
+| `container/indicator/content/leadingVisual` | — | — | — | `color.interactive.neutral.icon.rest` |
+| `container/indicator/content/labelBox/reserve/labelReserve` | — | — | `color.interactive.neutral.text.rest` | — |
+| `container/indicator/content/labelBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
+
+**selection=selected, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/indicator` | `color.background.primary` | — | — | — |
+| `container/indicator/content/leadingVisual` | — | — | — | `color.interactive.neutral.icon.rest` |
+| `container/indicator/content/labelBox/reserve/labelReserve` | — | — | `color.interactive.neutral.text.rest` | — |
+| `container/indicator/content/labelBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
+
+**selection=selected, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/indicator` | `color.background.primary` | — | — | — |
+| `container/indicator/content/leadingVisual` | — | — | — | `color.disabled.icon` |
+| `container/indicator/content/labelBox/reserve/labelReserve` | — | — | `color.disabled.text` | — |
+| `container/indicator/content/labelBox/label` | — | — | `color.disabled.text` | — |
+
+### Nesting and properties
+
+- `container/indicator/content/leadingVisual` is a swap slot, property `↳ swap leading icon`, shown by `leading icon`
+- `container/indicator/focusRing` nests `focus-ring` at `surface=default`
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `label` | text | `Option` |
+| `leading icon` | boolean | `false` |
+| `↳ swap leading icon` | instance swap | — |
+
 ---
 
 Generated from the `segmented-control-segment` component definition.

@@ -89,6 +89,181 @@ The atom has no copy of its own; all label, description and error text belongs t
 - **Replaces:**
   - the painted control inlined in a checkbox row
 
+## Specs
+
+Generated from the plan that builds the design-file component: 54 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `control` | frame | every member |
+| `control/focusRing` | instance | state=focus-visible |
+| `control/mark` | frame | selection=checked |
+| `control/mark/glyph` | instance | selection=checked |
+| `control/dash` | frame | selection=indeterminate |
+| `control/dash/glyph` | instance | selection=indeterminate |
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by `size`.
+
+**size=medium**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `control` | — | — | `control.size.md.height` | `control.size.md.height` | — | — |
+| `control/mark` | — | — | `control.size.md.height` | `control.size.md.height` | — | — |
+| `control/dash` | — | — | `control.size.md.height` | `control.size.md.height` | — | — |
+
+**size=small**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `control` | — | — | `control.size.sm.height` | `control.size.sm.height` | — | — |
+| `control/mark` | — | — | `control.size.sm.height` | `control.size.sm.height` | — | — |
+| `control/dash` | — | — | `control.size.sm.height` | `control.size.sm.height` | — | — |
+
+**size=large**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `control` | — | — | `control.size.lg.height` | `control.size.lg.height` | — | — |
+| `control/mark` | — | — | `control.size.lg.height` | `control.size.lg.height` | — | — |
+| `control/dash` | — | — | `control.size.lg.height` | `control.size.lg.height` | — | — |
+
+### Color
+
+Keyed by `selection`, `state`.
+
+**selection=unchecked, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | — | `color.field.border.rest` | — | — |
+
+**selection=unchecked, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | — | `color.field.border.hover` | — | — |
+
+**selection=unchecked, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | — | `color.field.border.rest` | — | — |
+
+**selection=unchecked, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | — | `color.field.border.rest` | — | — |
+
+**selection=unchecked, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | — | `color.disabled.border` | — | — |
+
+**selection=unchecked, state=error**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | — | `color.border.danger` | — | — |
+
+**selection=checked, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | `color.interactive.primary.fill.selected` | — | — | — |
+| `control/mark/glyph` | — | — | — | `color.interactive.primary.on-fill` |
+
+**selection=checked, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | `color.interactive.primary.fill.hover` | — | — | — |
+| `control/mark/glyph` | — | — | — | `color.interactive.primary.on-fill` |
+
+**selection=checked, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | `color.interactive.primary.fill.pressed` | — | — | — |
+| `control/mark/glyph` | — | — | — | `color.interactive.primary.on-fill` |
+
+**selection=checked, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | `color.interactive.primary.fill.selected` | — | — | — |
+| `control/mark/glyph` | — | — | — | `color.interactive.primary.on-fill` |
+
+**selection=checked, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | `color.disabled.fill` | — | — | — |
+| `control/mark/glyph` | — | — | — | `color.disabled.on-fill` |
+
+**selection=checked, state=error**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | `color.interactive.primary.fill.selected` | `color.border.danger` | — | — |
+| `control/mark/glyph` | — | — | — | `color.interactive.primary.on-fill` |
+
+**selection=indeterminate, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | `color.interactive.primary.fill.selected` | — | — | — |
+| `control/dash/glyph` | — | — | — | `color.interactive.primary.on-fill` |
+
+**selection=indeterminate, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | `color.interactive.primary.fill.hover` | — | — | — |
+| `control/dash/glyph` | — | — | — | `color.interactive.primary.on-fill` |
+
+**selection=indeterminate, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | `color.interactive.primary.fill.pressed` | — | — | — |
+| `control/dash/glyph` | — | — | — | `color.interactive.primary.on-fill` |
+
+**selection=indeterminate, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | `color.interactive.primary.fill.selected` | — | — | — |
+| `control/dash/glyph` | — | — | — | `color.interactive.primary.on-fill` |
+
+**selection=indeterminate, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | `color.disabled.fill` | — | — | — |
+| `control/dash/glyph` | — | — | — | `color.disabled.on-fill` |
+
+**selection=indeterminate, state=error**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | `color.interactive.primary.fill.selected` | `color.border.danger` | — | — |
+| `control/dash/glyph` | — | — | — | `color.interactive.primary.on-fill` |
+
+### Nesting and properties
+
+- `control/focusRing` nests `focus-ring` at `surface=default`
+- `control/mark/glyph` nests `icon/check`
+- `control/dash/glyph` nests `icon/minus`
+
 ---
 
 Generated from the `checkbox-control` component definition.

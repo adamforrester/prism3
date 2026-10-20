@@ -105,6 +105,68 @@ The label names the setting and never changes. The description says what turning
   - two radios standing in for an obvious binary on/off
   - an aria-pressed toggle button misused to hold a state setting
 
+## Specs
+
+Generated from the plan that builds the design-file component: 2 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `row` | frame | every member |
+| `row/label` | text | every member |
+| `row/trackBox` | frame | every member |
+| `row/trackBox/control` | instance | every member |
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by `size`.
+
+**size=medium**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `row` | — | `space.100` | — | — | — | — |
+| `row/trackBox` | — | — | `control.size.md.line-box` | — | — | — |
+| `row/trackBox/control` | — | — | `control.size.md.track` | — | — | — |
+
+**size=small**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `row` | — | `space.100` | — | — | — | — |
+| `row/trackBox` | — | — | `control.size.sm.line-box` | — | — | — |
+| `row/trackBox/control` | — | — | `control.size.sm.track` | — | — | — |
+
+### Type
+
+Keyed by `size`.
+
+| Members | Part | Text style |
+| --- | --- | --- |
+| size=medium | `row/label` | `type.body.md.default` |
+| size=small | `row/label` | `type.body.sm.default` |
+
+### Color
+
+Keyed by nothing: one row covers every member.
+
+**every member**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `row/label` | — | — | `color.text.primary` | — |
+
+### Nesting and properties
+
+- `row/trackBox/control` nests `switch-control` at `selection=off, state=rest`; follows `size`; exposes `selection`, `state`, `showStateLabel`
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `label` | text | `Switch label` |
+
 ---
 
 Generated from the `switch-row` component definition.

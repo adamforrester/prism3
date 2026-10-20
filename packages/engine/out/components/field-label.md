@@ -80,6 +80,132 @@ Place above every field as its accessible name. Wire htmlFor to the field id. Se
 - **Replaces:**
   - an aria-label standing in for a visible label
 
+## Specs
+
+Generated from the plan that builds the design-file component: 24 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `label` | frame | every member |
+| `label/text` | text | every member |
+| `label/indicator` | text | every member |
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by `size`.
+
+**size=small**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `label` | — | `space.050` | — | — | — | build width 320px (literal) |
+| `label/text` | — | — | — | — | — | max width 316px (literal) |
+
+**size=medium**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `label` | — | `space.050` | — | — | — | build width 320px (literal) |
+| `label/text` | — | — | — | — | — | max width 316px (literal) |
+
+**size=large**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `label` | — | `space.050` | — | — | — | build width 320px (literal) |
+| `label/text` | — | — | — | — | — | max width 316px (literal) |
+
+### Type
+
+Keyed by `size`, `weight`.
+
+| Members | Part | Text style |
+| --- | --- | --- |
+| size=small, weight=regular | `label/text` | `type.body.xs.default` |
+| size=small, weight=regular | `label/indicator` | `type.body.xs.default` |
+| size=medium, weight=regular | `label/text` | `type.body.sm.default` |
+| size=medium, weight=regular | `label/indicator` | `type.body.sm.default` |
+| size=large, weight=regular | `label/text` | `type.body.md.default` |
+| size=large, weight=regular | `label/indicator` | `type.body.md.default` |
+| size=small, weight=bold | `label/text` | `type.body.xs.strong` |
+| size=small, weight=bold | `label/indicator` | `type.body.xs.strong` |
+| size=medium, weight=bold | `label/text` | `type.body.sm.strong` |
+| size=medium, weight=bold | `label/indicator` | `type.body.sm.strong` |
+| size=large, weight=bold | `label/text` | `type.body.md.strong` |
+| size=large, weight=bold | `label/indicator` | `type.body.md.strong` |
+
+### Color
+
+Keyed by `emphasis`, `weight`, `state`.
+
+**emphasis=secondary, weight=regular, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `label/text` | — | — | `color.text.secondary` | — |
+| `label/indicator` | — | — | `color.text.secondary` | — |
+
+**emphasis=secondary, weight=regular, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `label/text` | — | — | `color.disabled.text` | — |
+| `label/indicator` | — | — | `color.disabled.text` | — |
+
+**emphasis=secondary, weight=bold, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `label/text` | — | — | `color.text.secondary` | — |
+| `label/indicator` | — | — | `color.text.secondary` | — |
+
+**emphasis=secondary, weight=bold, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `label/text` | — | — | `color.disabled.text` | — |
+| `label/indicator` | — | — | `color.disabled.text` | — |
+
+**emphasis=primary, weight=regular, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `label/text` | — | — | `color.text.primary` | — |
+| `label/indicator` | — | — | `color.text.primary` | — |
+
+**emphasis=primary, weight=regular, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `label/text` | — | — | `color.disabled.text` | — |
+| `label/indicator` | — | — | `color.disabled.text` | — |
+
+**emphasis=primary, weight=bold, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `label/text` | — | — | `color.text.primary` | — |
+| `label/indicator` | — | — | `color.text.primary` | — |
+
+**emphasis=primary, weight=bold, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `label/text` | — | — | `color.disabled.text` | — |
+| `label/indicator` | — | — | `color.disabled.text` | — |
+
+### Nesting and properties
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `label` | text | `Label` |
+| `required marker` | text | `*` |
+| `required` | boolean | `false` |
+
 ---
 
 Generated from the `field-label` component definition.

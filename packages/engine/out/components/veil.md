@@ -79,6 +79,212 @@ None — not interactive.
 - **Replaces:**
   - a hand-tuned semi-transparent rectangle over an image with an ad-hoc opacity
 
+## Specs
+
+Generated from the plan that builds the design-file component: 30 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `wash` | frame | every member |
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by nothing: one row covers every member.
+
+**every member**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `wash` | — | — | `container.narrow` | `container.narrow` | — | — |
+
+### Color
+
+Keyed by `value`, `intensity`, `direction`.
+
+**value=dark, intensity=medium, direction=full**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | `color.veil.dark.medium` | — | — | — |
+
+**value=dark, intensity=medium, direction=from-top**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.dark.medium` → `color.veil.dark.clear` | — | — | — |
+
+**value=dark, intensity=medium, direction=from-bottom**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.dark.medium` → `color.veil.dark.clear` | — | — | — |
+
+**value=dark, intensity=medium, direction=from-left**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.dark.medium` → `color.veil.dark.clear` | — | — | — |
+
+**value=dark, intensity=medium, direction=from-right**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.dark.medium` → `color.veil.dark.clear` | — | — | — |
+
+**value=dark, intensity=subtle, direction=full**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | `color.veil.dark.subtle` | — | — | — |
+
+**value=dark, intensity=subtle, direction=from-top**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.dark.subtle` → `color.veil.dark.clear` | — | — | — |
+
+**value=dark, intensity=subtle, direction=from-bottom**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.dark.subtle` → `color.veil.dark.clear` | — | — | — |
+
+**value=dark, intensity=subtle, direction=from-left**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.dark.subtle` → `color.veil.dark.clear` | — | — | — |
+
+**value=dark, intensity=subtle, direction=from-right**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.dark.subtle` → `color.veil.dark.clear` | — | — | — |
+
+**value=dark, intensity=strong, direction=full**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | `color.veil.dark.strong` | — | — | — |
+
+**value=dark, intensity=strong, direction=from-top**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.dark.strong` → `color.veil.dark.clear` | — | — | — |
+
+**value=dark, intensity=strong, direction=from-bottom**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.dark.strong` → `color.veil.dark.clear` | — | — | — |
+
+**value=dark, intensity=strong, direction=from-left**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.dark.strong` → `color.veil.dark.clear` | — | — | — |
+
+**value=dark, intensity=strong, direction=from-right**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.dark.strong` → `color.veil.dark.clear` | — | — | — |
+
+**value=light, intensity=medium, direction=full**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | `color.veil.light.medium` | — | — | — |
+
+**value=light, intensity=medium, direction=from-top**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.light.medium` → `color.veil.light.clear` | — | — | — |
+
+**value=light, intensity=medium, direction=from-bottom**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.light.medium` → `color.veil.light.clear` | — | — | — |
+
+**value=light, intensity=medium, direction=from-left**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.light.medium` → `color.veil.light.clear` | — | — | — |
+
+**value=light, intensity=medium, direction=from-right**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.light.medium` → `color.veil.light.clear` | — | — | — |
+
+**value=light, intensity=subtle, direction=full**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | `color.veil.light.subtle` | — | — | — |
+
+**value=light, intensity=subtle, direction=from-top**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.light.subtle` → `color.veil.light.clear` | — | — | — |
+
+**value=light, intensity=subtle, direction=from-bottom**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.light.subtle` → `color.veil.light.clear` | — | — | — |
+
+**value=light, intensity=subtle, direction=from-left**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.light.subtle` → `color.veil.light.clear` | — | — | — |
+
+**value=light, intensity=subtle, direction=from-right**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.light.subtle` → `color.veil.light.clear` | — | — | — |
+
+**value=light, intensity=strong, direction=full**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | `color.veil.light.strong` | — | — | — |
+
+**value=light, intensity=strong, direction=from-top**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.light.strong` → `color.veil.light.clear` | — | — | — |
+
+**value=light, intensity=strong, direction=from-bottom**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.light.strong` → `color.veil.light.clear` | — | — | — |
+
+**value=light, intensity=strong, direction=from-left**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.light.strong` → `color.veil.light.clear` | — | — | — |
+
+**value=light, intensity=strong, direction=from-right**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.light.strong` → `color.veil.light.clear` | — | — | — |
+
 ---
 
 Generated from the `veil` component definition.

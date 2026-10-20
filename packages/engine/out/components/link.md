@@ -102,6 +102,324 @@ Descriptive text that stands alone, sentence case. Front-load the words that nam
   - an \<a> with no href, href="#" or javascript:void(0)
   - a[role=button] used for navigation
 
+## Specs
+
+Generated from the plan that builds the design-file component: 96 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `container` | frame | every member |
+| `container/label` | text | every member |
+| `container/trailingVisual` | swap | style=standalone |
+| `container/focusRing` | instance | state=focus-visible |
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by `size`.
+
+**size=medium**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.050` | — | — | — | — |
+| `container/trailingVisual` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+
+**size=small**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.050` | — | — | — | — |
+| `container/trailingVisual` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+
+**size=large**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | — |
+| `container/trailingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+### Type
+
+Keyed by `size`, `style`, `weight`, `state`.
+
+| Members | Part | Text style |
+| --- | --- | --- |
+| size=medium, style=standalone, weight=emphasis, state=rest | `container/label` | `type.body.md.strong` |
+| size=medium, style=standalone, weight=emphasis, state=hover | `container/label` | `type.body.md.strong-link` |
+| size=medium, style=standalone, weight=emphasis, state=pressed | `container/label` | `type.body.md.strong-link` |
+| size=medium, style=standalone, weight=emphasis, state=focus-visible | `container/label` | `type.body.md.strong-link` |
+| size=small, style=standalone, weight=emphasis, state=rest | `container/label` | `type.body.sm.strong` |
+| size=small, style=standalone, weight=emphasis, state=hover | `container/label` | `type.body.sm.strong-link` |
+| size=small, style=standalone, weight=emphasis, state=pressed | `container/label` | `type.body.sm.strong-link` |
+| size=small, style=standalone, weight=emphasis, state=focus-visible | `container/label` | `type.body.sm.strong-link` |
+| size=large, style=standalone, weight=emphasis, state=rest | `container/label` | `type.body.lg.strong` |
+| size=large, style=standalone, weight=emphasis, state=hover | `container/label` | `type.body.lg.strong-link` |
+| size=large, style=standalone, weight=emphasis, state=pressed | `container/label` | `type.body.lg.strong-link` |
+| size=large, style=standalone, weight=emphasis, state=focus-visible | `container/label` | `type.body.lg.strong-link` |
+| size=medium, style=standalone, weight=default, state=rest | `container/label` | `type.body.md.default` |
+| size=medium, style=standalone, weight=default, state=hover | `container/label` | `type.body.md.default-link` |
+| size=medium, style=standalone, weight=default, state=pressed | `container/label` | `type.body.md.default-link` |
+| size=medium, style=standalone, weight=default, state=focus-visible | `container/label` | `type.body.md.default-link` |
+| size=small, style=standalone, weight=default, state=rest | `container/label` | `type.body.sm.default` |
+| size=small, style=standalone, weight=default, state=hover | `container/label` | `type.body.sm.default-link` |
+| size=small, style=standalone, weight=default, state=pressed | `container/label` | `type.body.sm.default-link` |
+| size=small, style=standalone, weight=default, state=focus-visible | `container/label` | `type.body.sm.default-link` |
+| size=large, style=standalone, weight=default, state=rest | `container/label` | `type.body.lg.default` |
+| size=large, style=standalone, weight=default, state=hover | `container/label` | `type.body.lg.default-link` |
+| size=large, style=standalone, weight=default, state=pressed | `container/label` | `type.body.lg.default-link` |
+| size=large, style=standalone, weight=default, state=focus-visible | `container/label` | `type.body.lg.default-link` |
+| size=medium, style=inline, weight=emphasis, state=rest | `container/label` | `type.body.md.strong-link` |
+| size=medium, style=inline, weight=emphasis, state=hover | `container/label` | `type.body.md.strong-link` |
+| size=medium, style=inline, weight=emphasis, state=pressed | `container/label` | `type.body.md.strong-link` |
+| size=medium, style=inline, weight=emphasis, state=focus-visible | `container/label` | `type.body.md.strong-link` |
+| size=small, style=inline, weight=emphasis, state=rest | `container/label` | `type.body.sm.strong-link` |
+| size=small, style=inline, weight=emphasis, state=hover | `container/label` | `type.body.sm.strong-link` |
+| size=small, style=inline, weight=emphasis, state=pressed | `container/label` | `type.body.sm.strong-link` |
+| size=small, style=inline, weight=emphasis, state=focus-visible | `container/label` | `type.body.sm.strong-link` |
+| size=large, style=inline, weight=emphasis, state=rest | `container/label` | `type.body.lg.strong-link` |
+| size=large, style=inline, weight=emphasis, state=hover | `container/label` | `type.body.lg.strong-link` |
+| size=large, style=inline, weight=emphasis, state=pressed | `container/label` | `type.body.lg.strong-link` |
+| size=large, style=inline, weight=emphasis, state=focus-visible | `container/label` | `type.body.lg.strong-link` |
+| size=medium, style=inline, weight=default, state=rest | `container/label` | `type.body.md.default-link` |
+| size=medium, style=inline, weight=default, state=hover | `container/label` | `type.body.md.default-link` |
+| size=medium, style=inline, weight=default, state=pressed | `container/label` | `type.body.md.default-link` |
+| size=medium, style=inline, weight=default, state=focus-visible | `container/label` | `type.body.md.default-link` |
+| size=small, style=inline, weight=default, state=rest | `container/label` | `type.body.sm.default-link` |
+| size=small, style=inline, weight=default, state=hover | `container/label` | `type.body.sm.default-link` |
+| size=small, style=inline, weight=default, state=pressed | `container/label` | `type.body.sm.default-link` |
+| size=small, style=inline, weight=default, state=focus-visible | `container/label` | `type.body.sm.default-link` |
+| size=large, style=inline, weight=default, state=rest | `container/label` | `type.body.lg.default-link` |
+| size=large, style=inline, weight=default, state=hover | `container/label` | `type.body.lg.default-link` |
+| size=large, style=inline, weight=default, state=pressed | `container/label` | `type.body.lg.default-link` |
+| size=large, style=inline, weight=default, state=focus-visible | `container/label` | `type.body.lg.default-link` |
+
+### Color
+
+Keyed by `style`, `weight`, `surface`, `state`.
+
+**style=standalone, weight=emphasis, surface=default, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.text.link.default` | — |
+| `container/trailingVisual` | — | — | — | `color.icon.link.default` |
+
+**style=standalone, weight=emphasis, surface=default, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.text.link.hover` | — |
+| `container/trailingVisual` | — | — | — | `color.icon.link.hover` |
+
+**style=standalone, weight=emphasis, surface=default, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.text.link.pressed` | — |
+| `container/trailingVisual` | — | — | — | `color.icon.link.pressed` |
+
+**style=standalone, weight=emphasis, surface=default, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.text.link.focused` | — |
+| `container/trailingVisual` | — | — | — | `color.icon.link.focused` |
+
+**style=standalone, weight=emphasis, surface=inverse, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.inverse.text.link.default` | — |
+| `container/trailingVisual` | — | — | — | `color.inverse.icon.link.default` |
+
+**style=standalone, weight=emphasis, surface=inverse, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.inverse.text.link.hover` | — |
+| `container/trailingVisual` | — | — | — | `color.inverse.icon.link.hover` |
+
+**style=standalone, weight=emphasis, surface=inverse, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.inverse.text.link.pressed` | — |
+| `container/trailingVisual` | — | — | — | `color.inverse.icon.link.pressed` |
+
+**style=standalone, weight=emphasis, surface=inverse, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.inverse.text.link.focused` | — |
+| `container/trailingVisual` | — | — | — | `color.inverse.icon.link.focused` |
+
+**style=standalone, weight=default, surface=default, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.text.link.default` | — |
+| `container/trailingVisual` | — | — | — | `color.icon.link.default` |
+
+**style=standalone, weight=default, surface=default, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.text.link.hover` | — |
+| `container/trailingVisual` | — | — | — | `color.icon.link.hover` |
+
+**style=standalone, weight=default, surface=default, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.text.link.pressed` | — |
+| `container/trailingVisual` | — | — | — | `color.icon.link.pressed` |
+
+**style=standalone, weight=default, surface=default, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.text.link.focused` | — |
+| `container/trailingVisual` | — | — | — | `color.icon.link.focused` |
+
+**style=standalone, weight=default, surface=inverse, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.inverse.text.link.default` | — |
+| `container/trailingVisual` | — | — | — | `color.inverse.icon.link.default` |
+
+**style=standalone, weight=default, surface=inverse, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.inverse.text.link.hover` | — |
+| `container/trailingVisual` | — | — | — | `color.inverse.icon.link.hover` |
+
+**style=standalone, weight=default, surface=inverse, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.inverse.text.link.pressed` | — |
+| `container/trailingVisual` | — | — | — | `color.inverse.icon.link.pressed` |
+
+**style=standalone, weight=default, surface=inverse, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.inverse.text.link.focused` | — |
+| `container/trailingVisual` | — | — | — | `color.inverse.icon.link.focused` |
+
+**style=inline, weight=emphasis, surface=default, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.text.link.default` | — |
+
+**style=inline, weight=emphasis, surface=default, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.text.link.hover` | — |
+
+**style=inline, weight=emphasis, surface=default, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.text.link.pressed` | — |
+
+**style=inline, weight=emphasis, surface=default, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.text.link.focused` | — |
+
+**style=inline, weight=emphasis, surface=inverse, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.inverse.text.link.default` | — |
+
+**style=inline, weight=emphasis, surface=inverse, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.inverse.text.link.hover` | — |
+
+**style=inline, weight=emphasis, surface=inverse, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.inverse.text.link.pressed` | — |
+
+**style=inline, weight=emphasis, surface=inverse, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.inverse.text.link.focused` | — |
+
+**style=inline, weight=default, surface=default, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.text.link.default` | — |
+
+**style=inline, weight=default, surface=default, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.text.link.hover` | — |
+
+**style=inline, weight=default, surface=default, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.text.link.pressed` | — |
+
+**style=inline, weight=default, surface=default, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.text.link.focused` | — |
+
+**style=inline, weight=default, surface=inverse, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.inverse.text.link.default` | — |
+
+**style=inline, weight=default, surface=inverse, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.inverse.text.link.hover` | — |
+
+**style=inline, weight=default, surface=inverse, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.inverse.text.link.pressed` | — |
+
+**style=inline, weight=default, surface=inverse, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.inverse.text.link.focused` | — |
+
+### Nesting and properties
+
+- `container/trailingVisual` is a swap slot, property `↳ swap trailing icon`, shown by `trailing icon`
+- `container/focusRing` nests `focus-ring` at `surface=default`; follows `surface`
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `label` | text | `Link text` |
+| `trailing icon` | boolean | `false` |
+| `↳ swap trailing icon` | instance swap | — |
+
 ---
 
 Generated from the `link` component definition.

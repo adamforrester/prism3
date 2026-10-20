@@ -105,6 +105,145 @@ The label is a noun ("Quantity"). Button names are a verb with the object. A lim
   - a select of 1 to 10 for a bag quantity
   - two IconButtons around a \<span> with no spinbutton semantics
 
+## Specs
+
+Generated from the plan that builds the design-file component: 18 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `container` | frame | every member |
+| `container/label` | instance | every member |
+| `container/control` | frame | every member |
+| `container/control/decrement` | instance | every member |
+| `container/control/entry` | frame | every member |
+| `container/control/entry/value` | text | every member |
+| `container/control/increment` | instance | every member |
+| `container/message` | instance | every member |
+| `container/control/focusRing` | instance | state=focus-visible |
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by `size`, `appearance`.
+
+**size=medium, appearance=outline**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | — |
+| `container/control` | `space.0` / `space.150` / `space.0` / `space.150` | — | `size.md.height` | — | — | — |
+| `container/control/entry` | `space.0` / `space.050` / `space.0` / `space.050` | — | — | — | 32px (literal) | — |
+
+**size=small, appearance=outline**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | — |
+| `container/control` | `space.0` / `space.150` / `space.0` / `space.150` | — | `size.sm.height` | — | — | — |
+| `container/control/entry` | `space.0` / `space.050` / `space.0` / `space.050` | — | — | — | 32px (literal) | — |
+
+**size=large, appearance=outline**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | — |
+| `container/control` | `space.0` / `space.200` / `space.0` / `space.200` | — | `size.lg.height` | — | — | — |
+| `container/control/entry` | `space.0` / `space.100` / `space.0` / `space.100` | — | — | — | 32px (literal) | — |
+
+**size=medium, appearance=ghost**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | — |
+| `container/control` | `space.0` | — | `size.md.height` | — | — | — |
+| `container/control/entry` | `space.0` / `space.050` / `space.0` / `space.050` | — | — | — | 32px (literal) | — |
+
+**size=small, appearance=ghost**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | — |
+| `container/control` | `space.0` | — | `size.sm.height` | — | — | — |
+| `container/control/entry` | `space.0` / `space.050` / `space.0` / `space.050` | — | — | — | 32px (literal) | — |
+
+**size=large, appearance=ghost**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | — |
+| `container/control` | `space.0` | — | `size.lg.height` | — | — | — |
+| `container/control/entry` | `space.0` / `space.100` / `space.0` / `space.100` | — | — | — | 32px (literal) | — |
+
+### Type
+
+Keyed by `size`.
+
+| Members | Part | Text style |
+| --- | --- | --- |
+| size=medium | `container/control/entry/value` | `type.body.md.default` |
+| size=small | `container/control/entry/value` | `type.body.sm.default` |
+| size=large | `container/control/entry/value` | `type.body.lg.default` |
+
+### Color
+
+Keyed by `appearance`, `state`.
+
+**appearance=outline, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.field.border.rest` | — | — |
+| `container/control/entry/value` | — | — | `color.text.primary` | — |
+
+**appearance=outline, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.field.border.rest` | — | — |
+| `container/control/entry/value` | — | — | `color.text.primary` | — |
+
+**appearance=outline, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | — | `color.disabled.border` | — | — |
+| `container/control/entry/value` | — | — | `color.disabled.text` | — |
+
+**appearance=ghost, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control/entry/value` | — | — | `color.text.primary` | — |
+
+**appearance=ghost, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control/entry/value` | — | — | `color.text.primary` | — |
+
+**appearance=ghost, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control/entry/value` | — | — | `color.disabled.text` | — |
+
+### Nesting and properties
+
+- `container/label` nests `field-label` at `size=medium, emphasis=secondary, weight=regular, state=rest`; follows `size`; exposes `emphasis`, `weight`
+- `container/control/decrement` nests `flush-icon-button-neutral` at `shape=flush, size=medium, state=rest`; follows `size`; exposes `state`
+- `container/control/increment` nests `flush-icon-button-neutral` at `shape=flush, size=medium, state=rest`; follows `size`; exposes `state`
+- `container/message` nests `field-message` at `status=default`
+- `container/control/focusRing` nests `focus-ring` at `surface=default`
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `value` | text | `1` |
+| `label` | boolean | `false` |
+| `message` | boolean | `false` |
+
 ---
 
 Generated from the `counter` component definition.

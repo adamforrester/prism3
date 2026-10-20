@@ -94,6 +94,102 @@ One or two words per tab, nouns, sentence case.
   - show and hide divs with no tab semantics
   - role="tab" on links that change the route
 
+## Specs
+
+Generated from the plan that builds the design-file component: 6 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `container` | frame | every member |
+| `container/items` | slot | every member |
+| `container/items/tab1` | instance | every member |
+| `container/items/tab2` | instance | every member |
+| `container/items/tab3` | instance | every member |
+| `container/baseline` | frame | every member |
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by `size`, `alignment`.
+
+**size=medium, alignment=start**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.0` | — | — | — | — |
+| `container/items` | — | `space.0` | — | — | — | — |
+| `container/baseline` | — | — | `border-width.hairline` | — | — | — |
+
+**size=small, alignment=start**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.0` | — | — | — | — |
+| `container/items` | — | `space.0` | — | — | — | — |
+| `container/baseline` | — | — | `border-width.hairline` | — | — | — |
+
+**size=large, alignment=start**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.0` | — | — | — | — |
+| `container/items` | — | `space.0` | — | — | — | — |
+| `container/baseline` | — | — | `border-width.hairline` | — | — | — |
+
+**size=medium, alignment=center**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.0` | — | — | — | build width 480px (literal) |
+| `container/items` | — | `space.0` | — | — | — | — |
+| `container/baseline` | — | — | `border-width.hairline` | — | — | — |
+
+**size=small, alignment=center**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.0` | — | — | — | build width 480px (literal) |
+| `container/items` | — | `space.0` | — | — | — | — |
+| `container/baseline` | — | — | `border-width.hairline` | — | — | — |
+
+**size=large, alignment=center**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.0` | — | — | — | build width 480px (literal) |
+| `container/items` | — | `space.0` | — | — | — | — |
+| `container/baseline` | — | — | `border-width.hairline` | — | — | — |
+
+### Color
+
+Keyed by `alignment`.
+
+**alignment=start**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/baseline` | `color.border.primary` | — | — | — |
+
+**alignment=center**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/baseline` | `color.border.primary` | — | — | — |
+
+### Nesting and properties
+
+- `container/items` is a slot, preferring `tab`
+- `container/items/tab1` nests `tab` at `selection=selected, size=medium, state=rest`; follows `size`
+- `container/items/tab2` nests `tab` at `selection=unselected, size=medium, state=rest`; follows `size`
+- `container/items/tab3` nests `tab` at `selection=unselected, size=medium, state=rest`; follows `size`
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `items` | slot | — |
+
 ---
 
 Generated from the `tabs` component definition.

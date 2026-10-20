@@ -76,6 +76,87 @@ None — not interactive.
 - **Replaces:**
   - a hand-drawn line or a border-bottom on one item standing in for a separator
 
+## Specs
+
+Generated from the plan that builds the design-file component: 5 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `divider` | frame | every member |
+| `divider/rule` | frame | every member |
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by `orientation`, `inset`.
+
+**orientation=horizontal, inset=none**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `divider` | `space.0` | — | `border-width.hairline` | `container.narrow` | — | — |
+
+**orientation=horizontal, inset=inset**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `divider` | `space.0` / `space.0` / `space.0` / `space.200` | — | `border-width.hairline` | `container.narrow` | — | — |
+
+**orientation=horizontal, inset=middle-inset**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `divider` | `space.0` / `space.200` / `space.0` / `space.200` | — | `border-width.hairline` | `container.narrow` | — | — |
+
+**orientation=vertical, inset=none**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `divider` | `space.0` | — | `size.md.height` | `border-width.hairline` | — | — |
+
+**orientation=vertical, inset=middle-inset**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `divider` | `space.100` / `space.0` / `space.100` / `space.0` | — | `size.md.height` | `border-width.hairline` | — | — |
+
+### Color
+
+Keyed by `orientation`, `inset`.
+
+**orientation=horizontal, inset=none**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `divider/rule` | `color.border.secondary` | — | — | — |
+
+**orientation=horizontal, inset=inset**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `divider/rule` | `color.border.secondary` | — | — | — |
+
+**orientation=horizontal, inset=middle-inset**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `divider/rule` | `color.border.secondary` | — | — | — |
+
+**orientation=vertical, inset=none**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `divider/rule` | `color.border.secondary` | — | — | — |
+
+**orientation=vertical, inset=middle-inset**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `divider/rule` | `color.border.secondary` | — | — | — |
+
 ---
 
 Generated from the `divider` component definition.

@@ -84,6 +84,296 @@ None — not interactive.
   - legacy icon fonts
   - ad-hoc inline SVGs outside the set
 
+## Specs
+
+Generated from the plan that builds the design-file component: 45 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `glyph` | glyph | every member |
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by nothing: one row covers every member.
+
+### Color
+
+Keyed by `name`.
+
+**name=arrow-down**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=arrow-down-left**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=arrow-down-right**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=arrow-left**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=arrow-right**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=arrow-up**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=arrow-up-left**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=arrow-up-right**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=check**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=check-circle**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=check-circle-filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=chevron-down**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=chevron-left**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=chevron-right**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=chevron-up**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=close**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=close-filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=error-circle**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=error-circle-filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=external-link-filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=eye**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=eye-filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=eye-off**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=eye-off-filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=FPO-default-icon**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=home**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=image**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=info-circle**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=info-circle-filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=link**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=menu**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=minus**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=minus-filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=more-horizontal-filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=more-vertical-filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=pause-circle**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=play-circle**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=plus**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=plus-circle**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=plus-circle-filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=plus-filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=resize-grip**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=search**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=warning-triangle**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=warning-triangle-filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
 ---
 
 Generated from the `icon` component definition.

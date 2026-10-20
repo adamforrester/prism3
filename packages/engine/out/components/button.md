@@ -119,6 +119,662 @@ Verb-first, specific, sentence case, no terminal punctuation, ≤3 words to boun
   - input[type=button\|submit]
   - div[role=button]
 
+## Specs
+
+Generated from the plan that builds the design-file component: 576 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `container` | frame | every member |
+| `container/label` | text | every member |
+| `container/leadingVisual` | swap | 240 of 576 members |
+| `container/trailingVisual` | swap | 264 of 576 members |
+| `container/spinner` | swap | state=pending |
+| `container/focusRing` | instance | state=focus-visible |
+
+Code-only states, with no design-file member: `inactive`.
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by `size`, `leading`, `trailing`, `inset`.
+
+**size=medium, leading=false, trailing=false, inset=default**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | `space.100` / `space.200` / `space.100` / `space.200` | `space.100` | `size.md.height` | — | 104px (derived: height × multiplier, rounded up to 8px) | — |
+| `container/spinner` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=medium, leading=true, trailing=false, inset=default**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | `space.100` / `space.200` / `space.100` / `space.150` | `space.100` | `size.md.height` | — | 104px (derived: height × multiplier, rounded up to 8px) | — |
+| `container/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/spinner` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=medium, leading=false, trailing=true, inset=default**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | `space.100` / `space.150` / `space.100` / `space.200` | `space.100` | `size.md.height` | — | 104px (derived: height × multiplier, rounded up to 8px) | — |
+| `container/trailingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/spinner` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=medium, leading=true, trailing=true, inset=default**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | `space.100` / `space.150` / `space.100` / `space.150` | `space.100` | `size.md.height` | — | 104px (derived: height × multiplier, rounded up to 8px) | — |
+| `container/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/trailingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/spinner` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=small, leading=false, trailing=false, inset=default**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | `space.075` / `space.200` / `space.075` / `space.200` | `space.100` | `size.sm.height` | — | 88px (derived: height × multiplier, rounded up to 8px) | — |
+| `container/spinner` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+
+**size=small, leading=true, trailing=false, inset=default**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | `space.075` / `space.200` / `space.075` / `space.150` | `space.100` | `size.sm.height` | — | 88px (derived: height × multiplier, rounded up to 8px) | — |
+| `container/leadingVisual` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/spinner` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+
+**size=small, leading=false, trailing=true, inset=default**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | `space.075` / `space.150` / `space.075` / `space.200` | `space.100` | `size.sm.height` | — | 88px (derived: height × multiplier, rounded up to 8px) | — |
+| `container/trailingVisual` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/spinner` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+
+**size=small, leading=true, trailing=true, inset=default**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | `space.075` / `space.150` / `space.075` / `space.150` | `space.100` | `size.sm.height` | — | 88px (derived: height × multiplier, rounded up to 8px) | — |
+| `container/leadingVisual` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/trailingVisual` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/spinner` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+
+**size=large, leading=false, trailing=false, inset=default**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | `space.100` / `space.300` / `space.100` / `space.300` | `space.150` | `size.lg.height` | — | 128px (derived: height × multiplier, rounded up to 8px) | — |
+| `container/spinner` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+
+**size=large, leading=true, trailing=false, inset=default**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | `space.100` / `space.300` / `space.100` / `space.200` | `space.150` | `size.lg.height` | — | 128px (derived: height × multiplier, rounded up to 8px) | — |
+| `container/leadingVisual` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+| `container/spinner` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+
+**size=large, leading=false, trailing=true, inset=default**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | `space.100` / `space.200` / `space.100` / `space.300` | `space.150` | `size.lg.height` | — | 128px (derived: height × multiplier, rounded up to 8px) | — |
+| `container/trailingVisual` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+| `container/spinner` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+
+**size=large, leading=true, trailing=true, inset=default**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | `space.100` / `space.200` / `space.100` / `space.200` | `space.150` | `size.lg.height` | — | 128px (derived: height × multiplier, rounded up to 8px) | — |
+| `container/leadingVisual` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+| `container/trailingVisual` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+| `container/spinner` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+
+**size=medium, leading=false, trailing=false, inset=flush**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | `space.100` / `space.0` / `space.100` / `space.0` | `space.100` | `size.md.height` | — | — | — |
+| `container/spinner` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=medium, leading=true, trailing=false, inset=flush**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | `space.100` / `space.0` / `space.100` / `space.0` | `space.100` | `size.md.height` | — | — | — |
+| `container/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/spinner` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=medium, leading=false, trailing=true, inset=flush**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | `space.100` / `space.0` / `space.100` / `space.0` | `space.100` | `size.md.height` | — | — | — |
+| `container/trailingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/spinner` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=medium, leading=true, trailing=true, inset=flush**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | `space.100` / `space.0` / `space.100` / `space.0` | `space.100` | `size.md.height` | — | — | — |
+| `container/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/trailingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/spinner` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=small, leading=false, trailing=false, inset=flush**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | `space.075` / `space.0` / `space.075` / `space.0` | `space.100` | `size.sm.height` | — | — | — |
+| `container/spinner` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+
+**size=small, leading=true, trailing=false, inset=flush**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | `space.075` / `space.0` / `space.075` / `space.0` | `space.100` | `size.sm.height` | — | — | — |
+| `container/leadingVisual` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/spinner` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+
+**size=small, leading=false, trailing=true, inset=flush**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | `space.075` / `space.0` / `space.075` / `space.0` | `space.100` | `size.sm.height` | — | — | — |
+| `container/trailingVisual` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/spinner` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+
+**size=small, leading=true, trailing=true, inset=flush**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | `space.075` / `space.0` / `space.075` / `space.0` | `space.100` | `size.sm.height` | — | — | — |
+| `container/leadingVisual` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/trailingVisual` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/spinner` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+
+**size=large, leading=false, trailing=false, inset=flush**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | `space.100` / `space.0` / `space.100` / `space.0` | `space.150` | `size.lg.height` | — | — | — |
+| `container/spinner` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+
+**size=large, leading=true, trailing=false, inset=flush**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | `space.100` / `space.0` / `space.100` / `space.0` | `space.150` | `size.lg.height` | — | — | — |
+| `container/leadingVisual` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+| `container/spinner` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+
+**size=large, leading=false, trailing=true, inset=flush**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | `space.100` / `space.0` / `space.100` / `space.0` | `space.150` | `size.lg.height` | — | — | — |
+| `container/trailingVisual` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+| `container/spinner` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+
+**size=large, leading=true, trailing=true, inset=flush**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | `space.100` / `space.0` / `space.100` / `space.0` | `space.150` | `size.lg.height` | — | — | — |
+| `container/leadingVisual` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+| `container/trailingVisual` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+| `container/spinner` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+
+### Type
+
+Keyed by `size`, `appearance`.
+
+| Members | Part | Text style |
+| --- | --- | --- |
+| size=medium, appearance=filled | `container/label` | `type.label.md.emphasis` |
+| size=small, appearance=filled | `container/label` | `type.label.sm.emphasis` |
+| size=large, appearance=filled | `container/label` | `type.label.lg.emphasis` |
+| size=medium, appearance=outline | `container/label` | `type.label.md.emphasis` |
+| size=small, appearance=outline | `container/label` | `type.label.sm.emphasis` |
+| size=large, appearance=outline | `container/label` | `type.label.lg.emphasis` |
+| size=medium, appearance=text | `container/label` | `type.label.md.emphasis-link` |
+| size=small, appearance=text | `container/label` | `type.label.sm.emphasis-link` |
+| size=large, appearance=text | `container/label` | `type.label.lg.emphasis-link` |
+
+### Color
+
+Keyed by `appearance`, `surface`, `inset`, `state`.
+
+**appearance=filled, surface=default, inset=default, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.primary.fill.rest` | — | — | — |
+| `container/label` | — | — | `color.interactive.primary.on-fill` | — |
+| `container/leadingVisual` | — | — | — | `color.interactive.primary.on-fill` |
+| `container/trailingVisual` | — | — | — | `color.interactive.primary.on-fill` |
+
+**appearance=filled, surface=default, inset=default, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.primary.fill.hover` | — | — | — |
+| `container/label` | — | — | `color.interactive.primary.on-fill` | — |
+| `container/leadingVisual` | — | — | — | `color.interactive.primary.on-fill` |
+| `container/trailingVisual` | — | — | — | `color.interactive.primary.on-fill` |
+
+**appearance=filled, surface=default, inset=default, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.primary.fill.pressed` | — | — | — |
+| `container/label` | — | — | `color.interactive.primary.on-fill` | — |
+| `container/leadingVisual` | — | — | — | `color.interactive.primary.on-fill` |
+| `container/trailingVisual` | — | — | — | `color.interactive.primary.on-fill` |
+
+**appearance=filled, surface=default, inset=default, state=pending**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.primary.fill.rest` | — | — | — |
+| `container/label` | — | — | `color.interactive.primary.on-fill` | — |
+| `container/spinner` | — | — | — | `color.interactive.primary.on-fill` |
+| `container/trailingVisual` | — | — | — | `color.interactive.primary.on-fill` |
+
+**appearance=filled, surface=default, inset=default, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.primary.fill.rest` | — | — | — |
+| `container/label` | — | — | `color.interactive.primary.on-fill` | — |
+| `container/leadingVisual` | — | — | — | `color.interactive.primary.on-fill` |
+| `container/trailingVisual` | — | — | — | `color.interactive.primary.on-fill` |
+
+**appearance=filled, surface=default, inset=default, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.disabled.fill` | — | — | — |
+| `container/label` | — | — | `color.disabled.on-fill` | — |
+| `container/leadingVisual` | — | — | — | `color.disabled.on-fill` |
+| `container/trailingVisual` | — | — | — | `color.disabled.on-fill` |
+
+**appearance=filled, surface=inverse, inset=default, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.primary.fill.rest` | — | — | — |
+| `container/label` | — | — | `color.inverse.interactive.primary.on-fill` | — |
+| `container/leadingVisual` | — | — | — | `color.inverse.interactive.primary.on-fill` |
+| `container/trailingVisual` | — | — | — | `color.inverse.interactive.primary.on-fill` |
+
+**appearance=filled, surface=inverse, inset=default, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.primary.fill.hover` | — | — | — |
+| `container/label` | — | — | `color.inverse.interactive.primary.on-fill` | — |
+| `container/leadingVisual` | — | — | — | `color.inverse.interactive.primary.on-fill` |
+| `container/trailingVisual` | — | — | — | `color.inverse.interactive.primary.on-fill` |
+
+**appearance=filled, surface=inverse, inset=default, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.primary.fill.pressed` | — | — | — |
+| `container/label` | — | — | `color.inverse.interactive.primary.on-fill` | — |
+| `container/leadingVisual` | — | — | — | `color.inverse.interactive.primary.on-fill` |
+| `container/trailingVisual` | — | — | — | `color.inverse.interactive.primary.on-fill` |
+
+**appearance=filled, surface=inverse, inset=default, state=pending**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.primary.fill.rest` | — | — | — |
+| `container/label` | — | — | `color.inverse.interactive.primary.on-fill` | — |
+| `container/spinner` | — | — | — | `color.inverse.interactive.primary.on-fill` |
+| `container/trailingVisual` | — | — | — | `color.inverse.interactive.primary.on-fill` |
+
+**appearance=filled, surface=inverse, inset=default, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.primary.fill.rest` | — | — | — |
+| `container/label` | — | — | `color.inverse.interactive.primary.on-fill` | — |
+| `container/leadingVisual` | — | — | — | `color.inverse.interactive.primary.on-fill` |
+| `container/trailingVisual` | — | — | — | `color.inverse.interactive.primary.on-fill` |
+
+**appearance=filled, surface=inverse, inset=default, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.disabled.fill` | — | — | — |
+| `container/label` | — | — | `color.inverse.disabled.on-fill` | — |
+| `container/leadingVisual` | — | — | — | `color.inverse.disabled.on-fill` |
+| `container/trailingVisual` | — | — | — | `color.inverse.disabled.on-fill` |
+
+**appearance=outline, surface=default, inset=default, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.interactive.primary.border.rest` | — | — |
+| `container/label` | — | — | `color.interactive.primary.text.rest` | — |
+| `container/leadingVisual` | — | — | — | `color.interactive.primary.icon.rest` |
+| `container/trailingVisual` | — | — | — | `color.interactive.primary.icon.rest` |
+
+**appearance=outline, surface=default, inset=default, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.primary.overlay.hover` | `color.interactive.primary.border.hover` | — | — |
+| `container/label` | — | — | `color.interactive.primary.text.hover` | — |
+| `container/leadingVisual` | — | — | — | `color.interactive.primary.icon.hover` |
+| `container/trailingVisual` | — | — | — | `color.interactive.primary.icon.hover` |
+
+**appearance=outline, surface=default, inset=default, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.primary.overlay.pressed` | `color.interactive.primary.border.pressed` | — | — |
+| `container/label` | — | — | `color.interactive.primary.text.pressed` | — |
+| `container/leadingVisual` | — | — | — | `color.interactive.primary.icon.pressed` |
+| `container/trailingVisual` | — | — | — | `color.interactive.primary.icon.pressed` |
+
+**appearance=outline, surface=default, inset=default, state=pending**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.interactive.primary.border.rest` | — | — |
+| `container/label` | — | — | `color.interactive.primary.text.rest` | — |
+| `container/spinner` | — | — | — | `color.interactive.primary.icon.rest` |
+| `container/trailingVisual` | — | — | — | `color.interactive.primary.icon.rest` |
+
+**appearance=outline, surface=default, inset=default, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.interactive.primary.border.rest` | — | — |
+| `container/label` | — | — | `color.interactive.primary.text.rest` | — |
+| `container/leadingVisual` | — | — | — | `color.interactive.primary.icon.rest` |
+| `container/trailingVisual` | — | — | — | `color.interactive.primary.icon.rest` |
+
+**appearance=outline, surface=default, inset=default, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.disabled.border` | — | — |
+| `container/label` | — | — | `color.disabled.text` | — |
+| `container/leadingVisual` | — | — | — | `color.disabled.icon` |
+| `container/trailingVisual` | — | — | — | `color.disabled.icon` |
+
+**appearance=outline, surface=inverse, inset=default, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.inverse.interactive.primary.border.rest` | — | — |
+| `container/label` | — | — | `color.inverse.interactive.primary.text.rest` | — |
+| `container/leadingVisual` | — | — | — | `color.inverse.interactive.primary.icon.rest` |
+| `container/trailingVisual` | — | — | — | `color.inverse.interactive.primary.icon.rest` |
+
+**appearance=outline, surface=inverse, inset=default, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.primary.overlay.hover` | `color.inverse.interactive.primary.border.hover` | — | — |
+| `container/label` | — | — | `color.inverse.interactive.primary.text.hover` | — |
+| `container/leadingVisual` | — | — | — | `color.inverse.interactive.primary.icon.hover` |
+| `container/trailingVisual` | — | — | — | `color.inverse.interactive.primary.icon.hover` |
+
+**appearance=outline, surface=inverse, inset=default, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.primary.overlay.pressed` | `color.inverse.interactive.primary.border.pressed` | — | — |
+| `container/label` | — | — | `color.inverse.interactive.primary.text.pressed` | — |
+| `container/leadingVisual` | — | — | — | `color.inverse.interactive.primary.icon.pressed` |
+| `container/trailingVisual` | — | — | — | `color.inverse.interactive.primary.icon.pressed` |
+
+**appearance=outline, surface=inverse, inset=default, state=pending**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.inverse.interactive.primary.border.rest` | — | — |
+| `container/label` | — | — | `color.inverse.interactive.primary.text.rest` | — |
+| `container/spinner` | — | — | — | `color.inverse.interactive.primary.icon.rest` |
+| `container/trailingVisual` | — | — | — | `color.inverse.interactive.primary.icon.rest` |
+
+**appearance=outline, surface=inverse, inset=default, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.inverse.interactive.primary.border.rest` | — | — |
+| `container/label` | — | — | `color.inverse.interactive.primary.text.rest` | — |
+| `container/leadingVisual` | — | — | — | `color.inverse.interactive.primary.icon.rest` |
+| `container/trailingVisual` | — | — | — | `color.inverse.interactive.primary.icon.rest` |
+
+**appearance=outline, surface=inverse, inset=default, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.inverse.disabled.border` | — | — |
+| `container/label` | — | — | `color.inverse.disabled.text` | — |
+| `container/leadingVisual` | — | — | — | `color.inverse.disabled.icon` |
+| `container/trailingVisual` | — | — | — | `color.inverse.disabled.icon` |
+
+**appearance=text, surface=default, inset=default, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.interactive.primary.text.rest` | — |
+| `container/leadingVisual` | — | — | — | `color.interactive.primary.icon.rest` |
+| `container/trailingVisual` | — | — | — | `color.interactive.primary.icon.rest` |
+
+**appearance=text, surface=default, inset=default, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.interactive.primary.text.hover` | — |
+| `container/leadingVisual` | — | — | — | `color.interactive.primary.icon.hover` |
+| `container/trailingVisual` | — | — | — | `color.interactive.primary.icon.hover` |
+
+**appearance=text, surface=default, inset=default, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.interactive.primary.text.pressed` | — |
+| `container/leadingVisual` | — | — | — | `color.interactive.primary.icon.pressed` |
+| `container/trailingVisual` | — | — | — | `color.interactive.primary.icon.pressed` |
+
+**appearance=text, surface=default, inset=default, state=pending**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.interactive.primary.text.rest` | — |
+| `container/spinner` | — | — | — | `color.interactive.primary.icon.rest` |
+| `container/trailingVisual` | — | — | — | `color.interactive.primary.icon.rest` |
+
+**appearance=text, surface=default, inset=default, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.interactive.primary.text.rest` | — |
+| `container/leadingVisual` | — | — | — | `color.interactive.primary.icon.rest` |
+| `container/trailingVisual` | — | — | — | `color.interactive.primary.icon.rest` |
+
+**appearance=text, surface=default, inset=default, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.disabled.text` | — |
+| `container/leadingVisual` | — | — | — | `color.disabled.icon` |
+| `container/trailingVisual` | — | — | — | `color.disabled.icon` |
+
+**appearance=text, surface=default, inset=flush, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.interactive.primary.text.rest` | — |
+| `container/leadingVisual` | — | — | — | `color.interactive.primary.icon.rest` |
+| `container/trailingVisual` | — | — | — | `color.interactive.primary.icon.rest` |
+
+**appearance=text, surface=default, inset=flush, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.interactive.primary.text.hover` | — |
+| `container/leadingVisual` | — | — | — | `color.interactive.primary.icon.hover` |
+| `container/trailingVisual` | — | — | — | `color.interactive.primary.icon.hover` |
+
+**appearance=text, surface=default, inset=flush, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.interactive.primary.text.pressed` | — |
+| `container/leadingVisual` | — | — | — | `color.interactive.primary.icon.pressed` |
+| `container/trailingVisual` | — | — | — | `color.interactive.primary.icon.pressed` |
+
+**appearance=text, surface=default, inset=flush, state=pending**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.interactive.primary.text.rest` | — |
+| `container/spinner` | — | — | — | `color.interactive.primary.icon.rest` |
+| `container/trailingVisual` | — | — | — | `color.interactive.primary.icon.rest` |
+
+**appearance=text, surface=default, inset=flush, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.interactive.primary.text.rest` | — |
+| `container/leadingVisual` | — | — | — | `color.interactive.primary.icon.rest` |
+| `container/trailingVisual` | — | — | — | `color.interactive.primary.icon.rest` |
+
+**appearance=text, surface=default, inset=flush, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.disabled.text` | — |
+| `container/leadingVisual` | — | — | — | `color.disabled.icon` |
+| `container/trailingVisual` | — | — | — | `color.disabled.icon` |
+
+**appearance=text, surface=inverse, inset=default, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.inverse.interactive.primary.text.rest` | — |
+| `container/leadingVisual` | — | — | — | `color.inverse.interactive.primary.icon.rest` |
+| `container/trailingVisual` | — | — | — | `color.inverse.interactive.primary.icon.rest` |
+
+**appearance=text, surface=inverse, inset=default, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.inverse.interactive.primary.text.hover` | — |
+| `container/leadingVisual` | — | — | — | `color.inverse.interactive.primary.icon.hover` |
+| `container/trailingVisual` | — | — | — | `color.inverse.interactive.primary.icon.hover` |
+
+**appearance=text, surface=inverse, inset=default, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.inverse.interactive.primary.text.pressed` | — |
+| `container/leadingVisual` | — | — | — | `color.inverse.interactive.primary.icon.pressed` |
+| `container/trailingVisual` | — | — | — | `color.inverse.interactive.primary.icon.pressed` |
+
+**appearance=text, surface=inverse, inset=default, state=pending**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.inverse.interactive.primary.text.rest` | — |
+| `container/spinner` | — | — | — | `color.inverse.interactive.primary.icon.rest` |
+| `container/trailingVisual` | — | — | — | `color.inverse.interactive.primary.icon.rest` |
+
+**appearance=text, surface=inverse, inset=default, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.inverse.interactive.primary.text.rest` | — |
+| `container/leadingVisual` | — | — | — | `color.inverse.interactive.primary.icon.rest` |
+| `container/trailingVisual` | — | — | — | `color.inverse.interactive.primary.icon.rest` |
+
+**appearance=text, surface=inverse, inset=default, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.inverse.disabled.text` | — |
+| `container/leadingVisual` | — | — | — | `color.inverse.disabled.icon` |
+| `container/trailingVisual` | — | — | — | `color.inverse.disabled.icon` |
+
+**appearance=text, surface=inverse, inset=flush, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.inverse.interactive.primary.text.rest` | — |
+| `container/leadingVisual` | — | — | — | `color.inverse.interactive.primary.icon.rest` |
+| `container/trailingVisual` | — | — | — | `color.inverse.interactive.primary.icon.rest` |
+
+**appearance=text, surface=inverse, inset=flush, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.inverse.interactive.primary.text.hover` | — |
+| `container/leadingVisual` | — | — | — | `color.inverse.interactive.primary.icon.hover` |
+| `container/trailingVisual` | — | — | — | `color.inverse.interactive.primary.icon.hover` |
+
+**appearance=text, surface=inverse, inset=flush, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.inverse.interactive.primary.text.pressed` | — |
+| `container/leadingVisual` | — | — | — | `color.inverse.interactive.primary.icon.pressed` |
+| `container/trailingVisual` | — | — | — | `color.inverse.interactive.primary.icon.pressed` |
+
+**appearance=text, surface=inverse, inset=flush, state=pending**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.inverse.interactive.primary.text.rest` | — |
+| `container/spinner` | — | — | — | `color.inverse.interactive.primary.icon.rest` |
+| `container/trailingVisual` | — | — | — | `color.inverse.interactive.primary.icon.rest` |
+
+**appearance=text, surface=inverse, inset=flush, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.inverse.interactive.primary.text.rest` | — |
+| `container/leadingVisual` | — | — | — | `color.inverse.interactive.primary.icon.rest` |
+| `container/trailingVisual` | — | — | — | `color.inverse.interactive.primary.icon.rest` |
+
+**appearance=text, surface=inverse, inset=flush, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/label` | — | — | `color.inverse.disabled.text` | — |
+| `container/leadingVisual` | — | — | — | `color.inverse.disabled.icon` |
+| `container/trailingVisual` | — | — | — | `color.inverse.disabled.icon` |
+
+### Nesting and properties
+
+- `container/leadingVisual` is a swap slot, property `↳ swap leading icon`
+- `container/trailingVisual` is a swap slot, property `↳ swap trailing icon`
+- `container/spinner` holds `spinner/small`, `spinner/x-small`, `spinner/medium`, by member; it is not a swap
+- `container/focusRing` nests `focus-ring` at `surface=default`; follows `surface`
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `label` | text | `Button` |
+| `↳ swap leading icon` | instance swap | — |
+| `↳ swap trailing icon` | instance swap | — |
+
 ---
 
 Generated from the `button` component definition.

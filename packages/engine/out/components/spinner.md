@@ -86,6 +86,61 @@ None — not interactive.
   - an animated loading GIF
   - a static loading glyph in the icon set
 
+## Specs
+
+Generated from the plan that builds the design-file component: 4 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `frame` | frame | every member |
+| `frame/ring` | glyph | every member |
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by `size`.
+
+**size=x-small**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `frame` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `frame/ring` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+
+**size=small**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `frame` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `frame/ring` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=medium**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `frame` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+| `frame/ring` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+
+**size=large**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `frame` | — | — | `icon.size.lg` | `icon.size.lg` | — | — |
+| `frame/ring` | — | — | `icon.size.lg` | `icon.size.lg` | — | — |
+
+### Color
+
+Keyed by nothing: one row covers every member.
+
+**every member**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `frame/ring` | — | — | — | `color.icon.primary` |
+
 ---
 
 Generated from the `spinner` component definition.

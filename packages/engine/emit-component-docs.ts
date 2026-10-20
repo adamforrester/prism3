@@ -5,6 +5,7 @@
  *   npx tsx packages/engine/emit-component-docs.ts
  *     → out/components/components.ai.json      (PAYLOAD, machine-readable: every registered def)
  *     → out/components/<id>.md                 (PAYLOAD, human-readable: one page per def)
+ *     → out/components/specs.json              (PAYLOAD: every projected def's spec model, #2830 — `component-specs.ts`)
  *     → schema/component-maintainer.json       (NOT payload: each def's `codeOnly` and `notes.*`)
  *
  * THE GAP THIS CLOSES. `component-schema.ts` carries `docs`, `accessibility`, `content`, `motion`,
@@ -57,6 +58,7 @@ import { fileURLToPath } from 'node:url';
 import type { ComponentDef } from './component-schema';
 import { axisKindOf } from './component-schema';
 import { componentDefs } from './components/index';
+import { componentSpec, projectComponentSpecs, renderSpecsMarkdown } from './component-specs';
 import { ENGINE_VERSION } from './version';
 
 /** The sidecar's schema id. `schema/component-docs.schema.json` carries the same `$id`; both move together. */
@@ -259,6 +261,10 @@ export const renderMarkdown = (def: ComponentDef): string => {
     out.push('');
   }
 
+  // #2830 — the spec model's Specs section, for a def built in the design file. Last, so the usage sections above
+  // read first; the same model is `specs.json`.
+  if (def.figmaProperties) out.push(...renderSpecsMarkdown(componentSpec(def)));
+
   out.push('---', '');
   out.push(`Generated from the ${code(def.id)} component definition.`, '');
   return out.join('\n');
@@ -275,7 +281,8 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   rmSync(COMPONENT_DOCS_DIR, { recursive: true, force: true });
   mkdirSync(COMPONENT_DOCS_DIR, { recursive: true });
   writeFileSync(resolve(COMPONENT_DOCS_DIR, 'components.ai.json'), JSON.stringify(projectComponentDocs(componentDefs), null, 2) + '\n');
+  writeFileSync(resolve(COMPONENT_DOCS_DIR, 'specs.json'), JSON.stringify(projectComponentSpecs(componentDefs), null, 2) + '\n');
   for (const def of componentDefs) writeFileSync(resolve(COMPONENT_DOCS_DIR, `${def.id}.md`), renderMarkdown(def));
   writeFileSync(COMPONENT_MAINTAINER_FILE, JSON.stringify(projectComponentMaintainer(componentDefs), null, 2) + '\n');
-  console.log(`[emit-component-docs] wrote ${COMPONENT_DOCS_DIR} — components.ai.json + ${componentDefs.length} pages; and ${COMPONENT_MAINTAINER_FILE}`);
+  console.log(`[emit-component-docs] wrote ${COMPONENT_DOCS_DIR} — components.ai.json, specs.json + ${componentDefs.length} pages; and ${COMPONENT_MAINTAINER_FILE}`);
 }

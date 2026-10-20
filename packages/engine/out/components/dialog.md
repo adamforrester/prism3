@@ -104,6 +104,203 @@ None — not interactive.
   - a div overlay with a z-index and a hand-written focus trap
   - a backdrop built from a veil
 
+## Specs
+
+Generated from the plan that builds the design-file component: 15 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `panel` | frame | every member |
+| `panel/header` | frame | every member |
+| `panel/header/titleBox` | frame | every member |
+| `panel/header/titleBox/title` | text | every member |
+| `panel/header/titleBox/description` | text | every member |
+| `panel/header/close` | instance | every member |
+| `panel/headerDivider` | instance | every member |
+| `panel/body` | slot | every member |
+| `panel/body/placeholder` | text | every member |
+| `panel/footerDivider` | instance | footer=inline or stacked |
+| `panel/footer` | frame | footer=inline or stacked |
+| `panel/footer/actionsInline` | instance | footer=inline |
+| `panel/footer/actionsStacked` | instance | footer=stacked |
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by `size`, `placement`.
+
+**size=medium, placement=center**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `panel` | `space.300` / `space.0` / `space.300` / `space.0` | `space.200` | — | — | — | build width 560px (literal) |
+| `panel/header` | `space.0` / `space.300` / `space.0` / `space.300` | `space.200` | — | — | — | — |
+| `panel/header/titleBox` | — | `space.100` | — | — | — | — |
+| `panel/body` | `space.0` / `space.300` / `space.0` / `space.300` | — | — | — | — | — |
+| `panel/footer` | `space.0` / `space.300` / `space.0` / `space.300` | — | — | — | — | — |
+
+**size=small, placement=center**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `panel` | `space.300` / `space.0` / `space.300` / `space.0` | `space.200` | — | — | — | build width 400px (literal) |
+| `panel/header` | `space.0` / `space.300` / `space.0` / `space.300` | `space.200` | — | — | — | — |
+| `panel/header/titleBox` | — | `space.100` | — | — | — | — |
+| `panel/body` | `space.0` / `space.300` / `space.0` / `space.300` | — | — | — | — | — |
+| `panel/footer` | `space.0` / `space.300` / `space.0` / `space.300` | — | — | — | — | — |
+
+**size=large, placement=center**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `panel` | `space.300` / `space.0` / `space.300` / `space.0` | `space.200` | — | — | — | build width 720px (literal) |
+| `panel/header` | `space.0` / `space.300` / `space.0` / `space.300` | `space.200` | — | — | — | — |
+| `panel/header/titleBox` | — | `space.100` | — | — | — | — |
+| `panel/body` | `space.0` / `space.300` / `space.0` / `space.300` | — | — | — | — | — |
+| `panel/footer` | `space.0` / `space.300` / `space.0` / `space.300` | — | — | — | — | — |
+
+**size=medium, placement=bottom**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `panel` | `space.200` / `space.0` / `space.200` / `space.0` | `space.200` | — | — | — | build width 360px (literal) |
+| `panel/header` | `space.0` / `space.200` / `space.0` / `space.200` | `space.200` | — | — | — | — |
+| `panel/header/titleBox` | — | `space.100` | — | — | — | — |
+| `panel/body` | `space.0` / `space.200` / `space.0` / `space.200` | — | — | — | — | — |
+| `panel/footer` | `space.0` / `space.200` / `space.0` / `space.200` | — | — | — | — | — |
+
+**size=medium, placement=full**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `panel` | `space.200` / `space.0` / `space.200` / `space.0` | `space.200` | — | — | — | build width 360px (literal); build height 640px (literal) |
+| `panel/header` | `space.0` / `space.200` / `space.0` / `space.200` | `space.200` | — | — | — | — |
+| `panel/header/titleBox` | — | `space.100` | — | — | — | — |
+| `panel/body` | `space.0` / `space.200` / `space.0` / `space.200` | — | — | — | — | — |
+| `panel/footer` | `space.0` / `space.200` / `space.0` / `space.200` | — | — | — | — | — |
+
+### Type
+
+Keyed by `size`.
+
+| Members | Part | Text style |
+| --- | --- | --- |
+| size=medium | `panel/header/titleBox/title` | `type.label.lg.emphasis` |
+| size=medium | `panel/header/titleBox/description` | `type.body.md.default` |
+| size=medium | `panel/body/placeholder` | `type.body.md.default` |
+| size=small | `panel/header/titleBox/title` | `type.label.lg.emphasis` |
+| size=small | `panel/header/titleBox/description` | `type.body.md.default` |
+| size=small | `panel/body/placeholder` | `type.body.md.default` |
+| size=large | `panel/header/titleBox/title` | `type.label.lg.emphasis` |
+| size=large | `panel/header/titleBox/description` | `type.body.md.default` |
+| size=large | `panel/body/placeholder` | `type.body.md.default` |
+
+### Color
+
+Keyed by `placement`, `footer`.
+
+**placement=center, footer=inline**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `panel` | `color.foreground.primary` | — | — | — |
+| `panel/header/titleBox/title` | — | — | `color.text.primary` | — |
+| `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
+| `panel/body/placeholder` | — | — | `color.text.primary` | — |
+
+**placement=center, footer=stacked**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `panel` | `color.foreground.primary` | — | — | — |
+| `panel/header/titleBox/title` | — | — | `color.text.primary` | — |
+| `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
+| `panel/body/placeholder` | — | — | `color.text.primary` | — |
+
+**placement=center, footer=none**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `panel` | `color.foreground.primary` | — | — | — |
+| `panel/header/titleBox/title` | — | — | `color.text.primary` | — |
+| `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
+| `panel/body/placeholder` | — | — | `color.text.primary` | — |
+
+**placement=bottom, footer=inline**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `panel` | `color.foreground.primary` | — | — | — |
+| `panel/header/titleBox/title` | — | — | `color.text.primary` | — |
+| `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
+| `panel/body/placeholder` | — | — | `color.text.primary` | — |
+
+**placement=bottom, footer=stacked**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `panel` | `color.foreground.primary` | — | — | — |
+| `panel/header/titleBox/title` | — | — | `color.text.primary` | — |
+| `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
+| `panel/body/placeholder` | — | — | `color.text.primary` | — |
+
+**placement=bottom, footer=none**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `panel` | `color.foreground.primary` | — | — | — |
+| `panel/header/titleBox/title` | — | — | `color.text.primary` | — |
+| `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
+| `panel/body/placeholder` | — | — | `color.text.primary` | — |
+
+**placement=full, footer=inline**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `panel` | `color.foreground.primary` | — | — | — |
+| `panel/header/titleBox/title` | — | — | `color.text.primary` | — |
+| `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
+| `panel/body/placeholder` | — | — | `color.text.primary` | — |
+
+**placement=full, footer=stacked**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `panel` | `color.foreground.primary` | — | — | — |
+| `panel/header/titleBox/title` | — | — | `color.text.primary` | — |
+| `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
+| `panel/body/placeholder` | — | — | `color.text.primary` | — |
+
+**placement=full, footer=none**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `panel` | `color.foreground.primary` | — | — | — |
+| `panel/header/titleBox/title` | — | — | `color.text.primary` | — |
+| `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
+| `panel/body/placeholder` | — | — | `color.text.primary` | — |
+
+### Nesting and properties
+
+- `panel/header/close` nests `flush-icon-button-neutral` at `shape=flush, size=medium, state=rest`
+- `panel/headerDivider` nests `divider` at `orientation=horizontal, inset=none`
+- `panel/body` is a slot
+- `panel/footerDivider` nests `divider` at `orientation=horizontal, inset=none`
+- `panel/footer/actionsInline` nests `button-group` at `layout=inline`
+- `panel/footer/actionsStacked` nests `button-group` at `layout=stacked`
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `title` | text | `Dialog title` |
+| `description text` | text | `Supporting text` |
+| `description` | boolean | `false` |
+| `close` | boolean | `true` |
+| `dividers` | boolean | `false` |
+| `body` | slot | — |
+
 ---
 
 Generated from the `dialog` component definition.

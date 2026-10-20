@@ -83,6 +83,84 @@ None — not interactive.
 
 - **Planned:** `number-field`, `tooltip`, `inline-message`
 
+## Specs
+
+Generated from the plan that builds the design-file component: 4 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `message` | frame | every member |
+| `message/text` | text | every member |
+| `message/iconError` | instance | status=error |
+| `message/iconWarning` | instance | status=warning |
+| `message/iconSuccess` | instance | status=success |
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by nothing: one row covers every member.
+
+**every member**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `message` | — | `space.075` | — | — | — | min height `icon.size.xs`; build width 320px (literal) |
+| `message/iconError` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `message/iconWarning` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `message/iconSuccess` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+
+### Type
+
+Keyed by nothing: one row covers every member.
+
+| Members | Part | Text style |
+| --- | --- | --- |
+| every member | `message/text` | `type.caption.md.default` |
+
+### Color
+
+Keyed by `status`.
+
+**status=default**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `message/text` | — | — | `color.text.secondary` | — |
+
+**status=error**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `message/iconError` | — | — | — | `color.icon.danger` |
+| `message/text` | — | — | `color.text.danger` | — |
+
+**status=warning**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `message/iconWarning` | — | — | — | `color.icon.warning` |
+| `message/text` | — | — | `color.text.warning` | — |
+
+**status=success**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `message/iconSuccess` | — | — | — | `color.icon.success` |
+| `message/text` | — | — | `color.text.success` | — |
+
+### Nesting and properties
+
+- `message/iconError` nests `icon/warning-triangle`
+- `message/iconWarning` nests `icon/error-circle`
+- `message/iconSuccess` nests `icon/check-circle`
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `message` | text | `This is a status message.` |
+
 ---
 
 Generated from the `field-message` component definition.

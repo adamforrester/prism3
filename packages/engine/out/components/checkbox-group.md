@@ -99,6 +99,64 @@ The group label names the decision; the rows carry the short options. Group erro
   - a bare set of \<input type="checkbox"> with no shared label or group wiring
   - per-row required / error scattered across the options instead of owned by the group
 
+## Specs
+
+Generated from the plan that builds the design-file component: 3 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `container` | frame | every member |
+| `container/label` | instance | every member |
+| `container/items` | slot | every member |
+| `container/items/row1` | instance | every member |
+| `container/items/row2` | instance | every member |
+| `container/items/row3` | instance | every member |
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by `size`.
+
+**size=medium**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | `space.100` / `space.0` / `space.100` / `space.0` | `space.0` | — | — | 120px (literal) | build width 320px (literal) |
+| `container/items` | — | `space.0` | — | — | — | — |
+
+**size=small**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | `space.100` / `space.0` / `space.100` / `space.0` | `space.0` | — | — | 120px (literal) | build width 320px (literal) |
+| `container/items` | — | `space.0` | — | — | — | — |
+
+**size=large**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | `space.100` / `space.0` / `space.100` / `space.0` | `space.0` | — | — | 120px (literal) | build width 320px (literal) |
+| `container/items` | — | `space.0` | — | — | — | — |
+
+### Color
+
+Keyed by nothing: one row covers every member.
+
+### Nesting and properties
+
+- `container/label` nests `field-label` at `size=medium, emphasis=secondary, weight=bold, state=rest`; follows `size`
+- `container/items` is a slot, preferring `checkbox-row`
+- `container/items/row1` nests `checkbox-row` at `size=medium`; follows `size`
+- `container/items/row2` nests `checkbox-row` at `size=medium`; follows `size`
+- `container/items/row3` nests `checkbox-row` at `size=medium`; follows `size`
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `items` | slot | — |
+
 ---
 
 Generated from the `checkbox-group` component definition.

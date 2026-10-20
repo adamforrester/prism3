@@ -106,6 +106,253 @@ Keep the label to one word where possible. Use the words the data or the user su
   - a clickable div styled as a pill
   - a bare × glyph with no accessible name
 
+## Specs
+
+Generated from the plan that builds the design-file component: 45 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `container` | frame | every member |
+| `container/content` | frame | every member |
+| `container/content/leadingVisual` | swap | every member |
+| `container/content/labelCheck` | frame | every member |
+| `container/content/labelCheck/label` | text | every member |
+| `container/focusRing` | instance | state=focus-visible |
+| `container/content/labelCheck/check` | instance | selection=selected |
+| `container/dismiss` | frame | type=dismissible |
+| `container/dismiss/dismissGlyph` | instance | type=dismissible |
+
+Code-only states, with no design-file member: `read-only`.
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by `size`, `type`.
+
+**size=medium, type=select**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | `size.md.height` | — | 64px (derived: height × 1.5) | — |
+| `container/content` | `space.0` / `space.150` / `space.0` / `space.150` | `space.100` | — | — | — | — |
+| `container/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/content/labelCheck` | `space.0` | `space.075` | — | — | — | — |
+| `container/content/labelCheck/check` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=small, type=select**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | `size.sm.height` | — | 56px (derived: height × 1.5) | — |
+| `container/content` | `space.0` / `space.100` / `space.0` / `space.100` | `space.075` | — | — | — | — |
+| `container/content/leadingVisual` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/content/labelCheck` | `space.0` | `space.050` | — | — | — | — |
+| `container/content/labelCheck/check` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+
+**size=large, type=select**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | `size.lg.height` | — | 88px (derived: height × 1.5) | — |
+| `container/content` | `space.0` / `space.200` / `space.0` / `space.200` | `space.150` | — | — | — | — |
+| `container/content/leadingVisual` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+| `container/content/labelCheck` | `space.0` | `space.100` | — | — | — | — |
+| `container/content/labelCheck/check` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+
+**size=medium, type=dismissible**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | `size.md.height` | — | 64px (derived: height × 1.5) | — |
+| `container/content` | `space.0` / `space.0` / `space.0` / `space.150` | `space.050` | — | — | — | — |
+| `container/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/content/labelCheck` | `space.0` / `space.0` / `space.0` / `space.050` | `space.075` | — | — | — | — |
+| `container/dismiss` | — | — | `size.md.height` | `size.md.height` | — | — |
+| `container/dismiss/dismissGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=small, type=dismissible**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | `size.sm.height` | — | 56px (derived: height × 1.5) | — |
+| `container/content` | `space.0` / `space.0` / `space.0` / `space.100` | `space.025` | — | — | — | — |
+| `container/content/leadingVisual` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/content/labelCheck` | `space.0` / `space.0` / `space.0` / `space.050` | `space.050` | — | — | — | — |
+| `container/dismiss` | — | — | `size.sm.height` | `size.sm.height` | — | — |
+| `container/dismiss/dismissGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+
+**size=large, type=dismissible**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | `size.lg.height` | — | 88px (derived: height × 1.5) | — |
+| `container/content` | `space.0` / `space.0` / `space.0` / `space.200` | `space.050` | — | — | — | — |
+| `container/content/leadingVisual` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+| `container/content/labelCheck` | `space.0` / `space.0` / `space.0` / `space.050` | `space.100` | — | — | — | — |
+| `container/dismiss` | — | — | `size.lg.height` | `size.lg.height` | — | — |
+| `container/dismiss/dismissGlyph` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+
+### Type
+
+Keyed by `size`.
+
+| Members | Part | Text style |
+| --- | --- | --- |
+| size=medium | `container/content/labelCheck/label` | `type.label.md.emphasis` |
+| size=small | `container/content/labelCheck/label` | `type.label.sm.emphasis` |
+| size=large | `container/content/labelCheck/label` | `type.label.lg.emphasis` |
+
+### Color
+
+Keyed by `type`, `selection`, `state`.
+
+**type=select, selection=unselected, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.interactive.neutral.border.rest` | — | — |
+| `container/content/leadingVisual` | — | — | — | `color.interactive.neutral.icon.rest` |
+| `container/content/labelCheck/label` | — | — | `color.interactive.neutral.text.rest` | — |
+
+**type=select, selection=unselected, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.neutral.overlay.hover` | `color.interactive.neutral.border.hover` | — | — |
+| `container/content/leadingVisual` | — | — | — | `color.interactive.neutral.icon.hover` |
+| `container/content/labelCheck/label` | — | — | `color.interactive.neutral.text.hover` | — |
+
+**type=select, selection=unselected, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.neutral.overlay.pressed` | `color.interactive.neutral.border.pressed` | — | — |
+| `container/content/leadingVisual` | — | — | — | `color.interactive.neutral.icon.pressed` |
+| `container/content/labelCheck/label` | — | — | `color.interactive.neutral.text.pressed` | — |
+
+**type=select, selection=unselected, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.interactive.neutral.border.rest` | — | — |
+| `container/content/leadingVisual` | — | — | — | `color.interactive.neutral.icon.rest` |
+| `container/content/labelCheck/label` | — | — | `color.interactive.neutral.text.rest` | — |
+
+**type=select, selection=unselected, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.disabled.border` | — | — |
+| `container/content/leadingVisual` | — | — | — | `color.disabled.icon` |
+| `container/content/labelCheck/label` | — | — | `color.disabled.text` | — |
+
+**type=select, selection=selected, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.primary.subtle-fill.selected` | `color.interactive.primary.border.rest` | — | — |
+| `container/content/leadingVisual` | — | — | — | `color.interactive.neutral.icon.rest` |
+| `container/content/labelCheck/label` | — | — | `color.interactive.neutral.text.rest` | — |
+| `container/content/labelCheck/check` | — | — | — | `color.interactive.neutral.icon.rest` |
+
+**type=select, selection=selected, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.primary.subtle-fill.selected` | `color.interactive.primary.border.hover` | — | — |
+| `container/content/leadingVisual` | — | — | — | `color.interactive.neutral.icon.hover` |
+| `container/content/labelCheck/label` | — | — | `color.interactive.neutral.text.hover` | — |
+| `container/content/labelCheck/check` | — | — | — | `color.interactive.neutral.icon.hover` |
+
+**type=select, selection=selected, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.primary.subtle-fill.selected` | `color.interactive.primary.border.pressed` | — | — |
+| `container/content/leadingVisual` | — | — | — | `color.interactive.neutral.icon.pressed` |
+| `container/content/labelCheck/label` | — | — | `color.interactive.neutral.text.pressed` | — |
+| `container/content/labelCheck/check` | — | — | — | `color.interactive.neutral.icon.pressed` |
+
+**type=select, selection=selected, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.primary.subtle-fill.selected` | `color.interactive.primary.border.rest` | — | — |
+| `container/content/leadingVisual` | — | — | — | `color.interactive.neutral.icon.rest` |
+| `container/content/labelCheck/label` | — | — | `color.interactive.neutral.text.rest` | — |
+| `container/content/labelCheck/check` | — | — | — | `color.interactive.neutral.icon.rest` |
+
+**type=select, selection=selected, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.disabled.border` | — | — |
+| `container/content/leadingVisual` | — | — | — | `color.disabled.icon` |
+| `container/content/labelCheck/label` | — | — | `color.disabled.text` | — |
+| `container/content/labelCheck/check` | — | — | — | `color.disabled.icon` |
+
+**type=dismissible, selection=unselected, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.interactive.neutral.border.rest` | — | — |
+| `container/content/leadingVisual` | — | — | — | `color.interactive.neutral.icon.rest` |
+| `container/content/labelCheck/label` | — | — | `color.interactive.neutral.text.rest` | — |
+| `container/dismiss/dismissGlyph` | — | — | — | `color.interactive.neutral.icon.rest` |
+
+**type=dismissible, selection=unselected, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.neutral.overlay.hover` | `color.interactive.neutral.border.hover` | — | — |
+| `container/content/leadingVisual` | — | — | — | `color.interactive.neutral.icon.hover` |
+| `container/content/labelCheck/label` | — | — | `color.interactive.neutral.text.hover` | — |
+| `container/dismiss/dismissGlyph` | — | — | — | `color.interactive.neutral.icon.hover` |
+
+**type=dismissible, selection=unselected, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.neutral.overlay.pressed` | `color.interactive.neutral.border.pressed` | — | — |
+| `container/content/leadingVisual` | — | — | — | `color.interactive.neutral.icon.pressed` |
+| `container/content/labelCheck/label` | — | — | `color.interactive.neutral.text.pressed` | — |
+| `container/dismiss/dismissGlyph` | — | — | — | `color.interactive.neutral.icon.pressed` |
+
+**type=dismissible, selection=unselected, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.interactive.neutral.border.rest` | — | — |
+| `container/content/leadingVisual` | — | — | — | `color.interactive.neutral.icon.rest` |
+| `container/content/labelCheck/label` | — | — | `color.interactive.neutral.text.rest` | — |
+| `container/dismiss/dismissGlyph` | — | — | — | `color.interactive.neutral.icon.rest` |
+
+**type=dismissible, selection=unselected, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.disabled.border` | — | — |
+| `container/content/leadingVisual` | — | — | — | `color.disabled.icon` |
+| `container/content/labelCheck/label` | — | — | `color.disabled.text` | — |
+| `container/dismiss/dismissGlyph` | — | — | — | `color.disabled.icon` |
+
+### Nesting and properties
+
+- `container/content/leadingVisual` is a swap slot, property `↳ swap leading icon`, shown by `leading icon`
+- `container/focusRing` nests `focus-ring` at `surface=default`
+- `container/content/labelCheck/check` nests `icon/check`
+- `container/dismiss/dismissGlyph` nests `icon/close`
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `label` | text | `Tag` |
+| `leading icon` | boolean | `false` |
+| `↳ swap leading icon` | instance swap | — |
+| `Check icon` | boolean | `true` |
+
 ---
 
 Generated from the `tag` component definition.

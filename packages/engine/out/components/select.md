@@ -104,6 +104,348 @@ Label = noun phrase, sentence case, no trailing colon. Placeholder = the plain n
   - a bare \<select> with no label wiring
   - placeholder-as-label
 
+## Specs
+
+Generated from the plan that builds the design-file component: 84 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `container` | frame | every member |
+| `container/label` | instance | every member |
+| `container/control` | frame | every member |
+| `container/control/content` | frame | every member |
+| `container/control/content/leadingVisual` | swap | every member |
+| `container/control/content/placeholder` | text | state=rest or hover or focus-visible or disabled |
+| `container/control/chevron` | instance | every member |
+| `container/message` | instance | every member |
+| `container/control/content/value` | text | state=filled or focus-visible-filled or read-only |
+| `container/control/focusRing` | instance | state=focus-visible or focus-visible-filled |
+
+Code-only states, with no design-file member: `pending`, `empty`.
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by `size`.
+
+**size=medium**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/control` | `space.100` / `space.200` / `space.100` / `space.200` | `space.100` | — | — | 120px (literal) | min height `size.md.min-height` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/chevron` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=small**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/control` | `space.075` / `space.200` / `space.075` / `space.200` | `space.100` | — | — | 120px (literal) | min height `size.md.min-height` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/chevron` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=large**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/control` | `space.100` / `space.300` / `space.100` / `space.300` | `space.100` | — | — | 120px (literal) | min height `size.lg.height` |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/chevron` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+### Type
+
+Keyed by `size`.
+
+| Members | Part | Text style |
+| --- | --- | --- |
+| size=medium | `container/control/content/placeholder` | `type.body.md.default` |
+| size=medium | `container/control/content/value` | `type.body.md.default` |
+| size=small | `container/control/content/placeholder` | `type.body.sm.default` |
+| size=small | `container/control/content/value` | `type.body.sm.default` |
+| size=large | `container/control/content/placeholder` | `type.body.lg.default` |
+| size=large | `container/control/content/value` | `type.body.lg.default` |
+
+### Color
+
+Keyed by `status`, `state`.
+
+**status=default, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.field.border.rest` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/placeholder` | — | — | `color.text.secondary` | — |
+| `container/control/chevron` | — | — | — | `color.icon.primary` |
+
+**status=default, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.interactive.neutral.overlay.hover` | `color.field.border.hover` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/placeholder` | — | — | `color.text.secondary` | — |
+| `container/control/chevron` | — | — | — | `color.icon.primary` |
+
+**status=default, state=filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.field.border.rest` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/value` | — | — | `color.text.primary` | — |
+| `container/control/chevron` | — | — | — | `color.icon.primary` |
+
+**status=default, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.focus` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/placeholder` | — | — | `color.text.secondary` | — |
+| `container/control/chevron` | — | — | — | `color.icon.primary` |
+
+**status=default, state=focus-visible-filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.focus` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/value` | — | — | `color.text.primary` | — |
+| `container/control/chevron` | — | — | — | `color.icon.primary` |
+
+**status=default, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.disabled.fill` | `color.disabled.border` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.disabled.on-fill` |
+| `container/control/content/placeholder` | — | — | `color.disabled.on-fill` | — |
+| `container/control/chevron` | — | — | — | `color.disabled.on-fill` |
+
+**status=default, state=read-only**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.field.border.rest` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/value` | — | — | `color.text.primary` | — |
+| `container/control/chevron` | — | — | — | `color.icon.primary` |
+
+**status=error, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.danger` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/placeholder` | — | — | `color.text.secondary` | — |
+| `container/control/chevron` | — | — | — | `color.icon.primary` |
+
+**status=error, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.interactive.neutral.overlay.hover` | `color.border.danger` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/placeholder` | — | — | `color.text.secondary` | — |
+| `container/control/chevron` | — | — | — | `color.icon.primary` |
+
+**status=error, state=filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.danger` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/value` | — | — | `color.text.primary` | — |
+| `container/control/chevron` | — | — | — | `color.icon.primary` |
+
+**status=error, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.danger` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/placeholder` | — | — | `color.text.secondary` | — |
+| `container/control/chevron` | — | — | — | `color.icon.primary` |
+
+**status=error, state=focus-visible-filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.danger` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/value` | — | — | `color.text.primary` | — |
+| `container/control/chevron` | — | — | — | `color.icon.primary` |
+
+**status=error, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.disabled.fill` | `color.disabled.border` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.disabled.on-fill` |
+| `container/control/content/placeholder` | — | — | `color.disabled.on-fill` | — |
+| `container/control/chevron` | — | — | — | `color.disabled.on-fill` |
+
+**status=error, state=read-only**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.danger` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/value` | — | — | `color.text.primary` | — |
+| `container/control/chevron` | — | — | — | `color.icon.primary` |
+
+**status=warning, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.warning` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/placeholder` | — | — | `color.text.secondary` | — |
+| `container/control/chevron` | — | — | — | `color.icon.primary` |
+
+**status=warning, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.interactive.neutral.overlay.hover` | `color.border.warning` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/placeholder` | — | — | `color.text.secondary` | — |
+| `container/control/chevron` | — | — | — | `color.icon.primary` |
+
+**status=warning, state=filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.warning` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/value` | — | — | `color.text.primary` | — |
+| `container/control/chevron` | — | — | — | `color.icon.primary` |
+
+**status=warning, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.warning` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/placeholder` | — | — | `color.text.secondary` | — |
+| `container/control/chevron` | — | — | — | `color.icon.primary` |
+
+**status=warning, state=focus-visible-filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.warning` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/value` | — | — | `color.text.primary` | — |
+| `container/control/chevron` | — | — | — | `color.icon.primary` |
+
+**status=warning, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.disabled.fill` | `color.disabled.border` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.disabled.on-fill` |
+| `container/control/content/placeholder` | — | — | `color.disabled.on-fill` | — |
+| `container/control/chevron` | — | — | — | `color.disabled.on-fill` |
+
+**status=warning, state=read-only**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.warning` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/value` | — | — | `color.text.primary` | — |
+| `container/control/chevron` | — | — | — | `color.icon.primary` |
+
+**status=success, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.success` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/placeholder` | — | — | `color.text.secondary` | — |
+| `container/control/chevron` | — | — | — | `color.icon.primary` |
+
+**status=success, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.interactive.neutral.overlay.hover` | `color.border.success` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/placeholder` | — | — | `color.text.secondary` | — |
+| `container/control/chevron` | — | — | — | `color.icon.primary` |
+
+**status=success, state=filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.success` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/value` | — | — | `color.text.primary` | — |
+| `container/control/chevron` | — | — | — | `color.icon.primary` |
+
+**status=success, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.success` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/placeholder` | — | — | `color.text.secondary` | — |
+| `container/control/chevron` | — | — | — | `color.icon.primary` |
+
+**status=success, state=focus-visible-filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.success` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/value` | — | — | `color.text.primary` | — |
+| `container/control/chevron` | — | — | — | `color.icon.primary` |
+
+**status=success, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.disabled.fill` | `color.disabled.border` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.disabled.on-fill` |
+| `container/control/content/placeholder` | — | — | `color.disabled.on-fill` | — |
+| `container/control/chevron` | — | — | — | `color.disabled.on-fill` |
+
+**status=success, state=read-only**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.success` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/value` | — | — | `color.text.primary` | — |
+| `container/control/chevron` | — | — | — | `color.icon.primary` |
+
+### Nesting and properties
+
+- `container/label` nests `field-label` at `size=medium, emphasis=secondary, weight=regular, state=rest`; follows `size`; exposes `emphasis`, `weight`
+- `container/control/content/leadingVisual` is a swap slot, property `↳ swap leading icon`, shown by `leading icon`
+- `container/control/chevron` nests `icon/chevron-down`
+- `container/message` nests `field-message` at `status=default`; follows `status`
+- `container/control/focusRing` nests `focus-ring` at `surface=default`
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `placeholder` | text | `Placeholder` |
+| `value` | text | `Selected option` |
+| `leading icon` | boolean | `false` |
+| `↳ swap leading icon` | instance swap | — |
+| `message` | boolean | `true` |
+
 ---
 
 Generated from the `select` component definition.

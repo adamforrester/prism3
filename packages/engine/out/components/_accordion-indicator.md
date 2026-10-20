@@ -71,6 +71,91 @@ None — not interactive.
 - **Replaces:**
   - a separate down and up chevron icon toggled by hand in each accordion header
 
+## Specs
+
+Generated from the plan that builds the design-file component: 12 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `frame` | frame | every member |
+| `frame/chevronDown` | instance | 3 of 12 members |
+| `frame/chevronUp` | instance | 3 of 12 members |
+| `frame/plus` | instance | 3 of 12 members |
+| `frame/minus` | instance | 3 of 12 members |
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by `size`.
+
+**size=medium**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `frame` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `frame/chevronDown` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `frame/chevronUp` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `frame/plus` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `frame/minus` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=small**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `frame` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `frame/chevronDown` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `frame/chevronUp` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `frame/plus` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `frame/minus` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+
+**size=large**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `frame` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+| `frame/chevronDown` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+| `frame/chevronUp` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+| `frame/plus` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+| `frame/minus` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+
+### Color
+
+Keyed by `indicator`, `expansion`.
+
+**indicator=chevron, expansion=collapsed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `frame/chevronDown` | — | — | — | `color.interactive.neutral.icon.rest` |
+
+**indicator=chevron, expansion=expanded**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `frame/chevronUp` | — | — | — | `color.interactive.neutral.icon.rest` |
+
+**indicator=plus-minus, expansion=collapsed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `frame/plus` | — | — | — | `color.interactive.neutral.icon.rest` |
+
+**indicator=plus-minus, expansion=expanded**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `frame/minus` | — | — | — | `color.interactive.neutral.icon.rest` |
+
+### Nesting and properties
+
+- `frame/chevronDown` nests `icon/chevron-down`
+- `frame/chevronUp` nests `icon/chevron-up`
+- `frame/plus` nests `icon/plus`
+- `frame/minus` nests `icon/minus`
+
 ---
 
 Generated from the `_accordion-indicator` component definition.

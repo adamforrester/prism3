@@ -74,6 +74,90 @@ None — not interactive.
 - **Replaces:**
   - a hand-drawn rectangle with a fixed width and height standing in for an image, which breaks its ratio the moment it is resized
 
+## Specs
+
+Generated from the plan that builds the design-file component: 7 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `frame` | frame | every member |
+| `frame/marker` | instance | every member |
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by nothing: one row covers every member.
+
+**every member**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `frame` | — | — | — | `container.narrow` | — | — |
+
+### Color
+
+Keyed by `ratio`.
+
+**ratio=4:3**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `frame` | `color.background.secondary` | — | — | — |
+| `frame/marker` | — | — | — | `color.icon.tertiary` |
+
+**ratio=2:3**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `frame` | `color.background.secondary` | — | — | — |
+| `frame/marker` | — | — | — | `color.icon.tertiary` |
+
+**ratio=3:4**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `frame` | `color.background.secondary` | — | — | — |
+| `frame/marker` | — | — | — | `color.icon.tertiary` |
+
+**ratio=4:5**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `frame` | `color.background.secondary` | — | — | — |
+| `frame/marker` | — | — | — | `color.icon.tertiary` |
+
+**ratio=1:1**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `frame` | `color.background.secondary` | — | — | — |
+| `frame/marker` | — | — | — | `color.icon.tertiary` |
+
+**ratio=3:2**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `frame` | `color.background.secondary` | — | — | — |
+| `frame/marker` | — | — | — | `color.icon.tertiary` |
+
+**ratio=16:9**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `frame` | `color.background.secondary` | — | — | — |
+| `frame/marker` | — | — | — | `color.icon.tertiary` |
+
+### Nesting and properties
+
+- `frame/marker` nests `icon/image`
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `Marker` | boolean | `true` |
+
 ---
 
 Generated from the `image-placeholder` component definition.
