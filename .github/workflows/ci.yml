@@ -1055,6 +1055,14 @@ jobs:
       - name: Release notes match the diff between folds (#2650)
         run: npx --yes tsx@4 packages/engine/lint-release-notes.ts
 
+      # #2759, owner decisions Q345, Q349, Q350, Q355 on #2706 — the defs follow the naming table in the
+      # build-component skill: lowercase Figma property names, the `_` prefix exactly where whenToUse says a
+      # part is used only inside its parent, roots named for their role, `<shape>Glyph` glyph layers, and a
+      # Row's `controlCell`. The rules are literals in the gate, never read off a def; known breaches wait in
+      # a ledger that fails as stale when one clears.
+      - name: Component names follow the naming table (#2759)
+        run: npx --yes tsx@4 packages/engine/lint-naming.ts
+
       # #1123 — the mutation battery for the CLAUDE.md-freshness SessionStart report (#1110), the one
       # `tools/` harness wired into CI. It is NAMED FOR THE DETECTOR, never for this tree, because
       # docs/34 shape 17 is explicit that a stale checkout is internally consistent — nothing running
