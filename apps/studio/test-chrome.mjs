@@ -3633,7 +3633,7 @@ const EXPECT_FILLS_SPECIMENS = ['Background', 'Scrim', 'Foreground', 'Text color
  *  badges, Foreground included since it sits on the floor it is measured against (GR2, owner 2026-10-04). Literal. */
 const FILLS_GROUND_SECTIONS = ['Background'];
 /** GR2: the Foreground roles measured against the contrast floor, each badged in the Foreground section. Literal. */
-const FLOOR_BADGED = ['brand', 'danger', 'success', 'warning', 'info'];
+const FLOOR_BADGED = ['brand', 'success', 'warning', 'danger', 'info'];
 /** #1971 Q13(a) (owner, 2026-10-05): the Foreground cards whose badge describes the text drawn on the card's own fill,
  *  as [fill, text]: the three Inverse cards (their label) and the five Subtle cards. Literal. */
 const ON_FILL_CARDS = [...['primary', 'secondary', 'tertiary'].map((t) => [`inverse.foreground.${t}`, 'inverse.text.primary']),
