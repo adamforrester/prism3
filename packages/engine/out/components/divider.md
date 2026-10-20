@@ -19,7 +19,7 @@ A 1px rule that separates groups of content when spacing alone leaves the groupi
 
 Shown on the default member: orientation `horizontal`, inset `none`.
 
-1. **Divider** — The divider's footprint: the thickness one way and the length the other, with the inset as its padding. It paints nothing.
+1. **Container** — The divider's footprint: the thickness one way and the length the other, with the inset as its padding. It paints nothing.
 2. **Rule** — The rule itself: one box, one fill, no children. Its thickness is the hairline border width; its length fills the container it sits in, less the inset, so the standalone length is a placeholder a host stretches.
 
 ## Styles

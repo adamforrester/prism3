@@ -913,7 +913,7 @@
       "docGaps": [
         {
           "section": "anatomy",
-          "field": "anatomy.parts.text.note",
+          "field": "anatomy.parts.label.note",
           "reason": "names a tool"
         },
         {
@@ -1005,22 +1005,22 @@
       "docGaps": [
         {
           "section": "anatomy",
-          "field": "anatomy.parts.iconError.note",
+          "field": "anatomy.parts.errorGlyph.note",
           "reason": "maintainer register"
         },
         {
           "section": "anatomy",
-          "field": "anatomy.parts.iconWarning.note",
+          "field": "anatomy.parts.warningGlyph.note",
           "reason": "maintainer register"
         },
         {
           "section": "anatomy",
-          "field": "anatomy.parts.iconSuccess.note",
+          "field": "anatomy.parts.successGlyph.note",
           "reason": "maintainer register"
         },
         {
           "section": "anatomy",
-          "field": "anatomy.parts.text.note",
+          "field": "anatomy.parts.label.note",
           "reason": "maintainer register"
         },
         {
@@ -1227,7 +1227,7 @@
         },
         {
           "section": "anatomy",
-          "field": "anatomy.parts.grip.note",
+          "field": "anatomy.parts.gripGlyph.note",
           "reason": "maintainer register"
         },
         {
@@ -1304,12 +1304,12 @@
         },
         {
           "section": "anatomy",
-          "field": "anatomy.parts.mark.note",
+          "field": "anatomy.parts.checkGlyph.note",
           "reason": "maintainer register"
         },
         {
           "section": "anatomy",
-          "field": "anatomy.parts.dash.note",
+          "field": "anatomy.parts.dashGlyph.note",
           "reason": "maintainer register"
         },
         {
@@ -1927,7 +1927,7 @@
         },
         {
           "section": "anatomy",
-          "field": "anatomy.parts.chevron.note",
+          "field": "anatomy.parts.chevronGlyph.note",
           "reason": "maintainer register"
         },
         {

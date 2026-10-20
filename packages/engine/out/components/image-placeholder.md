@@ -20,7 +20,7 @@ An empty-state media frame that holds a photograph at a fixed aspect ratio. Pick
 Shown on the default member: ratio `4:3`.
 
 1. **Frame** — The media frame: a neutral fill, an aspect-ratio lock, and clipping so a dropped image stays inside. Its width is nominal (720px) and a designer resizes it; the ratio holds while the size flexes.
-2. **Marker** (optional) — The centered "no image" marker — a muted glyph shown until a photograph is dropped in. It scales with the frame, so it reads as the same proportion at any size. The marker boolean hides it once an image is in.
+2. **Marker glyph** (optional) — The centered "no image" marker — a muted glyph shown until a photograph is dropped in. It scales with the frame, so it reads as the same proportion at any size. The marker boolean hides it once an image is in.
 
 ## Styles
 

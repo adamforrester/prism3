@@ -24,7 +24,7 @@ Shown on the default member: type `unordered`, size `medium`.
 3. **Bullet** — The bullet: a round dot, in the icon color.
 4. **Number**
 5. **Icon** — The icon marker, a check by default and swappable, in the icon color. Decorative: the text carries the meaning.
-6. **Text** — The item text. It fills the rest of the row and wraps under itself, never under the marker.
+6. **Label** — The item text. It fills the rest of the row and wraps under itself, never under the marker.
 
 ## Styles
 

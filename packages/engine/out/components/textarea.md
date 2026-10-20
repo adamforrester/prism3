@@ -24,7 +24,7 @@ Shown on the default member: size `medium`, style `outline`, status `default`.
 2. **Caret**
 3. **Placeholder** — The placeholder, in the placeholder ink (the disabled ink when disabled). Shown on the empty field: rest, hover, focus and disabled. Wraps across the field width and reserves the default rows of its own line height.
 4. **Value** — The entered value, in the value ink. Shown on the filled, focused filled and read-only field. Wraps across the field width and reserves the default rows of its own line height.
-5. **Grip** (optional)
+5. **Grip glyph** (optional)
 6. **Focus ring**
 7. **Message**
 8. **Counter**

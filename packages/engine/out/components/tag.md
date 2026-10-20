@@ -24,7 +24,7 @@ Shown on the default member: type `select`, selection `unselected`, size `medium
 3. **Label check** — The label and, on a selected select tag, the check mark after it, with a gap tighter than the one between the leading icon and the label. On a dismissible tag it is inset 4px at its leading edge, at every density, so the label sits 4px further in from the icon or the tag's edge.
 4. **Leading visual** (optional) — An optional icon or avatar before the label. Decorative: the label carries the name.
 5. **Label**
-6. **Check** (optional) — The selected indicator, a check mark after the label. It exists only on a selected select tag and is on by default; the check icon switch hides it, leaving the tint and the 2px outline.
+6. **Check glyph** (optional) — The selected indicator, a check mark after the label. It exists only on a selected select tag and is on by default; the check icon switch hides it, leaving the tint and the 2px outline.
 7. **Dismiss** — The remove slot of a dismissible tag: a square as tall as the tag, at its trailing end, holding the × glyph.
 8. **Dismiss glyph** — The × of a dismissible tag, a plain glyph centered in the remove slot, in the tag's icon ink.
 9. **Focus ring** — The shared focus ring, around the whole tag while it has keyboard focus.

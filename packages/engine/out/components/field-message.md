@@ -19,10 +19,10 @@ The small icon + caption below a form field. In its default status it is persist
 
 Shown on the default member: status `default`.
 
-1. **Icon error**
-2. **Icon warning**
-3. **Icon success**
-4. **Text**
+1. **Error glyph**
+2. **Warning glyph**
+3. **Success glyph**
+4. **Label**
 
 ## Styles
 

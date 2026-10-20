@@ -19,7 +19,7 @@ The visible, persistent label above a form field — the field's accessible name
 
 Shown on the default member: size `small`, emphasis `secondary`, weight `regular`.
 
-1. **Text**
+1. **Label**
 2. **Indicator** (optional)
 
 ## Styles

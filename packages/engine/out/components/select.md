@@ -23,7 +23,7 @@ Shown on the default member: size `medium`, status `default`.
 2. **Leading visual** (optional) — An optional purpose glyph before the value, aria-hidden. Absent by default; the caller nominates the icon.
 3. **Placeholder** — The prompt before a choice is made, in the placeholder ink (the disabled ink when disabled). Shown on the empty control: rest, hover, focus and disabled. Wraps rather than truncating, and the control grows taller.
 4. **Value**
-5. **Chevron**
+5. **Chevron glyph**
 6. **Focus ring**
 7. **Message** (optional)
 

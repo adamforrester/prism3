@@ -20,7 +20,7 @@ A small, static marker of one of three types. A status label is short text in th
 Shown on the default member: type `status`, emphasis `subtle`, tone `neutral`.
 
 1. **Surface** — The badge body, sized by what it holds: a small-radius label around a status text, a circle around one digit that grows into a pill, or the round dot itself. A subtle status label is the tone's tint with a 1px edge in the tone's border color, drawn inside the edge so it adds no size. A bold badge is the solid tone fill with no edge. Neither paints an interactive color.
-2. **Text** — The status text in the tone's text role. It carries the meaning, so the tone is never the only signal.
+2. **Label** — The status text in the tone's text role. It carries the meaning, so the tone is never the only signal.
 3. **Count** — The number, in the ink paired with the bold tone fill. Capped as the maximum followed by a plus sign, as in "99+".
 4. **Dot** — The dot's fixed square, about 8px. It paints nothing itself: the badge around it has no padding for this type, so the pill's round fill is the dot.
 

@@ -20,8 +20,8 @@ The atomic checkbox control — the painted square with its check or dash glyph 
 Shown on the default member: size `medium`, selection `unchecked`, status `default`.
 
 1. **Control**
-2. **Mark**
-3. **Dash**
+2. **Check glyph**
+3. **Dash glyph**
 4. **Focus ring**
 
 ## Styles

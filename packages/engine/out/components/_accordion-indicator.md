@@ -20,10 +20,10 @@ The glyph an Accordion header shows to say whether its section is open: a chevro
 Shown on the default member: indicator `chevron`, expansion `collapsed`, size `medium`.
 
 1. **Frame** — The glyph's box, one icon square at the Accordion's size. Exactly one glyph shows in it.
-2. **Chevron down** — Closed: a chevron pointing down.
-3. **Chevron up** — Open: a chevron pointing up.
-4. **Plus** — Closed, when the pair is plus and minus: a plus.
-5. **Minus** — Open, when the pair is plus and minus: a minus.
+2. **Chevron down glyph** — Closed: a chevron pointing down.
+3. **Chevron up glyph** — Open: a chevron pointing up.
+4. **Plus glyph** — Closed, when the pair is plus and minus: a plus.
+5. **Minus glyph** — Open, when the pair is plus and minus: a minus.
 
 ## Styles
 

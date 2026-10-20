@@ -20,7 +20,7 @@ A rotating arc over a faint full ring, showing that work is in progress with no 
 Shown on the default member: size `x-small`.
 
 1. **Frame**
-2. **Ring** — The composed drawing: the track (a full ring at 20% layer opacity) under the head arc (33% of the circle, round caps), both filled outlines inked with the one icon color. Drawn at the rest position — the arc starting at twelve o'clock and running clockwise.
+2. **Ring glyph** — The composed drawing: the track (a full ring at 20% layer opacity) under the head arc (33% of the circle, round caps), both filled outlines inked with the one icon color. Drawn at the rest position — the arc starting at twelve o'clock and running clockwise.
 
 ## Styles
 
