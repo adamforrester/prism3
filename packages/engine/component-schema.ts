@@ -1747,13 +1747,11 @@ export type ComponentDef = {
    *  decision is filed (#846); this field stays prose and the closed key list is what makes it gateable
    *  in the meantime.
    *
-   *  AND THE FIELD HAS NO READER — measured, and the reason #846 is a decision rather than a cleanup.
-   *  `def.content` appears in exactly two places in this repo: this declaration and a quoted block in
-   *  `docs/39`. No emitter, no projection, no `.ai.json` field, no skill, no gate. Six defs author
-   *  `labelPattern` prose that is gated for voice and US English and delivered to nobody. So closing the
-   *  keys is worth doing on its own terms — an author's typo now fails instead of vanishing twice over —
-   *  but it does not make the field arrive anywhere, and reading this list as though it does is the
-   *  mistake to avoid.
+   *  ITS READERS (#846 finding 1, which corrected this comment). Since #1701 `emit-component-docs.ts`
+   *  projects the field into `out/components/components.ai.json` and, through the doc section model
+   *  (`component-doc-sections.ts`, #846), into the Content guidelines section of `out/components/<id>.md`;
+   *  the Figma panel and the docs-site page will read the same section. Closing the keys still matters on
+   *  its own terms: a misspelled key fails instead of vanishing.
    *
    *  THE INDEX SIGNATURE IS GONE (#821). `[k: string]: string | undefined` made every misspelled key
    *  valid — `lablePattern` typechecked, projected nothing, and no gate could see it, because a field
@@ -1795,7 +1793,8 @@ export type ComponentDef = {
      *  or a "sits beside" list goes. */
     commonPartners?: string[];
     triggerKeywords?: string[];
-    /** Tiebreaker when several components could serve a prompt. */
+    /** Tiebreaker when several components could serve a prompt: lower wins; the scale is in the
+     *  build-component skill. */
     generationPriority?: number;
   };
 
@@ -1884,6 +1883,12 @@ export type ComponentDef = {
 /** The ceiling on `ComponentDef.summary`. The plugin register is about 90 characters; 100 leaves room
  *  for a precise sentence without admitting a second one. */
 export const SUMMARY_MAX = 100;
+/** An items-slot host with a `size` carries one more sentence in its summary (#2829, owner decision Q438 A): how the
+ *  host's size reaches its items. The cap grows by that sentence, so the host's own line keeps the room every
+ *  other summary has. `lint-component-docs.ts` holds the sentence itself, as its own literal. */
+export const ITEMS_SIZE_NOTE_LENGTH = " Size applies to the items you haven't edited. After editing an item, select the items and set their size.".length;
+export const summaryMaxOf = (def: Pick<ComponentDef, 'props'>): number =>
+  def.props?.some((p) => p.name === 'items' && p.type === 'slot') && def.props.some((p) => p.name === 'size') ? SUMMARY_MAX + ITEMS_SIZE_NOTE_LENGTH : SUMMARY_MAX;
 
 export const statesOf = (def: ComponentDef): readonly string[] => def.states ?? [];
 /** The states a part's `when` names, one or a list (#2318): empty when it names none. */
@@ -1940,7 +1945,7 @@ export const validateComponentDef = (
   req(!!def.description, 'description is required');
   req(typeof def.summary === 'string' && def.summary.length > 0, 'summary is required — the one-line Figma description');
   if (typeof def.summary === 'string' && def.summary.length > 0) {
-    if (def.summary.length > SUMMARY_MAX) errors.push(`summary is ${def.summary.length} characters — at most ${SUMMARY_MAX} (the plugin register is one line of about 90)`);
+    if (def.summary.length > summaryMaxOf(def)) errors.push(`summary is ${def.summary.length} characters — at most ${summaryMaxOf(def)} (the plugin register is one line of about 90)`);
     if (/\n/.test(def.summary)) errors.push('summary must be one line');
     if (!/\.$/.test(def.summary)) errors.push('summary must end with a period');
   }
@@ -1970,6 +1975,12 @@ export const validateComponentDef = (
 
   // states + variants
   req(Array.isArray(def.states), 'states must be an array (use [] for non-interactive)');
+  // `rest` alone is not a state set (#2711). `rest` is the baseline other states depart from, so a list
+  // holding nothing else claims an interaction ladder of one rung. Containers whose states live on their
+  // children declared it two ways, `['rest']` and `[]`, and the agent metadata could not tell them apart.
+  // `[]` is the schema's own instruction above and the majority, so it is the one form.
+  if (Array.isArray(def.states) && def.states.length === 1 && def.states[0] === 'rest')
+    errors.push("states: ['rest'] declares no interaction. A component with no states of its own declares states: [] — `rest` is the baseline other states depart from, not a state set");
   req(!!def.variants && typeof def.variants === 'object', 'variants must be an object');
 
   // The CLOSED vocabularies (#821). Not redundant with the types on those two fields: `State[]` and

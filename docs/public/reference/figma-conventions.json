@@ -1106,7 +1106,7 @@
         "kind": "component set",
         "page": "↳ Checkbox",
         "section": "Components",
-        "members": 54,
+        "members": 90,
         "variantProperties": [
           {
             "name": "selection",
@@ -1114,6 +1114,13 @@
               "unchecked",
               "checked",
               "indeterminate"
+            ]
+          },
+          {
+            "name": "status",
+            "values": [
+              "default",
+              "error"
             ]
           },
           {
@@ -1131,8 +1138,7 @@
               "hover",
               "pressed",
               "focus-visible",
-              "disabled",
-              "error"
+              "disabled"
             ]
           }
         ],
@@ -1146,8 +1152,15 @@
         "kind": "component set",
         "page": "↳ Checkbox",
         "section": "Components",
-        "members": 3,
+        "members": 6,
         "variantProperties": [
+          {
+            "name": "status",
+            "values": [
+              "default",
+              "error"
+            ]
+          },
           {
             "name": "size",
             "values": [
@@ -1170,8 +1183,7 @@
             "pressed",
             "focus-visible",
             "disabled",
-            "read-only",
-            "error"
+            "read-only"
           ]
         },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/checkbox-row.md"
@@ -1183,8 +1195,15 @@
         "kind": "component set",
         "page": "↳ Checkbox",
         "section": "Components",
-        "members": 3,
+        "members": 6,
         "variantProperties": [
+          {
+            "name": "status",
+            "values": [
+              "default",
+              "error"
+            ]
+          },
           {
             "name": "size",
             "values": [
@@ -1195,11 +1214,6 @@
           }
         ],
         "properties": [],
-        "codeOnly": {
-          "states": [
-            "rest"
-          ]
-        },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/checkbox-group.md"
       },
       {
@@ -1209,13 +1223,20 @@
         "kind": "component set",
         "page": "↳ Radio",
         "section": "Components",
-        "members": 30,
+        "members": 60,
         "variantProperties": [
           {
             "name": "selection",
             "values": [
               "unchecked",
               "checked"
+            ]
+          },
+          {
+            "name": "status",
+            "values": [
+              "default",
+              "error"
             ]
           },
           {
@@ -1247,8 +1268,15 @@
         "kind": "component set",
         "page": "↳ Radio",
         "section": "Components",
-        "members": 3,
+        "members": 6,
         "variantProperties": [
+          {
+            "name": "status",
+            "values": [
+              "default",
+              "error"
+            ]
+          },
           {
             "name": "size",
             "values": [
@@ -1283,8 +1311,15 @@
         "kind": "component set",
         "page": "↳ Radio",
         "section": "Components",
-        "members": 3,
+        "members": 6,
         "variantProperties": [
+          {
+            "name": "status",
+            "values": [
+              "default",
+              "error"
+            ]
+          },
           {
             "name": "size",
             "values": [
@@ -1295,11 +1330,6 @@
           }
         ],
         "properties": [],
-        "codeOnly": {
-          "states": [
-            "rest"
-          ]
-        },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/radio-group.md"
       },
       {
@@ -1309,13 +1339,20 @@
         "kind": "component set",
         "page": "↳ Switch",
         "section": "Components",
-        "members": 24,
+        "members": 40,
         "variantProperties": [
           {
             "name": "selection",
             "values": [
               "off",
               "on"
+            ]
+          },
+          {
+            "name": "status",
+            "values": [
+              "default",
+              "error"
             ]
           },
           {
@@ -1332,8 +1369,7 @@
               "hover",
               "pressed",
               "focus-visible",
-              "disabled",
-              "error"
+              "disabled"
             ]
           }
         ],
@@ -1352,8 +1388,15 @@
         "kind": "component set",
         "page": "↳ Switch",
         "section": "Components",
-        "members": 2,
+        "members": 4,
         "variantProperties": [
+          {
+            "name": "status",
+            "values": [
+              "default",
+              "error"
+            ]
+          },
           {
             "name": "size",
             "values": [
@@ -1376,8 +1419,7 @@
             "pending",
             "focus-visible",
             "disabled",
-            "read-only",
-            "error"
+            "read-only"
           ]
         },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/switch-row.md"
@@ -1724,11 +1766,6 @@
           }
         ],
         "properties": [],
-        "codeOnly": {
-          "states": [
-            "rest"
-          ]
-        },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/tabs.md"
       },
       {
@@ -1985,11 +2022,6 @@
             "type": "BOOLEAN"
           }
         ],
-        "codeOnly": {
-          "states": [
-            "rest"
-          ]
-        },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/segmented-control.md"
       },
       {

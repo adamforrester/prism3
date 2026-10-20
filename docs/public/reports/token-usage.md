@@ -51,9 +51,9 @@ Type: dimension. Bound by 5 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| checkbox-control | `border-width` | control | every member (54 of 54) |
-| radio-control | `border-width` | control | every member (30 of 30) |
-| switch-control | `border-width` | track | every member (24 of 24) |
+| checkbox-control | `border-width` | control | every member (90 of 90) |
+| radio-control | `border-width` | control | every member (60 of 60) |
+| switch-control | `border-width` | track | every member (40 of 40) |
 | tab | `indicator-height` | indicator | every member (30 of 30) |
 | tag | `selected.border-width` | container | selection: selected · type: select (15 of 45) |
 
@@ -80,20 +80,21 @@ Type: color. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| switch-control | `off.fill`, `off.icon` | offGlyph | selection: off · state: error, focus-visible, hover, pressed, rest (10 of 24) |
-|  |  | track | selection: off · state: error, focus-visible, hover, pressed, rest (10 of 24) |
+| switch-control | `off.fill`, `off.icon` | offGlyph | selection: off · state: focus-visible, hover, pressed, rest (16 of 40) |
+|  |  | track | selection: off · state: focus-visible, hover, pressed, rest (16 of 40) |
 
 ### `color.border.danger`
 
-Type: color. Bound by 7 component(s).
+Type: color. Bound by 8 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `danger.status.subtle.border` | surface | emphasis: subtle · tone: danger · type: status (1 of 20) |
-| checkbox-control | `checked.border.error`, `indeterminate.border.error`, `unchecked.border.error` | control | state: error (9 of 54) |
+| checkbox-control | `error.checked.border.focus-visible`, `error.checked.border.hover`, `error.checked.border.pressed`, `error.checked.border.rest`, `error.indeterminate.border.focus-visible`, `error.indeterminate.border.hover`, `error.indeterminate.border.pressed`, `error.indeterminate.border.rest`, `error.unchecked.border.focus-visible`, `error.unchecked.border.hover`, `error.unchecked.border.pressed`, `error.unchecked.border.rest` | control | state: focus-visible, hover, pressed, rest · status: error (36 of 90) |
 | password-field | `error.border.empty`, `error.border.filled`, `error.border.focus-visible`, `error.border.focus-visible-filled`, `error.border.hover`, `error.border.read-only`, `error.border.rest` | control | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest · status: error (18 of 84) |
+| radio-control | `error.checked.border.focus-visible`, `error.checked.border.hover`, `error.checked.border.pressed`, `error.checked.border.rest`, `error.unchecked.border.focus-visible`, `error.unchecked.border.hover`, `error.unchecked.border.pressed`, `error.unchecked.border.rest` | control | state: focus-visible, hover, pressed, rest · status: error (24 of 60) |
 | select | `error.border.empty`, `error.border.filled`, `error.border.focus-visible`, `error.border.focus-visible-filled`, `error.border.hover`, `error.border.read-only`, `error.border.rest` | control | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest · status: error (18 of 84) |
-| switch-control | `off.border.error`, `on.border.error` | track | state: error (4 of 24) |
+| switch-control | `error.off.border.focus-visible`, `error.off.border.hover`, `error.off.border.pressed`, `error.off.border.rest`, `error.on.border.focus-visible`, `error.on.border.hover`, `error.on.border.pressed`, `error.on.border.rest` | track | state: focus-visible, hover, pressed, rest · status: error (16 of 40) |
 | text-field | `error.border.empty`, `error.border.filled`, `error.border.focus-visible`, `error.border.focus-visible-filled`, `error.border.hover`, `error.border.read-only`, `error.border.rest` | control | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest · status: error (18 of 84) |
 | textarea | `error.border.empty`, `error.border.filled`, `error.border.focus-visible`, `error.border.focus-visible-filled`, `error.border.hover`, `error.border.read-only`, `error.border.rest` | control | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest · status: error (18 of 84) |
 
@@ -191,7 +192,7 @@ Type: color. Bound by 19 component(s).
 | button | `disabled.border` | container | appearance: outline · inset: default · state: disabled · surface: default (12 of 576) |
 | button-destructive | `disabled.border` | container | appearance: outline · inset: default · state: disabled · surface: default (12 of 576) |
 | button-neutral | `disabled.border` | container | appearance: outline · inset: default · state: disabled · surface: default (12 of 576) |
-| checkbox-control | `disabled.border` | control | selection: unchecked · state: disabled (3 of 54) |
+| checkbox-control | `disabled.border` | control | selection: unchecked · state: disabled (6 of 90) |
 | counter | `disabled.border` | control | appearance: outline · state: disabled (3 of 18) |
 | flush-icon-button | `disabled.border` | container | shape: round · state: disabled (3 of 30) |
 | flush-icon-button-destructive | `disabled.border` | container | shape: round · state: disabled (3 of 30) |
@@ -200,11 +201,11 @@ Type: color. Bound by 19 component(s).
 | icon-button-destructive | `disabled.border` | container | appearance: outline · state: disabled · surface: default (6 of 216) |
 | icon-button-neutral | `disabled.border` | container | appearance: outline · state: disabled · surface: default (6 of 216) |
 | password-field | `disabled.border` | control | state: disabled (12 of 84) |
-| radio-control | `disabled.border` | control | state: disabled (6 of 30) |
+| radio-control | `disabled.border` | control | state: disabled (12 of 60) |
 | select | `disabled.border` | control | state: disabled (12 of 84) |
-| switch-control | `disabled.border`, `disabled.icon.on-fill` | offGlyph | selection: off · state: disabled (2 of 24) |
-|  |  | onGlyph | selection: on · state: disabled (2 of 24) |
-|  |  | track | selection: off · state: disabled (2 of 24) |
+| switch-control | `disabled.border`, `disabled.icon.on-fill` | offGlyph | selection: off · state: disabled (4 of 40) |
+|  |  | onGlyph | selection: on · state: disabled (4 of 40) |
+|  |  | track | selection: off · state: disabled (4 of 40) |
 | tab | `disabled.fill` | indicator | selection: selected · state: disabled (3 of 30) |
 | tag | `disabled.border` | container | state: disabled (9 of 45) |
 | text-field | `disabled.border` | control | state: disabled (12 of 84) |
@@ -219,14 +220,14 @@ Type: color. Bound by 13 component(s).
 | button | `disabled.fill` | container | appearance: filled · inset: default · state: disabled · surface: default (12 of 576) |
 | button-destructive | `disabled.fill` | container | appearance: filled · inset: default · state: disabled · surface: default (12 of 576) |
 | button-neutral | `disabled.fill` | container | appearance: filled · inset: default · state: disabled · surface: default (12 of 576) |
-| checkbox-control | `disabled.fill` | control | selection: checked, indeterminate · state: disabled (6 of 54) |
+| checkbox-control | `disabled.fill` | control | selection: checked, indeterminate · state: disabled (12 of 90) |
 | icon-button | `disabled.fill` | container | appearance: filled · state: disabled · surface: default (6 of 216) |
 | icon-button-destructive | `disabled.fill` | container | appearance: filled · state: disabled · surface: default (6 of 216) |
 | icon-button-neutral | `disabled.fill` | container | appearance: filled · state: disabled · surface: default (6 of 216) |
 | password-field | `disabled.fill` | control | state: disabled (12 of 84) |
-| radio-control | `disabled.indicator` | dot | selection: checked · state: disabled (3 of 30) |
+| radio-control | `disabled.indicator` | dot | selection: checked · state: disabled (6 of 60) |
 | select | `disabled.fill` | control | state: disabled (12 of 84) |
-| switch-control | `disabled.fill` | track | state: disabled (4 of 24) |
+| switch-control | `disabled.fill` | track | state: disabled (8 of 40) |
 | text-field | `disabled.fill` | control | state: disabled (12 of 84) |
 | textarea | `disabled.fill` | control | state: disabled (12 of 84) |
 
@@ -269,13 +270,13 @@ Type: color. Bound by 9 component(s).
 | button-neutral | `disabled.icon.on-fill`, `disabled.label.on-fill` | label | appearance: filled · inset: default · state: disabled · surface: default (12 of 576) |
 |  |  | leadingVisual | appearance: filled · inset: default · leading: true · state: disabled · surface: default (6 of 576) |
 |  |  | trailingVisual | appearance: filled · inset: default · state: disabled · surface: default · trailing: true (6 of 576) |
-| checkbox-control | `disabled.icon.on-fill` | glyph | selection: checked, indeterminate · state: disabled (6 of 54) |
+| checkbox-control | `disabled.icon.on-fill` | glyph | selection: checked, indeterminate · state: disabled (12 of 90) |
 | password-field | `disabled.icon.on-fill`, `disabled.label.on-fill` | leadingVisual | state: disabled (12 of 84) |
 |  |  | placeholder | state: disabled (12 of 84) |
 | select | `disabled.icon.on-fill`, `disabled.label.on-fill` | chevron | state: disabled (12 of 84) |
 |  |  | leadingVisual | state: disabled (12 of 84) |
 |  |  | placeholder | state: disabled (12 of 84) |
-| switch-control | `disabled.indicator.on-fill` | thumb | state: disabled (4 of 24) |
+| switch-control | `disabled.indicator.on-fill` | thumb | state: disabled (8 of 40) |
 | text-field | `disabled.icon.on-fill`, `disabled.label.on-fill` | leadingVisual | state: disabled (12 of 84) |
 |  |  | placeholder | state: disabled (12 of 84) |
 |  |  | trailingVisual | state: disabled (12 of 84) |
@@ -310,9 +311,9 @@ Type: color. Bound by 6 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| checkbox-control | `unchecked.border.hover` | control | selection: unchecked · state: hover (3 of 54) |
+| checkbox-control | `unchecked.border.hover` | control | selection: unchecked · state: hover · status: default (3 of 90) |
 | password-field | `border.hover` | control | state: hover · status: default (3 of 84) |
-| radio-control | `unchecked.border.hover` | control | selection: unchecked · state: hover (3 of 30) |
+| radio-control | `unchecked.border.hover` | control | selection: unchecked · state: hover · status: default (3 of 60) |
 | select | `border.hover` | control | state: hover · status: default (3 of 84) |
 | text-field | `border.hover` | control | state: hover · status: default (3 of 84) |
 | textarea | `border.hover` | control | state: hover · status: default (3 of 84) |
@@ -323,10 +324,10 @@ Type: color. Bound by 7 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| checkbox-control | `unchecked.border` | control | selection: unchecked · state: focus-visible, pressed, rest (9 of 54) |
+| checkbox-control | `unchecked.border` | control | selection: unchecked · state: focus-visible, pressed, rest · status: default (9 of 90) |
 | counter | `outline.border` | control | appearance: outline · state: focus-visible, rest (6 of 18) |
 | password-field | `border`, `border.read-only` | control | state: filled, read-only, rest · status: default (9 of 84) |
-| radio-control | `unchecked.border` | control | selection: unchecked · state: focus-visible, pressed, rest (9 of 30) |
+| radio-control | `unchecked.border` | control | selection: unchecked · state: focus-visible, pressed, rest · status: default (9 of 60) |
 | select | `border`, `border.read-only` | control | state: filled, read-only, rest · status: default (9 of 84) |
 | text-field | `border`, `border.read-only` | control | state: filled, read-only, rest · status: default (9 of 84) |
 | textarea | `border`, `border.read-only` | control | state: filled, read-only, rest · status: default (9 of 84) |
@@ -687,7 +688,7 @@ Type: color. Bound by 4 component(s).
 |---|---|---|---|
 | button-neutral | `outline.border.hover` | container | appearance: outline · inset: default · state: hover · surface: default (12 of 576) |
 | icon-button-neutral | `outline.border.hover` | container | appearance: outline · state: hover · surface: default (6 of 216) |
-| switch-control | `off.border.hover` | track | selection: off · state: hover (2 of 24) |
+| switch-control | `off.border.hover` | track | selection: off · state: hover · status: default (2 of 40) |
 | tag | `unselected.border.hover` | container | selection: unselected · state: hover (6 of 45) |
 
 ### `color.interactive.neutral.border.pressed`
@@ -698,7 +699,7 @@ Type: color. Bound by 4 component(s).
 |---|---|---|---|
 | button-neutral | `outline.border.pressed` | container | appearance: outline · inset: default · state: pressed · surface: default (12 of 576) |
 | icon-button-neutral | `outline.border.pressed` | container | appearance: outline · state: pressed · surface: default (6 of 216) |
-| switch-control | `off.border.pressed` | track | selection: off · state: pressed (2 of 24) |
+| switch-control | `off.border.pressed` | track | selection: off · state: pressed · status: default (2 of 40) |
 | tag | `unselected.border.pressed` | container | selection: unselected · state: pressed (6 of 45) |
 
 ### `color.interactive.neutral.border.rest`
@@ -709,8 +710,8 @@ Type: color. Bound by 4 component(s).
 |---|---|---|---|
 | button-neutral | `outline.border` | container | appearance: outline · inset: default · state: focus-visible, pending, rest · surface: default (36 of 576) |
 | icon-button-neutral | `outline.border` | container | appearance: outline · state: focus-visible, pending, rest · surface: default (18 of 216) |
-| switch-control | `off.border`, `off.indicator` | thumb | selection: off · state: error, focus-visible, hover, pressed, rest (10 of 24) |
-|  |  | track | selection: off · state: focus-visible, rest (4 of 24) |
+| switch-control | `off.border`, `off.indicator` | thumb | selection: off · state: focus-visible, hover, pressed, rest (16 of 40) |
+|  |  | track | selection: off · state: focus-visible, rest · status: default (4 of 40) |
 | tag | `unselected.border` | container | selection: unselected · state: focus-visible, rest (12 of 45) |
 
 ### `color.interactive.neutral.fill.hover`
@@ -883,7 +884,7 @@ Type: color. Bound by 5 component(s).
 |---|---|---|---|
 | button | `outline.border.hover` | container | appearance: outline · inset: default · state: hover · surface: default (12 of 576) |
 | icon-button | `outline.border.hover` | container | appearance: outline · state: hover · surface: default (6 of 216) |
-| radio-control | `checked.border.hover` | control | selection: checked · state: hover (3 of 30) |
+| radio-control | `checked.border.hover` | control | selection: checked · state: hover · status: default (3 of 60) |
 | tab | `selected.fill.hover` | indicator | selection: selected · state: hover (3 of 30) |
 | tag | `selected.border.hover` | container | selection: selected · state: hover · type: select (3 of 45) |
 
@@ -895,7 +896,7 @@ Type: color. Bound by 5 component(s).
 |---|---|---|---|
 | button | `outline.border.pressed` | container | appearance: outline · inset: default · state: pressed · surface: default (12 of 576) |
 | icon-button | `outline.border.pressed` | container | appearance: outline · state: pressed · surface: default (6 of 216) |
-| radio-control | `checked.border.pressed` | control | selection: checked · state: pressed (3 of 30) |
+| radio-control | `checked.border.pressed` | control | selection: checked · state: pressed · status: default (3 of 60) |
 | tab | `selected.fill.pressed` | indicator | selection: selected · state: pressed (3 of 30) |
 | tag | `selected.border.pressed` | container | selection: selected · state: pressed · type: select (3 of 45) |
 
@@ -907,7 +908,7 @@ Type: color. Bound by 5 component(s).
 |---|---|---|---|
 | button | `outline.border` | container | appearance: outline · inset: default · state: focus-visible, pending, rest · surface: default (36 of 576) |
 | icon-button | `outline.border` | container | appearance: outline · state: focus-visible, pending, rest · surface: default (18 of 216) |
-| radio-control | `checked.border` | control | selection: checked · state: focus-visible, rest (6 of 30) |
+| radio-control | `checked.border` | control | selection: checked · state: focus-visible, rest · status: default (6 of 60) |
 | tab | `selected.fill` | indicator | selection: selected · state: focus-visible, rest (6 of 30) |
 | tag | `selected.border` | container | selection: selected · state: focus-visible, rest · type: select (6 of 45) |
 
@@ -918,9 +919,9 @@ Type: color. Bound by 4 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | button | `filled.fill.hover` | container | appearance: filled · inset: default · state: hover · surface: default (12 of 576) |
-| checkbox-control | `checked.fill.hover`, `indeterminate.fill.hover` | control | selection: checked, indeterminate · state: hover (6 of 54) |
+| checkbox-control | `checked.fill.hover`, `indeterminate.fill.hover` | control | selection: checked, indeterminate · state: hover (12 of 90) |
 | icon-button | `filled.fill.hover` | container | appearance: filled · state: hover · surface: default (6 of 216) |
-| switch-control | `on.fill.hover` | track | selection: on · state: hover (2 of 24) |
+| switch-control | `on.fill.hover` | track | selection: on · state: hover (4 of 40) |
 
 ### `color.interactive.primary.fill.pressed`
 
@@ -929,9 +930,9 @@ Type: color. Bound by 4 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | button | `filled.fill.pressed` | container | appearance: filled · inset: default · state: pressed · surface: default (12 of 576) |
-| checkbox-control | `checked.fill.pressed`, `indeterminate.fill.pressed` | control | selection: checked, indeterminate · state: pressed (6 of 54) |
+| checkbox-control | `checked.fill.pressed`, `indeterminate.fill.pressed` | control | selection: checked, indeterminate · state: pressed (12 of 90) |
 | icon-button | `filled.fill.pressed` | container | appearance: filled · state: pressed · surface: default (6 of 216) |
-| switch-control | `on.fill.pressed` | track | selection: on · state: pressed (2 of 24) |
+| switch-control | `on.fill.pressed` | track | selection: on · state: pressed (4 of 40) |
 
 ### `color.interactive.primary.fill.rest`
 
@@ -948,10 +949,10 @@ Type: color. Bound by 3 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| checkbox-control | `checked.fill`, `indeterminate.fill` | control | selection: checked, indeterminate · state: error, focus-visible, rest (18 of 54) |
-| radio-control | `checked.indicator` | dot | selection: checked · state: focus-visible, hover, pressed, rest (12 of 30) |
-| switch-control | `on.fill`, `on.icon` | onGlyph | selection: on · state: error, focus-visible, hover, pressed, rest (10 of 24) |
-|  |  | track | selection: on · state: error, focus-visible, rest (6 of 24) |
+| checkbox-control | `checked.fill`, `indeterminate.fill` | control | selection: checked, indeterminate · state: focus-visible, rest (24 of 90) |
+| radio-control | `checked.indicator` | dot | selection: checked · state: focus-visible, hover, pressed, rest (24 of 60) |
+| switch-control | `on.fill`, `on.icon` | onGlyph | selection: on · state: focus-visible, hover, pressed, rest (16 of 40) |
+|  |  | track | selection: on · state: focus-visible, rest (8 of 40) |
 
 ### `color.interactive.primary.icon.hover`
 
@@ -1001,10 +1002,10 @@ Type: color. Bound by 4 component(s).
 |  |  | leadingVisual | appearance: filled · inset: default · leading: true · state: focus-visible, hover, pressed, rest · surface: default (24 of 576) |
 |  |  | spinner | appearance: filled · inset: default · state: pending · surface: default (12 of 576) |
 |  |  | trailingVisual | appearance: filled · inset: default · state: focus-visible, hover, pending, pressed, rest · surface: default · trailing: true (27 of 576) |
-| checkbox-control | `checked.icon`, `indeterminate.icon` | glyph | selection: checked, indeterminate · state: error, focus-visible, hover, pressed, rest (30 of 54) |
+| checkbox-control | `checked.icon`, `indeterminate.icon` | glyph | selection: checked, indeterminate · state: focus-visible, hover, pressed, rest (48 of 90) |
 | icon-button | `filled.icon` | icon | appearance: filled · state: focus-visible, hover, pressed, rest · surface: default (24 of 216) |
 |  |  | spinner | appearance: filled · state: pending · surface: default (6 of 216) |
-| switch-control | `on.indicator` | thumb | selection: on · state: error, focus-visible, hover, pressed, rest (10 of 24) |
+| switch-control | `on.indicator` | thumb | selection: on · state: focus-visible, hover, pressed, rest (16 of 40) |
 
 ### `color.interactive.primary.overlay.hover`
 
@@ -1737,7 +1738,7 @@ Type: color. Bound by 13 component(s).
 |---|---|---|---|
 | accordion | `body` | placeholder | expansion: expanded (12 of 24) |
 | badge | `neutral.status.subtle.label` | text | emphasis: subtle · tone: neutral · type: status (1 of 20) |
-| checkbox-row | `label` | label | every member (3 of 3) |
+| checkbox-row | `label` | label | every member (6 of 6) |
 | counter | `ghost.label`, `outline.label` | value | state: focus-visible, rest (12 of 18) |
 | dialog | `body`, `label` | placeholder | every member (15 of 15) |
 |  |  | title | every member (15 of 15) |
@@ -1748,9 +1749,9 @@ Type: color. Bound by 13 component(s).
 | password-field | `caret`, `caret-end`, `label` | caret | state: focus-visible (12 of 84) |
 |  |  | caretEnd | state: focus-visible-filled (12 of 84) |
 |  |  | value | state: filled, focus-visible-filled, read-only (36 of 84) |
-| radio-row | `label` | label | every member (3 of 3) |
+| radio-row | `label` | label | every member (6 of 6) |
 | select | `label` | value | state: filled, focus-visible-filled, read-only (36 of 84) |
-| switch-row | `label` | label | every member (2 of 2) |
+| switch-row | `label` | label | every member (4 of 4) |
 | text-field | `caret`, `caret-end`, `label` | caret | state: focus-visible (12 of 84) |
 |  |  | caretEnd | state: focus-visible-filled (12 of 84) |
 |  |  | value | state: filled, focus-visible-filled, read-only (36 of 84) |
@@ -1872,7 +1873,7 @@ Type: dimension. Bound by 2 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | list-item | `size.large.dot` | bullet | size: large · type: unordered (1 of 9) |
-| radio-control | `size.large.dot` | dot | selection: checked · size: large (5 of 30) |
+| radio-control | `size.large.dot` | dot | selection: checked · size: large (10 of 60) |
 
 ### `control.size.lg.height`
 
@@ -1880,12 +1881,12 @@ Type: dimension. Bound by 4 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| checkbox-control | `size.large.control` | control | size: large (18 of 54) |
-|  |  | dash | selection: indeterminate · size: large (6 of 54) |
-|  |  | mark | selection: checked · size: large (6 of 54) |
-| checkbox-row | `size.large.control` | control | size: large (1 of 3) |
-| radio-control | `size.large.control` | control | size: large (10 of 30) |
-| radio-row | `size.large.control` | control | size: large (1 of 3) |
+| checkbox-control | `size.large.control` | control | size: large (30 of 90) |
+|  |  | dash | selection: indeterminate · size: large (10 of 90) |
+|  |  | mark | selection: checked · size: large (10 of 90) |
+| checkbox-row | `size.large.control` | control | size: large (2 of 6) |
+| radio-control | `size.large.control` | control | size: large (20 of 60) |
+| radio-row | `size.large.control` | control | size: large (2 of 6) |
 
 ### `control.size.lg.line-box`
 
@@ -1893,11 +1894,11 @@ Type: dimension. Bound by 6 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| checkbox-row | `size.large.control-box` | controlBox | size: large (1 of 3) |
+| checkbox-row | `size.large.control-box` | controlBox | size: large (2 of 6) |
 | list-item | `size.large.line-box` | markerBox | size: large (3 of 9) |
 | password-field | `size.large.caret-height` | caret | size: large · state: focus-visible (4 of 84) |
 |  |  | caretEnd | size: large · state: focus-visible-filled (4 of 84) |
-| radio-row | `size.large.control-box` | controlBox | size: large (1 of 3) |
+| radio-row | `size.large.control-box` | controlBox | size: large (2 of 6) |
 | text-field | `size.large.caret-height` | caret | size: large · state: focus-visible (4 of 84) |
 |  |  | caretEnd | size: large · state: focus-visible-filled (4 of 84) |
 | textarea | `size.large.caret-height` | caret | size: large · state: focus-visible (4 of 84) |
@@ -1908,7 +1909,7 @@ Type: dimension. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| checkbox-control | `size.large.radius` | control | size: large (18 of 54) |
+| checkbox-control | `size.large.radius` | control | size: large (30 of 90) |
 
 ### `control.size.md.dot`
 
@@ -1917,7 +1918,7 @@ Type: dimension. Bound by 2 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | list-item | `size.medium.dot` | bullet | size: medium · type: unordered (1 of 9) |
-| radio-control | `size.medium.dot` | dot | selection: checked · size: medium (5 of 30) |
+| radio-control | `size.medium.dot` | dot | selection: checked · size: medium (10 of 60) |
 
 ### `control.size.md.height`
 
@@ -1925,12 +1926,12 @@ Type: dimension. Bound by 4 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| checkbox-control | `size.medium.control` | control | size: medium (18 of 54) |
-|  |  | dash | selection: indeterminate · size: medium (6 of 54) |
-|  |  | mark | selection: checked · size: medium (6 of 54) |
-| checkbox-row | `size.medium.control` | control | size: medium (1 of 3) |
-| radio-control | `size.medium.control` | control | size: medium (10 of 30) |
-| radio-row | `size.medium.control` | control | size: medium (1 of 3) |
+| checkbox-control | `size.medium.control` | control | size: medium (30 of 90) |
+|  |  | dash | selection: indeterminate · size: medium (10 of 90) |
+|  |  | mark | selection: checked · size: medium (10 of 90) |
+| checkbox-row | `size.medium.control` | control | size: medium (2 of 6) |
+| radio-control | `size.medium.control` | control | size: medium (20 of 60) |
+| radio-row | `size.medium.control` | control | size: medium (2 of 6) |
 
 ### `control.size.md.inset`
 
@@ -1938,7 +1939,7 @@ Type: dimension. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| switch-control | `size.medium.inset` | track | size: medium (12 of 24) |
+| switch-control | `size.medium.inset` | track | size: medium (20 of 40) |
 
 ### `control.size.md.line-box`
 
@@ -1946,12 +1947,12 @@ Type: dimension. Bound by 7 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| checkbox-row | `size.medium.control-box` | controlBox | size: medium (1 of 3) |
+| checkbox-row | `size.medium.control-box` | controlBox | size: medium (2 of 6) |
 | list-item | `size.medium.line-box` | markerBox | size: medium (3 of 9) |
 | password-field | `size.medium.caret-height` | caret | size: medium · state: focus-visible (4 of 84) |
 |  |  | caretEnd | size: medium · state: focus-visible-filled (4 of 84) |
-| radio-row | `size.medium.control-box` | controlBox | size: medium (1 of 3) |
-| switch-row | `size.medium.control-box` | trackBox | size: medium (1 of 2) |
+| radio-row | `size.medium.control-box` | controlBox | size: medium (2 of 6) |
+| switch-row | `size.medium.control-box` | trackBox | size: medium (2 of 4) |
 | text-field | `size.medium.caret-height` | caret | size: medium · state: focus-visible (4 of 84) |
 |  |  | caretEnd | size: medium · state: focus-visible-filled (4 of 84) |
 | textarea | `size.medium.caret-height` | caret | size: medium · state: focus-visible (4 of 84) |
@@ -1962,7 +1963,7 @@ Type: dimension. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| checkbox-control | `size.medium.radius` | control | size: medium (18 of 54) |
+| checkbox-control | `size.medium.radius` | control | size: medium (30 of 90) |
 
 ### `control.size.md.thumb`
 
@@ -1970,9 +1971,9 @@ Type: dimension. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| switch-control | `size.medium.dot` | offGlyph | selection: off · size: medium (6 of 24) |
-|  |  | onGlyph | selection: on · size: medium (6 of 24) |
-|  |  | thumb | size: medium (12 of 24) |
+| switch-control | `size.medium.dot` | offGlyph | selection: off · size: medium (10 of 40) |
+|  |  | onGlyph | selection: on · size: medium (10 of 40) |
+|  |  | thumb | size: medium (20 of 40) |
 
 ### `control.size.md.track`
 
@@ -1980,8 +1981,8 @@ Type: dimension. Bound by 2 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| switch-control | `size.medium.control` | track | size: medium (12 of 24) |
-| switch-row | `size.medium.control` | control | size: medium (1 of 2) |
+| switch-control | `size.medium.control` | track | size: medium (20 of 40) |
+| switch-row | `size.medium.control` | control | size: medium (2 of 4) |
 
 ### `control.size.md.width`
 
@@ -1989,7 +1990,7 @@ Type: dimension. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| switch-control | `size.medium.track` | track | size: medium (12 of 24) |
+| switch-control | `size.medium.track` | track | size: medium (20 of 40) |
 
 ### `control.size.sm.dot`
 
@@ -1999,7 +2000,7 @@ Type: dimension. Bound by 3 component(s).
 |---|---|---|---|
 | badge | `dot-size` | dot | emphasis: bold · type: dot (5 of 20) |
 | list-item | `size.small.dot` | bullet | size: small · type: unordered (1 of 9) |
-| radio-control | `size.small.dot` | dot | selection: checked · size: small (5 of 30) |
+| radio-control | `size.small.dot` | dot | selection: checked · size: small (10 of 60) |
 
 ### `control.size.sm.height`
 
@@ -2007,12 +2008,12 @@ Type: dimension. Bound by 4 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| checkbox-control | `size.small.control` | control | size: small (18 of 54) |
-|  |  | dash | selection: indeterminate · size: small (6 of 54) |
-|  |  | mark | selection: checked · size: small (6 of 54) |
-| checkbox-row | `size.small.control` | control | size: small (1 of 3) |
-| radio-control | `size.small.control` | control | size: small (10 of 30) |
-| radio-row | `size.small.control` | control | size: small (1 of 3) |
+| checkbox-control | `size.small.control` | control | size: small (30 of 90) |
+|  |  | dash | selection: indeterminate · size: small (10 of 90) |
+|  |  | mark | selection: checked · size: small (10 of 90) |
+| checkbox-row | `size.small.control` | control | size: small (2 of 6) |
+| radio-control | `size.small.control` | control | size: small (20 of 60) |
+| radio-row | `size.small.control` | control | size: small (2 of 6) |
 
 ### `control.size.sm.inset`
 
@@ -2020,7 +2021,7 @@ Type: dimension. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| switch-control | `size.small.inset` | track | size: small (12 of 24) |
+| switch-control | `size.small.inset` | track | size: small (20 of 40) |
 
 ### `control.size.sm.line-box`
 
@@ -2028,12 +2029,12 @@ Type: dimension. Bound by 7 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| checkbox-row | `size.small.control-box` | controlBox | size: small (1 of 3) |
+| checkbox-row | `size.small.control-box` | controlBox | size: small (2 of 6) |
 | list-item | `size.small.line-box` | markerBox | size: small (3 of 9) |
 | password-field | `size.small.caret-height` | caret | size: small · state: focus-visible (4 of 84) |
 |  |  | caretEnd | size: small · state: focus-visible-filled (4 of 84) |
-| radio-row | `size.small.control-box` | controlBox | size: small (1 of 3) |
-| switch-row | `size.small.control-box` | trackBox | size: small (1 of 2) |
+| radio-row | `size.small.control-box` | controlBox | size: small (2 of 6) |
+| switch-row | `size.small.control-box` | trackBox | size: small (2 of 4) |
 | text-field | `size.small.caret-height` | caret | size: small · state: focus-visible (4 of 84) |
 |  |  | caretEnd | size: small · state: focus-visible-filled (4 of 84) |
 | textarea | `size.small.caret-height` | caret | size: small · state: focus-visible (4 of 84) |
@@ -2044,7 +2045,7 @@ Type: dimension. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| checkbox-control | `size.small.radius` | control | size: small (18 of 54) |
+| checkbox-control | `size.small.radius` | control | size: small (30 of 90) |
 
 ### `control.size.sm.thumb`
 
@@ -2052,9 +2053,9 @@ Type: dimension. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| switch-control | `size.small.dot` | offGlyph | selection: off · size: small (6 of 24) |
-|  |  | onGlyph | selection: on · size: small (6 of 24) |
-|  |  | thumb | size: small (12 of 24) |
+| switch-control | `size.small.dot` | offGlyph | selection: off · size: small (10 of 40) |
+|  |  | onGlyph | selection: on · size: small (10 of 40) |
+|  |  | thumb | size: small (20 of 40) |
 
 ### `control.size.sm.track`
 
@@ -2062,8 +2063,8 @@ Type: dimension. Bound by 2 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| switch-control | `size.small.control` | track | size: small (12 of 24) |
-| switch-row | `size.small.control` | control | size: small (1 of 2) |
+| switch-control | `size.small.control` | track | size: small (20 of 40) |
+| switch-row | `size.small.control` | control | size: small (2 of 4) |
 
 ### `control.size.sm.width`
 
@@ -2071,7 +2072,7 @@ Type: dimension. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| switch-control | `size.small.track` | track | size: small (12 of 24) |
+| switch-control | `size.small.track` | track | size: small (20 of 40) |
 
 ### `focus.ring.offset`
 
@@ -2082,7 +2083,7 @@ Type: dimension. Bound by 18 component(s).
 | button | `ring-offset` | focusRing | state: focus-visible (96 of 576) |
 | button-destructive | `ring-offset` | focusRing | state: focus-visible (96 of 576) |
 | button-neutral | `ring-offset` | focusRing | state: focus-visible (96 of 576) |
-| checkbox-control | `ring-offset` | focusRing | state: focus-visible (9 of 54) |
+| checkbox-control | `ring-offset` | focusRing | state: focus-visible (18 of 90) |
 | counter | `ghost.ring-offset` | focusRing | appearance: ghost · state: focus-visible (3 of 18) |
 | flush-icon-button | `ring-offset` | focusRing | state: focus-visible (6 of 30) |
 | flush-icon-button-destructive | `ring-offset` | focusRing | state: focus-visible (6 of 30) |
@@ -2092,9 +2093,9 @@ Type: dimension. Bound by 18 component(s).
 | icon-button-destructive | `ring-offset` | focusRing | state: focus-visible (36 of 216) |
 | icon-button-neutral | `ring-offset` | focusRing | state: focus-visible (36 of 216) |
 | link | `ring-offset` | focusRing | state: focus-visible (24 of 96) |
-| radio-control | `ring-offset` | focusRing | state: focus-visible (6 of 30) |
+| radio-control | `ring-offset` | focusRing | state: focus-visible (12 of 60) |
 | segmented-control-segment | `ring-offset` | focusRing | state: focus-visible (6 of 30) |
-| switch-control | `ring-offset` | focusRing | state: focus-visible (4 of 24) |
+| switch-control | `ring-offset` | focusRing | state: focus-visible (8 of 40) |
 | tab | `ring-offset` | focusRing | state: focus-visible (6 of 30) |
 | tag | `ring-offset` | focusRing | state: focus-visible (9 of 45) |
 
@@ -2129,7 +2130,7 @@ Type: dimension. Bound by 22 component(s).
 | button | `ring-width` | focusRing | state: focus-visible (96 of 576) |
 | button-destructive | `ring-width` | focusRing | state: focus-visible (96 of 576) |
 | button-neutral | `ring-width` | focusRing | state: focus-visible (96 of 576) |
-| checkbox-control | `ring-width` | focusRing | state: focus-visible (9 of 54) |
+| checkbox-control | `ring-width` | focusRing | state: focus-visible (18 of 90) |
 | counter | `ring-width` | focusRing | state: focus-visible (6 of 18) |
 | flush-icon-button | `ring-width` | focusRing | state: focus-visible (6 of 30) |
 | flush-icon-button-destructive | `ring-width` | focusRing | state: focus-visible (6 of 30) |
@@ -2140,10 +2141,10 @@ Type: dimension. Bound by 22 component(s).
 | icon-button-neutral | `ring-width` | focusRing | state: focus-visible (36 of 216) |
 | link | `ring-width` | focusRing | state: focus-visible (24 of 96) |
 | password-field | `ring-width` | focusRing | state: focus-visible, focus-visible-filled (24 of 84) |
-| radio-control | `ring-width` | focusRing | state: focus-visible (6 of 30) |
+| radio-control | `ring-width` | focusRing | state: focus-visible (12 of 60) |
 | segmented-control-segment | `ring-width` | focusRing | state: focus-visible (6 of 30) |
 | select | `ring-width` | focusRing | state: focus-visible, focus-visible-filled (24 of 84) |
-| switch-control | `ring-width` | focusRing | state: focus-visible (4 of 24) |
+| switch-control | `ring-width` | focusRing | state: focus-visible (8 of 40) |
 | tab | `ring-width` | focusRing | state: focus-visible (6 of 30) |
 | tag | `ring-width` | focusRing | state: focus-visible (9 of 45) |
 | text-field | `ring-width` | focusRing | state: focus-visible, focus-visible-filled (24 of 84) |
@@ -2338,10 +2339,10 @@ Type: dimension. Bound by 11 component(s).
 | icon-button-destructive | `radius.circular` | container | shape: circular (108 of 216) |
 | icon-button-neutral | `radius.circular` | container | shape: circular (108 of 216) |
 | list-item | `radius` | bullet | type: unordered (3 of 9) |
-| radio-control | `radius` | control | every member (30 of 30) |
-|  |  | dot | selection: checked (15 of 30) |
-| switch-control | `radius` | thumb | every member (24 of 24) |
-|  |  | track | every member (24 of 24) |
+| radio-control | `radius` | control | every member (60 of 60) |
+|  |  | dot | selection: checked (30 of 60) |
+| switch-control | `radius` | thumb | every member (40 of 40) |
+|  |  | track | every member (40 of 40) |
 | tag | `radius` | container | every member (45 of 45) |
 
 ### `radius.sm`
@@ -2465,9 +2466,9 @@ Type: dimension. Bound by 18 component(s).
 | button | `inset.flush` | container | appearance: text · inset: flush (144 of 576) |
 | button-destructive | `inset.flush` | container | appearance: text · inset: flush (144 of 576) |
 | button-neutral | `inset.flush` | container | appearance: text · inset: flush (144 of 576) |
-| checkbox-group | `gap`, `pad-x` | container | every member (3 of 3) |
-|  |  | items | every member (3 of 3) |
-| checkbox-row | `pad-x` | row | every member (3 of 3) |
+| checkbox-group | `gap`, `pad-x` | container | every member (6 of 6) |
+|  |  | items | every member (6 of 6) |
+| checkbox-row | `pad-x` | row | every member (6 of 6) |
 | counter | `ghost.size.large.pad-x`, `ghost.size.medium.pad-x`, `ghost.size.small.pad-x`, `pad-y` | control | every member (18 of 18) |
 |  |  | entry | every member (18 of 18) |
 | dialog | `pad-none` | body | every member (15 of 15) |
@@ -2476,9 +2477,9 @@ Type: dimension. Bound by 18 component(s).
 |  |  | panel | every member (15 of 15) |
 | divider | `horizontal.inset.pad-block`, `horizontal.inset.pad-end`, `horizontal.middle-inset.pad-block`, `horizontal.none.pad-block`, `horizontal.none.pad-end`, `horizontal.none.pad-start`, `vertical.inset.pad-block`, `vertical.inset.pad-end`, `vertical.inset.pad-start`, `vertical.middle-inset.pad-end`, `vertical.middle-inset.pad-start`, `vertical.none.pad-block`, `vertical.none.pad-end`, `vertical.none.pad-start` | divider | every member (5 of 5) |
 | list-item | `gap` | row | every member (9 of 9) |
-| radio-group | `gap`, `pad-x` | container | every member (3 of 3) |
-|  |  | items | every member (3 of 3) |
-| radio-row | `pad-x` | row | every member (3 of 3) |
+| radio-group | `gap`, `pad-x` | container | every member (6 of 6) |
+|  |  | items | every member (6 of 6) |
+| radio-row | `pad-x` | row | every member (6 of 6) |
 | segmented-control | `track-gap`, `track-pad` | items | every member (3 of 3) |
 |  |  | track | every member (3 of 3) |
 | segmented-control-segment | `pad-y`, `reserve-height` | content | every member (30 of 30) |
@@ -2546,8 +2547,8 @@ Type: dimension. Bound by 24 component(s).
 | button-destructive | `size.large.padding-y`, `size.medium.gap`, `size.medium.padding-y`, `size.small.gap` | container | every member (576 of 576) |
 | button-group | `layout.stacked.gap` | items | layout: stacked (1 of 3) |
 | button-neutral | `size.large.padding-y`, `size.medium.gap`, `size.medium.padding-y`, `size.small.gap` | container | every member (576 of 576) |
-| checkbox-group | `pad-y` | container | every member (3 of 3) |
-| checkbox-row | `size.medium.gap`, `size.small.gap` | row | size: medium, small (2 of 3) |
+| checkbox-group | `pad-y` | container | every member (6 of 6) |
+| checkbox-row | `size.medium.gap`, `size.small.gap` | row | size: medium, small (4 of 6) |
 | counter | `root-gap`, `size.large.value-pad` | container | every member (18 of 18) |
 |  |  | entry | size: large (6 of 18) |
 | dialog | `title-gap` | titleBox | every member (15 of 15) |
@@ -2559,14 +2560,14 @@ Type: dimension. Bound by 24 component(s).
 |  |  | content | every member (84 of 84) |
 |  |  | control | every member (84 of 84) |
 |  |  | labelRow | every member (84 of 84) |
-| radio-group | `pad-y` | container | every member (3 of 3) |
-| radio-row | `size.medium.gap`, `size.small.gap` | row | size: medium, small (2 of 3) |
+| radio-group | `pad-y` | container | every member (6 of 6) |
+| radio-row | `size.medium.gap`, `size.small.gap` | row | size: medium, small (4 of 6) |
 | segmented-control | `gap` | container | every member (3 of 3) |
 | segmented-control-segment | `size.large.gap`, `size.medium.gap` | content | size: large, medium (20 of 30) |
 | select | `root-gap`, `size.large.gap`, `size.large.pad-y`, `size.medium.gap`, `size.medium.pad-y`, `size.small.gap` | container | every member (84 of 84) |
 |  |  | content | every member (84 of 84) |
 |  |  | control | every member (84 of 84) |
-| switch-row | `size.medium.gap`, `size.small.gap` | row | every member (2 of 2) |
+| switch-row | `size.medium.gap`, `size.small.gap` | row | every member (4 of 4) |
 | tab | `size.large.gap`, `size.medium.gap` | content | size: large, medium (20 of 30) |
 | tag | `group-gap`, `size.large.check-gap`, `size.large.dismissible.visible-gap`, `size.medium.dismissible.visible-gap`, `size.medium.select.gap`, `size.small.padding-x`, `size.small.select.padding-end` | content | size: medium, small (25 of 45) |
 |  |  | labelCheck | size: large (15 of 45) |
@@ -2593,11 +2594,11 @@ Type: dimension. Bound by 13 component(s).
 | button-destructive | `size.large.gap`, `size.medium.padding-x-visual`, `size.small.padding-x-visual` | container | every member (408 of 576) |
 | button-group | `layout.fill.gap`, `layout.inline.gap` | items | layout: fill, inline (2 of 3) |
 | button-neutral | `size.large.gap`, `size.medium.padding-x-visual`, `size.small.padding-x-visual` | container | every member (408 of 576) |
-| checkbox-row | `pad-y`, `size.large.gap` | row | every member (3 of 3) |
+| checkbox-row | `pad-y`, `size.large.gap` | row | every member (6 of 6) |
 | counter | `outline.size.medium.pad-x`, `outline.size.small.pad-x` | control | appearance: outline · size: medium, small (6 of 18) |
 | list | `size.medium.gap` | container | size: medium (3 of 9) |
 |  |  | items | size: medium (3 of 9) |
-| radio-row | `pad-y`, `size.large.gap` | row | every member (3 of 3) |
+| radio-row | `pad-y`, `size.large.gap` | row | every member (6 of 6) |
 | segmented-control-segment | `size.small.padding-x` | content | size: small (10 of 30) |
 | tab | `size.small.padding-x` | content | size: small (10 of 30) |
 | tag | `size.large.select.gap`, `size.medium.padding-x`, `size.medium.select.padding-end` | content | size: large, medium (25 of 45) |
@@ -2632,12 +2633,13 @@ Type: dimension. Bound by 15 component(s).
 
 ### `space.250`
 
-Type: dimension. Bound by 3 component(s).
+Type: dimension. Bound by 4 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `size.large.pad-x` | content | expansion: expanded · size: large (4 of 24) |
 |  |  | header | size: large (8 of 24) |
+| list-item | `size.small.ordered.marker-column`, `size.small.unordered.marker-column` | markerBox | size: small · type: ordered, unordered (2 of 9) |
 | segmented-control-segment | `size.large.padding-x` | content | size: large (10 of 30) |
 | tab | `size.large.padding-x` | content | size: large (10 of 30) |
 
@@ -2655,7 +2657,7 @@ Type: dimension. Bound by 10 component(s).
 |  |  | footer | footer: inline, stacked · placement: center (6 of 15) |
 |  |  | header | placement: center (9 of 15) |
 |  |  | panel | placement: center (9 of 15) |
-| list-item | `size.small.marker-column` | markerBox | size: small (3 of 9) |
+| list-item | `size.medium.ordered.marker-column`, `size.medium.unordered.marker-column`, `size.small.icon.marker-column` | markerBox | size: medium, small (3 of 9) |
 | password-field | `size.large.pad-x` | control | size: large (28 of 84) |
 | select | `size.large.pad-x` | control | size: large (28 of 84) |
 | text-field | `size.large.pad-x` | control | size: large (28 of 84) |
@@ -2667,7 +2669,7 @@ Type: dimension. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| list-item | `size.medium.marker-column` | markerBox | size: medium (3 of 9) |
+| list-item | `size.large.ordered.marker-column`, `size.large.unordered.marker-column`, `size.medium.icon.marker-column` | markerBox | size: large, medium (3 of 9) |
 
 ### `space.500`
 
@@ -2675,7 +2677,7 @@ Type: dimension. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| list-item | `size.large.marker-column` | markerBox | size: large (3 of 9) |
+| list-item | `size.large.icon.marker-column` | markerBox | size: large · type: icon (1 of 9) |
 
 ### `type.body.lg.default`
 
@@ -2684,14 +2686,14 @@ Type: typography. Bound by 10 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `size.large.panel-type` | placeholder | expansion: expanded · size: large (4 of 24) |
-| checkbox-row | `size.large.text` | label | size: large (1 of 3) |
+| checkbox-row | `size.large.text` | label | size: large (2 of 6) |
 | counter | `size.large.type` | value | size: large (6 of 18) |
 | link | `size.large.type.default.standalone.rest` | label | size: large · state: rest · style: standalone · weight: default (2 of 96) |
 | list-item | `size.large.text` | number | size: large · type: ordered (1 of 9) |
 |  |  | text | size: large (3 of 9) |
 | password-field | `size.large.type` | placeholder | size: large · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: large · state: filled, focus-visible-filled, read-only (12 of 84) |
-| radio-row | `size.large.text` | label | size: large (1 of 3) |
+| radio-row | `size.large.text` | label | size: large (2 of 6) |
 | select | `size.large.type` | placeholder | size: large · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: large · state: filled, focus-visible-filled, read-only (12 of 84) |
 | text-field | `size.large.type` | placeholder | size: large · state: disabled, focus-visible, hover, rest (16 of 84) |
@@ -2730,7 +2732,7 @@ Type: typography. Bound by 13 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `size.medium.panel-type` | placeholder | expansion: expanded · size: medium (4 of 24) |
-| checkbox-row | `size.medium.text` | label | size: medium (1 of 3) |
+| checkbox-row | `size.medium.text` | label | size: medium (2 of 6) |
 | counter | `size.medium.type` | value | size: medium (6 of 18) |
 | dialog | `body-type`, `description-type` | description | every member (15 of 15) |
 |  |  | placeholder | every member (15 of 15) |
@@ -2741,10 +2743,10 @@ Type: typography. Bound by 13 component(s).
 |  |  | text | size: medium (3 of 9) |
 | password-field | `size.medium.type` | placeholder | size: medium · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: medium · state: filled, focus-visible-filled, read-only (12 of 84) |
-| radio-row | `size.medium.text` | label | size: medium (1 of 3) |
+| radio-row | `size.medium.text` | label | size: medium (2 of 6) |
 | select | `size.medium.type` | placeholder | size: medium · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: medium · state: filled, focus-visible-filled, read-only (12 of 84) |
-| switch-row | `size.medium.text` | label | size: medium (1 of 2) |
+| switch-row | `size.medium.text` | label | size: medium (2 of 4) |
 | text-field | `size.medium.type` | placeholder | size: medium · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: medium · state: filled, focus-visible-filled, read-only (12 of 84) |
 | textarea | `size.medium.type` | placeholder | size: medium · state: disabled, focus-visible, hover, rest (16 of 84) |
@@ -2783,7 +2785,7 @@ Type: typography. Bound by 12 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `size.small.panel-type` | placeholder | expansion: expanded · size: small (4 of 24) |
-| checkbox-row | `size.small.text` | label | size: small (1 of 3) |
+| checkbox-row | `size.small.text` | label | size: small (2 of 6) |
 | counter | `size.small.type` | value | size: small (6 of 18) |
 | field-label | `size.medium.regular.text` | indicator | size: medium · weight: regular (4 of 24) |
 |  |  | text | size: medium · weight: regular (4 of 24) |
@@ -2792,10 +2794,10 @@ Type: typography. Bound by 12 component(s).
 |  |  | text | size: small (3 of 9) |
 | password-field | `size.small.type` | placeholder | size: small · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: small · state: filled, focus-visible-filled, read-only (12 of 84) |
-| radio-row | `size.small.text` | label | size: small (1 of 3) |
+| radio-row | `size.small.text` | label | size: small (2 of 6) |
 | select | `size.small.type` | placeholder | size: small · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: small · state: filled, focus-visible-filled, read-only (12 of 84) |
-| switch-row | `size.small.text` | label | size: small (1 of 2) |
+| switch-row | `size.small.text` | label | size: small (2 of 4) |
 | text-field | `size.small.type` | placeholder | size: small · state: disabled, focus-visible, hover, rest (16 of 84) |
 |  |  | value | size: small · state: filled, focus-visible-filled, read-only (12 of 84) |
 | textarea | `size.small.type` | placeholder | size: small · state: disabled, focus-visible, hover, rest (16 of 84) |
@@ -3022,7 +3024,7 @@ Drawn, not declared: `color.inverse.disabled.border`, `color.inverse.disabled.fi
 
 ### checkbox-control
 
-20 token(s); 54 design-file member(s).
+20 token(s); 90 design-file member(s).
 
 `border-width.thick`, `color.border.danger`, `color.border.focus`, `color.disabled.border`, `color.disabled.fill`, `color.disabled.on-fill`, `color.field.border.hover`, `color.field.border.rest`, `color.interactive.primary.fill.hover`, `color.interactive.primary.fill.pressed`, `color.interactive.primary.fill.selected`, `color.interactive.primary.on-fill`, `control.size.lg.height`, `control.size.lg.radius`, `control.size.md.height`, `control.size.md.radius`, `control.size.sm.height`, `control.size.sm.radius`, `focus.ring.offset`, `focus.ring.width`
 
@@ -3030,13 +3032,13 @@ Declared, not drawn: `color.border.focus`
 
 ### checkbox-group
 
-2 token(s); 3 design-file member(s).
+2 token(s); 6 design-file member(s).
 
 `space.0`, `space.100`
 
 ### checkbox-row
 
-17 token(s); 3 design-file member(s).
+17 token(s); 6 design-file member(s).
 
 `color.disabled.text`, `color.text.primary`, `control.size.lg.height`, `control.size.lg.line-box`, `control.size.md.height`, `control.size.md.line-box`, `control.size.sm.height`, `control.size.sm.line-box`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.0`, `space.100`, `space.150`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
 
@@ -3164,9 +3166,9 @@ Drawn, not declared: `color.inverse.icon.link.default`, `color.inverse.icon.link
 
 ### list-item
 
-19 token(s); 9 design-file member(s).
+20 token(s); 9 design-file member(s).
 
-`color.icon.primary`, `color.text.primary`, `control.size.lg.dot`, `control.size.lg.line-box`, `control.size.md.dot`, `control.size.md.line-box`, `control.size.sm.dot`, `control.size.sm.line-box`, `icon.size.lg`, `icon.size.md`, `icon.size.sm`, `radius.round`, `space.0`, `space.300`, `space.400`, `space.500`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
+`color.icon.primary`, `color.text.primary`, `control.size.lg.dot`, `control.size.lg.line-box`, `control.size.md.dot`, `control.size.md.line-box`, `control.size.sm.dot`, `control.size.sm.line-box`, `icon.size.lg`, `icon.size.md`, `icon.size.sm`, `radius.round`, `space.0`, `space.250`, `space.300`, `space.400`, `space.500`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
 
 ### password-field
 
@@ -3176,21 +3178,21 @@ Drawn, not declared: `color.inverse.icon.link.default`, `color.inverse.icon.link
 
 ### radio-control
 
-19 token(s); 30 design-file member(s).
+20 token(s); 60 design-file member(s).
 
-`border-width.thick`, `color.border.focus`, `color.disabled.border`, `color.disabled.fill`, `color.field.border.hover`, `color.field.border.rest`, `color.interactive.primary.border.hover`, `color.interactive.primary.border.pressed`, `color.interactive.primary.border.rest`, `color.interactive.primary.fill.selected`, `control.size.lg.dot`, `control.size.lg.height`, `control.size.md.dot`, `control.size.md.height`, `control.size.sm.dot`, `control.size.sm.height`, `focus.ring.offset`, `focus.ring.width`, `radius.round`
+`border-width.thick`, `color.border.danger`, `color.border.focus`, `color.disabled.border`, `color.disabled.fill`, `color.field.border.hover`, `color.field.border.rest`, `color.interactive.primary.border.hover`, `color.interactive.primary.border.pressed`, `color.interactive.primary.border.rest`, `color.interactive.primary.fill.selected`, `control.size.lg.dot`, `control.size.lg.height`, `control.size.md.dot`, `control.size.md.height`, `control.size.sm.dot`, `control.size.sm.height`, `focus.ring.offset`, `focus.ring.width`, `radius.round`
 
 Declared, not drawn: `color.border.focus`
 
 ### radio-group
 
-2 token(s); 3 design-file member(s).
+2 token(s); 6 design-file member(s).
 
 `space.0`, `space.100`
 
 ### radio-row
 
-17 token(s); 3 design-file member(s).
+17 token(s); 6 design-file member(s).
 
 `color.disabled.text`, `color.text.primary`, `control.size.lg.height`, `control.size.lg.line-box`, `control.size.md.height`, `control.size.md.line-box`, `control.size.sm.height`, `control.size.sm.line-box`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.0`, `space.100`, `space.150`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
 
@@ -3224,7 +3226,7 @@ Declared, not drawn: `color.border.focus`
 
 ### switch-control
 
-25 token(s); 24 design-file member(s).
+25 token(s); 40 design-file member(s).
 
 `border-width.thick`, `color.background.tertiary`, `color.border.danger`, `color.border.focus`, `color.disabled.border`, `color.disabled.fill`, `color.disabled.on-fill`, `color.interactive.neutral.border.hover`, `color.interactive.neutral.border.pressed`, `color.interactive.neutral.border.rest`, `color.interactive.primary.fill.hover`, `color.interactive.primary.fill.pressed`, `color.interactive.primary.fill.selected`, `color.interactive.primary.on-fill`, `control.size.md.inset`, `control.size.md.thumb`, `control.size.md.track`, `control.size.md.width`, `control.size.sm.inset`, `control.size.sm.thumb`, `control.size.sm.track`, `control.size.sm.width`, `focus.ring.offset`, `focus.ring.width`, `radius.round`
 
@@ -3232,7 +3234,7 @@ Declared, not drawn: `color.border.focus`
 
 ### switch-row
 
-11 token(s); 2 design-file member(s).
+11 token(s); 4 design-file member(s).
 
 `color.disabled.text`, `color.text.primary`, `control.size.md.line-box`, `control.size.md.track`, `control.size.sm.line-box`, `control.size.sm.track`, `size.md.height`, `size.sm.height`, `space.100`, `type.body.md.default`, `type.body.sm.default`
 

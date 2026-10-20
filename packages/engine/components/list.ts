@@ -37,7 +37,7 @@ export const list: ComponentDef = {
   // `data` (#1700) — the brief's own category (Q273.7).
   category: 'data',
   status: 'draft',
-  summary: 'Short UI items after a bullet, number or icon. For running text, use a native text list.',
+  summary: 'Short UI items after a bullet, number or icon. For running text, use a native text list. Size applies to the items you haven\'t edited. After editing an item, select the items and set their size.',
   description:
     'A vertical run of short items, each after a bullet, a number or an icon, with the marker, its size and color, the indent and the space between items all bound to tokens. Unordered when the order carries no meaning, ordered when it does (steps, a ranking), and icon for a set of points such as requirements or features. Every item\'s text starts at one edge and wraps under itself. Use it for lists a designer lays out: password rules, feature lists, icon checklists, steps. For lists inside running text that a writer edits as normal copy, such as an article body, terms or long help text, use a native text list instead.',
 
@@ -103,7 +103,7 @@ export const list: ComponentDef = {
       'The element — <ul role="list"> for unordered and icon, <ol role="list"> for ordered, chosen from type. The explicit role is required: a list whose markers are styled off (list-style: none) loses its list role in WebKit, and VoiceOver stops announcing "list, 6 items". The component draws its own markers, so it always sets the role.',
       'Numbering — the <ol> counts its items through CSS (list-style-type: decimal, or a counter); numbers are never typed into the item text. start and reversed pass through to the <ol>. A locale with its own digits takes them through @counter-style.',
       'The item gap — row-gap on the list (or margin-block-start on every item after the first), from the size\'s gap token. Never a margin on the last item.',
-      'Nested lists — a <ul> or <ol> inside an <li> indents by one marker column and uses the same size. Not drawn in Figma.',
+      'Nested lists — a <ul> or <ol> inside an <li> sits in that item\'s text column, so it indents by the item\'s marker column and starts at the item\'s text edge, and it uses the same size. Not drawn in Figma.',
       'Figma numbering — a Figma list cannot count, so each item of an ordered List holds its own number as text: the built items read "1." to "3.". A designer who adds or reorders items retypes the numbers.',
       'item count — Figma holds the items in the native `items` slot, three by default; code takes `items` of any length from one up.',
     ],

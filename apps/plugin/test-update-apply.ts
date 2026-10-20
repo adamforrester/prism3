@@ -28,6 +28,16 @@
  *                  Mutation: the font preflight dropped → `fonts/refused`.
  *   replace/…      a child whose type changed is the one node replaced. Mutation: the old child not removed →
  *                  `replace/verdict`.
+ *   published/…    on a set in a team library (#2831), what an update breaks for consumer files is listed in its own
+ *                  section, in the headline and at the confirm: drops, layer replacements, property removals and
+ *                  retypes, and a rename to a `_` or `.` name; on a set not published, nothing changes. Mutations, each
+ *                  failing the arm it names: the publish test always true → `published/unpublished no-op`; each
+ *                  `breakingOf` arm dropped → `published/drop`, `/replace`, `/property removed`, `/retype`,
+ *                  `/private rename`; the status not read → `published/status`; the status out of the hash →
+ *                  `published/hash`; the apply's section dropped → `published/confirm`; the blocked-set guard dropped →
+ *                  `published/blocked`; the member-itself exclusion dropped → `published/member replaced`;
+ *                  `readSingleView` carrying no status → `published/single`; `breakingSection`'s per-set cap dropped →
+ *                  `published/cap`.
  *   property/…     a default the plan changed is edited in place, keeping the property's id.
  *   rename/…       a declared value rename and an added axis rename members in place, keeping keys.
  *   skip/…         an unstamped member, one with no record and one with a layer added by hand are untouched.
@@ -77,6 +87,10 @@
  *                  cleared: the dry run blocks the axis change, and Adopt, which exists to clear that blocker, claims the
  *                  member, so the next dry run has none (#2603 review). Mutation: Adopt refused by every blocker again →
  *                  `adopt/axis change`.
+ *   list column/…  a List.Item built at the old 24/32/40 marker column updates in place to Q340 A's 20/24/32 for bullet
+ *                  and number (#2727): 6 members updated, the 3 icon members current, every key and id kept; the List
+ *                  set, whose plan moves only by its nested-list note, updates in place too. Mutation: the def back at the old column → `list column/dry
+ *                  run`, `list column/written`.
  *   display rename/…  an Accordion built while its icon axis was `position`, or `iconPosition`, updates in place to the
  *                  def's `icon position`: every member renamed, every key and id the test captured kept (#2592).
  *                  Mutation: the ledger entries dropped → `display rename/position …`, `display rename/iconPosition …`.
@@ -135,6 +149,17 @@
  *                  stops dropped from the draw check → `veil/dry run`, `veil/repaired`, `veil/verify`; verify's draw check dropped → `veil/verify`.
  *                  Stops at their color but 100% alpha read "to update" and fail verify; the alpha comparison dropped from
  *                  the draw check's gradient branch → `veil/alpha dry run`, `veil/alpha verify`.
+ *   status/…       a checkbox or switch control built with an `error` STATE moves onto the `status` axis in place
+ *                  (#2751, owner Q354): the error member to `status=error, state=rest`, every other to `status=default`,
+ *                  every id and key kept, the node a placed error instance points at still drawing the danger edge.
+ *                  Mutation: the two `move` entries dropped from `COMPONENT_RENAMES` → `status/<def> dry run`,
+ *                  `status/<def> placed`.
+ *   <group>/…      Checkbox group, Radio group and Segmented control, each built with its FieldLabel `nest-fixed` (as
+ *                  before #2748), update in place to the `nest-exposed` label (owner Q348 A): every key and id kept,
+ *                  each label an exposed instance, still the secondary, bold member at its group's size, then
+ *                  current. FieldLabel's real set is in the file, so the coordinate is read off the host. Mutations:
+ *                  the in-place branch's expose pass skipped → `<group>/exposed`; a group label's starting weight
+ *                  moved to regular → `<group>/bold kept`.
  *   stepdown/…     Segmented control, Tab and Tag, built while their glyph sat on the 1:1 rung (20 / 24 / 32), update in
  *                  place to the rung below (16 / 20 / 24, owner Q337 A, #2725): every glyph rebound and resized, every
  *                  key and id kept, current after. The expected names and px are typed here from the decision.
@@ -172,7 +197,7 @@ import { NS } from './src/persist-figma';
 import { materializeForBrand } from './src/brand-def';
 import { BASELINE_KEY } from './src/member-baseline';
 import { makeShim, STYLE_FONT, type Node, type Page } from './component-shim';
-import { adoptMembers, captureBaselines, previewLine, previewUpdate, previewVerdict, type UpdateHost, type UpdateTarget } from './src/update-plan';
+import { adoptMembers, breakingLine, breakingOf, breakingSection, captureBaselines, dryRunSet, hostPorts, previewLine, previewUpdate, previewVerdict, readSetView, readSingleView, type UpdateHost, type UpdateTarget } from './src/update-plan';
 import { drawnFaults, faultLine, varsById } from './src/drawn';
 import { BASELINE_V, baselineOf, resetStyleNames, snapshotMember } from './src/member-baseline';
 import { applyUpdate, applyVerdict, previewHashOf, namesMember, DEPRECATED_PREFIX, RETAINED_KEY, nestedFirst, type ApplyHost } from './src/update-apply';
@@ -619,6 +644,128 @@ for (const old of ['position', 'iconPosition']) {
     `display rename/${old} in place: every member renamed onto icon position, its key and id kept (${res.outcomes[0]?.renamed}; ${after.members.size}; ${applyVerdict(res).headline}; ${res.outcomes[0]?.refused ?? ''})`);
   const post = (await previewUpdate(w.host, [{ def: 'accordion', plans: w.plans }])).sets[0];
   ok(post?.counts.current === n, `display rename/${old} current: every member reads current after (${JSON.stringify(post?.counts)})`);
+}
+
+/* ── status ──────────────────────────────────────────────────────────────────────────────────────────── */
+// #2751 (owner Q354): error left the checkbox and switch controls' STATE axis for the fields' `status` axis. A file
+// built before holds `state=error` members and no `status` axis; the update must move each error member onto
+// `status=error, state=rest` IN PLACE, so an instance a designer placed at error keeps pointing at the same node and
+// still shows error, and give every other member `status=default`. The ledger the update reads is the engine's own
+// (`COMPONENT_RENAMES`, the default); the old names, the new names and the counts are the test's own literals.
+//
+// WHAT "A PLACED INSTANCE KEEPS SHOWING IT" IS HERE. A Figma instance tracks its main component by id, and reads its
+// variant properties off that main's name. The shim's `createInstance` copies a name descriptor rather than linking
+// the node, so the instance is modelled as Figma holds it: the main's NODE, captured before the update. The proof is
+// that node: still in the set, same id and key, now named at `status=error`, and still drawing the danger edge. What
+// the shim cannot show is Figma's own override layer on a placed Row whose nested control was switched to error by
+// hand; that instance points at the same member node, so it rides the same rename, and is named as unverified.
+//
+// Mutation: the two `move` entries dropped from `COMPONENT_RENAMES` → `status/<def> dry run`, `status/<def> placed`.
+section('status — a control built with an error STATE moves onto the status axis in place, every placed error instance kept (#2751)');
+for (const [def, errOld, errNew, n, add] of [
+  ['checkbox-control', 'selection=checked, size=medium, state=error', 'selection=checked, status=error, size=medium, state=rest', 54, 36],
+  ['switch-control', 'selection=on, size=medium, state=error', 'selection=on, status=error, size=medium, state=rest', 24, 16],
+] as const) {
+  const w = await world(def);
+  const set = w.set();
+  // The file as an earlier build left it: five states plus `error`, no `status` segment. Members at status=error and a
+  // state other than rest did not exist; the rest-state one WAS the error member.
+  (set as { children: Node[] }).children = membersOf(set).filter((m) => !/status=error/.test(String(m.name)) || /state=rest$/.test(String(m.name)));
+  for (const m of membersOf(set)) {
+    const nm = String(m.name);
+    m.name = /status=error/.test(nm) ? nm.replace(', status=error', '').replace('state=rest', 'state=error') : nm.replace(', status=default', '');
+  }
+  const names = membersOf(set).map((m) => String(m.name));
+  ok(names.length === n && names.includes(errOld) && !names.some((x) => x.includes('status=')),
+    `premise: ${def} holds the ${n} members of the old set, ${errOld} among them, none with a status (${names.length})`);
+  // THE PLACED INSTANCE: the main it points at, captured before the update. And its edge, read off the node.
+  const placed = membersOf(set).find((m) => m.name === errOld)!;
+  const placedId = String(placed.id), placedKey = String(placed.key);
+  const vars = await w.api.variables.getLocalVariablesAsync() as { id: string; name: string }[];
+  const strokeOf = (m: Node): string | undefined => {
+    const box = def === 'switch-control' ? childNamed(m, 'track') ?? m : m;
+    const id = ((box.strokes as { boundVariables?: { color?: { id?: string } } }[] | undefined) ?? [])[0]?.boundVariables?.color?.id;
+    // The variable's path below its collection (the shim names it `<collection>/color/…`, as the host shows it).
+    return vars.find((v) => v.id === id)?.name.replace(/^.*?(?=color\/)/, '');
+  };
+  ok(strokeOf(placed) === 'color/border/danger', `premise: the ${def} member at ${errOld} draws the danger edge (${strokeOf(placed)})`);
+  const before = identityOf(set);
+  const { pre, res } = await confirm(w, [{ def, plans: w.plans }]);
+  const p = pre.sets[0];
+  const moved = p?.renames.find((r) => r.from === errOld);
+  ok(!!p && !p.blockers.length && p.counts.rename === n && p.counts.add === add && p.counts.drop === 0 && moved?.to === errNew,
+    `status/${def} dry run: all ${n} renamed in place (${errOld} → ${errNew}), ${add} added, none dropped or blocked (${p ? `${p.counts.rename} renamed, ${p.counts.add} added, ${p.counts.drop} dropped; ${moved ? `${moved.from} → ${moved.to}` : 'the error member not renamed'}; ${p.blockers.join('; ') || 'no blockers'}` : 'no set'})`);
+  ok(applyVerdict(res).ok && res.outcomes[0]?.renamed === n && res.outcomes[0]?.added === add,
+    `status/${def} apply: ${applyVerdict(res).headline} (${res.outcomes[0]?.renamed} renamed, ${res.outcomes[0]?.added} added${res.outcomes[0]?.refused ? `; ${res.outcomes[0].refused}` : ''})`);
+  const now = membersOf(w.set()).find((m) => String(m.id) === placedId);
+  ok(!!now && now === placed && String(now.name) === errNew && String(now.key) === placedKey && strokeOf(now) === 'color/border/danger' && !String(now.description ?? '').startsWith(DEPRECATED_PREFIX),
+    `status/${def} placed: the node a placed error instance points at is still in the set, its id and key kept, now ${errNew}, still drawing the danger edge (${now ? `${String(now.name)}, ${strokeOf(now)}` : 'gone'})`);
+  const after = identityOf(w.set());
+  const lost = [...before.members].filter(([, b]) => ![...after.members.values()].some((a) => a.key === b.key && a.id === b.id)).map(([nm]) => nm);
+  ok(lost.length === 0 && after.members.size === n + add, `status/${def} keys: every member the file held keeps its key and id, and the set holds ${n + add} (${after.members.size}; lost ${lost.join(', ') || 'none'})`);
+  const defs = w.set().componentPropertyDefinitions as Record<string, { type: string; variantOptions?: string[] }>;
+  ok(JSON.stringify(defs.status?.variantOptions) === JSON.stringify(['default', 'error']) && !(defs.state?.variantOptions ?? []).includes('error'),
+    `status/${def} properties: the set offers status [default, error] and no state=error (status ${JSON.stringify(defs.status?.variantOptions)}, state ${JSON.stringify(defs.state?.variantOptions)})`);
+  const post = (await previewUpdate(w.host, [{ def, plans: w.plans }])).sets[0];
+  ok(post?.counts.current === n + add, `status/${def} current: every member reads current after (${JSON.stringify(post?.counts)})`);
+}
+
+section('list marker column — a file built at the old 24/32/40 column updates in place to 20/24/32 for bullet and number (#2727, Q340 A)');
+{
+  // The file as main built it before Q340: every type's marker column at space/300, 400, 500 (24/32/40px). The
+  // literals are the test's own; the plan it updates to is the engine's current one.
+  const OLD: Record<string, string> = { small: 'space/300', medium: 'space/400', large: 'space/500' };
+  const NEXT: Record<string, Record<string, string>> = {
+    unordered: { small: 'space/250', medium: 'space/300', large: 'space/400' },
+    ordered: { small: 'space/250', medium: 'space/300', large: 'space/400' },
+    icon: { small: 'space/300', medium: 'space/400', large: 'space/500' },
+  };
+  const atOld = plansOf('list-item').map((p) => {
+    const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
+    (planChild(q.root, 'markerBox').bound as Record<string, string>).width = OLD[q.size!];
+    return q;
+  });
+  const w = await world('list-item', atOld, { extraVars: ['space/250'] });
+  const typeOf = (m: Node) => /(?:^|, )type=(\w+)/.exec(String(m.name))?.[1] ?? '';
+  const sizeOf = (m: Node) => /(?:^|, )size=(\w+)/.exec(String(m.name))?.[1] ?? '';
+  const ids = new Map<string, string>();
+  for (const v of ['space/250', 'space/300', 'space/400', 'space/500']) ids.set(await varIdOf(w, v), v);
+  const columnOf = (m: Node) => ids.get((childNamed(m, 'markerBox').boundVariables as Record<string, { id: string }>).width?.id) ?? 'none';
+  ok(membersOf(w.set()).length === 9 && membersOf(w.set()).every((m) => columnOf(m) === OLD[sizeOf(m)]),
+    `premise: the 9 members carry the old column, space/300, 400, 500 by size in every type (${membersOf(w.set()).map(columnOf).join(', ')})`);
+  const before = identityOf(w.set());
+  const plans = plansOf('list-item');
+  const { pre, res } = await confirm(w, [{ def: 'list-item', plans }]);
+  const p = pre.sets[0];
+  ok(!!p && !p.blockers.length && p.counts.update === 6 && p.counts.current === 3 && p.counts.add === 0 && p.counts.drop === 0,
+    `list column/dry run: the 6 bullet and number members to update, the 3 icon members current, nothing added or dropped (${JSON.stringify(p?.counts)})`);
+  const after = identityOf(w.set());
+  const moved = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || after.members.get(name)?.id !== b.id).map(([n]) => n);
+  const kidsMoved = [...before.members].flatMap(([name, b]) => [...b.kids].filter(([path, id]) => after.members.get(name)?.kids.get(path) !== id).map(([path]) => `${name}/${path}`));
+  ok(applyVerdict(res).ok && moved.length === 0 && kidsMoved.length === 0 && after.members.size === 9,
+    `list column/in place: every member and child keeps its key and id (${applyVerdict(res).headline}; ${moved.length} members, ${kidsMoved.length} children moved)`);
+  const wrong = membersOf(w.set()).filter((m) => columnOf(m) !== NEXT[typeOf(m)]?.[sizeOf(m)]).map((m) => `${m.name}: ${columnOf(m)}`);
+  ok(wrong.length === 0, `list column/written: bullet and number bind space/250, 300, 400 (20/24/32px), icon keeps space/300, 400, 500 (24/32/40px) (${wrong.slice(0, 3).join('; ')})`);
+  const post = (await previewUpdate(w.host, [{ def: 'list-item', plans }])).sets[0];
+  ok(post?.counts.current === 9, `list column/current: every member reads current after (${JSON.stringify(post?.counts)})`);
+  // THE LIST holds nested List.Item instances and binds no column of its own, so its items show the new column from
+  // their main once List.Item is updated (above); the shim's instances are stubs, so that part is Figma's and not
+  // measured here. What this PR moves in the List's own plan is the nested-list code note, which the plan carries:
+  // a List built with main's note updates in place to the new one, every key and id kept.
+  const OLD_NOTE = 'Nested lists — a <ul> or <ol> inside an <li> indents by one marker column and uses the same size. Not drawn in Figma.';
+  const listOld = plansOf('list').map((q) => JSON.parse(JSON.stringify(q).replace(/Nested lists — [^"]*?Not drawn in Figma\./g, OLD_NOTE)) as AnatomyPlan);
+  ok(JSON.stringify(listOld) !== JSON.stringify(plansOf('list')), 'premise: the List built with the old nested-list note differs from the current plan');
+  // Since #2683 every List plan carries per-item `nestOverrides` (each item's number), so List.Item's TEXT properties are
+  // declared on the host, as in `overrides/…` below; without them the build misses every override and `world()` throws.
+  const lw = await world('list', listOld, { componentProps: { 'list-item': { 'text#7:1': { type: 'TEXT', defaultValue: 'List item' }, 'number#7:2': { type: 'TEXT', defaultValue: '1.' } } } });
+  const lbefore = identityOf(lw.set());
+  const lplans = plansOf('list');
+  const l = await confirm(lw, [{ def: 'list', plans: lplans }]);
+  const lafter = identityOf(lw.set());
+  const lmoved = [...lbefore.members].filter(([name, b]) => lafter.members.get(name)?.key !== b.key || lafter.members.get(name)?.id !== b.id).length;
+  const lpost = (await previewUpdate(lw.host, [{ def: 'list', plans: lplans }])).sets[0];
+  ok(!l.pre.sets[0].blockers.length && l.pre.sets[0].counts.add === 0 && l.pre.sets[0].counts.drop === 0 && applyVerdict(l.res).ok && lmoved === 0 && lafter.members.size === 9 && lpost?.counts.current === 9,
+    `list column/List: the List set updates in place to the new note, nothing added or dropped, every member's key and id kept, all 9 current after (${JSON.stringify(l.pre.sets[0].counts)}; ${applyVerdict(l.res).headline}; ${lmoved} moved)`);
 }
 
 section('accordion side padding — a file built at the old large 24px updates in place to 20px (#2726, Q338 A)');
@@ -3129,6 +3276,48 @@ section('stretched mode — an axis the parent stretches: the verify and the dry
     `stretch/lost: an indicator the host no longer stretches is listed by the dry run and named by the verify (${JSON.stringify(thirdModes)}; ${JSON.stringify(third.res.outcomes[0].content.slice(0, 4))})`);
 }
 
+section('group labels — a group built with its FieldLabel fixed exposes emphasis and weight in place, bold kept (#2748, owner Q348 A)');
+for (const G of ['checkbox-group', 'radio-group', 'segmented-control']) {
+  // THE FILE AS A BUILD AT MAIN BEFORE #2748 LEFT IT: the label nested `nest-fixed` at the same coordinate, nothing
+  // exposed. Reconstructed from today's def by putting that one fact back, so both sides are the real def's projection.
+  const now = componentDefs.find((x) => x.id === G)!;
+  const label = now.anatomy.parts.label;
+  const nesting = label.nesting as { kind: string; variant: Record<string, string>; follow?: readonly string[] };
+  const before2748 = { ...now, anatomy: { ...now.anatomy, parts: { ...now.anatomy.parts, label: { ...label, nesting: { kind: 'nest-fixed', variant: nesting.variant, follow: nesting.follow } } } } } as typeof now;
+  const oldPlans = figmaAnatomySet(before2748, { swapTarget: SWAP_TARGET });
+  const newPlans = plansOf(G);
+  // FieldLabel's real set in the file, so each label instances a MEMBER and its coordinate is readable off the host.
+  const w = await world(G, oldPlans, { fileSets: [{ name: 'field-label', variants: plansOf('field-label').map(planComponentName) }] });
+  const labelOf = (m: Node): Node => childNamed(m, 'label');
+  // The member count each set holds, typed here: the two groups are status × size since #2751 (owner Q354).
+  const N = ({ 'checkbox-group': 6, 'radio-group': 6, 'segmented-control': 3 } as Record<string, number>)[G];
+  const n = membersOf(w.set()).length;
+  ok(n === N && membersOf(w.set()).every((m) => labelOf(m)?.isExposedInstance === false),
+    `${G}/premise: the file holds ${n} members built before #2748, each nested label not exposed`);
+  const before = identityOf(w.set());
+  const labelIds = new Map(membersOf(w.set()).map((m) => [String(m.name), String(labelOf(m).id)] as const));
+  const { pre, res } = await confirm(w, [{ def: G, plans: newPlans }]);
+  const p = pre.sets[0];
+  ok(p.counts.update === N && p.counts.add === 0 && p.counts.drop === 0 && !p.blockers.length && !p.replacements.length,
+    `${G}/dry run: all ${N} members read update, none added, dropped or replaced, nothing refused (${JSON.stringify(p.counts)}, ${p.blockers.join('; ') || 'no blockers'})`);
+  const v = applyVerdict(res);
+  ok(v.ok, `${G}/verdict: ${v.headline} (${v.lines.slice(0, 2).join(' | ').slice(0, 240)})`);
+  const after = identityOf(w.set());
+  const moved = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || after.members.get(name)?.id !== b.id).map(([x]) => x);
+  ok(JSON.stringify(after.set) === JSON.stringify(before.set) && moved.length === 0 && after.members.size === N,
+    `${G}/kept: the set and all ${N} members keep their keys and ids (${moved.join('; ') || 'none moved'})`);
+  const lost = [...before.members].filter(([name, b]) => [...b.kids].some(([path, id]) => after.members.get(name)?.kids.get(path) !== id)).map(([x]) => x);
+  ok(lost.length === 0 && membersOf(w.set()).every((m) => String(labelOf(m).id) === labelIds.get(String(m.name))),
+    `${G}/ids: every node under every member, the nested label included, keeps its id (${lost.join('; ') || 'all kept'})`);
+  // The exposure and the look, read off the shim's nodes. The weight is typed here from Q348 A: bold stays.
+  const read = membersOf(w.set()).map((m) => ({ m: String(m.name), exposed: labelOf(m).isExposedInstance, main: String((labelOf(m).mainComponent as { name?: string } | undefined)?.name) }));
+  ok(read.every((x) => x.exposed === true), `${G}/exposed: every member's nested label is now an exposed instance (${read.filter((x) => x.exposed !== true).map((x) => x.m).join('; ') || `all ${N}`})`);
+  ok(read.every((x) => /emphasis=secondary/.test(x.main) && /weight=bold/.test(x.main) && x.main.includes(`size=${/size=(\w+)/.exec(x.m)?.[1]}`)),
+    `${G}/bold kept: every label still instances the secondary, bold member at its group's size (${[...new Set(read.map((x) => x.main))].join(' | ')})`);
+  const post = (await previewUpdate(w.host, [{ def: G, plans: newPlans }])).sets[0];
+  ok(post.counts.current === N && post.handEdits.length === 0, `${G}/current: the next dry run reads all ${N} current (${JSON.stringify(post.counts)})`);
+}
+
 /* ── segmented control (#2724) ───────────────────────────────────────────────────────────────────────── */
 section('segmented control — sets built with the tinted, outlined look (#2418) take the flat pill and the filled track in place (#2724, owner Q336 A, Q342 A)');
 {
@@ -3327,6 +3516,139 @@ for (const [D, gained] of [['checkbox-row', ['disabled']], ['radio-row', ['disab
     `${D}/dry run: every member reads current (${JSON.stringify(p.counts)})`);
   ok(applyVerdict(res).headline === '✓ already up to date' && w.api._versions.length === 0 && dump() === was,
     `${D}/nothing written: no version, every member's id, key, stamp and record as built (${applyVerdict(res).headline})`);
+}
+
+/* ── published ───────────────────────────────────────────────────────────────────────────────────────── */
+section('published — on a set in a team library, what breaks consumer files is listed on its own, and named at the confirm (#2831)');
+{
+  // One plan change carrying every breaking class a plan can: the members at state=rest dropped, and the leading icon
+  // turned into a plain frame, which replaces that layer on every member and removes its swap property.
+  const breakingPlans = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.filter((p) => !planComponentName(p).includes('state=rest')).map((p) => {
+    const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
+    const lv = planChild(planChild(q.root, 'content'), 'leadingVisual') as unknown as Record<string, unknown>;
+    lv.type = 'FRAME';
+    for (const k of ['swapTarget', 'propertyRef', 'descendantFills']) delete lv[k];
+    return q;
+  });
+  const HEAD = /^Breaks library consumers: /;
+  const SWAP = '↳ swap leading icon';
+
+  // NOTHING CHANGES FOR AN UNPUBLISHED SET.
+  {
+    const w = await world(TAG);
+    const status = await (w.set().getPublishStatusAsync as () => Promise<string>)();
+    ok(status === 'UNPUBLISHED', `premise: a set never published answers UNPUBLISHED (${status})`);
+    const next = breakingPlans(w.plans);
+    const { pre, res } = await confirm(w, [{ def: TAG, plans: next }]);
+    const p = pre.sets[0];
+    ok(p.drops.length > 0 && p.replacements.length > 0 && p.properties.remove.length > 0, `premise: the plan drops, replaces and removes a property (${p.drops.length}, ${p.replacements.length}, ${p.properties.remove.length})`);
+    const v = previewVerdict(pre);
+    const a = applyVerdict(res);
+    ok(p.publish === undefined && p.breaking === undefined && !v.lines.some((l) => HEAD.test(l)) && !/library consumers/.test(v.headline)
+      && !a.lines.some((l) => HEAD.test(l)) && !/library consumers/.test(a.headline) && res.outcomes[0]?.breaking === undefined,
+      `published/unpublished no-op: no publish status, no breaking list, no section and no headline clause in the check or the confirm (${v.headline} | ${a.headline})`);
+  }
+
+  // A PUBLISHED SET: every class listed by name, in its own section, in the headline, and at the confirm.
+  {
+    const w = await world(TAG);
+    (w.api.publish as (n: Node, s: string) => void)(w.set(), 'CURRENT');
+    const next = breakingPlans(w.plans);
+    const dropped = w.plans.filter((p) => planComponentName(p).includes('state=rest')).map(planComponentName);
+    const { pre, res } = await confirm(w, [{ def: TAG, plans: next }]);
+    const p = pre.sets[0];
+    const b = p.breaking ?? [];
+    ok(p.publish === 'CURRENT', `published/status: the check reads the set's publish status (${p.publish})`);
+    ok(dropped.length > 0 && dropped.every((m) => b.some((x) => x.kind === 'drop' && x.member === m)),
+      `published/drop: each of the ${dropped.length} dropped members is listed as breaking, by name (${b.filter((x) => x.kind === 'drop').length})`);
+    const reps = b.filter((x) => x.kind === 'replace' && x.path === 'content/leadingVisual');
+    ok(reps.length === next.length, `published/replace: the leading icon's replacement is listed on each of the ${next.length} members kept (${reps.length})`);
+    ok(b.some((x) => x.kind === 'property' && x.name === SWAP && x.change === 'removed'), `published/property removed: the swap property's removal is listed (${JSON.stringify(b.filter((x) => x.kind === 'property'))})`);
+    const v = previewVerdict(pre);
+    const head = v.lines.find((l) => HEAD.test(l)) ?? '';
+    ok(head === `Breaks library consumers: ${b.length} changes in 1 published set, passed on at the next library publish.`
+      && v.lines.includes(`${TAG} · property ${SWAP} · removed — consumer overrides of it are dropped.`)
+      && v.lines.includes(`${TAG} · ${dropped[0]} · dropped — consumer instances of it point at a deprecated member.`),
+      `published/section: the check's own section heads the breaking changes and names them (${head})`);
+    ok(v.headline.endsWith(` · ${b.length} changes break library consumers`), `published/headline: the check's headline counts them (${v.headline})`);
+    const a = applyVerdict(res);
+    ok(res.outcomes[0]?.breaking?.length === b.length && a.lines.includes(`Breaks library consumers: ${b.length} changes made in 1 published set, passed on at the next library publish.`)
+      && a.lines.includes(`${TAG} · ${dropped[0]} · dropped — consumer instances of it point at a deprecated member.`) && a.headline.endsWith(` · ${b.length} changes break library consumers`),
+      `published/confirm: the confirm names what it broke (${a.headline} | ${a.lines.find((l) => HEAD.test(l))})`);
+  }
+
+  // CHANGED is published too; a retyped property and a rename to a private name are breaking; between private names not.
+  {
+    const w = await world(TAG);
+    (w.api.publish as (n: Node, s: string) => void)(w.set(), 'CHANGED');
+    const view = await readSetView(w.set() as never);
+    ok(view.publish === 'CHANGED', `published/changed: the view reads CHANGED (${view.publish})`);
+    const ports = await hostPorts(w.host as unknown as UpdateHost);
+    const defs = { ...view.definitions! };
+    const label = Object.keys(defs).find((k) => k.startsWith('label#'))!;
+    defs[label] = { ...defs[label], type: 'BOOLEAN' };
+    const p = dryRunSet(TAG, w.plans, { ...view, definitions: defs }, ports);
+    const b = breakingOf(p);
+    ok(b.some((x) => x.kind === 'property' && x.name === 'label' && x.change === 'retyped' && x.from === 'BOOLEAN' && x.to === 'TEXT'),
+      `published/retype: a property the plan retypes is listed (${JSON.stringify(b)})`);
+    const priv = breakingOf({ ...p, setRename: { from: TAG, to: `_${TAG}` } }).filter((x) => x.kind === 'private');
+    const dot = breakingOf({ ...p, setRename: { from: TAG, to: `.${TAG}` } }).filter((x) => x.kind === 'private');
+    const both = breakingOf({ ...p, setRename: { from: `_${TAG}`, to: `_${TAG}-item` } }).filter((x) => x.kind === 'private');
+    ok(priv.length === 1 && dot.length === 1 && both.length === 0
+      && breakingLine(TAG, priv[0]) === `${TAG} · renamed ${TAG} → _${TAG} — a name starting with _ or . is not published, so the set leaves the library.`,
+      `published/private rename: a rename to a _ or . name is listed, one between two such names is not (${priv.length}, ${dot.length}, ${both.length})`);
+    const quiet = breakingOf({ ...p, publish: undefined, setRename: { from: TAG, to: `_${TAG}` } });
+    ok(quiet.length === 0, `published/unpublished rename: on a set not published, the same rename and retype list nothing (${quiet.length})`);
+    // A set the update refuses changes nothing, so nothing on it breaks, however much its plan would.
+    const refused = breakingOf({ ...p, blockers: ['the set is refused'] });
+    ok(b.length > 0 && refused.length === 0, `published/blocked: a published set the update refuses lists nothing as breaking (${b.length} → ${refused.length})`);
+    // A replacement of the member itself is refused for that member, so it is not a change consumers get.
+    const self = breakingOf({ ...p, replacements: [{ member: 'size=small', path: '.', reason: 'the member itself' }, { member: 'size=small', path: 'content/label', reason: 'a layer' }] })
+      .filter((x) => x.kind === 'replace');
+    ok(self.length === 1 && self[0].kind === 'replace' && self[0].path === 'content/label',
+      `published/member replaced: a replacement of the member itself (path .) is not listed, one of a layer is (${JSON.stringify(self)})`);
+    // THE PER-SET CAP (Q435 A, the copy as built): at most 8 lines per set, then one overflow line counting the rest. The
+    // 8 and the wording are literals typed from the approved copy, never read off `DIFFERENCE_LINES` or `breakingSection`.
+    const many = Array.from({ length: 11 }, (_, i) => ({ kind: 'drop' as const, member: `size=s${i}` }));
+    const few = [{ kind: 'drop' as const, member: 'size=a' }, { kind: 'drop' as const, member: 'size=b' }];
+    const capped = breakingSection([{ set: TAG, breaking: many }, { set: 'other', breaking: few }], false);
+    const wantCap = [
+      'Breaks library consumers: 13 changes in 2 published sets, passed on at the next library publish.',
+      ...many.slice(0, 8).map((d) => `${TAG} · ${d.member} · dropped — consumer instances of it point at a deprecated member.`),
+      `${TAG}: 3 more breaking changes not listed.`,
+      ...few.map((d) => `other · ${d.member} · dropped — consumer instances of it point at a deprecated member.`),
+    ];
+    ok(JSON.stringify(capped) === JSON.stringify(wantCap),
+      `published/cap: each set lists at most 8 breaking changes, then "N more breaking changes not listed." (${capped.length} lines: ${JSON.stringify(capped.slice(9))})`);
+  }
+
+  // A SINGLE-COMPONENT DEF (the icons, #2296): each component is published on its own, and the def reads as its most
+  // published one, CHANGED over CURRENT. The icon set is exactly what a library publish ships (#2831).
+  {
+    const plans = plansOf('icon');
+    const w = await singleWorld(plans);
+    const t = { def: 'icon', plans, single: true };
+    const read = async () => (await readSingleView(w.host as unknown as UpdateHost, t)).view.publish;
+    const none = await read();
+    const [one, two] = w.comps();
+    (w.api.publish as (n: Node, s: string) => void)(one, 'CURRENT');
+    const current = await read();
+    (w.api.publish as (n: Node, s: string) => void)(two, 'CHANGED');
+    const changed = await read();
+    const p = (await previewUpdate(w.host, [t])).sets[0];
+    ok(none === 'UNPUBLISHED' && current === 'CURRENT' && changed === 'CHANGED' && p?.publish === 'CHANGED',
+      `published/single: a single-component def reads its components' status, CHANGED over CURRENT (${none}, ${current}, ${changed}, check ${p?.publish})`);
+  }
+
+  // PUBLISHED BETWEEN THE CHECK AND THE CONFIRM: the confirm is refused, so it never breaks what the check did not name.
+  {
+    const w = await world(TAG);
+    const next = breakingPlans(w.plans);
+    const pre = await previewUpdate(w.host, [{ def: TAG, plans: next }]);
+    (w.api.publish as (n: Node, s: string) => void)(w.set(), 'CURRENT');
+    const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: next }], previewHashOf(pre));
+    ok(!!res.refusedAll && res.outcomes.length === 0, `published/hash: a set published after the check refuses the confirm (${res.refusedAll ?? 'applied'})`);
+  }
 }
 
 void STYLE_FONT; void BASELINE_KEY;

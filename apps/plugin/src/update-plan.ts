@@ -91,7 +91,35 @@ export type HostSetView = {
   /** #2296 — a def built as single components (`emitAsComponents`): no set node, no property definitions, and each
    *  member a top-level component found anywhere in the file. */
   single?: boolean;
+  /** #2831 — whether the set is in a published team library, as `getPublishStatusAsync` answers (`publishOf`). A
+   *  single-component def reads as its most published component. Absent when the host would not say. */
+  publish?: PublishStatus;
 };
+
+/** #2831 — Figma's answer to `getPublishStatusAsync`: never published, published and unchanged, or published and edited
+ *  since. */
+export type PublishStatus = 'UNPUBLISHED' | 'CURRENT' | 'CHANGED';
+/** Whether a status is a published one: a set consumer files can hold instances of. */
+export const isPublished = (s: PublishStatus | undefined): boolean => s === 'CURRENT' || s === 'CHANGED';
+
+/**
+ * WHAT AN UPDATE BREAKS FOR LIBRARY CONSUMERS (#2831). Once a set is published, a consumer file holds instances of its
+ * members, and some of what an update does reaches those instances:
+ *
+ *   drop        a member the plan no longer has. The update keeps it and marks it deprecated (Q2), so consumer
+ *               instances of it now point at a deprecated member.
+ *   replace     a layer replaced instead of updated in place: consumer overrides on that layer are lost.
+ *   private     the set renamed to a name starting with `_` or `.`, which Figma hides from publishing: the set leaves
+ *               the library for every consumer.
+ *   property    a component property removed or retyped: consumer overrides of it are dropped.
+ *
+ * Nothing here for a set that is not published: the same changes reach no other file.
+ */
+export type Breaking =
+  | { kind: 'drop'; member: string }
+  | { kind: 'replace'; member: string; path: string; reason: string }
+  | { kind: 'private'; from: string; to: string }
+  | { kind: 'property'; name: string; change: 'removed' | 'retyped'; from?: string; to?: string };
 
 export type MemberState = 'current' | 'update' | 'handEdited' | 'unstamped' | 'noBaseline' | 'revisionUnknown';
 
@@ -109,6 +137,15 @@ export type SetPreview = {
     earlierRecord?: number;
     /** Members not where the plan's grid puts them (`gridMoves`): moved, never rewritten. Absent when none. */
     move?: number };
+  /** #2831 — the set's publish status, when it is published (`CURRENT` or `CHANGED`). Absent for a set that is not,
+   *  so an unpublished set's preview, and its hash, are what they were. In the hash: a set published between the check
+   *  and the confirm refuses the confirm. */
+  publish?: PublishStatus;
+  /** #2759 — the set is in the file under an earlier def id, which the apply renames to the current one in place. */
+  setRename?: { from: string; to: string };
+  /** #2831 — what this update breaks for library consumers (`breakingOf`). Absent for a set that is not published, or
+   *  where nothing breaks. */
+  breaking?: Breaking[];
   blockers: string[];
   axes: { from: string[]; to: string[]; renames: { from: string; to: string }[] };
   properties: { add: Prop[]; edit: Prop[]; rename: Prop[]; retype: Prop[]; remove: Prop[] };
@@ -642,6 +679,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
     page: host.page,
     setKey: host.key,
     counts,
+    ...(isPublished(read.publish) ? { publish: read.publish } : {}),
     blockers,
     axes: { from: hostAxes, to: planAxes, renames: axisRenames },
     properties,
@@ -673,6 +711,15 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
 // ---- reading the host --------------------------------------------------------------------------------------
 
 type LiveSet = { name?: unknown; id?: unknown; key?: unknown; parent?: unknown; children?: readonly unknown[]; componentPropertyDefinitions?: unknown };
+
+/** #2831 — a set's or component's publish status, read guarded: `undefined` when the host has no such call, throws, or
+ *  answers something else. */
+const publishOf = async (n: unknown): Promise<PublishStatus | undefined> => {
+  try {
+    const s = await (n as { getPublishStatusAsync?: () => Promise<unknown> }).getPublishStatusAsync?.();
+    return s === 'UNPUBLISHED' || s === 'CURRENT' || s === 'CHANGED' ? s : undefined;
+  } catch { return undefined; }
+};
 
 /** The page a node sits on, by walking up. */
 const pageOf = (n: unknown): string => {
@@ -720,7 +767,8 @@ export const readSetView = async (set: LiveSet, breathe?: () => Promise<void>, d
   try { definitions = (set.componentPropertyDefinitions ?? {}) as HostSetView['definitions']; } catch { definitions = null; }
   let key = '';
   try { key = typeof set.key === 'string' ? set.key : ''; } catch { key = ''; }
-  return { name: String(set.name ?? ''), id: String(set.id ?? ''), key, page: pageOf(set), members, others, definitions };
+  const publish = await publishOf(set);
+  return { name: String(set.name ?? ''), id: String(set.id ?? ''), key, page: pageOf(set), members, others, definitions, ...(publish ? { publish } : {}) };
 };
 
 /** The reason a member is left out when its node moved between the read and the write (#2301). DRAFT. */
@@ -934,8 +982,11 @@ export const readSingleView = async (host: UpdateHost, t: UpdateTarget, breathe?
     members.push(await readMember(c, `${axis}=${value}`, nodeName, drawVars));
   }
   const page = comps.length ? pageOf(comps[0]) : '';
+  // #2831: each component is published on its own; the def reads as its most published one, CHANGED over CURRENT.
+  const statuses = await Promise.all(comps.map(publishOf));
+  const publish = (['CHANGED', 'CURRENT', 'UNPUBLISHED'] as const).find((s) => statuses.includes(s));
   return {
-    view: { name: component, id: '', key: '', page, members, others, definitions: null, single: true },
+    view: { name: component, id: '', key: '', page, members, others, definitions: null, single: true, ...(publish ? { publish } : {}) },
     set: { name: component, children: comps } as LiveSet,
   };
 };
@@ -1040,6 +1091,8 @@ export const previewUpdate = async (host: UpdateHost, targets: readonly UpdateTa
     out.sets.push(preview);
     if (!t.single) found.push({ preview, set: v.set });
   }
+  // #2831: what each published set's update breaks for library consumers, once everything above has named its changes.
+  for (const p of out.sets) { const b = breakingOf(p); if (b.length) p.breaking = b; }
   // #2542: the sets that move on their pages, read once every set has been.
   const moves = pageSetMoves(found.map((f) => ({ name: f.preview.set, set: f.set, blocked: f.preview.blockers.length > 0 })));
   for (const f of found) { const m = moves.get(f.preview.set); if (m) f.preview.setMove = m; }
@@ -1247,6 +1300,51 @@ export const previewLine = (p: SetPreview): string => {
   return parts.length ? `${p.set}: ${n(c.members, 'member')}. ${parts.join(', ')}.${setMove}` : `${p.set}: ${n(c.members, 'member')}.${setMove}`;
 };
 
+/** #2831 — what a set's update breaks for library consumers, from what its dry run lists. Empty for a set that is not
+ *  published (nothing reaches another file), and for a set the update refuses (it changes nothing). A replacement of
+ *  the member itself is left out: the update refuses that member, so it is not replaced. */
+export const breakingOf = (p: SetPreview): Breaking[] => {
+  if (!isPublished(p.publish) || p.blockers.length) return [];
+  const hidden = (name: string): boolean => name.startsWith('_') || name.startsWith('.');
+  return [
+    ...(p.setRename && hidden(p.setRename.to) && !hidden(p.setRename.from) ? [{ kind: 'private' as const, ...p.setRename }] : []),
+    // The set-wide changes first, so the capped lines name them before the per-member ones.
+    ...p.properties.remove.map((x) => ({ kind: 'property' as const, name: x.name, change: 'removed' as const })),
+    ...p.properties.retype.map((x) => ({ kind: 'property' as const, name: x.name, change: 'retyped' as const, from: x.from, to: x.to })),
+    ...p.drops.map((member) => ({ kind: 'drop' as const, member })),
+    ...p.replacements.filter((r) => r.path !== '.').map((r) => ({ kind: 'replace' as const, ...r })),
+  ];
+};
+
+/** One breaking change, as a line. DRAFT wording for the owner (#2831). */
+export const breakingLine = (set: string, b: Breaking): string =>
+  b.kind === 'drop' ? `${set} · ${b.member} · dropped — consumer instances of it point at a deprecated member.`
+    : b.kind === 'replace' ? `${set} · ${b.member} / ${b.path} · replaced, not updated in place (${b.reason}) — consumer overrides on it are lost.`
+      : b.kind === 'private' ? `${set} · renamed ${b.from} → ${b.to} — a name starting with _ or . is not published, so the set leaves the library.`
+        : b.change === 'removed' ? `${set} · property ${b.name} · removed — consumer overrides of it are dropped.`
+          : `${set} · property ${b.name} · ${b.from} → ${b.to} — consumer overrides of it are dropped.`;
+
+/** THE "BREAKS LIBRARY CONSUMERS" SECTION (#2831), for the dry run (`made` false) and the apply (`made` true): a head
+ *  line counting the changes, then each set's changes named, capped as its differences are. Empty when nothing breaks.
+ *  DRAFT wording for the owner. */
+export const breakingSection = (sets: readonly { set: string; breaking?: Breaking[] }[], made: boolean): string[] => {
+  const hit = sets.filter((x) => x.breaking?.length);
+  const total = hit.reduce((k, x) => k + x.breaking!.length, 0);
+  if (!total) return [];
+  return [
+    `Breaks library consumers: ${n(total, 'change')} ${made ? 'made ' : ''}in ${n(hit.length, 'published set')}, passed on at the next library publish.`,
+    ...hit.flatMap((x) => [
+      ...x.breaking!.slice(0, DIFFERENCE_LINES).map((b) => breakingLine(x.set, b)),
+      ...(x.breaking!.length > DIFFERENCE_LINES ? [`${x.set}: ${x.breaking!.length - DIFFERENCE_LINES} more breaking changes not listed.`] : []),
+    ]),
+  ];
+};
+/** The headline's breaking clause (#2831), or empty. DRAFT wording for the owner. */
+export const breakingClause = (sets: readonly { breaking?: Breaking[] }[]): string => {
+  const total = sets.reduce((k, x) => k + (x.breaking?.length ?? 0), 0);
+  return total ? ` · ${n(total, 'change')} ${total === 1 ? 'breaks' : 'break'} library consumers` : '';
+};
+
 /** Owner-approved wording (#2568, the Q211/Q246 family; Q264 A): the component pages out of alphabetical order, named
  *  as the page list shows them less the `↳ `. Empty when none. */
 export const pagesLine = (pages: readonly string[] | undefined): string =>
@@ -1274,6 +1372,8 @@ export const previewVerdict = (r: UpdatePreview, whatChanged: (sets: string[]) =
     ...r.sets.flatMap((p) => [previewLine(p), ...namedLines(p.set, p.changes.filter((c) => c.field !== 'stamp').map((c) => ({ part: c.part, field: c.field, plan: c.to, file: c.from, members: c.members }))),
       // #2649: the rows moving into the slot, every placed instance named with what moves and what can't carry over.
       ...(p.slotMigration && !p.blockers.length ? migrationLines(p.set, p.slotMigration) : [])]),
+    // #2831: what the update breaks for library consumers, in its own section.
+    ...breakingSection(r.sets, false),
     ...r.refused.map((x) => `${x.def}: can't be checked. ${x.reason}.`),
     pagesLine(r.pages),
     r.missing.length ? `Not in this file: ${r.missing.join(', ')}.` : '',
@@ -1285,7 +1385,7 @@ export const previewVerdict = (r: UpdatePreview, whatChanged: (sets: string[]) =
     ...whatChanged(r.sets.filter((p) => !p.blockers.length && !noChanges(p)).map((p) => p.set)),
     'This was a check only. Nothing in the file changed.',
   ].filter(Boolean);
-  return { ok: blocked === 0, headline, summary: lines.join('\n'), lines };
+  return { ok: blocked === 0, headline: `${headline}${breakingClause(r.sets)}`, summary: lines.join('\n'), lines };
 };
 
 /** The verdict for a capture. `lines`, as for the dry run: one per set, the list `summary` is joined from. */

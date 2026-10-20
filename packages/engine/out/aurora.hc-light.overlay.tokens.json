@@ -218,27 +218,27 @@
         "link": {
           "default": {
             "$type": "color",
-            "$value": "{ads.core.palette.accent.550}",
+            "$value": "{ads.core.palette.accent.600}",
             "$description": "Link icon — default, 4.5:1 on background.secondary"
           },
           "hover": {
             "$type": "color",
-            "$value": "{ads.core.palette.accent.650}",
+            "$value": "{ads.core.palette.accent.700}",
             "$description": "Link icon — hover, 4.5:1 on background.secondary"
           },
           "visited": {
             "$type": "color",
-            "$value": "{ads.core.palette.accent.850}",
+            "$value": "{ads.core.palette.accent.900}",
             "$description": "Link icon — visited, 4.5:1 on background.secondary"
           },
           "focused": {
             "$type": "color",
-            "$value": "{ads.core.palette.accent.550}",
+            "$value": "{ads.core.palette.accent.600}",
             "$description": "Link icon — focused, 4.5:1 on background.secondary"
           },
           "pressed": {
             "$type": "color",
-            "$value": "{ads.core.palette.accent.750}",
+            "$value": "{ads.core.palette.accent.800}",
             "$description": "Link icon — pressed, 4.5:1 on background.secondary"
           }
         }

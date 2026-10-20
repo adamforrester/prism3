@@ -484,7 +484,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 54,
+    "members": 90,
     "nests": [
       "focus-ring",
       "icon"
@@ -514,7 +514,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 3,
+    "members": 6,
     "nests": [
       "checkbox-control"
     ]
@@ -523,17 +523,18 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "id": "checkbox-group",
     "name": "Checkbox.Group",
     "category": "form",
-    "summary": "Labeled stack of Checkbox rows. Owns the value array, required and validation.",
+    "summary": "Labeled stack of Checkbox rows. Owns the value array, required and validation. Size applies to the items you haven't edited. After editing an item, select the items and set their size.",
     "unit": "variants",
     "spacing": [],
     "page": "Checkbox",
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 3,
+    "members": 6,
     "nests": [
       "field-label",
-      "checkbox-row"
+      "checkbox-row",
+      "field-message"
     ]
   },
   {
@@ -547,7 +548,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 30,
+    "members": 60,
     "nests": [
       "focus-ring"
     ]
@@ -576,7 +577,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 3,
+    "members": 6,
     "nests": [
       "radio-control"
     ]
@@ -585,17 +586,18 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "id": "radio-group",
     "name": "Radio.Group",
     "category": "form",
-    "summary": "Labeled stack of Radio rows. Owns the shared name, one value and validation.",
+    "summary": "Labeled stack of Radio rows. Owns the shared name, one value and validation. Size applies to the items you haven't edited. After editing an item, select the items and set their size.",
     "unit": "variants",
     "spacing": [],
     "page": "Radio",
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 3,
+    "members": 6,
     "nests": [
       "field-label",
-      "radio-row"
+      "radio-row",
+      "field-message"
     ]
   },
   {
@@ -609,7 +611,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 24,
+    "members": 40,
     "nests": [
       "icon",
       "focus-ring"
@@ -635,7 +637,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 2,
+    "members": 4,
     "nests": [
       "switch-control"
     ]
@@ -879,7 +881,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "id": "tabs",
     "name": "Tabs",
     "category": "navigation",
-    "summary": "A row of tabs that switches between panels of related content in place.",
+    "summary": "A row of tabs that switches between panels of related content in place. Size applies to the items you haven't edited. After editing an item, select the items and set their size.",
     "unit": "variants",
     "spacing": [],
     "page": "Tabs",
@@ -1008,7 +1010,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "id": "list",
     "name": "List",
     "category": "data",
-    "summary": "Short UI items after a bullet, number or icon. For running text, use a native text list.",
+    "summary": "Short UI items after a bullet, number or icon. For running text, use a native text list. Size applies to the items you haven't edited. After editing an item, select the items and set their size.",
     "unit": "variants",
     "spacing": [
       {
@@ -1079,7 +1081,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "id": "segmented-control",
     "name": "SegmentedControl",
     "category": "form",
-    "summary": "A row of two to five options in one track, where exactly one is selected and all stay visible.",
+    "summary": "A row of two to five options in one track, where exactly one is selected and all stay visible. Size applies to the items you haven't edited. After editing an item, select the items and set their size.",
     "unit": "variants",
     "spacing": [],
     "page": "Segmented control",

@@ -1072,13 +1072,13 @@
       "description": "Link icon, default — 3:1 on background/secondary",
       "value": {
         "r": 0,
-        "g": 0.4313725531101227,
-        "b": 0.6000000238418579,
+        "g": 0.3803921639919281,
+        "b": 0.5333333611488342,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/accent/550"
+        "name": "ads/core/palette/accent/600"
       }
     },
     {
@@ -1091,13 +1091,13 @@
       "description": "Link icon, hover — 3:1 on background/secondary",
       "value": {
         "r": 0,
-        "g": 0.3294117748737335,
-        "b": 0.4627451002597809,
+        "g": 0.27843138575553894,
+        "b": 0.4000000059604645,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/accent/650"
+        "name": "ads/core/palette/accent/700"
       }
     },
     {
@@ -1110,13 +1110,13 @@
       "description": "Link icon, visited — 3:1 on background/secondary",
       "value": {
         "r": 0,
-        "g": 0.1411764770746231,
-        "b": 0.21176470816135406,
+        "g": 0.09803921729326248,
+        "b": 0.1568627506494522,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/accent/850"
+        "name": "ads/core/palette/accent/900"
       }
     },
     {
@@ -1129,13 +1129,13 @@
       "description": "Link icon, focused — 3:1 on background/secondary",
       "value": {
         "r": 0,
-        "g": 0.4313725531101227,
-        "b": 0.6000000238418579,
+        "g": 0.3803921639919281,
+        "b": 0.5333333611488342,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/accent/550"
+        "name": "ads/core/palette/accent/600"
       }
     },
     {
@@ -1148,13 +1148,13 @@
       "description": "Link icon, pressed — 3:1 on background/secondary",
       "value": {
         "r": 0,
-        "g": 0.23137255012989044,
-        "b": 0.3333333432674408,
+        "g": 0.1882352977991104,
+        "b": 0.2705882489681244,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/accent/750"
+        "name": "ads/core/palette/accent/800"
       }
     },
     {

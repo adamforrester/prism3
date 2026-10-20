@@ -228,14 +228,17 @@
       ],
       "state": [
         "disabled",
-        "error",
         "focus-visible",
         "hover",
         "pressed",
         "rest"
+      ],
+      "status": [
+        "default",
+        "error"
       ]
     },
-    "members": 54,
+    "members": 90,
     "properties": {}
   },
   "checkbox-group": {
@@ -244,9 +247,13 @@
         "large",
         "medium",
         "small"
+      ],
+      "status": [
+        "default",
+        "error"
       ]
     },
-    "members": 3,
+    "members": 6,
     "properties": {
       "items": "SLOT"
     }
@@ -257,9 +264,13 @@
         "large",
         "medium",
         "small"
+      ],
+      "status": [
+        "default",
+        "error"
       ]
     },
-    "members": 3,
+    "members": 6,
     "properties": {
       "label": "TEXT"
     }
@@ -746,9 +757,13 @@
         "hover",
         "pressed",
         "rest"
+      ],
+      "status": [
+        "default",
+        "error"
       ]
     },
-    "members": 30,
+    "members": 60,
     "properties": {}
   },
   "radio-group": {
@@ -757,9 +772,13 @@
         "large",
         "medium",
         "small"
+      ],
+      "status": [
+        "default",
+        "error"
       ]
     },
-    "members": 3,
+    "members": 6,
     "properties": {
       "items": "SLOT"
     }
@@ -770,9 +789,13 @@
         "large",
         "medium",
         "small"
+      ],
+      "status": [
+        "default",
+        "error"
       ]
     },
-    "members": 3,
+    "members": 6,
     "properties": {
       "label": "TEXT"
     }
@@ -873,14 +896,17 @@
       ],
       "state": [
         "disabled",
-        "error",
         "focus-visible",
         "hover",
         "pressed",
         "rest"
+      ],
+      "status": [
+        "default",
+        "error"
       ]
     },
-    "members": 24,
+    "members": 40,
     "properties": {
       "state icon": "BOOLEAN"
     }
@@ -890,9 +916,13 @@
       "size": [
         "medium",
         "small"
+      ],
+      "status": [
+        "default",
+        "error"
       ]
     },
-    "members": 2,
+    "members": 4,
     "properties": {
       "label": "TEXT"
     }

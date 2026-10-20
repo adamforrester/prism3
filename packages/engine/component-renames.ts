@@ -27,6 +27,11 @@ export type ComponentRename =
   | { readonly def: string; readonly kind: 'value'; readonly axis: string; readonly from: string; readonly to: string; readonly issue: number }
   /** An axis renamed, its values kept, e.g. `tone` → `appearance`. */
   | { readonly def: string; readonly kind: 'axis'; readonly from: string; readonly to: string; readonly issue: number }
+  /** A value that LEFT its axis for a coordinate on others (#2751, owner Q354): `state=error` became
+   *  `state=rest, status=error` when validation moved off the state axis. The segment `axis=from` is replaced
+   *  by every `axis=value` in `to`, so one member lands on one coordinate and keeps its id. A `to` axis the
+   *  coordinate already carries with another value is a ledger error, refused by throwing. */
+  | { readonly def: string; readonly kind: 'move'; readonly axis: string; readonly from: string; readonly to: Readonly<Record<string, string>>; readonly issue: number }
   /** A value, an axis or a whole def that is gone with no successor. An update keeps its members, marked
    *  deprecated (owner decision Q85 A, §10 Q2); the entry says the removal was meant. With `axis` and no
    *  `value` the whole axis is gone; with neither, the whole def. */
@@ -55,10 +60,17 @@ export type ComponentRename =
  * Accordion's two entries are for sets built from #2534 before it merged (#2592): its icon axis was `position`, then
  * `iconPosition`, then shown as `icon position`, all inside that one PR, so no merge base ever held the earlier names
  * and the lint had nothing to demand. A file built from either head is updated in place through them.
+ *
+ * The checkbox and switch controls' entries are owner Q354 (#2751): error left the state axis for the fields'
+ * `status` axis, so a member built at `state=error` is the member now at `state=rest, status=error`, and an instance
+ * placed at error keeps showing it. Every other member gains `status=default`, the plan's first value, as any added
+ * axis does.
  */
 export const COMPONENT_RENAMES: readonly ComponentRename[] = [
   { def: 'accordion', kind: 'axis', from: 'position', to: 'icon position', issue: 2592 },
   { def: 'accordion', kind: 'axis', from: 'iconPosition', to: 'icon position', issue: 2592 },
+  { def: 'checkbox-control', kind: 'move', axis: 'state', from: 'error', to: { state: 'rest', status: 'error' }, issue: 2751 },
+  { def: 'switch-control', kind: 'move', axis: 'state', from: 'error', to: { state: 'rest', status: 'error' }, issue: 2751 },
   // The repeating rows moved into a native `items` slot (#2649, owner decision Q307 A). `from` is the layer that held
   // the rows; `rows` are its row layers in order, the first of them always shown (no boolean of its own).
   { def: 'checkbox-group', kind: 'slot', slot: 'items', from: 'container', rows: ['row1', 'row2', 'row3', 'row4', 'row5', 'row6', 'row7', 'row8'], booleans: ['Option 2', 'Option 3', 'Option 4', 'Option 5', 'Option 6', 'Option 7', 'Option 8'], issue: 2649 },
@@ -125,7 +137,8 @@ const keyOf = (pairs: readonly (readonly [string, string])[]): string =>
 
 /**
  * Where an existing member's coordinate lands under the ledger's renames for `def`: its canonical key,
- * with every value and axis rename applied, chains included (`sm` → `small` → `s` resolves to `s`).
+ * with every value and axis rename applied, chains included (`sm` → `small` → `s` resolves to `s`), then every
+ * move (a value that left its axis for a coordinate on others).
  * Drops are not applied: a dropped value has no successor to land on. `renamed` says whether anything moved.
  *
  * A CYCLE IS A LEDGER ERROR, refused by throwing: `a` → `b` → `a` names no coordinate the plan could hold.
@@ -147,6 +160,20 @@ export const renameCoordinate = (def: string, key: string, ledger: readonly Comp
     const k = keyOf(pairs);
     if (seen.has(k)) throw new Error(`COMPONENT_RENAMES: the renames for '${def}' loop back to ${k}`);
     seen.add(k);
+  }
+  // MOVES, after the renames have settled the names they are written against. Each applies once: a move's `to`
+  // is a coordinate on the new axes, never itself the `from` of another move.
+  for (const mv of mine) {
+    if (mv.kind !== 'move') continue;
+    const at = pairs.findIndex(([a, v]) => a === mv.axis && v === mv.from);
+    if (at < 0) continue;
+    const rest = pairs.filter((_, i) => i !== at);
+    for (const [a, v] of Object.entries(mv.to)) {
+      const had = rest.find(([x]) => x === a);
+      if (had && had[1] !== v) throw new Error(`COMPONENT_RENAMES: the move of ${mv.axis}=${mv.from} on '${def}' sets ${a}=${v}, and the coordinate already carries ${a}=${had[1]}`);
+      if (!had) rest.push([a, v]);
+    }
+    pairs = rest;
   }
   const out = keyOf(pairs);
   return { key: out, renamed: out !== key };
@@ -190,9 +217,10 @@ export const unaccounted = (before: AxesBaseline, after: AxesBaseline, ledger: r
         if (a.axes[axisNow].includes(v)) continue;
         const claimed = mine.some((r) =>
           (r.kind === 'value' && r.axis === axisNow && r.from === v) ||
+          (r.kind === 'move' && r.axis === axisNow && r.from === v) ||
           (r.kind === 'drop' && (r.axis === axis || r.axis === axisNow) && r.value === v));
         if (!claimed)
-          bad.push(`${def}: ${axisNow}=${v} is gone — needs { kind: 'value', axis: '${axisNow}', from: '${v}', to } or { kind: 'drop', axis: '${axisNow}', value: '${v}' }`);
+          bad.push(`${def}: ${axisNow}=${v} is gone — needs { kind: 'value', axis: '${axisNow}', from: '${v}', to }, { kind: 'move', axis: '${axisNow}', from: '${v}', to: { … } } or { kind: 'drop', axis: '${axisNow}', value: '${v}' }`);
       }
     }
     // THE COMPONENT PROPERTIES (#2649): a property at the base and not in the tree, or there under another type, must
@@ -229,6 +257,12 @@ export const danglingTargets = (after: AxesBaseline, ledger: readonly ComponentR
       try { to = renameProperty(r.def, r.from, ledger); } catch (err) { bad.push(`${r.def}: ${(err as Error).message}`); continue; }
       if (to === null || !(to in a.properties))
         bad.push(`${r.def}: property entry '${r.from}' → '${r.to}' ends at '${to ?? r.to}', which the set does not declare`);
+      continue;
+    }
+    if (r.kind === 'move') {
+      // Every segment it lands on must be one the def projects.
+      for (const [ax, v] of Object.entries(r.to))
+        if (!a.axes[ax]?.includes(v)) bad.push(`${r.def}: move entry ${r.axis}=${r.from} → ${ax}=${v}, which the def does not project`);
       continue;
     }
     if (r.kind === 'slot') {
