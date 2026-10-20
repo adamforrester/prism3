@@ -2840,7 +2840,8 @@
           "Whether the number glyph and the text's first line share one baseline on a real host: both bind the same type style and the number sits in a box one line tall, so they should; not measured on a built file."
         ],
         "evolution": [
-          "2026-10-13 (#2319): owner decisions Q273 — the read list now as List and List.Item (Q273.1), two components with every marker bound (Q273.2), the icon marker as a third type starting at check (Q273.3), body sm / md / lg (Q273.4), no nested list in Figma (Q273.5), no tone (Q273.6), category data (Q273.7), markers at the text's strength (Q273.8), native text lists for running text (Q273.9)."
+          "2026-10-13 (#2319): owner decisions Q273 — the read list now as List and List.Item (Q273.1), two components with every marker bound (Q273.2), the icon marker as a third type starting at check (Q273.3), body sm / md / lg (Q273.4), no nested list in Figma (Q273.5), no tone (Q273.6), category data (Q273.7), markers at the text's strength (Q273.8), native text lists for running text (Q273.9).",
+          "2026-10-15 (#2727): owner decision Q340 A — the bullet and number marker column one step tighter, 20/24/32 (`space.250` / `300` / `400`), revising Q280.1 A's 24/32/40 for those two types; the icon column keeps 24/32/40, so the column is fixed per type rather than in every type, and an icon item's text edge sits further in."
         ],
         "projection": []
       },
@@ -2912,7 +2913,7 @@
         "The element — <ul role=\"list\"> for unordered and icon, <ol role=\"list\"> for ordered, chosen from type. The explicit role is required: a list whose markers are styled off (list-style: none) loses its list role in WebKit, and VoiceOver stops announcing \"list, 6 items\". The component draws its own markers, so it always sets the role.",
         "Numbering — the <ol> counts its items through CSS (list-style-type: decimal, or a counter); numbers are never typed into the item text. start and reversed pass through to the <ol>. A locale with its own digits takes them through @counter-style.",
         "The item gap — row-gap on the list (or margin-block-start on every item after the first), from the size's gap token. Never a margin on the last item.",
-        "Nested lists — a <ul> or <ol> inside an <li> indents by one marker column and uses the same size. Not drawn in Figma.",
+        "Nested lists — a <ul> or <ol> inside an <li> sits in that item's text column, so it indents by the item's marker column and starts at the item's text edge, and it uses the same size. Not drawn in Figma.",
         "Figma numbering — a Figma list cannot count, so each item of an ordered List holds its own number as text: the built items read \"1.\" to \"3.\". A designer who adds or reorders items retypes the numbers.",
         "item count — Figma holds the items in the native `items` slot, three by default; code takes `items` of any length from one up."
       ],

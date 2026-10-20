@@ -9,7 +9,7 @@
 
 ## Overview
 
-One item in a List: a marker in a fixed-width column, then short text that wraps under itself rather than under the marker. The marker is a bullet, a number or an icon, and it sits on the first line of the text however many lines the item runs to. The marker column keeps the same width in every type, so the text of every item starts at one edge. Used inside a List; the List sets the type and size of every item it holds.
+One item in a List: a marker in a fixed-width column, then short text that wraps under itself rather than under the marker. The marker is a bullet, a number or an icon, and it sits on the first line of the text however many lines the item runs to. The marker column has one width for each type, so the text of every item in a list starts at one edge. Used inside a List; the List sets the type and size of every item it holds.
 
 - **Purpose:** One item inside a List: a marker in a fixed column, then text that wraps under itself.
 - **Use when:** Only as a child of List.
@@ -20,7 +20,7 @@ One item in a List: a marker in a fixed-width column, then short text that wraps
 Shown on the default member: type `unordered`, size `medium`.
 
 1. **Row** — The item: the marker column, then the text. Top-aligned, so a wrapping item keeps its marker on the first line.
-2. **Marker box** — The marker column: the same width in every type and one text line tall, so the marker sits on the first line and the text of every item starts at one edge.
+2. **Marker box** — The marker column: one width per type and one text line tall, so the marker sits on the first line and the text of every item in the list starts at one edge.
 3. **Bullet** — The bullet: a round dot, in the icon color.
 4. **Number**
 5. **Icon** — The icon marker, a check by default and swappable, in the icon color. Decorative: the text carries the meaning.
@@ -85,7 +85,7 @@ One phrase or sentence per item, sentence case, parallel with the items around i
 
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
-| `children` | node | — | yes | The item text: a short phrase or sentence. It wraps under itself. Inline content such as a link is allowed; a block such as a second list is a nested list, indented by one marker column. |
+| `children` | node | — | yes | The item text: a short phrase or sentence. It wraps under itself. Inline content such as a link is allowed; a block such as a second list is a nested list, indented by this item's marker column, so it starts at this item's text edge. |
 | `type` | enum: 'unordered' \| 'ordered' \| 'icon' | `unordered` | no | Which marker the item shows. Set by the List from its own type; do not set it on an item inside a List. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The text size (body small, medium or large) and the marker sized to it. Set by the List. |
 | `value` | number | — | no | In an ordered list, the number this item shows; the items after it count on from it. Leave it unset to let the list count. |
