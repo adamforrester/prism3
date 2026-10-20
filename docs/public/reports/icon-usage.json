@@ -358,7 +358,7 @@
     "toast": {
       "glyphs": [
         {
-          "part": "icon",
+          "part": "checkCircleGlyph",
           "glyph": "check-circle",
           "source": "icon set",
           "how": "drawn",

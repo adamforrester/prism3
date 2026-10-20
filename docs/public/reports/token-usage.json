@@ -9078,7 +9078,7 @@
             "success.icon"
           ],
           "parts": {
-            "icon": {
+            "checkCircleGlyph": {
               "members": 1,
               "where": {
                 "intent": [
@@ -16088,7 +16088,7 @@
             "glyph-size"
           ],
           "parts": {
-            "icon": {
+            "checkCircleGlyph": {
               "members": 1,
               "where": {
                 "intent": [

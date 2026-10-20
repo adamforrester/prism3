@@ -5,7 +5,7 @@ Toast (#2668, the owner's approved proposal, every numbered call A): a short sta
 user's own action. 2 members on a new `intent` axis, `neutral | success`, neutral first; no size and no state axis. The
 card is the inverse surface, `color.inverse.background.primary`, with `shadow.lg` as an effect style, `radius.xl`, and
 padding `space.100` block, `space.200` inline start and `space.100` inline end, built 360 wide and hugging its height.
-The message is `type.body.md.default` on `color.inverse.text.primary`, wrapping; success adds the `check-circle` glyph
+The message is `type.body.md.default` on `color.inverse.text.primary`, wrapping; success adds the `check-circle` glyph (part `checkCircleGlyph`)
 on `color.inverse.icon.success` at `icon.size.sm`, 12px from the message, and neutral has none. At the end edge, 4px
 apart: an optional action, a nested Button (text, small, `surface: inverse`, off, reading "Action"), and the close, a
 nested FlushIconButton.Neutral (flush, small, `surface: inverse`, on, the close glyph; Q386). FlushIconButton gains a

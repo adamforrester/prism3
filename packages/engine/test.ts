@@ -16939,6 +16939,12 @@ arm: {
       });
       ok(inverseBad.length === 0 && allPlans.filter((p) => p.coord.surface === 'inverse' && p.coord.shape === 'flush').length === 15,
         `#2457 ${id}'s flush glyph on the inverse ground walks the family's color.inverse ink at every state and its box paints nothing (Q386)${inverseBad.length ? ` — ${inverseBad.slice(0, 3).join('; ')}` : ''}`);
+      // THE FOCUS RING FOLLOWS surface (Q436 (a), as IconButton's #1427 arm): every focus-visible member nests the ring
+      // on its own ground, so the inverse ring lands on the Toast's dark card. EXPECTED is the member's coordinate.
+      const ringPlans = allPlans.filter((p) => p.coord.state === 'focus-visible');
+      const ringBad = ringPlans.filter((p) => p.root.children.find((c) => c.name === 'focusRing')?.nestVariant?.surface !== p.coord.surface).map(planComponentName);
+      ok(ringPlans.length === 12 && ringBad.length === 0,
+        `#2457 ${id}'s focus ring follows surface: each focus-visible member nests the ring on its own ground (Q436 (a))${ringBad.length ? ` — WRONG: ${ringBad.slice(0, 3).join(', ')}` : ''} (${ringPlans.length} of 12 members)`);
       ok(JSON.stringify(def.variants?.shape) === JSON.stringify(SHAPES),
         `#2457 ${id}'s shape axis is [flush, round], flush first (Q287 A) — got ${JSON.stringify(def.variants?.shape)}`);
       const paddingBound: string[] = [], wrongSide: string[] = [], painted: string[] = [], wrongInk: string[] = [];
@@ -32590,7 +32596,7 @@ arm: {
 
   // THE GLYPH (call 3): success only, a circled check on inverse.icon.success, 20px, 12px from the message; neutral none.
   const glyphBad = plans.filter((p) => {
-    const r = p.root as TN, icon = find(r, 'icon'), content = find(r, 'content');
+    const r = p.root as TN, icon = find(r, 'checkCircleGlyph'), content = find(r, 'content');
     const success = (p.coord as Record<string, string>).intent === 'success';
     return success ? !(icon && icon.nestTarget === 'icon/check-circle' && icon.descendantFills === 'color/inverse/icon/success' && icon.bound?.width === 'icon/size/sm' && content?.bound?.itemSpacing === 'space/150')
       : !!icon || all(r).some((n) => /^icon\//.test(n.nestTarget ?? ''));

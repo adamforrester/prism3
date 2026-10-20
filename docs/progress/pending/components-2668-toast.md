@@ -14,7 +14,7 @@ for this build.
 - **The card** is the inverse surface, `color.inverse.background.primary`, `shadow.lg` as an effect style,
   `radius.xl`, padding 8 / 16 / 8 (block, inline start, inline end), built 360 wide (`placementWidth`) and hugging its
   height. No border: the card is far above 3:1 against the page in every committed brand × mode.
-- **Content:** success adds `check-circle` on `color.inverse.icon.success` at `icon.size.sm`, 12px from the message;
+- **Content:** success adds `check-circle` (the `checkCircleGlyph` part, named per Q350) on `color.inverse.icon.success` at `icon.size.sm`, 12px from the message;
   neutral has no glyph. The message is `type.body.md.default` on `color.inverse.text.primary` and wraps.
 - **Controls**, 4px apart at the end edge: the action, a nested Button (text, small, `surface: inverse`), off by
   default and reading "Action" through a nested-instance override; the close, a nested FlushIconButton.Neutral (flush,

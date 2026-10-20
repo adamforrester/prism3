@@ -22,8 +22,8 @@
  *
  * No component requires a Neutral button family (Q386, #2808): a file built without the IconButton sets must still
  * build Toast. The close is the flush shape at small, the same bare glyph Dialog's close draws, with the same
- * `close` glyph set by a swap override. FlushIconButton has no `surface` axis, so its glyph keeps the default-ground ink
- * on the inverse card; the contrast arm in `test.ts` measures that pair and holds the result for the owner.
+ * `close` glyph set by a swap override, on FlushIconButton's `surface: inverse` member (Q436 (a)), so the glyph takes
+ * the inverse ink on the inverse card; the contrast arm in `test.ts` measures that pair.
  *
  * ── PLACEMENT, STACKING AND TIMING ARE CODE (calls 4, 5, 6, 10, 11) ──────────────────────────────────────────────
  *
@@ -112,10 +112,10 @@ export const toast: ComponentDef = {
         layout: { direction: 'row', align: 'start', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
         grow: true,
         gap: 'glyph-gap',
-        children: ['icon', 'message'],
+        children: ['checkCircleGlyph', 'message'],
         note: 'The glyph and the message. It takes the width the action and close button do not.',
       },
-      icon: {
+      checkCircleGlyph: {
         kind: 'vector',
         glyph: 'check-circle',
         size: 'glyph-size',
@@ -249,7 +249,7 @@ export const toast: ComponentDef = {
 
   notes: {
     contested: [
-      'HELD FOR THE OWNER (#2668): the close nests FlushIconButton.Neutral (Q386, as Dialog), not the proposal\'s IconButton.Neutral, which required FlushIconButton to gain a `surface` axis (`default | inverse`, appended last, following IconButton\'s) so the glyph reads on the inverse card, with Counter and Dialog naming `surface: default` on their nests; the 8px gap between the message and the controls (the proposal leaves it open; the wireframe uses 8px); the action label as a nested Button\'s text rather than a toast text property.',
+      'Decided: Q436 (a) (#2668): the close nests FlushIconButton.Neutral (Q386, as Dialog), not the proposal\'s IconButton.Neutral; FlushIconButton gains a `surface` axis (`default | inverse`, appended last, following IconButton\'s) so the glyph reads on the inverse card, with Counter and Dialog naming `surface: default` on their nests. Decided: Q367 (c): the action label stays the nested Button\'s text, as Dialog\'s footer, not a toast text property. Still held for the owner: the 8px gap between the message and the controls (the proposal leaves it open; the wireframe uses 8px).',
     ],
     unverified: [
       'That the nested Button and FlushIconButton.Neutral carry their prototype reactions into the toast\'s instances on the canvas, as they do inside Dialog.',
