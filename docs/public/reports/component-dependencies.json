@@ -413,7 +413,7 @@
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
-        "shape": "round",
+        "shape": "flush",
         "size": "medium",
         "state": "rest"
       }

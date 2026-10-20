@@ -309,10 +309,9 @@ export type FillRow = {
   readonly sub?: string;
   readonly follows?: string;
 };
-/** The five semantic families, in the order the fill rows list them (the legacy Foreground fills editor's). */
-const SEM = [['brand', 'Brand'], ['success', 'Success'], ['warning', 'Warning'], ['info', 'Info'], ['danger', 'Danger']] as const;
-/** The same five in the order the text rows list them (the legacy Text section's). */
-const SEM_TEXT = [['brand', 'Brand'], ['success', 'Success'], ['warning', 'Warning'], ['danger', 'Danger'], ['info', 'Info']] as const;
+/** The five semantic families, in the engine's order (`SEMANTICS` in `modes.ts`, which the emitted text, icon and border
+ *  groups follow): the order every row list here and every preview card list reads (#2833). */
+const SEM = [['brand', 'Brand'], ['success', 'Success'], ['warning', 'Warning'], ['danger', 'Danger'], ['info', 'Info']] as const;
 /** The three neutral tiers. */
 const TIERS = [['primary', 'Primary'], ['secondary', 'Secondary'], ['tertiary', 'Tertiary']] as const;
 /** The "Inverse" group's sub-heading: the preview sections' own word for the same roles (Q23). */
@@ -325,7 +324,7 @@ export const FOREGROUND_ROWS: readonly FillRow[] = [
   ...TIERS.map(([k, l]) => ({ role: `foreground.${k}`, label: l, paletteKey: 'neutral' })),
   ...grouped(INVERSE_SUB, TIERS.map(([k, l]) => ({ role: `inverse.foreground.${k}`, label: l, paletteKey: 'neutral' }))),
 ];
-/** The fills (Foreground fills): concept v6's five bold fills, in the legacy editor's order; their subtle tints
+/** The fills (Foreground fills): concept v6's five bold fills, in the engine's status order; their subtle tints
  *  and the on-color inks that sit on the bold fills (Q49: the preview's Foreground section pairs each fill with
  *  its on-surface text); then the inverse band's bold and subtle fills. The neutral tiers moved to the
  *  Foreground section (Q44). Every role keeps a normal row (owner decision Q20; the Roles matrix is not built,
@@ -344,8 +343,8 @@ export const FILL_ROWS: readonly FillRow[] = [
  *  subtle forms say "subtle", the token's own word, where the legacy page said "muted" (owner decision Q57). */
 const inkRows = (prefix: string): FillRow[] => [
   ...TIERS.map(([k, l]) => ({ role: `${prefix}.${k}`, label: `${l} text`, paletteKey: 'neutral' })),
-  ...SEM_TEXT.map(([k, l]) => ({ role: `${prefix}.${k}`, label: `${l} ink`, paletteKey: k })),
-  ...SEM_TEXT.map(([k, l]) => ({ role: `${prefix}.${k}-subtle`, label: `${l} ink, subtle`, paletteKey: k })),
+  ...SEM.map(([k, l]) => ({ role: `${prefix}.${k}`, label: `${l} ink`, paletteKey: k })),
+  ...SEM.map(([k, l]) => ({ role: `${prefix}.${k}-subtle`, label: `${l} ink, subtle`, paletteKey: k })),
 ];
 /** The text rows the legacy page's Text section carried, then the inverse band's inks under "Inverse" (Q49).
  *  The link ink is not here: links are edited on Color › Interactive only (owner decision Q28, #1961). */
@@ -364,9 +363,9 @@ export const FOCUS_ROLES = ['border.focus', 'inverse.border.focus'] as const;
  *  (`withIconTwins` in `modes.ts`). */
 const iconRows = (prefix: string, textPrefix: string, on: boolean): FillRow[] => [
   ...TIERS.map(([k, l]) => ({ role: `${prefix}.${k}`, label: l, paletteKey: 'neutral', follows: `${textPrefix}.${k}` })),
-  ...SEM_TEXT.map(([k, l]) => ({ role: `${prefix}.${k}`, label: l, paletteKey: k, follows: `${textPrefix}.${k}` })),
-  ...SEM_TEXT.map(([k, l]) => ({ role: `${prefix}.${k}-subtle`, label: `${l}, subtle`, paletteKey: k, follows: `${textPrefix}.${k}-subtle` })),
-  ...(on ? SEM_TEXT.map(([k, l]) => ({ role: `${prefix}.on-${k}`, label: `On ${l.toLowerCase()}`, paletteKey: 'neutral', follows: `${textPrefix}.on-${k}` })) : []),
+  ...SEM.map(([k, l]) => ({ role: `${prefix}.${k}`, label: l, paletteKey: k, follows: `${textPrefix}.${k}` })),
+  ...SEM.map(([k, l]) => ({ role: `${prefix}.${k}-subtle`, label: `${l}, subtle`, paletteKey: k, follows: `${textPrefix}.${k}-subtle` })),
+  ...(on ? SEM.map(([k, l]) => ({ role: `${prefix}.on-${k}`, label: `On ${l.toLowerCase()}`, paletteKey: 'neutral', follows: `${textPrefix}.on-${k}` })) : []),
 ];
 export const ICON_ROWS: readonly FillRow[] = [...iconRows('icon', 'text', true), ...grouped(INVERSE_SUB, iconRows('inverse.icon', 'inverse.text', false))];
 /** True while icons match text (`iconContrast: 'text'`, the lever's default): the engine then carries a text
