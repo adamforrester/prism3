@@ -101,33 +101,75 @@ Generated from the plan that builds the design-file component: 9 members. Values
 
 Padding reads top / right / bottom / left when its sides differ.
 
-Keyed by `size`.
+Keyed by `size`, `type`.
 
-**size=medium**
+**size=medium, type=unordered**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `row` | — | `space.0` | — | — | 120px (literal) | build width 320px (literal) |
+| `row/markerBox` | — | — | `control.size.md.line-box` | `space.300` | — | — |
+| `row/markerBox/bullet` | — | — | `control.size.md.dot` | `control.size.md.dot` | — | — |
+
+**size=small, type=unordered**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `row` | — | `space.0` | — | — | 120px (literal) | build width 320px (literal) |
+| `row/markerBox` | — | — | `control.size.sm.line-box` | `space.250` | — | — |
+| `row/markerBox/bullet` | — | — | `control.size.sm.dot` | `control.size.sm.dot` | — | — |
+
+**size=large, type=unordered**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `row` | — | `space.0` | — | — | 120px (literal) | build width 320px (literal) |
+| `row/markerBox` | — | — | `control.size.lg.line-box` | `space.400` | — | — |
+| `row/markerBox/bullet` | — | — | `control.size.lg.dot` | `control.size.lg.dot` | — | — |
+
+**size=medium, type=ordered**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `row` | — | `space.0` | — | — | 120px (literal) | build width 320px (literal) |
+| `row/markerBox` | — | — | `control.size.md.line-box` | `space.300` | — | — |
+
+**size=small, type=ordered**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `row` | — | `space.0` | — | — | 120px (literal) | build width 320px (literal) |
+| `row/markerBox` | — | — | `control.size.sm.line-box` | `space.250` | — | — |
+
+**size=large, type=ordered**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `row` | — | `space.0` | — | — | 120px (literal) | build width 320px (literal) |
+| `row/markerBox` | — | — | `control.size.lg.line-box` | `space.400` | — | — |
+
+**size=medium, type=icon**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `row` | — | `space.0` | — | — | 120px (literal) | build width 320px (literal) |
 | `row/markerBox` | — | — | `control.size.md.line-box` | `space.400` | — | — |
-| `row/markerBox/bullet` | — | — | `control.size.md.dot` | `control.size.md.dot` | — | — |
 | `row/markerBox/icon` | — | — | `icon.size.md` | `icon.size.md` | — | — |
 
-**size=small**
+**size=small, type=icon**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `row` | — | `space.0` | — | — | 120px (literal) | build width 320px (literal) |
 | `row/markerBox` | — | — | `control.size.sm.line-box` | `space.300` | — | — |
-| `row/markerBox/bullet` | — | — | `control.size.sm.dot` | `control.size.sm.dot` | — | — |
 | `row/markerBox/icon` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 
-**size=large**
+**size=large, type=icon**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `row` | — | `space.0` | — | — | 120px (literal) | build width 320px (literal) |
 | `row/markerBox` | — | — | `control.size.lg.line-box` | `space.500` | — | — |
-| `row/markerBox/bullet` | — | — | `control.size.lg.dot` | `control.size.lg.dot` | — | — |
 | `row/markerBox/icon` | — | — | `icon.size.lg` | `icon.size.lg` | — | — |
 
 ### Type

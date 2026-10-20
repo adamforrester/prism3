@@ -27159,12 +27159,257 @@
         }
       ],
       "redlineKey": [
-        "size"
+        "size",
+        "type"
       ],
       "redlines": [
         {
           "where": {
-            "size": "medium"
+            "size": "medium",
+            "type": "unordered"
+          },
+          "parts": [
+            {
+              "part": "row",
+              "values": {
+                "gap": {
+                  "token": "space.0"
+                },
+                "minWidth": {
+                  "px": 120,
+                  "source": "literal"
+                },
+                "buildWidth": {
+                  "px": 320,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "row/markerBox",
+              "values": {
+                "height": {
+                  "token": "control.size.md.line-box"
+                },
+                "width": {
+                  "token": "space.300"
+                }
+              }
+            },
+            {
+              "part": "row/markerBox/bullet",
+              "values": {
+                "height": {
+                  "token": "control.size.md.dot"
+                },
+                "width": {
+                  "token": "control.size.md.dot"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small",
+            "type": "unordered"
+          },
+          "parts": [
+            {
+              "part": "row",
+              "values": {
+                "gap": {
+                  "token": "space.0"
+                },
+                "minWidth": {
+                  "px": 120,
+                  "source": "literal"
+                },
+                "buildWidth": {
+                  "px": 320,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "row/markerBox",
+              "values": {
+                "height": {
+                  "token": "control.size.sm.line-box"
+                },
+                "width": {
+                  "token": "space.250"
+                }
+              }
+            },
+            {
+              "part": "row/markerBox/bullet",
+              "values": {
+                "height": {
+                  "token": "control.size.sm.dot"
+                },
+                "width": {
+                  "token": "control.size.sm.dot"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large",
+            "type": "unordered"
+          },
+          "parts": [
+            {
+              "part": "row",
+              "values": {
+                "gap": {
+                  "token": "space.0"
+                },
+                "minWidth": {
+                  "px": 120,
+                  "source": "literal"
+                },
+                "buildWidth": {
+                  "px": 320,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "row/markerBox",
+              "values": {
+                "height": {
+                  "token": "control.size.lg.line-box"
+                },
+                "width": {
+                  "token": "space.400"
+                }
+              }
+            },
+            {
+              "part": "row/markerBox/bullet",
+              "values": {
+                "height": {
+                  "token": "control.size.lg.dot"
+                },
+                "width": {
+                  "token": "control.size.lg.dot"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "medium",
+            "type": "ordered"
+          },
+          "parts": [
+            {
+              "part": "row",
+              "values": {
+                "gap": {
+                  "token": "space.0"
+                },
+                "minWidth": {
+                  "px": 120,
+                  "source": "literal"
+                },
+                "buildWidth": {
+                  "px": 320,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "row/markerBox",
+              "values": {
+                "height": {
+                  "token": "control.size.md.line-box"
+                },
+                "width": {
+                  "token": "space.300"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small",
+            "type": "ordered"
+          },
+          "parts": [
+            {
+              "part": "row",
+              "values": {
+                "gap": {
+                  "token": "space.0"
+                },
+                "minWidth": {
+                  "px": 120,
+                  "source": "literal"
+                },
+                "buildWidth": {
+                  "px": 320,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "row/markerBox",
+              "values": {
+                "height": {
+                  "token": "control.size.sm.line-box"
+                },
+                "width": {
+                  "token": "space.250"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large",
+            "type": "ordered"
+          },
+          "parts": [
+            {
+              "part": "row",
+              "values": {
+                "gap": {
+                  "token": "space.0"
+                },
+                "minWidth": {
+                  "px": 120,
+                  "source": "literal"
+                },
+                "buildWidth": {
+                  "px": 320,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "row/markerBox",
+              "values": {
+                "height": {
+                  "token": "control.size.lg.line-box"
+                },
+                "width": {
+                  "token": "space.400"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "medium",
+            "type": "icon"
           },
           "parts": [
             {
@@ -27195,17 +27440,6 @@
               }
             },
             {
-              "part": "row/markerBox/bullet",
-              "values": {
-                "height": {
-                  "token": "control.size.md.dot"
-                },
-                "width": {
-                  "token": "control.size.md.dot"
-                }
-              }
-            },
-            {
               "part": "row/markerBox/icon",
               "values": {
                 "height": {
@@ -27220,7 +27454,8 @@
         },
         {
           "where": {
-            "size": "small"
+            "size": "small",
+            "type": "icon"
           },
           "parts": [
             {
@@ -27251,17 +27486,6 @@
               }
             },
             {
-              "part": "row/markerBox/bullet",
-              "values": {
-                "height": {
-                  "token": "control.size.sm.dot"
-                },
-                "width": {
-                  "token": "control.size.sm.dot"
-                }
-              }
-            },
-            {
               "part": "row/markerBox/icon",
               "values": {
                 "height": {
@@ -27276,7 +27500,8 @@
         },
         {
           "where": {
-            "size": "large"
+            "size": "large",
+            "type": "icon"
           },
           "parts": [
             {
@@ -27303,17 +27528,6 @@
                 },
                 "width": {
                   "token": "space.500"
-                }
-              }
-            },
-            {
-              "part": "row/markerBox/bullet",
-              "values": {
-                "height": {
-                  "token": "control.size.lg.dot"
-                },
-                "width": {
-                  "token": "control.size.lg.dot"
                 }
               }
             },
