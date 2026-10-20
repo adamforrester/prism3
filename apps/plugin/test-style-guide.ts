@@ -118,6 +118,10 @@
  *      row, running over the frames below. Inverse colors is its own titled group 320 below, column-aligned (read off the
  *      shim's layout model); the fixed frame grows to fit; the frames below move clear, order and gap kept; a rerun is
  *      stable.
+ *  40. A GROUP YOU MADE THAT WRAPS (#2856): a HORIZONTAL frame with wrap on, header on the first row and the guides
+ *      wrapping below, grows to its widest row (never the one-row sum), its height its rows; one #2827's one-row sum
+ *      widened is put back; a width wider than its rows need that is not that sum is kept; a rerun is stable. Expected
+ *      widths from the layout rule (padding + widest child), typed here; the shim lays wrapped rows out by its own rule.
  *
  * INDEPENDENCE (docs/34): expected values are literals written here. The ratios (19.42, 18.13, 21) and the
  * failing 3.27 (neutral/400 on white, computed by hand from the WCAG formula), 6.44 (foreground.brand on
@@ -304,6 +308,11 @@
  *     colors…"; `fitToContent` returning at once → "39: never clipped: a fixed frame you made grows to fit…"; the
  *     overlap pass given no frame to push from → "39: never overlapping: the frames below move down clear of Inverse
  *     colors…" and "38: Inverse colors goes 320 below the group, and the group that sat there moves down…".
+ *   - (#2856, each on a committed head, the suite run on it) the wrap branch dropped from `fitToContent`'s `need` →
+ *     "40: a wrapped frame you made grows to its widest row…", "40: its height is its two rows…" and "40: a wrapped
+ *     frame the one-row sum widened is put back…"; the repair disabled (`widened` false) → "40: a wrapped frame the
+ *     one-row sum widened is put back…"; `rowsHigh` ignoring `counterAxisSpacing` (`between = gap`) or returning only
+ *     `padV` → "40: a wrapped frame with a fixed height grows to its two rows…".
  *
  * THE SHIM IGNORES A RESIZE THE HOST IGNORES: a FIXED text inside an instance keeps its main component's width under
  * `resize` (live, 2026-09-28). Before the shim modeled it, every width assertion passed over one-word-a-line text.
@@ -416,6 +425,22 @@ const LINE_H = 20;
 const padY = (n: N): number => padOf(n, 'paddingTop') + padOf(n, 'paddingBottom');
 /** Out of an auto-layout frame's flow: an ABSOLUTE child takes no part in what the frame hugs. */
 const inFlow = (k: N): boolean => k.layoutPositioning !== 'ABSOLUTE';
+/**
+ * A ROW THAT WRAPS (`layoutWrap: 'WRAP'`, a HORIZONTAL frame of a fixed width), as the host lays it out: its in-flow
+ * children left to right, `itemSpacing` apart, and a child that would pass the right padding starts the next row at the
+ * left padding (the first in a row always stays, however wide). Each row is as tall as its tallest child; the rows sit
+ * `counterAxisSpacing` apart (the host's `itemSpacing` where it is unset). The shim's own rule, for #2856.
+ */
+const wrapRows = (n: N): { kids: N[]; at: Map<N, number>; h: number }[] => {
+  const inner = n.w - padX(n), gap = Number(n.itemSpacing ?? 0);
+  const rows: { kids: N[]; at: Map<N, number>; h: number; run: number }[] = [];
+  for (const k of n.children.filter((c) => c.visible !== false && inFlow(c))) {
+    const r = rows[rows.length - 1];
+    if (!r || r.run + gap + k.width > inner) rows.push({ kids: [k], at: new Map([[k, 0]]), h: k.height, run: k.width });
+    else { r.at.set(k, r.run + gap); r.kids.push(k); r.h = Math.max(r.h, k.height); r.run += gap + k.width; }
+  }
+  return rows;
+};
 /** THE LAYOUT EPOCH: bumped by every write to every node (each `N` is a proxy that counts its writes), so a grid's
  *  tracks are computed once per state of the file rather than once per read. A 124-row table's fingerprint reads
  *  1,750 cell widths, each a column of 125 cells: uncached, the suite ran ~8× slower. The proxy cannot see a write
@@ -459,6 +484,7 @@ class N {
     const p = this.parent;
     if (p && isAuto(p) && inFlow(this)) {
       if (p.layoutMode === 'VERTICAL') return padOf(p, 'paddingLeft');
+      if (p.layoutWrap === 'WRAP') return padOf(p, 'paddingLeft') + (wrapRows(p).find((r) => r.kids.includes(this))?.at.get(this) ?? 0);
       const before = p.children.slice(0, p.children.indexOf(this)).filter((k) => k.visible !== false && inFlow(k));
       return padOf(p, 'paddingLeft') + before.reduce((sum, k) => sum + k.width + Number(p.itemSpacing ?? 0), 0);
     }
@@ -755,6 +781,10 @@ const contentH = (n: N): number => {
   if (n.type === 'TEXT') return linesOf(n) * LINE_H;
   if (n.layoutMode === 'GRID') return hugGridH(n);
   if (!isAuto(n)) return n.layoutSizingVertical === 'FILL' ? Number(n.minHeight ?? 0) : n.h;
+  if (n.layoutMode === 'HORIZONTAL' && n.layoutWrap === 'WRAP') {
+    const rows = wrapRows(n);
+    return padY(n) + rows.reduce((a, r) => a + r.h, 0) + Number(n.counterAxisSpacing ?? n.itemSpacing ?? 0) * Math.max(0, rows.length - 1);
+  }
   const hs = n.children.filter((k) => k.visible !== false && inFlow(k)).map((k) => k.height);
   return padY(n) + (n.layoutMode === 'VERTICAL' ? hs.reduce((a, b) => a + b, 0) + Number(n.itemSpacing ?? 0) * Math.max(0, hs.length - 1) : Math.max(0, ...hs));
 };
@@ -4398,6 +4428,81 @@ const main = async (): Promise<void> => {
     await draw(h.f.api, contract);
     const hAgain = pageFrames(h.f.sem).map((n) => `${n.name} ${n.x},${n.y} ${n.width}×${n.height}`).join('; ');
     ok(hAgain === hSnap, `39: with a frame below the growth, a rerun moves and resizes nothing (${hAgain === hSnap ? 'same' : `${hSnap} → ${hAgain}`})`);
+  }
+
+  console.log('40. a group you made that wraps (#2856): its width is its widest row, never the one-row sum; a frame the one-row sum widened is put back');
+  {
+    // AS THE OWNER'S PAGE IS BUILT (#2856): their "Semantic colors" frame is a HORIZONTAL auto layout with wrap on, FIXED
+    // wide, hugging its height, padding 240, 48 between items and 96 between rows. Their own `_section-header` sits on
+    // the first row and the `Guides` grid wraps below it; the grid is wider than the frame's inside, so it clipped.
+    const PAD = 240, GAP = 48, ROWGAP = 96;
+    const wrapped = async (width: (headerW: number, gridW: number) => number, fixedHeight?: number) => {
+      const f = await fullFile();
+      await draw(f.api, contract);
+      const ours = groupFrame(f.sem, 'Semantic colors')!;
+      const grid = guidesOf(ours)!;
+      const owner = new N('FRAME'); owner.name = 'Semantic colors'; owner.layoutMode = 'HORIZONTAL'; owner.layoutWrap = 'WRAP';
+      owner.primaryAxisSizingMode = 'FIXED'; owner.counterAxisSizingMode = 'AUTO'; owner.clipsContent = true;
+      owner.paddingLeft = PAD; owner.paddingRight = PAD; owner.paddingTop = PAD; owner.paddingBottom = PAD; owner.itemSpacing = GAP; owner.counterAxisSpacing = ROWGAP;
+      f.sem.appendChild(owner); owner.x = 0; owner.y = 0;
+      const header = new N('FRAME'); header.name = '_section-header'; header.w = grid.width - 838; header.h = 300;
+      owner.appendChild(header); owner.appendChild(grid);
+      ours.remove();
+      owner.w = width(header.width, grid.width);
+      if (fixedHeight !== undefined) { owner.counterAxisSizingMode = 'FIXED'; owner.h = fixedHeight; }
+      return { f, owner, header, grid };
+    };
+    // EXPECTED FROM THE LAYOUT RULE, never from `fitToContent`: a wrapped row needs its widest child and its padding;
+    // the header and the grid cannot share a row (header + 48 + grid passes it), so the grid wraps to the left padding.
+    const rule = (m: { header: N; grid: N }): number => PAD + Math.max(m.header.width, m.grid.width) + PAD;
+    const oneRow = (m: { header: N; grid: N }): number => PAD + m.header.width + GAP + m.grid.width + PAD;
+    const shape = (m: { owner: N; header: N; grid: N }): string => `${m.owner.width}×${m.owner.height} header ${m.header.x},row ${m.header.x === PAD ? 1 : '?'} grid x ${m.grid.x}`;
+
+    // 1. The clipping frame, narrower than its grid, grows to its widest row and no further.
+    const a = await wrapped((hw) => PAD + hw + 100 + PAD);
+    const aw0 = a.owner.width;
+    ok(aw0 - 2 * PAD < a.grid.width && a.grid.x === PAD && a.header.x === PAD,
+      `40: the precondition: the grid (${a.grid.width}) is wider than the frame's inside (${aw0 - 2 * PAD}) and wraps below the header`);
+    await draw(a.f.api, contract);
+    const aWant = rule(a);
+    ok(a.owner.width === aWant && a.owner.width < oneRow(a) && a.grid.x === PAD && a.header.x === PAD && a.owner.layoutWrap === 'WRAP' && a.owner.primaryAxisSizingMode === 'FIXED',
+      `40: a wrapped frame you made grows to its widest row, the grid kept on its own row below the header (${a.owner.width} wide, want ${aWant}; the one-row sum would be ${oneRow(a)}; ${shape(a)})`);
+    const aH = PAD + a.header.height + ROWGAP + a.grid.height + PAD;
+    ok(a.owner.height === aH && pageOverlaps(a.f.sem).length === 0,
+      `40: its height is its two rows, ${ROWGAP} apart, and nothing on the page overlaps (${a.owner.height} tall, want ${aH}; ${pageOverlaps(a.f.sem).join('; ') || 'no overlap'})`);
+    const aSnap = pageFrames(a.f.sem).map((n) => `${n.name} ${n.x},${n.y} ${n.width}×${n.height}`).join('; ');
+    await draw(a.f.api, contract);
+    const aAgain = pageFrames(a.f.sem).map((n) => `${n.name} ${n.x},${n.y} ${n.width}×${n.height}`).join('; ');
+    ok(aAgain === aSnap, `40: a wrapped frame: a rerun moves and resizes nothing (${aAgain === aSnap ? 'same' : `${aSnap} → ${aAgain}`})`);
+
+    // 2. A frame #2827's run already widened to the one-row sum is put back to its widest row, the grid wrapping again.
+    const b = await wrapped((hw, gw) => PAD + hw + GAP + gw + PAD);
+    ok(b.grid.x === PAD + b.header.width + GAP, `40: the precondition: widened to the one-row sum, the grid sits beside the header (grid x ${b.grid.x})`);
+    await draw(b.f.api, contract);
+    ok(b.owner.width === rule(b) && b.grid.x === PAD && b.owner.primaryAxisSizingMode === 'FIXED',
+      `40: a wrapped frame the one-row sum widened is put back to its widest row, the grid below the header again (${b.owner.width} wide, want ${rule(b)}; ${shape(b)})`);
+    const bSnap = pageFrames(b.f.sem).map((n) => `${n.name} ${n.x},${n.y} ${n.width}×${n.height}`).join('; ');
+    await draw(b.f.api, contract);
+    const bAgain = pageFrames(b.f.sem).map((n) => `${n.name} ${n.x},${n.y} ${n.width}×${n.height}`).join('; ');
+    ok(bAgain === bSnap, `40: once put back, a rerun moves and resizes nothing (${bAgain === bSnap ? 'same' : `${bSnap} → ${bAgain}`})`);
+
+    // 3. A width of the owner's own, wider than its rows need but not the one-row sum, is kept: never made smaller.
+    const c = await wrapped((hw, gw) => PAD + hw + GAP + gw + PAD + 1000);
+    const cw0 = c.owner.width;
+    await draw(c.f.api, contract);
+    ok(c.owner.width === cw0, `40: a wrapped frame you made wider than its rows need is never made smaller (${cw0} → ${c.owner.width})`);
+
+    // 4. A FIXED height shorter than the two rows clips the second: it grows to the rows' height (the only case the
+    //    wrapped-height arithmetic decides; a hugging frame's height is the shim's own). Typed here, not read off the code.
+    const d = await wrapped((hw) => PAD + hw + 100 + PAD, 500);
+    const dH = PAD + d.header.height + ROWGAP + d.grid.height + PAD;
+    ok(d.owner.height === 500 && d.owner.height < dH, `40: the precondition: a fixed height (${d.owner.height}) shorter than the two rows (${dH})`);
+    await draw(d.f.api, contract);
+    ok(d.owner.height === dH && d.owner.counterAxisSizingMode === 'FIXED',
+      `40: a wrapped frame with a fixed height grows to its two rows, ${ROWGAP} apart, and stays fixed (${d.owner.height} tall, want ${dH})`);
+    const e = await wrapped((hw) => PAD + hw + 100 + PAD, dH + 700);
+    await draw(e.f.api, contract);
+    ok(e.owner.height === dH + 700, `40: a wrapped frame taller than its rows is never made shorter (${dH + 700} → ${e.owner.height})`);
   }
 
   if (failures) { console.error(`\n${failures} style-guide check(s) failed`); process.exit(1); }
