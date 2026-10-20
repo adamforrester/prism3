@@ -118,6 +118,10 @@ Generated from the component definitions and the emission by `packages/engine/em
 - **substrate: button-neutral** — flush-icon-button-neutral differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks inactive, pending
 - **substrate: text-field** — no state set is shared by most of the group — checkbox-row [rest, hover, pressed, focus-visible, disabled, read-only, error]; radio-row [rest, hover, pressed, focus-visible, disabled, read-only]; switch-row [rest, hover, pressed, pending, focus-visible, disabled, read-only, error]; text-field [rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled, read-only, empty]; textarea [rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled, read-only, empty]
 
+### variant axes
+
+- **variant family: Slider** — _slider-thumb's variant axes differ from the family's common set
+
 ## Peer groups
 
 | Grouping | Name | Members |
@@ -125,6 +129,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | variant family | Button | button, button-destructive, button-neutral |
 | variant family | FlushIconButton | flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral |
 | variant family | IconButton | icon-button, icon-button-destructive, icon-button-neutral |
+| variant family | Slider | _slider-thumb, slider |
 | role peers | *.Control | checkbox-control, radio-control, switch-control |
 | role peers | *.Row | checkbox-row, radio-row, switch-row |
 | role peers | *.Group | button-group, checkbox-group, radio-group |
@@ -177,6 +182,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | segmented-control | form | rest | — |
 | segmented-control-segment | form | rest, hover, pressed, focus-visible, disabled | rest, hover, pressed, focus-visible, disabled |
 | select | form | rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled, read-only, empty | rest, hover, filled, focus-visible, focus-visible-filled, disabled, read-only |
+| slider | form | rest, hover, pressed, focus-visible, disabled | rest, hover, pressed, focus-visible, disabled |
 | spinner | foundations | — | — |
 | switch-control | form | rest, hover, pressed, focus-visible, disabled, error | rest, hover, pressed, focus-visible, disabled, error |
 | switch-row | form | rest, hover, pressed, pending, focus-visible, disabled, read-only, error | — |
@@ -314,7 +320,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | icon-button | ghost | filled, outline, ghost |
 |  | icon-button-destructive | ghost | filled, outline, ghost |
 |  | icon-button-neutral | ghost | filled, outline, ghost |
-| aria-label | button | — | — |
+| aria-label | _slider-thumb | — | — |
+|  | button | — | — |
 |  | button-destructive | — | — |
 |  | button-neutral | — | — |
 |  | checkbox-control | — | — |
@@ -343,13 +350,15 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | password-field | — | — |
 |  | radio-group | — | — |
 |  | segmented-control | — | — |
+|  | slider | — | — |
 |  | tabs | — | — |
 |  | text-field | — | — |
 | description | checkbox-row | — | — |
 |  | dialog | — | — |
 |  | radio-row | — | — |
 |  | switch-row | — | — |
-| disabled | button | false | — |
+| disabled | _slider-thumb | false | — |
+|  | button | false | — |
 |  | button-destructive | false | — |
 |  | button-neutral | false | — |
 |  | checkbox-control | false | — |
@@ -369,6 +378,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | segmented-control | false | — |
 |  | segmented-control-segment | false | — |
 |  | select | false | — |
+|  | slider | false | — |
 |  | switch-control | false | — |
 |  | switch-row | false | — |
 |  | tab | false | — |
@@ -382,6 +392,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | button-neutral | false | — |
 | helpText | password-field | — | — |
 |  | select | — | — |
+|  | slider | — | — |
 |  | text-field | — | — |
 |  | textarea | — | — |
 | href | breadcrumb-item | — | — |
@@ -456,6 +467,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | segmented-control | — | — |
 |  | segmented-control-segment | — | — |
 |  | select | — | — |
+|  | slider | — | — |
 |  | spinner | Loading | — |
 |  | switch-row | — | — |
 |  | tab | — | — |
@@ -474,6 +486,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | button-neutral | — | — |
 | max | badge | 99 | — |
 |  | counter | — | — |
+|  | slider | 100 | — |
 | message | counter | — | — |
 |  | field-message | — | — |
 |  | toast | — | — |
@@ -484,6 +497,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | radio-group | — | — |
 |  | segmented-control | — | — |
 |  | select | — | — |
+|  | slider | — | — |
 |  | text-field | — | — |
 |  | textarea | — | — |
 | onChange | checkbox-group | — | — |
@@ -493,6 +507,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | radio-group | — | — |
 |  | segmented-control | — | — |
 |  | select | — | — |
+|  | slider | — | — |
 |  | tabs | — | — |
 |  | text-field | — | — |
 |  | textarea | — | — |
@@ -516,6 +531,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | password-field | false | — |
 |  | radio-row | false | — |
 |  | select | false | — |
+|  | slider | false | — |
 |  | switch-row | false | — |
 |  | tag | false | — |
 |  | text-field | false | — |
@@ -628,10 +644,12 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | text-field | text | text, email, url, tel, search, password |
 | validation | password-field | default | default, error, warning, success |
 |  | select | default | default, error, warning, success |
+|  | slider | default | default, error |
 |  | text-field | default | default, error, warning, success |
 |  | textarea | default | default, error, warning, success |
 | validationMessage | password-field | — | — |
 |  | select | — | — |
+|  | slider | — | — |
 |  | text-field | — | — |
 |  | textarea | — | — |
 | value | accordion | — | — |
@@ -646,6 +664,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | segmented-control | — | — |
 |  | segmented-control-segment | — | — |
 |  | select | — | — |
+|  | slider | — | — |
 |  | tab | — | — |
 |  | tabs | — | — |
 |  | text-field | — | — |

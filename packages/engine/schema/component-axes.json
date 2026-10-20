@@ -976,6 +976,33 @@
       "↳ swap leading icon": "INSTANCE_SWAP"
     }
   },
+  "slider": {
+    "axes": {
+      "state": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "pressed",
+        "rest"
+      ],
+      "type": [
+        "range",
+        "single"
+      ]
+    },
+    "members": 10,
+    "properties": {
+      "end labels": "BOOLEAN",
+      "helper": "BOOLEAN",
+      "inputs": "BOOLEAN",
+      "label": "BOOLEAN",
+      "max label": "TEXT",
+      "min label": "TEXT",
+      "range text": "TEXT",
+      "value": "BOOLEAN",
+      "value text": "TEXT"
+    }
+  },
   "spinner": {
     "axes": {
       "size": [

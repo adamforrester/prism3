@@ -3116,6 +3116,119 @@
       "sizeDefault": "medium"
     },
     {
+      "id": "slider",
+      "name": "Slider",
+      "category": "form",
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled"
+      ],
+      "projectedStates": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled"
+      ],
+      "axes": {
+        "type": [
+          "single",
+          "range"
+        ]
+      },
+      "props": [
+        {
+          "name": "label"
+        },
+        {
+          "name": "value"
+        },
+        {
+          "name": "defaultValue"
+        },
+        {
+          "name": "onChange"
+        },
+        {
+          "name": "onChangeEnd"
+        },
+        {
+          "name": "min",
+          "default": 0
+        },
+        {
+          "name": "max",
+          "default": 100
+        },
+        {
+          "name": "step",
+          "default": 1
+        },
+        {
+          "name": "largeStep"
+        },
+        {
+          "name": "minStepsBetweenThumbs",
+          "default": 0
+        },
+        {
+          "name": "formatOptions"
+        },
+        {
+          "name": "thumbLabels"
+        },
+        {
+          "name": "type",
+          "default": "single",
+          "values": [
+            "single",
+            "range"
+          ]
+        },
+        {
+          "name": "showValue",
+          "default": true
+        },
+        {
+          "name": "showEndLabels",
+          "default": false
+        },
+        {
+          "name": "showInputs",
+          "default": false
+        },
+        {
+          "name": "helpText"
+        },
+        {
+          "name": "validation",
+          "default": "default",
+          "values": [
+            "default",
+            "error"
+          ]
+        },
+        {
+          "name": "validationMessage"
+        },
+        {
+          "name": "disabled",
+          "default": false
+        },
+        {
+          "name": "readOnly",
+          "default": false
+        },
+        {
+          "name": "name"
+        }
+      ],
+      "sizes": []
+    },
+    {
       "id": "spinner",
       "name": "Spinner",
       "category": "foundations",
@@ -3939,6 +4052,15 @@
       "basis": "components named IconButton or IconButton.<variant>, where the suffix is not a role"
     },
     {
+      "kind": "variant family",
+      "name": "Slider",
+      "members": [
+        "_slider-thumb",
+        "slider"
+      ],
+      "basis": "components named Slider or Slider.<variant>, where the suffix is not a role"
+    },
+    {
       "kind": "role peers",
       "name": "*.Control",
       "members": [
@@ -4022,6 +4144,7 @@
   ],
   "stateVocabulary": {
     "disabled": [
+      "_slider-thumb",
       "button",
       "button-destructive",
       "button-neutral",
@@ -4041,6 +4164,7 @@
       "radio-row",
       "segmented-control-segment",
       "select",
+      "slider",
       "switch-control",
       "switch-row",
       "tab",
@@ -4067,6 +4191,7 @@
       "textarea"
     ],
     "focus-visible": [
+      "_slider-thumb",
       "accordion",
       "button",
       "button-destructive",
@@ -4087,6 +4212,7 @@
       "radio-row",
       "segmented-control-segment",
       "select",
+      "slider",
       "switch-control",
       "switch-row",
       "tab",
@@ -4101,6 +4227,7 @@
       "textarea"
     ],
     "hover": [
+      "_slider-thumb",
       "button",
       "button-destructive",
       "button-neutral",
@@ -4119,6 +4246,7 @@
       "radio-row",
       "segmented-control-segment",
       "select",
+      "slider",
       "switch-control",
       "switch-row",
       "tab",
@@ -4148,6 +4276,7 @@
       "textarea"
     ],
     "pressed": [
+      "_slider-thumb",
       "button",
       "button-destructive",
       "button-neutral",
@@ -4164,6 +4293,7 @@
       "radio-control",
       "radio-row",
       "segmented-control-segment",
+      "slider",
       "switch-control",
       "switch-row",
       "tab",
@@ -4180,6 +4310,7 @@
       "textarea"
     ],
     "rest": [
+      "_slider-thumb",
       "accordion",
       "button",
       "button-destructive",
@@ -4204,6 +4335,7 @@
       "segmented-control",
       "segmented-control-segment",
       "select",
+      "slider",
       "switch-control",
       "switch-row",
       "tab",
@@ -4899,6 +5031,9 @@
     ],
     "aria-label": [
       {
+        "id": "_slider-thumb"
+      },
+      {
         "id": "button"
       },
       {
@@ -5066,6 +5201,9 @@
         "id": "segmented-control"
       },
       {
+        "id": "slider"
+      },
+      {
         "id": "tabs"
       },
       {
@@ -5100,6 +5238,10 @@
       }
     ],
     "disabled": [
+      {
+        "id": "_slider-thumb",
+        "default": false
+      },
       {
         "id": "button",
         "default": false
@@ -5181,6 +5323,10 @@
         "default": false
       },
       {
+        "id": "slider",
+        "default": false
+      },
+      {
         "id": "switch-control",
         "default": false
       },
@@ -5256,6 +5402,11 @@
         ]
       }
     ],
+    "formatOptions": [
+      {
+        "id": "slider"
+      }
+    ],
     "fullWidth": [
       {
         "id": "button",
@@ -5299,6 +5450,9 @@
       },
       {
         "id": "select"
+      },
+      {
+        "id": "slider"
       },
       {
         "id": "text-field"
@@ -5680,6 +5834,9 @@
         "id": "select"
       },
       {
+        "id": "slider"
+      },
+      {
         "id": "spinner",
         "default": "Loading"
       },
@@ -5767,6 +5924,10 @@
       },
       {
         "id": "counter"
+      },
+      {
+        "id": "slider",
+        "default": 100
       }
     ],
     "maxItems": [
@@ -5800,11 +5961,21 @@
       {
         "id": "counter",
         "default": 0
+      },
+      {
+        "id": "slider",
+        "default": 0
       }
     ],
     "minRows": [
       {
         "id": "textarea"
+      }
+    ],
+    "minStepsBetweenThumbs": [
+      {
+        "id": "slider",
+        "default": 0
       }
     ],
     "name": [
@@ -5878,6 +6049,9 @@
         "id": "select"
       },
       {
+        "id": "slider"
+      },
+      {
         "id": "text-field"
       },
       {
@@ -5923,6 +6097,9 @@
         "id": "select"
       },
       {
+        "id": "slider"
+      },
+      {
         "id": "tabs"
       },
       {
@@ -5930,6 +6107,11 @@
       },
       {
         "id": "textarea"
+      }
+    ],
+    "onChangeEnd": [
+      {
+        "id": "slider"
       }
     ],
     "onClick": [
@@ -6089,6 +6271,10 @@
       },
       {
         "id": "select",
+        "default": false
+      },
+      {
+        "id": "slider",
         "default": false
       },
       {
@@ -6280,6 +6466,18 @@
         "default": false
       }
     ],
+    "showEndLabels": [
+      {
+        "id": "slider",
+        "default": false
+      }
+    ],
+    "showInputs": [
+      {
+        "id": "slider",
+        "default": false
+      }
+    ],
     "showLabel": [
       {
         "id": "counter",
@@ -6315,6 +6513,12 @@
       },
       {
         "id": "switch-row",
+        "default": true
+      }
+    ],
+    "showValue": [
+      {
+        "id": "slider",
         "default": true
       }
     ],
@@ -6717,6 +6921,10 @@
       {
         "id": "counter",
         "default": 1
+      },
+      {
+        "id": "slider",
+        "default": 1
       }
     ],
     "style": [
@@ -6844,6 +7052,11 @@
           "default",
           "inverse"
         ]
+      }
+    ],
+    "thumbLabels": [
+      {
+        "id": "slider"
       }
     ],
     "title": [
@@ -7080,6 +7293,14 @@
         ]
       },
       {
+        "id": "slider",
+        "default": "default",
+        "values": [
+          "default",
+          "error"
+        ]
+      },
+      {
         "id": "text-field",
         "default": "default",
         "values": [
@@ -7106,6 +7327,9 @@
       },
       {
         "id": "select"
+      },
+      {
+        "id": "slider"
       },
       {
         "id": "text-field"
@@ -7150,6 +7374,9 @@
       },
       {
         "id": "select"
+      },
+      {
+        "id": "slider"
       },
       {
         "id": "tab"
@@ -7202,6 +7429,14 @@
     ]
   },
   "findings": [
+    {
+      "kind": "variant axes",
+      "subject": "variant family: Slider",
+      "components": [
+        "_slider-thumb"
+      ],
+      "detail": "_slider-thumb's variant axes differ from the family's common set"
+    },
     {
       "kind": "state set",
       "subject": "role peers: *.Control",
@@ -7825,6 +8060,15 @@
         "spinner"
       ],
       "detail": "label defaults differ over the same values — Loading in spinner; Pagination in pagination"
+    },
+    {
+      "kind": "prop default",
+      "subject": "prop max",
+      "components": [
+        "badge",
+        "slider"
+      ],
+      "detail": "max defaults differ over the same values — 100 in slider; 99 in badge"
     },
     {
       "kind": "prop default",

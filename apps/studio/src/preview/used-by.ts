@@ -29,7 +29,8 @@ export const USED_BY = {
         "Switch.Control",
         "Badge",
         "Tag",
-        "List"
+        "List",
+        "Slider"
       ],
       "radius.sm": [
         "TextField",
@@ -67,7 +68,8 @@ export const USED_BY = {
         "Switch.Control",
         "Badge",
         "Tag",
-        "List"
+        "List",
+        "Slider"
       ],
       "radius.sm": [
         "TextField",
@@ -107,7 +109,8 @@ export const USED_BY = {
         "Switch.Control",
         "Badge",
         "Tag",
-        "List"
+        "List",
+        "Slider"
       ],
       "radius.sm": [
         "Badge",
@@ -146,7 +149,8 @@ export const USED_BY = {
         "Switch.Control",
         "Badge",
         "Tag",
-        "List"
+        "List",
+        "Slider"
       ],
       "radius.sm": [
         "Badge",

@@ -2598,6 +2598,7 @@
           "radio-group",
           "segmented-control",
           "counter",
+          "slider",
           "field-message"
         ],
         "triggerKeywords": [

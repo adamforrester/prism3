@@ -282,6 +282,22 @@
         }
       }
     },
+    "border-width.heavy": {
+      "type": "dimension",
+      "components": {
+        "slider": {
+          "keys": [
+            "bar-height"
+          ],
+          "parts": {
+            "bar": {
+              "members": 10,
+              "where": {}
+            }
+          }
+        }
+      }
+    },
     "border-width.thick": {
       "type": "dimension",
       "components": {
@@ -356,6 +372,29 @@
             }
           }
         },
+        "slider": {
+          "keys": [
+            "rail-height"
+          ],
+          "parts": {
+            "spaceEnd": {
+              "members": 10,
+              "where": {}
+            },
+            "spaceStart": {
+              "members": 5,
+              "where": {
+                "type": [
+                  "range"
+                ]
+              }
+            },
+            "track": {
+              "members": 10,
+              "where": {}
+            }
+          }
+        },
         "switch-control": {
           "keys": [
             "border-width"
@@ -401,6 +440,18 @@
     "color.background.primary": {
       "type": "color",
       "components": {
+        "_slider-thumb": {
+          "keys": [
+            "disabled.fill",
+            "fill"
+          ],
+          "parts": {
+            "thumb": {
+              "members": 5,
+              "where": {}
+            }
+          }
+        },
         "segmented-control-segment": {
           "keys": [
             "disabled.fill",
@@ -667,6 +718,12 @@
     "color.border.focus": {
       "type": "color",
       "components": {
+        "_slider-thumb": {
+          "keys": [
+            "focus-ring"
+          ],
+          "parts": {}
+        },
         "button": {
           "keys": [
             "focus-ring"
@@ -1757,6 +1814,21 @@
     "color.disabled.fill": {
       "type": "color",
       "components": {
+        "_slider-thumb": {
+          "keys": [
+            "disabled.indicator"
+          ],
+          "parts": {
+            "disc": {
+              "members": 1,
+              "where": {
+                "state": [
+                  "disabled"
+                ]
+              }
+            }
+          }
+        },
         "button": {
           "keys": [
             "disabled.fill"
@@ -1951,6 +2023,30 @@
           "parts": {
             "control": {
               "members": 12,
+              "where": {
+                "state": [
+                  "disabled"
+                ]
+              }
+            }
+          }
+        },
+        "slider": {
+          "keys": [
+            "disabled.fill",
+            "disabled.indicator"
+          ],
+          "parts": {
+            "bar": {
+              "members": 2,
+              "where": {
+                "state": [
+                  "disabled"
+                ]
+              }
+            },
+            "track": {
+              "members": 2,
               "where": {
                 "state": [
                   "disabled"
@@ -2898,6 +2994,52 @@
             }
           }
         },
+        "slider": {
+          "keys": [
+            "disabled.body",
+            "disabled.label"
+          ],
+          "parts": {
+            "maxLabel": {
+              "members": 2,
+              "where": {
+                "state": [
+                  "disabled"
+                ]
+              }
+            },
+            "minLabel": {
+              "members": 2,
+              "where": {
+                "state": [
+                  "disabled"
+                ]
+              }
+            },
+            "valueRange": {
+              "members": 1,
+              "where": {
+                "state": [
+                  "disabled"
+                ],
+                "type": [
+                  "range"
+                ]
+              }
+            },
+            "valueSingle": {
+              "members": 1,
+              "where": {
+                "state": [
+                  "disabled"
+                ],
+                "type": [
+                  "single"
+                ]
+              }
+            }
+          }
+        },
         "switch-row": {
           "keys": [
             "disabled.label"
@@ -3171,6 +3313,24 @@
                 ],
                 "status": [
                   "default"
+                ]
+              }
+            }
+          }
+        },
+        "slider": {
+          "keys": [
+            "fill"
+          ],
+          "parts": {
+            "track": {
+              "members": 8,
+              "where": {
+                "state": [
+                  "focus-visible",
+                  "hover",
+                  "pressed",
+                  "rest"
                 ]
               }
             }
@@ -7575,6 +7735,21 @@
     "color.interactive.primary.fill.hover": {
       "type": "color",
       "components": {
+        "_slider-thumb": {
+          "keys": [
+            "indicator.hover"
+          ],
+          "parts": {
+            "disc": {
+              "members": 1,
+              "where": {
+                "state": [
+                  "hover"
+                ]
+              }
+            }
+          }
+        },
         "button": {
           "keys": [
             "filled.fill.hover"
@@ -7663,6 +7838,21 @@
     "color.interactive.primary.fill.pressed": {
       "type": "color",
       "components": {
+        "_slider-thumb": {
+          "keys": [
+            "indicator.pressed"
+          ],
+          "parts": {
+            "disc": {
+              "members": 1,
+              "where": {
+                "state": [
+                  "pressed"
+                ]
+              }
+            }
+          }
+        },
         "button": {
           "keys": [
             "filled.fill.pressed"
@@ -7751,6 +7941,22 @@
     "color.interactive.primary.fill.rest": {
       "type": "color",
       "components": {
+        "_slider-thumb": {
+          "keys": [
+            "indicator"
+          ],
+          "parts": {
+            "disc": {
+              "members": 2,
+              "where": {
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ]
+              }
+            }
+          }
+        },
         "button": {
           "keys": [
             "filled.fill"
@@ -7795,6 +8001,24 @@
                 ],
                 "surface": [
                   "default"
+                ]
+              }
+            }
+          }
+        },
+        "slider": {
+          "keys": [
+            "indicator"
+          ],
+          "parts": {
+            "bar": {
+              "members": 8,
+              "where": {
+                "state": [
+                  "focus-visible",
+                  "hover",
+                  "pressed",
+                  "rest"
                 ]
               }
             }
@@ -13225,6 +13449,41 @@
             }
           }
         },
+        "slider": {
+          "keys": [
+            "label"
+          ],
+          "parts": {
+            "valueRange": {
+              "members": 4,
+              "where": {
+                "state": [
+                  "focus-visible",
+                  "hover",
+                  "pressed",
+                  "rest"
+                ],
+                "type": [
+                  "range"
+                ]
+              }
+            },
+            "valueSingle": {
+              "members": 4,
+              "where": {
+                "state": [
+                  "focus-visible",
+                  "hover",
+                  "pressed",
+                  "rest"
+                ],
+                "type": [
+                  "single"
+                ]
+              }
+            }
+          }
+        },
         "switch-row": {
           "keys": [
             "label"
@@ -13392,6 +13651,35 @@
                 "state": [
                   "focus-visible",
                   "hover",
+                  "rest"
+                ]
+              }
+            }
+          }
+        },
+        "slider": {
+          "keys": [
+            "body"
+          ],
+          "parts": {
+            "maxLabel": {
+              "members": 8,
+              "where": {
+                "state": [
+                  "focus-visible",
+                  "hover",
+                  "pressed",
+                  "rest"
+                ]
+              }
+            },
+            "minLabel": {
+              "members": 8,
+              "where": {
+                "state": [
+                  "focus-visible",
+                  "hover",
+                  "pressed",
                   "rest"
                 ]
               }
@@ -14354,6 +14642,17 @@
     "control.size.md.thumb": {
       "type": "dimension",
       "components": {
+        "_slider-thumb": {
+          "keys": [
+            "size"
+          ],
+          "parts": {
+            "thumb": {
+              "members": 5,
+              "where": {}
+            }
+          }
+        },
         "switch-control": {
           "keys": [
             "size.medium.dot"
@@ -14875,6 +15174,21 @@
     "focus.ring.offset": {
       "type": "dimension",
       "components": {
+        "_slider-thumb": {
+          "keys": [
+            "ring-offset"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 1,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            }
+          }
+        },
         "button": {
           "keys": [
             "ring-offset"
@@ -15283,6 +15597,21 @@
     "focus.ring.width": {
       "type": "dimension",
       "components": {
+        "_slider-thumb": {
+          "keys": [
+            "ring-width"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 1,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            }
+          }
+        },
         "button": {
           "keys": [
             "ring-width"
@@ -17730,6 +18059,21 @@
     "radius.round": {
       "type": "dimension",
       "components": {
+        "_slider-thumb": {
+          "keys": [
+            "radius"
+          ],
+          "parts": {
+            "disc": {
+              "members": 5,
+              "where": {}
+            },
+            "thumb": {
+              "members": 5,
+              "where": {}
+            }
+          }
+        },
         "badge": {
           "keys": [
             "count.radius",
@@ -17871,6 +18215,21 @@
                   "checked"
                 ]
               }
+            }
+          }
+        },
+        "slider": {
+          "keys": [
+            "radius"
+          ],
+          "parts": {
+            "bar": {
+              "members": 10,
+              "where": {}
+            },
+            "track": {
+              "members": 10,
+              "where": {}
             }
           }
         },
@@ -18686,6 +19045,17 @@
             }
           }
         },
+        "slider": {
+          "keys": [
+            "control-height"
+          ],
+          "parts": {
+            "control": {
+              "members": 10,
+              "where": {}
+            }
+          }
+        },
         "text-field": {
           "keys": [
             "size.medium.height",
@@ -19308,6 +19678,17 @@
     "space.025": {
       "type": "dimension",
       "components": {
+        "_slider-thumb": {
+          "keys": [
+            "ring-inset"
+          ],
+          "parts": {
+            "thumb": {
+              "members": 5,
+              "where": {}
+            }
+          }
+        },
         "accordion": {
           "keys": [
             "size.large.title-offset",
@@ -20112,6 +20493,17 @@
             }
           }
         },
+        "slider": {
+          "keys": [
+            "gap"
+          ],
+          "parts": {
+            "container": {
+              "members": 10,
+              "where": {}
+            }
+          }
+        },
         "switch-row": {
           "keys": [
             "size.medium.gap",
@@ -20435,6 +20827,17 @@
                   "small"
                 ]
               }
+            }
+          }
+        },
+        "slider": {
+          "keys": [
+            "inputs-gap"
+          ],
+          "parts": {
+            "inputs": {
+              "members": 10,
+              "where": {}
             }
           }
         },
@@ -22144,6 +22547,29 @@
             }
           }
         },
+        "slider": {
+          "keys": [
+            "value-type"
+          ],
+          "parts": {
+            "valueRange": {
+              "members": 5,
+              "where": {
+                "type": [
+                  "range"
+                ]
+              }
+            },
+            "valueSingle": {
+              "members": 5,
+              "where": {
+                "type": [
+                  "single"
+                ]
+              }
+            }
+          }
+        },
         "switch-row": {
           "keys": [
             "size.small.text"
@@ -22374,6 +22800,21 @@
                   "regular"
                 ]
               }
+            }
+          }
+        },
+        "slider": {
+          "keys": [
+            "end-type"
+          ],
+          "parts": {
+            "maxLabel": {
+              "members": 10,
+              "where": {}
+            },
+            "minLabel": {
+              "members": 10,
+              "where": {}
             }
           }
         }
@@ -25683,6 +26124,40 @@
       "declaredNotDrawn": [],
       "drawnNotDeclared": []
     },
+    "slider": {
+      "members": 10,
+      "axes": {
+        "state": [
+          "disabled",
+          "focus-visible",
+          "hover",
+          "pressed",
+          "rest"
+        ],
+        "type": [
+          "range",
+          "single"
+        ]
+      },
+      "tokens": [
+        "border-width.heavy",
+        "border-width.thick",
+        "color.disabled.fill",
+        "color.disabled.text",
+        "color.field.border.rest",
+        "color.interactive.primary.fill.rest",
+        "color.text.primary",
+        "color.text.secondary",
+        "radius.round",
+        "size.md.min-height",
+        "space.100",
+        "space.150",
+        "type.body.sm.default",
+        "type.body.xs.default"
+      ],
+      "declaredNotDrawn": [],
+      "drawnNotDeclared": []
+    },
     "spinner": {
       "members": 4,
       "axes": {
@@ -26124,7 +26599,6 @@
   },
   "unused": {
     "semantic": [
-      "border-width.heavy",
       "border-width.none",
       "breakpoint.2xl",
       "breakpoint.lg",

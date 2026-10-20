@@ -298,6 +298,7 @@ const EXPECT_ANATOMY = [
   'segmented-control-segment', 'segmented-control', 'link', 'button-group', 'dialog', 'password-field', 'counter', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', 'toast',
   // #2665: the page cell and the pagination row.
   'pagination-item', 'pagination',
+  '_slider-thumb', 'slider',
 ];
 const EXPECT_PAINTERS = [
   'focus-ring', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive',
@@ -305,6 +306,8 @@ const EXPECT_PAINTERS = [
   'image-placeholder', 'badge', 'tag', 'tab', 'tabs', 'divider', 'list-item', 'segmented-control-segment', 'segmented-control', 'dialog',
   // #2665: the page cell's current-page fill and hover wash.
   'pagination-item',
+  // #2669: the thumb's disc and ring; the Slider's rail and selected bar.
+  '_slider-thumb', 'slider',
   // #2457 Q287 A: the round shape's edge and wash. The flush shape's box resolves none of them.
   // Q295.2 B: three families, as IconButton's three.
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral',
