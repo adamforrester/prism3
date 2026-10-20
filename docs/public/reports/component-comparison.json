@@ -716,9 +716,7 @@
       "id": "checkbox-group",
       "name": "Checkbox.Group",
       "category": "form",
-      "states": [
-        "rest"
-      ],
+      "states": [],
       "projectedStates": [],
       "axes": {
         "size": [
@@ -2393,9 +2391,7 @@
       "id": "radio-group",
       "name": "Radio.Group",
       "category": "form",
-      "states": [
-        "rest"
-      ],
+      "states": [],
       "projectedStates": [],
       "axes": {
         "size": [
@@ -2507,9 +2503,7 @@
       "id": "segmented-control",
       "name": "SegmentedControl",
       "category": "form",
-      "states": [
-        "rest"
-      ],
+      "states": [],
       "projectedStates": [],
       "axes": {
         "size": [
@@ -2992,9 +2986,7 @@
       "id": "tabs",
       "name": "Tabs",
       "category": "navigation",
-      "states": [
-        "rest"
-      ],
+      "states": [],
       "projectedStates": [],
       "axes": {
         "size": [
@@ -3810,7 +3802,6 @@
       "button-destructive",
       "button-neutral",
       "checkbox-control",
-      "checkbox-group",
       "checkbox-row",
       "counter",
       "field-label",
@@ -3823,15 +3814,12 @@
       "link",
       "password-field",
       "radio-control",
-      "radio-group",
       "radio-row",
-      "segmented-control",
       "segmented-control-segment",
       "select",
       "switch-control",
       "switch-row",
       "tab",
-      "tabs",
       "tag",
       "text-field",
       "textarea"
@@ -6546,14 +6534,6 @@
         "switch-row"
       ],
       "detail": "no state set is shared by most of the group — checkbox-row [rest, hover, pressed, focus-visible, disabled, read-only, error]; radio-row [rest, hover, pressed, focus-visible, disabled, read-only]; switch-row [rest, hover, pressed, pending, focus-visible, disabled, read-only, error]"
-    },
-    {
-      "kind": "state set",
-      "subject": "role peers: *.Group",
-      "components": [
-        "button-group"
-      ],
-      "detail": "button-group differs from the group's common set [rest] — lacks rest"
     },
     {
       "kind": "state set",

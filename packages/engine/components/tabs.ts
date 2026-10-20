@@ -40,7 +40,7 @@ export const tabs: ComponentDef = {
     { name: 'alignment', type: "enum: 'start' | 'center'", values: ['start', 'center'], default: 'start', required: false, description: 'start: the tabs sit at the start of the bar. center: the tabs sit centered in the bar, which spans its container; the baseline spans the full width either way.' },
   ],
 
-  states: ['rest'],
+  states: [],
   // `alignment` (#2518, owner decision Q222 A): `start` is the approved tab list (#2416); `center` sits the same tabs
   // centered in a bar that spans its placement, the baseline full width. `start` leads: the code default and
   // Figma's default member.
