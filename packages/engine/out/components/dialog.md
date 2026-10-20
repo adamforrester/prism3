@@ -24,7 +24,7 @@ Shown on the default member: placement `center`, size `medium`, footer `inline`.
 3. **Title box** — The title and the description under it. It fills the header beside the close button.
 4. **Title** — The title: the dialog's accessible name. It wraps onto more lines rather than truncating.
 5. **Description** (optional) — The optional description under the title, in secondary text. Hidden by default.
-6. **Close** (optional) — The close button: a FlushIconButton.Neutral, round, medium, labeled "Close", always showing the close icon. Shown by default; an alertdialog hides it.
+6. **Close** (optional) — The close button: a FlushIconButton.Neutral, flush, medium, labeled "Close", always showing the close icon. Shown by default; an alertdialog hides it.
 7. **Header divider** (optional) — The rule under the header, edge to edge. Off by default; in code it shows only while the body scrolls.
 8. **Body** — The body: a slot that holds whatever the dialog needs, and the only part that scrolls. Its inline inset matches the header.
 9. **Placeholder** — Placeholder content. Replace it with the text or components the dialog holds.
@@ -78,7 +78,7 @@ Use a Dialog when the user must make a decision or finish a short task before go
 - 2.4.7 Focus Visible (every control inside shows the shared focus ring)
 - 2.4.11 Focus Not Obscured (only the body scrolls, so the footer never covers a focused field)
 - 1.4.10 Reflow (a bottom sheet or full-screen dialog keeps a 320px screen usable)
-- 2.5.8 Target Size (Minimum) (the close button is a medium round icon button, 44px across at the default density)
+- 2.5.8 Target Size (Minimum) (the close button is a medium flush icon button, a 20px glyph with a 44×44px hit area in code)
 - 4.1.2 Name, Role, Value (role, aria-modal and the accessible name are set)
 
 ### Motion

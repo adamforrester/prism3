@@ -20,7 +20,7 @@ A small whole-number quantity shown between a minus and a plus button, such as t
 Shown on the default member: appearance `outline`, size `medium`.
 
 1. **Container** — The stack: an optional label above the row and an optional message below it. It hugs the row.
-2. **Label** (optional) — What is counted, such as "Quantity". Hidden by default: the label is always the value's accessible name, and shown only where nothing around the counter says what it counts.
+2. **Label** (optional) — What is counted, such as "Quantity". Its label text, required marker, emphasis and weight surface on the Counter. Hidden by default: the label is always the value's accessible name, and shown only where nothing around the counter says what it counts.
 3. **Control** — The row: the minus button, the value and the plus button. Outline draws the field's fill and edge with the glyphs 12px inside it (16px at large); ghost draws nothing, and the round buttons are its ends.
 4. **Decrement** — The minus button, at the leading edge. Flush glyph on outline, a light circle on ghost. Its state is the designer's to set: unavailable at the minimum.
 5. **Entry** — The value, centered between the buttons and at least 32px wide, so the buttons hold still as the count reaches two digits.
