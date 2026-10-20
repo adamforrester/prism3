@@ -14378,19 +14378,40 @@ arm: {
       walk('ai.primaryPurpose', d.ai.primaryPurpose); walk('ai.whenToUse', d.ai.whenToUse); walk('ai.avoidWhen', d.ai.avoidWhen);
       return out;
     };
+    // HELD, NOT FIXED (owner Q362, on #2714). Button's implementation `do` items (the five brand settings'
+    // builds, the text-button underline, the two hover lines, the flush hit-area pair) keep the wording they
+    // have on main, code spans and all, until the owner decides where those lines belong. A hand-written
+    // exemption keyed by def and path, not a loosened pattern: every other string in these three defs is still
+    // scanned. It is live: each exempt path must still carry a hit, so the exemption cannot outlive the hold.
+    const HELD_Q362: Record<string, number[]> = Object.fromEntries(
+      ['button', 'button-destructive', 'button-neutral'].map((id) => [id, [3, 4, 5, 6, 7, 8, 9, 10, 11, 12]]));
+    const heldHits = new Set<string>(); const heldKeys: string[] = [];
+    for (const [id, idx] of Object.entries(HELD_Q362)) for (const i of idx) heldKeys.push(`${id} docs.do[${i}]`);
     const bad: string[] = []; const used = new Set<string>(); let read = 0;
     for (const d of componentDefs) {
       const strs = consumerStrings(d);
       for (const [path, text] of strs) {
         read++;
-        if (/`/.test(text)) bad.push(`${d.id} ${path}: a code span`);
-        for (const w of text.match(/\b[A-Z][A-Z0-9]*[A-Z]s?\b/g) ?? []) { if (ACRONYMS.has(w)) used.add(w); else bad.push(`${d.id} ${path}: all-caps "${w}"`); }
-        if (/brief §|§\s?\d/.test(text)) bad.push(`${d.id} ${path}: a brief section reference`);
-        if (/\bdefs?\b/i.test(text)) bad.push(`${d.id} ${path}: "def" as a reader-facing word`);
-        if (/#\d{3,}/.test(text)) bad.push(`${d.id} ${path}: an issue number`);
+        const hits: string[] = [];
+        if (/`/.test(text)) hits.push(`${d.id} ${path}: a code span`);
+        for (const w of text.match(/\b[A-Z][A-Z0-9]*[A-Z]s?\b/g) ?? []) { if (ACRONYMS.has(w)) used.add(w); else hits.push(`${d.id} ${path}: all-caps "${w}"`); }
+        if (/brief §|§\s?\d/.test(text)) hits.push(`${d.id} ${path}: a brief section reference`);
+        if (/\bdefs?\b/i.test(text)) hits.push(`${d.id} ${path}: "def" as a reader-facing word`);
+        if (/#\d{3,}/.test(text)) hits.push(`${d.id} ${path}: an issue number`);
+        if (heldKeys.includes(`${d.id} ${path}`)) { if (hits.length) heldHits.add(`${d.id} ${path}`); continue; }
+        bad.push(...hits);
       }
       if (!['summary', 'description', 'docs.usage', 'ai.whenToUse'].every((f) => strs.some(([p]) => p === f))) bad.push(`${d.id}: the walk missed a required field`);
+      // One arm per field family, wherever the def has the field, so the walk reaching all seven does not
+      // ride on which acronyms happen to live in which field.
+      const families: [string, boolean][] = [
+        ['props.', (d.props ?? []).some((p) => p.description)], ['accessibility.', !!d.accessibility], ['content.', !!d.content],
+        ['docs.', !!d.docs], ['ai.primaryPurpose', !!d.ai.primaryPurpose], ['ai.avoidWhen', !!d.ai.avoidWhen],
+      ];
+      for (const [prefix, has] of families) if (has && !strs.some(([p]) => p.startsWith(prefix))) bad.push(`${d.id}: the walk missed ${prefix.replace(/\.$/, '')}`);
     }
+    const heldDead = heldKeys.filter((k) => !heldHits.has(k));
+    ok(heldDead.length === 0, `#2714 component register: every held Button do item (owner Q362) still carries a hit, so the exemption has not outlived the hold${heldDead.length ? ` — dead: ${heldDead.join(', ')}` : ''}`);
     ok(bad.length === 0, `#2714 component register: no code spans, all-caps emphasis, brief references, "def" or issue numbers in a component's consumer fields${bad.length ? ` — ${bad.length}: ${bad.slice(0, 12).join(' | ')}` : ''}`);
     const stale = [...ACRONYMS].filter((a) => !used.has(a));
     ok(stale.length === 0, `#2714 component register: every allowed acronym is still used by a shipped field (stale: ${stale.join(', ') || 'none'})`);

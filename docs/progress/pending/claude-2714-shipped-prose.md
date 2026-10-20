@@ -14,12 +14,11 @@ automated step gets three things wrong, each fixed by hand: a sentence that open
 and specific" came out lowercase), an acronym missing from its list (AT, JSX), and brace patterns left bare by a removed
 code span (`type.body.{sm,md,lg}` is now "from type.body.sm, md and lg").
 
-**What did not move, and why.** The issue asked for Button's implementation `do` items to move into `codeOnly`. Two of
-them cannot: `test.ts` (#2408) and `lint-hit-target` require the hit-area expansion to stay in the shipped `docs.do`,
-because `codeOnly` never ships and the code docs would lose the only 44×44 target a flush button has (owner Q143,
-Q283.3 A). The brand-setting lines (#1667, #1752, #2324) are written for the agent that builds Button in code, by a
-recorded decision in their comment. Those lines keep their content in plain prose; whether they belong in a shipped
-field of their own is an Owner question on #2714.
+**What did not move, and why.** Button's implementation `do` items (ten per Button def: the five brand settings' builds,
+the text-button underline, the two hover lines and the flush hit-area pair) are held by owner decision Q362 on #2714.
+They keep the exact wording they have on main, code spans included. The register gate exempts them by def and path
+(`HELD_Q362` in `test.ts`), and the exemption is live: each exempt path must still carry a hit, so it cannot outlive the
+hold. Where those lines belong is the owner's call.
 
 **The gate** (`test.ts`, after `component-prose`). `#2714 component register` walks the seven consumer fields of every
 def and refuses a backtick, an all-caps word outside a hand-written acronym list, a section reference, "def" and an
