@@ -40,7 +40,10 @@ decision for the owner (section 6), and most become component work.
 - **Detaching is only for the legacy library's instances you are replacing.** Before calling
   `detachInstance()`, confirm the main component is remote: `(await n.getMainComponentAsync()).remote`.
   When Prism3 is a published library its instances are remote too, so `remote` alone is not enough:
-  confirm the main component's `key` is not one of Prism3's (section 8).
+  confirm the main component's `key` is not one of Prism3's (section 8). Run the guard only on a
+  top-level legacy instance, never on a node inside a Prism3 instance: for a nested instance,
+  `detachInstance()` also detaches every ancestor that is an instance, so it would detach the Prism3
+  component around it.
 - **A layout override that keeps the instance attached is fine, and gets recorded.** For example, setting a
   nested part to FILL so a field stretches to its column. Record it as an override and as a gap: if every
   placement needs it, the component should do it.
@@ -60,7 +63,9 @@ decision for the owner (section 6), and most become component work.
 2. **Fonts.** Call `figma.listAvailableFontsAsync()` in the runtime that will write, and check every family
    and style in scope against it. Figma refuses to edit a text node's characters unless all its fonts load,
    and refuses to place a component whose text uses an unloaded font. A cloud runtime may lack fonts a
-   designer's desktop has, so check before planning anything else.
+   designer's desktop has, so check before planning anything else. A runtime that lacks a brand font
+   fails `loadFontAsync` for it, so do the text writes in a runtime that has the fonts (the
+   designer's desktop), not one that doesn't.
 3. **Dependents.** For every node you will write to, ask what renders it elsewhere. A component node (a
    main component) can have instances on a page you were told not to touch: `getInstancesAsync()` on each target. If a
    protected page is instances of your targets, editing the targets edits the protected page. Rebuild
@@ -114,8 +119,9 @@ decision for the owner (section 6), and most become component work.
 | A bound paint keeps its placeholder color | `setBoundVariableForPaint` returns a paint with the placeholder's color, and an export can render it: black text over a correct binding | Build the paint from `resolveForConsumer(node).value` |
 | Mixed-run text keeps stale node-level bindings | After every run is restyled and refilled, the node's own `boundVariables` still lists the legacy fill and font aliases | Set the whole node's fills and text style first, then the runs |
 | A legacy grid style counts as a rogue binding | `gridStyleId` points at the legacy library | Apply the Prism3 grid style for the frame's breakpoint (named by the breakpoint: `sm`, `md`, …). Only if the design's grid differs from it, unlink with `setGridStyleIdAsync('')`, write back identical `layoutGrids`, and log the difference as a gap |
-| Already-bound paints slip past a value table | A pass that classifies raw paints by color skips paints that already carry a binding, including ones bound to the **legacy** library | Treat "bound to a remote variable" exactly like raw |
+| Already-bound paints slip past a value table | A pass that classifies raw paints by color skips paints that already carry a binding, including ones bound to the **legacy** library | Treat "bound to a remote variable" exactly like raw (on the library path, "remote and not one of Prism3's keys", section 8) |
 | An uninstalled font hangs the load | `loadFontAsync` on an unlisted font can take most of the call budget to fail | Never load an unlisted font. A text node that uses one can still take a Prism3 text style: load only the style's font and call `setTextStyleIdAsync`. Only character edits need the missing font |
+| `node.textStyleId = …` throws | With `"documentAccess": "dynamic-page"` in the manifest, `textStyleId` is read-only; the typings say to use `setTextStyleIdAsync` | `await node.setTextStyleIdAsync(id)` |
 | A FILL instance of a hugging component doesn't stretch its parts | Placed to fill a column, the field's label stretches but its input box keeps its minimum width | Override the nested part to FILL on the instance (legal, still attached), and file it |
 | `createAutoLayout` isn't part of the plugin API | It isn't in the plugin typings, so a script written against it fails at its first call | `createFrame()`, then set the layout mode and auto sizing |
 | Mixed values are Symbols | A mixed `cornerRadius` or `strokeWeight` throws inside a template string | Guard for a Symbol before formatting |
@@ -133,7 +139,7 @@ decision for the owner (section 6), and most become component work.
   fields). Only the binding audit finds these; screenshots never will.
 - **Legacy names can look like Prism3's.** A legacy collection may reuse a similar root prefix. Tell them
   apart by `remote: true`, never by name. When Prism3 is itself a library, both are remote: tell them
-  apart by key (section 8).
+  apart by key against the whole library (section 8).
 - **Hand-drawn icons.** A "+" made of two thin rectangles, or a close glyph made of two vectors, is an icon.
   Look for small groups of rects or lines as well as vectors and instances.
 - **Contrast is measured on the real ground.** Status text on a tinted card or photo background is measured
@@ -168,8 +174,10 @@ A rogue binding is anything that still resolves to the legacy library. Walk ever
 - `boundVariables.color` on each fill and stroke paint;
 - `fillStyleId`, `strokeStyleId`, `effectStyleId`, `textStyleId` and `gridStyleId`;
 - per text run: `fillStyleId`, `textStyleId` and its `boundVariables`;
-- instances whose main component is remote (nested ones surface only after their parents are detached);
-- **inside Prism3 instances too**, for remote styles and variables left by a swap (section 4).
+- instances whose main component is remote (nested ones surface only after their parents are detached).
+  On the library path, "remote" means remote and not one of Prism3's keys (section 8);
+- **inside Prism3 instances too**, for remote styles and variables left by a swap (section 4). On the
+  library path, a remote style or variable counts only if its key is not Prism3's (section 8).
 
 Report "left on purpose" separately, with a reason for each: photo fills, third-party marks, effects with
 no Prism3 equivalent (map effects to Prism3's `shadow/*` and `shadow-dark/*` effect styles and its
@@ -190,23 +198,33 @@ skill says "remote" to mean legacy, read "remote, and not one of Prism3's keys".
    Prism3 collection. Those are descriptors (`name`, `key`, `resolvedType`), not variables, so keep
    `resolvedType` in the row to catch a color row mapped to a number. The plugin API has no listing of
    a library's components or styles from the consuming file: read each component set's, component's and
-   style's `key` in the library file itself (read-only), or take them from the owner.
+   style's `key` in the library file itself (read-only), take them from the owner, or find them with
+   a design-system search the bridge offers. Treat a key found by search as unconfirmed until its
+   import succeeds (step 3). Judge what a set offers (ratios, sizes, states) from its variant
+   properties (`componentPropertyDefinitions`, or its `children`), never from its description, which
+   can be stale, before calling anything a gap (section 6).
 3. **Import everything in the table before the first screen, in its own step.**
    `figma.variables.importVariableByKeyAsync(key)`, `figma.importComponentSetByKeyAsync(key)` (a set;
    place from its `defaultVariant` or the variant the row names), `figma.importComponentByKeyAsync(key)`
    (a standalone component), `figma.importStyleByKeyAsync(key)`. Each rejects when nothing is published
-   under that key or the request fails: catch per key and report it as a failed table row, not a failed
+   (or, for a style, no style exists) under that key, or the request fails: catch per key and report it as a failed table row, not a failed
    screen. Imported mains are remote and read-only; override on the instance, never on the main.
 4. **Import before you bind.** `setBoundVariable` and `setBoundVariableForPaint` take a `Variable`, and
    a library descriptor isn't one. Bind with the object `importVariableByKeyAsync` returned. For a
    breakpoint mode, take the collection from an imported variable
    (`getVariableCollectionByIdAsync(variable.variableCollectionId)`) and pass it to
    `setExplicitVariableModeForCollection`; read its `modes` rather than assuming names (section 3).
-5. **Tell Prism3 from legacy by key.** Build one set of Prism3 keys from the table (for a component set,
-   each variant component's `key`). An instance is Prism3's when its main component's key is in the set,
-   a variable when its `key` is, a style when its `key` is. Resolve a binding's alias with
-   `getVariableByIdAsync(alias.id)` to read the variable's `key`. Everything remote outside the set
-   is legacy, and goes to the same detach guard and audit as before. Never decide by name.
+5. **Tell Prism3 from legacy by key, against the whole library, not the table.** The table holds only
+   what the design mapped to. Prism3's own internals (the icon inside a button, the variables and
+   styles a component binds inside itself) are not in it, and would read as legacy. Build the set of
+   Prism3 keys from the library: every variable key `getVariablesInLibraryCollectionAsync` returns for
+   each Prism3 collection (a variable is Prism3's when its collection's `key` is one of those
+   collections' keys), and every component, variant and style key read from the library file or from
+   an imported set's `children`. An instance is Prism3's when its main component's key is in the set,
+   a style when its `key` is. Resolve a binding's alias with `getVariableByIdAsync(alias.id)` to read
+   the variable's `key` and its `variableCollectionId`. Everything remote outside the set is legacy,
+   and goes to the same detach guard and audit as before. Never decide by name, and never run the
+   detach guard on a node inside a Prism3 instance (section 1).
 6. **Fonts: same check, run after the import.** A library component's fonts are known only once it is
    imported. Import first, then compare the `fontName` of each imported text node with
    `figma.listAvailableFontsAsync()` before the first placement.
