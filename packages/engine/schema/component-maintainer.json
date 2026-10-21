@@ -67,11 +67,6 @@
           "reason": "empty"
         },
         {
-          "section": "content",
-          "field": "docs.contentGuidelines",
-          "reason": "empty"
-        },
-        {
           "section": "related",
           "field": "composition.composesWith",
           "reason": "empty"
@@ -171,11 +166,6 @@
         {
           "section": "content",
           "field": "content.metaphorRules",
-          "reason": "empty"
-        },
-        {
-          "section": "content",
-          "field": "docs.contentGuidelines",
           "reason": "empty"
         },
         {
@@ -949,11 +939,6 @@
         {
           "section": "content",
           "field": "content.metaphorRules",
-          "reason": "empty"
-        },
-        {
-          "section": "content",
-          "field": "docs.contentGuidelines",
           "reason": "empty"
         },
         {
@@ -3305,11 +3290,6 @@
         {
           "section": "content",
           "field": "content.emptyPattern",
-          "reason": "empty"
-        },
-        {
-          "section": "content",
-          "field": "content.dialogPattern",
           "reason": "empty"
         },
         {

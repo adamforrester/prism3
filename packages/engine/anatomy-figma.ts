@@ -5401,8 +5401,9 @@ if(colW.length&&rowH.length&&(Math.round(set.width)<Math.round(wantW)||Math.roun
   boxMiss.push('set -> BOX '+Math.round(set.width)+'x'+Math.round(set.height)+' does not contain its '+members.length+' members ('+Math.round(wantW)+'x'+Math.round(wantH)+' needed; appending does NOT grow the frame)');
 // #1750 — PLACE A NEW SET CLEAR OF THE PAGE'S CONTENT, the plugin's \`placeNewSet\` rule: an empty page
 // leaves the set at the origin; otherwise top-aligned with the sets already there (or with all content when
-// there is none), then 400 (the plugin's SET_GAP, widened for the canvas furniture in #2502) right of everything that overlaps the
-// set's row. A node wholly above or below the row does not push it. AFTER the resize, because the row is
+// there is none), then 160 (the plugin's SET_GAP, the visible gap of #2723) right of everything that overlaps the
+// set's row. The plugin measures that gap from each set's labels; the paste draws none, so its new set's edge is its
+// frame, and another set's labels already on the page push it as any node does. A node wholly above or below the row does not push it. AFTER the resize, because the row is
 // the set's height. Written again here rather than shared: the paste script cannot import the plugin, and
 // test.ts compares the two placements.
 // THE ROW IS CHUNK 1'S HEIGHT. Later chunks grow the set down and right from where this put it, and do not
@@ -5410,7 +5411,7 @@ if(colW.length&&rowH.length&&(Math.round(set.width)<Math.round(wantW)||Math.roun
 // finished set's can be covered here where the plugin would have pushed the set past it (#1856).
 // NO POSITION READ-BACK, unlike the plugin: the stub stores x/y as plain fields, so the read-back could not
 // fail in any gate, and it would cost bytes in every chunk.
-if(created&&prior.length){const S=prior.filter(b=>b.t==='COMPONENT_SET'),y=Math.min(...(S.length?S:prior).map(b=>b.y)),B=prior.filter(b=>b.y<y+set.height&&b.y+b.h>y);set.x=Math.max(...(B.length?B:prior).map(b=>b.x+b.w))+400;set.y=y;}
+if(created&&prior.length){const S=prior.filter(b=>b.t==='COMPONENT_SET'),y=Math.min(...(S.length?S:prior).map(b=>b.y)),B=prior.filter(b=>b.y<y+set.height&&b.y+b.h>y);set.x=Math.max(...(B.length?B:prior).map(b=>b.x+b.w))+160;set.y=y;}
 // READ BACK the definitions, GUARDED. A duplicate member name poisons this getter (see above), so an
 // unguarded read throws with no indication of which member caused it — and takes the whole paste's
 // report with it, including the misses already collected.

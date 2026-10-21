@@ -474,7 +474,7 @@ const LINK_STATES = ['default', 'hover', 'visited', 'focused', 'pressed'] as con
 // `.link.` segment and nothing else does. Used by the per-mode override floor guard (#1510): a link
 // override is held to contrast, a non-link override keeps the warn-not-block posture.
 const isLinkRole = (rolePath: string): boolean => rolePath.includes('.link.');
-const SEMANTICS = ['brand', 'success', 'warning', 'danger', 'info'] as const;
+export const SEMANTICS = ['brand', 'success', 'warning', 'danger', 'info'] as const;
 
 /**
  * Grounds that HAVE a declarative input, and which `surfaces.<mode>` field it is (#956).

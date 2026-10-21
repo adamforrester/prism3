@@ -1658,6 +1658,16 @@ isn't good enough to hand over cold, fix the issue before starting the work.
 Agents are good at this loop and bad at noticing when a gate silently stopped covering
 the thing it was there to cover.
 
+**End every verdict with `Gaps`.** Every Ready, and every review, delta or re-gate verdict,
+closes with a `Gaps` section: what was not done, what was not checked, and the risks that
+remain. When there are none it says `Gaps: none` — the section is never omitted, because a
+verdict with no such line cannot be told apart from one that never asked (#2850).
+
+**Search before you build a mechanism.** Before adding a new gate, script, helper or
+convention, look for one that already does the job (the lint gates, the harnesses under
+`tools/`, the commands under `.claude/commands/`, this file). The PR body says what it
+reused, or why nothing fit.
+
 Two failure modes worth watching for specifically: **scope creep** (an agent tidying
 adjacent code — principle 3 says don't), and **plausible-but-unverified claims** about
 Figma or Style Dictionary APIs. This repo's precedent is to re-verify API surfaces

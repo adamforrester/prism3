@@ -52,14 +52,16 @@ import { COMPONENT_RENAMES, coordKey, coordPairs, renameCoordinate, renameProper
 import { captureSlotMigration, migrationLines, type MigNode, type SlotMigration } from './slot-migration';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { EXECUTOR_REVISION } from './executor-revision';
-import { adoptions, memberStamp, planHalf, revHalf, respaceSets, STAMP_KEY, type RespaceBox } from './write-components';
+import { adoptions, memberStamp, planHalf, revHalf, respaceSets, snugSets, STAMP_KEY, type RespaceBox } from './write-components';
 import { furnitureDue, furnitureDueCount, furnitureLayout, hasFurniture, readTag, type FurnitureApi, type FurnitureDue, type XNode } from './canvas-furniture';
+import { labelColumns, readLabelColumn } from './label-columns';
 import { NS } from './persist-figma';
 import { BASELINE_V, UPDATING_KEY, baselineDiff, baselineOf, builtByPrism3, readBaseline, recordFormat, snapshotMember, writeBaseline, type Baseline, type OwnershipRead, type SnapNode } from './member-baseline';
 import { drawnFaults, faultLine, type DrawnFault, type DrawVar } from './drawn';
 import { REACTIONS_PATH, plannedRead, reactionMap, reactionVerdict, reactionsText, type PlannedReaction, type ReadReaction } from './reactions';
 import { pagesOutOfOrder, stripNestPrefix, type PageLike } from './file-setup';
 import { whatChangedLines } from './release-summary';
+import { colorVariablesOutOfOrder } from '@prism3/engine/color-order';
 
 /** One member of a set as the dry run reads it. */
 export type HostMember = {
@@ -91,6 +93,8 @@ export type HostSetView = {
   /** #2296 — a def built as single components (`emitAsComponents`): no set node, no property definitions, and each
    *  member a top-level component found anywhere in the file. */
   single?: boolean;
+  /** #2705 — the set's recorded label column width (`label-columns.ts`), absent when it has none. */
+  labelColumn?: number;
   /** #2831 — whether the set is in a published team library, as `getPublishStatusAsync` answers (`publishOf`). A
    *  single-component def reads as its most published component. Absent when the host would not say. */
   publish?: PublishStatus;
@@ -177,7 +181,7 @@ export type SetPreview = {
   /** #2188 Q173 — the members an update moves to their place in the grid, by name (`gridMoves`). Absent when none. */
   positions?: string[];
   /** #2542 (owner decision Q245.2 A) — the WHOLE SET moves on its page, to where a fresh build would place it
-   *  (`respaceSets`), so sets sit `SET_GAP` apart. Absent when it stays. */
+   *  (`respaceSets`), so the visible gap between sets, furniture included, is `SET_GAP` (#2723). Absent when it stays. */
   setMove?: { from: { x: number; y: number }; to: { x: number; y: number } };
   /** #2803 (owner decision Q379 A) — the set's canvas furniture the page lacks or holds out of place (`furnitureDue`),
    *  which the apply draws, touching no member. Absent when the furniture is current, or the def has none. */
@@ -315,7 +319,7 @@ export const ownedView = (host: HostSetView): HostSetView => {
  * update's apply re-lays the grid and keeps every id. A member not built by Prism3 is never one of them (#2325,
  * #2464), adoptable or not; it still counts toward its row's height and its column's width, as the executor counts it.
  */
-export const gridMoves = (plans: AnatomyPlan[], members: readonly HostMember[]): string[] => {
+export const gridMoves = (plans: AnatomyPlan[], members: readonly HostMember[], labelColumn = 0): string[] => {
   if (!plans.length) return [];
   let cells: { name: string; row: number; col: number }[];
   try { cells = planSetLayout(plans, 'gridMoves').cells; } catch { return []; }
@@ -330,12 +334,14 @@ export const gridMoves = (plans: AnatomyPlan[], members: readonly HostMember[]):
     colW[c.col] = Math.max(colW[c.col] ?? 0, m.snap.width as number);
     rowH[c.row] = Math.max(rowH[c.row] ?? 0, m.snap.height as number);
   }
+  // Columns at least the set's recorded label width, members centered in the extra (#2705), as the executor lays them.
+  const cols = labelColumns(colW, labelColumn);
   // Sparse arrays, reduced as the executor reduces them: a row or column with no member adds nothing.
   const at = (arr: number[], n: number): number => PAD + arr.slice(0, n).reduce((a, b) => a + (b || 0) + GAP, 0);
   return placed.filter((m) => {
     if (!m.stamp) return false;
     const c = cellOf.get(m.name)!;
-    return Math.abs((m.snap.x as number) - at(colW, c.col)) > 0.5 || Math.abs((m.snap.y as number) - at(rowH, c.row)) > 0.5;
+    return Math.abs((m.snap.x as number) - at(cols.width, c.col) - (cols.inset[c.col] ?? 0)) > 0.5 || Math.abs((m.snap.y as number) - at(rowH, c.row)) > 0.5;
   }).map((m) => m.name);
 };
 
@@ -665,7 +671,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
   const adoptClears = refused?.adoptClears ? [refused.reason] : [];
 
   // A set with members refused or to collapse is refused by the update, so it reports no moves either.
-  const positions = blockers.length || host.single ? [] : gridMoves(plans, host.members);
+  const positions = blockers.length || host.single ? [] : gridMoves(plans, host.members, host.labelColumn);
   if (positions.length) counts.move = positions.length;
 
   const truncated: Record<string, number> = {};
@@ -767,8 +773,9 @@ export const readSetView = async (set: LiveSet, breathe?: () => Promise<void>, d
   try { definitions = (set.componentPropertyDefinitions ?? {}) as HostSetView['definitions']; } catch { definitions = null; }
   let key = '';
   try { key = typeof set.key === 'string' ? set.key : ''; } catch { key = ''; }
+  const labelColumn = readLabelColumn(set);
   const publish = await publishOf(set);
-  return { name: String(set.name ?? ''), id: String(set.id ?? ''), key, page: pageOf(set), members, others, definitions, ...(publish ? { publish } : {}) };
+  return { name: String(set.name ?? ''), id: String(set.id ?? ''), key, page: pageOf(set), members, others, definitions, ...(labelColumn ? { labelColumn } : {}), ...(publish ? { publish } : {}) };
 };
 
 /** The reason a member is left out when its node moved between the read and the write (#2301). DRAFT. */
@@ -1009,6 +1016,10 @@ export type UpdatePreview = {
   /** #2568, owner decision Q260 A — the component pages not in alphabetical order, by full page name, which the apply
    *  moves into place (`pagesOutOfOrder`). Absent when none. */
   pages?: string[];
+  /** #2860 — the colour variables not in the canonical order (`colorVariablesOutOfOrder`), by full variable name, in the
+   *  file's order. A report: the Plugin API has no way to move a variable, so nothing applies it and it is not in the
+   *  hash. Absent when none. */
+  variables?: string[];
 };
 
 /** How many sets a dry run moves on their pages (#2542). */
@@ -1030,32 +1041,57 @@ const setBuiltByPrism3 = (n: { children?: readonly unknown[] }): boolean => {
  * wasn't asked about. Read from the page's top-level nodes as they sit (`respaceSets`), so the dry run lists the moves
  * the file shows now, and the apply, called again after its sets land, moves them by their new sizes.
  */
-export const pageSetMoves = (found: readonly { name: string; set: LiveSet; blocked: boolean }[]): Map<string, { from: { x: number; y: number }; to: { x: number; y: number } }> => {
+export const pageSetMoves = (found: readonly { name: string; set: LiveSet; blocked: boolean }[], snug: ReadonlySet<string> = new Set()): Map<string, { from: { x: number; y: number }; to: { x: number; y: number } }> => {
   const out = new Map<string, { from: { x: number; y: number }; to: { x: number; y: number } }>();
+  for (const { here, kids, boxes } of pageViews(found)) {
+    const ids = new Set(here.filter((f) => snug.has(f.name)).map((f) => String(kids.indexOf(f.set as never))));
+    for (const m of respaceSets(boxes, ids)) {
+      const f = here.find((x) => x.set === (kids[Number(m.id)] as LiveSet));
+      if (f) out.set(f.name, { from: m.from, to: m.to });
+    }
+  }
+  return out;
+};
+
+/** The sets, by name, that sit at exactly `SET_GAP` from their left neighbor on their pages (`snugSets`, #2734), on the
+ *  pages `pageSetMoves` would re-space. Read by the apply just before it redraws the furniture. */
+export const pageSnugSets = (found: readonly { name: string; set: LiveSet; blocked: boolean }[]): Set<string> => {
+  const out = new Set<string>();
+  for (const { here, kids, boxes } of pageViews(found)) {
+    const ids = snugSets(boxes);
+    for (const f of here) if (ids.has(String(kids.indexOf(f.set as never)))) out.add(f.name);
+  }
+  return out;
+};
+
+/** Each page that takes part in the re-spacing, with its top-level nodes read as `respaceSets` reads them. A page takes
+ *  part only when every set Prism3 built on it is one this update reads and none is blocked. */
+const pageViews = (found: readonly { name: string; set: LiveSet; blocked: boolean }[]) => {
   const pages = new Map<unknown, typeof found[number][]>();
   for (const f of found) {
     const page = f.set.parent as { children?: readonly unknown[] } | null | undefined;
     if (!page || !Array.isArray(page.children)) continue;
     pages.set(page, [...(pages.get(page) ?? []), f]);
   }
+  const views: { here: typeof found[number][]; kids: { id?: unknown; type?: unknown; name?: unknown; x?: unknown; y?: unknown; width?: unknown; height?: unknown; children?: readonly unknown[] }[]; boxes: RespaceBox[] }[] = [];
   for (const [page, here] of pages) {
     const kids = (page as { children: readonly unknown[] }).children as { id?: unknown; type?: unknown; name?: unknown; x?: unknown; y?: unknown; width?: unknown; height?: unknown; children?: readonly unknown[] }[];
     const read = new Set(here.map((f) => f.set));
     const ours = kids.filter((k) => k.type === 'COMPONENT_SET' && setBuiltByPrism3(k));
     if (here.some((f) => f.blocked) || !ours.every((k) => read.has(k as LiveSet))) continue;
     // Keyed by the node's place on the page, never by its id: what maps a move back to its set is the node itself.
+    // Furniture names its set by node id (#2723): mapped to that set's place on the page, its `id` here.
+    const at = new Map(kids.map((k, i) => [String(k.id ?? ''), String(i)] as const));
     const boxes: RespaceBox[] = kids.map((k, i) => ({
       id: String(i), type: String(k.type ?? ''), x: Number(k.x ?? 0), y: Number(k.y ?? 0), width: Number(k.width ?? 0), height: Number(k.height ?? 0),
       header: (k.type === 'INSTANCE' || k.type === 'FRAME') && String(k.name ?? '').toLowerCase() === '_section-header',
       prism3: k.type === 'COMPONENT_SET' && setBuiltByPrism3(k),
       furniture: !!readTag(k as never),
+      of: at.get(readTag(k as never)?.set ?? ''),
     }));
-    for (const m of respaceSets(boxes)) {
-      const f = here.find((x) => x.set === (kids[Number(m.id)] as LiveSet));
-      if (f) out.set(f.name, { from: m.from, to: m.to });
-    }
+    views.push({ here, kids, boxes });
   }
-  return out;
+  return views;
 };
 
 /** `update-components` in its dry-run mode: every target's set read and laid against its plans. Writes
@@ -1099,6 +1135,9 @@ export const previewUpdate = async (host: UpdateHost, targets: readonly UpdateTa
   // THE PAGE ORDER (#2568): read once for the file, whichever sets the targets name, since the pages are the file's.
   const pages = host.root.children ? pagesOutOfOrder(host.root.children) : [];
   if (pages.length) out.pages = pages;
+  // THE VARIABLE ORDER (#2860): read once for the file. Nothing here can move a variable, so this only names them.
+  const variables = colorVariablesOutOfOrder((await host.variables.getLocalVariablesAsync()).map((v) => v.name));
+  if (variables.length) out.variables = variables;
   return out;
 };
 
@@ -1350,6 +1389,17 @@ export const breakingClause = (sets: readonly { breaking?: Breaking[] }[]): stri
 export const pagesLine = (pages: readonly string[] | undefined): string =>
   pages?.length ? `Component pages: ${pages.length} to reorder (${pages.map(stripNestPrefix).join(', ')}).` : '';
 
+/** The colour variables out of canonical order (#2860), named as the variables panel shows them: the name under its
+ *  `<root>/color/`. A report only; the plugin cannot move a variable, so it says what to drag. Empty when none.
+ *  DRAFT wording, not owner-approved. */
+const VARIABLES_NAMED = 5;
+export const variablesLine = (variables: readonly string[] | undefined): string => {
+  if (!variables?.length) return '';
+  const shown = variables.slice(0, VARIABLES_NAMED).map((v) => v.replace(/^[^/]+\/color\//, ''));
+  const more = variables.length > VARIABLES_NAMED ? `, and ${variables.length - VARIABLES_NAMED} more` : '';
+  return `Color variables: ${variables.length} out of order (${shown.join(', ')}${more}). Figma lets a plugin add variables but not move them, so drag these into place in the variables panel.`;
+};
+
 /** The verdict for a dry run. `ok` is false only where a set could not be checked. `lines` is the Activity drawer's
  *  copy (#2177): one per set, then the closing lines, the same list `summary` is joined from. */
 export const previewVerdict = (r: UpdatePreview, whatChanged: (sets: string[]) => string[] = whatChangedLines): { ok: boolean; headline: string; summary: string; lines: string[] } => {
@@ -1376,6 +1426,7 @@ export const previewVerdict = (r: UpdatePreview, whatChanged: (sets: string[]) =
     ...breakingSection(r.sets, false),
     ...r.refused.map((x) => `${x.def}: can't be checked. ${x.reason}.`),
     pagesLine(r.pages),
+    variablesLine(r.variables),
     r.missing.length ? `Not in this file: ${r.missing.join(', ')}.` : '',
     earlier ? `${earlier} built by an earlier plugin. Update ${earlier === 1 ? 'it to bring it' : 'them to bring them'} current.` : '',
     // Wording approved, Q246 A (#2542, Q245.2 A).

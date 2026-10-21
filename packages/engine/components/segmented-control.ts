@@ -60,7 +60,7 @@ export const segmentedControlSegment: ComponentDef = {
   aliases: ['segment', 'segmented-control-option'],
   category: 'form',
   status: 'draft',
-  summary: 'One option of a segmented control. Selected, it shows a flat pill and a bold label.',
+  summary: 'One option of a segmented control. Selected, it shows a flat pill and an emphasis-weight label.',
   description:
     'One option in a segmented control: a cell as tall as a button, holding the option label and an optional leading icon. A selected option shows a flat pill in the page surface color inside the cell, and its label is set in the emphasis weight. Every option keeps the width of its bold label, so selecting one never moves the others. At hover, an unselected option shows a light neutral wash on the track. SegmentedControl places the options and owns the selection.',
 
@@ -261,14 +261,14 @@ export const segmentedControlSegment: ComponentDef = {
 
   docs: {
     usage: 'Use inside SegmentedControl only. An option names one value; selecting it changes the current view or the form value in place.',
-    do: ['Give every option in a control the same kind of content: all labels, or all labels with icons', 'Let the control set selected from its value'],
-    dont: ['Place an option outside a segmented control', 'Set selected on an option inside a control by hand'],
+    do: ['Give every option in a control the same kind of content: all labels, or all labels with icons', 'Keep labels to short nouns ("Daily", "Weekly")', 'Let the control set selected from its value'],
+    dont: ['Place an option outside a segmented control', 'Set selected on an option inside a control by hand', 'Wrap a label onto a second line; it breaks the shared track and makes the options uneven'],
     contentGuidelines: 'One or two words, a noun, sentence case.',
   },
 
   ai: {
     primaryPurpose: 'One option inside a segmented control.',
-    whenToUse: 'Only as a child of SegmentedControl.',
+    whenToUse: 'Only as a child of a SegmentedControl. Generate the SegmentedControl, which places its options and sets which one is selected.',
     avoidWhen: 'Anywhere outside a segmented control: a single toggle is a switch or a select tag, and a lone action is a button.',
     commonPartners: ['segmented-control', 'icon'],
     triggerKeywords: ['segment', 'segmented option', 'segmented control option'],

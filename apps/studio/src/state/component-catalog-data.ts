@@ -41,7 +41,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "id": "button",
     "name": "Button",
     "category": "form",
-    "summary": "Triggers an action in place. For navigation, use a link.",
+    "summary": "Triggers an action in place, such as submit, save or confirm. For navigation, use a link.",
     "unit": "variants",
     "spacing": [
       {
@@ -242,7 +242,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "id": "icon-button",
     "name": "IconButton",
     "category": "form",
-    "summary": "Icon-only action. Needs an accessible name.",
+    "summary": "Icon-only action in the brand's primary style, such as edit or more. Needs an accessible name.",
     "unit": "variants",
     "spacing": [],
     "page": "Icon button",
@@ -1039,7 +1039,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "id": "segmented-control-segment",
     "name": "SegmentedControl.Segment",
     "category": "form",
-    "summary": "One option of a segmented control. Selected, it shows a flat pill and a bold label.",
+    "summary": "One option of a segmented control. Selected, it shows a flat pill and an emphasis-weight label.",
     "unit": "variants",
     "spacing": [
       {
