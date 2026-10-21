@@ -302,7 +302,7 @@
           "spinner",
           "badge",
           "tag",
-          "tab",
+          "tab-item",
           "tabs",
           "divider",
           "_accordion-indicator",

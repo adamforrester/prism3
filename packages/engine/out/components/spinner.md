@@ -20,7 +20,7 @@ A rotating arc over a faint full ring, showing that work is in progress with no 
 Shown on the default member: size `x-small`.
 
 1. **Frame**
-2. **Ring** — The composed drawing: the track (a full ring at 20% layer opacity) under the head arc (33% of the circle, round caps), both filled outlines inked with the one icon color. Drawn at the rest position — the arc starting at twelve o'clock and running clockwise.
+2. **Ring glyph** — The composed drawing: the track (a full ring at 20% layer opacity) under the head arc (33% of the circle, round caps), both filled outlines inked with the one icon color. Drawn at the rest position — the arc starting at twelve o'clock and running clockwise.
 
 ## Styles
 
@@ -100,7 +100,7 @@ Generated from the plan that builds the design-file component: 4 members. Values
 | Part | Kind | In |
 | --- | --- | --- |
 | `frame` | frame | every member |
-| `frame/ring` | glyph | every member |
+| `frame/ringGlyph` | glyph | every member |
 
 ### Spacing and size
 
@@ -113,28 +113,28 @@ Keyed by `size`.
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `frame` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
-| `frame/ring` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `frame/ringGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
 
 **size=small**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `frame` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
-| `frame/ring` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `frame/ringGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 
 **size=medium**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `frame` | — | — | `icon.size.md` | `icon.size.md` | — | — |
-| `frame/ring` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+| `frame/ringGlyph` | — | — | `icon.size.md` | `icon.size.md` | — | — |
 
 **size=large**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `frame` | — | — | `icon.size.lg` | `icon.size.lg` | — | — |
-| `frame/ring` | — | — | `icon.size.lg` | `icon.size.lg` | — | — |
+| `frame/ringGlyph` | — | — | `icon.size.lg` | `icon.size.lg` | — | — |
 
 ### Color
 
@@ -144,7 +144,7 @@ Keyed by nothing: one row covers every member.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `frame/ring` | — | — | — | `color.icon.primary` |
+| `frame/ringGlyph` | — | — | — | `color.icon.primary` |
 
 ---
 

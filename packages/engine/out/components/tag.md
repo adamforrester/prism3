@@ -24,7 +24,7 @@ Shown on the default member: type `select`, selection `unselected`, size `medium
 3. **Label check** — The label and, on a selected select tag, the check mark after it, with a gap tighter than the one between the leading icon and the label. On a dismissible tag it is inset 4px at its leading edge, at every density, so the label sits 4px further in from the icon or the tag's edge.
 4. **Leading visual** (optional) — An optional icon or avatar before the label. Decorative: the label carries the name.
 5. **Label**
-6. **Check** (optional) — The selected indicator, a check mark after the label. It exists only on a selected select tag and is on by default; the check icon switch hides it, leaving the tint and the 2px outline.
+6. **Check glyph** (optional) — The selected indicator, a check mark after the label. It exists only on a selected select tag and is on by default; the check icon switch hides it, leaving the tint and the 2px outline.
 7. **Dismiss** — The remove slot of a dismissible tag: a square as tall as the tag, at its trailing end, holding the × glyph.
 8. **Dismiss glyph** — The × of a dismissible tag, a plain glyph centered in the remove slot, in the tag's icon ink.
 9. **Focus ring** — The shared focus ring, around the whole tag while it has keyboard focus.
@@ -136,7 +136,7 @@ Generated from the plan that builds the design-file component: 45 members. Value
 | `container/content/labelCheck` | frame | every member |
 | `container/content/labelCheck/label` | text | every member |
 | `container/focusRing` | instance | state=focus-visible |
-| `container/content/labelCheck/check` | instance | selection=selected |
+| `container/content/labelCheck/checkGlyph` | instance | selection=selected |
 | `container/dismiss` | frame | type=dismissible |
 | `container/dismiss/dismissGlyph` | instance | type=dismissible |
 
@@ -156,7 +156,7 @@ Keyed by `size`, `type`.
 | `container/content` | `space.0` / `space.150` / `space.0` / `space.150` | `space.100` | — | — | — | — |
 | `container/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 | `container/content/labelCheck` | `space.0` | `space.075` | — | — | — | — |
-| `container/content/labelCheck/check` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/content/labelCheck/checkGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 
 **size=small, type=select**
 
@@ -166,7 +166,7 @@ Keyed by `size`, `type`.
 | `container/content` | `space.0` / `space.100` / `space.0` / `space.100` | `space.075` | — | — | — | — |
 | `container/content/leadingVisual` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
 | `container/content/labelCheck` | `space.0` | `space.050` | — | — | — | — |
-| `container/content/labelCheck/check` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/content/labelCheck/checkGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
 
 **size=large, type=select**
 
@@ -176,7 +176,7 @@ Keyed by `size`, `type`.
 | `container/content` | `space.0` / `space.200` / `space.0` / `space.200` | `space.150` | — | — | — | — |
 | `container/content/leadingVisual` | — | — | `icon.size.md` | `icon.size.md` | — | — |
 | `container/content/labelCheck` | `space.0` | `space.100` | — | — | — | — |
-| `container/content/labelCheck/check` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+| `container/content/labelCheck/checkGlyph` | — | — | `icon.size.md` | `icon.size.md` | — | — |
 
 **size=medium, type=dismissible**
 
@@ -272,7 +272,7 @@ Keyed by `type`, `selection`, `state`.
 | `container` | `color.interactive.primary.subtle-fill.selected` | `color.interactive.primary.border.rest` | — | — |
 | `container/content/leadingVisual` | — | — | — | `color.interactive.neutral.icon.rest` |
 | `container/content/labelCheck/label` | — | — | `color.interactive.neutral.text.rest` | — |
-| `container/content/labelCheck/check` | — | — | — | `color.interactive.neutral.icon.rest` |
+| `container/content/labelCheck/checkGlyph` | — | — | — | `color.interactive.neutral.icon.rest` |
 
 **type=select, selection=selected, state=hover**
 
@@ -281,7 +281,7 @@ Keyed by `type`, `selection`, `state`.
 | `container` | `color.interactive.primary.subtle-fill.selected` | `color.interactive.primary.border.hover` | — | — |
 | `container/content/leadingVisual` | — | — | — | `color.interactive.neutral.icon.hover` |
 | `container/content/labelCheck/label` | — | — | `color.interactive.neutral.text.hover` | — |
-| `container/content/labelCheck/check` | — | — | — | `color.interactive.neutral.icon.hover` |
+| `container/content/labelCheck/checkGlyph` | — | — | — | `color.interactive.neutral.icon.hover` |
 
 **type=select, selection=selected, state=pressed**
 
@@ -290,7 +290,7 @@ Keyed by `type`, `selection`, `state`.
 | `container` | `color.interactive.primary.subtle-fill.selected` | `color.interactive.primary.border.pressed` | — | — |
 | `container/content/leadingVisual` | — | — | — | `color.interactive.neutral.icon.pressed` |
 | `container/content/labelCheck/label` | — | — | `color.interactive.neutral.text.pressed` | — |
-| `container/content/labelCheck/check` | — | — | — | `color.interactive.neutral.icon.pressed` |
+| `container/content/labelCheck/checkGlyph` | — | — | — | `color.interactive.neutral.icon.pressed` |
 
 **type=select, selection=selected, state=focus-visible**
 
@@ -299,7 +299,7 @@ Keyed by `type`, `selection`, `state`.
 | `container` | `color.interactive.primary.subtle-fill.selected` | `color.interactive.primary.border.rest` | — | — |
 | `container/content/leadingVisual` | — | — | — | `color.interactive.neutral.icon.rest` |
 | `container/content/labelCheck/label` | — | — | `color.interactive.neutral.text.rest` | — |
-| `container/content/labelCheck/check` | — | — | — | `color.interactive.neutral.icon.rest` |
+| `container/content/labelCheck/checkGlyph` | — | — | — | `color.interactive.neutral.icon.rest` |
 
 **type=select, selection=selected, state=disabled**
 
@@ -308,7 +308,7 @@ Keyed by `type`, `selection`, `state`.
 | `container` | — | `color.disabled.border` | — | — |
 | `container/content/leadingVisual` | — | — | — | `color.disabled.icon` |
 | `container/content/labelCheck/label` | — | — | `color.disabled.text` | — |
-| `container/content/labelCheck/check` | — | — | — | `color.disabled.icon` |
+| `container/content/labelCheck/checkGlyph` | — | — | — | `color.disabled.icon` |
 
 **type=dismissible, selection=unselected, state=rest**
 
@@ -359,7 +359,7 @@ Keyed by `type`, `selection`, `state`.
 
 - `container/content/leadingVisual` is a swap slot, property `↳ swap leading icon`, shown by `leading icon`
 - `container/focusRing` nests `focus-ring` at `surface=default`
-- `container/content/labelCheck/check` nests `icon/check`
+- `container/content/labelCheck/checkGlyph` nests `icon/check`
 - `container/dismiss/dismissGlyph` nests `icon/close`
 
 | Property | Type | Default |

@@ -119,7 +119,7 @@ export const listItem: ComponentDef = {
         gap: 'gap',
         placementWidth: 320,
         minWidth: 120,
-        children: ['markerBox', 'text'],
+        children: ['markerBox', 'label'],
         note: 'The item: the marker column, then the text. Top-aligned, so a wrapping item keeps its marker on the first line.',
       },
       markerBox: {
@@ -157,7 +157,7 @@ export const listItem: ComponentDef = {
         presentWhen: { type: ['icon'] },
         note: 'The icon marker, a check by default and swappable, in the icon color. Decorative: the text carries the meaning.',
       },
-      text: {
+      label: {
         kind: 'text',
         type: 'size.{size}.text',
         // Fills the row and wraps under itself (the hanging indent): the row's floor bounds it.
@@ -179,7 +179,7 @@ export const listItem: ComponentDef = {
     variantAxes: ['type', 'size'],
     // The text first, at the top of the panel; the number only on ordered members, the icon swap only on icon members.
     texts: {
-      children: { part: 'text', default: 'List item', figmaName: 'text' },
+      children: { part: 'label', default: 'List item', figmaName: 'text' },
       value: { part: 'number', default: '1.', figmaName: 'number' },
     },
     // A required single icon, with no presence toggle: `swap icon`, with no ↳ (the icon-property canon).

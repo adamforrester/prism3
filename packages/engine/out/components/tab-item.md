@@ -1,8 +1,8 @@
-# Tab
+# Tab.Item
 
 > One trigger in a tab list. Selected, it shows an underline and switches the panel below.
 
-- **ID:** `tab`
+- **ID:** `tab-item`
 - **Category:** navigation
 - **Status:** draft
 - **Also known as:** tab-trigger, tab-item
@@ -286,4 +286,4 @@ Keyed by `selection`, `state`.
 
 ---
 
-Generated from the `tab` component definition.
+Generated from the `tab-item` component definition.

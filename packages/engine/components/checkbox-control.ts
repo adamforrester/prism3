@@ -13,7 +13,7 @@
  * focusRing}`. #1226's composition model (owner, 2026-09-02) splits that into two public components plus
  * this exposed atom. This def is the atom — `control` and everything beneath it, rooted at `control` —
  * and `checkbox` keeps its `id` and becomes the Row that nests one of these in-flow (`kind: 'nest'`).
- * The `controlBox` line-box wrapper and the row's top alignment (#1201) STAY on the Row: this atom knows
+ * The `controlCell` line-box wrapper and the row's top alignment (#1201) STAY on the Row: this atom knows
  * nothing about labels, first-line alignment or hit targets. It is a square that paints itself.
  *
  * ── THE NEST CHAIN IS FOUR DEEP: `focus-ring` ← `checkbox-control` ← `checkbox` ← `checkbox-group` ────
@@ -239,14 +239,14 @@ export const checkboxControl: ComponentDef = {
         // 2px, from the token — see `border-width` in `tokens`. Names the def's own key, not the token.
         strokeWidth: 'border-width',
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'fixed', y: 'fixed' } },
-        children: ['mark', 'dash', 'focusRing'],
+        children: ['checkGlyph', 'dashGlyph', 'focusRing'],
         note: 'The control square AND the nominal hit-target marker. The real hit target is the whole labeled ROW, which lives on `checkbox-row`; this square is not independently clickable. `role: target` is here only because the schema requires exactly one per anatomy — the same nominal marker `focus-ring`\'s `ring` part carries.',
       },
       // THE CHECK. The FRAME is bound to the control box (`size.{size}.control`), and `glyphScale: 0.8`
       // (#1346) places the `icon/check` instance inside it at 0.8 of the box (#2380), so the ~71% of the grid
       // the `check` artwork draws renders at 0.8 of that, matching Prism 2's `checkFill` (16) sitting at 0.80
       // of its 20px control square (see the header for the measurement and why no smaller size is bound).
-      mark: {
+      checkGlyph: {
         kind: 'vector',
         glyph: 'check',
         size: 'size.{size}.control',
@@ -258,7 +258,7 @@ export const checkboxControl: ComponentDef = {
       // the whole of what separates `indeterminate` from `checked` in this def's tokens. Prism 2 sizes
       // its `subtractFill` identically to `checkFill` (both 16 in the 20px box), so the dash takes the
       // same 0.80 ratio as the check.
-      dash: {
+      dashGlyph: {
         kind: 'vector',
         glyph: 'minus',
         size: 'size.{size}.control',

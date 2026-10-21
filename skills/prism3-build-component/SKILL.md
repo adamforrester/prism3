@@ -406,7 +406,7 @@ Figma, so one job takes one name across every def:
 
 | Job | Name | Examples |
 |---|---|---|
-| Root part | named for its role, from this list: `container`, `row`, `control`, `track`, `label`, `message`, `ring`, `glyph`, `frame`, `wash`, `surface`, `panel`. Never the component's own id | Divider's root is `container`, not `divider` |
+| Root part | named for its role, from this list: `container`, `row`, `control`, `track`, `message`, `ring`, `glyph`, `frame`, `wash`, `surface`, `panel`. Never the component's own id | Divider's root is `container`, not `divider` |
 | Main text | `label` | Button, Tag and the Rows already use it |
 | Glyph layer (a non-root `vector` part) | `<shape>Glyph` | `checkGlyph`, `chevronGlyph`, `dismissGlyph` |
 | A Row's control cell (the box holding a nested `*-control`) | `controlCell` | Checkbox, Radio and Switch rows |
@@ -416,7 +416,7 @@ parent takes the `_` prefix on its id, which Figma reads as a building block and
 library. Its `ai.whenToUse` opens with one of two wordings: "Only as a child of …" or "Never directly
 …". The prefixed set is `_accordion-indicator`. A native slot's preferred item never takes the prefix
 (Q394): a designer inserts it from the assets panel, which works only for a published set, so it stays
-unprefixed even where its `ai.whenToUse` says "Only as a child of …". The slot items are `tab`,
+unprefixed even where its `ai.whenToUse` says "Only as a child of …". The slot items are `tab-item`,
 `list-item` and `segmented-control-segment`. The checkbox and radio controls (`checkbox-control`,
 `radio-control`) stay unprefixed because they may be used on their own.
 

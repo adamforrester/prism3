@@ -5650,7 +5650,7 @@
         "commonPartners": [
           "icon-button",
           "button",
-          "tab"
+          "tab-item"
         ],
         "triggerKeywords": [
           "badge",
@@ -5919,9 +5919,9 @@
         ]
       }
     },
-    "tab": {
-      "id": "tab",
-      "name": "Tab",
+    "tab-item": {
+      "id": "tab-item",
+      "name": "Tab.Item",
       "aliases": [
         "tab-trigger",
         "tab-item"
@@ -6096,7 +6096,7 @@
           "type": "slot",
           "required": true,
           "anyOf": [
-            "tab"
+            "tab-item"
           ],
           "minItems": 1,
           "maxItems": 6,
@@ -6211,7 +6211,7 @@
         "whenToUse": "Two to about six peer sections of one subject, viewed one at a time, where switching is quick and the address need not change.",
         "avoidWhen": "The selection changes the page or the address (a navigation of links), filters or re-sorts the current view (SegmentedControl, or Select), is a required sequence (a stepper, not built yet), or has many independent sections (Accordion).",
         "commonPartners": [
-          "tab",
+          "tab-item",
           "badge",
           "icon"
         ],
@@ -6232,7 +6232,7 @@
       },
       "composition": {
         "composesWith": [
-          "tab"
+          "tab-item"
         ],
         "alternativeTo": [
           "select",
