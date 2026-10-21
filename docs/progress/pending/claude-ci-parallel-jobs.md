@@ -16,6 +16,11 @@ minutes), followed by the plugin shim tests (470 s), the smoke suite (231 s) and
 - `gates`: needs all five and runs `if: always()`. Its one step, `.github/scripts/all-gates.sh`, fails
   when any job's result is not `success`, and names the job.
 
+**The result, measured on this PR's first run (39597359183).** Wall time was 24 min 15 s, about half
+the 48 min median. The jobs took: `chrome` 1,444 s, `plugin` 739 s, `engine` 315 s, `studio` 272 s,
+`surfaces` 75 s, then `gates` 7 s. The chrome suite itself ran 1,402 s, so `chrome` is now the whole
+critical path. Any further cut has to come from inside that suite.
+
 **The `gates` name is kept.** The old single job had the id `gates`, so its check run was called `gates`.
 The aggregator now has that id, so branch protection and any tool that reads the check named `gates` see
 the aggregator. The five gate jobs report beside it under their own names.
@@ -41,3 +46,7 @@ from `needs`, to drop the `if`, and to rename the job. Each mutation failed by n
 is exempt from the runner arm by name, because it reads job results and asserts nothing about the tree.
 `test-all-gates.sh` covers the script. A `failure`, `cancelled` or `skipped` result fails it, and so do
 an empty or unreadable input. Each of three mutations to the script fails the test by name.
+
+**Proved in CI as well.** We pushed a commit to this PR that made the exporter gate exit 1, then reverted
+it. On that run (39600758928) `surfaces` failed, the other four jobs passed, and `gates` failed with "Not
+every gate job succeeded: surfaces (failure)".
