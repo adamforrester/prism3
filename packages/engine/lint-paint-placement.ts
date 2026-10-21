@@ -307,6 +307,8 @@ const EXPECT_PAINTERS = [
   'password-field',
   // #2427: the outline Counter's fill and edge. A ghost member's box resolves none of them.
   'counter',
+  // #2872 (Q507.1 C): the current-page bar's fill. An unselected member has no bar, so it paints nothing.
+  'link',
 ];
 const closedSet = (what: string, expected: string[], live: string[], remedy: string): void => {
   for (const id of expected.filter((x) => !live.includes(x))) {
