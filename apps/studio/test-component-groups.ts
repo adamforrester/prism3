@@ -42,7 +42,7 @@ const WIRE_COMPONENTS: [string, string[]][] = [
   ['Icon button', ['IconButton', 'IconButton.Destructive', 'IconButton.Neutral']], ['Link', ['Link']], ['List', ['List', 'List.Item']],
   ['Password field', ['PasswordField']], ['Radio', ['Radio.Control', 'Radio.Group', 'Radio.Row']],
   ['Segmented control', ['SegmentedControl', 'SegmentedControl.Segment']], ['Select', ['Select']], ['Switch', ['Switch.Control', 'Switch.Row']],
-  ['Tabs', ['Tab.Item', 'Tabs']], ['Tag', ['Tag']], ['Text field', ['TextField']], ['Textarea', ['Textarea']], ['Veil', ['Veil']],
+  ['Tabs', ['Tab.Item', 'Tabs']], ['Tag', ['Tag']], ['Text field', ['TextField']], ['Textarea', ['Textarea']], ['Toast', ['Toast']], ['Veil', ['Veil']],
 ];
 const WIRE_SUBS: [string, string[]][] = [
   ['Breadcrumb item', ['BreadcrumbItem', 'BreadcrumbSeparator']], ['Field label', ['FieldLabel']], ['Field message', ['FieldMessage']], ['Flush icon button', ['FlushIconButton', 'FlushIconButton.Destructive', 'FlushIconButton.Neutral']],

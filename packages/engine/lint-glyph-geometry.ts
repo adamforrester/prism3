@@ -135,6 +135,7 @@ const MUST_COVER = [
   'switch-control.onGlyph', 'switch-control.offGlyph', 'select.chevronGlyph', 'image-placeholder.markerGlyph',
   '_accordion-indicator.chevronDownGlyph', '_accordion-indicator.chevronUpGlyph', '_accordion-indicator.plusGlyph', '_accordion-indicator.minusGlyph',
   '_breadcrumb-separator.chevron', '_breadcrumb-separator.slash', 'breadcrumbs.backGlyph',
+  'toast.checkCircleGlyph',
 ];
 
 /** The component name prefix an icon-set glyph is an instance of (#2380): `icon/<glyph>`, the component the
@@ -342,6 +343,12 @@ const FIXED_GLYPH: Record<string, { glyph: string; at: Record<string, readonly s
     glyph: 'check-circle',
     at: { status: ['success'] },
     why: 'the success mark: a circled check, on the same 20px ring `error-circle` draws. Deliberately the outline form and not `check-circle-filled` — the reference asks for "a stroked outline glyph at the same optical weight as the text", and every glyph in this set is a filled path, so outline here means a ring with a hole rather than a stroke',
+  },
+  // #2668 (owner call 3 A): the Toast's success glyph, the same circled check FieldMessage draws; neutral draws none.
+  'toast.checkCircleGlyph': {
+    glyph: 'check-circle',
+    at: { intent: ['success'] },
+    why: "the success mark, FieldMessage's circled check, so success reads the same in a field and in a toast. `glyph: '{intent}'` cannot express it: the vocabulary has no glyph named `success`, and neutral draws nothing (call 3 A)",
   },
 };
 

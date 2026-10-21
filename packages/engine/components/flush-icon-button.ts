@@ -120,6 +120,7 @@ const makeFlushIconButton = (id: string, name: string, summary: string, descript
     { name: 'type', type: "enum: 'button' | 'submit' | 'reset'", values: ['button', 'submit', 'reset'], default: 'button', required: false, description: "Defaults to 'button', as Button does. The platform default is 'submit', so a flush icon button inside a form would submit it." },
     { name: 'shape', type: "enum: 'flush' | 'round'", values: ['flush', 'round'], default: 'flush', required: false, description: 'flush is the bare glyph, with no padding, fill or border, for a glyph that lines up with the content edge. round is a circle around the glyph with a light edge and a soft fill on hover and press, for a counter whose buttons stand on their own.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'The glyph size: 20px at small and medium, 24px at large. A flush box is the glyph, with no padding. A round circle is 36, 44 or 56px across. The hit area in code is at least 44×44px at every size.' },
+    { name: 'surface', type: "enum: 'default' | 'inverse'", values: ['default', 'inverse'], default: 'default', required: false, description: 'The ground the button sits on, following IconButton. `default` for a normal page; `inverse` for a dark or brand-filled card or band, where the glyph binds its `color.inverse.*` counterpart so it keeps contrast against the flipped surface. Flush has no fill, so the glyph ink is all the axis changes. A host that cannot know its ground picks `default`, and the designer sets `inverse` on the instance, the same answer the nested focus ring gives.' },
     { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Native disabled. Inside a component that sets it at a limit (a counter at its minimum), prefer aria-disabled so the button keeps its place in the accessibility tree.' },
   ],
 
@@ -128,8 +129,11 @@ const makeFlushIconButton = (id: string, name: string, summary: string, descript
     // Q287 A: flush first, the shape built first and the code default, so Figma's inserted member is flush.
     shape: ['flush', 'round'],
     size: ['medium', 'small', 'large'],
+    // Q386 (#2668): appended last, as IconButton's was (#1427), so a file built before it keeps its variant order. The
+    // Toast's close is the first inverse host: a flush glyph on the dark card needs the inverse ink.
+    surface: ['default', 'inverse'],
   },
-  axisKinds: { shape: 'authoring', size: 'authoring' },
+  axisKinds: { shape: 'authoring', size: 'authoring', surface: 'authoring' },
 
   // No appearance axis, so the shape leads: a `round.*` key answers the round members only, and every box paint key
   // is `round.*`, so a flush member resolves no box paint. The glyph ink is stated once per shape, identical.
@@ -197,7 +201,7 @@ const makeFlushIconButton = (id: string, name: string, summary: string, descript
         nests: 'focus-ring',
         inset: 'ring-offset',
         strokeInset: 'ring-width',
-        nesting: { kind: 'nest-fixed', variant: { surface: 'default' } },
+        nesting: { kind: 'nest-fixed', variant: { surface: 'default' }, follow: ['surface'] },
         note: 'The shared focus ring, offset from the glyph square or the circle as on IconButton.',
       },
     },
@@ -212,7 +216,7 @@ const makeFlushIconButton = (id: string, name: string, summary: string, descript
   },
 
   figmaProperties: {
-    variantAxes: ['shape', 'size'],
+    variantAxes: ['shape', 'size', 'surface'],
     stateAxis: { name: 'state', values: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled'] },
     gridAxis: 'state',
     booleans: {},
