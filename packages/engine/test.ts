@@ -20843,6 +20843,36 @@ arm: {
       ok(markerFacts(ctlPage) === 'ABSOLUTE CENTER/CENTER centered', `#2345 control: without absoluteScale the centered child keeps CENTER/CENTER (got '${markerFacts(ctlPage)}')`);
     }
 
+    // ---- #2872: Link's current-page bar is built OUT OF FLOW across the FOOT, STRETCH/MAX, on BOTH legs ----
+    // The plan-level arm (`#2872 link bar`) proves the plan carries `footPin`; this proves each EXECUTOR writes it. On a
+    // current, focus-visible member (the bar beside the lifted ring): ABSOLUTE, the literal STRETCH/MAX typed here, at
+    // x 0, as wide as the member and flush with its bottom, measured against the member's own live box as the stub
+    // reports it. Mutation: the paste executor's foot splice dropped → `#2872 paste leg`.
+    {
+      const linkDef = componentDefs.find((d) => d.id === 'link')!;
+      const cur = figmaAnatomySet(linkDef, { swapTarget: 'FPO-default-icon' }).find((q) => q.coord.selection === 'selected' && q.coord.state === 'focus-visible')!;
+      const lOpts: StubOpts = { vars: [...planBoundVars(cur.root), ...planPaintVars(cur.root)], styles: planTextStyles(cur.root), comps: ['FPO-default-icon', 'focus-ring'] };
+      const barFacts = (page: StubPage): string => {
+        const all = page.children.flatMap((c) => [c, ...(((c as Record<string, unknown>).children as Record<string, unknown>[] | undefined) ?? [])]);
+        const root = all.find((c) => c.name === planComponentName(cur)) as Record<string, unknown> | undefined;
+        const kid = ((root?.children as Record<string, unknown>[] | undefined) ?? []).find((c) => c.name === 'bar');
+        if (!root || !kid) return `no ${root ? 'bar' : 'member'} on the page`;
+        const c = kid.constraints as { horizontal?: string; vertical?: string } | null;
+        const at = kid.x === 0 && Math.abs((kid.y as number) - ((root.height as number) - (kid.height as number))) < 0.01 && Math.abs((kid.width as number) - (root.width as number)) < 0.01;
+        return `${String(kid.layoutPositioning)} ${c?.horizontal}/${c?.vertical} ${at ? 'across the foot' : `off the foot (${String(kid.x)},${String(kid.y)} ${String(kid.width)}x${String(kid.height)} in ${String(root.width)}x${String(root.height)})`}`;
+      };
+      const WANT_BAR = 'ABSOLUTE STRETCH/MAX across the foot';
+      const pastePage: StubPage = { children: [] };
+      const pasted = await runPayload(planToPluginJs(cur), { ...lOpts, page: pastePage });
+      ok(barFacts(pastePage) === WANT_BAR && pasted.misses.length === 0,
+        `#2872 paste leg: Link's current-page bar is ${WANT_BAR} (got '${barFacts(pastePage)}'; misses ${JSON.stringify(pasted.misses)})`);
+      const plugPage: StubPage = { children: [] };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the stub satisfies ComponentsApi
+      const plugged = await applyComponentPlan([cur], makeFigmaStub({ ...lOpts, page: plugPage }) as any);
+      ok(barFacts(plugPage) === WANT_BAR && plugged.misses.length === 0,
+        `#2872 plugin leg: Link's current-page bar is ${WANT_BAR} (got '${barFacts(plugPage)}'; misses ${JSON.stringify(plugged.misses)})`);
+    }
+
     // ---- #1302: the stub's `textAlignVertical` refusal is LIVE ------------------------------------------
     // The accessor used to sit in `mkNode`'s object spread, which reads the getter once and drops the setter,
     // so a FRAME took the write silently and every gate leaning on "the wrong node type throws" was testing

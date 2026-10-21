@@ -5343,7 +5343,9 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 // bound height, which the resize must not unbind. And it moves no box: each current member measures what its
 // unselected twin measures. The 2 is pinned here as the shim's variable value (`varPx`), never read off the def.
 // Mutations, each failing the arm named: the foot pass dropped from the executor (the bar stays in the flow) →
-// `link bar foot` and `link bar footprint`; the height not bound again after the resize → `link bar foot`.
+// `link bar foot` and `link bar footprint`; the bar placed before the ring's lift → `link bar foot` (a focus-visible
+// bar runs past the link). NOT caught here: the shim keeps a bound height across `resize`, so dropping the executor's
+// re-bind after it passes; whether the host unbinds there is unverified (#2872's gaps).
 {
   const BAR = 2;
   const defs = componentDefs;
