@@ -243,7 +243,7 @@ const check = (): void => {
     // Restore the committed state either way — the gate reports, it never rewrites. Every copy, the
     // snapshot and the restore, keeps its timestamps (#2067): without that, a clean `--check` left each
     // artifact newer than a bundle built just before it, and `assertBundleFresh` refused that bundle as
-    // stale. `icon-glyphs.ts` compiles into both bundles, and ci.yml runs `--check` again after the builds.
+    // stale. `icon-glyphs.ts` compiles into both bundles, and a `--check` run after a build must not leave it stale.
     rmSync(outDir, { recursive: true, force: true });
     cpSync(outSnap, outDir, { recursive: true, preserveTimestamps: true });
     for (const f of [...SCHEMA_ARTIFACTS, ...MAINTAINER_ARTIFACTS]) cpSync(join(schemaSnap, f), join(schemaDir, f), { preserveTimestamps: true });
