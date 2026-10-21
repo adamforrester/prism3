@@ -3879,7 +3879,7 @@ section('published — on a set in a team library, what breaks consumer files is
   }
 
   // LINK GAINS ITS CURRENT PAGE (#2872, owner decisions Q507): a published Link built before the axis existed, its 96
-  // members with no `selection` and no bar bindings, updated to the plan with `selection` (unselected first) and the
+  // members with no `selection`, updated to the plan with `selection` (unselected first) and the
   // 48 current-page members. The update gives every existing member `selection=unselected` in place (§2: an added axis
   // lands on the first plan's value) and adds the 48 selected standalone members; it lists NOTHING as breaking library
   // consumers (#2839's `breakingOf`): no member dropped or replaced, no property removed or retyped. Applied, each of the
@@ -3887,13 +3887,13 @@ section('published — on a set in a team library, what breaks consumer files is
   // land on a coordinate the set excludes and be dropped, and this arm fails. Counts and segments are typed here.
   {
     const next = plansOf('link');
-    // `before` is the pre-#2872 shape, rebuilt from this PR's unselected plans: the `selection` segment and the bar's four
-    // stroke-weight bindings taken off. Its member names are the 96 a published Link carries today.
+    // `before` is the pre-#2872 shape, rebuilt from this PR's unselected plans with the `selection` segment taken off. Its
+    // member names are the 96 a published Link carries today; their layers are pinned by test.ts's `#2580 link/…` and
+    // `#2872 link bar` arms (an unselected member carries no bar).
     const before = next.filter((p) => p.coord.selection === 'unselected').map((p) => {
       const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
       delete (q.coord as Record<string, string>).selection;
       q.gridAxisOrder = q.gridAxisOrder.filter((a) => a !== 'selection');
-      for (const k of ['strokeTopWeight', 'strokeRightWeight', 'strokeBottomWeight', 'strokeLeftWeight']) delete (q.root.bound as Record<string, string>)[k];
       return q;
     });
     const w = await world('link', before, { extraVars: [...new Set(next.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]))] });

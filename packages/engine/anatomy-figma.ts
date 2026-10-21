@@ -4064,23 +4064,30 @@ const PAYLOAD_CORNER = `  for(const c of n.children){
 `;
 const hasCorner = (n: FigmaNodePlan): boolean => n.cornerInset !== undefined || n.children.some(hasCorner);
 /**
- * THE FOOT PIN (#2872, Link's current-page bar), spliced after the corner pin ONLY for a payload whose plans carry
- * `footPin`, the corner pin's budget reason (#1798). Lifted first, so the parent re-hugs without the bar; sized to the
- * parent's width at the bar's height, with the height bound again since `resize` writes both; flush with the bottom,
- * `STRETCH`/`MAX`. Lockstep with the plugin executor (`write-components.ts`), miss wording included.
+ * THE FOOT PIN (#2872, Link's current-page bar), in two splices, ONLY for a payload whose plans carry `footPin`, the
+ * corner pin's budget reason (#1798). LIFTED before the ring's pass, so the ring is sized off a parent that no longer
+ * holds the bar's cell; SIZED and PLACED after it, so the bar is measured off a parent that no longer holds the ring's.
+ * Sized to the parent's width at the bar's height, with the height bound again since `resize` writes both; flush with
+ * the bottom, `STRETCH`/`MAX`. Lockstep with the plugin executor (`write-components.ts`), miss wording included.
  */
 const FOOT_SLOT = '__FOOT__';
-const PAYLOAD_FOOT = `  for(const c of n.children){
+const PAYLOAD_FOOT = `  const feet=[];
+  for(const c of n.children){
     if(!c.footPin)continue;
     const kid=boxes.get(c.name);
     if(!kid)continue;
     kid.layoutPositioning='ABSOLUTE';
+    feet.push([c,kid]);
+    if(kid.layoutPositioning!=='ABSOLUTE')misses.push(c.name+'.layoutPositioning -> DISCARDED (set ABSOLUTE, reads '+kid.layoutPositioning+'; the bar would take a cell in the row)');
+  }
+`;
+const FOOT_PLACE_SLOT = '__FOOT_PLACE__';
+const PAYLOAD_FOOT_PLACE = `  for(const [c,kid] of feet){
     kid.resize(node.width,kid.height);
     const hv=c.bound&&c.bound.height?byName.get(c.bound.height):undefined;
     if(hv){try{kid.setBoundVariable('height',hv);}catch(e){misses.push(c.name+'.height -> '+c.bound.height+" REFUSED after the foot pin's resize ("+(e&&e.message?e.message:String(e))+')');}}
     kid.x=0;kid.y=node.height-kid.height;
     kid.constraints={horizontal:'STRETCH',vertical:'MAX'};
-    if(kid.layoutPositioning!=='ABSOLUTE')misses.push(c.name+'.layoutPositioning -> DISCARDED (set ABSOLUTE, reads '+kid.layoutPositioning+'; the bar would take a cell in the row)');
   }
 `;
 const hasFoot = (n: FigmaNodePlan): boolean => n.footPin === true || n.children.some(hasFoot);
@@ -4187,6 +4194,7 @@ const payloadBuildFor = (roots: FigmaNodePlan[]): string =>
     .replace(PIN_SLOT, roots.some(hasPin) ? PAYLOAD_PIN : '')
     .replace(CORNER_SLOT, roots.some(hasCorner) ? PAYLOAD_CORNER : '')
     .replace(FOOT_SLOT, roots.some(hasFoot) ? PAYLOAD_FOOT : '')
+    .replace(FOOT_PLACE_SLOT, roots.some(hasFoot) ? PAYLOAD_FOOT_PLACE : '')
     .replace(INSET_SLOT, roots.some(hasInset) ? PAYLOAD_INSET : '')
     .replace(PLACEMENT_SLOT, roots.some(hasPlacement) ? PAYLOAD_PLACEMENT : '')
     .replace(MAX_WIDTH_SLOT, roots.some(hasMaxWidth) ? PAYLOAD_MAX_WIDTH : '')
@@ -4651,7 +4659,7 @@ ${CORNER_SLOT}${FOOT_SLOT}  // Applied by the PARENT, because every fact here is
     // cell to the row — the one thing the ring must not do to its host's geometry.
     if(kid.layoutPositioning!=='ABSOLUTE')misses.push(c.name+'.layoutPositioning -> DISCARDED (set ABSOLUTE, reads '+kid.layoutPositioning+'; the ring would take a cell in the row)');
   }
-  // #1393 — AND IT HAS TO BE LAST: every write above declares something; this declares nothing else was.
+${FOOT_PLACE_SLOT}  // #1393 — AND IT HAS TO BE LAST: every write above declares something; this declares nothing else was.
 ${PIN_SLOT}${INSET_SLOT}
   claimDefaults(node,n,'created');
   // RE-APPLY THE TEXT STYLE, because \`claimDefaults\`' \`paragraphSpacing\`/\`leadingTrim\` just detached it

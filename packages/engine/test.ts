@@ -33742,8 +33742,8 @@ arm: {
   const linkMembers = figmaAnatomySet(link, { swapTarget: 'FPO-default-icon' });
   const RUNG: Record<string, string> = { rest: 'default', hover: 'hover', pressed: 'pressed', 'focus-visible': 'focused' };
   const INK = (surface: string, state: string) => `color/${surface === 'inverse' ? 'inverse/' : ''}text/link/${RUNG[state]}`;
-  // THE CURRENT PAGE (#2872, owner decisions Q507): a selected member's box paints one thing, its 2px bottom stroke, in
-  // the link ICON role stepped by state (1 C); every other member's box paints nothing.
+  // THE CURRENT PAGE (#2872, owner decisions Q507): a selected member's bar is FILLED in the link ICON role stepped by
+  // state (1 C); the link box paints nothing on any member.
   const BAR_INK = (surface: string, state: string) => `color/${surface === 'inverse' ? 'inverse/' : ''}icon/link/${RUNG[state]}`;
   const inkOff: string[] = [], boxOff: string[] = [], ringOff: string[] = [];
   for (const m of linkMembers) {
@@ -33751,8 +33751,10 @@ arm: {
     const root = m.root as PN;
     const ink = findIn(root, 'label')?.paints?.fills;
     if (ink !== INK(c.surface, c.state)) inkOff.push(`${planComponentName(m)}: ${String(ink)} (want ${INK(c.surface, c.state)})`);
-    const wantBox = c.selection === 'selected' ? JSON.stringify({ strokes: BAR_INK(c.surface, c.state) }) : '{}';
-    if (JSON.stringify(root.paints ?? {}) !== wantBox) boxOff.push(`${planComponentName(m)}: ${JSON.stringify(root.paints)} (want ${wantBox})`);
+    if (Object.keys(root.paints ?? {}).length) boxOff.push(`${planComponentName(m)}: ${JSON.stringify(root.paints)}`);
+    const barPaint = findIn(root, 'bar')?.paints;
+    const wantBar = c.selection === 'selected' ? JSON.stringify({ fills: BAR_INK(c.surface, c.state) }) : 'undefined';
+    if (String(JSON.stringify(barPaint)) !== wantBar) boxOff.push(`${planComponentName(m)}: bar ${JSON.stringify(barPaint)} (want ${wantBar})`);
     // (2) THE FOCUS RING: nested only at focus-visible, following the surface so an inverse link's ring reads on the band.
     const ring = findIn(root, 'focusRing');
     const want = c.state === 'focus-visible';
@@ -33760,7 +33762,7 @@ arm: {
       ringOff.push(`${planComponentName(m)}: ${ring ? `${String(ring.nestTarget)} ${JSON.stringify(ring.nestVariant)}` : 'no ring'} (want ${want ? `focus-ring {"surface":"${c.surface}"}` : 'no ring'})`);
   }
   ok(linkMembers.length === 144 && inkOff.length === 0 && boxOff.length === 0,
-    `#2715 link paint: 144 members; the label takes color/text/link/{default,hover,pressed,focused} on the page and color/inverse/text/link/… on an inverse band, by state; the link box paints nothing, except a current member's bar stroke in color/[inverse/]icon/link/<state> (#2872) (${linkMembers.length} members, ${inkOff.length} ink off, ${boxOff.length} box(es) off — ${[...inkOff, ...boxOff].slice(0, 2).join('; ') || 'none'})`);
+    `#2715 link paint: 144 members; the label takes color/text/link/{default,hover,pressed,focused} on the page and color/inverse/text/link/… on an inverse band, by state; the link box paints nothing, and a current member's bar fills color/[inverse/]icon/link/<state> (#2872) (${linkMembers.length} members, ${inkOff.length} ink off, ${boxOff.length} box(es) off — ${[...inkOff, ...boxOff].slice(0, 2).join('; ') || 'none'})`);
   ok(ringOff.filter(Boolean).length === 0 && linkMembers.filter((m) => (m.coord as Record<string, string>).state === 'focus-visible').length === 36,
     `#2715 link focus ring: a nested focus-ring on the 36 focus-visible members only, following the member's surface (${ringOff.length} off — ${ringOff.slice(0, 2).join('; ') || 'none'})`);
 
@@ -33771,24 +33773,27 @@ arm: {
   ok(linkCount((c) => c.style === 'standalone' && c.selection === 'selected') === 48 && linkCount((c) => c.style === 'standalone' && c.selection === 'unselected') === 48
     && linkCount((c) => c.style === 'inline' && c.selection === 'unselected') === 48 && linkCount((c) => c.style === 'inline' && c.selection === 'selected') === 0,
     `#2872 link shape: selection on standalone only — 48 standalone selected, 48 standalone unselected, 48 inline unselected, no inline selected (${linkCount((c) => c.style === 'standalone' && c.selection === 'selected')}, ${linkCount((c) => c.style === 'standalone' && c.selection === 'unselected')}, ${linkCount((c) => c.style === 'inline' && c.selection === 'unselected')}, ${linkCount((c) => c.style === 'inline' && c.selection === 'selected')})`);
-  // THE BAR (1 C): 2px at the foot of the line box, drawn as the box's bottom stroke and nothing else. A current
-  // member binds the bottom weight to border-width/thick and the other three sides to border-width/none; every other
-  // member binds all four to none. No layer is added: a current member's child list is its unselected twin's.
+  // THE BAR (1 C): 2px at the foot of the line box. A current member carries ONE node more than its unselected twin, a
+  // childless `bar` frame 2px high (border-width/thick) pinned across the box's bottom edge out of the flow (`footPin`),
+  // just before the focus ring so the ring draws over it; every other member carries no bar, so the 96 members a
+  // published Link already has gain no layer. The box itself binds no stroke on any member.
   const barOff: string[] = [];
-  const SIDES = ['strokeTopWeight', 'strokeRightWeight', 'strokeBottomWeight', 'strokeLeftWeight'];
   for (const m of linkMembers) {
     const c = m.coord as Record<string, string>;
-    const b = (m.root as PN).bound ?? {};
-    const want = c.selection === 'selected' ? ['border-width/none', 'border-width/none', 'border-width/thick', 'border-width/none'] : SIDES.map(() => 'border-width/none');
-    const got = SIDES.map((k) => b[k]);
-    if (JSON.stringify(got) !== JSON.stringify(want)) barOff.push(`${planComponentName(m)}: ${JSON.stringify(got)}`);
-    if (c.selection === 'selected') {
-      const twin = linkMembers.find((x) => planComponentName(x) === planComponentName(m).replace('selection=selected', 'selection=unselected'));
-      const kids = (n: PN): string => n.children.map((k) => `${k.name}[${kids(k)}]`).join(',');
-      if (!twin || kids(twin.root as PN) !== kids(m.root as PN)) barOff.push(`${planComponentName(m)}: layers differ from its unselected twin`);
-    }
+    const root = m.root as PN;
+    if (Object.keys(root.bound ?? {}).some((k) => /^stroke/.test(k))) barOff.push(`${planComponentName(m)}: the box binds a stroke`);
+    const bar = findIn(root, 'bar') as (PN & { footPin?: boolean }) | undefined;
+    if (c.selection !== 'selected') { if (bar) barOff.push(`${planComponentName(m)}: a bar on a member that is not current`); continue; }
+    if (!bar || bar.children.length || bar.footPin !== true || JSON.stringify(bar.bound) !== JSON.stringify({ height: 'border-width/thick' }))
+      barOff.push(`${planComponentName(m)}: bar ${bar ? JSON.stringify({ bound: bar.bound, footPin: bar.footPin, kids: bar.children.length }) : 'missing'}`);
+    const twin = linkMembers.find((x) => planComponentName(x) === planComponentName(m).replace('selection=selected', 'selection=unselected'));
+    const names = root.children.map((k) => k.name);
+    const twinNames = twin ? (twin.root as PN).children.map((k) => k.name) : [];
+    const want = twinNames.includes('focusRing') ? [...twinNames.slice(0, -1), 'bar', 'focusRing'] : [...twinNames, 'bar'];
+    if (!twin || JSON.stringify(names) !== JSON.stringify(want)) barOff.push(`${planComponentName(m)}: children ${JSON.stringify(names)} (want ${JSON.stringify(want)})`);
   }
-  ok(barOff.length === 0, `#2872 link bar: a current member's box binds a 2px bottom stroke (border-width/thick) and none on the other sides, every other member none on all four, and no member gains a layer (${barOff.length} off — ${barOff.slice(0, 2).join('; ') || 'none'})`);
+  ok(barOff.length === 0 && linkMembers.filter((m) => !!findIn(m.root as PN, 'bar')).length === 48,
+    `#2872 link bar: the 48 current members carry a 2px (border-width/thick) bar frame pinned across the foot (footPin) before the focus ring, no other member carries one, and no box binds a stroke (${barOff.length} off — ${barOff.slice(0, 2).join('; ') || 'none'})`);
   // HOVER ON THE CURRENT ITEM (4): color only. A current member's label takes the PLAIN body style at every state, never
   // its `-link` twin, so no 1px underline joins the bar; an unselected standalone member still shows it at hover.
   const typeOf = (m: (typeof linkMembers)[number]): string => String((findIn(m.root as PN, 'label') as PN & { textStyle?: string })?.textStyle);
@@ -33819,11 +33824,11 @@ arm: {
     `#2715 link contrast: the 8 link inks (4 states × 2 surfaces) each clear 4.5:1 on their ground in all 16 brand × mode cells (${linkCells.length} measured, ${linkLow.length} under — ${linkLow.slice(0, 3).join('; ') || 'none'}${linkMiss.length ? `; missing ${linkMiss.slice(0, 2).join(', ')}` : ''})`);
 
   // (3b) THE BAR'S CONTRAST (#2872, Q507.1 C): the bar is a non-text mark, so 3:1 (SC 1.4.11) against its ground, at
-  // every state the plan paints it, in all 16 brand × mode cells. Read off the plan's strokes.
+  // every state the plan paints it, in all 16 brand × mode cells. Read off the plan's bar fills.
   const barInks = new Map<string, string>();
   for (const m of linkMembers) {
     const c = m.coord as Record<string, string>;
-    const bar = (m.root as PN).paints?.strokes;
+    const bar = findIn(m.root as PN, 'bar')?.paints?.fills;
     if (bar) barInks.set(bar, c.surface === 'inverse' ? 'color/inverse/background/primary' : 'color/background/primary');
   }
   const barCells: { cell: string; ratio: number }[] = [];
