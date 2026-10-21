@@ -991,7 +991,8 @@ const updateComponents = async (defId: string | undefined, previewHash: string |
     const r = await applyUpdate(figma as unknown as ApplyHost, figma as unknown as ComponentsApi, targets, previewHash, { descriptionOf, breathe, furnish, ...(choices ? { choices } : {}) });
     r.refused.push(...refused);
     sink.data({ update: { mode: 'apply', ...r, furniture } });
-    postVerdict({ type: 'component-update-result', ...withTemplateWarning(withFurnitureItems(applyVerdict(r), furnitureItems(furniture, 'update')), furniture) }, sink);
+    // #2858: the library publish description, which the Activity drawer offers with a Copy button.
+    postVerdict({ type: 'component-update-result', ...withTemplateWarning(withFurnitureItems(applyVerdict(r), furnitureItems(furniture, 'update')), furniture), ...(r.publish ? { publish: r.publish } : {}) }, sink);
   } catch (e) {
     const why = (e as Error)?.message ?? String(e);
     postVerdict({ type: 'component-update-result', ok: false, headline: previewHash === null ? '✗ check failed' : '✗ update failed', summary: why, lines: [why] }, sink);

@@ -62,6 +62,8 @@ import { REACTIONS, breakingClause, breakingSection, furnitureParts, withSetSlot
 import { fillSlots, type FillOutcome, type MigNode } from './slot-migration';
 import { slotMigrationOf } from '@prism3/engine/component-renames';
 import { REACTIONS_PATH, plannedRead, reactionMap, reactionVerdict, reactionsText } from './reactions';
+import { ABOUT_NAME, ABOUT_ONLY_DONE, aboutIsWork, aboutLine, drawAbout, type AboutApi, type AboutOutcome, type AboutRoot } from './about-frame';
+import { publishDescription } from './library-about';
 
 /** The set's record of the members an update kept and marked deprecated (Q2): a JSON list of member names. */
 export const RETAINED_KEY = 'retained';
@@ -80,7 +82,9 @@ const fnv = (s: string): string => {
 export const previewHashOf = (r: UpdatePreview): string =>
   // A set's move (#2542), the page list (#2568) and the set's blockers are in the hash, so a set or a page someone moves,
   // or a font or variable that comes or goes (#2601), between the check and the confirm refuses the apply.
-  fnv(JSON.stringify([r.sets.map((s) => [s.set, s.previewHash, ...(s.setMove ? [s.setMove] : []), ...(s.blockers.length ? [s.blockers] : []), ...(s.furniture ? [s.furniture] : [])]), r.missing, r.refused, ...(r.pages ? [r.pages] : [])]));
+  fnv(JSON.stringify([r.sets.map((s) => [s.set, s.previewHash, ...(s.setMove ? [s.setMove] : []), ...(s.blockers.length ? [s.blockers] : []), ...(s.furniture ? [s.furniture] : [])]), r.missing, r.refused, ...(r.pages ? [r.pages] : []),
+    // #2858: the About frame, only while it is work, so a file whose frame is current hashes as it did before it.
+    ...(aboutIsWork(r.about) ? [r.about] : [])]));
 
 /** The host an apply needs: the file the dry run reads, and the executor's port, which are the same `figma` in
  *  the plugin. Two parameters because they are two surfaces, and the offline host models each separately. */
@@ -164,6 +168,13 @@ export type ApplyResult = {
   refused: { def: string; reason: string }[];
   /** #2568 — the component pages the apply put in alphabetical order, by full page name. Absent when none. */
   reordered?: string[];
+  /** #2858 — the Cover page's "About this library" frame, drawn after the sets. Absent when the run wrote nothing. */
+  about?: AboutOutcome;
+  /** #2858 — the library publish description, offered with a Copy button: no Plugin API call sets it. Absent when the
+   *  run wrote nothing. */
+  publish?: string;
+  /** #2858, owner decision Q498 B — the About frame was the run's only work, so no named version was saved for it. */
+  aboutOnly?: true;
 };
 
 type LiveNode = { id?: unknown; key?: unknown; name?: unknown; type?: unknown; children?: readonly unknown[]; parent?: unknown };
@@ -639,6 +650,30 @@ const settle = async (host: ApplyHost, targets: readonly UpdateTarget[], preview
 };
 
 /**
+ * THE ABOUT FRAME AND THE PUBLISH DESCRIPTION (#2858), once a run has written: `res.version` is set by whichever path
+ * saved the named version first, the apply's or `settle`'s re-spacing. The frame is redrawn last, so its date is the
+ * run's; a run that stopped in a set leaves it, and the next run finishes the sets and draws it. A host write refused
+ * here is named, never thrown: the sets are already written. The description's first sentence is that version's title.
+ */
+const finishAbout = async (host: ApplyHost, api: ComponentsApi, preview: UpdatePreview, res: ApplyResult, today: string | undefined): Promise<void> => {
+  if (!res.version && !res.aboutOnly) return;
+  if (preview.about && !res.outcomes.some((o) => o.stopped)) {
+    try {
+      res.about = await drawAbout(api as unknown as AboutApi, host.root as AboutRoot, { updated: today ?? new Date().toISOString().slice(0, 10) });
+    } catch (e) {
+      res.about = { drawn: false, skipped: `Figma refused the write (${(e as Error)?.message ?? String(e)})`, fontMisses: [] };
+    }
+  }
+  // With no version, no set changed: the library has nothing new to publish, and the description has no title.
+  if (!res.version) return;
+  const changed = res.outcomes.filter((o) => !o.refused && (o.updated.length || o.added || o.renamed || o.deprecated.length)).map((o) => o.set);
+  res.publish = publishDescription({
+    title: res.version, sets: changed, from: res.about?.from ?? (preview.about?.state === 'stale' ? preview.about.from.engine : null),
+    consumerBreaks: res.outcomes.reduce((k, o) => k + (o.breaking?.length ?? 0), 0),
+  });
+};
+
+/**
  * `update-components` with `confirm: true`: the update, applied, over the targets the dry run checked.
  * `host` reads the file as the dry run does; `api` is the executor's port. Both are `figma` in the plugin.
  */
@@ -648,7 +683,9 @@ export const applyUpdate = async (
   targets: readonly UpdateTarget[],
   previewHash: string,
   /** `ledger` is the engine's `COMPONENT_RENAMES` unless a test passes its own. */
-  opts: { descriptionOf?: (def: string) => string | undefined; breathe?: () => Promise<void>; yieldTo?: () => Promise<void>; ledger?: readonly ComponentRename[]; choices?: UpdateChoices; furnish?: Furnish } = {},
+  opts: { descriptionOf?: (def: string) => string | undefined; breathe?: () => Promise<void>; yieldTo?: () => Promise<void>; ledger?: readonly ComponentRename[]; choices?: UpdateChoices; furnish?: Furnish;
+    /** The run's date for the About frame, `YYYY-MM-DD`; today, UTC, unless a test passes its own. */
+    today?: string } = {},
 ): Promise<ApplyResult> => {
   const preview = await previewUpdate(host, targets, opts.breathe, opts.ledger);
   const res: ApplyResult = { outcomes: [], missing: preview.missing, refused: preview.refused };
@@ -693,10 +730,21 @@ export const applyUpdate = async (
   const moving = preview.sets.filter((p) => p.setMove && !p.blockers.length);
   // THE PAGE ORDER (#2568) is work of its own: a file whose sets are all up to date can still have pages to reorder.
   const reorder = !!preview.pages?.length && typeof host.root.insertChild === 'function' && !!host.root.children;
-  if (!ready.length && !moving.length && !reorder && !furnishing.length) { await settle(host, targets, preview, res, opts); return res; }
+  // THE ABOUT FRAME (#2858) is work of its own when it is missing or drawn for another engine.
+  const about = aboutIsWork(preview.about);
+  if (!ready.length && !moving.length && !reorder && !furnishing.length && !about) { await settle(host, targets, preview, res, opts); await finishAbout(host, api, preview, res, opts.today); return res; }
+  // THE ABOUT FRAME ALONE SAVES NO VERSION (owner decision Q498 B): no set changes, so Q7's way back has nothing to
+  // cover. `settle` still saves one before any re-spacing it finds, as for any other second write.
+  if (!ready.length && !moving.length && !reorder && !furnishing.length) {
+    res.aboutOnly = true;
+    await settle(host, targets, preview, res, opts);
+    if (res.version) delete res.aboutOnly;
+    await finishAbout(host, api, preview, res, opts.today);
+    return res;
+  }
   // A NAMED VERSION, ONCE, BEFORE THE FIRST WRITE (Q7), for all of it: the sets updated or moved, then the page order.
   // Refused or unavailable, nothing is written.
-  const title = versionTitle([...new Set([...ready.map((x) => x.p.set), ...moving.map((p) => p.set), ...furnishing.map((p) => p.set)]), ...(reorder ? ['the page order'] : [])]);
+  const title = versionTitle([...new Set([...ready.map((x) => x.p.set), ...moving.map((p) => p.set), ...furnishing.map((p) => p.set)]), ...(reorder ? ['the page order'] : []), ...(about ? [ABOUT_NAME] : [])]);
   try {
     if (!host.saveVersionHistoryAsync) throw new Error('this host cannot save a version');
     await host.saveVersionHistoryAsync(title);
@@ -743,6 +791,7 @@ export const applyUpdate = async (
   // holds its page still. Only `x` and `y` are written, so every set and member keeps its id.
   if (!res.outcomes.some((o) => o.stopped)) await respaceLive(host, targets, preview, res, opts);
   await settle(host, targets, preview, res, opts);
+  await finishAbout(host, api, preview, res, opts.today);
   return res;
 };
 
@@ -837,7 +886,10 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
   // Owner-approved wording (#2568, Q264 A), the dry run's "to reorder" as done.
   if (reordered) lines.push(`Component pages: ${reordered} reordered (${r.reordered!.map(stripNestPrefix).join(', ')}).`);
   if (r.missing.length) lines.push(`Not in this file: ${r.missing.join(', ')}.`);
+  // #2858: the Cover page's About frame, drawn last.
+  if (r.about) lines.push(aboutLine(r.about));
   if (r.version) lines.push(`Saved a version first: "${r.version}".`);
+  else if (r.aboutOnly && r.about?.drawn) lines.push(ABOUT_ONLY_DONE);
   const headline = stopped ? `✗ update stopped at ${stopped.set}`
     : failed.length ? `⚠ ${n(failed.length, 'set')} not verified`
       : refused ? `✗ ${n(refused, 'set')} not updated`
@@ -851,6 +903,8 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
                   : setsMoved && reordered ? `✓ ${n(setsMoved, 'set')} moved, reordered ${n(reordered, 'page')}`
                     : setsMoved ? `✓ ${n(setsMoved, 'set')} moved` : reordered ? `✓ reordered ${n(reordered, 'page')}`
                       // DRAFT wording for the owner (#2803, Q379 A): a run whose only work was the canvas furniture.
-                      : furnished ? `✓ canvas furniture drawn for ${n(furnished, 'set')}` : r.outcomes.some((o) => o.asPreviewed && !o.asPreviewed.upToDate) ? '✓ No changes found' : '✓ already up to date';
+                      : furnished ? `✓ canvas furniture drawn for ${n(furnished, 'set')}`
+                        // DRAFT wording for the owner (#2858): a run whose only work was the About frame.
+                        : r.about?.drawn ? `✓ ${ABOUT_NAME} drawn` : r.outcomes.some((o) => o.asPreviewed && !o.asPreviewed.upToDate) ? '✓ No changes found' : '✓ already up to date';
   return { ok: !stopped && !failed.length && !refused, headline: `${headline}${breakingClause(r.outcomes)}`, summary: lines.join('\n'), lines };
 };

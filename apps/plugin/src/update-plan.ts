@@ -63,6 +63,7 @@ import { drawnFaults, faultLine, type DrawnFault, type DrawVar } from './drawn';
 import { REACTIONS_PATH, plannedRead, reactionMap, reactionVerdict, reactionsText, type PlannedReaction, type ReadReaction } from './reactions';
 import { pagesOutOfOrder, stripNestPrefix, type PageLike } from './file-setup';
 import { whatChangedLines } from './release-summary';
+import { ABOUT_NAME, ABOUT_ONLY_CHECK, aboutDue, aboutDueLine, aboutIsWork, type AboutDue } from './about-frame';
 import { colorVariablesOutOfOrder } from '@prism3/engine/color-order';
 
 /** One member of a set as the dry run reads it. */
@@ -1055,6 +1056,9 @@ export type UpdatePreview = {
   /** #2568, owner decision Q260 A — the component pages not in alphabetical order, by full page name, which the apply
    *  moves into place (`pagesOutOfOrder`). Absent when none. */
   pages?: string[];
+  /** #2858 — what the Update owes the Cover page's "About this library" frame (`about-frame.ts`). Absent for a host
+   *  with no page list. */
+  about?: AboutDue;
   /** #2860 — the colour variables not in the canonical order (`colorVariablesOutOfOrder`), by full variable name, in the
    *  file's order. A report: the Plugin API has no way to move a variable, so nothing applies it and it is not in the
    *  hash. Absent when none. */
@@ -1215,6 +1219,9 @@ export const previewUpdate = async (host: UpdateHost, targets: readonly UpdateTa
   // THE PAGE ORDER (#2568): read once for the file, whichever sets the targets name, since the pages are the file's.
   const pages = host.root.children ? pagesOutOfOrder(host.root.children) : [];
   if (pages.length) out.pages = pages;
+  // THE ABOUT FRAME (#2858): read once for the file, like the page order.
+  const about = await aboutDue(host.root);
+  if (about) out.about = about;
   // THE VARIABLE ORDER (#2860): read once for the file. Nothing here can move a variable, so this only names them.
   const variables = colorVariablesOutOfOrder((await host.variables.getLocalVariablesAsync()).map((v) => v.name));
   if (variables.length) out.variables = variables;
@@ -1483,6 +1490,12 @@ export const variablesLine = (variables: readonly string[] | undefined): string 
   return `Color variables: ${variables.length} out of order (${shown.join(', ')}${more}). Figma lets a plugin add variables but not move them, so drag these into place in the variables panel.`;
 };
 
+/** Whether the About frame is the check's only work (#2858, owner decision Q498 B), read as the apply reads it: no set a
+ *  confirm would write (a stamp-only set is a write), no set to move and no page to reorder. A set that can't be checked
+ *  is refused by the confirm, so it adds no work. The apply then saves no named version, and the dry run says so. */
+export const aboutOnly = (r: UpdatePreview): boolean =>
+  aboutIsWork(r.about) && !r.pages?.length && r.sets.every((p) => p.blockers.length > 0 || (noChanges(p) && !p.counts.revisionUnknown));
+
 /** The verdict for a dry run. `ok` is false only where a set could not be checked. `lines` is the Activity drawer's
  *  copy (#2177): one per set, then the closing lines, the same list `summary` is joined from. */
 export const previewVerdict = (r: UpdatePreview, whatChanged: (sets: string[]) => string[] = whatChangedLines): { ok: boolean; headline: string; summary: string; lines: string[] } => {
@@ -1494,9 +1507,11 @@ export const previewVerdict = (r: UpdatePreview, whatChanged: (sets: string[]) =
   const blocked = r.sets.filter((p) => p.blockers.length).length + r.refused.length;
   const reorder = r.pages?.length ?? 0;
   // Owner-approved wording (#2568, Q264 A): pages to reorder and nothing else is its own headline.
-  const headline = r.sets.length + r.refused.length === 0 ? (reorder ? `Would reorder ${n(reorder, 'page')}` : 'No sets to check')
+  // DRAFT wording for the owner (#2858): the About frame as the only work reads as work, as the page order does.
+  const about = aboutIsWork(r.about) ? `Would ${r.about!.state === 'stale' ? 'redraw' : 'draw'} ${ABOUT_NAME}` : '';
+  const headline = r.sets.length + r.refused.length === 0 ? (reorder ? `Would reorder ${n(reorder, 'page')}` : about || 'No sets to check')
     : blocked ? `✗ ${n(blocked, 'set')} can't be checked`
-      : changing ? `Would change ${changing} of ${r.sets.length}` : reorder ? `Would reorder ${n(reorder, 'page')}`
+      : changing ? `Would change ${changing} of ${r.sets.length}` : reorder ? `Would reorder ${n(reorder, 'page')}` : about ? about
         : earlier || claimable ? '✓ No changes found' : '✓ All sets up to date';
   const lines = [
     // Each set's line, then each field it differs from its plan in, NAMED (#2295): where, what, the plan's value and
@@ -1509,6 +1524,8 @@ export const previewVerdict = (r: UpdatePreview, whatChanged: (sets: string[]) =
     ...breakingSection(r.sets, false),
     ...r.refused.map((x) => `${x.def}: can't be checked. ${x.reason}.`),
     pagesLine(r.pages),
+    aboutDueLine(r.about),
+    aboutOnly(r) ? ABOUT_ONLY_CHECK : '',
     variablesLine(r.variables),
     r.missing.length ? `Not in this file: ${r.missing.join(', ')}.` : '',
     earlier ? `${earlier} built by an earlier plugin. Update ${earlier === 1 ? 'it to bring it' : 'them to bring them'} current.` : '',
