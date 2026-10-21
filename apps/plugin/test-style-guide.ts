@@ -1347,7 +1347,7 @@ const main = async (): Promise<void> => {
   const byTitle = (kind: string, title: string): SgTable | undefined => plan.tables.find((t) => t.kind === kind && t.title === title);
   {
     const sem = plan.tables.filter((t) => t.kind === 'semantic');
-    ok(JSON.stringify(sem.map((t) => t.title)) === JSON.stringify(['Background', 'Foreground', 'Text', 'Interactive', 'Border', 'Icon', 'Disabled', 'Scrim', 'Veil', 'Field', ...SEM_INVERSE]), '3: color groups by family, in file order, each inverse family its own table (#2801)');
+    ok(JSON.stringify(sem.map((t) => t.title)) === JSON.stringify(['Background', 'Foreground', 'Text', 'Border', 'Icon', 'Interactive', 'Disabled', 'Scrim', 'Veil', 'Field', ...SEM_INVERSE]), '3: color groups by family, in file order, each inverse family its own table (#2801)');
     ok(sem.every((t) => t.page === SEM), '3: semantic tables go on ↳ Semantic tokens');
     const prim = plan.tables.filter((t) => t.kind === 'primitive');
     ok(JSON.stringify(prim.map((t) => t.title)) === JSON.stringify(['Core — base', 'Primary', 'Neutral', 'Accent', 'Success', 'Warning', 'Info', 'Danger', 'Black alpha', 'White alpha', 'Legacy']), '3: primitive tables per palette');
@@ -1705,7 +1705,7 @@ const main = async (): Promise<void> => {
   {
     const two = twoRootVariables();
     const p2 = planStyleGuide({ collections: two.cols, variables: two.vars }, contract);
-    const fams = ['Background', 'Foreground', 'Text', 'Interactive', 'Border', 'Icon', 'Disabled', 'Scrim', 'Veil', 'Field', ...SEM_INVERSE];
+    const fams = ['Background', 'Foreground', 'Text', 'Border', 'Icon', 'Interactive', 'Disabled', 'Scrim', 'Veil', 'Field', ...SEM_INVERSE];
     ok(JSON.stringify(p2.tables.filter((t) => t.kind === 'semantic').map((t) => t.title)) === JSON.stringify([...fams.map((x) => `${x} — nbds`), ...fams.map((x) => `${x} — pds3`)]), '9: a two-root color collection groups by family within each root, the root named in the title');
     const pal = ['Primary', 'Neutral', 'Accent', 'Success', 'Warning', 'Info', 'Danger', 'Black alpha', 'White alpha'];
     ok(JSON.stringify(p2.tables.filter((t) => t.kind === 'primitive').map((t) => t.title)) === JSON.stringify(['Core — nbds base', ...pal.map((x) => `${x} — nbds`), 'Core — pds3 base', ...pal.map((x) => `${x} — pds3`), 'Legacy']), '9: the two Primary palettes are told apart by their root; a one-root collection names none');
@@ -2984,7 +2984,7 @@ const main = async (): Promise<void> => {
   {
     // THE TABLES THE PAGE OFFERS, typed here: the prism3 file's 29, in draw order (section 14 counts the same run).
     const PRISM3_TITLES = ['Core — base', 'Primary', 'Neutral', 'Accent', 'Success', 'Warning', 'Info', 'Danger', 'Black alpha', 'White alpha',
-      'Background', 'Foreground', 'Text', 'Interactive', 'Border', 'Icon', 'Disabled', 'Scrim', 'Veil', 'Field', ...SEM_INVERSE, 'Legacy'];
+      'Background', 'Foreground', 'Text', 'Border', 'Icon', 'Interactive', 'Disabled', 'Scrim', 'Veil', 'Field', ...SEM_INVERSE, 'Legacy'];
     const f25 = await fullFile();
     const cat = catalogFor({ collections: f25.cols, variables: f25.vars }, contract, isSetUp(f25.api.root));
     ok(JSON.stringify(cat.tables.map((t) => t.title)) === JSON.stringify(PRISM3_TITLES) && cat.tables.every((t) => t.kind === 'color')
