@@ -417,9 +417,10 @@ const roomPage = async (name: string) => {
   a.x = 0; a.y = 0;
   b.x = Number(a.width) + 400; b.y = 0;
   const panels = host([p]);
-  const rb = await drawDocPanel(panels, b, componentDefs.find((d) => d.id === 'divider')!, { names });
-  const ra = await drawDocPanel(panels, a, componentDefs.find((d) => d.id === 'badge')!, { names });
   const uh = { ...api, root: { ...(api.root as object), findAllWithCriteria: (c: never) => labelHost(panels).root.findAllWithCriteria(c) } } as unknown as UpdateHost & PanelApi & FurnitureApi;
+  // Drawn through the update host, so the blocked draw's record carries the plan the dry run reads.
+  const rb = await drawDocPanel(uh, b, componentDefs.find((d) => d.id === 'divider')!, { names });
+  const ra = await drawDocPanel(uh, a, componentDefs.find((d) => d.id === 'badge')!, { names });
   const doc = (id: string) => ({ def: componentDefs.find((d) => d.id === id)!, names });
   const targets: UpdateTarget[] = ['badge', 'divider'].map((id) => ({ def: id, plans: plansOf(id), doc: doc(id) }));
   const livePanel = (set: N) => panelsOn(p).find((n) => tagOf(n).state === 'live' && tagOf(n).set === set.id);
@@ -431,7 +432,7 @@ const roomPage = async (name: string) => {
     `overlap/blocked by a set: a Prism3 set later in the row is the one case the run sends to Update ("${panelItems(ra).join(' ')}")`);
   const pre = await previewUpdate(uh, targets);
   const pa = pre.sets.find((x) => x.set === 'badge'), pb = pre.sets.find((x) => x.set === 'divider');
-  ok(pb?.setMove?.to.x === Number(a.width) + 760 && pa?.furniture?.panels === 1,
+  ok(!!JSON.parse(String(p.getSharedPluginData!('prism3', 'docPanelBlocked')) || '{}')[String(a.id)] && pb?.setMove?.to.x === Number(a.width) + 760 && pa?.furniture?.panels === 1,
     `due/update makes room: the dry run moves Divider to ${pb?.setMove?.to.x} and lists Badge's blocked panel as due, since the move clears it (${JSON.stringify(pa?.furniture)})`);
   // ONE UPDATE, as `main.ts` runs it: each set's furniture redrawn with its panel (`furnishUpdate` with the panel hook).
   const furnish = async (def: string) => { await furnishUpdate(uh, { outcomes: [{ def }] }, targets, (set, id) => drawDocPanel(uh, set as unknown as PNode, componentDefs.find((d) => d.id === id)!, { names })); };
