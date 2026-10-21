@@ -82,7 +82,7 @@ One or two words per tab, nouns, sentence case.
 
 ## Related components
 
-- **Built from:** `tab`
+- **Built from:** `tab-item`
 - **Instead, consider:** `select`, `accordion`, `segmented-control`
 - **Often used with:** `badge`, `icon`
 - **Replaces:**
@@ -96,7 +96,7 @@ One or two words per tab, nouns, sentence case.
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
 | `value` | string | — | no | The key of the selected tab. Controlled; pair it with onChange. |
-| `items` | slot of `tab`, 1 to 6 | — | yes | The tabs, each a Tab, in order, one per panel. Three by default with the first selected, six at most. |
+| `items` | slot of `tab-item`, 1 to 6 | — | yes | The tabs, each a Tab, in order, one per panel. Three by default with the first selected, six at most. |
 | `defaultValue` | string | — | no | The key of the tab selected first, when the list manages its own state. |
 | `onChange` | function | — | no | Called with the new key when the selected tab changes. |
 | `activation` | enum: 'automatic' \| 'manual' | `automatic` | no | automatic: moving focus with the arrow keys selects the tab. manual: arrows move focus only, and Enter or Space selects. Use manual when showing a panel is slow. |
@@ -191,10 +191,10 @@ Keyed by `alignment`.
 
 ### Nesting and properties
 
-- `container/items` is a slot, preferring `tab`
-- `container/items/tab1` nests `tab` at `selection=selected, size=medium, state=rest`; follows `size`
-- `container/items/tab2` nests `tab` at `selection=unselected, size=medium, state=rest`; follows `size`
-- `container/items/tab3` nests `tab` at `selection=unselected, size=medium, state=rest`; follows `size`
+- `container/items` is a slot, preferring `tab-item`
+- `container/items/tab1` nests `tab-item` at `selection=selected, size=medium, state=rest`; follows `size`
+- `container/items/tab2` nests `tab-item` at `selection=unselected, size=medium, state=rest`; follows `size`
+- `container/items/tab3` nests `tab-item` at `selection=unselected, size=medium, state=rest`; follows `size`
 
 | Property | Type | Default |
 | --- | --- | --- |

@@ -2978,8 +2978,8 @@
       "sizeDefault": "medium"
     },
     {
-      "id": "tab",
-      "name": "Tab",
+      "id": "tab-item",
+      "name": "Tab.Item",
       "category": "navigation",
       "states": [
         "rest",
@@ -3620,6 +3620,15 @@
       "basis": "components whose name ends in .Group"
     },
     {
+      "kind": "role peers",
+      "name": "*.Item",
+      "members": [
+        "list-item",
+        "tab-item"
+      ],
+      "basis": "components whose name ends in .Item"
+    },
+    {
       "kind": "substrate",
       "name": "button",
       "members": [
@@ -3684,7 +3693,7 @@
       "select",
       "switch-control",
       "switch-row",
-      "tab",
+      "tab-item",
       "tag",
       "text-field",
       "textarea"
@@ -3723,7 +3732,7 @@
       "select",
       "switch-control",
       "switch-row",
-      "tab",
+      "tab-item",
       "tag",
       "text-field",
       "textarea"
@@ -3754,7 +3763,7 @@
       "select",
       "switch-control",
       "switch-row",
-      "tab",
+      "tab-item",
       "tag",
       "text-field",
       "textarea"
@@ -3798,7 +3807,7 @@
       "segmented-control-segment",
       "switch-control",
       "switch-row",
-      "tab",
+      "tab-item",
       "tag"
     ],
     "read-only": [
@@ -3834,7 +3843,7 @@
       "select",
       "switch-control",
       "switch-row",
-      "tab",
+      "tab-item",
       "tag",
       "text-field",
       "textarea"
@@ -4073,7 +4082,7 @@
         ],
         "components": [
           "segmented-control-segment",
-          "tab",
+          "tab-item",
           "tag"
         ]
       },
@@ -4165,7 +4174,7 @@
           "segmented-control",
           "segmented-control-segment",
           "select",
-          "tab",
+          "tab-item",
           "tabs",
           "tag",
           "text-field",
@@ -4565,7 +4574,7 @@
     ],
     "count": [
       {
-        "id": "tab"
+        "id": "tab-item"
       }
     ],
     "decorative": [
@@ -4731,7 +4740,7 @@
         "default": false
       },
       {
-        "id": "tab",
+        "id": "tab-item",
         "default": false
       },
       {
@@ -5147,7 +5156,7 @@
         "id": "switch-row"
       },
       {
-        "id": "tab"
+        "id": "tab-item"
       },
       {
         "id": "tabs"
@@ -5194,7 +5203,7 @@
         "id": "select"
       },
       {
-        "id": "tab"
+        "id": "tab-item"
       },
       {
         "id": "tag"
@@ -5592,7 +5601,7 @@
         "default": false
       },
       {
-        "id": "tab",
+        "id": "tab-item",
         "default": false
       },
       {
@@ -5987,7 +5996,7 @@
         ]
       },
       {
-        "id": "tab",
+        "id": "tab-item",
         "default": "medium",
         "values": [
           "small",
@@ -6497,7 +6506,7 @@
         "id": "select"
       },
       {
-        "id": "tab"
+        "id": "tab-item"
       },
       {
         "id": "tabs"
@@ -6554,6 +6563,15 @@
         "switch-row"
       ],
       "detail": "switch-row differs from the group's common set [disabled, focus-visible, hover, pressed, read-only, rest] — adds pending"
+    },
+    {
+      "kind": "state set",
+      "subject": "role peers: *.Item",
+      "components": [
+        "list-item",
+        "tab-item"
+      ],
+      "detail": "no state set is shared by most of the group — list-item []; tab-item [rest, hover, pressed, focus-visible, disabled]"
     },
     {
       "kind": "state set",
@@ -6721,10 +6739,10 @@
         "radio-control",
         "segmented-control-segment",
         "switch-control",
-        "tab",
+        "tab-item",
         "tag"
       ],
-      "detail": "the selection axis takes 4 value sets — [selected, unselected] in segmented-control-segment, tab, tag; [checked, indeterminate, unchecked] in checkbox-control; [checked, unchecked] in radio-control; [off, on] in switch-control"
+      "detail": "the selection axis takes 4 value sets — [selected, unselected] in segmented-control-segment, tab-item, tag; [checked, indeterminate, unchecked] in checkbox-control; [checked, unchecked] in radio-control; [off, on] in switch-control"
     },
     {
       "kind": "axis values",
@@ -6773,13 +6791,13 @@
         "spinner",
         "switch-control",
         "switch-row",
-        "tab",
+        "tab-item",
         "tabs",
         "tag",
         "text-field",
         "textarea"
       ],
-      "detail": "the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab, tabs, tag, text-field, textarea; [medium, small] in switch-control, switch-row; [large, medium, small, x-small] in spinner"
+      "detail": "the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab-item, tabs, tag, text-field, textarea; [medium, small] in switch-control, switch-row; [large, medium, small, x-small] in spinner"
     },
     {
       "kind": "axis values",
@@ -7067,11 +7085,11 @@
     },
     {
       "kind": "size order",
-      "subject": "tab",
+      "subject": "tab-item",
       "components": [
-        "tab"
+        "tab-item"
       ],
-      "detail": "tab declares its sizes as [medium, small, large], not smallest first"
+      "detail": "tab-item declares its sizes as [medium, small, large], not smallest first"
     },
     {
       "kind": "size order",
@@ -7247,11 +7265,11 @@
     },
     {
       "kind": "axis without prop",
-      "subject": "tab",
+      "subject": "tab-item",
       "components": [
-        "tab"
+        "tab-item"
       ],
-      "detail": "tab has the variant axis selection and no prop of that name"
+      "detail": "tab-item has the variant axis selection and no prop of that name"
     },
     {
       "kind": "axis without prop",

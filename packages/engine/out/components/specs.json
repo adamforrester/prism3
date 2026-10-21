@@ -21594,7 +21594,7 @@
       ],
       "properties": [
         {
-          "name": "State icon",
+          "name": "state icon",
           "type": "BOOLEAN",
           "default": true
         }
@@ -23715,7 +23715,7 @@
       ],
       "properties": [
         {
-          "name": "Marker",
+          "name": "marker",
           "type": "BOOLEAN",
           "default": true
         }
@@ -25552,15 +25552,15 @@
           "type": "INSTANCE_SWAP"
         },
         {
-          "name": "Check icon",
+          "name": "check icon",
           "type": "BOOLEAN",
           "default": true
         }
       ]
     },
-    "tab": {
-      "id": "tab",
-      "name": "Tab",
+    "tab-item": {
+      "id": "tab-item",
+      "name": "Tab.Item",
       "members": 30,
       "axes": [
         {
@@ -26555,13 +26555,13 @@
           "part": "container/items",
           "kind": "slot",
           "preferred": [
-            "tab"
+            "tab-item"
           ]
         },
         {
           "part": "container/items/tab1",
           "kind": "instance",
-          "component": "tab",
+          "component": "tab-item",
           "variant": {
             "selection": "selected",
             "size": "medium",
@@ -26575,7 +26575,7 @@
         {
           "part": "container/items/tab2",
           "kind": "instance",
-          "component": "tab",
+          "component": "tab-item",
           "variant": {
             "selection": "unselected",
             "size": "medium",
@@ -26589,7 +26589,7 @@
         {
           "part": "container/items/tab3",
           "kind": "instance",
-          "component": "tab",
+          "component": "tab-item",
           "variant": {
             "selection": "unselected",
             "size": "medium",
@@ -29694,7 +29694,7 @@
       ],
       "properties": [
         {
-          "name": "Label",
+          "name": "label",
           "type": "BOOLEAN",
           "default": true
         },

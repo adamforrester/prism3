@@ -175,7 +175,7 @@ Keyed by nothing: one row covers every member.
 
 | Property | Type | Default |
 | --- | --- | --- |
-| `Label` | boolean | `true` |
+| `label` | boolean | `true` |
 | `items` | slot | — |
 
 ---

@@ -1563,7 +1563,7 @@ export const figmaAnatomyPlan = (
     // A VARIANT gate composes with it, and it is evaluated HERE, before those lines, so an optional or
     // slot-named boolean part is never dropped ahead of its own gate. ONE path for both users (the #1743
     // merge of #1765): Tag's check (one part, present only at `type=select × selection=selected`) and
-    // switch-control's `State icon` (the check at `selection=on`, the X at `selection=off`). AND across axes,
+    // switch-control's `state icon` (the check at `selection=on`, the X at `selection=off`). AND across axes,
     // and an axis the caller did not supply reads as ABSENT — the same rule the variant-gated branch below
     // applies. `figmaPropertyErrors` refuses a boolean on a STATE gate (`when`, or `presentWhen`'s `state`
     // key) and a boolean whose parts could both build at one member, so neither reaches this line.
@@ -4971,7 +4971,7 @@ for(const [name,key] of bare)if(!referenced.has(key))propMiss.push('property '+n
 export const CANVAS_FURNITURE: ReadonlySet<string> = new Set([
   'focus-ring', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral',
   'field-label', 'field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control',
-  'radio-row', 'radio-group', 'switch-control', 'switch-row', 'select', 'veil', 'image-placeholder', 'badge', 'tag', 'tab', 'tabs',
+  'radio-row', 'radio-group', 'switch-control', 'switch-row', 'select', 'veil', 'image-placeholder', 'badge', 'tag', 'tab-item', 'tabs',
   'divider', '_accordion-indicator', 'accordion', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'list-item',
   'list', 'segmented-control-segment', 'segmented-control', 'link',
   'button-group', 'dialog', 'password-field', 'counter',

@@ -237,7 +237,7 @@ const MUST_COVER = [
   'flush-icon-button.focusRing', 'flush-icon-button-destructive.focusRing', 'flush-icon-button-neutral.focusRing',
   'text-field.focusRing', 'textarea.focusRing', 'select.focusRing', 'password-field.focusRing',
   'checkbox-control.focusRing', 'radio-control.focusRing', 'switch-control.focusRing',
-  'tag.focusRing', 'tab.focusRing', 'accordion.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing',
+  'tag.focusRing', 'tab-item.focusRing', 'accordion.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing',
   'counter.focusRing',
 ];
 
@@ -255,7 +255,7 @@ const MUST_CLEAR_STROKE = [
   'flush-icon-button.focusRing', 'flush-icon-button-destructive.focusRing', 'flush-icon-button-neutral.focusRing',
   'text-field.focusRing', 'textarea.focusRing', 'select.focusRing', 'password-field.focusRing',
   'checkbox-control.focusRing', 'radio-control.focusRing', 'switch-control.focusRing',
-  'tag.focusRing', 'tab.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing',
+  'tag.focusRing', 'tab-item.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing',
   'counter.focusRing',
 ];
 

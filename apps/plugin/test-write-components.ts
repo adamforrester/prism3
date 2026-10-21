@@ -5275,12 +5275,12 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 // unselected member at the same size and state must then measure the same width, and the build reports no footprint
 // miss. Mutation: the bold reserve dropped from `labelBox` → `tab width held (Q226 A)`.
 {
-  const tabDef = componentDefs.find((d) => d.id === 'tab')!;
+  const tabDef = componentDefs.find((d) => d.id === 'tab-item')!;
   const plans = figmaAnatomySet(materializeForBrand(tabDef, null), { swapTarget: SWAP });
   const BOLD_WIDER = { 'label/sm/emphasis': 8, 'label/md/emphasis': 8, 'label/lg/emphasis': 8 };
   const page: Page = { children: [] };
   const r = await run(plans, { ...fullFor(plans), page, liveRoot: true, layoutModel: true, textAdvance: BOLD_WIDER });
-  const set = page.children.find((c) => c.name === 'tab' && c.type === 'COMPONENT_SET') as Node | undefined;
+  const set = page.children.find((c) => c.name === 'tab-item' && c.type === 'COMPONENT_SET') as Node | undefined;
   const members = (set?.children ?? []) as Node[];
   const key = (m: Node) => String(m.name).split(', ').filter((seg) => !seg.startsWith('selection=')).sort().join(', ');
   const by = new Map<string, Record<string, number>>();

@@ -313,7 +313,7 @@ Keyed by `selection`, `status`, `state`.
 
 | Property | Type | Default |
 | --- | --- | --- |
-| `State icon` | boolean | `true` |
+| `state icon` | boolean | `true` |
 
 ---
 

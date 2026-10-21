@@ -1412,7 +1412,7 @@ export type FigmaProperties = {
    *  leading glyph is a boolean `leading icon` (present?) AND a swap `↳ swap leading icon` (which icon),
    *  the #1380 canon. The one-property-per-node rule below is keyed on the FIELD for exactly this reason.
    *
-   *  ONE PROPERTY, SEVERAL PARTS (switch-control's `State icon`). `part` may be a LIST when one toggle
+   *  ONE PROPERTY, SEVERAL PARTS (switch-control's `state icon`). `part` may be a LIST when one toggle
    *  governs two nodes that never coexist — the switch thumb's check (at `selection=on`) and X (at
    *  `selection=off`) are one affordance a designer turns on or off once, not two. Each listed part
    *  carries `visibleProp` on its own node; the set declares the property once (`planSetProperties`
@@ -2158,7 +2158,7 @@ export const textFigmaName = (prop: string, t: { figmaName?: string }): string =
 
 type BooleanEntry = string | { part: string | readonly string[]; default?: boolean; figmaName?: string; figmaOnly?: boolean; together?: true };
 /** The parts whose `visible` a `booleans` entry drives — bare string, `{ part }`, or `{ part: [...] }`
- *  (#1331; the list form is switch-control's `State icon`, one toggle over two glyphs). Always a list. */
+ *  (#1331; the list form is switch-control's `state icon`, one toggle over two glyphs). Always a list. */
 export const booleanPartsOf = (v: BooleanEntry): readonly string[] =>
   typeof v === 'string' ? [v] : typeof v.part === 'string' ? [v.part] : v.part;
 /** A `booleans` entry's Figma panel name — its `figmaName` decoupling (#1380) or, absent one, the prop KEY. */
@@ -2466,8 +2466,8 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
   // node at all, and at those members the boolean toggles it. A member no targeted part reaches has nothing
   // to toggle, which Figma allows — a component property is declared once on the set, and a variant with no
   // node bound to it ignores it. Two users, one rule (reconciled in the #1743 merge of #1765):
-  //   · Tag's `Check icon` — ONE part, present only at `type=select × selection=selected`, switchable there;
-  //   · switch-control's `State icon` — TWO parts, the check at `selection=on` and the X at `selection=off`.
+  //   · Tag's `check icon` — ONE part, present only at `type=select × selection=selected`, switchable there;
+  //   · switch-control's `state icon` — TWO parts, the check at `selection=on` and the X at `selection=off`.
   // Full coverage of an axis is NOT required: Tag's unselected members carry no check and nothing is wrong.
   //
   // THREE REFUSALS, each a way the composition goes wrong without a sound:
