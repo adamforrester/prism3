@@ -61,6 +61,9 @@ import { ComponentDef, PartDef, PropDef } from '../component-schema';
  *     glyph; its action is code-only).
  *   · `toggle` — the Password field's Show/Hide button. The box loses its trailing slot, and the label sits in a
  *     row with a nested Button at its end, outside the box (owner decision Q301.2 B).
+ * The Search field (#2888) adds three more, each spreading nothing when absent: `leading` and `trailing` start the glyph
+ * slots at a named glyph (and `leading` may build its glyph shown), and `labelSwitch` puts the nested label behind a
+ * Figma-only `label` switch.
  * Everything else a field says about itself (props, the code-only list, accessibility, docs, the agent fields)
  * is the caller's, because that is where two fields differ. `test.ts` pins that TextField is byte-identical to
  * the def it was before the factory, and that the two outputs share the token block exactly.
@@ -73,10 +76,19 @@ export type FieldSpec = Pick<ComponentDef, 'id' | 'name' | 'summary' | 'descript
   /** The `value` text's Figma default, the copy the filled members show. */
   valueDefault: string;
   codeOnly: string[];
+  /** The Search field's three (#2888): the glyph each icon slot's swap starts at (`PartDef.swapDefault`), whether the
+   *  leading one is built shown, and a Figma-only `label` switch over the nested label. Absent, the field is TextField's. */
+  leading?: { glyph: string; shown: boolean };
+  trailing?: { glyph: string };
+  labelSwitch?: true;
 };
 
 export const makeTextField = (spec: FieldSpec): ComponentDef => {
   const toggle = spec.edge === 'toggle';
+  // The Search field's switches (#2888). Each spreads nothing when absent, so TextField and the Password field are
+  // byte-identical to the defs they were before (`test.ts`).
+  const leadingStart = spec.leading ? { swapDefault: spec.leading.glyph } : {};
+  const trailingStart = spec.trailing ? { swapDefault: spec.trailing.glyph } : {};
   return {
   id: spec.id,
   name: spec.name,
@@ -375,6 +387,8 @@ export const makeTextField = (spec: FieldSpec): ComponentDef => {
         // FILLS the field's width (#1757, select's #1503 shape): the label stretches across the column the
         // control holds at 320. The name wraps at field-label's own max width (#1762), not the field's.
         crossAxisFill: true,
+        // The Search field's `label` switch (#2888, Q?4 A) hides it; `optional` is the anatomy half of that boolean.
+        ...(spec.labelSwitch ? { optional: true } : {}),
         note: `The accessible name, composed rather than re-declared. Its size follows the field's, one step below the input; its label text, required marker, emphasis and weight surface on the ${toggle ? 'field' : 'text-field'}. A fix to FieldLabel still reaches this without a copy. Starts secondary and regular. Fills the field's width; a long name wraps at FieldLabel's max width.`,
       },
       // THE SHOW/HIDE BUTTON (`edge: 'toggle'` only; owner decisions Q301.2 B and Q301.3 B). A nested Button, not a
@@ -467,6 +481,7 @@ export const makeTextField = (spec: FieldSpec): ComponentDef => {
         optional: true,
         size: 'icon-size',
         nesting: { kind: 'swap' },
+        ...leadingStart,
         note: 'An optional purpose glyph before the value, aria-hidden. Absent by default; the caller nominates the icon.',
       },
       // THE ENTRY — caret, placeholder and value in a GAP-0 row, so the caret sits immediately before the
@@ -533,6 +548,7 @@ export const makeTextField = (spec: FieldSpec): ComponentDef => {
         optional: true,
         size: 'icon-size',
         nesting: { kind: 'swap' },
+        ...trailingStart,
         note: 'An optional trailing affix at the trailing edge (a clear / reveal glyph), aria-hidden as a glyph. Absent by default; the caller nominates the icon. Its interactive behavior is code-only.',
       },
       } satisfies Record<string, PartDef>),
@@ -594,7 +610,10 @@ export const makeTextField = (spec: FieldSpec): ComponentDef => {
     //     field) and the `message` switch hides the whole part (the INVERSE direction, like field-label's `required`).
     // Each shares its node with a swap where one exists (`visible` and `mainComponent` are different Figma fields).
     booleans: {
-      leadingIcon: { part: 'leadingVisual', figmaName: 'leading icon', default: false },
+      // The Search field's `label` switch (#2888, Q?4 A): Figma-only, because the code prop is `hideLabel`, which keeps
+      // the label in the accessibility tree where the switch removes it from the member (the case is in `codeOnly`).
+      ...(spec.labelSwitch ? { showLabel: { part: 'label', figmaName: 'label', default: true, figmaOnly: true } } : {}),
+      leadingIcon: { part: 'leadingVisual', figmaName: 'leading icon', default: spec.leading?.shown ?? false },
       ...(toggle ? {} : { trailingIcon: { part: 'trailingVisual', figmaName: 'trailing icon', default: false } }),
       showMessage: { part: 'message', figmaName: 'message', default: true },
     },
@@ -743,9 +762,9 @@ export const textField: ComponentDef = makeTextField({
     // What the anatomy nests (#1700). The glyph, clear button and pending spinner fill slots or swap in at
     // runtime, so they are partners in `ai.commonPartners`, not parts.
     composesWith: ['field-label', 'field-message', 'focus-ring'],
-    alternativeTo: ['textarea', 'select', 'checkbox-row', 'switch-row', 'password-field'],
+    alternativeTo: ['textarea', 'select', 'checkbox-row', 'switch-row', 'password-field', 'search-field'],
     replacesPatterns: ['bare input without label wiring', 'placeholder-as-label', 'type=number for formatted numeric'],
-    planned: ['form', 'tooltip', 'combobox', 'number-field', 'search-field', 'date-picker'],
+    planned: ['form', 'tooltip', 'combobox', 'number-field', 'date-picker'],
   },
 
   // KB text-field brief §8.

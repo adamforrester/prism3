@@ -33,7 +33,7 @@ import { isRefusal } from '@prism3/engine/rename-map';
 import { rootOf } from '@prism3/engine/figma-names';
 import { conflictSummary } from './preflight';
 import { runApplyTheme } from './apply-theme';
-import { fieldStyleNote } from './field-style-note';
+import { fieldStyleNote, searchFieldStyleNote } from './field-style-note';
 import { gridSkippedNote } from './write-grid-styles';
 import { applyComponentPlan, partialWriteOf } from './write-components';
 import type { ComponentProgress, CompPageTarget, CompNode, ComponentsApi } from './write-components';
@@ -329,6 +329,8 @@ const applyTheme = async (input: BrandInput, sink: ActionSink): Promise<void> =>
       motionReplacedItem(mv.replaced.length),
       `${r.bound + f.bound + tv.bound + mv.bound + ts.bound} bindings`, misses ? `${misses} misses` : '',
       ...renameNotes, orphanNote, strandedNote, resolvedNote, skippedNote, gridSkippedNote(gs.skipped), fontNote, refusedNote,
+      // #2888: the search field's own edge, the same way. Before the field style line, which ends the list.
+      searchFieldStyleNote(before, input),
       // #2695 (Q16 A): a field style switch reaches the field sets through Update, so Apply says so.
       fieldStyleNote(before, input),
     ].map((x) => [', ', x] as const));

@@ -24,7 +24,7 @@
  */
 import type { AxisKind, ComponentDef, NestVariantWhen, PartDef } from './component-schema';
 import { axisKindOf, densitySizeValues, densitySpacingKeys, visibleGapKeys, fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, STATE_GATE, statesOf, whenStates, variantsOf, slotAxisFigmaName, variantAxisFigmaName, swapPart, swapFigmaName, textFigmaName, booleanPartsOf, booleanFigmaName, booleanDefault, figmaVariantCount, figmaAxisNames, isExcludedCoordinate, WEIGHT_INTENTS } from './component-schema';
-import type { ControlShape, FieldStyle, ButtonIcons, ButtonContentSize, ButtonLabelWeight, ButtonTextHover, Density } from './scale';
+import type { ControlShape, FieldStyle, SearchFieldStyle, ButtonIcons, ButtonContentSize, ButtonLabelWeight, ButtonTextHover, Density } from './scale';
 import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER, densitySpacingStep, ratioMinWidth, spacePx, visibleGapStep } from './scale';
 // #1602 — the weight-role ladder and the default per-category weights, for resolving a component's
 // weight INTENT against a brand's available roles. Value + type imports from `theme.ts`, which imports
@@ -2397,6 +2397,8 @@ export const FIELD_CORNER_REFS: Readonly<Record<string, readonly string[]>> = {
   'text-field': ['radius.sm'],
   select: ['radius.sm'],
   textarea: ['radius.sm'],
+  // #2888: the Search field's box is TextField's, from the shared field factory.
+  'search-field': ['radius.sm'],
   'checkbox-control': ['control.size.sm.radius', 'control.size.md.radius', 'control.size.lg.radius'],
 };
 
@@ -2430,6 +2432,23 @@ export const FIELD_FRAME_PARTS: Readonly<Record<string, string>> = {
   'password-field': 'control',
   select: 'control',
   textarea: 'control',
+  // #2888: drawn in the Search field style, which may differ from the other fields' (`fieldStyleFor`).
+  'search-field': 'control',
+};
+
+/**
+ * THE SEARCH FIELD STYLE (#2888, owner decision Q514 taking Q?1 A). The brand's search field may take an edge of its
+ * own: `follow` (the default) draws whatever Field style draws; `outline` or `underline` sets search apart from the
+ * other fields. This resolves WHICH style a def is drawn in; `applyFieldStyle` still draws it, unchanged. Every def but
+ * the ones listed here takes Field style, so a brand that leaves the lever unset, or sets `follow`, builds every def
+ * exactly as before. The defaults live here, once, for every caller (the plugin's `materializeForBrand`, the
+ * lever sweep).
+ */
+export const SEARCH_FIELD_STYLE_DEFS: readonly string[] = ['search-field'];
+export const fieldStyleFor = (defId: string, input: { fieldStyle?: FieldStyle; searchFieldStyle?: SearchFieldStyle } | null | undefined): FieldStyle => {
+  const field = input?.fieldStyle ?? 'outline';
+  const search = input?.searchFieldStyle ?? 'follow';
+  return SEARCH_FIELD_STYLE_DEFS.includes(defId) && search !== 'follow' ? search : field;
 };
 
 /**
@@ -4974,7 +4993,7 @@ export const CANVAS_FURNITURE: ReadonlySet<string> = new Set([
   'radio-row', 'radio-group', 'switch-control', 'switch-row', 'select', 'veil', 'image-placeholder', 'badge', 'tag', 'tab-item', 'tabs',
   'divider', '_accordion-indicator', 'accordion', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'list-item',
   'list', 'segmented-control-segment', 'segmented-control', 'link',
-  'button-group', 'dialog', 'password-field', 'counter',
+  'button-group', 'dialog', 'password-field', 'counter', 'search-field',
 ]);
 
 export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {

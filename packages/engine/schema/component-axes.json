@@ -802,6 +802,41 @@
       "label": "TEXT"
     }
   },
+  "search-field": {
+    "axes": {
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "state": [
+        "disabled",
+        "filled",
+        "focus-visible",
+        "focus-visible-filled",
+        "hover",
+        "read-only",
+        "rest"
+      ],
+      "status": [
+        "default",
+        "error",
+        "success",
+        "warning"
+      ]
+    },
+    "members": 84,
+    "properties": {
+      "label": "BOOLEAN",
+      "leading icon": "BOOLEAN",
+      "message": "BOOLEAN",
+      "placeholder": "TEXT",
+      "trailing icon": "BOOLEAN",
+      "value": "TEXT",
+      "↳ swap leading icon": "INSTANCE_SWAP",
+      "↳ swap trailing icon": "INSTANCE_SWAP"
+    }
+  },
   "segmented-control": {
     "axes": {
       "size": [

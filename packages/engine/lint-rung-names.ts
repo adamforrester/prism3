@@ -349,6 +349,7 @@ const DEFAULT_FIRST: Record<string, string> = {
   dialog: 'the Figma default is the 560px medium panel, the proposal\'s table approved by the owner\'s Q303 (#2609)',
   // #2317: TextField's size order through the shared field factory (Q301 builds it medium first, the field family's order).
   'password-field': 'the Figma default is `medium`, the field family\'s order from the shared field factory (#2317)',
+  'search-field': 'the Figma default is `medium`, the field family\'s order from the shared field factory (#2888)',
   // #2752 (owner decision Q1 B, 2026-10-16): every size ladder leads with medium, so Figma inserts the code default.
   button: Q1B,
   'button-destructive': Q1B,
@@ -423,7 +424,7 @@ const MUST_COVER = [
   '_accordion-indicator', 'accordion',
   'list-item', 'list',
   'segmented-control-segment', 'segmented-control', 'link',
-  'dialog', 'password-field',
+  'dialog', 'password-field', 'search-field',
 ];
 
 /** Every token path in a brand's canonical tree, below the root — `icon.size.md`, `size.lg.height`. */

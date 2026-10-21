@@ -1235,5 +1235,61 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
       "field-message",
       "focus-ring"
     ]
+  },
+  {
+    "id": "search-field",
+    "name": "SearchField",
+    "category": "form",
+    "summary": "Search field: a text field with a search glyph and a clear button, for a query.",
+    "unit": "variants",
+    "spacing": [
+      {
+        "key": "size.medium.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.small.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.large.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.medium.pad-x",
+        "ref": "space.200"
+      },
+      {
+        "key": "size.small.pad-x",
+        "ref": "space.200"
+      },
+      {
+        "key": "size.large.pad-x",
+        "ref": "space.300"
+      },
+      {
+        "key": "size.medium.pad-y",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.small.pad-y",
+        "ref": "space.075"
+      },
+      {
+        "key": "size.large.pad-y",
+        "ref": "space.100"
+      }
+    ],
+    "page": "Search field",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 84,
+    "nests": [
+      "field-label",
+      "icon",
+      "field-message",
+      "focus-ring"
+    ]
   }
 ];

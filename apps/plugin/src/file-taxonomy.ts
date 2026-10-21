@@ -94,6 +94,8 @@ export const TAXONOMY: Taxonomy = {
         // Password field (#2317, owner decision Q301.9 B) — its own page under Components, as Counter's is. It nests
         // Button, whose page is earlier in this list, so the nest resolves when the file is built in order.
         { page: 'Password field', defs: ['password-field'] },
+        // Search field (#2888) — its own page under Components, as the Password field's is.
+        { page: 'Search field', defs: ['search-field'] },
         { page: 'Textarea', defs: ['textarea'] },
         { page: 'Veil', defs: ['veil'] },
         // Badge — under Components, owner-decided 2026-10-04 (S8 scope, O1).

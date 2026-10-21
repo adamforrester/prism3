@@ -17,10 +17,10 @@ Generated from the component definitions and the emission by `packages/engine/em
 | checkbox-control | checkbox-row | checkbox-group, checkbox-row |
 | checkbox-row | checkbox-group | checkbox-group |
 | divider | accordion, dialog | accordion, dialog |
-| field-label | checkbox-group, counter, password-field, radio-group, segmented-control, select, text-field, textarea | checkbox-group, counter, password-field, radio-group, segmented-control, select, text-field, textarea |
-| field-message | checkbox-group, counter, password-field, radio-group, select, text-field, textarea | checkbox-group, counter, password-field, radio-group, select, text-field, textarea |
+| field-label | checkbox-group, counter, password-field, radio-group, search-field, segmented-control, select, text-field, textarea | checkbox-group, counter, password-field, radio-group, search-field, segmented-control, select, text-field, textarea |
+| field-message | checkbox-group, counter, password-field, radio-group, search-field, select, text-field, textarea | checkbox-group, counter, password-field, radio-group, search-field, select, text-field, textarea |
 | flush-icon-button-neutral | counter, dialog | counter, dialog |
-| focus-ring | accordion, button, button-destructive, button-neutral, checkbox-control, counter, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, password-field, radio-control, segmented-control-segment, select, switch-control, tab-item, tag, text-field, textarea | accordion, button, button-destructive, button-group, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, switch-control, switch-row, tab-item, tabs, tag, text-field, textarea |
+| focus-ring | accordion, button, button-destructive, button-neutral, checkbox-control, counter, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, password-field, radio-control, search-field, segmented-control-segment, select, switch-control, tab-item, tag, text-field, textarea | accordion, button, button-destructive, button-group, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, switch-control, switch-row, tab-item, tabs, tag, text-field, textarea |
 | list-item | list | list |
 | radio-control | radio-row | radio-group, radio-row |
 | radio-row | radio-group | radio-group |
@@ -66,6 +66,7 @@ A component not in this table is nested by nothing; a change to it reaches only 
 | radio-control | 1 | focus-ring | focus-ring |
 | radio-group | 3 | field-label, field-message, radio-row | field-label, field-message, focus-ring, radio-control, radio-row |
 | radio-row | 2 | radio-control | focus-ring, radio-control |
+| search-field | 1 | field-label, field-message, focus-ring | field-label, field-message, focus-ring |
 | segmented-control | 2 | field-label, segmented-control-segment | field-label, focus-ring, segmented-control-segment |
 | segmented-control-segment | 1 | focus-ring | focus-ring |
 | select | 1 | field-label, field-message, focus-ring | field-label, field-message, focus-ring |
@@ -143,6 +144,9 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | radio-group | row2 | nest | radio-row | nest-fixed | size=medium, status=default | size, status | — |
 | radio-group | row3 | nest | radio-row | nest-fixed | size=medium, status=default | size, status | — |
 | radio-row | control | nest | radio-control | nest-exposed | selection=unchecked, state=rest, status=default | size, status | selection, state |
+| search-field | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
+| search-field | label | nest | field-label | nest-exposed | size=medium, emphasis=secondary, weight=regular, state=rest | size | emphasis, weight |
+| search-field | message | nest | field-message | nest-fixed | status=default | status | — |
 | segmented-control | label | nest | field-label | nest-exposed | size=medium, emphasis=secondary, weight=bold, state=rest | size | emphasis, weight |
 | segmented-control | segment1 | nest | segmented-control-segment | nest-fixed | selection=selected, size=medium, state=rest | size | — |
 | segmented-control | segment2 | nest | segmented-control-segment | nest-fixed | selection=unselected, size=medium, state=rest | size | — |

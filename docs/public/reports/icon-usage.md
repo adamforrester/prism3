@@ -20,6 +20,8 @@ Generated from the component definitions and the emission by `packages/engine/em
 | icon | glyph | `{name}` | any (prop) | drawn | always |
 | image-placeholder | markerGlyph | `image` | icon set | drawn | always |
 | list-item | icon | `check` | icon set | swap default | type: icon |
+| search-field | leadingVisual | `search` | icon set | swap default | always |
+|  | trailingVisual | `close-filled` | icon set | swap default | always |
 | select | chevronGlyph | `chevron-down` | icon set | drawn | always |
 | spinner | ringGlyph | `spinner` | component-owned | drawn | always |
 | switch-control | offGlyph | `close` | icon set | drawn | selection: off |
@@ -46,6 +48,7 @@ Parts that take any icon from the set. The file nominates the default unless the
 | link | trailingVisual |
 | list-item | icon |
 | password-field | leadingVisual |
+| search-field | leadingVisual, trailingVisual |
 | segmented-control-segment | leadingVisual |
 | select | leadingVisual |
 | tab-item | leadingVisual |
@@ -61,16 +64,18 @@ Parts that take any icon from the set. The file nominates the default unless the
 | `chevron-down` | _accordion-indicator, select |
 | `chevron-up` | _accordion-indicator |
 | `close` | switch-control, tag |
+| `close-filled` | search-field |
 | `error-circle` | field-message |
 | `image` | image-placeholder |
 | `minus` | _accordion-indicator, checkbox-control |
 | `plus` | _accordion-indicator |
 | `resize-grip` | textarea |
+| `search` | search-field |
 | `spinner` | spinner |
 | `warning-triangle` | field-message |
 
-## Glyphs no component names (34)
+## Glyphs no component names (32)
 
 Each is still reachable through Icon and through every icon slot.
 
-`FPO-default-icon`, `arrow-down`, `arrow-down-left`, `arrow-down-right`, `arrow-left`, `arrow-right`, `arrow-up`, `arrow-up-left`, `arrow-up-right`, `check-circle-filled`, `chevron-left`, `chevron-right`, `close-filled`, `error-circle-filled`, `external-link-filled`, `eye`, `eye-filled`, `eye-off`, `eye-off-filled`, `home`, `info-circle`, `info-circle-filled`, `link`, `menu`, `minus-filled`, `more-horizontal-filled`, `more-vertical-filled`, `pause-circle`, `play-circle`, `plus-circle`, `plus-circle-filled`, `plus-filled`, `search`, `warning-triangle-filled`
+`FPO-default-icon`, `arrow-down`, `arrow-down-left`, `arrow-down-right`, `arrow-left`, `arrow-right`, `arrow-up`, `arrow-up-left`, `arrow-up-right`, `check-circle-filled`, `chevron-left`, `chevron-right`, `error-circle-filled`, `external-link-filled`, `eye`, `eye-filled`, `eye-off`, `eye-off-filled`, `home`, `info-circle`, `info-circle-filled`, `link`, `menu`, `minus-filled`, `more-horizontal-filled`, `more-vertical-filled`, `pause-circle`, `play-circle`, `plus-circle`, `plus-circle-filled`, `plus-filled`, `warning-triangle-filled`

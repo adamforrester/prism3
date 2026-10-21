@@ -12,7 +12,7 @@
     "used": 247,
     "unusedSemantic": 260,
     "unusedPrimitive": 280,
-    "components": 43
+    "components": 44
   },
   "tokens": {
     "border-width.hairline": {
@@ -152,6 +152,34 @@
           }
         },
         "password-field": {
+          "keys": [
+            "border-width",
+            "caret-width"
+          ],
+          "parts": {
+            "caret": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            },
+            "caretEnd": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "focus-visible-filled"
+                ]
+              }
+            },
+            "control": {
+              "members": 84,
+              "where": {}
+            }
+          }
+        },
+        "search-field": {
           "keys": [
             "border-width",
             "caret-width"
@@ -540,6 +568,35 @@
             }
           }
         },
+        "search-field": {
+          "keys": [
+            "error.border.empty",
+            "error.border.filled",
+            "error.border.focus-visible",
+            "error.border.focus-visible-filled",
+            "error.border.hover",
+            "error.border.read-only",
+            "error.border.rest"
+          ],
+          "parts": {
+            "control": {
+              "members": 18,
+              "where": {
+                "state": [
+                  "filled",
+                  "focus-visible",
+                  "focus-visible-filled",
+                  "hover",
+                  "read-only",
+                  "rest"
+                ],
+                "status": [
+                  "error"
+                ]
+              }
+            }
+          }
+        },
         "select": {
           "keys": [
             "error.border.empty",
@@ -742,6 +799,26 @@
             "focus-ring"
           ],
           "parts": {}
+        },
+        "search-field": {
+          "keys": [
+            "border.focus-visible",
+            "border.focus-visible-filled"
+          ],
+          "parts": {
+            "control": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "focus-visible",
+                  "focus-visible-filled"
+                ],
+                "status": [
+                  "default"
+                ]
+              }
+            }
+          }
         },
         "segmented-control-segment": {
           "keys": [
@@ -1023,6 +1100,35 @@
             }
           }
         },
+        "search-field": {
+          "keys": [
+            "success.border.empty",
+            "success.border.filled",
+            "success.border.focus-visible",
+            "success.border.focus-visible-filled",
+            "success.border.hover",
+            "success.border.read-only",
+            "success.border.rest"
+          ],
+          "parts": {
+            "control": {
+              "members": 18,
+              "where": {
+                "state": [
+                  "filled",
+                  "focus-visible",
+                  "focus-visible-filled",
+                  "hover",
+                  "read-only",
+                  "rest"
+                ],
+                "status": [
+                  "success"
+                ]
+              }
+            }
+          }
+        },
         "select": {
           "keys": [
             "success.border.empty",
@@ -1169,6 +1275,35 @@
           }
         },
         "password-field": {
+          "keys": [
+            "warning.border.empty",
+            "warning.border.filled",
+            "warning.border.focus-visible",
+            "warning.border.focus-visible-filled",
+            "warning.border.hover",
+            "warning.border.read-only",
+            "warning.border.rest"
+          ],
+          "parts": {
+            "control": {
+              "members": 18,
+              "where": {
+                "state": [
+                  "filled",
+                  "focus-visible",
+                  "focus-visible-filled",
+                  "hover",
+                  "read-only",
+                  "rest"
+                ],
+                "status": [
+                  "warning"
+                ]
+              }
+            }
+          }
+        },
+        "search-field": {
           "keys": [
             "warning.border.empty",
             "warning.border.filled",
@@ -1544,6 +1679,21 @@
             }
           }
         },
+        "search-field": {
+          "keys": [
+            "disabled.border"
+          ],
+          "parts": {
+            "control": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "disabled"
+                ]
+              }
+            }
+          }
+        },
         "select": {
           "keys": [
             "disabled.border"
@@ -1848,6 +1998,21 @@
                 "selection": [
                   "checked"
                 ],
+                "state": [
+                  "disabled"
+                ]
+              }
+            }
+          }
+        },
+        "search-field": {
+          "keys": [
+            "disabled.fill"
+          ],
+          "parts": {
+            "control": {
+              "members": 12,
+              "where": {
                 "state": [
                   "disabled"
                 ]
@@ -2464,6 +2629,38 @@
             }
           }
         },
+        "search-field": {
+          "keys": [
+            "disabled.icon.on-fill",
+            "disabled.label.on-fill"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "disabled"
+                ]
+              }
+            },
+            "placeholder": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "disabled"
+                ]
+              }
+            },
+            "trailingVisual": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "disabled"
+                ]
+              }
+            }
+          }
+        },
         "select": {
           "keys": [
             "disabled.icon.on-fill",
@@ -2836,6 +3033,24 @@
             }
           }
         },
+        "search-field": {
+          "keys": [
+            "border.hover"
+          ],
+          "parts": {
+            "control": {
+              "members": 3,
+              "where": {
+                "state": [
+                  "hover"
+                ],
+                "status": [
+                  "default"
+                ]
+              }
+            }
+          }
+        },
         "select": {
           "keys": [
             "border.hover"
@@ -2981,6 +3196,27 @@
             }
           }
         },
+        "search-field": {
+          "keys": [
+            "border",
+            "border.read-only"
+          ],
+          "parts": {
+            "control": {
+              "members": 9,
+              "where": {
+                "state": [
+                  "filled",
+                  "read-only",
+                  "rest"
+                ],
+                "status": [
+                  "default"
+                ]
+              }
+            }
+          }
+        },
         "select": {
           "keys": [
             "border",
@@ -3069,6 +3305,25 @@
           }
         },
         "password-field": {
+          "keys": [
+            "fill"
+          ],
+          "parts": {
+            "control": {
+              "members": 60,
+              "where": {
+                "state": [
+                  "filled",
+                  "focus-visible",
+                  "focus-visible-filled",
+                  "read-only",
+                  "rest"
+                ]
+              }
+            }
+          }
+        },
+        "search-field": {
           "keys": [
             "fill"
           ],
@@ -3589,6 +3844,39 @@
           ],
           "parts": {
             "leadingVisual": {
+              "members": 72,
+              "where": {
+                "state": [
+                  "filled",
+                  "focus-visible",
+                  "focus-visible-filled",
+                  "hover",
+                  "read-only",
+                  "rest"
+                ]
+              }
+            }
+          }
+        },
+        "search-field": {
+          "keys": [
+            "icon"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 72,
+              "where": {
+                "state": [
+                  "filled",
+                  "focus-visible",
+                  "focus-visible-filled",
+                  "hover",
+                  "read-only",
+                  "rest"
+                ]
+              }
+            },
+            "trailingVisual": {
               "members": 72,
               "where": {
                 "state": [
@@ -6004,6 +6292,21 @@
           }
         },
         "password-field": {
+          "keys": [
+            "overlay.hover"
+          ],
+          "parts": {
+            "control": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "hover"
+                ]
+              }
+            }
+          }
+        },
+        "search-field": {
           "keys": [
             "overlay.hover"
           ],
@@ -11963,6 +12266,41 @@
             }
           }
         },
+        "search-field": {
+          "keys": [
+            "caret",
+            "caret-end",
+            "label"
+          ],
+          "parts": {
+            "caret": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            },
+            "caretEnd": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "focus-visible-filled"
+                ]
+              }
+            },
+            "value": {
+              "members": 36,
+              "where": {
+                "state": [
+                  "filled",
+                  "focus-visible-filled",
+                  "read-only"
+                ]
+              }
+            }
+          }
+        },
         "select": {
           "keys": [
             "label"
@@ -12114,6 +12452,26 @@
           }
         },
         "password-field": {
+          "keys": [
+            "label.empty",
+            "label.focus-visible",
+            "label.hover",
+            "label.rest"
+          ],
+          "parts": {
+            "placeholder": {
+              "members": 36,
+              "where": {
+                "state": [
+                  "focus-visible",
+                  "hover",
+                  "rest"
+                ]
+              }
+            }
+          }
+        },
+        "search-field": {
           "keys": [
             "label.empty",
             "label.focus-visible",
@@ -12728,6 +13086,35 @@
             }
           }
         },
+        "search-field": {
+          "keys": [
+            "size.large.caret-height"
+          ],
+          "parts": {
+            "caret": {
+              "members": 4,
+              "where": {
+                "size": [
+                  "large"
+                ],
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            },
+            "caretEnd": {
+              "members": 4,
+              "where": {
+                "size": [
+                  "large"
+                ],
+                "state": [
+                  "focus-visible-filled"
+                ]
+              }
+            }
+          }
+        },
         "text-field": {
           "keys": [
             "size.large.caret-height"
@@ -13017,6 +13404,35 @@
               "where": {
                 "size": [
                   "medium"
+                ]
+              }
+            }
+          }
+        },
+        "search-field": {
+          "keys": [
+            "size.medium.caret-height"
+          ],
+          "parts": {
+            "caret": {
+              "members": 4,
+              "where": {
+                "size": [
+                  "medium"
+                ],
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            },
+            "caretEnd": {
+              "members": 4,
+              "where": {
+                "size": [
+                  "medium"
+                ],
+                "state": [
+                  "focus-visible-filled"
                 ]
               }
             }
@@ -13441,6 +13857,35 @@
               "where": {
                 "size": [
                   "small"
+                ]
+              }
+            }
+          }
+        },
+        "search-field": {
+          "keys": [
+            "size.small.caret-height"
+          ],
+          "parts": {
+            "caret": {
+              "members": 4,
+              "where": {
+                "size": [
+                  "small"
+                ],
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            },
+            "caretEnd": {
+              "members": 4,
+              "where": {
+                "size": [
+                  "small"
+                ],
+                "state": [
+                  "focus-visible-filled"
                 ]
               }
             }
@@ -13954,6 +14399,22 @@
             }
           }
         },
+        "search-field": {
+          "keys": [
+            "ring-offset"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 24,
+              "where": {
+                "state": [
+                  "focus-visible",
+                  "focus-visible-filled"
+                ]
+              }
+            }
+          }
+        },
         "select": {
           "keys": [
             "ring-offset"
@@ -14235,6 +14696,22 @@
               "where": {
                 "state": [
                   "focus-visible"
+                ]
+              }
+            }
+          }
+        },
+        "search-field": {
+          "keys": [
+            "ring-width"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 24,
+              "where": {
+                "state": [
+                  "focus-visible",
+                  "focus-visible-filled"
                 ]
               }
             }
@@ -15478,6 +15955,21 @@
             }
           }
         },
+        "search-field": {
+          "keys": [
+            "icon-size"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 84,
+              "where": {}
+            },
+            "trailingVisual": {
+              "members": 84,
+              "where": {}
+            }
+          }
+        },
         "segmented-control-segment": {
           "keys": [
             "size.medium.icon"
@@ -16397,6 +16889,17 @@
             }
           }
         },
+        "search-field": {
+          "keys": [
+            "radius"
+          ],
+          "parts": {
+            "control": {
+              "members": 84,
+              "where": {}
+            }
+          }
+        },
         "segmented-control-segment": {
           "keys": [
             "indicator-radius"
@@ -16662,6 +17165,21 @@
             "size.large.min-height"
           ],
           "parts": {}
+        },
+        "search-field": {
+          "keys": [
+            "size.large.height"
+          ],
+          "parts": {
+            "control": {
+              "members": 28,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
         },
         "segmented-control-segment": {
           "keys": [
@@ -17046,6 +17564,23 @@
           }
         },
         "password-field": {
+          "keys": [
+            "size.medium.height",
+            "size.small.height"
+          ],
+          "parts": {
+            "control": {
+              "members": 56,
+              "where": {
+                "size": [
+                  "medium",
+                  "small"
+                ]
+              }
+            }
+          }
+        },
+        "search-field": {
           "keys": [
             "size.medium.height",
             "size.small.height"
@@ -17896,6 +18431,21 @@
             }
           }
         },
+        "search-field": {
+          "keys": [
+            "size.small.pad-y"
+          ],
+          "parts": {
+            "control": {
+              "members": 28,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "segmented-control-segment": {
           "keys": [
             "size.small.gap"
@@ -18268,6 +18818,30 @@
                   "small"
                 ]
               }
+            }
+          }
+        },
+        "search-field": {
+          "keys": [
+            "root-gap",
+            "size.large.gap",
+            "size.large.pad-y",
+            "size.medium.gap",
+            "size.medium.pad-y",
+            "size.small.gap"
+          ],
+          "parts": {
+            "container": {
+              "members": 84,
+              "where": {}
+            },
+            "content": {
+              "members": 84,
+              "where": {}
+            },
+            "control": {
+              "members": 84,
+              "where": {}
             }
           }
         },
@@ -18889,6 +19463,23 @@
             }
           }
         },
+        "search-field": {
+          "keys": [
+            "size.medium.pad-x",
+            "size.small.pad-x"
+          ],
+          "parts": {
+            "control": {
+              "members": 56,
+              "where": {
+                "size": [
+                  "medium",
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "segmented-control-segment": {
           "keys": [
             "size.medium.padding-x"
@@ -19226,6 +19817,21 @@
             }
           }
         },
+        "search-field": {
+          "keys": [
+            "size.large.pad-x"
+          ],
+          "parts": {
+            "control": {
+              "members": 28,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
         "select": {
           "keys": [
             "size.large.pad-x"
@@ -19464,6 +20070,40 @@
               "where": {
                 "size": [
                   "large"
+                ]
+              }
+            }
+          }
+        },
+        "search-field": {
+          "keys": [
+            "size.large.type"
+          ],
+          "parts": {
+            "placeholder": {
+              "members": 16,
+              "where": {
+                "size": [
+                  "large"
+                ],
+                "state": [
+                  "disabled",
+                  "focus-visible",
+                  "hover",
+                  "rest"
+                ]
+              }
+            },
+            "value": {
+              "members": 12,
+              "where": {
+                "size": [
+                  "large"
+                ],
+                "state": [
+                  "filled",
+                  "focus-visible-filled",
+                  "read-only"
                 ]
               }
             }
@@ -19850,6 +20490,40 @@
               "where": {
                 "size": [
                   "medium"
+                ]
+              }
+            }
+          }
+        },
+        "search-field": {
+          "keys": [
+            "size.medium.type"
+          ],
+          "parts": {
+            "placeholder": {
+              "members": 16,
+              "where": {
+                "size": [
+                  "medium"
+                ],
+                "state": [
+                  "disabled",
+                  "focus-visible",
+                  "hover",
+                  "rest"
+                ]
+              }
+            },
+            "value": {
+              "members": 12,
+              "where": {
+                "size": [
+                  "medium"
+                ],
+                "state": [
+                  "filled",
+                  "focus-visible-filled",
+                  "read-only"
                 ]
               }
             }
@@ -20264,6 +20938,40 @@
               "where": {
                 "size": [
                   "small"
+                ]
+              }
+            }
+          }
+        },
+        "search-field": {
+          "keys": [
+            "size.small.type"
+          ],
+          "parts": {
+            "placeholder": {
+              "members": 16,
+              "where": {
+                "size": [
+                  "small"
+                ],
+                "state": [
+                  "disabled",
+                  "focus-visible",
+                  "hover",
+                  "rest"
+                ]
+              }
+            },
+            "value": {
+              "members": 12,
+              "where": {
+                "size": [
+                  "small"
+                ],
+                "state": [
+                  "filled",
+                  "focus-visible-filled",
+                  "read-only"
                 ]
               }
             }
@@ -23071,6 +23779,66 @@
         "size.md.height",
         "size.sm.height"
       ],
+      "drawnNotDeclared": []
+    },
+    "search-field": {
+      "members": 84,
+      "axes": {
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "state": [
+          "disabled",
+          "filled",
+          "focus-visible",
+          "focus-visible-filled",
+          "hover",
+          "read-only",
+          "rest"
+        ],
+        "status": [
+          "default",
+          "error",
+          "success",
+          "warning"
+        ]
+      },
+      "tokens": [
+        "border-width.hairline",
+        "color.border.danger",
+        "color.border.focus",
+        "color.border.success",
+        "color.border.warning",
+        "color.disabled.border",
+        "color.disabled.fill",
+        "color.disabled.on-fill",
+        "color.field.border.hover",
+        "color.field.border.rest",
+        "color.field.fill",
+        "color.icon.primary",
+        "color.interactive.neutral.overlay.hover",
+        "color.text.primary",
+        "color.text.secondary",
+        "control.size.lg.line-box",
+        "control.size.md.line-box",
+        "control.size.sm.line-box",
+        "focus.ring.offset-field",
+        "focus.ring.width",
+        "icon.size.sm",
+        "radius.sm",
+        "size.lg.height",
+        "size.md.min-height",
+        "space.075",
+        "space.100",
+        "space.200",
+        "space.300",
+        "type.body.lg.default",
+        "type.body.md.default",
+        "type.body.sm.default"
+      ],
+      "declaredNotDrawn": [],
       "drawnNotDeclared": []
     },
     "segmented-control": {

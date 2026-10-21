@@ -92,6 +92,12 @@
             ]
           },
           {
+            "name": "↳ Search field",
+            "components": [
+              "search-field"
+            ]
+          },
+          {
             "name": "↳ Textarea",
             "components": [
               "textarea"
@@ -2281,6 +2287,92 @@
           }
         ],
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/counter.md"
+      },
+      {
+        "id": "search-field",
+        "name": "SearchField",
+        "figmaName": "search-field",
+        "kind": "component set",
+        "page": "↳ Search field",
+        "section": "Components",
+        "members": 84,
+        "variantProperties": [
+          {
+            "name": "status",
+            "values": [
+              "default",
+              "error",
+              "warning",
+              "success"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "hover",
+              "filled",
+              "focus-visible",
+              "focus-visible-filled",
+              "disabled",
+              "read-only"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "placeholder",
+            "type": "TEXT"
+          },
+          {
+            "name": "value",
+            "type": "TEXT"
+          },
+          {
+            "name": "label",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "leading icon",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "↳ swap leading icon",
+            "type": "INSTANCE_SWAP",
+            "swapTarget": "icon/search"
+          },
+          {
+            "name": "trailing icon",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "↳ swap trailing icon",
+            "type": "INSTANCE_SWAP",
+            "swapTarget": "icon/close-filled"
+          },
+          {
+            "name": "message",
+            "type": "BOOLEAN"
+          }
+        ],
+        "codeOnly": {
+          "axes": [
+            "style"
+          ],
+          "states": [
+            "pending",
+            "empty"
+          ]
+        },
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/search-field.md"
       }
     ]
   },
@@ -2576,7 +2668,8 @@
       "button-group",
       "dialog",
       "password-field",
-      "counter"
+      "counter",
+      "search-field"
     ],
     "templates": [
       {
