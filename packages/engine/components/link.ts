@@ -42,7 +42,7 @@
  *     state, as Tab's selected bar is (Q178.1 A). Drawn as the container's BOTTOM STROKE (`strokeEdges`, the #2695
  *     underline field's mechanism), inside the node: no layer is added to any member, the box does not move, and
  *     the other three sides and every unselected member bind `border-width.none`. Only a selected member has a
- *     stroke paint (`selected.border.*`).
+ *     stroke paint (`border.selected.*`).
  *   - HOVER ON THE CURRENT ITEM (Q507.4): color only. The label keeps its plain style at every state, so the 1px
  *     hover underline never joins the bar; the type key names `{selection}` for that. It stays a real link in code.
  *
@@ -108,7 +108,8 @@ export const link: ComponentDef = {
   // Emphasis resolves to the heaviest body weight the brand ships, default to its reading weight (Q297.1, #1602).
   weightIntent: { axis: 'weight', group: 'body', intents: { emphasis: 'bold', default: 'regular' } },
 
-  paintKeys: ['{selection}.{slot}.{state}', '{selection}.{slot}', '{slot}.{state}', '{slot}'],
+  // The current-page bar's keys name the selection (#2872); three segments, so they never shape-match the label's two.
+  paintKeys: ['{slot}.{selection}.{state}', '{slot}.{state}', '{slot}'],
   densitySpacing: ['size.{size}.gap'],
 
   tokens: {
@@ -139,10 +140,10 @@ export const link: ComponentDef = {
     'icon.focus-visible': 'color.icon.link.focused',
     // The bar's ink: the link icon role, stepped with the label (a non-text mark, so the 3:1 icon role, as Tab's
     // bar takes a border role). Keyed on `selected` only, so an unselected member paints no stroke.
-    'selected.border': 'color.icon.link.default',
-    'selected.border.hover': 'color.icon.link.hover',
-    'selected.border.pressed': 'color.icon.link.pressed',
-    'selected.border.focus-visible': 'color.icon.link.focused',
+    'border.selected.rest': 'color.icon.link.default',
+    'border.selected.hover': 'color.icon.link.hover',
+    'border.selected.pressed': 'color.icon.link.pressed',
+    'border.selected.focus-visible': 'color.icon.link.focused',
   },
 
   anatomy: {

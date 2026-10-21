@@ -390,7 +390,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'selection',
     values: ['unselected', 'selected'],
-    defs: ['tag', 'tab-item', 'segmented-control-segment'],
+    defs: ['tag', 'tab-item', 'segmented-control-segment', 'link'],
     relation: 'disjoint',
     reason:
       'A selectable tag\'s two values, in the words the Tag brief uses (§4, §15) — `selected` is what a filter '
@@ -401,7 +401,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'once they do not match. `unselected` leads because it is the rest coordinate. The spelling is an '
       + 'axis-value choice held for the owner in the Tag PR (2026-09-27). Tab joins it (#2416, owner Q177.2): a '
       + 'tab\'s state IS aria-selected, so `selected` is its ARIA word too, and one spelling serves both. A segmented '
-      + 'control\'s option joins it (#2418, owner Q269): Tag\'s values, its state riding aria-current or a native radio.',
+      + 'control\'s option joins it (#2418, owner Q269): Tag\'s values, its state riding aria-current or a native radio. A standalone Link joins it for the current page in a navigation (#2872, owner Q507.3 A): its code prop is `current`, rendering aria-current="page".',
   },
   {
     axis: 'size',

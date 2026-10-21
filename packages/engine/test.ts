@@ -18444,10 +18444,11 @@ arm: {
       const labelStyle = (n: LN): string | undefined => (n.name === 'label' ? n.textStyle : n.children.map(labelStyle).find(Boolean));
       const plans = figmaAnatomySet(linkDef, { swapTarget: 'FPO-default-icon' });
       const rows = plans.map((p) => ({ c: p.coord as Record<string, string>, size: String(p.size), style: labelStyle(p.root as unknown as LN) }));
-      ok(plans.length === 96, `#2580 link/members: style 2 × weight 2 × size 3 × surface 2 × 4 states = 96 members (got ${plans.length})`);
+      ok(plans.length === 144, `#2580 link/members: style 2 × weight 2 × size 3 × surface 2 × 4 states = 96 members, plus the 48 current-page members on standalone (#2872, Q507.2 A) = 144 (got ${plans.length})`);
       const want = (r: { c: Record<string, string>; size: string }, underlined: boolean) =>
         figmaTextStyleName(`type.body.${RUNG[r.size]}.${ROLE[r.c.weight]}${underlined ? '-link' : ''}`);
-      const standalone = rows.filter((r) => r.c.style === 'standalone');
+      // The current page (#2872) is held by its own arm; Q289.2 A is the unselected standalone link.
+      const standalone = rows.filter((r) => r.c.style === 'standalone' && r.c.selection === 'unselected');
       const sOff = standalone.filter((r) => r.style !== want(r, UNDERLINED_STANDALONE.has(r.c.state)));
       ok(standalone.length === 48 && sOff.length === 0,
         `#2580 link/standalone (Q289.2 A): a standalone link is plain at rest and underlined at hover, pressed and focus-visible, at every weight, size and surface (${standalone.length} members${sOff.length ? `; OFF: ${sOff.map((r) => `${JSON.stringify(r.c)} ${r.size} → ${r.style}`).join('; ')}` : ''})`);
@@ -18478,7 +18479,7 @@ arm: {
       };
       const PX: Record<string, number> = { small: 14, medium: 16, large: 18 };
       const tierOff = rows.filter((r) => !r.style?.startsWith('body/') || pxOf(r.style) !== PX[r.size]);
-      ok(rows.length === 96 && tierOff.length === 0,
+      ok(rows.length === 144 && tierOff.length === 0,
         `#2580 link/body-tier (Q297.1): every member, standalone and inline, sets body type at 14 / 16 / 18px, with no 12px link${tierOff.length ? `; OFF: ${tierOff.slice(0, 4).map((r) => `${JSON.stringify(r.c)} ${r.size} → ${r.style} (${pxOf(r.style ?? '')}px)`).join('; ')}` : ''}`);
 
       // Q297.2 — a trailing icon only, on standalone members only, 16px with 14px and 16px text and 20px with 18px text.
@@ -18506,8 +18507,8 @@ arm: {
       // its own emphasis role and keeps the underlined twin, rather than the `strong` it does not emit.
       const nbShape = figmaAnatomySet(applyWeightIntent(linkDef, { ...DEFAULT_WEIGHT_AVAILABILITY, body: ['default', 'emphasis'] }), { swapTarget: 'FPO-default-icon' });
       const nbAt = (state: string) => nbShape.map((p) => ({ c: p.coord as Record<string, string>, size: String(p.size), style: labelStyle(p.root as unknown as LN) }))
-        .find((r) => r.c.style === 'standalone' && r.c.weight === 'emphasis' && r.c.surface === 'default' && r.size === 'medium' && r.c.state === state)?.style;
-      ok(nbShape.length === 96 && nbAt('rest') === 'body/md/emphasis' && nbAt('hover') === 'body/md/emphasis-link',
+        .find((r) => r.c.style === 'standalone' && r.c.selection === 'unselected' && r.c.weight === 'emphasis' && r.c.surface === 'default' && r.size === 'medium' && r.c.state === state)?.style;
+      ok(nbShape.length === 144 && nbAt('rest') === 'body/md/emphasis' && nbAt('hover') === 'body/md/emphasis-link',
         `#2580 link/weight-intent (Q297.1, #1602): in a [default, emphasis] body brand, emphasis binds body/md/emphasis at rest and body/md/emphasis-link at hover (got ${nbShape.length} members, ${nbAt('rest')} / ${nbAt('hover')})`);
 
       ok(JSON.stringify(linkDef.variants.style) === JSON.stringify(['standalone', 'inline'])
@@ -19157,7 +19158,10 @@ arm: {
       { def: componentDefs.find((d) => d.id === 'list-item')!, part: 'number', axes: { size: 3 }, at: { type: 'ordered' } },
       // LINK (#2580): the label crosses size, weight, style and, the first type key to do so, the interaction state. The
       // underline is the state half: a standalone link is plain at rest and underlined at hover, pressed and focus.
-      { def: componentDefs.find((d) => d.id === 'link')!, part: 'label', axes: { size: 3, weight: 2, style: 2, state: 2 } },
+      // `selection` (#2872, Q507.4) is ONE style at the rest coordinate this sweep holds: the current page and its
+      // unselected twin are both plain at rest, and part only at hover, pressed and focus, where the current page stays
+      // plain. That half is held by `#2872 link hover on current`, which reads every member.
+      { def: componentDefs.find((d) => d.id === 'link')!, part: 'label', axes: { size: 3, weight: 2, style: 2, selection: 1, state: 2 } },
     ];
 
     // DIRECTION 1 — the authored table is the corpus. Discovered by walking every def's anatomy for a
@@ -32636,6 +32640,7 @@ arm: {
     'tag.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'a select tag is selected by `selected`' },
     'tab-item.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'a tab is selected by `selected`' },
     'segmented-control-segment.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'a segment is selected by `selected`' },
+    'link.selection': { prop: 'current', map: off('unselected', 'selected'), reason: 'a link marks the current page by `current`, rendering aria-current="page" (#2872, Q507.3 A)' },
     'accordion.expansion': { prop: 'defaultExpanded', map: off('collapsed', 'expanded'), reason: 'an accordion opens by `defaultExpanded`' },
   };
   // NO RECORDED EXCEPTIONS (#2752, owner decisions Q1 B and Q2 A, 2026-10-16): every size ladder leads with medium and
@@ -33737,23 +33742,60 @@ arm: {
   const linkMembers = figmaAnatomySet(link, { swapTarget: 'FPO-default-icon' });
   const RUNG: Record<string, string> = { rest: 'default', hover: 'hover', pressed: 'pressed', 'focus-visible': 'focused' };
   const INK = (surface: string, state: string) => `color/${surface === 'inverse' ? 'inverse/' : ''}text/link/${RUNG[state]}`;
+  // THE CURRENT PAGE (#2872, owner decisions Q507): a selected member's box paints one thing, its 2px bottom stroke, in
+  // the link ICON role stepped by state (1 C); every other member's box paints nothing.
+  const BAR_INK = (surface: string, state: string) => `color/${surface === 'inverse' ? 'inverse/' : ''}icon/link/${RUNG[state]}`;
   const inkOff: string[] = [], boxOff: string[] = [], ringOff: string[] = [];
   for (const m of linkMembers) {
     const c = m.coord as Record<string, string>;
     const root = m.root as PN;
     const ink = findIn(root, 'label')?.paints?.fills;
     if (ink !== INK(c.surface, c.state)) inkOff.push(`${planComponentName(m)}: ${String(ink)} (want ${INK(c.surface, c.state)})`);
-    if (Object.keys(root.paints ?? {}).length) boxOff.push(`${planComponentName(m)}: ${JSON.stringify(root.paints)}`);
+    const wantBox = c.selection === 'selected' ? JSON.stringify({ strokes: BAR_INK(c.surface, c.state) }) : '{}';
+    if (JSON.stringify(root.paints ?? {}) !== wantBox) boxOff.push(`${planComponentName(m)}: ${JSON.stringify(root.paints)} (want ${wantBox})`);
     // (2) THE FOCUS RING: nested only at focus-visible, following the surface so an inverse link's ring reads on the band.
     const ring = findIn(root, 'focusRing');
     const want = c.state === 'focus-visible';
     if (want !== !!ring || (ring && (ring.nestTarget !== 'focus-ring' || JSON.stringify(ring.nestVariant) !== JSON.stringify({ surface: c.surface }))))
       ringOff.push(`${planComponentName(m)}: ${ring ? `${String(ring.nestTarget)} ${JSON.stringify(ring.nestVariant)}` : 'no ring'} (want ${want ? `focus-ring {"surface":"${c.surface}"}` : 'no ring'})`);
   }
-  ok(linkMembers.length === 96 && inkOff.length === 0 && boxOff.length === 0,
-    `#2715 link paint: 96 members; the label takes color/text/link/{default,hover,pressed,focused} on the page and color/inverse/text/link/… on an inverse band, by state, and the link box paints nothing (${linkMembers.length} members, ${inkOff.length} ink off, ${boxOff.length} painted box(es) — ${[...inkOff, ...boxOff].slice(0, 2).join('; ') || 'none'})`);
-  ok(ringOff.filter(Boolean).length === 0 && linkMembers.filter((m) => (m.coord as Record<string, string>).state === 'focus-visible').length === 24,
-    `#2715 link focus ring: a nested focus-ring on the 24 focus-visible members only, following the member's surface (${ringOff.length} off — ${ringOff.slice(0, 2).join('; ') || 'none'})`);
+  ok(linkMembers.length === 144 && inkOff.length === 0 && boxOff.length === 0,
+    `#2715 link paint: 144 members; the label takes color/text/link/{default,hover,pressed,focused} on the page and color/inverse/text/link/… on an inverse band, by state; the link box paints nothing, except a current member's bar stroke in color/[inverse/]icon/link/<state> (#2872) (${linkMembers.length} members, ${inkOff.length} ink off, ${boxOff.length} box(es) off — ${[...inkOff, ...boxOff].slice(0, 2).join('; ') || 'none'})`);
+  ok(ringOff.filter(Boolean).length === 0 && linkMembers.filter((m) => (m.coord as Record<string, string>).state === 'focus-visible').length === 36,
+    `#2715 link focus ring: a nested focus-ring on the 36 focus-visible members only, following the member's surface (${ringOff.length} off — ${ringOff.slice(0, 2).join('; ') || 'none'})`);
+
+  // #2872 (owner decisions Q507). THE SHAPE (2 A, 3 A): `selection` on standalone links only, so the inline × selected
+  // coordinates are absent: 48 standalone selected, 48 standalone unselected, 48 inline unselected. Typed, not read
+  // off the def's `excludeCoordinates`.
+  const linkCount = (f: (c: Record<string, string>) => boolean): number => linkMembers.filter((m) => f(m.coord as Record<string, string>)).length;
+  ok(linkCount((c) => c.style === 'standalone' && c.selection === 'selected') === 48 && linkCount((c) => c.style === 'standalone' && c.selection === 'unselected') === 48
+    && linkCount((c) => c.style === 'inline' && c.selection === 'unselected') === 48 && linkCount((c) => c.style === 'inline' && c.selection === 'selected') === 0,
+    `#2872 link shape: selection on standalone only — 48 standalone selected, 48 standalone unselected, 48 inline unselected, no inline selected (${linkCount((c) => c.style === 'standalone' && c.selection === 'selected')}, ${linkCount((c) => c.style === 'standalone' && c.selection === 'unselected')}, ${linkCount((c) => c.style === 'inline' && c.selection === 'unselected')}, ${linkCount((c) => c.style === 'inline' && c.selection === 'selected')})`);
+  // THE BAR (1 C): 2px at the foot of the line box, drawn as the box's bottom stroke and nothing else. A current
+  // member binds the bottom weight to border-width/thick and the other three sides to border-width/none; every other
+  // member binds all four to none. No layer is added: a current member's child list is its unselected twin's.
+  const barOff: string[] = [];
+  const SIDES = ['strokeTopWeight', 'strokeRightWeight', 'strokeBottomWeight', 'strokeLeftWeight'];
+  for (const m of linkMembers) {
+    const c = m.coord as Record<string, string>;
+    const b = (m.root as PN).bound ?? {};
+    const want = c.selection === 'selected' ? ['border-width/none', 'border-width/none', 'border-width/thick', 'border-width/none'] : SIDES.map(() => 'border-width/none');
+    const got = SIDES.map((k) => b[k]);
+    if (JSON.stringify(got) !== JSON.stringify(want)) barOff.push(`${planComponentName(m)}: ${JSON.stringify(got)}`);
+    if (c.selection === 'selected') {
+      const twin = linkMembers.find((x) => planComponentName(x) === planComponentName(m).replace('selection=selected', 'selection=unselected'));
+      const kids = (n: PN): string => n.children.map((k) => `${k.name}[${kids(k)}]`).join(',');
+      if (!twin || kids(twin.root as PN) !== kids(m.root as PN)) barOff.push(`${planComponentName(m)}: layers differ from its unselected twin`);
+    }
+  }
+  ok(barOff.length === 0, `#2872 link bar: a current member's box binds a 2px bottom stroke (border-width/thick) and none on the other sides, every other member none on all four, and no member gains a layer (${barOff.length} off — ${barOff.slice(0, 2).join('; ') || 'none'})`);
+  // HOVER ON THE CURRENT ITEM (4): color only. A current member's label takes the PLAIN body style at every state, never
+  // its `-link` twin, so no 1px underline joins the bar; an unselected standalone member still shows it at hover.
+  const typeOf = (m: (typeof linkMembers)[number]): string => String((findIn(m.root as PN, 'label') as PN & { textStyle?: string })?.textStyle);
+  const curUnderlined = linkMembers.filter((m) => (m.coord as Record<string, string>).selection === 'selected' && typeOf(m).endsWith('-link')).map(planComponentName);
+  const restHover = linkMembers.filter((m) => { const c = m.coord as Record<string, string>; return c.style === 'standalone' && c.selection === 'unselected' && c.state === 'hover'; });
+  ok(curUnderlined.length === 0 && restHover.length === 12 && restHover.every((m) => typeOf(m).endsWith('-link')),
+    `#2872 link hover on current: no current member takes an underlined (-link) style at any state, and the 12 unselected standalone hover members still do (${curUnderlined.length} underlined current — ${curUnderlined.slice(0, 2).join('; ') || 'none'}; ${restHover.filter((m) => typeOf(m).endsWith('-link')).length}/${restHover.length})`);
   // (3) MEASURED: every link ink the plan binds clears 4.5:1 (SC 1.4.3, body-size text) on its own ground, the page
   // for a default link and the inverse band for an inverse one, in all 16 brand × mode cells.
   const linkInks = new Map<string, string>();
@@ -33775,6 +33817,40 @@ arm: {
   const linkLow = linkCells.filter((x) => !(x.ratio >= 4.5)).map((x) => `${x.cell} ${x.ratio.toFixed(2)}`);
   ok(linkInks.size === 8 && linkCells.length === 16 * 8 && linkMiss.length === 0 && linkLow.length === 0,
     `#2715 link contrast: the 8 link inks (4 states × 2 surfaces) each clear 4.5:1 on their ground in all 16 brand × mode cells (${linkCells.length} measured, ${linkLow.length} under — ${linkLow.slice(0, 3).join('; ') || 'none'}${linkMiss.length ? `; missing ${linkMiss.slice(0, 2).join(', ')}` : ''})`);
+
+  // (3b) THE BAR'S CONTRAST (#2872, Q507.1 C): the bar is a non-text mark, so 3:1 (SC 1.4.11) against its ground, at
+  // every state the plan paints it, in all 16 brand × mode cells. Read off the plan's strokes.
+  const barInks = new Map<string, string>();
+  for (const m of linkMembers) {
+    const c = m.coord as Record<string, string>;
+    const bar = (m.root as PN).paints?.strokes;
+    if (bar) barInks.set(bar, c.surface === 'inverse' ? 'color/inverse/background/primary' : 'color/background/primary');
+  }
+  const barCells: { cell: string; ratio: number }[] = [];
+  const barMiss: string[] = [];
+  for (const { cell, vars } of exportsOf()) {
+    if (!vars) { barMiss.push(`${cell}: no export`); continue; }
+    for (const [ink, ground] of barInks) {
+      const fg = vars.get(ink), bg = vars.get(ground);
+      if (!fg || !bg || (fg.a ?? 1) !== 1 || (bg.a ?? 1) !== 1) { barMiss.push(`${cell}: ${ink} on ${ground}`); continue; }
+      barCells.push({ cell: `${cell} ${ink}`, ratio: contrast(solid(fg), solid(bg)) });
+    }
+  }
+  const barLow = barCells.filter((x) => !(x.ratio >= 3)).map((x) => `${x.cell} ${x.ratio.toFixed(2)}`);
+  const barMin = barCells.reduce((lo, x) => (x.ratio < lo.ratio ? x : lo), barCells[0] ?? { cell: 'none', ratio: NaN });
+  ok(barInks.size === 8 && barCells.length === 16 * 8 && barMiss.length === 0 && barLow.length === 0,
+    `#2872 link bar contrast: the 8 bar inks (4 states × 2 surfaces) each clear 3:1 on their ground in all 16 brand × mode cells (${barCells.length} measured, lowest ${barMin.cell} ${barMin.ratio.toFixed(2)}, ${barLow.length} under — ${barLow.slice(0, 3).join('; ') || 'none'}${barMiss.length ? `; missing ${barMiss.slice(0, 2).join(', ')}` : ''})`);
+  // (3c) THE HOVER STEP ON THE CURRENT ITEM (Q507.4), MEASURED AND REPORTED: hover changes the color only, so the step is
+  // the contrast of each hover ink against its rest ink. No floor: the owner accepted under 3:1 (the bar is the cue).
+  const stepCells: string[] = [];
+  let stepLo = Infinity;
+  for (const { cell, vars } of exportsOf()) for (const inv of ['', 'inverse/']) for (const role of ['text', 'icon']) {
+    const r = vars?.get(`color/${inv}${role}/link/default`), h = vars?.get(`color/${inv}${role}/link/hover`);
+    if (!r || !h) { stepCells.push(`${cell} ${inv}${role}: missing`); continue; }
+    stepLo = Math.min(stepLo, contrast(solid(h), solid(r)));
+  }
+  ok(stepCells.length === 0 && Number.isFinite(stepLo),
+    `#2872 link hover step on current (reported, no floor): the lowest hover-vs-rest step of the link text and icon inks, both surfaces, all 16 cells, is ${stepLo.toFixed(2)}:1${stepCells.length ? ` (${stepCells.slice(0, 2).join('; ')})` : ''}`);
 
   // TABS (#2416, owner decisions Q177, Q178, Q226). (4) The list paints one thing, the baseline: a fill of the
   // decorative hairline border (color/border/primary), no stroke. The container, the row of tabs and every other
