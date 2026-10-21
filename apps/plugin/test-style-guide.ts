@@ -1050,7 +1050,7 @@ const GROW_DIMENSION = 2 * 44;
 const RAMP_H = 81 * 44 + 40;
 /** The prism3 emission's inverse families, in file order: one table each since #2801 (the owner's change of 2026-10-16),
  *  where they were one Inverse table. */
-const SEM_INVERSE = ['Inverse background', 'Inverse foreground', 'Inverse text', 'Inverse interactive', 'Inverse border', 'Inverse icon', 'Inverse disabled', 'Inverse field'];
+const SEM_INVERSE = ['Inverse background', 'Inverse foreground', 'Inverse text', 'Inverse border', 'Inverse icon', 'Inverse interactive', 'Inverse disabled', 'Inverse field'];
 const PRIM = '↳ Primitive tokens';
 const SEM = '↳ Semantic tokens';
 const FC = '↳ File Components';
@@ -1773,8 +1773,8 @@ const main = async (): Promise<void> => {
     // INVERSE COLORS IS ITS OWN GROUP (owner decision, 2026-10-19): the defaults in Semantic colors' one row, the inverse
     // guides in their own titled frame, each in its default counterpart's column. Scrim and Veil have no inverse, so their
     // cells below stay empty; typed out here.
-    const want = { Background: '0,0', Foreground: '0,1', Text: '0,2', Interactive: '0,3', Border: '0,4', Icon: '0,5', Disabled: '0,6', Scrim: '0,7', Veil: '0,8', Field: '0,9',
-      'Inverse background': '0,0', 'Inverse foreground': '0,1', 'Inverse text': '0,2', 'Inverse interactive': '0,3', 'Inverse border': '0,4', 'Inverse icon': '0,5', 'Inverse disabled': '0,6', 'Inverse field': '0,9' };
+    const want = { Background: '0,0', Foreground: '0,1', Text: '0,2', Border: '0,3', Icon: '0,4', Interactive: '0,5', Disabled: '0,6', Scrim: '0,7', Veil: '0,8', Field: '0,9',
+      'Inverse background': '0,0', 'Inverse foreground': '0,1', 'Inverse text': '0,2', 'Inverse border': '0,3', 'Inverse icon': '0,4', 'Inverse interactive': '0,5', 'Inverse disabled': '0,6', 'Inverse field': '0,9' };
     const got = Object.keys(want).map((t) => `${t} ${at(t)}`);
     const inverseTitles = Object.keys(want).filter((t) => t.startsWith('Inverse '));
     ok(!!sc && !!ic && pageFrames(r.sem).length === 2 && JSON.stringify(got) === JSON.stringify(Object.entries(want).map(([t, c]) => `${t} ${c}`))
