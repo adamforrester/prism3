@@ -101,6 +101,199 @@ Name the state, not the color: "Failed", not "Red". Use the same word for the sa
 | `showZero` | boolean | `false` | no | Whether a count of zero still shows, for type count. Hidden by default, since zero is usually nothing to act on. |
 | `overlap` | enum: 'rectangular' \| 'circular' | `rectangular` | no | The host shape a count or dot sits over. circular pulls the badge in toward the curve so it stays on the host's edge, such as an avatar. |
 
+## Specs
+
+Generated from the plan that builds the design-file component: 20 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `surface` | frame | every member |
+| `surface/text` | text | type=status |
+| `surface/count` | text | type=count |
+| `surface/dot` | frame | type=dot |
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by `type`.
+
+**type=status**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `surface` | `space.100` / `space.150` / `space.100` / `space.150` | — | — | — | — | — |
+
+**type=count**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `surface` | `space.025` / `space.075` / `space.025` / `space.075` | — | — | — | — | — |
+
+**type=dot**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `surface` | `space.0` | — | — | — | — | — |
+| `surface/dot` | — | — | `control.size.sm.dot` | `control.size.sm.dot` | — | — |
+
+### Type
+
+Keyed by nothing: one row covers every member.
+
+| Members | Part | Text style |
+| --- | --- | --- |
+| every member | `surface/text` | `type.label.sm.emphasis` |
+| every member | `surface/count` | `type.label.sm.emphasis` |
+
+### Color
+
+Keyed by `type`, `emphasis`, `tone`.
+
+**type=status, emphasis=subtle, tone=neutral**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.foreground.secondary` | `color.border.tertiary` | — | — |
+| `surface/text` | — | — | `color.text.primary` | — |
+
+**type=status, emphasis=subtle, tone=info**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.foreground.info-subtle` | `color.border.info` | — | — |
+| `surface/text` | — | — | `color.text.info` | — |
+
+**type=status, emphasis=subtle, tone=success**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.foreground.success-subtle` | `color.border.success` | — | — |
+| `surface/text` | — | — | `color.text.success` | — |
+
+**type=status, emphasis=subtle, tone=warning**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.foreground.warning-subtle` | `color.border.warning` | — | — |
+| `surface/text` | — | — | `color.text.warning` | — |
+
+**type=status, emphasis=subtle, tone=danger**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.foreground.danger-subtle` | `color.border.danger` | — | — |
+| `surface/text` | — | — | `color.text.danger` | — |
+
+**type=status, emphasis=bold, tone=neutral**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.inverse.foreground.tertiary` | — | — | — |
+| `surface/text` | — | — | `color.inverse.text.primary` | — |
+
+**type=status, emphasis=bold, tone=info**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.foreground.info` | — | — | — |
+| `surface/text` | — | — | `color.text.on-info` | — |
+
+**type=status, emphasis=bold, tone=success**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.foreground.success` | — | — | — |
+| `surface/text` | — | — | `color.text.on-success` | — |
+
+**type=status, emphasis=bold, tone=warning**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.foreground.warning` | — | — | — |
+| `surface/text` | — | — | `color.text.on-warning` | — |
+
+**type=status, emphasis=bold, tone=danger**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.foreground.danger` | — | — | — |
+| `surface/text` | — | — | `color.text.on-danger` | — |
+
+**type=count, emphasis=bold, tone=neutral**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.inverse.foreground.tertiary` | — | — | — |
+| `surface/count` | — | — | `color.inverse.text.primary` | — |
+
+**type=count, emphasis=bold, tone=info**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.foreground.info` | — | — | — |
+| `surface/count` | — | — | `color.text.on-info` | — |
+
+**type=count, emphasis=bold, tone=success**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.foreground.success` | — | — | — |
+| `surface/count` | — | — | `color.text.on-success` | — |
+
+**type=count, emphasis=bold, tone=warning**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.foreground.warning` | — | — | — |
+| `surface/count` | — | — | `color.text.on-warning` | — |
+
+**type=count, emphasis=bold, tone=danger**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.foreground.danger` | — | — | — |
+| `surface/count` | — | — | `color.text.on-danger` | — |
+
+**type=dot, emphasis=bold, tone=neutral**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.inverse.foreground.tertiary` | — | — | — |
+
+**type=dot, emphasis=bold, tone=info**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.foreground.info` | — | — | — |
+
+**type=dot, emphasis=bold, tone=success**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.foreground.success` | — | — | — |
+
+**type=dot, emphasis=bold, tone=warning**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.foreground.warning` | — | — | — |
+
+**type=dot, emphasis=bold, tone=danger**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.foreground.danger` | — | — | — |
+
+### Nesting and properties
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `label` | text | `Status` |
+| `value` | text | `3` |
+
 ---
 
 Generated from the `badge` component definition.
