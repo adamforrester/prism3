@@ -183,6 +183,9 @@ Report "left on purpose" separately, with a reason for each: photo fills, third-
 no Prism3 equivalent (map effects to Prism3's `shadow/*` and `shadow-dark/*` effect styles and its
 gradient styles first), hidden leftovers the owner deferred. Finish by rechecking every fingerprint.
 
+Once a set of rebuilt pages is done, run the consistency audit too (section 10). Every node can be
+bound to Prism3 while the pages still disagree with each other.
+
 ## 8. When Prism3 is a published library, not local
 
 Sections 1 to 7 hold unchanged: attached components, fonts checked first, the rogue-binding audit. What
@@ -242,7 +245,69 @@ Log the library's name, every key imported, every import that failed and its rea
 - On the library path: the library, the key table, imports that failed, and the publish status of
   anything a gap depends on.
 - The difference table, each row sorted as improvement, gap or brand (proposed), with measurements.
+- For a set of rebuilt pages: the consistency audit's findings table, and its row on #2886 (section 10).
 - Issues for the gaps the owner confirms. Brand-only items and setting changes go on a list for the brand's
   own file, kept out of the shared repository.
 - Never put a client's name, file name, file key, product or page names into the shared repository,
   including issues and examples.
+
+## 10. The consistency audit for rebuilt spec pages
+
+A set of rebuilt pages must be consistent, not only bound to Prism3. The binding audit passes a control
+drawn as plain text, because the text uses a library text style. `consistency-audit.js`, next to this
+file, finds that kind of drift. It is read-only: it reads the pages and writes nothing.
+
+**When to run it.** After rebuilding a set of pages that share elements (one flow, one template at two
+breakpoints), and again after fixing what it found. Run it on the whole set at once: most checks compare
+pages with each other, so a single frame has nothing to disagree with.
+
+**How to run it.** It needs a dev build of the plugin with the agent link on, because it runs through the
+link's `run-code` command (`apps/plugin/README.md`, the agent link section). Send one input line, then the
+file's text, as the code:
+
+```js
+const auditInput = { pageId: '12:34', label: 'Checkout flow', run: 3 };
+// …then the whole of consistency-audit.js
+```
+
+Give `frameIds` instead of `pageId` to audit exactly those frames. The file's header lists every option:
+`allow` (roles and texts that check 1 skips, by default headings and titles), `controls` (which
+component names count as controls), `mobileMaxWidth` (767 by default) and `library` (which variables
+and styles count as the library's). On the library path (section 8), pass the Prism3 collection and
+style keys as `library`; the default treats every local variable and style as the library's, which is
+right only when Prism3 is materialized in the file. A large set can take longer than the 30-second
+default, so pass a longer `timeoutMs` in the command's args.
+
+**The four checks.**
+
+1. **Control label.** Plain text, outside any instance, that repeats the label of a button, link, tab,
+   tag or chip instance anywhere in the set. A page heading that matches a navigation link is expected:
+   the allowlist skips text whose role or text style name contains `heading` or `title`.
+2. **Pairing.** For each element role, the desktop text style and the mobile text style form the same
+   pair on every page.
+3. **Page to page.** At one breakpoint, each role uses one text style, one component and variant, and
+   one spacing to its parent (the auto layout gap, or the distance from the previous sibling).
+4. **Binding.** Every variable and style comes from the library, inside instances too, and no visible
+   solid fill or stroke outside an instance is a raw color. It does not read gradient or image paints. This is section 7's audit in short form; section 7
+   still applies in full to a rebind.
+
+**What the checks rely on.** A role is the layer name, normalized: lowercase, separators as spaces, and a
+trailing `copy` or `copy 2` removed, so `Price copy` and `price` are one role. A number stays, so
+`Heading 1` and `Heading 2` are two roles. A layer Figma named (`Frame 12`, `Rectangle 4`, or a text
+layer still named after its own text) has no role, and checks 2 and 3 skip it; the output's `coverage`
+block counts the text layers without one, so name the layers that matter. A frame is desktop or mobile by the words in its name (`desktop`, `lg`, `xl`;
+`mobile`, `sm`, `xs`), or by its width when the name has neither. Frames whose names match once those
+words are removed are one page at two breakpoints. Check the `frames` list in the output before reading
+the findings: a frame classified wrongly makes every pairing finding wrong.
+
+**Reading the findings.** Each finding names its check, frame, node, role, the expected value (what most
+pages use) and the actual one. Sort each into a true positive (fix it in the file, then rerun) or a
+false positive (intended, such as a drawer title that repeats its trigger's label). Add a false
+positive that will recur to `allow`, rather than ignoring it each run. A drift on one page shows up in
+checks 2 and 3 both; fix it once.
+
+**Logging the run.** The output's `runsRow` is a row for the Runs table on #2886. Fill its last three
+cells (true positives, false positives, and any rule change you made after the run) and add it to the
+issue with a comment, together with the findings table. Those rows decide when the audit becomes a
+plugin command. `apps/plugin/test-consistency-audit.ts` runs the audit on a fixture and proves each
+check fires on a seeded drift and stays quiet on a consistent set; change the audit only with it.
