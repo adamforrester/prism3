@@ -477,7 +477,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
   const handEdits: SetPreview['handEdits'] = [];
   const rev = String(EXECUTOR_REVISION);
   const states: SetPreview['states'] = [];
-  const plannedRx = reactionMap(plans.map((p) => planComponentName(p)));
+  const plannedRx = reactionMap(plans.map((p) => planComponentName(p)), plans[0]?.pressState);
   for (const l of matched) {
     const plan = planned.get(l.target)!;
     const { m } = l;
@@ -840,7 +840,7 @@ export const captureSet = async (set: LiveSet, plans: AnatomyPlan[], ports: Read
   const view = ownedView(read ?? await readSetView(set, breathe, (ports as UpdatePorts).drawVars));
   let recorded = 0;
   const skipped: { member: string; reason: string; differences?: Difference[] }[] = [];
-  const plannedRx = reactionMap(plans.map((p) => planComponentName(p)));
+  const plannedRx = reactionMap(plans.map((p) => planComponentName(p)), plans[0]?.pressState);
   for (const m of view.members) {
     const plan = planned.get(coordKey(m.name));
     const v = captureVerdict(plan, m, withSetSlots(ports, view.definitions), plan ? memberReactions(plannedRx, plan, m) : null);

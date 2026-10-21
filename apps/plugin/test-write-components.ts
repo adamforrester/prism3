@@ -5337,4 +5337,24 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     `segmented control equal widths (Q269.6): at every size the items slot grows along the track and its three options grow along it (layoutGrow 1 on the host) and measure the same width, their shares filling the track (${members.length} members${wrong.length ? ` — WRONG: ${wrong.join(' | ')}` : ''})`);
 }
 
+// ── #2428: CODE INPUT'S CHARACTER IS TRIMMED TO ITS CAP HEIGHT, AND THE #1567 RE-APPLY STANDS DOWN FOR IT ──────────
+// Option A on #2789 (the owner's QA: the digit sat too high). Figma keeps vertical trim inside a text style, so the
+// trimmed character is applied its style, then `claimDefaults` writes the plan's CAP_HEIGHT (detaching the style, as
+// the host does), and the executor must NOT re-apply the style, whose own NONE would erase the trim. The shim models
+// both halves: a trim write detaches, and applying a style writes the style's NONE. Every other text node still ends
+// styled, which the #1567 arms above hold.
+{
+  const cell = componentDefs.find((d) => d.id === 'code-input-cell')!;
+  const plans = figmaAnatomySet(cell, { swapTarget: SWAP });
+  const page: Page = { children: [] };
+  const r = await applyComponentPlan(plans, makeShim({ ...fullFor(plans), page }) as any);
+  const set = page.children[0];
+  const digits = ((set?.findAll as (() => Node[]) | undefined)?.() ?? []).filter((n) => n.type === 'TEXT' && n.name === 'digit');
+  const wantDigits = plans.filter((p) => JSON.stringify(p.root).includes('"name":"digit"')).length;
+  const off = digits.filter((d) => d.leadingTrim !== 'CAP_HEIGHT').map((d) => `${String((d.parent as Node | undefined)?.parent?.name)}: ${String(d.leadingTrim)}`);
+  const trimMisses = (r.misses ?? []).filter((m: string) => /digit\.(leadingTrim|textStyle)/.test(m));
+  ok(digits.length === wantDigits && wantDigits > 0 && off.length === 0 && trimMisses.length === 0,
+    `#2428 code-input-cell: every built character (${digits.length} of ${wantDigits}) reads leadingTrim CAP_HEIGHT, and the executor reports no trim or style miss for it (off: ${[...off, ...trimMisses].join(' | ') || 'none'})`);
+}
+
 if (failed) process.exit(1);

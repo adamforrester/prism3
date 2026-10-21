@@ -318,6 +318,11 @@ const EXCLUDED: Record<string, string> = {
   'breadcrumbs': 'a navigation container — its targets are the nested items\' links and overflow button, and the parent path\'s Link, each a control of its own',
   '_breadcrumb-separator': 'a decorative mark between breadcrumb steps (CSS ::after in code, never in the accessibility tree); it takes no pointer and no focus',
   'breadcrumb-item': 'one step of a trail — its targets are the nested Link (one text line, code-side 24px, as `link`) and the nested FlushIconButton.Neutral (code-side 44×44, measured under its own name); the current page is text and not a target',
+  // #2428: Code input's target is its row of cells, one target over the one input, built at the owner's literal cell
+  // heights (Q330 A: 44, 56, 64, 72px; `builtSize`, no token), so there is no binding here to read. test.ts holds those
+  // heights against the 44px floor as literals (`#2428 code-input: the row of cells is a target of at least 44px`).
+  'code-input': 'its pointer target is the row of cells over its one input, built at literal cell heights (owner decision Q330 A, no token), so no binding to measure here; test.ts holds every size at 44px or taller',
+  'code-input-cell': 'an aria-hidden drawing of one character inside a code input, never focusable and never a target of its own; the row of cells is the code input\'s one target',
   'textarea': 'a multi-line field whose height is rows/auto-grow (fluid); it binds no single-line height, so there is no fixed hit-target dimension to measure',
 };
 

@@ -432,6 +432,18 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   },
   {
     axis: 'size',
+    values: ['medium', 'small', 'large', 'xlarge'],
+    defs: ['code-input', 'code-input-cell'],
+    relation: 'superset',
+    reason:
+      'Code input\'s four cell sizes (#2428, owner decision Q330 A): the field ladder plus `xlarge`, the 68×72 display '
+      + 'cell with a 40px character meant for four-character codes. Led by `medium`, the code default and so the set\'s '
+      + 'first member (owner decisions Q347 and Q359), as every size ladder is (#2752, Q1 B); the code enum keeps the '
+      + 'ladder\'s own order (`lint-rung-names.ts` DEFAULT_FIRST). The cell carries the same values, so it follows the '
+      + 'field\'s size by name.',
+  },
+  {
+    axis: 'size',
     values: ['small', 'medium', 'large'],
     defs: ['field-label'],
     relation: 'reordered',
@@ -594,6 +606,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
     axis: 'status',
     values: ['default', 'error', 'warning', 'success'],
     defs: ['field-message', 'select', 'text-field', 'textarea', 'password-field'],
+    // `canonical` since #2428: Code input carries a two-value subset, described against this one below.
     relation: 'canonical',
     reason:
       'A form field\'s VALIDATION OUTCOME. RENAMED from `tone` to `status` in #1334 (the owner\'s split of '
@@ -620,6 +633,16 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'so it carries the canonical set\'s first two values. A shared value means exactly what it means on a '
       + 'field, which is what lets a group follow its `status` into its rows and its nested `field-message` by '
       + 'name. The canonical set became `canonical` (from `sole`) when this one joined.',
+  },
+  {
+    axis: 'status',
+    values: ['default', 'error'],
+    defs: ['code-input'],
+    relation: 'subset',
+    reason:
+      'Code input\'s validation outcome (#2428, owner decision Q321.9 A): default or error. A one-time code is right or '
+      + 'wrong, and a right code moves the user on, so success is the page\'s to announce and warning has no case. The '
+      + 'values are the canonical set\'s own, in its order, so the nested `field-message` follows `status` by name.',
   },
   {
     axis: 'width',

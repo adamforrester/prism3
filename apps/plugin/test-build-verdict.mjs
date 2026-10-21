@@ -1028,7 +1028,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
 // ANOTHER, each when the last one's result lands (`state/build-queue.ts`). Held here through the real UI, with this
 // suite playing the plugin: what is posted, and when; that Activity reads one running build between the sets and ONE
 // result at the end (idea 13 A), with no Earlier results from the sets in between; Stop (call 16 A) letting the set being
-// built finish and posting nothing after it; and Build all (call 10 A) posting the eleven subcomponents in the list's
+// built finish and posting nothing after it; and Build all (call 10 A) posting the twelve subcomponents in the list's
 // order without touching the selection. EXPECTED is typed here: the ids, the order and the words.
 //
 // MUTATIONS, each failing here by name:
@@ -1085,16 +1085,16 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   ok(JSON.stringify(afterStop) === '["badge"]' && (await verdict()) === 'Stopped after 1 of 3 sets',
     `#2700 Stop lets the set being built finish and posts nothing after it — posted ${JSON.stringify(afterStop)}, Activity ${JSON.stringify(await verdict())}`);
 
-  // Build all: the eleven subcomponents in the list's order, the selection left alone.
+  // Build all: the twelve subcomponents in the list's order, the selection left alone.
   const pre = (await posted()).length;
   await hooks.click(page.locator('[data-p3="cp-build-all"]'));
-  const SUBS = ['breadcrumb-item', '_breadcrumb-separator', 'field-label', 'field-message', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'focus-ring', 'icon', 'image-placeholder', 'spinner'];
+  const SUBS = ['breadcrumb-item', '_breadcrumb-separator', 'code-input-cell', 'field-label', 'field-message', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'focus-ring', 'icon', 'image-placeholder', 'spinner'];
   for (let i = 0; i < SUBS.length; i++) { await waitPosts(pre + i + 1); await result(SUBS[i]); }
   await idleAgain(page);
   const all = (await posted()).slice(pre);
   const still = await readSurfaces(page);
   ok(JSON.stringify(all) === JSON.stringify(SUBS) && still.picker === 'badge,divider,tag',
-    `#2700 call 10: Build all posts the eleven subcomponents in the list's order and leaves the selection alone — posted ${JSON.stringify(all)}, selected ${still.picker}`);
+    `#2700 call 10: Build all posts the twelve subcomponents in the list's order and leaves the selection alone — posted ${JSON.stringify(all)}, selected ${still.picker}`);
 
   // An agent's build: the bar waits, and says so.
   await post(page, { type: 'agent-started', id: 'q1', cmd: 'build-components' });

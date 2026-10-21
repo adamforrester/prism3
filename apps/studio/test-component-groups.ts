@@ -38,14 +38,14 @@ console.log('\n1. The two sections and their rows (notes 2–4, calls 11, 12 and
 // The wireframe's list, typed: [label, the family's sets by component name] (a single set has one).
 const WIRE_COMPONENTS: [string, string[]][] = [
   ['Accordion', ['Accordion', 'Accordion.Indicator']], ['Badge', ['Badge']], ['Banner', ['Banner']], ['Breadcrumbs', ['Breadcrumbs']], ['Buttons', ['Button', 'Button.Destructive', 'Button.Group', 'Button.Neutral']],
-  ['Checkbox', ['Checkbox.Control', 'Checkbox.Group', 'Checkbox.Row']], ['Counter', ['Counter']], ['Dialog', ['Dialog']], ['Divider', ['Divider']],
+  ['Checkbox', ['Checkbox.Control', 'Checkbox.Group', 'Checkbox.Row']], ['Code input', ['CodeInput']], ['Counter', ['Counter']], ['Dialog', ['Dialog']], ['Divider', ['Divider']],
   ['Icon button', ['IconButton', 'IconButton.Destructive', 'IconButton.Neutral']], ['Link', ['Link']], ['List', ['List', 'List.Item']],
   ['Password field', ['PasswordField']], ['Radio', ['Radio.Control', 'Radio.Group', 'Radio.Row']],
   ['Segmented control', ['SegmentedControl', 'SegmentedControl.Segment']], ['Select', ['Select']], ['Switch', ['Switch.Control', 'Switch.Row']],
   ['Tabs', ['Tab.Item', 'Tabs']], ['Tag', ['Tag']], ['Text field', ['TextField']], ['Textarea', ['Textarea']], ['Toast', ['Toast']], ['Veil', ['Veil']],
 ];
 const WIRE_SUBS: [string, string[]][] = [
-  ['Breadcrumb item', ['BreadcrumbItem', 'BreadcrumbSeparator']], ['Field label', ['FieldLabel']], ['Field message', ['FieldMessage']], ['Flush icon button', ['FlushIconButton', 'FlushIconButton.Destructive', 'FlushIconButton.Neutral']],
+  ['Breadcrumb item', ['BreadcrumbItem', 'BreadcrumbSeparator']], ['Code cell', ['CodeInput.Cell']], ['Field label', ['FieldLabel']], ['Field message', ['FieldMessage']], ['Flush icon button', ['FlushIconButton', 'FlushIconButton.Destructive', 'FlushIconButton.Neutral']],
   ['Focus ring', ['FocusRing']], ['Icon', ['Icon']], ['Image placeholder', ['ImagePlaceholder']], ['Spinner', ['Spinner']],
 ];
 const groups = groupsOf(catalog);
@@ -54,7 +54,7 @@ ok(JSON.stringify(groups.map((g) => g.title)) === JSON.stringify(['Components', 
 ok(JSON.stringify(drawn('components').map((r) => r[0])) === JSON.stringify(WIRE_COMPONENTS.map((r) => r[0])),
   `notes 2, 3: the Components rows are the wireframe's 19, Counter (#2427) and Breadcrumbs (#2666), alphabetical, families grouped by page (${drawn('components').map((r) => r[0]).join(', ')})`);
 ok(JSON.stringify(drawn('subcomponents').map((r) => r[0])) === JSON.stringify(WIRE_SUBS.map((r) => r[0])),
-  `note 4: the Subcomponents rows are the wireframe's 7 and Breadcrumb item (#2666), alphabetical (${drawn('subcomponents').map((r) => r[0]).join(', ')})`);
+  `note 4: the Subcomponents rows are the wireframe's 7, Breadcrumb item (#2666) and Code cell (#2428), alphabetical (${drawn('subcomponents').map((r) => r[0]).join(', ')})`);
 ok(JSON.stringify(drawn('components')) === JSON.stringify(WIRE_COMPONENTS) && JSON.stringify(drawn('subcomponents')) === JSON.stringify(WIRE_SUBS),
   `note 2: a family's sets are alphabetical by component name, and call 12: a part set stays in its family (${JSON.stringify(drawn('components').filter((r) => r[1].length > 1).map((r) => r[1].join('/')))})`);
 ok(groups.find((g) => g.kind === 'subcomponents')?.rows.some((r) => r.label === 'Icon' && r.page === 'Icons & assets') === true,
