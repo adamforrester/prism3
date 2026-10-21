@@ -245,7 +245,7 @@ section('refresh — an unedited cover is kept current in place');
   ok(now.length === 1 && now[0] === fr && !fr.removed && fr.x === 500 && fr.y === -1200, 'refresh/the same node, where the designer put it');
   ok(eq(texts(fr).map((t) => t.characters).sort(), ['Aurora', 'Prism3 0.237.0']) && fillVar(fr) === 'V:ground' && texts(fr).every((t) => fillVar(t) === 'V:ink' && t.boundVariables.fontFamily),
     `refresh/version, name and bindings set (${JSON.stringify(texts(fr).map((t) => t.characters))})`);
-  ok(coverLine(o) === 'Cover: version set to 0.237.0, brand name set to Aurora.', `refresh/result line (${coverLine(o)})`);
+  ok(coverLine(o) === 'Cover: version set to 0.237.0, brand name set to Aurora, bound to the theme.', `refresh/result line (${coverLine(o)})`);
   ok(eq(await coverDue(f.root, { brand: 'Aurora', engine: '0.237.0', api: f.api }), { state: 'current' }), 'refresh/converges: current, not edited, after the refresh');
   const idle = await drawCover(f.api, f.root, { brand: 'Aurora', engine: '0.237.0' });
   ok(idle.did === 'none' && coverLine(idle) === '', 'refresh/nothing to do: nothing said');

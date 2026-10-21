@@ -287,20 +287,22 @@ export type CoverOutcome = {
   /** The file thumbnail: `set` to the cover now, already the cover, a frame the designer chose (`theirs`, named),
    *  or not readable by this host. */
   thumbnail?: 'set' | 'ours' | 'default' | { theirs: string } | 'unavailable';
+  /** True when a placeholder fill or font was bound to the theme. */
+  bound?: true;
   fontMisses: string[];
 };
 
 /** The result's line for the cover, or ''. DRAFT wording, the wireframe's where it has one. */
 export const coverLine = (o: CoverOutcome | undefined): string => {
   if (!o) return '';
-  const fonts = o.fontMisses.length ? ` ${o.fontMisses.join('; ')}.` : '';
+  const fonts = o.fontMisses.length ? ` ${o.fontMisses.map((m) => m[0].toUpperCase() + m.slice(1)).join('. ')}.` : '';
   const thumb = typeof o.thumbnail === 'object' ? ` The file thumbnail is your frame "${o.thumbnail.theirs}"; Prism3 left it.` : '';
   if (o.did === 'none') return o.skipped ? `${COVER_NAME}: ${o.skipped}.` : '';
   if (o.did === 'drawn') return o.thumbnail === 'set' ? `${COVER_NAME}: drawn and set as the file thumbnail.${fonts}` : `${COVER_NAME}: drawn.${thumb}${fonts}`;
   if (o.did === 'version') return `${COVER_NAME}: edited by hand. Only its version text was set, to ${o.engine}.${thumb}`;
-  const what = [...(o.engine ? [`version set to ${o.engine}`] : []), ...(o.name ? [`brand name set to ${o.name}`] : [])];
+  const what = [...(o.engine ? [`version set to ${o.engine}`] : []), ...(o.name ? [`brand name set to ${o.name}`] : []), ...(o.bound ? ['bound to the theme'] : [])];
   const set = o.thumbnail === 'set' ? ' Set as the file thumbnail.' : '';
-  return `${COVER_NAME}: ${what.length ? what.join(', ') : 'bound to the theme'}.${set}${thumb}${fonts}`;
+  return `${COVER_NAME}: ${what.length ? `${what.join(', ')}.` : 'not changed.'}${set}${thumb}${fonts}`;
 };
 
 /** WHICH WORDMARK SIZE a measured one-line width takes: `WORDMARK_SIZE` when it fits the inset, else `WORDMARK_SIZE_LONG`. */
@@ -493,5 +495,5 @@ export const drawCover = async (api: CoverApi, root: CoverRoot, o: { brand?: str
   out.thumbnail = await settleThumbnail(api, frame);
   // Nothing moved and the thumbnail was already settled: no line.
   if (!out.engine && !out.name && !bound && out.thumbnail !== 'set' && !misses.length) return { did: 'none', fontMisses: [] };
-  return out;
+  return bound ? { ...out, bound: true } : out;
 };
