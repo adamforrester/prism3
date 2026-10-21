@@ -21,7 +21,8 @@
  *     shape comes from `CORE_TIER`, and the default root is the one `brandTheme` gives the same input with its root
  *     removed.
  *   · canvas furniture — `CANVAS_FURNITURE`, the template names in `furniture-templates.ts` and
- *     `file-components.ts`, and the shared plugin data tag in `canvas-furniture.ts`.
+ *     `file-components.ts`, and the shared plugin data tag in `canvas-furniture.ts`; the usage panel's tag
+ *     (`doc-panel.ts`) and its `_Doc-block` template's properties (`doc-block.ts`).
  *
  * The one authored part is each section's `rule`: a sentence saying what the data means. It states what the cited
  * code enforces and nothing beyond it.
@@ -55,6 +56,8 @@ import { TAXONOMY, NEST_PREFIX, leafPageName, leafForDef } from '../../apps/plug
 import { LABEL_SET, BACKDROP_COMPONENT, SCRIM_COMPONENT, BRACKET_PROPERTY, LABEL_PLACEMENTS, LABEL_SURFACES, BACKDROP_VARIABLE, SCRIM_VARIABLE } from '../../apps/plugin/src/furniture-templates';
 import { SECTION_HEADER_SET, HEADINGS_SET } from '../../apps/plugin/src/file-components';
 import { FURNITURE_NS, FURNITURE_KEY } from '../../apps/plugin/src/canvas-furniture';
+import { DOC_BLOCK_SET, DOC_BLOCK_TYPES, DOC_BLOCK_SIZES, TOP_PADDING, BOTTOM_PADDING, CAPTION, SPECIMEN } from '../../apps/plugin/src/doc-block';
+import { DOC_PANEL_NS, DOC_PANEL_KEY } from '../../apps/plugin/src/doc-panel';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, '..', '..');
@@ -66,6 +69,8 @@ const SCHEMA_SRC = 'packages/engine/component-schema.ts';
 const TEMPLATES_SRC = 'apps/plugin/src/furniture-templates.ts';
 const FILE_COMPONENTS_SRC = 'apps/plugin/src/file-components.ts';
 const FURNITURE_SRC = 'apps/plugin/src/canvas-furniture.ts';
+const DOC_BLOCK_SRC = 'apps/plugin/src/doc-block.ts';
+const DOC_PANEL_SRC = 'apps/plugin/src/doc-panel.ts';
 /** The theme the studio and plugin open with (#1296); `emit-figma.ts` writes it to `out/figma/prism3/`. */
 const DEFAULT_THEME_SRC = 'packages/engine/examples/prism3.design.md';
 
@@ -223,6 +228,17 @@ const furniture = () => ({
     { name: BACKDROP_COMPONENT, binds: `<root>/${BACKDROP_VARIABLE}`, source: src(TEMPLATES_SRC, 'export const BACKDROP_COMPONENT') },
     { name: SCRIM_COMPONENT, binds: `<root>/${SCRIM_VARIABLE}`, source: src(TEMPLATES_SRC, 'export const SCRIM_COMPONENT') },
   ],
+  usagePanel: {
+    rule: `A usage panel is a frame drawn beside each component set, right of it, from the component's usage docs, and is never part of the set. It carries shared plugin data under namespace "${DOC_PANEL_NS}", key "${DOC_PANEL_KEY}": state "live" for the panel the plugin redraws, "kept" for one a designer edited, which the plugin keeps aside and never removes.`,
+    source: src(DOC_PANEL_SRC, 'export const DOC_PANEL_KEY'),
+    tag: { namespace: DOC_PANEL_NS, key: DOC_PANEL_KEY },
+    template: {
+      name: DOC_BLOCK_SET,
+      variantProperties: [{ name: 'Type', values: [...DOC_BLOCK_TYPES] }, { name: 'Size', values: [...DOC_BLOCK_SIZES] }],
+      properties: [{ name: TOP_PADDING, type: 'BOOLEAN' }, { name: BOTTOM_PADDING, type: 'BOOLEAN' }, { name: CAPTION, type: 'BOOLEAN' }, { name: SPECIMEN, type: 'INSTANCE_SWAP' }],
+      source: src(DOC_BLOCK_SRC, 'export const DOC_BLOCK_SET'),
+    },
+  },
   fileTemplates: {
     rule: 'Page headers are instances of these sets. They live on the Sandbox section\'s file components page with the furniture templates, and their names start with "_" so a library leaves them out.',
     names: [SECTION_HEADER_SET, HEADINGS_SET],
@@ -281,6 +297,7 @@ const names = (c: any): Map<string, string> => {
   m.set('furniture tag', JSON.stringify(c?.canvasFurniture?.tag));
   for (const x of c?.canvasFurniture?.components ?? []) m.set(`furniture on ${x}`, '1');
   for (const t of c?.canvasFurniture?.templates ?? []) m.set(`furniture template ${t.name}`, JSON.stringify(t));
+  m.set('usage panel', JSON.stringify(c?.canvasFurniture?.usagePanel));
   for (const t of c?.canvasFurniture?.fileTemplates?.names ?? []) m.set(`file template ${t}`, '1');
   return m;
 };
