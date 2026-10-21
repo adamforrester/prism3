@@ -8,7 +8,7 @@
     "packages/engine/component-glyphs.ts"
   ],
   "note": "components.<id>.glyphs: each part that draws a fixed glyph (how: drawn) or starts its icon slot at one (how: swap default); source is the icon set, a component-owned glyph, or any glyph chosen through a prop. iconSlots: parts that take any icon. glyphs: the inverse, per glyph. notDrawnByAnyComponent: icon-set glyphs no definition names; each one is still reachable through Icon and every icon slot.",
-  "iconSetSize": 45,
+  "iconSetSize": 46,
   "components": {
     "_accordion-indicator": {
       "glyphs": [
@@ -65,6 +65,98 @@
             ],
             "expansion": [
               "collapsed"
+            ]
+          }
+        }
+      ],
+      "iconSlots": []
+    },
+    "_breadcrumb-separator": {
+      "glyphs": [
+        {
+          "part": "chevron",
+          "glyph": "chevron-right",
+          "source": "icon set",
+          "how": "drawn",
+          "when": {
+            "type": [
+              "chevron"
+            ]
+          }
+        },
+        {
+          "part": "slash",
+          "glyph": "slash",
+          "source": "icon set",
+          "how": "drawn",
+          "when": {
+            "type": [
+              "slash"
+            ]
+          }
+        }
+      ],
+      "iconSlots": []
+    },
+    "banner": {
+      "glyphs": [
+        {
+          "part": "dangerGlyph",
+          "glyph": "warning-triangle",
+          "source": "icon set",
+          "how": "drawn",
+          "when": {
+            "tone": [
+              "danger"
+            ]
+          }
+        },
+        {
+          "part": "infoGlyph",
+          "glyph": "info-circle",
+          "source": "icon set",
+          "how": "drawn",
+          "when": {
+            "tone": [
+              "info"
+            ]
+          }
+        },
+        {
+          "part": "successGlyph",
+          "glyph": "check-circle",
+          "source": "icon set",
+          "how": "drawn",
+          "when": {
+            "tone": [
+              "success"
+            ]
+          }
+        },
+        {
+          "part": "warningGlyph",
+          "glyph": "error-circle",
+          "source": "icon set",
+          "how": "drawn",
+          "when": {
+            "tone": [
+              "warning"
+            ]
+          }
+        }
+      ],
+      "iconSlots": []
+    },
+    "breadcrumbs": {
+      "glyphs": [
+        {
+          "part": "backGlyph",
+          "glyph": "chevron-left",
+          "source": "icon set",
+          "how": "drawn",
+          "when": {
+            "path": [
+              "parent"
             ]
           }
         }
@@ -239,11 +331,108 @@
         "icon"
       ]
     },
+    "pagination-item": {
+      "glyphs": [
+        {
+          "part": "gapIcon",
+          "glyph": "more-horizontal-filled",
+          "source": "icon set",
+          "how": "drawn",
+          "when": {
+            "type": [
+              "ellipsis"
+            ]
+          }
+        },
+        {
+          "part": "nextIcon",
+          "glyph": "chevron-right",
+          "source": "icon set",
+          "how": "drawn",
+          "when": {
+            "type": [
+              "next"
+            ]
+          }
+        },
+        {
+          "part": "previousIcon",
+          "glyph": "chevron-left",
+          "source": "icon set",
+          "how": "drawn",
+          "when": {
+            "type": [
+              "previous"
+            ]
+          }
+        }
+      ],
+      "iconSlots": []
+    },
     "password-field": {
       "glyphs": [],
       "iconSlots": [
         "leadingVisual"
       ]
+    },
+    "progress": {
+      "glyphs": [
+        {
+          "part": "arc",
+          "glyph": "progress-arc-{size}",
+          "source": "component-owned",
+          "how": "drawn",
+          "when": {
+            "shape": [
+              "circular"
+            ],
+            "status": [
+              "active",
+              "error"
+            ]
+          }
+        },
+        {
+          "part": "arcFull",
+          "glyph": "progress-ring-{size}",
+          "source": "component-owned",
+          "how": "drawn",
+          "when": {
+            "shape": [
+              "circular"
+            ],
+            "status": [
+              "complete"
+            ]
+          }
+        },
+        {
+          "part": "ringTrack",
+          "glyph": "progress-ring-{size}",
+          "source": "component-owned",
+          "how": "drawn",
+          "when": {
+            "shape": [
+              "circular"
+            ]
+          }
+        },
+        {
+          "part": "stop",
+          "glyph": "progress-stop",
+          "source": "component-owned",
+          "how": "drawn",
+          "when": {
+            "shape": [
+              "linear"
+            ],
+            "type": [
+              "determinate"
+            ]
+          }
+        }
+      ],
+      "iconSlots": []
     },
     "segmented-control-segment": {
       "glyphs": [],
@@ -354,6 +543,22 @@
         }
       ],
       "iconSlots": []
+    },
+    "toast": {
+      "glyphs": [
+        {
+          "part": "checkCircleGlyph",
+          "glyph": "check-circle",
+          "source": "icon set",
+          "how": "drawn",
+          "when": {
+            "intent": [
+              "success"
+            ]
+          }
+        }
+      ],
+      "iconSlots": []
     }
   },
   "glyphs": {
@@ -373,15 +578,23 @@
       "tag"
     ],
     "check-circle": [
-      "field-message"
+      "banner",
+      "field-message",
+      "toast"
     ],
     "check-circle-filled": [],
     "chevron-down": [
       "_accordion-indicator",
       "select"
     ],
-    "chevron-left": [],
-    "chevron-right": [],
+    "chevron-left": [
+      "breadcrumbs",
+      "pagination-item"
+    ],
+    "chevron-right": [
+      "_breadcrumb-separator",
+      "pagination-item"
+    ],
     "chevron-up": [
       "_accordion-indicator"
     ],
@@ -391,6 +604,7 @@
     ],
     "close-filled": [],
     "error-circle": [
+      "banner",
       "field-message"
     ],
     "error-circle-filled": [],
@@ -403,7 +617,9 @@
     "image": [
       "image-placeholder"
     ],
-    "info-circle": [],
+    "info-circle": [
+      "banner"
+    ],
     "info-circle-filled": [],
     "link": [],
     "menu": [],
@@ -412,7 +628,9 @@
       "checkbox-control"
     ],
     "minus-filled": [],
-    "more-horizontal-filled": [],
+    "more-horizontal-filled": [
+      "pagination-item"
+    ],
     "more-vertical-filled": [],
     "pause-circle": [],
     "play-circle": [],
@@ -422,14 +640,25 @@
     "plus-circle": [],
     "plus-circle-filled": [],
     "plus-filled": [],
+    "progress-arc-medium": [],
+    "progress-arc-small": [],
+    "progress-ring-medium": [],
+    "progress-ring-small": [],
+    "progress-stop": [
+      "progress"
+    ],
     "resize-grip": [
       "textarea"
     ],
     "search": [],
+    "slash": [
+      "_breadcrumb-separator"
+    ],
     "spinner": [
       "spinner"
     ],
     "warning-triangle": [
+      "banner",
       "field-message"
     ],
     "warning-triangle-filled": []
@@ -445,8 +674,6 @@
     "arrow-up-left",
     "arrow-up-right",
     "check-circle-filled",
-    "chevron-left",
-    "chevron-right",
     "close-filled",
     "error-circle-filled",
     "external-link-filled",
@@ -455,12 +682,10 @@
     "eye-off",
     "eye-off-filled",
     "home",
-    "info-circle",
     "info-circle-filled",
     "link",
     "menu",
     "minus-filled",
-    "more-horizontal-filled",
     "more-vertical-filled",
     "pause-circle",
     "play-circle",

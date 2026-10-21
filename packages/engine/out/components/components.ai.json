@@ -65,6 +65,7 @@
             "plus-filled",
             "resize-grip",
             "search",
+            "slash",
             "warning-triangle",
             "warning-triangle-filled"
           ],
@@ -155,6 +156,7 @@
             "plus-filled",
             "resize-grip",
             "search",
+            "slash",
             "warning-triangle",
             "warning-triangle-filled"
           ],
@@ -1969,6 +1971,17 @@
           "description": "The glyph size: 20px at small and medium, 24px at large. A flush box is the glyph, with no padding. A round circle is 36, 44 or 56px across. The hit area in code is at least 44×44px at every size."
         },
         {
+          "name": "surface",
+          "type": "enum: 'default' | 'inverse'",
+          "default": "default",
+          "required": false,
+          "values": [
+            "default",
+            "inverse"
+          ],
+          "description": "The ground the button sits on, following IconButton. `default` for a normal page; `inverse` for a dark or brand-filled card or band, where the glyph binds its `color.inverse.*` counterpart so it keeps contrast against the flipped surface. Flush has no fill, so the glyph ink is all the axis changes. A host that cannot know its ground picks `default`, and the designer sets `inverse` on the instance, the same answer the nested focus ring gives."
+        },
+        {
           "name": "disabled",
           "type": "boolean",
           "default": false,
@@ -1996,6 +2009,13 @@
             "medium",
             "small",
             "large"
+          ],
+          "kind": "authoring"
+        },
+        "surface": {
+          "values": [
+            "default",
+            "inverse"
           ],
           "kind": "authoring"
         }
@@ -2138,6 +2158,17 @@
           "description": "The glyph size: 20px at small and medium, 24px at large. A flush box is the glyph, with no padding. A round circle is 36, 44 or 56px across. The hit area in code is at least 44×44px at every size."
         },
         {
+          "name": "surface",
+          "type": "enum: 'default' | 'inverse'",
+          "default": "default",
+          "required": false,
+          "values": [
+            "default",
+            "inverse"
+          ],
+          "description": "The ground the button sits on, following IconButton. `default` for a normal page; `inverse` for a dark or brand-filled card or band, where the glyph binds its `color.inverse.*` counterpart so it keeps contrast against the flipped surface. Flush has no fill, so the glyph ink is all the axis changes. A host that cannot know its ground picks `default`, and the designer sets `inverse` on the instance, the same answer the nested focus ring gives."
+        },
+        {
           "name": "disabled",
           "type": "boolean",
           "default": false,
@@ -2165,6 +2196,13 @@
             "medium",
             "small",
             "large"
+          ],
+          "kind": "authoring"
+        },
+        "surface": {
+          "values": [
+            "default",
+            "inverse"
           ],
           "kind": "authoring"
         }
@@ -2308,6 +2346,17 @@
           "description": "The glyph size: 20px at small and medium, 24px at large. A flush box is the glyph, with no padding. A round circle is 36, 44 or 56px across. The hit area in code is at least 44×44px at every size."
         },
         {
+          "name": "surface",
+          "type": "enum: 'default' | 'inverse'",
+          "default": "default",
+          "required": false,
+          "values": [
+            "default",
+            "inverse"
+          ],
+          "description": "The ground the button sits on, following IconButton. `default` for a normal page; `inverse` for a dark or brand-filled card or band, where the glyph binds its `color.inverse.*` counterpart so it keeps contrast against the flipped surface. Flush has no fill, so the glyph ink is all the axis changes. A host that cannot know its ground picks `default`, and the designer sets `inverse` on the instance, the same answer the nested focus ring gives."
+        },
+        {
           "name": "disabled",
           "type": "boolean",
           "default": false,
@@ -2335,6 +2384,13 @@
             "medium",
             "small",
             "large"
+          ],
+          "kind": "authoring"
+        },
+        "surface": {
+          "values": [
+            "default",
+            "inverse"
           ],
           "kind": "authoring"
         }
@@ -2545,6 +2601,8 @@
           "radio-group",
           "segmented-control",
           "counter",
+          "code-input",
+          "slider",
           "field-message"
         ],
         "triggerKeywords": [
@@ -5449,7 +5507,7 @@
       "ai": {
         "primaryPurpose": "Show that work is in progress with no known end, inside the control or region that is waiting.",
         "whenToUse": "A short indeterminate wait of about 200ms to 5s (Material 3's bands) inside a host: a pending Button, a field validating its value, a region reloading. Size it to the host's icon slot.",
-        "avoidWhen": "The wait is under 200ms (show nothing — a spinner shown that briefly only flashes), runs past about 5s or has a known length (determinate progress, not built yet — including a circular progress with a value), the page is loading its layout (a skeleton, not built yet), or you want a static icon — the spinner is behavior, not a glyph.",
+        "avoidWhen": "The wait is under 200ms (show nothing — a spinner shown that briefly only flashes), runs past about 5s or has a known length (a Progress bar, or a Progress ring when it has a value), the page is loading its layout (a skeleton, not built yet), or you want a static icon — the spinner is behavior, not a glyph.",
         "commonPartners": [
           "button",
           "icon-button",
@@ -5476,13 +5534,13 @@
       },
       "composition": {
         "composesWith": [],
-        "alternativeTo": [],
+        "alternativeTo": [
+          "progress"
+        ],
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "progress",
-          "skeleton",
-          "toast"
+          "skeleton"
         ],
         "replacesPatterns": [
           "an animated loading GIF",
@@ -5675,14 +5733,13 @@
       "composition": {
         "composesWith": [],
         "alternativeTo": [
-          "tag"
+          "tag",
+          "banner"
         ],
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "avatar",
-          "toast",
-          "banner"
+          "avatar"
         ],
         "replacesPatterns": [
           "a hand-drawn colored pill",
@@ -7492,7 +7549,8 @@
         "commonPartners": [
           "icon",
           "button",
-          "text-field"
+          "text-field",
+          "breadcrumbs"
         ],
         "triggerKeywords": [
           "link",
@@ -7521,7 +7579,6 @@
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "breadcrumbs",
           "menu"
         ],
         "replacesPatterns": [
@@ -7617,6 +7674,7 @@
         "avoidWhen": "One choice among joined options (segmented-control), a toolbar of tools, navigation (links), or a single action on its own (a Button by itself).",
         "commonPartners": [
           "dialog",
+          "banner",
           "button",
           "button-destructive",
           "button-neutral"
@@ -7647,7 +7705,6 @@
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "banner",
           "card",
           "toolbar"
         ],
@@ -7884,7 +7941,6 @@
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "toast",
           "popover",
           "menu"
         ],
@@ -8154,6 +8210,601 @@
         ]
       }
     },
+    "_breadcrumb-separator": {
+      "id": "_breadcrumb-separator",
+      "name": "BreadcrumbSeparator",
+      "aliases": [
+        "breadcrumb-divider",
+        "crumb-separator"
+      ],
+      "category": "navigation",
+      "status": "draft",
+      "summary": "The mark between two breadcrumb steps: a chevron or a slash, in the secondary icon color.",
+      "description": "The mark between two steps of a Breadcrumbs trail, after every step but the current page. A chevron that points toward the current page, or a slash. Breadcrumbs chooses one for the whole trail. It is 16px at both breadcrumb sizes, in the secondary icon color, and decorative: it is never read aloud or focused.",
+      "props": [
+        {
+          "name": "type",
+          "type": "enum: 'chevron' | 'slash'",
+          "default": "chevron",
+          "required": false,
+          "values": [
+            "chevron",
+            "slash"
+          ],
+          "description": "chevron: a chevron pointing toward the current page. slash: a forward slash. Set by the Breadcrumbs it sits in, for every step at once."
+        }
+      ],
+      "states": [],
+      "variants": {
+        "type": {
+          "values": [
+            "chevron",
+            "slash"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "none: decorative, drawn by CSS and never in the accessibility tree",
+        "wcag": [
+          "1.3.1 Info and Relationships (the trail's order is the list's, not the separator's)"
+        ],
+        "focus": "None. The mark takes no focus.",
+        "aria": "None. The mark is CSS generated content, never announced."
+      },
+      "content": {
+        "labelPattern": "The mark carries no text."
+      },
+      "docs": {
+        "usage": "Part of a BreadcrumbItem. Choose chevron or slash once, on Breadcrumbs; every step shows the same mark.",
+        "do": [
+          "Choose the look once, on Breadcrumbs"
+        ],
+        "dont": [
+          "Place a separator on its own, or type one as text between links",
+          "Mix chevrons and slashes in one trail"
+        ],
+        "contentGuidelines": "The separator holds no copy."
+      },
+      "ai": {
+        "primaryPurpose": "The mark between two steps of a Breadcrumbs trail, a chevron or a slash.",
+        "whenToUse": "Only as a child of BreadcrumbItem. Generate Breadcrumbs instead.",
+        "avoidWhen": "Always on its own. Use Breadcrumbs; for a plain icon, use an Icon.",
+        "commonPartners": [
+          "breadcrumb-item",
+          "breadcrumbs"
+        ],
+        "triggerKeywords": [
+          "breadcrumb separator",
+          "breadcrumb slash",
+          "breadcrumb chevron"
+        ],
+        "generationPriority": 9
+      },
+      "motion": {
+        "enter": "None.",
+        "exit": "None.",
+        "reduceMotion": "No motion to reduce."
+      },
+      "composition": {
+        "composesWith": [],
+        "alternativeTo": [],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [],
+        "replacesPatterns": [
+          "a \"/\" or \">\" typed as text between breadcrumb links"
+        ]
+      }
+    },
+    "breadcrumb-item": {
+      "id": "breadcrumb-item",
+      "name": "BreadcrumbItem",
+      "aliases": [
+        "crumb",
+        "breadcrumb-step"
+      ],
+      "category": "navigation",
+      "status": "draft",
+      "summary": "One step in a breadcrumb trail: a link, the current page, or the collapsed steps.",
+      "description": "One step in a Breadcrumbs trail. An ancestor is an underlined link to a page above the current one, followed by a chevron or a slash. The current page is plain text in the primary text color, last in the trail and not a link. The overflow step stands for the steps a long trail hides: a small icon-only button that shows them in place when pressed. Items live inside Breadcrumbs and are never placed on their own.",
+      "props": [
+        {
+          "name": "kind",
+          "type": "enum: 'ancestor' | 'current' | 'overflow'",
+          "default": "ancestor",
+          "required": false,
+          "values": [
+            "ancestor",
+            "current",
+            "overflow"
+          ],
+          "description": "ancestor: a link to a page above this one. current: the page you are on, as text. overflow: the button that stands for the hidden steps of a long trail. Breadcrumbs sets it from the item's place in the trail."
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "description": "The page name, as the page titles itself. On an ancestor it is the link text; on the current page, the text."
+        },
+        {
+          "name": "href",
+          "type": "string",
+          "required": false,
+          "description": "The ancestor page's address. Ignored on the current page, which is not a link."
+        },
+        {
+          "name": "size",
+          "type": "enum: 'small' | 'medium'",
+          "default": "medium",
+          "required": false,
+          "values": [
+            "small",
+            "medium"
+          ],
+          "description": "The body type size, 14 or 16px, with the gap to the separator sized to it. Set by the Breadcrumbs it sits in."
+        },
+        {
+          "name": "separator",
+          "type": "enum: 'chevron' | 'slash'",
+          "default": "chevron",
+          "required": false,
+          "values": [
+            "chevron",
+            "slash"
+          ],
+          "description": "The mark after the step: a chevron or a slash. Set by the Breadcrumbs it sits in, the same for every step. Unused on the current page."
+        }
+      ],
+      "states": [],
+      "variants": {
+        "kind": {
+          "values": [
+            "ancestor",
+            "current",
+            "overflow"
+          ],
+          "kind": "authoring"
+        },
+        "separator": {
+          "values": [
+            "chevron",
+            "slash"
+          ],
+          "kind": "authoring"
+        },
+        "size": {
+          "values": [
+            "medium",
+            "small"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "listitem, holding a link, the current page's text, or a button",
+        "wcag": [
+          "1.3.1 Info and Relationships (each step is a list item)",
+          "1.4.1 Use of Color (an ancestor link is underlined at every state)",
+          "1.4.3 Contrast (targets 4.5:1 for the link and the current page against the page)",
+          "2.4.4 Link Purpose (the link text is the ancestor page's name)",
+          "2.4.7 Focus Visible (the nested link's and button's own focus rings)",
+          "2.5.8 Target Size (targets 24px for a link and 44px for the overflow button, through code-side hit areas)",
+          "4.1.2 Name, Role, Value"
+        ],
+        "keyboard": "Tab reaches an ancestor link or the overflow button; Enter follows the link; Enter or Space presses the button. The current page takes no focus.",
+        "focus": "The nested link's and button's own focus rings. The current page is not focusable.",
+        "aria": "aria-current=\"page\" on the current page's text. The overflow button is named \"Show full path\" (DRAFT), translated, and its glyph is aria-hidden. The separator is never exposed. In right-to-left text the separator mirrors."
+      },
+      "content": {
+        "labelPattern": "Each page's own title, short and in sentence case, matching the page heading. No \"Back to\" and no trailing punctuation."
+      },
+      "docs": {
+        "usage": "Items make up a Breadcrumbs trail and are set inside it: ancestors first, the current page last, and an overflow item where a long trail collapses. Change an item's kind in the trail; never place an item on its own.",
+        "do": [
+          "Make the last item the current page",
+          "Use the page's own title as each label",
+          "Use one overflow item in place of the hidden steps"
+        ],
+        "dont": [
+          "Place an item outside Breadcrumbs",
+          "Make the current page a link",
+          "Truncate an ancestor's label; collapse whole steps instead"
+        ],
+        "contentGuidelines": "Page titles, sentence case, as each page titles itself."
+      },
+      "ai": {
+        "primaryPurpose": "One step of a Breadcrumbs trail: an ancestor link, the current page, or the overflow button for collapsed steps.",
+        "whenToUse": "Inside Breadcrumbs only, as each step of the trail.",
+        "avoidWhen": "You need a trail of links (use Breadcrumbs, which holds the items), a link on its own (use Link) or a back link in history (use Link).",
+        "commonPartners": [
+          "breadcrumbs"
+        ],
+        "triggerKeywords": [
+          "breadcrumb item",
+          "crumb",
+          "breadcrumb step",
+          "current page crumb",
+          "collapsed breadcrumb"
+        ],
+        "generationPriority": 4
+      },
+      "motion": {
+        "enter": "None. Steps revealed from the overflow appear at once in its place.",
+        "exit": "None.",
+        "reduceMotion": "No motion to reduce."
+      },
+      "composition": {
+        "composesWith": [
+          "_breadcrumb-separator",
+          "link",
+          "flush-icon-button-neutral"
+        ],
+        "alternativeTo": [],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [],
+        "replacesPatterns": [
+          "a separator typed as text between links",
+          "the current page rendered as a link to itself"
+        ]
+      }
+    },
+    "breadcrumbs": {
+      "id": "breadcrumbs",
+      "name": "Breadcrumbs",
+      "aliases": [
+        "breadcrumb",
+        "breadcrumb-trail",
+        "breadcrumb-list"
+      ],
+      "category": "navigation",
+      "status": "draft",
+      "summary": "The path to the current page as links, with the current page last and not a link.",
+      "description": "Shows where the current page sits in the site's hierarchy: a row of links to the pages above it, root first, ending in the current page as plain text. Each link is underlined and followed by a chevron or a slash, one mark for the whole trail. A long trail keeps its first step and its last two and collapses the middle behind one button that shows them in place. On a small screen the trail becomes one link up to the parent page. Breadcrumbs follow the site's structure, not the pages a person visited, and supplement the main navigation rather than replace it.",
+      "props": [
+        {
+          "name": "items",
+          "type": "slot",
+          "required": true,
+          "anyOf": [
+            "breadcrumb-item"
+          ],
+          "minItems": 2,
+          "description": "The steps, root first, each with a label and an href. The last is rendered as the current page: text with aria-current=\"page\", its href ignored. At least two."
+        },
+        {
+          "name": "size",
+          "type": "enum: 'small' | 'medium'",
+          "default": "medium",
+          "required": false,
+          "values": [
+            "small",
+            "medium"
+          ],
+          "description": "The body type size, 14 or 16px, passed to every item. Medium suits a trail beside 16px body copy; small, a quieter line above a page title."
+        },
+        {
+          "name": "separator",
+          "type": "enum: 'chevron' | 'slash'",
+          "default": "chevron",
+          "required": false,
+          "values": [
+            "chevron",
+            "slash"
+          ],
+          "description": "The mark between steps, the same for every step: a chevron pointing toward the current page, or a slash."
+        },
+        {
+          "name": "maxItems",
+          "type": "number",
+          "default": 5,
+          "required": false,
+          "description": "Above this many items, the middle collapses behind one overflow button."
+        },
+        {
+          "name": "itemsBeforeCollapse",
+          "type": "number",
+          "default": 1,
+          "required": false,
+          "description": "How many items stay before the overflow button when the trail collapses."
+        },
+        {
+          "name": "itemsAfterCollapse",
+          "type": "number",
+          "default": 2,
+          "required": false,
+          "description": "How many items stay after the overflow button: the parent and the current page by default."
+        },
+        {
+          "name": "collapse",
+          "type": "enum: 'expand'",
+          "default": "expand",
+          "required": false,
+          "values": [
+            "expand"
+          ],
+          "description": "What the overflow button does: expand shows the hidden steps in place and moves focus to the first of them."
+        },
+        {
+          "name": "responsive",
+          "type": "boolean",
+          "default": true,
+          "required": false,
+          "description": "Below 480px, show one link up to the parent page in place of the trail. Turn it off where the full trail fits."
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "default": "Breadcrumb",
+          "required": false,
+          "description": "The accessible name of the navigation landmark, translated. Assistive technology adds \"navigation\" itself."
+        },
+        {
+          "name": "renderLink",
+          "type": "function",
+          "required": false,
+          "description": "Renders each ancestor through a router's link, so one anchor renders and the component depends on no router. The plain anchor by default."
+        }
+      ],
+      "states": [],
+      "variants": {
+        "path": {
+          "values": [
+            "full",
+            "parent"
+          ],
+          "kind": "authoring"
+        },
+        "separator": {
+          "values": [
+            "chevron",
+            "slash"
+          ],
+          "kind": "authoring"
+        },
+        "size": {
+          "values": [
+            "medium",
+            "small"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "navigation landmark named \"Breadcrumb\", holding an ordered list of steps",
+        "wcag": [
+          "1.3.1 Info and Relationships (an ordered list inside a named navigation landmark)",
+          "2.4.8 Location (shows where the page sits in the site)",
+          "2.4.5 Multiple Ways (one of the ways to reach a page)",
+          "1.4.1 Use of Color (links are underlined at every state)",
+          "1.4.3 Contrast (targets 4.5:1 for the links and the current page against the page)",
+          "1.4.10 Reflow (targets one link up to the parent below 480px)",
+          "2.4.4 Link Purpose",
+          "2.4.7 Focus Visible",
+          "2.5.8 Target Size (targets 24px for each link through a code-side hit area)",
+          "4.1.2 Name, Role, Value"
+        ],
+        "keyboard": "Tab moves through the ancestor links and the overflow button; Enter follows a link; Enter or Space presses the overflow button. The current page takes no focus.",
+        "focus": "Each link and the overflow button shows its own focus ring. After the overflow button is pressed, focus moves to the first revealed link.",
+        "aria": "A <nav> with aria-label=\"Breadcrumb\", translated. aria-current=\"page\" on the current page, never aria-current=\"location\". The separators are CSS, never in the accessibility tree. The overflow button is named \"Show full path\" (DRAFT). On a small screen the back chevron is aria-hidden. In right-to-left text the row and the chevrons mirror."
+      },
+      "content": {
+        "labelPattern": "Each step is its page's own title, short and in sentence case. The root is \"Home\". No \"You are here\" prefix and no separators typed as text."
+      },
+      "docs": {
+        "usage": "Use breadcrumbs on a site three or more levels deep, to show where a page sits and to climb back up. They follow the site's structure, not the visitor's history, and supplement the main navigation. For a one or two level site, use a single link back, or nothing. To go back in history, use the browser's Back or a Link. To switch between peers at one level, use Tabs.",
+        "do": [
+          "Start at the root and end at the current page",
+          "Use each page's own title as its label",
+          "Place breadcrumbs above the page heading",
+          "Let a long trail collapse its middle rather than wrap"
+        ],
+        "dont": [
+          "Show the visitor's click history",
+          "Make the current page a link",
+          "Truncate an ancestor's label",
+          "Use breadcrumbs as the only navigation"
+        ],
+        "contentGuidelines": "Page titles in sentence case, matching each page heading. \"Home\" for the root."
+      },
+      "ai": {
+        "primaryPurpose": "Show the current page's place in the site hierarchy as links to its ancestors, ending in the current page.",
+        "whenToUse": "A page three or more levels deep in a stable hierarchy (a catalog, documentation, settings), where people need to see where they are and climb back up.",
+        "avoidWhen": "The site is one or two levels deep (use a single Link back), the path is the visitor's history (use the browser's Back or a Link), the choice is between peers at one level (use Tabs), or the steps are a required sequence (a stepper, not built yet).",
+        "commonPartners": [
+          "breadcrumb-item",
+          "link",
+          "tabs"
+        ],
+        "triggerKeywords": [
+          "breadcrumbs",
+          "breadcrumb trail",
+          "breadcrumb navigation",
+          "you are here",
+          "page hierarchy path",
+          "back to parent page"
+        ],
+        "generationPriority": 2
+      },
+      "motion": {
+        "enter": "None. Steps revealed from the overflow button appear at once.",
+        "exit": "None.",
+        "reduceMotion": "No motion to reduce."
+      },
+      "composition": {
+        "composesWith": [
+          "breadcrumb-item",
+          "link"
+        ],
+        "alternativeTo": [
+          "link",
+          "tabs"
+        ],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [
+          "menu"
+        ],
+        "replacesPatterns": [
+          "links separated by typed \">\" or \"/\" characters",
+          "a history trail of visited pages",
+          "a breadcrumb whose last item links to the page itself"
+        ]
+      }
+    },
+    "toast": {
+      "id": "toast",
+      "name": "Toast",
+      "aliases": [
+        "snackbar",
+        "notification",
+        "flag",
+        "flash-message"
+      ],
+      "category": "feedback",
+      "status": "draft",
+      "summary": "A short status message over the page after an action. Announced politely; it never takes focus.",
+      "description": "A short status message that appears over the page after something the user did, such as \"Added to bag\" or \"Address saved\", and goes away by itself. It confirms the user's own action, and the page already shows the change, so missing it costs nothing. It is announced politely and never takes focus. It can carry one action, which also exists elsewhere on the page, and a close button. One toast shows at a time: a new one replaces the one showing. Not a banner (a message the user must see, such as an error, stays in the page until it is resolved), not a dialog (a decision before going on), and not a field message (about one field).",
+      "props": [
+        {
+          "name": "message",
+          "type": "string",
+          "required": true,
+          "description": "The status, a few words stating the outcome (\"Added to bag\"). It wraps onto a second line rather than truncating."
+        },
+        {
+          "name": "intent",
+          "type": "enum: 'neutral' | 'success'",
+          "default": "neutral",
+          "required": false,
+          "values": [
+            "neutral",
+            "success"
+          ],
+          "description": "neutral for a plain confirmation, with no glyph. success adds a circled check beside the message. A message the user must not miss, such as an error, is a banner, not a toast."
+        },
+        {
+          "name": "action",
+          "type": "{ label: string; onAction: function }",
+          "required": false,
+          "description": "At most one action, a text button named by one verb (\"Undo\", \"View bag\"). The same action must also exist elsewhere on the page. A toast with an action does not close by itself."
+        },
+        {
+          "name": "duration",
+          "type": "number",
+          "default": 6000,
+          "required": false,
+          "description": "How long a toast with no action shows, in milliseconds. Never less than 5000; a shorter value is raised to 5000. Raise it for a longer or translated message. Ignored when there is an action."
+        },
+        {
+          "name": "dismissible",
+          "type": "boolean",
+          "default": true,
+          "required": false,
+          "description": "Shows the close button, named \"Dismiss\". On by default: it is the one exit a user can count on."
+        },
+        {
+          "name": "onDismiss",
+          "type": "function",
+          "required": false,
+          "description": "Called when the toast closes for any reason: the close button, the timer, the next toast replacing it, or the action."
+        }
+      ],
+      "states": [],
+      "variants": {
+        "intent": {
+          "values": [
+            "neutral",
+            "success"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "The toast sits in one shared role=\"status\" live region (polite, aria-atomic=\"true\"), inside a landmark labeled \"Notifications\". The toast itself takes no role and never takes focus.",
+        "wcag": [
+          "4.1.3 Status Messages (the message is announced through a live region without moving focus)",
+          "2.2.1 Timing Adjustable (a toast with no action shows for at least 5 seconds, pausing on hover, focus and a hidden window; a toast with an action does not time out)",
+          "1.4.1 Use of Color (success has a glyph shape and its text, not color alone)",
+          "1.4.3 Contrast (Minimum) (the message clears 4.5:1 on the inverse surface)",
+          "1.4.11 Non-text Contrast (the success glyph and the focus ring clear 3:1 on the inverse surface)",
+          "2.1.1 Keyboard (F6 reaches the action and the close button; the action also exists elsewhere on the page)",
+          "2.4.3 Focus Order (focus enters the region only when the user moves it there, and Escape returns it)",
+          "2.4.11 Focus Not Obscured (Minimum) (the page keeps a focused control clear of the toast)",
+          "2.5.8 Target Size (Minimum) (the close button is a 36px box, above 24px; targets 2.5.5 at 44×44 in code)"
+        ],
+        "keyboard": "F6 moves focus into the notifications region, to the newest toast's first control. Tab moves between the action and the close button. Escape or Shift+F6 returns focus to where it was. Enter and Space act on the focused button.",
+        "focus": "Showing a toast never moves focus. Focus enters only by F6, and Escape returns it.",
+        "aria": "The live region is role=\"status\" with aria-atomic=\"true\", present and empty from app start. The success glyph is aria-hidden. The close button's accessible name is \"Dismiss\" and the region's label is \"Notifications\"; both are translatable. Nothing mirrors in motion."
+      },
+      "content": {
+        "labelPattern": "State the outcome in a few words, in sentence case, with no period: \"Added to bag\", \"Address saved\". The action is one verb or a short verb phrase: \"Undo\", \"View bag\"."
+      },
+      "docs": {
+        "usage": "Use a Toast to confirm something the user did, when the page already shows the change: \"Added to bag\", \"Address saved\", \"Code copied\". If missing the message would cost the user something, use a banner. A decision before going on is a dialog; a message about one field is a field message.",
+        "do": [
+          "Confirm the user's own action in a few words",
+          "Use success when the action completed, and neutral otherwise",
+          "Keep the close button",
+          "Make the action also available elsewhere on the page",
+          "Raise the duration for a long or translated message"
+        ],
+        "dont": [
+          "Show an error or a warning in a toast. Use a banner.",
+          "Put the only route to an action in a toast",
+          "Add more than one action",
+          "Move focus to a toast",
+          "Set a duration under 5 seconds"
+        ],
+        "contentGuidelines": "Short and factual: the outcome, not a conversation. The glyph carries the tone, so the text stays plain. Name the action by what it does."
+      },
+      "ai": {
+        "primaryPurpose": "Confirm the user's own action with a short status over the page that is safe to miss.",
+        "whenToUse": "After an action whose result the page already shows (\"Added to bag\", \"Address saved\"), when a brief, polite confirmation helps and missing it costs nothing.",
+        "avoidWhen": "The message is an error, a warning or anything the user must see (a banner); it asks for a decision (a dialog); it is about one field (a field message); or its action has no other route on the page.",
+        "commonPartners": [
+          "button",
+          "flush-icon-button-neutral",
+          "field-message",
+          "dialog"
+        ],
+        "triggerKeywords": [
+          "toast",
+          "snackbar",
+          "notification",
+          "confirmation message",
+          "status message",
+          "added to bag"
+        ],
+        "generationPriority": 2
+      },
+      "motion": {
+        "enter": "An 8px slide up and a fade (motion.transition.enter: motion.duration.normal, motion.easing-role.enter).",
+        "exit": "A fade (motion.transition.exit: motion.duration.fast, motion.easing-role.exit). A replacement plays the exit, then the enter.",
+        "reduceMotion": "Under prefers-reduced-motion, the fade only, with no slide, at motion.duration-reduced.normal."
+      },
+      "composition": {
+        "composesWith": [
+          "button",
+          "flush-icon-button-neutral"
+        ],
+        "alternativeTo": [
+          "dialog",
+          "field-message"
+        ],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [
+          "banner"
+        ],
+        "replacesPatterns": [
+          "an alert() after a save",
+          "a status message that moves focus",
+          "a timed message with no pause"
+        ]
+      }
+    },
     "counter": {
       "id": "counter",
       "name": "Counter",
@@ -8385,6 +9036,1646 @@
           "an <input type=\"number\"> for an item count",
           "a select of 1 to 10 for a bag quantity",
           "two IconButtons around a <span> with no spinbutton semantics"
+        ]
+      }
+    },
+    "banner": {
+      "id": "banner",
+      "name": "Banner",
+      "aliases": [
+        "alert",
+        "callout",
+        "inline-alert"
+      ],
+      "category": "feedback",
+      "status": "draft",
+      "summary": "A persistent message in the page flow about an important state, with optional actions.",
+      "description": "A message that sits in the page flow and stays until the user dismisses it or the condition clears: a page-level error, a service notice, or the result of a process that has to stay visible. Because it is part of the page and the tab order, it can carry actions. Four tones, each with its own glyph shape, so the tone is never carried by color alone. Contained inside a section, or full width at the top of a page. Not a toast (it does not go away by itself), not a field message (that belongs to one field), and not a dialog (it does not block the page).",
+      "props": [
+        {
+          "name": "tone",
+          "type": "enum: 'info' | 'success' | 'warning' | 'danger'",
+          "default": "info",
+          "required": false,
+          "values": [
+            "info",
+            "success",
+            "warning",
+            "danger"
+          ],
+          "description": "How serious the message is. Sets the fill, the edge and the glyph. Match it to the message: danger for an error that blocks the user, warning for a risk, success for a finished process, info for everything else."
+        },
+        {
+          "name": "width",
+          "type": "enum: 'contained' | 'full'",
+          "default": "contained",
+          "required": false,
+          "values": [
+            "contained",
+            "full"
+          ],
+          "description": "contained is a rounded box inside a section or card. full has square corners and spans the page, for a message about the whole app at the top of the page."
+        },
+        {
+          "name": "title",
+          "type": "node",
+          "required": false,
+          "description": "A short heading that names the issue (\"Payment failed\"), with no period at the end. When present, it labels the banner's region."
+        },
+        {
+          "name": "children",
+          "type": "node",
+          "required": true,
+          "description": "The body: what happened and what to do next, in one or two sentences. It can hold a link or a short list. Never repeat the title."
+        },
+        {
+          "name": "headingLevel",
+          "type": "enum: 2 | 3 | 4 | 5 | 6",
+          "default": "2",
+          "required": false,
+          "values": [
+            "2",
+            "3",
+            "4",
+            "5",
+            "6"
+          ],
+          "description": "The heading level of the title, matched to where the banner sits in the page outline, so the outline stays in order."
+        },
+        {
+          "name": "icon",
+          "type": "node | false",
+          "required": false,
+          "description": "Replaces the tone glyph, or false to hide it in a dense layout. The glyph is hidden from assistive technology either way."
+        },
+        {
+          "name": "actions",
+          "type": "node",
+          "required": false,
+          "description": "Up to two buttons that resolve the message, the main one first: an outline Button, then a text Button (Button.Neutral when the file has it). Name each by what it does (\"Retry\", \"Update billing\")."
+        },
+        {
+          "name": "dismissible",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Whether the banner shows a dismiss button. Set it together with onDismiss. Leave a banner about a condition that still blocks the user not dismissible."
+        },
+        {
+          "name": "onDismiss",
+          "type": "function",
+          "required": false,
+          "description": "Called when the dismiss button is pressed. Remove the banner, store the dismissal so it does not return on reload, and move focus to a sensible place."
+        },
+        {
+          "name": "announce",
+          "type": "enum: 'auto' | 'none'",
+          "default": "auto",
+          "required": false,
+          "values": [
+            "auto",
+            "none"
+          ],
+          "description": "Whether a banner inserted after the page loads is announced: auto announces it through the page's live region, assertively for danger and politely otherwise. A banner present when the page loads is never announced; it is read in order."
+        }
+      ],
+      "states": [],
+      "variants": {
+        "tone": {
+          "values": [
+            "info",
+            "success",
+            "warning",
+            "danger"
+          ],
+          "kind": "runtime"
+        },
+        "width": {
+          "values": [
+            "contained",
+            "full"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "A banner present when the page loads is a region (<section aria-labelledby> pointing at the title) and has no live role. A banner inserted after an action is announced through the page's live region: role=\"alert\" for danger, role=\"status\" for the other tones.",
+        "wcag": [
+          "4.1.3 Status Messages (a banner inserted after an action is announced without moving focus)",
+          "1.3.1 Info and Relationships (the title is a heading at the level the page outline needs, and it labels the region)",
+          "1.4.1 Use of Color (each tone has its own glyph shape, and the text says what happened)",
+          "1.4.3 Contrast (the title and body clear 4.5:1 on every tone's fill, measured in every mode of the example brands)",
+          "1.4.11 Non-text Contrast (the edge clears 3:1 against the page and the glyph 3:1 against the fill, measured in every mode of the example brands)",
+          "2.4.3 Focus Order (the actions are in the tab order, and a dismiss moves focus to a surviving element)",
+          "2.5.8 Target Size (Minimum) (the dismiss button is a 20px glyph; targets 44×44px through a code-side hit area)",
+          "2.2.1 Timing Adjustable (the reason errors go in a banner, which stays, rather than a toast, which goes away)"
+        ],
+        "keyboard": "The actions and the dismiss button are ordinary Tab stops in reading order. The banner itself takes no focus.",
+        "focus": "No focus of its own. After a dismiss, focus moves to the control that caused the banner or to the page heading, never to the page body.",
+        "aria": "The glyph is aria-hidden. A banner present at load: a section with aria-labelledby pointing at the title, and no role=\"alert\". An inserted banner: announced through a live region that already exists, role=\"alert\" for danger and role=\"status\" otherwise. The dismiss button's accessible name names what it dismisses (\"Dismiss error message\"), and is translated."
+      },
+      "content": {
+        "labelPattern": "Title: names the issue up front, in sentence case and with no period (\"Payment failed\", not \"Error\"). Body: what happened and what to do next, in one or two sentences, never repeating the title. Actions: a verb of one or two words (\"Retry\", \"Update billing\").",
+        "errorPattern": "Say what went wrong, whether anything was lost, and how to fix it. Use danger only for an error that blocks the user."
+      },
+      "docs": {
+        "usage": "Use a Banner for an important message the user should see and may need to act on, and that has to stay until it is resolved: a page-level error, a service notice, or the result of a process. Contain it inside the section it is about, or run it full width at the top of the page for a message about the whole app. Show one banner at a time in a region, the most serious one.",
+        "do": [
+          "Match the tone to how serious the message is",
+          "Name the issue in the title, and say what to do next in the body",
+          "Give each action a verb that says what it does",
+          "Move focus to a sensible place after a dismiss"
+        ],
+        "dont": [
+          "Use a banner for a short confirmation like \"Saved\". Use a toast.",
+          "Use a banner for one field's validation. Use the field's message.",
+          "Stack banners. Show the most serious one.",
+          "Mark a banner present at page load as role=\"alert\"",
+          "Let a dismissed banner come back on reload"
+        ],
+        "contentGuidelines": "Titles are short, specific and in sentence case, with no period. The body states the consequence and the fix in one or two sentences; for more, link to the details. Action labels are verbs."
+      },
+      "ai": {
+        "primaryPurpose": "Show a persistent, in-flow message about an important state, with optional actions to resolve it.",
+        "whenToUse": "A page or section error, a service or maintenance notice, or a result that has to stay visible until the user acts on it or dismisses it.",
+        "avoidWhen": "The message is a brief confirmation that can go away by itself (a toast), it is about one field (a field message), the user must decide before going on (a dialog), or it is a short status label beside content (a badge).",
+        "commonPartners": [
+          "link",
+          "list",
+          "button",
+          "button-neutral",
+          "button-group"
+        ],
+        "triggerKeywords": [
+          "banner",
+          "alert banner",
+          "callout",
+          "inline alert",
+          "message bar",
+          "notice",
+          "page error",
+          "service notice",
+          "section message"
+        ],
+        "generationPriority": 2
+      },
+      "motion": {
+        "enter": "Fades in. A banner inserted at the top of a page reserves its space, so the content below does not jump.",
+        "exit": "Collapses its height and fades (about 150 to 200ms, motion.transition.exit), so the content below moves up smoothly.",
+        "reduceMotion": "Under prefers-reduced-motion it appears and goes instantly."
+      },
+      "composition": {
+        "composesWith": [
+          "button",
+          "flush-icon-button-neutral"
+        ],
+        "alternativeTo": [
+          "dialog",
+          "field-message",
+          "badge"
+        ],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [
+          "toast"
+        ],
+        "replacesPatterns": [
+          "a colored div with an icon and role=\"alert\" on a message present at load",
+          "an error shown as a toast that disappears"
+        ]
+      }
+    },
+    "code-input-cell": {
+      "id": "code-input-cell",
+      "name": "CodeInput.Cell",
+      "aliases": [
+        "code-cell",
+        "otp-cell"
+      ],
+      "category": "form",
+      "status": "draft",
+      "summary": "One cell of a code input: a box holding one character of the code. Used only inside a code input.",
+      "description": "One cell of a code input: a box that shows one character of the code. It is drawn, not typed into: the code input holds one real input, and each cell shows the character at its place. The active cell, where the next character goes, carries the focus ring and the caret. A cell in error takes the danger border. Used only inside a code input, which sets every cell from its input.",
+      "props": [
+        {
+          "name": "digit",
+          "type": "string",
+          "required": false,
+          "description": "The character this cell shows: one digit, or one letter in a code that allows letters. Empty until the user reaches it."
+        },
+        {
+          "name": "size",
+          "type": "enum: 'small' | 'medium' | 'large' | 'xlarge'",
+          "default": "medium",
+          "required": false,
+          "values": [
+            "small",
+            "medium",
+            "large",
+            "xlarge"
+          ],
+          "description": "The cell size and its character size. Set by the code input."
+        },
+        {
+          "name": "isActive",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Whether this is the cell the next character goes into while the input has focus. Set by the code input."
+        },
+        {
+          "name": "isInvalid",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Whether the code input is in error. Set by the code input."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Whether the code input is disabled. Set by the code input."
+        }
+      ],
+      "states": [
+        "rest",
+        "hover",
+        "filled",
+        "focus-visible",
+        "focus-visible-filled",
+        "disabled",
+        "error"
+      ],
+      "variants": {
+        "size": {
+          "values": [
+            "medium",
+            "small",
+            "large",
+            "xlarge"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "none: an aria-hidden drawing; the code input's one input carries the role, the name and the value",
+        "wcag": [
+          "1.4.11 Non-text Contrast (targets 3:1 for the cell border against the page)",
+          "2.4.7 Focus Visible (the ring on the active cell)",
+          "2.4.13 Focus Appearance (the shared focus ring, as intent)"
+        ],
+        "keyboard": "None of its own: the code input's input takes every key.",
+        "focus": "Never focused itself. While the code input's input has focus, the active cell shows the focus ring.",
+        "aria": "aria-hidden=\"true\". A screen reader meets the code input's one input and its whole value, never a cell."
+      },
+      "docs": {
+        "usage": "Use inside CodeInput only, one cell per character of the code. In a design, add or remove cells in the code input's cell slot and set each cell's state to match the field: error cells when the field is in error, disabled cells when it is disabled. In code, the code input sets every cell.",
+        "do": [
+          "Set every cell to error when the code input is in error",
+          "Set every cell to disabled when the code input is disabled"
+        ],
+        "dont": [
+          "Place a cell outside a code input",
+          "Build a code input from separate inputs, one per cell"
+        ],
+        "contentGuidelines": "One character per cell."
+      },
+      "ai": {
+        "primaryPurpose": "Show one character of a one-time code inside a code input.",
+        "whenToUse": "Only as a child of CodeInput.",
+        "avoidWhen": "Anywhere outside a code input: a single character field is a text field, and a code is always one code input.",
+        "commonPartners": [
+          "code-input"
+        ],
+        "triggerKeywords": [
+          "code cell",
+          "otp cell",
+          "verification code box"
+        ],
+        "generationPriority": 9
+      },
+      "motion": {
+        "enter": "None.",
+        "exit": "None.",
+        "reduceMotion": "The caret does not blink; the ring and borders change at once, with no transition."
+      },
+      "composition": {
+        "composesWith": [
+          "focus-ring"
+        ],
+        "alternativeTo": [],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [],
+        "replacesPatterns": [
+          "one input per character of a one-time code"
+        ]
+      }
+    },
+    "code-input": {
+      "id": "code-input",
+      "name": "CodeInput",
+      "aliases": [
+        "otp-input",
+        "one-time-code",
+        "verification-code",
+        "pin-input"
+      ],
+      "category": "form",
+      "status": "draft",
+      "summary": "Field for a one-time code: one input, shown as a row of cells, one per character.",
+      "description": "A field for a short one-time code sent by text message, email or an authenticator app: four to eight characters. It shows the code as a row of cells, so the user sees how long the code is and how far they have got. Underneath is one input holding one string, so pasting the code or filling it from the message fills every cell. A label names it and a message under it says how many characters to enter and where the code was sent. Not for a code of unknown length or one inside a longer form (TextField with one-time-code autocomplete), and not for a password or a PIN the user keeps (PasswordField).",
+      "props": [
+        {
+          "name": "label",
+          "type": "string | node",
+          "required": true,
+          "description": "The visible label (rendered as FieldLabel), such as \"Verification code\". Required."
+        },
+        {
+          "name": "length",
+          "type": "number",
+          "default": 6,
+          "required": false,
+          "description": "How many characters the code has, 4 to 8. Draws that many cells and caps the value at that length."
+        },
+        {
+          "name": "value",
+          "type": "string",
+          "required": false,
+          "description": "Controlled value; pair with onChange."
+        },
+        {
+          "name": "defaultValue",
+          "type": "string",
+          "required": false,
+          "description": "Uncontrolled initial value."
+        },
+        {
+          "name": "onChange",
+          "type": "function",
+          "required": false,
+          "description": "Called with the value after spaces and hyphens are removed."
+        },
+        {
+          "name": "onComplete",
+          "type": "function",
+          "required": false,
+          "description": "Called once with the value when it reaches `length`, and again only if the value changes and reaches it again. The page decides whether to submit."
+        },
+        {
+          "name": "inputMode",
+          "type": "enum: 'numeric' | 'text'",
+          "default": "numeric",
+          "required": false,
+          "values": [
+            "numeric",
+            "text"
+          ],
+          "description": "numeric for a code of digits, text for a code with letters."
+        },
+        {
+          "name": "autoComplete",
+          "type": "string",
+          "default": "one-time-code",
+          "required": false,
+          "description": "one-time-code by default, so the phone offers the code from the message. Never off."
+        },
+        {
+          "name": "helpText",
+          "type": "string | node",
+          "required": false,
+          "description": "Persistent guidance (rendered as FieldMessage): how many characters and where the code was sent."
+        },
+        {
+          "name": "validation",
+          "type": "enum: 'default' | 'error'",
+          "default": "default",
+          "required": false,
+          "values": [
+            "default",
+            "error"
+          ],
+          "description": "error swaps every cell to the danger border, sets the message to the error status and sets aria-invalid."
+        },
+        {
+          "name": "validationMessage",
+          "type": "string | node",
+          "required": false,
+          "description": "The error text: too few characters, a wrong code or an expired code, each said plainly."
+        },
+        {
+          "name": "showMessage",
+          "type": "boolean",
+          "default": true,
+          "required": false,
+          "description": "Whether the composed FieldMessage is shown. On by default."
+        },
+        {
+          "name": "size",
+          "type": "enum: 'small' | 'medium' | 'large' | 'xlarge'",
+          "default": "medium",
+          "required": false,
+          "values": [
+            "small",
+            "medium",
+            "large",
+            "xlarge"
+          ],
+          "description": "The cell size: small 44×44 with a 16px character, medium 48×56 with 20px, large 56×64 with 24px, xlarge 68×72 with 40px, meant for four-character codes."
+        },
+        {
+          "name": "width",
+          "type": "enum: 'auto' | 'full'",
+          "default": "auto",
+          "required": false,
+          "values": [
+            "auto",
+            "full"
+          ],
+          "description": "auto: each cell at its size. full: the row spans its container and the cells share it, shrinking to 32px wide when they must."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Native disabled."
+        },
+        {
+          "name": "isPending",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "The code is being checked; sets aria-busy and keeps the input editable."
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": false,
+          "description": "A real <input name>, so the field works in a native <form>."
+        },
+        {
+          "name": "id",
+          "type": "string",
+          "required": false,
+          "description": "Wiring; generated if omitted."
+        }
+      ],
+      "states": [
+        "rest",
+        "hover",
+        "pending",
+        "filled",
+        "focus-visible",
+        "focus-visible-filled",
+        "disabled"
+      ],
+      "variants": {
+        "size": {
+          "values": [
+            "medium",
+            "small",
+            "large",
+            "xlarge"
+          ],
+          "kind": "authoring"
+        },
+        "status": {
+          "values": [
+            "default",
+            "error"
+          ],
+          "kind": "runtime"
+        }
+      },
+      "accessibility": {
+        "role": "textbox (one native <input>); the cells are aria-hidden",
+        "wcag": [
+          "1.3.1 Info and Relationships (one labeled input, the helper and error in aria-describedby)",
+          "1.3.5 Identify Input Purpose (autocomplete one-time-code)",
+          "3.3.1 Error Identification / 3.3.3 Error Suggestion (the error says which case it is)",
+          "3.3.8 Accessible Authentication (paste and the phone's code suggestion fill the whole code)",
+          "3.2.2 On Input (no auto-submit)",
+          "4.1.2 Name, Role, Value (one textbox, one name, one value)",
+          "1.4.11 Non-text Contrast (targets 3:1 for the cell border)",
+          "2.4.13 Focus Appearance (the ring on the active cell, as intent)",
+          "2.5.8 Target Size (the row of cells is one target)"
+        ],
+        "keyboard": "One Tab stop. Typing fills the next cell; Backspace removes the last character; arrow keys, Home and End move the caret, and the active cell follows it. Paste fills every cell.",
+        "focus": "Focus stays on the one input. The active cell, where the next character goes, shows the focus ring.",
+        "aria": "aria-describedby names the helper and any error, aria-invalid is set in error, and aria-busy while the code is checked. No aria-label on the input: it would hide the real value. Every name is translatable; the cell row stays left to right in every locale."
+      },
+      "content": {
+        "labelPattern": "Noun phrase, sentence case: \"Verification code\". Never \"OTP\".",
+        "errorPattern": "Say which case it is: \"Enter all 6 digits\", \"That code is wrong. Check the latest message and try again\", \"That code has expired. We sent a new one\".",
+        "emptyPattern": "The helper text says how many characters and where the code was sent: \"Enter the 6-digit code sent to your phone.\""
+      },
+      "docs": {
+        "usage": "Use for a short, fixed-length code sent by text message, email or an authenticator app. Say in the helper text how many characters the code has and where it was sent. For a code of variable length, use TextField with one-time-code autocomplete.",
+        "do": [
+          "Accept a pasted or autofilled code in full, ignoring spaces and hyphens",
+          "Say which error it is: too few digits, wrong code or expired code",
+          "Keep the resend link and any expiry time next to the field"
+        ],
+        "dont": [
+          "Build one input per cell: paste and autofill then fill one cell",
+          "Block paste or turn off autocomplete",
+          "Submit on the last digit without announcing the result"
+        ],
+        "contentGuidelines": "Label = noun phrase, sentence case. Helper = the length and where the code went. Error = which case it is and what to do."
+      },
+      "ai": {
+        "primaryPurpose": "Capture a short one-time code in one input, drawn as a row of cells.",
+        "whenToUse": "A step whose job is a fixed-length code of four to eight characters sent by text message, email or an authenticator app.",
+        "avoidWhen": "The code length is unknown or the code sits inside a longer form (TextField with one-time-code autocomplete), the value is a password or a kept PIN (PasswordField), or it is a quantity (a number input, not built yet).",
+        "commonPartners": [
+          "code-input-cell",
+          "field-label",
+          "field-message",
+          "button",
+          "link"
+        ],
+        "triggerKeywords": [
+          "code input",
+          "otp input",
+          "one-time code",
+          "verification code",
+          "pin input",
+          "2fa code"
+        ],
+        "generationPriority": 2
+      },
+      "motion": {
+        "enter": "none (present on mount)",
+        "exit": "none",
+        "reduceMotion": "The active cell moves at once and the caret does not blink."
+      },
+      "composition": {
+        "composesWith": [
+          "field-label",
+          "code-input-cell",
+          "field-message"
+        ],
+        "alternativeTo": [
+          "text-field",
+          "password-field"
+        ],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [],
+        "replacesPatterns": [
+          "one input per character of a one-time code",
+          "a code field with paste blocked",
+          "auto-submit on the last digit"
+        ]
+      }
+    },
+    "progress": {
+      "id": "progress",
+      "name": "Progress",
+      "aliases": [
+        "progress-bar",
+        "progress-indicator",
+        "linear-progress",
+        "circular-progress"
+      ],
+      "category": "feedback",
+      "status": "draft",
+      "summary": "Shows how far a task has got, or that it is still running. Linear or circular.",
+      "description": "Shows that system work is under way and, when the system can measure it, how far along it is: an upload, an export, a batch save. A linear bar shows a known amount (determinate) or a sweeping segment while the amount is unknown (indeterminate). A ring shows a known amount in a small space, with its value beside it. At the end the bar turns to the success or danger color and a message with a glyph names the outcome. The label and the value sit outside the track, so neither loses contrast as the fill moves behind it.",
+      "props": [
+        {
+          "name": "type",
+          "type": "enum: 'determinate' | 'indeterminate'",
+          "default": "determinate",
+          "required": false,
+          "values": [
+            "determinate",
+            "indeterminate"
+          ],
+          "description": "determinate = the work can be measured, so the bar shows how far it has got. indeterminate = it cannot, so a segment sweeps along the track and there is no value. Choose indeterminate rather than faking a value."
+        },
+        {
+          "name": "value",
+          "type": "number",
+          "required": false,
+          "description": "How far the work has got, between min and max, for a determinate bar. Omitted, the bar rests at min. Out-of-range values are clamped, with a warning in development. Never fake a value: a bar that creeps toward the end and stops there breaks the contract. If the work cannot be measured, set type to indeterminate."
+        },
+        {
+          "name": "min",
+          "type": "number",
+          "default": 0,
+          "required": false,
+          "description": "The start of the range."
+        },
+        {
+          "name": "max",
+          "type": "number",
+          "default": 100,
+          "required": false,
+          "description": "The end of the range: 100 for a percentage, or the total, such as a byte count."
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "description": "What is in progress, with an active verb (\"Uploading photo.jpg\"). It is the accessible name. A linear bar shows it above the track; a ring is named by it without showing it."
+        },
+        {
+          "name": "valueText",
+          "type": "string | (value: number) => string",
+          "required": false,
+          "description": "The visible value, and the same string as aria-valuetext. A percentage by default, through Intl.NumberFormat, so \"45%\" localizes. Prefer a concrete amount when there is one (\"45 MB of 100 MB\")."
+        },
+        {
+          "name": "shape",
+          "type": "enum: 'linear' | 'circular'",
+          "default": "linear",
+          "required": false,
+          "values": [
+            "linear",
+            "circular"
+          ],
+          "description": "linear = a bar that fills its container. circular = a ring for a small space, determinate only. A ring that cannot show a value is a Spinner."
+        },
+        {
+          "name": "size",
+          "type": "enum: 'small' | 'medium'",
+          "default": "medium",
+          "required": false,
+          "values": [
+            "small",
+            "medium"
+          ],
+          "description": "The ring's size: medium is 40px with a 4px band, small is 24px with a 2px band. A linear bar has one thickness, 4px, and ignores this."
+        },
+        {
+          "name": "status",
+          "type": "enum: 'active' | 'complete' | 'error'",
+          "default": "active",
+          "required": false,
+          "values": [
+            "active",
+            "complete",
+            "error"
+          ],
+          "description": "active = the work is running. complete = it finished: the fill turns to the success color and the message names the result. error = it failed: the fill stops where it failed, turns to the danger color, and the message names the problem and the next step."
+        },
+        {
+          "name": "message",
+          "type": "string",
+          "required": false,
+          "description": "The outcome, shown below the bar at complete and error with a glyph: past tense when done (\"Upload complete\"), the problem and the next step when it fails (\"Upload failed. The connection dropped. Try again.\")."
+        },
+        {
+          "name": "showValue",
+          "type": "boolean",
+          "default": true,
+          "required": false,
+          "description": "Whether the value text shows. On by default. A ring keeps it on: it has no end to mark, so the value is how the amount reads."
+        },
+        {
+          "name": "announce",
+          "type": "enum: 'milestones' | 'end' | 'none'",
+          "default": "milestones",
+          "required": false,
+          "values": [
+            "milestones",
+            "end",
+            "none"
+          ],
+          "description": "What a screen reader hears. milestones = once as the value passes 25, 50 and 75%, and again at the end. end = the end only. none = the host announces the work itself. An error is announced when it happens, except under none."
+        },
+        {
+          "name": "delay",
+          "type": "number",
+          "default": 400,
+          "required": false,
+          "description": "Milliseconds to wait before showing the bar. If the work finishes first, nothing shows, so a fast task does not flash a bar."
+        },
+        {
+          "name": "minDisplay",
+          "type": "number",
+          "default": 500,
+          "required": false,
+          "description": "Milliseconds the bar stays once shown, so it does not vanish after one frame."
+        }
+      ],
+      "states": [],
+      "variants": {
+        "shape": {
+          "values": [
+            "linear",
+            "circular"
+          ],
+          "kind": "authoring"
+        },
+        "type": {
+          "values": [
+            "determinate",
+            "indeterminate"
+          ],
+          "kind": "runtime"
+        },
+        "status": {
+          "values": [
+            "active",
+            "complete",
+            "error"
+          ],
+          "kind": "runtime"
+        },
+        "size": {
+          "values": [
+            "medium",
+            "small"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "`progressbar`, named by the label. A polite live region beside it carries the milestone and end announcements.",
+        "wcag": [
+          "4.1.2 Name, Role, Value (role progressbar named by its label; with a value, aria-valuenow, aria-valuemin, aria-valuemax and aria-valuetext)",
+          "4.1.3 Status Messages (the milestones, the end and an error reach a screen reader through a polite live region)",
+          "1.4.1 Use of Color (the length of the fill and the value text carry the amount; complete and error carry a glyph and a message)",
+          "1.4.3 Contrast (the label, the value and the message clear 4.5:1 against the page, measured in every mode of the example brands)",
+          "1.4.11 Non-text Contrast (the fill clears 3:1 against the track, and the stop dot against the page, measured in every mode of the example brands)",
+          "2.2.2 Pause, Stop, Hide (targeted: an indeterminate bar is for work the user waits on; for long background work, show a status line or let the user hide the bar)"
+        ],
+        "keyboard": "None. Progress takes no focus and has no action.",
+        "focus": "Never focusable. Focus stays where it was when the work started.",
+        "aria": "Determinate: role=\"progressbar\", aria-labelledby pointing at the label (aria-label on a ring, whose label does not show), aria-valuenow, aria-valuemin and aria-valuemax, and aria-valuetext whenever the visible value is not a bare percentage (\"45 MB of 100 MB\"). Indeterminate: role=\"progressbar\" with no value attributes, and aria-busy=\"true\" on the region being updated. A screen reader does not reliably speak a changing aria-valuenow, and speaking every step floods it, so a polite live region, present and empty from the start, speaks the value as it passes 25, 50 and 75%, and the message at the end. An error is spoken when it happens. The message glyph is aria-hidden. Every string, the \"%\" sign included, is translatable."
+      },
+      "content": {
+        "labelPattern": "Name the work with an active verb, in sentence case: \"Uploading photo.jpg\", \"Saving your changes\". Keep one label for the whole task rather than cycling through technical steps (\"Resolving…\", \"Connecting…\"), which flickers on screen and floods a screen reader.",
+        "errorPattern": "Name what failed and the next step: \"Upload failed. The connection dropped. Try again.\" Not a bare \"Error\"."
+      },
+      "docs": {
+        "usage": "Use Progress for system work that takes more than a few seconds: a determinate bar when the work can be measured (bytes, items, a known length), an indeterminate bar when it cannot. Use a ring when the space is small, such as a row in a list. For a short wait inside a control, use a Spinner; for a first load of content, a placeholder in the layout's shape. Use the bar for work the user waits on; for long background work, show a status line, or let the user hide the bar.",
+        "do": [
+          "Name the work in the label with an active verb",
+          "Show a concrete amount when there is one (\"45 MB of 100 MB\")",
+          "Start indeterminate and switch to determinate once the amount is known",
+          "End with a message: past tense when done, the problem and the next step when it fails",
+          "Put a retry action beside the bar, not inside it"
+        ],
+        "dont": [
+          "Fake a value. A bar that creeps toward the end and stops there breaks the contract; use an indeterminate bar",
+          "Put the label or the value inside the track",
+          "Use an indeterminate ring. That is a Spinner",
+          "Use Progress for a static measurement such as storage used. That is a meter",
+          "Use Progress for a user's place in a multi-step form. That is a stepper",
+          "Show the outcome by color alone"
+        ],
+        "contentGuidelines": "Label: what is happening, with an active verb (\"Uploading photo.jpg\"), one label for the whole task. Value: a concrete amount where there is one (\"45 MB of 100 MB\", \"Step 3 of 5\"), otherwise a percentage. End: past tense when done (\"Upload complete\"); when it fails, what failed and the next step (\"Upload failed. The connection dropped. Try again.\")."
+      },
+      "ai": {
+        "primaryPurpose": "Show that system work is under way and, when it can be measured, how far along it is.",
+        "whenToUse": "An upload, export or batch job that takes more than a few seconds: determinate when the amount is known, indeterminate when it is not. A ring when the space is small.",
+        "avoidWhen": "The wait is short and inside a control (use a spinner), the content is loading for the first time (a placeholder in the layout's shape), the value is a static measurement such as storage used (a meter), it marks a user's place in a multi-step flow (a stepper), or the work cannot be measured and you want a ring (use a spinner).",
+        "commonPartners": [
+          "button",
+          "spinner",
+          "field-message"
+        ],
+        "triggerKeywords": [
+          "progress",
+          "progress bar",
+          "progress indicator",
+          "linear progress",
+          "circular progress",
+          "progress ring",
+          "upload progress",
+          "determinate",
+          "indeterminate"
+        ],
+        "generationPriority": 3
+      },
+      "motion": {
+        "enter": "Appears after a short delay (400ms), so a fast task shows nothing. The fill moves to each new value over `motion.duration.moderate` on `motion.easing-role.default`. An indeterminate bar sweeps its segment across the track once every `motion.duration.sweep` (1600ms), on `motion.easing.calm`. At complete and error the color crossfades over `motion.duration.fast`.",
+        "exit": "Stays at least 500ms once shown, then leaves with its host.",
+        "reduceMotion": "The fill snaps to each value (`motion.duration-reduced.moderate`, 0ms). The indeterminate sweep keeps moving, more slowly: one pass every `motion.duration-reduced.sweep` (2600ms). It is never removed, because a still bar reads as stuck."
+      },
+      "composition": {
+        "composesWith": [
+          "field-message"
+        ],
+        "alternativeTo": [
+          "spinner"
+        ],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [
+          "skeleton",
+          "meter",
+          "stepper",
+          "toast"
+        ],
+        "replacesPatterns": [
+          "a bar that creeps to 99% while the real amount is unknown",
+          "a label printed inside the moving fill"
+        ]
+      }
+    },
+    "_slider-thumb": {
+      "id": "_slider-thumb",
+      "name": "Slider.Thumb",
+      "aliases": [
+        "slider-handle",
+        "slider-knob"
+      ],
+      "category": "form",
+      "status": "draft",
+      "summary": "The thumb a Slider moves: a filled disc with a page-colored ring. Used only inside a Slider.",
+      "description": "The handle a Slider moves along its track: a filled disc in the primary fill with a 2px ring in the page color, which keeps it apart from the fill beside it. It darkens at hover and press, and shows the focus ring while it has keyboard focus. It lives inside a Slider, which places one thumb for a single value and two for a range, and is never placed on its own.",
+      "props": [
+        {
+          "name": "aria-label",
+          "type": "string",
+          "required": false,
+          "description": "The thumb's accessible name. Set by the Slider: the label for a single value, \"Minimum {label}\" and \"Maximum {label}\" for a range."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "The disabled look. Set by the Slider when the whole control is disabled."
+        }
+      ],
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled"
+      ],
+      "variants": {},
+      "accessibility": {
+        "role": "slider, from a visually hidden native <input type=\"range\">; the Slider wires its name, value and range",
+        "wcag": [
+          "1.4.11 Non-text Contrast (the disc targets 3:1 against the page at rest, hover and press)",
+          "2.4.7 Focus Visible / 2.4.13 Focus Appearance (the shared focus ring, as intent)",
+          "2.5.8 Target Size (targets a 44×44px hit area in code, beyond the visible disc)"
+        ],
+        "keyboard": "Set by the Slider: arrow keys move one step, Page Up and Page Down one large step, Home and End to the ends of the thumb's range.",
+        "focus": "A focus ring around the thumb on :focus-visible, never around the track.",
+        "aria": "aria-valuenow, aria-valuemin and aria-valuemax from the native input; aria-valuetext whenever the value is not a bare number. Set by the Slider."
+      },
+      "content": {
+        "labelPattern": "None of its own. The Slider names each thumb: its label for a single value, \"Minimum {label}\" and \"Maximum {label}\" for a range."
+      },
+      "docs": {
+        "usage": "Part of a Slider. The Slider places one thumb for a single value and two for a range, and sets each thumb's name, value and state.",
+        "do": [
+          "Extend its hit area in code to at least 44×44px at every size, with a transparent `::before` inset outward",
+          "Let the Slider name each thumb, so a range announces \"Minimum\" and \"Maximum\", not \"slider, slider\""
+        ],
+        "dont": [
+          "Place a thumb outside a Slider",
+          "Put the focus ring on the track instead of the thumb"
+        ],
+        "contentGuidelines": "No copy of its own."
+      },
+      "ai": {
+        "primaryPurpose": "The handle a Slider moves, inside a Slider only.",
+        "whenToUse": "Only as part of a Slider.",
+        "avoidWhen": "Anywhere outside a Slider. A switch handle is Switch.Control; a value chosen by dragging is a Slider.",
+        "commonPartners": [
+          "slider",
+          "focus-ring"
+        ],
+        "triggerKeywords": [
+          "slider thumb",
+          "slider handle",
+          "slider knob"
+        ],
+        "generationPriority": 9
+      },
+      "motion": {
+        "enter": "None.",
+        "exit": "None.",
+        "reduceMotion": "While dragging the thumb follows the pointer with no transition. After a track click or a key step it slides on the fast duration; under reduced motion it moves at once."
+      },
+      "composition": {
+        "composesWith": [
+          "focus-ring"
+        ],
+        "alternativeTo": [],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [],
+        "replacesPatterns": [
+          "the browser's own range thumb, restyled per engine"
+        ]
+      }
+    },
+    "slider": {
+      "id": "slider",
+      "name": "Slider",
+      "aliases": [
+        "range-slider",
+        "range-input",
+        "range"
+      ],
+      "category": "form",
+      "status": "draft",
+      "summary": "Choose a value, or a range, by moving a thumb along a track. Works with arrow keys too.",
+      "description": "A slider picks an approximate value, or a range between two values, by moving a thumb along a track: a price filter, a text size, a volume. It suits a value where the position within the range matters more than the exact number. One thumb sets a single value; two thumbs set a minimum and a maximum. The current value shows as text above the track. For an exact number, turn on the paired inputs, or use a text field.",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "description": "Names the dimension being set, such as \"Price\" or \"Volume\". Shown above the track, and the accessible name of a single thumb."
+        },
+        {
+          "name": "value",
+          "type": "number | [number, number]",
+          "required": false,
+          "description": "The value. A number sets one thumb; a pair of numbers, such as [40, 120], sets a range with two thumbs. Controlled; pair it with onChange."
+        },
+        {
+          "name": "defaultValue",
+          "type": "number | [number, number]",
+          "required": false,
+          "description": "The starting value when the slider manages its own state. A pair starts a range."
+        },
+        {
+          "name": "onChange",
+          "type": "function",
+          "required": false,
+          "description": "Called on every change while dragging or stepping, for a live preview."
+        },
+        {
+          "name": "onChangeEnd",
+          "type": "function",
+          "required": false,
+          "description": "Called once when the pointer is released or a key step ends. Bind costly work here, such as a network filter, so a drag does not call it for every pixel."
+        },
+        {
+          "name": "min",
+          "type": "number",
+          "default": 0,
+          "required": false,
+          "description": "The lowest value."
+        },
+        {
+          "name": "max",
+          "type": "number",
+          "default": 100,
+          "required": false,
+          "description": "The highest value."
+        },
+        {
+          "name": "step",
+          "type": "number",
+          "default": 1,
+          "required": false,
+          "description": "The amount one arrow key or one snap moves. Every value is rounded to the nearest exact multiple of the step before onChange."
+        },
+        {
+          "name": "largeStep",
+          "type": "number",
+          "required": false,
+          "description": "The amount Page Up and Page Down move. Ten steps when not set."
+        },
+        {
+          "name": "minStepsBetweenThumbs",
+          "type": "number",
+          "default": 0,
+          "required": false,
+          "description": "For a range, how many steps the two thumbs must stay apart. A thumb stops there and never crosses the other."
+        },
+        {
+          "name": "formatOptions",
+          "type": "Intl.NumberFormatOptions",
+          "required": false,
+          "description": "How the value reads: a currency, a percent, a unit. Drives the visible value text and each thumb's aria-valuetext from one formatter, so what is seen and what is heard match."
+        },
+        {
+          "name": "thumbLabels",
+          "type": "[string, string]",
+          "required": false,
+          "description": "For a range, the two thumb names. \"Minimum {label}\" and \"Maximum {label}\" when not set."
+        },
+        {
+          "name": "type",
+          "type": "enum: 'single' | 'range'",
+          "default": "single",
+          "required": false,
+          "values": [
+            "single",
+            "range"
+          ],
+          "description": "Read from value: a number is single, a pair is range. Not set on its own; listed so the two looks have a name."
+        },
+        {
+          "name": "showValue",
+          "type": "boolean",
+          "default": true,
+          "required": false,
+          "description": "Shows the value text above the track. Turn it off only when the paired inputs show the value instead."
+        },
+        {
+          "name": "showEndLabels",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Shows the minimum and maximum under the ends of the track."
+        },
+        {
+          "name": "showInputs",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Shows paired number inputs under the track: one for a single value, \"Minimum\" and \"Maximum\" for a range. Typing moves the thumb; dragging updates the input. With inputs on, turn the value text off."
+        },
+        {
+          "name": "helpText",
+          "type": "string",
+          "required": false,
+          "description": "Guidance under the slider, in a field message."
+        },
+        {
+          "name": "validation",
+          "type": "enum: 'default' | 'error'",
+          "default": "default",
+          "required": false,
+          "values": [
+            "default",
+            "error"
+          ],
+          "description": "error marks the slider invalid: the field message shows the error status and each thumb carries aria-invalid. A slider's own value is always in range, so an error comes from a paired input or from validation elsewhere in the form."
+        },
+        {
+          "name": "validationMessage",
+          "type": "string",
+          "required": false,
+          "description": "The error text, shown in the field message and added to aria-describedby. Say what is wrong and how to fix it."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Takes the slider out of interaction and out of the form payload, and dims it."
+        },
+        {
+          "name": "readOnly",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "The thumbs stay focusable and the value is still submitted, but it cannot change. Looks like rest."
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": false,
+          "description": "The form field name. A range submits two values."
+        }
+      ],
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled"
+      ],
+      "variants": {
+        "type": {
+          "values": [
+            "single",
+            "range"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "slider, once per thumb, from a visually hidden native <input type=\"range\">; a range is two sliders in a group named by the label",
+        "wcag": [
+          "4.1.2 Name, Role, Value (each thumb named, with aria-valuetext for a formatted value)",
+          "2.1.1 Keyboard (arrow, Page and Home and End keys on every thumb)",
+          "1.4.11 Non-text Contrast (the rail, the fill and the thumb target 3:1 against the page)",
+          "1.4.1 Use of Color (the fill is thicker than the rail and bounded by the thumbs, not told apart by color alone)",
+          "2.4.7 Focus Visible / 2.4.13 Focus Appearance (the focus ring on the thumb, as intent)",
+          "2.5.7 Dragging Movements (a click on the rail, the keys or the paired inputs move a thumb without dragging)",
+          "2.5.8 Target Size (targets a 44×44px hit area on each thumb in code)",
+          "3.3.2 Labels or Instructions (a visible label names the dimension)"
+        ],
+        "keyboard": "Right and Up raise one step; Left and Down lower one step; Page Up and Page Down move ten steps; Home and End go to the minimum and maximum, or for a range thumb to the other thumb. Tab moves from the minimum thumb to the maximum thumb. In right-to-left text, Right lowers and Left raises.",
+        "focus": "A focus ring around the focused thumb on :focus-visible, never around the track.",
+        "aria": "Each thumb carries aria-valuenow, aria-valuemin, aria-valuemax and, for a formatted value, aria-valuetext from the same formatter as the visible text. A range names its thumbs \"Minimum {label}\" and \"Maximum {label}\", which are translatable. Help and error text join aria-describedby; an error sets aria-invalid on each thumb. The layout mirrors right to left."
+      },
+      "content": {
+        "labelPattern": "Name the dimension, in sentence case: \"Price\", \"Volume\", \"Text size\". The value text carries the unit, currency or percent, formatted for the locale (\"$40 – $120\", \"120%\").",
+        "errorPattern": "Say what is wrong and how to fix it, in the field message: \"Enter a maximum of 200 or less.\""
+      },
+      "docs": {
+        "usage": "Use a slider for an approximate value, or a range, where seeing the position within the bounds helps more than the exact number: a price filter, a text size, a volume. Use two thumbs for a minimum and a maximum. For an exact number the user already knows, use a text field, or turn on the paired inputs. Don't use a slider for a few named options (use a segmented control or a radio group) or for on and off (use a switch).",
+        "do": [
+          "Name the dimension with a visible label",
+          "Format the value with its unit or currency, and use the same text for aria-valuetext",
+          "Turn on the paired inputs when an exact value matters",
+          "Bind costly work, such as a network filter, to onChangeEnd"
+        ],
+        "dont": [
+          "Use a slider for a precise value over a wide range; a 300px track cannot reach every value",
+          "Leave the thumbs of a range unnamed",
+          "Show the value only in a bubble during a drag; it is gone when the drag ends",
+          "Animate the thumb while it is dragged"
+        ],
+        "contentGuidelines": "The label names the dimension. The value text shows the value with its unit; a range shows both ends, \"$40 – $120\"."
+      },
+      "ai": {
+        "primaryPurpose": "Choose an approximate value, or a minimum and maximum, by moving a thumb along a track.",
+        "whenToUse": "An approximate value where the position within the range matters more than the exact number, such as a volume, a text size or a price filter window.",
+        "avoidWhen": "The user knows the exact number (use a text field, or turn on the paired inputs), there are a few named options (use a segmented control or a radio group), it is on or off (use a switch), or the range is too wide for the track to reach each value.",
+        "commonPartners": [
+          "_slider-thumb",
+          "field-label",
+          "field-message",
+          "text-field"
+        ],
+        "triggerKeywords": [
+          "slider",
+          "range slider",
+          "price filter",
+          "volume control",
+          "range input",
+          "min max slider"
+        ],
+        "generationPriority": 4
+      },
+      "motion": {
+        "enter": "None.",
+        "exit": "None.",
+        "reduceMotion": "While dragging, the thumb and the fill follow the pointer with no transition. After a click on the rail or a key step the thumb slides on the fast duration with the default easing; under reduced motion it moves at once."
+      },
+      "composition": {
+        "composesWith": [
+          "field-label",
+          "_slider-thumb",
+          "text-field",
+          "field-message"
+        ],
+        "alternativeTo": [
+          "text-field",
+          "segmented-control",
+          "radio-group",
+          "switch-row"
+        ],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [],
+        "replacesPatterns": [
+          "a native <input type=\"range\"> styled per browser engine",
+          "a drag-only custom slider with no keyboard support",
+          "two separate sliders for a minimum and a maximum"
+        ]
+      }
+    },
+    "pagination-item": {
+      "id": "pagination-item",
+      "name": "Pagination.Item",
+      "aliases": [
+        "page-item",
+        "pagination-page"
+      ],
+      "category": "navigation",
+      "status": "draft",
+      "summary": "A pagination cell: a page, the gap marker, previous or next. The current page is outlined.",
+      "description": "One cell in a pagination row: a page number, the gap marker, three dots, that stands for two or more hidden pages, or the previous or next cell, a chevron that opens the page before or after. A cell is as tall as an icon button and at least as wide as it is tall, so a row of pages between previous and next lines up as equal squares; a page number past two digits, or the word \"Previous\" or \"Next\" beside a chevron, widens it. The current page is marked, not filled: its number in the emphasis weight, with a light gray border around the cell, or a 2px underline under the number in a gray that stands out from the page at 3:1. It keeps its width, so the row does not move. At hover and press, another page and an unlabeled previous or next show a light neutral wash; a labeled previous or next shows no fill and its word and chevron darken, as a text link does. At the first or last page, previous or next stays in place and does nothing, drawn in the disabled ink. The gap marker is decorative: it does not respond to the pointer, takes no focus and is hidden from assistive technology. Pagination places the cells and decides which page is current.",
+      "props": [
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "description": "The page number as shown, such as \"4\". Pagination sets it, through the locale's number format."
+        },
+        {
+          "name": "page",
+          "type": "number",
+          "required": false,
+          "description": "The page this cell opens. Absent on an ellipsis."
+        },
+        {
+          "name": "href",
+          "type": "string",
+          "required": false,
+          "description": "The address of the page. Present, the cell is a link; absent, it is a button that changes the page in place."
+        },
+        {
+          "name": "selected",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Whether this is the current page. Set by Pagination; do not set it on a cell inside a pagination row."
+        },
+        {
+          "name": "type",
+          "type": "enum: 'page' | 'ellipsis' | 'previous' | 'next'",
+          "default": "page",
+          "required": false,
+          "values": [
+            "page",
+            "ellipsis",
+            "previous",
+            "next"
+          ],
+          "description": "page: a page number the user can open. ellipsis: the three-dot icon that stands for two or more pages not shown. previous and next: the cell with a left or right chevron that opens the page before or after the current one."
+        },
+        {
+          "name": "labeled",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "On previous and next only: true shows the word beside the chevron, as Pagination's simple type does. Passed down by Pagination."
+        },
+        {
+          "name": "previousLabel",
+          "type": "string",
+          "default": "Previous",
+          "required": false,
+          "description": "The word a labeled previous cell shows, \"Previous\" by default. Pass the translated word."
+        },
+        {
+          "name": "nextLabel",
+          "type": "string",
+          "default": "Next",
+          "required": false,
+          "description": "The word a labeled next cell shows, \"Next\" by default. Pass the translated word."
+        },
+        {
+          "name": "isInactive",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "On previous and next only: true at the first or last page. The cell stays in place and in the Tab order with aria-disabled=\"true\", and does nothing when activated. Set by Pagination."
+        },
+        {
+          "name": "style",
+          "type": "enum: 'border' | 'underline'",
+          "default": "border",
+          "required": false,
+          "values": [
+            "border",
+            "underline"
+          ],
+          "description": "How the current page is marked: a border around the cell, or a 2px line under the number. Passed down by Pagination."
+        },
+        {
+          "name": "size",
+          "type": "enum: 'small' | 'medium' | 'large'",
+          "default": "medium",
+          "required": false,
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "description": "The cell height and label type, matching the icon buttons beside it. Passed down by Pagination."
+        }
+      ],
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled"
+      ],
+      "variants": {
+        "type": {
+          "values": [
+            "page",
+            "ellipsis",
+            "previous",
+            "next"
+          ],
+          "kind": "authoring"
+        },
+        "selection": {
+          "values": [
+            "unselected",
+            "selected"
+          ],
+          "kind": "runtime"
+        },
+        "style": {
+          "values": [
+            "border",
+            "underline"
+          ],
+          "kind": "authoring"
+        },
+        "labeled": {
+          "values": [
+            "false",
+            "true"
+          ],
+          "kind": "authoring"
+        },
+        "size": {
+          "values": [
+            "medium",
+            "small",
+            "large"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "a link (<a href>) when the page has an address, or a button for a page changed in place, for a page, previous and next; the ellipsis is a decorative icon hidden from assistive technology",
+        "wcag": [
+          "1.3.1 Info and Relationships (each cell is a list item; the current page carries aria-current=\"page\")",
+          "1.4.1 Use of Color (the current page has a border or an underline and a heavier weight, and aria-current)",
+          "1.4.3 Contrast (Minimum) (every number on the page at 4.5:1)",
+          "1.4.11 Non-text Contrast (the underline at 3:1 against the page; the border style's lighter border is not the only cue, the number's emphasis weight marks the current page too; the decorative gap icon is exempt)",
+          "2.4.4 Link Purpose (In Context) (each page is named \"Page N\"; previous and next \"Previous page\" and \"Next page\")",
+          "2.5.3 Label in Name (a labeled cell's visible \"Previous\" or \"Next\" starts its accessible name)",
+          "2.4.7 Focus Visible (the shared focus ring)",
+          "2.5.8 Target Size (Minimum) (targets 44px at medium and large on comfortable and spacious density)"
+        ],
+        "keyboard": "Each page, previous and next is its own Tab stop; Enter opens it, and Space also does when it is a button. An inactive previous or next keeps its Tab stop and does nothing. Arrow keys do not move between pages. The ellipsis is skipped.",
+        "focus": "A focus ring around the cell on :focus-visible, the current page included.",
+        "aria": "aria-current=\"page\" on the current page. A visually hidden \"Page \" before each number, so it reads \"Page 4\". aria-hidden=\"true\" on the ellipsis icon and on the chevrons. Previous and next named \"Previous page\" and \"Next page\", and aria-disabled=\"true\" at an end."
+      },
+      "content": {
+        "labelPattern": "The page number, in the locale's numerals. Nothing else is shown in a page cell; the ellipsis shows the three-dot icon and no text. A labeled previous or next shows \"Previous\" or \"Next\", never \"Prev\", \"Back\" or \"Forward\"."
+      },
+      "docs": {
+        "usage": "Use inside Pagination only. Pagination works out which pages to show, marks the current one, places the ellipses, and sets previous and next inactive at an end.",
+        "do": [
+          "Let Pagination set the current page and the ellipses",
+          "Keep every page cell the same size as the previous and next cells beside it"
+        ],
+        "dont": [
+          "Place a page cell outside a pagination row",
+          "Make the ellipsis a control"
+        ],
+        "contentGuidelines": "Numbers only on a page. The accessible name adds \"Page\". Previous and next read \"Previous\" and \"Next\", sentence case."
+      },
+      "ai": {
+        "primaryPurpose": "One page number, the ellipsis, or previous or next, inside a pagination row.",
+        "whenToUse": "Only as an item in Pagination: a page or the ellipsis in the numbered row, previous and next in every type.",
+        "avoidWhen": "Anywhere outside Pagination: a single action is a Button, and a choice between a few views is a segmented control or tabs.",
+        "commonPartners": [
+          "pagination"
+        ],
+        "triggerKeywords": [
+          "page number",
+          "pagination item",
+          "page cell",
+          "current page",
+          "previous page",
+          "next page"
+        ],
+        "generationPriority": 9
+      },
+      "motion": {
+        "enter": "None. The hover wash and the current page's border change at once or over a short color fade.",
+        "exit": "None.",
+        "reduceMotion": "The color change happens at once."
+      },
+      "composition": {
+        "composesWith": [
+          "focus-ring"
+        ],
+        "alternativeTo": [],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [],
+        "replacesPatterns": [
+          "a page number link with href=\"#\" and a click handler",
+          "an ellipsis read aloud as \"dot dot dot\""
+        ]
+      }
+    },
+    "pagination": {
+      "id": "pagination",
+      "name": "Pagination",
+      "aliases": [
+        "pager",
+        "pagination-nav",
+        "page-controls"
+      ],
+      "category": "navigation",
+      "status": "draft",
+      "summary": "Moves between pages of a long list or set of results, and shows which page is open.",
+      "description": "Moves between the pages of a long, ordered list or set of results, and shows which page is open. numbered shows the first and last page, the current page and one page on each side of it, with an ellipsis for each gap, between a previous and a next cell; the row always holds seven slots, so it keeps its width as the user pages. compact replaces the numbers with \"Page 5 of 10\", for a narrow container. simple is a Previous and a Next cell at opposite ends, for an article or a short sequence where the count adds nothing. At the first and last page, the previous or next cell stays in place and does nothing. Not tabs (a few fixed views), not a carousel indicator, and not a load more button.",
+      "props": [
+        {
+          "name": "count",
+          "type": "number",
+          "required": true,
+          "description": "The total number of pages. Pagination is not shown when it is 1."
+        },
+        {
+          "name": "page",
+          "type": "number",
+          "required": false,
+          "description": "The current page, counted from 1. Controlled; pair it with onPageChange."
+        },
+        {
+          "name": "defaultPage",
+          "type": "number",
+          "default": 1,
+          "required": false,
+          "description": "The page shown first, when Pagination manages its own state."
+        },
+        {
+          "name": "onPageChange",
+          "type": "function",
+          "required": false,
+          "description": "Called with the new page number when the user opens a page."
+        },
+        {
+          "name": "getHref",
+          "type": "function",
+          "required": false,
+          "description": "Returns the address of a page. Present, every page is a link the user can bookmark, share or open in a new tab; absent, every page is a button that changes the content in place. Pass it whenever the page has an address."
+        },
+        {
+          "name": "renderItem",
+          "type": "slot",
+          "required": false,
+          "description": "Renders a page as your router's link, keeping its address and aria-current."
+        },
+        {
+          "name": "type",
+          "type": "enum: 'numbered' | 'compact' | 'simple'",
+          "default": "numbered",
+          "required": false,
+          "values": [
+            "numbered",
+            "compact",
+            "simple"
+          ],
+          "description": "numbered: page numbers between previous and next. compact: \"Page 5 of 10\" between previous and next. simple: Previous and Next only. A numbered row switches to compact when its container is narrower than the row."
+        },
+        {
+          "name": "style",
+          "type": "enum: 'border' | 'underline'",
+          "default": "border",
+          "required": false,
+          "values": [
+            "border",
+            "underline"
+          ],
+          "description": "How the current page is marked in a numbered row: a border around it, or a 2px line under its number."
+        },
+        {
+          "name": "size",
+          "type": "enum: 'small' | 'medium' | 'large'",
+          "default": "medium",
+          "required": false,
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "description": "The size of every cell and button, matching the icon button sizes. Medium is 44px on comfortable and spacious density."
+        },
+        {
+          "name": "siblingCount",
+          "type": "number",
+          "default": 1,
+          "required": false,
+          "description": "How many pages show on each side of the current page."
+        },
+        {
+          "name": "boundaryCount",
+          "type": "number",
+          "default": 1,
+          "required": false,
+          "description": "How many pages show at each end."
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "default": "Pagination",
+          "required": false,
+          "description": "The accessible name of the navigation landmark. Give two pagination rows on one page the same name, or a name each (\"Pagination, top\")."
+        },
+        {
+          "name": "getStatusText",
+          "type": "function",
+          "required": false,
+          "description": "Returns the compact text and the page-change announcement, \"Page 5 of 10\" by default. Pass a translated string with the page and the count in the order the language needs."
+        }
+      ],
+      "states": [],
+      "variants": {
+        "type": {
+          "values": [
+            "numbered",
+            "compact",
+            "simple"
+          ],
+          "kind": "authoring"
+        },
+        "style": {
+          "values": [
+            "border",
+            "underline"
+          ],
+          "kind": "authoring"
+        },
+        "size": {
+          "values": [
+            "medium",
+            "small",
+            "large"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "navigation: a <nav> landmark named \"Pagination\", holding a list of links or buttons",
+        "wcag": [
+          "1.3.1 Info and Relationships (a labeled navigation landmark around a list; the current page carries aria-current=\"page\")",
+          "1.4.1 Use of Color (the current page has a border or an underline and a heavier weight, and aria-current)",
+          "1.4.3 Contrast (Minimum) (every number and the compact text at 4.5:1)",
+          "1.4.10 Reflow (a numbered row switches to compact in a narrow container)",
+          "1.4.11 Non-text Contrast (the current page's underline at 3:1 against the page; its border, in the border style, is a second cue beside the emphasis weight, so it may be lighter)",
+          "2.1.1 Keyboard (every control is reachable with Tab)",
+          "2.4.3 Focus Order (after an in-place page change focus moves to the results, and inactive controls at an end keep focus in place)",
+          "2.4.4 Link Purpose (In Context) (previous, next and every page have a full name)",
+          "2.4.7 Focus Visible (the shared focus ring on every control)",
+          "2.5.3 Label in Name (the visible \"Previous\" and \"Next\" start each accessible name)",
+          "2.5.8 Target Size (Minimum) (targets 44px at medium and large on comfortable and spacious density)",
+          "4.1.2 Name, Role, Value (the landmark, the list and aria-current)",
+          "4.1.3 Status Messages (a polite \"Page 5 of 10\" after an in-place change)"
+        ],
+        "keyboard": "Tab moves through previous, each page and next; every control is its own Tab stop. Enter opens a page, and Space also does when it is a button. Arrow keys do not move between pages.",
+        "focus": "Stays in the normal Tab order. After a page changes in place, focus moves to the top of the results. At an end, the inactive previous or next cell keeps focus.",
+        "aria": "aria-label=\"Pagination\" on the <nav>; give two on one page the same name or a name each. aria-current=\"page\" on the current page. aria-hidden=\"true\" on each ellipsis. aria-disabled=\"true\" on previous at the first page and next at the last. Accessible names \"Previous page\", \"Next page\" and \"Page 4\". A polite live region says \"Page 5 of 10\" after an in-place change. Names are translated."
+      },
+      "content": {
+        "labelPattern": "Previous and next are named \"Previous page\" and \"Next page\"; simple shows \"Previous\" and \"Next\", never \"Prev\", \"Back\" or \"Forward\". The compact text is \"Page 5 of 10\". Pages are numbers only."
+      },
+      "docs": {
+        "usage": "Use Pagination below a long list, a grid of results or a table, to move between pages and show which one is open. numbered when the user benefits from seeing the count and jumping to a page; compact in a narrow container, and numbered switches to it there on its own; simple for previous and next through an article or a short sequence. Center it under a list or a grid; end-align it under a table. Give every page an address whenever the page has one.",
+        "do": [
+          "Place it below the content it pages",
+          "Give pages an address, so they can be bookmarked and shared",
+          "Leave previous and next in place at an end",
+          "Move focus to the top of the results after an in-place change",
+          "Leave it out when there is only one page"
+        ],
+        "dont": [
+          "Use it for a feed with no useful end. Use a load more Button.",
+          "Use it to switch between a few views. Use tabs or a segmented control.",
+          "Use it for the slides of a carousel",
+          "Hide previous or next at an end; the row would change width",
+          "Make an ellipsis a control"
+        ],
+        "contentGuidelines": "\"Previous\" and \"Next\", sentence case. \"Page 5 of 10\" for the compact text and the announcement. Numbers in the locale's numerals."
+      },
+      "ai": {
+        "primaryPurpose": "Move between the pages of a long, ordered set of results and show which page is open.",
+        "whenToUse": "Search results, a catalog or a table split into pages, where the user benefits from the count and from jumping to a page; or previous and next through an article.",
+        "avoidWhen": "A feed with no useful end (a load more Button), a few fixed views (tabs or a segmented control), the slides of a carousel, or rows per page and a \"Go to page\" field (the table pager, not yet built).",
+        "commonPartners": [
+          "pagination-item",
+          "list"
+        ],
+        "triggerKeywords": [
+          "pagination",
+          "pager",
+          "page numbers",
+          "previous and next",
+          "page 1 of 10",
+          "next page"
+        ],
+        "generationPriority": 2
+      },
+      "motion": {
+        "enter": "None. The page changes at once.",
+        "exit": "None.",
+        "reduceMotion": "Nothing moves."
+      },
+      "composition": {
+        "composesWith": [
+          "pagination-item"
+        ],
+        "alternativeTo": [
+          "tabs"
+        ],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [
+          "table",
+          "carousel",
+          "breadcrumbs"
+        ],
+        "replacesPatterns": [
+          "page links built from <a href=\"#\"> and click handlers",
+          "a disabled next button that drops focus at the last page",
+          "infinite scroll on a page with a footer"
         ]
       }
     }

@@ -169,6 +169,11 @@ const INTERACTIVE: Record<string, Binding> = {
   // #2427: the Counter's row, the height of the value it centers (the spinbutton, its one Tab stop). Its two buttons
   // are code-side targets nested in it, measured under FLUSH_NESTS below.
   'counter': { key: (s) => `size.${s}.height`, why: 'the Counter row height, on Button\'s height rung' },
+  // #2669: one size (owner call 3 A), so `single`: the control row around the track is the click-to-jump target, on the
+  // interactive floor `size.md.min-height`. Each thumb is its own code-side target below (CODE_SIDE_TARGETS).
+  'slider': { key: () => 'control-height', why: 'the control row around the track, the click-to-jump target', single: true },
+  // #2665: each page cell is its own target, on IconButton's height rung (owner call 8).
+  'pagination-item': { key: (s) => `size.${s}.height`, why: 'the page cell height' },
 };
 
 // ── TARGETS INSIDE A CONTROL (#1741): `<def>.<part>` → the tokens KEY of the part's side at a size ─────────
@@ -182,6 +187,10 @@ const INNER_TARGETS: Record<string, { key: (size: string) => string; why: string
   // #2317: a NESTED control with no side bound in the host. Its key is the NESTED def's (Button's box height), read
   // through Button's own tokens at the size the host nests it at, so a toggle pointed at a smaller rung fails here.
   'password-field.toggle': { key: (s) => `size.${s}.height`, why: 'the Show/Hide button, a nested flush text Button, small at every field size (Q301.3 B, Q380 A): its box height on Button\'s own rung; its hit area is the code-side flush rule below' },
+  // The paired inputs (owner call 7 A): nested TextFields at medium, measured through TextField's own height rung.
+  'slider.inputSingle': { key: (s) => `size.${s}.height`, why: 'the number input of a single value, a nested medium TextField' },
+  'slider.inputMin': { key: (s) => `size.${s}.height`, why: 'the minimum input of a range, a nested medium TextField' },
+  'slider.inputMax': { key: (s) => `size.${s}.height`, why: 'the maximum input of a range, a nested medium TextField' },
 };
 
 // ── A NESTED FLUSH BUTTON SHORTER THAN THE FLOOR (#2804, Q380 A; owner question on #2809, option A) ──────────────
@@ -238,12 +247,16 @@ const FLUSH_ICON_BUTTON_TARGET = (): { key: (size: string) => string; why: strin
   key: (s) => `size.${s}.flush`, why: "the flush icon button's glyph square, with no padding",
   atFloor: { key: (s) => `size.${s}.round`, sizes: ['medium', 'large'], why: "the round flush icon button's circle, the Counter's height" },
 });
-const CODE_SIDE_TARGETS: Record<string, { key: (size: string) => string; why: string; atFloor?: AtFloor }> = {
+const CODE_SIDE_TARGETS: Record<string, { key: (size: string) => string; why: string; atFloor?: AtFloor; single?: true }> = {
   'flush-icon-button': FLUSH_ICON_BUTTON_TARGET(),
   'flush-icon-button-destructive': FLUSH_ICON_BUTTON_TARGET(),
   'flush-icon-button-neutral': FLUSH_ICON_BUTTON_TARGET(),
+  // #2669 (owner call 6 A): the slider thumb's disc is 24px at comfortable and smaller at compact, and its hit area is
+  // 44×44 in code at every density. One size, so `single`: measured once, at its one binding.
+  '_slider-thumb': { key: () => 'size', why: "the slider thumb's disc, `control.size.md.thumb`", single: true },
 };
-const CODE_SIDE_RULE = [/at least 44×44px at every size/, /::before`? inset outward/, /centered on the glyph/];
+// The thumb's entry is centered on the THUMB, the flush icon button's on the GLYPH: one rule, two words for the box.
+const CODE_SIDE_RULE = [/at least 44×44px at every size/, /::before`? inset outward/, /centered on the (glyph|thumb)/];
 const CODE_SIDE_DOC = [/hit area in code to at least 44×44px at every size/, /::before`? inset outward/];
 // ── FLUSH NESTS (#2427): a host nesting code-side targets, and the room it leaves their hit areas ─────────────
 // A code-side target's 44×44 hit area reaches past its box, so a host nesting two of them must keep their centers
@@ -255,6 +268,16 @@ const FLUSH_NESTS: Record<string, { parts: readonly string[]; pair?: readonly [s
   counter: { parts: ['decrement', 'increment'], pair: ['decrement', 'increment'], why: "the Counter's minus and plus, either side of the value" },
   // #2808 (Q385 A): the Dialog's close is one code-side target, so there is no second hit area to space it from.
   dialog: { parts: ['close'], why: "the Dialog's close, the one code-side target in its header" },
+  // #2666: the overflow step's flush icon button is the one code-side target in a breadcrumb item, so there is no second hit area to space it from.
+  'breadcrumb-item': { parts: ['overflow'], why: "the collapsed-steps button, the one code-side target in a breadcrumb step" },
+  // #2668 (Q386): the Toast's close is one code-side target beside the action Button, which is a separate target measured under its own name.
+  toast: { parts: ['close'], why: "the Toast's close, the one code-side icon target in its controls" },
+  // Owner QA 2026-10-19: the Banner's dismiss is a flush FlushIconButton.Neutral, the one code-side target in the row.
+  banner: { parts: ['dismiss'], why: "the Banner's dismiss, the one code-side target in its row" },
+  // #2669: the Slider's two thumbs are code-side targets (Slider.Thumb), the minimum one only on a range. No pair is measured:
+  // their spacing is the value's, not the layout's, so two thumbs a step apart overlap by design and the code states the
+  // nearer-thumb rule (call 10 A) instead of a spacing the layout could keep.
+  slider: { parts: ['thumbMin', 'thumb'], why: "the Slider's maximum thumb, and the minimum thumb of a range; Slider.Thumb nested" },
 };
 /** The 44px center-to-center spacing, a literal (Q296 A), not FLOOR_PX: a different rule that happens to share the number. */
 const FLUSH_NEST_SPACING_PX = 44;
@@ -279,7 +302,7 @@ const ruleGap = (entries: readonly string[], rule: readonly RegExp[]): string[] 
 /** The defs carved out as a size-level exception: a small button (owner, #1443) and a small tag (owner,
  *  2026-09-27, "as for Button") sit below the floor on purpose. Kept as data so the walk asserts each is
  *  ACTUALLY below the floor. */
-const SMALL_SIZE = new Set(['button', 'button-destructive', 'button-neutral', 'tag', 'tab-item', 'segmented-control-segment']);
+const SMALL_SIZE = new Set(['button', 'button-destructive', 'button-neutral', 'tag', 'tab-item', 'segmented-control-segment', 'pagination-item']);
 
 // ── EXCLUDED: represented, with a stated reason (docs/34 — a hand-enumerated legitimate exclusion) ──
 const EXCLUDED: Record<string, string> = {
@@ -290,12 +313,15 @@ const EXCLUDED: Record<string, string> = {
   'veil': 'a media wash overlay, not an interactive control',
   'segmented-control': 'a segmented control\'s track and label — its tap targets are the nested options, which are gated as segmented-control-segment',
   'divider': 'a 1px rule between groups of content, never interactive and never focusable',
+  'banner': 'a message in the page flow, never itself a pointer target: its actions and dismiss are a Button.Neutral and a FlushIconButton.Neutral, each measured under its own name (#2579)',
   'button-group': 'a layout of one to three Buttons, never itself a pointer target: each Button is measured under its own name (#2661)',
   'dialog': 'a modal panel, never itself a pointer target: its close button and footer buttons are a FlushIconButton.Neutral and Buttons, each measured under its own name (#2609, Q385 A)',
+  'toast': 'a status message over the page, never itself a pointer target: its action and close button are a Button and a FlushIconButton.Neutral, each measured under its own name; the small close button\'s 44×44 hit area is extended in code, as IconButton records (#2668)',
   'list': 'a read list of text items, never interactive and never focusable; a link inside an item is its own control (#2319)',
   'list-item': 'one item of a read list, never interactive and never focusable; a link inside it is its own control (#2319)',
   '_accordion-indicator': 'a decorative glyph inside an Accordion header; the tap target is the header row, gated as accordion',
   'image-placeholder': 'an empty-state media frame, not an interactive control',
+  'progress': 'a progress bar or ring shows system work and is never interactive (#2670) — a retry after an error is the host\'s own control, placed beside it, which is gated',
   'spinner': 'a decorative loading indicator on the icon ladder, never interactive — the tap target is the host control it sits in (a pending button), which is gated',
   'badge': 'a static marker, never interactive (owner decision, 2026-09-27) — a count or dot on an icon button relies on the host\'s target, which is gated',
   'checkbox-control': 'a nested-only atom — the tap target is the labelled row (checkbox-row), gated here',
@@ -303,8 +329,19 @@ const EXCLUDED: Record<string, string> = {
   'switch-control': 'a nested-only atom — the tap target is the labelled row (switch), gated here; its bare 24–32px track fails SC 2.5.8 in isolation by its own codeOnly',
   'checkbox-group': 'a group container — its interactive tap targets are the nested checkbox-rows, which are gated',
   'radio-group': 'a group container — its interactive tap targets are the nested radio-rows, which are gated',
+  'pagination': 'a navigation row — its tap targets are the nested page cells, gated as pagination-item, and the previous and next IconButton.Neutral and Button.Neutral, each measured under its own name (#2665)',
   'tabs': 'a tab list container — its interactive tap targets are the nested tabs, which are gated as tab',
   'link': 'one text line tall in Figma by owner decision (Q289.4 A), so its box is the line, not a control height: code expands the hit area to at least 24px (SC 2.5.8, codeOnly), and an inline link in a sentence is exempt under the inline exception',
+  // #2666: neither is a control of its own. The targets are the nested Link (one text line, its code-side 24px area
+  // stated under `link`) and the nested FlushIconButton.Neutral (measured under its own name, 44×44 in code).
+  'breadcrumbs': 'a navigation container — its targets are the nested items\' links and overflow button, and the parent path\'s Link, each a control of its own',
+  '_breadcrumb-separator': 'a decorative mark between breadcrumb steps (CSS ::after in code, never in the accessibility tree); it takes no pointer and no focus',
+  'breadcrumb-item': 'one step of a trail — its targets are the nested Link (one text line, code-side 24px, as `link`) and the nested FlushIconButton.Neutral (code-side 44×44, measured under its own name); the current page is text and not a target',
+  // #2428: Code input's target is its row of cells, one target over the one input, built at the owner's literal cell
+  // heights (Q330 A: 44, 56, 64, 72px; `builtSize`, no token), so there is no binding here to read. test.ts holds those
+  // heights against the 44px floor as literals (`#2428 code-input: the row of cells is a target of at least 44px`).
+  'code-input': 'its pointer target is the row of cells over its one input, built at literal cell heights (owner decision Q330 A, no token), so no binding to measure here; test.ts holds every size at 44px or taller',
+  'code-input-cell': 'an aria-hidden drawing of one character inside a code input, never focusable and never a target of its own; the row of cells is the code input\'s one target',
   'textarea': 'a multi-line field whose height is rows/auto-grow (fluid); it binds no single-line height, so there is no fixed hit-target dimension to measure',
 };
 
@@ -480,7 +517,8 @@ for (const [id, inner] of Object.entries(INNER_TARGETS)) {
   if (!(defId in INTERACTIVE)) { failures.push(`INNER_TARGETS names '${id}', whose def is not an INTERACTIVE control.`); continue; }
   const nestsControl = part.kind === 'nest' && !!part.nests && part.nests in INTERACTIVE;
   if (!part.innerTarget && !nestsControl) continue;   // reported by `markFailures`
-  const size = defaultSizeOf(def);
+  // A single-size host (#2669, the Slider) has no size prop; its nested targets are measured at the size they nest.
+  const size = INTERACTIVE[defId].single ? 'single' : defaultSizeOf(def);
   if (!size) { failures.push(`${id}: its def has no default size to measure the inner target at.`); continue; }
   const want = inner.key(size);
   // A NESTED CONTROL WITH NO SIDE OF ITS OWN (#2317): measured through the NESTED def's tokens, at the size the host
@@ -609,7 +647,9 @@ const comfortable = floorBuilds.find((b) => b.density === 'comfortable')!;
 for (const [id, target] of Object.entries(CODE_SIDE_TARGETS)) {
   const def = componentDefs.find((d) => d.id === id);
   if (!def) continue;   // reported as stale above
-  const sizes = (def.variants?.size as string[] | undefined) ?? [];
+  const declared = def.variants?.size as string[] | undefined;
+  if (target.single && declared) { failures.push(`${id}: CODE_SIDE_TARGETS lists it single-size, and it declares variants.size [${declared.join(', ')}] — measure each size instead.`); continue; }
+  const sizes = target.single ? ['single'] : declared ?? [];
   if (!sizes.length) { failures.push(`${id}: CODE_SIDE_TARGETS measures each size, and the def declares no size axis.`); continue; }
   for (const size of sizes) {
     const path = (def.tokens as Record<string, string> | undefined)?.[target.key(size)];

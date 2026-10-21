@@ -134,6 +134,11 @@ const MUST_COVER = [
   'field-message.errorGlyph', 'field-message.warningGlyph', 'field-message.successGlyph',
   'switch-control.onGlyph', 'switch-control.offGlyph', 'select.chevronGlyph', 'image-placeholder.markerGlyph',
   '_accordion-indicator.chevronDownGlyph', '_accordion-indicator.chevronUpGlyph', '_accordion-indicator.plusGlyph', '_accordion-indicator.minusGlyph',
+  '_breadcrumb-separator.chevron', '_breadcrumb-separator.slash', 'breadcrumbs.backGlyph',
+  'toast.checkCircleGlyph',
+  'banner.infoGlyph', 'banner.successGlyph', 'banner.warningGlyph', 'banner.dangerGlyph',
+  // Progress's own glyphs (#2670), measured by the RING_GLYPH arm.
+  'progress.ringTrack', 'progress.arc', 'progress.arcFull', 'progress.stop',
 ];
 
 /** The component name prefix an icon-set glyph is an instance of (#2380): `icon/<glyph>`, the component the
@@ -169,6 +174,51 @@ const COMPOSED_GLYPH: Record<string, {
     why: 'The indeterminate spinner (#1670): a faint full ring under a round-capped head arc, one static member per size.',
   },
 };
+/**
+ * PROGRESS'S GLYPHS (#2670) — three component-owned glyphs of ONE filled layer each, measured here against the
+ * approved proposal's numbers (owner calls 5 and 9, 2026-10-16), typed in this file and not read from
+ * `component-glyphs.ts`, which is the subject:
+ *
+ *   · the ring is 24px with a 2px band at `small` and 40px with a 4px band at `medium` (`RING_SIZE_PX`,
+ *     `RING_BAND_PX`): every ring glyph binds the ring frame's own square, and its band's outer edge is the
+ *     artboard's edge;
+ *   · `ringTrack` — the pale track, a closed annulus on that band, IN the flow (it is what the arc covers);
+ *   · `arc` — the still member's value arc, half the circle (`RING_ARC`), from twelve o'clock clockwise, with
+ *     round caps, at `status` active and error, lifted and centered OVER the track (`stacked`);
+ *   · `arcFull` — the full ring at complete, the annulus again, stacked over the track;
+ *   · `stop` — the stop dot, a disc filling its artboard, built 4px square, on determinate linear members.
+ *
+ * Each record carries its gate (`at`), compared with the def's `presentWhen` by value as `FIXED_GLYPH` does, and
+ * the member count is read off the projected set against that gate.
+ */
+const RING_GLYPH: Record<string, { glyph: string; shape: 'arc' | 'full' | 'disc'; at: Record<string, readonly string[]>; stacked?: true; why: string }> = {
+  'progress.ringTrack': {
+    glyph: 'progress-ring-{size}', shape: 'full', at: { shape: ['circular'] },
+    why: 'the ring\'s pale track, in the flow under the arc, the linear track\'s role',
+  },
+  'progress.arc': {
+    glyph: 'progress-arc-{size}', shape: 'arc', at: { shape: ['circular'], status: ['active', 'error'] }, stacked: true,
+    why: 'the value arc of a determinate ring, half the circle in the still member, brand color while active and danger at error',
+  },
+  'progress.arcFull': {
+    glyph: 'progress-ring-{size}', shape: 'full', at: { shape: ['circular'], status: ['complete'] }, stacked: true,
+    why: 'the whole ring at complete, in the success color, over the track',
+  },
+  'progress.stop': {
+    glyph: 'progress-stop', shape: 'disc', at: { shape: ['linear'], type: ['determinate'] },
+    why: 'the stop dot at the end of a determinate track, marking where the work finishes (owner call 5)',
+  },
+};
+/** The still arc's length, as a fraction of the circle. */
+const RING_ARC = 0.5;
+/** The ring's square and band in px, per size (owner calls 5 and 9). */
+const RING_SIZE_PX: Record<string, number> = { small: 24, medium: 40 };
+const RING_BAND_PX: Record<string, number> = { small: 2, medium: 4 };
+/** The variables the ring's frame and the stop dot bind, in px, typed from the token tier. */
+const RING_VAR_PX: Record<string, number> = { 'icon/size/md': 24, 'icon/size/xl': 40, 'border-width/heavy': 4 };
+/** The stop dot's square in px (owner call 5: a 4px dot). */
+const STOP_PX = 4;
+
 /** The icon ladder in px, per rung variable — the owner's 16 / 20 / 24 / 32. */
 const RUNG_PX: Record<string, number> = { 'icon/size/xs': 16, 'icon/size/sm': 20, 'icon/size/md': 24, 'icon/size/lg': 32 };
 
@@ -229,6 +279,13 @@ const arcSubpaths = (d: string): ArcSeg[][] => {
  * the def no longer gates on fails as a stale memory rather than as a silent exemption.
  */
 const FIXED_GLYPH: Record<string, { glyph: string; at: Record<string, readonly string[]>; why: string }> = {
+  // #2666 (owner call 6 A, Q382 A) — the breadcrumb separator's two looks, one glyph per `type`. `glyph: '{type}'`
+  // cannot express them: the vocabulary has no `chevron` glyph (the look is `chevron-right`), and a set-wide choice
+  // between two fixed shapes is what Q382 decided.
+  '_breadcrumb-separator.chevron': { glyph: 'chevron-right', at: { type: ['chevron'] }, why: 'the chevron look, pointing toward the current page; one fixed shape, mirrored in right-to-left in code, never a glyph a designer picks' },
+  '_breadcrumb-separator.slash': { glyph: 'slash', at: { type: ['slash'] }, why: 'the slash look, a forward slash between steps; one fixed shape, not mirrored in right-to-left' },
+  // #2666 (owner call 11 A) — the small-screen path's chevron, pointing up the trail to the parent page.
+  'breadcrumbs.backGlyph': { glyph: 'chevron-left', at: { path: ['parent'] }, why: 'the up-a-level mark before the parent link, pointing back up the trail; one fixed shape, mirrored in right-to-left in code' },
   // #2417 (owner Q183) — the Accordion indicator's four glyphs, one per (indicator, expansion) pair. `glyph:
   // '{expansion}'` cannot express them: the vocabulary has no `collapsed` or `expanded` glyph, and the pair changes
   // with `indicator` as well.
@@ -236,6 +293,12 @@ const FIXED_GLYPH: Record<string, { glyph: string; at: Record<string, readonly s
   '_accordion-indicator.chevronUpGlyph': { glyph: 'chevron-up', at: { indicator: ['chevron'], expansion: ['expanded'] }, why: 'the open chevron, pointing up' },
   '_accordion-indicator.plusGlyph': { glyph: 'plus', at: { indicator: ['plus-minus'], expansion: ['collapsed'] }, why: 'the closed mark of the plus and minus pair' },
   '_accordion-indicator.minusGlyph': { glyph: 'minus', at: { indicator: ['plus-minus'], expansion: ['expanded'] }, why: 'the open mark of the plus and minus pair' },
+  // #2665 (owner Q404 A) — Pagination's gap marker: the more-horizontal icon on the ellipsis members only. `type` changes
+  // what the cell IS (a page number or the gap), not which glyph a gap draws, so it is fixed rather than '{type}'.
+  'pagination-item.gapIcon': { glyph: 'more-horizontal-filled', at: { type: ['ellipsis'] }, why: 'the decorative gap marker, three dots for two or more hidden pages' },
+  // #2665 (owner Q414 A) — Pagination draws its own previous and next: each cell's chevron, on its own type only.
+  'pagination-item.previousIcon': { glyph: 'chevron-left', at: { type: ['previous'] }, why: 'the previous cell\'s chevron, pointing back' },
+  'pagination-item.nextIcon': { glyph: 'chevron-right', at: { type: ['next'] }, why: 'the next cell\'s chevron, pointing forward' },
   'image-placeholder.markerGlyph': {
     glyph: 'image',
     // `at: {}` — present at EVERY coordinate, not gated by a variant. The marker is the "no image"
@@ -334,6 +397,34 @@ const FIXED_GLYPH: Record<string, { glyph: string; at: Record<string, readonly s
     glyph: 'check-circle',
     at: { status: ['success'] },
     why: 'the success mark: a circled check, on the same 20px ring `error-circle` draws. Deliberately the outline form and not `check-circle-filled` — the reference asks for "a stroked outline glyph at the same optical weight as the text", and every glyph in this set is a filled path, so outline here means a ring with a hole rather than a stroke',
+  },
+  // #2668 (owner call 3 A): the Toast's success glyph, the same circled check FieldMessage draws; neutral draws none.
+  'toast.checkCircleGlyph': {
+    glyph: 'check-circle',
+    at: { intent: ['success'] },
+    why: "the success mark, FieldMessage's circled check, so success reads the same in a field and in a toast. `glyph: '{intent}'` cannot express it: the vocabulary has no glyph named `success`, and neutral draws nothing (call 3 A)",
+  },
+  // Banner (#2579): FieldMessage's mark per status, so a danger banner and an errored field show one shape. Held for
+  // the owner on the PR, since the proposal listed the glyph names in tone order.
+  'banner.infoGlyph': {
+    glyph: 'info-circle',
+    at: { tone: ['info'] },
+    why: 'the info mark: an i in a circle, the ring `error-circle` and `check-circle` share with the bar and dot swapped. `glyph: \'{tone}\'` would ask the vocabulary for a glyph named `info`, which it does not hold',
+  },
+  'banner.successGlyph': {
+    glyph: 'check-circle',
+    at: { tone: ['success'] },
+    why: 'the success mark: a circled check, outline, as FieldMessage\'s success status draws it',
+  },
+  'banner.warningGlyph': {
+    glyph: 'error-circle',
+    at: { tone: ['warning'] },
+    why: 'the warning mark: an exclamation in a CIRCLE, FieldMessage\'s warning glyph. The name is the enclosure, not the tone; do not "correct" it to `warning-triangle`, which would give warning and danger one shape',
+  },
+  'banner.dangerGlyph': {
+    glyph: 'warning-triangle',
+    at: { tone: ['danger'] },
+    why: 'the danger mark: an exclamation in a TRIANGLE, FieldMessage\'s error glyph, the one enclosure that is not a circle, so the most serious tone is told apart by shape',
   },
 };
 
@@ -547,6 +638,93 @@ for (const def of componentDefs as ComponentDef[]) {
     // inset, an entry the def no longer carries fails as stale (its OTHER direction is the STALE sweep at
     // the end of the file, for a part removed entirely). `paddedArtboard` re-derives the box arm D wants.
     // A COMPOSED glyph (#1670) is measured by its own arm and skips the icon-set arms below.
+    // PROGRESS'S GLYPHS (#2670), measured by their own arm against the numbers typed in `RING_GLYPH` above.
+    const ringRec = RING_GLYPH[key];
+    if (ringRec) {
+      covered.add(key);
+      if (part.glyph !== ringRec.glyph) {
+        failures.push(`${def.id}.${partName}: the def draws glyph '${part.glyph ?? '(none)'}' and RING_GLYPH records '${ringRec.glyph}'. One of the two moved.`);
+        continue;
+      }
+      if (!sameGate(ringRec.at, (part.presentWhen ?? {}) as Record<string, readonly string[]>)) {
+        failures.push(`${def.id}.${partName}: the def draws at ${JSON.stringify(part.presentWhen ?? {})} and RING_GLYPH records ${JSON.stringify(ringRec.at)}. One of the two moved.`);
+        continue;
+      }
+      const near = (a: number, b: number, tol = 0.01) => Math.abs(a - b) <= tol;
+      const C = vb.w / 2;
+      const ang = (p: [number, number]) => (Math.atan2(p[1] - C, p[0] - C) * 180) / Math.PI;
+      const findNode = (n: FigmaNodePlan, nm: string): FigmaNodePlan | undefined => n.name === nm ? n : (n.children ?? []).map((c) => findNode(c, nm)).find(Boolean);
+      let seen = 0;
+      for (const plan of set) {
+        const coord = plan.coord as Record<string, string | undefined>;
+        const at = JSON.stringify(coord) + (plan.size ? ` size=${plan.size}` : '');
+        const want = Object.entries(ringRec.at).every(([a, vs]) => coord[a] !== undefined && vs.includes(coord[a]!)) ? 1 : 0;
+        const nodes = glyphNodes(plan).filter((g) => g.part === partName);
+        if (nodes.length !== want) { failures.push(`${def.id}.${partName} @ ${at}: ${nodes.length} GLYPH node(s), expected ${want} (gate ${JSON.stringify(ringRec.at)}).`); continue; }
+        if (!want) continue;
+        seen++;
+        const node = nodes[0].node;
+        const svg = node.glyphSvg ?? '';
+        const els = [...svg.matchAll(/<path\b[^>]*>/g)].map((m) => m[0]);
+        const attr = (e: string, a: string) => new RegExp(`\\s${a}="([^"]*)"`).exec(e)?.[1];
+        if (els.length !== 1) { failures.push(`${def.id}.${partName} @ ${at}: the document carries ${els.length} <path> element(s), expected exactly one filled layer.`); continue; }
+        const el = els[0];
+        if (attr(el, 'fill') !== 'currentColor' || attr(el, 'opacity') !== undefined)
+          failures.push(`${def.id}.${partName} @ ${at}: the layer has fill="${attr(el, 'fill') ?? 'absent'}"${attr(el, 'opacity') !== undefined ? ` and opacity="${attr(el, 'opacity')}"` : ''} — it takes the part's one ink at full strength.`);
+        let subs: ArcSeg[][] = [];
+        try { subs = arcSubpaths(attr(el, 'd') ?? ''); } catch (err) { failures.push(`${def.id}.${partName} @ ${at}: the outline could not be measured — ${(err as Error).message}`); continue; }
+        const isCircle = (sp: ArcSeg[], r: number) => sp.length === 2 && sp.every((g) => near(g.rx, r) && near(g.ry, r)) && near(sp[1].to[0], sp[0].from[0]) && near(sp[1].to[1], sp[0].from[1]);
+        if (ringRec.shape === 'disc') {
+          if (subs.length !== 1 || !isCircle(subs[0], C))
+            failures.push(`${def.id}.${partName} @ ${at}: the stop dot is not one full circle filling the artboard (radius ${C}).`);
+          const px = RING_VAR_PX[node.bound?.width ?? ''];
+          if (px !== STOP_PX || node.bound?.height !== node.bound?.width)
+            failures.push(`${def.id}.${partName} @ ${at}: the stop dot binds ${node.bound?.width ?? '(nothing)'}×${node.bound?.height ?? '(nothing)'}, expected a ${STOP_PX}px square.`);
+          glyphChecks++;
+          continue;
+        }
+        // THE RING: the frame's size against the owner's table, the glyph on the frame's own square, and the arc
+        // lifted over the track (the track itself in the flow, or the two would sit side by side).
+        const size = plan.size ?? '';
+        const ring = findNode(plan.root, 'ring');
+        const ringPx = RING_VAR_PX[ring?.bound?.width ?? ''];
+        if (ringPx !== RING_SIZE_PX[size] || node.bound?.width !== ring?.bound?.width || node.bound?.height !== ring?.bound?.height) {
+          failures.push(`${def.id}.${partName} @ ${at}: the ring frame is ${ringPx ?? '?'}px and the glyph binds ${node.bound?.width ?? '(nothing)'}×${node.bound?.height ?? '(nothing)'}; the owner's ring at ${size} is ${RING_SIZE_PX[size]}px, and every ring glyph is drawn on the ring's own square.`);
+          continue;
+        }
+        if (!!node.absoluteCenter !== !!ringRec.stacked) {
+          failures.push(`${def.id}.${partName} @ ${at}: ${ringRec.stacked ? 'is in the flow, so it sits beside the track instead of over it' : 'is lifted out of the flow, so nothing holds the ring\'s cell under the arc'} (absoluteCenter ${String(node.absoluteCenter ?? false)}).`);
+          continue;
+        }
+        const band = RING_BAND_PX[size] * (vb.w / RING_SIZE_PX[size]);
+        const ro = C, ri = C - band, cap = band / 2;
+        if (ringRec.shape === 'full') {
+          const rs = subs.map((sp) => sp[0]?.rx ?? 0).sort((a, b) => a - b);
+          if (subs.length !== 2 || !isCircle(subs[0], subs[0][0]?.rx ?? -1) || !isCircle(subs[1], subs[1][0]?.rx ?? -1) || !near(rs[0], ri) || !near(rs[1], ro) || attr(el, 'fill-rule') !== 'evenodd')
+            failures.push(`${def.id}.${partName} @ ${at}: the full ring is not an annulus between radius ${ri} and ${ro} with fill-rule evenodd (read radii ${JSON.stringify(rs)}) — a ${RING_BAND_PX[size]}px band on the ${RING_SIZE_PX[size]}px ring's outer edge.`);
+          glyphChecks++;
+          continue;
+        }
+        const sp = subs[0] ?? [];
+        if (subs.length !== 1 || sp.length !== 4) { failures.push(`${def.id}.${partName} @ ${at}: ${subs.length} subpath(s) of ${sp.length} arc(s), expected one closed outline of 4 (outer edge, cap, inner edge, cap).`); continue; }
+        const [outer, capEnd, inner, capStart] = sp;
+        if (!near(outer.rx, ro) || !near(inner.rx, ri))
+          failures.push(`${def.id}.${partName} @ ${at}: the arc's edges sit at radius ${outer.rx} and ${inner.rx}, expected ${ro} and ${ri} — the band must lie on the ring's ${RING_BAND_PX[size]}px track.`);
+        if (!near(capEnd.rx, cap) || !near(capStart.rx, cap) || capEnd.sweep !== 1 || capStart.sweep !== 1)
+          failures.push(`${def.id}.${partName} @ ${at}: the arc's ends are not outward round caps of radius ${cap} (read ${capEnd.rx}/${capStart.rx}, sweep ${capEnd.sweep}/${capStart.sweep}).`);
+        if (!near(ang(outer.from), -90, 0.05))
+          failures.push(`${def.id}.${partName} @ ${at}: the arc starts at ${ang(outer.from).toFixed(2)}°, expected -90° (twelve o'clock).`);
+        let sweepDeg = ((ang(outer.to) - ang(outer.from)) % 360 + 360) % 360;
+        if (outer.large === 1 && sweepDeg < 180) sweepDeg = 360 - sweepDeg;
+        if (sweepDeg === 0 && outer.large === 0) sweepDeg = 360;
+        if (!near(sweepDeg / 360, RING_ARC, 0.0005) || outer.sweep !== 1)
+          failures.push(`${def.id}.${partName} @ ${at}: the arc covers ${((sweepDeg / 360) * 100).toFixed(2)}% of the circle${outer.sweep !== 1 ? ' counter-clockwise' : ''}, expected ${RING_ARC * 100}% clockwise from twelve o'clock.`);
+        glyphChecks++;
+      }
+      if (!seen) failures.push(`${def.id}.${partName}: appeared at none of the set's ${set.length} members, so nothing was measured.`);
+      notes.push(`${key}: ${ringRec.shape} '${ringRec.glyph}' measured at ${seen} member(s)`);
+      continue;
+    }
     const composedRec = COMPOSED_GLYPH[key];
     if (composedRec) {
       covered.add(key);
@@ -970,6 +1148,9 @@ for (const key of Object.keys(FIXED_GLYPH))
 // see an entry naming a part that no longer exists — a part removed entirely is never reached. So the
 // artboard-pad exemption is made perishable here: an entry for a vanished part fails as stale rather than
 // outliving its subject and relaxing arm D for whatever part next takes that name.
+for (const key of Object.keys(RING_GLYPH))
+  if (!covered.has(key))
+    failures.push(`STALE RING_GLYPH: '${key}' records a progress glyph '${RING_GLYPH[key].glyph}', and no def declares a vector part by that name.`);
 for (const key of Object.keys(COMPOSED_GLYPH))
   if (!vectorParts.has(key))
     failures.push(`STALE COMPOSED_GLYPH: '${key}' records a composed '${COMPOSED_GLYPH[key].glyph}', and no def declares a vector part by that name.`);

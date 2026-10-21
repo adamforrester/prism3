@@ -649,7 +649,14 @@ export const ENGINE_VERSION = '0.237.0';
  * the type it measures, the first non-composite leaf under `type.*`. An added path cannot break a reference. Nothing
  * is removed or retyped.
  */
-export const CONTRACT_VERSION = '14.7.0';
+/**
+ * 14.8.0 (#2670, owner call 6 A, 2026-10-16): MINOR. The progress bar's indeterminate sweep is a loop period with its
+ * own pair, on the spin's precedent: `motion.duration.sweep` (1600ms, one pass of the segment across the track) and
+ * `motion.duration-reduced.sweep` (2600ms, the same sweep slower under reduced motion). Both are fixed at every tempo,
+ * so every brand also emits the primitive the first aliases, `motion.duration-ms.1600`. Three added paths; an added
+ * path cannot break a reference. Nothing is removed or retyped.
+ */
+export const CONTRACT_VERSION = '14.8.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {

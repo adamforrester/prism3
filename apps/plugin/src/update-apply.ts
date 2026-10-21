@@ -529,7 +529,7 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
   try { setDefs = t.single ? null : ((now as { componentPropertyDefinitions?: unknown }).componentPropertyDefinitions ?? null) as Record<string, unknown> | null; } catch { setDefs = null; }
   const ports = withSetSlots(await hostPorts(host), setDefs);
   const varById = await varsById(api as unknown as Parameters<typeof varsById>[0]);
-  const plannedRx = reactionMap(t.plans.map((x) => planComponentName(x)));
+  const plannedRx = reactionMap(t.plans.map((x) => planComponentName(x)), t.plans[0]?.pressState);
   for (const name of out.updated) {
     const a = after.get(name);
     const pl = plans.get(name);

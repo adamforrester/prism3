@@ -78,8 +78,17 @@ import { segmentedControlSegment, segmentedControl } from './segmented-control';
 import { link } from './link';
 import { buttonGroup } from './button-group';
 import { dialog } from './dialog';
+import { banner } from './banner';
+import { paginationItem, pagination } from './pagination';
 import { passwordField } from './password-field';
+import { breadcrumbSeparator } from './breadcrumb-separator';
+import { breadcrumbItem } from './breadcrumb-item';
+import { breadcrumbs } from './breadcrumbs';
+import { toast } from './toast';
 import { counter } from './counter';
+import { codeInputCell, codeInput } from './code-input';
+import { progress } from './progress';
+import { sliderThumb, slider } from './slider';
 
 /** Named access, kept ALONGSIDE the set rather than replaced by it. Most of `test.ts`'s component
  *  assertions are about one def's specific fields (`button.variants.appearance`,
@@ -87,7 +96,7 @@ import { counter } from './counter';
  *  be a worse call site, not a better one — a lookup that can return `undefined` standing in for a
  *  binding that cannot. The set is for iteration; these are for the assertions that are ABOUT one
  *  component. */
-export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tab, tabs, divider, accordionIndicator, accordion, listItem, list, segmentedControlSegment, segmentedControl, link, buttonGroup, dialog, passwordField, counter };
+export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tab, tabs, divider, accordionIndicator, accordion, listItem, list, segmentedControlSegment, segmentedControl, link, buttonGroup, dialog, passwordField, counter, breadcrumbSeparator, breadcrumbItem, breadcrumbs, banner, codeInputCell, codeInput, progress, sliderThumb, slider, paginationItem, pagination };
 
 /** Every component def the engine defines. The one thing a projection should iterate. */
 export const componentDefs: readonly ComponentDef[] = [
@@ -215,7 +224,33 @@ export const componentDefs: readonly ComponentDef[] = [
   dialog,
   // `password-field` (#2317) — TextField's first specialization, from the shared field factory. Nests a Button.
   passwordField,
+  // `_breadcrumb-separator`, `breadcrumb-item` and `breadcrumbs` (#2666) — the mark between steps, one step of a trail,
+  // and the trail. The item nests the separator (Q382 A), Link and the neutral flush icon button, all above; Breadcrumbs
+  // nests the item in its items slot, so the item comes first.
+  breadcrumbSeparator,
+  breadcrumbItem,
+  breadcrumbs,
+  // `toast` (#2668, every numbered call A) — a short status over the page after the user's own action, on the inverse
+  // surface. Nests a Button (the action) and the neutral IconButton (the close), both at `surface: inverse`.
+  toast,
   // Counter (#2427) — a quantity between a minus and a plus button. Nests `flush-icon-button-neutral` twice,
   // `field-label`, `field-message` and `focus-ring`, all above.
   counter,
+  // `banner` (#2579, owner Q327) — a persistent message in the page flow. Nests the neutral Button (actions) and the
+  // flush neutral icon button (dismiss), so it comes after both.
+  banner,
+  // `code-input` (#2428, owner Q321 / Q329 / Q330) — a one-time code drawn as cells over one input. Its cell builds
+  // first: the field's `items` slot nests it.
+  codeInputCell,
+  codeInput,
+  // `progress` (#2670) — the progress bar and ring. Nests `field-message` (its end-state message), above.
+  progress,
+  // #2669 — the Slider, after the field parts and TextField it nests. Its Thumb leads it, the `_` prefix marking a
+  // part used only inside the Slider (Q349).
+  sliderThumb,
+  slider,
+  // `pagination-item` and `pagination` (#2665) — one page cell and the row. The row nests the cell in its items
+  // slot, the neutral icon button (previous and next) and the neutral button (simple), so it comes after all three.
+  paginationItem,
+  pagination,
 ];

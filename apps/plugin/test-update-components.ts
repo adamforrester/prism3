@@ -940,14 +940,14 @@ const buildSingle = async (id: string) => {
 {
   const ic = await buildSingle('icon');
   const pd = (n: Node, k: string): string => (n.getSharedPluginData as (a: string, b: string) => string)(NS, k);
-  ok(ic.comps().length === 45 && ic.comps().every((c) => String(c.name).startsWith('icon/')), `premise: 45 icons built as single components (${ic.comps().length})`);
+  ok(ic.comps().length === 46 && ic.comps().every((c) => String(c.name).startsWith('icon/')), `premise: 46 icons built as single components (${ic.comps().length})`);
   const r = await previewUpdate(ic.host, [ic.target]);
-  ok(r.missing.length === 0 && r.sets.length === 1 && r.sets[0].counts.current === 45 && r.sets[0].counts.members === 45,
-    `single/found: the icons are read as one set of 45, all current, not "Not in this file" (${JSON.stringify(r.missing)}, ${JSON.stringify(r.sets[0]?.counts)})`);
+  ok(r.missing.length === 0 && r.sets.length === 1 && r.sets[0].counts.current === 46 && r.sets[0].counts.members === 46,
+    `single/found: the icons are read as one set of 46, all current, not "Not in this file" (${JSON.stringify(r.missing)}, ${JSON.stringify(r.sets[0]?.counts)})`);
   // The capture of a file built before records existed.
   for (const c of ic.comps()) (c.setSharedPluginData as (a: string, b: string, v: string) => void)(NS, BASELINE_KEY, '');
   const cap = await captureBaselines(ic.host, [ic.target]);
-  ok(cap.sets[0]?.recorded === 45 && ic.comps().every((c) => pd(c, BASELINE_KEY) !== ''), `single/capture: all 45 recorded (${cap.sets[0]?.recorded}, ${JSON.stringify(cap.sets[0]?.skipped.slice(0, 1))})`);
+  ok(cap.sets[0]?.recorded === 46 && ic.comps().every((c) => pd(c, BASELINE_KEY) !== ''), `single/capture: all 46 recorded (${cap.sets[0]?.recorded}, ${JSON.stringify(cap.sets[0]?.skipped.slice(0, 1))})`);
   // One icon edited by hand.
   const check = ic.named('icon/check');
   check.opacity = 0.5;
@@ -987,7 +987,7 @@ const buildSingle = async (id: string) => {
   const src = ic.named('icon/check');
   for (const k of [STAMP_KEY, BASELINE_KEY]) (dup.setSharedPluginData as (a: string, b: string, v: string) => void)(NS, k, (src.getSharedPluginData as (a: string, b: string) => string)(NS, k));
   const p = (await previewUpdate(ic.host, [ic.target])).sets[0];
-  ok(p.counts.current === 45 && !p.adds.length, `single/moved: the icon moved into a frame is found and current, not re-added (${p.counts.current}, adds ${JSON.stringify(p.adds)})`);
+  ok(p.counts.current === 46 && !p.adds.length, `single/moved: the icon moved into a frame is found and current, not re-added (${p.counts.current}, adds ${JSON.stringify(p.adds)})`);
   ok(!p.drops.includes('name=zz-copy') && p.unstamped.includes('name=zz-copy'), `single/copy: a duplicated icon is not Prism3's, so not a drop (#2300) (${JSON.stringify(p.drops)})`);
 }
 {

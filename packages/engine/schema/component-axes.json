@@ -18,6 +18,29 @@
     "members": 12,
     "properties": {}
   },
+  "_breadcrumb-separator": {
+    "axes": {
+      "type": [
+        "chevron",
+        "slash"
+      ]
+    },
+    "members": 2,
+    "properties": {}
+  },
+  "_slider-thumb": {
+    "axes": {
+      "state": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "pressed",
+        "rest"
+      ]
+    },
+    "members": 5,
+    "properties": {}
+  },
   "accordion": {
     "axes": {
       "expansion": [
@@ -67,6 +90,71 @@
     "properties": {
       "label": "TEXT",
       "value": "TEXT"
+    }
+  },
+  "banner": {
+    "axes": {
+      "tone": [
+        "danger",
+        "info",
+        "success",
+        "warning"
+      ],
+      "width": [
+        "contained",
+        "full"
+      ]
+    },
+    "members": 8,
+    "properties": {
+      "actions": "BOOLEAN",
+      "body": "SLOT",
+      "dismiss": "BOOLEAN",
+      "icon": "BOOLEAN",
+      "second action": "BOOLEAN",
+      "title": "BOOLEAN",
+      "title text": "TEXT"
+    }
+  },
+  "breadcrumb-item": {
+    "axes": {
+      "kind": [
+        "ancestor",
+        "current",
+        "overflow"
+      ],
+      "separator": [
+        "chevron",
+        "slash"
+      ],
+      "size": [
+        "medium",
+        "small"
+      ]
+    },
+    "members": 10,
+    "properties": {
+      "label": "TEXT"
+    }
+  },
+  "breadcrumbs": {
+    "axes": {
+      "path": [
+        "full",
+        "parent"
+      ],
+      "separator": [
+        "chevron",
+        "slash"
+      ],
+      "size": [
+        "medium",
+        "small"
+      ]
+    },
+    "members": 6,
+    "properties": {
+      "items": "SLOT"
     }
   },
   "button": {
@@ -275,6 +363,56 @@
       "label": "TEXT"
     }
   },
+  "code-input": {
+    "axes": {
+      "size": [
+        "large",
+        "medium",
+        "small",
+        "xlarge"
+      ],
+      "state": [
+        "disabled",
+        "filled",
+        "focus-visible",
+        "focus-visible-filled",
+        "hover",
+        "rest"
+      ],
+      "status": [
+        "default",
+        "error"
+      ]
+    },
+    "members": 48,
+    "properties": {
+      "items": "SLOT",
+      "message": "BOOLEAN"
+    }
+  },
+  "code-input-cell": {
+    "axes": {
+      "size": [
+        "large",
+        "medium",
+        "small",
+        "xlarge"
+      ],
+      "state": [
+        "disabled",
+        "error",
+        "filled",
+        "focus-visible",
+        "focus-visible-filled",
+        "hover",
+        "rest"
+      ]
+    },
+    "members": 28,
+    "properties": {
+      "digit": "TEXT"
+    }
+  },
   "counter": {
     "axes": {
       "appearance": [
@@ -402,9 +540,13 @@
         "hover",
         "pressed",
         "rest"
+      ],
+      "surface": [
+        "default",
+        "inverse"
       ]
     },
-    "members": 30,
+    "members": 60,
     "properties": {
       "swap icon": "INSTANCE_SWAP"
     }
@@ -426,9 +568,13 @@
         "hover",
         "pressed",
         "rest"
+      ],
+      "surface": [
+        "default",
+        "inverse"
       ]
     },
-    "members": 30,
+    "members": 60,
     "properties": {
       "swap icon": "INSTANCE_SWAP"
     }
@@ -450,9 +596,13 @@
         "hover",
         "pressed",
         "rest"
+      ],
+      "surface": [
+        "default",
+        "inverse"
       ]
     },
-    "members": 30,
+    "members": 60,
     "properties": {
       "swap icon": "INSTANCE_SWAP"
     }
@@ -513,11 +663,12 @@
         "plus-filled",
         "resize-grip",
         "search",
+        "slash",
         "warning-triangle",
         "warning-triangle-filled"
       ]
     },
-    "members": 45,
+    "members": 46,
     "properties": {}
   },
   "icon-button": {
@@ -710,6 +861,69 @@
       "text": "TEXT"
     }
   },
+  "pagination": {
+    "axes": {
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "style": [
+        "border",
+        "underline"
+      ],
+      "type": [
+        "compact",
+        "numbered",
+        "simple"
+      ]
+    },
+    "members": 12,
+    "properties": {
+      "items": "SLOT",
+      "status text": "TEXT"
+    }
+  },
+  "pagination-item": {
+    "axes": {
+      "labeled": [
+        "false",
+        "true"
+      ],
+      "selection": [
+        "selected",
+        "unselected"
+      ],
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "state": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "pressed",
+        "rest"
+      ],
+      "style": [
+        "border",
+        "underline"
+      ],
+      "type": [
+        "ellipsis",
+        "next",
+        "page",
+        "previous"
+      ]
+    },
+    "members": 87,
+    "properties": {
+      "label": "TEXT",
+      "next label": "TEXT",
+      "previous label": "TEXT"
+    }
+  },
   "password-field": {
     "axes": {
       "size": [
@@ -740,6 +954,36 @@
       "placeholder": "TEXT",
       "value": "TEXT",
       "↳ swap leading icon": "INSTANCE_SWAP"
+    }
+  },
+  "progress": {
+    "axes": {
+      "shape": [
+        "circular",
+        "linear"
+      ],
+      "size": [
+        "medium",
+        "small"
+      ],
+      "status": [
+        "active",
+        "complete",
+        "error"
+      ],
+      "type": [
+        "determinate",
+        "indeterminate"
+      ]
+    },
+    "members": 10,
+    "properties": {
+      "complete value text": "TEXT",
+      "label": "BOOLEAN",
+      "label text": "TEXT",
+      "message": "BOOLEAN",
+      "value": "BOOLEAN",
+      "value text": "TEXT"
     }
   },
   "radio-control": {
@@ -872,6 +1116,33 @@
       "placeholder": "TEXT",
       "value": "TEXT",
       "↳ swap leading icon": "INSTANCE_SWAP"
+    }
+  },
+  "slider": {
+    "axes": {
+      "state": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "pressed",
+        "rest"
+      ],
+      "type": [
+        "range",
+        "single"
+      ]
+    },
+    "members": 10,
+    "properties": {
+      "end labels": "BOOLEAN",
+      "helper": "BOOLEAN",
+      "inputs": "BOOLEAN",
+      "label": "BOOLEAN",
+      "max label": "TEXT",
+      "min label": "TEXT",
+      "range text": "TEXT",
+      "value": "BOOLEAN",
+      "value text": "TEXT"
     }
   },
   "spinner": {
@@ -1069,6 +1340,20 @@
       "placeholder": "TEXT",
       "resize handle": "BOOLEAN",
       "value": "TEXT"
+    }
+  },
+  "toast": {
+    "axes": {
+      "intent": [
+        "neutral",
+        "success"
+      ]
+    },
+    "members": 2,
+    "properties": {
+      "action": "BOOLEAN",
+      "close": "BOOLEAN",
+      "message": "TEXT"
     }
   },
   "veil": {

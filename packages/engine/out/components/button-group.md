@@ -82,7 +82,7 @@ Button labels are short verbs or verb phrases in sentence case, each naming its 
 
 - **Built from:** `button`
 - **Instead, consider:** `segmented-control`
-- **Often used with:** `dialog`, `button-destructive`, `button-neutral`
+- **Often used with:** `dialog`, `banner`, `button-destructive`, `button-neutral`
 - **Replaces:**
   - a footer of fixed nested buttons copied into each component
   - a button-set component with a variant per count and layout

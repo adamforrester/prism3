@@ -9,6 +9,16 @@
   "note": "edges: every part that nests another component (anatomy part with `nests`), with its nesting relation. components.<id>.affectedByChange lists every component that nests it directly or transitively — the components a change to it reaches. inherits is a reading reference only: the engine copies no fields across it, so it does not appear in affectedByChange.",
   "edges": [
     {
+      "from": "_slider-thumb",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      }
+    },
+    {
       "from": "accordion",
       "to": "divider",
       "part": "divider",
@@ -65,6 +75,174 @@
       ],
       "expose": [
         "indicator"
+      ]
+    },
+    {
+      "from": "banner",
+      "to": "button",
+      "part": "action1",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "appearance": "outline",
+        "size": "small",
+        "surface": "default",
+        "inset": "default",
+        "state": "rest",
+        "leading icon": "false",
+        "trailing icon": "false"
+      }
+    },
+    {
+      "from": "banner",
+      "to": "button",
+      "part": "action2",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "appearance": "text",
+        "size": "small",
+        "surface": "default",
+        "inset": "default",
+        "state": "rest",
+        "leading icon": "false",
+        "trailing icon": "false"
+      }
+    },
+    {
+      "from": "banner",
+      "to": "flush-icon-button-neutral",
+      "part": "dismiss",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "shape": "flush",
+        "size": "small",
+        "surface": "default",
+        "state": "rest"
+      }
+    },
+    {
+      "from": "breadcrumb-item",
+      "to": "link",
+      "part": "crumb",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "style": "inline",
+        "weight": "default",
+        "size": "medium",
+        "surface": "default",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "state"
+      ]
+    },
+    {
+      "from": "breadcrumb-item",
+      "to": "flush-icon-button-neutral",
+      "part": "overflow",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "shape": "flush",
+        "size": "small",
+        "surface": "default",
+        "state": "rest"
+      },
+      "expose": [
+        "state"
+      ]
+    },
+    {
+      "from": "breadcrumb-item",
+      "to": "_breadcrumb-separator",
+      "part": "separator",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "chevron"
+      }
+    },
+    {
+      "from": "breadcrumb-item",
+      "to": "_breadcrumb-separator",
+      "part": "separatorSlash",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "slash"
+      }
+    },
+    {
+      "from": "breadcrumbs",
+      "to": "breadcrumb-item",
+      "part": "item1",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "kind": "ancestor",
+        "separator": "chevron",
+        "size": "medium"
+      },
+      "follow": [
+        "separator",
+        "size"
+      ]
+    },
+    {
+      "from": "breadcrumbs",
+      "to": "breadcrumb-item",
+      "part": "item2",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "kind": "ancestor",
+        "separator": "chevron",
+        "size": "medium"
+      },
+      "follow": [
+        "separator",
+        "size"
+      ]
+    },
+    {
+      "from": "breadcrumbs",
+      "to": "breadcrumb-item",
+      "part": "item3",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "kind": "current",
+        "separator": "chevron",
+        "size": "medium"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "breadcrumbs",
+      "to": "link",
+      "part": "parentLink",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "style": "inline",
+        "weight": "default",
+        "size": "medium",
+        "surface": "default",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "state"
       ]
     },
     {
@@ -332,6 +510,130 @@
       ]
     },
     {
+      "from": "code-input",
+      "to": "code-input-cell",
+      "part": "cell1",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "code-input",
+      "to": "code-input-cell",
+      "part": "cell2",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "code-input",
+      "to": "code-input-cell",
+      "part": "cell3",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "code-input",
+      "to": "code-input-cell",
+      "part": "cell4",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "code-input",
+      "to": "code-input-cell",
+      "part": "cell5",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "code-input",
+      "to": "code-input-cell",
+      "part": "cell6",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "code-input",
+      "to": "field-label",
+      "part": "label",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "size": "medium",
+        "emphasis": "secondary",
+        "weight": "regular",
+        "state": "rest"
+      },
+      "expose": [
+        "emphasis",
+        "weight"
+      ]
+    },
+    {
+      "from": "code-input",
+      "to": "field-message",
+      "part": "message",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "status": "default"
+      },
+      "follow": [
+        "status"
+      ]
+    },
+    {
+      "from": "code-input-cell",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      }
+    },
+    {
       "from": "counter",
       "to": "flush-icon-button-neutral",
       "part": "decrement",
@@ -340,6 +642,7 @@
       "variant": {
         "shape": "flush",
         "size": "medium",
+        "surface": "default",
         "state": "rest"
       },
       "follow": [
@@ -368,6 +671,7 @@
       "variant": {
         "shape": "flush",
         "size": "medium",
+        "surface": "default",
         "state": "rest"
       },
       "follow": [
@@ -446,6 +750,7 @@
       "variant": {
         "shape": "flush",
         "size": "medium",
+        "surface": "default",
         "state": "rest"
       }
     },
@@ -479,7 +784,10 @@
       "relation": "nest-fixed",
       "variant": {
         "surface": "default"
-      }
+      },
+      "follow": [
+        "surface"
+      ]
     },
     {
       "from": "flush-icon-button-destructive",
@@ -489,7 +797,10 @@
       "relation": "nest-fixed",
       "variant": {
         "surface": "default"
-      }
+      },
+      "follow": [
+        "surface"
+      ]
     },
     {
       "from": "flush-icon-button-neutral",
@@ -499,7 +810,10 @@
       "relation": "nest-fixed",
       "variant": {
         "surface": "default"
-      }
+      },
+      "follow": [
+        "surface"
+      ]
     },
     {
       "from": "icon-button",
@@ -620,6 +934,227 @@
       ]
     },
     {
+      "from": "pagination",
+      "to": "pagination-item",
+      "part": "item1",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "page",
+        "selection": "unselected",
+        "style": "border",
+        "labeled": "false",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "pagination",
+      "to": "pagination-item",
+      "part": "item2",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "ellipsis",
+        "selection": "unselected",
+        "style": "border",
+        "labeled": "false",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "pagination",
+      "to": "pagination-item",
+      "part": "item3",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "page",
+        "selection": "unselected",
+        "style": "border",
+        "labeled": "false",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "pagination",
+      "to": "pagination-item",
+      "part": "item4",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "page",
+        "selection": "selected",
+        "style": "border",
+        "labeled": "false",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "style",
+        "size"
+      ]
+    },
+    {
+      "from": "pagination",
+      "to": "pagination-item",
+      "part": "item5",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "page",
+        "selection": "unselected",
+        "style": "border",
+        "labeled": "false",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "pagination",
+      "to": "pagination-item",
+      "part": "item6",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "ellipsis",
+        "selection": "unselected",
+        "style": "border",
+        "labeled": "false",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "pagination",
+      "to": "pagination-item",
+      "part": "item7",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "page",
+        "selection": "unselected",
+        "style": "border",
+        "labeled": "false",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "pagination",
+      "to": "pagination-item",
+      "part": "next",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "type": "next",
+        "selection": "unselected",
+        "style": "border",
+        "labeled": "false",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "state"
+      ]
+    },
+    {
+      "from": "pagination",
+      "to": "pagination-item",
+      "part": "nextButton",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "type": "next",
+        "selection": "unselected",
+        "style": "border",
+        "labeled": "true",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "state"
+      ]
+    },
+    {
+      "from": "pagination",
+      "to": "pagination-item",
+      "part": "previous",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "type": "previous",
+        "selection": "unselected",
+        "style": "border",
+        "labeled": "false",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "state"
+      ]
+    },
+    {
+      "from": "pagination",
+      "to": "pagination-item",
+      "part": "previousButton",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "type": "previous",
+        "selection": "unselected",
+        "style": "border",
+        "labeled": "true",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "state"
+      ]
+    },
+    {
+      "from": "pagination-item",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      }
+    },
+    {
       "from": "password-field",
       "to": "focus-ring",
       "part": "focusRing",
@@ -680,6 +1215,26 @@
       "expose": [
         "label"
       ]
+    },
+    {
+      "from": "progress",
+      "to": "field-message",
+      "part": "messageComplete",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "status": "success"
+      }
+    },
+    {
+      "from": "progress",
+      "to": "field-message",
+      "part": "messageError",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "status": "error"
+      }
     },
     {
       "from": "radio-control",
@@ -908,6 +1463,85 @@
       ]
     },
     {
+      "from": "slider",
+      "to": "text-field",
+      "part": "inputMax",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "size": "medium",
+        "status": "default",
+        "state": "filled"
+      }
+    },
+    {
+      "from": "slider",
+      "to": "text-field",
+      "part": "inputMin",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "size": "medium",
+        "status": "default",
+        "state": "filled"
+      }
+    },
+    {
+      "from": "slider",
+      "to": "text-field",
+      "part": "inputSingle",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "size": "medium",
+        "status": "default",
+        "state": "filled"
+      }
+    },
+    {
+      "from": "slider",
+      "to": "field-label",
+      "part": "label",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "size": "medium",
+        "emphasis": "secondary",
+        "weight": "bold",
+        "state": "rest"
+      }
+    },
+    {
+      "from": "slider",
+      "to": "field-message",
+      "part": "message",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "status": "default"
+      }
+    },
+    {
+      "from": "slider",
+      "to": "_slider-thumb",
+      "part": "thumb",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "state": "rest"
+      }
+    },
+    {
+      "from": "slider",
+      "to": "_slider-thumb",
+      "part": "thumbMin",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "state": "rest"
+      }
+    },
+    {
       "from": "switch-control",
       "to": "focus-ring",
       "part": "focusRing",
@@ -1100,6 +1734,35 @@
       "follow": [
         "status"
       ]
+    },
+    {
+      "from": "toast",
+      "to": "button",
+      "part": "action",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "appearance": "text",
+        "size": "small",
+        "surface": "inverse",
+        "inset": "default",
+        "state": "rest",
+        "leading icon": "false",
+        "trailing icon": "false"
+      }
+    },
+    {
+      "from": "toast",
+      "to": "flush-icon-button-neutral",
+      "part": "close",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "shape": "flush",
+        "size": "small",
+        "surface": "inverse",
+        "state": "rest"
+      }
     }
   ],
   "components": {
@@ -1111,6 +1774,33 @@
       ],
       "affectedByChange": [
         "accordion"
+      ],
+      "inheritedBy": []
+    },
+    "_breadcrumb-separator": {
+      "nests": [],
+      "nestsTransitively": [],
+      "nestedBy": [
+        "breadcrumb-item"
+      ],
+      "affectedByChange": [
+        "breadcrumb-item",
+        "breadcrumbs"
+      ],
+      "inheritedBy": []
+    },
+    "_slider-thumb": {
+      "nests": [
+        "focus-ring"
+      ],
+      "nestsTransitively": [
+        "focus-ring"
+      ],
+      "nestedBy": [
+        "slider"
+      ],
+      "affectedByChange": [
+        "slider"
       ],
       "inheritedBy": []
     },
@@ -1141,6 +1831,57 @@
       ],
       "inheritedBy": []
     },
+    "banner": {
+      "nests": [
+        "button",
+        "flush-icon-button-neutral"
+      ],
+      "nestsTransitively": [
+        "button",
+        "flush-icon-button-neutral",
+        "focus-ring",
+        "spinner"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
+    "breadcrumb-item": {
+      "nests": [
+        "_breadcrumb-separator",
+        "flush-icon-button-neutral",
+        "link"
+      ],
+      "nestsTransitively": [
+        "_breadcrumb-separator",
+        "flush-icon-button-neutral",
+        "focus-ring",
+        "link"
+      ],
+      "nestedBy": [
+        "breadcrumbs"
+      ],
+      "affectedByChange": [
+        "breadcrumbs"
+      ],
+      "inheritedBy": []
+    },
+    "breadcrumbs": {
+      "nests": [
+        "breadcrumb-item",
+        "link"
+      ],
+      "nestsTransitively": [
+        "_breadcrumb-separator",
+        "breadcrumb-item",
+        "flush-icon-button-neutral",
+        "focus-ring",
+        "link"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
     "button": {
       "nests": [
         "focus-ring",
@@ -1151,13 +1892,17 @@
         "spinner"
       ],
       "nestedBy": [
+        "banner",
         "button-group",
-        "password-field"
+        "password-field",
+        "toast"
       ],
       "affectedByChange": [
+        "banner",
         "button-group",
         "dialog",
-        "password-field"
+        "password-field",
+        "toast"
       ],
       "inheritedBy": [
         "icon-button"
@@ -1263,6 +2008,37 @@
         "switch-row"
       ]
     },
+    "code-input": {
+      "nests": [
+        "code-input-cell",
+        "field-label",
+        "field-message"
+      ],
+      "nestsTransitively": [
+        "code-input-cell",
+        "field-label",
+        "field-message",
+        "focus-ring"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
+    "code-input-cell": {
+      "nests": [
+        "focus-ring"
+      ],
+      "nestsTransitively": [
+        "focus-ring"
+      ],
+      "nestedBy": [
+        "code-input"
+      ],
+      "affectedByChange": [
+        "code-input"
+      ],
+      "inheritedBy": []
+    },
     "counter": {
       "nests": [
         "field-label",
@@ -1316,21 +2092,25 @@
       "nestsTransitively": [],
       "nestedBy": [
         "checkbox-group",
+        "code-input",
         "counter",
         "password-field",
         "radio-group",
         "segmented-control",
         "select",
+        "slider",
         "text-field",
         "textarea"
       ],
       "affectedByChange": [
         "checkbox-group",
+        "code-input",
         "counter",
         "password-field",
         "radio-group",
         "segmented-control",
         "select",
+        "slider",
         "text-field",
         "textarea"
       ],
@@ -1341,19 +2121,25 @@
       "nestsTransitively": [],
       "nestedBy": [
         "checkbox-group",
+        "code-input",
         "counter",
         "password-field",
+        "progress",
         "radio-group",
         "select",
+        "slider",
         "text-field",
         "textarea"
       ],
       "affectedByChange": [
         "checkbox-group",
+        "code-input",
         "counter",
         "password-field",
+        "progress",
         "radio-group",
         "select",
+        "slider",
         "text-field",
         "textarea"
       ],
@@ -1391,12 +2177,19 @@
         "focus-ring"
       ],
       "nestedBy": [
+        "banner",
+        "breadcrumb-item",
         "counter",
-        "dialog"
+        "dialog",
+        "toast"
       ],
       "affectedByChange": [
+        "banner",
+        "breadcrumb-item",
+        "breadcrumbs",
         "counter",
-        "dialog"
+        "dialog",
+        "toast"
       ],
       "inherits": "icon-button-neutral",
       "inheritedBy": []
@@ -1405,11 +2198,13 @@
       "nests": [],
       "nestsTransitively": [],
       "nestedBy": [
+        "_slider-thumb",
         "accordion",
         "button",
         "button-destructive",
         "button-neutral",
         "checkbox-control",
+        "code-input-cell",
         "counter",
         "flush-icon-button",
         "flush-icon-button-destructive",
@@ -1418,6 +2213,7 @@
         "icon-button-destructive",
         "icon-button-neutral",
         "link",
+        "pagination-item",
         "password-field",
         "radio-control",
         "segmented-control-segment",
@@ -1429,7 +2225,11 @@
         "textarea"
       ],
       "affectedByChange": [
+        "_slider-thumb",
         "accordion",
+        "banner",
+        "breadcrumb-item",
+        "breadcrumbs",
         "button",
         "button-destructive",
         "button-group",
@@ -1437,6 +2237,8 @@
         "checkbox-control",
         "checkbox-group",
         "checkbox-row",
+        "code-input",
+        "code-input-cell",
         "counter",
         "dialog",
         "flush-icon-button",
@@ -1446,6 +2248,8 @@
         "icon-button-destructive",
         "icon-button-neutral",
         "link",
+        "pagination",
+        "pagination-item",
         "password-field",
         "radio-control",
         "radio-group",
@@ -1453,13 +2257,15 @@
         "segmented-control",
         "segmented-control-segment",
         "select",
+        "slider",
         "switch-control",
         "switch-row",
         "tab-item",
         "tabs",
         "tag",
         "text-field",
-        "textarea"
+        "textarea",
+        "toast"
       ],
       "inheritedBy": []
     },
@@ -1532,8 +2338,14 @@
       "nestsTransitively": [
         "focus-ring"
       ],
-      "nestedBy": [],
-      "affectedByChange": [],
+      "nestedBy": [
+        "breadcrumb-item",
+        "breadcrumbs"
+      ],
+      "affectedByChange": [
+        "breadcrumb-item",
+        "breadcrumbs"
+      ],
       "inheritedBy": []
     },
     "list": {
@@ -1558,6 +2370,33 @@
       ],
       "inheritedBy": []
     },
+    "pagination": {
+      "nests": [
+        "pagination-item"
+      ],
+      "nestsTransitively": [
+        "focus-ring",
+        "pagination-item"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
+    "pagination-item": {
+      "nests": [
+        "focus-ring"
+      ],
+      "nestsTransitively": [
+        "focus-ring"
+      ],
+      "nestedBy": [
+        "pagination"
+      ],
+      "affectedByChange": [
+        "pagination"
+      ],
+      "inheritedBy": []
+    },
     "password-field": {
       "nests": [
         "button",
@@ -1571,6 +2410,17 @@
         "field-message",
         "focus-ring",
         "spinner"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
+    "progress": {
+      "nests": [
+        "field-message"
+      ],
+      "nestsTransitively": [
+        "field-message"
       ],
       "nestedBy": [],
       "affectedByChange": [],
@@ -1670,6 +2520,24 @@
       "affectedByChange": [],
       "inheritedBy": []
     },
+    "slider": {
+      "nests": [
+        "_slider-thumb",
+        "field-label",
+        "field-message",
+        "text-field"
+      ],
+      "nestsTransitively": [
+        "_slider-thumb",
+        "field-label",
+        "field-message",
+        "focus-ring",
+        "text-field"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
     "spinner": {
       "nests": [],
       "nestsTransitively": [],
@@ -1682,6 +2550,7 @@
         "icon-button-neutral"
       ],
       "affectedByChange": [
+        "banner",
         "button",
         "button-destructive",
         "button-group",
@@ -1690,7 +2559,8 @@
         "icon-button",
         "icon-button-destructive",
         "icon-button-neutral",
-        "password-field"
+        "password-field",
+        "toast"
       ],
       "inheritedBy": []
     },
@@ -1774,8 +2644,12 @@
         "field-message",
         "focus-ring"
       ],
-      "nestedBy": [],
-      "affectedByChange": [],
+      "nestedBy": [
+        "slider"
+      ],
+      "affectedByChange": [
+        "slider"
+      ],
       "inheritedBy": [
         "checkbox-row",
         "textarea"
@@ -1797,6 +2671,21 @@
       "inherits": "text-field",
       "inheritedBy": []
     },
+    "toast": {
+      "nests": [
+        "button",
+        "flush-icon-button-neutral"
+      ],
+      "nestsTransitively": [
+        "button",
+        "flush-icon-button-neutral",
+        "focus-ring",
+        "spinner"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
     "veil": {
       "nests": [],
       "nestsTransitively": [],
@@ -1807,8 +2696,13 @@
   },
   "depth": {
     "_accordion-indicator": 0,
+    "_breadcrumb-separator": 0,
+    "_slider-thumb": 1,
     "accordion": 1,
     "badge": 0,
+    "banner": 2,
+    "breadcrumb-item": 2,
+    "breadcrumbs": 3,
     "button": 1,
     "button-destructive": 1,
     "button-group": 2,
@@ -1816,6 +2710,8 @@
     "checkbox-control": 1,
     "checkbox-group": 3,
     "checkbox-row": 2,
+    "code-input": 2,
+    "code-input-cell": 1,
     "counter": 2,
     "dialog": 3,
     "divider": 0,
@@ -1833,13 +2729,17 @@
     "link": 1,
     "list": 1,
     "list-item": 0,
+    "pagination": 2,
+    "pagination-item": 1,
     "password-field": 2,
+    "progress": 1,
     "radio-control": 1,
     "radio-group": 3,
     "radio-row": 2,
     "segmented-control": 2,
     "segmented-control-segment": 1,
     "select": 1,
+    "slider": 2,
     "spinner": 0,
     "switch-control": 1,
     "switch-row": 2,
@@ -1848,6 +2748,7 @@
     "tag": 1,
     "text-field": 1,
     "textarea": 1,
+    "toast": 2,
     "veil": 0
   }
 }

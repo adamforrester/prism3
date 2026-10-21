@@ -94,6 +94,8 @@ export const TAXONOMY: Taxonomy = {
         // Password field (#2317, owner decision Q301.9 B) — its own page under Components, as Counter's is. It nests
         // Button, whose page is earlier in this list, so the nest resolves when the file is built in order.
         { page: 'Password field', defs: ['password-field'] },
+        // Code input (#2428, owner decision Q321.14 A) — its own page under Components, as Password field's is.
+        { page: 'Code input', defs: ['code-input'] },
         { page: 'Textarea', defs: ['textarea'] },
         { page: 'Veil', defs: ['veil'] },
         // Badge — under Components, owner-decided 2026-10-04 (S8 scope, O1).
@@ -122,9 +124,28 @@ export const TAXONOMY: Taxonomy = {
         // Dialog (#2609, owner decision Q303.12 A) — its own page under Components, every placement on it. It nests the
         // Neutral IconButton, the Divider and the Button, which the build places first wherever their pages sort.
         { page: 'Dialog', defs: ['dialog'] },
+        // Breadcrumbs (#2666, owner call 15 A) — its own page under Components. It nests BreadcrumbItem in its items slot
+        // and Link, which the build places first wherever their pages sort.
+        { page: 'Breadcrumbs', defs: ['breadcrumbs'] },
+        // Toast (#2668, owner call 12 A) — its own page under Components, sorted alphabetically (Q260 A). It nests the
+        // Button and the Neutral IconButton, which the build places first wherever their pages sort.
+        { page: 'Toast', defs: ['toast'] },
+        // Banner (#2579, Q327) — its own page under Components. The proposal named a feedback section; none exists, so the
+        // section is held as an owner item in the PR, as Link's was. It nests Button.Neutral and FlushIconButton.Neutral.
+        { page: 'Banner', defs: ['banner'] },
         // Counter (#2427, owner decision Q283.14 A) — its own page, alphabetical under Components (between Checkbox and
         // Divider). It nests FlushIconButton.Neutral, whose page is under Subcomponents.
         { page: 'Counter', defs: ['counter'] },
+        // Progress (#2670, owner call 10 A) — its own page under Components. It nests the Field Message, which the build
+        // places first wherever its page sorts. The Spinner stays under Subcomponents (#1670).
+        { page: 'Progress', defs: ['progress'] },
+        // Slider (#2669, owner call 9 A) — its own page under Components, sorted alphabetically (Q260 A). Its thumb builds
+        // first, so the slider's two nested thumbs resolve against it on the same page, as Tabs' do.
+        { page: 'Slider', defs: ['_slider-thumb', 'slider'] },
+        // Pagination (#2665, owner call 16 A) — its own page under Components, Pagination.Item beside it. The item builds
+        // first, so the row's slot items resolve against it on the same page; IconButton and Button build wherever their
+        // pages sort, before it.
+        { page: 'Pagination', defs: ['pagination-item', 'pagination'] },
       ],
     },
     {
@@ -144,6 +165,13 @@ export const TAXONOMY: Taxonomy = {
         // #1670 — owner-decided 2026-09-26: the spinner sits under Subcomponents, beside the other parts a
         // host swaps or nests in (the button's pending state swaps it into its icon slot).
         { page: 'Spinner', defs: ['spinner'] },
+        // #2666 (owner call 15 A) — the breadcrumb step, on its own page under Subcomponents: it is placed inside
+        // Breadcrumbs, never on its own. It nests Link, the neutral flush icon button and, since Q382 A, the separator,
+        // which shares its page, first, as the Accordion indicator shares the Accordion's.
+        { page: 'Breadcrumb Item', defs: ['_breadcrumb-separator', 'breadcrumb-item'] },
+        // #2428 (owner decision Q329 A) — the Code cell on its own Subcomponents page: a part used only inside Code input,
+        // nested in the field's `items` slot.
+        { page: 'Code Cell', defs: ['code-input-cell'] },
       ],
     },
     {

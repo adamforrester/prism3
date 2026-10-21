@@ -6,7 +6,7 @@
     "icon": {
       "id": "icon",
       "name": "Icon",
-      "members": 45,
+      "members": 46,
       "axes": [
         {
           "name": "name",
@@ -55,6 +55,7 @@
             "plus-filled",
             "resize-grip",
             "search",
+            "slash",
             "warning-triangle",
             "warning-triangle-filled"
           ],
@@ -66,7 +67,7 @@
         {
           "part": "glyph",
           "kind": "glyph",
-          "members": 45
+          "members": 46
         }
       ],
       "redlineKey": [],
@@ -552,6 +553,17 @@
         {
           "where": {
             "name": "search"
+          },
+          "parts": [
+            {
+              "part": "glyph",
+              "icon": "color.icon.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "name": "slash"
           },
           "parts": [
             {
@@ -13769,7 +13781,7 @@
     "flush-icon-button": {
       "id": "flush-icon-button",
       "name": "FlushIconButton",
-      "members": 30,
+      "members": 60,
       "axes": [
         {
           "name": "shape",
@@ -13777,6 +13789,15 @@
           "values": [
             "flush",
             "round"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "surface",
+          "figmaName": "surface",
+          "values": [
+            "default",
+            "inverse"
           ],
           "kind": "variant"
         },
@@ -13808,17 +13829,17 @@
         {
           "part": "container",
           "kind": "frame",
-          "members": 30
+          "members": 60
         },
         {
           "part": "container/icon",
           "kind": "swap",
-          "members": 30
+          "members": 60
         },
         {
           "part": "container/focusRing",
           "kind": "instance",
-          "members": 6,
+          "members": 12,
           "when": {
             "state": [
               "focus-visible"
@@ -14037,12 +14058,14 @@
       ],
       "colorKey": [
         "shape",
+        "surface",
         "state"
       ],
       "colors": [
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "rest"
           },
           "parts": [
@@ -14055,6 +14078,7 @@
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "hover"
           },
           "parts": [
@@ -14067,6 +14091,7 @@
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "pressed"
           },
           "parts": [
@@ -14079,6 +14104,7 @@
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "focus-visible"
           },
           "parts": [
@@ -14091,6 +14117,7 @@
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "disabled"
           },
           "parts": [
@@ -14102,7 +14129,73 @@
         },
         {
           "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.primary.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.primary.icon.hover"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.primary.icon.pressed"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.primary.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.disabled.icon"
+            }
+          ]
+        },
+        {
+          "where": {
             "shape": "round",
+            "surface": "default",
             "state": "rest"
           },
           "parts": [
@@ -14119,6 +14212,7 @@
         {
           "where": {
             "shape": "round",
+            "surface": "default",
             "state": "hover"
           },
           "parts": [
@@ -14136,6 +14230,7 @@
         {
           "where": {
             "shape": "round",
+            "surface": "default",
             "state": "pressed"
           },
           "parts": [
@@ -14153,6 +14248,7 @@
         {
           "where": {
             "shape": "round",
+            "surface": "default",
             "state": "focus-visible"
           },
           "parts": [
@@ -14169,6 +14265,7 @@
         {
           "where": {
             "shape": "round",
+            "surface": "default",
             "state": "disabled"
           },
           "parts": [
@@ -14179,6 +14276,93 @@
             {
               "part": "container/icon",
               "icon": "color.disabled.icon"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "stroke": "color.inverse.border.secondary"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.primary.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.inverse.interactive.primary.overlay.hover",
+              "stroke": "color.inverse.border.secondary"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.primary.icon.hover"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.inverse.interactive.primary.overlay.pressed",
+              "stroke": "color.inverse.border.secondary"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.primary.icon.pressed"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "stroke": "color.inverse.border.secondary"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.primary.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "stroke": "color.inverse.disabled.border"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.disabled.icon"
             }
           ]
         }
@@ -14196,7 +14380,9 @@
           "variant": {
             "surface": "default"
           },
-          "follows": [],
+          "follows": [
+            "surface"
+          ],
           "exposes": []
         }
       ],
@@ -14210,7 +14396,7 @@
     "flush-icon-button-destructive": {
       "id": "flush-icon-button-destructive",
       "name": "FlushIconButton.Destructive",
-      "members": 30,
+      "members": 60,
       "axes": [
         {
           "name": "shape",
@@ -14218,6 +14404,15 @@
           "values": [
             "flush",
             "round"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "surface",
+          "figmaName": "surface",
+          "values": [
+            "default",
+            "inverse"
           ],
           "kind": "variant"
         },
@@ -14249,17 +14444,17 @@
         {
           "part": "container",
           "kind": "frame",
-          "members": 30
+          "members": 60
         },
         {
           "part": "container/icon",
           "kind": "swap",
-          "members": 30
+          "members": 60
         },
         {
           "part": "container/focusRing",
           "kind": "instance",
-          "members": 6,
+          "members": 12,
           "when": {
             "state": [
               "focus-visible"
@@ -14478,12 +14673,14 @@
       ],
       "colorKey": [
         "shape",
+        "surface",
         "state"
       ],
       "colors": [
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "rest"
           },
           "parts": [
@@ -14496,6 +14693,7 @@
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "hover"
           },
           "parts": [
@@ -14508,6 +14706,7 @@
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "pressed"
           },
           "parts": [
@@ -14520,6 +14719,7 @@
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "focus-visible"
           },
           "parts": [
@@ -14532,6 +14732,7 @@
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "disabled"
           },
           "parts": [
@@ -14543,7 +14744,73 @@
         },
         {
           "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.destructive.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.destructive.icon.hover"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.destructive.icon.pressed"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.destructive.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.disabled.icon"
+            }
+          ]
+        },
+        {
+          "where": {
             "shape": "round",
+            "surface": "default",
             "state": "rest"
           },
           "parts": [
@@ -14560,6 +14827,7 @@
         {
           "where": {
             "shape": "round",
+            "surface": "default",
             "state": "hover"
           },
           "parts": [
@@ -14577,6 +14845,7 @@
         {
           "where": {
             "shape": "round",
+            "surface": "default",
             "state": "pressed"
           },
           "parts": [
@@ -14594,6 +14863,7 @@
         {
           "where": {
             "shape": "round",
+            "surface": "default",
             "state": "focus-visible"
           },
           "parts": [
@@ -14610,6 +14880,7 @@
         {
           "where": {
             "shape": "round",
+            "surface": "default",
             "state": "disabled"
           },
           "parts": [
@@ -14620,6 +14891,93 @@
             {
               "part": "container/icon",
               "icon": "color.disabled.icon"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "stroke": "color.inverse.border.secondary"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.destructive.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.inverse.interactive.destructive.overlay.hover",
+              "stroke": "color.inverse.border.secondary"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.destructive.icon.hover"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.inverse.interactive.destructive.overlay.pressed",
+              "stroke": "color.inverse.border.secondary"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.destructive.icon.pressed"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "stroke": "color.inverse.border.secondary"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.destructive.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "stroke": "color.inverse.disabled.border"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.disabled.icon"
             }
           ]
         }
@@ -14637,7 +14995,9 @@
           "variant": {
             "surface": "default"
           },
-          "follows": [],
+          "follows": [
+            "surface"
+          ],
           "exposes": []
         }
       ],
@@ -14651,7 +15011,7 @@
     "flush-icon-button-neutral": {
       "id": "flush-icon-button-neutral",
       "name": "FlushIconButton.Neutral",
-      "members": 30,
+      "members": 60,
       "axes": [
         {
           "name": "shape",
@@ -14659,6 +15019,15 @@
           "values": [
             "flush",
             "round"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "surface",
+          "figmaName": "surface",
+          "values": [
+            "default",
+            "inverse"
           ],
           "kind": "variant"
         },
@@ -14690,17 +15059,17 @@
         {
           "part": "container",
           "kind": "frame",
-          "members": 30
+          "members": 60
         },
         {
           "part": "container/icon",
           "kind": "swap",
-          "members": 30
+          "members": 60
         },
         {
           "part": "container/focusRing",
           "kind": "instance",
-          "members": 6,
+          "members": 12,
           "when": {
             "state": [
               "focus-visible"
@@ -14919,12 +15288,14 @@
       ],
       "colorKey": [
         "shape",
+        "surface",
         "state"
       ],
       "colors": [
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "rest"
           },
           "parts": [
@@ -14937,6 +15308,7 @@
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "hover"
           },
           "parts": [
@@ -14949,6 +15321,7 @@
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "pressed"
           },
           "parts": [
@@ -14961,6 +15334,7 @@
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "focus-visible"
           },
           "parts": [
@@ -14973,6 +15347,7 @@
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "disabled"
           },
           "parts": [
@@ -14984,7 +15359,73 @@
         },
         {
           "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.neutral.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.neutral.icon.hover"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.neutral.icon.pressed"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.neutral.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.disabled.icon"
+            }
+          ]
+        },
+        {
+          "where": {
             "shape": "round",
+            "surface": "default",
             "state": "rest"
           },
           "parts": [
@@ -15001,6 +15442,7 @@
         {
           "where": {
             "shape": "round",
+            "surface": "default",
             "state": "hover"
           },
           "parts": [
@@ -15018,6 +15460,7 @@
         {
           "where": {
             "shape": "round",
+            "surface": "default",
             "state": "pressed"
           },
           "parts": [
@@ -15035,6 +15478,7 @@
         {
           "where": {
             "shape": "round",
+            "surface": "default",
             "state": "focus-visible"
           },
           "parts": [
@@ -15051,6 +15495,7 @@
         {
           "where": {
             "shape": "round",
+            "surface": "default",
             "state": "disabled"
           },
           "parts": [
@@ -15061,6 +15506,93 @@
             {
               "part": "container/icon",
               "icon": "color.disabled.icon"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "stroke": "color.inverse.border.secondary"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.neutral.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.inverse.interactive.neutral.overlay.hover",
+              "stroke": "color.inverse.border.secondary"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.neutral.icon.hover"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.inverse.interactive.neutral.overlay.pressed",
+              "stroke": "color.inverse.border.secondary"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.neutral.icon.pressed"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "stroke": "color.inverse.border.secondary"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.neutral.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "stroke": "color.inverse.disabled.border"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.disabled.icon"
             }
           ]
         }
@@ -15078,7 +15610,9 @@
           "variant": {
             "surface": "default"
           },
-          "follows": [],
+          "follows": [
+            "surface"
+          ],
           "exposes": []
         }
       ],
@@ -32597,6 +33131,7 @@
           "variant": {
             "shape": "flush",
             "size": "medium",
+            "surface": "default",
             "state": "rest"
           },
           "follows": [],
@@ -33918,6 +34453,936 @@
         }
       ]
     },
+    "_breadcrumb-separator": {
+      "id": "_breadcrumb-separator",
+      "name": "BreadcrumbSeparator",
+      "members": 2,
+      "axes": [
+        {
+          "name": "type",
+          "figmaName": "type",
+          "values": [
+            "chevron",
+            "slash"
+          ],
+          "kind": "variant"
+        }
+      ],
+      "codeOnlyStates": [],
+      "anatomy": [
+        {
+          "part": "frame",
+          "kind": "frame",
+          "members": 2
+        },
+        {
+          "part": "frame/chevron",
+          "kind": "instance",
+          "members": 1,
+          "when": {
+            "type": [
+              "chevron"
+            ]
+          }
+        },
+        {
+          "part": "frame/slash",
+          "kind": "instance",
+          "members": 1,
+          "when": {
+            "type": [
+              "slash"
+            ]
+          }
+        }
+      ],
+      "redlineKey": [],
+      "redlines": [
+        {
+          "where": {},
+          "parts": [
+            {
+              "part": "frame",
+              "values": {
+                "height": {
+                  "token": "icon.size.xs"
+                },
+                "width": {
+                  "token": "icon.size.xs"
+                }
+              }
+            },
+            {
+              "part": "frame/chevron",
+              "values": {
+                "height": {
+                  "token": "icon.size.xs"
+                },
+                "width": {
+                  "token": "icon.size.xs"
+                }
+              }
+            },
+            {
+              "part": "frame/slash",
+              "values": {
+                "height": {
+                  "token": "icon.size.xs"
+                },
+                "width": {
+                  "token": "icon.size.xs"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "typeKey": [],
+      "type": [
+        {
+          "where": {},
+          "parts": []
+        }
+      ],
+      "colorKey": [
+        "type"
+      ],
+      "colors": [
+        {
+          "where": {
+            "type": "chevron"
+          },
+          "parts": [
+            {
+              "part": "frame/chevron",
+              "icon": "color.icon.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "slash"
+          },
+          "parts": [
+            {
+              "part": "frame/slash",
+              "icon": "color.icon.secondary"
+            }
+          ]
+        }
+      ],
+      "nesting": [
+        {
+          "part": "frame/chevron",
+          "kind": "instance",
+          "component": "icon/chevron-right",
+          "variant": {},
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "frame/slash",
+          "kind": "instance",
+          "component": "icon/slash",
+          "variant": {},
+          "follows": [],
+          "exposes": []
+        }
+      ],
+      "properties": []
+    },
+    "breadcrumb-item": {
+      "id": "breadcrumb-item",
+      "name": "BreadcrumbItem",
+      "members": 10,
+      "axes": [
+        {
+          "name": "kind",
+          "figmaName": "kind",
+          "values": [
+            "ancestor",
+            "current",
+            "overflow"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "separator",
+          "figmaName": "separator",
+          "values": [
+            "chevron",
+            "slash"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "size",
+          "figmaName": "size",
+          "values": [
+            "medium",
+            "small"
+          ],
+          "kind": "size"
+        }
+      ],
+      "codeOnlyStates": [],
+      "anatomy": [
+        {
+          "part": "container",
+          "kind": "frame",
+          "members": 10
+        },
+        {
+          "part": "container/crumb",
+          "kind": "instance",
+          "members": 4,
+          "when": {
+            "kind": [
+              "ancestor"
+            ]
+          }
+        },
+        {
+          "part": "container/separator",
+          "kind": "instance",
+          "members": 4
+        },
+        {
+          "part": "container/separatorSlash",
+          "kind": "instance",
+          "members": 4,
+          "when": {
+            "separator": [
+              "slash"
+            ]
+          }
+        },
+        {
+          "part": "container/current",
+          "kind": "text",
+          "members": 2,
+          "when": {
+            "kind": [
+              "current"
+            ]
+          }
+        },
+        {
+          "part": "container/overflow",
+          "kind": "instance",
+          "members": 4,
+          "when": {
+            "kind": [
+              "overflow"
+            ]
+          }
+        }
+      ],
+      "redlineKey": [
+        "size"
+      ],
+      "redlines": [
+        {
+          "where": {
+            "size": "medium"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "gap": {
+                  "token": "space.050"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "typeKey": [
+        "size"
+      ],
+      "type": [
+        {
+          "where": {
+            "size": "medium"
+          },
+          "parts": [
+            {
+              "part": "container/current",
+              "textStyle": "type.body.md.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small"
+          },
+          "parts": [
+            {
+              "part": "container/current",
+              "textStyle": "type.body.sm.default"
+            }
+          ]
+        }
+      ],
+      "colorKey": [
+        "kind",
+        "separator"
+      ],
+      "colors": [
+        {
+          "where": {
+            "kind": "ancestor",
+            "separator": "chevron"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "kind": "ancestor",
+            "separator": "slash"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "kind": "current",
+            "separator": "chevron"
+          },
+          "parts": [
+            {
+              "part": "container/current",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "kind": "overflow",
+            "separator": "chevron"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "kind": "overflow",
+            "separator": "slash"
+          },
+          "parts": []
+        }
+      ],
+      "nesting": [
+        {
+          "part": "container/crumb",
+          "kind": "instance",
+          "component": "link",
+          "variant": {
+            "style": "inline",
+            "weight": "default",
+            "size": "medium",
+            "surface": "default",
+            "state": "rest"
+          },
+          "follows": [
+            "size"
+          ],
+          "exposes": [
+            "state"
+          ]
+        },
+        {
+          "part": "container/separator",
+          "kind": "instance",
+          "component": "_breadcrumb-separator",
+          "variant": {
+            "type": "chevron"
+          },
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "container/separatorSlash",
+          "kind": "instance",
+          "component": "_breadcrumb-separator",
+          "variant": {
+            "type": "slash"
+          },
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "container/overflow",
+          "kind": "instance",
+          "component": "flush-icon-button-neutral",
+          "variant": {
+            "shape": "flush",
+            "size": "small",
+            "surface": "default",
+            "state": "rest"
+          },
+          "follows": [],
+          "exposes": [
+            "state"
+          ]
+        }
+      ],
+      "properties": [
+        {
+          "name": "label",
+          "type": "TEXT",
+          "default": "Current page"
+        }
+      ]
+    },
+    "breadcrumbs": {
+      "id": "breadcrumbs",
+      "name": "Breadcrumbs",
+      "members": 6,
+      "axes": [
+        {
+          "name": "path",
+          "figmaName": "path",
+          "values": [
+            "full",
+            "parent"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "separator",
+          "figmaName": "separator",
+          "values": [
+            "chevron",
+            "slash"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "size",
+          "figmaName": "size",
+          "values": [
+            "medium",
+            "small"
+          ],
+          "kind": "size"
+        }
+      ],
+      "codeOnlyStates": [],
+      "anatomy": [
+        {
+          "part": "container",
+          "kind": "frame",
+          "members": 6
+        },
+        {
+          "part": "container/items",
+          "kind": "slot",
+          "members": 4,
+          "when": {
+            "path": [
+              "full"
+            ]
+          }
+        },
+        {
+          "part": "container/items/item1",
+          "kind": "instance",
+          "members": 4,
+          "when": {
+            "path": [
+              "full"
+            ]
+          }
+        },
+        {
+          "part": "container/items/item2",
+          "kind": "instance",
+          "members": 4,
+          "when": {
+            "path": [
+              "full"
+            ]
+          }
+        },
+        {
+          "part": "container/items/item3",
+          "kind": "instance",
+          "members": 4,
+          "when": {
+            "path": [
+              "full"
+            ]
+          }
+        },
+        {
+          "part": "container/backGlyph",
+          "kind": "instance",
+          "members": 2,
+          "when": {
+            "path": [
+              "parent"
+            ]
+          }
+        },
+        {
+          "part": "container/parentLink",
+          "kind": "instance",
+          "members": 2,
+          "when": {
+            "path": [
+              "parent"
+            ]
+          }
+        }
+      ],
+      "redlineKey": [
+        "size"
+      ],
+      "redlines": [
+        {
+          "where": {
+            "size": "medium"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "gap": {
+                  "token": "space.050"
+                }
+              }
+            },
+            {
+              "part": "container/items",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                }
+              }
+            },
+            {
+              "part": "container/backGlyph",
+              "values": {
+                "height": {
+                  "token": "icon.size.xs"
+                },
+                "width": {
+                  "token": "icon.size.xs"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "gap": {
+                  "token": "space.050"
+                }
+              }
+            },
+            {
+              "part": "container/items",
+              "values": {
+                "gap": {
+                  "token": "space.050"
+                }
+              }
+            },
+            {
+              "part": "container/backGlyph",
+              "values": {
+                "height": {
+                  "token": "icon.size.xs"
+                },
+                "width": {
+                  "token": "icon.size.xs"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "typeKey": [
+        "size"
+      ],
+      "type": [
+        {
+          "where": {
+            "size": "medium"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "size": "small"
+          },
+          "parts": []
+        }
+      ],
+      "colorKey": [
+        "path",
+        "separator"
+      ],
+      "colors": [
+        {
+          "where": {
+            "path": "full",
+            "separator": "chevron"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "path": "full",
+            "separator": "slash"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "path": "parent",
+            "separator": "chevron"
+          },
+          "parts": [
+            {
+              "part": "container/backGlyph",
+              "icon": "color.icon.link.default"
+            }
+          ]
+        }
+      ],
+      "nesting": [
+        {
+          "part": "container/items",
+          "kind": "slot",
+          "preferred": [
+            "breadcrumb-item"
+          ]
+        },
+        {
+          "part": "container/items/item1",
+          "kind": "instance",
+          "component": "breadcrumb-item",
+          "variant": {
+            "kind": "ancestor",
+            "separator": "chevron",
+            "size": "medium"
+          },
+          "follows": [
+            "separator",
+            "size"
+          ],
+          "exposes": []
+        },
+        {
+          "part": "container/items/item2",
+          "kind": "instance",
+          "component": "breadcrumb-item",
+          "variant": {
+            "kind": "ancestor",
+            "separator": "chevron",
+            "size": "medium"
+          },
+          "follows": [
+            "separator",
+            "size"
+          ],
+          "exposes": []
+        },
+        {
+          "part": "container/items/item3",
+          "kind": "instance",
+          "component": "breadcrumb-item",
+          "variant": {
+            "kind": "current",
+            "separator": "chevron",
+            "size": "medium"
+          },
+          "follows": [
+            "size"
+          ],
+          "exposes": []
+        },
+        {
+          "part": "container/backGlyph",
+          "kind": "instance",
+          "component": "icon/chevron-left",
+          "variant": {},
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "container/parentLink",
+          "kind": "instance",
+          "component": "link",
+          "variant": {
+            "style": "inline",
+            "weight": "default",
+            "size": "medium",
+            "surface": "default",
+            "state": "rest"
+          },
+          "follows": [
+            "size"
+          ],
+          "exposes": [
+            "state"
+          ]
+        }
+      ],
+      "properties": [
+        {
+          "name": "items",
+          "type": "SLOT"
+        }
+      ]
+    },
+    "toast": {
+      "id": "toast",
+      "name": "Toast",
+      "members": 2,
+      "axes": [
+        {
+          "name": "intent",
+          "figmaName": "intent",
+          "values": [
+            "neutral",
+            "success"
+          ],
+          "kind": "variant"
+        }
+      ],
+      "codeOnlyStates": [],
+      "anatomy": [
+        {
+          "part": "container",
+          "kind": "frame",
+          "members": 2
+        },
+        {
+          "part": "container/content",
+          "kind": "frame",
+          "members": 2
+        },
+        {
+          "part": "container/content/message",
+          "kind": "text",
+          "members": 2
+        },
+        {
+          "part": "container/controls",
+          "kind": "frame",
+          "members": 2
+        },
+        {
+          "part": "container/controls/action",
+          "kind": "instance",
+          "members": 2
+        },
+        {
+          "part": "container/controls/close",
+          "kind": "instance",
+          "members": 2
+        },
+        {
+          "part": "container/content/checkCircleGlyph",
+          "kind": "instance",
+          "members": 1,
+          "when": {
+            "intent": [
+              "success"
+            ]
+          }
+        }
+      ],
+      "redlineKey": [],
+      "redlines": [
+        {
+          "where": {},
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "paddingTop": {
+                  "token": "space.100"
+                },
+                "paddingRight": {
+                  "token": "space.100"
+                },
+                "paddingBottom": {
+                  "token": "space.100"
+                },
+                "paddingLeft": {
+                  "token": "space.200"
+                },
+                "gap": {
+                  "token": "space.100"
+                },
+                "buildWidth": {
+                  "px": 360,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/content",
+              "values": {
+                "gap": {
+                  "token": "space.150"
+                }
+              }
+            },
+            {
+              "part": "container/controls",
+              "values": {
+                "gap": {
+                  "token": "space.050"
+                }
+              }
+            },
+            {
+              "part": "container/content/checkCircleGlyph",
+              "values": {
+                "height": {
+                  "token": "icon.size.sm"
+                },
+                "width": {
+                  "token": "icon.size.sm"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "typeKey": [],
+      "type": [
+        {
+          "where": {},
+          "parts": [
+            {
+              "part": "container/content/message",
+              "textStyle": "type.body.md.default"
+            }
+          ]
+        }
+      ],
+      "colorKey": [
+        "intent"
+      ],
+      "colors": [
+        {
+          "where": {
+            "intent": "neutral"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.inverse.background.primary"
+            },
+            {
+              "part": "container/content/message",
+              "ink": "color.inverse.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "intent": "success"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.inverse.background.primary"
+            },
+            {
+              "part": "container/content/checkCircleGlyph",
+              "icon": "color.inverse.icon.success"
+            },
+            {
+              "part": "container/content/message",
+              "ink": "color.inverse.text.primary"
+            }
+          ]
+        }
+      ],
+      "nesting": [
+        {
+          "part": "container/controls/action",
+          "kind": "instance",
+          "component": "button",
+          "variant": {
+            "appearance": "text",
+            "size": "small",
+            "surface": "inverse",
+            "inset": "default",
+            "state": "rest",
+            "leading icon": "false",
+            "trailing icon": "false"
+          },
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "container/controls/close",
+          "kind": "instance",
+          "component": "flush-icon-button-neutral",
+          "variant": {
+            "shape": "flush",
+            "size": "small",
+            "surface": "inverse",
+            "state": "rest"
+          },
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "container/content/checkCircleGlyph",
+          "kind": "instance",
+          "component": "icon/check-circle",
+          "variant": {},
+          "follows": [],
+          "exposes": []
+        }
+      ],
+      "properties": [
+        {
+          "name": "message",
+          "type": "TEXT",
+          "default": "Status message"
+        },
+        {
+          "name": "action",
+          "type": "BOOLEAN",
+          "default": false
+        },
+        {
+          "name": "close",
+          "type": "BOOLEAN",
+          "default": true
+        }
+      ]
+    },
     "counter": {
       "id": "counter",
       "name": "Counter",
@@ -34517,6 +35982,7 @@
           "variant": {
             "shape": "flush",
             "size": "medium",
+            "surface": "default",
             "state": "rest"
           },
           "when": {
@@ -34548,6 +36014,7 @@
           "variant": {
             "shape": "flush",
             "size": "medium",
+            "surface": "default",
             "state": "rest"
           },
           "when": {
@@ -34608,6 +36075,5046 @@
           "name": "message",
           "type": "BOOLEAN",
           "default": false
+        }
+      ]
+    },
+    "banner": {
+      "id": "banner",
+      "name": "Banner",
+      "members": 8,
+      "axes": [
+        {
+          "name": "tone",
+          "figmaName": "tone",
+          "values": [
+            "info",
+            "success",
+            "warning",
+            "danger"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "width",
+          "figmaName": "width",
+          "values": [
+            "contained",
+            "full"
+          ],
+          "kind": "variant"
+        }
+      ],
+      "codeOnlyStates": [],
+      "anatomy": [
+        {
+          "part": "container",
+          "kind": "frame",
+          "members": 8
+        },
+        {
+          "part": "container/infoGlyph",
+          "kind": "instance",
+          "members": 2,
+          "when": {
+            "tone": [
+              "info"
+            ]
+          }
+        },
+        {
+          "part": "container/content",
+          "kind": "frame",
+          "members": 8
+        },
+        {
+          "part": "container/content/titleBox",
+          "kind": "frame",
+          "members": 8
+        },
+        {
+          "part": "container/content/titleBox/title",
+          "kind": "text",
+          "members": 8
+        },
+        {
+          "part": "container/content/body",
+          "kind": "slot",
+          "members": 8
+        },
+        {
+          "part": "container/content/body/placeholder",
+          "kind": "text",
+          "members": 8
+        },
+        {
+          "part": "container/content/actions",
+          "kind": "frame",
+          "members": 8
+        },
+        {
+          "part": "container/content/actions/action1",
+          "kind": "instance",
+          "members": 8
+        },
+        {
+          "part": "container/content/actions/action2",
+          "kind": "instance",
+          "members": 8
+        },
+        {
+          "part": "container/dismiss",
+          "kind": "instance",
+          "members": 8
+        },
+        {
+          "part": "container/successGlyph",
+          "kind": "instance",
+          "members": 2,
+          "when": {
+            "tone": [
+              "success"
+            ]
+          }
+        },
+        {
+          "part": "container/warningGlyph",
+          "kind": "instance",
+          "members": 2,
+          "when": {
+            "tone": [
+              "warning"
+            ]
+          }
+        },
+        {
+          "part": "container/dangerGlyph",
+          "kind": "instance",
+          "members": 2,
+          "when": {
+            "tone": [
+              "danger"
+            ]
+          }
+        }
+      ],
+      "redlineKey": [],
+      "redlines": [
+        {
+          "where": {},
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "paddingTop": {
+                  "token": "space.200"
+                },
+                "paddingRight": {
+                  "token": "space.200"
+                },
+                "paddingBottom": {
+                  "token": "space.200"
+                },
+                "paddingLeft": {
+                  "token": "space.200"
+                },
+                "gap": {
+                  "token": "space.150"
+                },
+                "buildWidth": {
+                  "px": 480,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/infoGlyph",
+              "values": {
+                "height": {
+                  "token": "icon.size.md"
+                },
+                "width": {
+                  "token": "icon.size.md"
+                }
+              }
+            },
+            {
+              "part": "container/content",
+              "values": {
+                "gap": {
+                  "token": "space.050"
+                }
+              }
+            },
+            {
+              "part": "container/content/titleBox",
+              "values": {
+                "paddingTop": {
+                  "token": "space.050"
+                }
+              }
+            },
+            {
+              "part": "container/content/actions",
+              "values": {
+                "paddingTop": {
+                  "token": "space.150"
+                },
+                "gap": {
+                  "token": "space.100"
+                }
+              }
+            },
+            {
+              "part": "container/successGlyph",
+              "values": {
+                "height": {
+                  "token": "icon.size.md"
+                },
+                "width": {
+                  "token": "icon.size.md"
+                }
+              }
+            },
+            {
+              "part": "container/warningGlyph",
+              "values": {
+                "height": {
+                  "token": "icon.size.md"
+                },
+                "width": {
+                  "token": "icon.size.md"
+                }
+              }
+            },
+            {
+              "part": "container/dangerGlyph",
+              "values": {
+                "height": {
+                  "token": "icon.size.md"
+                },
+                "width": {
+                  "token": "icon.size.md"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "typeKey": [],
+      "type": [
+        {
+          "where": {},
+          "parts": [
+            {
+              "part": "container/content/titleBox/title",
+              "textStyle": "type.label.md.emphasis"
+            },
+            {
+              "part": "container/content/body/placeholder",
+              "textStyle": "type.body.md.default"
+            }
+          ]
+        }
+      ],
+      "colorKey": [
+        "tone",
+        "width"
+      ],
+      "colors": [
+        {
+          "where": {
+            "tone": "info",
+            "width": "contained"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.foreground.info-subtle",
+              "stroke": "color.border.info"
+            },
+            {
+              "part": "container/infoGlyph",
+              "icon": "color.icon.info"
+            },
+            {
+              "part": "container/content/titleBox/title",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/content/body/placeholder",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "tone": "info",
+            "width": "full"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.foreground.info-subtle",
+              "stroke": "color.border.info"
+            },
+            {
+              "part": "container/infoGlyph",
+              "icon": "color.icon.info"
+            },
+            {
+              "part": "container/content/titleBox/title",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/content/body/placeholder",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "tone": "success",
+            "width": "contained"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.foreground.success-subtle",
+              "stroke": "color.border.success"
+            },
+            {
+              "part": "container/successGlyph",
+              "icon": "color.icon.success"
+            },
+            {
+              "part": "container/content/titleBox/title",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/content/body/placeholder",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "tone": "success",
+            "width": "full"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.foreground.success-subtle",
+              "stroke": "color.border.success"
+            },
+            {
+              "part": "container/successGlyph",
+              "icon": "color.icon.success"
+            },
+            {
+              "part": "container/content/titleBox/title",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/content/body/placeholder",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "tone": "warning",
+            "width": "contained"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.foreground.warning-subtle",
+              "stroke": "color.border.warning"
+            },
+            {
+              "part": "container/warningGlyph",
+              "icon": "color.icon.warning"
+            },
+            {
+              "part": "container/content/titleBox/title",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/content/body/placeholder",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "tone": "warning",
+            "width": "full"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.foreground.warning-subtle",
+              "stroke": "color.border.warning"
+            },
+            {
+              "part": "container/warningGlyph",
+              "icon": "color.icon.warning"
+            },
+            {
+              "part": "container/content/titleBox/title",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/content/body/placeholder",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "tone": "danger",
+            "width": "contained"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.foreground.danger-subtle",
+              "stroke": "color.border.danger"
+            },
+            {
+              "part": "container/dangerGlyph",
+              "icon": "color.icon.danger"
+            },
+            {
+              "part": "container/content/titleBox/title",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/content/body/placeholder",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "tone": "danger",
+            "width": "full"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.foreground.danger-subtle",
+              "stroke": "color.border.danger"
+            },
+            {
+              "part": "container/dangerGlyph",
+              "icon": "color.icon.danger"
+            },
+            {
+              "part": "container/content/titleBox/title",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/content/body/placeholder",
+              "ink": "color.text.primary"
+            }
+          ]
+        }
+      ],
+      "nesting": [
+        {
+          "part": "container/infoGlyph",
+          "kind": "instance",
+          "component": "icon/info-circle",
+          "variant": {},
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "container/content/body",
+          "kind": "slot",
+          "preferred": []
+        },
+        {
+          "part": "container/content/actions/action1",
+          "kind": "instance",
+          "component": "button",
+          "variant": {
+            "appearance": "outline",
+            "size": "small",
+            "surface": "default",
+            "inset": "default",
+            "state": "rest",
+            "leading icon": "false",
+            "trailing icon": "false"
+          },
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "container/content/actions/action2",
+          "kind": "instance",
+          "component": "button",
+          "variant": {
+            "appearance": "text",
+            "size": "small",
+            "surface": "default",
+            "inset": "default",
+            "state": "rest",
+            "leading icon": "false",
+            "trailing icon": "false"
+          },
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "container/dismiss",
+          "kind": "instance",
+          "component": "flush-icon-button-neutral",
+          "variant": {
+            "shape": "flush",
+            "size": "small",
+            "surface": "default",
+            "state": "rest"
+          },
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "container/successGlyph",
+          "kind": "instance",
+          "component": "icon/check-circle",
+          "variant": {},
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "container/warningGlyph",
+          "kind": "instance",
+          "component": "icon/error-circle",
+          "variant": {},
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "container/dangerGlyph",
+          "kind": "instance",
+          "component": "icon/warning-triangle",
+          "variant": {},
+          "follows": [],
+          "exposes": []
+        }
+      ],
+      "properties": [
+        {
+          "name": "title text",
+          "type": "TEXT",
+          "default": "Title"
+        },
+        {
+          "name": "icon",
+          "type": "BOOLEAN",
+          "default": true
+        },
+        {
+          "name": "title",
+          "type": "BOOLEAN",
+          "default": true
+        },
+        {
+          "name": "actions",
+          "type": "BOOLEAN",
+          "default": false
+        },
+        {
+          "name": "second action",
+          "type": "BOOLEAN",
+          "default": false
+        },
+        {
+          "name": "dismiss",
+          "type": "BOOLEAN",
+          "default": false
+        },
+        {
+          "name": "body",
+          "type": "SLOT"
+        }
+      ]
+    },
+    "code-input-cell": {
+      "id": "code-input-cell",
+      "name": "CodeInput.Cell",
+      "members": 28,
+      "axes": [
+        {
+          "name": "size",
+          "figmaName": "size",
+          "values": [
+            "medium",
+            "small",
+            "large",
+            "xlarge"
+          ],
+          "kind": "size"
+        },
+        {
+          "name": "state",
+          "figmaName": "state",
+          "values": [
+            "rest",
+            "hover",
+            "filled",
+            "focus-visible",
+            "focus-visible-filled",
+            "disabled",
+            "error"
+          ],
+          "kind": "state"
+        }
+      ],
+      "codeOnlyStates": [],
+      "anatomy": [
+        {
+          "part": "container",
+          "kind": "frame",
+          "members": 28
+        },
+        {
+          "part": "container/content",
+          "kind": "frame",
+          "members": 28
+        },
+        {
+          "part": "container/content/digit",
+          "kind": "text",
+          "members": 12,
+          "when": {
+            "state": [
+              "filled",
+              "focus-visible-filled",
+              "error"
+            ]
+          }
+        },
+        {
+          "part": "container/content/caret",
+          "kind": "frame",
+          "members": 4,
+          "when": {
+            "state": [
+              "focus-visible"
+            ]
+          }
+        },
+        {
+          "part": "container/focusRing",
+          "kind": "instance",
+          "members": 8,
+          "when": {
+            "state": [
+              "focus-visible",
+              "focus-visible-filled"
+            ]
+          }
+        }
+      ],
+      "redlineKey": [
+        "size"
+      ],
+      "redlines": [
+        {
+          "where": {
+            "size": "medium"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "minWidth": {
+                  "px": 32,
+                  "source": "literal"
+                },
+                "buildWidth": {
+                  "px": 48,
+                  "source": "literal"
+                },
+                "buildHeight": {
+                  "px": 56,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/content",
+              "values": {
+                "paddingTop": {
+                  "token": "space.0"
+                },
+                "paddingRight": {
+                  "token": "space.0"
+                },
+                "paddingBottom": {
+                  "token": "space.0"
+                },
+                "paddingLeft": {
+                  "token": "space.0"
+                }
+              }
+            },
+            {
+              "part": "container/content/caret",
+              "values": {
+                "height": {
+                  "token": "icon.size.sm"
+                },
+                "width": {
+                  "token": "border-width.hairline"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "minWidth": {
+                  "px": 32,
+                  "source": "literal"
+                },
+                "buildWidth": {
+                  "px": 44,
+                  "source": "literal"
+                },
+                "buildHeight": {
+                  "px": 44,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/content",
+              "values": {
+                "paddingTop": {
+                  "token": "space.0"
+                },
+                "paddingRight": {
+                  "token": "space.0"
+                },
+                "paddingBottom": {
+                  "token": "space.0"
+                },
+                "paddingLeft": {
+                  "token": "space.0"
+                }
+              }
+            },
+            {
+              "part": "container/content/caret",
+              "values": {
+                "height": {
+                  "token": "icon.size.xs"
+                },
+                "width": {
+                  "token": "border-width.hairline"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "minWidth": {
+                  "px": 32,
+                  "source": "literal"
+                },
+                "buildWidth": {
+                  "px": 56,
+                  "source": "literal"
+                },
+                "buildHeight": {
+                  "px": 64,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/content",
+              "values": {
+                "paddingTop": {
+                  "token": "space.0"
+                },
+                "paddingRight": {
+                  "token": "space.0"
+                },
+                "paddingBottom": {
+                  "token": "space.0"
+                },
+                "paddingLeft": {
+                  "token": "space.0"
+                }
+              }
+            },
+            {
+              "part": "container/content/caret",
+              "values": {
+                "height": {
+                  "token": "icon.size.md"
+                },
+                "width": {
+                  "token": "border-width.hairline"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "xlarge"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "minWidth": {
+                  "px": 32,
+                  "source": "literal"
+                },
+                "buildWidth": {
+                  "px": 68,
+                  "source": "literal"
+                },
+                "buildHeight": {
+                  "px": 72,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/content",
+              "values": {
+                "paddingTop": {
+                  "token": "space.0"
+                },
+                "paddingRight": {
+                  "token": "space.0"
+                },
+                "paddingBottom": {
+                  "token": "space.0"
+                },
+                "paddingLeft": {
+                  "token": "space.0"
+                }
+              }
+            },
+            {
+              "part": "container/content/caret",
+              "values": {
+                "height": {
+                  "token": "icon.size.xl"
+                },
+                "width": {
+                  "token": "border-width.hairline"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "typeKey": [
+        "size"
+      ],
+      "type": [
+        {
+          "where": {
+            "size": "medium"
+          },
+          "parts": [
+            {
+              "part": "container/content/digit",
+              "textStyle": "type.title.sm.strong"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small"
+          },
+          "parts": [
+            {
+              "part": "container/content/digit",
+              "textStyle": "type.body.md.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large"
+          },
+          "parts": [
+            {
+              "part": "container/content/digit",
+              "textStyle": "type.title.md.strong"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "xlarge"
+          },
+          "parts": [
+            {
+              "part": "container/content/digit",
+              "textStyle": "type.title.2xl.strong"
+            }
+          ]
+        }
+      ],
+      "colorKey": [
+        "state"
+      ],
+      "colors": [
+        {
+          "where": {
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.field.fill",
+              "stroke": "color.field.border.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.interactive.neutral.overlay.hover",
+              "stroke": "color.field.border.hover"
+            }
+          ]
+        },
+        {
+          "where": {
+            "state": "filled"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.field.fill",
+              "stroke": "color.field.border.rest"
+            },
+            {
+              "part": "container/content/digit",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.field.fill",
+              "stroke": "color.border.focus"
+            },
+            {
+              "part": "container/content/caret",
+              "fill": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "state": "focus-visible-filled"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.field.fill",
+              "stroke": "color.border.focus"
+            },
+            {
+              "part": "container/content/digit",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.disabled.fill",
+              "stroke": "color.disabled.border"
+            }
+          ]
+        },
+        {
+          "where": {
+            "state": "error"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.field.fill",
+              "stroke": "color.border.danger"
+            },
+            {
+              "part": "container/content/digit",
+              "ink": "color.text.primary"
+            }
+          ]
+        }
+      ],
+      "nesting": [
+        {
+          "part": "container/focusRing",
+          "kind": "instance",
+          "component": "focus-ring",
+          "variant": {
+            "surface": "default"
+          },
+          "follows": [],
+          "exposes": []
+        }
+      ],
+      "properties": [
+        {
+          "name": "digit",
+          "type": "TEXT",
+          "default": "7"
+        }
+      ]
+    },
+    "code-input": {
+      "id": "code-input",
+      "name": "CodeInput",
+      "members": 48,
+      "axes": [
+        {
+          "name": "status",
+          "figmaName": "status",
+          "values": [
+            "default",
+            "error"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "size",
+          "figmaName": "size",
+          "values": [
+            "medium",
+            "small",
+            "large",
+            "xlarge"
+          ],
+          "kind": "size"
+        },
+        {
+          "name": "state",
+          "figmaName": "state",
+          "values": [
+            "rest",
+            "hover",
+            "filled",
+            "focus-visible",
+            "focus-visible-filled",
+            "disabled"
+          ],
+          "kind": "state"
+        }
+      ],
+      "codeOnlyStates": [
+        "pending"
+      ],
+      "anatomy": [
+        {
+          "part": "container",
+          "kind": "frame",
+          "members": 48
+        },
+        {
+          "part": "container/label",
+          "kind": "instance",
+          "members": 48
+        },
+        {
+          "part": "container/items",
+          "kind": "slot",
+          "members": 48
+        },
+        {
+          "part": "container/items/cell1",
+          "kind": "instance",
+          "members": 48
+        },
+        {
+          "part": "container/items/cell2",
+          "kind": "instance",
+          "members": 48
+        },
+        {
+          "part": "container/items/cell3",
+          "kind": "instance",
+          "members": 48
+        },
+        {
+          "part": "container/items/cell4",
+          "kind": "instance",
+          "members": 48
+        },
+        {
+          "part": "container/items/cell5",
+          "kind": "instance",
+          "members": 48
+        },
+        {
+          "part": "container/items/cell6",
+          "kind": "instance",
+          "members": 48
+        },
+        {
+          "part": "container/message",
+          "kind": "instance",
+          "members": 48
+        }
+      ],
+      "redlineKey": [
+        "size"
+      ],
+      "redlines": [
+        {
+          "where": {
+            "size": "medium"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                }
+              }
+            },
+            {
+              "part": "container/items",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                }
+              }
+            },
+            {
+              "part": "container/items",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                }
+              }
+            },
+            {
+              "part": "container/items",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "xlarge"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                }
+              }
+            },
+            {
+              "part": "container/items",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "typeKey": [
+        "size"
+      ],
+      "type": [
+        {
+          "where": {
+            "size": "medium"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "size": "small"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "size": "large"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "size": "xlarge"
+          },
+          "parts": []
+        }
+      ],
+      "colorKey": [
+        "status",
+        "state"
+      ],
+      "colors": [
+        {
+          "where": {
+            "status": "default",
+            "state": "rest"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "status": "default",
+            "state": "hover"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "status": "default",
+            "state": "filled"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "status": "default",
+            "state": "focus-visible"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "status": "default",
+            "state": "focus-visible-filled"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "status": "default",
+            "state": "disabled"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "status": "error",
+            "state": "rest"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "status": "error",
+            "state": "hover"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "status": "error",
+            "state": "filled"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "status": "error",
+            "state": "focus-visible"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "status": "error",
+            "state": "focus-visible-filled"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "status": "error",
+            "state": "disabled"
+          },
+          "parts": []
+        }
+      ],
+      "nesting": [
+        {
+          "part": "container/label",
+          "kind": "instance",
+          "component": "field-label",
+          "variant": {
+            "size": "medium",
+            "emphasis": "secondary",
+            "weight": "regular",
+            "state": "rest"
+          },
+          "when": {
+            "state": {
+              "disabled": {
+                "state": "disabled"
+              }
+            }
+          },
+          "follows": [],
+          "exposes": [
+            "emphasis",
+            "weight"
+          ]
+        },
+        {
+          "part": "container/items",
+          "kind": "slot",
+          "preferred": [
+            "code-input-cell"
+          ]
+        },
+        {
+          "part": "container/items/cell1",
+          "kind": "instance",
+          "component": "code-input-cell",
+          "variant": {
+            "size": "medium",
+            "state": "rest"
+          },
+          "when": {
+            "state": {
+              "hover": {
+                "state": "hover"
+              },
+              "filled": {
+                "state": "filled"
+              },
+              "focus-visible": {
+                "state": "focus-visible"
+              },
+              "focus-visible-filled": {
+                "state": "filled"
+              },
+              "disabled": {
+                "state": "disabled"
+              }
+            }
+          },
+          "follows": [
+            "size"
+          ],
+          "exposes": []
+        },
+        {
+          "part": "container/items/cell2",
+          "kind": "instance",
+          "component": "code-input-cell",
+          "variant": {
+            "size": "medium",
+            "state": "rest"
+          },
+          "when": {
+            "state": {
+              "hover": {
+                "state": "hover"
+              },
+              "filled": {
+                "state": "filled"
+              },
+              "focus-visible": {
+                "state": "rest"
+              },
+              "focus-visible-filled": {
+                "state": "filled"
+              },
+              "disabled": {
+                "state": "disabled"
+              }
+            }
+          },
+          "follows": [
+            "size"
+          ],
+          "exposes": []
+        },
+        {
+          "part": "container/items/cell3",
+          "kind": "instance",
+          "component": "code-input-cell",
+          "variant": {
+            "size": "medium",
+            "state": "rest"
+          },
+          "when": {
+            "state": {
+              "hover": {
+                "state": "hover"
+              },
+              "filled": {
+                "state": "filled"
+              },
+              "focus-visible": {
+                "state": "rest"
+              },
+              "focus-visible-filled": {
+                "state": "filled"
+              },
+              "disabled": {
+                "state": "disabled"
+              }
+            }
+          },
+          "follows": [
+            "size"
+          ],
+          "exposes": []
+        },
+        {
+          "part": "container/items/cell4",
+          "kind": "instance",
+          "component": "code-input-cell",
+          "variant": {
+            "size": "medium",
+            "state": "rest"
+          },
+          "when": {
+            "state": {
+              "hover": {
+                "state": "hover"
+              },
+              "filled": {
+                "state": "filled"
+              },
+              "focus-visible": {
+                "state": "rest"
+              },
+              "focus-visible-filled": {
+                "state": "focus-visible"
+              },
+              "disabled": {
+                "state": "disabled"
+              }
+            }
+          },
+          "follows": [
+            "size"
+          ],
+          "exposes": []
+        },
+        {
+          "part": "container/items/cell5",
+          "kind": "instance",
+          "component": "code-input-cell",
+          "variant": {
+            "size": "medium",
+            "state": "rest"
+          },
+          "when": {
+            "state": {
+              "hover": {
+                "state": "hover"
+              },
+              "filled": {
+                "state": "filled"
+              },
+              "focus-visible": {
+                "state": "rest"
+              },
+              "focus-visible-filled": {
+                "state": "rest"
+              },
+              "disabled": {
+                "state": "disabled"
+              }
+            }
+          },
+          "follows": [
+            "size"
+          ],
+          "exposes": []
+        },
+        {
+          "part": "container/items/cell6",
+          "kind": "instance",
+          "component": "code-input-cell",
+          "variant": {
+            "size": "medium",
+            "state": "rest"
+          },
+          "when": {
+            "state": {
+              "hover": {
+                "state": "hover"
+              },
+              "filled": {
+                "state": "filled"
+              },
+              "focus-visible": {
+                "state": "rest"
+              },
+              "focus-visible-filled": {
+                "state": "rest"
+              },
+              "disabled": {
+                "state": "disabled"
+              }
+            }
+          },
+          "follows": [
+            "size"
+          ],
+          "exposes": []
+        },
+        {
+          "part": "container/message",
+          "kind": "instance",
+          "component": "field-message",
+          "variant": {
+            "status": "default"
+          },
+          "follows": [
+            "status"
+          ],
+          "exposes": []
+        }
+      ],
+      "properties": [
+        {
+          "name": "message",
+          "type": "BOOLEAN",
+          "default": true
+        },
+        {
+          "name": "items",
+          "type": "SLOT"
+        }
+      ]
+    },
+    "progress": {
+      "id": "progress",
+      "name": "Progress",
+      "members": 10,
+      "axes": [
+        {
+          "name": "shape",
+          "figmaName": "shape",
+          "values": [
+            "linear",
+            "circular"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "type",
+          "figmaName": "type",
+          "values": [
+            "determinate",
+            "indeterminate"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "status",
+          "figmaName": "status",
+          "values": [
+            "active",
+            "complete",
+            "error"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "size",
+          "figmaName": "size",
+          "values": [
+            "medium",
+            "small"
+          ],
+          "kind": "size"
+        }
+      ],
+      "codeOnlyStates": [],
+      "anatomy": [
+        {
+          "part": "container",
+          "kind": "frame",
+          "members": 10
+        },
+        {
+          "part": "container/header",
+          "kind": "frame",
+          "members": 4,
+          "when": {
+            "shape": [
+              "linear"
+            ]
+          }
+        },
+        {
+          "part": "container/header/label",
+          "kind": "text",
+          "members": 4,
+          "when": {
+            "shape": [
+              "linear"
+            ]
+          }
+        },
+        {
+          "part": "container/header/value",
+          "kind": "text",
+          "members": 2
+        },
+        {
+          "part": "container/track",
+          "kind": "frame",
+          "members": 4,
+          "when": {
+            "shape": [
+              "linear"
+            ]
+          }
+        },
+        {
+          "part": "container/track/fill",
+          "kind": "frame",
+          "members": 4,
+          "when": {
+            "shape": [
+              "linear"
+            ]
+          }
+        },
+        {
+          "part": "container/track/rest",
+          "kind": "frame",
+          "members": 3
+        },
+        {
+          "part": "container/track/stop",
+          "kind": "glyph",
+          "members": 3
+        },
+        {
+          "part": "container/header/valueComplete",
+          "kind": "text",
+          "members": 1
+        },
+        {
+          "part": "container/messageComplete",
+          "kind": "instance",
+          "members": 3,
+          "when": {
+            "status": [
+              "complete"
+            ]
+          }
+        },
+        {
+          "part": "container/messageError",
+          "kind": "instance",
+          "members": 3,
+          "when": {
+            "status": [
+              "error"
+            ]
+          }
+        },
+        {
+          "part": "container/track/lead",
+          "kind": "frame",
+          "members": 1,
+          "when": {
+            "type": [
+              "indeterminate"
+            ]
+          }
+        },
+        {
+          "part": "container/ringRow",
+          "kind": "frame",
+          "members": 6,
+          "when": {
+            "shape": [
+              "circular"
+            ]
+          }
+        },
+        {
+          "part": "container/ringRow/ring",
+          "kind": "frame",
+          "members": 6,
+          "when": {
+            "shape": [
+              "circular"
+            ]
+          }
+        },
+        {
+          "part": "container/ringRow/ring/ringTrack",
+          "kind": "glyph",
+          "members": 6,
+          "when": {
+            "shape": [
+              "circular"
+            ]
+          }
+        },
+        {
+          "part": "container/ringRow/ring/arc",
+          "kind": "glyph",
+          "members": 4
+        },
+        {
+          "part": "container/ringRow/ringValue",
+          "kind": "text",
+          "members": 4
+        },
+        {
+          "part": "container/ringRow/ring/arcFull",
+          "kind": "glyph",
+          "members": 2
+        },
+        {
+          "part": "container/ringRow/ringValueComplete",
+          "kind": "text",
+          "members": 2
+        }
+      ],
+      "redlineKey": [
+        "size",
+        "shape"
+      ],
+      "redlines": [
+        {
+          "where": {
+            "size": "medium",
+            "shape": "linear"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "gap": {
+                  "token": "space.075"
+                },
+                "buildWidth": {
+                  "px": 360,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/header",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                },
+                "minHeight": {
+                  "token": "icon.size.md"
+                }
+              }
+            },
+            {
+              "part": "container/track",
+              "values": {
+                "height": {
+                  "token": "border-width.heavy"
+                }
+              }
+            },
+            {
+              "part": "container/track/stop",
+              "values": {
+                "height": {
+                  "token": "border-width.heavy"
+                },
+                "width": {
+                  "token": "border-width.heavy"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "medium",
+            "shape": "circular"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "gap": {
+                  "token": "space.075"
+                },
+                "buildWidth": {
+                  "px": 320,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/ringRow",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                }
+              }
+            },
+            {
+              "part": "container/ringRow/ring",
+              "values": {
+                "height": {
+                  "token": "icon.size.xl"
+                },
+                "width": {
+                  "token": "icon.size.xl"
+                }
+              }
+            },
+            {
+              "part": "container/ringRow/ring/ringTrack",
+              "values": {
+                "height": {
+                  "token": "icon.size.xl"
+                },
+                "width": {
+                  "token": "icon.size.xl"
+                }
+              }
+            },
+            {
+              "part": "container/ringRow/ring/arc",
+              "values": {
+                "height": {
+                  "token": "icon.size.xl"
+                },
+                "width": {
+                  "token": "icon.size.xl"
+                }
+              }
+            },
+            {
+              "part": "container/ringRow/ring/arcFull",
+              "values": {
+                "height": {
+                  "token": "icon.size.xl"
+                },
+                "width": {
+                  "token": "icon.size.xl"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small",
+            "shape": "circular"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "gap": {
+                  "token": "space.075"
+                },
+                "buildWidth": {
+                  "px": 320,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/ringRow",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                }
+              }
+            },
+            {
+              "part": "container/ringRow/ring",
+              "values": {
+                "height": {
+                  "token": "icon.size.md"
+                },
+                "width": {
+                  "token": "icon.size.md"
+                }
+              }
+            },
+            {
+              "part": "container/ringRow/ring/ringTrack",
+              "values": {
+                "height": {
+                  "token": "icon.size.md"
+                },
+                "width": {
+                  "token": "icon.size.md"
+                }
+              }
+            },
+            {
+              "part": "container/ringRow/ring/arc",
+              "values": {
+                "height": {
+                  "token": "icon.size.md"
+                },
+                "width": {
+                  "token": "icon.size.md"
+                }
+              }
+            },
+            {
+              "part": "container/ringRow/ring/arcFull",
+              "values": {
+                "height": {
+                  "token": "icon.size.md"
+                },
+                "width": {
+                  "token": "icon.size.md"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "typeKey": [
+        "size"
+      ],
+      "type": [
+        {
+          "where": {
+            "size": "medium"
+          },
+          "parts": [
+            {
+              "part": "container/header/label",
+              "textStyle": "type.label.md.emphasis"
+            },
+            {
+              "part": "container/header/value",
+              "textStyle": "type.body.sm.default"
+            },
+            {
+              "part": "container/header/valueComplete",
+              "textStyle": "type.body.sm.default"
+            },
+            {
+              "part": "container/ringRow/ringValue",
+              "textStyle": "type.body.sm.default"
+            },
+            {
+              "part": "container/ringRow/ringValueComplete",
+              "textStyle": "type.body.sm.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small"
+          },
+          "parts": [
+            {
+              "part": "container/ringRow/ringValue",
+              "textStyle": "type.body.sm.default"
+            },
+            {
+              "part": "container/ringRow/ringValueComplete",
+              "textStyle": "type.body.sm.default"
+            }
+          ]
+        }
+      ],
+      "colorKey": [
+        "shape",
+        "type",
+        "status"
+      ],
+      "colors": [
+        {
+          "where": {
+            "shape": "linear",
+            "type": "determinate",
+            "status": "active"
+          },
+          "parts": [
+            {
+              "part": "container/header/label",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/header/value",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/track",
+              "fill": "color.background.tertiary"
+            },
+            {
+              "part": "container/track/fill",
+              "fill": "color.icon.brand"
+            },
+            {
+              "part": "container/track/stop",
+              "icon": "color.icon.brand"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "linear",
+            "type": "determinate",
+            "status": "complete"
+          },
+          "parts": [
+            {
+              "part": "container/header/label",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/header/valueComplete",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/track",
+              "fill": "color.background.tertiary"
+            },
+            {
+              "part": "container/track/fill",
+              "fill": "color.icon.success"
+            },
+            {
+              "part": "container/track/stop",
+              "icon": "color.icon.success"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "linear",
+            "type": "determinate",
+            "status": "error"
+          },
+          "parts": [
+            {
+              "part": "container/header/label",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/header/value",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/track",
+              "fill": "color.background.tertiary"
+            },
+            {
+              "part": "container/track/fill",
+              "fill": "color.icon.danger"
+            },
+            {
+              "part": "container/track/stop",
+              "icon": "color.icon.danger"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "linear",
+            "type": "indeterminate",
+            "status": "active"
+          },
+          "parts": [
+            {
+              "part": "container/header/label",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/track",
+              "fill": "color.background.tertiary"
+            },
+            {
+              "part": "container/track/fill",
+              "fill": "color.icon.brand"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "circular",
+            "type": "determinate",
+            "status": "active"
+          },
+          "parts": [
+            {
+              "part": "container/ringRow/ring/ringTrack",
+              "icon": "color.background.tertiary"
+            },
+            {
+              "part": "container/ringRow/ring/arc",
+              "icon": "color.icon.brand"
+            },
+            {
+              "part": "container/ringRow/ringValue",
+              "ink": "color.text.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "circular",
+            "type": "determinate",
+            "status": "complete"
+          },
+          "parts": [
+            {
+              "part": "container/ringRow/ring/ringTrack",
+              "icon": "color.background.tertiary"
+            },
+            {
+              "part": "container/ringRow/ring/arcFull",
+              "icon": "color.icon.success"
+            },
+            {
+              "part": "container/ringRow/ringValueComplete",
+              "ink": "color.text.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "circular",
+            "type": "determinate",
+            "status": "error"
+          },
+          "parts": [
+            {
+              "part": "container/ringRow/ring/ringTrack",
+              "icon": "color.background.tertiary"
+            },
+            {
+              "part": "container/ringRow/ring/arc",
+              "icon": "color.icon.danger"
+            },
+            {
+              "part": "container/ringRow/ringValue",
+              "ink": "color.text.secondary"
+            }
+          ]
+        }
+      ],
+      "nesting": [
+        {
+          "part": "container/messageComplete",
+          "kind": "instance",
+          "component": "field-message",
+          "variant": {
+            "status": "success"
+          },
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "container/messageError",
+          "kind": "instance",
+          "component": "field-message",
+          "variant": {
+            "status": "error"
+          },
+          "follows": [],
+          "exposes": []
+        }
+      ],
+      "properties": [
+        {
+          "name": "label text",
+          "type": "TEXT",
+          "default": "Label"
+        },
+        {
+          "name": "value text",
+          "type": "TEXT",
+          "default": "50%"
+        },
+        {
+          "name": "complete value text",
+          "type": "TEXT",
+          "default": "100%"
+        },
+        {
+          "name": "label",
+          "type": "BOOLEAN",
+          "default": true
+        },
+        {
+          "name": "value",
+          "type": "BOOLEAN",
+          "default": true
+        },
+        {
+          "name": "message",
+          "type": "BOOLEAN",
+          "default": true
+        }
+      ]
+    },
+    "_slider-thumb": {
+      "id": "_slider-thumb",
+      "name": "Slider.Thumb",
+      "members": 5,
+      "axes": [
+        {
+          "name": "state",
+          "figmaName": "state",
+          "values": [
+            "rest",
+            "hover",
+            "pressed",
+            "focus-visible",
+            "disabled"
+          ],
+          "kind": "state"
+        }
+      ],
+      "codeOnlyStates": [],
+      "anatomy": [
+        {
+          "part": "thumb",
+          "kind": "frame",
+          "members": 5
+        },
+        {
+          "part": "thumb/disc",
+          "kind": "frame",
+          "members": 5
+        },
+        {
+          "part": "thumb/focusRing",
+          "kind": "instance",
+          "members": 1,
+          "when": {
+            "state": [
+              "focus-visible"
+            ]
+          }
+        }
+      ],
+      "redlineKey": [],
+      "redlines": [
+        {
+          "where": {},
+          "parts": [
+            {
+              "part": "thumb",
+              "values": {
+                "paddingTop": {
+                  "token": "space.025"
+                },
+                "paddingRight": {
+                  "token": "space.025"
+                },
+                "paddingBottom": {
+                  "token": "space.025"
+                },
+                "paddingLeft": {
+                  "token": "space.025"
+                },
+                "height": {
+                  "token": "control.size.md.thumb"
+                },
+                "width": {
+                  "token": "control.size.md.thumb"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "typeKey": [],
+      "type": [
+        {
+          "where": {},
+          "parts": []
+        }
+      ],
+      "colorKey": [
+        "state"
+      ],
+      "colors": [
+        {
+          "where": {
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "thumb",
+              "fill": "color.background.primary"
+            },
+            {
+              "part": "thumb/disc",
+              "fill": "color.interactive.primary.fill.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "thumb",
+              "fill": "color.background.primary"
+            },
+            {
+              "part": "thumb/disc",
+              "fill": "color.interactive.primary.fill.hover"
+            }
+          ]
+        },
+        {
+          "where": {
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "thumb",
+              "fill": "color.background.primary"
+            },
+            {
+              "part": "thumb/disc",
+              "fill": "color.interactive.primary.fill.pressed"
+            }
+          ]
+        },
+        {
+          "where": {
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "thumb",
+              "fill": "color.background.primary"
+            },
+            {
+              "part": "thumb/disc",
+              "fill": "color.interactive.primary.fill.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "thumb",
+              "fill": "color.background.primary"
+            },
+            {
+              "part": "thumb/disc",
+              "fill": "color.disabled.fill"
+            }
+          ]
+        }
+      ],
+      "nesting": [
+        {
+          "part": "thumb/focusRing",
+          "kind": "instance",
+          "component": "focus-ring",
+          "variant": {
+            "surface": "default"
+          },
+          "follows": [],
+          "exposes": []
+        }
+      ],
+      "properties": []
+    },
+    "slider": {
+      "id": "slider",
+      "name": "Slider",
+      "members": 10,
+      "axes": [
+        {
+          "name": "type",
+          "figmaName": "type",
+          "values": [
+            "single",
+            "range"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "state",
+          "figmaName": "state",
+          "values": [
+            "rest",
+            "hover",
+            "pressed",
+            "focus-visible",
+            "disabled"
+          ],
+          "kind": "state"
+        }
+      ],
+      "codeOnlyStates": [],
+      "anatomy": [
+        {
+          "part": "container",
+          "kind": "frame",
+          "members": 10
+        },
+        {
+          "part": "container/header",
+          "kind": "frame",
+          "members": 10
+        },
+        {
+          "part": "container/header/label",
+          "kind": "instance",
+          "members": 10
+        },
+        {
+          "part": "container/header/valueSingle",
+          "kind": "text",
+          "members": 5,
+          "when": {
+            "type": [
+              "single"
+            ]
+          }
+        },
+        {
+          "part": "container/control",
+          "kind": "frame",
+          "members": 10
+        },
+        {
+          "part": "container/control/track",
+          "kind": "frame",
+          "members": 10
+        },
+        {
+          "part": "container/control/track/bar",
+          "kind": "frame",
+          "members": 10
+        },
+        {
+          "part": "container/control/track/thumb",
+          "kind": "instance",
+          "members": 10
+        },
+        {
+          "part": "container/control/track/spaceEnd",
+          "kind": "frame",
+          "members": 10
+        },
+        {
+          "part": "container/ends",
+          "kind": "frame",
+          "members": 10
+        },
+        {
+          "part": "container/ends/minLabel",
+          "kind": "text",
+          "members": 10
+        },
+        {
+          "part": "container/ends/maxLabel",
+          "kind": "text",
+          "members": 10
+        },
+        {
+          "part": "container/inputs",
+          "kind": "frame",
+          "members": 10
+        },
+        {
+          "part": "container/inputs/inputSingle",
+          "kind": "instance",
+          "members": 5,
+          "when": {
+            "type": [
+              "single"
+            ]
+          }
+        },
+        {
+          "part": "container/message",
+          "kind": "instance",
+          "members": 10
+        },
+        {
+          "part": "container/header/valueRange",
+          "kind": "text",
+          "members": 5,
+          "when": {
+            "type": [
+              "range"
+            ]
+          }
+        },
+        {
+          "part": "container/control/track/spaceStart",
+          "kind": "frame",
+          "members": 5,
+          "when": {
+            "type": [
+              "range"
+            ]
+          }
+        },
+        {
+          "part": "container/control/track/thumbMin",
+          "kind": "instance",
+          "members": 5,
+          "when": {
+            "type": [
+              "range"
+            ]
+          }
+        },
+        {
+          "part": "container/inputs/inputMin",
+          "kind": "instance",
+          "members": 5,
+          "when": {
+            "type": [
+              "range"
+            ]
+          }
+        },
+        {
+          "part": "container/inputs/inputMax",
+          "kind": "instance",
+          "members": 5,
+          "when": {
+            "type": [
+              "range"
+            ]
+          }
+        }
+      ],
+      "redlineKey": [],
+      "redlines": [
+        {
+          "where": {},
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                },
+                "buildWidth": {
+                  "px": 320,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/control",
+              "values": {
+                "height": {
+                  "token": "size.md.min-height"
+                }
+              }
+            },
+            {
+              "part": "container/control/track",
+              "values": {
+                "height": {
+                  "token": "border-width.thick"
+                }
+              }
+            },
+            {
+              "part": "container/control/track/bar",
+              "values": {
+                "height": {
+                  "token": "border-width.heavy"
+                }
+              }
+            },
+            {
+              "part": "container/control/track/spaceEnd",
+              "values": {
+                "height": {
+                  "token": "border-width.thick"
+                }
+              }
+            },
+            {
+              "part": "container/inputs",
+              "values": {
+                "gap": {
+                  "token": "space.150"
+                }
+              }
+            },
+            {
+              "part": "container/control/track/spaceStart",
+              "values": {
+                "height": {
+                  "token": "border-width.thick"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "typeKey": [],
+      "type": [
+        {
+          "where": {},
+          "parts": [
+            {
+              "part": "container/header/valueSingle",
+              "textStyle": "type.body.sm.default"
+            },
+            {
+              "part": "container/ends/minLabel",
+              "textStyle": "type.body.xs.default"
+            },
+            {
+              "part": "container/ends/maxLabel",
+              "textStyle": "type.body.xs.default"
+            },
+            {
+              "part": "container/header/valueRange",
+              "textStyle": "type.body.sm.default"
+            }
+          ]
+        }
+      ],
+      "colorKey": [
+        "type",
+        "state"
+      ],
+      "colors": [
+        {
+          "where": {
+            "type": "single",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/header/valueSingle",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/control/track",
+              "fill": "color.field.border.rest"
+            },
+            {
+              "part": "container/control/track/bar",
+              "fill": "color.interactive.primary.fill.rest"
+            },
+            {
+              "part": "container/ends/minLabel",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/ends/maxLabel",
+              "ink": "color.text.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "single",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container/header/valueSingle",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/control/track",
+              "fill": "color.field.border.rest"
+            },
+            {
+              "part": "container/control/track/bar",
+              "fill": "color.interactive.primary.fill.rest"
+            },
+            {
+              "part": "container/ends/minLabel",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/ends/maxLabel",
+              "ink": "color.text.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "single",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container/header/valueSingle",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/control/track",
+              "fill": "color.field.border.rest"
+            },
+            {
+              "part": "container/control/track/bar",
+              "fill": "color.interactive.primary.fill.rest"
+            },
+            {
+              "part": "container/ends/minLabel",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/ends/maxLabel",
+              "ink": "color.text.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "single",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/header/valueSingle",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/control/track",
+              "fill": "color.field.border.rest"
+            },
+            {
+              "part": "container/control/track/bar",
+              "fill": "color.interactive.primary.fill.rest"
+            },
+            {
+              "part": "container/ends/minLabel",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/ends/maxLabel",
+              "ink": "color.text.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "single",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "container/header/valueSingle",
+              "ink": "color.disabled.text"
+            },
+            {
+              "part": "container/control/track",
+              "fill": "color.disabled.fill"
+            },
+            {
+              "part": "container/control/track/bar",
+              "fill": "color.disabled.fill"
+            },
+            {
+              "part": "container/ends/minLabel",
+              "ink": "color.disabled.text"
+            },
+            {
+              "part": "container/ends/maxLabel",
+              "ink": "color.disabled.text"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "range",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/header/valueRange",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/control/track",
+              "fill": "color.field.border.rest"
+            },
+            {
+              "part": "container/control/track/bar",
+              "fill": "color.interactive.primary.fill.rest"
+            },
+            {
+              "part": "container/ends/minLabel",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/ends/maxLabel",
+              "ink": "color.text.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "range",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container/header/valueRange",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/control/track",
+              "fill": "color.field.border.rest"
+            },
+            {
+              "part": "container/control/track/bar",
+              "fill": "color.interactive.primary.fill.rest"
+            },
+            {
+              "part": "container/ends/minLabel",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/ends/maxLabel",
+              "ink": "color.text.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "range",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container/header/valueRange",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/control/track",
+              "fill": "color.field.border.rest"
+            },
+            {
+              "part": "container/control/track/bar",
+              "fill": "color.interactive.primary.fill.rest"
+            },
+            {
+              "part": "container/ends/minLabel",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/ends/maxLabel",
+              "ink": "color.text.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "range",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/header/valueRange",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/control/track",
+              "fill": "color.field.border.rest"
+            },
+            {
+              "part": "container/control/track/bar",
+              "fill": "color.interactive.primary.fill.rest"
+            },
+            {
+              "part": "container/ends/minLabel",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/ends/maxLabel",
+              "ink": "color.text.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "range",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "container/header/valueRange",
+              "ink": "color.disabled.text"
+            },
+            {
+              "part": "container/control/track",
+              "fill": "color.disabled.fill"
+            },
+            {
+              "part": "container/control/track/bar",
+              "fill": "color.disabled.fill"
+            },
+            {
+              "part": "container/ends/minLabel",
+              "ink": "color.disabled.text"
+            },
+            {
+              "part": "container/ends/maxLabel",
+              "ink": "color.disabled.text"
+            }
+          ]
+        }
+      ],
+      "nesting": [
+        {
+          "part": "container/header/label",
+          "kind": "instance",
+          "component": "field-label",
+          "variant": {
+            "size": "medium",
+            "emphasis": "secondary",
+            "weight": "bold",
+            "state": "rest"
+          },
+          "when": {
+            "state": {
+              "disabled": {
+                "state": "disabled"
+              }
+            }
+          },
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "container/control/track/thumb",
+          "kind": "instance",
+          "component": "_slider-thumb",
+          "variant": {
+            "state": "rest"
+          },
+          "when": {
+            "state": {
+              "hover": {
+                "state": "hover"
+              },
+              "pressed": {
+                "state": "pressed"
+              },
+              "focus-visible": {
+                "state": "focus-visible"
+              },
+              "disabled": {
+                "state": "disabled"
+              }
+            }
+          },
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "container/inputs/inputSingle",
+          "kind": "instance",
+          "component": "text-field",
+          "variant": {
+            "size": "medium",
+            "status": "default",
+            "state": "filled"
+          },
+          "when": {
+            "state": {
+              "disabled": {
+                "state": "disabled"
+              }
+            }
+          },
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "container/message",
+          "kind": "instance",
+          "component": "field-message",
+          "variant": {
+            "status": "default"
+          },
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "container/control/track/thumbMin",
+          "kind": "instance",
+          "component": "_slider-thumb",
+          "variant": {
+            "state": "rest"
+          },
+          "when": {
+            "state": {
+              "disabled": {
+                "state": "disabled"
+              }
+            }
+          },
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "container/inputs/inputMin",
+          "kind": "instance",
+          "component": "text-field",
+          "variant": {
+            "size": "medium",
+            "status": "default",
+            "state": "filled"
+          },
+          "when": {
+            "state": {
+              "disabled": {
+                "state": "disabled"
+              }
+            }
+          },
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "container/inputs/inputMax",
+          "kind": "instance",
+          "component": "text-field",
+          "variant": {
+            "size": "medium",
+            "status": "default",
+            "state": "filled"
+          },
+          "when": {
+            "state": {
+              "disabled": {
+                "state": "disabled"
+              }
+            }
+          },
+          "follows": [],
+          "exposes": []
+        }
+      ],
+      "properties": [
+        {
+          "name": "value text",
+          "type": "TEXT",
+          "default": "50"
+        },
+        {
+          "name": "min label",
+          "type": "TEXT",
+          "default": "0"
+        },
+        {
+          "name": "max label",
+          "type": "TEXT",
+          "default": "100"
+        },
+        {
+          "name": "range text",
+          "type": "TEXT",
+          "default": "30 – 70"
+        },
+        {
+          "name": "label",
+          "type": "BOOLEAN",
+          "default": true
+        },
+        {
+          "name": "value",
+          "type": "BOOLEAN",
+          "default": true
+        },
+        {
+          "name": "end labels",
+          "type": "BOOLEAN",
+          "default": false
+        },
+        {
+          "name": "inputs",
+          "type": "BOOLEAN",
+          "default": false
+        },
+        {
+          "name": "helper",
+          "type": "BOOLEAN",
+          "default": false
+        }
+      ]
+    },
+    "pagination-item": {
+      "id": "pagination-item",
+      "name": "Pagination.Item",
+      "members": 87,
+      "axes": [
+        {
+          "name": "type",
+          "figmaName": "type",
+          "values": [
+            "page",
+            "ellipsis",
+            "previous",
+            "next"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "selection",
+          "figmaName": "selection",
+          "values": [
+            "unselected",
+            "selected"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "style",
+          "figmaName": "style",
+          "values": [
+            "border",
+            "underline"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "labeled",
+          "figmaName": "labeled",
+          "values": [
+            "false",
+            "true"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "size",
+          "figmaName": "size",
+          "values": [
+            "medium",
+            "small",
+            "large"
+          ],
+          "kind": "size"
+        },
+        {
+          "name": "state",
+          "figmaName": "state",
+          "values": [
+            "rest",
+            "hover",
+            "pressed",
+            "focus-visible",
+            "disabled"
+          ],
+          "kind": "state"
+        }
+      ],
+      "codeOnlyStates": [],
+      "anatomy": [
+        {
+          "part": "container",
+          "kind": "frame",
+          "members": 87
+        },
+        {
+          "part": "container/labelBox",
+          "kind": "frame",
+          "members": 24,
+          "when": {
+            "type": [
+              "page"
+            ]
+          }
+        },
+        {
+          "part": "container/labelBox/reserve",
+          "kind": "frame",
+          "members": 24,
+          "when": {
+            "type": [
+              "page"
+            ]
+          }
+        },
+        {
+          "part": "container/labelBox/reserve/labelReserve",
+          "kind": "text",
+          "members": 24,
+          "when": {
+            "type": [
+              "page"
+            ]
+          }
+        },
+        {
+          "part": "container/labelBox/label",
+          "kind": "text",
+          "members": 24,
+          "when": {
+            "type": [
+              "page"
+            ]
+          }
+        },
+        {
+          "part": "container/focusRing",
+          "kind": "instance",
+          "members": 21,
+          "when": {
+            "state": [
+              "focus-visible"
+            ]
+          }
+        },
+        {
+          "part": "container/labelBox/balance",
+          "kind": "frame",
+          "members": 6,
+          "when": {
+            "style": [
+              "underline"
+            ]
+          }
+        },
+        {
+          "part": "container/labelBox/underline",
+          "kind": "frame",
+          "members": 6,
+          "when": {
+            "style": [
+              "underline"
+            ]
+          }
+        },
+        {
+          "part": "container/gapIcon",
+          "kind": "instance",
+          "members": 3,
+          "when": {
+            "type": [
+              "ellipsis"
+            ]
+          }
+        },
+        {
+          "part": "container/previousIcon",
+          "kind": "instance",
+          "members": 30,
+          "when": {
+            "type": [
+              "previous"
+            ]
+          }
+        },
+        {
+          "part": "container/previousText",
+          "kind": "text",
+          "members": 15
+        },
+        {
+          "part": "container/nextIcon",
+          "kind": "instance",
+          "members": 30,
+          "when": {
+            "type": [
+              "next"
+            ]
+          }
+        },
+        {
+          "part": "container/nextText",
+          "kind": "text",
+          "members": 15
+        }
+      ],
+      "redlineKey": [
+        "size"
+      ],
+      "redlines": [
+        {
+          "where": {
+            "size": "medium"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "paddingTop": {
+                  "token": "space.0"
+                },
+                "paddingRight": {
+                  "token": "space.100"
+                },
+                "paddingBottom": {
+                  "token": "space.0"
+                },
+                "paddingLeft": {
+                  "token": "space.100"
+                },
+                "gap": {
+                  "token": "space.050"
+                },
+                "height": {
+                  "token": "size.md.height"
+                },
+                "minWidth": {
+                  "token": "size.md.height"
+                }
+              }
+            },
+            {
+              "part": "container/labelBox/reserve",
+              "values": {
+                "height": {
+                  "token": "space.0"
+                }
+              }
+            },
+            {
+              "part": "container/labelBox/balance",
+              "values": {
+                "height": {
+                  "token": "border-width.thick"
+                }
+              }
+            },
+            {
+              "part": "container/labelBox/underline",
+              "values": {
+                "height": {
+                  "token": "border-width.thick"
+                }
+              }
+            },
+            {
+              "part": "container/gapIcon",
+              "values": {
+                "height": {
+                  "token": "icon.size.sm"
+                },
+                "width": {
+                  "token": "icon.size.sm"
+                }
+              }
+            },
+            {
+              "part": "container/previousIcon",
+              "values": {
+                "height": {
+                  "token": "icon.size.sm"
+                },
+                "width": {
+                  "token": "icon.size.sm"
+                }
+              }
+            },
+            {
+              "part": "container/nextIcon",
+              "values": {
+                "height": {
+                  "token": "icon.size.sm"
+                },
+                "width": {
+                  "token": "icon.size.sm"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "paddingTop": {
+                  "token": "space.0"
+                },
+                "paddingRight": {
+                  "token": "space.100"
+                },
+                "paddingBottom": {
+                  "token": "space.0"
+                },
+                "paddingLeft": {
+                  "token": "space.100"
+                },
+                "gap": {
+                  "token": "space.050"
+                },
+                "height": {
+                  "token": "size.sm.height"
+                },
+                "minWidth": {
+                  "token": "size.sm.height"
+                }
+              }
+            },
+            {
+              "part": "container/labelBox/reserve",
+              "values": {
+                "height": {
+                  "token": "space.0"
+                }
+              }
+            },
+            {
+              "part": "container/labelBox/balance",
+              "values": {
+                "height": {
+                  "token": "border-width.thick"
+                }
+              }
+            },
+            {
+              "part": "container/labelBox/underline",
+              "values": {
+                "height": {
+                  "token": "border-width.thick"
+                }
+              }
+            },
+            {
+              "part": "container/gapIcon",
+              "values": {
+                "height": {
+                  "token": "icon.size.xs"
+                },
+                "width": {
+                  "token": "icon.size.xs"
+                }
+              }
+            },
+            {
+              "part": "container/previousIcon",
+              "values": {
+                "height": {
+                  "token": "icon.size.xs"
+                },
+                "width": {
+                  "token": "icon.size.xs"
+                }
+              }
+            },
+            {
+              "part": "container/nextIcon",
+              "values": {
+                "height": {
+                  "token": "icon.size.xs"
+                },
+                "width": {
+                  "token": "icon.size.xs"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "paddingTop": {
+                  "token": "space.0"
+                },
+                "paddingRight": {
+                  "token": "space.100"
+                },
+                "paddingBottom": {
+                  "token": "space.0"
+                },
+                "paddingLeft": {
+                  "token": "space.100"
+                },
+                "gap": {
+                  "token": "space.050"
+                },
+                "height": {
+                  "token": "size.lg.height"
+                },
+                "minWidth": {
+                  "token": "size.lg.height"
+                }
+              }
+            },
+            {
+              "part": "container/labelBox/reserve",
+              "values": {
+                "height": {
+                  "token": "space.0"
+                }
+              }
+            },
+            {
+              "part": "container/labelBox/balance",
+              "values": {
+                "height": {
+                  "token": "border-width.thick"
+                }
+              }
+            },
+            {
+              "part": "container/labelBox/underline",
+              "values": {
+                "height": {
+                  "token": "border-width.thick"
+                }
+              }
+            },
+            {
+              "part": "container/gapIcon",
+              "values": {
+                "height": {
+                  "token": "icon.size.md"
+                },
+                "width": {
+                  "token": "icon.size.md"
+                }
+              }
+            },
+            {
+              "part": "container/previousIcon",
+              "values": {
+                "height": {
+                  "token": "icon.size.md"
+                },
+                "width": {
+                  "token": "icon.size.md"
+                }
+              }
+            },
+            {
+              "part": "container/nextIcon",
+              "values": {
+                "height": {
+                  "token": "icon.size.md"
+                },
+                "width": {
+                  "token": "icon.size.md"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "typeKey": [
+        "size",
+        "selection"
+      ],
+      "type": [
+        {
+          "where": {
+            "size": "medium",
+            "selection": "unselected"
+          },
+          "parts": [
+            {
+              "part": "container/labelBox/reserve/labelReserve",
+              "textStyle": "type.label.md.emphasis"
+            },
+            {
+              "part": "container/labelBox/label",
+              "textStyle": "type.label.md.default"
+            },
+            {
+              "part": "container/previousText",
+              "textStyle": "type.label.md.default"
+            },
+            {
+              "part": "container/nextText",
+              "textStyle": "type.label.md.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small",
+            "selection": "unselected"
+          },
+          "parts": [
+            {
+              "part": "container/labelBox/reserve/labelReserve",
+              "textStyle": "type.label.sm.emphasis"
+            },
+            {
+              "part": "container/labelBox/label",
+              "textStyle": "type.label.sm.default"
+            },
+            {
+              "part": "container/previousText",
+              "textStyle": "type.label.sm.default"
+            },
+            {
+              "part": "container/nextText",
+              "textStyle": "type.label.sm.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large",
+            "selection": "unselected"
+          },
+          "parts": [
+            {
+              "part": "container/labelBox/reserve/labelReserve",
+              "textStyle": "type.label.lg.emphasis"
+            },
+            {
+              "part": "container/labelBox/label",
+              "textStyle": "type.label.lg.default"
+            },
+            {
+              "part": "container/previousText",
+              "textStyle": "type.label.lg.default"
+            },
+            {
+              "part": "container/nextText",
+              "textStyle": "type.label.lg.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "medium",
+            "selection": "selected"
+          },
+          "parts": [
+            {
+              "part": "container/labelBox/reserve/labelReserve",
+              "textStyle": "type.label.md.emphasis"
+            },
+            {
+              "part": "container/labelBox/label",
+              "textStyle": "type.label.md.emphasis"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small",
+            "selection": "selected"
+          },
+          "parts": [
+            {
+              "part": "container/labelBox/reserve/labelReserve",
+              "textStyle": "type.label.sm.emphasis"
+            },
+            {
+              "part": "container/labelBox/label",
+              "textStyle": "type.label.sm.emphasis"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large",
+            "selection": "selected"
+          },
+          "parts": [
+            {
+              "part": "container/labelBox/reserve/labelReserve",
+              "textStyle": "type.label.lg.emphasis"
+            },
+            {
+              "part": "container/labelBox/label",
+              "textStyle": "type.label.lg.emphasis"
+            }
+          ]
+        }
+      ],
+      "colorKey": [
+        "type",
+        "selection",
+        "style",
+        "labeled",
+        "state"
+      ],
+      "colors": [
+        {
+          "where": {
+            "type": "page",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/labelBox/reserve/labelReserve",
+              "ink": "color.interactive.neutral.text.rest"
+            },
+            {
+              "part": "container/labelBox/label",
+              "ink": "color.interactive.neutral.text.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "page",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.interactive.neutral.overlay.hover"
+            },
+            {
+              "part": "container/labelBox/reserve/labelReserve",
+              "ink": "color.interactive.neutral.text.hover"
+            },
+            {
+              "part": "container/labelBox/label",
+              "ink": "color.interactive.neutral.text.hover"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "page",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.interactive.neutral.overlay.pressed"
+            },
+            {
+              "part": "container/labelBox/reserve/labelReserve",
+              "ink": "color.interactive.neutral.text.pressed"
+            },
+            {
+              "part": "container/labelBox/label",
+              "ink": "color.interactive.neutral.text.pressed"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "page",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/labelBox/reserve/labelReserve",
+              "ink": "color.interactive.neutral.text.rest"
+            },
+            {
+              "part": "container/labelBox/label",
+              "ink": "color.interactive.neutral.text.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "page",
+            "selection": "selected",
+            "style": "border",
+            "labeled": "false",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "stroke": "color.border.secondary"
+            },
+            {
+              "part": "container/labelBox/reserve/labelReserve",
+              "ink": "color.interactive.neutral.text.rest"
+            },
+            {
+              "part": "container/labelBox/label",
+              "ink": "color.interactive.neutral.text.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "page",
+            "selection": "selected",
+            "style": "border",
+            "labeled": "false",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "stroke": "color.border.secondary"
+            },
+            {
+              "part": "container/labelBox/reserve/labelReserve",
+              "ink": "color.interactive.neutral.text.rest"
+            },
+            {
+              "part": "container/labelBox/label",
+              "ink": "color.interactive.neutral.text.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "page",
+            "selection": "selected",
+            "style": "underline",
+            "labeled": "false",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/labelBox/reserve/labelReserve",
+              "ink": "color.interactive.neutral.text.rest"
+            },
+            {
+              "part": "container/labelBox/label",
+              "ink": "color.interactive.neutral.text.rest"
+            },
+            {
+              "part": "container/labelBox/underline",
+              "fill": "color.border.tertiary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "page",
+            "selection": "selected",
+            "style": "underline",
+            "labeled": "false",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/labelBox/reserve/labelReserve",
+              "ink": "color.interactive.neutral.text.rest"
+            },
+            {
+              "part": "container/labelBox/label",
+              "ink": "color.interactive.neutral.text.rest"
+            },
+            {
+              "part": "container/labelBox/underline",
+              "fill": "color.border.tertiary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "ellipsis",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/gapIcon",
+              "icon": "color.icon.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "previous",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/previousIcon",
+              "icon": "color.interactive.neutral.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "previous",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.interactive.neutral.overlay.hover"
+            },
+            {
+              "part": "container/previousIcon",
+              "icon": "color.interactive.neutral.icon.hover"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "previous",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.interactive.neutral.overlay.pressed"
+            },
+            {
+              "part": "container/previousIcon",
+              "icon": "color.interactive.neutral.icon.pressed"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "previous",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/previousIcon",
+              "icon": "color.interactive.neutral.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "previous",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "container/previousIcon",
+              "icon": "color.disabled.icon"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "previous",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "true",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/previousIcon",
+              "icon": "color.interactive.neutral.icon.rest"
+            },
+            {
+              "part": "container/previousText",
+              "ink": "color.interactive.neutral.text.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "previous",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "true",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container/previousIcon",
+              "icon": "color.interactive.neutral.icon.hover"
+            },
+            {
+              "part": "container/previousText",
+              "ink": "color.interactive.neutral.text.hover"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "previous",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "true",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container/previousIcon",
+              "icon": "color.interactive.neutral.icon.pressed"
+            },
+            {
+              "part": "container/previousText",
+              "ink": "color.interactive.neutral.text.pressed"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "previous",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "true",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/previousIcon",
+              "icon": "color.interactive.neutral.icon.rest"
+            },
+            {
+              "part": "container/previousText",
+              "ink": "color.interactive.neutral.text.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "previous",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "true",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "container/previousIcon",
+              "icon": "color.disabled.icon"
+            },
+            {
+              "part": "container/previousText",
+              "ink": "color.disabled.text"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "next",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/nextIcon",
+              "icon": "color.interactive.neutral.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "next",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.interactive.neutral.overlay.hover"
+            },
+            {
+              "part": "container/nextIcon",
+              "icon": "color.interactive.neutral.icon.hover"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "next",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.interactive.neutral.overlay.pressed"
+            },
+            {
+              "part": "container/nextIcon",
+              "icon": "color.interactive.neutral.icon.pressed"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "next",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/nextIcon",
+              "icon": "color.interactive.neutral.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "next",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "container/nextIcon",
+              "icon": "color.disabled.icon"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "next",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "true",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/nextText",
+              "ink": "color.interactive.neutral.text.rest"
+            },
+            {
+              "part": "container/nextIcon",
+              "icon": "color.interactive.neutral.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "next",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "true",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container/nextText",
+              "ink": "color.interactive.neutral.text.hover"
+            },
+            {
+              "part": "container/nextIcon",
+              "icon": "color.interactive.neutral.icon.hover"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "next",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "true",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container/nextText",
+              "ink": "color.interactive.neutral.text.pressed"
+            },
+            {
+              "part": "container/nextIcon",
+              "icon": "color.interactive.neutral.icon.pressed"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "next",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "true",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/nextText",
+              "ink": "color.interactive.neutral.text.rest"
+            },
+            {
+              "part": "container/nextIcon",
+              "icon": "color.interactive.neutral.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "next",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "true",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "container/nextText",
+              "ink": "color.disabled.text"
+            },
+            {
+              "part": "container/nextIcon",
+              "icon": "color.disabled.icon"
+            }
+          ]
+        }
+      ],
+      "nesting": [
+        {
+          "part": "container/focusRing",
+          "kind": "instance",
+          "component": "focus-ring",
+          "variant": {
+            "surface": "default"
+          },
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "container/gapIcon",
+          "kind": "instance",
+          "component": "icon/more-horizontal-filled",
+          "variant": {},
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "container/previousIcon",
+          "kind": "instance",
+          "component": "icon/chevron-left",
+          "variant": {},
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "container/nextIcon",
+          "kind": "instance",
+          "component": "icon/chevron-right",
+          "variant": {},
+          "follows": [],
+          "exposes": []
+        }
+      ],
+      "properties": [
+        {
+          "name": "label",
+          "type": "TEXT",
+          "default": "1"
+        },
+        {
+          "name": "previous label",
+          "type": "TEXT",
+          "default": "Previous"
+        },
+        {
+          "name": "next label",
+          "type": "TEXT",
+          "default": "Next"
+        }
+      ]
+    },
+    "pagination": {
+      "id": "pagination",
+      "name": "Pagination",
+      "members": 12,
+      "axes": [
+        {
+          "name": "type",
+          "figmaName": "type",
+          "values": [
+            "numbered",
+            "compact",
+            "simple"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "style",
+          "figmaName": "style",
+          "values": [
+            "border",
+            "underline"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "size",
+          "figmaName": "size",
+          "values": [
+            "medium",
+            "small",
+            "large"
+          ],
+          "kind": "size"
+        }
+      ],
+      "codeOnlyStates": [],
+      "anatomy": [
+        {
+          "part": "container",
+          "kind": "frame",
+          "members": 12
+        },
+        {
+          "part": "container/row",
+          "kind": "frame",
+          "members": 9,
+          "when": {
+            "type": [
+              "numbered",
+              "compact"
+            ]
+          }
+        },
+        {
+          "part": "container/row/previous",
+          "kind": "instance",
+          "members": 9,
+          "when": {
+            "type": [
+              "numbered",
+              "compact"
+            ]
+          }
+        },
+        {
+          "part": "container/row/items",
+          "kind": "slot",
+          "members": 6,
+          "when": {
+            "type": [
+              "numbered"
+            ]
+          }
+        },
+        {
+          "part": "container/row/items/item1",
+          "kind": "instance",
+          "members": 6,
+          "when": {
+            "type": [
+              "numbered"
+            ]
+          }
+        },
+        {
+          "part": "container/row/items/item2",
+          "kind": "instance",
+          "members": 6,
+          "when": {
+            "type": [
+              "numbered"
+            ]
+          }
+        },
+        {
+          "part": "container/row/items/item3",
+          "kind": "instance",
+          "members": 6,
+          "when": {
+            "type": [
+              "numbered"
+            ]
+          }
+        },
+        {
+          "part": "container/row/items/item4",
+          "kind": "instance",
+          "members": 6,
+          "when": {
+            "type": [
+              "numbered"
+            ]
+          }
+        },
+        {
+          "part": "container/row/items/item5",
+          "kind": "instance",
+          "members": 6,
+          "when": {
+            "type": [
+              "numbered"
+            ]
+          }
+        },
+        {
+          "part": "container/row/items/item6",
+          "kind": "instance",
+          "members": 6,
+          "when": {
+            "type": [
+              "numbered"
+            ]
+          }
+        },
+        {
+          "part": "container/row/items/item7",
+          "kind": "instance",
+          "members": 6,
+          "when": {
+            "type": [
+              "numbered"
+            ]
+          }
+        },
+        {
+          "part": "container/row/next",
+          "kind": "instance",
+          "members": 9,
+          "when": {
+            "type": [
+              "numbered",
+              "compact"
+            ]
+          }
+        },
+        {
+          "part": "container/row/status",
+          "kind": "text",
+          "members": 3,
+          "when": {
+            "type": [
+              "compact"
+            ]
+          }
+        },
+        {
+          "part": "container/simpleRow",
+          "kind": "frame",
+          "members": 3,
+          "when": {
+            "type": [
+              "simple"
+            ]
+          }
+        },
+        {
+          "part": "container/simpleRow/previousButton",
+          "kind": "instance",
+          "members": 3,
+          "when": {
+            "type": [
+              "simple"
+            ]
+          }
+        },
+        {
+          "part": "container/simpleRow/nextButton",
+          "kind": "instance",
+          "members": 3,
+          "when": {
+            "type": [
+              "simple"
+            ]
+          }
+        }
+      ],
+      "redlineKey": [
+        "size",
+        "type"
+      ],
+      "redlines": [
+        {
+          "where": {
+            "size": "medium",
+            "type": "numbered"
+          },
+          "parts": [
+            {
+              "part": "container/row",
+              "values": {
+                "gap": {
+                  "token": "space.050"
+                }
+              }
+            },
+            {
+              "part": "container/row/items",
+              "values": {
+                "gap": {
+                  "token": "space.050"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small",
+            "type": "numbered"
+          },
+          "parts": [
+            {
+              "part": "container/row",
+              "values": {
+                "gap": {
+                  "token": "space.050"
+                }
+              }
+            },
+            {
+              "part": "container/row/items",
+              "values": {
+                "gap": {
+                  "token": "space.050"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large",
+            "type": "numbered"
+          },
+          "parts": [
+            {
+              "part": "container/row",
+              "values": {
+                "gap": {
+                  "token": "space.050"
+                }
+              }
+            },
+            {
+              "part": "container/row/items",
+              "values": {
+                "gap": {
+                  "token": "space.050"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "medium",
+            "type": "compact"
+          },
+          "parts": [
+            {
+              "part": "container/row",
+              "values": {
+                "gap": {
+                  "token": "space.050"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small",
+            "type": "compact"
+          },
+          "parts": [
+            {
+              "part": "container/row",
+              "values": {
+                "gap": {
+                  "token": "space.050"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large",
+            "type": "compact"
+          },
+          "parts": [
+            {
+              "part": "container/row",
+              "values": {
+                "gap": {
+                  "token": "space.050"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "medium",
+            "type": "simple"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "buildWidth": {
+                  "px": 428,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/simpleRow",
+              "values": {
+                "gap": {
+                  "token": "space.050"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small",
+            "type": "simple"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "buildWidth": {
+                  "px": 428,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/simpleRow",
+              "values": {
+                "gap": {
+                  "token": "space.050"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large",
+            "type": "simple"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "buildWidth": {
+                  "px": 428,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/simpleRow",
+              "values": {
+                "gap": {
+                  "token": "space.050"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "typeKey": [
+        "size"
+      ],
+      "type": [
+        {
+          "where": {
+            "size": "medium"
+          },
+          "parts": [
+            {
+              "part": "container/row/status",
+              "textStyle": "type.label.md.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small"
+          },
+          "parts": [
+            {
+              "part": "container/row/status",
+              "textStyle": "type.label.sm.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large"
+          },
+          "parts": [
+            {
+              "part": "container/row/status",
+              "textStyle": "type.label.lg.default"
+            }
+          ]
+        }
+      ],
+      "colorKey": [
+        "type",
+        "style"
+      ],
+      "colors": [
+        {
+          "where": {
+            "type": "numbered",
+            "style": "border"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "type": "numbered",
+            "style": "underline"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "type": "compact",
+            "style": "border"
+          },
+          "parts": [
+            {
+              "part": "container/row/status",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "simple",
+            "style": "border"
+          },
+          "parts": []
+        }
+      ],
+      "nesting": [
+        {
+          "part": "container/row/previous",
+          "kind": "instance",
+          "component": "pagination-item",
+          "variant": {
+            "type": "previous",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "size": "medium",
+            "state": "rest"
+          },
+          "follows": [
+            "size"
+          ],
+          "exposes": [
+            "state"
+          ]
+        },
+        {
+          "part": "container/row/items",
+          "kind": "slot",
+          "preferred": [
+            "pagination-item"
+          ]
+        },
+        {
+          "part": "container/row/items/item1",
+          "kind": "instance",
+          "component": "pagination-item",
+          "variant": {
+            "type": "page",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "size": "medium",
+            "state": "rest"
+          },
+          "follows": [
+            "size"
+          ],
+          "exposes": []
+        },
+        {
+          "part": "container/row/items/item2",
+          "kind": "instance",
+          "component": "pagination-item",
+          "variant": {
+            "type": "ellipsis",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "size": "medium",
+            "state": "rest"
+          },
+          "follows": [
+            "size"
+          ],
+          "exposes": []
+        },
+        {
+          "part": "container/row/items/item3",
+          "kind": "instance",
+          "component": "pagination-item",
+          "variant": {
+            "type": "page",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "size": "medium",
+            "state": "rest"
+          },
+          "follows": [
+            "size"
+          ],
+          "exposes": []
+        },
+        {
+          "part": "container/row/items/item4",
+          "kind": "instance",
+          "component": "pagination-item",
+          "variant": {
+            "type": "page",
+            "selection": "selected",
+            "style": "border",
+            "labeled": "false",
+            "size": "medium",
+            "state": "rest"
+          },
+          "follows": [
+            "style",
+            "size"
+          ],
+          "exposes": []
+        },
+        {
+          "part": "container/row/items/item5",
+          "kind": "instance",
+          "component": "pagination-item",
+          "variant": {
+            "type": "page",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "size": "medium",
+            "state": "rest"
+          },
+          "follows": [
+            "size"
+          ],
+          "exposes": []
+        },
+        {
+          "part": "container/row/items/item6",
+          "kind": "instance",
+          "component": "pagination-item",
+          "variant": {
+            "type": "ellipsis",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "size": "medium",
+            "state": "rest"
+          },
+          "follows": [
+            "size"
+          ],
+          "exposes": []
+        },
+        {
+          "part": "container/row/items/item7",
+          "kind": "instance",
+          "component": "pagination-item",
+          "variant": {
+            "type": "page",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "size": "medium",
+            "state": "rest"
+          },
+          "follows": [
+            "size"
+          ],
+          "exposes": []
+        },
+        {
+          "part": "container/row/next",
+          "kind": "instance",
+          "component": "pagination-item",
+          "variant": {
+            "type": "next",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "size": "medium",
+            "state": "rest"
+          },
+          "follows": [
+            "size"
+          ],
+          "exposes": [
+            "state"
+          ]
+        },
+        {
+          "part": "container/simpleRow/previousButton",
+          "kind": "instance",
+          "component": "pagination-item",
+          "variant": {
+            "type": "previous",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "true",
+            "size": "medium",
+            "state": "rest"
+          },
+          "follows": [
+            "size"
+          ],
+          "exposes": [
+            "state"
+          ]
+        },
+        {
+          "part": "container/simpleRow/nextButton",
+          "kind": "instance",
+          "component": "pagination-item",
+          "variant": {
+            "type": "next",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "true",
+            "size": "medium",
+            "state": "rest"
+          },
+          "follows": [
+            "size"
+          ],
+          "exposes": [
+            "state"
+          ]
+        }
+      ],
+      "properties": [
+        {
+          "name": "status text",
+          "type": "TEXT",
+          "default": "Page 5 of 10"
+        },
+        {
+          "name": "items",
+          "type": "SLOT"
         }
       ]
     }

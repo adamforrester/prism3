@@ -75,7 +75,7 @@ import type { AnatomyPlan, ButtonLayout } from './anatomy-figma';
 // ABOUT one component (`button.variants.appearance`, `textField.tokens[...]`), which a find-by-id
 // over the set would only make weaker. Completeness of the set is NOT asserted here — that is
 // `typecheck-components.ts`'s registry arm, whose oracle is git's index.
-import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioGroup, textarea, radioControl, radioRow, switchControl, switchRow, select, spinner, tag, tab, divider, counter } from './components/index';
+import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioGroup, textarea, radioControl, radioRow, switchControl, switchRow, select, spinner, tag, tab, divider, counter, progress } from './components/index';
 // The glyph vocabulary, for #864's geometry assertions. Imported so EXPECTED comes from the set rather
 // than from the projector that read it — the two halves `docs/34` requires.
 import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-glyphs';
@@ -3791,6 +3791,13 @@ for (const b of brands) {
       accordion: { keys: ['pad-x', 'pad-y', 'gap', 'panel-pad-end'], sizes: ['small', 'medium', 'large'] },
       list: { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
       link: { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
+      'breadcrumb-item': { keys: ['gap'], sizes: ['small', 'medium'] },
+      breadcrumbs: { bare: ['back-gap'], keys: ['gap'], sizes: ['small', 'medium'] },
+      // Toast (#2668): no size axis, so every key is bare. block / inline start / inline end / message-to-controls gap /
+      // glyph-to-message gap. The action-to-close 4px is not listed: it stays at the floor.
+      toast: { keys: [], sizes: [], bare: ['pad-y', 'pad-x', 'pad-end', 'gap', 'glyph-gap'] },
+      // Banner (#2579): no size axis, so its keys are bare.
+      banner: { keys: [], sizes: [], bare: ['pad', 'gap', 'actions-gap', 'action-gap'] },
     };
     const BTN = { compact: 'small 12/8/4/6 · medium 12/8/6/6 · large 20/12/6/8', comfortable: 'small 16/12/6/8 · medium 16/12/8/8 · large 24/16/8/12', spacious: 'small 20/16/8/12 · medium 20/16/12/12 · large 32/20/12/16' };
     const ROWS = { compact: 'small 6 · medium 6 · large 8', comfortable: 'small 8 · medium 8 · large 12', spacious: 'small 12 · medium 12 · large 16' };
@@ -3817,6 +3824,16 @@ for (const b of brands) {
       // Link (#2580, DRAFT): the icon-to-label gap. Comfortable is the proposal's space.050 / space.050 / space.100; compact
       // clamps small and medium at space.050, the bottom of the density ladder, as Tab's small gap does.
       link: { compact: 'small 4 · medium 4 · large 6', comfortable: 'small 4 · medium 4 · large 8', spacious: 'small 6 · medium 6 · large 12' },
+      // Breadcrumbs (#2666, DRAFT): the label-to-separator gap, repeated between items, and the parent path's
+      // chevron-to-link gap (Link's own icon gap). Comfortable is the proposal's space.050 / space.100; compact clamps
+      // the small gap at space.050, as Link's does.
+      'breadcrumb-item': { compact: 'small 4 · medium 6', comfortable: 'small 4 · medium 8', spacious: 'small 6 · medium 12' },
+      breadcrumbs: { compact: 'bare 4 · small 4 · medium 6', comfortable: 'bare 4 · small 4 · medium 8', spacious: 'bare 6 · small 6 · medium 12' },
+      // Toast (#2668, the proposal's §8 approved by call 13 A): comfortable is 8/16/8 padding, 8 to the controls, 12 glyph to message.
+      toast: { compact: 'bare 6/12/6/6/8', comfortable: 'bare 8/16/8/8/12', spacious: 'bare 12/20/12/12/16' },
+      // Banner (#2579, DRAFT): padding / glyph→content gap / body→actions offset / action→action gap. Comfortable is the
+      // proposal's 16 / 12 / 12, and 8 between the two buttons.
+      banner: { compact: 'bare 12/8/8/6', comfortable: 'bare 16/12/12/8', spacious: 'bare 20/16/16/12' },
     };
     const wrong: string[] = [];
     for (const [id, spec] of Object.entries(SPECS)) {
@@ -3857,10 +3874,16 @@ for (const b of brands) {
       'radio-row': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'switch-row': ['size.small.gap', 'size.medium.gap'],
       list: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
+      toast: ['gap', 'glyph-gap', 'controls-gap'],
+      // Banner (#2579): the glyph→content gap, the action→action gap, and the fixed title→body gap.
+      banner: ['gap', 'action-gap', 'content-gap'],
       // #2709: the three defs with a density-following gap that joined after this list was written.
       'password-field': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       accordion: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       link: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
+      // #2666: the label-to-separator gap inside an item, and the same gap between items.
+      'breadcrumb-item': ['size.small.gap', 'size.medium.gap'],
+      breadcrumbs: ['size.small.gap', 'size.medium.gap'],
       tag: ['small', 'medium', 'large'].flatMap((v) => [
         `size.${v}.select.gap+size.${v}.select.label-inset`, `size.${v}.dismissible.gap+size.${v}.dismissible.label-inset`, `size.${v}.check-gap`]),
     };
@@ -3909,9 +3932,16 @@ for (const b of brands) {
       'tab-item': { prefix: 'sized', lt: [['gap', 'padding-x']] },
       'segmented-control-segment': { prefix: 'sized', lt: [['gap', 'padding-x']] },
       accordion: { prefix: 'sized', lt: [['gap', 'pad-x']] },
+      // Toast (#2668): no size axis, so the keys are bare. Both content gaps sit under the inline-start padding.
+      toast: { prefix: 'bare', lt: [['gap', 'pad-x'], ['glyph-gap', 'pad-x']] },
+      // Banner (#2579): both gaps sit inside the padding.
+      banner: { prefix: 'bare', lt: [['gap', 'pad'], ['action-gap', 'pad']] },
+      // #2665 (Q414 A): a labeled previous or next cell's chevron→word gap sits under the cell's inset past two digits.
+      'pagination-item': { prefix: 'bare', lt: [['gap', 'padding-x']] },
     };
     const GAP_TAILS = ['gap', 'check-gap'];
-    const PAD_TAILS = ['padding-x', 'pad-x'];
+    // `pad` (#2579): Banner's one padding, block and inline alike.
+    const PAD_TAILS = ['padding-x', 'pad-x', 'pad'];
     const stating = componentDefs.filter((d) => {
       const groups = new Map<string, Set<string>>();
       for (const [k, ref] of Object.entries(d.tokens)) {
@@ -6338,6 +6368,106 @@ arm: {
     const { measured, low } = measure(fill, 'background.primary', 3);
     ok(measured === CELLS && low.length === 0,
       `badge bold fill separates from the page (${m}): ${fill} against background.primary clears 3:1 in all ${measured} of ${CELLS} brand × mode cells${low.length ? ` — ${low.join('; ')}` : ''}`);
+  }
+}
+
+// ---- BANNER — the owner's decisions on #2579 (Q327, 2026-10-16), held here with literal expectations ---------------
+// Written from the decisions, not read back from the def: 8 members (tone info | success | warning | danger × width
+// contained | full), subtle only, a full 1px edge in the tone's BORDER role (Q346: never an icon or text role), the
+// title and body in text.primary, FieldMessage's glyph per status, up to two neutral actions (outline, then text) and a
+// dismiss, all off by default, lowercase Figma property names (Q345), and the first member the code default (Q347).
+// Every expectation is a literal; the projected members are read off `figmaAnatomySet`, never off the def's tokens.
+// Contrast: the text at 4.5:1 and the edge and glyph at 3:1, in 5 brands × 4 modes.
+{
+  const bannerDef = componentDefs.find((d) => d.id === 'banner');
+  ok(!!bannerDef, 'banner: the def is registered');
+  if (bannerDef) {
+    const TONES = ['info', 'success', 'warning', 'danger'];
+    const GLYPH: Record<string, string> = { info: 'icon/info-circle', success: 'icon/check-circle', warning: 'icon/error-circle', danger: 'icon/warning-triangle' };
+    const CORNER: Record<string, string> = { contained: 'radius/md', full: 'radius/none' };
+    const set = figmaAnatomySet(bannerDef) as any[];
+    const names = set.map(planComponentName);
+    const EXPECT_NAMES = TONES.flatMap((t) => ['contained', 'full'].map((w) => `tone=${t}, width=${w}`));
+    ok(JSON.stringify(names) === JSON.stringify(EXPECT_NAMES),
+      `banner set: exactly the 8 members tone × width, info and contained first (Q327, Q347) (got ${names.join(' | ')})`);
+    const find = (n: any, name: string): any => n.name === name ? n : (n.children ?? []).map((c: any) => find(c, name)).find(Boolean);
+    const glyphs = (n: any): any[] => [...(/^icon\//.test(n.nestTarget ?? '') ? [n] : []), ...(n.children ?? []).flatMap(glyphs)];
+    const wrong: string[] = [];
+    for (const m of set) {
+      const name = planComponentName(m);
+      const tone = /tone=(\w+)/.exec(name)?.[1] ?? '';
+      const width = /width=(\w+)/.exec(name)?.[1] ?? '';
+      const r = m.root;
+      if (r.paints?.fills !== `color/foreground/${tone}-subtle`) wrong.push(`${name} fill ${r.paints?.fills}`);
+      if (r.paints?.strokes !== `color/border/${tone}`) wrong.push(`${name} edge ${r.paints?.strokes}`);
+      if (r.bound?.strokeWeight !== 'border-width/hairline') wrong.push(`${name} edge weight ${r.bound?.strokeWeight}`);
+      for (const c of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'])
+        if (r.bound?.[c] !== CORNER[width]) wrong.push(`${name} ${c} ${r.bound?.[c]}`);
+      const g = glyphs(r).filter((n) => n.name !== 'dismiss');
+      if (g.length !== 1 || g[0].nestTarget !== GLYPH[tone] || g[0].descendantFills !== `color/icon/${tone}` || g[0].bound?.width !== 'icon/size/md')
+        wrong.push(`${name} glyph ${g.map((n) => `${n.nestTarget} in ${n.descendantFills}`).join(', ') || 'none'}`);
+      for (const t of ['title', 'placeholder'])
+        if (find(r, t)?.paints?.fills !== 'color/text/primary') wrong.push(`${name} ${t} ink ${find(r, t)?.paints?.fills}`);
+      const a1 = find(r, 'action1'), a2 = find(r, 'action2'), d = find(r, 'dismiss');
+      if (a1?.nestTarget !== 'button' || a1?.nestPrefer !== 'button-neutral' || a1?.nestVariant?.appearance !== 'outline' || a1?.nestVariant?.size !== 'small') wrong.push(`${name} action1 ${a1?.nestTarget}/${a1?.nestVariant?.appearance}/${a1?.nestVariant?.size}`);
+      if (a2?.nestTarget !== 'button' || a2?.nestPrefer !== 'button-neutral' || a2?.nestVariant?.appearance !== 'text' || a2?.nestVariant?.size !== 'small') wrong.push(`${name} action2 ${a2?.nestTarget}/${a2?.nestVariant?.appearance}/${a2?.nestVariant?.size}`);
+      // Q386 (#2808): the dismiss is FlushIconButton.Neutral, flush, small (owner QA 2026-10-19, as Dialog's close), the close glyph fixed.
+      if (d?.nestTarget !== 'flush-icon-button-neutral' || d?.nestVariant?.shape !== 'flush' || d?.nestVariant?.size !== 'small' || d?.nestOverrides?.length !== 1 || d?.nestOverrides?.[0]?.value !== 'icon/close') wrong.push(`${name} dismiss ${d?.nestTarget}/${d?.nestVariant?.shape}/${d?.nestVariant?.size}/${d?.nestOverrides?.map((o: any) => o.value).join('+')}`);
+      // Off by default (Q327.6 A, the proposal's §4): the actions row, the second action and the dismiss are hidden.
+      if (find(r, 'actions')?.visible !== false || a2?.visible !== false || d?.visible !== false) wrong.push(`${name} actions/second/dismiss shown by default`);
+      if (find(r, 'titleBox')?.visible === false) wrong.push(`${name} title hidden by default`);
+    }
+    ok(wrong.length === 0,
+      `banner members: each paints foreground.<tone>-subtle with a 1px border.<tone> edge, its tone's glyph in icon.<tone>, text.primary ink, radius md contained and none full, and nests a primary outline and text action (Button.Neutral preferred when built, never required: Q386) and a flush close dismiss, all off${wrong.length ? ` — ${wrong.join('; ')}` : ''}`);
+    // Q346: an edge never binds an icon or text role. Read off the TOKENS too, so a border key on any coordinate counts.
+    const badEdge = Object.entries(bannerDef.tokens).filter(([k, ref]) => /(^|\.)border$/.test(k) && !String(ref).startsWith('color.border.'));
+    ok(badEdge.length === 0, `banner edge: every border key binds a color.border.* role (Q346)${badEdge.length ? ` — ${badEdge.map(([k, r]) => `${k} → ${r}`).join('; ')}` : ''}`);
+    // Q345: the Figma property names are lowercase, and the set is the proposal's.
+    const fp = bannerDef.figmaProperties!;
+    const propNames = [
+      ...Object.entries(fp.texts ?? {}).map(([k, t]: [string, any]) => t.figmaName ?? k),
+      ...Object.entries(fp.booleans ?? {}).map(([k, b]: [string, any]) => (typeof b === 'object' && b.figmaName) || k),
+    ];
+    ok(JSON.stringify(propNames) === JSON.stringify(['title text', 'title', 'icon', 'actions', 'second action', 'dismiss']),
+      `banner Figma properties: title text, title, icon, actions, second action, dismiss, all lowercase (Q345) (got ${propNames.join(', ')})`);
+
+    // CONTRAST, as literals over every example brand × mode (20 cells).
+    const themes: [string, any][] = loadedRows([
+      ['prism3', exampleTheme('prism3', () => brandTheme(exampleBrands()['prism3'] as BrandInput))],
+      ['nb', nbTheme()],
+      ['aurora', exampleTheme('aurora', () => brandTheme(exampleBrands()['aurora'] as BrandInput))],
+      ['harbor', exampleTheme('harbor', () => brandTheme(exampleBrands()['harbor'] as BrandInput))],
+      ['wendys', exampleTheme('wendys', () => brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input))],
+    ]);
+    const CELLS = 20;
+    const measure = (a: string, b: string, floor: number): { measured: number; low: string[]; min: number } => {
+      const low: string[] = [];
+      let measured = 0, min = Infinity;
+      for (const [brand, th] of themes) for (const m of resolveAllModes(th)) {
+        const x = m.roles[a], y = m.roles[b];
+        if (!x?.hex || !y?.hex) { low.push(`${brand}/${m.mode}: missing ${!x?.hex ? a : b}`); continue; }
+        const r = contrast(hexToRgb(x.hex), hexToRgb(y.hex));
+        measured++; min = Math.min(min, r);
+        if (r < floor) low.push(`${brand}/${m.mode} ${r.toFixed(2)}`);
+      }
+      return { measured, low, min };
+    };
+    const PAIRS: [string, string, number, string][] = TONES.flatMap((t) => [
+      ['text.primary', `foreground.${t}-subtle`, 4.5, `title and body on the ${t} fill`],
+      [`border.${t}`, 'background.primary', 3, `the ${t} edge against the page`],
+      [`icon.${t}`, `foreground.${t}-subtle`, 3, `the ${t} glyph on its fill`],
+      // The nested neutral actions and dismiss paint their rest ink on the banner's fill.
+      ['interactive.neutral.text.rest', `foreground.${t}-subtle`, 4.5, `the action labels on the ${t} fill`],
+      // The fallback when the file has no Button.Neutral: the primary Button's outline and text label, held to 4.5:1 by #2820's surface contract (Q419 A).
+      ['interactive.primary.text.rest', `foreground.${t}-subtle`, 4.5, `the primary-Button action labels on the ${t} fill`],
+      ['interactive.neutral.icon.rest', `foreground.${t}-subtle`, 3, `the dismiss glyph on the ${t} fill`],
+    ] as [string, string, number, string][]);
+    ok(PAIRS.length === 24, `banner contrast covers 24 pairs, 6 per tone (got ${PAIRS.length})`);
+    for (const [a, b, floor, what] of PAIRS) {
+      const { measured, low, min } = measure(a, b, floor);
+      ok(measured === CELLS && low.length === 0,
+        `banner contrast (${what}): ${a} on ${b} clears ${floor}:1 in all ${measured} of ${CELLS} brand × mode cells, lowest ${min.toFixed(2)}${low.length ? ` — ${low.join('; ')}` : ''}`);
+    }
   }
 }
 
@@ -11146,8 +11276,8 @@ arm: {
     'background.primary', 'foreground.primary',
     'foreground.brand-subtle', 'foreground.success-subtle', 'foreground.warning-subtle', 'foreground.danger-subtle', 'foreground.info-subtle',
   ];
-  // Banner (#2786) has not merged: its tints are in the contract by Q419 A ahead of the def that places the inks there.
-  const PENDING_2817 = ['foreground.brand-subtle', 'foreground.success-subtle', 'foreground.warning-subtle', 'foreground.danger-subtle', 'foreground.info-subtle'];
+  // Banner (#2786) places the inks on the four status tints; the brand tint stays in the contract by Q419 A ahead of a def that places them there.
+  const PENDING_2817 = ['foreground.brand-subtle'];
 
   // 0. Coverage from the defs: a def's own fill on a ground, over the transitive closure of the defs it nests (fixed
   //    nests, slot offers and a host's `nestItemPrefers`), where one of those paints a primary or link ink.
@@ -11186,12 +11316,12 @@ arm: {
     ok(missing.length === 0 && inkedDefs >= 5 && derived.has('foreground.primary'),
       `#2817 every ground a component places the primary or link ink on is in the contract's literal list (derived from ${componentDefs.length} defs, ${inkedDefs} that paint the inks: ${[...derived].map(([g, h]) => `${g} ← ${h.join('; ')}`).join(' | ') || 'none'})${missing.length ? ` — NOT IN THE LIST: ${missing.join('; ')}` : ''}`);
     ok(unplaced.length === 0,
-      `#2817 every ground in the contract is one a component places the inks on, the page, or a pending Banner tint (Q419 A: no wider)${unplaced.length ? ` — NO COMPONENT PLACES THEM ON: ${unplaced.join(', ')}` : ''}`);
+      `#2817 every ground in the contract is one a component places the inks on, the page, or a pending tint (Q419 A: no wider)${unplaced.length ? ` — NO COMPONENT PLACES THEM ON: ${unplaced.join(', ')}` : ''}`);
     const unlisted = PENDING_2817.filter((g) => !GROUNDS_2817.includes(g));
     ok(unlisted.length === 0,
-      `#2817 every pending Banner tint is in the contract's literal list (Q419 A: the seven grounds, no narrower)${unlisted.length ? ` — PENDING BUT NOT MEASURED: ${unlisted.join(', ')}` : ''}`);
+      `#2817 every pending tint is in the contract's literal list (Q419 A: the seven grounds, no narrower)${unlisted.length ? ` — PENDING BUT NOT MEASURED: ${unlisted.join(', ')}` : ''}`);
     ok(landed.length === 0,
-      `#2817 the pending tints are still pending (when Banner lands and places the inks on them, drop them from PENDING_2817)${landed.length ? ` — NOW PLACED: ${landed.join(', ')}` : ''}`);
+      `#2817 the pending tints are still pending (when a def lands and places the inks on them, drop them from PENDING_2817)${landed.length ? ` — NOW PLACED: ${landed.join(', ')}` : ''}`);
   }
 
   const rows2817: { id: string; theme: any }[] = [
@@ -14864,16 +14994,19 @@ arm: {
       const all = (n: any): any[] => [n, ...(n.children ?? []).flatMap(all)];
       // The field family on main (Q332: Text field, Textarea, Select, Password field; Number and Code input are not built).
       const FIELDS = ['password-field', 'select', 'text-field', 'textarea'];
+      // Code input's cell (#2428; #2719, Q332 A and Q12 A): a field box per character, so the lever reaches it. Its own
+      // arm is below: 28 members on a `state` grid with no `status` axis, so the 84-member loop over FIELDS does not fit it.
+      const FIELD_CELLS = ['code-input-cell'];
       // The field chrome's fill is the field family's own role (the checkbox and radio share the rest border, not this).
       // The Counter's outline borrows the field chrome (#2427, Q283.13 A) but is not a field: the lever leaves it as it is,
       // which the identity arm below holds, until the owner decides whether it follows the field style (asked on #2693).
       const FIELD_FILL_BORROWERS = ['counter'];
       const bindsFieldFill = componentDefs.filter((d) => Object.values(d.tokens).includes('color.field.fill')).map((d) => d.id).sort();
-      ok(JSON.stringify(bindsFieldFill) === JSON.stringify([...FIELDS, ...FIELD_FILL_BORROWERS].sort()),
-        `#2695 reach: the defs that bind the field chrome (color.field.fill) are exactly the field family ${FIELDS.join(', ')} and its named borrowers ${FIELD_FILL_BORROWERS.join(', ')} (got ${bindsFieldFill.join(', ')})`);
-      const notIdentity = componentDefs.filter((d) => applyFieldStyle(d, 'outline') !== d || (!FIELDS.includes(d.id) && applyFieldStyle(d, 'underline') !== d)).map((d) => d.id);
+      ok(JSON.stringify(bindsFieldFill) === JSON.stringify([...FIELDS, ...FIELD_CELLS, ...FIELD_FILL_BORROWERS].sort()),
+        `#2695 reach: the defs that bind the field chrome (color.field.fill) are exactly the field family ${[...FIELDS, ...FIELD_CELLS].join(', ')} and its named borrowers ${FIELD_FILL_BORROWERS.join(', ')} (got ${bindsFieldFill.join(', ')})`);
+      const notIdentity = componentDefs.filter((d) => applyFieldStyle(d, 'outline') !== d || (![...FIELDS, ...FIELD_CELLS].includes(d.id) && applyFieldStyle(d, 'underline') !== d)).map((d) => d.id);
       ok(notIdentity.length === 0, `#2695 identity: outline returns every def unchanged, and underline every non-field def (moved: ${notIdentity.join(', ') || 'none'})`);
-      const moved = FIELDS.filter((id) => applyFieldStyle(def(id), 'underline') === def(id));
+      const moved = [...FIELDS, ...FIELD_CELLS].filter((id) => applyFieldStyle(def(id), 'underline') === def(id));
       ok(moved.length === 0, `#2695 reach: underline rewrites every field def (unmoved: ${moved.join(', ') || 'none'})`);
       ok(validateBrandInput({ ...MINIMAL_BRAND, fieldStyle: 'underline' } as any).length === 0 && validateBrandInput({ ...MINIMAL_BRAND, fieldStyle: 'filled' } as any).length > 0,
         '#2695 input: fieldStyle accepts underline and rejects a value the lever does not offer (filled is later, not now)');
@@ -14951,6 +15084,34 @@ arm: {
         if (c?.bound?.topLeftRadius !== 'radius/none' || c?.bound?.paddingLeft !== 'space/0') shapeCorner.push(`${id} ${shape} ${density}: ${c?.bound?.topLeftRadius}, ${c?.bound?.paddingLeft}`);
       }
       ok(shapeCorner.length === 0, `#2695 Q5/Q6: square and unpadded under every Control shape and density (${shapeCorner.slice(0, 3).join('; ') || 'ok'})`);
+      // #2719 (Q12 A on #2695): CODE INPUT under underline. One bottom line per cell, at Q330's sizes; the row's gaps
+      // unchanged (the field def is untouched); the active cells take the 2px focus line and the ring at the 2px offset;
+      // the error cell's line takes `border.danger`. Expected names typed from the decision, per state, at every size.
+      {
+        const CELL_LINE: Record<string, string> = {
+          rest: 'color/field/border/rest', hover: 'color/field/border/hover', filled: 'color/field/border/rest',
+          'focus-visible': 'color/border/focus', 'focus-visible-filled': 'color/border/focus', error: 'color/border/danger', disabled: 'color/disabled/border',
+        };
+        const SIZE_PX: Record<string, string> = { medium: '48x56', small: '44x44', large: '56x64', xlarge: '68x72' };
+        const off: string[] = [];
+        const under = figmaAnatomySet(applyFieldStyle(def('code-input-cell'), 'underline'));
+        if (under.length !== 28) off.push(`${under.length} members`);
+        for (const p of under) {
+          const st = String(p.coord.state), at = `${p.size}/${st}`;
+          const c = find(p.root, 'container'), b = c?.bound ?? {};
+          const wantLine = FOCUS.includes(st) ? 'border-width/thick' : 'border-width/hairline';
+          if (b.strokeBottomWeight !== wantLine || b.strokeTopWeight !== 'border-width/none' || b.strokeLeftWeight !== 'border-width/none' || b.strokeRightWeight !== 'border-width/none' || 'strokeWeight' in b)
+            off.push(`${at} line ${b.strokeTopWeight}/${b.strokeRightWeight}/${b.strokeBottomWeight}/${b.strokeLeftWeight}`);
+          if (c?.paints?.strokes !== CELL_LINE[st]) off.push(`${at} color ${c?.paints?.strokes}`);
+          if (!['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'].every((k) => b[k] === 'radius/none')) off.push(`${at} corner ${b.topLeftRadius}`);
+          if (`${c?.placementWidth}x${c?.placementHeight}` !== SIZE_PX[p.size]) off.push(`${at} size ${c?.placementWidth}x${c?.placementHeight}`);
+          if (all(p.root).some((n) => Object.values(n.paints ?? {}).some((v) => /\/overlay\//.test(String(v))))) off.push(`${at} wash`);
+          if (st === 'disabled' && c?.paints?.fills !== undefined) off.push(`${at} plate ${c.paints.fills}`);
+          if (FOCUS.includes(st) !== (find(p.root, 'focusRing')?.absoluteInset === 'focus/ring/offset')) off.push(`${at} ring ${find(p.root, 'focusRing')?.absoluteInset}`);
+        }
+        ok(off.length === 0, `#2719 code-input: under underline each cell draws one bottom line at its Q330 size, 2px with the ring at the 2px offset on the active cells, border.danger in error, no wash, no disabled plate, square (Q12 A) (off: ${off.slice(0, 4).join('; ') || 'none'})`);
+        ok(applyFieldStyle(def('code-input'), 'underline') === def('code-input'), '#2719 code-input: the field itself is unchanged under underline, so the row\'s gaps are (Q12 A)');
+      }
       // Q11: Textarea's grip sits above the line, inset by the 2px focus line's weight; outline keeps the 1px edge.
       const grip = (d: ComponentDef) => find(figmaAnatomyPlan(d, 'medium', { state: 'focus-visible', status: 'default' } as never).root, 'gripGlyph')?.cornerInset;
       ok(grip(applyFieldStyle(def('textarea'), 'underline')) === 'border-width/thick' && grip(def('textarea')) === 'border-width/hairline',
@@ -16252,6 +16413,154 @@ arm: {
         '#2416 Q179 tabs: no code prop drives a tab toggle (Figma-only; in code the count is children)');
     }
 
+    // ---- #2669 (owner decision 2026-10-16, every call A): Slider and Slider.Thumb ----
+    // Every expected value below is a literal typed here from the approved proposal, never read off the defs: the defs
+    // and their projected plans are the SUBJECT (docs/34 shape 1). Each arm names its call, so a mutation of the def
+    // fails the arm it breaks, by name.
+    {
+      const findIn = (n: AnatomyPlan['root'], name: string): AnatomyPlan['root'] | undefined => n.name === name ? n : n.children.map((k) => findIn(k, name)).find(Boolean);
+      const sliderDef = componentDefs.find((d) => d.id === 'slider')!;
+      const thumbDef = componentDefs.find((d) => d.id === '_slider-thumb')!;
+      const sMembers = figmaAnatomySet(sliderDef, {});
+      const tMembers = figmaAnatomySet(thumbDef, {});
+      const STATES5 = ['rest', 'hover', 'pressed', 'focus-visible', 'disabled'];
+      const sOf = (type: string, state: string) => sMembers.find((m) => m.coord.type === type && m.coord.state === state);
+      const tOf = (state: string) => tMembers.find((m) => m.coord.state === state);
+
+      // (1) Call 2 A: type [single, range] × five states = 10 members; Q347: the first member is the code default.
+      const WANT_NAMES = ['single', 'range'].flatMap((t) => STATES5.map((s) => `type=${t}, state=${s}`));
+      const gotNames = sMembers.map(planComponentName);
+      ok(JSON.stringify(gotNames) === JSON.stringify(WANT_NAMES) && gotNames[0] === 'type=single, state=rest',
+        `#2669 call 2 A slider: 10 members, type single then range × rest, hover, pressed, focus-visible, disabled, the first type=single, state=rest (${gotNames.length}: ${gotNames.join(' | ')})`);
+      ok(JSON.stringify(tMembers.map(planComponentName)) === JSON.stringify(STATES5.map((s) => `state=${s}`)),
+        `#2669 Q349 Slider.Thumb: a state-only set of 5 members (${tMembers.map(planComponentName).join(' | ')})`);
+      ok(thumbDef.id === '_slider-thumb' && sliderDef.composition?.composesWith?.includes('_slider-thumb'),
+        `#2669 Q349 the thumb is used only inside the Slider, so its id takes the _ prefix (${thumbDef.id})`);
+
+      // (2) Call 5 A: the track. A 2px rail in field.border.rest across the control, a 4px selected bar in the primary
+      // fill, in a control row as tall as the interactive floor. Single: [bar, thumb, spaceEnd]; range: [spaceStart,
+      // thumbMin, bar, thumb, spaceEnd]. Neither paint moves with the state (the state is on the thumb).
+      const trackOff: string[] = [];
+      const ORDER: Record<string, string[]> = { single: ['bar', 'thumb', 'spaceEnd'], range: ['spaceStart', 'thumbMin', 'bar', 'thumb', 'spaceEnd'] };
+      for (const type of ['single', 'range']) for (const state of STATES5) {
+        const m = sOf(type, state);
+        if (!m) { trackOff.push(`${type}/${state}: missing`); continue; }
+        const control = findIn(m.root, 'control'), track = findIn(m.root, 'track'), bar = findIn(m.root, 'bar');
+        const dis = state === 'disabled';
+        if (control?.bound?.height !== 'size/md/min-height') trackOff.push(`${type}/${state}: control height ${String(control?.bound?.height)}`);
+        if (track?.bound?.height !== 'border-width/thick' || track?.paints?.fills !== (dis ? 'color/disabled/fill' : 'color/field/border/rest')) trackOff.push(`${type}/${state}: rail ${String(track?.bound?.height)} ${String(track?.paints?.fills)}`);
+        if (bar?.bound?.height !== 'border-width/heavy' || bar?.paints?.fills !== (dis ? 'color/disabled/fill' : 'color/interactive/primary/fill/rest')) trackOff.push(`${type}/${state}: bar ${String(bar?.bound?.height)} ${String(bar?.paints?.fills)}`);
+        const kids = (track?.children ?? []).map((k) => k.name);
+        if (JSON.stringify(kids) !== JSON.stringify(ORDER[type])) trackOff.push(`${type}/${state}: track holds ${kids.join(', ')}`);
+        if (!['bar', 'spaceEnd', ...(type === 'range' ? ['spaceStart'] : [])].every((n) => findIn(m.root, n)?.layoutGrow === 1)) trackOff.push(`${type}/${state}: a segment does not grow`);
+      }
+      ok(trackOff.length === 0,
+        `#2669 call 5 A the track: a 2px rail (border-width/thick) in color/field/border/rest, a 4px bar (border-width/heavy) in color/interactive/primary/fill/rest, growing segments around the thumbs in a size/md/min-height control row, disabled in color/disabled/fill (${trackOff.length} off — ${trackOff.slice(0, 3).join('; ') || 'none'})`);
+
+      // (3) Call 2 A: the state shows on one thumb. The thumb of a single value, and the maximum thumb of a range,
+      // nest Slider.Thumb at the member's state; the minimum thumb stays at rest, except disabled.
+      const stateOff: string[] = [];
+      for (const type of ['single', 'range']) for (const state of STATES5) {
+        const m = sOf(type, state)!;
+        const t = findIn(m.root, 'thumb'), t0 = findIn(m.root, 'thumbMin');
+        if (t?.nestTarget !== '_slider-thumb' || t?.nestVariant?.state !== state) stateOff.push(`${type}/${state}: thumb ${String(t?.nestTarget)} at ${String(t?.nestVariant?.state)}`);
+        if (type === 'range' && (t0?.nestTarget !== '_slider-thumb' || t0?.nestVariant?.state !== (state === 'disabled' ? 'disabled' : 'rest'))) stateOff.push(`${type}/${state}: thumbMin at ${String(t0?.nestVariant?.state)}`);
+        if (type === 'single' && t0) stateOff.push(`${type}/${state}: a minimum thumb on a single value`);
+      }
+      ok(stateOff.length === 0, `#2669 call 2 A the state is on the maximum thumb; the minimum thumb of a range stays at rest except disabled (${stateOff.length} off — ${stateOff.slice(0, 3).join('; ') || 'none'})`);
+
+      // (3b) Owner QA 2026-10-19, item 1: the value readout sits INSIDE the component, at the header row's end opposite the
+      // label. Figma lays the header out left to right across the component's 320; a nested FieldLabel is built at its OWN
+      // 320 (its root's placementWidth, a literal here), so a label that does not grow takes the whole row and pushes the
+      // readout out of the box to the right. The readout's right edge is the sum of the widths ahead of it: a nested label
+      // counts as 320 unless it grows, a growing child counts as 0, and text counts as 0 (its advance is the brand font's).
+      // The readout must start BEFORE the box's right edge (a start at 320 is outside), on every member that shows one, and the header must span it.
+      {
+        const BOX = 320, FIELD_LABEL_BUILT_AT = 320;
+        const outside: string[] = [];
+        for (const m of sMembers) {
+          const header = findIn(m.root, 'header');
+          const value = findIn(m.root, m.coord.type === 'range' ? 'valueRange' : 'valueSingle');
+          if (!header || !value || m.root.placementWidth !== BOX || header.layoutAlign !== 'STRETCH') {
+            outside.push(`${planComponentName(m)}: no header spanning the ${BOX}px box (${String(header?.layoutAlign)}) or no readout`); continue;
+          }
+          let x = 0;
+          for (const c of header.children) {
+            if (c === value) break;
+            x += (c.layoutGrow === 1 ? 0 : c.type === 'NESTED_INSTANCE' ? FIELD_LABEL_BUILT_AT : 0);
+          }
+          if (x >= BOX) outside.push(`${planComponentName(m)}: the readout starts at ${x}px, at or past the ${BOX}px box edge`);
+        }
+        ok(outside.length === 0, `#2669 QA item 1 the value readout stays inside the component's ${BOX}px, at the header's end opposite the label (${outside.length} off — ${outside.slice(0, 2).join('; ') || 'none'})`);
+        // The label sits at the start and the readout is the last child, so it ends the row.
+        const order = sMembers.filter((m) => { const h = findIn(m.root, 'header'); return h?.children[0]?.name === 'label' && h.children[h.children.length - 1].name.startsWith('value'); });
+        ok(order.length === sMembers.length, `#2669 QA item 1 the header holds the label first and the readout last on every member (${order.length} of ${sMembers.length})`);
+      }
+
+      // (4) Call 6 A: the thumb, a 24px thumb (control/size/md/thumb) whose outer disc is the page color, padded 2px
+      // (space/025) around an inner disc in the primary fill stepping rest → hover → pressed. Q346: no stroke at all, since
+      // a stroke binds a border role and no border role is the page color. Disabled: the inner disc color/disabled/fill.
+      const FILL: Record<string, string> = { rest: 'color/interactive/primary/fill/rest', hover: 'color/interactive/primary/fill/hover', pressed: 'color/interactive/primary/fill/pressed', 'focus-visible': 'color/interactive/primary/fill/rest', disabled: 'color/disabled/fill' };
+      const thumbOff = STATES5.flatMap((s) => {
+        const r = tOf(s)?.root;
+        const disc = r ? findIn(r, 'disc') : undefined;
+        const ok1 = r?.paints?.fills === 'color/background/primary' && r?.paints?.strokes === undefined && r?.bound?.paddingTop === 'space/025' && r?.bound?.paddingLeft === 'space/025'
+          && r?.bound?.width === 'control/size/md/thumb' && r?.bound?.height === 'control/size/md/thumb' && r?.bound?.topLeftRadius === 'radius/round'
+          && disc?.paints?.fills === FILL[s] && disc?.bound?.topLeftRadius === 'radius/round' && disc?.layoutGrow === 1 && disc?.layoutAlign === 'STRETCH';
+        const ringNode = r ? findIn(r, 'focusRing') : undefined;
+        const ok2 = s === 'focus-visible' ? ringNode?.nestTarget === 'focus-ring' : !ringNode;
+        return ok1 && ok2 ? [] : [`${s}: ring ${String(r?.paints?.fills)} / stroke ${String(r?.paints?.strokes)} pad ${String(r?.bound?.paddingTop)}, disc ${String(disc?.paints?.fills)}, ${String(r?.bound?.width)}, focus ring ${String(ringNode?.nestTarget)}`];
+      });
+      ok(thumbOff.length === 0, `#2669 call 6 A / Q346 the thumb: a control/size/md/thumb thumb whose page-colored outer disc rings the primary-fill inner disc 2px in (space/025), no stroke, rest/hover/pressed on the inner disc, color/disabled/fill when disabled, the focus ring at focus-visible only (${thumbOff.join('; ') || 'none'})`);
+
+      // (5) Calls 4 A and 7 A, Q345: the panel. Lowercase names; label and value on, end labels, inputs and helper off.
+      const panel = planSetProperties(sMembers).filter((p) => p.type === 'BOOLEAN').map((p) => `${p.name}=${String(p.default)}`).sort();
+      ok(JSON.stringify(panel) === JSON.stringify(['end labels=false', 'helper=false', 'inputs=false', 'label=true', 'value=true']),
+        `#2669 calls 4 A / 7 A, Q345 slider booleans: label and value on, end labels, inputs and helper off, all lowercase (${panel.join(', ')})`);
+
+      // (6) The contrast floors, in every committed brand × mode (5 brands × 4 modes = 20 cells, a literal): the rail,
+      // the bar and the thumb at rest, hover and press clear 3:1 against the page (SC 1.4.11), the focus ring 3:1, and
+      // the value text and the end labels 4.5:1 (SC 1.4.3). The roles measured are read off the PLAN (the subject); the
+      // floors and the cell count are literals.
+      const sliderThemes: [string, any][] = loadedRows([
+        ['prism3', exampleTheme('prism3', () => brandTheme(exampleBrands()['prism3'] as BrandInput))],
+        ['nb', nbTheme()],
+        ['aurora', exampleTheme('aurora', () => brandTheme(exampleBrands()['aurora'] as BrandInput))],
+        ['harbor', exampleTheme('harbor', () => brandTheme(exampleBrands()['harbor'] as BrandInput))],
+        ['wendys', exampleTheme('wendys', () => brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input))],
+      ]);
+      const SLIDER_CELLS = 20;
+      const role = (v: unknown): string => String(v ?? '(unbound)').replace(/^color\//, '').replace(/\//g, '.');
+      // The ring the thumb nests at focus-visible, at the coordinate it nests (surface=default), as that member strokes it.
+      const ringNest = findIn(tOf('focus-visible')!.root, 'focusRing');
+      const ringMember = figmaAnatomySet(componentDefs.find((d) => d.id === 'focus-ring')!, {}).find((m) => m.coord.surface === ringNest?.nestVariant?.surface);
+      const ringRole = role(ringMember?.root.paints?.strokes);
+      const rest = sOf('range', 'rest')!;
+      const PAIRS: [string, string, number][] = [
+        ['the rail', role(findIn(rest.root, 'track')?.paints?.fills), 3],
+        ['the selected bar', role(findIn(rest.root, 'bar')?.paints?.fills), 3],
+        ['the thumb at rest', role(findIn(tOf('rest')!.root, 'disc')?.paints?.fills), 3],
+        ['the thumb at hover', role(findIn(tOf('hover')!.root, 'disc')?.paints?.fills), 3],
+        ['the thumb at press', role(findIn(tOf('pressed')!.root, 'disc')?.paints?.fills), 3],
+        ['the focus ring', ringRole, 3],
+        ['the value text', role(findIn(rest.root, 'valueRange')?.paints?.fills), 4.5],
+        ['the end labels', role(findIn(rest.root, 'minLabel')?.paints?.fills), 4.5],
+      ];
+      for (const [what, ink, floor] of PAIRS) {
+        const low: string[] = [];
+        let measured = 0, min = Infinity;
+        for (const [brand, th] of sliderThemes) for (const m of resolveAllModes(th)) {
+          const x = m.roles[ink], y = m.roles['background.primary'];
+          if (!x?.hex || !y?.hex) { low.push(`${brand}/${m.mode}: missing ${!x?.hex ? ink : 'background.primary'}`); continue; }
+          const r = contrast(hexToRgb(x.hex), hexToRgb(y.hex));
+          measured++; min = Math.min(min, r);
+          if (r < floor) low.push(`${brand}/${m.mode} ${r.toFixed(2)}`);
+        }
+        ok(measured === SLIDER_CELLS && low.length === 0,
+          `#2669 slider contrast (${what}): ${ink} against background.primary clears ${floor}:1 in all ${measured} of ${SLIDER_CELLS} brand × mode cells (lowest ${min.toFixed(2)})${low.length ? ` — ${low.join('; ')}` : ''}`);
+      }
+    }
+
     // ---- #2418 (owner decisions Q269 1-8 A): SegmentedControl.Segment and SegmentedControl ----
     // Every expected value below is a literal typed here from Q269 and the refreshed proposal it decided, never read
     // off the defs: the defs and their projected plans are the SUBJECT (docs/34 shape 1). Each arm names its decision,
@@ -17111,12 +17420,12 @@ arm: {
     const TIER: Record<string, number> = {
       button: 1,
       'button-destructive': 2, 'button-neutral': 2, 'icon-button': 2, 'icon-button-neutral': 2, icon: 2,
-      'text-field': 2, textarea: 2, 'password-field': 2, select: 2, 'checkbox-row': 2, 'checkbox-group': 2,
-      'radio-row': 2, 'radio-group': 2, 'switch-row': 2, counter: 2, 'button-group': 2, tabs: 2, accordion: 2, list: 2, link: 2, dialog: 2,
+      'text-field': 2, textarea: 2, 'password-field': 2, 'code-input': 2, select: 2, 'checkbox-row': 2, 'checkbox-group': 2,
+      'radio-row': 2, 'radio-group': 2, 'switch-row': 2, counter: 2, 'button-group': 2, tabs: 2, accordion: 2, list: 2, link: 2, dialog: 2, toast: 2, banner: 2,
       'icon-button-destructive': 3, 'segmented-control': 3, badge: 3, tag: 3, divider: 3, spinner: 3, veil: 3, 'image-placeholder': 3,
       'flush-icon-button-neutral': 4, 'flush-icon-button': 5, 'flush-icon-button-destructive': 5,
       'checkbox-control': 6, 'radio-control': 6, 'switch-control': 6, 'field-label': 6, 'field-message': 6, 'focus-ring': 6,
-      'tab-item': 9, 'list-item': 9, 'segmented-control-segment': 9, '_accordion-indicator': 9,
+      'tab-item': 9, 'list-item': 9, 'segmented-control-segment': 9, '_accordion-indicator': 9, 'code-input-cell': 9,
     };
     const prio = (d: ComponentDef) => d.ai.generationPriority;
     const offScale = componentDefs.filter((d) => !SCALE.includes(prio(d) as number));
@@ -17265,12 +17574,30 @@ arm: {
     ok(JSON.stringify(FAMILIES.map((f) => f.def.id)) === JSON.stringify(['flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral']),
       `#2457 the three flush icon-button families are registered, the bare id primary (Q295.2 B) — got [${FAMILIES.map((f) => f.def.id).join(', ')}]`);
     for (const { def, id, family, ink, wash } of FAMILIES) {
-      const plans = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
+      const allPlans = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
+      // The literals below are the default ground's; the inverse members (Q386, #2668) are held in their own arm after.
+      const plans = allPlans.filter((p) => p.coord.surface !== 'inverse');
       // SCOPE FLOOR: every owner-decided shape × size × state is a member, so a dropped value cannot shrink what is checked.
       const coords = new Set(plans.map((p) => `${p.coord.shape}|${p.size}|${p.coord.state}`));
       const missing = SHAPES.flatMap((sh) => Object.keys(FLUSH_SIDE).flatMap((sz) => Object.keys(ink).map((st) => `${sh}|${sz}|${st}`))).filter((c) => !coords.has(c));
-      ok(plans.length === 30 && missing.length === 0,
-        `#2457 ${id} projects every shape × size × state, 2 × 3 × 5 = 30 members (got ${plans.length}; missing: [${missing.join(', ')}])`);
+      ok(plans.length === 30 && allPlans.length === 60 && missing.length === 0,
+        `#2457 ${id} projects every shape × size × state, 2 × 3 × 5 = 30 members on the default ground and 30 more on the inverse (got ${plans.length} of ${allPlans.length}; missing: [${missing.join(', ')}])`);
+      // THE INVERSE GROUND (Q386, #2668): the glyph walks the family's inverse ink, rest → hover → pressed, and the flush
+      // box paints nothing, so the Toast's close is visible on the dark card. EXPECTED is the ink map above, rewritten to
+      // `color/inverse/…` as a literal prefix; ACTUAL is the projected glyph.
+      const inverseBad = allPlans.filter((p) => p.coord.surface === 'inverse' && p.coord.shape === 'flush').flatMap((p) => {
+        const glyph = p.root.children.find((c) => c.name === 'icon');
+        const want = ink[String(p.coord.state)].replace('color/', 'color/inverse/');
+        return glyph?.descendantFills === want && planPaintVars({ ...p.root, children: [] }).length === 0 ? [] : [`${planComponentName(p)} (${glyph?.descendantFills}, want ${want})`];
+      });
+      ok(inverseBad.length === 0 && allPlans.filter((p) => p.coord.surface === 'inverse' && p.coord.shape === 'flush').length === 15,
+        `#2457 ${id}'s flush glyph on the inverse ground walks the family's color.inverse ink at every state and its box paints nothing (Q386)${inverseBad.length ? ` — ${inverseBad.slice(0, 3).join('; ')}` : ''}`);
+      // THE FOCUS RING FOLLOWS surface (Q436 (a), as IconButton's #1427 arm): every focus-visible member nests the ring
+      // on its own ground, so the inverse ring lands on the Toast's dark card. EXPECTED is the member's coordinate.
+      const ringPlans = allPlans.filter((p) => p.coord.state === 'focus-visible');
+      const ringBad = ringPlans.filter((p) => p.root.children.find((c) => c.name === 'focusRing')?.nestVariant?.surface !== p.coord.surface).map(planComponentName);
+      ok(ringPlans.length === 12 && ringBad.length === 0,
+        `#2457 ${id}'s focus ring follows surface: each focus-visible member nests the ring on its own ground (Q436 (a))${ringBad.length ? ` — WRONG: ${ringBad.slice(0, 3).join(', ')}` : ''} (${ringPlans.length} of 12 members)`);
       ok(JSON.stringify(def.variants?.shape) === JSON.stringify(SHAPES),
         `#2457 ${id}'s shape axis is [flush, round], flush first (Q287 A) — got ${JSON.stringify(def.variants?.shape)}`);
       const paddingBound: string[] = [], wrongSide: string[] = [], painted: string[] = [], wrongInk: string[] = [];
@@ -17403,7 +17730,7 @@ arm: {
       const control = p.root.children.find((c) => c.name === 'control');
       for (const side of ['decrement', 'increment']) {
         const n = control?.children.find((c) => c.name === side);
-        const want = { shape: SHAPE[ap], size: sz, state: st === 'disabled' ? 'disabled' : 'rest' };
+        const want = { shape: SHAPE[ap], size: sz, surface: 'default', state: st === 'disabled' ? 'disabled' : 'rest' };
         if (n?.nestTarget !== 'flush-icon-button-neutral' || JSON.stringify(n?.nestVariant) !== JSON.stringify(want) || JSON.stringify(n?.nestExpose) !== JSON.stringify(['state']))
           offNest.push(`${name}/${side}: ${n?.nestTarget} ${JSON.stringify(n?.nestVariant)} exposing ${JSON.stringify(n?.nestExpose)}, want ${JSON.stringify(want)}`);
       }
@@ -17716,6 +18043,10 @@ arm: {
     const SH_EXEMPT: Record<string, string> = {
       ...Object.fromEntries(['checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'switch-control', 'switch-row'].map((id) => [id, CHOICE_ERR])),
       'field-message': 'a message line under a field: no state axis and no stroked boundary, so there is no hover border to measure; its status shows in the text and glyph',
+      // #2428: the field's border is its cells', and status does not reach a nested cell (Q329), so no status member strokes.
+      'code-input': 'the field draws no border of its own: its boxes are nested cells, which the designer sets per cell because status does not reach a slot child (Q329); the cell\'s danger border is held to 3:1 against the page by the #2428 contrast arm',
+      // #2670: Progress's `error` status colors a fill, not a border, and its message is a nested FieldMessage.
+      progress: 'a progress bar or ring: no state axis and no stroked boundary; its error status colors the fill and shows in the nested FieldMessage\'s text and glyph, and its contrast is held by the #2670 block',
     };
     const SH_STATUSES = ['error', 'warning', 'success'];
     const roleOfVar = (v: string): string => v.replace(/^color\//, '').replace(/\//g, '.');
@@ -18542,6 +18873,196 @@ arm: {
     }
   }
 
+  // ---- #2666: BREADCRUMBS, the approved wireframe (every numbered call A, 2026-10-16) — each held against a literal ----
+  // EXPECTED is typed here from the decisions on #2666 (and Q347 A / Q359 B on #2752 for the size order), never read
+  // from `breadcrumbs.ts` or `breadcrumb-item.ts`. ACTUAL is the real projection (`figmaAnatomySet`), node by node, and
+  // the def's shipped fields. Contrast is measured from the COMMITTED emission (`out/<brand>.tokens.json`, every brand
+  // the regen writes, each in its four modes), not from the theme the engine computes, so the measurement is independent
+  // of both the def and the role resolver. Mutations, each failing the arm named:
+  //   size order small-first, or a kind other than ancestor first → `#2666 breadcrumbs/members`;
+  //   the crumb nesting Link standalone, emphasis, or not exposing its state → `#2666 breadcrumbs/crumb` (calls 3 A, 4 A);
+  //   the current page as a link, in text.secondary, or at emphasis → `#2666 breadcrumbs/current` (calls 2 A, 4 A, 5 A);
+  //   a separator in the wrong look for its member, or after the current page → `#2666 breadcrumbs/separator` (call 6 A,
+  //   Q382 A); the separator's glyph, size or ink, or the slash's shape → `#2666 breadcrumbs/separator-looks`;   the overflow nesting IconButton or another glyph → `#2666 breadcrumbs/overflow`;
+  //   the slot's minimum, preferred item or default kinds → `#2666 breadcrumbs/slot`;
+  //   the parent path's glyph, link or wording → `#2666 breadcrumbs/parent` (call 11 A);
+  //   a gap off the proposal's space.050 / space.100 → `#2666 breadcrumbs/gaps`;
+  //   the collapse numbers or the nav label → `#2666 breadcrumbs/code-props` (calls 8 A, 9 A, 16 A);
+  //   the current page or the back chevron rebound off the measured role, or a measured role under its floor in any
+  //   committed cell → `#2666 breadcrumbs/contrast`.
+  {
+    const itemDef = componentDefs.find((d) => d.id === 'breadcrumb-item');
+    const trailDef = componentDefs.find((d) => d.id === 'breadcrumbs');
+    ok(!!itemDef && !!trailDef, '#2666 breadcrumbs: Breadcrumbs and BreadcrumbItem are registered');
+    if (itemDef && trailDef) {
+      type BN = { name: string; type: string; nestTarget?: string; nestVariant?: Record<string, string>; nestExpose?: string[]; nestOverrides?: { property: string; type: string; value: string }[]; descendantFills?: string; textStyle?: string; characters?: string; paints?: { fills?: string }; bound?: Record<string, string>; slotSettings?: Record<string, unknown>; slotPreferred?: string[]; children: BN[] };
+      const all = (n: BN): BN[] => [n, ...n.children.flatMap(all)];
+      const find = (n: BN, name: string): BN | undefined => all(n).find((x) => x.name === name);
+      const itemPlans = figmaAnatomySet(itemDef, { swapTarget: 'FPO-default-icon' }).map((p) => ({ kind: String((p.coord as Record<string, string>).kind), sep: String((p.coord as Record<string, string>).separator), size: String(p.size), root: p.root as unknown as BN }));
+      const trailPlans = figmaAnatomySet(trailDef, { swapTarget: 'FPO-default-icon' }).map((p) => ({ path: String((p.coord as Record<string, string>).path), sep: String((p.coord as Record<string, string>).separator), size: String(p.size), root: p.root as unknown as BN }));
+      const RUNG: Record<string, string> = { small: 'sm', medium: 'md' };
+
+      // MEMBERS (call 1 A, call 7 A; Q347 A and Q359 B; Q382 A): the item 3 kinds × 2 separators × 2 sizes less the current
+      // page's slash (10), the trail 2 paths × 2 separators × 2 sizes less the parent's slash (6), the first member the
+      // code default. Typed out, in the set's order.
+      const ITEM_MEMBERS = ['ancestor/chevron', 'ancestor/slash', 'current/chevron', 'overflow/chevron', 'overflow/slash'].flatMap((ks) => ['medium', 'small'].map((z) => `${ks}/${z}`));
+      const TRAIL_MEMBERS = ['full/chevron', 'full/slash', 'parent/chevron'].flatMap((ls) => ['medium', 'small'].map((z) => `${ls}/${z}`));
+      ok(JSON.stringify(itemPlans.map((p) => `${p.kind}/${p.sep}/${p.size}`)) === JSON.stringify(ITEM_MEMBERS) && JSON.stringify(trailPlans.map((p) => `${p.path}/${p.sep}/${p.size}`)) === JSON.stringify(TRAIL_MEMBERS)
+        && JSON.stringify(itemDef.variants) === '{"kind":["ancestor","current","overflow"],"separator":["chevron","slash"],"size":["medium","small"]}'
+        && JSON.stringify(trailDef.variants) === '{"path":["full","parent"],"separator":["chevron","slash"],"size":["medium","small"]}'
+        && [itemDef, trailDef].every((d) => d.props.find((p) => p.name === 'separator')?.default === 'chevron')
+        && itemPlans[0].kind === 'ancestor' && itemPlans[0].size === 'medium' && trailPlans[0].path === 'full' && trailPlans[0].size === 'medium'
+        && itemDef.states.length === 0 && trailDef.states.length === 0 && !itemDef.figmaProperties?.stateAxis && !trailDef.figmaProperties?.stateAxis
+        && [itemDef, trailDef].every((d) => d.props.find((p) => p.name === 'size')?.default === 'medium'),
+        `#2666 breadcrumbs/members (Q382 A): BreadcrumbItem kind [ancestor, current, overflow] × separator [chevron, slash] × size [medium, small] less the current page's slash = 10, Breadcrumbs path [full, parent] × separator × size less the parent's slash = 6, chevron by default, no state axis, the first member the code default (got ${itemPlans.length} / ${trailPlans.length}, ${JSON.stringify(itemDef.variants)} ${JSON.stringify(trailDef.variants)})`);
+
+      // THE CRUMB (calls 3 A, 4 A): Link, inline (underlined at every state), default weight, default surface, at the
+      // item's size, its state exposed. Only on an ancestor.
+      const crumbOff = itemPlans.filter((p) => {
+        const c = find(p.root, 'crumb');
+        if (p.kind !== 'ancestor') return !!c;
+        return !(c && c.nestTarget === 'link' && JSON.stringify(c.nestVariant) === JSON.stringify({ style: 'inline', weight: 'default', size: p.size, surface: 'default', state: 'rest' })
+          && JSON.stringify(c.nestExpose) === '["state"]');
+      });
+      ok(crumbOff.length === 0, `#2666 breadcrumbs/crumb (calls 3 A, 4 A): an ancestor nests Link inline, default weight, at its own size, state exposed, and nothing else nests it${crumbOff.length ? ` — OFF: ${crumbOff.map((p) => `${p.kind}/${p.size}`).join(', ')}` : ''}`);
+
+      // THE CURRENT PAGE (calls 2 A, 4 A, 5 A): text, not a link, in text.primary at the default body weight. Only on current.
+      const curOff = itemPlans.filter((p) => {
+        const t = find(p.root, 'current');
+        if (p.kind !== 'current') return !!t;
+        return !(t && t.type === 'TEXT' && t.paints?.fills === 'color/text/primary' && t.textStyle === `body/${RUNG[p.size]}/default` && t.characters === 'Current page'
+          && !all(p.root).some((n) => n.nestTarget === 'link'));
+      });
+      ok(curOff.length === 0, `#2666 breadcrumbs/current (calls 2 A, 4 A, 5 A): the current page is "Current page" text in color/text/primary at body/<rung>/default, with no link in its member${curOff.length ? ` — OFF: ${curOff.map((p) => `${p.kind}/${p.size}`).join(', ')}` : ''}`);
+
+      // THE SEPARATOR (call 6 A, Q382 A): after every step but the current one, the last child of its row, ONE nested
+      // `_breadcrumb-separator` in the member's own separator look; the current page nests none.
+      const sepOff = itemPlans.filter((p) => {
+        const seps = all(p.root).filter((n) => n.nestTarget === '_breadcrumb-separator');
+        if (p.kind === 'current') return seps.length > 0;
+        return !(seps.length === 1 && JSON.stringify(seps[0].nestVariant) === JSON.stringify({ type: p.sep }) && p.root.children[p.root.children.length - 1] === seps[0]);
+      });
+      ok(sepOff.length === 0, `#2666 breadcrumbs/separator (call 6 A, Q382 A): one BreadcrumbSeparator in the member's own look (chevron or slash) ends every ancestor and overflow member, and no current member${sepOff.length ? ` — OFF: ${sepOff.map((p) => `${p.kind}/${p.sep}/${p.size}`).join(', ')}` : ''}`);
+
+      // THE SEPARATOR'S TWO LOOKS (Q382 A): a 16px (icon.size.xs) chevron-right or slash in color/icon/secondary, the
+      // chevron first (the default). The slash is the set's own glyph, typed here (a 2px stroke on the 24px grid).
+      const sepDef = componentDefs.find((d) => d.id === '_breadcrumb-separator');
+      const sepPlans = sepDef ? figmaAnatomySet(sepDef, { swapTarget: 'FPO-default-icon' }) : [];
+      const SLASH = 'M14.03 4H16.17L9.97 20H7.83L14.03 4Z';
+      const looks = sepPlans.map((p) => {
+        const g = (p.root as unknown as BN).children;
+        return [String((p.coord as Record<string, string>).type), g.length, g[0]?.nestTarget, g[0]?.descendantFills, g[0]?.bound?.width, g[0]?.bound?.height];
+      });
+      const slashPath = (ICON_PATHS as Record<string, string | undefined>)['slash'];
+      ok(!!sepDef && sepDef.name === 'BreadcrumbSeparator' && JSON.stringify(looks) === JSON.stringify([['chevron', 1, 'icon/chevron-right', 'color/icon/secondary', 'icon/size/xs', 'icon/size/xs'], ['slash', 1, 'icon/slash', 'color/icon/secondary', 'icon/size/xs', 'icon/size/xs']])
+        && slashPath !== undefined && canonicalShape(slashPath) === canonicalShape(SLASH),
+        `#2666 breadcrumbs/separator-looks (Q382 A): _breadcrumb-separator is a 16px chevron-right or slash in color/icon/secondary, chevron first, and the set's slash is the 2px stroke typed here (got ${JSON.stringify(looks)}, slash ${slashPath ?? 'not in the set'})`);
+
+      // THE OVERFLOW STEP (calls 8 A, 14 A): FlushIconButton.Neutral, flush, small at both sizes, three dots, state exposed.
+      const ovOff = itemPlans.filter((p) => {
+        const o = find(p.root, 'overflow');
+        if (p.kind !== 'overflow') return !!o;
+        return !(o && o.nestTarget === 'flush-icon-button-neutral' && JSON.stringify(o.nestVariant) === '{"shape":"flush","size":"small","state":"rest"}'
+          && JSON.stringify(o.nestExpose) === '["state"]' && JSON.stringify(o.nestOverrides) === '[{"property":"swap icon","type":"INSTANCE_SWAP","value":"icon/more-horizontal-filled"}]');
+      });
+      ok(ovOff.length === 0, `#2666 breadcrumbs/overflow (calls 8 A, 14 A): the overflow step nests FlushIconButton.Neutral, flush and small, showing more-horizontal-filled, state exposed${ovOff.length ? ` — OFF: ${ovOff.map((p) => `${p.kind}/${p.size}`).join(', ')}` : ''}`);
+
+      // THE ITEMS SLOT (call 1 A, the proposal's properties table): at least two, BreadcrumbItem only, two ancestors and
+      // the current page by default at the trail's size. Only on the trail.
+      const slotOff = trailPlans.filter((p) => {
+        const s = find(p.root, 'items');
+        if (p.path !== 'full') return !!s;
+        return !(s && s.type === 'CONTENT_SLOT' && JSON.stringify(s.slotSettings) === '{"minChildren":2,"allowPreferredValuesOnly":true}'
+          && JSON.stringify(s.slotPreferred) === '["breadcrumb-item"]'
+          && JSON.stringify(s.children.map((c) => [c.nestTarget, c.nestVariant?.kind, c.nestVariant?.separator, c.nestVariant?.size])) === JSON.stringify([['breadcrumb-item', 'ancestor', p.sep, p.size], ['breadcrumb-item', 'ancestor', p.sep, p.size], ['breadcrumb-item', 'current', 'chevron', p.size]]));
+      });
+      ok(slotOff.length === 0, `#2666 breadcrumbs/slot: the trail holds a native items slot, at least 2, BreadcrumbItem only, defaulting to ancestor, ancestor, current at its own size, the ancestors in the trail's separator (Q382 A)${slotOff.length ? ` — OFF: ${slotOff.map((p) => `${p.path}/${p.sep}/${p.size}`).join(', ')}` : ''}`);
+
+      // THE PARENT LAYOUT (call 11 A): a 16px chevron-left in the link icon role, then Link inline, default weight,
+      // reading "Parent page", state exposed. Only on parent.
+      const parOff = trailPlans.filter((p) => {
+        const g = find(p.root, 'backGlyph'), l = find(p.root, 'parentLink');
+        if (p.path !== 'parent') return !!g || !!l;
+        return !(g && l && p.root.children.indexOf(g) === 0 && p.root.children.indexOf(l) === 1 && g.nestTarget === 'icon/chevron-left' && g.descendantFills === 'color/icon/link/default'
+          && g.bound?.width === 'icon/size/xs' && l.nestTarget === 'link' && JSON.stringify(l.nestVariant) === JSON.stringify({ style: 'inline', weight: 'default', size: p.size, surface: 'default', state: 'rest' })
+          && JSON.stringify(l.nestExpose) === '["state"]' && JSON.stringify(l.nestOverrides) === '[{"property":"label","type":"TEXT","value":"Parent page"}]');
+      });
+      ok(parOff.length === 0, `#2666 breadcrumbs/parent (call 11 A): the parent path is a 16px chevron-left in color/icon/link/default before an inline Link reading "Parent page"${parOff.length ? ` — OFF: ${parOff.map((p) => `${p.path}/${p.size}`).join(', ')}` : ''}`);
+
+      // THE GAPS (the proposal's token table, DRAFT): label to separator and item to item space.050 small / space.100
+      // medium; the parent path's chevron to link space.050, Link's own icon gap.
+      const SPACE: Record<string, string> = { small: 'space/050', medium: 'space/100' };
+      const gapOff = [
+        ...itemPlans.filter((p) => p.root.bound?.itemSpacing !== SPACE[p.size]).map((p) => `item ${p.kind}/${p.size} ${p.root.bound?.itemSpacing}`),
+        ...trailPlans.filter((p) => p.path === 'full' && find(p.root, 'items')?.bound?.itemSpacing !== SPACE[p.size]).map((p) => `slot ${p.size}`),
+        ...trailPlans.filter((p) => p.path === 'parent' && p.root.bound?.itemSpacing !== 'space/050').map((p) => `parent ${p.size} ${p.root.bound?.itemSpacing}`),
+      ];
+      ok(gapOff.length === 0, `#2666 breadcrumbs/gaps: space.050 / space.100 inside each item and between items, space.050 between the back chevron and its link${gapOff.length ? ` — OFF: ${gapOff.join('; ')}` : ''}`);
+
+      // CODE PROPS AND WORDING (calls 8 A, 9 A, 11 A, 15 A, 16 A).
+      const prop = (n: string) => trailDef.props.find((p) => p.name === n);
+      ok(prop('maxItems')?.default === 5 && prop('itemsBeforeCollapse')?.default === 1 && prop('itemsAfterCollapse')?.default === 2
+        && prop('collapse')?.default === 'expand' && prop('responsive')?.default === true && prop('label')?.default === 'Breadcrumb'
+        && trailDef.name === 'Breadcrumbs' && trailDef.category === 'navigation' && itemDef.name === 'BreadcrumbItem' && itemDef.category === 'navigation'
+        && JSON.stringify(trailDef.aliases) === '["breadcrumb","breadcrumb-trail","breadcrumb-list"]'
+        && trailDef.summary === 'The path to the current page as links, with the current page last and not a link.'
+        && itemDef.summary === 'One step in a breadcrumb trail: a link, the current page, or the collapsed steps.'
+        && itemDef.accessibility.aria.includes('"Show full path"') && trailDef.accessibility.aria.includes('aria-label="Breadcrumb"') && trailDef.accessibility.aria.includes('aria-current="page"'),
+        `#2666 breadcrumbs/code-props: collapse above 5 keeping 1 and 2, expand in place, the small-screen switch on, the nav named "Breadcrumb", the overflow "Show full path", and the approved names and summaries (maxItems ${prop('maxItems')?.default}, before ${prop('itemsBeforeCollapse')?.default}, after ${prop('itemsAfterCollapse')?.default})`);
+
+      // CONTRAST over every committed brand × mode (proposal §5): the roles the projection paints, measured from the
+      // committed emission. Link ink is Link's `text.link.*` (the nested instance), held here at 4.5:1 on both page grounds
+      // because a crumb is navigation text the page relies on; the current page 4.5:1 on both; the back chevron 3:1 on
+      // the page (SC 1.4.11). The separator is decorative and held to no floor.
+      const treeFiles = readdirSync(resolve(HERE, 'out')).filter((f) => /^[a-z0-9-]+\.tokens\.json$/.test(f));
+      const MODES = ['light', 'dark', 'hc-light', 'hc-dark'];
+      const colorOf = (tree: Record<string, any>, root: string, path: string, mode: string, depth = 0): string | null => {
+        let n: any = tree[root];
+        for (const k of path.split('.')) n = n?.[k];
+        if (!n || depth > 8) return null;
+        const v = mode === 'light' ? n.$value : (n.$extensions?.prism3?.modes?.[mode]?.$value ?? n.$value);
+        if (typeof v !== 'string') return null;
+        const ref = /^\{([^}]+)\}$/.exec(v);
+        if (ref) { const [r0, ...rest] = ref[1].split('.'); return colorOf(tree, r0, rest.join('.'), mode, depth + 1); }
+        const rgb = /^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)$/.exec(v);
+        if (rgb) return rgb[4] !== undefined && Number(rgb[4]) < 1 ? null : '#' + [rgb[1], rgb[2], rgb[3]].map((x) => Number(x).toString(16).padStart(2, '0')).join('');
+        return /^#[0-9a-f]{6}$/i.test(v) ? v : null;
+      };
+      const PAIRS: [string, string, number][] = [
+        ['color.text.link.default', 'color.background.primary', 4.5], ['color.text.link.default', 'color.background.secondary', 4.5],
+        ['color.text.link.hover', 'color.background.primary', 4.5], ['color.text.link.pressed', 'color.background.primary', 4.5],
+        ['color.text.link.focused', 'color.background.primary', 4.5],
+        ['color.text.primary', 'color.background.primary', 4.5], ['color.text.primary', 'color.background.secondary', 4.5],
+        ['color.icon.link.default', 'color.background.primary', 3],
+      ];
+      // The roles under test are the ones the projection paints: read back off the plans above, so a rebind moves both.
+      const painted = new Set([
+        ...itemPlans.flatMap((p) => all(p.root)).map((n) => n.paints?.fills).filter(Boolean),
+        ...trailPlans.flatMap((p) => all(p.root)).map((n) => n.descendantFills).filter(Boolean),
+      ].map((v) => String(v).replace(/\//g, '.')));
+      const CELLS = 20;
+      const lows: string[] = [];
+      for (const [fg, bg, floor] of PAIRS) {
+        let measured = 0, lowest = Infinity;
+        for (const f of treeFiles) {
+          const tree = JSON.parse(readFileSync(resolve(HERE, 'out', f), 'utf8'));
+          const root = Object.keys(tree)[0];
+          for (const m of MODES) {
+            const a = colorOf(tree, root, fg, m), b = colorOf(tree, root, bg, m);
+            if (!a || !b) { lows.push(`${f}/${m}: ${!a ? fg : bg} unresolved`); continue; }
+            const r = contrast(hexToRgb(a), hexToRgb(b));
+            measured++; lowest = Math.min(lowest, r);
+            if (r < floor) lows.push(`${fg} on ${bg} ${f}/${m} ${r.toFixed(2)}`);
+          }
+        }
+        if (measured !== CELLS) lows.push(`${fg} on ${bg}: ${measured} of ${CELLS} cells measured`);
+      }
+      const unpainted = ['color.text.primary', 'color.icon.link.default'].filter((r) => !painted.has(r));
+      ok(lows.length === 0 && unpainted.length === 0 && treeFiles.length === 5,
+        `#2666 breadcrumbs/contrast: link ink 4.5:1 on background.primary at every state and on background.secondary at rest, the current page's text.primary 4.5:1 on both, the back chevron's icon.link.default 3:1 on the page, in all ${CELLS} committed brand × mode cells (${treeFiles.length} brands)${unpainted.length ? ` — the projection no longer paints ${unpainted.join(', ')}` : ''}${lows.length ? ` — LOW: ${lows.slice(0, 6).join('; ')}` : ''}`);
+    }
+  }
+
   // ---- #1339: disabled is ONE mechanism (the STATE), not a state axis + a prop ----
   // The label dims when its field is disabled, carried by the `disabled` STATE (a paint change projected as a
   // Figma variant), with NO duplicating `disabled` prop. EXPECTED is the authored contract; ACTUAL is the
@@ -18774,8 +19295,10 @@ arm: {
     // The flush shape binds none.
     // `segmented-control-segment` joins (#2418, Q269.4): an unselected option's hover and pressed are the neutral wash,
     // and its selected tint is the subtle-fill Tag binds, so a solid-tint or no-hover brand reaches it as it reaches a tag.
-    ok(JSON.stringify(binders) === JSON.stringify(['button', 'button-destructive', 'button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'password-field', 'segmented-control-segment', 'select', 'tag', 'text-field', 'textarea']),
-      `#1608 the wash binders the lever reaches: button ×3, flush-icon-button ×3 (round), icon-button ×3, password-field, segmented-control-segment, select, tag, text-field, textarea (${binders.join(', ')})`);
+    // `code-input-cell` joins (#2428): its hover is Text field's neutral wash, so the lever reaches it as it reaches a field.
+    // `pagination-item` joins (#2665): a page cell's hover and pressed are IconButton.Neutral ghost's neutral wash.
+    ok(JSON.stringify(binders) === JSON.stringify(['button', 'button-destructive', 'button-neutral', 'code-input-cell', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'pagination-item', 'password-field', 'segmented-control-segment', 'select', 'tag', 'text-field', 'textarea']),
+      `#1608 the wash binders the lever reaches: button ×3, code-input-cell, flush-icon-button ×3 (round), icon-button ×3, pagination-item, password-field, segmented-control-segment, select, tag, text-field, textarea (${binders.join(', ')})`);
 
     // BY-NAME MUTATION, in-suite: the RAW def (no wrap) under solid-tint misses the page wash — the 96-miss
     // shape the owner saw, outline's 48 and text's 48. Since #2324 the text appearance keys no wash by default, so the
@@ -19158,6 +19681,20 @@ arm: {
       // LINK (#2580): the label crosses size, weight, style and, the first type key to do so, the interaction state. The
       // underline is the state half: a standalone link is plain at rest and underlined at hover, pressed and focus.
       { def: componentDefs.find((d) => d.id === 'link')!, part: 'label', axes: { size: 3, weight: 2, style: 2, state: 2 } },
+      // BREADCRUMBS (#2666, call 4 A): the current page binds the two default body rungs. It exists only on a current
+      // member.
+      { def: componentDefs.find((d) => d.id === 'breadcrumb-item')!, part: 'current', axes: { size: 2 }, at: { kind: 'current' } },
+      // CODE INPUT (#2428, Q330 A): the cell's character binds four rungs, 16 / 20 / 24 / 40. It exists only where the
+      // cell holds a character.
+      { def: componentDefs.find((d) => d.id === 'code-input-cell')!, part: 'digit', axes: { size: 4 }, at: { state: 'filled' } },
+      // Pagination (#2665): the item's number by selection (the current page's emphasis weight) and size, its bold reserve
+      // by size alone, and the compact text by size. The ellipsis is an icon (Q404 A), so it binds no type.
+      { def: componentDefs.find((d) => d.id === 'pagination-item')!, part: 'label', axes: { selection: 2, size: 3 } },
+      { def: componentDefs.find((d) => d.id === 'pagination-item')!, part: 'labelReserve', axes: { size: 3 } },
+      // Q414 A: a labeled previous or next cell's word, by size, in the page number's regular weight.
+      { def: componentDefs.find((d) => d.id === 'pagination-item')!, part: 'previousText', axes: { size: 3 }, at: { type: 'previous', labeled: 'true' } },
+      { def: componentDefs.find((d) => d.id === 'pagination-item')!, part: 'nextText', axes: { size: 3 }, at: { type: 'next', labeled: 'true' } },
+      { def: componentDefs.find((d) => d.id === 'pagination')!, part: 'status', axes: { size: 3 }, at: { type: 'compact' } },
     ];
 
     // DIRECTION 1 — the authored table is the corpus. Discovered by walking every def's anatomy for a
@@ -19558,8 +20095,8 @@ arm: {
     // today. Asserted rather than trusted, because the failure would surface at paste time, in Figma,
     // as a syntax error in a 40KB string — and the fix would be a lexer.
     for (const [label, js] of [['single', planToPluginJs(grid[0])], ['set', setJs], ['chunk', chunkJs]] as [string, string][])
-      ok(!js.includes('`'),
-        `anatomy/payload: the ${label} payload contains no backtick — the strip pass is only safe while no template literal spans lines (add a lexer before adding one)`);
+      ok(!js.includes('`') && !/\\\n/.test(js),
+        `anatomy/payload: the ${label} payload contains no backtick and no line ending in a backslash — the strip pass (comments and leading indentation) is only safe while no literal spans lines (add a lexer before adding one)`);
 
     // THE PASS ITSELF, on crafted input. Every assertion above samples the pass's OUTPUT, and output
     // sampling is blind to the one failure that matters: a line that is simply GONE. Measured — a
@@ -19570,6 +20107,7 @@ arm: {
     ok(stripPayloadComments('// gone\nkept();\n') === 'kept();\n', 'anatomy/payload: strip removes a full-line comment');
     ok(stripPayloadComments('a();\n\nb();\n') === 'a();\nb();\n', 'anatomy/payload: strip removes blank lines — they separated prose that is no longer there');
     ok(stripPayloadComments('  // indented\nkept();\n') === 'kept();\n', 'anatomy/payload: an INDENTED comment goes too — most of the payload prose is inside a block');
+    ok(stripPayloadComments('if(a){\n    b();\n  }\n') === 'if(a){\nb();\n}\n', 'anatomy/payload: leading indentation goes (#2428 meeting #2661: about 1 KB of every chunk shell), the code on the line kept');
     ok(stripPayloadComments('kept(); // trailing\n') === 'kept(); // trailing\n',
       'anatomy/payload: a line with code BEFORE the // is kept ENTIRELY — the greedy version deletes `if(!id)continue;`, a real guard, and no output-sampling gate can see it');
     ok(stripPayloadComments("s=\"http://x\";\n") === "s=\"http://x\";\n", 'anatomy/payload: a // inside a string literal is not a comment and its line survives');
@@ -20039,7 +20577,9 @@ arm: {
           },
           // …and the style's SIZE and LINE HEIGHT, as the host resolves them (the reserved-lines floor reads
           // both). The plugin shim's `DEFAULT_STYLE_METRICS`, restated: a plausible host value, not an oracle.
-          setTextStyleIdAsync: async (id: string) => { node.textStyleId = id; node.fontSize = opts.textMetrics?.fontSize ?? 16; node.lineHeight = opts.textMetrics?.lineHeight ?? { unit: 'PERCENT', value: 150 }; },
+          // #2428: a style carries its own vertical trim (every emitted style's is NONE) and applying it writes that trim,
+          // through the backing field so the apply does not detach itself. Mirrors `component-shim.ts`.
+          setTextStyleIdAsync: async (id: string) => { node.textStyleId = id; node.fontSize = opts.textMetrics?.fontSize ?? 16; node.lineHeight = opts.textMetrics?.lineHeight ?? { unit: 'PERCENT', value: 150 }; (node as Record<string, unknown>)._leadingTrim = 'NONE'; },
           // #1007 — STORED UNDER FIGMA'S OWN NAME, `effectStyleId`, as the plugin shim does. This was
           // `async () => {}`: the write was accepted and kept nowhere, so deleting the payload's effect-style
           // apply was invisible here. A stub that discards a write it accepted is the permissive model the
@@ -20786,6 +21326,27 @@ arm: {
       }
       ok(pasted === 8 && bad.length === 0,
         `#2695 paste: the underline fields' per-side stroke weights read back bound from the paste executor (none / none / hairline, thick at focus / none), nothing discarded (${bad.slice(0, 3).join(' | ') || 'clean'})`);
+    }
+
+    // ---- #2428: Code input's character keeps its cap-height trim through the PASTE executor, as through the plugin's ----
+    // `claimDefaults` writes the plan's CAP_HEIGHT (detaching the style, as the host does) and the #1567 re-apply stands
+    // down for a trimmed node, or the style's own NONE would erase the trim. The plugin leg is in test-write-components.
+    {
+      const cellDef = componentDefs.find((x) => x.id === 'code-input-cell')!;
+      const bad: string[] = [];
+      let pasted = 0;
+      for (const size of ['small', 'medium', 'large', 'xlarge']) {
+        const plan = figmaAnatomyPlan(cellDef, size, { state: 'filled' } as never);
+        const page: StubPage = { children: [] };
+        const run = await runPayload(planToPluginJs(plan), { vars: [...planBoundVars(plan.root), ...planPaintVars(plan.root)], styles: planTextStyles(plan.root), comps: [], page });
+        const walk = (n: Record<string, unknown>): Record<string, unknown>[] => [n, ...((n.children as Record<string, unknown>[] | undefined) ?? []).flatMap(walk)];
+        const digit = page.children.flatMap((c) => walk(c as Record<string, unknown>)).find((n) => n.name === 'digit');
+        const trimMisses = run.misses.filter((m) => /digit\.(leadingTrim|textStyle)|THREW/.test(m));
+        pasted++;
+        if (!digit || digit.leadingTrim !== 'CAP_HEIGHT' || trimMisses.length) bad.push(`${size}: ${digit ? String(digit.leadingTrim) : 'no digit'}${trimMisses.length ? `; ${trimMisses[0]}` : ''}`);
+      }
+      ok(pasted === 4 && bad.length === 0,
+        `#2428 paste: Code input's character reads leadingTrim CAP_HEIGHT from the paste executor at every size, nothing discarded (${bad.join(' | ') || 'clean'})`);
     }
 
     // ---- the reserved-rows floor tolerates the host's SINGLE-PRECISION minHeight (live 2026-09-25) --------
@@ -23006,6 +23567,20 @@ arm: {
                 ...Object.entries(d.figmaProperties!.texts ?? {}).map(([k, t], i) => [`${t.figmaName ?? k}#7:${i}`, { type: 'TEXT', defaultValue: t.default }]),
                 ...Object.entries(d.figmaProperties!.swaps!).map(([k, s], i) => [`${s.figmaName ?? k}#8:${i}`, { type: 'INSTANCE_SWAP', defaultValue: '73:37' }]),
               ])])),
+            // #2666 — Breadcrumbs is the first nest-exposed def that also sets a nested GLYPH (#2645's swap override, the
+            // item's overflow button) and offers a slot's preferred set (#2646). As the real build: the icon component
+            // the override names is in the file (the nested component's own properties are declared just above), and a
+            // slot's preferred def is a built set with a key.
+            ...(() => {
+              const nodes = plans.flatMap((p) => walkPlan(p.root)) as (PlanNode & { nestOverrides?: { type: string; value: string }[]; slotPreferred?: string[] })[];
+              const swapped = nodes.filter((n) => n.nestTarget && n.nestOverrides?.some((o) => o.type === 'INSTANCE_SWAP'));
+              const glyphs = swapped.flatMap((n) => n.nestOverrides!.filter((o) => o.type === 'INSTANCE_SWAP').map((o) => o.value));
+              const preferred = [...new Set(nodes.flatMap((n) => n.slotPreferred ?? []))];
+              return {
+                ...(glyphs.length ? { comps: [...new Set([...plans.flatMap((p) => walkPlan(p.root)).flatMap((n) => [n.swapTarget, n.nestTarget]).filter((c): c is string => !!c), ...glyphs])] } : {}),
+                ...(preferred.length ? { fileNodes: preferred.map((id) => ({ name: id, type: 'COMPONENT_SET' as const, variants: figmaAnatomySet(componentDefs.find((d) => d.id === id)!, { swapTarget: 'FPO-default-icon' }).map(planComponentName) })) } : {}),
+              };
+            })(),
           };
           // The exposure lives on a NODE deep in each member; no `runPayload` summary field carries it, so
           // it is read off the PAGE the payload appended the combined set to. Returns every nested instance
@@ -24300,8 +24875,14 @@ arm: {
       // NOW 18, AS OF #2661 — a shell-byte move: the paste script gained the fallback-only nest preference (`nestPrefer`,
       // Cancel's Button.Neutral when the file has it) and the slot's preferred-when-built ids, in every chunk's shell.
       // icon-button uses neither. Re-pinned per the same standing instruction; every chunk stays under budget.
+      //
+      // NOW 17, AS OF #2428 MEETING #2661 — two shell-byte moves. #2428 adds about 130 B: the paste script's
+      // `claimDefaults` writes the plan's vertical trim (Code input's character) and the #1567 re-apply stands down for a
+      // trimmed node, with a read-back. That put Code input and Dialog over #1798's unit ceiling, so the strip pass now
+      // drops leading indentation too, about 1 KB off every chunk's shell, and icon-button packs one chunk tighter.
+      // Re-pinned per the same standing instruction; every chunk stays under budget.
       const ibChunks = planSetChunks(ibSet);
-      ok(ibChunks.length === 18, `anatomy/icon-button: the set packs into 18 chunks (${ibChunks.length})`);
+      ok(ibChunks.length === 17, `anatomy/icon-button: the set packs into 17 chunks (${ibChunks.length})`);
       ok(ibChunks.every((c) => c.bytes <= SET_CHUNK_BYTES),
         `anatomy/icon-button: no chunk exceeds the byte budget (${ibChunks.map((c) => c.bytes).join(', ')} vs ${SET_CHUNK_BYTES})`);
       // And the chunks partition the set — no member dropped, none written twice. A packer that lost a
@@ -24789,7 +25370,7 @@ arm: {
       'icon-button:inactive', 'icon-button-destructive:inactive', 'icon-button-neutral:inactive',
       'icon:tone', 'focus-ring:offset', 'tag:read-only',
       'text-field:style', 'text-field:pending', 'text-field:empty', 'password-field:style', 'password-field:pending', 'password-field:empty',
-      'textarea:style', 'textarea:pending', 'textarea:empty', 'select:pending', 'select:empty',
+      'textarea:style', 'textarea:pending', 'textarea:empty', 'select:pending', 'select:empty', 'code-input:pending',
       'checkbox-row:read-only', 'radio-row:read-only', 'switch-row:read-only', 'switch-row:pending',
     ];
     ok(JSON.stringify([...found].sort()) === JSON.stringify([...EXPECTED_ADMISSIONS].sort()),
@@ -25334,6 +25915,17 @@ arm: {
     brokeFp('an axis that does not exist in variants fails', /is not an axis in variants/, { variantAxes: ['intent', 'nope'] });
     brokeFp('the same axis twice fails', /listed twice/, { variantAxes: ['intent', 'intent'] });
     brokeFp('an empty axis list fails', /non-empty/, { variantAxes: [] });
+    // #2669: a def with NO variants projects a set over its state axis alone (Slider.Thumb), and only then. Without the
+    // state axis the empty list fails again, so the carve-out cannot admit a set with no axis at all.
+    {
+      const thumbDef = componentDefs.find((d) => d.id === '_slider-thumb')!;
+      const thumbFp = thumbDef.figmaProperties!;
+      const okEmpty = figmaPropertyErrors(thumbDef).filter((x) => /non-empty/.test(x));
+      ok(Object.keys(thumbDef.variants).length === 0 && thumbFp.variantAxes.length === 0 && okEmpty.length === 0,
+        `#2669 a state-only set (Slider.Thumb: no variants, five states) projects with an empty axis list (${okEmpty.join('; ') || 'no error'})`);
+      const noState = figmaPropertyErrors({ ...thumbDef, figmaProperties: { ...thumbFp, stateAxis: undefined } });
+      ok(noState.some((x) => /non-empty/.test(x)), `#2669 the same def with no state axis fails the empty axis list (${noState.join('; ') || 'nothing'})`);
+    }
     brokeFp('dropping an axis with no codeOnly explanation fails', /not explained in anatomy.codeOnly/, { variantAxes: ['intent'] });
     brokeFp("a legacy state name fails (it is not in the def's states)", /is not one of states/, { stateAxis: { name: 'state', values: ['rest', 'active'] } });
     // `hover`, not `inactive` — dropping `inactive` is now the SHIPPING config (#536 item 4), so this
@@ -26568,22 +27160,22 @@ arm: {
   const prim = (key: number, sec: number): Row => [`motion/duration-ms/${key}`, sec, null];
   const sem = (name: string, key: number, sec: number): Row => [`motion/${name}`, sec, `motion/duration-ms/${key}`];
   const NB_MOTION: Row[] = [
-    prim(0, 0), prim(40, 0.04), prim(50, 0.05), prim(100, 0.1), prim(200, 0.2), prim(300, 0.3), prim(500, 0.5), prim(800, 0.8), prim(2600, 2.6),
+    prim(0, 0), prim(40, 0.04), prim(50, 0.05), prim(100, 0.1), prim(200, 0.2), prim(300, 0.3), prim(500, 0.5), prim(800, 0.8), prim(1600, 1.6), prim(2600, 2.6),
     sem('duration/instant', 50, 0.05), sem('duration/fast', 100, 0.1), sem('duration/normal', 200, 0.2), sem('duration/moderate', 300, 0.3),
-    sem('duration/slow', 500, 0.5), sem('duration/slower', 800, 0.8), sem('duration/spin', 800, 0.8),
+    sem('duration/slow', 500, 0.5), sem('duration/slower', 800, 0.8), sem('duration/spin', 800, 0.8), sem('duration/sweep', 1600, 1.6),
     sem('duration-reduced/instant', 50, 0.05), sem('duration-reduced/fast', 100, 0.1), sem('duration-reduced/normal', 50, 0.05),
     sem('duration-reduced/moderate', 0, 0), sem('duration-reduced/slow', 0, 0), sem('duration-reduced/slower', 0, 0),
-    sem('duration-reduced/spin', 2600, 2.6),
+    sem('duration-reduced/spin', 2600, 2.6), sem('duration-reduced/sweep', 2600, 2.6),
     sem('stagger', 40, 0.04),
   ];
   const AURORA_MOTION: Row[] = [
     prim(0, 0), prim(30, 0.03), prim(40, 0.04), prim(50, 0.05), prim(80, 0.08), prim(160, 0.16), prim(240, 0.24), prim(400, 0.4),
-    prim(640, 0.64), prim(800, 0.8), prim(2600, 2.6),
+    prim(640, 0.64), prim(800, 0.8), prim(1600, 1.6), prim(2600, 2.6),
     sem('duration/instant', 40, 0.04), sem('duration/fast', 80, 0.08), sem('duration/normal', 160, 0.16), sem('duration/moderate', 240, 0.24),
-    sem('duration/slow', 400, 0.4), sem('duration/slower', 640, 0.64), sem('duration/spin', 800, 0.8),
+    sem('duration/slow', 400, 0.4), sem('duration/slower', 640, 0.64), sem('duration/spin', 800, 0.8), sem('duration/sweep', 1600, 1.6),
     sem('duration-reduced/instant', 40, 0.04), sem('duration-reduced/fast', 80, 0.08), sem('duration-reduced/normal', 50, 0.05),
     sem('duration-reduced/moderate', 0, 0), sem('duration-reduced/slow', 0, 0), sem('duration-reduced/slower', 0, 0),
-    sem('duration-reduced/spin', 2600, 2.6),
+    sem('duration-reduced/spin', 2600, 2.6), sem('duration-reduced/sweep', 2600, 2.6),
     sem('stagger', 30, 0.03),
   ];
   // EASING: `[name, value, alias, hidden]`. Curves are hidden primitives, roles published aliases of a curve,
@@ -27598,10 +28190,10 @@ arm: {
       byShape.set(c, [...(byShape.get(c) ?? []), n].sort());
     }
     // 41 since the textarea's `resize-grip` joined the set (2026-09-25); 42 since the hamburger `menu` did
-    // (Q253 A, 2026-10-12): each a new shape, so both counts move by one and the three collisions below stay the
-    // only ones.
-    ok(byShape.size === 42,
-      `glyph-shape: the vocabulary's ${ICON_NAMES.length} names draw 42 distinct RENDERED shapes (got ${byShape.size}) — 43 distinct path STRINGS, so string comparison is off by one`);
+    // (Q253 A, 2026-10-12); 43 since the breadcrumb `slash` did (Q382 A, 2026-10-16): each a new shape, so both counts
+    // move by one and the three collisions below stay the only ones.
+    ok(byShape.size === 43,
+      `glyph-shape: the vocabulary's ${ICON_NAMES.length} names draw 43 distinct RENDERED shapes (got ${byShape.size}) — 44 distinct path STRINGS, so string comparison is off by one`);
     const groups = [...byShape.values()].filter((g) => g.length > 1).map((g) => g.join('|')).sort();
     ok(groups.join(' , ') === 'close|close-filled , minus|minus-filled , plus|plus-filled',
       `glyph-shape: and they are exactly the three -fill/-line pairs the source set draws identically (got [${groups.join('] [')}]) — a count of three would also pass on three collisions somewhere else`);
@@ -28032,8 +28624,9 @@ arm: {
   // own constant.
   // `tag` joins (2026-09-27): its check mark is gated on `selection: ['selected']`, the checkbox mark's shape.
   // `link` joins (#2580, owner Q297.2): its trailing icon is gated on `style: ['standalone']`, so an inline link carries none.
-  // `checkbox-group` and `radio-group` since #2751: each gates its nested message on `status=error`.
-  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-group', 'radio-control', 'radio-group', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'button-group', 'dialog', 'password-field'];
+  // `pagination-item` joins (#2665, Q381, Q404 A): its number and its ellipsis icon are gated on `type`, its underline on
+  // `selection` and `style`.
+  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-group', 'radio-control', 'radio-group', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'button-group', 'dialog', 'password-field', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', 'toast', 'banner', 'code-input-cell', 'progress', 'slider', 'pagination-item', 'pagination'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {
@@ -28163,7 +28756,7 @@ arm: {
   // both axes per orientation: a hairline thickness and a nominal length, two different variables.
   // List.Item's marker column (#2319) binds its width (the column) and its height (one body line), two different
   // variables: a fixed column one line tall.
-  const WIDTH_EXPECTED = ['text-field', 'textarea', 'switch-control', 'divider', 'list-item', 'password-field'];
+  const WIDTH_EXPECTED = ['text-field', 'textarea', 'switch-control', 'divider', 'list-item', 'password-field', 'code-input-cell'];
   ok(WIDTH_EXPECTED.every((n) => widthDefs.some((d) => d.id === n)) && widthDefs.length === WIDTH_EXPECTED.length,
     `#990 the width projection rule below covers exactly [${WIDTH_EXPECTED.join(', ')}] — a def gaining a deliberately non-square box must be represented here, and a def losing one is a stale claim (found: ${widthDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of widthDefs) {
@@ -29512,6 +30105,23 @@ arm: {
     // link wraps, and the icon is inline with its word rather than centered on the block (link.ts codeOnly).
     'link.container':
       "a link is one text line tall in Figma and its label is one line there, so the trailing icon centers against the only line; in code the icon sits inline with the last word, never centered on a wrapped block (link.ts codeOnly).",
+    // `breadcrumb-item` (#2666): the label never wraps (ancestor labels do not wrap or truncate; the current page
+    // truncates on one line), so the separator centers against the only line, in Figma and in code.
+    'breadcrumb-item.container':
+      "a breadcrumb step is one text line tall and never wraps (breadcrumb-item.ts codeOnly), so the separator centers against the only line.",
+    // `code-input-cell` (#2428): the cell centers its one character, or the caret on the active empty cell. The two are
+    // gated on state and never present together, and a cell holds one character on one line, so there is no wrapping
+    // block to float against.
+    'code-input-cell.content':
+      "a code cell holds one character on one line, or the caret alone on the active empty cell (the two are gated on state and never present together), so centring places the only line in the middle of the cell.",
+    // `progress` (#2670): the ring and its value. The value is one short line ("50%") in a row that hugs it, so it never
+    // wraps, and the approved wireframe centers it on the ring.
+    'progress.ringRow':
+      "the ring's value is one short line in a row that hugs it, so it never wraps; the approved wireframe centers it on the ring.",
+    // `pagination-item` (#2665, Q414 A): a labeled previous or next cell pairs its chevron with one word, "Previous" or
+    // "Next". The cell's height is fixed at one line in Figma, and the word is one word that does not wrap.
+    'pagination-item.container':
+      "the cell's height is fixed at one line and a labeled previous or next shows one word that does not wrap, so the chevron centers against the only line.",
     'tag.labelCheck':
       "the tag's height is fixed at one line in Figma and its label is one line there, so the check mark (and, one row out, the leading icon) center against the only line; in code a wrapped label centers them on the label block, which is held for the owner (tag.ts notes.contested).",
   };
@@ -32551,6 +33161,201 @@ arm: {
     `#2408 prism3-consume: the skill tells the agent a medium or large flush text button keeps a 44×44 hit area in code and a small one 24×24, with the ::before technique (missing: ${para ? missing(para).join(', ') || 'none' : 'no paragraph names inset=flush and 44×44'})`);
 }
 
+// ---- Progress (#2670): the approved calls as literals, and its contrast on every committed brand × mode ----
+// The owner approved the proposal on #2670 with every numbered call at A (2026-10-16). Each arm below holds one call
+// against a value TYPED HERE from the proposal, never read from the def, so a def that drifts from what was approved
+// fails under the call's own name.
+{
+  const set = figmaAnatomySet(progress, { swapTarget: 'FPO-default-icon' });
+  const names = set.map((m) => planComponentName(m));
+  type PNode = { name: string; type?: string; characters?: string; nestTarget?: string; nestVariant?: Record<string, string>; paints?: Record<string, string>; bound?: Record<string, string>; glyphSvg?: string; children?: PNode[] };
+  const nodes = (n: PNode, out: PNode[] = []): PNode[] => { out.push(n); for (const c of n.children ?? []) nodes(c, out); return out; };
+  const member = (name: string): PNode[] => { const m = set.find((x) => planComponentName(x) === name); return m ? nodes(m.root as unknown as PNode) : []; };
+  const part = (name: string, p: string): PNode | undefined => member(name).find((n) => n.name === p);
+
+  // Calls 1, 2 and 9: linear determinate, linear indeterminate and circular determinate, one linear thickness, two
+  // ring sizes; no indeterminate ring (that is the Spinner) and no end state on an indeterminate bar. Ten members.
+  const MEMBERS = [
+    'shape=linear, type=determinate, status=active, size=medium',
+    'shape=linear, type=determinate, status=complete, size=medium',
+    'shape=linear, type=determinate, status=error, size=medium',
+    'shape=linear, type=indeterminate, status=active, size=medium',
+    'shape=circular, type=determinate, status=active, size=medium',
+    'shape=circular, type=determinate, status=active, size=small',
+    'shape=circular, type=determinate, status=complete, size=medium',
+    'shape=circular, type=determinate, status=complete, size=small',
+    'shape=circular, type=determinate, status=error, size=medium',
+    'shape=circular, type=determinate, status=error, size=small',
+  ];
+  ok(JSON.stringify(names) === JSON.stringify(MEMBERS),
+    `#2670 call 1/2/9 progress: the set is the ten approved members, default first — linear determinate × 3 statuses, linear indeterminate active, circular determinate × 3 statuses × 2 sizes (got ${names.length}: ${names.filter((n) => !MEMBERS.includes(n)).join(' | ') || names.join(' | ')})`);
+
+  // #2791 owner item 7 (the default `type`): Figma inserts the set's top-left member, so its `type` is what a designer
+  // gets, and code must default to the same one. Determinate, typed here (the owner's QA fix leads with it), never read
+  // from the prop it checks.
+  const typeProp = progress.props.find((pr) => pr.name === 'type');
+  const insertedType = names[0].match(/type=(\w+)/)?.[1];
+  ok(typeProp?.default === 'determinate' && insertedType === 'determinate' && progress.props.find((pr) => pr.name === 'value')?.type === 'number',
+    `#2791 progress type default: Figma inserts type=${insertedType} and the code default is '${typeProp?.default}'; both are 'determinate', and \`value\` is a plain number that no longer decides the type`);
+
+  // #2791: the two linear types measure the same height. The indeterminate bar shows no value, so its header holds the
+  // label alone; the header's token-bound floor and its centered row keep it as tall as the determinate header, whose
+  // value text is the taller line. Typed per member: the floor, the alignment and the track must agree across types.
+  {
+    const header = (m: string) => part(m, 'header') as (PNode & { counterAxisAlignItems?: string; bound?: Record<string, string> }) | undefined;
+    const sig = (m: string) => { const h = header(m); return `${h?.counterAxisAlignItems}|${h?.bound?.minHeight}`; };
+    const linear = MEMBERS.filter((m) => m.startsWith('shape=linear'));
+    const sigs = new Set(linear.filter((m) => /status=active/.test(m)).map(sig));
+    ok(sigs.size === 1 && sig(MEMBERS[0]) === 'CENTER|icon/size/md',
+      `#2791 progress footprint: the linear determinate and indeterminate headers share one floor (icon/size/md) and one alignment (CENTER), so the two types measure the same height at size=medium (got ${[...sigs].join(' / ')})`);
+  }
+
+  // Call 3: the ring's value text sits beside the ring, on by default.
+  const ringRow = part(MEMBERS[4], 'ringRow');
+  ok(JSON.stringify((ringRow?.children ?? []).map((c) => c.name)) === JSON.stringify(['ring', 'ringValue']) && progress.figmaProperties?.booleans?.showValue !== undefined
+    && typeof progress.figmaProperties.booleans.showValue !== 'string' && progress.figmaProperties.booleans.showValue.default === true,
+    `#2670 call 3 progress: the ring's value sits beside the ring, after it in the row, and shows by default (row: ${(ringRow?.children ?? []).map((c) => c.name).join(', ')})`);
+
+  // OWNER QA ON THE BUILD (2026-10-16): the complete member reads 100%, and every member reads the right value on the
+  // host. A set-level TEXT property holds one default that every bound member shows (#1567), so the host can only show
+  // what each property's ONE caption says. Typed here per member: the value captions shown, in order, each with the
+  // property behind it; then the host's rule over the whole set, so no property is behind two captions.
+  type RNode = PNode & { propertyRef?: { field: string; prop: string } };
+  const shown = (name: string) => (member(name) as RNode[]).filter((n) => n.propertyRef?.field === 'characters' && n.propertyRef.prop !== 'label text').map((n) => `${n.characters}<${n.propertyRef!.prop}>`);
+  const VALUE: Record<string, string[]> = {
+    [MEMBERS[0]]: ['50%<value text>'], [MEMBERS[1]]: ['100%<complete value text>'], [MEMBERS[2]]: ['50%<value text>'], [MEMBERS[3]]: [],
+    [MEMBERS[4]]: ['50%<value text>'], [MEMBERS[5]]: ['50%<value text>'], [MEMBERS[6]]: ['100%<complete value text>'], [MEMBERS[7]]: ['100%<complete value text>'],
+    [MEMBERS[8]]: ['50%<value text>'], [MEMBERS[9]]: ['50%<value text>'],
+  };
+  const valueOff = MEMBERS.filter((m) => JSON.stringify(shown(m)) !== JSON.stringify(VALUE[m])).map((m) => `${m}: ${JSON.stringify(shown(m))}`);
+  const spread = new Map<string, Set<string>>();
+  for (const m of MEMBERS) for (const n of member(m) as RNode[]) if (n.propertyRef?.field === 'characters') spread.set(n.propertyRef.prop, (spread.get(n.propertyRef.prop) ?? new Set()).add(String(n.characters)));
+  const twoCaptions = [...spread].filter(([, c]) => c.size > 1).map(([pr, c]) => `${pr}: ${[...c].join(' / ')}`);
+  ok(valueOff.length === 0 && twoCaptions.length === 0 && progress.figmaProperties?.texts?.completeValueText?.figmaOnly === true && !progress.props.some((pr) => pr.name === 'completeValueText'),
+    `#2670 owner QA progress: active and error read "50%" (value text), complete reads "100%" through its own Figma-only "complete value text", an indeterminate bar reads none, and no TEXT property is behind two captions, which the host would collapse to one${valueOff.length ? ` — OFF: ${valueOff.join(' | ')}` : ''}${twoCaptions.length ? ` — TWO CAPTIONS: ${twoCaptions.join(' | ')}` : ''}`);
+
+  // #2670: a Figma-only TEXT property is held to the Figma-only boolean's rules (#2344): it names no prop, and states
+  // its panel name.
+  {
+    const withText = (t: Record<string, unknown>) => ({ ...progress, figmaProperties: { ...progress.figmaProperties!, texts: { ...progress.figmaProperties!.texts, ...t } } }) as ComponentDef;
+    ok(figmaPropertyErrors(withText({ label: { part: 'label', default: 'Label', figmaName: 'label text', figmaOnly: true } })).some((e) => /texts\.label is figmaOnly but 'label' is also a declared prop/.test(e))
+      && figmaPropertyErrors(withText({ completeValueText: { part: 'valueComplete', default: '100%', figmaOnly: true } })).some((e) => /texts\.completeValueText is figmaOnly but has no figmaName/.test(e))
+      && figmaPropertyErrors(withText({ completeValueText: { part: 'valueComplete', default: '100%', figmaName: 'complete value text' } })).some((e) => /'completeValueText' is not a declared prop/.test(e)),
+      '#2670 a figmaOnly TEXT property is refused BY NAME when its key is a declared prop or it has no figmaName, and without figmaOnly a key that is no prop is still refused');
+  }
+
+  // Call 4: active, complete, error; complete and error carry a glyph and a message (FieldMessage, success and error),
+  // never color alone; active carries none.
+  const MSG: Record<string, [string, string] | null> = { active: null, complete: ['messageComplete', 'success'], error: ['messageError', 'error'] };
+  const badMsg: string[] = [];
+  for (const name of MEMBERS) {
+    const status = /status=(\w+)/.exec(name)![1];
+    const msgs = member(name).filter((n) => n.nestTarget === 'field-message');
+    const want = MSG[status];
+    if (want === null ? msgs.length !== 0 : msgs.length !== 1 || msgs[0].name !== want[0] || msgs[0].nestVariant?.status !== want[1]) badMsg.push(`${name}: ${msgs.map((m) => `${m.name}@${m.nestVariant?.status}`).join(', ') || 'no message'}`);
+  }
+  ok(JSON.stringify(progress.variants.status) === JSON.stringify(['active', 'complete', 'error']) && badMsg.length === 0,
+    `#2670 call 4 progress: status is active / complete / error, and complete and error each carry a FieldMessage (success, error) with its glyph and caption, active none${badMsg.length ? ` — WRONG: ${badMsg.join(' | ')}` : ''}`);
+
+  // Call 5: a pale track (`background.tertiary`), 4px, with a stop dot at its end in the fill's color, on a
+  // determinate bar; the fill and the ring's arc in the icon role per status.
+  const track = part(MEMBERS[0], 'track');
+  // (The ring's track is a glyph in the track role, never the ring's stroke: a stroke binds a border role, Q346.)
+  const kids = (track?.children ?? []).map((c) => c.name);
+  const FILL: Record<string, string> = { active: 'color/icon/brand', complete: 'color/icon/success', error: 'color/icon/danger' };
+  const fillWrong = MEMBERS.flatMap((name) => {
+    const status = /status=(\w+)/.exec(name)![1];
+    const f = part(name, 'fill'), arc = part(name, 'arc') ?? part(name, 'arcFull'), stop = part(name, 'stop');
+    const got = [f?.paints?.fills, arc && (arc as unknown as { descendantFills?: string }).descendantFills, stop && (stop as unknown as { descendantFills?: string }).descendantFills].filter(Boolean);
+    return got.length && got.every((g) => g === FILL[status]) ? [] : [`${name}: ${got.join('/') || 'nothing'}`];
+  });
+  ok(track?.paints?.fills === 'color/background/tertiary' && track?.bound?.height === 'border-width/heavy' && kids[kids.length - 1] === 'stop'
+    && (part(MEMBERS[4], 'ringTrack') as unknown as { descendantFills?: string } | undefined)?.descendantFills === 'color/background/tertiary' && part(MEMBERS[4], 'ring')?.paints?.strokes === undefined && fillWrong.length === 0,
+    `#2670 call 5 progress: the track is background.tertiary at 4px (border-width.heavy), the ring's track the same role, the stop dot ends the track, and the fill, arc and stop take icon.brand / success / danger by status (track ${track?.paints?.fills} @ ${track?.bound?.height}, children ${kids.join(', ')}${fillWrong.length ? `; WRONG: ${fillWrong.join(' | ')}` : ''})`);
+  ok(!part(MEMBERS[3], 'stop') && part(MEMBERS[3], 'lead') !== undefined && part(MEMBERS[1], 'rest') === undefined,
+    '#2670 call 5 progress: an indeterminate bar has no stop dot and shows its segment between a lead and a rest; a complete bar has no rest, its fill the whole track');
+
+  // Calls 6 and 7: the sweep's own pair, 1600ms and 2600ms under reduced motion (slower, not removed), fixed at every
+  // tempo, in every committed brand.
+  for (const tempo of ['snappy', 'standard', 'relaxed'] as const) {
+    const t = buildTree(brandTheme({ id: 'sweep', primary: { l: 0.55, c: 0.18, h: 285 }, neutral: { hue: 285, chroma: 0.01 }, motionPersonality: { tempo } } as unknown as BrandInput)).tree.prism.motion;
+    ok(t.duration.sweep?.$value === '{prism.motion.duration-ms.1600}' && t['duration-ms']['1600']?.$value === '1600ms'
+      && t['duration-reduced'].sweep?.$value === '{prism.motion.duration-ms.2600}',
+      `#2670 call 6/7 motion (${tempo}): motion.duration.sweep is 1600ms and motion.duration-reduced.sweep 2600ms at every tempo (${t.duration.sweep?.$value} / ${t['duration-reduced'].sweep?.$value})`);
+  }
+  const committedBrands = readdirSync(resolve(HERE, './out')).filter((f) => /^[^.]+\.tokens\.json$/.test(f)).map((f) => f.slice(0, -'.tokens.json'.length)).sort();
+  const sweepMissing = committedBrands.filter((b) => {
+    const tree = JSON.parse(readFileSync(resolve(HERE, `./out/${b}.tokens.json`), 'utf8'));
+    const m = tree[Object.keys(tree).find((k) => !k.startsWith('$'))!].motion;
+    return !(m?.duration?.sweep && m?.['duration-reduced']?.sweep);
+  });
+  ok(committedBrands.length >= 5 && sweepMissing.length === 0,
+    `#2670 call 6 motion: every committed brand emits motion.duration.sweep and motion.duration-reduced.sweep (${committedBrands.length} brands${sweepMissing.length ? `; missing in ${sweepMissing.join(', ')}` : ''})`);
+  const motionProse = `${progress.motion?.reduceMotion ?? ''}\n${progress.anatomy!.codeOnly.join('\n')}`;
+  ok(/motion\.duration-reduced\.sweep/.test(motionProse) && /2600ms/.test(motionProse) && /--motion-duration-sweep/.test(motionProse) && /prefers-reduced-motion: reduce/.test(motionProse) && /never (stopped|removed)/.test(motionProse),
+    '#2670 call 7 progress: the shipped motion and the code rules name the reduced sweep (2600ms), under prefers-reduced-motion, kept and never removed');
+
+  // Call 8: announced at 25, 50 and 75%, and at the end; never from aria-valuenow.
+  const aria = `${progress.accessibility.aria}\n${progress.anatomy!.codeOnly.join('\n')}`;
+  ok(/25, 50 (and|or) 75%/.test(aria) && /polite/.test(aria) && /aria-valuenow` never triggers speech/.test(aria) && progress.props.find((p) => p.name === 'announce')?.default === 'milestones',
+    '#2670 call 8 progress: a polite region speaks at 25, 50 and 75% and at the end, never from aria-valuenow, and milestones is the default');
+
+  // Call 10: named Progress, id `progress`, category feedback, its own page under Components, `loader` left to Spinner.
+  ok(progress.name === 'Progress' && progress.id === 'progress' && progress.category === 'feedback' && !(progress.aliases ?? []).includes('loader') && (spinner.aliases ?? []).includes('loader'),
+    '#2670 call 10 progress: named Progress (id progress, category feedback); the alias `loader` stays with Spinner');
+
+  // Call 11: the drafted wording.
+  ok(progress.summary === 'Shows how far a task has got, or that it is still running. Linear or circular.'
+    && progress.figmaProperties?.texts?.label?.default === 'Label' && part(MEMBERS[1], 'messageComplete') !== undefined
+    && JSON.stringify((set[1].root as unknown as PNode)) .includes('"value":"Message"'),
+    '#2670 call 11 progress: the summary, the "Label" placeholder and the "Message" text are the drafted wording');
+
+  // CONTRAST, measured on the COMMITTED emission of every brand in every mode it ships (`out/<brand>.tokens.json`, the
+  // light value and each `modes.<mode>` override, aliases followed to a hex). The pairs and floors are typed here: the
+  // fill against the track and the stop dot against the page at 3:1 (SC 1.4.11), the label and value against the page
+  // at 4.5:1 (SC 1.4.3). The fill's roles are the def's own bindings, read through its tokens, so a rebind to a role
+  // that misses is caught here.
+  type Leaf = { $value?: unknown; $extensions?: { prism3?: { modes?: Record<string, { $value?: unknown }> } } };
+  const FILLS = [progress.tokens['active.indicator'], progress.tokens['complete.indicator'], progress.tokens['error.indicator']];
+  const PAIRS: [string, string, number, string][] = [
+    ...FILLS.map((f): [string, string, number, string] => [f, 'color.background.tertiary', 3, 'fill vs track']),
+    ...FILLS.map((f): [string, string, number, string] => [f, 'color.background.primary', 3, 'stop dot vs page']),
+    ['color.text.primary', 'color.background.primary', 4.5, 'label vs page'],
+    ['color.text.secondary', 'color.background.primary', 4.5, 'value vs page'],
+  ];
+  ok(progress.tokens.fill === 'color.background.tertiary' && progress.tokens.label === 'color.text.primary' && progress.tokens.body === 'color.text.secondary'
+    && JSON.stringify(FILLS) === JSON.stringify(['color.icon.brand', 'color.icon.success', 'color.icon.danger']),
+    `#2670 progress contrast: the measured roles are the def's bindings — track background.tertiary, label text.primary, value text.secondary, fills ${FILLS.join(' / ')}`);
+  const misses: string[] = [];
+  let cells = 0;
+  for (const b of committedBrands) {
+    const tree = JSON.parse(readFileSync(resolve(HERE, `./out/${b}.tokens.json`), 'utf8'));
+    const root = Object.keys(tree).find((k) => !k.startsWith('$'))!;
+    const leaf = (path: string): Leaf | undefined => path.split('.').reduce<any>((o, k) => o?.[k], tree);
+    const hexOf = (path: string, mode: string, depth = 0): string | undefined => {
+      const l = leaf(path);
+      const v = mode === 'light' ? l?.$value : l?.$extensions?.prism3?.modes?.[mode]?.$value ?? l?.$value;
+      if (typeof v !== 'string' || depth > 8) return undefined;
+      const ref = /^\{(.+)\}$/.exec(v)?.[1];
+      if (ref) return hexOf(ref, mode, depth + 1);
+      // A primitive is a hex or an `rgb(r, g, b)` string, by brand dialect.
+      const rgb = /^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/.exec(v);
+      return rgb ? hex({ r: +rgb[1], g: +rgb[2], b: +rgb[3] }) : /^#[0-9a-f]{6}$/i.test(v) ? v : undefined;
+    };
+    const modes = ['light', ...Object.keys(leaf(`${root}.color.background.primary`)?.$extensions?.prism3?.modes ?? {})];
+    for (const mode of modes)
+      for (const [fg, bg, floor, what] of PAIRS) {
+        const f = hexOf(`${root}.${fg}`, mode), g = hexOf(`${root}.${bg}`, mode);
+        cells++;
+        if (!f || !g) { misses.push(`${b}/${mode} ${what}: unresolved (${fg}=${f}, ${bg}=${g})`); continue; }
+        const r = contrast(hexToRgb(f), hexToRgb(g));
+        if (r < floor) misses.push(`${b}/${mode} ${what} ${fg} on ${bg}: ${r.toFixed(2)}:1 < ${floor}:1`);
+      }
+  }
+  ok(committedBrands.length >= 5 && cells >= committedBrands.length * 4 * PAIRS.length && misses.length === 0,
+    `#2670 progress contrast: the fill clears 3:1 against the track and the stop dot 3:1 against the page, and the label and value 4.5:1, in every committed brand × mode (${cells} pairs over ${committedBrands.join(', ')})${misses.length ? ` — MISSES: ${misses.join(' | ')}` : ''}`);
+}
+
 // ---- one axis value order in every def (#2501, owner decision Q213) ----
 // Sizes medium first, then smallest to largest (#2752 Q1 B; Q213 first ran them smallest to largest), except the named
 // exceptions below; states Rest, Hover, Pressed together, then Focus
@@ -32563,7 +33368,7 @@ arm: {
 // button's projected columns as they were.
 {
   const STATE_LADDER = ['rest', 'hover', 'pressed', 'pending', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled', 'inactive', 'read-only', 'error', 'empty'];
-  const SIZE_LADDER = ['x-small', 'small', 'medium', 'large'];
+  const SIZE_LADDER = ['x-small', 'small', 'medium', 'large', 'xlarge'];  // xlarge: Code input's display cell (#2428, Q330 A)
   // MEDIUM LEADS (#2752, owner decision Q1 B, 2026-10-16, superseding Q213's small-first ladder and widening Q221 B's
   // field order to every set): Figma inserts a set's top-left member, so a size axis leads with medium, the code
   // default, and the rest run smallest to largest. Typed here, not read from any def's prop default. EXACT exceptions,
@@ -32613,6 +33418,194 @@ arm: {
   ok(missing.length === 0, `#2501: the axis order rule read every def it was raised on, each with values to order${missing.length ? ` — not read: ${missing.join(', ')}` : ''}`);
 }
 
+// ------------------------------------------------------------------- #2428: Code input and its cell
+// Each owner decision held against a literal typed here from the decision (Q321, Q329, Q330, Q344, Q346, Q347/Q359);
+// ACTUAL is the projected plan, so a def that moves a size, a binding, the slot or a default fails the arm by name.
+{
+  const fieldDef = componentDefs.find((d) => d.id === 'code-input')!;
+  const cellDef = componentDefs.find((d) => d.id === 'code-input-cell')!;
+  const findIn = (n: AnatomyPlan['root'], name: string): AnatomyPlan['root'] | undefined => n.name === name ? n : n.children.map((k) => findIn(k, name)).find(Boolean);
+  const cells = figmaAnatomySet(cellDef, {});
+  const fields = figmaAnatomySet(fieldDef, {});
+  const cellAt = (size: string, state: string) => cells.find((p) => planComponentName(p) === `size=${size}, state=${state}`);
+  const fieldAt = (status: string, size: string, state: string) => fields.find((p) => planComponentName(p) === `status=${status}, size=${size}, state=${state}`);
+  const CELL_STATES = ['rest', 'hover', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled', 'error'];
+  const FIELD_STATES = ['rest', 'hover', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled'];
+  const SIZES = ['medium', 'small', 'large', 'xlarge'];
+
+  // (1) THE SETS: the cell is size × seven states (Q329's cell states; active spelled focus-visible), the field size ×
+  // status [default, error] × six states (Q321.9 A), and medium leads both (Q347, Q359).
+  ok(cells.length === 28 && fields.length === 48,
+    `#2428 code-input: the cell projects 4 sizes × 7 states = 28 members and the field 4 sizes × 2 statuses × 6 states = 48 (${cells.length}, ${fields.length})`);
+  ok(planComponentName(cells[0]) === 'size=medium, state=rest' && planComponentName(fields[0]) === 'status=default, size=medium, state=rest',
+    `#2428 code-input: the first member of each set is the code default, medium at rest (Q347, Q359) (${planComponentName(cells[0])}; ${planComponentName(fields[0])})`);
+  ok(JSON.stringify(cellDef.figmaProperties?.stateAxis?.values) === JSON.stringify(CELL_STATES) && JSON.stringify(fieldDef.figmaProperties?.stateAxis?.values) === JSON.stringify(FIELD_STATES),
+    `#2428 code-input: the cell's states are rest, hover, filled, active, active filled, disabled, error, and the field's are Text field's without read-only`);
+
+  // (2) THE CELL SIZES (Q330 A), literal px, each built at that width and height; every one at least 44 tall, the floor
+  // `lint-hit-target.ts` hands to this arm (EXCLUDED: code-input). And the 32px fill floor.
+  const SIZE_PX: Record<string, [number, number]> = { small: [44, 44], medium: [48, 56], large: [56, 64], xlarge: [68, 72] };
+  const sizeOff = SIZES.filter((s) => {
+    const r = cellAt(s, 'rest')?.root;
+    return !r || r.placementWidth !== SIZE_PX[s][0] || r.placementHeight !== SIZE_PX[s][1] || r.primaryAxisSizingMode !== 'FIXED' || r.counterAxisSizingMode !== 'FIXED' || r.minWidth !== 32;
+  });
+  ok(sizeOff.length === 0 && Object.values(SIZE_PX).every(([, h]) => h >= 44),
+    `#2428 code-input: the row of cells is a target of at least 44px — the cells are built at 44×44, 48×56, 56×64 and 68×72 with a 32px fill floor (off: ${sizeOff.join(', ') || 'none'})`);
+
+  // (3) THE CHARACTER: 16 / 20 / 24 / 40px (Q330 A). The text style per size is typed here, and its font size read from
+  // the committed prism3 emission, the brand Q330's numbers are from. Shown only where the cell holds a character.
+  const STYLE: Record<string, string> = { small: 'body/md/default', medium: 'title/sm/strong', large: 'title/md/strong', xlarge: 'title/2xl/strong' };
+  const PX: Record<string, number> = { small: 16, medium: 20, large: 24, xlarge: 40 };
+  const p3tree = JSON.parse(readFileSync(resolve(HERE, './out/prism3.tokens.json'), 'utf8')) as Record<string, Record<string, unknown>>;
+  // The composite's font size, read off its `{<root>.core.font.size.<px>}` alias in the emitted DTCG tree.
+  const fontPx = (style: string): number | undefined => {
+    let n: unknown = p3tree[Object.keys(p3tree).find((k) => !k.startsWith('$'))!];
+    for (const seg of ['type', ...style.split('/')]) n = (n as Record<string, unknown> | undefined)?.[seg];
+    const fs = ((n as { $value?: { fontSize?: unknown } } | undefined)?.$value?.fontSize);
+    const m = typeof fs === 'string' ? /\.size\.(\d+)\}$/.exec(fs) : null;
+    return m ? Number(m[1]) : undefined;
+  };
+  const typeOff = SIZES.filter((s) => {
+    const d = findIn(cellAt(s, 'filled')!.root, 'digit');
+    return d?.textStyle !== STYLE[s] || fontPx(STYLE[s]) !== PX[s];
+  }).map((s) => `${s}: ${String(findIn(cellAt(s, 'filled')!.root, 'digit')?.textStyle)} at ${String(fontPx(STYLE[s]))}px`);
+  const digitAt = CELL_STATES.filter((st) => !!findIn(cellAt('medium', st)!.root, 'digit'));
+  ok(typeOff.length === 0 && JSON.stringify(digitAt) === JSON.stringify(['filled', 'focus-visible-filled', 'error']),
+    `#2428 code-input: the character is 16 / 20 / 24 / 40px (body md, title sm, md, 2xl) and shows on the filled, active filled and error cells only (${typeOff.join('; ') || 'sizes ok'}; shown at ${digitAt.join(', ')})`);
+  // (3a) THE CARET is as tall as the character (owner item 8 on #2789): the icon rung it binds, read off the emitted
+  // DTCG, is the character's px at every size. PX is typed above from Q330, so a caret that moves a rung fails by size.
+  const iconPx = (rung: string): number | undefined => {
+    let n: unknown = p3tree[Object.keys(p3tree).find((k) => !k.startsWith('$'))!];
+    for (const seg of ['icon', 'size', rung]) n = (n as Record<string, unknown> | undefined)?.[seg];
+    const v = (n as { $value?: unknown } | undefined)?.$value;
+    const m = typeof v === 'string' ? /\.dimension\.(\d+)\}$/.exec(v) : null;
+    return m ? Number(m[1]) : undefined;
+  };
+  const caretOff = SIZES.filter((s) => {
+    const h = findIn(cellAt(s, 'focus-visible')!.root, 'caret')?.bound.height;
+    const m = typeof h === 'string' ? /^icon\/size\/(\w+)$/.exec(h) : null;
+    return !m || iconPx(m[1]) !== PX[s];
+  }).map((s) => `${s}: ${String(findIn(cellAt(s, 'focus-visible')!.root, 'caret')?.bound.height)}`);
+  ok(caretOff.length === 0,
+    `#2428 code-input: the caret on the active empty cell is as tall as the character, 16 / 20 / 24 / 40px (off: ${caretOff.join('; ') || 'none'})`);
+  // (3c) THE ONE INPUT carries no native maxlength: the browser cuts a pasted "123-456" to the limit before any handler
+  // strips the hyphen, so a valid code would read as incomplete (review of #2789, S1). Every line of the contract is read,
+  // not only ONE INPUT's, so a maxlength written into any other entry is caught; the one sentence saying there is none is
+  // the only exemption.
+  const codeOnlyLines = fieldDef.anatomy.codeOnly ?? [];
+  const withMaxlength = codeOnlyLines.filter((l) => /maxlength/i.test(l.replace(/The input carries no native `maxlength`[^.]*\./, '')));
+  ok(codeOnlyLines.some((l) => l.startsWith('ONE INPUT')) && withMaxlength.length === 0,
+    `#2428 code-input: the one input in the code contract carries no native maxlength, so a pasted code with separators is not cut before it is normalized (off: ${withMaxlength.map((l) => l.split(' — ')[0]).join('; ') || 'none'})`);
+  // (3b) OPTICAL CENTERING (owner QA on #2428, 2026-10-16; option A on #2789): every character's text box is trimmed to the
+  // cap height and the baseline, centered on both axes in a `content` frame with no padding that fills the cell. A centered
+  // LINE box is not enough: it leaves the figure off center by the font's own metrics. And no other def's text is trimmed,
+  // so the trim (which detaches a Figma text style) stays where it was decided.
+  const trimOff = SIZES.flatMap((s) => CELL_STATES.map((st) => {
+    const root = cellAt(s, st)!.root;
+    const d = findIn(root, 'digit');
+    if (!d) return null;
+    const c = findIn(root, 'content');
+    const pad = ['paddingTop', 'paddingBottom'].map((k) => c?.bound?.[k]);
+    return d.leadingTrim === 'CAP_HEIGHT' && d.textAlignVertical === 'CENTER' && c?.counterAxisAlignItems === 'CENTER'
+      && c?.layoutGrow === 1 && root.primaryAxisAlignItems === 'CENTER' && pad.every((v: unknown) => v === 'space/0')
+      ? null : `${s}/${st}: trim ${String(d.leadingTrim)}, content ${String(c?.counterAxisAlignItems)} grow ${String(c?.layoutGrow)} pad ${pad.join('/')}`;
+  })).filter(Boolean);
+  const trimmedElsewhere = componentDefs.filter((d) => d.id !== 'code-input-cell'
+    && Object.values(d.anatomy?.parts ?? {}).some((p) => (p as { verticalTrim?: unknown }).verticalTrim !== undefined)).map((d) => d.id);
+  ok(trimOff.length === 0 && trimmedElsewhere.length === 0,
+    `#2428 code-input: the character is trimmed to its cap height and baseline and centered in the cell at every size and state, and no other def trims a text (off: ${[...trimOff, ...trimmedElsewhere].join('; ') || 'none'})`);
+  // The title weight resolves per brand (`typeWeight`): a brand shipping only a light title weight gets that weight, not a
+  // missing `strong` style. The rule's own resolver, independent of the def.
+  const lightTitle = applyWeightIntent(cellDef, { ...DEFAULT_WEIGHT_AVAILABILITY, title: ['subtle'] });
+  ok(lightTitle.tokens['size.medium.type'] === 'type.title.sm.subtle' && lightTitle.tokens['size.small.type'] === 'type.body.md.default' && applyWeightIntent(cellDef, DEFAULT_WEIGHT_AVAILABILITY).tokens['size.medium.type'] === 'type.title.sm.strong',
+    `#2428 code-input: the title characters take the brand's bold title weight (strong by default, subtle on a subtle-only brand), the small body character untouched (${lightTitle.tokens['size.medium.type']})`);
+
+  // (4) THE CELL'S PAINT, per state: Text field's field chrome (Q321 A), the danger border in error, the shared disabled
+  // skin with `color.disabled.border` (Q346).
+  const PAINT: Record<string, { fills?: string; strokes: string }> = {
+    rest: { fills: 'color/field/fill', strokes: 'color/field/border/rest' },
+    hover: { fills: 'color/interactive/neutral/overlay/hover', strokes: 'color/field/border/hover' },
+    filled: { fills: 'color/field/fill', strokes: 'color/field/border/rest' },
+    'focus-visible': { fills: 'color/field/fill', strokes: 'color/border/focus' },
+    'focus-visible-filled': { fills: 'color/field/fill', strokes: 'color/border/focus' },
+    disabled: { fills: 'color/disabled/fill', strokes: 'color/disabled/border' },
+    error: { fills: 'color/field/fill', strokes: 'color/border/danger' },
+  };
+  const paintOff = CELL_STATES.filter((st) => { const r = cellAt('medium', st)!.root.paints; return r?.fills !== PAINT[st].fills || r?.strokes !== PAINT[st].strokes; })
+    .map((st) => `${st}: ${JSON.stringify(cellAt('medium', st)!.root.paints)}`);
+  ok(paintOff.length === 0, `#2428 code-input: the cell paints the field chrome per state — wash and field border at hover, the focus border when active, the danger border in error, disabled.fill and disabled.border when disabled (${paintOff.join('; ') || 'ok'})`);
+  // Q346: no border on either def binds a text or icon role.
+  const borderRoles = Object.entries(cellDef.tokens).filter(([k]) => k.split('.').includes('border')).map(([, v]) => v);
+  ok(borderRoles.length >= 5 && borderRoles.every((v) => !/^color\.(text|icon)\./.test(v)),
+    `#2428 code-input: every cell border binds a border role, never a text or icon role (Q346) (${borderRoles.join(', ')})`);
+  // The ring and the caret: the ring on both active states, the caret on the active empty cell only.
+  const ringAt = CELL_STATES.filter((st) => !!findIn(cellAt('medium', st)!.root, 'focusRing'));
+  const caretAt = CELL_STATES.filter((st) => !!findIn(cellAt('medium', st)!.root, 'caret'));
+  ok(JSON.stringify(ringAt) === JSON.stringify(['focus-visible', 'focus-visible-filled']) && JSON.stringify(caretAt) === JSON.stringify(['focus-visible']),
+    `#2428 code-input: the focus ring on the active cells (${ringAt.join(', ')}) and the caret on the active empty cell (${caretAt.join(', ')}) (Q321.6 A)`);
+
+  // (5) THE ITEMS SLOT (Q329 A): a native slot, 6 cells by default, 4 to 8, the cell preferred and the only offer; each
+  // default cell follows the field's size.
+  const slotOff = fields.filter((m) => {
+    const items = findIn(m.root, 'items');
+    const kids = items?.children ?? [];
+    return items?.type !== 'CONTENT_SLOT' || JSON.stringify(items.slotSettings) !== JSON.stringify({ minChildren: 4, maxChildren: 8, allowPreferredValuesOnly: true })
+      || JSON.stringify(items.slotPreferred) !== JSON.stringify(['code-input-cell']) || kids.length !== 6
+      || kids.some((k) => k.nestTarget !== 'code-input-cell' || k.nestVariant?.size !== m.size);
+  }).map(planComponentName);
+  ok(slotOff.length === 0, `#2428 code-input: every member holds a native items slot of six cells at its own size, min 4, max 8, preferring only code-input-cell (off: ${slotOff.slice(0, 3).join('; ') || 'none'})`);
+  // Each member's default cells show its state; the characters are the wireframe's 4 8 1 9 0 2.
+  const STATE_CELLS: Record<string, string[]> = {
+    rest: ['rest', 'rest', 'rest', 'rest', 'rest', 'rest'],
+    hover: ['hover', 'hover', 'hover', 'hover', 'hover', 'hover'],
+    filled: ['filled', 'filled', 'filled', 'filled', 'filled', 'filled'],
+    'focus-visible': ['focus-visible', 'rest', 'rest', 'rest', 'rest', 'rest'],
+    'focus-visible-filled': ['filled', 'filled', 'filled', 'focus-visible', 'rest', 'rest'],
+    disabled: ['disabled', 'disabled', 'disabled', 'disabled', 'disabled', 'disabled'],
+  };
+  const cellsOff = FIELD_STATES.filter((st) => {
+    const kids = findIn(fieldAt('error', 'medium', st)!.root, 'items')!.children;
+    return JSON.stringify(kids.map((k) => k.nestVariant?.state)) !== JSON.stringify(STATE_CELLS[st])
+      || kids.map((k) => k.nestOverrides?.find((o) => o.property === 'digit')?.value).join('') !== '481902';
+  });
+  ok(cellsOff.length === 0, `#2428 code-input: each member's default cells picture its state (the active cell first when empty, fourth after three characters), reading 4 8 1 9 0 2, and status leaves them alone (off: ${cellsOff.join(', ') || 'none'})`);
+  // The label dims with the field; the message follows its status.
+  const label = (m: AnatomyPlan) => findIn(m.root, 'label');
+  const message = (m: AnatomyPlan) => findIn(m.root, 'message');
+  ok(label(fieldAt('default', 'medium', 'disabled')!)?.nestVariant?.state === 'disabled' && label(fieldAt('default', 'medium', 'rest')!)?.nestVariant?.state === 'rest'
+    && message(fieldAt('error', 'medium', 'rest')!)?.nestVariant?.status === 'error' && message(fieldAt('default', 'medium', 'rest')!)?.nestVariant?.status === 'default',
+    `#2428 code-input: the nested label dims at disabled and the nested message takes the field's status`);
+
+  // (6) CONTRAST in every committed brand × mode (the cell adds no new pair; each is held here as Code input's own).
+  // [ink, ground, floor]: the character on the page, the rest, hover, active and error borders against the page.
+  const PAIRS: [string, string, number][] = [
+    ['color/text/primary', 'color/background/primary', 4.5],
+    ['color/text/primary', 'color/background/secondary', 4.5],
+    ['color/field/border/rest', 'color/background/primary', 3],
+    ['color/field/border/hover', 'color/background/primary', 3],
+    ['color/border/focus', 'color/background/primary', 3],
+    ['color/border/danger', 'color/background/primary', 3],
+  ];
+  const toRgb = (c: { r: number; g: number; b: number }): RGB => ({ r: c.r * 255, g: c.g * 255, b: c.b * 255 });
+  const BRANDS = readdirSync(resolve(HERE, './out/figma')).filter((b) => existsSync(resolve(HERE, `./out/figma/${b}/color.light.json`))).sort();
+  const MODES = ['light', 'dark', 'hc-light', 'hc-dark'];
+  const low: string[] = [];
+  let measured = 0, lowest = Infinity;
+  for (const b of BRANDS) for (const mode of MODES) {
+    const f = resolve(HERE, `./out/figma/${b}/color.${mode}.json`);
+    if (!existsSync(f)) { low.push(`${b}/${mode}: no export`); continue; }
+    const vars = new Map((JSON.parse(readFileSync(f, 'utf8')).variables as { name: string; value: { r: number; g: number; b: number; a?: number } }[]).map((v) => [v.name.replace(/^[^/]+\//, ''), v.value]));
+    for (const [ink, ground, floor] of PAIRS) {
+      const i = vars.get(ink), g = vars.get(ground);
+      if (!i || !g || (i.a ?? 1) !== 1) { low.push(`${b}/${mode}: ${ink} ${i ? `alpha ${i.a}` : 'missing'}`); continue; }
+      const r = contrast(toRgb(i), toRgb(g)); measured++; lowest = Math.min(lowest, r);
+      if (r < floor) low.push(`${b}/${mode}: ${ink} on ${ground} ${r.toFixed(2)} < ${floor}`);
+    }
+  }
+  ok(BRANDS.join(',') === 'aurora,nb,prism3,wendys' && measured === 16 * PAIRS.length && low.length === 0,
+    `#2428 code-input contrast: the character clears 4.5:1 on both page grounds and every cell border 3:1 against the page in all 16 brand × mode cells (${measured} pairs measured over ${BRANDS.join(', ')}, lowest ${lowest.toFixed(2)}:1${low.length ? ` — ${low.slice(0, 6).join('; ')}` : ''})`);
+}
+
 // ---- Figma's default member is the code default, on every axis (#2752, owner decision Q347 A) ----
 // Figma inserts a component set's DEFAULT VARIANT, which its plugin API documents as "the top-left-most variant,
 // spatially" (`ComponentSetNode.defaultVariant`; the #2501 lane measured the same on a scratch file, layer order not
@@ -32636,7 +33629,12 @@ arm: {
     'tag.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'a select tag is selected by `selected`' },
     'tab-item.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'a tab is selected by `selected`' },
     'segmented-control-segment.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'a segment is selected by `selected`' },
+    'pagination-item.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'the current page is marked by `selected` (aria-current="page", #2665)' },
     'accordion.expansion': { prop: 'defaultExpanded', map: off('collapsed', 'expanded'), reason: 'an accordion opens by `defaultExpanded`' },
+    // #2666 (owner call 11 A): code has no path prop. `responsive` (default true) swaps the trail for the parent link
+    // below 480px by a container query, and either value renders the trail at every wider width, so the code default
+    // path is the full trail whatever `responsive` holds.
+    'breadcrumbs.path': { prop: 'responsive', map: { undefined: 'full', false: 'full', true: 'full' }, reason: 'Breadcrumbs renders the trail by default; `responsive` only swaps in the parent link below 480px' },
   };
   // NO RECORDED EXCEPTIONS (#2752, owner decisions Q1 B and Q2 A, 2026-10-16): every size ladder leads with medium and
   // Button's icon slots lead with false, so any mismatch fails. The size ladder is named only for MUST below.
@@ -32645,7 +33643,7 @@ arm: {
     'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'checkbox-row',
     'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'switch-control', 'switch-row', 'tag', 'tab-item', 'tabs',
     '_accordion-indicator', 'accordion', 'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'link',
-    'text-field', 'textarea', 'select', 'password-field', 'dialog',
+    'text-field', 'textarea', 'select', 'password-field', 'dialog', 'pagination-item', 'pagination',
   ];
   // NO SET, NO DEFAULT MEMBER: a def that materializes each value as its own component is never inserted as a set.
   const NO_SET = ['icon', 'spinner'];
@@ -33210,7 +34208,7 @@ arm: {
   // THE HEADER: the title, the description (off), and the close (on): FlushIconButton.Neutral, flush, medium (Q385 A; flush per owner QA 2026-10-19).
   const hdrBad = plans.filter((p) => {
     const r = p.root as DN, close = find(r, 'close'), desc = find(r, 'description'), title = find(r, 'title');
-    return !(close?.nestTarget === 'flush-icon-button-neutral' && JSON.stringify(close.nestVariant) === JSON.stringify({ shape: 'flush', size: 'medium', state: 'rest' })
+    return !(close?.nestTarget === 'flush-icon-button-neutral' && JSON.stringify(close.nestVariant) === JSON.stringify({ shape: 'flush', size: 'medium', surface: 'default', state: 'rest' })
       && close.visibleProp === 'close' && close.visible !== false && desc?.visible === false && desc.paints?.fills === 'color/text/secondary' && title?.paints?.fills === 'color/text/primary');
   });
   ok(hdrBad.length === 0, `#2609 dialog header: the close is FlushIconButton.Neutral flush medium and shown (owner QA 2026-10-19: never round), the description hidden in secondary text, the title in primary text (${hdrBad.length ? `WRONG: ${hdrBad.map(planComponentName).slice(0, 2).join('; ')}` : 'all 24'})`);
@@ -33302,6 +34300,477 @@ arm: {
   ok(/An end panel is full height and 480px wide, at most `100vw − 48px`/.test(line('per-breakpoint placement, no automatic switch'))
     && /an end panel slides in from the end edge/.test(line('motion')) && /An end panel sits at the left edge/.test(line('right-to-left')),
     '#2877 dialog end in code: full height, 480px wide, at most 100vw − 48px, sliding in from the end edge, at the left edge in right-to-left text');
+}
+
+// ------------------------------------------------------------------- #2668: the toast
+// The owner's approved proposal and wireframe on #2668, every numbered call A (2026-10-16). EXPECTED is typed here as
+// literals from the proposal; ACTUAL is the projected plan and, for contrast, the committed emission under `out/`, read
+// as files, never through the def. So a def that moved fails the arm by name.
+{
+  const td = componentDefs.find((d) => d.id === 'toast')!;
+  const plans = figmaAnatomySet(td, { swapTarget: 'FPO-default-icon' });
+  type TN = { name: string; type: string; children: TN[]; bound?: Record<string, string>; paints?: Record<string, string>; nestTarget?: string; nestVariant?: Record<string, string>; effectStyle?: string; placementWidth?: number; primaryAxisSizingMode?: string; counterAxisSizingMode?: string; layoutGrow?: number; visibleProp?: string; visible?: boolean; layoutMode?: string; descendantFills?: string; textStyle?: string; nestOverrides?: { property: string; type: string; value: string }[] };
+  const find = (n: TN, name: string): TN | undefined => (n.name === name ? n : n.children.map((c) => find(c, name)).find(Boolean));
+  const all = (n: TN): TN[] => [n, ...n.children.flatMap(all)];
+
+  // THE SHAPE (calls 2, 12): 2 members, neutral first; no size, no state; named Toast in feedback, with its aliases.
+  ok(JSON.stringify(plans.map(planComponentName)) === JSON.stringify(['intent=neutral', 'intent=success']) && figmaVariantCount(td) === 2,
+    `#2668 toast: 2 members, intent=neutral then intent=success (call 2 A) (got ${plans.map(planComponentName).join(' | ')})`);
+  ok(JSON.stringify(td.variants) === JSON.stringify({ intent: ['neutral', 'success'] }) && td.states.length === 0 && !td.figmaProperties?.stateAxis
+    && td.props.find((p) => p.name === 'intent')?.default === 'neutral',
+    `#2668 toast: intent [neutral, success] only, neutral the code default and the first member, no state axis (got ${JSON.stringify(td.variants)})`);
+  ok(td.name === 'Toast' && td.category === 'feedback' && JSON.stringify(td.aliases) === JSON.stringify(['snackbar', 'notification', 'flag', 'flash-message']),
+    `#2668 toast: named Toast, category feedback, aliases snackbar, notification, flag and flash-message (call 12 A) (got ${td.name}, ${td.category}, ${JSON.stringify(td.aliases)})`);
+  ok(!JSON.stringify(td.variants).match(/danger|error|warning|info/) && !(td.props.find((p) => p.name === 'intent')?.values ?? []).some((v) => /danger|error|warning|info/.test(v)),
+    '#2668 toast: no danger, error, warning or info intent anywhere (calls 1 A, 2 A)');
+
+  // THE CARD (calls 9, 11): built 360 wide, hugging its height, on the inverse surface with shadow.lg and radius.xl, padded
+  // 8 / 16 / 8 (block, inline start, inline end) with an 8px gap to the controls.
+  const cardBad = plans.filter((p) => {
+    const r = p.root as TN, b = r.bound ?? {};
+    return !(r.layoutMode === 'HORIZONTAL' && r.placementWidth === 360 && r.primaryAxisSizingMode === 'FIXED' && r.counterAxisSizingMode === 'AUTO'
+      && r.paints?.fills === 'color/inverse/background/primary' && r.effectStyle === 'shadow/lg'
+      && b.topLeftRadius === 'radius/xl' && b.bottomRightRadius === 'radius/xl'
+      && b.paddingTop === 'space/100' && b.paddingBottom === 'space/100' && b.paddingLeft === 'space/200' && b.paddingRight === 'space/100' && b.itemSpacing === 'space/100'
+      && !Object.keys(r.paints ?? {}).includes('strokes'));
+  }).map((p) => `${planComponentName(p)}: ${JSON.stringify({ w: (p.root as TN).placementWidth, fills: (p.root as TN).paints?.fills, fx: (p.root as TN).effectStyle, b: (p.root as TN).bound })}`);
+  ok(cardBad.length === 0, `#2668 toast card: 360 wide hugging its height, inverse.background.primary with no border, shadow/lg, radius/xl, padding 8/16/8, 8 to the controls (calls 9 A, 11 A)${cardBad.length ? ` — WRONG: ${cardBad[0]}` : ''}`);
+
+  // THE GLYPH (call 3): success only, a circled check on inverse.icon.success, 20px, 12px from the message; neutral none.
+  const glyphBad = plans.filter((p) => {
+    const r = p.root as TN, icon = find(r, 'checkCircleGlyph'), content = find(r, 'content');
+    const success = (p.coord as Record<string, string>).intent === 'success';
+    return success ? !(icon && icon.nestTarget === 'icon/check-circle' && icon.descendantFills === 'color/inverse/icon/success' && icon.bound?.width === 'icon/size/sm' && content?.bound?.itemSpacing === 'space/150')
+      : !!icon || all(r).some((n) => /^icon\//.test(n.nestTarget ?? ''));
+  }).map(planComponentName);
+  ok(glyphBad.length === 0, `#2668 toast glyph: success shows check-circle on inverse.icon.success at icon.size.sm, 12px from the message; neutral shows no glyph (call 3 A)${glyphBad.length ? ` — WRONG: ${glyphBad.join(', ')}` : ''}`);
+
+  // THE MESSAGE: inverse.text.primary in type.body.md.default, wrapping, the "Status message" placeholder.
+  const msgBad = plans.filter((p) => { const m = find(p.root as TN, 'message'); return !(m && m.paints?.fills === 'color/inverse/text/primary' && m.layoutGrow === 1); }).map(planComponentName);
+  ok(msgBad.length === 0 && td.tokens.type === 'type.body.md.default', `#2668 toast message: inverse.text.primary, body.md, wrapping across the row${msgBad.length ? ` — WRONG: ${msgBad.join(', ')}` : ''}`);
+
+  // THE CONTROLS (calls 7, 8, 9): the action a text Button, small, inverse, off, reading "Action"; the close an
+  // FlushIconButton.Neutral, flush, small, on, showing the close glyph (Q386); 4px apart, at the end edge.
+  const ctlBad = plans.filter((p) => {
+    const r = p.root as TN, action = find(r, 'action'), close = find(r, 'close'), ctl = find(r, 'controls');
+    return !(action?.nestTarget === 'button' && JSON.stringify(action.nestVariant) === JSON.stringify({ appearance: 'text', size: 'small', surface: 'inverse', inset: 'default', state: 'rest', 'leading icon': 'false', 'trailing icon': 'false' })
+      && action.visibleProp === 'action' && action.visible === false && JSON.stringify(action.nestOverrides) === JSON.stringify([{ property: 'label', type: 'TEXT', value: 'Action' }])
+      && close?.nestTarget === 'flush-icon-button-neutral' && JSON.stringify(close.nestVariant) === JSON.stringify({ shape: 'flush', size: 'small', surface: 'inverse', state: 'rest' })
+      && close.visibleProp === 'close' && close.visible !== false && JSON.stringify(close.nestOverrides) === JSON.stringify([{ property: 'swap icon', type: 'INSTANCE_SWAP', value: 'icon/close' }])
+      && ctl?.bound?.itemSpacing === 'space/050' && JSON.stringify(ctl.children.map((c) => c.name)) === JSON.stringify(['action', 'close']));
+  }).map(planComponentName);
+  ok(ctlBad.length === 0, `#2668 toast controls: a text Button small inverse (off, "Action") then FlushIconButton.Neutral flush small (on, close glyph), 4px apart (calls 7 A, 8 A, Q386)${ctlBad.length ? ` — WRONG: ${ctlBad.join(', ')}` : ''}`);
+  ok(JSON.stringify(td.composition?.composesWith) === JSON.stringify(['button', 'flush-icon-button-neutral']),
+    `#2668 toast nests exactly Button and FlushIconButton.Neutral (got ${JSON.stringify(td.composition?.composesWith)})`);
+
+  // THE PROPERTIES (calls 8, 13): message "Status message"; action off; close on. Lowercase names (Q345).
+  ok(JSON.stringify(planSetProperties(plans)) === JSON.stringify([
+    { name: 'message', type: 'TEXT', default: 'Status message' }, { name: 'action', type: 'BOOLEAN', default: false }, { name: 'close', type: 'BOOLEAN', default: true },
+  ]), `#2668 toast properties: message "Status message", action off, close on, all lowercase (got ${JSON.stringify(planSetProperties(plans))})`);
+
+  // THE CODE-SIDE BEHAVIOR (calls 4, 5, 6, 10), each stated in codeOnly and the props as literals.
+  const co = td.anatomy!.codeOnly.join('\n');
+  const dur = td.props.find((p) => p.name === 'duration'), dis = td.props.find((p) => p.name === 'dismissible');
+  const behavior: [string, boolean][] = [
+    ['duration defaults to 6000, never under 5000', dur?.default === 6000 && /6000ms by default and never less than 5000ms/.test(co) && /Never less than 5000/.test(dur?.description ?? '')],
+    ['the timer pauses on hover, focus and a hidden window, and resumes with the time left', /pauses while the pointer is over the toast, while focus is inside the region, and while the window is hidden or blurred, and resumes with the time left/.test(co)],
+    ['a toast with an action has no timer', /timing, with an action — no timer/.test(co)],
+    ['bottom center below 768px, the bottom inline-end corner from 768px', /below `breakpoint\.md` \(768px\): bottom center/.test(co) && /From 768px: the bottom inline-end corner/.test(co)],
+    ['one at a time, the newest replacing', /one at a time — a new toast replaces the one showing/.test(co)],
+    ['F6 in, Escape or Shift+F6 out', /F6 moves focus into it/.test(co) && /Escape or Shift\+F6 returns focus/.test(co)],
+    ['close on by default', dis?.default === true],
+    ['the live region is polite and present from app start', /role="status"` and `aria-atomic="true"` \(polite\), present and empty from app start/.test(co)],
+  ];
+  const behaviorBad = behavior.filter(([, v]) => !v).map(([k]) => k);
+  ok(behaviorBad.length === 0, `#2668 toast code-side behavior, stated: ${behavior.map(([k]) => k).join('; ')}${behaviorBad.length ? ` — MISSING: ${behaviorBad.join('; ')}` : ''}`);
+
+  // CONTRAST, over every committed brand × mode, inverse included. Read from `out/<brand>.tokens.json` (light at
+  // `$value`, every other mode under `$extensions.prism3.modes`), resolving aliases, never through the def.
+  {
+    const OUT = resolve(HERE, 'out');
+    const brands = readdirSync(OUT).filter((f) => /^[a-z0-9-]+\.tokens\.json$/.test(f) && !f.includes('.base.') && !f.includes('.overlay.'));
+    const PAIRS: [string, string, number, string][] = [
+      ['color.inverse.text.primary', 'color.inverse.background.primary', 4.5, 'message on the card'],
+      ['color.inverse.icon.success', 'color.inverse.background.primary', 3, 'success glyph on the card'],
+      ['color.inverse.interactive.primary.text.rest', 'color.inverse.background.primary', 4.5, 'action label at rest'],
+      ['color.inverse.interactive.primary.text.hover', 'color.inverse.background.primary', 4.5, 'action label at hover'],
+      ['color.inverse.interactive.primary.text.pressed', 'color.inverse.background.primary', 4.5, 'action label at pressed'],
+      ['color.inverse.interactive.neutral.icon.rest', 'color.inverse.background.primary', 3, 'close glyph at rest'],
+      ['color.inverse.interactive.neutral.icon.hover', 'color.inverse.background.primary', 3, 'close glyph at hover'],
+      ['color.inverse.interactive.neutral.icon.pressed', 'color.inverse.background.primary', 3, 'close glyph at pressed'],
+      ['color.inverse.border.focus', 'color.inverse.background.primary', 3, 'focus ring on the card'],
+      ['color.inverse.background.primary', 'color.background.primary', 3, 'the card against the page'],
+    ];
+    const misses: string[] = [];
+    let checked = 0;
+    for (const f of brands) {
+      const doc = JSON.parse(readFileSync(resolve(OUT, f), 'utf8'));
+      const rootKey = Object.keys(doc).find((k) => !k.startsWith('$'))!;
+      const leaf = (path: string) => path.split('.').reduce((o: any, k) => o?.[k], doc[rootKey]);
+      const modes = ['light', ...Object.keys(leaf('color.inverse.background.primary')?.$extensions?.prism3?.modes ?? {})];
+      const valueAt = (path: string, mode: string, depth = 0): string | undefined => {
+        const l = leaf(path);
+        if (!l || depth > 12) return undefined;
+        const v = mode !== 'light' && l.$extensions?.prism3?.modes?.[mode] ? l.$extensions.prism3.modes[mode].$value : l.$value;
+        if (typeof v !== 'string') return undefined;
+        const m = /^\{(.+)\}$/.exec(v);
+        return m ? valueAt(m[1].replace(new RegExp(`^${rootKey}\\.`), ''), mode, depth + 1) : v;
+      };
+      for (const mode of modes) for (const [fg, bg, floor, what] of PAIRS) {
+        // A leaf is a hex or an opaque `rgb(r, g, b)`; anything else (an alpha, a gradient) is unresolved and fails.
+        const rgbOf = (v: string | undefined): RGB | undefined => {
+          if (!v) return undefined;
+          if (/^#[0-9a-f]{6}$/i.test(v)) return hexToRgb(v);
+          const m = /^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/.exec(v);
+          return m ? hexToRgb(`#${[m[1], m[2], m[3]].map((n) => Number(n).toString(16).padStart(2, '0')).join('')}`) : undefined;
+        };
+        const a = rgbOf(valueAt(fg, mode)), b = rgbOf(valueAt(bg, mode));
+        if (!a || !b) { misses.push(`${f}/${mode} ${what}: unresolved (${valueAt(fg, mode)} on ${valueAt(bg, mode)})`); continue; }
+        const ratio = contrast(a, b);
+        checked++;
+        if (ratio < floor) misses.push(`${f}/${mode} ${what}: ${ratio.toFixed(2)}:1 under ${floor}:1`);
+      }
+    }
+    ok(brands.length >= 5 && checked >= brands.length * 4 * PAIRS.length && misses.length === 0,
+      `#2668 toast contrast: ${PAIRS.length} inverse pairs clear their floors in every committed brand × mode (${brands.length} brands, ${checked} ratios)${misses.length ? ` — MISS: ${misses.slice(0, 4).join('; ')}` : ''}`);
+  }
+
+  // THE SPACING ORDER: each gap is tighter than the inline-start padding beside it, at every density.
+  {
+    const SPACE_PX = new Map(spaceScale(SPACE_BASE).map((sp) => [`space.${sp.key}`, sp.px]));
+    const bad: string[] = [];
+    for (const d of ['compact', 'comfortable', 'spacious'] as const) {
+      const m = applySpacingDensity(td, d);
+      const px = (k: string) => SPACE_PX.get(m.tokens[k])!;
+      if (!(px('gap') < px('pad-x') && px('glyph-gap') < px('pad-x') && px('controls-gap') === 4)) bad.push(`${d}: gap ${px('gap')} glyph ${px('glyph-gap')} controls ${px('controls-gap')} start ${px('pad-x')}`);
+    }
+    ok(bad.length === 0, `#2668 toast spacing: the gaps sit under the 16px-class start padding at every density, the action-to-close gap a fixed 4px${bad.length ? ` — ${bad.join('; ')}` : ''}`);
+  }
+
+  ok(validateComponentDef(td).errors.length === 0, `#2668 toast validates clean (${validateComponentDef(td).errors.slice(0, 2).join('; ')})`);
+}
+
+// ------------------------------------------------------------------- #2665: pagination
+// Each owner call held against a literal (the proposal on #2665, approved with every call A on 2026-10-16), plus the
+// owner rules of #2706 the build follows (Q347/Q359 medium first). EXPECTED is typed here; ACTUAL is the projected
+// plan (the subject) and, for contrast, the resolved roles of every committed brand × mode. Each arm names its call,
+// so a mutation of the def fails the arm it breaks, by name.
+{
+  const findIn = (n: AnatomyPlan['root'], name: string): AnatomyPlan['root'] | undefined => n.name === name ? n : n.children.map((k) => findIn(k, name)).find(Boolean);
+  const itemDef = componentDefs.find((d) => d.id === 'pagination-item')!;
+  const pagDef = componentDefs.find((d) => d.id === 'pagination')!;
+  const items = figmaAnatomySet(itemDef, { swapTarget: 'FPO-default-icon' });
+  const pags = figmaAnatomySet(pagDef, { swapTarget: 'FPO-default-icon' });
+  const RUNG: Record<string, string> = { small: 'sm', medium: 'md', large: 'lg' };
+  // Q428 A: the chevrons and the gap icon one icon-size rung under IconButton's glyph rung (RUNG), at every size. Typed.
+  const GLYPH: Record<string, string> = { small: 'xs', medium: 'sm', large: 'md' };
+  const SIZES = ['medium', 'small', 'large'];
+
+  // (1) THE ITEM'S 87 MEMBERS (calls 7 A and 3 A, Q381 2 A, Q414 A): every page state unselected, rest and focus-visible
+  // on the current page in each style, rest alone on the ellipsis; previous and next, each unlabeled and labeled, at
+  // rest, hover, pressed, focus-visible and disabled (the inactive end, call 9 A); medium first (Q347, Q359). Typed out,
+  // in the set's order.
+  const STEP_STATES = ['rest', 'hover', 'pressed', 'focus-visible', 'disabled'];
+  const ITEM_MEMBERS = [
+    ...SIZES.flatMap((s) => ['rest', 'hover', 'pressed', 'focus-visible'].map((st) => `type=page, selection=unselected, style=border, labeled=false, size=${s}, state=${st}`)),
+    ...['border', 'underline'].flatMap((y) => SIZES.flatMap((s) => ['rest', 'focus-visible'].map((st) => `type=page, selection=selected, style=${y}, labeled=false, size=${s}, state=${st}`))),
+    ...SIZES.map((s) => `type=ellipsis, selection=unselected, style=border, labeled=false, size=${s}, state=rest`),
+    ...['previous', 'next'].flatMap((t) => ['false', 'true'].flatMap((l) => SIZES.flatMap((s) => STEP_STATES.map((st) => `type=${t}, selection=unselected, style=border, labeled=${l}, size=${s}, state=${st}`)))),
+  ];
+  ok(JSON.stringify(items.map(planComponentName)) === JSON.stringify(ITEM_MEMBERS) && figmaVariantCount(itemDef) === 87,
+    `#2665 call 7 / Q381 / Q414 A pagination item: 87 members — a page at rest, hover, pressed and focus-visible, the current page at rest and focus-visible only in the border and underline styles, the ellipsis at rest only, previous and next unlabeled and labeled at rest, hover, pressed, focus-visible and disabled, medium first (got ${items.length}: ${items.map(planComponentName).filter((n) => !ITEM_MEMBERS.includes(n)).slice(0, 3).join(' | ') || 'order differs'})`);
+  ok(itemDef.id === 'pagination-item' && itemDef.name === 'Pagination.Item' && itemDef.category === 'navigation',
+    `#2665 call 16 / Q394 A pagination item: id pagination-item, unprefixed, named Pagination.Item, category navigation (got ${itemDef.id}, ${itemDef.name}, ${itemDef.category})`);
+
+  // (2) THE CELL AND ITS PAINT (call 8 A, Q381 1 A and 2 A), per member: IconButton's height rung, a floor as wide as
+  // it is tall, radius.md, a space.100 inset; the current page with no fill, a border/tertiary border in the border
+  // style or a 2px border/tertiary bar under the number (balanced by an empty 2px frame above it) in the underline
+  // style, its number in the neutral ink in the emphasis weight; another page the neutral wash at hover and pressed;
+  // the ellipsis the decorative more-horizontal icon (Q404 A) at the chevrons' glyph rung in the secondary icon ink,
+  // with no text node and no TEXT property, so nothing on it can read "1" or collapse.
+  const PAINT: Record<string, { fill?: string; stroke?: string; bar?: string; ink: string }> = {
+    'page/unselected/border/rest': { ink: 'color/interactive/neutral/text/rest' },
+    'page/unselected/border/hover': { fill: 'color/interactive/neutral/overlay/hover', ink: 'color/interactive/neutral/text/hover' },
+    'page/unselected/border/pressed': { fill: 'color/interactive/neutral/overlay/pressed', ink: 'color/interactive/neutral/text/pressed' },
+    'page/unselected/border/focus-visible': { ink: 'color/interactive/neutral/text/rest' },
+    'page/selected/border/rest': { stroke: 'color/border/secondary', ink: 'color/interactive/neutral/text/rest' },
+    'page/selected/border/focus-visible': { stroke: 'color/border/secondary', ink: 'color/interactive/neutral/text/rest' },
+    'page/selected/underline/rest': { bar: 'color/border/tertiary', ink: 'color/interactive/neutral/text/rest' },
+    'page/selected/underline/focus-visible': { bar: 'color/border/tertiary', ink: 'color/interactive/neutral/text/rest' },
+    'ellipsis/unselected/border/rest': { ink: 'color/icon/primary' },
+  };
+  const cellOff: string[] = [];
+  const pageCells = items.filter((m) => ['page', 'ellipsis'].includes((m.coord as Record<string, string>).type));
+  for (const m of pageCells) {
+    const c = m.coord as Record<string, string>;
+    const size = m.size!;
+    const want = PAINT[`${c.type}/${c.selection}/${c.style}/${c.state}`];
+    const page = c.type === 'page';
+    const label = findIn(m.root, 'label'), reserve = findIn(m.root, 'labelReserve'), ring = findIn(m.root, 'focusRing'), gap = findIn(m.root, 'gapIcon');
+    const bar = findIn(m.root, 'underline'), balance = findIn(m.root, 'balance');
+    const text = page ? label : undefined;
+    const texts: string[] = [];
+    const walkText = (n: AnatomyPlan['root']): void => { if (n.type === 'TEXT') texts.push(n.name); n.children.forEach(walkText); };
+    walkText(m.root);
+    const got = { h: m.root.bound?.height, minW: m.root.bound?.minWidth, r: m.root.bound?.topLeftRadius, px: m.root.bound?.paddingLeft, fill: m.root.paints?.fills, stroke: m.root.paints?.strokes,
+      sw: m.root.bound?.strokeWeight ?? m.root.bound?.strokeTopWeight, bar: bar && [bar.paints?.fills, bar.bound?.height], balance: balance?.bound?.height, ink: page ? text?.paints?.fills : gap?.descendantFills,
+      type: text?.textStyle, reserve: reserve?.textStyle, ring: !!ring, chars: text?.characters, ref: text?.propertyRef?.prop,
+      icon: gap && [gap.type, gap.nestTarget, gap.bound?.width, gap.bound?.height], texts: texts.join(',') };
+    const exp = { h: `size/${RUNG[size]}/height`, minW: `size/${RUNG[size]}/height`, r: 'radius/md', px: 'space/100', fill: want?.fill, stroke: want?.stroke,
+      sw: 'border-width/hairline', bar: want?.bar && [want.bar, 'border-width/thick'], balance: want?.bar && 'border-width/thick', ink: want?.ink,
+      type: page ? `label/${RUNG[size]}/${c.selection === 'selected' ? 'emphasis' : 'default'}` : undefined, reserve: page ? `label/${RUNG[size]}/emphasis` : undefined, ring: c.state === 'focus-visible',
+      chars: page ? '1' : undefined, ref: page ? 'label' : undefined,
+      icon: page ? undefined : ['NESTED_INSTANCE', 'icon/more-horizontal-filled', `icon/size/${GLYPH[size]}`, `icon/size/${GLYPH[size]}`], texts: page ? 'labelReserve,label' : '' };
+    if (JSON.stringify(got) !== JSON.stringify(exp)) cellOff.push(`${planComponentName(m)}: ${JSON.stringify(got)} (want ${JSON.stringify(exp)})`);
+  }
+  ok(pageCells.length === 27 && cellOff.length === 0,
+    `#2665 call 8 / Q381 / Q427 A / Q428 A pagination item cell: size/{md,sm,lg}/height tall and as wide, radius/md, space/100 inset; the current page unfilled with a hairline border/secondary border (border style, Q427 A) or a 2px border/tertiary underline balanced above (underline style), its number neutral in the emphasis weight; a page neutral text with the overlay wash at hover and pressed; the ellipsis the more-horizontal icon at icon/size/{sm,xs,md} (Q428 A) in icon/primary (owner QA) with no text node (Q404 A); the bold reserve in emphasis; the ring at focus-visible only (${cellOff.length} off — ${cellOff.slice(0, 2).join('; ') || 'none'})`);
+
+  // (2b) PREVIOUS AND NEXT (Q414 A), per member: the page cell's box (rung height and floor, radius.md, the space.100
+  // inset), a chevron (left on previous, right on next) at the chevrons' glyph rung in the neutral icon ink, and on a
+  // labeled cell the word, "Previous" before or "Next" after it at a 4px gap, in the regular label type and the neutral
+  // text ink, each on its own TEXT property; the neutral wash at hover and pressed; the disabled inks and no wash at
+  // disabled (the inactive end, call 9 A); the ring at focus-visible only.
+  const STEP_INK: Record<string, [string, string, string | undefined]> = {
+    rest: ['color/interactive/neutral/icon/rest', 'color/interactive/neutral/text/rest', undefined],
+    hover: ['color/interactive/neutral/icon/hover', 'color/interactive/neutral/text/hover', 'color/interactive/neutral/overlay/hover'],
+    pressed: ['color/interactive/neutral/icon/pressed', 'color/interactive/neutral/text/pressed', 'color/interactive/neutral/overlay/pressed'],
+    'focus-visible': ['color/interactive/neutral/icon/rest', 'color/interactive/neutral/text/rest', undefined],
+    disabled: ['color/disabled/icon', 'color/disabled/text', undefined],
+  };
+  const stepCells = items.filter((m) => ['previous', 'next'].includes((m.coord as Record<string, string>).type));
+  const stepOff: string[] = [];
+  for (const m of stepCells) {
+    const c = m.coord as Record<string, string>;
+    const size = m.size!, prev = c.type === 'previous', labeled = c.labeled === 'true';
+    const chev = findIn(m.root, prev ? 'previousIcon' : 'nextIcon'), word = findIn(m.root, prev ? 'previousText' : 'nextText');
+    const [icon, ink, stateWash] = STEP_INK[c.state];
+    // Q426 A: a labeled cell (simple's) draws no fill at any state; only its inks move.
+    const wash = labeled ? undefined : stateWash;
+    const got = { h: m.root.bound?.height, minW: m.root.bound?.minWidth, r: m.root.bound?.topLeftRadius, px: m.root.bound?.paddingLeft, gap: m.root.bound?.itemSpacing,
+      fill: m.root.paints?.fills, stroke: m.root.paints?.strokes, kids: m.root.children.map((k) => k.name).filter((n) => n !== 'focusRing'), ring: !!findIn(m.root, 'focusRing'),
+      chev: chev && [chev.type, chev.nestTarget, chev.bound?.width, chev.bound?.height, chev.descendantFills],
+      word: word && [word.characters, word.propertyRef?.prop, word.textStyle, word.paints?.fills] };
+    const exp = { h: `size/${RUNG[size]}/height`, minW: `size/${RUNG[size]}/height`, r: 'radius/md', px: 'space/100', gap: 'space/050',
+      fill: wash, stroke: undefined, kids: prev ? (labeled ? ['previousIcon', 'previousText'] : ['previousIcon']) : (labeled ? ['nextText', 'nextIcon'] : ['nextIcon']), ring: c.state === 'focus-visible',
+      chev: ['NESTED_INSTANCE', `icon/chevron-${prev ? 'left' : 'right'}`, `icon/size/${GLYPH[size]}`, `icon/size/${GLYPH[size]}`, icon],
+      word: labeled ? [prev ? 'Previous' : 'Next', prev ? 'previous label' : 'next label', `label/${RUNG[size]}/default`, ink] : undefined };
+    if (JSON.stringify(got) !== JSON.stringify(exp)) stepOff.push(`${planComponentName(m)}: ${JSON.stringify(got)} (want ${JSON.stringify(exp)})`);
+  }
+  ok(stepCells.length === 60 && stepOff.length === 0,
+    `#2665 Q414 A / Q426 A / Q428 A pagination item previous and next: the page cell's box, a chevron-left or chevron-right at icon/size/{sm,xs,md} in interactive/neutral/icon, the word "Previous" before or "Next" after it on a labeled cell (its own TEXT property, label default, neutral text, 4px gap), the neutral wash at hover and pressed on an unlabeled cell only (a labeled one no fill, its inks moving), disabled inks with no wash at disabled, the ring at focus-visible only (${stepCells.length} cells, ${stepOff.length} off — ${stepOff.slice(0, 2).join('; ') || 'none'})`);
+
+  // Q404 A (superseding Q396): the gap marker is an icon, so the item has no `mark` prop, and the ellipsis no TEXT
+  // property: the item's TEXT properties are the page number and, Q414 A, previous's and next's words, one caption each;
+  // the code contract hides the icon from assistive technology and makes it no control.
+  {
+    const textProps = Object.keys(itemDef.figmaProperties?.texts ?? {});
+    const markProp = itemDef.props.find((p) => p.name === 'mark');
+    const aria = itemDef.anatomy!.codeOnly.some((e) => /^The ellipsis in code — an <li aria-hidden="true"> holding the more-horizontal icon, with no control and no text in it/.test(e));
+    ok(!markProp && JSON.stringify(textProps) === JSON.stringify(['label', 'previousLabel', 'nextLabel']) && aria,
+      `#2665 Q404 A / Q414 A pagination item: no \`mark\` prop, the TEXT properties label, previousLabel and nextLabel (none on the ellipsis), and the ellipsis an aria-hidden icon with no control in code (got mark ${markProp ? 'present' : 'absent'}, texts ${textProps.join(', ')}, aria ${aria})`);
+  }
+  // Q414 A, the code contract (calls 9 A and 12 A): previous and next are links or buttons as a page is, named "Previous
+  // page" and "Next page", aria-disabled at an end and still focusable, never native disabled; the chevron aria-hidden.
+  ok(itemDef.anatomy!.codeOnly.some((e) => /^previous and next in code — an <a href> or a <button type="button">/.test(e) && /"Previous page" and "Next page"/.test(e)
+      && /aria-disabled="true"/.test(e) && /Native disabled is not used/.test(e) && /chevron is aria-hidden="true"/.test(e))
+    && itemDef.props.some((p) => p.name === 'isInactive' && p.type === 'boolean'),
+    '#2665 Q414 A pagination item code contract: previous and next are links or buttons named "Previous page" and "Next page", aria-disabled at an end (isInactive, never native disabled), the chevron aria-hidden');
+
+  // (3) CONTRAST over every committed brand × mode (5 brands × 4 modes = 20, a literal), measured from the resolved
+  // roles, never from the def: the current page's number on the page at 4.5:1 and its border and underline against the
+  // page at 3:1 (SC 1.4.3, 1.4.11; Q381 1 A); a page's number at rest on the page and at hover and pressed on the wash
+  // composited over the page at 4.5:1; the ellipsis and the compact text on the page at 4.5:1. The roles are the ones
+  // the plans bind (read off the subject above, then measured independently).
+  {
+    const themes: [string, any][] = loadedRows([
+      ['prism3', exampleTheme('prism3', () => brandTheme(exampleBrands()['prism3'] as BrandInput))],
+      ['nb', nbTheme()],
+      ['aurora', exampleTheme('aurora', () => brandTheme(exampleBrands()['aurora'] as BrandInput))],
+      ['harbor', exampleTheme('harbor', () => brandTheme(exampleBrands()['harbor'] as BrandInput))],
+      ['wendys', exampleTheme('wendys', () => brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input))],
+    ]);
+    const CELLS = 20;
+    const role = (v: string | undefined) => (v ?? '(unbound)').replace(/^color\//, '').replace(/\//g, '.');
+    const at = (sel: string, st: string, type = 'page', style = 'border') => items.find((m) => (m.coord as Record<string, string>).type === type && (m.coord as Record<string, string>).selection === sel && (m.coord as Record<string, string>).style === style && m.size === 'medium' && (m.coord as Record<string, string>).state === st)!;
+    const sel = at('selected', 'rest'), under = at('selected', 'rest', 'page', 'underline');
+    const BORDER = role(sel.root.paints?.strokes), BAR = role(findIn(under.root, 'underline')?.paints?.fills), CUR = role(findIn(sel.root, 'label')?.paints?.fills);
+    const pairs: { what: string; ink: string; wash?: string; ground?: string; floor: number }[] = [
+      { what: 'current page number on the page', ink: CUR, floor: 4.5 },
+      // Q427 A: the border style's border has no 3:1 floor (the emphasis weight is the second cue, held below); the
+      // underline is its style's only cue and keeps 3:1.
+      { what: 'current page underline against the page', ink: BAR, floor: 3 },
+      ...['rest', 'hover', 'pressed'].map((st) => ({ what: `page number at ${st}`, ink: role(findIn(at('unselected', st).root, 'label')?.paints?.fills), wash: at('unselected', st).root.paints?.fills ? role(at('unselected', st).root.paints!.fills) : undefined, floor: 4.5 })),
+      // Q414 A: previous's chevron (non-text, 3:1) and its word (4.5:1) at rest, and on the wash at hover and pressed.
+      ...['rest', 'hover', 'pressed'].flatMap((st) => {
+        const m = items.find((x) => (x.coord as Record<string, string>).type === 'previous' && (x.coord as Record<string, string>).labeled === 'true' && x.size === 'medium' && (x.coord as Record<string, string>).state === st)!;
+        const w = m.root.paints?.fills ? role(m.root.paints.fills) : undefined;
+        return [
+          { what: `previous chevron at ${st}`, ink: role(findIn(m.root, 'previousIcon')?.descendantFills), wash: w, floor: 3 },
+          { what: `previous word at ${st}`, ink: role(findIn(m.root, 'previousText')?.paints?.fills), wash: w, floor: 4.5 },
+        ];
+      }),
+      // Q426 A moved the wash to the unlabeled cells only: their chevron on it at hover and pressed.
+      ...['hover', 'pressed'].map((st) => {
+        const m = items.find((x) => (x.coord as Record<string, string>).type === 'previous' && (x.coord as Record<string, string>).labeled === 'false' && x.size === 'medium' && (x.coord as Record<string, string>).state === st)!;
+        return { what: `unlabeled previous chevron at ${st}`, ink: role(findIn(m.root, 'previousIcon')?.descendantFills), wash: m.root.paints?.fills ? role(m.root.paints.fills) : undefined, floor: 3 };
+      }),
+      { what: 'gap icon on the page', ink: role(findIn(at('unselected', 'rest', 'ellipsis').root, 'gapIcon')?.descendantFills), floor: 3 },
+      { what: 'compact text', ink: role(findIn(pags.find((p) => (p.coord as Record<string, string>).type === 'compact' && p.size === 'medium')!.root, 'status')?.paints?.fills), floor: 4.5 },
+    ];
+    for (const p of pairs) {
+      const low: string[] = [];
+      let measured = 0, min = Infinity;
+      for (const [brand, th] of themes) for (const m of resolveAllModes(th)) {
+        const r = m.roles as Record<string, { hex?: string; alpha?: number }>;
+        const page = r['background.primary'], ink = r[p.ink], ground = p.ground ? r[p.ground] : undefined, wash = p.wash ? r[p.wash] : undefined;
+        if (!page?.hex || !ink?.hex || (p.ground && !ground?.hex) || (p.wash && !wash?.hex)) { low.push(`${brand}/${m.mode}: missing`); continue; }
+        let bg = hexToRgb(page.hex);
+        if (ground?.hex) bg = composite(bg, hexToRgb(ground.hex), ground.alpha ?? 1);
+        if (wash?.hex) bg = composite(bg, hexToRgb(wash.hex), wash.alpha ?? 1);
+        const ratio = contrast(composite(bg, hexToRgb(ink.hex), ink.alpha ?? 1), bg);
+        measured++; min = Math.min(min, ratio);
+        if (ratio < p.floor) low.push(`${brand}/${m.mode} ${ratio.toFixed(2)}`);
+      }
+      ok(measured === CELLS && low.length === 0,
+        `#2665 contrast pagination (${p.what}): ${p.ink}${p.wash ? ` on ${p.wash} over the page` : p.ground ? ` on ${p.ground}` : ' on the page'} clears ${p.floor}:1 in all ${measured} of ${CELLS} brand × mode cells (lowest ${min.toFixed(2)})${low.length ? ` — ${low.join('; ')}` : ''}`);
+    }
+    ok(BAR === 'border.tertiary' && !sel.root.paints?.fills && !under.root.paints?.fills,
+      `#2665 Q381 1 A and 2 A: the current page has no fill, and its underline binds border.tertiary, the role measured at 3:1 above (got underline ${BAR}, fill ${sel.root.paints?.fills ?? 'none'})`);
+    // Q427 A: THE BORDER IS ONE RUNG LIGHTER THAN THE UNDERLINE, AND IT IS NOT THE ONLY CUE. The neutral border ladder,
+    // typed here lightest first, is the oracle: the border is the rung directly under the underline's, so it is a
+    // subtle edge (measured: lighter than the underline in every brand × mode cell, and below 3:1 in at least one,
+    // which is the deliberate exception), and the WCAG 1.4.11 second cue holds — the current page's number is in the
+    // emphasis weight while every other page's is regular, at the same reserved width. Scoped to this one part: a
+    // number in the regular weight on the current page fails this arm, and the underline keeps its 3:1 arm above.
+    const LADDER = ['border.primary', 'border.secondary', 'border.tertiary'];
+    const lum = (rr: string, r: Record<string, { hex?: string; alpha?: number }>) => {
+      const bg = hexToRgb(r['background.primary']!.hex!), ink = r[rr];
+      return ink?.hex ? contrast(composite(bg, hexToRgb(ink.hex), ink.alpha ?? 1), bg) : NaN;
+    };
+    const rows = themes.flatMap(([b, th]) => resolveAllModes(th).map((m) => ({ cell: `${b}/${m.mode}`, r: m.roles as Record<string, { hex?: string; alpha?: number }> })));
+    const lighter = rows.every(({ r }) => lum(BORDER, r) < lum(BAR, r));
+    const below3 = rows.filter(({ r }) => lum(BORDER, r) < 3).map(({ cell, r }) => `${cell} ${lum(BORDER, r).toFixed(2)}`);
+    const unsel = at('unselected', 'rest');
+    const cue = findIn(sel.root, 'label')?.textStyle === 'label/md/emphasis' && findIn(unsel.root, 'label')?.textStyle === 'label/md/default'
+      && findIn(sel.root, 'labelReserve')?.textStyle === 'label/md/emphasis' && findIn(unsel.root, 'labelReserve')?.textStyle === 'label/md/emphasis';
+    const reasoned = (itemDef.notes?.evolution ?? []).some((e) => /Q427 A/.test(e) && /1\.4\.11/.test(e) && /second, decorative cue/.test(e) && /emphasis weight/.test(e));
+    ok(BORDER === LADDER[LADDER.indexOf(BAR) - 1] && lighter && below3.length > 0 && cue && reasoned,
+      `#2665 Q427 A the current page's border (border style) is the neutral border rung one lighter than the underline's, a subtle edge below 3:1 by decision, with the emphasis weight as the second cue and the WCAG 1.4.11 reasoning in the notes (bound ${BORDER}, underline ${BAR}; lighter everywhere ${lighter}; below 3:1 in ${below3.length} of ${rows.length}, lowest ${Math.min(...rows.map(({ r }) => lum(BORDER, r))).toFixed(2)}; second cue ${cue}; reasoning recorded ${reasoned})`);
+    // Owner QA (2026-10-19): the gap icon in the page numbers' ink. Measured, never read off the def: the gap icon's
+    // role resolves to the same color as a page number's at rest in every brand × mode cell.
+    const GAP = role(findIn(at('unselected', 'rest', 'ellipsis').root, 'gapIcon')?.descendantFills), NUM = role(findIn(unsel.root, 'label')?.paints?.fills);
+    const inkOff = rows.filter(({ r }) => !r[GAP]?.hex || r[GAP]!.hex !== r[NUM]?.hex || (r[GAP]!.alpha ?? 1) !== (r[NUM]!.alpha ?? 1)).map(({ cell, r }) => `${cell} ${r[GAP]?.hex} vs ${r[NUM]?.hex}`);
+    ok(rows.length === CELLS && inkOff.length === 0,
+      `#2665 owner QA the gap icon is in the page numbers' ink: ${GAP} resolves to ${NUM}'s color in all ${rows.length} of ${CELLS} brand × mode cells (${inkOff.slice(0, 3).join('; ') || 'none off'})`);
+  }
+
+  // Owner QA (2026-10-19): IN THE UNDERLINE STYLE THE UNDERLINE IS AS WIDE AS THE NUMBER, NOT THE CELL. The label box
+  // hugs, and each of its childless frames (the balance above the number and the underline under it) STRETCHES to the
+  // box rather than holding a width of its own: a childless frame that hugs has nothing to hug, so the host keeps a new
+  // frame's default width, the box takes it, and the underline spans it. Only the number's text sets the width.
+  {
+    const off: string[] = [];
+    const unders = items.filter((m) => (m.coord as Record<string, string>).style === 'underline');
+    for (const m of unders) {
+      const box = findIn(m.root, 'labelBox')!;
+      const empties = box.children.filter((k) => k.type === 'FRAME' && !k.children.length);
+      const got = { box: [box.primaryAxisSizingMode, box.counterAxisSizingMode], empties: empties.map((k) => [k.name, k.layoutAlign]), sizers: box.children.filter((k) => !empties.includes(k)).map((k) => k.name) };
+      const exp = { box: ['AUTO', 'AUTO'], empties: [['balance', 'STRETCH'], ['underline', 'STRETCH']], sizers: ['reserve', 'label'] };
+      if (JSON.stringify(got) !== JSON.stringify(exp)) off.push(`${planComponentName(m)}: ${JSON.stringify(got)}`);
+    }
+    ok(unders.length === 6 && off.length === 0,
+      `#2665 owner QA underline under the number only: in every underline member the label box hugs, its balance and underline stretch to it, and only the number (its reserve and its text) sets the width (${unders.length} members, ${off.length} off — ${off.slice(0, 2).join('; ') || 'none'})`);
+  }
+
+  // (4) THE PAGINATION'S 12 MEMBERS AND WHAT EACH HOLDS (calls 1, 2, 4, 6, 16, Q381 2 A), typed out. The style is
+  // numbered's only, and the current page alone follows it. numbered: an IconButton.Neutral
+  // ghost square with the left chevron, the items slot holding 1 … 4 [5] 6 … 10 (page 5 of 10), and one with the right
+  // chevron; compact: the two buttons around "Page 5 of 10"; simple: two Button.Neutral text, "Previous" with a leading
+  // left chevron and "Next" with a trailing right chevron, built at 428px. Every nested size follows the row's.
+  // Q414 A supersedes call 2's nests: previous and next are Pagination.Item cells (type previous and next) in every type,
+  // unlabeled in numbered and compact, labeled in simple, so no node nests a Neutral button family (Q386).
+  const PAG_MEMBERS = [['numbered', 'border'], ['numbered', 'underline'], ['compact', 'border'], ['simple', 'border']].flatMap(([t, y]) => SIZES.map((s) => `type=${t}, style=${y}, size=${s}`));
+  ok(JSON.stringify(pags.map(planComponentName)) === JSON.stringify(PAG_MEMBERS),
+    `#2665 call 1 / Q381 pagination: 12 members, type numbered in the border and underline styles, compact and simple in border, × size medium, small, large, in that order (got ${pags.map(planComponentName).join(' | ')})`);
+  // An ellipsis carries no text override (Q404 A: it is an icon), so its row reads `none`.
+  const WINDOW = [['page', 'unselected', '1'], ['ellipsis', 'unselected', 'none'], ['page', 'unselected', '4'], ['page', 'selected', '5'], ['page', 'unselected', '6'], ['ellipsis', 'unselected', 'none'], ['page', 'unselected', '10']];
+  const ovText = (n: AnatomyPlan['root'] | undefined) => (n?.nestOverrides ?? []).find((o) => o.type === 'TEXT')?.value;
+  const ovSwap = (n: AnatomyPlan['root'] | undefined) => (n?.nestOverrides ?? []).find((o) => o.type === 'INSTANCE_SWAP')?.value;
+  const pagOff: string[] = [];
+  for (const m of pags) {
+    const t = (m.coord as Record<string, string>).type, size = m.size!;
+    const prev = findIn(m.root, 'previous'), next = findIn(m.root, 'next'), slot = findIn(m.root, 'items'), status = findIn(m.root, 'status');
+    const pb = findIn(m.root, 'previousButton'), nb = findIn(m.root, 'nextButton');
+    const icon = (n: AnatomyPlan['root'] | undefined) => n && { to: n.nestTarget, v: n.nestVariant, swap: ovSwap(n), text: ovText(n), expose: n.nestExpose };
+    const got = {
+      prev: icon(prev), next: icon(next),
+      slot: slot && { type: slot.type, gap: slot.bound?.itemSpacing, settings: slot.slotSettings, preferred: slot.slotPreferred, kids: slot.children.map((k) => [k.nestTarget, (k.nestVariant as Record<string, string>)?.type, (k.nestVariant as Record<string, string>)?.selection, (k.nestVariant as Record<string, string>)?.style, (k.nestVariant as Record<string, string>)?.size, ovText(k) ?? ((k.nestVariant as Record<string, string>)?.type === 'ellipsis' ? 'none' : '1')]) },
+      status: status && { chars: status.characters, type: status.textStyle, ink: status.paints?.fills },
+      simple: pb && nb && [icon(pb), icon(nb)],
+      width: m.root.placementWidth,
+      neutral: JSON.stringify(m.root).match(/"nestTarget":"(?:icon-)?button-neutral"/g)?.length ?? 0,
+    };
+    const ib = (type: string, labeled: string) => ({ to: 'pagination-item', v: { type, selection: 'unselected', style: 'border', labeled, size, state: 'rest' }, swap: undefined, text: undefined, expose: ['state'] });
+    const exp = {
+      prev: t === 'simple' ? undefined : ib('previous', 'false'), next: t === 'simple' ? undefined : ib('next', 'false'),
+      slot: t === 'numbered' ? { type: 'CONTENT_SLOT', gap: 'space/050', settings: { minChildren: 1, allowPreferredValuesOnly: true }, preferred: ['pagination-item'], kids: WINDOW.map(([ty, se, label]) => ['pagination-item', ty, se, se === 'selected' ? (m.coord as Record<string, string>).style : 'border', size, label]) } : undefined,
+      status: t === 'compact' ? { chars: 'Page 5 of 10', type: `label/${RUNG[size]}/default`, ink: 'color/text/primary' } : undefined,
+      simple: t === 'simple' ? [ib('previous', 'true'), ib('next', 'true')] : undefined,
+      width: t === 'simple' ? 428 : undefined,
+      neutral: 0,
+    };
+    if (JSON.stringify(got) !== JSON.stringify(exp)) pagOff.push(`${planComponentName(m)}: ${JSON.stringify(got).slice(0, 400)} (want ${JSON.stringify(exp).slice(0, 400)})`);
+  }
+  ok(pagOff.length === 0,
+    `#2665 calls 4, 6 and 16, Q414 A pagination contents: numbered is the item's own previous and next cells (unlabeled) around a native items slot (at least one, Pagination.Item preferred and preferred-only, Q394 A) of 1 … 4 [5] 6 … 10, the current page in the row's style; compact the same cells around "Page 5 of 10" in label default and text/primary; simple the labeled previous and next cells, built at 428px; no Neutral button family nested; every nested size follows the row's and prev and next expose their state (${pagOff.length} off — ${pagOff.slice(0, 1).join('; ') || 'none'})`);
+  ok(pagDef.summary === 'Moves between pages of a long list or set of results, and shows which page is open.' && pagDef.category === 'navigation'
+    && JSON.stringify(pagDef.aliases) === JSON.stringify(['pager', 'pagination-nav', 'page-controls']) && pagDef.props.find((p) => p.name === 'label')?.default === 'Pagination',
+    `#2665 call 16 pagination: the approved summary, category navigation, aliases pager, pagination-nav and page-controls, and the nav label "Pagination" (got ${pagDef.category}, ${JSON.stringify(pagDef.aliases)})`);
+  // Call 9 A and call 12 A, in the code contract: an end keeps previous and next in place with aria-disabled, never
+  // native disabled; getHref present renders links, absent buttons, never href="#".
+  ok(pagDef.anatomy!.codeOnly.some((e) => /^At an end — /.test(e) && /aria-disabled="true"/.test(e) && /Native disabled is not used/.test(e))
+    && pagDef.anatomy!.codeOnly.some((e) => /^links or buttons — with getHref/.test(e) && /Never <a href="#">/.test(e))
+    && pagDef.anatomy!.codeOnly.some((e) => /^The window — with siblingCount 1 and boundaryCount 1/.test(e) && /7 slots/.test(e)),
+    '#2665 calls 6, 9 and 12 pagination code contract: seven slots, previous and next aria-disabled at an end (never native disabled), and links from getHref or buttons, never href="#"');
+
+  // (5) excludeCoordinates OVER THE STATE AXIS (#2665, the mechanism call 7 needs). The validator takes the state
+  // axis as one more dimension, refuses a state value the axis does not have and an exclusion that removes the
+  // first member, and `figmaVariantCount` counts the removal by arithmetic (21 here, typed above).
+  const withEx = (ex: Record<string, string[]>[]): ComponentDef => ({ ...itemDef, figmaProperties: { ...itemDef.figmaProperties!, excludeCoordinates: ex } });
+  ok(figmaPropertyErrors(itemDef).length === 0, `#2665 excludeCoordinates on the state axis: Pagination.Item validates clean (${figmaPropertyErrors(itemDef).slice(0, 2).join('; ')})`);
+  ok(figmaPropertyErrors(withEx([{ selection: ['selected'], state: ['dragging'] }])).some((m) => /names 'dragging', which is not a value of 'state'/.test(m)),
+    '#2665 excludeCoordinates: a state value the state axis does not have is refused, naming it');
+  ok(figmaPropertyErrors(withEx([{ type: ['page'], state: ['rest'] }])).some((m) => /removes the set's first member/.test(m)),
+    '#2665 excludeCoordinates: removing rest from the default type removes the first member, and is refused');
+  ok(figmaVariantCount(withEx([])) === 480 && figmaVariantCount(withEx([{ selection: ['selected'], state: ['hover', 'pressed'] }])) === 384,
+    `#2665 figmaVariantCount: the full item grid is 4 × 2 × 2 × 2 × 3 × 5 = 480, and removing selected at hover and pressed (four types, both styles, both labeled, three sizes: 96) leaves 384 (got ${figmaVariantCount(withEx([]))}, ${figmaVariantCount(withEx([{ selection: ['selected'], state: ['hover', 'pressed'] }]))})`);
+}
+
+// ------------------------------------------------------------------- #2665: one caption per TEXT property
+// A set-level TEXT property holds ONE default, and every member's node bound to it displays that one value (#1567,
+// measured on the host). So two members that declare different captions behind one property cannot both show: the
+// plugin reports "-> COLLAPSED" at build and every member reads the property's default. Pagination.Item shipped that
+// way (its ellipsis read "1" on the host, two misses: label and its reserve; the ellipsis is an icon now, Q404 A). This arm reads every registered def's
+// projected plans (the subject) and asks the host's rule (the oracle, stated here): each TEXT property is behind one
+// caption across the set. A def whose members must say different things gives each its own part and property.
+{
+  const spreads: string[] = [];
+  let bound = 0;
+  for (const d of componentDefs) {
+    if (!d.figmaProperties) continue;
+    const byProp = new Map<string, Set<string>>();
+    for (const plan of figmaAnatomySet(d, { swapTarget: 'FPO-default-icon' })) {
+      const walk = (n: AnatomyPlan['root']): void => {
+        if (n.propertyRef?.field === 'characters') { bound++; byProp.set(n.propertyRef.prop, (byProp.get(n.propertyRef.prop) ?? new Set()).add(String(n.characters))); }
+        n.children.forEach(walk);
+      };
+      walk(plan.root);
+    }
+    for (const [prop, caps] of byProp) if (caps.size > 1) spreads.push(`${d.id}.${prop}: ${[...caps].map((c) => JSON.stringify(c)).join(' / ')}`);
+  }
+  ok(bound > 0 && spreads.length === 0,
+    `#2665 / #1567 one caption per TEXT property: no def declares two captions behind one property, which the host collapses to its one default (${bound} bound text nodes; ${spreads.join('; ') || 'none'})`);
 }
 
 // ------------------------------------------------------------------- #2661: the Button group

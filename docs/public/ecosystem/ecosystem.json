@@ -315,7 +315,19 @@
           "button-group",
           "dialog",
           "password-field",
-          "counter"
+          "counter",
+          "_breadcrumb-separator",
+          "breadcrumb-item",
+          "breadcrumbs",
+          "toast",
+          "banner",
+          "code-input-cell",
+          "code-input",
+          "progress",
+          "_slider-thumb",
+          "slider",
+          "pagination-item",
+          "pagination"
         ]
       }
     },

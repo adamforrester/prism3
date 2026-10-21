@@ -110,6 +110,13 @@ const confirm = async (w: World, id: string, choices?: Parameters<typeof applyUp
   const pre = await previewUpdate(w.host, targets(w, id));
   return { pre, res: await applyUpdate(w.host, w.api as any, targets(w, id), previewHashOf(pre), choices ? { choices } : {}) };
 };
+/** A def's reaction map, its press destination read off its plans as the plugin reads it (#2428, `pressState`). */
+const rxOf = (d: (typeof componentDefs)[number]) => {
+  const set = figmaAnatomySet(d, { swapTarget: SWAP_TARGET });
+  return reactionMap(set.map(planComponentName), set[0]?.pressState);
+};
+/** Where a def's While pressing goes: `pressed`, or the state its def names (#2428). */
+const pressOf = (d: (typeof componentDefs)[number]): string => d.figmaProperties?.pressState ?? 'pressed';
 const TAG = 'tag';
 const T = (state: string, rest = 'type=select, selection=unselected, size=medium'): string => `${rest}, state=${state}`;
 
@@ -127,21 +134,39 @@ section('map — the per-def reaction map, literal (owner decision Q238 A, part 
     'tag': [45, 18, 27], 'tab-item': [30, 12, 18], 'segmented-control-segment': [30, 12, 18], 'link': [96, 48, 72],
     // #2457: the flush icon button, 2 shapes × 3 sizes (Q287 A) × (rest → hover, rest → pressed, hover → pressed), in
     // each of its three families (Q295.2 B).
-    'flush-icon-button': [30, 12, 18], 'flush-icon-button-destructive': [30, 12, 18], 'flush-icon-button-neutral': [30, 12, 18],
+    'flush-icon-button': [60, 24, 36], 'flush-icon-button-destructive': [60, 24, 36], 'flush-icon-button-neutral': [60, 24, 36],
+    // #2428 (owner decision Q344): Code input's cell, 4 sizes × 7 states. No pressed look: While pressing goes to the
+    // active cell (focus-visible). 4 sizes × (rest → hover, rest → active, hover → active).
+    'code-input-cell': [28, 8, 12],
+    // #2669: the Slider, 2 types × (rest → hover, rest → pressed, hover → pressed); its Thumb, one row of the same.
+    'slider': [10, 4, 6], '_slider-thumb': [5, 2, 3],
+    // #2665: a page cell at three sizes, rest → hover, rest → pressed, hover → pressed (Q344). The current page (rest and
+    // focus-visible only, owner call 7, in both of Q381's styles) and the ellipsis (rest only) have no sibling to change
+    // to, so they carry none: the style adds six members and no reaction. Q414 A adds previous and next, unlabeled and
+    // labeled, at three sizes: 12 more rows with the same three reactions each (24 sources, 36 reactions); their
+    // disabled member (the inactive end) carries none.
+    'pagination-item': [87, 30, 45],
   };
   const got: Record<string, [number, number, number]> = {};
   for (const d of componentDefs) {
-    const map = reactionMap(figmaAnatomySet(d, { swapTarget: SWAP_TARGET }).map(planComponentName));
+    const map = rxOf(d);
     if (!map.size) continue;
     const lists = [...map.values()];
     got[d.id] = [map.size, lists.filter((l) => l.length).length, lists.reduce((k, l) => k + l.length, 0)];
   }
-  ok(JSON.stringify(Object.keys(got).sort()) === JSON.stringify(Object.keys(want).sort()), `map/scope: exactly the 16 defs with rest, hover and pressed (${Object.keys(got).join(', ')})`);
+  ok(JSON.stringify(Object.keys(got).sort()) === JSON.stringify(Object.keys(want).sort()), `map/scope: exactly the 19 defs with rest, hover and pressed, and the one naming its press state (${Object.keys(got).join(', ')})`);
   ok(Object.entries(want).every(([id, w]) => JSON.stringify(got[id]) === JSON.stringify(w)), `map/counts: members, sources and reactions per def (${JSON.stringify(got)})`);
   const btn = reactionMap(plansOf('button').map(planComponentName));
   const B = (state: string): string => `appearance=filled, surface=default, inset=default, size=medium, state=${state}, leading icon=false, trailing icon=false`;
   ok(JSON.stringify(btn.get(B('rest'))) === JSON.stringify([{ trigger: 'ON_HOVER', to: B('hover') }, { trigger: 'ON_PRESS', to: B('pressed') }]), `map/rest: a filled medium Button at rest changes to Hover while hovering and Pressed while pressing (${JSON.stringify(btn.get(B('rest')))})`);
   ok(JSON.stringify(btn.get(B('hover'))) === JSON.stringify([{ trigger: 'ON_PRESS', to: B('pressed') }]), `map/hover: at hover, to Pressed while pressing only (${JSON.stringify(btn.get(B('hover')))})`);
+  // Q344 on the code cell, literal: Rest → Hover while hovering and → the active cell while pressing; Hover → the active
+  // cell while pressing; nothing anywhere else.
+  const cell = rxOf(componentDefs.find((d) => d.id === 'code-input-cell')!);
+  const C = (state: string): string => `size=medium, state=${state}`;
+  ok(JSON.stringify(cell.get(C('rest'))) === JSON.stringify([{ trigger: 'ON_HOVER', to: C('hover') }, { trigger: 'ON_PRESS', to: C('focus-visible') }]), `map/code cell rest: While hovering to Hover, While pressing to the active cell (${JSON.stringify(cell.get(C('rest')))})`);
+  ok(JSON.stringify(cell.get(C('hover'))) === JSON.stringify([{ trigger: 'ON_PRESS', to: C('focus-visible') }]), `map/code cell hover: While pressing to the active cell only (${JSON.stringify(cell.get(C('hover')))})`);
+  ok(['filled', 'focus-visible', 'focus-visible-filled', 'disabled', 'error'].every((st) => JSON.stringify(cell.get(C(st))) === '[]'), 'map/code cell others: no reaction on Filled, the active states, Disabled or Error');
 }
 
 /* ── excluded ───────────────────────────────────────────────────────────────────────────────────────────── */
@@ -149,7 +174,7 @@ section('excluded — no reactions on Disabled, Pending, Read only, Focus visibl
 {
   const bad: string[] = [];
   for (const d of componentDefs) {
-    const map = reactionMap(figmaAnatomySet(d, { swapTarget: SWAP_TARGET }).map(planComponentName));
+    const map = rxOf(d);
     for (const [name, list] of map) if (list.length && !['rest', 'hover'].includes(axesOf(name).get('state')!)) bad.push(`${d.id}: ${name}`);
   }
   ok(bad.length === 0, `excluded/plan: only Rest and Hover members are planned any reaction (${bad.slice(0, 3).join('; ')})`);
@@ -166,11 +191,11 @@ section('matched — each destination is the sibling matched on every other axis
 {
   const bad: string[] = [];
   for (const d of componentDefs) {
-    const map = reactionMap(figmaAnatomySet(d, { swapTarget: SWAP_TARGET }).map(planComponentName));
+    const map = rxOf(d);
     for (const [name, list] of map) for (const r of list) {
       const s = axesOf(name), t = axesOf(r.to);
       const others = [...s.keys()].filter((a) => a !== 'state');
-      if (others.some((a) => s.get(a) !== t.get(a)) || t.get('state') !== (r.trigger === 'ON_HOVER' ? 'hover' : 'pressed')) bad.push(`${d.id}: ${name} → ${r.to}`);
+      if (others.some((a) => s.get(a) !== t.get(a)) || t.get('state') !== (r.trigger === 'ON_HOVER' ? 'hover' : pressOf(d))) bad.push(`${d.id}: ${name} → ${r.to}`);
     }
   }
   ok(bad.length === 0, `matched/plan: every planned destination differs from its source on state alone (${bad.slice(0, 2).join('; ')})`);

@@ -20,7 +20,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Foundations",
     "buildable": true,
     "reason": null,
-    "members": 45,
+    "members": 46,
     "nests": []
   },
   {
@@ -303,7 +303,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Subcomponents",
     "buildable": true,
     "reason": null,
-    "members": 30,
+    "members": 60,
     "nests": [
       "icon",
       "focus-ring"
@@ -320,7 +320,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Subcomponents",
     "buildable": true,
     "reason": null,
-    "members": 30,
+    "members": 60,
     "nests": [
       "icon",
       "focus-ring"
@@ -337,7 +337,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Subcomponents",
     "buildable": true,
     "reason": null,
-    "members": 30,
+    "members": 60,
     "nests": [
       "icon",
       "focus-ring"
@@ -1217,6 +1217,120 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     ]
   },
   {
+    "id": "_breadcrumb-separator",
+    "name": "BreadcrumbSeparator",
+    "category": "navigation",
+    "summary": "The mark between two breadcrumb steps: a chevron or a slash, in the secondary icon color.",
+    "unit": "variants",
+    "spacing": [],
+    "page": "Breadcrumb Item",
+    "section": "Subcomponents",
+    "buildable": true,
+    "reason": null,
+    "members": 2,
+    "nests": [
+      "icon"
+    ]
+  },
+  {
+    "id": "breadcrumb-item",
+    "name": "BreadcrumbItem",
+    "category": "navigation",
+    "summary": "One step in a breadcrumb trail: a link, the current page, or the collapsed steps.",
+    "unit": "variants",
+    "spacing": [
+      {
+        "key": "size.medium.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.small.gap",
+        "ref": "space.050"
+      }
+    ],
+    "page": "Breadcrumb Item",
+    "section": "Subcomponents",
+    "buildable": true,
+    "reason": null,
+    "members": 10,
+    "nests": [
+      "link",
+      "_breadcrumb-separator",
+      "flush-icon-button-neutral",
+      "icon"
+    ]
+  },
+  {
+    "id": "breadcrumbs",
+    "name": "Breadcrumbs",
+    "category": "navigation",
+    "summary": "The path to the current page as links, with the current page last and not a link.",
+    "unit": "variants",
+    "spacing": [
+      {
+        "key": "size.medium.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.small.gap",
+        "ref": "space.050"
+      },
+      {
+        "key": "back-gap",
+        "ref": "space.050"
+      }
+    ],
+    "page": "Breadcrumbs",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 6,
+    "nests": [
+      "breadcrumb-item",
+      "icon",
+      "link"
+    ]
+  },
+  {
+    "id": "toast",
+    "name": "Toast",
+    "category": "feedback",
+    "summary": "A short status message over the page after an action. Announced politely; it never takes focus.",
+    "unit": "variants",
+    "spacing": [
+      {
+        "key": "pad-y",
+        "ref": "space.100"
+      },
+      {
+        "key": "pad-x",
+        "ref": "space.200"
+      },
+      {
+        "key": "pad-end",
+        "ref": "space.100"
+      },
+      {
+        "key": "gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "glyph-gap",
+        "ref": "space.150"
+      }
+    ],
+    "page": "Toast",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 2,
+    "nests": [
+      "button",
+      "flush-icon-button-neutral",
+      "icon"
+    ]
+  },
+  {
     "id": "counter",
     "name": "Counter",
     "category": "form",
@@ -1234,6 +1348,159 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
       "icon",
       "field-message",
       "focus-ring"
+    ]
+  },
+  {
+    "id": "banner",
+    "name": "Banner",
+    "category": "feedback",
+    "summary": "A persistent message in the page flow about an important state, with optional actions.",
+    "unit": "variants",
+    "spacing": [
+      {
+        "key": "pad",
+        "ref": "space.200"
+      },
+      {
+        "key": "gap",
+        "ref": "space.150"
+      },
+      {
+        "key": "actions-gap",
+        "ref": "space.150"
+      },
+      {
+        "key": "action-gap",
+        "ref": "space.100"
+      }
+    ],
+    "page": "Banner",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 8,
+    "nests": [
+      "icon",
+      "button",
+      "flush-icon-button-neutral"
+    ]
+  },
+  {
+    "id": "code-input-cell",
+    "name": "CodeInput.Cell",
+    "category": "form",
+    "summary": "One cell of a code input: a box holding one character of the code. Used only inside a code input.",
+    "unit": "variants",
+    "spacing": [],
+    "page": "Code Cell",
+    "section": "Subcomponents",
+    "buildable": true,
+    "reason": null,
+    "members": 28,
+    "nests": [
+      "focus-ring"
+    ]
+  },
+  {
+    "id": "code-input",
+    "name": "CodeInput",
+    "category": "form",
+    "summary": "Field for a one-time code: one input, shown as a row of cells, one per character.",
+    "unit": "variants",
+    "spacing": [],
+    "page": "Code input",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 48,
+    "nests": [
+      "field-label",
+      "code-input-cell",
+      "field-message"
+    ]
+  },
+  {
+    "id": "progress",
+    "name": "Progress",
+    "category": "feedback",
+    "summary": "Shows how far a task has got, or that it is still running. Linear or circular.",
+    "unit": "variants",
+    "spacing": [],
+    "page": "Progress",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 10,
+    "nests": [
+      "field-message"
+    ]
+  },
+  {
+    "id": "_slider-thumb",
+    "name": "Slider.Thumb",
+    "category": "form",
+    "summary": "The thumb a Slider moves: a filled disc with a page-colored ring. Used only inside a Slider.",
+    "unit": "variants",
+    "spacing": [],
+    "page": "Slider",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 5,
+    "nests": [
+      "focus-ring"
+    ]
+  },
+  {
+    "id": "slider",
+    "name": "Slider",
+    "category": "form",
+    "summary": "Choose a value, or a range, by moving a thumb along a track. Works with arrow keys too.",
+    "unit": "variants",
+    "spacing": [],
+    "page": "Slider",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 10,
+    "nests": [
+      "field-label",
+      "_slider-thumb",
+      "text-field",
+      "field-message"
+    ]
+  },
+  {
+    "id": "pagination-item",
+    "name": "Pagination.Item",
+    "category": "navigation",
+    "summary": "A pagination cell: a page, the gap marker, previous or next. The current page is outlined.",
+    "unit": "variants",
+    "spacing": [],
+    "page": "Pagination",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 87,
+    "nests": [
+      "focus-ring",
+      "icon"
+    ]
+  },
+  {
+    "id": "pagination",
+    "name": "Pagination",
+    "category": "navigation",
+    "summary": "Moves between pages of a long list or set of results, and shows which page is open.",
+    "unit": "variants",
+    "spacing": [],
+    "page": "Pagination",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 12,
+    "nests": [
+      "pagination-item"
     ]
   }
 ];

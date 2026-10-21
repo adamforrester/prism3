@@ -2346,7 +2346,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   const child = componentDefs.find((d) => d.id === 'flush-icon-button-neutral');
   ok(!!child, '#2457 two-nest: the flush-icon-button-neutral def is registered');
   if (child) {
-    const nestPart = { kind: 'nest', nests: 'flush-icon-button-neutral', nesting: { kind: 'nest-exposed', variant: { shape: 'flush', state: 'rest' }, expose: ['state'], follow: ['size'] } } as const;
+    const nestPart = { kind: 'nest', nests: 'flush-icon-button-neutral', nesting: { kind: 'nest-exposed', variant: { shape: 'flush', surface: 'default', state: 'rest' }, expose: ['state'], follow: ['size'] } } as const;
     const host = {
       id: 'fixture-two-flush', name: 'FixtureTwoFlush', aliases: [], category: 'form', status: 'draft',
       summary: 'A fixture host nesting two flush icon buttons.', description: 'A fixture host nesting two flush icon buttons, each with its state exposed.',
@@ -2414,7 +2414,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   const WANT: Record<string, string[]> = { rest: ['ON_HOVER→state=hover', 'ON_PRESS→state=pressed'], hover: ['ON_PRESS→state=pressed'] };
   const INTERACTIVE = ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral',
     'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'radio-control', 'switch-control',
-    'tag', 'tab-item', 'segmented-control-segment', 'link'];
+    'tag', 'tab-item', 'segmented-control-segment', 'link', '_slider-thumb', 'slider'];
   const off: string[] = [];
   let read = 0;
   for (const id of INTERACTIVE) {
@@ -2482,7 +2482,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     const spacing: number[] = [];
     for (const m of members) {
       const c = coordOf(String(m.name));
-      const want = `shape=${SHAPE[c.appearance]}, size=${c.size}, state=${c.state === 'disabled' ? 'disabled' : 'rest'}`;
+      const want = `shape=${SHAPE[c.appearance]}, surface=default, size=${c.size}, state=${c.state === 'disabled' ? 'disabled' : 'rest'}`;
       const centers: number[] = [];
       for (const side of ['decrement', 'increment']) {
         const inst = find(m, side);

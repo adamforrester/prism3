@@ -184,8 +184,14 @@ const OUT = join(import.meta.dirname, 'out');
  * no emitted JSON states (object key order is not a promise), while MEMBERSHIP is read from the emitted
  * tree per brand in arm 1. So the gate authors the one thing the artifact cannot tell it and reads the
  * one thing it can.
+ *
+ * `2xl` is APPENDED (#2428: Code input's xlarge character is `type.title.2xl.strong`), never inserted, so every rung
+ * this file computes by index from `md` lands where it did before: the one-below and two-below offsets here, and an
+ * upward offset added beside them. PROGRESS NOTE (#2670, not on main): its ring offset is `md` plus two, which stays
+ * `xl` with `2xl` appended; when both meet, `expectedDefaultRung` and the failure message keep both branches (the
+ * pinned ladder and the ring offset name different defs), and `progress` joins `MUST_COVER` beside the Code input ids.
  */
-const RUNG_ORDER = ['xs', 'sm', 'md', 'lg', 'xl'];
+const RUNG_ORDER = ['xs', 'sm', 'md', 'lg', 'xl', '2xl'];
 
 /**
  * THE DEFAULT RULE (#756's third bullet): a size axis defaults to the rung reaching the tier's `md`.
@@ -224,6 +230,9 @@ const ICON_OFFSET_DEFS: Record<string, string> = {
   'segmented-control-segment': 'icon.size.*',
   'tab-item': 'icon.size.*',
   tag: 'icon.size.*',
+  // Pagination's chevrons and gap icon, one rung below the icon button's glyph (owner Q428 A, on #2796): 16/20/24 at
+  // small, medium and large, so the medium default is `sm`. The cell keeps its own `size.*.height` rung.
+  'pagination-item': 'icon.size.*',
 };
 
 /**
@@ -265,11 +274,41 @@ const ICON_OFFSET_TWO_DEFS: Record<string, string> = {
   link: 'icon.size.*',
 };
 
+/**
+ * THE OWNER-PINNED PIXEL LADDER (#2428, owner decision Q330 A, 2026-10-15). Code input's cell takes its sizes from the
+ * owner's table, in px, not from the tier: the medium cell's character is 20px (`title.sm`) and its caret as tall
+ * (`icon.size.sm`), and its corner is the fields' 2px (`radius.sm`). So each named family defaults one rung below `md`,
+ * by decision. Same guarantees as ICON_OFFSET_DEFS: the expectation is the RULE (`md` minus one), so a revert to `md`
+ * and a slip to any other rung both fail BY NAME, every other family on the def still defaults to `md`, and the
+ * admission is checked both directions below.
+ */
+const PINNED_LADDER_DEFS: Record<string, { families: string[]; why: string }> = {
+  'code-input-cell': {
+    families: ['type.title.*.strong', 'icon.size.*', 'radius.*'],
+    why: 'Q330 A sets the medium cell\'s character at 20px, one title step below md, with a caret as tall and the fields\' 2px corner',
+  },
+};
+
+/**
+ * THE OWNER-SANCTIONED TWO-RUNG RING OFFSET, UPWARD (#2670, the Progress proposal's sizes, approved 2026-10-16 with every
+ * call at A). The progress ring is 40px at its default `medium` (`icon.size.xl`) and 24px at `small` (`icon.size.md`):
+ * a ring standing beside its value needs more room than a glyph does, and 24px is the Spinner's own medium. So its
+ * medium default is `xl`, two rungs ABOVE `md`, in the icon family only. Same guarantees as ICON_OFFSET_TWO_DEFS: the
+ * expectation is the RULE (`md` plus two), so a revert to `md` and a slip to `lg` both fail BY NAME, and the admission
+ * is checked both directions below.
+ */
+const RING_OFFSET_UP_TWO_DEFS: Record<string, string> = {
+  progress: 'icon.size.*',
+};
+const RING_DEFAULT_RUNG = RUNG_ORDER[RUNG_ORDER.indexOf(DEFAULT_RUNG) + 2];
+
 /** The default rung EXPECTED for one (def, tier family): the sanctioned offset where listed, else `md`. */
 const expectedDefaultRung = (defId: string, family: string): string =>
   defId in HOST_DEFAULT_DEFS ? LABEL_DEFAULT_RUNG
     : ICON_OFFSET_DEFS[defId] === family ? OFFSET_DEFAULT_RUNG
+    : (PINNED_LADDER_DEFS[defId]?.families ?? []).includes(family) ? OFFSET_DEFAULT_RUNG
     : ICON_OFFSET_TWO_DEFS[defId] === family ? LABEL_DEFAULT_RUNG
+    : RING_OFFSET_UP_TWO_DEFS[defId] === family ? RING_DEFAULT_RUNG
     : DEFAULT_RUNG;
 
 /**
@@ -283,8 +322,14 @@ const NO_SIZE_AXIS: Record<string, string> = {
   'field-message': 'validation copy takes one type role; its axis is `status`, and size follows the field it belongs to',
   'veil': 'a media wash is full-bleed and has no size RUNG — its axes are `value` × `intensity`, and its only dimension binding is a NOMINAL standalone square (`container.narrow`), overwritten by the designer resizing it over the image; there is no size ladder to compare against the tier',
   'image-placeholder': 'a media frame has no size RUNG — its axis is `ratio` (an aspect PROPORTION, not a scale ladder), its one dimension binding is a NOMINAL width (`container.narrow`) the designer resizes, and its glyph size is a def-local literal (`glyphPx`, #1340), not a rung; there is no size ladder to compare against the tier (#1316)',
+  '_breadcrumb-separator': 'one 16px mark (`icon.size.xs`) at both breadcrumb sizes (#2666, owner call 6 A, kept by Q382 A), bound under a non-`size.*` key; its axis is `type`, chevron or slash, so there is no ladder to compare. The item it sits in carries the size',
+  'toast': 'one size: the brief names none and the owner approved one (#2668 call 11 A). It is built 360 wide as a literal (`placementWidth`), its type is one role (`type.body.md.default`), its glyph one rung (`icon.size.sm`), and its nested Button and IconButton.Neutral are fixed at small; there is no size ladder to compare against the tier',
+  'banner': 'a banner has no size RUNG — its axes are `tone` and `width` (contained or full), and the brief names no size; density moves its padding and gaps (`densitySpacing`), and the nested buttons carry their own small rung (#2579)',
   'button-group': 'a layout of Buttons has no size RUNG of its own — its axis is `layout`, its gaps are `space.*` steps, and each nested Button is medium and measured under its own name; a size axis for smaller actions is held for the owner (#2661)',
   'divider': 'a rule has no size RUNG — its axis is `orientation`, its thickness is one border-width role (`border-width.hairline`), and its length is a NOMINAL standalone placeholder (`container.narrow` across, `size.md.height` tall) a host stretches; there is no size ladder to compare against the tier (#2455)',
+  // #2669, owner call 3 A: one size. Density moves the rungs it binds, so there is no ladder of its own.
+  'slider': 'one size by owner decision (#2669 call 3 A) — its control height is the one `size.md.min-height` rung, its rail and fill are border-width roles, and density moves those rungs; there is no size ladder to compare against the tier',
+  '_slider-thumb': 'one disc, `control.size.md.thumb`, at the Slider\'s one size (#2669 call 3 A); density moves the rung, and there is no size ladder of its own',
 };
 
 /**
@@ -330,6 +375,9 @@ const SPACING_ONLY_LADDER: Record<string, string> = {
   // #2319: List's own size binding is its item gap, a space step per size; its type and marker scale through the
   // nested List.Item, which this gate checks on its own rungs.
   list: 'its only size-keyed binding is the item gap (`space.100` / `150` / `200`); the text and markers are sized by the nested List.Item, checked under its own name',
+  // #2666: as List — the trail's gap between items is its own size binding; the text, links and separators are sized by
+  // the nested BreadcrumbItem and Link, each checked under its own name.
+  breadcrumbs: 'its only size-keyed binding is the gap between items (`space.050` / `100`); the steps are sized by the nested BreadcrumbItem and Link, checked under their own names',
 };
 
 /**
@@ -379,12 +427,21 @@ const DEFAULT_FIRST: Record<string, string> = {
   link: Q1B,
   // #2427: owner Q283.6 B ("medium first") agrees with Q1 B; the Counter takes the same reason.
   counter: Q1B,
+  breadcrumbs: Q1B,
+  'breadcrumb-item': Q1B,
+  // #2428 (owner decisions Q330 A, Q347, Q359): Code input and its cell lead with medium, the code default.
+  'code-input': 'the Figma default is `medium`, the code default (owner decisions Q330 A, Q347, Q359)',
+  'code-input-cell': 'the Figma default is the medium cell, the code default (owner decisions Q330 A, Q347, Q359)',
+  progress: 'the Figma default is the 40px medium ring, the proposal\'s axis table approved with every call at A, and the code default `type` is determinate to match (#2791)',
+  'pagination-item': Q1B,
+  pagination: Q1B,
 };
 
 const SIZE_BY_FOLLOW_ONLY: Record<string, string> = {
   'checkbox-group': 'its inter-row gap is 0px (`space.0`, the rows self-space — #1623 sign-off), so the size axis binds nothing of its own and reaches the nested field-label and checkbox rows by `follow`',
   'radio-group': 'mirrors checkbox-group — a 0px inter-row gap (`space.0`, #1623 sign-off), so the size axis reaches the nested field-label and radio rows by `follow` only',
   'tabs': 'the tab list binds no size.* key of its own — its gap is 0px (`space.0`, each tab carries its own padding) and the baseline is a fixed 1px hairline — so the size axis reaches the six nested tabs by `follow` only (#2416)',
+  'code-input': 'the field binds no size.* key of its own — its gaps are fixed `space.100` steps — so the size axis reaches the six nested cells by `follow` only; the label keeps one size (#2428)',
   'segmented-control': 'the control binds no size.* key of its own — its label gap is a fixed `space.100`, the track a 1px hairline with no padding, and each option carries its own height and padding — so the size axis reaches the nested label and the five options by `follow` only (#2418)',
 };
 
@@ -411,7 +468,7 @@ const SIZE_BY_BUILT_WIDTH: Record<string, string> = {
  * this list whole — the forward half alone let nine size-axis defs sit unlisted, each droppable in silence.
  */
 const MUST_COVER = [
-  'icon', 'spinner',
+  'icon', 'spinner', 'progress',
   'button', 'button-destructive', 'button-neutral',
   'icon-button', 'icon-button-destructive', 'icon-button-neutral',
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral',
@@ -424,6 +481,9 @@ const MUST_COVER = [
   'list-item', 'list',
   'segmented-control-segment', 'segmented-control', 'link',
   'dialog', 'password-field',
+  'breadcrumb-item', 'breadcrumbs',
+  'code-input-cell', 'code-input',
+  'pagination-item', 'pagination',
 ];
 
 /** Every token path in a brand's canonical tree, below the root — `icon.size.md`, `size.lg.height`. */
@@ -684,7 +744,13 @@ for (const def of componentDefs) {
       const sanctioned = ICON_OFFSET_DEFS[def.id] === family;
       const hostAligned = def.id in HOST_DEFAULT_DEFS;
       const sanctionedTwo = ICON_OFFSET_TWO_DEFS[def.id] === family;
-      failures.push(sanctionedTwo
+      const pinned = (PINNED_LADDER_DEFS[def.id]?.families ?? []).includes(family);
+      const ringUp = RING_OFFSET_UP_TWO_DEFS[def.id] === family;
+      failures.push(pinned
+        ? `${def.id}: size defaults to '${dflt}', whose OWNER-PINNED family '${family}' reaches tier rung(s) ${wrong.map((r) => `'${r}'`).join(', ')} — ${PINNED_LADDER_DEFS[def.id].why}, so it resolves to '${want}'. A revert to '${DEFAULT_RUNG}' or any other rung breaks the pinned ladder.`
+        : ringUp
+        ? `${def.id}: size defaults to '${dflt}', whose OWNER-SANCTIONED ring family '${family}' reaches tier rung(s) ${wrong.map((r) => `'${r}'`).join(', ')} — the approved proposal (#2670) sets the ring at '${want}', exactly two rungs above '${DEFAULT_RUNG}' (40px). A revert to '${DEFAULT_RUNG}' or any other rung breaks it.`
+        : sanctionedTwo
         ? `${def.id}: size defaults to '${dflt}', whose OWNER-SANCTIONED icon family '${family}' reaches tier rung(s) ${wrong.map((r) => `'${r}'`).join(', ')} — Q297.2 sets the icon at '${want}', exactly two rungs below '${DEFAULT_RUNG}' (16px with 16px text). A revert to '${DEFAULT_RUNG}' or any other rung breaks it.`
         : hostAligned
         ? `${def.id}: size defaults to '${dflt}', whose family '${family}' reaches tier rung(s) ${wrong.map((r) => `'${r}'`).join(', ')} — the #1699/#2266 default is '${want}', two rungs below '${DEFAULT_RUNG}' (${HOST_DEFAULT_DEFS[def.id]}). A revert to the old 14/16/18 ladder lands on '${OFFSET_DEFAULT_RUNG}' and breaks the one-step pairing with every field's input.`
@@ -721,6 +787,17 @@ for (const id of Object.keys(LADDER_STATED_ONCE))
   if (!componentDefs.some((d) => d.id === id))
     failures.push(`STALE ADMISSION: LADDER_STATED_ONCE names '${id}', which is not a def any more. Remove it — same reason as above.`);
 
+// The Q330 pinned ladder, checked BOTH directions as the offsets below are: a listed def must exist and reach every
+// named family at its default.
+for (const [id, { families }] of Object.entries(PINNED_LADDER_DEFS)) {
+  const def = componentDefs.find((d) => d.id === id);
+  if (!def) { failures.push(`STALE ADMISSION: PINNED_LADDER_DEFS names '${id}', which is not a def any more. Remove it.`); continue; }
+  const seen = defaultFamiliesByDef.get(id);
+  for (const family of families)
+    if (!seen || !seen.has(family))
+      failures.push(`STALE ADMISSION: PINNED_LADDER_DEFS pins '${id}' family '${family}' at its default, but that family is not bound at the default size '${enumOf(def).default}'. Remove the family or restore the binding.`);
+}
+
 // The #1350 offset admission, checked BOTH directions so it cannot go stale (docs/34): a listed def
 // must exist AND must actually reach the named family at its default, or the sanction has nothing to
 // apply to and would silently license an untested branch.
@@ -745,6 +822,18 @@ for (const [id, family] of Object.entries(ICON_OFFSET_TWO_DEFS)) {
   const seen = defaultFamiliesByDef.get(id);
   if (!seen || !seen.has(family))
     failures.push(`STALE ADMISSION: ICON_OFFSET_TWO_DEFS sanctions '${id}' offsetting family '${family}' at its default, but that family is not bound at the default size '${enumOf(def).default}'. Remove the admission or restore the binding.`);
+}
+
+// The #2670 ring admission, both directions (docs/34).
+for (const [id, family] of Object.entries(RING_OFFSET_UP_TWO_DEFS)) {
+  const def = componentDefs.find((d) => d.id === id);
+  if (!def) {
+    failures.push(`STALE ADMISSION: RING_OFFSET_UP_TWO_DEFS names '${id}', which is not a def any more. Remove it.`);
+    continue;
+  }
+  const seen = defaultFamiliesByDef.get(id);
+  if (!seen || !seen.has(family))
+    failures.push(`STALE ADMISSION: RING_OFFSET_UP_TWO_DEFS sanctions '${id}' offsetting family '${family}' at its default, but that family is not bound at the default size '${enumOf(def).default}'. Remove the admission or restore the binding.`);
 }
 
 // The #1699 host-aligned admission, both directions (docs/34): a listed def must exist and must bind at

@@ -279,6 +279,9 @@ const CENSUS_PATH = join(repo, 'packages/engine/schema/paint-census.json');
  * asserting something untrue about the def it names.
  */
 const PROVENANCE_EXCEPTIONS: Record<string, string> = {
+  // Toast (#2668, call 9 A): the inverse tier puts `inverse` before the family, so the intent sits one segment later.
+  'toast|success.icon':
+    'the inverse tier inserts `inverse` before the family: `color.inverse.icon.success` is the success glyph ink on the inverse surface, and `success` is its fourth segment, not its third',
   // List.Item (#2319): the key is the `icon` PAINT SLOT (the icon marker's ink), whose spelling matches the `type` value
   // `icon`. It is the slot that leads, not the axis value: the key binds at every type, and only the icon member draws
   // the slot it paints.
@@ -288,6 +291,20 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
   // `fill` (Q492 B). It is the slot that leads, not the axis value: the key binds at every footer.
   'dialog|fill':
     "the key is the panel's `fill` paint slot, not the `footer` value `fill`; the two share a spelling. It binds the surface role, `color.foreground.primary`, at every footer",
+  // Progress (#2670): its end-state axis is `status`, active / complete / error. `complete` is the success role and
+  // `error` the danger role, the mapping FieldMessage records for its own `error`, one vocabulary over.
+  'progress|complete.icon':
+    "status `complete` maps to the `success` ink role — the work finished, and success is the token tier's name for that color",
+  'progress|active.icon':
+    "status `active` maps to the `brand` ink role — running work is shown in the brand color, from the icon tier because Progress is not interactive",
+  'progress|active.indicator':
+    'same mapping as `active.icon`, for the linear fill',
+  'progress|complete.indicator':
+    'same mapping as `complete.icon`, for the linear fill',
+  'progress|error.indicator':
+    'same mapping as `error.icon`, for the linear fill',
+  'progress|error.icon':
+    "status `error` maps to the `danger` ink role, the mapping `field-message|error.icon` records — the axis names the outcome, `danger` is the token tier's name for its color",
   'field-message|default.label':
     "status `default` maps to the MUTED body role, not to a role named 'default' — the token tier has no `text.default`, and `secondary` is what a non-status message's ink is",
   'field-message|default.icon':
@@ -471,6 +488,14 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
     'tone `warning` paints its subtle tint `foreground.warning-subtle`, the surface `text.warning` is contracted against',
   'badge|danger.status.subtle.fill':
     'tone `danger` paints its subtle tint `foreground.danger-subtle`, the surface `text.danger` is contracted against',
+  'banner|info.fill':
+    'tone `info` paints its subtle tint `foreground.info-subtle`, the banner surface the token tier names (#2579, Q327.2 A: subtle only)',
+  'banner|success.fill':
+    'tone `success` paints its subtle tint `foreground.success-subtle`, the banner surface the token tier names (#2579, Q327.2 A: subtle only)',
+  'banner|warning.fill':
+    'tone `warning` paints its subtle tint `foreground.warning-subtle`, the banner surface the token tier names (#2579, Q327.2 A: subtle only)',
+  'banner|danger.fill':
+    'tone `danger` paints its subtle tint `foreground.danger-subtle`, the banner surface the token tier names (#2579, Q327.2 A: subtle only)',
   'badge|info.status.bold.label':
     'tone `info` inks its bold status label with `text.on-info`, the ink contracted on the bold `foreground.info` fill',
   'badge|success.status.bold.label':
@@ -602,8 +627,10 @@ const setCensus = (def: ComponentDef): Tally | null => {
  * grid is the independent side of the census (see the header), so it reads the declaration itself. If the
  * projector's predicate drifted, the grid and the set would disagree here instead of drifting together.
  */
-const excludedFromSet = (def: ComponentDef, size: string | undefined, c: Record<string, string>): boolean => {
-  const at: Record<string, string | undefined> = { ...c, size };
+const excludedFromSet = (def: ComponentDef, size: string | undefined, c: Record<string, string>, state?: string): boolean => {
+  // The state is part of the coordinate (#2665): an entry may name it. Unsupplied (the rest pass here), no entry
+  // naming it matches, as the projector reads an unsupplied axis.
+  const at: Record<string, string | undefined> = { ...c, size, ...(state ? { state } : {}) };
   return (def.figmaProperties?.excludeCoordinates ?? []).some((entry) => Object.keys(entry).every((a) => entry[a].includes(at[a] as string)));
 };
 
@@ -629,7 +656,7 @@ const gridCensus = (def: ComponentDef): Tally => {
   const rows: string[] = [];
   let members = 0;
   for (const size of sizes) for (const c of combos) for (const st of states) {
-    if (excludedFromSet(def, size, c)) continue;
+    if (excludedFromSet(def, size, c, st)) continue;
     const plan = figmaAnatomyPlan(def, size, { ...c, ...(st ? { state: st } : {}), leading: true, trailing: true, swapTarget: 'FPO-default-icon' } as never);
     members++;
     const coord = `${size === undefined ? '' : `size=${size}`}${Object.entries(c).map(([k, v]) => `,${k}=${v}`).join('')},state=${st ?? 'rest'}`;
@@ -784,7 +811,7 @@ const gradientStopFailures = (): { failures: string[]; stops: number; defs: stri
     for (const [a, vs] of axes) combos = combos.flatMap((c) => vs.map((v) => ({ ...c, [a]: v })));
     const states: (string | undefined)[] = [undefined, ...(def.states ?? []).filter((s) => s !== 'rest')];
     for (const size of sizes) for (const c of combos) for (const st of states) {
-      if (excludedFromSet(def, size, c)) continue;
+      if (excludedFromSet(def, size, c, st)) continue;
       const plan = figmaAnatomyPlan(def, size, { ...c, ...(st ? { state: st } : {}), leading: true, trailing: true, swapTarget: 'FPO-default-icon' } as never);
       const walk = (n: FigmaNodePlan): void => {
         for (const stop of n.gradientFill?.stops ?? []) {
@@ -854,6 +881,10 @@ const UNREACHED_EXPLAINED: Record<string, string> = {
     'the seventh ring nomination, the same shape as `tag|focus-ring`: it names the colour the nested `focus-ring` draws around the tab at focus-visible, and no node of this def can carry a ring stroke (#740). A nomination, not a paint.',
   'segmented-control-segment|focus-ring':
     'the eighth ring nomination, the same shape as `tab-item|focus-ring`: it names the colour the nested `focus-ring` draws around a segmented control option\'s indicator at focus-visible, and no node of this def can carry a ring stroke (#740). A nomination, not a paint.',
+  '_slider-thumb|focus-ring':
+    'the ninth ring nomination, the same shape as `segmented-control-segment|focus-ring`: it names the colour the nested `focus-ring` draws around a slider thumb at focus-visible, and no node of this def can carry a ring stroke (#740). A nomination, not a paint.',
+  'pagination-item|focus-ring':
+    'the ninth ring nomination, the same shape as `segmented-control-segment|focus-ring`: it names the colour the nested `focus-ring` draws around a page cell at focus-visible, and no node of this def can carry a ring stroke (#740). A nomination, not a paint (#2665).',
   'field-message|default.icon':
     'CATEGORY (b), and the first entry here that is not a ring nomination — see the header for why the two are kept apart. This key paints the status glyph on the DEFAULT status, and that status deliberately projects no glyph: the Prism2 reference row its grey ink matches is `standard` (no icon), so the three validation statuses carry gated `vector` parts and the default member is caption-only (#1010). Unreachable for a reason the five above do not share: nothing is missing from the projector. Every node the default member has IS asked for its paint, and the node this colour is for does not exist there — `props.icon` may supply one in code, per instance, which is a distinction Figma has no member for (see the def\'s `anatomy.codeOnly`). So there is no engine field to add and no issue to close, and the fix if this entry ever goes red is to DELETE it, not to widen anything: it goes red exactly when the default status gains a glyph, which is a def decision. The three validation-status glyph inks are reached normally and are not listed.',
   'divider|separator.fill':
@@ -899,7 +930,7 @@ const reachability = (): { covered: { id: string; reached: number; total: number
       for (const c of n.children) walk(c);
     };
     for (const size of sizes) for (const c of combos) for (const st of states)
-      if (!excludedFromSet(def, size, c)) for (const leading of [false, true]) for (const trailing of [false, true])
+      if (!excludedFromSet(def, size, c, st)) for (const leading of [false, true]) for (const trailing of [false, true])
         walk(figmaAnatomyPlan(probed, size, { ...c, ...(st ? { state: st } : {}), leading, trailing, swapTarget: 'FPO-default-icon' } as never).root);
 
     // A sentinel that came back but maps to no key would mean the substitution missed something — a
@@ -993,7 +1024,7 @@ const redundantEdges = (): { fails: string[]; notes: string[]; checked: number; 
     for (const [a, vs] of axes) combos = combos.flatMap((c) => vs.map((v) => ({ ...c, [a]: v })));
     const states: (string | undefined)[] = [undefined, ...(def.states ?? [])];
     for (const size of sizes) for (const c of combos) for (const st of states)
-      if (!excludedFromSet(def, size, c)) for (const leading of [false, true]) for (const trailing of [false, true])
+      if (!excludedFromSet(def, size, c, st)) for (const leading of [false, true]) for (const trailing of [false, true])
         walk(figmaAnatomyPlan(def, size, { ...c, ...(st ? { state: st } : {}), leading, trailing, swapTarget: 'FPO-default-icon' } as never).root, '', false);
   }
 
@@ -1077,7 +1108,7 @@ const strokeScopes = (): { fails: string[]; checked: number; sources: number } =
     for (const [a, vs] of axes) combos = combos.flatMap((c) => vs.map((v) => ({ ...c, [a]: v })));
     const states: (string | undefined)[] = [undefined, ...(def.states ?? [])];
     for (const size of sizes) for (const c of combos) for (const st of states)
-      if (!excludedFromSet(def, size, c)) for (const leading of [false, true]) for (const trailing of [false, true])
+      if (!excludedFromSet(def, size, c, st)) for (const leading of [false, true]) for (const trailing of [false, true])
         walk(figmaAnatomyPlan(def, size, { ...c, ...(st ? { state: st } : {}), leading, trailing, swapTarget: 'FPO-default-icon' } as never).root, '');
   }
 

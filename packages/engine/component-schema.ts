@@ -395,6 +395,18 @@ export type PartDef = {
    *  PARENT's `layout.align`, and no value of this field reaches it — see `checkbox.ts`'s `row`. The two
    *  were filed as one observation and are two properties on two different nodes. */
   verticalAlign?: 'top' | 'center' | 'bottom';
+  /** For `text` parts: VERTICAL TRIM (#2428, owner QA 2026-10-16, option A on #2789) — the text box is trimmed to
+   *  the cap height above and the baseline below, so the box IS the figure and a parent that centers it centers
+   *  the glyph whatever the font's ascender and descender. Without it a centered LINE box puts a figure off
+   *  center by ((descender − (ascender − cap height)) ÷ 2) × font size, which no line height changes. Figma's
+   *  `leadingTrim: CAP_HEIGHT`; code's `text-box: trim-both cap alphabetic`.
+   *
+   *  IT DETACHES THE TEXT STYLE ON THE HOST. Figma keeps vertical trim inside a text style, and writing it on a
+   *  styled layer drops `textStyleId` (#1567, host-measured), keeping the style's variable binds on the node. So
+   *  a trimmed part is applied its style first (the values and binds) and is NOT re-applied after the #865
+   *  defaults, or the style would write its own `NONE` back. A single-line part only: trim also removes the
+   *  space a second line would need. */
+  verticalTrim?: 'cap-height';
   /** For a `text` part: FILL the parent row's main axis and WRAP to multiple lines, rather than hug the
    *  glyphs and OVERFLOW (#1424). A long option/consent label is the case: today it grows the row
    *  horizontally off the edge; Prism 2 wraps it to a second line with the control top-anchored
@@ -1183,6 +1195,21 @@ export type PartDef = {
    *  Refused off a non-root `vector`, without `glyphPx`, beside `corner`, and under a parent that is not an
    *  auto-layout `box` carrying `aspectRatio`. */
   scaleWithParent?: boolean;
+  /** For a non-root `vector`: take the glyph OUT of the auto-layout flow and CENTER it over its parent, so it draws on
+   *  top of the parent's in-flow child (#2670). Progress's ring is the case: the pale track is a filled annulus glyph in
+   *  the flow, and the value arc sits over it on the same square. Two glyphs in the flow would sit side by side, and
+   *  the track cannot be the parent's stroke, because a stroke binds a border role (Q346) and no border role clears 3:1
+   *  against the fill (measured, best 1.01:1). The arc cannot be a layer of the track's glyph, because a glyph takes
+   *  one ink and the two are different roles.
+   *
+   *  PROJECTED as `absoluteCenter`, the lift and the centering the overlay already uses, node-type independent in both
+   *  executors, with its `CENTER`/`CENTER` constraints. The glyph keeps its bound `size`, so it is the parent's size
+   *  only when the two bind the same key, which the schema requires.
+   *
+   *  Refused off a non-root `vector`, when not `true`, beside `corner` or `scaleWithParent` (two placements for one
+   *  node), under a parent that is not an auto-layout `box` binding `size`, when the glyph binds a different size from
+   *  its parent, and under a parent with no in-flow child to draw over. */
+  stackCentered?: true;
   note?: string;
 };
 
@@ -1325,6 +1352,15 @@ export type FigmaProperties = {
    *  available rather than whichever axis sorts last. Validated against the def's own axis names, so
    *  a `gridAxis` naming an axis this def does not project is an error rather than a silent fallback. */
   gridAxis?: string;
+  /** WHERE "While pressing" GOES on a set that has no `pressed` look (#2428, owner decision Q344). The prototype
+   *  reactions (`apps/plugin/src/reactions.ts`, #2466) are planned for a set whose state axis holds rest, hover and
+   *  pressed. Code input's cell holds rest and hover but no pressed: pressing a cell focuses the code input, so its
+   *  press changes the cell to the active one. This names that state; Rest and Hover then carry While pressing to it,
+   *  and Rest carries While hovering to Hover, as on every interactive set. Absent, the destination is `pressed`.
+   *
+   *  Carried onto the plan only where declared, so every other plan (and its `planStamp`) is byte-identical. Refused
+   *  when the state axis lacks rest or hover, holds `pressed` (the plan's own destination), or does not hold it. */
+  pressState?: string;
   /** COORDINATES THE SET DOES NOT HAVE — a sparse variant grid (owner decision, 2026-09-28, first used by
    *  `badge`). Every other field here multiplies: the set is the full cross product of its axes. This is
    *  the one field that subtracts, for a def where one axis value has no meaning at some value of another —
@@ -1468,8 +1504,14 @@ export type FigmaProperties = {
    *
    *  `also` (owner decisions Q225 A and Q226 A, 2026-10-10): further TEXT parts the same property drives, so one
    *  property writes the same characters to each. Tabs' selected-weight reserve is the case: an invisible copy of the
-   *  label in the selected weight that holds every tab at its bold width, which only works if it spells the label. */
-  texts?: Record<string, { part: string; default: string; figmaName?: string; byVariant?: Record<string, Record<string, string>>; also?: string[] }>;
+   *  label in the selected weight that holds every tab at its bold width, which only works if it spells the label.
+   *
+   *  `figmaOnly` (#2670): a TEXT property with no code prop, as a Figma-only boolean is (#2344, Q156 A). The case is a
+   *  per-member caption. A set-level TEXT property holds ONE default that every bound member shows (#1567), so a set
+   *  whose members must SAY different things (Progress reads "50%" while running and "100%" at complete) needs a
+   *  second text part and a second property, and code has no second prop for it: the one `valueText` prop renders
+   *  both. So a `figmaOnly` entry names no prop, is refused if its key IS one, and must state its `figmaName`. */
+  texts?: Record<string, { part: string; default: string; figmaName?: string; byVariant?: Record<string, Record<string, string>>; also?: string[]; figmaOnly?: boolean }>;
   /** prop name → `kind: 'slot'` part. INSTANCE_SWAP property — the slot's CONTENT.
    *
    *  The bare-string form is `prop → part`, the byte-identical original. The object form
@@ -1709,6 +1751,15 @@ export type ComponentDef = {
    *  `weight` is `emphasis | default` (owner Q297.3) and binds the body tier (Q297.1), so `emphasis` reads as
    *  `bold` and `default` as `regular`. Without it, the axis values must themselves be intents. */
   weightIntent?: { axis: VariantAxis; group: TypeGroup; intents?: Record<string, WeightIntent> };
+
+  /** A FIXED WEIGHT INTENT (#2428) — every `type.<group>.*` ref in `tokens` names a weight by INTENT, with no axis to
+   *  carry it. Code input's cell binds the title steps for its 20, 24 and 40px characters (owner decision Q330 A), and
+   *  the title weights a brand ships differ (the default `strong`; prism3 `emphasis` and `strong`; a light serif brand
+   *  `subtle` only), so a hard role misses on some brand (#1601). `applyWeightIntent` repoints each such ref's role to
+   *  the brand's resolution of `intent` (`resolveWeightIntent`), the rule `weightIntent` uses. The authored role is the
+   *  DEFAULT-brand resolution, so a themeless projection is unchanged. Validated: `group` names at least one bound ref,
+   *  and it is not the `weightIntent` group as well (one category resolved two ways). */
+  typeWeight?: { group: TypeGroup; intent: WeightIntent };
 
   /** THE SPACING THAT FOLLOWS DENSITY (the spacing model, 2026-09-29: "size is for size, space is for
    *  space"). The `tokens` keys whose `space.*` step is this def's COMFORTABLE padding or gap. Before
@@ -2058,6 +2109,15 @@ export const validateComponentDef = (
   // checks are RELATIONAL — the axis must be declared, its values must be known intents, and every type
   // token keyed under it must sit in the declared category — so a def that hard-binds a role NB never
   // emits (the #1601 shape) is caught here rather than resolving to nothing at paste time.
+  if (def.typeWeight) {
+    const { group, intent } = def.typeWeight;
+    if (!(WEIGHT_INTENTS as readonly string[]).includes(intent))
+      errors.push(`typeWeight.intent '${intent}' is not a weight intent [${WEIGHT_INTENTS.join(', ')}]`);
+    if (!Object.values(def.tokens ?? {}).some((ref) => typeof ref === 'string' && ref.startsWith(`type.${group}.`)))
+      errors.push(`typeWeight.group '${group}': no \`type.${group}.*\` token is bound — the intent resolves nothing`);
+    if (def.weightIntent?.group === group)
+      errors.push(`typeWeight.group '${group}' is also the weightIntent group — one category's weight resolved two ways`);
+  }
   if (def.weightIntent) {
     const { axis, group } = def.weightIntent;
     const axisValues = variantsOf(def)[axis];
@@ -2215,9 +2275,13 @@ export const gridColumnAxis = (
 export const figmaVariantCount = (def: ComponentDef): number => {
   const fp = def.figmaProperties;
   if (!fp) return 0;
-  const axes = fp.variantAxes ?? [];
-  const declared = (a: string): string[] => (variantsOf(def)[a] ?? []).map(String);
-  const variants = axes.reduce((n, a) => n * ((variantsOf(def)[a]?.length) ?? 1), 1);
+  // THE STATE AXIS IS ONE MORE DIMENSION OF THE GRID (#2665): an entry may name it (Pagination.Item's current page has
+  // no hover or press), so the box product runs over it too. With no entry naming it, its factor multiplies out of
+  // every term and the count is the old (variants - excluded) × states.
+  const stateName = fp.stateAxis?.name;
+  const axes = [...(fp.variantAxes ?? []), ...(stateName ? [stateName] : [])];
+  const declared = (a: string): string[] => (a === stateName ? fp.stateAxis!.values : (variantsOf(def)[a] ?? []).map(String));
+  const variants = axes.reduce((n, a) => n * (a === stateName ? fp.stateAxis!.values.length : ((variantsOf(def)[a]?.length) ?? 1)), 1);
   const entries = fp.excludeCoordinates ?? [];
   // The size of the box where every entry in `subset` holds at once.
   const boxSize = (subset: Record<string, string[]>[]): number =>
@@ -2231,7 +2295,7 @@ export const figmaVariantCount = (def: ComponentDef): number => {
     const subset = entries.filter((_, i) => mask & (1 << i));
     excluded += (subset.length % 2 ? 1 : -1) * boxSize(subset);
   }
-  return (variants - excluded) * (fp.stateAxis?.values.length ?? 1) * 2 ** ((fp.slotAxes ?? []).length);
+  return (variants - excluded) * 2 ** ((fp.slotAxes ?? []).length);
 };
 
 /** Is this variant coordinate one the def's `excludeCoordinates` removes? The PROJECTOR's predicate —
@@ -2279,7 +2343,10 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
   });
 
   // ---- variant axes ----
-  if (!Array.isArray(fp.variantAxes) || fp.variantAxes.length === 0) {
+  // A def with NO variants and a state axis projects a set over its states alone (#2669, Slider.Thumb: one disc whose
+  // only difference is its state). Any def that declares a variant still needs a non-empty list.
+  const stateOnly = Object.keys(def.variants ?? {}).length === 0 && !!fp.stateAxis?.values?.length;
+  if (!Array.isArray(fp.variantAxes) || (fp.variantAxes.length === 0 && !stateOnly)) {
     e.push('figmaProperties.variantAxes must be a non-empty array');
   } else {
     const seen = new Set<string>();
@@ -2339,6 +2406,15 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
   // value of the field: a typo'd or renamed axis would otherwise leave the grid looking chosen while
   // it was inherited again — exactly the #656 failure, restored by a rename nobody ran a gate over.
   // Placed after the three axis blocks because it needs the complete name list they build.
+  if (fp.pressState !== undefined) {
+    const sv: string[] = fp.stateAxis?.values ?? [];
+    if (!sv.includes('rest') || !sv.includes('hover'))
+      e.push(`figmaProperties.pressState: '${fp.pressState}' needs a state axis holding rest and hover — they are the reactions' sources`);
+    if (sv.includes('pressed'))
+      e.push(`figmaProperties.pressState: the state axis holds 'pressed', which is already where While pressing goes`);
+    if (!sv.includes(fp.pressState))
+      e.push(`figmaProperties.pressState: '${fp.pressState}' is not a value of the state axis [${sv.join(', ')}] — no member sits at it`);
+  }
   if (fp.gridAxis !== undefined) {
     const names = figmaAxisNames(def);
     if (!names.includes(fp.gridAxis))
@@ -2376,14 +2452,16 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
   // member that does not exist. The grid is enumerated here from the declaration, with its own matcher,
   // rather than through `isExcludedCoordinate`.
   if (fp.excludeCoordinates !== undefined) {
-    const axes = fp.variantAxes ?? [];
-    const values = (a: string): string[] => (variantsOf(def)[a] ?? []).map(String);
+    // The state axis is a dimension an entry may name (#2665), with its values from `stateAxis`.
+    const stateName = fp.stateAxis?.name;
+    const axes = [...(fp.variantAxes ?? []), ...(stateName ? [stateName] : [])];
+    const values = (a: string): string[] => (a === stateName ? [...fp.stateAxis!.values] : (variantsOf(def)[a] ?? []).map(String));
     let wellFormed = true;
     fp.excludeCoordinates.forEach((entry, i) => {
       const at = `figmaProperties.excludeCoordinates[${i}]`;
       if (!Object.keys(entry).length) { e.push(`${at} names no axis — an empty coordinate matches every member, so it would exclude the whole set`); wellFormed = false; }
       for (const [axis, vs] of Object.entries(entry)) {
-        if (!axes.includes(axis)) { e.push(`${at} names axis '${axis}', which is not a projected variant axis [${axes.join(', ')}] — an exclusion can only remove a coordinate the set enumerates (the state and slot axes have their own presence mechanisms)`); wellFormed = false; continue; }
+        if (!axes.includes(axis)) { e.push(`${at} names axis '${axis}', which is not a projected variant axis or the state axis [${axes.join(', ')}] — an exclusion can only remove a coordinate the set enumerates (the slot axes have their own presence mechanism)`); wellFormed = false; continue; }
         if (!Array.isArray(vs) || !vs.length) { e.push(`${at}.${axis} lists no values — an entry that matches nothing reads as a decision and removes no member`); wellFormed = false; continue; }
         for (const v of vs) if (!values(axis).includes(v)) { e.push(`${at}.${axis} names '${v}', which is not a value of '${axis}' [${values(axis).join(', ')}] — it matches no member, so the exclusion would remove nothing`); wellFormed = false; }
       }
@@ -2439,10 +2517,17 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
       claimed.set(part, byField);
     }
   };
-  checkMap('texts', Object.fromEntries(Object.entries(fp.texts ?? {}).map(([p, t]) => [p, t.part])), 'characters', 'text');
+  // One call per property, so a Figma-only text (#2670) can skip the prop check as a Figma-only boolean does.
+  for (const [prop, t] of Object.entries(fp.texts ?? {})) {
+    checkMap('texts', { [prop]: t.part }, 'characters', 'text', false, t.figmaOnly === true);
+    if (t.figmaOnly && propNames.has(prop))
+      e.push(`figmaProperties.texts.${prop} is figmaOnly but '${prop}' is also a declared prop — a Figma-only text has no code prop; drop 'figmaOnly' to drive the prop, or rename the key`);
+    if (t.figmaOnly && !t.figmaName)
+      e.push(`figmaProperties.texts.${prop} is figmaOnly but has no figmaName — with no prop there is no code name for the Figma panel to show, so the label must be stated`);
+  }
   // Each `also` part is claimed on the same field, so it is a text part no other property names (Q226 A).
   for (const [prop, t] of Object.entries(fp.texts ?? {}))
-    t.also?.forEach((part, i) => checkMap(`texts.${prop}.also[${i}]`, { [prop]: part }, 'characters', 'text'));
+    t.also?.forEach((part, i) => checkMap(`texts.${prop}.also[${i}]`, { [prop]: part }, 'characters', 'text', false, t.figmaOnly === true));
   // `swaps` may carry the #1380 object form `{ part, figmaName }`; normalized to `prop → part` here so
   // the relational checks (prop is a declared prop, part exists and is a slot, one property per field) are
   // identical for the string and object forms — the display name is a Figma label, checked below.
@@ -3393,13 +3478,59 @@ export type State = (typeof STATES)[number];
  * `footer` would tell a Banner its actions are a footer. An AUTHORING axis: a product picks the layout where it
  * places the group. Read by the slot's `directionWhen` (`PartDef.directionWhen`), so the one `items` slot runs as a
  * row or a column per member. `lint-axis-values.ts` carries the three values as a `sole` set.
+ *
+ * ── `kind`: THE TWENTY-NINTH NAME, FOR THE BREADCRUMB ITEM (owner decision on #2666, 2026-10-16, call 1 A) ──
+ *
+ * `kind` (`ancestor | current | overflow`) is WHICH ROLE a step plays in its parent's sequence: a link to a page above,
+ * the page itself, or the stand-in for collapsed steps. The approved proposal named the axis and its values. It clears
+ * this list's bar as a distinct kind of distinction with the nearest defeated: `type` is a content format that keeps
+ * the element (a badge's count or dot, a list's markers); `selection` is a value the user picks; `state` is a
+ * transient interaction. None says "this step renders a different element (a link, text, a button) because of where
+ * it sits in the trail", and naming it `type` would put a marker style and an element's role under one name, the
+ * #756 failure. An AUTHORING axis: Breadcrumbs sets it from the item's place. `lint-axis-values.ts` carries the three
+ * values as a `sole` set.
+ *
+ * ── `path`: THE THIRTIETH NAME, FOR BREADCRUMBS (owner decision on #2666, 2026-10-16, calls 1 A and 11 A; renamed from `layout`, Q424 A) ──
+ *
+ * `path` (`full | parent`) is HOW MUCH OF THE ROUTE a navigation shows: every step down to the current page, or one link
+ * up to the parent for a small screen. The approved proposal named the axis `layout`; the Button group took that name
+ * first (#2661) for how a row of buttons shares its space, and one name for two different questions is the #756
+ * failure, so the owner renamed this one (Q424 A). It clears the bar with the nearest defeated: `footer` lays out one
+ * part's actions; `orientation` is which way a rule runs; `width` is a control's extent; `placement` is where a layer
+ * attaches. None says "how much of the route is drawn", and naming it `width` would claim the parent link is a narrower
+ * trail when it is a different element. An AUTHORING axis: a product picks it per breakpoint in code.
+ * `lint-axis-values.ts` carries the two values as a `sole` set.
+ *
+ * ── `separator`: THE THIRTY-FIRST NAME, FOR BREADCRUMBS (owner decision Q382 A, 2026-10-16) ──
+ *
+ * `separator` (`chevron | slash`) is WHICH MARK stands between the steps of a trail. The owner named it: one setting on
+ * Breadcrumbs that applies to every step. Breadcrumbs passes it to each item (`follow` passes an axis by its own name),
+ * and the item picks the matching look of `_breadcrumb-separator`, whose own axis is `type`, as Q382 names it. It
+ * clears the bar with the nearest defeated: `indicator` is a glyph that shows a state (open or closed); `style` is a
+ * line treatment of the control itself; `type` is a content format. None says "the mark drawn between items", and
+ * naming it `style` would put a link's placement and a trail's divider under one name, the #756 failure. An AUTHORING
+ * axis. `lint-axis-values.ts` carries the two values, shared by Breadcrumbs, its item and the separator.
+ */
+/*
+ * ── `labeled`: THE TWENTY-EIGHTH NAME, FOR PAGINATION'S PREVIOUS AND NEXT (owner decision Q414 A, 2026-10-18, #2665) ──
+ *
+ * `labeled` (`false | true`) is WHETHER a control shows its word beside its icon: Pagination.Item's previous and next
+ * cells are a chevron alone in the numbered and compact rows, and a chevron with "Previous" or "Next" in the simple
+ * row. The owner decided the shape (the same cell, with a label plus chevron, in simple); the axis name and its values
+ * are held as an owner item on #2796. It clears the bar with the nearest defeated: `type` is which cell it is (page,
+ * ellipsis, previous, next), and a labeled previous is still a previous; `width` is how much of its container a
+ * control takes, while a labeled cell hugs its word; `iconPosition` is which side a part sits on, not whether a word is
+ * there; `footer` names a part's layout. None says "the word is shown or not". A Figma BOOLEAN would say it, but a nest
+ * sets only variant values on the instance it places, so the simple row could not turn the word on; a variant axis
+ * is what the row's `nesting.variant` can set. `false | true` so Figma draws it as a switch. An AUTHORING axis: the
+ * row type decides it and nothing switches it on screen. `lint-axis-values.ts` carries the two values as a `sole` set.
  */
 export const VARIANT_AXES = [
   'size', 'intent', 'appearance', 'tone',
   'width', 'style', 'indicator', 'offset', 'selection',
   'name', 'surface', 'weight', 'value', 'intensity', 'ratio',
   'status', 'emphasis', 'shape', 'type', 'direction', 'inset', 'orientation', 'alignment', 'expansion', 'iconPosition',
-  'placement', 'footer', 'layout',
+  'placement', 'footer', 'layout', 'kind', 'path', 'separator', 'labeled',
 ] as const;
 
 /** One member of the closed axis-NAME vocabulary. Values are not constrained — see `VARIANT_AXES`. */
@@ -4861,15 +4992,21 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'verticalAlign' — only a 'text' part positions glyphs inside its own box. Figma's 'textAlignVertical' is a TextNode property and writing it to a frame throws at paste time; a row that wants its children aligned says so in its own 'layout.align'`);
     if (p.kind === 'text' && p.verticalAlign !== undefined && !(['top', 'center', 'bottom'] as readonly string[]).includes(p.verticalAlign))
       e.push(`anatomy part '${n}': verticalAlign '${p.verticalAlign}' is not one of [top, center, bottom] — those are the three values Figma's 'textAlignVertical' has, and a fourth word would project a value the executor writes and Figma discards`);
+    if (p.kind !== 'text' && p.verticalTrim !== undefined)
+      e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'verticalTrim' — only a 'text' part has a text box to trim; Figma's 'leadingTrim' is a TextNode property`);
+    if (p.kind === 'text' && p.verticalTrim !== undefined && p.verticalTrim !== 'cap-height')
+      e.push(`anatomy part '${n}': verticalTrim '${p.verticalTrim}' is not 'cap-height' — Figma's 'leadingTrim' has CAP_HEIGHT and NONE, and NONE is the default`);
     // `paintSlot` is the TEXT kind's field (#796) — the only branch that reads it. On any other kind it
     // would validate clean and be silently ignored, which is this whole pass's defect class: a field an
     // author reasonably believes took effect.
-    if (p.kind !== 'text' && p.paintSlot !== undefined)
-      e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'paintSlot' — only a 'text' part chooses which ink slot it asks for; every other kind's paint follows from its kind`);
+    // A `vector` may choose too (#2670): Progress's ring track is a glyph in the track role, `fill`, beside an arc in
+    // `icon`. The vector branch reads it the way the text branch does.
+    if (p.kind !== 'text' && p.kind !== 'vector' && p.paintSlot !== undefined)
+      e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'paintSlot' — only a 'text' or 'vector' part chooses which ink slot it asks for; every other kind's paint follows from its kind`);
     // And the word must be one the projector DISPATCHES, checked against the same oracle `paintKeyErrors`
     // uses. Without this, `paintSlot: 'indicatr'` resolves no paint and the part projects unpainted —
     // the #784 shape arriving through the field that exists to prevent it.
-    if (p.kind === 'text' && p.paintSlot !== undefined && !(PAINT_SLOTS as readonly string[]).includes(p.paintSlot))
+    if ((p.kind === 'text' || p.kind === 'vector') && p.paintSlot !== undefined && !(PAINT_SLOTS as readonly string[]).includes(p.paintSlot))
       e.push(`anatomy part '${n}': paintSlot '${p.paintSlot}' is not a slot the projector dispatches — it asks only for [${PAINT_SLOTS.join(', ')}]. A part naming a word outside that list resolves no paint and projects unpainted. Do NOT add it to PAINT_SLOTS to clear this: a new slot needs a distinct ink ROLE and a real dispatch behind it (see PAINT_SLOTS)`);
     // ---- `paintSlots`, the BOX kind's field (#933) ----
     // The same wrong-kind rule as `paintSlot` above, for the same reason: only the box branch reads it,
@@ -5174,6 +5311,28 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // `glyphPx`, so a bound size holds against the constraint; beside `corner`, a second placement for the
     // same node; and under a parent that is not an auto-layout box (Figma ignores `layoutPositioning` there,
     // silently) or not aspect-locked (a non-uniform resize stretches the square glyph).
+    // `stackCentered` (#2670): a glyph drawn over its parent's in-flow child. Each arm is a way to author it so it
+    // validates and draws somewhere else: on a kind the projector does not read it on, on the root, beside another
+    // placement, under a parent Figma ignores `layoutPositioning` in, at a size other than the parent's (it would sit
+    // off the drawing under it), or with nothing in the flow to draw over.
+    if (p.stackCentered !== undefined) {
+      const parent = Object.keys(parts).find((k) => (parts[k].children ?? []).includes(n));
+      const pp = parent ? parts[parent] : undefined;
+      if (p.kind !== 'vector')
+        e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'stackCentered' — only a 'vector' is a glyph the projector lifts and centers over its parent`);
+      else if (n === a.root)
+        e.push(`anatomy part '${n}' is the anatomy ROOT and declares 'stackCentered' — the root has no parent to draw over`);
+      else if ((p.stackCentered as unknown) !== true)
+        e.push(`anatomy part '${n}' declares stackCentered ${String(p.stackCentered)} — the field is a switch that is on or absent`);
+      else if (p.corner !== undefined || p.scaleWithParent !== undefined)
+        e.push(`anatomy part '${n}' declares 'stackCentered' beside '${p.corner !== undefined ? 'corner' : 'scaleWithParent'}' — two out-of-flow placements for one node, and the executor would keep whichever it wrote last`);
+      else if (!pp || pp.kind !== 'box' || !pp.layout || pp.size === undefined)
+        e.push(`anatomy part '${n}' declares 'stackCentered' under '${parent ?? '(none)'}', which is not an auto-layout 'box' binding 'size' — Figma ignores 'layoutPositioning' outside auto-layout, and a glyph is centered over a square`);
+      else if (p.size !== pp.size)
+        e.push(`anatomy part '${n}' declares 'stackCentered' and binds size '${p.size ?? '(none)'}' under '${parent}', which binds '${pp.size}' — the glyph must be its parent's square, or it sits off the drawing it covers`);
+      else if (!(pp.children ?? []).some((c) => c !== n && parts[c] && parts[c].stackCentered === undefined))
+        e.push(`anatomy part '${n}' declares 'stackCentered' under '${parent}', which has no in-flow child — there is nothing for the glyph to draw over`);
+    }
     if (p.scaleWithParent !== undefined) {
       if (p.kind !== 'vector')
         e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'scaleWithParent' — only a 'vector' is a glyph the projector lifts, centers and scales with its parent`);

@@ -11,23 +11,30 @@ Generated from the component definitions and the emission by `packages/engine/em
 | Component | Nested by (direct) | Affected by a change (direct and transitive) |
 |---|---|---|
 | _accordion-indicator | accordion | accordion |
+| _breadcrumb-separator | breadcrumb-item | breadcrumb-item, breadcrumbs |
+| _slider-thumb | slider | slider |
 | badge | tab-item | tab-item, tabs |
-| button | button-group, password-field | button-group, dialog, password-field |
+| breadcrumb-item | breadcrumbs | breadcrumbs |
+| button | banner, button-group, password-field, toast | banner, button-group, dialog, password-field, toast |
 | button-group | dialog | dialog |
 | checkbox-control | checkbox-row | checkbox-group, checkbox-row |
 | checkbox-row | checkbox-group | checkbox-group |
+| code-input-cell | code-input | code-input |
 | divider | accordion, dialog | accordion, dialog |
-| field-label | checkbox-group, counter, password-field, radio-group, segmented-control, select, text-field, textarea | checkbox-group, counter, password-field, radio-group, segmented-control, select, text-field, textarea |
-| field-message | checkbox-group, counter, password-field, radio-group, select, text-field, textarea | checkbox-group, counter, password-field, radio-group, select, text-field, textarea |
-| flush-icon-button-neutral | counter, dialog | counter, dialog |
-| focus-ring | accordion, button, button-destructive, button-neutral, checkbox-control, counter, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, password-field, radio-control, segmented-control-segment, select, switch-control, tab-item, tag, text-field, textarea | accordion, button, button-destructive, button-group, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, switch-control, switch-row, tab-item, tabs, tag, text-field, textarea |
+| field-label | checkbox-group, code-input, counter, password-field, radio-group, segmented-control, select, slider, text-field, textarea | checkbox-group, code-input, counter, password-field, radio-group, segmented-control, select, slider, text-field, textarea |
+| field-message | checkbox-group, code-input, counter, password-field, progress, radio-group, select, slider, text-field, textarea | checkbox-group, code-input, counter, password-field, progress, radio-group, select, slider, text-field, textarea |
+| flush-icon-button-neutral | banner, breadcrumb-item, counter, dialog, toast | banner, breadcrumb-item, breadcrumbs, counter, dialog, toast |
+| focus-ring | _slider-thumb, accordion, button, button-destructive, button-neutral, checkbox-control, code-input-cell, counter, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, pagination-item, password-field, radio-control, segmented-control-segment, select, switch-control, tab-item, tag, text-field, textarea | _slider-thumb, accordion, banner, breadcrumb-item, breadcrumbs, button, button-destructive, button-group, button-neutral, checkbox-control, checkbox-group, checkbox-row, code-input, code-input-cell, counter, dialog, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, slider, switch-control, switch-row, tab-item, tabs, tag, text-field, textarea, toast |
+| link | breadcrumb-item, breadcrumbs | breadcrumb-item, breadcrumbs |
 | list-item | list | list |
+| pagination-item | pagination | pagination |
 | radio-control | radio-row | radio-group, radio-row |
 | radio-row | radio-group | radio-group |
 | segmented-control-segment | segmented-control | segmented-control |
-| spinner | button, button-destructive, button-neutral, icon-button, icon-button-destructive, icon-button-neutral | button, button-destructive, button-group, button-neutral, dialog, icon-button, icon-button-destructive, icon-button-neutral, password-field |
+| spinner | button, button-destructive, button-neutral, icon-button, icon-button-destructive, icon-button-neutral | banner, button, button-destructive, button-group, button-neutral, dialog, icon-button, icon-button-destructive, icon-button-neutral, password-field, toast |
 | switch-control | switch-row | switch-row |
 | tab-item | tabs | tabs |
+| text-field | slider | slider |
 
 A component not in this table is nested by nothing; a change to it reaches only itself.
 
@@ -36,8 +43,13 @@ A component not in this table is nested by nothing; a change to it reaches only 
 | Component | Depth | Nests (direct) | Nests (transitive) |
 |---|---|---|---|
 | _accordion-indicator | 0 | — | — |
+| _breadcrumb-separator | 0 | — | — |
+| _slider-thumb | 1 | focus-ring | focus-ring |
 | accordion | 1 | _accordion-indicator, divider, focus-ring | _accordion-indicator, divider, focus-ring |
 | badge | 0 | — | — |
+| banner | 2 | button, flush-icon-button-neutral | button, flush-icon-button-neutral, focus-ring, spinner |
+| breadcrumb-item | 2 | _breadcrumb-separator, flush-icon-button-neutral, link | _breadcrumb-separator, flush-icon-button-neutral, focus-ring, link |
+| breadcrumbs | 3 | breadcrumb-item, link | _breadcrumb-separator, breadcrumb-item, flush-icon-button-neutral, focus-ring, link |
 | button | 1 | focus-ring, spinner | focus-ring, spinner |
 | button-destructive | 1 | focus-ring, spinner | focus-ring, spinner |
 | button-group | 2 | button | button, focus-ring, spinner |
@@ -45,6 +57,8 @@ A component not in this table is nested by nothing; a change to it reaches only 
 | checkbox-control | 1 | focus-ring | focus-ring |
 | checkbox-group | 3 | checkbox-row, field-label, field-message | checkbox-control, checkbox-row, field-label, field-message, focus-ring |
 | checkbox-row | 2 | checkbox-control | checkbox-control, focus-ring |
+| code-input | 2 | code-input-cell, field-label, field-message | code-input-cell, field-label, field-message, focus-ring |
+| code-input-cell | 1 | focus-ring | focus-ring |
 | counter | 2 | field-label, field-message, flush-icon-button-neutral, focus-ring | field-label, field-message, flush-icon-button-neutral, focus-ring |
 | dialog | 3 | button-group, divider, flush-icon-button-neutral | button, button-group, divider, flush-icon-button-neutral, focus-ring, spinner |
 | divider | 0 | — | — |
@@ -62,13 +76,17 @@ A component not in this table is nested by nothing; a change to it reaches only 
 | link | 1 | focus-ring | focus-ring |
 | list | 1 | list-item | list-item |
 | list-item | 0 | — | — |
+| pagination | 2 | pagination-item | focus-ring, pagination-item |
+| pagination-item | 1 | focus-ring | focus-ring |
 | password-field | 2 | button, field-label, field-message, focus-ring | button, field-label, field-message, focus-ring, spinner |
+| progress | 1 | field-message | field-message |
 | radio-control | 1 | focus-ring | focus-ring |
 | radio-group | 3 | field-label, field-message, radio-row | field-label, field-message, focus-ring, radio-control, radio-row |
 | radio-row | 2 | radio-control | focus-ring, radio-control |
 | segmented-control | 2 | field-label, segmented-control-segment | field-label, focus-ring, segmented-control-segment |
 | segmented-control-segment | 1 | focus-ring | focus-ring |
 | select | 1 | field-label, field-message, focus-ring | field-label, field-message, focus-ring |
+| slider | 2 | _slider-thumb, field-label, field-message, text-field | _slider-thumb, field-label, field-message, focus-ring, text-field |
 | spinner | 0 | — | — |
 | switch-control | 1 | focus-ring | focus-ring |
 | switch-row | 2 | switch-control | focus-ring, switch-control |
@@ -77,6 +95,7 @@ A component not in this table is nested by nothing; a change to it reaches only 
 | tag | 1 | focus-ring | focus-ring |
 | text-field | 1 | field-label, field-message, focus-ring | field-label, field-message, focus-ring |
 | textarea | 1 | field-label, field-message, focus-ring | field-label, field-message, focus-ring |
+| toast | 2 | button, flush-icon-button-neutral | button, flush-icon-button-neutral, focus-ring, spinner |
 | veil | 0 | — | — |
 
 Depth is 0 for a component that nests nothing, and one more than its deepest child otherwise.
@@ -85,10 +104,22 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 
 | From | Part | Kind | To | Relation | Fixed variant | Follows | Exposes |
 |---|---|---|---|---|---|---|---|
+| _slider-thumb | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | accordion | divider | nest | divider | nest-fixed | orientation=horizontal, inset=none | — | — |
 | accordion | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | accordion | leadingGlyph | nest | _accordion-indicator | nest-exposed | indicator=chevron, expansion=collapsed, size=medium | expansion, size | indicator |
 | accordion | trailingGlyph | nest | _accordion-indicator | nest-exposed | indicator=chevron, expansion=collapsed, size=medium | expansion, size | indicator |
+| banner | action1 | nest | button | nest-fixed | appearance=outline, size=small, surface=default, inset=default, state=rest, leading icon=false, trailing icon=false | — | — |
+| banner | action2 | nest | button | nest-fixed | appearance=text, size=small, surface=default, inset=default, state=rest, leading icon=false, trailing icon=false | — | — |
+| banner | dismiss | nest | flush-icon-button-neutral | nest-fixed | shape=flush, size=small, surface=default, state=rest | — | — |
+| breadcrumb-item | crumb | nest | link | nest-exposed | style=inline, weight=default, size=medium, surface=default, state=rest | size | state |
+| breadcrumb-item | overflow | nest | flush-icon-button-neutral | nest-exposed | shape=flush, size=small, surface=default, state=rest | — | state |
+| breadcrumb-item | separator | nest | _breadcrumb-separator | nest-fixed | type=chevron | — | — |
+| breadcrumb-item | separatorSlash | nest | _breadcrumb-separator | nest-fixed | type=slash | — | — |
+| breadcrumbs | item1 | nest | breadcrumb-item | nest-fixed | kind=ancestor, separator=chevron, size=medium | separator, size | — |
+| breadcrumbs | item2 | nest | breadcrumb-item | nest-fixed | kind=ancestor, separator=chevron, size=medium | separator, size | — |
+| breadcrumbs | item3 | nest | breadcrumb-item | nest-fixed | kind=current, separator=chevron, size=medium | size | — |
+| breadcrumbs | parentLink | nest | link | nest-exposed | style=inline, weight=default, size=medium, surface=default, state=rest | size | state |
 | button | focusRing | absolute | focus-ring | nest-fixed | surface=default | surface | — |
 | button | spinner | overlay | spinner | swap | — | — | — |
 | button-destructive | focusRing | absolute | focus-ring | nest-fixed | surface=default | surface | — |
@@ -108,20 +139,29 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | checkbox-group | row2 | nest | checkbox-row | nest-fixed | size=medium, status=default | size, status | — |
 | checkbox-group | row3 | nest | checkbox-row | nest-fixed | size=medium, status=default | size, status | — |
 | checkbox-row | control | nest | checkbox-control | nest-exposed | selection=unchecked, state=rest, status=default | size, status | selection, state |
-| counter | decrement | nest | flush-icon-button-neutral | nest-exposed | shape=flush, size=medium, state=rest | size | state |
+| code-input | cell1 | nest | code-input-cell | nest-fixed | size=medium, state=rest | size | — |
+| code-input | cell2 | nest | code-input-cell | nest-fixed | size=medium, state=rest | size | — |
+| code-input | cell3 | nest | code-input-cell | nest-fixed | size=medium, state=rest | size | — |
+| code-input | cell4 | nest | code-input-cell | nest-fixed | size=medium, state=rest | size | — |
+| code-input | cell5 | nest | code-input-cell | nest-fixed | size=medium, state=rest | size | — |
+| code-input | cell6 | nest | code-input-cell | nest-fixed | size=medium, state=rest | size | — |
+| code-input | label | nest | field-label | nest-exposed | size=medium, emphasis=secondary, weight=regular, state=rest | — | emphasis, weight |
+| code-input | message | nest | field-message | nest-fixed | status=default | status | — |
+| code-input-cell | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
+| counter | decrement | nest | flush-icon-button-neutral | nest-exposed | shape=flush, size=medium, surface=default, state=rest | size | state |
 | counter | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
-| counter | increment | nest | flush-icon-button-neutral | nest-exposed | shape=flush, size=medium, state=rest | size | state |
+| counter | increment | nest | flush-icon-button-neutral | nest-exposed | shape=flush, size=medium, surface=default, state=rest | size | state |
 | counter | label | nest | field-label | nest-exposed | size=medium, emphasis=secondary, weight=regular, state=rest | size | emphasis, weight |
 | counter | message | nest | field-message | nest-fixed | status=default | — | — |
 | dialog | actionsFill | nest | button-group | nest-fixed | layout=fill | — | — |
 | dialog | actionsInline | nest | button-group | nest-fixed | layout=inline | — | — |
 | dialog | actionsStacked | nest | button-group | nest-fixed | layout=stacked | — | — |
-| dialog | close | nest | flush-icon-button-neutral | nest-fixed | shape=flush, size=medium, state=rest | — | — |
+| dialog | close | nest | flush-icon-button-neutral | nest-fixed | shape=flush, size=medium, surface=default, state=rest | — | — |
 | dialog | footerDivider | nest | divider | nest-fixed | orientation=horizontal, inset=none | — | — |
 | dialog | headerDivider | nest | divider | nest-fixed | orientation=horizontal, inset=none | — | — |
-| flush-icon-button | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
-| flush-icon-button-destructive | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
-| flush-icon-button-neutral | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
+| flush-icon-button | focusRing | absolute | focus-ring | nest-fixed | surface=default | surface | — |
+| flush-icon-button-destructive | focusRing | absolute | focus-ring | nest-fixed | surface=default | surface | — |
+| flush-icon-button-neutral | focusRing | absolute | focus-ring | nest-fixed | surface=default | surface | — |
 | icon-button | focusRing | absolute | focus-ring | nest-fixed | surface=default | surface | — |
 | icon-button | spinner | overlay | spinner | swap | — | — | — |
 | icon-button-destructive | focusRing | absolute | focus-ring | nest-fixed | surface=default | surface | — |
@@ -132,10 +172,24 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | list | item1 | nest | list-item | nest-fixed | type=unordered, size=medium | type, size | — |
 | list | item2 | nest | list-item | nest-fixed | type=unordered, size=medium | type, size | — |
 | list | item3 | nest | list-item | nest-fixed | type=unordered, size=medium | type, size | — |
+| pagination | item1 | nest | pagination-item | nest-fixed | type=page, selection=unselected, style=border, labeled=false, size=medium, state=rest | size | — |
+| pagination | item2 | nest | pagination-item | nest-fixed | type=ellipsis, selection=unselected, style=border, labeled=false, size=medium, state=rest | size | — |
+| pagination | item3 | nest | pagination-item | nest-fixed | type=page, selection=unselected, style=border, labeled=false, size=medium, state=rest | size | — |
+| pagination | item4 | nest | pagination-item | nest-fixed | type=page, selection=selected, style=border, labeled=false, size=medium, state=rest | style, size | — |
+| pagination | item5 | nest | pagination-item | nest-fixed | type=page, selection=unselected, style=border, labeled=false, size=medium, state=rest | size | — |
+| pagination | item6 | nest | pagination-item | nest-fixed | type=ellipsis, selection=unselected, style=border, labeled=false, size=medium, state=rest | size | — |
+| pagination | item7 | nest | pagination-item | nest-fixed | type=page, selection=unselected, style=border, labeled=false, size=medium, state=rest | size | — |
+| pagination | next | nest | pagination-item | nest-exposed | type=next, selection=unselected, style=border, labeled=false, size=medium, state=rest | size | state |
+| pagination | nextButton | nest | pagination-item | nest-exposed | type=next, selection=unselected, style=border, labeled=true, size=medium, state=rest | size | state |
+| pagination | previous | nest | pagination-item | nest-exposed | type=previous, selection=unselected, style=border, labeled=false, size=medium, state=rest | size | state |
+| pagination | previousButton | nest | pagination-item | nest-exposed | type=previous, selection=unselected, style=border, labeled=true, size=medium, state=rest | size | state |
+| pagination-item | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | password-field | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | password-field | label | nest | field-label | nest-exposed | size=medium, emphasis=secondary, weight=regular, state=rest | size | emphasis, weight |
 | password-field | message | nest | field-message | nest-fixed | status=default | status | — |
 | password-field | toggle | nest | button | nest-exposed | appearance=text, size=small, surface=default, inset=flush, state=rest, leading icon=false, trailing icon=false | — | label |
+| progress | messageComplete | nest | field-message | nest-fixed | status=success | — | — |
+| progress | messageError | nest | field-message | nest-fixed | status=error | — | — |
 | radio-control | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | radio-group | label | nest | field-label | nest-exposed | size=medium, emphasis=secondary, weight=bold, state=rest | size | emphasis, weight |
 | radio-group | message | nest | field-message | nest-fixed | status=error | status | — |
@@ -151,6 +205,13 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | select | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | select | label | nest | field-label | nest-exposed | size=medium, emphasis=secondary, weight=regular, state=rest | size | emphasis, weight |
 | select | message | nest | field-message | nest-fixed | status=default | status | — |
+| slider | inputMax | nest | text-field | nest-fixed | size=medium, status=default, state=filled | — | — |
+| slider | inputMin | nest | text-field | nest-fixed | size=medium, status=default, state=filled | — | — |
+| slider | inputSingle | nest | text-field | nest-fixed | size=medium, status=default, state=filled | — | — |
+| slider | label | nest | field-label | nest-fixed | size=medium, emphasis=secondary, weight=bold, state=rest | — | — |
+| slider | message | nest | field-message | nest-fixed | status=default | — | — |
+| slider | thumb | nest | _slider-thumb | nest-fixed | state=rest | — | — |
+| slider | thumbMin | nest | _slider-thumb | nest-fixed | state=rest | — | — |
 | switch-control | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | switch-row | control | nest | switch-control | nest-exposed | selection=off, state=rest, status=default | size, status | selection, state, showStateLabel |
 | tab-item | count | nest | badge | nest-fixed | type=count, emphasis=bold, tone=neutral | — | — |
@@ -165,6 +226,8 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | textarea | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | textarea | label | nest | field-label | nest-exposed | size=medium, emphasis=secondary, weight=regular, state=rest | size | emphasis, weight |
 | textarea | message | nest | field-message | nest-fixed | status=default | status | — |
+| toast | action | nest | button | nest-fixed | appearance=text, size=small, surface=inverse, inset=default, state=rest, leading icon=false, trailing icon=false | — | — |
+| toast | close | nest | flush-icon-button-neutral | nest-fixed | shape=flush, size=small, surface=inverse, state=rest | — | — |
 
 ## Inherits
 

@@ -271,6 +271,18 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   },
   {
     axis: 'type',
+    values: ['determinate', 'indeterminate'],
+    defs: ['progress'],
+    relation: 'disjoint',
+    reason:
+      'Whether the work has a value (#2670, the brief\'s defining fork): a known amount, or a sweep while the amount is '
+      + 'unknown. The field\'s own words and ARIA\'s distinction (`aria-valuenow` present or absent). DISJOINT from '
+      + 'Badge\'s canonical set: a badge type is a content kind and a progress type a value contract, and no value would '
+      + 'mean the same thing on both. `determinate` LEADS because it is the default member; in code the type follows '
+      + 'from whether a value is given.',
+  },
+  {
+    axis: 'type',
     values: ['select', 'dismissible'],
     defs: ['tag'],
     relation: 'disjoint',
@@ -285,6 +297,18 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   },
   {
     axis: 'type',
+    values: ['single', 'range'],
+    defs: ['slider'],
+    relation: 'disjoint',
+    reason:
+      'How many values a slider holds (owner decision on #2669, call 2 A): one thumb for a single value, two for a '
+      + 'minimum and a maximum. In code the type is read from the value (a number or a pair), so the axis names the '
+      + 'two looks rather than a setting. `single` LEADS because it is the code default and Figma\'s default member '
+      + '(Q347). DISJOINT from Badge\'s canonical set, the loud kind of divergence: a badge type is a content kind and '
+      + 'a slider type a value count, and no value would mean the same thing on both defs, so none is shared.',
+  },
+  {
+    axis: 'type',
     values: ['unordered', 'ordered', 'icon'],
     defs: ['list-item', 'list'],
     relation: 'disjoint',
@@ -296,6 +320,41 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'divergence: a badge type is a content kind and a list type a marker kind, and no value would mean the same thing '
       + 'on both defs, so none is shared. Shared by List and List.Item because the List passes its type to every item '
       + '(`follow`), so the two must hold one set; one entry records both, and a drift between them fails here.',
+  },
+  {
+    axis: 'type',
+    values: ['chevron', 'slash'],
+    defs: ['_breadcrumb-separator'],
+    relation: 'disjoint',
+    reason:
+      'Which LOOK the mark between breadcrumb steps takes (owner decision Q382 A, which names the axis `type`): a chevron '
+      + 'pointing toward the current page, or a slash. `chevron` LEADS because it is the code default and Figma\'s default '
+      + 'member. DISJOINT from Badge\'s canonical set, the loud kind of divergence: a badge type is a content kind and a '
+      + 'separator type a glyph, and no value would mean the same thing on both defs. The item picks it by its own '
+      + '`separator` axis, which holds the same two values.',
+  },
+  {
+    axis: 'type',
+    values: ['numbered', 'compact', 'simple'],
+    defs: ['pagination'],
+    relation: 'disjoint',
+    reason:
+      'Which STRUCTURE a pagination row has (owner decision on #2665, calls 1 A and 15 A): page numbers between previous '
+      + 'and next, the "Page 5 of 10" text between them, or a Previous and a Next button alone. Structural kinds, not '
+      + 'looks, which is why the axis is `type` and not Link\'s `style` (call 15). `numbered` LEADS because it is the code '
+      + 'default and Figma\'s default member. DISJOINT from Badge\'s canonical set, the loud kind of divergence: a badge '
+      + 'type is a content kind and a pagination type a layout kind, and no value would mean the same thing on both defs.',
+  },
+  {
+    axis: 'type',
+    values: ['page', 'ellipsis', 'previous', 'next'],
+    defs: ['pagination-item'],
+    relation: 'disjoint',
+    reason:
+      'Which CELL a pagination item is (#2665, owner calls 3 A and 7 A, Q414 A): a page number the user opens, the inert '
+      + 'mark that stands for two or more hidden pages, or the cell that opens the page before or after the current one. '
+      + 'The words of the window algorithm\'s own item model (`page`, `ellipsis`, `previous`, `next`). `page` LEADS because it is the code default and Figma\'s default member. DISJOINT from Badge\'s '
+      + 'canonical set: a pagination item type is a cell kind, and no value would mean the same thing on both defs.',
   },
   // `indicator` IS GONE FROM THE REGISTER (#1338), and its absence is the point rather than an omission —
   // the same shape the `intent` note below records. field-label carried a three-way
@@ -323,7 +382,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       'error-circle', 'error-circle-filled', 'external-link-filled', 'eye', 'eye-filled', 'eye-off',
       'eye-off-filled', 'FPO-default-icon', 'home', 'image', 'info-circle', 'info-circle-filled', 'link', 'menu', 'minus', 'minus-filled',
       'more-horizontal-filled', 'more-vertical-filled', 'pause-circle', 'play-circle', 'plus', 'plus-circle', 'plus-circle-filled',
-      'plus-filled', 'resize-grip', 'search', 'warning-triangle', 'warning-triangle-filled',
+      'plus-filled', 'resize-grip', 'search', 'slash', 'warning-triangle', 'warning-triangle-filled',
     ],
     defs: ['icon'],
     relation: 'sole',
@@ -332,6 +391,16 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'set, so `icon.ts` cannot spell one wrong and the synonym failure mode this whole register guards '
       + 'has no way in. Declared here anyway, at full width, because the register\'s claim is that every '
       + 'set is accounted for — an axis exempted for being safe is an axis nobody is watching.',
+  },
+  {
+    axis: 'labeled',
+    values: ['false', 'true'],
+    defs: ['pagination-item'],
+    relation: 'sole',
+    reason:
+      'Whether Pagination.Item\'s previous or next cell shows its word, "Previous" or "Next", beside the chevron (owner '
+      + 'decision Q414 A: simple\'s two controls are the same cells with a label plus chevron). `false | true` so Figma '
+      + 'draws it as a switch. `false` LEADS, the code default and so Figma\'s default member.',
   },
   {
     axis: 'offset',
@@ -390,7 +459,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'selection',
     values: ['unselected', 'selected'],
-    defs: ['tag', 'tab-item', 'segmented-control-segment'],
+    defs: ['tag', 'tab-item', 'segmented-control-segment', 'pagination-item'],
     relation: 'disjoint',
     reason:
       'A selectable tag\'s two values, in the words the Tag brief uses (§4, §15) — `selected` is what a filter '
@@ -401,12 +470,13 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'once they do not match. `unselected` leads because it is the rest coordinate. The spelling is an '
       + 'axis-value choice held for the owner in the Tag PR (2026-09-27). Tab joins it (#2416, owner Q177.2): a '
       + 'tab\'s state IS aria-selected, so `selected` is its ARIA word too, and one spelling serves both. A segmented '
-      + 'control\'s option joins it (#2418, owner Q269): Tag\'s values, its state riding aria-current or a native radio.',
+      + 'control\'s option joins it (#2418, owner Q269): Tag\'s values, its state riding aria-current or a native radio. '
+      + 'A pagination item joins it (#2665): the current page, its state riding aria-current="page".',
   },
   {
     axis: 'size',
     values: ['medium', 'small', 'large'],
-    defs: ['_accordion-indicator', 'accordion', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'tag', 'tab-item', 'tabs', 'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'link', 'text-field', 'select', 'textarea', 'dialog', 'password-field', 'counter'],
+    defs: ['_accordion-indicator', 'accordion', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'tag', 'tab-item', 'tabs', 'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'link', 'text-field', 'select', 'textarea', 'dialog', 'password-field', 'counter', 'pagination-item', 'pagination'],
     relation: 'canonical',
     reason:
       'The three-rung ladder, led by `medium` (#2752, owner decision Q1 B, 2026-10-16). Canonical on weight of use: '
@@ -417,6 +487,18 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'order, superseding #2501\'s smallest-to-largest (Q213). The code enum (`props.size`) keeps the ladder\'s own '
       + 'order. Rungs are named rather than numbered so a brand can re-derive the dimensions behind them without '
       + 'the names going stale.',
+  },
+  {
+    axis: 'size',
+    values: ['medium', 'small', 'large', 'xlarge'],
+    defs: ['code-input', 'code-input-cell'],
+    relation: 'superset',
+    reason:
+      'Code input\'s four cell sizes (#2428, owner decision Q330 A): the field ladder plus `xlarge`, the 68×72 display '
+      + 'cell with a 40px character meant for four-character codes. Led by `medium`, the code default and so the set\'s '
+      + 'first member (owner decisions Q347 and Q359), as every size ladder is (#2752, Q1 B); the code enum keeps the '
+      + 'ladder\'s own order (`lint-rung-names.ts` DEFAULT_FIRST). The cell carries the same values, so it follows the '
+      + 'field\'s size by name.',
   },
   {
     axis: 'size',
@@ -447,7 +529,9 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
     values: ['medium', 'small'],
     // The `switch-row` ROW keeps `size` (it scales the label ramp, gap and row height) and passes it through
     // to the nested `switch-control` by `follow`; the atom declares the same two-rung ladder (#1354).
-    defs: ['switch-row', 'switch-control'],
+    // Breadcrumbs and its item join it (#2666, owner call 7 A): one line of 14 or 16px body text, and an 18px trail
+    // stops reading as secondary wayfinding.
+    defs: ['switch-row', 'switch-control', 'breadcrumbs', 'breadcrumb-item', 'progress'],
     relation: 'subset',
     reason:
       'The ladder minus its top rung, for a def with no large form, led by medium as canonical is (#2752 Q1 B): a switch above medium stops reading '
@@ -455,7 +539,8 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'in canonical, which is what makes this weighable instead of a second ladder. `field-label` shared '
       + 'this entry until #872 and now takes the full three: the reason given for its shortness ("a label '
       + 'tracks the field it labels rather than setting its own scale") turned out to be the argument FOR '
-      + 'three, since `text-field` and `textarea` have declared three rungs since tranche 1.',
+      + 'three, since `text-field` and `textarea` have declared three rungs since tranche 1. `progress` (#2670) joins for its '
+      + 'RING: 40px and 24px on the icon ladder, with no large form; a linear bar has one thickness and is built at `medium` only.',
   },
   {
     axis: 'shape',
@@ -491,6 +576,20 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + '`flush` LEADS because it is the code default and the shape built first, so Figma\'s inserted member is flush.',
   },
   {
+    axis: 'shape',
+    values: ['linear', 'circular'],
+    defs: ['progress'],
+    relation: 'overlapping',
+    reason:
+      'Progress\'s two drawings (#2670, owner calls 1 and 10 A): a bar that fills its container, or a ring for a small '
+      + 'space. OVERLAPPING with the canonical set on `circular`, and that shared word is the near-overlap this register '
+      + 'exists to flag: on IconButton `circular` is a corner silhouette (a disc at `radius.round`), here it is a whole '
+      + 'drawing, a ring with an arc. The two never meet on one def and no paint key crosses either axis, so the word '
+      + 'reads the same to a designer (round) without the sets being one ladder. `circular` is the brief\'s own word '
+      + '(`variant: linear | circular`), the approved proposal\'s axis table, and MUI\'s `CircularProgress`. `linear` '
+      + 'LEADS because it is the code default and Figma\'s default member (owner Q347).',
+  },
+  {
     axis: 'style',
     values: ['outline'],
     defs: ['text-field', 'textarea', 'password-field'],
@@ -516,9 +615,23 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'default member. No `quiet` for now (Q289.2 A).',
   },
   {
+    axis: 'style',
+    values: ['border', 'underline'],
+    defs: ['pagination-item', 'pagination'],
+    relation: 'disjoint',
+    reason:
+      'How the current page is marked (owner decision Q381, 2 A): a border around the cell, or a 2px line under its '
+      + 'number, both in `color.border.tertiary`. The owner named the values. DISJOINT by spelling from the field\'s '
+      + 'canonical `outline`, and named here because it is a near-overlap: `border` draws what a field calls `outline`, '
+      + 'and the field reserves `underline` for a future treatment of its own, which would then share a word with this '
+      + 'set. Neither def reads the other\'s, so no paint key crosses them. `border` LEADS, the code default and so '
+      + 'Figma\'s default member. Shared by Pagination and Pagination.Item because the row passes it to its current '
+      + 'page (`follow`), so the two must hold one set.',
+  },
+  {
     axis: 'surface',
     values: ['default', 'inverse'],
-    defs: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'focus-ring', 'link'],
+    defs: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'focus-ring', 'link'],
     relation: 'sole',
     reason:
       'The ground a control sits on (#1134): `default` the page, `inverse` a dark or brand-filled band. THE '
@@ -529,6 +642,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'in #1427, following `button` 1:1 apart from the `shape` axis — each carries `surface` and drives its '
       + 'nested `focus-ring` by the same `follow: [\'surface\']`, and its inverse fill inherits the shared '
       + '`inverse.interactive.<family>.fill` role (white/black at rest since #1384, stepped 2 rungs per state since #1456). '
+      + 'The flush icon-button siblings join in #2668 (Q386): no fill, so the axis changes the glyph ink only, for the Toast\'s close. '
       + '`focus-ring`\'s axis was `color` until #1134 renamed it here; the two are one entry now because they '
       + 'are one distinction. ORDER matters as everywhere here: `default` is the rest coordinate the '
       + 'projector\'s inverse rewrite falls through to (an `inverse` coordinate binds `color.inverse.*`, a '
@@ -565,9 +679,22 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'ink, and it is the default, which is why this axis is not projected to Figma at all.',
   },
   {
+    axis: 'tone',
+    values: ['info', 'success', 'warning', 'danger'],
+    defs: ['banner'],
+    relation: 'subset',
+    reason:
+      'How serious a banner\'s message is (#2579, owner decision Q327.1 A): the four status roles, spelled as the token '
+      + 'tier spells them, so a value names the same role as in `icon` and `badge`. No `neutral` (Q327.1 declined it) and no '
+      + 'rank words or `inherit`: a banner paints a tinted surface and an edge, which only a status role has. `info` LEADS '
+      + 'because it is the code default and Figma\'s default member (Q347).',
+  },
+  {
     axis: 'status',
     values: ['default', 'error', 'warning', 'success'],
     defs: ['field-message', 'select', 'text-field', 'textarea', 'password-field'],
+    // `canonical` since #2428: Code input carries a two-value subset, described against this one below.
+    // CANONICAL since #2670 added Progress's end-state set (below): it came first and is shared by five defs.
     relation: 'canonical',
     reason:
       'A form field\'s VALIDATION OUTCOME. RENAMED from `tone` to `status` in #1334 (the owner\'s split of '
@@ -586,24 +713,53 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'status',
     values: ['default', 'error'],
-    defs: ['checkbox-control', 'checkbox-row', 'checkbox-group', 'switch-control', 'switch-row', 'radio-control', 'radio-row', 'radio-group'],
+    defs: ['checkbox-control', 'checkbox-row', 'checkbox-group', 'switch-control', 'switch-row', 'radio-control', 'radio-row', 'radio-group', 'code-input'],
     relation: 'subset',
     reason:
       'The choice controls\' validation outcome (owner Q354, #2751): every control that can be invalid takes the '
       + 'fields\' `status` axis, and a checkbox, switch or radio has an error look and no warning or success look, '
       + 'so it carries the canonical set\'s first two values. A shared value means exactly what it means on a '
       + 'field, which is what lets a group follow its `status` into its rows and its nested `field-message` by '
-      + 'name. The canonical set became `canonical` (from `sole`) when this one joined.',
+      + 'name. The canonical set became `canonical` (from `sole`) when this one joined. Code input joins it '
+      + '(#2428, owner decision Q321.9 A): a one-time code is right or wrong, and a right code moves the user on, so '
+      + 'success is the page\'s to announce and warning has no case.',
+  },
+  {
+    axis: 'status',
+    values: ['active', 'complete', 'error'],
+    defs: ['progress'],
+    relation: 'overlapping',
+    reason:
+      'Progress\'s END STATE (#2670, owner call 4 A): the work is running, finished, or failed. OVERLAPPING with the '
+      + 'canonical validation set on `error` only, and the shared value means the same thing on both: a failure, '
+      + 'shown with FieldMessage\'s error glyph and caption (Progress nests it at `error`), so an error looks one way '
+      + 'across components (owner Q352/Q354). The other two differ because they name a different thing: `active` is '
+      + 'work in progress, which a field has no word for, and `complete` maps to the nested message\'s `success`, '
+      + 'which a progress bar does not say ("Upload complete" is an outcome, not a validation). `active` LEADS because '
+      + 'it is the code default and Figma\'s default member.',
   },
   {
     axis: 'width',
     values: ['auto', 'full'],
     defs: ['button', 'button-destructive', 'button-neutral'],
-    relation: 'sole',
+    relation: 'canonical',
     reason:
-      'Whether the button takes its content\'s width or its container\'s — two values because there is no '
+      'CANONICAL since the banner took the axis name (#2579): the set its `contained | full` is described against. '
+      + 'Whether the button takes its content\'s width or its container\'s — two values because there is no '
       + 'third that is not a layout concern belonging to the container. Named for the BEHAVIOR rather than '
       + 'a measurement, so it survives a brand re-deriving its dimensions.',
+  },
+  {
+    axis: 'width',
+    values: ['contained', 'full'],
+    defs: ['banner'],
+    relation: 'overlapping',
+    reason:
+      'Where a banner sits (#2579, owner decision Q327.3 A): a rounded box inside a section, or square-cornered across the '
+      + 'page. OVERLAPPING, argued: `full` means the same thing in both sets, the container\'s whole width, and that is why '
+      + 'the name is shared rather than a new `placement` (a schema change Q327.3 declined). `contained` replaces `auto` '
+      + 'because a banner never hugs its content; it fills its section either way. `contained` LEADS because it is the '
+      + 'code default and Figma\'s default member (Q347).',
   },
   {
     axis: 'weight',
@@ -728,6 +884,51 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'the writing direction\'s end, so it mirrors in right-to-left text and a `start` can join it with no rename). `center` LEADS because it is the code '
       + 'default on every screen and Figma\'s default member. One def carries it, so there is no other to stand in a '
       + 'relation with. Distinct from `alignment` and `direction`, argued in `VARIANT_AXES`.',
+  },
+  {
+    axis: 'kind',
+    values: ['ancestor', 'current', 'overflow'],
+    defs: ['breadcrumb-item'],
+    relation: 'sole',
+    reason:
+      'Which role a step plays in its trail (#2666, owner call 1 A): a link to a page above, the current page as text, '
+      + 'or the button standing for collapsed steps. `ancestor` LEADS because it is the code default and Figma\'s '
+      + 'default member, the commonest step. One def carries it. Distinct from `type`, argued in `VARIANT_AXES`.',
+  },
+  {
+    axis: 'separator',
+    values: ['chevron', 'slash'],
+    defs: ['breadcrumbs', 'breadcrumb-item'],
+    relation: 'sole',
+    reason:
+      'Which mark stands between the steps of a trail (owner decision Q382 A): a chevron or a slash, one setting for the '
+      + 'whole trail. `chevron` LEADS because it is the code default and Figma\'s default member. Shared by Breadcrumbs and '
+      + 'BreadcrumbItem because the trail passes it to every ancestor (`follow`), so the two must hold one set. The same '
+      + 'two values as `_breadcrumb-separator`\'s `type`, which the item picks by them. Distinct from `indicator` and '
+      + '`style`, argued in `VARIANT_AXES`.',
+  },
+  {
+    axis: 'path',
+    values: ['full', 'parent'],
+    defs: ['breadcrumbs'],
+    relation: 'sole',
+    reason:
+      'How much of the route the navigation shows (#2666, owner calls 1 A and 11 A; named `layout` first and renamed by '
+      + 'Q424 A, because the Button group holds `layout`): the full trail, or one link up to the parent for a small '
+      + 'screen. `full` LEADS because it is the code default and Figma\'s default member. One def carries it. Distinct '
+      + 'from `width` and `footer`, argued in `VARIANT_AXES`.',
+  },
+  {
+    axis: 'intent',
+    values: ['neutral', 'success'],
+    defs: ['toast'],
+    relation: 'sole',
+    reason:
+      'What a toast confirms (#2668, owner call 2 A): a plain confirmation, or a completed action with a circled check. '
+      + 'No danger, warning or info: a message the user must see goes to a banner (call 1 A). `neutral` LEADS because it '
+      + 'is the code default and Figma\'s default member. The axis returns here as a variant axis after #1225 retired it '
+      + 'from the button families (where intent became the component): a toast\'s two intents differ in one glyph and its '
+      + 'ink, not in a family of interactive colors, so they are members of one set. One def carries it.',
   },
   {
     axis: 'footer',

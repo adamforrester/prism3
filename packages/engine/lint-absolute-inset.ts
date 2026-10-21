@@ -223,6 +223,8 @@ const ZERO_OK: Record<string, string> = {
   // `test.ts` holds the ghost offset against a literal, since a ghost member rebound to the field offset would be
   // admitted here.
   'counter.focusRing': `on appearance=outline only: ${FIELD_RING}`,
+  // #2428: the Code cell is a field box too, ringed at the field offset as TextField is.
+  'code-input-cell.focusRing': FIELD_RING,
 };
 
 /**
@@ -239,6 +241,8 @@ const MUST_COVER = [
   'checkbox-control.focusRing', 'radio-control.focusRing', 'switch-control.focusRing',
   'tag.focusRing', 'tab-item.focusRing', 'accordion.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing',
   'counter.focusRing',
+  'code-input-cell.focusRing', '_slider-thumb.focusRing',
+  'pagination-item.focusRing',
 ];
 
 /**
@@ -257,6 +261,8 @@ const MUST_CLEAR_STROKE = [
   'checkbox-control.focusRing', 'radio-control.focusRing', 'switch-control.focusRing',
   'tag.focusRing', 'tab-item.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing',
   'counter.focusRing',
+  'code-input-cell.focusRing', '_slider-thumb.focusRing',
+  'pagination-item.focusRing',
 ];
 
 /**
@@ -410,8 +416,10 @@ const vars = new Map(bs.map((b) => [b, floatVars(b)] as const));
 for (const def of componentDefs) {
   if (!def.anatomy) continue;
   const declared = declaredInsets(def);
-  const sizes = def.variants?.size ?? [];
-  if (declared.length === 0 || sizes.length === 0) continue;
+  // A def with no size axis (#2669, Slider.Thumb) projects at one coordinate per state, `size` undefined; it used
+  // to be skipped here, so its ring was measured by nothing.
+  const sizes: (string | undefined)[] = def.variants?.size ?? [undefined];
+  if (declared.length === 0) continue;
 
   const byPart = new Map(declared.map((d) => [d.part, d] as const));
   const reached = new Set<string>();
@@ -429,7 +437,7 @@ for (const def of componentDefs) {
         continue;   // a coordinate this def does not project; other gates own that
       }
       coords++;
-      const at = `${def.id}/${size}/state=${state ?? 'none'}`;
+      const at = `${def.id}/${size ?? 'one size'}/state=${state ?? 'none'}`;
 
       for (const { node, parent } of sited(plan.root)) {
         const d = byPart.get(node.name);
