@@ -128,6 +128,9 @@ export const TAXONOMY: Taxonomy = {
         // Toast (#2668, owner call 12 A) — its own page under Components, sorted alphabetically (Q260 A). It nests the
         // Button and the Neutral IconButton, which the build places first wherever their pages sort.
         { page: 'Toast', defs: ['toast'] },
+        // Banner (#2579, Q327) — its own page under Components. The proposal named a feedback section; none exists, so the
+        // section is held as an owner item in the PR, as Link's was. It nests Button.Neutral and FlushIconButton.Neutral.
+        { page: 'Banner', defs: ['banner'] },
         // Counter (#2427, owner decision Q283.14 A) — its own page, alphabetical under Components (between Checkbox and
         // Divider). It nests FlushIconButton.Neutral, whose page is under Subcomponents.
         { page: 'Counter', defs: ['counter'] },

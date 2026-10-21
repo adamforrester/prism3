@@ -37,7 +37,7 @@ const name = (id: string): string => catalog.find((e) => e.id === id)?.name ?? i
 console.log('\n1. The two sections and their rows (notes 2–4, calls 11, 12 and 14)');
 // The wireframe's list, typed: [label, the family's sets by component name] (a single set has one).
 const WIRE_COMPONENTS: [string, string[]][] = [
-  ['Accordion', ['Accordion', 'Accordion.Indicator']], ['Badge', ['Badge']], ['Breadcrumbs', ['Breadcrumbs']], ['Buttons', ['Button', 'Button.Destructive', 'Button.Group', 'Button.Neutral']],
+  ['Accordion', ['Accordion', 'Accordion.Indicator']], ['Badge', ['Badge']], ['Banner', ['Banner']], ['Breadcrumbs', ['Breadcrumbs']], ['Buttons', ['Button', 'Button.Destructive', 'Button.Group', 'Button.Neutral']],
   ['Checkbox', ['Checkbox.Control', 'Checkbox.Group', 'Checkbox.Row']], ['Counter', ['Counter']], ['Dialog', ['Dialog']], ['Divider', ['Divider']],
   ['Icon button', ['IconButton', 'IconButton.Destructive', 'IconButton.Neutral']], ['Link', ['Link']], ['List', ['List', 'List.Item']],
   ['Password field', ['PasswordField']], ['Radio', ['Radio.Control', 'Radio.Group', 'Radio.Row']],

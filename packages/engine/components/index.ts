@@ -78,6 +78,7 @@ import { segmentedControlSegment, segmentedControl } from './segmented-control';
 import { link } from './link';
 import { buttonGroup } from './button-group';
 import { dialog } from './dialog';
+import { banner } from './banner';
 import { passwordField } from './password-field';
 import { breadcrumbSeparator } from './breadcrumb-separator';
 import { breadcrumbItem } from './breadcrumb-item';
@@ -91,7 +92,7 @@ import { counter } from './counter';
  *  be a worse call site, not a better one — a lookup that can return `undefined` standing in for a
  *  binding that cannot. The set is for iteration; these are for the assertions that are ABOUT one
  *  component. */
-export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tab, tabs, divider, accordionIndicator, accordion, listItem, list, segmentedControlSegment, segmentedControl, link, buttonGroup, dialog, passwordField, counter, breadcrumbSeparator, breadcrumbItem, breadcrumbs };
+export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tab, tabs, divider, accordionIndicator, accordion, listItem, list, segmentedControlSegment, segmentedControl, link, buttonGroup, dialog, passwordField, counter, breadcrumbSeparator, breadcrumbItem, breadcrumbs, banner };
 
 /** Every component def the engine defines. The one thing a projection should iterate. */
 export const componentDefs: readonly ComponentDef[] = [
@@ -231,4 +232,7 @@ export const componentDefs: readonly ComponentDef[] = [
   // Counter (#2427) — a quantity between a minus and a plus button. Nests `flush-icon-button-neutral` twice,
   // `field-label`, `field-message` and `focus-ring`, all above.
   counter,
+  // `banner` (#2579, owner Q327) — a persistent message in the page flow. Nests the neutral Button (actions) and the
+  // flush neutral icon button (dismiss), so it comes after both.
+  banner,
 ];

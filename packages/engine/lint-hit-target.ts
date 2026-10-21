@@ -259,6 +259,8 @@ const FLUSH_NESTS: Record<string, { parts: readonly string[]; pair?: readonly [s
   'breadcrumb-item': { parts: ['overflow'], why: "the collapsed-steps button, the one code-side target in a breadcrumb step" },
   // #2668 (Q386): the Toast's close is one code-side target beside the action Button, which is a separate target measured under its own name.
   toast: { parts: ['close'], why: "the Toast's close, the one code-side icon target in its controls" },
+  // Owner QA 2026-10-19: the Banner's dismiss is a flush FlushIconButton.Neutral, the one code-side target in the row.
+  banner: { parts: ['dismiss'], why: "the Banner's dismiss, the one code-side target in its row" },
 };
 /** The 44px center-to-center spacing, a literal (Q296 A), not FLOOR_PX: a different rule that happens to share the number. */
 const FLUSH_NEST_SPACING_PX = 44;
@@ -294,6 +296,7 @@ const EXCLUDED: Record<string, string> = {
   'veil': 'a media wash overlay, not an interactive control',
   'segmented-control': 'a segmented control\'s track and label — its tap targets are the nested options, which are gated as segmented-control-segment',
   'divider': 'a 1px rule between groups of content, never interactive and never focusable',
+  'banner': 'a message in the page flow, never itself a pointer target: its actions and dismiss are a Button.Neutral and a FlushIconButton.Neutral, each measured under its own name (#2579)',
   'button-group': 'a layout of one to three Buttons, never itself a pointer target: each Button is measured under its own name (#2661)',
   'dialog': 'a modal panel, never itself a pointer target: its close button and footer buttons are a FlushIconButton.Neutral and Buttons, each measured under its own name (#2609, Q385 A)',
   'toast': 'a status message over the page, never itself a pointer target: its action and close button are a Button and a FlushIconButton.Neutral, each measured under its own name; the small close button\'s 44×44 hit area is extended in code, as IconButton records (#2668)',

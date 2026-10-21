@@ -711,6 +711,19 @@
         "message:BOOLEAN",
         "value:TEXT"
       ]
+    },
+    "banner": {
+      "members": 8,
+      "sha256": "1e40f3634c614b83055c41947a4c2305417cbcbf26798a3e626eaff4937e7485",
+      "properties": [
+        "actions:BOOLEAN",
+        "body:SLOT",
+        "dismiss:BOOLEAN",
+        "icon:BOOLEAN",
+        "second action:BOOLEAN",
+        "title text:TEXT",
+        "title:BOOLEAN"
+      ]
     }
   }
 }
