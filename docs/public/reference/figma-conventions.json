@@ -2112,7 +2112,7 @@
         "kind": "component set",
         "page": "↳ Dialog",
         "section": "Components",
-        "members": 18,
+        "members": 24,
         "variantProperties": [
           {
             "name": "placement",
@@ -2128,6 +2128,7 @@
             "values": [
               "inline",
               "stacked",
+              "fill",
               "none"
             ]
           },
@@ -2617,6 +2618,15 @@
         "source": "apps/plugin/src/furniture-templates.ts#export const SCRIM_COMPONENT"
       }
     ],
+    "aboutFrame": {
+      "rule": "The Cover page carries one \"About this library\" frame beside the file's thumbnail: the engine and token contract versions, the date of the last Update, and what changed in the latest release. Every Update that writes redraws it. It carries shared plugin data under namespace \"prism3\", key \"about\", so a reader can skip it; a copy a designer edited is renamed \"About this library (edited)\" and loses the tag.",
+      "name": "About this library",
+      "tag": {
+        "namespace": "prism3",
+        "key": "about"
+      },
+      "source": "apps/plugin/src/about-frame.ts#export const ABOUT_KEY"
+    },
     "usagePanel": {
       "rule": "A usage panel is a frame drawn beside each component set, right of it, from the component's usage docs, and is never part of the set. It carries shared plugin data under namespace \"prism3\", key \"docPanel\": state \"live\" for the panel the plugin redraws, \"kept\" for one a designer edited, which the plugin keeps aside and never removes.",
       "source": "apps/plugin/src/doc-panel.ts#export const DOC_PANEL_KEY",

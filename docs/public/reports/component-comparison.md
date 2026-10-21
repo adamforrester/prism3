@@ -207,7 +207,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | emphasis | bold, subtle | badge |
 |  | primary, secondary | field-label |
 | expansion | collapsed, expanded | _accordion-indicator, accordion |
-| footer | inline, none, stacked | dialog |
+| footer | fill, inline, none, stacked | dialog |
 | iconPosition | leading, trailing | accordion |
 | indicator | chevron, plus-minus | _accordion-indicator |
 | inset | default, flush | button, button-destructive, button-neutral |

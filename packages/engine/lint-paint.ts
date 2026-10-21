@@ -284,6 +284,10 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
   // the slot it paints.
   'list-item|icon':
     "the key is the `icon` paint slot, not the `type` value `icon`; the two share a spelling. It binds the icon role, `color.icon.primary`, for the icon marker, which only the icon type draws",
+  // Dialog (#2880): the key is the panel's `fill` PAINT SLOT (its surface), whose spelling matches the `footer` value
+  // `fill` (Q492 B). It is the slot that leads, not the axis value: the key binds at every footer.
+  'dialog|fill':
+    "the key is the panel's `fill` paint slot, not the `footer` value `fill`; the two share a spelling. It binds the surface role, `color.foreground.primary`, at every footer",
   'field-message|default.label':
     "status `default` maps to the MUTED body role, not to a role named 'default' — the token tier has no `text.default`, and `secondary` is what a non-status message's ink is",
   'field-message|default.icon':

@@ -410,6 +410,16 @@
     {
       "from": "dialog",
       "to": "button-group",
+      "part": "actionsFill",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "layout": "fill"
+      }
+    },
+    {
+      "from": "dialog",
+      "to": "button-group",
       "part": "actionsInline",
       "partKind": "nest",
       "relation": "nest-fixed",

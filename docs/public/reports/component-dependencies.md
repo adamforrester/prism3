@@ -113,6 +113,7 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | counter | increment | nest | flush-icon-button-neutral | nest-exposed | shape=flush, size=medium, state=rest | size | state |
 | counter | label | nest | field-label | nest-exposed | size=medium, emphasis=secondary, weight=regular, state=rest | size | emphasis, weight |
 | counter | message | nest | field-message | nest-fixed | status=default | — | — |
+| dialog | actionsFill | nest | button-group | nest-fixed | layout=fill | — | — |
 | dialog | actionsInline | nest | button-group | nest-fixed | layout=inline | — | — |
 | dialog | actionsStacked | nest | button-group | nest-fixed | layout=stacked | — | — |
 | dialog | close | nest | flush-icon-button-neutral | nest-fixed | shape=flush, size=medium, state=rest | — | — |

@@ -94,7 +94,7 @@ ok(JSON.stringify(familiesToOpen(catalog, 'neutral')) === JSON.stringify(['compo
 console.log('\n4. What a selection costs, and what it builds first (calls 17, idea 7)');
 const four = ['button', 'button-destructive', 'dialog', 'text-field'];
 const c4 = costOf(catalog, four);
-ok(c4.sets === 4 && c4.variants === 576 + 576 + 18 + 84 && c4.components === 0, `four sets cost ${c4.variants} variants (the wireframe's 1,251, plus Dialog's 3 end members, #2877)`);
+ok(c4.sets === 4 && c4.variants === 576 + 576 + 24 + 84 && c4.components === 0, `four sets cost ${c4.variants} variants (the wireframe's 1,251, plus Dialog's 4 end members, #2877, and 5 fill members, #2880)`);
 const ci = costOf(catalog, ['icon', 'badge']);
 ok(ci.variants === 20 && ci.components === 45, `a set built as separate components counts as components, not variants (Icon: ${ci.components})`);
 ok(JSON.stringify(alsoBuilds(catalog, four)) === JSON.stringify(['Icon', 'Spinner', 'Focus ring', 'Flush icon button Neutral', 'Divider', 'Button Group', 'Field label', 'Field message']),

@@ -56,6 +56,7 @@ import { TAXONOMY, NEST_PREFIX, leafPageName, leafForDef } from '../../apps/plug
 import { LABEL_SET, BACKDROP_COMPONENT, SCRIM_COMPONENT, BRACKET_PROPERTY, LABEL_PLACEMENTS, LABEL_SURFACES, BACKDROP_VARIABLE, SCRIM_VARIABLE } from '../../apps/plugin/src/furniture-templates';
 import { SECTION_HEADER_SET, HEADINGS_SET } from '../../apps/plugin/src/file-components';
 import { FURNITURE_NS, FURNITURE_KEY } from '../../apps/plugin/src/canvas-furniture';
+import { ABOUT_NS, ABOUT_KEY, ABOUT_NAME } from '../../apps/plugin/src/about-frame';
 import { DOC_BLOCK_SET, DOC_BLOCK_TYPES, DOC_BLOCK_SIZES, TOP_PADDING, BOTTOM_PADDING, CAPTION, SPECIMEN } from '../../apps/plugin/src/doc-block';
 import { DOC_PANEL_NS, DOC_PANEL_KEY } from '../../apps/plugin/src/doc-panel';
 
@@ -69,6 +70,7 @@ const SCHEMA_SRC = 'packages/engine/component-schema.ts';
 const TEMPLATES_SRC = 'apps/plugin/src/furniture-templates.ts';
 const FILE_COMPONENTS_SRC = 'apps/plugin/src/file-components.ts';
 const FURNITURE_SRC = 'apps/plugin/src/canvas-furniture.ts';
+const ABOUT_SRC = 'apps/plugin/src/about-frame.ts';
 const DOC_BLOCK_SRC = 'apps/plugin/src/doc-block.ts';
 const DOC_PANEL_SRC = 'apps/plugin/src/doc-panel.ts';
 /** The theme the studio and plugin open with (#1296); `emit-figma.ts` writes it to `out/figma/prism3/`. */
@@ -228,6 +230,12 @@ const furniture = () => ({
     { name: BACKDROP_COMPONENT, binds: `<root>/${BACKDROP_VARIABLE}`, source: src(TEMPLATES_SRC, 'export const BACKDROP_COMPONENT') },
     { name: SCRIM_COMPONENT, binds: `<root>/${SCRIM_VARIABLE}`, source: src(TEMPLATES_SRC, 'export const SCRIM_COMPONENT') },
   ],
+  aboutFrame: {
+    rule: `The Cover page carries one "${ABOUT_NAME}" frame beside the file's thumbnail: the engine and token contract versions, the date of the last Update, and what changed in the latest release. Every Update that writes redraws it. It carries shared plugin data under namespace "${ABOUT_NS}", key "${ABOUT_KEY}", so a reader can skip it; a copy a designer edited is renamed "${ABOUT_NAME} (edited)" and loses the tag.`,
+    name: ABOUT_NAME,
+    tag: { namespace: ABOUT_NS, key: ABOUT_KEY },
+    source: src(ABOUT_SRC, 'export const ABOUT_KEY'),
+  },
   usagePanel: {
     rule: `A usage panel is a frame drawn beside each component set, right of it, from the component's usage docs, and is never part of the set. It carries shared plugin data under namespace "${DOC_PANEL_NS}", key "${DOC_PANEL_KEY}": state "live" for the panel the plugin redraws, "kept" for one a designer edited, which the plugin keeps aside and never removes.`,
     source: src(DOC_PANEL_SRC, 'export const DOC_PANEL_KEY'),

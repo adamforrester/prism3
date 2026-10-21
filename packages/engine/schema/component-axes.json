@@ -302,6 +302,7 @@
   "dialog": {
     "axes": {
       "footer": [
+        "fill",
         "inline",
         "none",
         "stacked"
@@ -318,7 +319,7 @@
         "small"
       ]
     },
-    "members": 18,
+    "members": 24,
     "properties": {
       "body": "SLOT",
       "close": "BOOLEAN",
