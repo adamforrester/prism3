@@ -31422,7 +31422,7 @@
     "dialog": {
       "id": "dialog",
       "name": "Dialog",
-      "members": 15,
+      "members": 20,
       "axes": [
         {
           "name": "placement",
@@ -31440,6 +31440,7 @@
           "values": [
             "inline",
             "stacked",
+            "fill",
             "none"
           ],
           "kind": "variant"
@@ -31460,67 +31461,69 @@
         {
           "part": "panel",
           "kind": "frame",
-          "members": 15
+          "members": 20
         },
         {
           "part": "panel/header",
           "kind": "frame",
-          "members": 15
+          "members": 20
         },
         {
           "part": "panel/header/titleBox",
           "kind": "frame",
-          "members": 15
+          "members": 20
         },
         {
           "part": "panel/header/titleBox/title",
           "kind": "text",
-          "members": 15
+          "members": 20
         },
         {
           "part": "panel/header/titleBox/description",
           "kind": "text",
-          "members": 15
+          "members": 20
         },
         {
           "part": "panel/header/close",
           "kind": "instance",
-          "members": 15
+          "members": 20
         },
         {
           "part": "panel/headerDivider",
           "kind": "instance",
-          "members": 15
+          "members": 20
         },
         {
           "part": "panel/body",
           "kind": "slot",
-          "members": 15
+          "members": 20
         },
         {
           "part": "panel/body/placeholder",
           "kind": "text",
-          "members": 15
+          "members": 20
         },
         {
           "part": "panel/footerDivider",
           "kind": "instance",
-          "members": 10,
+          "members": 15,
           "when": {
             "footer": [
               "inline",
-              "stacked"
+              "stacked",
+              "fill"
             ]
           }
         },
         {
           "part": "panel/footer",
           "kind": "frame",
-          "members": 10,
+          "members": 15,
           "when": {
             "footer": [
               "inline",
-              "stacked"
+              "stacked",
+              "fill"
             ]
           }
         },
@@ -31541,6 +31544,16 @@
           "when": {
             "footer": [
               "stacked"
+            ]
+          }
+        },
+        {
+          "part": "panel/footer/actionsFill",
+          "kind": "instance",
+          "members": 5,
+          "when": {
+            "footer": [
+              "fill"
             ]
           }
         }
@@ -32143,6 +32156,30 @@
         {
           "where": {
             "placement": "center",
+            "footer": "fill"
+          },
+          "parts": [
+            {
+              "part": "panel",
+              "fill": "color.foreground.primary"
+            },
+            {
+              "part": "panel/header/titleBox/title",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "panel/header/titleBox/description",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "panel/body/placeholder",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "placement": "center",
             "footer": "none"
           },
           "parts": [
@@ -32215,6 +32252,30 @@
         {
           "where": {
             "placement": "bottom",
+            "footer": "fill"
+          },
+          "parts": [
+            {
+              "part": "panel",
+              "fill": "color.foreground.primary"
+            },
+            {
+              "part": "panel/header/titleBox/title",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "panel/header/titleBox/description",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "panel/body/placeholder",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "placement": "bottom",
             "footer": "none"
           },
           "parts": [
@@ -32264,6 +32325,30 @@
           "where": {
             "placement": "full",
             "footer": "stacked"
+          },
+          "parts": [
+            {
+              "part": "panel",
+              "fill": "color.foreground.primary"
+            },
+            {
+              "part": "panel/header/titleBox/title",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "panel/header/titleBox/description",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "panel/body/placeholder",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "placement": "full",
+            "footer": "fill"
           },
           "parts": [
             {
@@ -32365,6 +32450,16 @@
           "component": "button-group",
           "variant": {
             "layout": "stacked"
+          },
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "panel/footer/actionsFill",
+          "kind": "instance",
+          "component": "button-group",
+          "variant": {
+            "layout": "fill"
           },
           "follows": [],
           "exposes": []

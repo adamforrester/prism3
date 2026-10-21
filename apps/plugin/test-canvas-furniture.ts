@@ -909,12 +909,12 @@ section('scrim — Dialog: the backdrop is furniture behind each center and bott
     const want = p === 'center' ? { x: b.x - 12, y: b.y - 12, w: b.w + 24, h: b.h + 24 } : { x: b.x, y: b.y - 12, w: b.w, h: b.h + 12 };
     return scrims.some((n) => Number(n.x) === want.x && Number(n.y) === want.y && Number(n.width) === want.w && Number(n.height) === want.h);
   });
-  ok(o.scrims === 12 && scrims.length === 12 && spanned,
-    `scrim/drawn: 12 scrims, one fitted to each of the 9 center and 3 bottom members, none for the 3 full ones (${o.scrims}, ${scrims.length})`);
+  ok(o.scrims === 16 && scrims.length === 16 && spanned,
+    `scrim/drawn: 16 scrims, one fitted to each of the 12 center and 4 bottom members, none for the 4 full ones (${o.scrims}, ${scrims.length})`);
   ok(scrims.every((n) => page.children.indexOf(n) < page.children.indexOf(set)) && !members.some((m) => /scrim/.test(String(m.name))),
     'scrim/behind and outside: every scrim is under the set on the page, and no member of the set is a scrim');
   const fullBoxes = members.filter((m) => valuesOf(String(m.name)).placement === 'full').map((m) => boxOf(set, m));
-  ok(fullBoxes.length === 3 && !scrims.some((n) => fullBoxes.some((b) => Number(n.x) < b.x + b.w && Number(n.x) + Number(n.width) > b.x && Number(n.y) < b.y + b.h && Number(n.y) + Number(n.height) > b.y)),
+  ok(fullBoxes.length === 4 && !scrims.some((n) => fullBoxes.some((b) => Number(n.x) < b.x + b.w && Number(n.x) + Number(n.width) > b.x && Number(n.y) < b.y + b.h && Number(n.y) + Number(n.height) > b.y)),
     'scrim/full: no scrim reaches a full-screen member');
   // A FILE WITHOUT THE TEMPLATE: nothing drawn, the template named once in the run's line.
   const { plans: p2, set: s2 } = await buildOnPage('dialog');
@@ -984,8 +984,8 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
     const due = furnitureDue(fakeTemplates(), set, furnitureLayout(plans), id);
     ok(due.labels + due.backdrops === 0 && due.clear === 0, `rollout/${id} due: nothing due right after the draw (${JSON.stringify(due)})`);
     const surfaces = new Set(members.map((m) => valuesOf(String(m.name)).surface).filter(Boolean));
-    // THE SCRIMS (#2609): Dialog alone, one behind each of its 9 center and 3 bottom members; every other def none.
-    ok(o.scrims === (id === 'dialog' ? 12 : 0), `rollout/${id} scrims: ${id === 'dialog' ? '12, behind the center and bottom members' : 'none'} (${o.scrims})`);
+    // THE SCRIMS (#2609, #2880): Dialog alone, one behind each of its 12 center and 4 bottom members; every other def none.
+    ok(o.scrims === (id === 'dialog' ? 16 : 0), `rollout/${id} scrims: ${id === 'dialog' ? '16, behind the center and bottom members' : 'none'} (${o.scrims})`);
     ok(o.columns + o.rows > 0 && o.skipped.length === 0 && furn.length === o.columns + o.rows + o.backdrops + o.scrims,
       `rollout/${id} drawn: ${o.columns} column and ${o.rows} row labels, nothing skipped (${JSON.stringify(o.skipped)})`);
     ok(BACKDROP.has(id) ? o.backdrops === 1 && surfaces.has('inverse') : o.backdrops === 0,

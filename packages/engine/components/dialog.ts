@@ -11,7 +11,8 @@
  * (Q303.7). `size` (`medium | small | large`, the default first as the proposal's table lists it) sets the center panel's
  * width, 400 / 560 / 720px, as def-level literals with no new token (Q303.5 A). Bottom and full are full width, and full
  * is full height too, so they take no size: `excludeCoordinates` removes their small and large members, and the set is
- * 9 center members + 3 bottom + 3 full = 15. `footer` (`inline | stacked | none`, Q303.6 A) lays out the actions. No
+ * 12 center members + 4 bottom + 4 full = 20. `footer` (`inline | stacked | fill | none`, Q303.6 A, `fill` by Q492 B on
+ * #2880) lays out the actions. No
  * state axis: a dialog has no hover, press or disabled of its own; its close button and footer buttons carry theirs.
  *
  * ── THE BACKDROP IS NOT IN THE COMPONENT (Q303.2 A and Q303.3 A) ─────────────────────────────────────────────────
@@ -64,11 +65,11 @@ export const dialog: ComponentDef = {
     { name: 'title', type: 'node', required: true, description: 'The heading that names the task. It is the dialog\'s accessible name, so make it specific: "Delete this address?", not "Are you sure?". It wraps rather than truncating.' },
     { name: 'description', type: 'node', required: false, description: 'One or two sentences under the title that say what the dialog is for or what an action will do. Linked as the dialog\'s accessible description.' },
     { name: 'children', type: 'node', required: true, description: 'The body content. The body is the only part that scrolls; the header and footer stay in place.' },
-    { name: 'actions', type: 'slot', anyOf: ['button', 'button-destructive', 'button-neutral'], minItems: 1, maxItems: 3, required: false, description: 'The footer buttons, one to three Button elements, laid out by a Button group. Inline, the main action last (Cancel, then Save); stacked, the main action first. Name each by what it does.' },
+    { name: 'actions', type: 'slot', anyOf: ['button', 'button-destructive', 'button-neutral'], minItems: 1, maxItems: 3, required: false, description: 'The footer buttons, one to three Button elements, laid out by a Button group. Inline and fill, the main action last (Cancel, then Save); stacked, the main action first. Fill suits two. Name each by what it does.' },
     { name: 'role', type: "enum: 'dialog' | 'alertdialog'", values: ['dialog', 'alertdialog'], default: 'dialog', required: false, description: 'dialog for a task or form. alertdialog for a confirmation that interrupts and needs an answer: it hides the close button, a backdrop click does not close it, and focus starts on the least destructive action.' },
     { name: 'placement', type: "enum: 'center' | 'bottom' | 'full'", values: ['center', 'bottom', 'full'], default: 'center', required: false, description: 'Where the panel sits. center on every screen by default; bottom (a bottom sheet) and full (full screen) are for small screens. Set per breakpoint; nothing switches automatically.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'The width of a centered panel: 400, 560 or 720px. On a small screen a centered panel is as wide as the screen less its margins. Bottom and full panels are full width and ignore it.' },
-    { name: 'footer', type: "enum: 'inline' | 'stacked' | 'none'", values: ['inline', 'stacked', 'none'], default: 'inline', required: false, description: 'How the actions are laid out. inline is a row at the end edge; stacked is full-width buttons, the main action on top; none is for a dialog whose body holds its own actions.' },
+    { name: 'footer', type: "enum: 'inline' | 'stacked' | 'fill' | 'none'", values: ['inline', 'stacked', 'fill', 'none'], default: 'inline', required: false, description: 'How the actions are laid out. inline is a row at the end edge; stacked is full-width buttons, the main action on top; fill is a row whose buttons share the width equally, the main action last; none is for a dialog whose body holds its own actions.' },
   ],
 
   states: [],
@@ -77,7 +78,7 @@ export const dialog: ComponentDef = {
     // Medium first, so Figma's default member is the default size (the proposal's table, approved by Q303); the code
     // enum above keeps the ladder's order, as the fields' do (`lint-rung-names.ts` DEFAULT_FIRST).
     size: ['medium', 'small', 'large'],
-    footer: ['inline', 'stacked', 'none'],
+    footer: ['inline', 'stacked', 'fill', 'none'],
   },
   axisKinds: { placement: 'authoring', size: 'authoring', footer: 'authoring' },
 
@@ -223,7 +224,7 @@ export const dialog: ComponentDef = {
         kind: 'nest',
         nests: 'divider',
         optional: true,
-        presentWhen: { footer: ['inline', 'stacked'] },
+        presentWhen: { footer: ['inline', 'stacked', 'fill'] },
         nesting: { kind: 'nest-fixed', variant: { orientation: 'horizontal', inset: 'none' } },
         crossAxisFill: true,
         note: 'The rule above the footer, edge to edge. Off by default, and absent when there is no footer.',
@@ -231,18 +232,19 @@ export const dialog: ComponentDef = {
       footer: {
         kind: 'box',
         role: 'presentation',
-        presentWhen: { footer: ['inline', 'stacked'] },
+        presentWhen: { footer: ['inline', 'stacked', 'fill'] },
         layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
         crossAxisFill: true,
         padding: { block: 'pad-none', inlineLabel: 'placement.{placement}.pad' },
-        children: ['actionsInline', 'actionsStacked'],
+        children: ['actionsInline', 'actionsStacked', 'actionsFill'],
         note: 'The footer: the actions, inset to match the header. Absent when there is no footer.',
       },
       // THE ACTIONS ARE A BUTTON GROUP (owner decision Q363, #2661): one nested Button group whose native `items` slot
       // holds the buttons, Cancel then Save inline and Save then Cancel stacked, with Cancel a Button.Neutral when the
       // file has it and the primary Button otherwise (the DIALOG's preference, `nestItemPrefers`, owner decision Q418: the
-      // group on its own keeps the primary outline Button). Two parts, one per footer layout, because a nested instance takes
-      // one coordinate and Dialog's `footer` axis is not the group's `layout` axis.
+      // group on its own keeps the primary outline Button). One part per footer layout, because a nested instance takes
+      // one coordinate and Dialog's `footer` axis is not the group's `layout` axis. Fill (Q492 B, #2880) is the group's
+      // own `layout=fill`: the buttons share the footer's width equally.
       actionsInline: {
         kind: 'nest',
         nests: 'button-group',
@@ -261,6 +263,15 @@ export const dialog: ComponentDef = {
         nestItemPrefers: { cancelStacked: 'button-neutral' },
         note: 'The stacked footer: a Button group, stacked: Save on top, Cancel under it, both full width.',
       },
+      actionsFill: {
+        kind: 'nest',
+        nests: 'button-group',
+        presentWhen: { footer: ['fill'] },
+        crossAxisFill: true,
+        nesting: { kind: 'nest-fixed', variant: { layout: 'fill' } },
+        nestItemPrefers: { cancelFill: 'button-neutral' },
+        note: 'The fill footer: a Button group at fill: Cancel, then Save, each half the width.',
+      },
     },
     codeOnly: [
       'role — `role="dialog"` with `aria-modal="true"`; the native `<dialog>` opened with `showModal()` provides both. `role: "alertdialog"` is a code prop with no Figma property: set it for a confirmation that interrupts and needs an answer. An alertdialog hides the close button (the Figma `close` toggle shows the result), keeps a backdrop click from closing it, and must hold at least one focusable control.',
@@ -271,6 +282,7 @@ export const dialog: ComponentDef = {
       'Escape — closes a dialog, and closes an alertdialog as Cancel. The close button is always reachable by keyboard, so the dialog is never a keyboard trap (SC 2.1.2).',
       'backdrop click — closes a dialog, never an alertdialog. Close only when the press started on the backdrop (`mousedown` target is the dialog element itself), so a text selection dragged out of the panel does not close it. A full-screen dialog has no visible backdrop; Escape and the close button still apply.',
       'scroll lock — the page behind does not scroll while the dialog is open (`html:has(dialog[open]) { overflow: hidden }`, with the scrollbar width added back as padding so the page does not shift). The body scrolls with `overscroll-behavior: contain`, so a scroll at its end does not move the page.',
+      'the fill footer — the footer\'s Button group at `layout=fill`: each button takes an equal share of the width at every width, and a label too long for its share wraps inside its button, so both buttons grow to the same height. Nothing switches to stacked by itself: for long labels, pick `footer: "stacked"`.',
       'only the body scrolls — the header and footer stay put and the body scrolls between them, so a focused field in the body is never hidden under the footer (SC 2.4.11). Show the two dividers only while the body overflows; in Figma they are the `dividers` toggle.',
       'per-breakpoint placement, no automatic switch — `placement` can take a value per breakpoint, but nothing switches on its own: a dialog stays centered on a phone unless the product chooses bottom or full. A centered panel on a small screen is the viewport width less the grid margins. Bottom and full are full width; full is also full height. A bottom sheet is at most 90% of the viewport height, so the page shows above it; a centered panel at most the viewport height less the grid margin top and bottom. Above that, the body scrolls.',
       'the panel padding below 480px — `space.200` instead of `space.300` on a centered panel when the viewport is narrower than 480px. Figma builds the bottom and full members, which are small-screen placements, with `space.200`.',
@@ -327,7 +339,8 @@ export const dialog: ComponentDef = {
     do: [
       'Name the task in the title, and the action in the main button',
       'Keep the close button on a standard dialog',
-      'Put the main action last in an inline footer (Cancel, then Save), and on top when stacked',
+      'Put the main action last in an inline or fill footer (Cancel, then Save), and on top when stacked',
+      'Use the fill footer for two buttons that share the width, such as Clear all and Apply, and stacked for long labels',
       'Let only the body scroll, and keep the footer in view',
       'Return focus to the control that opened the dialog',
     ],
@@ -378,6 +391,7 @@ export const dialog: ComponentDef = {
       'Owner decision Q385 A (2026-10-16, #2806), settling Q377 A on #2609: the close button is a FlushIconButton.Neutral, not an IconButton.Neutral, so a file without the IconButton sets still builds Dialog. It is round at medium, the closest match to the earlier ghost medium IconButton.',
       'Owner QA (2026-10-19): the close button takes the flush shape, not round. The X is the bare glyph with no edge or fill, and its 44×44px hit area is drawn in code.',
       'Owner decision Q363 (2026-10-16, #2661): the footer is a nested Button group whose native slot holds the buttons, replacing two fixed nested Buttons per layout. Cancel reads "Cancel" and Save "Save"; Cancel is Button.Neutral when the file has it and the primary Button otherwise (Q363.8 as amended, Q386), and since Q418 that is the Dialog\'s own preference on its nest of the group, which on its own keeps the primary outline Button; the `actions` prop is a slot of one to three Button elements (Q363.10 A).',
+      'Owner decision Q492 B (2026-10-20, on #2877), built on #2880 with every recommendation accepted (2026-10-21): a fourth footer, `fill`, in the order inline, stacked, fill, none, that nests the Button group at `layout=fill` on every placement. The halves stay equal at every width and a long label wraps inside its button; nothing switches to stacked by itself, and the docs say to pick stacked for long labels. One to three buttons, as the `actions` slot allows, two being the case it is for. The defaults are Cancel then Save, with Cancel a Button.Neutral where the file has it.',
     ],
   },
 };

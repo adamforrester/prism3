@@ -7713,7 +7713,7 @@
           ],
           "minItems": 1,
           "maxItems": 3,
-          "description": "The footer buttons, one to three Button elements, laid out by a Button group. Inline, the main action last (Cancel, then Save); stacked, the main action first. Name each by what it does."
+          "description": "The footer buttons, one to three Button elements, laid out by a Button group. Inline and fill, the main action last (Cancel, then Save); stacked, the main action first. Fill is for two buttons. Name each by what it does."
         },
         {
           "name": "role",
@@ -7752,15 +7752,16 @@
         },
         {
           "name": "footer",
-          "type": "enum: 'inline' | 'stacked' | 'none'",
+          "type": "enum: 'inline' | 'stacked' | 'fill' | 'none'",
           "default": "inline",
           "required": false,
           "values": [
             "inline",
             "stacked",
+            "fill",
             "none"
           ],
-          "description": "How the actions are laid out. inline is a row at the end edge; stacked is full-width buttons, the main action on top; none is for a dialog whose body holds its own actions."
+          "description": "How the actions are laid out. inline is a row at the end edge; stacked is full-width buttons, the main action on top; fill is a row whose buttons share the width equally, the main action last; none is for a dialog whose body holds its own actions."
         }
       ],
       "states": [],
@@ -7785,6 +7786,7 @@
           "values": [
             "inline",
             "stacked",
+            "fill",
             "none"
           ],
           "kind": "authoring"
@@ -7817,7 +7819,8 @@
         "do": [
           "Name the task in the title, and the action in the main button",
           "Keep the close button on a standard dialog",
-          "Put the main action last in an inline footer (Cancel, then Save), and on top when stacked",
+          "Put the main action last in an inline or fill footer (Cancel, then Save), and on top when stacked",
+          "Use the fill footer for two buttons that share the width, such as Clear all and Apply, and stacked for long labels",
           "Let only the body scroll, and keep the footer in view",
           "Return focus to the control that opened the dialog"
         ],

@@ -2112,7 +2112,7 @@
         "kind": "component set",
         "page": "↳ Dialog",
         "section": "Components",
-        "members": 15,
+        "members": 20,
         "variantProperties": [
           {
             "name": "placement",
@@ -2127,6 +2127,7 @@
             "values": [
               "inline",
               "stacked",
+              "fill",
               "none"
             ]
           },

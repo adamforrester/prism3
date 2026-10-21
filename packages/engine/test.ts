@@ -21256,7 +21256,7 @@ arm: {
         const bg = componentDefs.find((d) => d.id === 'button-group')!;
         const dlg = componentDefs.find((d) => d.id === 'dialog')!;
         const bgPlans = figmaAnatomySet(bg, { swapTarget: 'FPO-default-icon' });
-        const dlgPlans = ['inline', 'stacked'].map((f) => figmaAnatomySet(dlg, { swapTarget: 'FPO-default-icon' }).find((p) => (p.coord as Record<string, string>).footer === f)!);
+        const dlgPlans = ['inline', 'stacked', 'fill'].map((f) => figmaAnatomySet(dlg, { swapTarget: 'FPO-default-icon' }).find((p) => (p.coord as Record<string, string>).footer === f)!);
         const OUTLINE = 'appearance=outline, size=medium, surface=default, inset=default, state=rest, leading icon=false, trailing icon=false';
         const FILLED = OUTLINE.replace('outline', 'filled');
         const btnFile = (n: number): StubFileNode[] => [
@@ -21268,6 +21268,7 @@ arm: {
         const nestedItems = {
           'layout=inline': [{ name: 'cancel', set: 'button', member: OUTLINE }, { name: 'save', set: 'button', member: FILLED }],
           'layout=stacked': [{ name: 'saveStacked', set: 'button', member: FILLED }, { name: 'cancelStacked', set: 'button', member: OUTLINE }],
+          'layout=fill': [{ name: 'cancelFill', set: 'button', member: OUTLINE }, { name: 'saveFill', set: 'button', member: FILLED }],
         };
         const CANCEL = ['cancel', 'cancelStacked', 'cancelFill'];
         const SAVE = ['save', 'saveStacked', 'saveFill'];
@@ -21284,7 +21285,7 @@ arm: {
         };
         const footers = (page: StubPage): number => {
           let n = 0;
-          const walk = (x: Record<string, unknown>): void => { if (x.type === 'INSTANCE' && ['actionsInline', 'actionsStacked'].includes(String(x.name))) n++; for (const c of (x.children as Record<string, unknown>[] | undefined) ?? []) walk(c); };
+          const walk = (x: Record<string, unknown>): void => { if (x.type === 'INSTANCE' && ['actionsInline', 'actionsStacked', 'actionsFill'].includes(String(x.name))) n++; for (const c of (x.children as Record<string, unknown>[] | undefined) ?? []) walk(c); };
           for (const c of page.children) walk(c);
           return n;
         };
@@ -21314,12 +21315,10 @@ arm: {
                 Object.assign(owners, ownersOf(page));
                 built += footers(page);
               }
-              const cancels = host === 'dialog' ? ['cancel', 'cancelStacked'] : CANCEL;
-              const saves = host === 'dialog' ? ['save', 'saveStacked'] : SAVE;
-              const wrong = [...cancels.filter((n) => owners[n] !== wantCancel).map((n) => `${n} -> ${owners[n] ?? 'NOT BUILT'}`), ...saves.filter((n) => owners[n] !== 'button/filled').map((n) => `${n} -> ${owners[n] ?? 'NOT BUILT'}`)];
+              const wrong = [...CANCEL.filter((n) => owners[n] !== wantCancel).map((n) => `${n} -> ${owners[n] ?? 'NOT BUILT'}`), ...SAVE.filter((n) => owners[n] !== 'button/filled').map((n) => `${n} -> ${owners[n] ?? 'NOT BUILT'}`)];
               const preferMisses = nestMisses.filter((m) => m.includes('.nestItemPrefer -> ') && m.includes(' prefers button-neutral (in this file, but it did not resolve: nestTarget -> button-neutral (found 2 COMPONENT_SETs') && m.includes('; it keeps its default)'));
               const other = nestMisses.filter((m) => !preferMisses.includes(m));
-              ok(wrong.length === 0 && other.length === 0 && (host === 'dialog' ? built === 2 : true) && (wantPreferMiss ? preferMisses.length === built : preferMisses.length === 0),
+              ok(wrong.length === 0 && other.length === 0 && (host === 'dialog' ? built === 3 : true) && (wantPreferMiss ? preferMisses.length === built : preferMisses.length === 0),
                 `#2661 ${leg} path, ${host === 'dialog' ? 'a Dialog footer' : 'the standalone Button group'} ${c.label}: every Cancel is ${wantCancel} and every Save is button/filled${wantPreferMiss ? ', and each Cancel names the unresolved preference' : ', with no nest miss'} (${wrong.length ? `WRONG: ${wrong.join(' | ')}` : 'all as typed'}; ${other.length ? `misses: ${other.slice(0, 2).join(' | ')}` : `${preferMisses.length} preference misses`})`);
             }
           }
@@ -22012,7 +22011,7 @@ arm: {
             return undefined;
           };
           const bad = dg.filter((pl) => JSON.stringify(findPart(pl.root, 'close')?.nestOverrides) !== '[{"property":"swap icon","type":"INSTANCE_SWAP","value":"icon/close"}]');
-          ok(dg.length === 15 && bad.length === 0, `#2609 dialog: every member's close swaps FlushIconButton.Neutral's 'swap icon' to icon/close (${dg.length} members, ${bad.length} wrong: ${JSON.stringify(bad[0] && findPart(bad[0].root, 'close')?.nestOverrides)})`);
+          ok(dg.length === 20 && bad.length === 0, `#2609 dialog: every member's close swaps FlushIconButton.Neutral's 'swap icon' to icon/close (${dg.length} members, ${bad.length} wrong: ${JSON.stringify(bad[0] && findPart(bad[0].root, 'close')?.nestOverrides)})`);
           ok(Object.keys(dDef.figmaProperties?.swaps ?? {}).length === 0, `#2609 dialog: no swap property on Dialog's Figma surface (${JSON.stringify(dDef.figmaProperties?.swaps)})`);
           ok(dDef.anatomy!.parts.close?.nesting?.kind === 'nest-fixed', `#2609 dialog: the close is not exposed, so the nested button's swap does not surface on Dialog (${dDef.anatomy!.parts.close?.nesting?.kind})`);
           // Q385 A (settling Q377 A): Dialog nests FlushIconButton.Neutral and depends on IconButton.Neutral nowhere, so a
@@ -33132,7 +33131,7 @@ arm: {
 }
 
 // ------------------------------------------------------------------- #2609: the dialog
-// Each owner decision held against a literal (the proposal on #2609 and Q303): the 15 members and their exact axes with
+// Each owner decision held against a literal (the proposal on #2609 and Q303; the fill footer, Q492 B on #2880): the 20 members and their exact axes with
 // no side placement, the width and height per placement, the corners per placement, the padding, the panel's fill and
 // shadow with no scrim anywhere in the set (the backdrop is canvas furniture), the close button and the footers, the
 // three toggles, and the alertdialog's hidden close in the docs. EXPECTED is typed here; ACTUAL is the projected plan,
@@ -33145,19 +33144,21 @@ arm: {
   const all = (n: DN): DN[] => [n, ...n.children.flatMap(all)];
   const coord = (p: AnatomyPlan): Record<string, string> => ({ ...(p.coord as Record<string, string>), ...(p.size ? { size: p.size } : {}) });
 
-  // THE SHAPE (Q303.1, Q303.5, Q303.6): placement center, bottom, full and NO side; size on center only; 15 members.
+  // THE SHAPE (Q303.1, Q303.5, Q303.6, Q492 B): placement center, bottom, full and NO side; size on center only; footer
+  // inline, stacked, fill, none (fill third, Q?2 A on #2880); 20 members.
   const MEMBERS = [
     'placement=center, footer=inline, size=medium', 'placement=center, footer=inline, size=small', 'placement=center, footer=inline, size=large',
     'placement=center, footer=stacked, size=medium', 'placement=center, footer=stacked, size=small', 'placement=center, footer=stacked, size=large',
+    'placement=center, footer=fill, size=medium', 'placement=center, footer=fill, size=small', 'placement=center, footer=fill, size=large',
     'placement=center, footer=none, size=medium', 'placement=center, footer=none, size=small', 'placement=center, footer=none, size=large',
-    'placement=bottom, footer=inline, size=medium', 'placement=bottom, footer=stacked, size=medium', 'placement=bottom, footer=none, size=medium',
-    'placement=full, footer=inline, size=medium', 'placement=full, footer=stacked, size=medium', 'placement=full, footer=none, size=medium',
+    'placement=bottom, footer=inline, size=medium', 'placement=bottom, footer=stacked, size=medium', 'placement=bottom, footer=fill, size=medium', 'placement=bottom, footer=none, size=medium',
+    'placement=full, footer=inline, size=medium', 'placement=full, footer=stacked, size=medium', 'placement=full, footer=fill, size=medium', 'placement=full, footer=none, size=medium',
   ];
-  ok(JSON.stringify(plans.map(planComponentName)) === JSON.stringify(MEMBERS) && figmaVariantCount(dg) === 15,
-    `#2609 dialog: 15 members, center at three sizes and bottom and full at the default size only, in this order (got ${plans.length}: ${plans.map(planComponentName).slice(9).join(' | ')})`);
-  ok(JSON.stringify(dg.variants) === JSON.stringify({ placement: ['center', 'bottom', 'full'], size: ['medium', 'small', 'large'], footer: ['inline', 'stacked', 'none'] })
+  ok(JSON.stringify(plans.map(planComponentName)) === JSON.stringify(MEMBERS) && figmaVariantCount(dg) === 20,
+    `#2609 #2880 dialog: 20 members, center at three sizes and bottom and full at the default size only, each with the four footers, in this order (got ${plans.length}: ${plans.map(planComponentName).slice(12).join(' | ')})`);
+  ok(JSON.stringify(dg.variants) === JSON.stringify({ placement: ['center', 'bottom', 'full'], size: ['medium', 'small', 'large'], footer: ['inline', 'stacked', 'fill', 'none'] })
     && JSON.stringify(dg.figmaProperties?.variantAxes) === JSON.stringify(['placement', 'size', 'footer']),
-    `#2609 dialog axes: placement [center, bottom, full] with no side (Q303.1), size [medium, small, large], footer [inline, stacked, none] (got ${JSON.stringify(dg.variants)})`);
+    `#2609 dialog axes: placement [center, bottom, full] with no side (Q303.1), size [medium, small, large], footer [inline, stacked, fill, none] (Q492 B) (got ${JSON.stringify(dg.variants)})`);
   const sideWords = [...Object.values(dg.variants).flat(), ...(dg.props.find((x) => x.name === 'placement')?.values ?? []), ...Object.keys(dg.tokens), ...Object.keys(dg.anatomy!.parts), ...Object.keys(dg.anatomy!.parts.panel.builtSize!.widths)];
   ok(!sideWords.some((w) => /\bside\b|drawer/.test(String(w))) && !(dg.aliases ?? []).some((a) => /drawer|side/.test(a)),
     '#2609 dialog: no side placement anywhere in the def, and no drawer or side-sheet alias (Q303.1, Q303.12)');
@@ -33203,21 +33204,22 @@ arm: {
     return !(close?.nestTarget === 'flush-icon-button-neutral' && JSON.stringify(close.nestVariant) === JSON.stringify({ shape: 'flush', size: 'medium', state: 'rest' })
       && close.visibleProp === 'close' && close.visible !== false && desc?.visible === false && desc.paints?.fills === 'color/text/secondary' && title?.paints?.fills === 'color/text/primary');
   });
-  ok(hdrBad.length === 0, `#2609 dialog header: the close is FlushIconButton.Neutral flush medium and shown (owner QA 2026-10-19: never round), the description hidden in secondary text, the title in primary text (${hdrBad.length ? `WRONG: ${hdrBad.map(planComponentName).slice(0, 2).join('; ')}` : 'all 15'})`);
+  ok(hdrBad.length === 0, `#2609 dialog header: the close is FlushIconButton.Neutral flush medium and shown (owner QA 2026-10-19: never round), the description hidden in secondary text, the title in primary text (${hdrBad.length ? `WRONG: ${hdrBad.map(planComponentName).slice(0, 2).join('; ')}` : 'all 20'})`);
 
-  // THE FOOTERS (Q303.6 A; Q363, #2661): inline and stacked each nest ONE Button group, at its own layout, stretched
-  // across a footer inset like the header; none has no footer and no rule above it. What the group holds is its own
-  // arm below (#2661 button group).
+  // THE FOOTERS (Q303.6 A; Q363, #2661; Q492 B, #2880): inline, stacked and fill each nest ONE Button group, at the
+  // layout of the same name, alone in a footer stretched across and inset like the header; none has no footer and no
+  // rule above it. What the group holds is its own arm below (#2661 button group).
   const footBad = plans.filter((p) => {
-    const c = coord(p), r = p.root as DN, foot = find(r, 'footer'), inl = find(r, 'actionsInline'), st = find(r, 'actionsStacked'), rule = find(r, 'footerDivider');
+    const c = coord(p), r = p.root as DN, foot = find(r, 'footer'), inl = find(r, 'actionsInline'), st = find(r, 'actionsStacked'), fl = find(r, 'actionsFill'), rule = find(r, 'footerDivider');
     const pad = c.placement === 'center' ? 'space/300' : 'space/200';
     const group = (n: DN | undefined, layout: string) => n?.type === 'NESTED_INSTANCE' && n.nestTarget === 'button-group' && JSON.stringify(n.nestVariant) === JSON.stringify({ layout }) && (n as { layoutAlign?: string }).layoutAlign === 'STRETCH';
     const footOk = !!foot && !!rule && foot.bound?.paddingLeft === pad && foot.bound?.paddingRight === pad && (foot as { layoutAlign?: string }).layoutAlign === 'STRETCH';
-    if (c.footer === 'inline') return !(footOk && group(inl, 'inline') && !st && foot!.children.length === 1);
-    if (c.footer === 'stacked') return !(footOk && group(st, 'stacked') && !inl && foot!.children.length === 1);
-    return !!(foot || inl || st || rule);
+    if (c.footer === 'inline') return !(footOk && group(inl, 'inline') && !st && !fl && foot!.children.length === 1);
+    if (c.footer === 'stacked') return !(footOk && group(st, 'stacked') && !inl && !fl && foot!.children.length === 1);
+    if (c.footer === 'fill') return !(footOk && group(fl, 'fill') && !inl && !st && foot!.children.length === 1);
+    return !!(foot || inl || st || fl || rule);
   });
-  ok(footBad.length === 0, `#2609 #2661 dialog footers: inline nests a Button group at layout=inline and stacked one at layout=stacked, each stretched across a footer padded like the header; none has no footer and no rule (${footBad.length ? `WRONG: ${footBad.map(planComponentName).slice(0, 3).join('; ')}` : 'all 15'})`);
+  ok(footBad.length === 0, `#2609 #2661 dialog footers: inline nests a Button group at layout=inline, stacked one at layout=stacked and fill one at layout=fill, each alone in a footer stretched across and padded like the header; none has no footer and no rule (${footBad.length ? `WRONG: ${footBad.map(planComponentName).slice(0, 3).join('; ')}` : 'all 20'})`);
   ok(!plans.some((p) => all(p.root as DN).some((n) => n.nestTarget === 'button' || n.nestTarget === 'button-neutral')),
     '#2661 dialog: no member nests a Button directly any more; the footer buttons live in the Button group (Q363)');
   const actions = dg.props.find((x) => x.name === 'actions');
@@ -33304,6 +33306,12 @@ arm: {
   ok(items?.type === 'slot' && JSON.stringify(items.anyOf) === JSON.stringify(['button', 'button-destructive', 'button-neutral']) && items.minItems === 1 && items.maxItems === 3 && items.required === true
     && bg.props.find((x) => x.name === 'layout')?.default === 'inline',
     `#2661 button group props: items is a slot of one to three Button elements (Q363.10 A), and layout defaults to inline (got ${JSON.stringify(items)})`);
+  // EQUAL SHARES AT EVERY WIDTH (Q492 B, Q?3 A on #2880): `flex: 1 1 0` alone keeps `min-width: auto`, so a long label
+  // widened its button and wrapped the row. The code line names both declarations, says the label wraps inside its
+  // button, and sends long labels to stacked. Clauses typed here, read against the def's own line (docs/34).
+  const fillLine = (bg.anatomy?.codeOnly ?? []).find((l) => l.startsWith('the inline row')) ?? '';
+  ok(fillLine.includes('`flex: 1 1 0; min-width: 0`') && fillLine.includes('wraps inside its button') && fillLine.includes('pick stacked'),
+    `#2880 button group fill: each button is \`flex: 1 1 0; min-width: 0\`, a long label wraps inside its button, and long labels pick stacked (got ${JSON.stringify(fillLine)})`);
 
   // THE NEW SCHEMA FIELDS ARE REFUSED WHERE THEY CANNOT MEAN ANYTHING.
   const withPart = (part: string, patch: Record<string, unknown>): ComponentDef => ({ ...bg, anatomy: { ...bg.anatomy!, parts: { ...bg.anatomy!.parts, [part]: { ...bg.anatomy!.parts[part], ...patch } as PartDef } } });
