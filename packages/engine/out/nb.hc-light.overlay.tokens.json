@@ -149,6 +149,147 @@
           }
         }
       },
+      "border": {
+        "primary": {
+          "$type": "color",
+          "$value": "{nbds.core.palette.neutral.500}",
+          "$description": "Default border — decorative, ~4.5:1"
+        },
+        "secondary": {
+          "$type": "color",
+          "$value": "{nbds.core.palette.neutral.700}",
+          "$description": "Stronger border / divider — ~9.9:1"
+        },
+        "tertiary": {
+          "$type": "color",
+          "$value": "{nbds.core.palette.neutral.950}",
+          "$description": "Accessible border — the first edge that clears 4.5:1 (SC 1.4.11) on every page and surface tier"
+        },
+        "brand": {
+          "$type": "color",
+          "$value": "{nbds.core.palette.red.500}",
+          "$description": "brand border — SC 1.4.11 non-text contrast, 4.5:1"
+        },
+        "success": {
+          "$type": "color",
+          "$value": "{nbds.core.palette.green.550}",
+          "$description": "success border — SC 1.4.11 non-text contrast, 4.5:1"
+        },
+        "warning": {
+          "$type": "color",
+          "$value": "{nbds.core.palette.amber.600}",
+          "$description": "warning border — SC 1.4.11 non-text contrast, 4.5:1"
+        },
+        "danger": {
+          "$type": "color",
+          "$value": "{nbds.core.palette.red.600}",
+          "$description": "danger border — SC 1.4.11 non-text contrast, 4.5:1"
+        },
+        "info": {
+          "$type": "color",
+          "$value": "{nbds.core.palette.info.500}",
+          "$description": "info border — SC 1.4.11 non-text contrast, 4.5:1"
+        },
+        "focus": {
+          "$type": "color",
+          "$value": "{nbds.core.palette.red.700}",
+          "$description": "Focus ring color (keyboard focus) — SC 1.4.11 non-text contrast, 4.5:1 on background.primary"
+        }
+      },
+      "icon": {
+        "primary": {
+          "$type": "color",
+          "$value": "{nbds.core.palette.black}",
+          "$description": "Primary icon — strongest neutral"
+        },
+        "secondary": {
+          "$type": "color",
+          "$value": "{nbds.core.palette.neutral.700}",
+          "$description": "Secondary icon — 7:1 on background.secondary"
+        },
+        "tertiary": {
+          "$type": "color",
+          "$value": "{nbds.core.palette.neutral.550}",
+          "$description": "Tertiary icon — 4.5:1 on background.secondary"
+        },
+        "brand": {
+          "$type": "color",
+          "$value": "{nbds.core.palette.red.700}",
+          "$description": "brand icon — 7:1 on background.secondary and on its own tint"
+        },
+        "success": {
+          "$type": "color",
+          "$value": "{nbds.core.palette.green.700}",
+          "$description": "success icon — 7:1 on background.secondary and on its own tint"
+        },
+        "warning": {
+          "$type": "color",
+          "$value": "{nbds.core.palette.amber.700}",
+          "$description": "warning icon — 7:1 on background.secondary and on its own tint"
+        },
+        "danger": {
+          "$type": "color",
+          "$value": "{nbds.core.palette.red.700}",
+          "$description": "danger icon — 7:1 on background.secondary and on its own tint"
+        },
+        "info": {
+          "$type": "color",
+          "$value": "{nbds.core.palette.info.700}",
+          "$description": "info icon — 7:1 on background.secondary and on its own tint"
+        },
+        "brand-subtle": {
+          "$type": "color",
+          "$value": "{nbds.core.palette.red.500}",
+          "$description": "Muted brand icon — low-emphasis accent, 4.5:1 on background.primary"
+        },
+        "success-subtle": {
+          "$type": "color",
+          "$value": "{nbds.core.palette.green.500}",
+          "$description": "Muted success icon — low-emphasis accent, 4.5:1 on background.primary"
+        },
+        "warning-subtle": {
+          "$type": "color",
+          "$value": "{nbds.core.palette.amber.500}",
+          "$description": "Muted warning icon — low-emphasis accent, 4.5:1 on background.primary"
+        },
+        "danger-subtle": {
+          "$type": "color",
+          "$value": "{nbds.core.palette.red.500}",
+          "$description": "Muted danger icon — low-emphasis accent, 4.5:1 on background.primary"
+        },
+        "info-subtle": {
+          "$type": "color",
+          "$value": "{nbds.core.palette.info.500}",
+          "$description": "Muted info icon — low-emphasis accent, 4.5:1 on background.primary"
+        },
+        "link": {
+          "default": {
+            "$type": "color",
+            "$value": "{nbds.core.palette.red.700}",
+            "$description": "Link icon — default, 7:1 on background.secondary"
+          },
+          "hover": {
+            "$type": "color",
+            "$value": "{nbds.core.palette.red.800}",
+            "$description": "Link icon — hover, 7:1 on background.secondary"
+          },
+          "visited": {
+            "$type": "color",
+            "$value": "{nbds.core.palette.red.950}",
+            "$description": "Link icon — visited, 7:1 on background.secondary"
+          },
+          "focused": {
+            "$type": "color",
+            "$value": "{nbds.core.palette.red.700}",
+            "$description": "Link icon — focused, 7:1 on background.secondary"
+          },
+          "pressed": {
+            "$type": "color",
+            "$value": "{nbds.core.palette.red.900}",
+            "$description": "Link icon — pressed, 7:1 on background.secondary"
+          }
+        }
+      },
       "interactive": {
         "primary": {
           "fill": {
@@ -343,147 +484,6 @@
               "$value": "{nbds.core.palette.black}",
               "$description": "neutral interactive border — rest (the outline edge; follows the ink)"
             }
-          }
-        }
-      },
-      "border": {
-        "primary": {
-          "$type": "color",
-          "$value": "{nbds.core.palette.neutral.500}",
-          "$description": "Default border — decorative, ~4.5:1"
-        },
-        "secondary": {
-          "$type": "color",
-          "$value": "{nbds.core.palette.neutral.700}",
-          "$description": "Stronger border / divider — ~9.9:1"
-        },
-        "tertiary": {
-          "$type": "color",
-          "$value": "{nbds.core.palette.neutral.950}",
-          "$description": "Accessible border — the first edge that clears 4.5:1 (SC 1.4.11) on every page and surface tier"
-        },
-        "brand": {
-          "$type": "color",
-          "$value": "{nbds.core.palette.red.500}",
-          "$description": "brand border — SC 1.4.11 non-text contrast, 4.5:1"
-        },
-        "success": {
-          "$type": "color",
-          "$value": "{nbds.core.palette.green.550}",
-          "$description": "success border — SC 1.4.11 non-text contrast, 4.5:1"
-        },
-        "warning": {
-          "$type": "color",
-          "$value": "{nbds.core.palette.amber.600}",
-          "$description": "warning border — SC 1.4.11 non-text contrast, 4.5:1"
-        },
-        "danger": {
-          "$type": "color",
-          "$value": "{nbds.core.palette.red.600}",
-          "$description": "danger border — SC 1.4.11 non-text contrast, 4.5:1"
-        },
-        "info": {
-          "$type": "color",
-          "$value": "{nbds.core.palette.info.500}",
-          "$description": "info border — SC 1.4.11 non-text contrast, 4.5:1"
-        },
-        "focus": {
-          "$type": "color",
-          "$value": "{nbds.core.palette.red.700}",
-          "$description": "Focus ring color (keyboard focus) — SC 1.4.11 non-text contrast, 4.5:1 on background.primary"
-        }
-      },
-      "icon": {
-        "primary": {
-          "$type": "color",
-          "$value": "{nbds.core.palette.black}",
-          "$description": "Primary icon — strongest neutral"
-        },
-        "secondary": {
-          "$type": "color",
-          "$value": "{nbds.core.palette.neutral.700}",
-          "$description": "Secondary icon — 7:1 on background.secondary"
-        },
-        "tertiary": {
-          "$type": "color",
-          "$value": "{nbds.core.palette.neutral.550}",
-          "$description": "Tertiary icon — 4.5:1 on background.secondary"
-        },
-        "brand": {
-          "$type": "color",
-          "$value": "{nbds.core.palette.red.700}",
-          "$description": "brand icon — 7:1 on background.secondary and on its own tint"
-        },
-        "success": {
-          "$type": "color",
-          "$value": "{nbds.core.palette.green.700}",
-          "$description": "success icon — 7:1 on background.secondary and on its own tint"
-        },
-        "warning": {
-          "$type": "color",
-          "$value": "{nbds.core.palette.amber.700}",
-          "$description": "warning icon — 7:1 on background.secondary and on its own tint"
-        },
-        "danger": {
-          "$type": "color",
-          "$value": "{nbds.core.palette.red.700}",
-          "$description": "danger icon — 7:1 on background.secondary and on its own tint"
-        },
-        "info": {
-          "$type": "color",
-          "$value": "{nbds.core.palette.info.700}",
-          "$description": "info icon — 7:1 on background.secondary and on its own tint"
-        },
-        "brand-subtle": {
-          "$type": "color",
-          "$value": "{nbds.core.palette.red.500}",
-          "$description": "Muted brand icon — low-emphasis accent, 4.5:1 on background.primary"
-        },
-        "success-subtle": {
-          "$type": "color",
-          "$value": "{nbds.core.palette.green.500}",
-          "$description": "Muted success icon — low-emphasis accent, 4.5:1 on background.primary"
-        },
-        "warning-subtle": {
-          "$type": "color",
-          "$value": "{nbds.core.palette.amber.500}",
-          "$description": "Muted warning icon — low-emphasis accent, 4.5:1 on background.primary"
-        },
-        "danger-subtle": {
-          "$type": "color",
-          "$value": "{nbds.core.palette.red.500}",
-          "$description": "Muted danger icon — low-emphasis accent, 4.5:1 on background.primary"
-        },
-        "info-subtle": {
-          "$type": "color",
-          "$value": "{nbds.core.palette.info.500}",
-          "$description": "Muted info icon — low-emphasis accent, 4.5:1 on background.primary"
-        },
-        "link": {
-          "default": {
-            "$type": "color",
-            "$value": "{nbds.core.palette.red.700}",
-            "$description": "Link icon — default, 7:1 on background.secondary"
-          },
-          "hover": {
-            "$type": "color",
-            "$value": "{nbds.core.palette.red.800}",
-            "$description": "Link icon — hover, 7:1 on background.secondary"
-          },
-          "visited": {
-            "$type": "color",
-            "$value": "{nbds.core.palette.red.950}",
-            "$description": "Link icon — visited, 7:1 on background.secondary"
-          },
-          "focused": {
-            "$type": "color",
-            "$value": "{nbds.core.palette.red.700}",
-            "$description": "Link icon — focused, 7:1 on background.secondary"
-          },
-          "pressed": {
-            "$type": "color",
-            "$value": "{nbds.core.palette.red.900}",
-            "$description": "Link icon — pressed, 7:1 on background.secondary"
           }
         }
       },
@@ -684,6 +684,147 @@
             }
           }
         },
+        "border": {
+          "primary": {
+            "$type": "color",
+            "$value": "{nbds.core.palette.neutral.500}",
+            "$description": "Default border on an inverse surface — decorative, ~4.5:1"
+          },
+          "secondary": {
+            "$type": "color",
+            "$value": "{nbds.core.palette.neutral.250}",
+            "$description": "Stronger border / divider on an inverse surface"
+          },
+          "tertiary": {
+            "$type": "color",
+            "$value": "{nbds.core.palette.neutral.025}",
+            "$description": "Strongest border / divider on an inverse surface — the third rung of the inverse edge ladder"
+          },
+          "brand": {
+            "$type": "color",
+            "$value": "{nbds.core.palette.red.500}",
+            "$description": "brand border on an inverse surface — SC 1.4.11 non-text contrast, 4.5:1"
+          },
+          "success": {
+            "$type": "color",
+            "$value": "{nbds.core.palette.green.450}",
+            "$description": "success border on an inverse surface — SC 1.4.11 non-text contrast, 4.5:1"
+          },
+          "warning": {
+            "$type": "color",
+            "$value": "{nbds.core.palette.amber.500}",
+            "$description": "warning border on an inverse surface — SC 1.4.11 non-text contrast, 4.5:1"
+          },
+          "danger": {
+            "$type": "color",
+            "$value": "{nbds.core.palette.red.500}",
+            "$description": "danger border on an inverse surface — SC 1.4.11 non-text contrast, 4.5:1"
+          },
+          "info": {
+            "$type": "color",
+            "$value": "{nbds.core.palette.info.500}",
+            "$description": "info border on an inverse surface — SC 1.4.11 non-text contrast, 4.5:1"
+          },
+          "focus": {
+            "$type": "color",
+            "$value": "{nbds.core.palette.red.350}",
+            "$description": "Focus ring color on inverse surfaces (keyboard focus) — SC 1.4.11 non-text contrast, 4.5:1 on inverse.background.primary"
+          }
+        },
+        "icon": {
+          "primary": {
+            "$type": "color",
+            "$value": "{nbds.core.palette.white}",
+            "$description": "Primary icon on an inverse surface — strongest neutral"
+          },
+          "secondary": {
+            "$type": "color",
+            "$value": "{nbds.core.palette.neutral.350}",
+            "$description": "Secondary icon on an inverse surface — 7:1 on inverse.background.secondary"
+          },
+          "tertiary": {
+            "$type": "color",
+            "$value": "{nbds.core.palette.neutral.500}",
+            "$description": "Tertiary icon on an inverse surface — 4.5:1 on inverse.background.secondary"
+          },
+          "brand": {
+            "$type": "color",
+            "$value": "{nbds.core.palette.red.300}",
+            "$description": "brand icon — 7:1 on inverse.background.secondary and on its own tint"
+          },
+          "success": {
+            "$type": "color",
+            "$value": "{nbds.core.palette.green.300}",
+            "$description": "success icon — 7:1 on inverse.background.secondary and on its own tint"
+          },
+          "warning": {
+            "$type": "color",
+            "$value": "{nbds.core.palette.amber.300}",
+            "$description": "warning icon — 7:1 on inverse.background.secondary and on its own tint"
+          },
+          "danger": {
+            "$type": "color",
+            "$value": "{nbds.core.palette.red.300}",
+            "$description": "danger icon — 7:1 on inverse.background.secondary and on its own tint"
+          },
+          "info": {
+            "$type": "color",
+            "$value": "{nbds.core.palette.info.300}",
+            "$description": "info icon — 7:1 on inverse.background.secondary and on its own tint"
+          },
+          "brand-subtle": {
+            "$type": "color",
+            "$value": "{nbds.core.palette.red.500}",
+            "$description": "Muted brand icon — low-emphasis accent, 4.5:1 on inverse.background.primary"
+          },
+          "success-subtle": {
+            "$type": "color",
+            "$value": "{nbds.core.palette.green.450}",
+            "$description": "Muted success icon — low-emphasis accent, 4.5:1 on inverse.background.primary"
+          },
+          "warning-subtle": {
+            "$type": "color",
+            "$value": "{nbds.core.palette.amber.500}",
+            "$description": "Muted warning icon — low-emphasis accent, 4.5:1 on inverse.background.primary"
+          },
+          "danger-subtle": {
+            "$type": "color",
+            "$value": "{nbds.core.palette.red.500}",
+            "$description": "Muted danger icon — low-emphasis accent, 4.5:1 on inverse.background.primary"
+          },
+          "info-subtle": {
+            "$type": "color",
+            "$value": "{nbds.core.palette.info.500}",
+            "$description": "Muted info icon — low-emphasis accent, 4.5:1 on inverse.background.primary"
+          },
+          "link": {
+            "default": {
+              "$type": "color",
+              "$value": "{nbds.core.palette.red.350}",
+              "$description": "Link icon on an inverse surface — default, 7:1 on inverse.background.secondary"
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{nbds.core.palette.red.250}",
+              "$description": "Link icon on an inverse surface — hover, 7:1 on inverse.background.secondary"
+            },
+            "visited": {
+              "$type": "color",
+              "$value": "{nbds.core.palette.red.050}",
+              "$description": "Link icon on an inverse surface — visited, 7:1 on inverse.background.secondary"
+            },
+            "focused": {
+              "$type": "color",
+              "$value": "{nbds.core.palette.red.350}",
+              "$description": "Link icon on an inverse surface — focused, 7:1 on inverse.background.secondary"
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{nbds.core.palette.red.150}",
+              "$description": "Link icon on an inverse surface — pressed, 7:1 on inverse.background.secondary"
+            }
+          }
+        },
         "interactive": {
           "primary": {
             "on-fill": {
@@ -827,147 +968,6 @@
                 "$value": "{nbds.core.palette.white}",
                 "$description": "neutral interactive border on an inverse surface — rest (the outline edge; follows the ink)"
               }
-            }
-          }
-        },
-        "border": {
-          "primary": {
-            "$type": "color",
-            "$value": "{nbds.core.palette.neutral.500}",
-            "$description": "Default border on an inverse surface — decorative, ~4.5:1"
-          },
-          "secondary": {
-            "$type": "color",
-            "$value": "{nbds.core.palette.neutral.250}",
-            "$description": "Stronger border / divider on an inverse surface"
-          },
-          "tertiary": {
-            "$type": "color",
-            "$value": "{nbds.core.palette.neutral.025}",
-            "$description": "Strongest border / divider on an inverse surface — the third rung of the inverse edge ladder"
-          },
-          "brand": {
-            "$type": "color",
-            "$value": "{nbds.core.palette.red.500}",
-            "$description": "brand border on an inverse surface — SC 1.4.11 non-text contrast, 4.5:1"
-          },
-          "success": {
-            "$type": "color",
-            "$value": "{nbds.core.palette.green.450}",
-            "$description": "success border on an inverse surface — SC 1.4.11 non-text contrast, 4.5:1"
-          },
-          "warning": {
-            "$type": "color",
-            "$value": "{nbds.core.palette.amber.500}",
-            "$description": "warning border on an inverse surface — SC 1.4.11 non-text contrast, 4.5:1"
-          },
-          "danger": {
-            "$type": "color",
-            "$value": "{nbds.core.palette.red.500}",
-            "$description": "danger border on an inverse surface — SC 1.4.11 non-text contrast, 4.5:1"
-          },
-          "info": {
-            "$type": "color",
-            "$value": "{nbds.core.palette.info.500}",
-            "$description": "info border on an inverse surface — SC 1.4.11 non-text contrast, 4.5:1"
-          },
-          "focus": {
-            "$type": "color",
-            "$value": "{nbds.core.palette.red.350}",
-            "$description": "Focus ring color on inverse surfaces (keyboard focus) — SC 1.4.11 non-text contrast, 4.5:1 on inverse.background.primary"
-          }
-        },
-        "icon": {
-          "primary": {
-            "$type": "color",
-            "$value": "{nbds.core.palette.white}",
-            "$description": "Primary icon on an inverse surface — strongest neutral"
-          },
-          "secondary": {
-            "$type": "color",
-            "$value": "{nbds.core.palette.neutral.350}",
-            "$description": "Secondary icon on an inverse surface — 7:1 on inverse.background.secondary"
-          },
-          "tertiary": {
-            "$type": "color",
-            "$value": "{nbds.core.palette.neutral.500}",
-            "$description": "Tertiary icon on an inverse surface — 4.5:1 on inverse.background.secondary"
-          },
-          "brand": {
-            "$type": "color",
-            "$value": "{nbds.core.palette.red.300}",
-            "$description": "brand icon — 7:1 on inverse.background.secondary and on its own tint"
-          },
-          "success": {
-            "$type": "color",
-            "$value": "{nbds.core.palette.green.300}",
-            "$description": "success icon — 7:1 on inverse.background.secondary and on its own tint"
-          },
-          "warning": {
-            "$type": "color",
-            "$value": "{nbds.core.palette.amber.300}",
-            "$description": "warning icon — 7:1 on inverse.background.secondary and on its own tint"
-          },
-          "danger": {
-            "$type": "color",
-            "$value": "{nbds.core.palette.red.300}",
-            "$description": "danger icon — 7:1 on inverse.background.secondary and on its own tint"
-          },
-          "info": {
-            "$type": "color",
-            "$value": "{nbds.core.palette.info.300}",
-            "$description": "info icon — 7:1 on inverse.background.secondary and on its own tint"
-          },
-          "brand-subtle": {
-            "$type": "color",
-            "$value": "{nbds.core.palette.red.500}",
-            "$description": "Muted brand icon — low-emphasis accent, 4.5:1 on inverse.background.primary"
-          },
-          "success-subtle": {
-            "$type": "color",
-            "$value": "{nbds.core.palette.green.450}",
-            "$description": "Muted success icon — low-emphasis accent, 4.5:1 on inverse.background.primary"
-          },
-          "warning-subtle": {
-            "$type": "color",
-            "$value": "{nbds.core.palette.amber.500}",
-            "$description": "Muted warning icon — low-emphasis accent, 4.5:1 on inverse.background.primary"
-          },
-          "danger-subtle": {
-            "$type": "color",
-            "$value": "{nbds.core.palette.red.500}",
-            "$description": "Muted danger icon — low-emphasis accent, 4.5:1 on inverse.background.primary"
-          },
-          "info-subtle": {
-            "$type": "color",
-            "$value": "{nbds.core.palette.info.500}",
-            "$description": "Muted info icon — low-emphasis accent, 4.5:1 on inverse.background.primary"
-          },
-          "link": {
-            "default": {
-              "$type": "color",
-              "$value": "{nbds.core.palette.red.350}",
-              "$description": "Link icon on an inverse surface — default, 7:1 on inverse.background.secondary"
-            },
-            "hover": {
-              "$type": "color",
-              "$value": "{nbds.core.palette.red.250}",
-              "$description": "Link icon on an inverse surface — hover, 7:1 on inverse.background.secondary"
-            },
-            "visited": {
-              "$type": "color",
-              "$value": "{nbds.core.palette.red.050}",
-              "$description": "Link icon on an inverse surface — visited, 7:1 on inverse.background.secondary"
-            },
-            "focused": {
-              "$type": "color",
-              "$value": "{nbds.core.palette.red.350}",
-              "$description": "Link icon on an inverse surface — focused, 7:1 on inverse.background.secondary"
-            },
-            "pressed": {
-              "$type": "color",
-              "$value": "{nbds.core.palette.red.150}",
-              "$description": "Link icon on an inverse surface — pressed, 7:1 on inverse.background.secondary"
             }
           }
         },

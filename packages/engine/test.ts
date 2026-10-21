@@ -31650,8 +31650,9 @@ arm: {
 // fails HERE, by name, which is the only way this arm can be about the decision rather than about the
 // code that carries it. The list is the owner's, and its reasoning lives with the constant, not here.
 {
+  // The owner's panel order (#2900): border and icon before interactive. #2860's interactive-first reading was wrong.
   const EXPECTED_FAMILY_ORDER = [
-    'background', 'foreground', 'text', 'interactive', 'border', 'icon',
+    'background', 'foreground', 'text', 'border', 'icon', 'interactive',
     'disabled', 'scrim', 'veil', 'field', 'inverse',
   ];
 

@@ -9,10 +9,12 @@
  * them — primary → secondary → tertiary, then the statuses, then their `-subtle` tints, then the `on-` inks —
  * and states in interaction order, rest → hover → pressed → focused → selected.
  *
- *   - Families read outward: the ground (`background`, `foreground`), what sits on it (`text`), what responds
- *     (`interactive`), the drawn edge (`border`), the glyph ink (`icon`), the disabled set, the two washes
+ *   - Families read outward: the ground (`background`, `foreground`), what sits on it (`text`), the drawn edge
+ *     (`border`), the glyph ink (`icon`), what responds (`interactive`), the disabled set, the two washes
  *     (`scrim`, `veil`), the one composite family (`field`) — and `inverse` LAST, because it re-states the
- *     families above for a flipped ground, so anywhere but the end splits each family into two places.
+ *     families above for a flipped ground, so anywhere but the end splits each family into two places. The
+ *     order is the owner's hand-set panel in the reference master (#2900); #2860 had `interactive` before
+ *     `border` and `icon`, which was a misreading of that panel.
  *   - Statuses are ALWAYS the engine's `SEMANTICS` order (brand, success, warning, danger, info), in every
  *     family, `-subtle` and `on-` forms included. The list is imported, never restated (#2836, Q453 A).
  *   - `inverse.<family>` mirrors `<family>` exactly: the rank is taken from the path with `inverse.` stripped,
@@ -35,7 +37,7 @@ import { SEMANTICS } from './modes';
 
 /** The families in the order they read; `inverse` is last and is handled as a prefix, see `colorRoleRank`. */
 export const COLOR_FAMILY_ORDER = [
-  'background', 'foreground', 'text', 'interactive', 'border', 'icon',
+  'background', 'foreground', 'text', 'border', 'icon', 'interactive',
   'disabled', 'scrim', 'veil', 'field', 'inverse',
 ] as const;
 
