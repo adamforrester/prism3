@@ -28,10 +28,10 @@ Shown on the default member: appearance `ghost`, size `medium`, shape `square`, 
 
 | Axis | Values | Changes | Description |
 | --- | --- | --- | --- |
-| `appearance` | `ghost`, `filled`, `outline` | at runtime | Default ghost — icon-only actions usually sit in toolbars, not as filled CTAs. The tertiary appearance is `ghost` (a borderless, fill-less icon action) because an icon-only control has no text; Button keeps `text`. Emphasis is the appearance axis; the color is the component (IconButton / IconButton.Destructive / IconButton.Neutral). |
+| `appearance` | `ghost`, `filled`, `outline` | at runtime | Default ghost — icon-only actions usually sit in toolbars, not as filled calls to action. The third appearance is ghost (a borderless, fill-less icon action) because an icon-only control has no text; Button keeps text. Emphasis is the appearance axis; the color is the component (IconButton / IconButton.Destructive / IconButton.Neutral). |
 | `size` | `medium`, `small`, `large` | once, when authored | Square control; height drives both dimensions. |
-| `shape` | `square`, `circular` | once, when authored | The corner silhouette, and geometry only. `square` is the button's normal rounded rectangle (`radius.md`); `circular` is full-round (`radius.round`), the tap target read as a disc. No color, state, or token difference between the two — only the corner radius — which is why it is a clean 2-value axis and not a component split (each intent, by contrast, carries a different `interactive.<family>` binding). Both stay square in dimension (height drives width); shape rounds the corners, it does not change the box. |
-| `surface` | `default`, `inverse` | once, when authored | The ground the icon-button sits on, following Button 1:1. `default` for a normal page; `inverse` for a dark or brand-filled band, where the control binds its `color.inverse.*` counterparts so fill, ink, border, overlay and the disabled treatment keep contrast against the flipped surface. An inverse icon-button inherits the shared white-inverse model with the icon as the ink: white fill + a per-family icon-ink derived to clear AA on white. A host that cannot know its ground picks `default`, and the designer sets `inverse` on the instance — the same answer the nested focus ring gives. |
+| `shape` | `square`, `circular` | once, when authored | The corner silhouette, and geometry only. square is the button's normal rounded rectangle (radius.md); circular is full-round (radius.round), the tap target read as a disc. No color, state, or token difference between the two — only the corner radius — which is why it is a 2-value option and not a separate component (each intent, by contrast, binds its own interactive color family). Both stay square in dimension (height drives width); shape rounds the corners, it does not change the box. |
+| `surface` | `default`, `inverse` | once, when authored | The ground the icon button sits on, as on Button. default for a normal page; inverse for a dark or brand-filled band, where the control binds its color.inverse counterparts so fill, ink, border, overlay and the disabled treatment keep contrast against the flipped surface. An inverse icon button takes the shared white-inverse treatment with the icon as the ink: a white fill and a per-family icon ink derived to clear AA on white. A host that cannot know its ground picks default, and the designer sets inverse on the instance — the same answer the nested focus ring gives. |
 
 ### States
 
@@ -104,13 +104,560 @@ The accessible name is a verb naming the action ("Close", "More actions"), never
 | `aria-label` | string | — | yes | Required accessible name (there is no visible text). A verb naming the action ("Close", "More actions"). Enforced at the type level — a missing name is a compile error, not a runtime warning; that requirement is the reason IconButton is a separate component. |
 | `onClick` | function | — | no | Action handler. Suppressed while isPending or isInactive. |
 | `type` | enum: 'button' \| 'submit' \| 'reset' | `button` | no | Defaults to 'button', as Button does — the platform default is 'submit', so an icon button inside a form (a clear-field ×, a row delete) would submit it. Set 'submit' explicitly. |
-| `appearance` | enum: 'filled' \| 'outline' \| 'ghost' | `ghost` | no | Default ghost — icon-only actions usually sit in toolbars, not as filled CTAs. The tertiary appearance is `ghost` (a borderless, fill-less icon action) because an icon-only control has no text; Button keeps `text`. Emphasis is the appearance axis; the color is the component (IconButton / IconButton.Destructive / IconButton.Neutral). |
+| `appearance` | enum: 'filled' \| 'outline' \| 'ghost' | `ghost` | no | Default ghost — icon-only actions usually sit in toolbars, not as filled calls to action. The third appearance is ghost (a borderless, fill-less icon action) because an icon-only control has no text; Button keeps text. Emphasis is the appearance axis; the color is the component (IconButton / IconButton.Destructive / IconButton.Neutral). |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | Square control; height drives both dimensions. |
-| `shape` | enum: 'square' \| 'circular' | `square` | no | The corner silhouette, and geometry only. `square` is the button's normal rounded rectangle (`radius.md`); `circular` is full-round (`radius.round`), the tap target read as a disc. No color, state, or token difference between the two — only the corner radius — which is why it is a clean 2-value axis and not a component split (each intent, by contrast, carries a different `interactive.<family>` binding). Both stay square in dimension (height drives width); shape rounds the corners, it does not change the box. |
-| `surface` | enum: 'default' \| 'inverse' | `default` | no | The ground the icon-button sits on, following Button 1:1. `default` for a normal page; `inverse` for a dark or brand-filled band, where the control binds its `color.inverse.*` counterparts so fill, ink, border, overlay and the disabled treatment keep contrast against the flipped surface. An inverse icon-button inherits the shared white-inverse model with the icon as the ink: white fill + a per-family icon-ink derived to clear AA on white. A host that cannot know its ground picks `default`, and the designer sets `inverse` on the instance — the same answer the nested focus ring gives. |
+| `shape` | enum: 'square' \| 'circular' | `square` | no | The corner silhouette, and geometry only. square is the button's normal rounded rectangle (radius.md); circular is full-round (radius.round), the tap target read as a disc. No color, state, or token difference between the two — only the corner radius — which is why it is a 2-value option and not a separate component (each intent, by contrast, binds its own interactive color family). Both stay square in dimension (height drives width); shape rounds the corners, it does not change the box. |
+| `surface` | enum: 'default' \| 'inverse' | `default` | no | The ground the icon button sits on, as on Button. default for a normal page; inverse for a dark or brand-filled band, where the control binds its color.inverse counterparts so fill, ink, border, overlay and the disabled treatment keep contrast against the flipped surface. An inverse icon button takes the shared white-inverse treatment with the icon as the ink: a white fill and a per-family icon ink derived to clear AA on white. A host that cannot know its ground picks default, and the designer sets inverse on the instance — the same answer the nested focus ring gives. |
 | `isPending` | boolean | `false` | no | Swaps the icon for a spinner after a short delay, keeps focus (aria-disabled, not native disabled), suppresses re-fire, and announces busy through a polite live region. The square keeps its size. |
 | `isInactive` | boolean | `false` | no | Focusable disabled for relevant-but-blocked actions — retains tab order and surfaces the blockage reason on focus. |
 | `disabled` | boolean | `false` | no | Native disabled, reserved for controls irrelevant to the view; removes it from the tab order and the a11y tree. |
+
+## Specs
+
+Generated from the plan that builds the design-file component: 216 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `container` | frame | every member |
+| `container/icon` | swap | state=rest or hover or pressed or focus-visible or disabled |
+| `container/spinner` | swap | state=pending |
+| `container/focusRing` | instance | state=focus-visible |
+
+Code-only states, with no design-file member: `inactive`.
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by `size`.
+
+**size=medium**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | `size.md.height` | `size.md.height` | — | — |
+| `container/icon` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+| `container/spinner` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+
+**size=small**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | `size.sm.height` | `size.sm.height` | — | — |
+| `container/icon` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/spinner` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=large**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | `size.lg.height` | `size.lg.height` | — | — |
+| `container/icon` | — | — | `icon.size.lg` | `icon.size.lg` | — | — |
+| `container/spinner` | — | — | `icon.size.lg` | `icon.size.lg` | — | — |
+
+### Color
+
+Keyed by `appearance`, `shape`, `surface`, `state`.
+
+**appearance=ghost, shape=square, surface=default, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/icon` | — | — | — | `color.interactive.destructive.icon.rest` |
+
+**appearance=ghost, shape=square, surface=default, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.destructive.overlay.hover` | — | — | — |
+| `container/icon` | — | — | — | `color.interactive.destructive.icon.hover` |
+
+**appearance=ghost, shape=square, surface=default, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.destructive.overlay.pressed` | — | — | — |
+| `container/icon` | — | — | — | `color.interactive.destructive.icon.pressed` |
+
+**appearance=ghost, shape=square, surface=default, state=pending**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/spinner` | — | — | — | `color.interactive.destructive.icon.rest` |
+
+**appearance=ghost, shape=square, surface=default, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/icon` | — | — | — | `color.interactive.destructive.icon.rest` |
+
+**appearance=ghost, shape=square, surface=default, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/icon` | — | — | — | `color.disabled.icon` |
+
+**appearance=ghost, shape=square, surface=inverse, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.icon.rest` |
+
+**appearance=ghost, shape=square, surface=inverse, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.destructive.overlay.hover` | — | — | — |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.icon.hover` |
+
+**appearance=ghost, shape=square, surface=inverse, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.destructive.overlay.pressed` | — | — | — |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.icon.pressed` |
+
+**appearance=ghost, shape=square, surface=inverse, state=pending**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/spinner` | — | — | — | `color.inverse.interactive.destructive.icon.rest` |
+
+**appearance=ghost, shape=square, surface=inverse, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.icon.rest` |
+
+**appearance=ghost, shape=square, surface=inverse, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/icon` | — | — | — | `color.inverse.disabled.icon` |
+
+**appearance=ghost, shape=circular, surface=default, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/icon` | — | — | — | `color.interactive.destructive.icon.rest` |
+
+**appearance=ghost, shape=circular, surface=default, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.destructive.overlay.hover` | — | — | — |
+| `container/icon` | — | — | — | `color.interactive.destructive.icon.hover` |
+
+**appearance=ghost, shape=circular, surface=default, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.destructive.overlay.pressed` | — | — | — |
+| `container/icon` | — | — | — | `color.interactive.destructive.icon.pressed` |
+
+**appearance=ghost, shape=circular, surface=default, state=pending**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/spinner` | — | — | — | `color.interactive.destructive.icon.rest` |
+
+**appearance=ghost, shape=circular, surface=default, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/icon` | — | — | — | `color.interactive.destructive.icon.rest` |
+
+**appearance=ghost, shape=circular, surface=default, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/icon` | — | — | — | `color.disabled.icon` |
+
+**appearance=ghost, shape=circular, surface=inverse, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.icon.rest` |
+
+**appearance=ghost, shape=circular, surface=inverse, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.destructive.overlay.hover` | — | — | — |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.icon.hover` |
+
+**appearance=ghost, shape=circular, surface=inverse, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.destructive.overlay.pressed` | — | — | — |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.icon.pressed` |
+
+**appearance=ghost, shape=circular, surface=inverse, state=pending**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/spinner` | — | — | — | `color.inverse.interactive.destructive.icon.rest` |
+
+**appearance=ghost, shape=circular, surface=inverse, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.icon.rest` |
+
+**appearance=ghost, shape=circular, surface=inverse, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/icon` | — | — | — | `color.inverse.disabled.icon` |
+
+**appearance=filled, shape=square, surface=default, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.destructive.fill.rest` | — | — | — |
+| `container/icon` | — | — | — | `color.interactive.destructive.on-fill` |
+
+**appearance=filled, shape=square, surface=default, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.destructive.fill.hover` | — | — | — |
+| `container/icon` | — | — | — | `color.interactive.destructive.on-fill` |
+
+**appearance=filled, shape=square, surface=default, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.destructive.fill.pressed` | — | — | — |
+| `container/icon` | — | — | — | `color.interactive.destructive.on-fill` |
+
+**appearance=filled, shape=square, surface=default, state=pending**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.destructive.fill.rest` | — | — | — |
+| `container/spinner` | — | — | — | `color.interactive.destructive.on-fill` |
+
+**appearance=filled, shape=square, surface=default, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.destructive.fill.rest` | — | — | — |
+| `container/icon` | — | — | — | `color.interactive.destructive.on-fill` |
+
+**appearance=filled, shape=square, surface=default, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.disabled.fill` | — | — | — |
+| `container/icon` | — | — | — | `color.disabled.icon` |
+
+**appearance=filled, shape=square, surface=inverse, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.destructive.fill.rest` | — | — | — |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.on-fill` |
+
+**appearance=filled, shape=square, surface=inverse, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.destructive.fill.hover` | — | — | — |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.on-fill` |
+
+**appearance=filled, shape=square, surface=inverse, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.destructive.fill.pressed` | — | — | — |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.on-fill` |
+
+**appearance=filled, shape=square, surface=inverse, state=pending**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.destructive.fill.rest` | — | — | — |
+| `container/spinner` | — | — | — | `color.inverse.interactive.destructive.on-fill` |
+
+**appearance=filled, shape=square, surface=inverse, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.destructive.fill.rest` | — | — | — |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.on-fill` |
+
+**appearance=filled, shape=square, surface=inverse, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.disabled.fill` | — | — | — |
+| `container/icon` | — | — | — | `color.inverse.disabled.icon` |
+
+**appearance=filled, shape=circular, surface=default, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.destructive.fill.rest` | — | — | — |
+| `container/icon` | — | — | — | `color.interactive.destructive.on-fill` |
+
+**appearance=filled, shape=circular, surface=default, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.destructive.fill.hover` | — | — | — |
+| `container/icon` | — | — | — | `color.interactive.destructive.on-fill` |
+
+**appearance=filled, shape=circular, surface=default, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.destructive.fill.pressed` | — | — | — |
+| `container/icon` | — | — | — | `color.interactive.destructive.on-fill` |
+
+**appearance=filled, shape=circular, surface=default, state=pending**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.destructive.fill.rest` | — | — | — |
+| `container/spinner` | — | — | — | `color.interactive.destructive.on-fill` |
+
+**appearance=filled, shape=circular, surface=default, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.destructive.fill.rest` | — | — | — |
+| `container/icon` | — | — | — | `color.interactive.destructive.on-fill` |
+
+**appearance=filled, shape=circular, surface=default, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.disabled.fill` | — | — | — |
+| `container/icon` | — | — | — | `color.disabled.icon` |
+
+**appearance=filled, shape=circular, surface=inverse, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.destructive.fill.rest` | — | — | — |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.on-fill` |
+
+**appearance=filled, shape=circular, surface=inverse, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.destructive.fill.hover` | — | — | — |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.on-fill` |
+
+**appearance=filled, shape=circular, surface=inverse, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.destructive.fill.pressed` | — | — | — |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.on-fill` |
+
+**appearance=filled, shape=circular, surface=inverse, state=pending**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.destructive.fill.rest` | — | — | — |
+| `container/spinner` | — | — | — | `color.inverse.interactive.destructive.on-fill` |
+
+**appearance=filled, shape=circular, surface=inverse, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.destructive.fill.rest` | — | — | — |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.on-fill` |
+
+**appearance=filled, shape=circular, surface=inverse, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.disabled.fill` | — | — | — |
+| `container/icon` | — | — | — | `color.inverse.disabled.icon` |
+
+**appearance=outline, shape=square, surface=default, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.interactive.destructive.border.rest` | — | — |
+| `container/icon` | — | — | — | `color.interactive.destructive.icon.rest` |
+
+**appearance=outline, shape=square, surface=default, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.destructive.overlay.hover` | `color.interactive.destructive.border.hover` | — | — |
+| `container/icon` | — | — | — | `color.interactive.destructive.icon.hover` |
+
+**appearance=outline, shape=square, surface=default, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.destructive.overlay.pressed` | `color.interactive.destructive.border.pressed` | — | — |
+| `container/icon` | — | — | — | `color.interactive.destructive.icon.pressed` |
+
+**appearance=outline, shape=square, surface=default, state=pending**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.interactive.destructive.border.rest` | — | — |
+| `container/spinner` | — | — | — | `color.interactive.destructive.icon.rest` |
+
+**appearance=outline, shape=square, surface=default, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.interactive.destructive.border.rest` | — | — |
+| `container/icon` | — | — | — | `color.interactive.destructive.icon.rest` |
+
+**appearance=outline, shape=square, surface=default, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.disabled.border` | — | — |
+| `container/icon` | — | — | — | `color.disabled.icon` |
+
+**appearance=outline, shape=square, surface=inverse, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.inverse.interactive.destructive.border.rest` | — | — |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.icon.rest` |
+
+**appearance=outline, shape=square, surface=inverse, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.destructive.overlay.hover` | `color.inverse.interactive.destructive.border.hover` | — | — |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.icon.hover` |
+
+**appearance=outline, shape=square, surface=inverse, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.destructive.overlay.pressed` | `color.inverse.interactive.destructive.border.pressed` | — | — |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.icon.pressed` |
+
+**appearance=outline, shape=square, surface=inverse, state=pending**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.inverse.interactive.destructive.border.rest` | — | — |
+| `container/spinner` | — | — | — | `color.inverse.interactive.destructive.icon.rest` |
+
+**appearance=outline, shape=square, surface=inverse, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.inverse.interactive.destructive.border.rest` | — | — |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.icon.rest` |
+
+**appearance=outline, shape=square, surface=inverse, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.inverse.disabled.border` | — | — |
+| `container/icon` | — | — | — | `color.inverse.disabled.icon` |
+
+**appearance=outline, shape=circular, surface=default, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.interactive.destructive.border.rest` | — | — |
+| `container/icon` | — | — | — | `color.interactive.destructive.icon.rest` |
+
+**appearance=outline, shape=circular, surface=default, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.destructive.overlay.hover` | `color.interactive.destructive.border.hover` | — | — |
+| `container/icon` | — | — | — | `color.interactive.destructive.icon.hover` |
+
+**appearance=outline, shape=circular, surface=default, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.destructive.overlay.pressed` | `color.interactive.destructive.border.pressed` | — | — |
+| `container/icon` | — | — | — | `color.interactive.destructive.icon.pressed` |
+
+**appearance=outline, shape=circular, surface=default, state=pending**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.interactive.destructive.border.rest` | — | — |
+| `container/spinner` | — | — | — | `color.interactive.destructive.icon.rest` |
+
+**appearance=outline, shape=circular, surface=default, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.interactive.destructive.border.rest` | — | — |
+| `container/icon` | — | — | — | `color.interactive.destructive.icon.rest` |
+
+**appearance=outline, shape=circular, surface=default, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.disabled.border` | — | — |
+| `container/icon` | — | — | — | `color.disabled.icon` |
+
+**appearance=outline, shape=circular, surface=inverse, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.inverse.interactive.destructive.border.rest` | — | — |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.icon.rest` |
+
+**appearance=outline, shape=circular, surface=inverse, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.destructive.overlay.hover` | `color.inverse.interactive.destructive.border.hover` | — | — |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.icon.hover` |
+
+**appearance=outline, shape=circular, surface=inverse, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.destructive.overlay.pressed` | `color.inverse.interactive.destructive.border.pressed` | — | — |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.icon.pressed` |
+
+**appearance=outline, shape=circular, surface=inverse, state=pending**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.inverse.interactive.destructive.border.rest` | — | — |
+| `container/spinner` | — | — | — | `color.inverse.interactive.destructive.icon.rest` |
+
+**appearance=outline, shape=circular, surface=inverse, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.inverse.interactive.destructive.border.rest` | — | — |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.icon.rest` |
+
+**appearance=outline, shape=circular, surface=inverse, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.inverse.disabled.border` | — | — |
+| `container/icon` | — | — | — | `color.inverse.disabled.icon` |
+
+### Nesting and properties
+
+- `container/icon` is a swap slot, property `swap icon`
+- `container/spinner` holds `spinner/medium`, `spinner/small`, `spinner/large`, by member; it is not a swap
+- `container/focusRing` nests `focus-ring` at `surface=default`; follows `surface`
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `swap icon` | instance swap | — |
 
 ---
 

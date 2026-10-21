@@ -10,11 +10,11 @@
 
 ## Overview
 
-A control for choosing exactly one from a small set of mutually exclusive, all-visible options — 2 to about 7, where seeing them all aids the decision. This def is the labeled OPTION: it nests a Radio.Control (the outlined circle and its inner selection dot) and carries the option label, with the whole row as the hit target. The group is a separate component and is MANDATORY, because a lone radio is meaningless: it owns the shared name that enforces exclusivity, the single selected value, the single tab stop, and all validation. Selection is derived from the group, never held here. Not any-number selection (Checkbox.Row), not an immediate on/off (Switch.Row), not the same choice collapsed (Select) or in a compact skin (SegmentedControl).
+A control for choosing exactly one from a small set of mutually exclusive, all-visible options — 2 to about 7, where seeing them all aids the decision. Radio.Row is the labeled option: it nests a Radio.Control (the outlined circle and its inner selection dot) and carries the option label, with the whole row as the hit target. The group is a separate component and is mandatory, because a lone radio is meaningless: it owns the shared name that enforces exclusivity, the single selected value, the single tab stop, and all validation. Selection is derived from the group, never held here. Not any-number selection (Checkbox.Row), not an immediate on/off (Switch.Row), not the same choice collapsed (Select) or in a compact skin (SegmentedControl).
 
 - **Purpose:** Present one option within a mutually exclusive set via a labeled row that nests the circle-and-dot control, deriving its selected state from the group that owns the value.
 - **Use when:** Exactly one of 2 to about 7 all-visible options where seeing them together aids the decision, and the choice is committed on submit rather than applied instantly. Always as a child of a Radio.Group.
-- **Avoid when:** Any number of options may be selected (Checkbox.Row — never model an exclusive choice as several checkboxes), the change applies immediately (Switch.Row — and never two radios for a true/false toggle), the set runs past about 7 or vertical space is tight (Select, the collapsed alternative), the choice is a dense frequent view-switch (SegmentedControl, which carries a different accessibility model), or it is really an action (Button). Also do not reach for this def when what is wanted is the group: use Radio.Group (`radio-group`), which owns the name, the value and the validation.
+- **Avoid when:** Any number of options may be selected (Checkbox.Row — never model an exclusive choice as several checkboxes), the change applies immediately (Switch.Row — and never two radios for a true/false toggle), the set runs past about 7 or vertical space is tight (Select, the collapsed alternative), the choice is a dense frequent view-switch (SegmentedControl, which carries a different accessibility model), or it is really an action (Button). Also do not reach for Radio.Row when what is wanted is the group: use Radio.Group (radio-group), which owns the name, the value and the validation.
 
 ## Anatomy
 
@@ -27,7 +27,7 @@ Shown on the default member: size `medium`, status `default`.
 
 | Axis | Values | Changes | Description |
 | --- | --- | --- | --- |
-| `size` | `medium`, `small`, `large` | once, when authored | Scales the row — the control-to-label gap, the row's minimum height, the label's type — and is passed through to the nested Radio.Control by `follow`, scaling the circle's diameter and the inner dot's. |
+| `size` | `medium`, `small`, `large` | once, when authored | Scales the row — the control-to-label gap, the row's minimum height, the label's type — and is passed through to the nested Radio.Control by follow, scaling the circle's diameter and the inner dot's. |
 | `status` | `default`, `error` | at runtime | — |
 
 ### States
@@ -36,7 +36,7 @@ Shown on the default member: size `medium`, status `default`.
 
 ## Usage guidelines
 
-Use a group of these for exactly one of 2 to about 7 mutually exclusive, all-visible options where seeing them all aids the decision — a shipping method, a plan tier. Always inside a Radio.Group, never alone: the group owns the shared name, the value and the validation. Prefer vertical orientation, which scans better and lets long labels wrap safely; reserve horizontal for a few short options and space them so no label associates with the wrong control. Compose FieldMessage at the GROUP rather than per option.
+Use a group of these for exactly one of 2 to about 7 mutually exclusive, all-visible options where seeing them all aids the decision — a shipping method, a plan tier. Always inside a Radio.Group, never alone: the group owns the shared name, the value and the validation. Prefer vertical orientation, which scans better and lets long labels wrap safely; reserve horizontal for a few short options and space them so no label associates with the wrong control. Compose FieldMessage at the group rather than per option.
 
 ### Do
 
@@ -58,18 +58,18 @@ Use a group of these for exactly one of 2 to about 7 mutually exclusive, all-vis
 
 ## Accessibility
 
-- **Keyboard:** The keyboard model is the opposite of Checkbox.Row's. The group is a single tab stop: Tab moves into the group and the next Tab moves out, while arrow keys move between options, wrapping at the ends, with Home/End jumping to first/last. Space selects the focused option. Implement with ROVING TABINDEX — one radio at tabindex="0" (the checked one, or the first if none), siblings at -1, with arrow handling moving focus, the 0, and calling .focus() — rather than aria-activedescendant, which is more verbose and prone to synchronization bugs. Making each radio its own tab stop is the most common radio accessibility failure. Native inputs sharing a name give the grouping, the exclusivity and this keyboard model for free.
-- **Focus:** :focus-visible ring on the CONTROL, offset, at least 3:1, keyboard traversal only — and CIRCULAR, because the control is full-round and the ring is derived concentrically from it. The ring must appear INSTANTLY — fading it lags rapid arrow navigation. Selection FOLLOWS FOCUS by default: arrowing moves focus and selects, which is native \<input type="radio"> behavior and the APG default, and the catalog keeps native semantics rather than reimplementing them. The known cost is that a screen-reader user exploring the options fires onChange at every step; the answer is to keep radio onChange CHEAP — a radio selection must never trigger navigation or expensive work — and to decouple selection from focus only as a deliberate, documented exception. On focus restore into the group (a validation error, a legend click), focus the CHECKED radio rather than blindly the first; if none is checked, the first non-disabled option.
+- **Keyboard:** The keyboard model is the opposite of Checkbox.Row's. The group is a single tab stop: Tab moves into the group and the next Tab moves out, while arrow keys move between options, wrapping at the ends, with Home/End jumping to first/last. Space selects the focused option. Implement with roving tabindex — one radio at tabindex="0" (the checked one, or the first if none), siblings at -1, with arrow handling moving focus, the 0, and calling .focus() — rather than aria-activedescendant, which is more verbose and prone to synchronization bugs. Making each radio its own tab stop is the most common radio accessibility failure. Native inputs sharing a name give the grouping, the exclusivity and this keyboard model for free.
+- **Focus:** :focus-visible ring on the control, offset, at least 3:1, keyboard traversal only — and circular, because the control is full-round and the ring is derived concentrically from it. The ring must appear instantly — fading it lags rapid arrow navigation. Selection follows focus by default: arrowing moves focus and selects, which is native \<input type="radio"> behavior and the APG default, and the catalog keeps native semantics rather than reimplementing them. The known cost is that a screen-reader user exploring the options fires onChange at every step; the answer is to keep radio onChange cheap — a radio selection must never trigger navigation or expensive work — and to decouple selection from focus only as a deliberate, documented exception. On focus restore into the group (a validation error, a legend click), focus the checked radio rather than blindly the first; if none is checked, the first non-disabled option.
 - **Screen readers:** radio (native \<input type="radio"> sharing a name), with aria-checked; the group carries role="radiogroup"
 
-  Prefer the styled native input — appearance: none plus a pseudo-element or SVG keeps role, checked state, exclusivity and the roving-tabindex keyboard model for free. For the container, role="radiogroup" plus aria-labelledby is the default over fieldset/legend, for the same CSS-layout reason as Checkbox.Row. THE GROUP LABEL IS MANDATORY FOR MEANING: without it assistive tech announces an orphaned "radio button, 1 of 3" with no indication of what is being chosen. Group error and required associate to the group and announce once; an option never owns its own error — its `status` is the group's, passed down, and the danger ring it draws is never the only signal. On mobile (Jetpack Compose) put the click target on the ROW rather than the dot — selectableGroup() on the parent, selectable(role = Role.RadioButton) on the row, and onClick = null on the RadioButton itself — or the control double-fires and assistive tech announces twice.
+  Prefer the styled native input — appearance: none plus a pseudo-element or SVG keeps role, checked state, exclusivity and the roving-tabindex keyboard model for free. For the container, role="radiogroup" plus aria-labelledby is the default over fieldset/legend, for the same CSS-layout reason as Checkbox.Row. The group label is mandatory for meaning: without it assistive tech announces an orphaned "radio button, 1 of 3" with no indication of what is being chosen. Group error and required associate to the group and announce once; an option never owns its own error — its status is the group's, passed down, and the danger ring it draws is never the only signal. On mobile (Jetpack Compose) put the click target on the row rather than the dot — selectableGroup() on the parent, selectable(role = Role.RadioButton) on the row, and onClick = null on the RadioButton itself — or the control double-fires and assistive tech announces twice.
 
 ### WCAG
 
 - 1.3.1 Info and Relationships (the group structure is the meaning)
 - 4.1.2 Name Role Value (role and checked)
 - 3.3.2 Labels or Instructions (the option label)
-- 3.3.1 Error Identification / 3.3.3 Error Suggestion — the group's, announced once and never per option. The group sets `status=error` on every option (the danger ring) and shows its message under them.
+- 3.3.1 Error Identification / 3.3.3 Error Suggestion — the group's, announced once and never per option. The group sets status=error on every option (the danger ring) and shows its message under them.
 - 1.4.11 Non-text Contrast / 2.4.13 Focus Appearance (control boundary and focus indicator)
 - 2.5.8 Target Size — the intent: the whole row is the target, as in Checkbox.Row. The default (medium) row is held to a 44px minimum height on comfortable and spacious density; small and compact rows are not measured.
 
@@ -83,9 +83,9 @@ Use a group of these for exactly one of 2 to about 7 mutually exclusive, all-vis
 
 Option labels are parallel and brief; the detail that distinguishes them goes in the description. The group label names the decision. Errors are group-level and say what to do.
 
-- **Labels:** Parallel, mutually exclusive, scannable — the same grammatical shape across the set, brief, sentence case, no terminal punctuation, and no overlap that would let two options both apply. Long labels wrap rather than ellipsis-truncate, with the control centered within the first line-box so it stays on the first line rather than floating mid-paragraph. The GROUP label names the decision or asks the question ("Shipping method", "How should we contact you?") and may be visually hidden when an enclosing labeled section already frames it, but must stay programmatically present.
-- **Errors:** Group-level and specific — "Select a preferred contact method", never "Invalid input" (SC 3.3.3). Never per-option: the group sets `status=error` on every option and shows the message once, under them.
-- **Empty states:** A group starts EMPTY by default, so no option carries a pre-selected state — the practice forces a deliberate choice and pre-selects only where a genuinely safe recommended default exists. A radio cannot be deselected, so once chosen the group cannot return to empty: an optional group must therefore carry an explicit "None" or "N/A" option, or a stray click permanently pollutes the data with no way back. If a "None" option would corrupt the data model, the choice belongs in a clearable Select instead.
+- **Labels:** Parallel, mutually exclusive, scannable — the same grammatical shape across the set, brief, sentence case, no terminal punctuation, and no overlap that would let two options both apply. Long labels wrap rather than ellipsis-truncate, with the control centered within the first line-box so it stays on the first line rather than floating mid-paragraph. The group label names the decision or asks the question ("Shipping method", "How should we contact you?") and may be visually hidden when an enclosing labeled section already frames it, but must stay programmatically present.
+- **Errors:** Group-level and specific — "Select a preferred contact method", never "Invalid input" (SC 3.3.3). Never per-option: the group sets status=error on every option and shows the message once, under them.
+- **Empty states:** A group starts empty by default, so no option carries a pre-selected state — the practice forces a deliberate choice and pre-selects only where a genuinely safe recommended default exists. A radio cannot be deselected, so once chosen the group cannot return to empty: an optional group must therefore carry an explicit "None" or "N/A" option, or a stray click permanently pollutes the data with no way back. If a "None" option would corrupt the data model, the choice belongs in a clearable Select instead.
 
 ## Related components
 
@@ -104,13 +104,90 @@ Option labels are parallel and brief; the detail that distinguishes them goes in
 
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
-| `value` | string | — | yes | Required, where Checkbox.Row's is optional. This is the option's identity within its group, not a string that happens to be submitted. Selection is derived from it: `checked = (group.value === props.value)`. The option never holds a boolean of its own. |
-| `label` | node | — | no | Rich content, inline-end of the control, and part of the hit target — the Checkbox.Row label model, inherited. Option labels are parallel, mutually exclusive and brief: the same grammatical shape across the set, with no overlap that would make two options both apply. Long labels WRAP rather than truncate, with the control centered within the first line-box so it stays on the first line. Per-option detail or price belongs in `description`, not in the label. |
+| `value` | string | — | yes | Required, where Checkbox.Row's is optional. This is the option's identity within its group, not a string that happens to be submitted. Selection is derived from it: checked = (group.value === props.value). The option never holds a boolean of its own. |
+| `label` | node | — | no | Rich content, inline-end of the control, and part of the hit target — the Checkbox.Row label model, inherited. Option labels are parallel, mutually exclusive and brief: the same grammatical shape across the set, with no overlap that would make two options both apply. Long labels wrap rather than truncate, with the control centered within the first line-box so it stays on the first line. Per-option detail or price belongs in description, not in the label. |
 | `description` | node | — | no | Per-option helper beneath the label, describedby-wired. This is where the detail that makes an option distinguishable goes — the price, the delivery estimate, the caveat. |
-| `validation` | enum: 'default' \| 'error' | `default` | no | Set by the Radio group, never by one radio alone: the group passes its validation status to every option, and `error` draws the danger ring on each. A consumer sets `validation` on the group, not here. |
+| `validation` | enum: 'default' \| 'error' | `default` | no | Set by the Radio group, never by one radio alone: the group passes its validation status to every option, and error draws the danger ring on each. A consumer sets validation on the group, not here. |
 | `disabled` | boolean | `false` | no | Native disabled: removed from the tab order, not submitted, contrast-exempt. Disables the whole row: the nested control takes its disabled skin and the label dims. Reserve for an option that does not apply in the current state. |
-| `readOnly` | boolean | `false` | no | Restated for the caveat Checkbox.Row carries: `<input type="radio">` has NO working `readonly`, only `disabled`, so a genuinely read-only option needs `aria-readonly` plus a prevented change, or is better rendered as static text. Usually set on every option of a group at once. Decide which explicitly; the default of doing neither is a control that looks interactive and silently is not. |
-| `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | Scales the row — the control-to-label gap, the row's minimum height, the label's type — and is passed through to the nested Radio.Control by `follow`, scaling the circle's diameter and the inner dot's. |
+| `readOnly` | boolean | `false` | no | Restated for the caveat Checkbox.Row carries: \<input type="radio"> has no working readonly, only disabled, so a genuinely read-only option needs aria-readonly plus a prevented change, or is better rendered as static text. Usually set on every option of a group at once. Decide which explicitly; the default of doing neither is a control that looks interactive and silently is not. |
+| `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | Scales the row — the control-to-label gap, the row's minimum height, the label's type — and is passed through to the nested Radio.Control by follow, scaling the circle's diameter and the inner dot's. |
+
+## Specs
+
+Generated from the plan that builds the design-file component: 6 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `row` | frame | every member |
+| `row/controlBox` | frame | every member |
+| `row/controlBox/control` | instance | every member |
+| `row/label` | text | every member |
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by `size`.
+
+**size=medium**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `row` | `space.150` / `space.0` / `space.150` / `space.0` | `space.100` | — | — | 120px (literal) | build width 320px (literal) |
+| `row/controlBox` | — | — | `control.size.md.line-box` | — | — | — |
+| `row/controlBox/control` | — | — | `control.size.md.height` | `control.size.md.height` | — | — |
+
+**size=small**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `row` | `space.150` / `space.0` / `space.150` / `space.0` | `space.100` | — | — | 120px (literal) | build width 320px (literal) |
+| `row/controlBox` | — | — | `control.size.sm.line-box` | — | — | — |
+| `row/controlBox/control` | — | — | `control.size.sm.height` | `control.size.sm.height` | — | — |
+
+**size=large**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `row` | `space.150` / `space.0` / `space.150` / `space.0` | `space.150` | — | — | 120px (literal) | build width 320px (literal) |
+| `row/controlBox` | — | — | `control.size.lg.line-box` | — | — | — |
+| `row/controlBox/control` | — | — | `control.size.lg.height` | `control.size.lg.height` | — | — |
+
+### Type
+
+Keyed by `size`.
+
+| Members | Part | Text style |
+| --- | --- | --- |
+| size=medium | `row/label` | `type.body.md.default` |
+| size=small | `row/label` | `type.body.sm.default` |
+| size=large | `row/label` | `type.body.lg.default` |
+
+### Color
+
+Keyed by `status`.
+
+**status=default**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `row/label` | — | — | `color.text.primary` | — |
+
+**status=error**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `row/label` | — | — | `color.text.primary` | — |
+
+### Nesting and properties
+
+- `row/controlBox/control` nests `radio-control` at `selection=unchecked, state=rest, status=default`; follows `size`, `status`; exposes `selection`, `state`
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `label` | text | `Radio option` |
 
 ---
 

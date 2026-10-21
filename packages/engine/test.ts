@@ -97,6 +97,7 @@ const planIconComps = (n: { nestTarget?: string; children?: readonly unknown[] }
 ];
 
 import { Session as InspectorSession } from 'node:inspector/promises';
+import { componentSpec } from './component-specs';
 
 // ---- #1268 EVERY ASSERTION SITE RAN — a section going quiet is a failure, not a smaller pass ----------
 //
@@ -6979,7 +6980,7 @@ arm: {
   ok(labelProp?.default === 'Loading' && /role="status"/.test(labelProp.description) && /aria-hidden="true"/.test(labelProp.description),
     `spinner 2026-09-27: the label defaults to "Loading" on the role="status" wrapper, and a host opts out with aria-hidden="true" (${JSON.stringify(labelProp?.default)})`);
   const aria = spinner.accessibility.aria ?? '';
-  ok(/aria-live="polite"/.test(aria) && /Never `aria-valuenow` and never `role="progressbar"`/.test(aria) && /aria-hidden="true"/.test(aria),
+  ok(/aria-live="polite"/.test(aria) && /Never aria-valuenow and never role="progressbar"/.test(aria) && /aria-hidden="true"/.test(aria),
     'spinner 2026-09-27: accessibility.aria states the polite status, the host opt-out, and the no-value contract (never aria-valuenow, never role=progressbar)');
   ok(/aria-hidden="true"/.test(codeOnly) && /role="status"/.test(codeOnly) && /"Loading" by default/.test(codeOnly),
     'spinner 2026-09-27: the code rule is a role="status" wrapper named "Loading" by default, hidden by an announcing host with aria-hidden="true"');
@@ -14560,6 +14561,91 @@ arm: {
       }
     }
     ok(fieldsRead > 1000 && families.size >= 4, `component-prose: the scan is live (${fieldsRead} shipped strings, ${families.size} dotted families) — a walk that read nothing would pass every arm above`);
+  }
+
+  // COMPONENT REGISTER (#2714, #1717). The build-component skill's "What ships" rules, which were held by hand
+  // until here: in the fields a reader acts on, no code spans, no all-caps emphasis, no "brief §N" or "§N",
+  // no "def" as a reader-facing word, no issue numbers. The older defs broke all five and the newer ones none,
+  // so a reader moving between pages met two registers. Scope is the seven consumer fields the audit counted
+  // (summary, description, prop descriptions, accessibility, content, docs, and ai's three decision fields).
+  // Motion and part notes ship too and are not in scope yet (#2773).
+  //
+  // The all-caps arm reads against a HAND-WRITTEN acronym list, each entry a term a reader meets as written,
+  // and the list must be live: an acronym no shipped field uses any more fails as stale, so the list cannot
+  // grow into a hole. The child-only arm holds the two whenToUse templates and resolves the host each names
+  // against the anatomy of the OTHER defs, so a template naming a host that does not nest the part fails.
+  {
+    const ACRONYMS = new Set(['AA', 'AAA', 'AI', 'APG', 'API', 'ARIA', 'CSS', 'DOM', 'FAQ', 'FAQs', 'HIG', 'HTML', 'IME', 'JSX', 'KB', 'MB', 'OK', 'OS', 'PDF', 'PIN', 'RTL', 'SC', 'SKUs', 'SMS', 'SVG', 'UI', 'URL', 'USWDS', 'UTF', 'W3C', 'WCAG', 'ZWJ']);
+    const consumerStrings = (d: ComponentDef): [string, string][] => {
+      const out: [string, string][] = [];
+      const walk = (path: string, v: unknown): void => {
+        if (typeof v === 'string') out.push([path, v]);
+        else if (Array.isArray(v)) v.forEach((x, i) => walk(`${path}[${i}]`, x));
+        else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) walk(`${path}.${k}`, x);
+      };
+      walk('summary', d.summary); walk('description', d.description);
+      for (const p of d.props ?? []) walk(`props.${p.name}`, p.description);
+      walk('accessibility', d.accessibility); walk('content', d.content); walk('docs', d.docs);
+      walk('ai.primaryPurpose', d.ai.primaryPurpose); walk('ai.whenToUse', d.ai.whenToUse); walk('ai.avoidWhen', d.ai.avoidWhen);
+      return out;
+    };
+    // HELD, NOT FIXED (owner Q362, on #2714). Button's implementation `do` items (the five brand settings'
+    // builds, the text-button underline, the two hover lines, the flush hit-area pair) keep the wording they
+    // have on main, code spans and all, until the owner decides where those lines belong. A hand-written
+    // exemption keyed by def and path, not a loosened pattern: every other string in these three defs is still
+    // scanned. It is live: each exempt path must still carry a hit, so the exemption cannot outlive the hold.
+    const HELD_Q362: Record<string, number[]> = Object.fromEntries(
+      ['button', 'button-destructive', 'button-neutral'].map((id) => [id, [3, 4, 5, 6, 7, 8, 9, 10, 11, 12]]));
+    const heldHits = new Set<string>(); const heldKeys: string[] = [];
+    for (const [id, idx] of Object.entries(HELD_Q362)) for (const i of idx) heldKeys.push(`${id} docs.do[${i}]`);
+    const bad: string[] = []; const used = new Set<string>(); let read = 0;
+    for (const d of componentDefs) {
+      const strs = consumerStrings(d);
+      for (const [path, text] of strs) {
+        read++;
+        const hits: string[] = [];
+        if (/`/.test(text)) hits.push(`${d.id} ${path}: a code span`);
+        for (const w of text.match(/\b[A-Z][A-Z0-9]*[A-Z]s?\b/g) ?? []) { if (ACRONYMS.has(w)) used.add(w); else hits.push(`${d.id} ${path}: all-caps "${w}"`); }
+        if (/brief §|§\s?\d/.test(text)) hits.push(`${d.id} ${path}: a brief section reference`);
+        if (/\bdefs?\b/i.test(text)) hits.push(`${d.id} ${path}: "def" as a reader-facing word`);
+        if (/#\d{3,}/.test(text)) hits.push(`${d.id} ${path}: an issue number`);
+        if (heldKeys.includes(`${d.id} ${path}`)) { if (hits.length) heldHits.add(`${d.id} ${path}`); continue; }
+        bad.push(...hits);
+      }
+      if (!['summary', 'description', 'docs.usage', 'ai.whenToUse'].every((f) => strs.some(([p]) => p === f))) bad.push(`${d.id}: the walk missed a required field`);
+      // One arm per field family, wherever the def has the field, so the walk reaching all seven does not
+      // ride on which acronyms happen to live in which field.
+      const families: [string, boolean][] = [
+        ['props.', (d.props ?? []).some((p) => p.description)], ['accessibility.', !!d.accessibility], ['content.', !!d.content],
+        ['docs.', !!d.docs], ['ai.primaryPurpose', !!d.ai.primaryPurpose], ['ai.avoidWhen', !!d.ai.avoidWhen],
+      ];
+      for (const [prefix, has] of families) if (has && !strs.some(([p]) => p.startsWith(prefix))) bad.push(`${d.id}: the walk missed ${prefix.replace(/\.$/, '')}`);
+    }
+    const heldDead = heldKeys.filter((k) => !heldHits.has(k));
+    ok(heldDead.length === 0, `#2714 component register: every held Button do item (owner Q362) still carries a hit, so the exemption has not outlived the hold${heldDead.length ? ` — dead: ${heldDead.join(', ')}` : ''}`);
+    ok(bad.length === 0, `#2714 component register: no code spans, all-caps emphasis, brief references, "def" or issue numbers in a component's consumer fields${bad.length ? ` — ${bad.length}: ${bad.slice(0, 12).join(' | ')}` : ''}`);
+    const stale = [...ACRONYMS].filter((a) => !used.has(a));
+    ok(stale.length === 0, `#2714 component register: every allowed acronym is still used by a shipped field (stale: ${stale.join(', ') || 'none'})`);
+    ok(read > 1000, `#2714 component register: the scan is live (${read} consumer strings)`);
+
+    const nests = (host: ComponentDef, id: string) => Object.values(host.anatomy?.parts ?? {}).some((p) => (p as { nests?: string }).nests === id);
+    const byName = (n: string) => componentDefs.find((h) => h.name === n);
+    const childBad: string[] = []; let templated = 0;
+    for (const d of componentDefs) {
+      const w = d.ai.whenToUse;
+      const only = /^Only as a child of (?:an? |the )?([A-Z][A-Za-z.]*)\. Generate (?:an? |the )?([A-Z][A-Za-z.]*), which \S/.exec(w);
+      const inside = /^Inside ([A-Z][A-Za-z.]*), the common case\. On its own only \S/.exec(w);
+      if (only) {
+        templated++;
+        const host = byName(only[1]);
+        if (only[1] !== only[2] || !host || !nests(host, d.id)) childBad.push(`${d.id}: "Only as a child of ${only[1]}" names no registered host that nests it`);
+      } else if (inside) {
+        templated++;
+        const host = byName(inside[1]);
+        if (!host || !nests(host, d.id)) childBad.push(`${d.id}: "Inside ${inside[1]}" names no registered host that nests it`);
+      } else if (/^(Only|Never|Nested by|Inside)\b/.test(w)) childBad.push(`${d.id}: a child-only whenToUse off the two templates: "${w.slice(0, 60)}"`);
+    }
+    ok(childBad.length === 0 && templated >= 7, `#2714 child-only whenToUse: "Only as a child of <Host>. Generate <Host>, which …" or "Inside <Host>, the common case. On its own only …", naming a host that nests the part (${templated} templated)${childBad.length ? ` — ${childBad.join(' | ')}` : ''}`);
   }
 
   // (#1134) THE BOUNDED INVERSE SET BINDS ONLY COVERED ROLES — the enforceable half of the gap rule, one
@@ -31551,8 +31637,8 @@ arm: {
 // code that carries it. The list is the owner's, and its reasoning lives with the constant, not here.
 {
   const EXPECTED_FAMILY_ORDER = [
-    'background', 'foreground', 'text', 'icon', 'interactive',
-    'disabled', 'border', 'scrim', 'veil', 'field', 'inverse',
+    'background', 'foreground', 'text', 'interactive', 'border', 'icon',
+    'disabled', 'scrim', 'veil', 'field', 'inverse',
   ];
 
   // ---- (a) THE DTCG SIDE: object-key insertion order, read off the committed tree ----
@@ -31619,6 +31705,118 @@ arm: {
   })();
   ok(figmaFamilies.join('|') === dtcgFamilies.join('|') && figmaFamilies.length > 1,
     `#1150: the Figma creation order and the DTCG key order are the SAME sequence — one list drives both materialisations (figma: ${figmaFamilies.join(' → ')} | dtcg: ${dtcgFamilies.join(' → ')})`);
+}
+
+// ------------------------------------------------------------ #2860: ONE CANONICAL COLOUR-VARIABLE ORDER
+//
+// The #1150 block above pins the FAMILY order. This one pins what is inside a family, for default and inverse
+// alike: every group contiguous, every inverse group in its default counterpart's order, every status run in
+// the engine's SEMANTICS order, and the order a designer reaches for rather than the alphabetical one.
+//
+// docs/34: every expectation is a LITERAL typed below. `color-order.ts` is the subject and is not imported,
+// so a reorder there fails here by name instead of agreeing with itself. The studio's status-order gate
+// (`apps/studio/test-status-order.ts`, #2843) reads the same emission against its own copy of the statuses.
+//
+// Mutations that fail here by name: `foreground.danger` ranked last again (the #2836 shape) → `statuses in
+// canonical order`; an inverse family's segment order changed in `SEGMENT_ORDER` only for `inverse` → `inverse
+// mirrors default`; `.sort()` on the role keys in `orderedRoleKeys` → `design-UX order, not alphabetical`;
+// a role appended after the collection → `every group is contiguous`.
+{
+  const STATUSES = ['brand', 'success', 'warning', 'danger', 'info'];
+  const kindOf = (seg: string): { kind: string; status: string } | null => {
+    const m = /^(on-)?(brand|success|warning|danger|info)(-subtle)?$/.exec(seg);
+    return m ? { kind: m[1] ? 'on' : m[3] ? 'subtle' : 'bare', status: m[2] } : null;
+  };
+  const leafPaths = (n: any, pre: string[] = []): string[][] =>
+    Object.keys(n).filter((k) => k[0] !== '$').flatMap((k) =>
+      n[k] && n[k].$value !== undefined ? [[...pre, k]] : n[k] && typeof n[k] === 'object' ? leafPaths(n[k], [...pre, k]) : []);
+  /** Every prefix (at every depth) whose leaves are not one unbroken run, as `prefix`. */
+  const splitGroups = (paths: string[][]): string[] => {
+    const split = new Set<string>(), closed = new Set<string>();
+    let open: string[] = [];
+    for (const p of paths) {
+      const now = p.slice(0, -1).map((_, i) => p.slice(0, i + 1).join('.'));
+      for (const g of open) if (!now.includes(g)) closed.add(g);
+      for (const g of now) if (closed.has(g)) split.add(g);
+      open = now;
+    }
+    return [...split];
+  };
+  /** Every group whose status run (bare / subtle / on-) is not brand, success, warning, danger, info. */
+  const statusBreaks = (paths: string[][]): string[] => {
+    const seen = new Map<string, string[]>();
+    for (const p of paths) {
+      const k = kindOf(p[p.length - 1]);
+      if (!k) continue;
+      const key = `${p.slice(0, -1).join('.')}|${k.kind}`;
+      seen.set(key, [...(seen.get(key) ?? []), k.status]);
+    }
+    return [...seen].filter(([, v]) => v.join() !== STATUSES.join()).map(([k, v]) => `${k.replace('|', ' ')}: ${v.join(' → ')}`);
+  };
+  const strip = (paths: string[][]): string[] => paths.map((p) => p.join('.'));
+
+  const brands = ['nb', 'prism3', 'aurora', 'harbor', 'wendys'].filter((b) => existsSync(resolve(HERE, `./out/${b}.tokens.json`)));
+  ok(brands.length >= 5, `#2860: the colour order is checked on ${brands.length} brands (floor 5) — a dropped brand must not read as a clean pass`);
+  for (const brand of brands) {
+    const tree = JSON.parse(readFileSync(resolve(HERE, `./out/${brand}.tokens.json`), 'utf8'));
+    const color = tree[Object.keys(tree).find((k) => !k.startsWith('$'))!].color;
+    const { inverse, ...roles } = color;
+    const defLeaves = leafPaths(roles), invLeaves = leafPaths(inverse);
+    const all = [...defLeaves, ...invLeaves.map((p) => ['inverse', ...p])];
+
+    ok(splitGroups(all).length === 0, `#2860 ${brand}: every group is contiguous in the emission${splitGroups(all).length ? ` — SPLIT: ${splitGroups(all).join(', ')}` : ` (${all.length} leaves)`}`);
+    const breaks = statusBreaks(all);
+    ok(breaks.length === 0, `#2860 ${brand}: statuses in canonical order (brand, success, warning, danger, info) in every group, default and inverse${breaks.length ? ` — OUT OF ORDER: ${breaks.slice(0, 4).join(' | ')}` : ''}`);
+
+    // The inverse groups are the default groups' order, restricted to what the inverse has. A key the inverse
+    // has and the default lacks is its own failure: nothing then says where it should read.
+    const inv = new Set(strip(invLeaves));
+    const def = strip(defLeaves);
+    const mirrored = def.filter((k) => inv.has(k));
+    const orphans = [...inv].filter((k) => !def.includes(k));
+    ok(orphans.length === 0, `#2860 ${brand}: every inverse role has a default counterpart${orphans.length ? ` — NONE FOR: ${orphans.slice(0, 4).join(', ')}` : ''}`);
+    const firstDiff = strip(invLeaves).findIndex((k, i) => k !== mirrored[i]);
+    ok(firstDiff < 0 && mirrored.length === inv.size,
+      `#2860 ${brand}: inverse mirrors default — same keys in the same order, minus the groups with no inverse${firstDiff >= 0 ? ` — FIRST DIFFERENCE at inverse.${strip(invLeaves)[firstDiff]} (default order puts ${mirrored[firstDiff]} there)` : ''}`);
+    const noInverse = Object.keys(roles).filter((g) => !(g in inverse));
+    ok(noInverse.join() === 'scrim,veil', `#2860 ${brand}: the families without an inverse are exactly scrim and veil (got ${noInverse.join(', ')})`);
+
+    // Design-UX order, not alphabetical: a literal spot-check per axis that an alphabetical sort breaks.
+    const at = (k: string): number => def.indexOf(k);
+    ok(at('text.brand') < at('text.success') && at('text.success') < at('text.danger') && at('text.danger') < at('text.info') && at('text.info') < at('text.brand-subtle'),
+      `#2860 ${brand}: design-UX order, not alphabetical — the statuses run brand, success, danger, info ahead of their subtle tints on text`);
+    ok(at('interactive.primary.fill.rest') < at('interactive.primary.fill.hover')
+      && at('interactive.primary.fill.hover') < at('interactive.primary.fill.pressed')
+      && at('interactive.primary.fill.pressed') < at('interactive.primary.fill.focused')
+      && at('interactive.primary.fill.focused') < at('interactive.primary.fill.selected'),
+      `#2860 ${brand}: design-UX order, not alphabetical — states run rest, hover, pressed, focused, selected`);
+    ok(at('text.primary') < at('text.secondary') && at('text.secondary') < at('text.tertiary') && at('text.tertiary') < at('text.brand'),
+      `#2860 ${brand}: design-UX order, not alphabetical — primary, secondary, tertiary before the statuses`);
+    ok(at('foreground.danger') < at('foreground.info') && at('foreground.info') < at('foreground.brand-subtle'),
+      `#2860 ${brand}: foreground lists danger with the statuses, ahead of the subtle tints (#2836)`);
+    const inkParts = def.filter((k) => k.startsWith('interactive.primary.')).map((k) => k.split('.')[2]).filter((p, i, a) => a.indexOf(p) === i);
+    ok(inkParts.join() === 'fill,on-fill,text,icon,border,overlay,subtle-fill',
+      `#2860 ${brand}: interactive runs fill, on-fill, text, icon, border, overlay, subtle-fill (got ${inkParts.join(', ')})`);
+  }
+
+  // The Figma creation order is the same sequence, in every mode file, and contiguous at every depth.
+  const figmaBrands = ['nb', 'prism3', 'aurora', 'wendys'].filter((b) => existsSync(resolve(HERE, `./out/figma/${b}/color.light.json`)));
+  ok(figmaBrands.length >= 4, `#2860 figma: the colour order is checked on ${figmaBrands.length} brands (floor 4)`);
+  for (const brand of figmaBrands) {
+    const pfx = `${rootOfBrand(brand)}/color/`;
+    const seqs = ['light', 'dark', 'hc-light', 'hc-dark'].map((m) =>
+      (JSON.parse(readFileSync(resolve(HERE, `./out/figma/${brand}/color.${m}.json`), 'utf8')).variables as Array<{ name: string }>)
+        .map((v) => v.name.slice(pfx.length).split('/')));
+    const split = splitGroups(seqs[0]);
+    ok(split.length === 0, `#2860 figma(${brand}): every group is contiguous in the creation order${split.length ? ` — SPLIT: ${split.join(', ')}` : ` (${seqs[0].length} rows)`}`);
+    const fb = statusBreaks(seqs[0]);
+    ok(fb.length === 0, `#2860 figma(${brand}): statuses in canonical order in every group${fb.length ? ` — OUT OF ORDER: ${fb.slice(0, 4).join(' | ')}` : ''}`);
+    const light = strip(seqs[0]);
+    ok(seqs.every((q) => strip(q).join('|') === light.join('|')), `#2860 figma(${brand}): all four mode files create the variables in the same order`);
+    const invF = light.filter((k) => k.startsWith('inverse.')).map((k) => k.slice('inverse.'.length));
+    const mir = light.filter((k) => !k.startsWith('inverse.') && invF.includes(k));
+    ok(mir.join('|') === invF.join('|'), `#2860 figma(${brand}): inverse mirrors default in the creation order`);
+  }
 }
 
 // ---- #1816 RENAME STAMPS: the fold fills a rename rule's `since`, and the gate checks it did ----------
@@ -33341,6 +33539,56 @@ arm: {
   const ROW_PROPS: [string, string][] = [['checkbox-row', 'disabled'], ['radio-row', 'disabled'], ['radio-row', 'readOnly'], ['switch-row', 'disabled']];
   const rowBad = ROW_PROPS.filter(([id, n]) => shapeOf(id, n) !== BOOL_OFF).map(([id, n]) => `${id}.${n}: ${shapeOf(id, n)}`);
   ok(rowBad.length === 0, `Q351 A row props: Checkbox.Row, Radio.Row and Switch.Row each carry disabled, and Radio.Row readOnly, as a real boolean defaulting false (${rowBad.join('; ') || 'all 4'})`);
+}
+
+// ---- #2830: THE COMPONENT SPEC MODEL — what a spec sheet shows, against the wireframe's hand-read values ----
+//
+// `component-specs.ts` builds the model from the plan; `apps/plugin/test-roundtrip.ts` holds it to the BUILT set,
+// both directions. What that read-back cannot see is a wrong plan (both sides descend from it, docs/34 shape 17), so
+// these arms pin the values the approved wireframe read off the plan on 2026-10-19 and the owner reviewed, written
+// here by hand: Button's slot-aware padding and its 88/104/128 floor, Text field's 120 floor and 320 build width,
+// its nested label's exposure, and each def's code-only states. Each is a literal, never a call to the projector.
+{
+  const specOf = (id: string, px?: (ref: string) => number | undefined) => componentSpec(componentDefs.find((d) => d.id === id)!, px ? { px } : {});
+  const btn = specOf('button');
+  const row = (where: Record<string, string>) => btn.redlines.find((r) => Object.entries(where).every(([a, v]) => r.where[a] === v));
+  const pad = (where: Record<string, string>, side: string) => JSON.stringify((row(where)?.parts.find((p) => p.part === 'container')?.values as Record<string, unknown> | undefined)?.[side]);
+  const bare = { size: 'medium', leading: 'false', trailing: 'false', inset: 'default' };
+  ok(pad(bare, 'paddingLeft') === '{"token":"space.200"}' && pad(bare, 'paddingTop') === '{"token":"space.100"}' && pad(bare, 'height') === '{"token":"size.md.height"}',
+    `#2830 spec: Button medium pads space.200 inline and space.100 block at size.md.height (${pad(bare, 'paddingLeft')}, ${pad(bare, 'paddingTop')}, ${pad(bare, 'height')})`);
+  ok(pad({ ...bare, leading: 'true' }, 'paddingLeft') === '{"token":"space.150"}' && pad({ ...bare, leading: 'true' }, 'paddingRight') === '{"token":"space.200"}',
+    `#2830 spec: Button medium pads space.150 on the icon side (${pad({ ...bare, leading: 'true' }, 'paddingLeft')})`);
+  const floors = ['small', 'medium', 'large'].map((size) => (row({ ...bare, size })?.parts[0].values.minWidth as { px?: number; source?: string } | undefined));
+  ok(floors.map((f) => `${f?.px}:${f?.source}`).join('/') === '88:derived/104:derived/128:derived',
+    `#2830 spec: Button's floor is derived per size, 88 / 104 / 128 (${floors.map((f) => JSON.stringify(f)).join(' / ')})`);
+  ok(btn.redlineKey.includes('inset'), `#2830 spec: Button's redlines key on inset, because a flush button drops its padding (${btn.redlineKey.join(', ')})`);
+  ok(pad(bare, 'paddingLeft') !== pad({ ...bare, inset: 'flush' }, 'paddingLeft'), `#2830 spec: a flush row's padding differs from the default row's (${pad({ ...bare, inset: 'flush' }, 'paddingLeft')})`);
+  const tf = specOf('text-field');
+  const tfMed = tf.redlines.find((r) => r.where.size === 'medium')!;
+  const val = (part: string, prop: string) => JSON.stringify((tfMed.parts.find((p) => p.part === part)?.values as Record<string, unknown> | undefined)?.[prop]);
+  ok(val('container/control', 'minWidth') === '{"px":120,"source":"literal"}' && val('container', 'buildWidth') === '{"px":320,"source":"literal"}',
+    `#2830 spec: Text field's control floor (120) and build width (320) are literals (${val('container/control', 'minWidth')}, ${val('container', 'buildWidth')})`);
+  const label = tf.nesting.find((n) => n.part === 'container/label');
+  ok(label?.kind === 'instance' && label.component === 'field-label' && label.follows.includes('size') && JSON.stringify(label.exposes) === '["emphasis","weight"]',
+    `#2830 spec: Text field's label nests field-label, follows size, exposes emphasis and weight (${JSON.stringify(label)})`);
+  ok(JSON.stringify(btn.codeOnlyStates) === '["inactive"]' && JSON.stringify(tf.codeOnlyStates) === '["pending","empty"]',
+    `#2830 spec: the code-only states are named — Button ${JSON.stringify(btn.codeOnlyStates)}, Text field ${JSON.stringify(tf.codeOnlyStates)}`);
+  const rest = btn.colors.find((r) => r.where.appearance === 'filled' && r.where.surface === 'default' && r.where.inset === 'default' && r.where.state === 'rest');
+  ok(rest?.parts.find((p) => p.part === 'container')?.fill === 'color.interactive.primary.fill.rest' && rest?.parts.find((p) => p.part === 'container/label')?.ink === 'color.interactive.primary.on-fill',
+    `#2830 spec: Button filled at rest fills color.interactive.primary.fill.rest under on-fill ink (${JSON.stringify(rest?.parts)})`);
+  ok(rest?.parts.find((p) => p.part === 'container/leadingVisual')?.icon === 'color.interactive.primary.on-fill' && rest?.parts.find((p) => p.part === 'container/trailingVisual')?.icon === 'color.interactive.primary.on-fill',
+    `#2830 spec: Button filled at rest inks both visuals color.interactive.primary.on-fill (${JSON.stringify(rest?.parts.filter((p) => p.part.endsWith('Visual')))})`);
+  // A nest's fixed variant and the host values that move it: Text field's label rests at secondary, regular, and
+  // dims with the field; Counter's ghost members nest the round shape, its outline ones the flush (Q287 A).
+  ok(JSON.stringify(label?.kind === 'instance' && label.variant) === '{"size":"medium","emphasis":"secondary","weight":"regular","state":"rest"}' && JSON.stringify(label?.kind === 'instance' && label.when) === '{"state":{"disabled":{"state":"disabled"}}}',
+    `#2830 spec: Text field's label nests field-label at secondary, regular, rest, and takes state=disabled on a disabled field (${JSON.stringify(label)})`);
+  const dec = specOf('counter').nesting.find((n) => n.part === 'container/control/decrement');
+  ok(dec?.kind === 'instance' && dec.variant.shape === 'flush' && dec.when?.appearance?.ghost?.shape === 'round' && dec.when?.appearance?.outline?.shape === 'flush',
+    `#2830 spec: Counter's minus nests the flush shape, and the round one on a ghost Counter (${JSON.stringify(dec)})`);
+  // A token carries px only when a caller passes a brand's resolver; the emitted model carries none.
+  const withPx = specOf('button', (r) => (r === 'space.200' ? 16 : undefined));
+  const wp = withPx.redlines.find((r) => Object.entries(bare).every(([a, v]) => r.where[a] === v))?.parts[0].values.paddingLeft;
+  ok(JSON.stringify(wp) === '{"token":"space.200","px":16}' && pad(bare, 'paddingLeft') === '{"token":"space.200"}', `#2830 spec: px rides a token only under a resolver (${JSON.stringify(wp)})`);
 }
 
 // ------------------------------------------------------------------- #2715: link and tabs paint
