@@ -61,7 +61,7 @@ import { REACTIONS, breakingClause, breakingSection, furnitureParts, withSetSlot
 import { fillSlots, type FillOutcome, type MigNode } from './slot-migration';
 import { slotMigrationOf } from '@prism3/engine/component-renames';
 import { REACTIONS_PATH, plannedRead, reactionMap, reactionVerdict, reactionsText } from './reactions';
-import { ABOUT_NAME, aboutIsWork, aboutLine, drawAbout, type AboutApi, type AboutOutcome, type AboutRoot } from './about-frame';
+import { ABOUT_NAME, ABOUT_ONLY_DONE, aboutIsWork, aboutLine, drawAbout, type AboutApi, type AboutOutcome, type AboutRoot } from './about-frame';
 import { publishDescription } from './library-about';
 
 /** The set's record of the members an update kept and marked deprecated (Q2): a JSON list of member names. */
@@ -172,6 +172,8 @@ export type ApplyResult = {
   /** #2858 — the library publish description, offered with a Copy button: no Plugin API call sets it. Absent when the
    *  run wrote nothing. */
   publish?: string;
+  /** #2858, owner decision Q498 B — the About frame was the run's only work, so no named version was saved for it. */
+  aboutOnly?: true;
 };
 
 type LiveNode = { id?: unknown; key?: unknown; name?: unknown; type?: unknown; children?: readonly unknown[]; parent?: unknown };
@@ -624,7 +626,7 @@ const settle = async (host: ApplyHost, targets: readonly UpdateTarget[], preview
  * here is named, never thrown: the sets are already written. The description's first sentence is that version's title.
  */
 const finishAbout = async (host: ApplyHost, api: ComponentsApi, preview: UpdatePreview, res: ApplyResult, today: string | undefined): Promise<void> => {
-  if (!res.version) return;
+  if (!res.version && !res.aboutOnly) return;
   if (preview.about && !res.outcomes.some((o) => o.stopped)) {
     try {
       res.about = await drawAbout(api as unknown as AboutApi, host.root as AboutRoot, { updated: today ?? new Date().toISOString().slice(0, 10) });
@@ -632,6 +634,8 @@ const finishAbout = async (host: ApplyHost, api: ComponentsApi, preview: UpdateP
       res.about = { drawn: false, skipped: `Figma refused the write (${(e as Error)?.message ?? String(e)})`, fontMisses: [] };
     }
   }
+  // With no version, no set changed: the library has nothing new to publish, and the description has no title.
+  if (!res.version) return;
   const changed = res.outcomes.filter((o) => !o.refused && (o.updated.length || o.added || o.renamed || o.deprecated.length)).map((o) => o.set);
   res.publish = publishDescription({
     title: res.version, sets: changed, from: res.about?.from ?? (preview.about?.state === 'stale' ? preview.about.from.engine : null),
@@ -699,6 +703,15 @@ export const applyUpdate = async (
   // THE ABOUT FRAME (#2858) is work of its own when it is missing or drawn for another engine.
   const about = aboutIsWork(preview.about);
   if (!ready.length && !moving.length && !reorder && !furnishing.length && !about) { await settle(host, targets, preview, res, opts); await finishAbout(host, api, preview, res, opts.today); return res; }
+  // THE ABOUT FRAME ALONE SAVES NO VERSION (owner decision Q498 B): no set changes, so Q7's way back has nothing to
+  // cover. `settle` still saves one before any re-spacing it finds, as for any other second write.
+  if (!ready.length && !moving.length && !reorder && !furnishing.length) {
+    res.aboutOnly = true;
+    await settle(host, targets, preview, res, opts);
+    if (res.version) delete res.aboutOnly;
+    await finishAbout(host, api, preview, res, opts.today);
+    return res;
+  }
   // A NAMED VERSION, ONCE, BEFORE THE FIRST WRITE (Q7), for all of it: the sets updated or moved, then the page order.
   // Refused or unavailable, nothing is written.
   const title = versionTitle([...new Set([...ready.map((x) => x.p.set), ...moving.map((p) => p.set), ...furnishing.map((p) => p.set)]), ...(reorder ? ['the page order'] : []), ...(about ? [ABOUT_NAME] : [])]);
@@ -846,6 +859,7 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
   // #2858: the Cover page's About frame, drawn last.
   if (r.about) lines.push(aboutLine(r.about));
   if (r.version) lines.push(`Saved a version first: "${r.version}".`);
+  else if (r.aboutOnly && r.about?.drawn) lines.push(ABOUT_ONLY_DONE);
   const headline = stopped ? `✗ update stopped at ${stopped.set}`
     : failed.length ? `⚠ ${n(failed.length, 'set')} not verified`
       : refused ? `✗ ${n(refused, 'set')} not updated`

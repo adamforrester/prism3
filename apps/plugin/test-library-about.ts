@@ -258,6 +258,8 @@ section('update — through a real Update in the component shim');
   const v = previewVerdict(pre);
   ok(pre.about?.state === 'missing' && v.lines.includes('About this library: to draw on the Cover page.'), `update/dry run lists the frame (${v.lines.join(' | ')})`);
   ok(v.headline === 'Would draw About this library', `update/dry run headline: the frame as the only work reads as work (${v.headline})`);
+  // Q498 B: the literal, not the constant, so a reworded line fails here too.
+  ok(v.lines.includes('No version is saved first — only About this library changes, no set.'), `update/about only: the dry run says no version is saved (${v.lines.join(' | ')})`);
   ok(!tagged(cover).length && api._versions.length === 0, 'update/the check wrote nothing');
   // Hash: a frame drawn between the check and the confirm is a different file.
   const sneak = await previewUpdate(host, targets);
@@ -269,25 +271,36 @@ section('update — through a real Update in the component shim');
   const res = await applyUpdate(host, api as never, targets, previewHashOf(pre2), { today: '2026-10-21' });
   const fr = tagged(cover);
   ok(res.about?.drawn === true && fr.length === 1 && fr[0].x === 1960 && fr[0].y === 0, `update/drawn beside the thumbnail, read off the shim (${fr.length}, ${fr[0]?.x}, ${fr[0]?.y})`);
-  ok(eq(api._versions, ['Before Prism3 updated About this library']), `update/one version naming the frame, saved first (${JSON.stringify(api._versions)})`);
+  ok(eq(api._versions, []) && !res.version, `update/about only: no version saved (${JSON.stringify(api._versions)})`);
   const shown = textsOf(fr[0]);
   ok(shown.includes('2026-10-21'), `update/the run's date on the canvas (${shown.slice(7, 9)})`);
   const verdict = applyVerdict(res);
   ok(verdict.headline === '✓ About this library drawn' && verdict.lines.includes('About this library: drawn on the Cover page.'), `update/verdict (${verdict.headline}; ${verdict.lines.join(' | ')})`);
-  ok(typeof res.publish === 'string' && res.publish.startsWith('Before Prism3 updated About this library. Engine ') && res.publish.endsWith('No breaking changes.'), `update/publish description returned (${JSON.stringify(res.publish)})`);
+  ok(verdict.lines.includes('No version saved first — only About this library changed, no set.') && !verdict.lines.some((l) => l.startsWith('Saved a version')), `update/about only: the run log says no version was saved (${verdict.lines.join(' | ')})`);
+  ok(res.publish === undefined, `update/about only: no publish description, no set changed (${JSON.stringify(res.publish)})`);
   const again = await previewUpdate(host, targets);
   ok(again.about?.state === 'current' && !previewVerdict(again).lines.some((l) => l.startsWith('About this library')) && previewVerdict(again).headline === '✓ All sets up to date', `update/converges: the next check reads the frame current (${previewVerdict(again).headline})`);
   const idle = await applyUpdate(host, api as never, targets, previewHashOf(again), { today: '2026-10-22' });
-  ok(api._versions.length === 1 && !idle.about && !idle.publish && tagged(cover).length === 1, 'update/nothing to do: no version, no redraw, no description');
+  ok(api._versions.length === 0 && !idle.about && !idle.publish && tagged(cover).length === 1, 'update/nothing to do: no version, no redraw, no description');
   // A plan change: the set is updated, and the frame, current, is redrawn for the run's date (every Update that writes).
   const moved = plans.map((p) => { const q = JSON.parse(JSON.stringify(p)); (q.root.children.find((c: { name: string }) => c.name === 'content').bound as Record<string, string>).itemSpacing = 'space/999'; return q; });
   const t2 = [{ def: id, plans: moved }];
   const pre3 = await previewUpdate(host, t2);
   const res3 = await applyUpdate(host, api as never, t2, previewHashOf(pre3), { today: '2026-10-23' });
   const fr3 = tagged(cover);
-  ok(eq(api._versions.slice(1), ['Before Prism3 updated tag']) && res3.about?.drawn && res3.about.replaced && fr3.length === 1 && textsOf(fr3[0]).includes('2026-10-23'),
+  ok(eq(api._versions, ['Before Prism3 updated tag']) && res3.version === 'Before Prism3 updated tag', `update/a run that changes a set still saves a version (${JSON.stringify(api._versions)})`);
+  ok(!res3.aboutOnly && !applyVerdict(res3).lines.some((l) => l.startsWith('No version saved')), 'update/a run that changes a set: no "no version" line');
+  ok(res3.about?.drawn && res3.about.replaced && fr3.length === 1 && textsOf(fr3[0]).includes('2026-10-23'),
     `update/redrawn by a run that changed a set, with its date (${JSON.stringify(api._versions)}; ${fr3.length})`);
   ok(typeof res3.publish === 'string' && res3.publish.startsWith('Before Prism3 updated tag. Engine ') && res3.publish.includes('Token contract '), `update/publish names the set's run (${JSON.stringify(res3.publish)})`);
+  // Q498 B's other side: a set change while the frame is also due still saves one version, naming both (Q7).
+  for (const n of tagged(cover)) (n.remove as () => void)();
+  const t4 = [{ def: id, plans }];
+  const pre4 = await previewUpdate(host, t4);
+  ok(!previewVerdict(pre4).lines.some((l) => l.startsWith('No version is saved')), `update/set change and frame due: the dry run promises a version (${previewVerdict(pre4).lines.join(' | ')})`);
+  const res4 = await applyUpdate(host, api as never, t4, previewHashOf(pre4), { today: '2026-10-24' });
+  ok(eq(api._versions.slice(1), ['Before Prism3 updated tag, About this library']) && res4.about?.drawn && !res4.aboutOnly,
+    `update/set change and frame due: still saves a version, naming both (${JSON.stringify(api._versions)})`);
 }
 
 /* ── the index the plugin bundles ────────────────────────────────────────────────────────────────────── */

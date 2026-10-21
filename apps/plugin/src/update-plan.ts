@@ -61,7 +61,7 @@ import { drawnFaults, faultLine, type DrawnFault, type DrawVar } from './drawn';
 import { REACTIONS_PATH, plannedRead, reactionMap, reactionVerdict, reactionsText, type PlannedReaction, type ReadReaction } from './reactions';
 import { pagesOutOfOrder, stripNestPrefix, type PageLike } from './file-setup';
 import { whatChangedLines } from './release-summary';
-import { ABOUT_NAME, aboutDue, aboutDueLine, aboutIsWork, type AboutDue } from './about-frame';
+import { ABOUT_NAME, ABOUT_ONLY_CHECK, aboutDue, aboutDueLine, aboutIsWork, type AboutDue } from './about-frame';
 import { colorVariablesOutOfOrder } from '@prism3/engine/color-order';
 
 /** One member of a set as the dry run reads it. */
@@ -1407,6 +1407,12 @@ export const variablesLine = (variables: readonly string[] | undefined): string 
   return `Color variables: ${variables.length} out of order (${shown.join(', ')}${more}). Figma lets a plugin add variables but not move them, so drag these into place in the variables panel.`;
 };
 
+/** Whether the About frame is the check's only work (#2858, owner decision Q498 B), read as the apply reads it: no set a
+ *  confirm would write (a stamp-only set is a write), no set to move and no page to reorder. A set that can't be checked
+ *  is refused by the confirm, so it adds no work. The apply then saves no named version, and the dry run says so. */
+export const aboutOnly = (r: UpdatePreview): boolean =>
+  aboutIsWork(r.about) && !r.pages?.length && r.sets.every((p) => p.blockers.length > 0 || (noChanges(p) && !p.counts.revisionUnknown));
+
 /** The verdict for a dry run. `ok` is false only where a set could not be checked. `lines` is the Activity drawer's
  *  copy (#2177): one per set, then the closing lines, the same list `summary` is joined from. */
 export const previewVerdict = (r: UpdatePreview, whatChanged: (sets: string[]) => string[] = whatChangedLines): { ok: boolean; headline: string; summary: string; lines: string[] } => {
@@ -1436,6 +1442,7 @@ export const previewVerdict = (r: UpdatePreview, whatChanged: (sets: string[]) =
     ...r.refused.map((x) => `${x.def}: can't be checked. ${x.reason}.`),
     pagesLine(r.pages),
     aboutDueLine(r.about),
+    aboutOnly(r) ? ABOUT_ONLY_CHECK : '',
     variablesLine(r.variables),
     r.missing.length ? `Not in this file: ${r.missing.join(', ')}.` : '',
     earlier ? `${earlier} built by an earlier plugin. Update ${earlier === 1 ? 'it to bring it' : 'them to bring them'} current.` : '',

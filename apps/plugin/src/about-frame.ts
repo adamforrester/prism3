@@ -109,6 +109,11 @@ export const aboutDue = async (root: AboutRoot, engine: string = ENGINE_VERSION,
 /** Whether the frame is work for an Update on its own. */
 export const aboutIsWork = (d: AboutDue | undefined): boolean => d?.state === 'missing' || d?.state === 'stale';
 
+/** WHEN THE FRAME IS THE ONLY WORK (owner decision Q498 B): the run saves no named version, since no set changes and Q7's
+ *  version is the way back for a set. The dry run's line and the run log's, each said plainly. DRAFT wording. */
+export const ABOUT_ONLY_CHECK = `No version is saved first — only ${ABOUT_NAME} changes, no set.`;
+export const ABOUT_ONLY_DONE = `No version saved first — only ${ABOUT_NAME} changed, no set.`;
+
 /** The dry run's line for the frame, or ''. DRAFT wording. */
 export const aboutDueLine = (d: AboutDue | undefined): string =>
   d?.state === 'missing' ? `${ABOUT_NAME}: to draw on the Cover page.`
