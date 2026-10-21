@@ -477,9 +477,9 @@ container's geometry?
   `packages/engine/components/text-field.ts`.
 - **A boolean over variant-gated parts.** A boolean's part may also carry a `presentWhen` gate on variant
   axes: the gate decides which members build the node, and the boolean toggles it there. `part` takes a list
-  when one toggle governs nodes that never coexist — `switch-control`'s `State icon` is `{ part: ['onGlyph',
-  'offGlyph'], default: true, figmaName: 'State icon' }`, the check at `selection=on` and the X at
-  `selection=off`. One part is enough when the node belongs to some members only — Tag's `Check icon` is
+  when one toggle governs nodes that never coexist — `switch-control`'s `state icon` is `{ part: ['onGlyph',
+  'offGlyph'], default: true, figmaName: 'state icon' }`, the check at `selection=on` and the X at
+  `selection=off`. One part is enough when the node belongs to some members only — Tag's `check icon` is
   present only on a selected select tag. `figmaPropertyErrors` refuses three shapes: a `when`-gated part or a
   `presentWhen` on `state` (a boolean composes with a variant gate only); two targeted parts that both build
   at one member, including an ungated part beside a gated one (the gates must be disjoint, so the boolean

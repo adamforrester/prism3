@@ -177,7 +177,7 @@ export type ApplyResult = {
 type LiveNode = { id?: unknown; key?: unknown; name?: unknown; type?: unknown; children?: readonly unknown[]; parent?: unknown };
 type LiveSet = LiveNode & {
   componentPropertyDefinitions?: Record<string, { type?: string; defaultValue?: unknown }>;
-  editComponentProperty?(key: string, edit: { defaultValue?: string | boolean }): string;
+  editComponentProperty?(key: string, edit: { name?: string; defaultValue?: string | boolean }): string;
   deleteComponentProperty?(key: string): void;
   getSharedPluginData?(ns: string, k: string): string;
   setSharedPluginData?(ns: string, k: string, v: string): void;
@@ -393,7 +393,14 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
     if (n) { n.name = hostOf(m.to); out.renamed++; }
   }
 
-  // ── PROPERTIES: a retype or a removal deletes (the build's pass adds the retyped one back); a default is edited
+  // ── PROPERTIES: a rename first, in place (#2759), so the property keeps its id and every instance its value; then a
+  // retype or a removal deletes (the build's pass adds the retyped one back), and a default is edited
+  const before0 = live.componentPropertyDefinitions ?? {};
+  const bare0 = new Map(Object.keys(before0).filter((k) => before0[k].type !== 'VARIANT').map((k) => [k.replace(/#[^#]*$/, ''), k] as const));
+  for (const x of p.properties.rename) {
+    const k = bare0.get(String(x.from));
+    if (k) live.editComponentProperty?.(k, { name: String(x.to) });
+  }
   const defs = live.componentPropertyDefinitions ?? {};
   const keyByBare = new Map(Object.keys(defs).filter((k) => defs[k].type !== 'VARIANT').map((k) => [k.replace(/#[^#]*$/, ''), k] as const));
   for (const x of [...p.properties.retype, ...p.properties.remove]) {

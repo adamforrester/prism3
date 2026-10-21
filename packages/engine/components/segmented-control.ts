@@ -422,7 +422,7 @@ export const segmentedControl: ComponentDef = {
     variantAxes: ['size'],
     // The options are the `items` slot (#2649); the label stays outside it, behind its own Figma-only toggle, on.
     booleans: {
-      showLabel: { part: 'label', default: true, figmaName: 'Label', figmaOnly: true },
+      showLabel: { part: 'label', default: true, figmaName: 'label', figmaOnly: true },
     },
   },
 
