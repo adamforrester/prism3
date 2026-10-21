@@ -8,6 +8,7 @@
   "exports": {
     "./anatomy-figma": "./anatomy-figma.ts",
     "./anatomy-readback": "./anatomy-readback.ts",
+    "./component-specs": "./component-specs.ts",
     "./button-spacing": "./button-spacing.ts",
     "./color": "./color.ts",
     "./component-renames": "./component-renames.ts",

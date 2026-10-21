@@ -116,6 +116,74 @@ The label names the setting and never changes. The description says what turning
 | `validation` | enum: 'default' \| 'error' | `default` | no | The outcome status. error draws the danger border on the track when a change did not take and the thumb reverted; pair it with a status message that says so. default is neutral. |
 | `size` | enum: 'small' \| 'medium' | `medium` | no | Two rungs, not three: switches rarely warrant a large. Scales the row: the label-to-control gap, the row's minimum height, the label's type, and — passed through to the nested control by follow — the track's height and length and the thumb's diameter. |
 
+## Specs
+
+Generated from the plan that builds the design-file component: 4 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `row` | frame | every member |
+| `row/label` | text | every member |
+| `row/trackBox` | frame | every member |
+| `row/trackBox/control` | instance | every member |
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by `size`.
+
+**size=medium**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `row` | — | `space.100` | — | — | — | — |
+| `row/trackBox` | — | — | `control.size.md.line-box` | — | — | — |
+| `row/trackBox/control` | — | — | `control.size.md.track` | — | — | — |
+
+**size=small**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `row` | — | `space.100` | — | — | — | — |
+| `row/trackBox` | — | — | `control.size.sm.line-box` | — | — | — |
+| `row/trackBox/control` | — | — | `control.size.sm.track` | — | — | — |
+
+### Type
+
+Keyed by `size`.
+
+| Members | Part | Text style |
+| --- | --- | --- |
+| size=medium | `row/label` | `type.body.md.default` |
+| size=small | `row/label` | `type.body.sm.default` |
+
+### Color
+
+Keyed by `status`.
+
+**status=default**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `row/label` | — | — | `color.text.primary` | — |
+
+**status=error**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `row/label` | — | — | `color.text.primary` | — |
+
+### Nesting and properties
+
+- `row/trackBox/control` nests `switch-control` at `selection=off, state=rest, status=default`; follows `size`, `status`; exposes `selection`, `state`, `showStateLabel`
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `label` | text | `Switch label` |
+
 ---
 
 Generated from the `switch-row` component definition.

@@ -81,6 +81,44 @@ The ring carries no text of its own. The accessible name and any message shown o
 | `surface` | enum: 'default' \| 'inverse' | `default` | no | The ground the ring is drawn against. default for a normal surface; inverse for a dark or brand-filled one, where the default ring would sit on a similar hue and lose its 3:1 separation. A host that cannot know its ground picks default; a host with its own surface option passes it through (see Button), so the ring on a dark band is the inverse ring. |
 | `offset` | enum: 'control' \| 'field' | `control` | no | How far outside the host the ring sits. control is the standard gap of about 2px; field is 0, because an input's own border already supplies the separation and a gap there reads as a double border. Two values, one for each offset token (focus.ring.offset and focus.ring.offset-field). |
 
+## Specs
+
+Generated from the plan that builds the design-file component: 2 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `ring` | frame | every member |
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by nothing: one row covers every member.
+
+**every member**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `ring` | — | — | `size.md.height` | `size.md.height` | — | — |
+
+### Color
+
+Keyed by `surface`.
+
+**surface=default**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `ring` | — | `color.border.focus` | — | — |
+
+**surface=inverse**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `ring` | — | `color.inverse.border.focus` | — | — |
+
 ---
 
 Generated from the `focus-ring` component definition.

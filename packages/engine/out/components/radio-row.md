@@ -112,6 +112,83 @@ Option labels are parallel and brief; the detail that distinguishes them goes in
 | `readOnly` | boolean | `false` | no | Restated for the caveat Checkbox.Row carries: \<input type="radio"> has no working readonly, only disabled, so a genuinely read-only option needs aria-readonly plus a prevented change, or is better rendered as static text. Usually set on every option of a group at once. Decide which explicitly; the default of doing neither is a control that looks interactive and silently is not. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | Scales the row — the control-to-label gap, the row's minimum height, the label's type — and is passed through to the nested Radio.Control by follow, scaling the circle's diameter and the inner dot's. |
 
+## Specs
+
+Generated from the plan that builds the design-file component: 6 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `row` | frame | every member |
+| `row/controlBox` | frame | every member |
+| `row/controlBox/control` | instance | every member |
+| `row/label` | text | every member |
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by `size`.
+
+**size=medium**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `row` | `space.150` / `space.0` / `space.150` / `space.0` | `space.100` | — | — | 120px (literal) | build width 320px (literal) |
+| `row/controlBox` | — | — | `control.size.md.line-box` | — | — | — |
+| `row/controlBox/control` | — | — | `control.size.md.height` | `control.size.md.height` | — | — |
+
+**size=small**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `row` | `space.150` / `space.0` / `space.150` / `space.0` | `space.100` | — | — | 120px (literal) | build width 320px (literal) |
+| `row/controlBox` | — | — | `control.size.sm.line-box` | — | — | — |
+| `row/controlBox/control` | — | — | `control.size.sm.height` | `control.size.sm.height` | — | — |
+
+**size=large**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `row` | `space.150` / `space.0` / `space.150` / `space.0` | `space.150` | — | — | 120px (literal) | build width 320px (literal) |
+| `row/controlBox` | — | — | `control.size.lg.line-box` | — | — | — |
+| `row/controlBox/control` | — | — | `control.size.lg.height` | `control.size.lg.height` | — | — |
+
+### Type
+
+Keyed by `size`.
+
+| Members | Part | Text style |
+| --- | --- | --- |
+| size=medium | `row/label` | `type.body.md.default` |
+| size=small | `row/label` | `type.body.sm.default` |
+| size=large | `row/label` | `type.body.lg.default` |
+
+### Color
+
+Keyed by `status`.
+
+**status=default**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `row/label` | — | — | `color.text.primary` | — |
+
+**status=error**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `row/label` | — | — | `color.text.primary` | — |
+
+### Nesting and properties
+
+- `row/controlBox/control` nests `radio-control` at `selection=unchecked, state=rest, status=default`; follows `size`, `status`; exposes `selection`, `state`
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `label` | text | `Radio option` |
+
 ---
 
 Generated from the `radio-row` component definition.

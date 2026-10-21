@@ -112,6 +112,553 @@ The accessible name is a verb naming the action ("Close", "More actions"), never
 | `isInactive` | boolean | `false` | no | Focusable disabled for relevant-but-blocked actions — retains tab order and surfaces the blockage reason on focus. |
 | `disabled` | boolean | `false` | no | Native disabled, reserved for controls irrelevant to the view; removes it from the tab order and the a11y tree. |
 
+## Specs
+
+Generated from the plan that builds the design-file component: 216 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `container` | frame | every member |
+| `container/icon` | swap | state=rest or hover or pressed or focus-visible or disabled |
+| `container/spinner` | swap | state=pending |
+| `container/focusRing` | instance | state=focus-visible |
+
+Code-only states, with no design-file member: `inactive`.
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by `size`.
+
+**size=medium**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | `size.md.height` | `size.md.height` | — | — |
+| `container/icon` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+| `container/spinner` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+
+**size=small**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | `size.sm.height` | `size.sm.height` | — | — |
+| `container/icon` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/spinner` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=large**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | `size.lg.height` | `size.lg.height` | — | — |
+| `container/icon` | — | — | `icon.size.lg` | `icon.size.lg` | — | — |
+| `container/spinner` | — | — | `icon.size.lg` | `icon.size.lg` | — | — |
+
+### Color
+
+Keyed by `appearance`, `shape`, `surface`, `state`.
+
+**appearance=ghost, shape=square, surface=default, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/icon` | — | — | — | `color.interactive.destructive.icon.rest` |
+
+**appearance=ghost, shape=square, surface=default, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.destructive.overlay.hover` | — | — | — |
+| `container/icon` | — | — | — | `color.interactive.destructive.icon.hover` |
+
+**appearance=ghost, shape=square, surface=default, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.destructive.overlay.pressed` | — | — | — |
+| `container/icon` | — | — | — | `color.interactive.destructive.icon.pressed` |
+
+**appearance=ghost, shape=square, surface=default, state=pending**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/spinner` | — | — | — | `color.interactive.destructive.icon.rest` |
+
+**appearance=ghost, shape=square, surface=default, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/icon` | — | — | — | `color.interactive.destructive.icon.rest` |
+
+**appearance=ghost, shape=square, surface=default, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/icon` | — | — | — | `color.disabled.icon` |
+
+**appearance=ghost, shape=square, surface=inverse, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.icon.rest` |
+
+**appearance=ghost, shape=square, surface=inverse, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.destructive.overlay.hover` | — | — | — |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.icon.hover` |
+
+**appearance=ghost, shape=square, surface=inverse, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.destructive.overlay.pressed` | — | — | — |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.icon.pressed` |
+
+**appearance=ghost, shape=square, surface=inverse, state=pending**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/spinner` | — | — | — | `color.inverse.interactive.destructive.icon.rest` |
+
+**appearance=ghost, shape=square, surface=inverse, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.icon.rest` |
+
+**appearance=ghost, shape=square, surface=inverse, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/icon` | — | — | — | `color.inverse.disabled.icon` |
+
+**appearance=ghost, shape=circular, surface=default, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/icon` | — | — | — | `color.interactive.destructive.icon.rest` |
+
+**appearance=ghost, shape=circular, surface=default, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.destructive.overlay.hover` | — | — | — |
+| `container/icon` | — | — | — | `color.interactive.destructive.icon.hover` |
+
+**appearance=ghost, shape=circular, surface=default, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.destructive.overlay.pressed` | — | — | — |
+| `container/icon` | — | — | — | `color.interactive.destructive.icon.pressed` |
+
+**appearance=ghost, shape=circular, surface=default, state=pending**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/spinner` | — | — | — | `color.interactive.destructive.icon.rest` |
+
+**appearance=ghost, shape=circular, surface=default, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/icon` | — | — | — | `color.interactive.destructive.icon.rest` |
+
+**appearance=ghost, shape=circular, surface=default, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/icon` | — | — | — | `color.disabled.icon` |
+
+**appearance=ghost, shape=circular, surface=inverse, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.icon.rest` |
+
+**appearance=ghost, shape=circular, surface=inverse, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.destructive.overlay.hover` | — | — | — |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.icon.hover` |
+
+**appearance=ghost, shape=circular, surface=inverse, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.destructive.overlay.pressed` | — | — | — |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.icon.pressed` |
+
+**appearance=ghost, shape=circular, surface=inverse, state=pending**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/spinner` | — | — | — | `color.inverse.interactive.destructive.icon.rest` |
+
+**appearance=ghost, shape=circular, surface=inverse, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.icon.rest` |
+
+**appearance=ghost, shape=circular, surface=inverse, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/icon` | — | — | — | `color.inverse.disabled.icon` |
+
+**appearance=filled, shape=square, surface=default, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.destructive.fill.rest` | — | — | — |
+| `container/icon` | — | — | — | `color.interactive.destructive.on-fill` |
+
+**appearance=filled, shape=square, surface=default, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.destructive.fill.hover` | — | — | — |
+| `container/icon` | — | — | — | `color.interactive.destructive.on-fill` |
+
+**appearance=filled, shape=square, surface=default, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.destructive.fill.pressed` | — | — | — |
+| `container/icon` | — | — | — | `color.interactive.destructive.on-fill` |
+
+**appearance=filled, shape=square, surface=default, state=pending**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.destructive.fill.rest` | — | — | — |
+| `container/spinner` | — | — | — | `color.interactive.destructive.on-fill` |
+
+**appearance=filled, shape=square, surface=default, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.destructive.fill.rest` | — | — | — |
+| `container/icon` | — | — | — | `color.interactive.destructive.on-fill` |
+
+**appearance=filled, shape=square, surface=default, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.disabled.fill` | — | — | — |
+| `container/icon` | — | — | — | `color.disabled.icon` |
+
+**appearance=filled, shape=square, surface=inverse, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.destructive.fill.rest` | — | — | — |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.on-fill` |
+
+**appearance=filled, shape=square, surface=inverse, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.destructive.fill.hover` | — | — | — |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.on-fill` |
+
+**appearance=filled, shape=square, surface=inverse, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.destructive.fill.pressed` | — | — | — |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.on-fill` |
+
+**appearance=filled, shape=square, surface=inverse, state=pending**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.destructive.fill.rest` | — | — | — |
+| `container/spinner` | — | — | — | `color.inverse.interactive.destructive.on-fill` |
+
+**appearance=filled, shape=square, surface=inverse, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.destructive.fill.rest` | — | — | — |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.on-fill` |
+
+**appearance=filled, shape=square, surface=inverse, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.disabled.fill` | — | — | — |
+| `container/icon` | — | — | — | `color.inverse.disabled.icon` |
+
+**appearance=filled, shape=circular, surface=default, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.destructive.fill.rest` | — | — | — |
+| `container/icon` | — | — | — | `color.interactive.destructive.on-fill` |
+
+**appearance=filled, shape=circular, surface=default, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.destructive.fill.hover` | — | — | — |
+| `container/icon` | — | — | — | `color.interactive.destructive.on-fill` |
+
+**appearance=filled, shape=circular, surface=default, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.destructive.fill.pressed` | — | — | — |
+| `container/icon` | — | — | — | `color.interactive.destructive.on-fill` |
+
+**appearance=filled, shape=circular, surface=default, state=pending**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.destructive.fill.rest` | — | — | — |
+| `container/spinner` | — | — | — | `color.interactive.destructive.on-fill` |
+
+**appearance=filled, shape=circular, surface=default, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.destructive.fill.rest` | — | — | — |
+| `container/icon` | — | — | — | `color.interactive.destructive.on-fill` |
+
+**appearance=filled, shape=circular, surface=default, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.disabled.fill` | — | — | — |
+| `container/icon` | — | — | — | `color.disabled.icon` |
+
+**appearance=filled, shape=circular, surface=inverse, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.destructive.fill.rest` | — | — | — |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.on-fill` |
+
+**appearance=filled, shape=circular, surface=inverse, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.destructive.fill.hover` | — | — | — |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.on-fill` |
+
+**appearance=filled, shape=circular, surface=inverse, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.destructive.fill.pressed` | — | — | — |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.on-fill` |
+
+**appearance=filled, shape=circular, surface=inverse, state=pending**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.destructive.fill.rest` | — | — | — |
+| `container/spinner` | — | — | — | `color.inverse.interactive.destructive.on-fill` |
+
+**appearance=filled, shape=circular, surface=inverse, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.destructive.fill.rest` | — | — | — |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.on-fill` |
+
+**appearance=filled, shape=circular, surface=inverse, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.disabled.fill` | — | — | — |
+| `container/icon` | — | — | — | `color.inverse.disabled.icon` |
+
+**appearance=outline, shape=square, surface=default, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.interactive.destructive.border.rest` | — | — |
+| `container/icon` | — | — | — | `color.interactive.destructive.icon.rest` |
+
+**appearance=outline, shape=square, surface=default, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.destructive.overlay.hover` | `color.interactive.destructive.border.hover` | — | — |
+| `container/icon` | — | — | — | `color.interactive.destructive.icon.hover` |
+
+**appearance=outline, shape=square, surface=default, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.destructive.overlay.pressed` | `color.interactive.destructive.border.pressed` | — | — |
+| `container/icon` | — | — | — | `color.interactive.destructive.icon.pressed` |
+
+**appearance=outline, shape=square, surface=default, state=pending**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.interactive.destructive.border.rest` | — | — |
+| `container/spinner` | — | — | — | `color.interactive.destructive.icon.rest` |
+
+**appearance=outline, shape=square, surface=default, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.interactive.destructive.border.rest` | — | — |
+| `container/icon` | — | — | — | `color.interactive.destructive.icon.rest` |
+
+**appearance=outline, shape=square, surface=default, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.disabled.border` | — | — |
+| `container/icon` | — | — | — | `color.disabled.icon` |
+
+**appearance=outline, shape=square, surface=inverse, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.inverse.interactive.destructive.border.rest` | — | — |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.icon.rest` |
+
+**appearance=outline, shape=square, surface=inverse, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.destructive.overlay.hover` | `color.inverse.interactive.destructive.border.hover` | — | — |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.icon.hover` |
+
+**appearance=outline, shape=square, surface=inverse, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.destructive.overlay.pressed` | `color.inverse.interactive.destructive.border.pressed` | — | — |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.icon.pressed` |
+
+**appearance=outline, shape=square, surface=inverse, state=pending**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.inverse.interactive.destructive.border.rest` | — | — |
+| `container/spinner` | — | — | — | `color.inverse.interactive.destructive.icon.rest` |
+
+**appearance=outline, shape=square, surface=inverse, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.inverse.interactive.destructive.border.rest` | — | — |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.icon.rest` |
+
+**appearance=outline, shape=square, surface=inverse, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.inverse.disabled.border` | — | — |
+| `container/icon` | — | — | — | `color.inverse.disabled.icon` |
+
+**appearance=outline, shape=circular, surface=default, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.interactive.destructive.border.rest` | — | — |
+| `container/icon` | — | — | — | `color.interactive.destructive.icon.rest` |
+
+**appearance=outline, shape=circular, surface=default, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.destructive.overlay.hover` | `color.interactive.destructive.border.hover` | — | — |
+| `container/icon` | — | — | — | `color.interactive.destructive.icon.hover` |
+
+**appearance=outline, shape=circular, surface=default, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.destructive.overlay.pressed` | `color.interactive.destructive.border.pressed` | — | — |
+| `container/icon` | — | — | — | `color.interactive.destructive.icon.pressed` |
+
+**appearance=outline, shape=circular, surface=default, state=pending**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.interactive.destructive.border.rest` | — | — |
+| `container/spinner` | — | — | — | `color.interactive.destructive.icon.rest` |
+
+**appearance=outline, shape=circular, surface=default, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.interactive.destructive.border.rest` | — | — |
+| `container/icon` | — | — | — | `color.interactive.destructive.icon.rest` |
+
+**appearance=outline, shape=circular, surface=default, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.disabled.border` | — | — |
+| `container/icon` | — | — | — | `color.disabled.icon` |
+
+**appearance=outline, shape=circular, surface=inverse, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.inverse.interactive.destructive.border.rest` | — | — |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.icon.rest` |
+
+**appearance=outline, shape=circular, surface=inverse, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.destructive.overlay.hover` | `color.inverse.interactive.destructive.border.hover` | — | — |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.icon.hover` |
+
+**appearance=outline, shape=circular, surface=inverse, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.destructive.overlay.pressed` | `color.inverse.interactive.destructive.border.pressed` | — | — |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.icon.pressed` |
+
+**appearance=outline, shape=circular, surface=inverse, state=pending**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.inverse.interactive.destructive.border.rest` | — | — |
+| `container/spinner` | — | — | — | `color.inverse.interactive.destructive.icon.rest` |
+
+**appearance=outline, shape=circular, surface=inverse, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.inverse.interactive.destructive.border.rest` | — | — |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.icon.rest` |
+
+**appearance=outline, shape=circular, surface=inverse, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.inverse.disabled.border` | — | — |
+| `container/icon` | — | — | — | `color.inverse.disabled.icon` |
+
+### Nesting and properties
+
+- `container/icon` is a swap slot, property `swap icon`
+- `container/spinner` holds `spinner/medium`, `spinner/small`, `spinner/large`, by member; it is not a swap
+- `container/focusRing` nests `focus-ring` at `surface=default`; follows `surface`
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `swap icon` | instance swap | — |
+
 ---
 
 Generated from the `icon-button-destructive` component definition.

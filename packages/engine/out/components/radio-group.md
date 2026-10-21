@@ -113,6 +113,66 @@ The group label names the decision; the rows carry the short options. Group erro
 | `validationMessage` | string \| node | — | no | The error text shown under the options at error, added to the group's aria-describedby. Say what is wrong and how to fix it (SC 3.3.3): "Select a shipping method", never "Invalid". |
 | `disabled` | boolean | `false` | no | Disables the whole set — every row and the label dim, driven by the group's context (the native disabled is the source of truth). The group has no disabled treatment of its own. |
 
+## Specs
+
+Generated from the plan that builds the design-file component: 6 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `container` | frame | every member |
+| `container/label` | instance | every member |
+| `container/items` | slot | every member |
+| `container/items/row1` | instance | every member |
+| `container/items/row2` | instance | every member |
+| `container/items/row3` | instance | every member |
+| `container/message` | instance | status=error |
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by `size`.
+
+**size=medium**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | `space.100` / `space.0` / `space.100` / `space.0` | `space.0` | — | — | 120px (literal) | build width 320px (literal) |
+| `container/items` | — | `space.0` | — | — | — | — |
+
+**size=small**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | `space.100` / `space.0` / `space.100` / `space.0` | `space.0` | — | — | 120px (literal) | build width 320px (literal) |
+| `container/items` | — | `space.0` | — | — | — | — |
+
+**size=large**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | `space.100` / `space.0` / `space.100` / `space.0` | `space.0` | — | — | 120px (literal) | build width 320px (literal) |
+| `container/items` | — | `space.0` | — | — | — | — |
+
+### Color
+
+Keyed by `status`.
+
+### Nesting and properties
+
+- `container/label` nests `field-label` at `size=medium, emphasis=secondary, weight=bold, state=rest`; follows `size`; exposes `emphasis`, `weight`
+- `container/items` is a slot, preferring `radio-row`
+- `container/items/row1` nests `radio-row` at `size=medium, status=default`; follows `size`, `status`
+- `container/items/row2` nests `radio-row` at `size=medium, status=default`; follows `size`, `status`
+- `container/items/row3` nests `radio-row` at `size=medium, status=default`; follows `size`, `status`
+- `container/message` nests `field-message` at `status=error`; follows `status`
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `items` | slot | — |
+
 ---
 
 Generated from the `radio-group` component definition.

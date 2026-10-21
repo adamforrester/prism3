@@ -133,6 +133,365 @@ Counter reads "240 / 280" or "40 characters remaining"; over-limit reads "12 cha
 | `id` | string | — | no | Wiring + form submission; auto-generated with useId if omitted, tying label→textarea and the aria-describedby chain. The same prop as TextField's. |
 | `name` | string | — | no | A real \<textarea name> so the field works uncontrolled, in a native \<form>, with useFormStatus / Server Actions, and the Constraint Validation API. The same prop as TextField's. |
 
+## Specs
+
+Generated from the plan that builds the design-file component: 84 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `container` | frame | every member |
+| `container/label` | instance | every member |
+| `container/body` | frame | every member |
+| `container/body/control` | frame | every member |
+| `container/body/control/placeholder` | text | state=rest or hover or focus-visible or disabled |
+| `container/body/control/grip` | instance | every member |
+| `container/body/messageRow` | frame | every member |
+| `container/body/messageRow/messageCell` | frame | every member |
+| `container/body/messageRow/messageCell/message` | instance | every member |
+| `container/body/messageRow/counterCell` | frame | every member |
+| `container/body/messageRow/counterCell/counter` | text | every member |
+| `container/body/control/value` | text | state=filled or focus-visible-filled or read-only |
+| `container/body/control/caret` | frame | state=focus-visible |
+| `container/body/control/focusRing` | instance | state=focus-visible or focus-visible-filled |
+
+Code-only states, with no design-file member: `pending`, `empty`.
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by `size`.
+
+**size=medium**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.100` / `space.200` / `space.100` / `space.200` | — | — | — | 120px (literal) | — |
+| `container/body/control/grip` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/messageRow` | — | `space.100` | — | — | — | — |
+| `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/control/caret` | — | — | `control.size.md.line-box` | `border-width.hairline` | — | — |
+
+**size=small**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.075` / `space.200` / `space.075` / `space.200` | — | — | — | 120px (literal) | — |
+| `container/body/control/grip` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/messageRow` | — | `space.100` | — | — | — | — |
+| `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/control/caret` | — | — | `control.size.sm.line-box` | `border-width.hairline` | — | — |
+
+**size=large**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.100` / `space.300` / `space.100` / `space.300` | — | — | — | 120px (literal) | — |
+| `container/body/control/grip` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/messageRow` | — | `space.100` | — | — | — | — |
+| `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/control/caret` | — | — | `control.size.lg.line-box` | `border-width.hairline` | — | — |
+
+### Type
+
+Keyed by `size`.
+
+| Members | Part | Text style |
+| --- | --- | --- |
+| size=medium | `container/body/control/placeholder` | `type.body.md.default` |
+| size=medium | `container/body/messageRow/counterCell/counter` | `type.caption.md.default` |
+| size=medium | `container/body/control/value` | `type.body.md.default` |
+| size=small | `container/body/control/placeholder` | `type.body.sm.default` |
+| size=small | `container/body/messageRow/counterCell/counter` | `type.caption.md.default` |
+| size=small | `container/body/control/value` | `type.body.sm.default` |
+| size=large | `container/body/control/placeholder` | `type.body.lg.default` |
+| size=large | `container/body/messageRow/counterCell/counter` | `type.caption.md.default` |
+| size=large | `container/body/control/value` | `type.body.lg.default` |
+
+### Color
+
+Keyed by `status`, `state`.
+
+**status=default, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.field.fill` | `color.field.border.rest` | — | — |
+| `container/body/control/placeholder` | — | — | `color.text.secondary` | — |
+| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=default, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.interactive.neutral.overlay.hover` | `color.field.border.hover` | — | — |
+| `container/body/control/placeholder` | — | — | `color.text.secondary` | — |
+| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=default, state=filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.field.fill` | `color.field.border.rest` | — | — |
+| `container/body/control/value` | — | — | `color.text.primary` | — |
+| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=default, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.field.fill` | `color.border.focus` | — | — |
+| `container/body/control/caret` | `color.text.primary` | — | — | — |
+| `container/body/control/placeholder` | — | — | `color.text.secondary` | — |
+| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=default, state=focus-visible-filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.field.fill` | `color.border.focus` | — | — |
+| `container/body/control/value` | — | — | `color.text.primary` | — |
+| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=default, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.disabled.fill` | `color.disabled.border` | — | — |
+| `container/body/control/placeholder` | — | — | `color.disabled.on-fill` | — |
+| `container/body/control/grip` | — | — | — | `color.disabled.on-fill` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.disabled.text` | — |
+
+**status=default, state=read-only**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.field.fill` | `color.field.border.rest` | — | — |
+| `container/body/control/value` | — | — | `color.text.primary` | — |
+| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=error, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.field.fill` | `color.border.danger` | — | — |
+| `container/body/control/placeholder` | — | — | `color.text.secondary` | — |
+| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=error, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.interactive.neutral.overlay.hover` | `color.border.danger` | — | — |
+| `container/body/control/placeholder` | — | — | `color.text.secondary` | — |
+| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=error, state=filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.field.fill` | `color.border.danger` | — | — |
+| `container/body/control/value` | — | — | `color.text.primary` | — |
+| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=error, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.field.fill` | `color.border.danger` | — | — |
+| `container/body/control/caret` | `color.text.primary` | — | — | — |
+| `container/body/control/placeholder` | — | — | `color.text.secondary` | — |
+| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=error, state=focus-visible-filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.field.fill` | `color.border.danger` | — | — |
+| `container/body/control/value` | — | — | `color.text.primary` | — |
+| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=error, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.disabled.fill` | `color.disabled.border` | — | — |
+| `container/body/control/placeholder` | — | — | `color.disabled.on-fill` | — |
+| `container/body/control/grip` | — | — | — | `color.disabled.on-fill` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.disabled.text` | — |
+
+**status=error, state=read-only**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.field.fill` | `color.border.danger` | — | — |
+| `container/body/control/value` | — | — | `color.text.primary` | — |
+| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=warning, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.field.fill` | `color.border.warning` | — | — |
+| `container/body/control/placeholder` | — | — | `color.text.secondary` | — |
+| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=warning, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.interactive.neutral.overlay.hover` | `color.border.warning` | — | — |
+| `container/body/control/placeholder` | — | — | `color.text.secondary` | — |
+| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=warning, state=filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.field.fill` | `color.border.warning` | — | — |
+| `container/body/control/value` | — | — | `color.text.primary` | — |
+| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=warning, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.field.fill` | `color.border.warning` | — | — |
+| `container/body/control/caret` | `color.text.primary` | — | — | — |
+| `container/body/control/placeholder` | — | — | `color.text.secondary` | — |
+| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=warning, state=focus-visible-filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.field.fill` | `color.border.warning` | — | — |
+| `container/body/control/value` | — | — | `color.text.primary` | — |
+| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=warning, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.disabled.fill` | `color.disabled.border` | — | — |
+| `container/body/control/placeholder` | — | — | `color.disabled.on-fill` | — |
+| `container/body/control/grip` | — | — | — | `color.disabled.on-fill` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.disabled.text` | — |
+
+**status=warning, state=read-only**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.field.fill` | `color.border.warning` | — | — |
+| `container/body/control/value` | — | — | `color.text.primary` | — |
+| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=success, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.field.fill` | `color.border.success` | — | — |
+| `container/body/control/placeholder` | — | — | `color.text.secondary` | — |
+| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=success, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.interactive.neutral.overlay.hover` | `color.border.success` | — | — |
+| `container/body/control/placeholder` | — | — | `color.text.secondary` | — |
+| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=success, state=filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.field.fill` | `color.border.success` | — | — |
+| `container/body/control/value` | — | — | `color.text.primary` | — |
+| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=success, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.field.fill` | `color.border.success` | — | — |
+| `container/body/control/caret` | `color.text.primary` | — | — | — |
+| `container/body/control/placeholder` | — | — | `color.text.secondary` | — |
+| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=success, state=focus-visible-filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.field.fill` | `color.border.success` | — | — |
+| `container/body/control/value` | — | — | `color.text.primary` | — |
+| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=success, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.disabled.fill` | `color.disabled.border` | — | — |
+| `container/body/control/placeholder` | — | — | `color.disabled.on-fill` | — |
+| `container/body/control/grip` | — | — | — | `color.disabled.on-fill` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.disabled.text` | — |
+
+**status=success, state=read-only**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.field.fill` | `color.border.success` | — | — |
+| `container/body/control/value` | — | — | `color.text.primary` | — |
+| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+### Nesting and properties
+
+- `container/label` nests `field-label` at `size=medium, emphasis=secondary, weight=regular, state=rest`; `state=disabled` takes `state=disabled`; follows `size`; exposes `emphasis`, `weight`
+- `container/body/control/grip` nests `icon/resize-grip`
+- `container/body/messageRow/messageCell/message` nests `field-message` at `status=default`; follows `status`
+- `container/body/control/focusRing` nests `focus-ring` at `surface=default`
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `placeholder` | text | `Placeholder` |
+| `count` | text | `0 / 200` |
+| `value` | text | `Entered text` |
+| `resize handle` | boolean | `true` |
+| `message` | boolean | `true` |
+| `character count` | boolean | `false` |
+
 ---
 
 Generated from the `textarea` component definition.

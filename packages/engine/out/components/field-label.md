@@ -93,6 +93,132 @@ Write the label as a noun or noun phrase in sentence case, three words or fewer,
 | `emphasis` | enum: 'secondary' \| 'primary' | `secondary` | no | The label's ink. secondary, the default, is the de-emphasized label every field host nests; primary is the full-strength ink for a label that has to lead. Semantic roles, never shades (color.text.primary and color.text.secondary), so a brand that changes its text palette carries the label with it. |
 | `weight` | enum: 'regular' \| 'bold' | `regular` | no | How heavy the label reads. These are intents, not role names: regular resolves the brand's default body weight, bold the heaviest body weight the brand ships — Bold (700) on a brand that ships it, Medium (500) where that is its heaviest body cut. Use it for a label that has to carry a section, not for emphasis inside a form — a form where every label is bold has no emphasis in it. |
 
+## Specs
+
+Generated from the plan that builds the design-file component: 24 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `label` | frame | every member |
+| `label/text` | text | every member |
+| `label/indicator` | text | every member |
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by `size`.
+
+**size=small**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `label` | — | `space.050` | — | — | — | build width 320px (literal) |
+| `label/text` | — | — | — | — | — | max width 316px (literal) |
+
+**size=medium**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `label` | — | `space.050` | — | — | — | build width 320px (literal) |
+| `label/text` | — | — | — | — | — | max width 316px (literal) |
+
+**size=large**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `label` | — | `space.050` | — | — | — | build width 320px (literal) |
+| `label/text` | — | — | — | — | — | max width 316px (literal) |
+
+### Type
+
+Keyed by `size`, `weight`.
+
+| Members | Part | Text style |
+| --- | --- | --- |
+| size=small, weight=regular | `label/text` | `type.body.xs.default` |
+| size=small, weight=regular | `label/indicator` | `type.body.xs.default` |
+| size=medium, weight=regular | `label/text` | `type.body.sm.default` |
+| size=medium, weight=regular | `label/indicator` | `type.body.sm.default` |
+| size=large, weight=regular | `label/text` | `type.body.md.default` |
+| size=large, weight=regular | `label/indicator` | `type.body.md.default` |
+| size=small, weight=bold | `label/text` | `type.body.xs.strong` |
+| size=small, weight=bold | `label/indicator` | `type.body.xs.strong` |
+| size=medium, weight=bold | `label/text` | `type.body.sm.strong` |
+| size=medium, weight=bold | `label/indicator` | `type.body.sm.strong` |
+| size=large, weight=bold | `label/text` | `type.body.md.strong` |
+| size=large, weight=bold | `label/indicator` | `type.body.md.strong` |
+
+### Color
+
+Keyed by `emphasis`, `weight`, `state`.
+
+**emphasis=secondary, weight=regular, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `label/text` | — | — | `color.text.secondary` | — |
+| `label/indicator` | — | — | `color.text.secondary` | — |
+
+**emphasis=secondary, weight=regular, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `label/text` | — | — | `color.disabled.text` | — |
+| `label/indicator` | — | — | `color.disabled.text` | — |
+
+**emphasis=secondary, weight=bold, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `label/text` | — | — | `color.text.secondary` | — |
+| `label/indicator` | — | — | `color.text.secondary` | — |
+
+**emphasis=secondary, weight=bold, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `label/text` | — | — | `color.disabled.text` | — |
+| `label/indicator` | — | — | `color.disabled.text` | — |
+
+**emphasis=primary, weight=regular, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `label/text` | — | — | `color.text.primary` | — |
+| `label/indicator` | — | — | `color.text.primary` | — |
+
+**emphasis=primary, weight=regular, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `label/text` | — | — | `color.disabled.text` | — |
+| `label/indicator` | — | — | `color.disabled.text` | — |
+
+**emphasis=primary, weight=bold, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `label/text` | — | — | `color.text.primary` | — |
+| `label/indicator` | — | — | `color.text.primary` | — |
+
+**emphasis=primary, weight=bold, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `label/text` | — | — | `color.disabled.text` | — |
+| `label/indicator` | — | — | `color.disabled.text` | — |
+
+### Nesting and properties
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `label` | text | `Label` |
+| `required marker` | text | `*` |
+| `required` | boolean | `false` |
+
 ---
 
 Generated from the `field-label` component definition.

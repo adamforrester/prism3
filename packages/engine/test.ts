@@ -97,6 +97,7 @@ const planIconComps = (n: { nestTarget?: string; children?: readonly unknown[] }
 ];
 
 import { Session as InspectorSession } from 'node:inspector/promises';
+import { componentSpec } from './component-specs';
 
 // ---- #1268 EVERY ASSERTION SITE RAN — a section going quiet is a failure, not a smaller pass ----------
 //
@@ -33426,6 +33427,56 @@ arm: {
   const ROW_PROPS: [string, string][] = [['checkbox-row', 'disabled'], ['radio-row', 'disabled'], ['radio-row', 'readOnly'], ['switch-row', 'disabled']];
   const rowBad = ROW_PROPS.filter(([id, n]) => shapeOf(id, n) !== BOOL_OFF).map(([id, n]) => `${id}.${n}: ${shapeOf(id, n)}`);
   ok(rowBad.length === 0, `Q351 A row props: Checkbox.Row, Radio.Row and Switch.Row each carry disabled, and Radio.Row readOnly, as a real boolean defaulting false (${rowBad.join('; ') || 'all 4'})`);
+}
+
+// ---- #2830: THE COMPONENT SPEC MODEL — what a spec sheet shows, against the wireframe's hand-read values ----
+//
+// `component-specs.ts` builds the model from the plan; `apps/plugin/test-roundtrip.ts` holds it to the BUILT set,
+// both directions. What that read-back cannot see is a wrong plan (both sides descend from it, docs/34 shape 17), so
+// these arms pin the values the approved wireframe read off the plan on 2026-10-19 and the owner reviewed, written
+// here by hand: Button's slot-aware padding and its 88/104/128 floor, Text field's 120 floor and 320 build width,
+// its nested label's exposure, and each def's code-only states. Each is a literal, never a call to the projector.
+{
+  const specOf = (id: string, px?: (ref: string) => number | undefined) => componentSpec(componentDefs.find((d) => d.id === id)!, px ? { px } : {});
+  const btn = specOf('button');
+  const row = (where: Record<string, string>) => btn.redlines.find((r) => Object.entries(where).every(([a, v]) => r.where[a] === v));
+  const pad = (where: Record<string, string>, side: string) => JSON.stringify((row(where)?.parts.find((p) => p.part === 'container')?.values as Record<string, unknown> | undefined)?.[side]);
+  const bare = { size: 'medium', leading: 'false', trailing: 'false', inset: 'default' };
+  ok(pad(bare, 'paddingLeft') === '{"token":"space.200"}' && pad(bare, 'paddingTop') === '{"token":"space.100"}' && pad(bare, 'height') === '{"token":"size.md.height"}',
+    `#2830 spec: Button medium pads space.200 inline and space.100 block at size.md.height (${pad(bare, 'paddingLeft')}, ${pad(bare, 'paddingTop')}, ${pad(bare, 'height')})`);
+  ok(pad({ ...bare, leading: 'true' }, 'paddingLeft') === '{"token":"space.150"}' && pad({ ...bare, leading: 'true' }, 'paddingRight') === '{"token":"space.200"}',
+    `#2830 spec: Button medium pads space.150 on the icon side (${pad({ ...bare, leading: 'true' }, 'paddingLeft')})`);
+  const floors = ['small', 'medium', 'large'].map((size) => (row({ ...bare, size })?.parts[0].values.minWidth as { px?: number; source?: string } | undefined));
+  ok(floors.map((f) => `${f?.px}:${f?.source}`).join('/') === '88:derived/104:derived/128:derived',
+    `#2830 spec: Button's floor is derived per size, 88 / 104 / 128 (${floors.map((f) => JSON.stringify(f)).join(' / ')})`);
+  ok(btn.redlineKey.includes('inset'), `#2830 spec: Button's redlines key on inset, because a flush button drops its padding (${btn.redlineKey.join(', ')})`);
+  ok(pad(bare, 'paddingLeft') !== pad({ ...bare, inset: 'flush' }, 'paddingLeft'), `#2830 spec: a flush row's padding differs from the default row's (${pad({ ...bare, inset: 'flush' }, 'paddingLeft')})`);
+  const tf = specOf('text-field');
+  const tfMed = tf.redlines.find((r) => r.where.size === 'medium')!;
+  const val = (part: string, prop: string) => JSON.stringify((tfMed.parts.find((p) => p.part === part)?.values as Record<string, unknown> | undefined)?.[prop]);
+  ok(val('container/control', 'minWidth') === '{"px":120,"source":"literal"}' && val('container', 'buildWidth') === '{"px":320,"source":"literal"}',
+    `#2830 spec: Text field's control floor (120) and build width (320) are literals (${val('container/control', 'minWidth')}, ${val('container', 'buildWidth')})`);
+  const label = tf.nesting.find((n) => n.part === 'container/label');
+  ok(label?.kind === 'instance' && label.component === 'field-label' && label.follows.includes('size') && JSON.stringify(label.exposes) === '["emphasis","weight"]',
+    `#2830 spec: Text field's label nests field-label, follows size, exposes emphasis and weight (${JSON.stringify(label)})`);
+  ok(JSON.stringify(btn.codeOnlyStates) === '["inactive"]' && JSON.stringify(tf.codeOnlyStates) === '["pending","empty"]',
+    `#2830 spec: the code-only states are named — Button ${JSON.stringify(btn.codeOnlyStates)}, Text field ${JSON.stringify(tf.codeOnlyStates)}`);
+  const rest = btn.colors.find((r) => r.where.appearance === 'filled' && r.where.surface === 'default' && r.where.inset === 'default' && r.where.state === 'rest');
+  ok(rest?.parts.find((p) => p.part === 'container')?.fill === 'color.interactive.primary.fill.rest' && rest?.parts.find((p) => p.part === 'container/label')?.ink === 'color.interactive.primary.on-fill',
+    `#2830 spec: Button filled at rest fills color.interactive.primary.fill.rest under on-fill ink (${JSON.stringify(rest?.parts)})`);
+  ok(rest?.parts.find((p) => p.part === 'container/leadingVisual')?.icon === 'color.interactive.primary.on-fill' && rest?.parts.find((p) => p.part === 'container/trailingVisual')?.icon === 'color.interactive.primary.on-fill',
+    `#2830 spec: Button filled at rest inks both visuals color.interactive.primary.on-fill (${JSON.stringify(rest?.parts.filter((p) => p.part.endsWith('Visual')))})`);
+  // A nest's fixed variant and the host values that move it: Text field's label rests at secondary, regular, and
+  // dims with the field; Counter's ghost members nest the round shape, its outline ones the flush (Q287 A).
+  ok(JSON.stringify(label?.kind === 'instance' && label.variant) === '{"size":"medium","emphasis":"secondary","weight":"regular","state":"rest"}' && JSON.stringify(label?.kind === 'instance' && label.when) === '{"state":{"disabled":{"state":"disabled"}}}',
+    `#2830 spec: Text field's label nests field-label at secondary, regular, rest, and takes state=disabled on a disabled field (${JSON.stringify(label)})`);
+  const dec = specOf('counter').nesting.find((n) => n.part === 'container/control/decrement');
+  ok(dec?.kind === 'instance' && dec.variant.shape === 'flush' && dec.when?.appearance?.ghost?.shape === 'round' && dec.when?.appearance?.outline?.shape === 'flush',
+    `#2830 spec: Counter's minus nests the flush shape, and the round one on a ghost Counter (${JSON.stringify(dec)})`);
+  // A token carries px only when a caller passes a brand's resolver; the emitted model carries none.
+  const withPx = specOf('button', (r) => (r === 'space.200' ? 16 : undefined));
+  const wp = withPx.redlines.find((r) => Object.entries(bare).every(([a, v]) => r.where[a] === v))?.parts[0].values.paddingLeft;
+  ok(JSON.stringify(wp) === '{"token":"space.200","px":16}' && pad(bare, 'paddingLeft') === '{"token":"space.200"}', `#2830 spec: px rides a token only under a resolver (${JSON.stringify(wp)})`);
 }
 
 // ------------------------------------------------------------------- #2715: link and tabs paint

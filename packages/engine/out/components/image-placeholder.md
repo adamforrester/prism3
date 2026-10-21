@@ -80,6 +80,90 @@ The frame holds no copy. Where its ratio surfaces in a UI, name the proportion (
 | --- | --- | --- | --- | --- |
 | `ratio` | enum: '2:3' \| '3:4' \| '4:5' \| '1:1' \| '4:3' \| '3:2' \| '16:9' | `4:3` | no | The width-to-height proportion the frame holds while its actual size flexes — portrait (2:3, 3:4 for apparel tiles, 4:5), a square (1:1), or landscape (the classic photo ratio 4:3, 3:2, widescreen 16:9). It is an aspect-ratio lock, not a pair of fixed dimensions: the frame derives its height from its width (or the reverse) so the shape survives being resized. Pick it from the media the frame will hold. |
 
+## Specs
+
+Generated from the plan that builds the design-file component: 7 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `frame` | frame | every member |
+| `frame/marker` | instance | every member |
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by nothing: one row covers every member.
+
+**every member**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `frame` | — | — | — | `container.narrow` | — | — |
+
+### Color
+
+Keyed by `ratio`.
+
+**ratio=4:3**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `frame` | `color.background.secondary` | — | — | — |
+| `frame/marker` | — | — | — | `color.icon.tertiary` |
+
+**ratio=2:3**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `frame` | `color.background.secondary` | — | — | — |
+| `frame/marker` | — | — | — | `color.icon.tertiary` |
+
+**ratio=3:4**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `frame` | `color.background.secondary` | — | — | — |
+| `frame/marker` | — | — | — | `color.icon.tertiary` |
+
+**ratio=4:5**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `frame` | `color.background.secondary` | — | — | — |
+| `frame/marker` | — | — | — | `color.icon.tertiary` |
+
+**ratio=1:1**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `frame` | `color.background.secondary` | — | — | — |
+| `frame/marker` | — | — | — | `color.icon.tertiary` |
+
+**ratio=3:2**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `frame` | `color.background.secondary` | — | — | — |
+| `frame/marker` | — | — | — | `color.icon.tertiary` |
+
+**ratio=16:9**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `frame` | `color.background.secondary` | — | — | — |
+| `frame/marker` | — | — | — | `color.icon.tertiary` |
+
+### Nesting and properties
+
+- `frame/marker` nests `icon/image`
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `Marker` | boolean | `true` |
+
 ---
 
 Generated from the `image-placeholder` component definition.

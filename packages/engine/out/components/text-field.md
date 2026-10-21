@@ -132,6 +132,367 @@ Label = noun phrase, sentence case, no trailing colon. Placeholder = example onl
 | `id` | string | — | no | Wiring + form submission; auto-generated with useId if omitted, tying label→input and the aria-describedby chain. |
 | `name` | string | — | no | A real \<input name> so the field works uncontrolled, in a native \<form>, with useFormStatus / Server Actions, and the Constraint Validation API. |
 
+## Specs
+
+Generated from the plan that builds the design-file component: 84 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `container` | frame | every member |
+| `container/label` | instance | every member |
+| `container/control` | frame | every member |
+| `container/control/content` | frame | every member |
+| `container/control/content/leadingVisual` | swap | every member |
+| `container/control/content/entry` | frame | every member |
+| `container/control/content/entry/placeholder` | text | state=rest or hover or focus-visible or disabled |
+| `container/control/trailingVisual` | swap | every member |
+| `container/message` | instance | every member |
+| `container/control/content/entry/value` | text | state=filled or focus-visible-filled or read-only |
+| `container/control/content/entry/caret` | frame | state=focus-visible |
+| `container/control/focusRing` | instance | state=focus-visible or focus-visible-filled |
+| `container/control/content/entry/caretEnd` | frame | state=focus-visible-filled |
+
+Code-only states, with no design-file member: `pending`, `empty`.
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by `size`.
+
+**size=medium**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/control` | `space.100` / `space.200` / `space.100` / `space.200` | `space.100` | `size.md.min-height` | — | 120px (literal) | — |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/trailingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/content/entry/caret` | — | — | `control.size.md.line-box` | `border-width.hairline` | — | — |
+| `container/control/content/entry/caretEnd` | — | — | `control.size.md.line-box` | `border-width.hairline` | — | — |
+
+**size=small**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/control` | `space.075` / `space.200` / `space.075` / `space.200` | `space.100` | `size.md.min-height` | — | 120px (literal) | — |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/trailingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/content/entry/caret` | — | — | `control.size.sm.line-box` | `border-width.hairline` | — | — |
+| `container/control/content/entry/caretEnd` | — | — | `control.size.sm.line-box` | `border-width.hairline` | — | — |
+
+**size=large**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/control` | `space.100` / `space.300` / `space.100` / `space.300` | `space.100` | `size.lg.height` | — | 120px (literal) | — |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/trailingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/content/entry/caret` | — | — | `control.size.lg.line-box` | `border-width.hairline` | — | — |
+| `container/control/content/entry/caretEnd` | — | — | `control.size.lg.line-box` | `border-width.hairline` | — | — |
+
+### Type
+
+Keyed by `size`.
+
+| Members | Part | Text style |
+| --- | --- | --- |
+| size=medium | `container/control/content/entry/placeholder` | `type.body.md.default` |
+| size=medium | `container/control/content/entry/value` | `type.body.md.default` |
+| size=small | `container/control/content/entry/placeholder` | `type.body.sm.default` |
+| size=small | `container/control/content/entry/value` | `type.body.sm.default` |
+| size=large | `container/control/content/entry/placeholder` | `type.body.lg.default` |
+| size=large | `container/control/content/entry/value` | `type.body.lg.default` |
+
+### Color
+
+Keyed by `status`, `state`.
+
+**status=default, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.field.border.rest` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/placeholder` | — | — | `color.text.secondary` | — |
+| `container/control/trailingVisual` | — | — | — | `color.icon.primary` |
+
+**status=default, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.interactive.neutral.overlay.hover` | `color.field.border.hover` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/placeholder` | — | — | `color.text.secondary` | — |
+| `container/control/trailingVisual` | — | — | — | `color.icon.primary` |
+
+**status=default, state=filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.field.border.rest` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/value` | — | — | `color.text.primary` | — |
+| `container/control/trailingVisual` | — | — | — | `color.icon.primary` |
+
+**status=default, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.focus` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/caret` | `color.text.primary` | — | — | — |
+| `container/control/content/entry/placeholder` | — | — | `color.text.secondary` | — |
+| `container/control/trailingVisual` | — | — | — | `color.icon.primary` |
+
+**status=default, state=focus-visible-filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.focus` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/value` | — | — | `color.text.primary` | — |
+| `container/control/content/entry/caretEnd` | `color.text.primary` | — | — | — |
+| `container/control/trailingVisual` | — | — | — | `color.icon.primary` |
+
+**status=default, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.disabled.fill` | `color.disabled.border` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.disabled.on-fill` |
+| `container/control/content/entry/placeholder` | — | — | `color.disabled.on-fill` | — |
+| `container/control/trailingVisual` | — | — | — | `color.disabled.on-fill` |
+
+**status=default, state=read-only**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.field.border.rest` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/value` | — | — | `color.text.primary` | — |
+| `container/control/trailingVisual` | — | — | — | `color.icon.primary` |
+
+**status=error, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.danger` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/placeholder` | — | — | `color.text.secondary` | — |
+| `container/control/trailingVisual` | — | — | — | `color.icon.primary` |
+
+**status=error, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.interactive.neutral.overlay.hover` | `color.border.danger` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/placeholder` | — | — | `color.text.secondary` | — |
+| `container/control/trailingVisual` | — | — | — | `color.icon.primary` |
+
+**status=error, state=filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.danger` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/value` | — | — | `color.text.primary` | — |
+| `container/control/trailingVisual` | — | — | — | `color.icon.primary` |
+
+**status=error, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.danger` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/caret` | `color.text.primary` | — | — | — |
+| `container/control/content/entry/placeholder` | — | — | `color.text.secondary` | — |
+| `container/control/trailingVisual` | — | — | — | `color.icon.primary` |
+
+**status=error, state=focus-visible-filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.danger` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/value` | — | — | `color.text.primary` | — |
+| `container/control/content/entry/caretEnd` | `color.text.primary` | — | — | — |
+| `container/control/trailingVisual` | — | — | — | `color.icon.primary` |
+
+**status=error, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.disabled.fill` | `color.disabled.border` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.disabled.on-fill` |
+| `container/control/content/entry/placeholder` | — | — | `color.disabled.on-fill` | — |
+| `container/control/trailingVisual` | — | — | — | `color.disabled.on-fill` |
+
+**status=error, state=read-only**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.danger` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/value` | — | — | `color.text.primary` | — |
+| `container/control/trailingVisual` | — | — | — | `color.icon.primary` |
+
+**status=warning, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.warning` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/placeholder` | — | — | `color.text.secondary` | — |
+| `container/control/trailingVisual` | — | — | — | `color.icon.primary` |
+
+**status=warning, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.interactive.neutral.overlay.hover` | `color.border.warning` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/placeholder` | — | — | `color.text.secondary` | — |
+| `container/control/trailingVisual` | — | — | — | `color.icon.primary` |
+
+**status=warning, state=filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.warning` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/value` | — | — | `color.text.primary` | — |
+| `container/control/trailingVisual` | — | — | — | `color.icon.primary` |
+
+**status=warning, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.warning` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/caret` | `color.text.primary` | — | — | — |
+| `container/control/content/entry/placeholder` | — | — | `color.text.secondary` | — |
+| `container/control/trailingVisual` | — | — | — | `color.icon.primary` |
+
+**status=warning, state=focus-visible-filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.warning` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/value` | — | — | `color.text.primary` | — |
+| `container/control/content/entry/caretEnd` | `color.text.primary` | — | — | — |
+| `container/control/trailingVisual` | — | — | — | `color.icon.primary` |
+
+**status=warning, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.disabled.fill` | `color.disabled.border` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.disabled.on-fill` |
+| `container/control/content/entry/placeholder` | — | — | `color.disabled.on-fill` | — |
+| `container/control/trailingVisual` | — | — | — | `color.disabled.on-fill` |
+
+**status=warning, state=read-only**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.warning` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/value` | — | — | `color.text.primary` | — |
+| `container/control/trailingVisual` | — | — | — | `color.icon.primary` |
+
+**status=success, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.success` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/placeholder` | — | — | `color.text.secondary` | — |
+| `container/control/trailingVisual` | — | — | — | `color.icon.primary` |
+
+**status=success, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.interactive.neutral.overlay.hover` | `color.border.success` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/placeholder` | — | — | `color.text.secondary` | — |
+| `container/control/trailingVisual` | — | — | — | `color.icon.primary` |
+
+**status=success, state=filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.success` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/value` | — | — | `color.text.primary` | — |
+| `container/control/trailingVisual` | — | — | — | `color.icon.primary` |
+
+**status=success, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.success` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/caret` | `color.text.primary` | — | — | — |
+| `container/control/content/entry/placeholder` | — | — | `color.text.secondary` | — |
+| `container/control/trailingVisual` | — | — | — | `color.icon.primary` |
+
+**status=success, state=focus-visible-filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.success` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/value` | — | — | `color.text.primary` | — |
+| `container/control/content/entry/caretEnd` | `color.text.primary` | — | — | — |
+| `container/control/trailingVisual` | — | — | — | `color.icon.primary` |
+
+**status=success, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.disabled.fill` | `color.disabled.border` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.disabled.on-fill` |
+| `container/control/content/entry/placeholder` | — | — | `color.disabled.on-fill` | — |
+| `container/control/trailingVisual` | — | — | — | `color.disabled.on-fill` |
+
+**status=success, state=read-only**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.success` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/value` | — | — | `color.text.primary` | — |
+| `container/control/trailingVisual` | — | — | — | `color.icon.primary` |
+
+### Nesting and properties
+
+- `container/label` nests `field-label` at `size=medium, emphasis=secondary, weight=regular, state=rest`; `state=disabled` takes `state=disabled`; follows `size`; exposes `emphasis`, `weight`
+- `container/control/content/leadingVisual` is a swap slot, property `↳ swap leading icon`, shown by `leading icon`
+- `container/control/trailingVisual` is a swap slot, property `↳ swap trailing icon`, shown by `trailing icon`
+- `container/message` nests `field-message` at `status=default`; follows `status`
+- `container/control/focusRing` nests `focus-ring` at `surface=default`
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `placeholder` | text | `Placeholder` |
+| `value` | text | `Entered text` |
+| `leading icon` | boolean | `false` |
+| `↳ swap leading icon` | instance swap | — |
+| `trailing icon` | boolean | `false` |
+| `↳ swap trailing icon` | instance swap | — |
+| `message` | boolean | `true` |
+
 ---
 
 Generated from the `text-field` component definition.

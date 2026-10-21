@@ -101,6 +101,183 @@ The atom has no copy of its own; all label, description and error text belongs t
 | `validation` | enum: 'default' \| 'error' | `default` | no | The validation status, set by the Radio group and never by one radio alone: the group passes it to every option, so error draws the danger ring on all of them at once. default is neutral. |
 | `aria-label` | string | — | no | Required only for a genuinely standalone control with no host row to name it — the Row provides the accessible name, so a nested control must not double-label. |
 
+## Specs
+
+Generated from the plan that builds the design-file component: 60 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `control` | frame | every member |
+| `control/focusRing` | instance | state=focus-visible |
+| `control/dot` | frame | selection=checked |
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by `size`.
+
+**size=medium**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `control` | — | — | `control.size.md.height` | `control.size.md.height` | — | — |
+| `control/dot` | — | — | `control.size.md.dot` | `control.size.md.dot` | — | — |
+
+**size=small**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `control` | — | — | `control.size.sm.height` | `control.size.sm.height` | — | — |
+| `control/dot` | — | — | `control.size.sm.dot` | `control.size.sm.dot` | — | — |
+
+**size=large**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `control` | — | — | `control.size.lg.height` | `control.size.lg.height` | — | — |
+| `control/dot` | — | — | `control.size.lg.dot` | `control.size.lg.dot` | — | — |
+
+### Color
+
+Keyed by `selection`, `status`, `state`.
+
+**selection=unchecked, status=default, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | — | `color.field.border.rest` | — | — |
+
+**selection=unchecked, status=default, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | — | `color.field.border.hover` | — | — |
+
+**selection=unchecked, status=default, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | — | `color.field.border.rest` | — | — |
+
+**selection=unchecked, status=default, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | — | `color.field.border.rest` | — | — |
+
+**selection=unchecked, status=default, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | — | `color.disabled.border` | — | — |
+
+**selection=unchecked, status=error, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | — | `color.border.danger` | — | — |
+
+**selection=unchecked, status=error, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | — | `color.border.danger` | — | — |
+
+**selection=unchecked, status=error, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | — | `color.border.danger` | — | — |
+
+**selection=unchecked, status=error, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | — | `color.border.danger` | — | — |
+
+**selection=unchecked, status=error, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | — | `color.disabled.border` | — | — |
+
+**selection=checked, status=default, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | — | `color.interactive.primary.border.rest` | — | — |
+| `control/dot` | `color.interactive.primary.fill.selected` | — | — | — |
+
+**selection=checked, status=default, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | — | `color.interactive.primary.border.hover` | — | — |
+| `control/dot` | `color.interactive.primary.fill.selected` | — | — | — |
+
+**selection=checked, status=default, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | — | `color.interactive.primary.border.pressed` | — | — |
+| `control/dot` | `color.interactive.primary.fill.selected` | — | — | — |
+
+**selection=checked, status=default, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | — | `color.interactive.primary.border.rest` | — | — |
+| `control/dot` | `color.interactive.primary.fill.selected` | — | — | — |
+
+**selection=checked, status=default, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | — | `color.disabled.border` | — | — |
+| `control/dot` | `color.disabled.fill` | — | — | — |
+
+**selection=checked, status=error, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | — | `color.border.danger` | — | — |
+| `control/dot` | `color.interactive.primary.fill.selected` | — | — | — |
+
+**selection=checked, status=error, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | — | `color.border.danger` | — | — |
+| `control/dot` | `color.interactive.primary.fill.selected` | — | — | — |
+
+**selection=checked, status=error, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | — | `color.border.danger` | — | — |
+| `control/dot` | `color.interactive.primary.fill.selected` | — | — | — |
+
+**selection=checked, status=error, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | — | `color.border.danger` | — | — |
+| `control/dot` | `color.interactive.primary.fill.selected` | — | — | — |
+
+**selection=checked, status=error, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `control` | — | `color.disabled.border` | — | — |
+| `control/dot` | `color.disabled.fill` | — | — | — |
+
+### Nesting and properties
+
+- `control/focusRing` nests `focus-ring` at `surface=default`
+
 ---
 
 Generated from the `radio-control` component definition.
