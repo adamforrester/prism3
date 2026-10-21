@@ -2112,14 +2112,15 @@
         "kind": "component set",
         "page": "↳ Dialog",
         "section": "Components",
-        "members": 15,
+        "members": 18,
         "variantProperties": [
           {
             "name": "placement",
             "values": [
               "center",
               "bottom",
-              "full"
+              "full",
+              "end"
             ]
           },
           {
