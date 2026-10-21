@@ -120,7 +120,7 @@ export const publishBlock = (text: string): HTMLElement => {
   copy.type = 'button';
   head.append(h('b', undefined, 'Publish description'), copy);
   const body = hook(h('pre', 'p3-op-publish-text', text), 'op-publish-text');
-  const state = hook(h('p', 'p3-note', "Paste it into Figma's Publish library dialog."), 'op-publish-state');
+  const state = hook(h('p', 'p3-note', "Paste it into Publish library in Figma's Assets panel."), 'op-publish-state');
   state.setAttribute('aria-live', 'polite');
   const select = (): void => {
     const r = document.createRange();

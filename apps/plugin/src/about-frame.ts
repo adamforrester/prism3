@@ -91,17 +91,19 @@ const ownFrame = (page: AboutPage): { frame: ANode; record: AboutRecord } | null
 export type AboutDue =
   | { state: 'no-cover' }
   | { state: 'missing' }
-  | { state: 'stale'; from: { engine: string; contract: string } }
-  | { state: 'current' };
+  | { state: 'stale'; from: { engine: string; contract: string }; edited?: true }
+  | { state: 'current'; edited?: true };
 
-export const aboutDue = (root: AboutRoot, engine: string = ENGINE_VERSION, contract: string = CONTRACT_VERSION): AboutDue | undefined => {
+/** `edited`: the frame no longer matches the fingerprint it was drawn with, so a redraw keeps it aside (#2858 review). */
+export const aboutDue = async (root: AboutRoot, engine: string = ENGINE_VERSION, contract: string = CONTRACT_VERSION): Promise<AboutDue | undefined> => {
   if (!root.children) return undefined;
   const page = coverPage(root);
   if (!page) return { state: 'no-cover' };
   const own = ownFrame(page);
   if (!own) return { state: 'missing' };
-  if (own.record.engine !== engine || own.record.contract !== contract) return { state: 'stale', from: { engine: own.record.engine, contract: own.record.contract } };
-  return { state: 'current' };
+  const edited = (await fingerprintOf(own.frame as unknown as SgNode)) !== own.record.print ? { edited: true as const } : {};
+  if (own.record.engine !== engine || own.record.contract !== contract) return { state: 'stale', from: { engine: own.record.engine, contract: own.record.contract }, ...edited };
+  return { state: 'current', ...edited };
 };
 
 /** Whether the frame is work for an Update on its own. */
@@ -110,8 +112,9 @@ export const aboutIsWork = (d: AboutDue | undefined): boolean => d?.state === 'm
 /** The dry run's line for the frame, or ''. DRAFT wording. */
 export const aboutDueLine = (d: AboutDue | undefined): string =>
   d?.state === 'missing' ? `${ABOUT_NAME}: to draw on the Cover page.`
-    : d?.state === 'stale' ? `${ABOUT_NAME}: to redraw for engine ${ENGINE_VERSION} (drawn for ${d.from.engine || 'an unknown engine'}).`
-      : '';
+    : d?.state === 'stale' ? `${ABOUT_NAME}: to redraw for engine ${ENGINE_VERSION} (drawn for ${d.from.engine || 'an unknown engine'}).${d.edited ? ` Your edited copy will be kept aside, named "${ABOUT_EDITED}".` : ''}`
+      : d?.state === 'current' && d.edited ? `${ABOUT_NAME}: edited by hand. An Update that writes keeps your copy aside, named "${ABOUT_EDITED}", and draws a new one.`
+        : '';
 
 export type AboutOutcome = {
   /** True when the frame was drawn. */
@@ -244,7 +247,9 @@ export const drawAbout = async (
   if (own && edited) {
     own.frame.name = ABOUT_EDITED;
     own.frame.setSharedPluginData?.(ABOUT_NS, ABOUT_KEY, '');
-    own.frame.y = at.y + (frame.height ?? ABOUT_HEIGHT) + ABOUT_GAP;
+    // Below the new frame, and below any copy kept aside before, so two edited copies never sit on each other.
+    const kept = page.children.filter((n) => n !== own.frame && n.name === ABOUT_EDITED).map((n) => (n.y ?? 0) + (n.height ?? 0));
+    own.frame.y = Math.max(at.y + (frame.height ?? ABOUT_HEIGHT), ...kept) + ABOUT_GAP;
     out.kept = ABOUT_EDITED;
   } else if (own) own.frame.remove?.();
   const record: AboutRecord = { engine, contract, updated: o.updated, print: await fingerprintOf(frame as unknown as SgNode) };

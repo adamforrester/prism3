@@ -44,7 +44,6 @@ const cmp = (a: string, b: string): number => {
 };
 const plain = (s: string): string => s.replace(/`/g, '');
 const n = (k: number, one: string, many = `${one}s`): string => `${k} ${k === 1 ? one : many}`;
-const list = (xs: readonly string[]): string => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
 
 /** The releases at or below `version`, newest first. */
 const upTo = (version: string, ix: ReleaseIndex): ReleaseEntry[] =>
@@ -87,10 +86,10 @@ export const whatChanged = (r: ReleaseEntry): string[] => {
   const prefix = sharedPrefix(tokens);
   const lines = [
     ...breaking,
-    ...(sets.length ? [`${n(sets.length, 'new set')}: ${list(sets)}.`] : []),
+    ...(sets.length ? [`${n(sets.length, 'new set')}: ${sets.join(', ')}.`] : []),
     ...otherNew,
     ...(tokens.length === 1 ? [`New token: ${tokens[0]}.`] : tokens.length ? [prefix ? `${tokens.length} new tokens under ${prefix}.` : `${tokens.length} new tokens.`] : []),
-    ...(rebuilt.length === 1 ? [`Fixed: ${rebuilt[0]} builds differently.`] : rebuilt.length ? [`Fixed: ${rebuilt.length} sets build differently, ${list(rebuilt)}.`] : []),
+    ...(rebuilt.length === 1 ? [`Fixed: ${rebuilt[0]} builds differently.`] : rebuilt.length ? [`Fixed: ${rebuilt.length} sets build differently, ${rebuilt.join(', ')}.`] : []),
     ...otherFix,
   ];
   const more = lines.length - ABOUT_LINES;
@@ -114,7 +113,7 @@ export const aboutContent = (o: { updated: string; engine?: string; contract?: s
   return {
     title: 'About this library',
     rows: [
-      { label: 'Engine', value: engine, note: r ? `Released ${r.date}.` : '' },
+      { label: 'Engine', value: engine, note: r ? `Released ${r.date}` : '' },
       { label: 'Token contract', value: o.contract ?? CONTRACT_VERSION, note: 'Changes only when a token name is added, renamed or removed.' },
       { label: 'Updated', value: o.updated, note: 'By Update.' },
     ],
@@ -163,8 +162,10 @@ export const lastChangedLines = (l: LastChanged): string[] =>
  * it wrote (`update-apply.ts`'s title, whichever builder made it), then the engine, the engine the file held before
  * (the About frame's own record, when there was one) and the token contract. Then, for each set the Update changed,
  * the Figma items of every release it crossed that name the set: after `from`, up to the engine. With no `from`, the
- * engine's own release. Then whether any of it is breaking, counting the library-consumer breaks the Update listed
- * (#2831) and the breaking release items.
+ * engine's own release. Then whether any of it is breaking. The library-consumer breaks the Update listed (#2831) and a
+ * breaking release item for the same set are one change seen from two sides (a removed value is a release item and a
+ * member drop per member), so the two are never added: the Update's own count when it listed any, else a line saying
+ * the release items above include breaking changes.
  */
 export const publishDescription = (o: {
   title: string; sets: readonly string[]; from?: string | null; engine?: string; contract?: string;
@@ -176,16 +177,18 @@ export const publishDescription = (o: {
   const crossed = upTo(engine, ix).filter((r) => (o.from ? cmp(r.version, o.from) > 0 : r === releaseFor(engine, ix)));
   const head = `${o.title}. Engine ${engine}${o.from && o.from !== engine ? `, from ${o.from}` : ''}. Token contract ${o.contract ?? CONTRACT_VERSION}.`;
   const lines: string[] = [];
-  let breaking = o.consumerBreaks ?? 0;
+  let released = false;
   for (const set of o.sets) {
     for (const r of crossed) {
       for (const i of (r.items ?? []).filter((x) => x.area === 'figma' && x.component === set)) {
         lines.push(`${set}: ${withoutSet(i.text, set)}`);
-        if (i.class === 'breaking') breaking++;
+        if (i.class === 'breaking') released = true;
       }
     }
   }
   const more = lines.length - PUBLISH_LINES;
   const shown = more > 0 ? [...lines.slice(0, PUBLISH_LINES - 1), `And ${more + 1} more in the release notes.`] : lines;
-  return [head, ...shown, breaking ? `${n(breaking, 'breaking change')} for library consumers.` : 'No breaking changes.'].join('\n');
+  const consumer = o.consumerBreaks ?? 0;
+  const tail = consumer ? `${n(consumer, 'breaking change')} for library consumers.` : released ? 'Includes breaking changes for library consumers.' : 'No breaking changes.';
+  return [head, ...shown, tail].join('\n');
 };

@@ -2338,7 +2338,7 @@ for (const how of ['pointer', 'focus']) {
     state: document.querySelector('[data-p3="op-publish-state"]')?.textContent ?? null,
     live: document.querySelector('[data-p3="op-publish-state"]')?.getAttribute('aria-live') ?? null,
   }));
-  ok(seen.text === publish && seen.copy === 'Copy' && seen.state === "Paste it into Figma's Publish library dialog." && seen.live === 'polite',
+  ok(seen.text === publish && seen.copy === 'Copy' && seen.state === "Paste it into Publish library in Figma's Assets panel." && seen.live === 'polite',
     `#2858 an Update's publish description is shown as sent, with a Copy button — read ${JSON.stringify(seen)}`);
   await hooks.click(page.locator('[data-p3="op-publish-copy"]'));
   await page.waitForFunction(() => (document.querySelector('[data-p3="op-publish-state"]')?.textContent ?? '').startsWith('Copied') || (document.querySelector('[data-p3="op-publish-state"]')?.textContent ?? '').startsWith('Selected'), null, { timeout: 5000 }).catch(() => {});

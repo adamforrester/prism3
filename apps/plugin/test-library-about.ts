@@ -42,7 +42,7 @@ import { makeShim, type Node } from './component-shim';
 import { previewUpdate, previewVerdict } from './src/update-plan';
 import { applyUpdate, applyVerdict, previewHashOf, type ApplyHost } from './src/update-apply';
 import { aboutContent, countsLine, lastChangedIn, lastChangedLines, publishDescription, whatChanged, RELEASES, type ReleaseIndex } from './src/library-about';
-import { aboutDue, drawAbout, ABOUT_NS, ABOUT_KEY, type AboutApi } from './src/about-frame';
+import { aboutDue, aboutDueLine, drawAbout, ABOUT_NS, ABOUT_KEY, type AboutApi } from './src/about-frame';
 
 let failed = 0;
 let executed = 0;
@@ -60,13 +60,13 @@ section('words — the About frame at engine 0.237.0, from the bundled release n
   const c = aboutContent({ updated: '2026-10-20', engine: '0.237.0', contract: '14.7.0' });
   ok(c.title === 'About this library', `words/title (${c.title})`);
   ok(eq(c.rows, [
-    { label: 'Engine', value: '0.237.0', note: 'Released 2026-10-15.' },
+    { label: 'Engine', value: '0.237.0', note: 'Released 2026-10-15' },
     { label: 'Token contract', value: '14.7.0', note: 'Changes only when a token name is added, renamed or removed.' },
     { label: 'Updated', value: '2026-10-20', note: 'By Update.' },
   ]), `words/rows: engine with its release date, the contract, the Update's date (${JSON.stringify(c.rows)})`);
   ok(c.heading === 'What changed in 0.237.0' && c.counts === '0.237.0: 29 new, 1 fix. No breaking changes.', `words/latest only: the heading and counts of 0.237.0 (${c.heading}; ${c.counts})`);
   ok(eq(c.changes, [
-    '8 new sets: accordion, divider, list, list-item, segmented-control, segmented-control-segment, tab and tabs.',
+    '8 new sets: accordion, divider, list, list-item, segmented-control, segmented-control-segment, tab, tabs.',
     'icon: name has a new value, menu.',
     '9 new tokens under type.label.',
     'Fixed: badge builds differently.',
@@ -115,6 +115,13 @@ section('publish — the description offered after an Update');
   const r = publishDescription({ title: 'Before Prism3 updated button', sets: ['button'], from: '0.234.0', engine: '0.237.0', contract: '14.7.0', consumerBreaks: 2 });
   ok(r === 'Before Prism3 updated button. Engine 0.237.0, from 0.234.0. Token contract 14.7.0.\nbutton: builds differently.\nbutton: has a new property, inset, with the values default and flush.\n2 breaking changes for library consumers.',
     `publish/range: each release after the file's engine, newest first, and the consumer breaks (${JSON.stringify(r)})`);
+  // One change seen from two sides: a breaking release item and the Update's own consumer break are counted once (#2876 review).
+  const bix: ReleaseIndex = { releases: [{ version: '9.0.0', from: '8.0.0', date: '2026-11-01', counts: { breaking: 1, new: 0, fix: 0 },
+    items: [{ class: 'breaking', area: 'figma', kind: 'axis-removed', component: 'button', text: '`button`: the `tone` property is gone.' }] }] };
+  const once = publishDescription({ title: 'T', sets: ['button'], from: '8.0.0', engine: '9.0.0', contract: '1.0.0', consumerBreaks: 1, ix: bix });
+  ok(once.endsWith('\n1 breaking change for library consumers.'), `publish/breaking counted once (${JSON.stringify(once)})`);
+  const noted = publishDescription({ title: 'T', sets: ['button'], from: '8.0.0', engine: '9.0.0', contract: '1.0.0', ix: bix });
+  ok(noted.endsWith('\nIncludes breaking changes for library consumers.'), `publish/a breaking release item with no consumer count is still named (${JSON.stringify(noted)})`);
   const first = publishDescription({ title: 'Before Prism3 updated tag', sets: ['tag'], from: null, engine: '0.237.0', contract: '14.7.0' });
   ok(first === 'Before Prism3 updated tag. Engine 0.237.0. Token contract 14.7.0.\nNo breaking changes.', `publish/no from: the engine's own release only, which names no tag item (${JSON.stringify(first)})`);
 }
@@ -144,21 +151,21 @@ const fileWithCover = (thumb = true) => {
 section('draw — beside the thumbnail frame on the Cover page');
 {
   const f = fileWithCover();
-  ok(eq(aboutDue(f.root, '0.237.0', '14.7.0'), { state: 'missing' }), 'draw/due: a Cover page with no frame reads missing');
+  ok(eq(await aboutDue(f.root, '0.237.0', '14.7.0'), { state: 'missing' }), 'draw/due: a Cover page with no frame reads missing');
   const o = await drawAbout(f.api as AboutApi, f.root, { updated: '2026-10-20', engine: '0.237.0', contract: '14.7.0' });
   const fr = tagged(f.cover);
   ok(o.drawn && !o.replaced && fr.length === 1 && fr[0].name === 'About this library', `draw/one frame, named (${fr.map((n) => n.name)})`);
   ok(fr[0].x === 100 + 1920 + 40 && fr[0].y === 50, `draw/beside the thumbnail: 40px right of it, top-aligned (${fr[0].x}, ${fr[0].y})`);
   ok(fr[0].width === 720 && fr[0].height === 960, `draw/720 × 960 (${fr[0].width} × ${fr[0].height})`);
   const shown = textsOf(fr[0]);
-  ok(eq(shown.slice(0, 10), ['About this library', 'Engine', '0.237.0', 'Released 2026-10-15.', 'Token contract', '14.7.0', 'Changes only when a token name is added, renamed or removed.', 'Updated', '2026-10-20', 'By Update.']),
+  ok(eq(shown.slice(0, 10), ['About this library', 'Engine', '0.237.0', 'Released 2026-10-15', 'Token contract', '14.7.0', 'Changes only when a token name is added, renamed or removed.', 'Updated', '2026-10-20', 'By Update.']),
     `draw/rows on the canvas (${JSON.stringify(shown.slice(0, 10))})`);
   ok(shown.includes('What changed in 0.237.0') && shown.includes('0.237.0: 29 new, 1 fix. No breaking changes.')
-    && shown.includes(['• 8 new sets: accordion, divider, list, list-item, segmented-control, segmented-control-segment, tab and tabs.', '• icon: name has a new value, menu.', '• 9 new tokens under type.label.', '• Fixed: badge builds differently.'].join('\n')),
+    && shown.includes(['• 8 new sets: accordion, divider, list, list-item, segmented-control, segmented-control-segment, tab, tabs.', '• icon: name has a new value, menu.', '• 9 new tokens under type.label.', '• Fixed: badge builds differently.'].join('\n')),
     `draw/what changed on the canvas (${JSON.stringify(shown.slice(10))})`);
   const rec = recordOf(fr[0]);
   ok(rec.engine === '0.237.0' && rec.contract === '14.7.0' && rec.updated === '2026-10-20' && !!rec.print, `draw/record (${JSON.stringify({ ...rec, print: rec.print ? '…' : '' })})`);
-  ok(eq(aboutDue(f.root, '0.237.0', '14.7.0'), { state: 'current' }), 'draw/current after drawing');
+  ok(eq(await aboutDue(f.root, '0.237.0', '14.7.0'), { state: 'current' }), 'draw/current after drawing');
   ok(f.cover.children.includes(f.thumb!) && f.thumb!.name === 'Thumbnail', 'draw/the thumbnail untouched');
   // No thumbnail frame: past whatever the page holds.
   const g = fileWithCover(false);
@@ -174,8 +181,8 @@ section('redraw — a new engine; a frame left alone is replaced, an edited one 
   await drawAbout(f.api as AboutApi, f.root, { updated: '2026-10-20', engine: '0.236.0', contract: '14.7.0' });
   const first = tagged(f.cover)[0];
   first.x = 3000; first.y = 400;   // a designer moved it: not an edit, and the redraw keeps the place
-  ok(eq(aboutDue(f.root, '0.237.0', '14.7.0'), { state: 'stale', from: { engine: '0.236.0', contract: '14.7.0' } }), 'redraw/stale: drawn for another engine');
-  ok(eq(aboutDue(f.root, '0.236.0', '14.8.0'), { state: 'stale', from: { engine: '0.236.0', contract: '14.7.0' } }), 'redraw/stale contract');
+  ok(eq(await aboutDue(f.root, '0.237.0', '14.7.0'), { state: 'stale', from: { engine: '0.236.0', contract: '14.7.0' } }), 'redraw/stale: drawn for another engine');
+  ok(eq(await aboutDue(f.root, '0.236.0', '14.8.0'), { state: 'stale', from: { engine: '0.236.0', contract: '14.7.0' } }), 'redraw/stale contract');
   const o = await drawAbout(f.api as AboutApi, f.root, { updated: '2026-10-21', engine: '0.237.0', contract: '14.7.0' });
   const now = tagged(f.cover);
   ok(o.replaced && o.from === '0.236.0' && !o.kept && now.length === 1 && now[0] !== first && !!first.removed, `redraw/replaced: the old frame removed, one frame left (${now.length}, from ${o.from})`);
@@ -184,6 +191,10 @@ section('redraw — a new engine; a frame left alone is replaced, an edited one 
   // A designer's edit: one text changed.
   const t = (now[0].findAll as (p: (n: Node) => boolean) => Node[])((n) => n.type === 'TEXT' && n.characters === 'By Update.')[0];
   t.characters = 'By Update. Ask Sam before publishing.';
+  // The dry run says so before anything is written (#2876 review).
+  const dueEdited = await aboutDue(f.root, '0.237.0', '14.7.0');
+  ok(eq(dueEdited, { state: 'current', edited: true }) && aboutDueLine(dueEdited) === 'About this library: edited by hand. An Update that writes keeps your copy aside, named "About this library (edited)", and draws a new one.',
+    `redraw/dry run names the edit (${JSON.stringify(dueEdited)}; ${aboutDueLine(dueEdited)})`);
   const e = await drawAbout(f.api as AboutApi, f.root, { updated: '2026-10-22', engine: '0.237.0', contract: '14.7.0' });
   const after = tagged(f.cover);
   const kept = f.cover.children.find((n) => n.name === 'About this library (edited)');
@@ -191,6 +202,14 @@ section('redraw — a new engine; a frame left alone is replaced, an edited one 
   ok(after.length === 1 && after[0] !== kept && !(kept!.getSharedPluginData as (a: string, b: string) => string)(ABOUT_NS, ABOUT_KEY), 'redraw/edited untagged: the next Update never touches it');
   ok(kept!.y === 400 + 960 + 40 && after[0].y === 400, `redraw/edited moved below the new frame (${kept!.y})`);
   ok(textsOf(kept!).includes('By Update. Ask Sam before publishing.'), 'redraw/the edit survives');
+  // A second edit, kept aside too: below the first copy, never on top of it (#2876 review).
+  const t2 = (after[0].findAll as (p: (n: Node) => boolean) => Node[])((n) => n.type === 'TEXT' && n.characters === 'By Update.')[0];
+  t2.characters = 'By Update, again.';
+  const stale = await aboutDue(f.root, '0.238.0', '14.7.0');
+  ok(aboutDueLine(stale).endsWith('Your edited copy will be kept aside, named "About this library (edited)".'), `redraw/a stale edited frame is named in the dry run (${aboutDueLine(stale)})`);
+  await drawAbout(f.api as AboutApi, f.root, { updated: '2026-10-23', engine: '0.238.0', contract: '14.7.0' });
+  const copies = f.cover.children.filter((n) => n.name === 'About this library (edited)').sort((a, b) => (a.y as number) - (b.y as number));
+  ok(copies.length === 2 && (copies[1].y as number) >= (copies[0].y as number) + (copies[0].height as number) + 40, `redraw/edited copies stack, never overlap (${copies.map((c) => c.y)})`);
 }
 
 /* ── cover ───────────────────────────────────────────────────────────────────────────────────────────── */
@@ -198,10 +217,10 @@ section('cover — no Cover page');
 {
   const api = makeShim({}) as Record<string, any>;
   const root = { children: [pageOf('Components')] };
-  ok(eq(aboutDue(root), { state: 'no-cover' }), 'cover/due: no-cover');
+  ok(eq(await aboutDue(root), { state: 'no-cover' }), 'cover/due: no-cover');
   const o = await drawAbout(api as AboutApi, root, { updated: 'd' });
   ok(!o.drawn && o.skipped === 'the file has no Cover page. Run Set up file, then Update', `cover/not drawn, and why (${o.skipped})`);
-  ok(aboutDue({}) === undefined, 'cover/no page list: nothing read');
+  ok((await aboutDue({})) === undefined, 'cover/no page list: nothing read');
 }
 
 /** The components a plan nests or swaps to, which the file holds before the set is built (as `test-update-apply.ts`). */

@@ -1140,7 +1140,7 @@ export const previewUpdate = async (host: UpdateHost, targets: readonly UpdateTa
   const pages = host.root.children ? pagesOutOfOrder(host.root.children) : [];
   if (pages.length) out.pages = pages;
   // THE ABOUT FRAME (#2858): read once for the file, like the page order.
-  const about = aboutDue(host.root);
+  const about = await aboutDue(host.root);
   if (about) out.about = about;
   // THE VARIABLE ORDER (#2860): read once for the file. Nothing here can move a variable, so this only names them.
   const variables = colorVariablesOutOfOrder((await host.variables.getLocalVariablesAsync()).map((v) => v.name));
