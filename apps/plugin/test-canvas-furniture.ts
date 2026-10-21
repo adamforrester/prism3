@@ -878,12 +878,13 @@ section('columns — the Radio page, an update that stops: no set settles after 
 }
 
 /* ── the scrim behind each Dialog example (#2609, owner decisions Q303.2 A and Q303.3 A) ───────────────────── */
-section('scrim — Dialog: the backdrop is furniture behind each center and bottom member, never in the set');
+section('scrim — Dialog: the backdrop is furniture behind each center, bottom and end member, never in the set');
 {
   // THE REACH, literal: 12px all round a centered panel, 12px above a bottom sheet and flush on its other three sides,
-  // and no entry for full screen, which has no visible backdrop (Q303.8). Typed here, never read off the engine.
-  ok(JSON.stringify(SCRIM_BACKDROPS) === JSON.stringify({ dialog: { axis: 'placement', reach: { center: [12, 12, 12, 12], bottom: [12, 0, 0, 0] } } }),
-    `scrim/reach: center 12 all round, bottom 12 above only, full none, and Dialog the only def (${JSON.stringify(SCRIM_BACKDROPS)})`);
+  // 12px on the start side of an end panel (#2877) and flush on its other three, and no entry for full screen, which
+  // has no visible backdrop (Q303.8). Typed here, never read off the engine.
+  ok(JSON.stringify(SCRIM_BACKDROPS) === JSON.stringify({ dialog: { axis: 'placement', reach: { center: [12, 12, 12, 12], bottom: [12, 0, 0, 0], end: [0, 0, 0, 12] } } }),
+    `scrim/reach: center 12 all round, bottom 12 above only, end 12 on its start side only, full none, and Dialog the only def (${JSON.stringify(SCRIM_BACKDROPS)})`);
   // THE PLANNER on a hand-laid three-member grid at (1000, 500): a 560×200 center panel at (24, 24), a 360×180 bottom
   // sheet at (24, 248) and a 360×640 full panel at (408, 248). Expected rectangles worked out by hand.
   const DIALOG_GRID: GridMember[] = [
@@ -906,11 +907,11 @@ section('scrim — Dialog: the backdrop is furniture behind each center and bott
   const spanned = members.filter((m) => valuesOf(String(m.name)).placement !== 'full').every((m) => {
     const b = boxOf(set, m);
     const p = valuesOf(String(m.name)).placement;
-    const want = p === 'center' ? { x: b.x - 12, y: b.y - 12, w: b.w + 24, h: b.h + 24 } : { x: b.x, y: b.y - 12, w: b.w, h: b.h + 12 };
+    const want = p === 'center' ? { x: b.x - 12, y: b.y - 12, w: b.w + 24, h: b.h + 24 } : p === 'end' ? { x: b.x - 12, y: b.y, w: b.w + 12, h: b.h } : { x: b.x, y: b.y - 12, w: b.w, h: b.h + 12 };
     return scrims.some((n) => Number(n.x) === want.x && Number(n.y) === want.y && Number(n.width) === want.w && Number(n.height) === want.h);
   });
-  ok(o.scrims === 16 && scrims.length === 16 && spanned,
-    `scrim/drawn: 16 scrims, one fitted to each of the 12 center and 4 bottom members, none for the 4 full ones (${o.scrims}, ${scrims.length})`);
+  ok(o.scrims === 20 && scrims.length === 20 && spanned,
+    `scrim/drawn: 20 scrims, one fitted to each of the 12 center, 4 bottom and 4 end members, none for the 4 full ones (${o.scrims}, ${scrims.length})`);
   ok(scrims.every((n) => page.children.indexOf(n) < page.children.indexOf(set)) && !members.some((m) => /scrim/.test(String(m.name))),
     'scrim/behind and outside: every scrim is under the set on the page, and no member of the set is a scrim');
   const fullBoxes = members.filter((m) => valuesOf(String(m.name)).placement === 'full').map((m) => boxOf(set, m));
@@ -984,8 +985,8 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
     const due = furnitureDue(fakeTemplates(), set, furnitureLayout(plans), id);
     ok(due.labels + due.backdrops === 0 && due.clear === 0, `rollout/${id} due: nothing due right after the draw (${JSON.stringify(due)})`);
     const surfaces = new Set(members.map((m) => valuesOf(String(m.name)).surface).filter(Boolean));
-    // THE SCRIMS (#2609, #2880): Dialog alone, one behind each of its 12 center and 4 bottom members; every other def none.
-    ok(o.scrims === (id === 'dialog' ? 16 : 0), `rollout/${id} scrims: ${id === 'dialog' ? '16, behind the center and bottom members' : 'none'} (${o.scrims})`);
+    // THE SCRIMS (#2609, #2877, #2880): Dialog alone, one behind each of its 12 center, 4 bottom and 4 end members; every other def none.
+    ok(o.scrims === (id === 'dialog' ? 20 : 0), `rollout/${id} scrims: ${id === 'dialog' ? '20, behind the center, bottom and end members' : 'none'} (${o.scrims})`);
     ok(o.columns + o.rows > 0 && o.skipped.length === 0 && furn.length === o.columns + o.rows + o.backdrops + o.scrims,
       `rollout/${id} drawn: ${o.columns} column and ${o.rows} row labels, nothing skipped (${JSON.stringify(o.skipped)})`);
     ok(BACKDROP.has(id) ? o.backdrops === 1 && surfaces.has('inverse') : o.backdrops === 0,

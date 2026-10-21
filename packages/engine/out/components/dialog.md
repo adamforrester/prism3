@@ -1,15 +1,15 @@
 # Dialog
 
-> A panel over the page for a short task or a decision. Centered, a bottom sheet, or full screen.
+> A panel over the page for a short task or a decision. Centered, full screen, a bottom or side sheet.
 
 - **ID:** `dialog`
 - **Category:** overlay
 - **Status:** draft
-- **Also known as:** modal, sheet, bottom-sheet, full-screen-dialog
+- **Also known as:** modal, sheet, bottom-sheet, full-screen-dialog, side-sheet, drawer
 
 ## Overview
 
-A modal panel over the page for a short task or a decision the user makes before going on: a confirmation, a short form, or a choice that needs the page behind it for context. The page behind is inert until the dialog closes. Centered by default, at a small, medium or large width; on a small screen a product can open it as a bottom sheet or full screen instead. A header names the task and holds the close button, the body holds the content, and the footer holds the actions. Not a toast or a banner (they do not interrupt), not a popover or a menu (they sit beside a control and do not trap focus), and not a page of its own for a long form.
+A modal panel over the page for a short task or a decision the user makes before going on: a confirmation, a short form, or a choice that needs the page behind it for context. The page behind is inert until the dialog closes. Centered by default, at a small, medium or large width; on a small screen a product can open it as a bottom sheet or full screen instead, and on a wide screen as a side sheet at the end edge. A header names the task and holds the close button, the body holds the content, and the footer holds the actions. Not a toast or a banner (they do not interrupt), not a popover or a menu (they sit beside a control and do not trap focus), and not a page of its own for a long form.
 
 - **Purpose:** Interrupt the page for a short task or a decision the user must make before going on.
 - **Use when:** A confirmation, a short form or a choice that needs the page behind it for context, and that the user must finish or dismiss before going on.
@@ -38,13 +38,13 @@ Shown on the default member: placement `center`, size `medium`, footer `inline`.
 
 | Axis | Values | Changes | Description |
 | --- | --- | --- | --- |
-| `placement` | `center`, `bottom`, `full` | once, when authored | Where the panel sits. center on every screen by default; bottom (a bottom sheet) and full (full screen) are for small screens. Set per breakpoint; nothing switches automatically. |
-| `size` | `medium`, `small`, `large` | once, when authored | The width of a centered panel: 400, 560 or 720px. On a small screen a centered panel is as wide as the screen less its margins. Bottom and full panels are full width and ignore it. |
+| `placement` | `center`, `bottom`, `full`, `end` | once, when authored | Where the panel sits. center on every screen by default; bottom (a bottom sheet) and full (full screen) are for small screens; end (a side sheet) runs the full height of the screen at the end edge, the right in left-to-right text. Set per breakpoint; nothing switches automatically. |
+| `size` | `medium`, `small`, `large` | once, when authored | The width of a centered panel: 400, 560 or 720px. On a small screen a centered panel is as wide as the screen less its margins. Bottom and full panels are full width, and an end panel is 480px wide, so all three ignore it. |
 | `footer` | `inline`, `stacked`, `fill`, `none` | once, when authored | How the actions are laid out. inline is a row at the end edge; stacked is full-width buttons, the main action on top; fill is a row whose buttons share the width equally, the main action last; none is for a dialog whose body holds its own actions. |
 
 ## Usage guidelines
 
-Use a Dialog when the user must make a decision or finish a short task before going on, and needs the page behind for context: a confirmation, a short form, a choice. Center it on every screen by default; on a small screen, open it as a bottom sheet for a short choice within thumb reach, or full screen for a form that needs the whole screen. Use role alertdialog for a confirmation that interrupts, such as deleting something.
+Use a Dialog when the user must make a decision or finish a short task before going on, and needs the page behind for context: a confirmation, a short form, a choice. Center it on every screen by default; on a small screen, open it as a bottom sheet for a short choice within thumb reach, or full screen for a form that needs the whole screen. On a wide screen, open a panel the user works in beside the page, such as sign-in or filters, at the end edge; below 768px, switch it to full for a form or bottom for a short list. Use role alertdialog for a confirmation that interrupts, such as deleting something.
 
 ### Do
 
@@ -62,6 +62,8 @@ Use a Dialog when the user must make a decision or finish a short task before go
 - Put a long, multi-step form in a dialog. Give it a page.
 - Focus a destructive button when the dialog opens
 - Build the backdrop into the panel. It is the page's scrim, behind the dialog.
+- Use an end panel for navigation that stays open beside the page. It is a modal dialog and makes the page inert.
+- Make an end panel an alertdialog. A confirmation belongs in the center.
 
 ## Accessibility
 
@@ -80,15 +82,15 @@ Use a Dialog when the user must make a decision or finish a short task before go
 - 2.4.6 Headings and Labels (the title names the task)
 - 2.4.7 Focus Visible (every control inside shows the shared focus ring)
 - 2.4.11 Focus Not Obscured (only the body scrolls, so the footer never covers a focused field)
-- 1.4.10 Reflow (a bottom sheet or full-screen dialog keeps a 320px screen usable)
+- 1.4.10 Reflow (a bottom sheet or full-screen dialog keeps a 320px screen usable; an end panel is at most the viewport width less 48px)
 - 2.5.8 Target Size (Minimum) (the close button is a medium flush icon button, a 20px glyph with a 44×44px hit area in code)
 - 4.1.2 Name, Role, Value (role, aria-modal and the accessible name are set)
 
 ### Motion
 
-- **Enter:** A centered panel fades in and scales up a little; a bottom sheet and a full-screen dialog slide up from the bottom edge (motion.duration.moderate, motion.easing-role.enter). The backdrop fades in.
+- **Enter:** A centered panel fades in and scales up a little; a bottom sheet and a full-screen dialog slide up from the bottom edge; an end panel slides in from the end edge (motion.duration.moderate, motion.easing-role.enter). The backdrop fades in.
 - **Exit:** The reverse, on motion.easing-role.exit.
-- **Reduced motion:** Under prefers-reduced-motion every placement fades only, at motion.duration-reduced.moderate, with no movement.
+- **Reduced motion:** Under prefers-reduced-motion every placement opens and closes at once, with no movement and no fade: motion.duration-reduced.moderate is 0ms.
 
 ## Content guidelines
 
@@ -117,15 +119,15 @@ Titles are specific and in sentence case. Body text is short and states the cons
 | `title` | node | — | yes | The heading that names the task. It is the dialog's accessible name, so make it specific: "Delete this address?", not "Are you sure?". It wraps rather than truncating. |
 | `description` | node | — | no | One or two sentences under the title that say what the dialog is for or what an action will do. Linked as the dialog's accessible description. |
 | `children` | node | — | yes | The body content. The body is the only part that scrolls; the header and footer stay in place. |
-| `actions` | slot of `button` or `button-destructive` or `button-neutral`, 1 to 3 | — | no | The footer buttons, one to three Button elements, laid out by a Button group. Inline and fill, the main action last (Cancel, then Save); stacked, the main action first. Fill is for two buttons. Name each by what it does. |
+| `actions` | slot of `button` or `button-destructive` or `button-neutral`, 1 to 3 | — | no | The footer buttons, one to three Button elements, laid out by a Button group. Inline and fill, the main action last (Cancel, then Save); stacked, the main action first. Fill suits two. Name each by what it does. |
 | `role` | enum: 'dialog' \| 'alertdialog' | `dialog` | no | dialog for a task or form. alertdialog for a confirmation that interrupts and needs an answer: it hides the close button, a backdrop click does not close it, and focus starts on the least destructive action. |
-| `placement` | enum: 'center' \| 'bottom' \| 'full' | `center` | no | Where the panel sits. center on every screen by default; bottom (a bottom sheet) and full (full screen) are for small screens. Set per breakpoint; nothing switches automatically. |
-| `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The width of a centered panel: 400, 560 or 720px. On a small screen a centered panel is as wide as the screen less its margins. Bottom and full panels are full width and ignore it. |
+| `placement` | enum: 'center' \| 'bottom' \| 'full' \| 'end' | `center` | no | Where the panel sits. center on every screen by default; bottom (a bottom sheet) and full (full screen) are for small screens; end (a side sheet) runs the full height of the screen at the end edge, the right in left-to-right text. Set per breakpoint; nothing switches automatically. |
+| `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The width of a centered panel: 400, 560 or 720px. On a small screen a centered panel is as wide as the screen less its margins. Bottom and full panels are full width, and an end panel is 480px wide, so all three ignore it. |
 | `footer` | enum: 'inline' \| 'stacked' \| 'fill' \| 'none' | `inline` | no | How the actions are laid out. inline is a row at the end edge; stacked is full-width buttons, the main action on top; fill is a row whose buttons share the width equally, the main action last; none is for a dialog whose body holds its own actions. |
 
 ## Specs
 
-Generated from the plan that builds the design-file component: 20 members. Values are token names; a px value appears only where the build writes a number.
+Generated from the plan that builds the design-file component: 24 members. Values are token names; a px value appears only where the build writes a number.
 
 ### Anatomy
 
@@ -201,6 +203,16 @@ Keyed by `size`, `placement`.
 | `panel/header/titleBox` | — | `space.100` | — | — | — | — |
 | `panel/body` | `space.0` / `space.200` / `space.0` / `space.200` | — | — | — | — | — |
 | `panel/footer` | `space.0` / `space.200` / `space.0` / `space.200` | — | — | — | — | — |
+
+**size=medium, placement=end**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `panel` | `space.300` / `space.0` / `space.300` / `space.0` | `space.200` | — | — | — | build width 480px (literal); build height 800px (literal) |
+| `panel/header` | `space.0` / `space.300` / `space.0` / `space.300` | `space.200` | — | — | — | — |
+| `panel/header/titleBox` | — | `space.100` | — | — | — | — |
+| `panel/body` | `space.0` / `space.300` / `space.0` / `space.300` | — | — | — | — | — |
+| `panel/footer` | `space.0` / `space.300` / `space.0` / `space.300` | — | — | — | — | — |
 
 ### Type
 
@@ -322,6 +334,42 @@ Keyed by `placement`, `footer`.
 | `panel/body/placeholder` | — | — | `color.text.primary` | — |
 
 **placement=full, footer=none**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `panel` | `color.foreground.primary` | — | — | — |
+| `panel/header/titleBox/title` | — | — | `color.text.primary` | — |
+| `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
+| `panel/body/placeholder` | — | — | `color.text.primary` | — |
+
+**placement=end, footer=inline**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `panel` | `color.foreground.primary` | — | — | — |
+| `panel/header/titleBox/title` | — | — | `color.text.primary` | — |
+| `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
+| `panel/body/placeholder` | — | — | `color.text.primary` | — |
+
+**placement=end, footer=stacked**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `panel` | `color.foreground.primary` | — | — | — |
+| `panel/header/titleBox/title` | — | — | `color.text.primary` | — |
+| `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
+| `panel/body/placeholder` | — | — | `color.text.primary` | — |
+
+**placement=end, footer=fill**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `panel` | `color.foreground.primary` | — | — | — |
+| `panel/header/titleBox/title` | — | — | `color.text.primary` | — |
+| `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
+| `panel/body/placeholder` | — | — | `color.text.primary` | — |
+
+**placement=end, footer=none**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |

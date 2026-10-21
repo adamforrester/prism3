@@ -3358,15 +3358,18 @@ export type State = (typeof STATES)[number];
 /*
  * ── `placement`: THE TWENTY-SIXTH NAME, FOR THE DIALOG (owner decisions Q303.1 and Q303.12, 2026-10-14, #2609) ──
  *
- * `placement` (`center | bottom | full`) is WHERE a layer sits over the page it covers: centered in the viewport, attached
- * to its bottom edge, or filling it. The owner named the axis and its values (one Dialog with a placement axis, no side).
+ * `placement` (`center | bottom | full | end`) is WHERE a layer sits over the page it covers: centered in the viewport,
+ * attached to its bottom edge, filling it, or attached to the edge where the writing direction ends. The owner named the
+ * axis and its first three values (one Dialog with a placement axis, Q303.1), and added `end` as a side sheet (Q483 A,
+ * named by Q488 A, #2877): a value of this axis, not a new component, and `end` rather than `right` so it mirrors in
+ * right-to-left text and leaves room for a `start` with no rename.
  * It clears this list's bar as a distinct kind of distinction with the nearest defeated: `alignment` is where a row of
  * items sits along the bar that holds it, inside the layout; `direction` is where a veil's wash sits across an image, a
  * distribution of paint; `orientation` is which way a rule runs; `width` is how much of its container a control takes.
  * None says which edge of the viewport a layer attaches to, and with it which corners round and how big the panel is.
  * Naming it `alignment` would put a layer's attachment and a row's alignment under one name, the #756 failure. An
  * AUTHORING axis: a product picks the placement where it opens the dialog, per breakpoint in code, and nothing switches
- * it on screen. `lint-axis-values.ts` carries the three values as a `sole` set.
+ * it on screen. `lint-axis-values.ts` carries the four values as a `sole` set.
  *
  * ── `footer`: THE TWENTY-SEVENTH NAME, FOR THE DIALOG'S ACTIONS (owner decision Q303.6 A, #2609) ──
  *

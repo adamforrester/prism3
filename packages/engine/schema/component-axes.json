@@ -310,6 +310,7 @@
       "placement": [
         "bottom",
         "center",
+        "end",
         "full"
       ],
       "size": [
@@ -318,7 +319,7 @@
         "small"
       ]
     },
-    "members": 20,
+    "members": 24,
     "properties": {
       "body": "SLOT",
       "close": "BOOLEAN",

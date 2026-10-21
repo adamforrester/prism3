@@ -3834,13 +3834,33 @@ section('published — on a set in a team library, what breaks consumer files is
     ok(!!res.refusedAll && res.outcomes.length === 0, `published/hash: a set published after the check refuses the confirm (${res.refusedAll ?? 'applied'})`);
   }
 
-  // DIALOG GAINS ITS FILL FOOTER (#2880, Q492 B): a published Dialog built before the fill footer, its 15 members,
-  // updated to the plan with the five `footer=fill` members. Adding a variant value is additive, so the check adds
-  // exactly those five and lists NOTHING as breaking: no member dropped, renamed or replaced, no property removed or
-  // retyped. The member names are literals typed here, never read off the def.
+  // DIALOG GAINS ITS END PLACEMENT (#2877): a published Dialog built before the side sheet, its 20 members (with the fill
+  // footer, #2880), updated to the plan with the four `placement=end` members. Adding a variant value is additive, so the
+  // check adds exactly those four and lists NOTHING as breaking: no member dropped, renamed or replaced, no property
+  // removed or retyped. The member names are literals typed here, never read off the def.
   {
     const next = plansOf('dialog');
-    // `before` is derived from this PR's own plans, so this arm proves the fill members are additive, not that the 15
+    // `before` is derived from this PR's own plans, so this arm proves the end members are additive, not that the 20
+    // existing members are unchanged; their identity is pinned by test.ts's literal `#2609 dialog …` arms.
+    const before = next.filter((p) => !/placement=end/.test(planComponentName(p)));
+    // The nested close's `swap icon` is a property of FlushIconButton.Neutral in a real file; the shim's plain component
+    // carries it here, or the build reads the close's swap override as a miss.
+    const w = await world('dialog', before, { extraVars: [...new Set(next.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]))], componentProps: { 'flush-icon-button-neutral': { 'swap icon#9:1': { type: 'INSTANCE_SWAP', defaultValue: 'icon/close' } } } });
+    (w.api.publish as (n: Node, s: string) => void)(w.set(), 'CURRENT');
+    const p = (await previewUpdate(w.host, [{ def: 'dialog', plans: next }])).sets[0];
+    const END = ['placement=end, footer=inline, size=medium', 'placement=end, footer=stacked, size=medium', 'placement=end, footer=fill, size=medium', 'placement=end, footer=none, size=medium'];
+    ok(before.length === 20 && next.length === 24, `premise: Dialog was 20 members and is 24 with the end placement (${before.length} → ${next.length})`);
+    ok(p?.publish === 'CURRENT' && JSON.stringify([...p.adds].sort()) === JSON.stringify([...END].sort()) && p.drops.length === 0 && (p.breaking ?? []).length === 0,
+      `published/dialog end additive: the four end members are added and nothing breaks library consumers (adds ${JSON.stringify(p?.adds)}, drops ${p?.drops.length}, breaking ${JSON.stringify((p?.breaking ?? []).slice(0, 3))})`);
+  }
+
+  // DIALOG GAINS ITS FILL FOOTER (#2880, Q492 B): a published Dialog built before the fill footer, its 18 members (with
+  // the end placement, #2877), updated to the plan with the six `footer=fill` members. Adding a variant value is additive,
+  // so the check adds exactly those six and lists NOTHING as breaking: no member dropped, renamed or replaced, no property
+  // removed or retyped. The member names are literals typed here, never read off the def.
+  {
+    const next = plansOf('dialog');
+    // `before` is derived from this PR's own plans, so this arm proves the fill members are additive, not that the 18
     // existing members are unchanged; their identity is pinned by test.ts's literal `#2609 dialog …` arms.
     const before = next.filter((p) => !/footer=fill/.test(planComponentName(p)));
     // The nested close's `swap icon` is a property of FlushIconButton.Neutral in a real file; the shim's plain component
@@ -3850,11 +3870,11 @@ section('published — on a set in a team library, what breaks consumer files is
     const p = (await previewUpdate(w.host, [{ def: 'dialog', plans: next }])).sets[0];
     const FILL = [
       'placement=center, footer=fill, size=medium', 'placement=center, footer=fill, size=small', 'placement=center, footer=fill, size=large',
-      'placement=bottom, footer=fill, size=medium', 'placement=full, footer=fill, size=medium',
+      'placement=bottom, footer=fill, size=medium', 'placement=full, footer=fill, size=medium', 'placement=end, footer=fill, size=medium',
     ];
-    ok(before.length === 15 && next.length === 20, `premise: Dialog was 15 members and is 20 with the fill footer (${before.length} → ${next.length})`);
+    ok(before.length === 18 && next.length === 24, `premise: Dialog was 18 members and is 24 with the fill footer (${before.length} → ${next.length})`);
     ok(p?.publish === 'CURRENT' && JSON.stringify([...p.adds].sort()) === JSON.stringify([...FILL].sort()) && p.drops.length === 0 && (p.breaking ?? []).length === 0,
-      `published/dialog fill additive: the five fill members are added and nothing breaks library consumers (adds ${JSON.stringify(p?.adds)}, drops ${p?.drops.length}, breaking ${JSON.stringify((p?.breaking ?? []).slice(0, 3))})`);
+      `published/dialog fill additive: the six fill members are added and nothing breaks library consumers (adds ${JSON.stringify(p?.adds)}, drops ${p?.drops.length}, breaking ${JSON.stringify((p?.breaking ?? []).slice(0, 3))})`);
   }
 }
 

@@ -216,7 +216,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | layout | fill, inline, stacked | button-group |
 | offset | control, field | focus-ring |
 | orientation | horizontal, vertical | divider |
-| placement | bottom, center, full | dialog |
+| placement | bottom, center, end, full | dialog |
 | ratio | 16:9, 1:1, 2:3, 3:2, 3:4, 4:3, 4:5 | image-placeholder |
 | selection | selected, unselected | segmented-control-segment, tab-item, tag |
 |  | checked, indeterminate, unchecked | checkbox-control |
