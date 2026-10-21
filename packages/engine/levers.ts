@@ -18,7 +18,7 @@
  * split as `theme.ts` vs `nb-fixture.ts`, docs/07 §3). The emit step lives in the
  * shell `emit-levers.ts` (`npx tsx packages/engine/emit-levers.ts` → `schema/lever-manifest.json`).
  *
- * `id` and `root` are intentionally NOT levers (see `identityFields`): they are brand
+ * `id`, `root` and `name` are intentionally NOT levers (see `identityFields`): they are brand
  * *identity* / namespace the host supplies (CLI derives `id` from the file/name, the
  * plugin from the Figma file, an MCP call passes them as arguments; `root` is the
  * per-engagement token namespace, default 'prism') — not design knobs a surface
@@ -240,7 +240,7 @@ export const leverGroups: { group: LeverGroup; label: string }[] = [
  *  gate subtracts these before asserting every required field is a lever, so the
  *  omission is explicit and a *new* required field (or a dropped `primary`/`neutral`)
  *  is still caught. */
-export const identityFields = ['id', 'root'] as const;
+export const identityFields = ['id', 'root', 'name'] as const;
 
 export const buildLeverManifest = () => ({
   $schema: 'https://prism3.dev/schema/lever-manifest.json',

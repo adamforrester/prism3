@@ -429,6 +429,10 @@ const statusRamp = (hue: number, chroma: number): Step[] =>
 // ---------------------------------------------------------------------------
 export type BrandInput = {
   id: string;
+  /** The brand's display name, as people read it (`Aurora`, `Harbor Fleet Services`) — #2859, owner decision Q509 A.
+   *  Optional: unset, a reader that shows the brand by name uses `id` as written. No token emits from it, so the
+   *  token contract does not move with it; today the plugin's library cover is its one reader. */
+  name?: string;
   /** The single, mode-invariant token namespace. Every token emits under `<root>.*`
    *  (colour primitives at `<root>.core.palette`, semantic roles at `<root>.color`).
    *  Per-engagement/brand; defaults to the placeholder 'prism'. One segment only —

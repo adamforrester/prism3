@@ -6,6 +6,8 @@
 # docs/07 §6. Its acceptance test is behavioural: it runs, schema-conforms, every
 # alias resolves, and all 248 contrast contracts hold.
 id: harbor
+# The display name (#2859), which the library file's cover shows. Unset, it would show the id as written.
+name: Harbor
 
 # ROOT NAMESPACE (#1283) — every token this brand emits sits under `hds.*`.
 # `hds` is "Harbor Design System", the same <brand>ds convention New Balance already uses (`nbds`).
