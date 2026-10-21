@@ -3257,7 +3257,7 @@
           ],
           "parts": {
             "panel": {
-              "members": 15,
+              "members": 18,
               "where": {}
             }
           }
@@ -11859,11 +11859,11 @@
           ],
           "parts": {
             "placeholder": {
-              "members": 15,
+              "members": 18,
               "where": {}
             },
             "title": {
-              "members": 15,
+              "members": 18,
               "where": {}
             }
           }
@@ -12063,7 +12063,7 @@
           ],
           "parts": {
             "description": {
-              "members": 15,
+              "members": 18,
               "where": {}
             }
           }
@@ -16114,15 +16114,18 @@
         "dialog": {
           "keys": [
             "placement.bottom.radius-bottom",
+            "placement.end.radius-bottom",
+            "placement.end.radius-top",
             "placement.full.radius-bottom",
             "placement.full.radius-top"
           ],
           "parts": {
             "panel": {
-              "members": 6,
+              "members": 9,
               "where": {
                 "placement": [
                   "bottom",
+                  "end",
                   "full"
                 ],
                 "size": [
@@ -16449,7 +16452,7 @@
           ],
           "parts": {
             "panel": {
-              "members": 15,
+              "members": 18,
               "where": {}
             }
           }
@@ -17480,11 +17483,11 @@
           ],
           "parts": {
             "body": {
-              "members": 15,
+              "members": 18,
               "where": {}
             },
             "footer": {
-              "members": 10,
+              "members": 12,
               "where": {
                 "footer": [
                   "inline",
@@ -17493,11 +17496,11 @@
               }
             },
             "header": {
-              "members": 15,
+              "members": 18,
               "where": {}
             },
             "panel": {
-              "members": 15,
+              "members": 18,
               "where": {}
             }
           }
@@ -18150,7 +18153,7 @@
           ],
           "parts": {
             "titleBox": {
-              "members": 15,
+              "members": 18,
               "where": {}
             }
           }
@@ -18814,11 +18817,11 @@
               }
             },
             "header": {
-              "members": 15,
+              "members": 18,
               "where": {}
             },
             "panel": {
-              "members": 15,
+              "members": 18,
               "where": {}
             }
           }
@@ -19141,42 +19144,47 @@
         },
         "dialog": {
           "keys": [
-            "placement.center.pad"
+            "placement.center.pad",
+            "placement.end.pad"
           ],
           "parts": {
             "body": {
-              "members": 9,
+              "members": 12,
               "where": {
                 "placement": [
-                  "center"
+                  "center",
+                  "end"
                 ]
               }
             },
             "footer": {
-              "members": 6,
+              "members": 8,
               "where": {
                 "footer": [
                   "inline",
                   "stacked"
                 ],
                 "placement": [
-                  "center"
+                  "center",
+                  "end"
                 ]
               }
             },
             "header": {
-              "members": 9,
+              "members": 12,
               "where": {
                 "placement": [
-                  "center"
+                  "center",
+                  "end"
                 ]
               }
             },
             "panel": {
-              "members": 9,
+              "members": 12,
               "where": {
                 "placement": [
-                  "center"
+                  "center",
+                  "end"
                 ]
               }
             }
@@ -19707,11 +19715,11 @@
           ],
           "parts": {
             "description": {
-              "members": 15,
+              "members": 18,
               "where": {}
             },
             "placeholder": {
-              "members": 15,
+              "members": 18,
               "where": {}
             }
           }
@@ -20722,7 +20730,7 @@
           ],
           "parts": {
             "title": {
-              "members": 15,
+              "members": 18,
               "where": {}
             }
           }
@@ -22085,7 +22093,7 @@
       "drawnNotDeclared": []
     },
     "dialog": {
-      "members": 15,
+      "members": 18,
       "axes": {
         "footer": [
           "inline",
@@ -22095,6 +22103,7 @@
         "placement": [
           "bottom",
           "center",
+          "end",
           "full"
         ],
         "size": [

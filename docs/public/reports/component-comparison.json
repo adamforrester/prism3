@@ -983,7 +983,8 @@
         "placement": [
           "center",
           "bottom",
-          "full"
+          "full",
+          "end"
         ],
         "size": [
           "medium",
@@ -1030,7 +1031,8 @@
           "values": [
             "center",
             "bottom",
-            "full"
+            "full",
+            "end"
           ]
         },
         {
@@ -4039,6 +4041,7 @@
         "values": [
           "bottom",
           "center",
+          "end",
           "full"
         ],
         "components": [
@@ -5461,7 +5464,8 @@
         "values": [
           "center",
           "bottom",
-          "full"
+          "full",
+          "end"
         ]
       }
     ],

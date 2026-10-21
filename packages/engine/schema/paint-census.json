@@ -483,14 +483,14 @@
     },
     "dialog": {
       "set": {
-        "members": 15,
-        "assignments": 60,
-        "sha256": "397fd2e560a7e2b6867a4fdb17caa903db5f8d22eb58996381500dff23f4b3c0"
+        "members": 18,
+        "assignments": 72,
+        "sha256": "7b6dc74feae8a15a9f126bdfb72b34cf13358de743aa421e8fbf3506e18a63ab"
       },
       "grid": {
-        "members": 15,
-        "assignments": 60,
-        "sha256": "9285d270cf225aa8c0d1b6d5d98fe036353cc0975580a8169c987e1457e39a2d"
+        "members": 18,
+        "assignments": 72,
+        "sha256": "58f154b6288d0efd6be8b186c6f9a98ebad9e2c6a7289c7f1237294cea3fb3cc"
       }
     },
     "password-field": {

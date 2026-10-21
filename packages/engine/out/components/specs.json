@@ -31422,7 +31422,7 @@
     "dialog": {
       "id": "dialog",
       "name": "Dialog",
-      "members": 15,
+      "members": 18,
       "axes": [
         {
           "name": "placement",
@@ -31430,7 +31430,8 @@
           "values": [
             "center",
             "bottom",
-            "full"
+            "full",
+            "end"
           ],
           "kind": "variant"
         },
@@ -31460,52 +31461,52 @@
         {
           "part": "panel",
           "kind": "frame",
-          "members": 15
+          "members": 18
         },
         {
           "part": "panel/header",
           "kind": "frame",
-          "members": 15
+          "members": 18
         },
         {
           "part": "panel/header/titleBox",
           "kind": "frame",
-          "members": 15
+          "members": 18
         },
         {
           "part": "panel/header/titleBox/title",
           "kind": "text",
-          "members": 15
+          "members": 18
         },
         {
           "part": "panel/header/titleBox/description",
           "kind": "text",
-          "members": 15
+          "members": 18
         },
         {
           "part": "panel/header/close",
           "kind": "instance",
-          "members": 15
+          "members": 18
         },
         {
           "part": "panel/headerDivider",
           "kind": "instance",
-          "members": 15
+          "members": 18
         },
         {
           "part": "panel/body",
           "kind": "slot",
-          "members": 15
+          "members": 18
         },
         {
           "part": "panel/body/placeholder",
           "kind": "text",
-          "members": 15
+          "members": 18
         },
         {
           "part": "panel/footerDivider",
           "kind": "instance",
-          "members": 10,
+          "members": 12,
           "when": {
             "footer": [
               "inline",
@@ -31516,7 +31517,7 @@
         {
           "part": "panel/footer",
           "kind": "frame",
-          "members": 10,
+          "members": 12,
           "when": {
             "footer": [
               "inline",
@@ -31527,7 +31528,7 @@
         {
           "part": "panel/footer/actionsInline",
           "kind": "instance",
-          "members": 5,
+          "members": 6,
           "when": {
             "footer": [
               "inline"
@@ -31537,7 +31538,7 @@
         {
           "part": "panel/footer/actionsStacked",
           "kind": "instance",
-          "members": 5,
+          "members": 6,
           "when": {
             "footer": [
               "stacked"
@@ -32023,6 +32024,104 @@
               }
             }
           ]
+        },
+        {
+          "where": {
+            "size": "medium",
+            "placement": "end"
+          },
+          "parts": [
+            {
+              "part": "panel",
+              "values": {
+                "paddingTop": {
+                  "token": "space.300"
+                },
+                "paddingRight": {
+                  "token": "space.0"
+                },
+                "paddingBottom": {
+                  "token": "space.300"
+                },
+                "paddingLeft": {
+                  "token": "space.0"
+                },
+                "gap": {
+                  "token": "space.200"
+                },
+                "buildWidth": {
+                  "px": 480,
+                  "source": "literal"
+                },
+                "buildHeight": {
+                  "px": 800,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "panel/header",
+              "values": {
+                "paddingTop": {
+                  "token": "space.0"
+                },
+                "paddingRight": {
+                  "token": "space.300"
+                },
+                "paddingBottom": {
+                  "token": "space.0"
+                },
+                "paddingLeft": {
+                  "token": "space.300"
+                },
+                "gap": {
+                  "token": "space.200"
+                }
+              }
+            },
+            {
+              "part": "panel/header/titleBox",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                }
+              }
+            },
+            {
+              "part": "panel/body",
+              "values": {
+                "paddingTop": {
+                  "token": "space.0"
+                },
+                "paddingRight": {
+                  "token": "space.300"
+                },
+                "paddingBottom": {
+                  "token": "space.0"
+                },
+                "paddingLeft": {
+                  "token": "space.300"
+                }
+              }
+            },
+            {
+              "part": "panel/footer",
+              "values": {
+                "paddingTop": {
+                  "token": "space.0"
+                },
+                "paddingRight": {
+                  "token": "space.300"
+                },
+                "paddingBottom": {
+                  "token": "space.0"
+                },
+                "paddingLeft": {
+                  "token": "space.300"
+                }
+              }
+            }
+          ]
         }
       ],
       "typeKey": [
@@ -32287,6 +32386,78 @@
         {
           "where": {
             "placement": "full",
+            "footer": "none"
+          },
+          "parts": [
+            {
+              "part": "panel",
+              "fill": "color.foreground.primary"
+            },
+            {
+              "part": "panel/header/titleBox/title",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "panel/header/titleBox/description",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "panel/body/placeholder",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "placement": "end",
+            "footer": "inline"
+          },
+          "parts": [
+            {
+              "part": "panel",
+              "fill": "color.foreground.primary"
+            },
+            {
+              "part": "panel/header/titleBox/title",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "panel/header/titleBox/description",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "panel/body/placeholder",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "placement": "end",
+            "footer": "stacked"
+          },
+          "parts": [
+            {
+              "part": "panel",
+              "fill": "color.foreground.primary"
+            },
+            {
+              "part": "panel/header/titleBox/title",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "panel/header/titleBox/description",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "panel/body/placeholder",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "placement": "end",
             "footer": "none"
           },
           "parts": [

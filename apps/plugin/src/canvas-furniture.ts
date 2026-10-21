@@ -70,12 +70,13 @@ export const ROW_LABEL_DEPTH = 3;
  * modal backdrop, `color.scrim.default`, is drawn here, one `_scrim-backdrop` instance behind each member, keyed by
  * the def's placement value. Each entry is how far the scrim reaches past the member on each side, `[top, right,
  * bottom, left]` in px: a centered panel floats with scrim all round; a bottom sheet sits on the screen's bottom edge
- * at its full width, so the scrim shows above it only. A full-screen dialog covers the page and has no visible
+ * at its full width, so the scrim shows above it only; an end panel (#2877) sits on the screen's end edge at its full
+ * height, so the scrim shows on its start side only, the left on this left-to-right canvas. A full-screen dialog covers the page and has no visible
  * backdrop (Q303.8), so it has no entry. Every reach is at most half the grid's 24px gap, `BACKDROP_PAD`, so a
  * scrim never reaches the neighboring member's. HELD FOR THE OWNER, every number here.
  */
 export const SCRIM_BACKDROPS: Readonly<Record<string, { axis: string; reach: Readonly<Record<string, readonly [number, number, number, number]>> }>> = {
-  dialog: { axis: 'placement', reach: { center: [BACKDROP_PAD, BACKDROP_PAD, BACKDROP_PAD, BACKDROP_PAD], bottom: [BACKDROP_PAD, 0, 0, 0] } },
+  dialog: { axis: 'placement', reach: { center: [BACKDROP_PAD, BACKDROP_PAD, BACKDROP_PAD, BACKDROP_PAD], bottom: [BACKDROP_PAD, 0, 0, 0], end: [0, 0, 0, BACKDROP_PAD] } },
 };
 
 /** A def's furniture switch: the engine's list, the one switch `planSetLayout` reads too. */
