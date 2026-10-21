@@ -7332,7 +7332,7 @@
       "category": "navigation",
       "status": "draft",
       "summary": "Text that goes to another page, a place on the page or a file. Underlined in running text.",
-      "description": "Text that goes to another page, a place on the page, a file or another site. A link is always a real anchor with an href; an action in place is a button, however light it looks. The standalone style sits on its own line, below a form, in a footer or beside a control, and shows its underline at hover, pressed and keyboard focus. The inline style is underlined at every state, for a link that sits in body copy, so it is never told apart by color alone. Both come in two weights: emphasis, the starting value, and default, which is lighter. A link inside a paragraph is a text range with that text's own link style rather than this component.",
+      "description": "Text that goes to another page, a place on the page, a file or another site. A link is always a real anchor with an href; an action in place is a button, however light it looks. The standalone style sits on its own line, below a form, in a footer or beside a control, and shows its underline at hover, pressed and keyboard focus. The inline style is underlined at every state, for a link that sits in body copy, so it is never told apart by color alone. Both come in two weights: emphasis, the starting value, and default, which is lighter. In a navigation, the standalone link to the page the user is on is current: it shows a 2px bar under the text, and at hover only its color changes. A link inside a paragraph is a text range with that text's own link style rather than this component.",
       "props": [
         {
           "name": "label",
@@ -7379,6 +7379,13 @@
             "large"
           ],
           "description": "The body type size: 14, 16 or 18px. The box is one text line tall; the icon (16px at small and medium, 20px at large) sits inside it."
+        },
+        {
+          "name": "current",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Marks the link to the page the user is on, in a navigation: a 2px bar under the text and aria-current=\"page\". Standalone links only. It stays a link with its href."
         },
         {
           "name": "surface",
@@ -7447,6 +7454,13 @@
             "inverse"
           ],
           "kind": "authoring"
+        },
+        "selection": {
+          "values": [
+            "unselected",
+            "selected"
+          ],
+          "kind": "runtime"
         }
       },
       "accessibility": {
@@ -7456,7 +7470,7 @@
           "2.4.4 Link Purpose (the link text names the destination)",
           "4.1.2 Name, Role, Value (the link role from a real anchor)",
           "1.4.3 Contrast (targets 4.5:1 for the link text against the page)",
-          "1.4.11 Non-text Contrast (targets 3:1 for an icon against the page)",
+          "1.4.11 Non-text Contrast (targets 3:1 for an icon and the current-page bar against the page)",
           "2.4.7 Focus Visible and 2.4.13 Focus Appearance (the shared focus ring)",
           "2.5.8 Target Size (targets 24px through a code-side hit area; an inline link in a sentence is exempt)",
           "3.2.5 Change on Request (a link that opens a new tab says so)",
@@ -7464,7 +7478,7 @@
         ],
         "keyboard": "Tab moves to the link; Enter follows it. Space does not activate a link: it scrolls the page.",
         "focus": "The shared focus ring at :focus-visible, so a mouse click leaves no ring behind.",
-        "aria": "Usually none: the anchor and its text carry the role and the name. aria-current=\"page\" marks the current page in a navigation. A link that opens a new tab adds visually hidden \"(opens in new tab)\" text; the icons are aria-hidden. Where space forces generic text such as \"Read more\", an aria-label names the destination. The hidden text and any aria-label are translated; in right-to-left text the trailing icon moves to the leading edge and directional icons mirror."
+        "aria": "Usually none: the anchor and its text carry the role and the name. aria-current=\"page\" marks the current page in a navigation, set by current; the bar shows it. A link that opens a new tab adds visually hidden \"(opens in new tab)\" text; the icons are aria-hidden. Where space forces generic text such as \"Read more\", an aria-label names the destination. The hidden text and any aria-label are translated; in right-to-left text the trailing icon moves to the leading edge and directional icons mirror."
       },
       "content": {
         "labelPattern": "Names the destination and makes sense on its own: \"Shipping and returns\", \"Annual report (PDF, 2 MB)\". Link the noun phrase, not the whole sentence. Never a bare \"click here\" or \"learn more\", and never a raw URL."
@@ -7475,13 +7489,15 @@
           "Write link text that names the destination",
           "State the format and size of a file link",
           "Keep opening in a new tab for narrow cases, and say so",
-          "Use the inline style for a link in body copy, so it is underlined at rest"
+          "Use the inline style for a link in body copy, so it is underlined at rest",
+          "Mark the page the user is on in a navigation with current, which also sets aria-current=\"page\""
         ],
         "dont": [
           "Use a link for an action that does not change the address; that is a button",
           "Make a disabled link; render plain text instead",
           "Add an icon to an inline link",
-          "Tell a link in running text apart by color alone"
+          "Tell a link in running text apart by color alone",
+          "Mark the current page with the inline style; it reads as a link in running text"
         ],
         "contentGuidelines": "Descriptive text that stands alone, sentence case. Front-load the words that name the destination. File links state format and size."
       },
@@ -7502,7 +7518,9 @@
           "inline link",
           "standalone link",
           "skip link",
-          "external link"
+          "external link",
+          "current page link",
+          "navigation link"
         ],
         "generationPriority": 2
       },

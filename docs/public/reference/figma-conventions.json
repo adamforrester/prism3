@@ -2031,7 +2031,7 @@
         "kind": "component set",
         "page": "↳ Link",
         "section": "Components",
-        "members": 96,
+        "members": 144,
         "variantProperties": [
           {
             "name": "style",
@@ -2052,6 +2052,13 @@
             "values": [
               "default",
               "inverse"
+            ]
+          },
+          {
+            "name": "selection",
+            "values": [
+              "unselected",
+              "selected"
             ]
           },
           {
