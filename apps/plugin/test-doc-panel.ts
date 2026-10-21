@@ -34,7 +34,13 @@
  *                   `seat/room for the panel`.
  *   template/…      `_Doc-block` as Set up file builds it: nothing without Badge, Tag, List.Item, Divider and a theme,
  *                   naming each; with them, every Type × Size variant, the three booleans and the swap, each type's
- *                   layers, and the Prism3 components it nests.
+ *                   layers, and the Prism3 components it nests. `template/fill` (#2902): the padding spacers, Field's `row`,
+ *                   Do-Dont's `columns` and Chips' `chips` FILL in every variant (the shim throws on FILL outside an
+ *                   auto-layout parent, as the host does), and Field's `label` grows to its text at the label column.
+ *                   `template/repair`: a set built before the fix is brought up to date in place on the next run, the same
+ *                   set and members, and a set already right is left alone. Mutations: `fill(chips)` dropped →
+ *                   `template/fill`; `chips` dropped from the repair's list → `template/repair`; the label's `HEIGHT`
+ *                   dropped → `template/fill`.
  *   line/…          a file without `_Doc-block`: one Set up file line for the run, naming usage panels.
  *
  * INDEPENDENCE (docs/34): the expected sections come from the engine's model (`docSections`), which the panel reads but
@@ -505,11 +511,20 @@ section('template/… — `_Doc-block`');
   const memberSet = (name: string, member: string, text: string) => mk('COMPONENT_SET', name, [mk('COMPONENT', member, [], { createInstance: () => { const i = prism3Instance(text); i.main = name; return i; } })]);
   const libs = [memberSet('badge', 'type=count, emphasis=bold, tone=neutral', 'count'), memberSet('tag', 'type=select, selection=unselected, size=small, state=rest', 'label'), memberSet('list-item', 'type=unordered, size=small', 'text'), memberSet('divider', 'orientation=horizontal, inset=none', 'rule')];
   const props: { name: string; type: string; value: unknown }[] = [];
+  // The host's rule (#2902): a node is FILL only inside an auto-layout parent, so FILL set before the append throws.
+  const fillRule = (n: N): N => {
+    let v: unknown;
+    Object.defineProperty(n, 'layoutSizingHorizontal', {
+      get: () => v, enumerable: true,
+      set: (x: unknown) => { if (x === 'FILL' && !(n.parent as N | undefined)?.layoutMode) throw new Error(`${String(n.name)}: FILL outside an auto-layout parent`); v = x; },
+    });
+    return n;
+  };
   const api = (sets: N[], themed: boolean) => ({
     root: { findAllWithCriteria: () => sets },
     createComponent: () => { const c = mk('COMPONENT', 'Component'); made.push(c); return c; },
-    createFrame: () => mk('FRAME', 'Frame'),
-    createText: () => { const t = mk('TEXT', 'Text'); t.setTextStyleIdAsync = async (id: string) => { t.textStyleId = id; }; return t; },
+    createFrame: () => fillRule(mk('FRAME', 'Frame')),
+    createText: () => { const t = fillRule(mk('TEXT', 'Text')); t.setTextStyleIdAsync = async (id: string) => { t.textStyleId = id; }; return t; },
     loadFontAsync: async () => {},
     combineAsVariants: (nodes: N[], parent: N) => { const s = mk('COMPONENT_SET', 'Set', nodes); parent.appendChild!(s); s.addComponentProperty = (name: string, type: string, value: unknown) => { props.push({ name, type, value }); return `${name}#${props.length}`; }; return s; },
     getLocalTextStylesAsync: async () => ['title/xs/strong', 'title/sm/strong', 'title/md/strong', 'body/xs/default', 'body/sm/default', 'body/md/default', 'body/lg/default', 'label/sm/emphasis', 'label/md/emphasis', 'label/lg/emphasis'].map((n, i) => ({ id: `S:${i}`, name: n, fontName: { family: 'Inter', style: 'Regular' } })),
@@ -542,8 +557,31 @@ section('template/… — `_Doc-block`');
   ok(ownTexts.length >= 24 && !unbound.length, `template/tokens: each of ${ownTexts.length} texts binds a color variable and takes a text style`, unbound.slice(0, 3).map((c) => String(c.name)).join(', '));
   const rules = own(set!).filter((c) => c.name === 'rule' || c.name === 'stage');
   ok(rules.length && rules.every((c) => (c.fills as { boundVariables?: unknown }[])[0]?.boundVariables), `template/tokens: the Do / Don't rules and the specimen stage bind theirs (${rules.length})`);
+  // The layers that fill the block's width (#2902), written out here, and Field's label, which grows to its text.
+  const FILLS: Record<string, string[]> = { Field: ['row'], 'Do-Dont': ['columns'], Chips: ['chips'] };
+  const notFilled = (): string[] => (set?.children ?? []).flatMap((v) => {
+    const t = String(v.name).replace(/^Type=([^,]+),.*$/, '$1');
+    const bad = ['top-padding', 'bottom-padding', ...(FILLS[t] ?? [])].filter((l) => v.children.find((c) => c.name === l)?.layoutSizingHorizontal !== 'FILL').map((l) => `${String(v.name)} ${l}`);
+    const label = t === 'Field' ? v.children.find((c) => c.name === 'row')?.children.find((c) => c.name === 'label') : undefined;
+    return [...bad, ...(t === 'Field' && (label?.textAutoResize !== 'HEIGHT' || label?.width !== 120) ? [`${String(v.name)} label (${String(label?.textAutoResize)}, ${String(label?.width)})`] : [])];
+  });
+  const built = notFilled();
+  ok(!built.length, 'template/fill: the padding spacers, Field\'s row, Do-Dont\'s columns and Chips\' chips FILL the block in every variant, and Field\'s label grows to its text at the label column', built.slice(0, 4).join('; '));
+  const ids = (set?.children ?? []).map((c) => c.id).join('|');
+  // A set built before #2902: those layers at their old sizing, the label at a fixed 1px.
+  for (const v of set?.children ?? []) for (const c of v.children) {
+    if (['top-padding', 'bottom-padding'].includes(String(c.name))) c.layoutSizingHorizontal = 'FIXED';
+    if (['row', 'columns', 'chips'].includes(String(c.name))) c.layoutSizingHorizontal = 'HUG';
+    const label = c.name === 'row' ? c.children.find((k) => k.name === 'label') : undefined;
+    if (label) label.textAutoResize = 'NONE';
+  }
   const again = await ensureDocBlock(api(libs, true), fc as never);
   ok(again.status === 'present' && fc.children.filter((c) => c.type === 'COMPONENT_SET').length === 1, 'template/idempotent: a second run builds nothing');
+  const repaired = notFilled();
+  ok(!repaired.length && (again.repaired ?? 0) > 0 && fc.children.find((c) => c.type === 'COMPONENT_SET') === set && (set?.children ?? []).map((c) => c.id).join('|') === ids,
+    `template/repair: a set built before the fix is brought up to date in place, the same set and members (${again.repaired} layers)`, repaired.slice(0, 4).join('; '));
+  const third = await ensureDocBlock(api(libs, true), fc as never);
+  ok(third.status === 'present' && third.repaired === 0, `template/repair idempotent: a set already right is left as it is (${third.repaired})`);
 }
 
 /* ── line: the missing template, once ──────────────────────────────────────────────────────────────────── */
