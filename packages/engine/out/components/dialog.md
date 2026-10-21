@@ -32,6 +32,7 @@ Shown on the default member: placement `center`, size `medium`, footer `inline`.
 11. **Footer** — The footer: the actions, inset to match the header. Absent when there is no footer.
 12. **Actions inline** — The inline footer: a Button group, inline, at the end edge: Cancel, then Save.
 13. **Actions stacked** — The stacked footer: a Button group, stacked: Save on top, Cancel under it, both full width.
+14. **Actions fill** — The fill footer: a Button group at fill: Cancel, then Save, each half the width.
 
 ## Styles
 
@@ -39,7 +40,7 @@ Shown on the default member: placement `center`, size `medium`, footer `inline`.
 | --- | --- | --- | --- |
 | `placement` | `center`, `bottom`, `full`, `end` | once, when authored | Where the panel sits. center on every screen by default; bottom (a bottom sheet) and full (full screen) are for small screens; end (a side sheet) runs the full height of the screen at the end edge, the right in left-to-right text. Set per breakpoint; nothing switches automatically. |
 | `size` | `medium`, `small`, `large` | once, when authored | The width of a centered panel: 400, 560 or 720px. On a small screen a centered panel is as wide as the screen less its margins. Bottom and full panels are full width, and an end panel is 480px wide, so all three ignore it. |
-| `footer` | `inline`, `stacked`, `none` | once, when authored | How the actions are laid out. inline is a row at the end edge; stacked is full-width buttons, the main action on top; none is for a dialog whose body holds its own actions. |
+| `footer` | `inline`, `stacked`, `fill`, `none` | once, when authored | How the actions are laid out. inline is a row at the end edge; stacked is full-width buttons, the main action on top; fill is a row whose buttons share the width equally, the main action last; none is for a dialog whose body holds its own actions. |
 
 ## Usage guidelines
 
@@ -49,7 +50,8 @@ Use a Dialog when the user must make a decision or finish a short task before go
 
 - Name the task in the title, and the action in the main button
 - Keep the close button on a standard dialog
-- Put the main action last in an inline footer (Cancel, then Save), and on top when stacked
+- Put the main action last in an inline or fill footer (Cancel, then Save), and on top when stacked
+- Use the fill footer for two buttons that share the width, such as Clear all and Apply, and stacked for long labels
 - Let only the body scroll, and keep the footer in view
 - Return focus to the control that opened the dialog
 
@@ -117,15 +119,15 @@ Titles are specific and in sentence case. Body text is short and states the cons
 | `title` | node | — | yes | The heading that names the task. It is the dialog's accessible name, so make it specific: "Delete this address?", not "Are you sure?". It wraps rather than truncating. |
 | `description` | node | — | no | One or two sentences under the title that say what the dialog is for or what an action will do. Linked as the dialog's accessible description. |
 | `children` | node | — | yes | The body content. The body is the only part that scrolls; the header and footer stay in place. |
-| `actions` | slot of `button` or `button-destructive` or `button-neutral`, 1 to 3 | — | no | The footer buttons, one to three Button elements, laid out by a Button group. Inline, the main action last (Cancel, then Save); stacked, the main action first. Name each by what it does. |
+| `actions` | slot of `button` or `button-destructive` or `button-neutral`, 1 to 3 | — | no | The footer buttons, one to three Button elements, laid out by a Button group. Inline and fill, the main action last (Cancel, then Save); stacked, the main action first. Fill suits two. Name each by what it does. |
 | `role` | enum: 'dialog' \| 'alertdialog' | `dialog` | no | dialog for a task or form. alertdialog for a confirmation that interrupts and needs an answer: it hides the close button, a backdrop click does not close it, and focus starts on the least destructive action. |
 | `placement` | enum: 'center' \| 'bottom' \| 'full' \| 'end' | `center` | no | Where the panel sits. center on every screen by default; bottom (a bottom sheet) and full (full screen) are for small screens; end (a side sheet) runs the full height of the screen at the end edge, the right in left-to-right text. Set per breakpoint; nothing switches automatically. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The width of a centered panel: 400, 560 or 720px. On a small screen a centered panel is as wide as the screen less its margins. Bottom and full panels are full width, and an end panel is 480px wide, so all three ignore it. |
-| `footer` | enum: 'inline' \| 'stacked' \| 'none' | `inline` | no | How the actions are laid out. inline is a row at the end edge; stacked is full-width buttons, the main action on top; none is for a dialog whose body holds its own actions. |
+| `footer` | enum: 'inline' \| 'stacked' \| 'fill' \| 'none' | `inline` | no | How the actions are laid out. inline is a row at the end edge; stacked is full-width buttons, the main action on top; fill is a row whose buttons share the width equally, the main action last; none is for a dialog whose body holds its own actions. |
 
 ## Specs
 
-Generated from the plan that builds the design-file component: 18 members. Values are token names; a px value appears only where the build writes a number.
+Generated from the plan that builds the design-file component: 24 members. Values are token names; a px value appears only where the build writes a number.
 
 ### Anatomy
 
@@ -140,10 +142,11 @@ Generated from the plan that builds the design-file component: 18 members. Value
 | `panel/headerDivider` | instance | every member |
 | `panel/body` | slot | every member |
 | `panel/body/placeholder` | text | every member |
-| `panel/footerDivider` | instance | footer=inline or stacked |
-| `panel/footer` | frame | footer=inline or stacked |
+| `panel/footerDivider` | instance | footer=inline or stacked or fill |
+| `panel/footer` | frame | footer=inline or stacked or fill |
 | `panel/footer/actionsInline` | instance | footer=inline |
 | `panel/footer/actionsStacked` | instance | footer=stacked |
+| `panel/footer/actionsFill` | instance | footer=fill |
 
 ### Spacing and size
 
@@ -249,6 +252,15 @@ Keyed by `placement`, `footer`.
 | `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
 | `panel/body/placeholder` | — | — | `color.text.primary` | — |
 
+**placement=center, footer=fill**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `panel` | `color.foreground.primary` | — | — | — |
+| `panel/header/titleBox/title` | — | — | `color.text.primary` | — |
+| `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
+| `panel/body/placeholder` | — | — | `color.text.primary` | — |
+
 **placement=center, footer=none**
 
 | Part | Fill | Stroke | Ink | Icon |
@@ -268,6 +280,15 @@ Keyed by `placement`, `footer`.
 | `panel/body/placeholder` | — | — | `color.text.primary` | — |
 
 **placement=bottom, footer=stacked**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `panel` | `color.foreground.primary` | — | — | — |
+| `panel/header/titleBox/title` | — | — | `color.text.primary` | — |
+| `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
+| `panel/body/placeholder` | — | — | `color.text.primary` | — |
+
+**placement=bottom, footer=fill**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
@@ -303,6 +324,15 @@ Keyed by `placement`, `footer`.
 | `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
 | `panel/body/placeholder` | — | — | `color.text.primary` | — |
 
+**placement=full, footer=fill**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `panel` | `color.foreground.primary` | — | — | — |
+| `panel/header/titleBox/title` | — | — | `color.text.primary` | — |
+| `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
+| `panel/body/placeholder` | — | — | `color.text.primary` | — |
+
 **placement=full, footer=none**
 
 | Part | Fill | Stroke | Ink | Icon |
@@ -330,6 +360,15 @@ Keyed by `placement`, `footer`.
 | `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
 | `panel/body/placeholder` | — | — | `color.text.primary` | — |
 
+**placement=end, footer=fill**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `panel` | `color.foreground.primary` | — | — | — |
+| `panel/header/titleBox/title` | — | — | `color.text.primary` | — |
+| `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
+| `panel/body/placeholder` | — | — | `color.text.primary` | — |
+
 **placement=end, footer=none**
 
 | Part | Fill | Stroke | Ink | Icon |
@@ -347,6 +386,7 @@ Keyed by `placement`, `footer`.
 - `panel/footerDivider` nests `divider` at `orientation=horizontal, inset=none`
 - `panel/footer/actionsInline` nests `button-group` at `layout=inline`
 - `panel/footer/actionsStacked` nests `button-group` at `layout=stacked`
+- `panel/footer/actionsFill` nests `button-group` at `layout=fill`
 
 | Property | Type | Default |
 | --- | --- | --- |
