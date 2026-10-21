@@ -246,8 +246,8 @@ export interface TemplatesResult {
   fontMisses: string[];
 }
 
-/** Where a new template goes: right of everything already on the page, 160 clear — the gap sets had before #2502
- *  widened `SET_GAP` for their labels. The templates carry no labels, so they keep it. */
+/** Where a new template goes: right of everything already on the page, 160 clear — the visible gap between sets
+ *  (`SET_GAP`, #2723). The templates carry no labels, so their frame is their edge. */
 const placeRight = (page: TemplatesPage, node: FNode): void => {
   const boxes = ((page.children ?? []) as { x?: number; width?: number }[]).filter((n) => n !== (node as unknown));
   if (!boxes.length) return;
