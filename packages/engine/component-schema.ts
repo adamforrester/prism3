@@ -1160,6 +1160,29 @@ export type PartDef = {
    *  it `MAX`/`MAX`, so it stays in the corner when a designer resizes the instance. `lint-absolute-inset.ts`
    *  holds the inset to the parent's stroke weight in every brand, so the artboard never overlaps the edge. */
   corner?: 'bottom-right';
+  /** For a `box`: PIN it across its parent's BOTTOM EDGE, out of the auto-layout flow (#2872, Link's current-page bar,
+   *  owner decisions Q507). The box keeps its own bound `height` and spans the parent's full width, flush with its
+   *  bottom, so it draws a line at the foot of the parent without taking a cell: the parent keeps its size whether
+   *  the box is there or not, which is what lets a `presentWhen`-gated bar sit on some members of a runtime axis and
+   *  not others under the footprint rule.
+   *
+   *  WHY A FILLED BOX AND NOT THE PARENT'S BOTTOM STROKE (`strokeEdges`). A stroke binds a STROKE-scoped role, and a
+   *  stroke never binds an ink role (Q346, `lint-paint.ts` arm 5). Link's bar is in the link ICON role, which is
+   *  scoped to fills, so the bar is a fill, as Tab's bar is. And a stroke would sit on every member, a filled box only
+   *  where `presentWhen` puts it.
+   *
+   *  WHY NOT `absolute`. That kind is an INSTANCE of a shared component sized by its parent on all four sides (a
+   *  focus ring); this is the def's own frame, one bound dimension high and the parent's width across.
+   *
+   *  PROJECTED as `FigmaNodePlan.footPin`. Both executors lift the node (`layoutPositioning: 'ABSOLUTE'`), size it to
+   *  the parent's width at its bound height, place it at `x = 0`, `y = parent height − its height`, and constrain it
+   *  `STRETCH`/`MAX`, so it follows the bottom edge and the width when a designer's longer label resizes the
+   *  instance. `x`/`y`/width take no binding, so they are written from the live parent, after the flow pass. Code
+   *  draws it as a positioned pseudo-element or an inset shadow, never a border that adds height.
+   *
+   *  Refused on a non-`box`, on the root, without a `height`, beside `width`, `size`, `layout` or `children` (a bar
+   *  draws nothing but its fill), and under a parent that is not an auto-layout box. */
+  foot?: true;
   /** For a `vector` sized by `glyphPx`: take the glyph OUT of the auto-layout flow, CENTER it in its parent,
    *  and constrain it `SCALE`/`SCALE`, so it keeps its fraction of the parent when a designer resizes an
    *  instance (#2345). image-placeholder's marker is the case: a fixed 180px marker inside a 64px thumbnail
@@ -4607,6 +4630,30 @@ const anatomyErrors = (def: ComponentDef): string[] => {
         const pp = parent ? parts[parent] : undefined;
         if (!pp || pp.kind !== 'box' || !pp.layout)
           e.push(`anatomy part '${n}' declares corner '${p.corner}' under '${parent ?? '(none)'}', which is not an auto-layout 'box' — Figma ignores 'layoutPositioning' on a child of a frame with no auto-layout, silently, so the glyph would take a cell in the flow`);
+      }
+    }
+    // ---- THE FOOT PIN (#2872, Link's current-page bar) ----
+    // The corner pin's four ways to project nothing or into the flow, for a box: the wrong kind, no height to draw,
+    // the root, a parent Figma will not lift a child out of; and a fifth, a box that lays out content of its own,
+    // which a pinned bar has none of.
+    if (p.foot !== undefined) {
+      if (p.foot !== true)
+        e.push(`anatomy part '${n}' declares foot ${String(p.foot)} — the field is a switch that is on or absent`);
+      if (p.kind !== 'box')
+        e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'foot' — only a 'box' is drawn as the def's own filled frame and can be pinned across its parent's bottom edge`);
+      if (!p.height)
+        e.push(`anatomy part '${n}' declares 'foot' but binds no 'height' — the executor places it its own height up from the parent's bottom edge, so without one it has no thickness to draw`);
+      if (p.width !== undefined || p.size !== undefined)
+        e.push(`anatomy part '${n}' declares 'foot' and binds its own width ('width' or 'size') — a foot pin spans the parent's width, so the width is stated twice`);
+      if (p.layout !== undefined || (p.children ?? []).length)
+        e.push(`anatomy part '${n}' declares 'foot' with a 'layout' or 'children' — a foot pin is a bar that draws its fill and nothing else`);
+      if (n === a.root)
+        e.push(`anatomy part '${n}' is the anatomy ROOT and declares 'foot' — a bottom edge belongs to a parent, and the root has none`);
+      else {
+        const parent = Object.keys(parts).find((k) => (parts[k].children ?? []).includes(n));
+        const pp = parent ? parts[parent] : undefined;
+        if (!pp || pp.kind !== 'box' || !pp.layout)
+          e.push(`anatomy part '${n}' declares 'foot' under '${parent ?? '(none)'}', which is not an auto-layout 'box' — Figma ignores 'layoutPositioning' on a child of a frame with no auto-layout, silently, so the bar would take a cell in the flow`);
       }
     }
     // `strokeInset` gets the same rule for the same reason: it is a compensation applied to `inset`, so

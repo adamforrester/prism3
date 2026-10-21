@@ -39,10 +39,10 @@
  * coordinate the set excludes and be dropped.
  *
  *   - THE BAR (Q507.1 C): 2px (`border-width.thick`) at the foot of the line box, in `color.icon.link.*` stepped by
- *     state, as Tab's selected bar is (Q178.1 A). Drawn as the container's BOTTOM STROKE (`strokeEdges`, the #2695
- *     underline field's mechanism), inside the node: no layer is added to any member, the box does not move, and
- *     the other three sides and every unselected member bind `border-width.none`. Only a selected member has a
- *     stroke paint (`border.selected.*`).
+ *     state. A FILLED box, as Tab's selected bar is (Q178.1 A), never a stroke: the icon role is scoped to fills, and
+ *     a stroke never binds an ink role (Q346, `lint-paint.ts` arm 5). It exists on selected members only
+ *     (`presentWhen`), so the 96 unselected members gain no layer, and it sits OUT OF THE FLOW pinned to the row's
+ *     bottom edge across its width (`PartDef.foot`), so the box does not move.
  *   - HOVER ON THE CURRENT ITEM (Q507.4): color only. The label keeps its plain style at every state, so the 1px
  *     hover underline never joins the bar; the type key names `{selection}` for that. It stays a real link in code.
  *
@@ -108,7 +108,7 @@ export const link: ComponentDef = {
   // Emphasis resolves to the heaviest body weight the brand ships, default to its reading weight (Q297.1, #1602).
   weightIntent: { axis: 'weight', group: 'body', intents: { emphasis: 'bold', default: 'regular' } },
 
-  // The current-page bar's keys name the selection (#2872); three segments, so they never shape-match the label's two.
+  // The current-page bar's fill keys name the selection (#2872); three segments, so they never shape-match the label's two.
   paintKeys: ['{slot}.{selection}.{state}', '{slot}.{state}', '{slot}'],
   densitySpacing: ['size.{size}.gap'],
 
@@ -124,10 +124,8 @@ export const link: ComponentDef = {
     'size.large.icon': 'icon.size.sm',
     ...typeKeys,
 
-    // THE CURRENT-PAGE BAR (Q507.1 C): the container's bottom stroke, 2px on a selected member and none elsewhere.
-    'bar.side': 'border-width.none',
-    'bar.unselected': 'border-width.none',
-    'bar.selected': 'border-width.thick',
+    // THE CURRENT-PAGE BAR (Q507.1 C): 2px, Tab's bar thickness.
+    'bar-height': 'border-width.thick',
 
     // The link ink, stepped by state. `focus-visible` takes the `focused` rung.
     'label': 'color.text.link.default',
@@ -138,12 +136,12 @@ export const link: ComponentDef = {
     'icon.hover': 'color.icon.link.hover',
     'icon.pressed': 'color.icon.link.pressed',
     'icon.focus-visible': 'color.icon.link.focused',
-    // The bar's ink: the link icon role, stepped with the label (a non-text mark, so the 3:1 icon role, as Tab's
-    // bar takes a border role). Keyed on `selected` only, so an unselected member paints no stroke.
-    'border.selected.rest': 'color.icon.link.default',
-    'border.selected.hover': 'color.icon.link.hover',
-    'border.selected.pressed': 'color.icon.link.pressed',
-    'border.selected.focus-visible': 'color.icon.link.focused',
+    // The bar's fill: the link icon role, stepped with the label (a non-text mark, so the 3:1 icon role). Keyed on
+    // `selected` only; the bar exists on selected members only.
+    'fill.selected.rest': 'color.icon.link.default',
+    'fill.selected.hover': 'color.icon.link.hover',
+    'fill.selected.pressed': 'color.icon.link.pressed',
+    'fill.selected.focus-visible': 'color.icon.link.focused',
   },
 
   anatomy: {
@@ -152,12 +150,10 @@ export const link: ComponentDef = {
       container: {
         kind: 'box',
         role: 'target',
-        children: ['label', 'trailingVisual', 'focusRing'],
+        children: ['label', 'trailingVisual', 'bar', 'focusRing'],
         layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
         gap: 'size.{size}.gap',
-        paintSlots: ['border'],
-        strokeEdges: { top: 'bar.side', right: 'bar.side', bottom: 'bar.{selection}', left: 'bar.side' },
-        note: 'The link: a row that hugs its label and any icon, with no padding and no fill. On the current page its bottom edge carries a 2px bar in the link color, drawn inside the row, so the box does not move.',
+        note: 'The link: a row that hugs its label and any icon, with no padding and no fill.',
       },
       label: {
         kind: 'text',
@@ -171,6 +167,15 @@ export const link: ComponentDef = {
         size: 'size.{size}.icon',
         nesting: { kind: 'swap' },
         note: 'An optional icon after the label, in the link color, such as an arrow or the external icon for a link that opens a new tab. Standalone links only; an inline link carries none.',
+      },
+      bar: {
+        kind: 'box',
+        role: 'presentation',
+        paintSlots: ['fill'],
+        height: 'bar-height',
+        foot: true,
+        presentWhen: { selection: ['selected'] },
+        note: 'The current page\'s 2px bar in the link color, across the foot of the line box. Out of the flow, so the link keeps its size. Current links only.',
       },
       focusRing: {
         kind: 'absolute',

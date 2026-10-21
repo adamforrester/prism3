@@ -365,6 +365,14 @@ export type FigmaNodePlan = {
    *  the instance is resized). Carried ONLY on a pinned glyph, so every other plan is byte-identical. In
    *  `readVarsOwn`, so the emit gate verifies the name like the ring's. */
   cornerInset?: string;
+  /** For a `FRAME` pinned across its parent's BOTTOM EDGE (`PartDef.foot`, Link's current-page bar, #2872): taken out
+   *  of the auto-layout flow, sized to the parent's width at its own bound height, placed flush with the parent's
+   *  bottom (`x = 0`, `y = parent height − its height`) and constrained `STRETCH`/`MAX`, so it follows the bottom edge
+   *  and the width when the instance resizes. A FOURTH out-of-flow placement beside the ring's inset, the overlay's
+   *  center and the corner pin: the ring is sized from its parent on four sides, this on one. A boolean, for
+   *  `absoluteCenter`'s reason: nothing brand-varying to carry, since the thickness is the node's own bound height.
+   *  Carried ONLY on such a box, so every other plan is byte-identical. */
+  footPin?: boolean;
   /** Rendered at zero opacity — in the flow and in the accessibility tree, but not visible.
    *
    *  The only node property here that exists to preserve GEOMETRY rather than to express a design
@@ -2182,6 +2190,9 @@ export const figmaAnatomyPlan = (
       // THE CORNER PIN (textarea's resize grip): a glyph lifted out of the flow into its parent's corner.
       // Only on a pinned vector, so every other plan is byte-identical; the schema requires the inset.
       ...(p.kind === 'vector' && p.corner && p.inset ? { cornerInset: varOf(p.inset) } : {}),
+      // THE FOOT PIN (#2872, Link's current-page bar): a box lifted out of the flow across its parent's bottom edge.
+      // Only on such a box, so every other plan is byte-identical.
+      ...(p.kind === 'box' && p.foot ? { footPin: true } : {}),
       // A GLYPH THAT SCALES WITH ITS ASPECT-LOCKED PARENT (#2345, `PartDef.scaleWithParent`): lifted and
       // centered by the overlay's own path, then constrained SCALE/SCALE. Only on such a vector, so every
       // other plan is byte-identical.
@@ -4053,6 +4064,27 @@ const PAYLOAD_CORNER = `  for(const c of n.children){
 `;
 const hasCorner = (n: FigmaNodePlan): boolean => n.cornerInset !== undefined || n.children.some(hasCorner);
 /**
+ * THE FOOT PIN (#2872, Link's current-page bar), spliced after the corner pin ONLY for a payload whose plans carry
+ * `footPin`, the corner pin's budget reason (#1798). Lifted first, so the parent re-hugs without the bar; sized to the
+ * parent's width at the bar's height, with the height bound again since `resize` writes both; flush with the bottom,
+ * `STRETCH`/`MAX`. Lockstep with the plugin executor (`write-components.ts`), miss wording included.
+ */
+const FOOT_SLOT = '__FOOT__';
+const PAYLOAD_FOOT = `  for(const c of n.children){
+    if(!c.footPin)continue;
+    const kid=boxes.get(c.name);
+    if(!kid)continue;
+    kid.layoutPositioning='ABSOLUTE';
+    kid.resize(node.width,kid.height);
+    const hv=c.bound&&c.bound.height?byName.get(c.bound.height):undefined;
+    if(hv){try{kid.setBoundVariable('height',hv);}catch(e){misses.push(c.name+'.height -> '+c.bound.height+" REFUSED after the foot pin's resize ("+(e&&e.message?e.message:String(e))+')');}}
+    kid.x=0;kid.y=node.height-kid.height;
+    kid.constraints={horizontal:'STRETCH',vertical:'MAX'};
+    if(kid.layoutPositioning!=='ABSOLUTE')misses.push(c.name+'.layoutPositioning -> DISCARDED (set ABSOLUTE, reads '+kid.layoutPositioning+'; the bar would take a cell in the row)');
+  }
+`;
+const hasFoot = (n: FigmaNodePlan): boolean => n.footPin === true || n.children.some(hasFoot);
+/**
  * THE INSET ICON (#2380, #1346): checkbox's check and dash, an instance of `icon/check` / `icon/minus` placed at
  * `glyphInset` of the frame that holds it, centered, with SCALE constraints so a box the brand or a mode
  * resizes scales the icon with it. After the flow pass, on the frame's own bound box. Spliced ONLY for a
@@ -4154,6 +4186,7 @@ const payloadBuildFor = (roots: FigmaNodePlan[]): string =>
     .replace(PIN_LIFT_SLOT, roots.some(hasPin) ? PAYLOAD_PIN_LIFT : '')
     .replace(PIN_SLOT, roots.some(hasPin) ? PAYLOAD_PIN : '')
     .replace(CORNER_SLOT, roots.some(hasCorner) ? PAYLOAD_CORNER : '')
+    .replace(FOOT_SLOT, roots.some(hasFoot) ? PAYLOAD_FOOT : '')
     .replace(INSET_SLOT, roots.some(hasInset) ? PAYLOAD_INSET : '')
     .replace(PLACEMENT_SLOT, roots.some(hasPlacement) ? PAYLOAD_PLACEMENT : '')
     .replace(MAX_WIDTH_SLOT, roots.some(hasMaxWidth) ? PAYLOAD_MAX_WIDTH : '')
@@ -4554,7 +4587,7 @@ ${PIN_LIFT_SLOT}
     // silently: the button would grow by the spinner's cell exactly as it did before #612.
     if(kid.layoutPositioning!=='ABSOLUTE')misses.push(c.name+'.layoutPositioning -> DISCARDED (set ABSOLUTE, reads '+kid.layoutPositioning+'; the spinner would take a cell and the button would grow on pending)');
   }
-${CORNER_SLOT}  // Applied by the PARENT, because every fact here is about the child's relationship to it:
+${CORNER_SLOT}${FOOT_SLOT}  // Applied by the PARENT, because every fact here is about the child's relationship to it:
   // \`layoutPositioning\` is only meaningful inside an auto-layout parent, and the parent's size is what
   // the inset is measured from.
   for(const [c,kid] of absolutes){

@@ -2625,6 +2625,30 @@ const writeComponentSet = async (
       if (kid.layoutPositioning !== 'ABSOLUTE')
         misses.push(`${c.name}.layoutPositioning -> DISCARDED (set ABSOLUTE, reads ${kid.layoutPositioning}; the glyph would take a cell in the row)`);
     }
+    // THE FOOT PIN (#2872, Link's current-page bar) — a box lifted out of the flow across this parent's bottom edge.
+    // Lifted FIRST, so the parent re-hugs without it and the width read next is the parent's own. Sized to that width
+    // at the bar's height: `resize` writes both dimensions, so the bound height is bound again after it. `x`/`y` take
+    // no binding (the ring's reason), and `STRETCH`/`MAX` keeps it across the bottom when a designer's longer label
+    // resizes the instance. Lockstep with the paste executor (`planToPluginJs`'s foot slot).
+    for (const c of n.children) {
+      if (!c.footPin) continue;
+      const kid = byPart.get(c.name);
+      if (!kid) continue;
+      kid.layoutPositioning = 'ABSOLUTE';
+      kid.resize?.(node.width ?? 0, kid.height ?? 0);
+      const hv = c.bound.height ? byName.get(c.bound.height) : undefined;
+      if (hv) {
+        try { kid.setBoundVariable?.('height', hv); }
+        catch (err) { misses.push(`${c.name}.height -> ${c.bound.height} REFUSED after the foot pin's resize (${(err as Error).message})`); }
+      }
+      kid.x = 0;
+      kid.y = (node.height ?? 0) - (kid.height ?? 0);
+      kid.constraints = { horizontal: 'STRETCH', vertical: 'MAX' };
+      // READ BACK: a bar left in the flow takes a cell and widens the link by its own width, the one thing the pin
+      // exists to prevent.
+      if (kid.layoutPositioning !== 'ABSOLUTE')
+        misses.push(`${c.name}.layoutPositioning -> DISCARDED (set ABSOLUTE, reads ${kid.layoutPositioning}; the bar would take a cell in the row)`);
+    }
     // Applied by the PARENT, because every fact here is about the child's relationship to it:
     // `layoutPositioning` only means anything inside an auto-layout parent, and the parent's size is
     // what the inset is measured from.
