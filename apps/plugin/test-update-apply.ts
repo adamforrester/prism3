@@ -3697,6 +3697,8 @@ section('published — on a set in a team library, what breaks consumer files is
   // member names are literals typed here, never read off the def.
   {
     const next = plansOf('dialog');
+    // `before` is derived from this PR's own plans, so this arm proves the end members are additive, not that the 15
+    // existing members are unchanged; their identity is pinned by test.ts's literal `#2609 dialog …` arms.
     const before = next.filter((p) => !/placement=end/.test(planComponentName(p)));
     // The nested close's `swap icon` is a property of FlushIconButton.Neutral in a real file; the shim's plain component
     // carries it here, or the build reads the close's swap override as a miss.

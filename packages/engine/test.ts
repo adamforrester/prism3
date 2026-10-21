@@ -33210,12 +33210,20 @@ arm: {
   const carve = /\b(except|but not|other than|unless|apart from|not modal|non-modal|without the scrim)\b[^.;]*\b(center|bottom|full|end|side)\b/i;
   const modalText = [line('role'), line('focus held'), line('Escape'), line('the backdrop'), ...a11y];
   const carved = modalText.filter((t) => carve.test(t));
-  ok(/aria-modal="true"` at every placement, an end panel included/.test(line('role'))
-    && /cycle inside the dialog at every placement, and the page behind is inert/.test(line('focus held'))
-    && /`color\.scrim\.default` on `::backdrop`, at every placement but full, an end panel included/.test(line('the backdrop'))
-    && /aria-modal="true"/.test(dg.accessibility.role) && /aria-modal="true"/.test(dg.accessibility.aria)
-    && carved.length === 0,
-    `#2877 dialog end: modal — role="dialog" with aria-modal, focus held, page inert and the scrim at every placement, the end panel included, and no line excepts a placement${carved.length ? ` — CARVED: ${carved.map((t) => t.slice(0, 70)).join(' | ')}` : ''}`);
+  // The modal contract is pinned as whole typed strings, so ANY reword of it fails this arm (a regex over a clause let
+  // ", though an end panel may drop aria-modal so the page stays reachable" pass — the #2881 review's M6). A deliberate
+  // rewording updates the literal here, in review. `carve` stays as a second net over the Escape line and the a11y fields
+  // that are not pinned.
+  const pinned: [string, string, string][] = [
+    ['role line', line('role'), 'role — `role="dialog"` with `aria-modal="true"` at every placement, an end panel included; the native `<dialog>` opened with `showModal()` provides both. `role: "alertdialog"` is a code prop with no Figma property: set it for a confirmation that interrupts and needs an answer. An alertdialog hides the close button (the Figma `close` toggle shows the result), keeps a backdrop click from closing it, and must hold at least one focusable control.'],
+    ['focus held line', line('focus held'), 'focus held — Tab and Shift+Tab cycle inside the dialog at every placement, and the page behind is inert. A modal `<dialog>` makes the page inert natively.'],
+    ['backdrop line', line('the backdrop'), 'the backdrop — `color.scrim.default` on `::backdrop`, at every placement but full, an end panel included. It is not part of the component: the Figma page draws it behind each example as canvas furniture.'],
+    ['accessibility.role', dg.accessibility.role, 'role="dialog" with aria-modal="true", or role="alertdialog" for a confirmation that needs an answer. A native <dialog> opened with showModal() provides the dialog role, the modal state, the top layer and an inert page.'],
+    ['accessibility.aria', dg.accessibility.aria, 'aria-modal="true"; aria-labelledby pointing at the title; aria-describedby pointing at the description when there is one. The close button\'s accessible name is "Close". Hide the dividers from assistive technology.'],
+  ];
+  const moved = pinned.filter(([, actual, expected]) => actual !== expected).map(([name]) => name);
+  ok(moved.length === 0 && carved.length === 0,
+    `#2877 dialog end: modal — role="dialog" with aria-modal, focus held, page inert and the scrim at every placement, the end panel included, and no line excepts a placement${moved.length ? ` — MOVED: ${moved.join(', ')}` : ''}${carved.length ? ` — CARVED: ${carved.map((t) => t.slice(0, 70)).join(' | ')}` : ''}`);
   const rm = [dg.motion?.reduceMotion ?? '', line('motion')];
   ok(rm.every((t) => /at once, with no movement and no fade/.test(t) && /0ms/.test(t)) && !rm.some((t) => /fades? only/.test(t)),
     `#2877 dialog reduced motion: every placement opens and closes at once under prefers-reduced-motion, 0ms, and no line promises a fade (Q491 A) (got ${JSON.stringify(dg.motion?.reduceMotion)})`);
