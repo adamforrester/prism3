@@ -2616,6 +2616,15 @@
         "source": "apps/plugin/src/furniture-templates.ts#export const SCRIM_COMPONENT"
       }
     ],
+    "aboutFrame": {
+      "rule": "The Cover page carries one \"About this library\" frame beside the file's thumbnail: the engine and token contract versions, the date of the last Update, and what changed in the latest release. Every Update that writes redraws it. It carries shared plugin data under namespace \"prism3\", key \"about\", so a reader can skip it; a copy a designer edited is renamed \"About this library (edited)\" and loses the tag.",
+      "name": "About this library",
+      "tag": {
+        "namespace": "prism3",
+        "key": "about"
+      },
+      "source": "apps/plugin/src/about-frame.ts#export const ABOUT_KEY"
+    },
     "fileTemplates": {
       "rule": "Page headers are instances of these sets. They live on the Sandbox section's file components page with the furniture templates, and their names start with \"_\" so a library leaves them out.",
       "names": [

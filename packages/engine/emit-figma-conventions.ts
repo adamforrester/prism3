@@ -55,6 +55,7 @@ import { TAXONOMY, NEST_PREFIX, leafPageName, leafForDef } from '../../apps/plug
 import { LABEL_SET, BACKDROP_COMPONENT, SCRIM_COMPONENT, BRACKET_PROPERTY, LABEL_PLACEMENTS, LABEL_SURFACES, BACKDROP_VARIABLE, SCRIM_VARIABLE } from '../../apps/plugin/src/furniture-templates';
 import { SECTION_HEADER_SET, HEADINGS_SET } from '../../apps/plugin/src/file-components';
 import { FURNITURE_NS, FURNITURE_KEY } from '../../apps/plugin/src/canvas-furniture';
+import { ABOUT_NS, ABOUT_KEY, ABOUT_NAME } from '../../apps/plugin/src/about-frame';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, '..', '..');
@@ -66,6 +67,7 @@ const SCHEMA_SRC = 'packages/engine/component-schema.ts';
 const TEMPLATES_SRC = 'apps/plugin/src/furniture-templates.ts';
 const FILE_COMPONENTS_SRC = 'apps/plugin/src/file-components.ts';
 const FURNITURE_SRC = 'apps/plugin/src/canvas-furniture.ts';
+const ABOUT_SRC = 'apps/plugin/src/about-frame.ts';
 /** The theme the studio and plugin open with (#1296); `emit-figma.ts` writes it to `out/figma/prism3/`. */
 const DEFAULT_THEME_SRC = 'packages/engine/examples/prism3.design.md';
 
@@ -223,6 +225,12 @@ const furniture = () => ({
     { name: BACKDROP_COMPONENT, binds: `<root>/${BACKDROP_VARIABLE}`, source: src(TEMPLATES_SRC, 'export const BACKDROP_COMPONENT') },
     { name: SCRIM_COMPONENT, binds: `<root>/${SCRIM_VARIABLE}`, source: src(TEMPLATES_SRC, 'export const SCRIM_COMPONENT') },
   ],
+  aboutFrame: {
+    rule: `The Cover page carries one "${ABOUT_NAME}" frame beside the file's thumbnail: the engine and token contract versions, the date of the last Update, and what changed in the latest release. Every Update that writes redraws it. It carries shared plugin data under namespace "${ABOUT_NS}", key "${ABOUT_KEY}", so a reader can skip it; a copy a designer edited is renamed "${ABOUT_NAME} (edited)" and loses the tag.`,
+    name: ABOUT_NAME,
+    tag: { namespace: ABOUT_NS, key: ABOUT_KEY },
+    source: src(ABOUT_SRC, 'export const ABOUT_KEY'),
+  },
   fileTemplates: {
     rule: 'Page headers are instances of these sets. They live on the Sandbox section\'s file components page with the furniture templates, and their names start with "_" so a library leaves them out.',
     names: [SECTION_HEADER_SET, HEADINGS_SET],

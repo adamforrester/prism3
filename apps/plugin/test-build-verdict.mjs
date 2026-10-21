@@ -2319,6 +2319,41 @@ for (const how of ['pointer', 'focus']) {
   }
 }
 
+// #2858 (owner decision Q479): after an Update, the drawer's components row offers the library publish description with a
+// Copy button, under the run's lines. The text is the host's, shown as sent; a copy either lands on the clipboard or, where
+// the iframe refuses it, selects the text and says so.
+{
+  const { page, errors } = await openPanel();
+  const publish = 'Before Prism3 updated tag. Engine 0.237.0. Token contract 14.7.0.\nNo breaking changes.';
+  await post(page, { type: 'component-update-result', ok: true, headline: '✓ updated 3 in place', summary: 'tag: 3 updated in place.', lines: ['tag: 3 updated in place.'], publish });
+  await page.waitForFunction(() => !!document.querySelector('[data-p3="activity-op"][data-op="components"] [data-p3="op-head"]'), null, { timeout: 5000 }).catch(() => {});
+  // An ok result with no run before it leaves the drawer closed: open it, then the row.
+  if (await page.evaluate(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open !== 'true')) await hooks.click(page.locator('[data-p3="activity-toggle"]'));
+  const open = () => page.evaluate(() => document.querySelector('[data-p3="activity-op"][data-op="components"] [data-p3="op-head"]')?.getAttribute('aria-expanded') === 'true');
+  if (!(await open())) await hooks.click(page.locator('[data-p3="activity-op"][data-op="components"] [data-p3="op-head"]'));
+  await page.waitForFunction(() => !!document.querySelector('[data-p3="op-publish-text"]')?.checkVisibility(), null, { timeout: 5000 }).catch(() => {});
+  const seen = await page.evaluate(() => ({
+    text: document.querySelector('[data-p3="activity-op"][data-op="components"] [data-p3="op-publish-text"]')?.textContent ?? null,
+    copy: document.querySelector('[data-p3="op-publish-copy"]')?.textContent ?? null,
+    state: document.querySelector('[data-p3="op-publish-state"]')?.textContent ?? null,
+    live: document.querySelector('[data-p3="op-publish-state"]')?.getAttribute('aria-live') ?? null,
+  }));
+  ok(seen.text === publish && seen.copy === 'Copy' && seen.state === "Paste it into Figma's Publish library dialog." && seen.live === 'polite',
+    `#2858 an Update's publish description is shown as sent, with a Copy button — read ${JSON.stringify(seen)}`);
+  await hooks.click(page.locator('[data-p3="op-publish-copy"]'));
+  await page.waitForFunction(() => (document.querySelector('[data-p3="op-publish-state"]')?.textContent ?? '').startsWith('Copied') || (document.querySelector('[data-p3="op-publish-state"]')?.textContent ?? '').startsWith('Selected'), null, { timeout: 5000 }).catch(() => {});
+  const after = await page.evaluate(() => ({ state: document.querySelector('[data-p3="op-publish-state"]')?.textContent ?? null, selected: String(getSelection() ?? '') }));
+  ok(after.state === 'Copied.' || (after.state === 'Selected. Copy it with your keyboard.' && after.selected === publish),
+    `#2858 Copy copies the description, or selects it and says so — read ${JSON.stringify(after)}`);
+  // A check (no publish description) shows no block.
+  await post(page, { type: 'component-update-result', ok: true, headline: 'Would change 1 of 1', summary: 'tag: 3 to update.', lines: ['tag: 3 to update.'] });
+  await page.waitForFunction(() => (document.querySelector('[data-p3="activity-op"][data-op="components"] [data-p3="op-verdict"]')?.textContent ?? '') === 'Would change 1 of 1', null, { timeout: 5000 }).catch(() => {});
+  const check = await page.evaluate(() => document.querySelectorAll('[data-p3="activity-op"][data-op="components"] [data-p3="op-publish"]').length);
+  ok(check === 0, `#2858 a check offers no publish description — found ${check}`);
+  ok(errors.length === 0, `#2858 publish description: no console errors (${errors.slice(0, 2).join(' · ')})`);
+  await page.close();
+}
+
 await browser.close();
 server.close();
 

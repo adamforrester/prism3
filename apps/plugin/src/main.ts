@@ -949,7 +949,8 @@ const updateComponents = async (defId: string | undefined, previewHash: string |
     // A set whose only work was its furniture (#2803) is one of them (`furnishUpdate`).
     const furniture = await furnishUpdate(figma as unknown as FurnitureApi, r, targets);
     sink.data({ update: { mode: 'apply', ...r, furniture } });
-    postVerdict({ type: 'component-update-result', ...withTemplateWarning(withFurnitureItems(applyVerdict(r), furnitureItems(furniture, 'update')), furniture) }, sink);
+    // #2858: the library publish description, which the Activity drawer offers with a Copy button.
+    postVerdict({ type: 'component-update-result', ...withTemplateWarning(withFurnitureItems(applyVerdict(r), furnitureItems(furniture, 'update')), furniture), ...(r.publish ? { publish: r.publish } : {}) }, sink);
   } catch (e) {
     const why = (e as Error)?.message ?? String(e);
     postVerdict({ type: 'component-update-result', ok: false, headline: previewHash === null ? '✗ check failed' : '✗ update failed', summary: why, lines: [why] }, sink);

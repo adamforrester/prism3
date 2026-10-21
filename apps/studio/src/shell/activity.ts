@@ -107,6 +107,51 @@ export const restoreActivityHeight = (v: unknown): void => {
   for (const f of heightWatchers) f();
 };
 
+/**
+ * THE LIBRARY PUBLISH DESCRIPTION (#2858, owner decision Q479): after an Update, the text for Figma's Publish library
+ * dialog, with a Copy button. No Plugin API call sets a library's publish description, so the designer pastes it.
+ * A Figma plugin's iframe may refuse the async clipboard, so the copy falls back to a selected textarea and
+ * `execCommand('copy')`, and when that is refused too it selects the text and says so. DRAFT wording.
+ */
+export const publishBlock = (text: string): HTMLElement => {
+  const box = hook(h('div', 'p3-op-publish'), 'op-publish');
+  const head = h('div', 'p3-op-publish-head');
+  const copy = hook(h('button', 'p3-btn', 'Copy'), 'op-publish-copy');
+  copy.type = 'button';
+  head.append(h('b', undefined, 'Publish description'), copy);
+  const body = hook(h('pre', 'p3-op-publish-text', text), 'op-publish-text');
+  const state = hook(h('p', 'p3-note', "Paste it into Figma's Publish library dialog."), 'op-publish-state');
+  state.setAttribute('aria-live', 'polite');
+  const select = (): void => {
+    const r = document.createRange();
+    r.selectNodeContents(body);
+    const sel = getSelection();
+    sel?.removeAllRanges();
+    sel?.addRange(r);
+  };
+  const viaTextarea = (): boolean => {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.append(ta);
+    ta.select();
+    let done = false;
+    try { done = document.execCommand('copy'); } catch { done = false; }
+    ta.remove();
+    return done;
+  };
+  copy.onclick = async () => {
+    let done = false;
+    try { await navigator.clipboard.writeText(text); done = true; } catch { done = viaTextarea(); }
+    if (done) state.textContent = 'Copied.';
+    else { select(); state.textContent = 'Selected. Copy it with your keyboard.'; }
+  };
+  box.append(head, body, state);
+  return box;
+};
+
 /** One operation, as the drawer reads it. `ref` is the state's own value, so a new verdict that replaces
  *  an equal one is still a change. `verdict` and `summary` are the host's, once it has answered; `phase`
  *  and `progress` say how far it has got while it runs. */
@@ -118,6 +163,8 @@ export type OpReading = {
   readonly summary: string | null;
   /** The summary's items, one line each (#2177), when the host sent them; otherwise the summary is one line. */
   readonly lines?: readonly string[] | null;
+  /** #2858: an Update's library publish description, offered with a Copy button under the result's lines. */
+  readonly publish?: string | null;
   readonly phase: string | null;
   readonly progress: { readonly done: number; readonly total: number } | null;
   readonly agent: boolean;
@@ -170,7 +217,7 @@ const clock = (d: Date): string => d.toTimeString().slice(0, 5);
 
 /** One result, as the drawer recorded it. `refused` marks a declined request (#1957), which is only ever
  *  history: it is not the operation's result, so a run that ends with no verdict skips it. */
-type Result = { readonly ok: boolean; readonly verdict: string; readonly summary: string | null; readonly lines?: readonly string[] | null; readonly agent: boolean; readonly t: string; readonly ref: unknown; readonly refused?: true };
+type Result = { readonly ok: boolean; readonly verdict: string; readonly summary: string | null; readonly lines?: readonly string[] | null; readonly publish?: string | null; readonly agent: boolean; readonly t: string; readonly ref: unknown; readonly refused?: true };
 /** One operation's record: what the drawer has seen of it this session. */
 type Rec = { t: string; result: Result | null; history: Result[] };
 
@@ -374,6 +421,7 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
       const list = hook(h('ul', 'p3-op-summary'), 'op-summary');
       for (const line of res.lines?.length ? res.lines : [res.summary]) list.append(hook(h('li', 'p3-op-line', line), 'op-line'));
       parts.push(list);
+      if (res.publish) parts.push(publishBlock(res.publish));
     }
     if (rec.history.length) {
       const d = hook(h('details', 'p3-op-history'), 'op-history');
@@ -511,7 +559,7 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     if (!r) { r = { t: '', result: null, history: [] }; recs.set(k, r); }
     return r;
   };
-  const resultOf = (o: OpReading, t: string): Result => ({ ok: o.state === 'ok', verdict: o.verdict ?? '', summary: o.summary, lines: o.lines ?? null, agent: o.agent, t, ref: o.ref });
+  const resultOf = (o: OpReading, t: string): Result => ({ ok: o.state === 'ok', verdict: o.verdict ?? '', summary: o.summary, lines: o.lines ?? null, publish: o.publish ?? null, agent: o.agent, t, ref: o.ref });
   /** The previous result moves to the history, newest first, at most `HISTORY_MAX`. */
   const retire = (rec: Rec): void => {
     if (rec.result) rec.history = [rec.result, ...rec.history].slice(0, HISTORY_MAX);

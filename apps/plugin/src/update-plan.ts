@@ -60,6 +60,7 @@ import { drawnFaults, faultLine, type DrawnFault, type DrawVar } from './drawn';
 import { REACTIONS_PATH, plannedRead, reactionMap, reactionVerdict, reactionsText, type PlannedReaction, type ReadReaction } from './reactions';
 import { pagesOutOfOrder, stripNestPrefix, type PageLike } from './file-setup';
 import { whatChangedLines } from './release-summary';
+import { aboutDue, aboutDueLine, type AboutDue } from './about-frame';
 
 /** One member of a set as the dry run reads it. */
 export type HostMember = {
@@ -999,6 +1000,9 @@ export type UpdatePreview = {
   /** #2568, owner decision Q260 A — the component pages not in alphabetical order, by full page name, which the apply
    *  moves into place (`pagesOutOfOrder`). Absent when none. */
   pages?: string[];
+  /** #2858 — what the Update owes the Cover page's "About this library" frame (`about-frame.ts`). Absent for a host
+   *  with no page list. */
+  about?: AboutDue;
 };
 
 /** How many sets a dry run moves on their pages (#2542). */
@@ -1089,6 +1093,9 @@ export const previewUpdate = async (host: UpdateHost, targets: readonly UpdateTa
   // THE PAGE ORDER (#2568): read once for the file, whichever sets the targets name, since the pages are the file's.
   const pages = host.root.children ? pagesOutOfOrder(host.root.children) : [];
   if (pages.length) out.pages = pages;
+  // THE ABOUT FRAME (#2858): read once for the file, like the page order.
+  const about = aboutDue(host.root);
+  if (about) out.about = about;
   return out;
 };
 
@@ -1366,6 +1373,7 @@ export const previewVerdict = (r: UpdatePreview, whatChanged: (sets: string[]) =
     ...breakingSection(r.sets, false),
     ...r.refused.map((x) => `${x.def}: can't be checked. ${x.reason}.`),
     pagesLine(r.pages),
+    aboutDueLine(r.about),
     r.missing.length ? `Not in this file: ${r.missing.join(', ')}.` : '',
     earlier ? `${earlier} built by an earlier plugin. Update ${earlier === 1 ? 'it to bring it' : 'them to bring them'} current.` : '',
     // Wording approved, Q246 A (#2542, Q245.2 A).
