@@ -206,7 +206,6 @@
 import { readdirSync, existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { analyze } from './compare.ts';
-console.error("MUTATION (Q503 A, #2883): this gate exits 1 to prove the gates aggregator goes red; reverted next commit."); process.exit(1);
 
 const FIGMA_OUT = 'packages/engine/out/figma';
 
