@@ -76,7 +76,7 @@ Write the label as a noun or noun phrase in sentence case, three words or fewer,
 
 ## Related components
 
-- **Often used with:** `text-field`, `password-field`, `textarea`, `select`, `checkbox-group`, `radio-group`, `segmented-control`, `counter`, `field-message`
+- **Often used with:** `text-field`, `password-field`, `textarea`, `select`, `checkbox-group`, `radio-group`, `segmented-control`, `counter`, `code-input`, `slider`, `field-message`
 - **Replaces:**
   - an aria-label standing in for a visible label
 

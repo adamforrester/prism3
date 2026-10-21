@@ -318,7 +318,16 @@
           "counter",
           "_breadcrumb-separator",
           "breadcrumb-item",
-          "breadcrumbs"
+          "breadcrumbs",
+          "toast",
+          "banner",
+          "code-input-cell",
+          "code-input",
+          "progress",
+          "_slider-thumb",
+          "slider",
+          "pagination-item",
+          "pagination"
         ]
       }
     },

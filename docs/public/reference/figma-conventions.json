@@ -92,6 +92,12 @@
             ]
           },
           {
+            "name": "↳ Code input",
+            "components": [
+              "code-input"
+            ]
+          },
+          {
             "name": "↳ Textarea",
             "components": [
               "textarea"
@@ -168,9 +174,41 @@
             ]
           },
           {
+            "name": "↳ Toast",
+            "components": [
+              "toast"
+            ]
+          },
+          {
+            "name": "↳ Banner",
+            "components": [
+              "banner"
+            ]
+          },
+          {
             "name": "↳ Counter",
             "components": [
               "counter"
+            ]
+          },
+          {
+            "name": "↳ Progress",
+            "components": [
+              "progress"
+            ]
+          },
+          {
+            "name": "↳ Slider",
+            "components": [
+              "_slider-thumb",
+              "slider"
+            ]
+          },
+          {
+            "name": "↳ Pagination",
+            "components": [
+              "pagination-item",
+              "pagination"
             ]
           }
         ]
@@ -222,6 +260,12 @@
             "components": [
               "_breadcrumb-separator",
               "breadcrumb-item"
+            ]
+          },
+          {
+            "name": "↳ Code Cell",
+            "components": [
+              "code-input-cell"
             ]
           }
         ]
@@ -776,13 +820,20 @@
         "kind": "component set",
         "page": "↳ Flush Icon Button",
         "section": "Subcomponents",
-        "members": 30,
+        "members": 60,
         "variantProperties": [
           {
             "name": "shape",
             "values": [
               "flush",
               "round"
+            ]
+          },
+          {
+            "name": "surface",
+            "values": [
+              "default",
+              "inverse"
             ]
           },
           {
@@ -814,13 +865,20 @@
         "kind": "component set",
         "page": "↳ Flush Icon Button",
         "section": "Subcomponents",
-        "members": 30,
+        "members": 60,
         "variantProperties": [
           {
             "name": "shape",
             "values": [
               "flush",
               "round"
+            ]
+          },
+          {
+            "name": "surface",
+            "values": [
+              "default",
+              "inverse"
             ]
           },
           {
@@ -852,13 +910,20 @@
         "kind": "component set",
         "page": "↳ Flush Icon Button",
         "section": "Subcomponents",
-        "members": 30,
+        "members": 60,
         "variantProperties": [
           {
             "name": "shape",
             "values": [
               "flush",
               "round"
+            ]
+          },
+          {
+            "name": "surface",
+            "values": [
+              "default",
+              "inverse"
             ]
           },
           {
@@ -2343,6 +2408,39 @@
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/breadcrumbs.md"
       },
       {
+        "id": "toast",
+        "name": "Toast",
+        "figmaName": "toast",
+        "kind": "component set",
+        "page": "↳ Toast",
+        "section": "Components",
+        "members": 2,
+        "variantProperties": [
+          {
+            "name": "intent",
+            "values": [
+              "neutral",
+              "success"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "message",
+            "type": "TEXT"
+          },
+          {
+            "name": "action",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "close",
+            "type": "BOOLEAN"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/toast.md"
+      },
+      {
         "id": "counter",
         "name": "Counter",
         "figmaName": "counter",
@@ -2390,6 +2488,422 @@
           }
         ],
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/counter.md"
+      },
+      {
+        "id": "banner",
+        "name": "Banner",
+        "figmaName": "banner",
+        "kind": "component set",
+        "page": "↳ Banner",
+        "section": "Components",
+        "members": 8,
+        "variantProperties": [
+          {
+            "name": "tone",
+            "values": [
+              "info",
+              "success",
+              "warning",
+              "danger"
+            ]
+          },
+          {
+            "name": "width",
+            "values": [
+              "contained",
+              "full"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "title text",
+            "type": "TEXT"
+          },
+          {
+            "name": "icon",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "title",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "actions",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "second action",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "dismiss",
+            "type": "BOOLEAN"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/banner.md"
+      },
+      {
+        "id": "code-input-cell",
+        "name": "CodeInput.Cell",
+        "figmaName": "code-input-cell",
+        "kind": "component set",
+        "page": "↳ Code Cell",
+        "section": "Subcomponents",
+        "members": 28,
+        "variantProperties": [
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large",
+              "xlarge"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "hover",
+              "filled",
+              "focus-visible",
+              "focus-visible-filled",
+              "disabled",
+              "error"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "digit",
+            "type": "TEXT"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/code-input-cell.md"
+      },
+      {
+        "id": "code-input",
+        "name": "CodeInput",
+        "figmaName": "code-input",
+        "kind": "component set",
+        "page": "↳ Code input",
+        "section": "Components",
+        "members": 48,
+        "variantProperties": [
+          {
+            "name": "status",
+            "values": [
+              "default",
+              "error"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large",
+              "xlarge"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "hover",
+              "filled",
+              "focus-visible",
+              "focus-visible-filled",
+              "disabled"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "message",
+            "type": "BOOLEAN"
+          }
+        ],
+        "codeOnly": {
+          "states": [
+            "pending"
+          ]
+        },
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/code-input.md"
+      },
+      {
+        "id": "progress",
+        "name": "Progress",
+        "figmaName": "progress",
+        "kind": "component set",
+        "page": "↳ Progress",
+        "section": "Components",
+        "members": 10,
+        "variantProperties": [
+          {
+            "name": "shape",
+            "values": [
+              "linear",
+              "circular"
+            ]
+          },
+          {
+            "name": "type",
+            "values": [
+              "determinate",
+              "indeterminate"
+            ]
+          },
+          {
+            "name": "status",
+            "values": [
+              "active",
+              "complete",
+              "error"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "label text",
+            "type": "TEXT"
+          },
+          {
+            "name": "value text",
+            "type": "TEXT"
+          },
+          {
+            "name": "complete value text",
+            "type": "TEXT"
+          },
+          {
+            "name": "label",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "value",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "message",
+            "type": "BOOLEAN"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/progress.md"
+      },
+      {
+        "id": "_slider-thumb",
+        "name": "Slider.Thumb",
+        "figmaName": "_slider-thumb",
+        "kind": "component set",
+        "private": true,
+        "page": "↳ Slider",
+        "section": "Components",
+        "members": 5,
+        "variantProperties": [
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "hover",
+              "pressed",
+              "focus-visible",
+              "disabled"
+            ]
+          }
+        ],
+        "properties": [],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/_slider-thumb.md"
+      },
+      {
+        "id": "slider",
+        "name": "Slider",
+        "figmaName": "slider",
+        "kind": "component set",
+        "page": "↳ Slider",
+        "section": "Components",
+        "members": 10,
+        "variantProperties": [
+          {
+            "name": "type",
+            "values": [
+              "single",
+              "range"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "hover",
+              "pressed",
+              "focus-visible",
+              "disabled"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "value text",
+            "type": "TEXT"
+          },
+          {
+            "name": "min label",
+            "type": "TEXT"
+          },
+          {
+            "name": "max label",
+            "type": "TEXT"
+          },
+          {
+            "name": "range text",
+            "type": "TEXT"
+          },
+          {
+            "name": "label",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "value",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "end labels",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "inputs",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "helper",
+            "type": "BOOLEAN"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/slider.md"
+      },
+      {
+        "id": "pagination-item",
+        "name": "Pagination.Item",
+        "figmaName": "pagination-item",
+        "kind": "component set",
+        "page": "↳ Pagination",
+        "section": "Components",
+        "members": 87,
+        "variantProperties": [
+          {
+            "name": "type",
+            "values": [
+              "page",
+              "ellipsis",
+              "previous",
+              "next"
+            ]
+          },
+          {
+            "name": "selection",
+            "values": [
+              "unselected",
+              "selected"
+            ]
+          },
+          {
+            "name": "style",
+            "values": [
+              "border",
+              "underline"
+            ]
+          },
+          {
+            "name": "labeled",
+            "values": [
+              "false",
+              "true"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "hover",
+              "pressed",
+              "focus-visible",
+              "disabled"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "label",
+            "type": "TEXT"
+          },
+          {
+            "name": "previous label",
+            "type": "TEXT"
+          },
+          {
+            "name": "next label",
+            "type": "TEXT"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/pagination-item.md"
+      },
+      {
+        "id": "pagination",
+        "name": "Pagination",
+        "figmaName": "pagination",
+        "kind": "component set",
+        "page": "↳ Pagination",
+        "section": "Components",
+        "members": 12,
+        "variantProperties": [
+          {
+            "name": "type",
+            "values": [
+              "numbered",
+              "compact",
+              "simple"
+            ]
+          },
+          {
+            "name": "style",
+            "values": [
+              "border",
+              "underline"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "status text",
+            "type": "TEXT"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/pagination.md"
       }
     ]
   },
@@ -2538,6 +3052,33 @@
         },
         "preferred": [
           "breadcrumb-item"
+        ]
+      },
+      {
+        "component": "banner",
+        "property": "body"
+      },
+      {
+        "component": "code-input",
+        "property": "items",
+        "settings": {
+          "minChildren": 4,
+          "maxChildren": 8,
+          "allowPreferredValuesOnly": true
+        },
+        "preferred": [
+          "code-input-cell"
+        ]
+      },
+      {
+        "component": "pagination",
+        "property": "items",
+        "settings": {
+          "minChildren": 1,
+          "allowPreferredValuesOnly": true
+        },
+        "preferred": [
+          "pagination-item"
         ]
       }
     ]
@@ -2700,7 +3241,16 @@
       "counter",
       "_breadcrumb-separator",
       "breadcrumb-item",
-      "breadcrumbs"
+      "breadcrumbs",
+      "toast",
+      "banner",
+      "code-input-cell",
+      "code-input",
+      "progress",
+      "_slider-thumb",
+      "slider",
+      "pagination-item",
+      "pagination"
     ],
     "templates": [
       {

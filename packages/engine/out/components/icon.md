@@ -25,7 +25,7 @@ Shown on the default member: name `arrow-down`, tone `inherit`.
 
 | Axis | Values | Changes | Description |
 | --- | --- | --- | --- |
-| `name` | `arrow-down`, `arrow-down-left`, `arrow-down-right`, `arrow-left`, `arrow-right`, `arrow-up`, `arrow-up-left`, `arrow-up-right`, `check`, `check-circle`, `check-circle-filled`, `chevron-down`, `chevron-left`, `chevron-right`, `chevron-up`, `close`, `close-filled`, `error-circle`, `error-circle-filled`, `external-link-filled`, `eye`, `eye-filled`, `eye-off`, `eye-off-filled`, `FPO-default-icon`, `home`, `image`, `info-circle`, `info-circle-filled`, `link`, `menu`, `minus`, `minus-filled`, `more-horizontal-filled`, `more-vertical-filled`, `pause-circle`, `play-circle`, `plus`, `plus-circle`, `plus-circle-filled`, `plus-filled`, `resize-grip`, `search`, `warning-triangle`, `warning-triangle-filled` | at runtime | Which glyph, from the set's own list of names, so an unknown name fails at compile time instead of rendering as an invisible gap. The list (IconName) is generated from the icon set, so a new glyph reaches the API the day it joins the set. A code projection that widens the type back to a plain string loses that check. Per-glyph components, such as IconSearch, are the equivalent for a tree-shaken delivery. |
+| `name` | `arrow-down`, `arrow-down-left`, `arrow-down-right`, `arrow-left`, `arrow-right`, `arrow-up`, `arrow-up-left`, `arrow-up-right`, `check`, `check-circle`, `check-circle-filled`, `chevron-down`, `chevron-left`, `chevron-right`, `chevron-up`, `close`, `close-filled`, `error-circle`, `error-circle-filled`, `external-link-filled`, `eye`, `eye-filled`, `eye-off`, `eye-off-filled`, `FPO-default-icon`, `home`, `image`, `info-circle`, `info-circle-filled`, `link`, `menu`, `minus`, `minus-filled`, `more-horizontal-filled`, `more-vertical-filled`, `pause-circle`, `play-circle`, `plus`, `plus-circle`, `plus-circle-filled`, `plus-filled`, `resize-grip`, `search`, `slash`, `warning-triangle`, `warning-triangle-filled` | at runtime | Which glyph, from the set's own list of names, so an unknown name fails at compile time instead of rendering as an invisible gap. The list (IconName) is generated from the icon set, so a new glyph reaches the API the day it joins the set. A code projection that widens the type back to a plain string loses that check. Per-glyph components, such as IconSearch, are the equivalent for a tree-shaken delivery. |
 | `tone` | `inherit`, `primary`, `secondary`, `tertiary`, `brand`, `success`, `warning`, `danger`, `info` | at runtime | Ink. Defaults to inherit (currentColor), so the glyph follows its host's hover, disabled and error colors with no script. A semantic value pins it instead, so an error glyph keeps its color where the inherited one would make it invisible. Raw hex is not accepted, so contrast is enforced centrally rather than at each call site. |
 
 ## Usage guidelines
@@ -87,14 +87,14 @@ Name a meaningful icon for the concept or the action it fires, in a word or two,
 
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
-| `name` | enum: IconName (`arrow-down`, `arrow-down-left`, `arrow-down-right`, `arrow-left`, `arrow-right`, `arrow-up`, `arrow-up-left`, `arrow-up-right`, `check`, `check-circle`, `check-circle-filled`, `chevron-down`, `chevron-left`, `chevron-right`, `chevron-up`, `close`, `close-filled`, `error-circle`, `error-circle-filled`, `external-link-filled`, `eye`, `eye-filled`, `eye-off`, `eye-off-filled`, `FPO-default-icon`, `home`, `image`, `info-circle`, `info-circle-filled`, `link`, `menu`, `minus`, `minus-filled`, `more-horizontal-filled`, `more-vertical-filled`, `pause-circle`, `play-circle`, `plus`, `plus-circle`, `plus-circle-filled`, `plus-filled`, `resize-grip`, `search`, `warning-triangle`, `warning-triangle-filled`) | — | yes | Which glyph, from the set's own list of names, so an unknown name fails at compile time instead of rendering as an invisible gap. The list (IconName) is generated from the icon set, so a new glyph reaches the API the day it joins the set. A code projection that widens the type back to a plain string loses that check. Per-glyph components, such as IconSearch, are the equivalent for a tree-shaken delivery. |
+| `name` | enum: IconName (`arrow-down`, `arrow-down-left`, `arrow-down-right`, `arrow-left`, `arrow-right`, `arrow-up`, `arrow-up-left`, `arrow-up-right`, `check`, `check-circle`, `check-circle-filled`, `chevron-down`, `chevron-left`, `chevron-right`, `chevron-up`, `close`, `close-filled`, `error-circle`, `error-circle-filled`, `external-link-filled`, `eye`, `eye-filled`, `eye-off`, `eye-off-filled`, `FPO-default-icon`, `home`, `image`, `info-circle`, `info-circle-filled`, `link`, `menu`, `minus`, `minus-filled`, `more-horizontal-filled`, `more-vertical-filled`, `pause-circle`, `play-circle`, `plus`, `plus-circle`, `plus-circle-filled`, `plus-filled`, `resize-grip`, `search`, `slash`, `warning-triangle`, `warning-triangle-filled`) | — | yes | Which glyph, from the set's own list of names, so an unknown name fails at compile time instead of rendering as an invisible gap. The list (IconName) is generated from the icon set, so a new glyph reaches the API the day it joins the set. A code projection that widens the type back to a plain string loses that check. Per-glyph components, such as IconSearch, are the equivalent for a tree-shaken delivery. |
 | `size` | enum: 'x-small' \| 'small' \| 'medium' \| 'large' | `medium` | no | Snaps to the pixel grid: 16, 20, 24 or 32px. Arbitrary sizes are refused, because off-grid scaling blurs strokes between hardware pixels. The size words match every other component; the pixel values come from the icon size tokens. |
 | `tone` | enum: 'inherit' \| a semantic ink token (`inherit`, `primary`, `secondary`, `tertiary`, `brand`, `success`, `warning`, `danger`, `info`) | `inherit` | no | Ink. Defaults to inherit (currentColor), so the glyph follows its host's hover, disabled and error colors with no script. A semantic value pins it instead, so an error glyph keeps its color where the inherited one would make it invisible. Raw hex is not accepted, so contrast is enforced centrally rather than at each call site. |
 | `label` | string | — | no | The only route to an accessible name. With a label the glyph is meaningful: role="img" and aria-label. Without one it is decorative: aria-hidden="true". That is the default and usually the correct answer, because a named icon beside its own text announces twice ("Email, Email"). Inside an icon-only control the control carries the name and this stays empty; never name both. |
 
 ## Specs
 
-Generated from the plan that builds the design-file component: 45 members. Values are token names; a px value appears only where the build writes a number.
+Generated from the plan that builds the design-file component: 46 members. Values are token names; a px value appears only where the build writes a number.
 
 ### Anatomy
 
@@ -365,6 +365,12 @@ Keyed by `name`.
 | `glyph` | — | — | — | `color.icon.primary` |
 
 **name=search**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `glyph` | — | — | — | `color.icon.primary` |
+
+**name=slash**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |

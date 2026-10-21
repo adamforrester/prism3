@@ -92,6 +92,30 @@
       "value": "TEXT"
     }
   },
+  "banner": {
+    "axes": {
+      "tone": [
+        "danger",
+        "info",
+        "success",
+        "warning"
+      ],
+      "width": [
+        "contained",
+        "full"
+      ]
+    },
+    "members": 8,
+    "properties": {
+      "actions": "BOOLEAN",
+      "body": "SLOT",
+      "dismiss": "BOOLEAN",
+      "icon": "BOOLEAN",
+      "second action": "BOOLEAN",
+      "title": "BOOLEAN",
+      "title text": "TEXT"
+    }
+  },
   "breadcrumb-item": {
     "axes": {
       "kind": [
@@ -131,30 +155,6 @@
     "members": 6,
     "properties": {
       "items": "SLOT"
-    }
-  },
-  "banner": {
-    "axes": {
-      "tone": [
-        "danger",
-        "info",
-        "success",
-        "warning"
-      ],
-      "width": [
-        "contained",
-        "full"
-      ]
-    },
-    "members": 8,
-    "properties": {
-      "actions": "BOOLEAN",
-      "body": "SLOT",
-      "dismiss": "BOOLEAN",
-      "icon": "BOOLEAN",
-      "second action": "BOOLEAN",
-      "title": "BOOLEAN",
-      "title text": "TEXT"
     }
   },
   "button": {

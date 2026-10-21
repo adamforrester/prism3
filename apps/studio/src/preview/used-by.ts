@@ -6,20 +6,29 @@
  * never imports the definitions themselves (UI redesign S7, T4; the generator's header says why).
  */
 export const USED_BY = {
-  defs: 46,
+  defs: 55,
   radius: {
     rounded: {
       "radius.2xl": [
         "Dialog"
       ],
+      "radius.capsule": [
+        "Progress"
+      ],
+      "radius.lg": [
+        "CodeInput"
+      ],
       "radius.md": [
         "Button",
         "IconButton",
-        "SegmentedControl"
+        "SegmentedControl",
+        "Banner",
+        "Pagination"
       ],
       "radius.none": [
         "FlushIconButton",
-        "Dialog"
+        "Dialog",
+        "Banner"
       ],
       "radius.round": [
         "IconButton",
@@ -28,7 +37,8 @@ export const USED_BY = {
         "Switch.Control",
         "Badge",
         "Tag",
-        "List"
+        "List",
+        "Slider"
       ],
       "radius.sm": [
         "TextField",
@@ -37,7 +47,11 @@ export const USED_BY = {
         "Badge",
         "SegmentedControl",
         "PasswordField",
-        "Counter"
+        "Counter",
+        "CodeInput"
+      ],
+      "radius.xl": [
+        "Toast"
       ]
     },
     pill: {
@@ -46,14 +60,21 @@ export const USED_BY = {
       ],
       "radius.capsule": [
         "Button",
-        "IconButton"
+        "IconButton",
+        "Progress"
+      ],
+      "radius.lg": [
+        "CodeInput"
       ],
       "radius.md": [
-        "SegmentedControl"
+        "SegmentedControl",
+        "Banner",
+        "Pagination"
       ],
       "radius.none": [
         "FlushIconButton",
-        "Dialog"
+        "Dialog",
+        "Banner"
       ],
       "radius.round": [
         "IconButton",
@@ -62,7 +83,8 @@ export const USED_BY = {
         "Switch.Control",
         "Badge",
         "Tag",
-        "List"
+        "List",
+        "Slider"
       ],
       "radius.sm": [
         "TextField",
@@ -71,15 +93,27 @@ export const USED_BY = {
         "Badge",
         "SegmentedControl",
         "PasswordField",
-        "Counter"
+        "Counter",
+        "CodeInput"
+      ],
+      "radius.xl": [
+        "Toast"
       ]
     },
     boxed: {
       "radius.2xl": [
         "Dialog"
       ],
+      "radius.capsule": [
+        "Progress"
+      ],
+      "radius.lg": [
+        "CodeInput"
+      ],
       "radius.md": [
-        "SegmentedControl"
+        "SegmentedControl",
+        "Banner",
+        "Pagination"
       ],
       "radius.none": [
         "Button",
@@ -89,7 +123,8 @@ export const USED_BY = {
         "Textarea",
         "Checkbox.Control",
         "Select",
-        "Dialog"
+        "Dialog",
+        "Banner"
       ],
       "radius.round": [
         "IconButton",
@@ -98,18 +133,26 @@ export const USED_BY = {
         "Switch.Control",
         "Badge",
         "Tag",
-        "List"
+        "List",
+        "Slider"
       ],
       "radius.sm": [
         "Badge",
         "SegmentedControl",
         "PasswordField",
-        "Counter"
+        "Counter",
+        "CodeInput"
+      ],
+      "radius.xl": [
+        "Toast"
       ]
     },
     hairline: {
       "radius.2xl": [
         "Dialog"
+      ],
+      "radius.capsule": [
+        "Progress"
       ],
       "radius.hairline": [
         "Button",
@@ -119,12 +162,18 @@ export const USED_BY = {
         "Checkbox.Control",
         "Select"
       ],
+      "radius.lg": [
+        "CodeInput"
+      ],
       "radius.md": [
-        "SegmentedControl"
+        "SegmentedControl",
+        "Banner",
+        "Pagination"
       ],
       "radius.none": [
         "FlushIconButton",
-        "Dialog"
+        "Dialog",
+        "Banner"
       ],
       "radius.round": [
         "IconButton",
@@ -133,13 +182,18 @@ export const USED_BY = {
         "Switch.Control",
         "Badge",
         "Tag",
-        "List"
+        "List",
+        "Slider"
       ],
       "radius.sm": [
         "Badge",
         "SegmentedControl",
         "PasswordField",
-        "Counter"
+        "Counter",
+        "CodeInput"
+      ],
+      "radius.xl": [
+        "Toast"
       ]
     }
   },
@@ -157,7 +211,8 @@ export const USED_BY = {
       "Accordion",
       "SegmentedControl",
       "PasswordField",
-      "Counter"
+      "Counter",
+      "Pagination"
     ],
     "size.md.height": [
       "FocusRing",
@@ -171,7 +226,8 @@ export const USED_BY = {
       "Tab.Item",
       "Divider",
       "SegmentedControl",
-      "Counter"
+      "Counter",
+      "Pagination"
     ],
     "size.sm.height": [
       "Button",
@@ -183,7 +239,8 @@ export const USED_BY = {
       "Tag",
       "Tab.Item",
       "SegmentedControl",
-      "Counter"
+      "Counter",
+      "Pagination"
     ]
   },
   buttonSizes: {

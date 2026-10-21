@@ -713,24 +713,16 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'status',
     values: ['default', 'error'],
-    defs: ['checkbox-control', 'checkbox-row', 'checkbox-group', 'switch-control', 'switch-row', 'radio-control', 'radio-row', 'radio-group'],
+    defs: ['checkbox-control', 'checkbox-row', 'checkbox-group', 'switch-control', 'switch-row', 'radio-control', 'radio-row', 'radio-group', 'code-input'],
     relation: 'subset',
     reason:
       'The choice controls\' validation outcome (owner Q354, #2751): every control that can be invalid takes the '
       + 'fields\' `status` axis, and a checkbox, switch or radio has an error look and no warning or success look, '
       + 'so it carries the canonical set\'s first two values. A shared value means exactly what it means on a '
       + 'field, which is what lets a group follow its `status` into its rows and its nested `field-message` by '
-      + 'name. The canonical set became `canonical` (from `sole`) when this one joined.',
-  },
-  {
-    axis: 'status',
-    values: ['default', 'error'],
-    defs: ['code-input'],
-    relation: 'subset',
-    reason:
-      'Code input\'s validation outcome (#2428, owner decision Q321.9 A): default or error. A one-time code is right or '
-      + 'wrong, and a right code moves the user on, so success is the page\'s to announce and warning has no case. The '
-      + 'values are the canonical set\'s own, in its order, so the nested `field-message` follows `status` by name.',
+      + 'name. The canonical set became `canonical` (from `sole`) when this one joined. Code input joins it '
+      + '(#2428, owner decision Q321.9 A): a one-time code is right or wrong, and a right code moves the user on, so '
+      + 'success is the page\'s to announce and warning has no case.',
   },
   {
     axis: 'status',

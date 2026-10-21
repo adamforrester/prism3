@@ -2,8 +2,8 @@
   "note": "AUTHORED BASELINE, never a regen artifact (see lint-component-surface.ts). Rewritten only by an explicit `npx tsx packages/engine/lint-component-surface.ts --accept`, which refuses unless an engine bump is already declared (a change note in packages/engine/changes/, #1807) — a gate allowed to rewrite what it reads has no memory. Per def: the member count of the DEFAULT Figma projection, a sha256 over its sorted `planComponentName|planStamp` rows, and its non-variant component properties as sorted `name:TYPE` (#2649). `null` means the def declares no figmaProperties and projects no set. Mostly brand-independent: figmaAnatomySet takes a def and no theme. The exception is a def with weightIntent (#1602), whose weight axis resolves per brand — for those, extra `<id>@<scenario>` rows record the surface under canonical availability scenarios (body-emphasis = NB's bold→emphasis, body-single = the axis collapse), so a change to the resolution or collapse rule moves a row. Likewise a def binding the interactive overlay wash (#1608) carries `<id>@outline-solid-tint` and `<id>@outline-none` rows — its outline/text hover fill under the other two outlineInteraction methods. The button family (#1667) carries `<id>@button-default`, `<id>@button-edges` and `<id>@button-smaller` rows — its derived minimum width, the Locked to edges layout and the One step smaller medium content, against the default-density heights. It records no engine version of its own on purpose — a pure value change bumps the engine and moves no component surface. A failure here is a CHANGED projection: read the diff, decide whether the change was intended, add a change note declaring the bump, then accept.",
   "defs": {
     "icon": {
-      "members": 45,
-      "sha256": "dcc2f8cd0714ff301f32fb7a9d966caebd292ede3aaaef741cc90cafda33a190",
+      "members": 46,
+      "sha256": "10ad9afab46142d55db91c664d8f9806e9128069af18a4c8e68652ab71b0fc7a",
       "properties": []
     },
     "focus-ring": {
@@ -267,48 +267,48 @@
       "properties": []
     },
     "flush-icon-button": {
-      "members": 30,
-      "sha256": "8ffdac13a94096ccdbfeaa6b35909bda906aede43f313b6ceadc5e36f85d6030",
+      "members": 60,
+      "sha256": "883bed625005b937a619449b95421dadd915969e51c8726d1c1a452a746709ac",
       "properties": []
     },
     "flush-icon-button@outline-solid-tint": {
-      "members": 30,
-      "sha256": "ab9b3ad8217d7deac76b3e7fb459cf56b2ac036067e02ed2a5a83adcbdf7e28d",
+      "members": 60,
+      "sha256": "e64153e1c86dd23d557f31148be6a68a35edf4cf568deae8a58744f92a4709bc",
       "properties": []
     },
     "flush-icon-button@outline-none": {
-      "members": 30,
-      "sha256": "b8ba1138f342ef803d347358e4801b92b07aabf0858436e901b022b0e8307751",
+      "members": 60,
+      "sha256": "8d6eb54e74c3571cf5888f96b1187148420fe270c45bd35e838f4e359a1f814a",
       "properties": []
     },
     "flush-icon-button-destructive": {
-      "members": 30,
-      "sha256": "60b634a284cafa47cf82824c858b666e038a58203aeddf0210f3bc4c4663d3cd",
+      "members": 60,
+      "sha256": "9f4c8e30a2511a02d37f2ec0769b713c27f68ce7a91714b4111d2af4b6613069",
       "properties": []
     },
     "flush-icon-button-destructive@outline-solid-tint": {
-      "members": 30,
-      "sha256": "1c6ec6203ac0fe700dfefba79c297eaca47bffa306bf6cdafa71e4e018dae040",
+      "members": 60,
+      "sha256": "135634d4dc2db5338b657fe438f3f0ce7842f59f0db47d39c9fea29e7e11cfcb",
       "properties": []
     },
     "flush-icon-button-destructive@outline-none": {
-      "members": 30,
-      "sha256": "2fdc5dab3ec95d38288e8b45938926f469fde95524ca612f3172a60bc6ef73b2",
+      "members": 60,
+      "sha256": "eeb53d20ed51e606d8c2383d03f7df96faa6017f61dceb7f1700e4ce834b3fda",
       "properties": []
     },
     "flush-icon-button-neutral": {
-      "members": 30,
-      "sha256": "1c6b3b555e625d6e535f367404212247e1f2872b14f7fe4cf98dfdee1868a718",
+      "members": 60,
+      "sha256": "85253aa1b0d44e9af005d780c91849f6c3874742ee3d2fdb68bcd46614ae85d9",
       "properties": []
     },
     "flush-icon-button-neutral@outline-solid-tint": {
-      "members": 30,
-      "sha256": "26ea09976f1e0736db1b26298b77ea3473bb2a90e686e826727536051e0af883",
+      "members": 60,
+      "sha256": "e5f6df8aa346fc41fb9eef7c25cc39372d8777f121814dcf001cee5f10adce2b",
       "properties": []
     },
     "flush-icon-button-neutral@outline-none": {
-      "members": 30,
-      "sha256": "6447e5c09aa63c56aeaa0c8bc2652e82a15a5e53e717ece12a0f612a87f04e66",
+      "members": 60,
+      "sha256": "12cb8a3cba84e7fce83b222d04cdbd4f2f795dd36090f2b703ddd4eb7b686503",
       "properties": []
     },
     "field-label": {
@@ -663,7 +663,7 @@
     },
     "dialog": {
       "members": 24,
-      "sha256": "f85c34aa8d07eca87ca274180c42faac2332bbeabd20ba4e2082c9325424f5ac",
+      "sha256": "d2358d3a27d50312e5973ba66ee82b511edcbc20f7a0a0fa4c5035a4c2650687",
       "properties": [
         "body:SLOT",
         "close:BOOLEAN",
@@ -703,9 +703,37 @@
         "value:TEXT"
       ]
     },
+    "_breadcrumb-separator": {
+      "members": 2,
+      "sha256": "e45d9766820098366d0b2a42e40fcb042c9c4907585c6de7f85d3f9324feafb8",
+      "properties": []
+    },
+    "breadcrumb-item": {
+      "members": 10,
+      "sha256": "1a739afe5b6fef289c19db72d2d5a46d2b6b27a9881db6e4ad135978cf5f2023",
+      "properties": [
+        "label:TEXT"
+      ]
+    },
+    "breadcrumbs": {
+      "members": 6,
+      "sha256": "2f8c8df777ff7b4718ffe63c70a1f655c1d063628ab7d784dd80f5944fb441f2",
+      "properties": [
+        "items:SLOT"
+      ]
+    },
+    "toast": {
+      "members": 2,
+      "sha256": "7316ee149eb7b8b621c0f689852d5fb326b4bed730b56993c9a77bf4874bcc14",
+      "properties": [
+        "action:BOOLEAN",
+        "close:BOOLEAN",
+        "message:TEXT"
+      ]
+    },
     "counter": {
       "members": 18,
-      "sha256": "b701e5bb7c9b586d2358122c53c882ba943732cf2e597cf7ed0ba39c8dbd3f18",
+      "sha256": "1f534456377e288873a351331de1d5b8eb53426b7e2256c5aee78c8c8e6ca2a1",
       "properties": [
         "label:BOOLEAN",
         "message:BOOLEAN",
@@ -723,6 +751,102 @@
         "second action:BOOLEAN",
         "title text:TEXT",
         "title:BOOLEAN"
+      ]
+    },
+    "code-input-cell": {
+      "members": 28,
+      "sha256": "0c0941bcbd18b486295542f59a2d7dada3955ce8841791c343994e86166b1527",
+      "properties": [
+        "digit:TEXT"
+      ]
+    },
+    "code-input-cell@outline-solid-tint": {
+      "members": 28,
+      "sha256": "65364c12f0be53e9ab089b44f05e33f27fed36af7df5a21196e7069f15e5b587",
+      "properties": [
+        "digit:TEXT"
+      ]
+    },
+    "code-input-cell@outline-none": {
+      "members": 28,
+      "sha256": "515c2926a50bc039f6b44c05ea7884f7ba61a47697907791240ce19d62127d77",
+      "properties": [
+        "digit:TEXT"
+      ]
+    },
+    "code-input": {
+      "members": 48,
+      "sha256": "17bc457a90fb298e7caa3249fcd50025dc247275fe09a5a3b2848d2b91f2fca4",
+      "properties": [
+        "items:SLOT",
+        "message:BOOLEAN"
+      ]
+    },
+    "progress": {
+      "members": 10,
+      "sha256": "d3db9a17e06a4f3a108eaac649dabfd66696786bdf8139781f1d0ea8c90b4e7b",
+      "properties": [
+        "complete value text:TEXT",
+        "label text:TEXT",
+        "label:BOOLEAN",
+        "message:BOOLEAN",
+        "value text:TEXT",
+        "value:BOOLEAN"
+      ]
+    },
+    "_slider-thumb": {
+      "members": 5,
+      "sha256": "dd71eb9ff387eff51be57fcc7190ffd25de883e1a6aebfa88b089adb5c4ab2b1",
+      "properties": []
+    },
+    "slider": {
+      "members": 10,
+      "sha256": "9e62b003d9b69945602385e43925134e77c881c0da6b4a13c1d03ce89725e081",
+      "properties": [
+        "end labels:BOOLEAN",
+        "helper:BOOLEAN",
+        "inputs:BOOLEAN",
+        "label:BOOLEAN",
+        "max label:TEXT",
+        "min label:TEXT",
+        "range text:TEXT",
+        "value text:TEXT",
+        "value:BOOLEAN"
+      ]
+    },
+    "pagination-item": {
+      "members": 87,
+      "sha256": "e417af814a01ed30e33341d5ef818a632a40872f13d5f64c7b81d6f034f773ea",
+      "properties": [
+        "label:TEXT",
+        "next label:TEXT",
+        "previous label:TEXT"
+      ]
+    },
+    "pagination-item@outline-solid-tint": {
+      "members": 87,
+      "sha256": "be8428763b99c86b33c6892cc415868700693a4f8ae7a45eb76047b30bb01d0f",
+      "properties": [
+        "label:TEXT",
+        "next label:TEXT",
+        "previous label:TEXT"
+      ]
+    },
+    "pagination-item@outline-none": {
+      "members": 87,
+      "sha256": "b071f39e66bc8e6c51d223b2b3d10330eb00d121bdcbfdde5de1abbf6b02333a",
+      "properties": [
+        "label:TEXT",
+        "next label:TEXT",
+        "previous label:TEXT"
+      ]
+    },
+    "pagination": {
+      "members": 12,
+      "sha256": "6730d0bd4b611e074b9aa2f911f9ec41cb26e918768c45d3eea4cf318a0989c2",
+      "properties": [
+        "items:SLOT",
+        "status text:TEXT"
       ]
     }
   }

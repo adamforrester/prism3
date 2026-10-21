@@ -380,7 +380,7 @@ Keyed by `placement`, `footer`.
 
 ### Nesting and properties
 
-- `panel/header/close` nests `flush-icon-button-neutral` at `shape=flush, size=medium, state=rest`
+- `panel/header/close` nests `flush-icon-button-neutral` at `shape=flush, size=medium, surface=default, state=rest`
 - `panel/headerDivider` nests `divider` at `orientation=horizontal, inset=none`
 - `panel/body` is a slot
 - `panel/footerDivider` nests `divider` at `orientation=horizontal, inset=none`

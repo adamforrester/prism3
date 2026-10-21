@@ -1,6 +1,6 @@
 # Icon usage
 
-Which glyphs each component draws. The icon set holds 45 glyphs; a component draws a glyph from it at a fixed part, starts an icon slot at one, or draws a glyph it owns (the spinner ring), which is kept out of the icon set.
+Which glyphs each component draws. The icon set holds 46 glyphs; a component draws a glyph from it at a fixed part, starts an icon slot at one, or draws a glyph it owns (the spinner ring), which is kept out of the icon set.
 
 Generated from the component definitions and the emission by `packages/engine/emit-analysis-reports.ts`; `regen.ts --check` fails when this page is stale. The same data for agents: [icon-usage.json](icon-usage.json). All reports: [index](index.md).
 
@@ -12,6 +12,13 @@ Generated from the component definitions and the emission by `packages/engine/em
 |  | chevronUpGlyph | `chevron-up` | icon set | drawn | indicator: chevron; expansion: expanded |
 |  | minusGlyph | `minus` | icon set | drawn | indicator: plus-minus; expansion: expanded |
 |  | plusGlyph | `plus` | icon set | drawn | indicator: plus-minus; expansion: collapsed |
+| _breadcrumb-separator | chevron | `chevron-right` | icon set | drawn | type: chevron |
+|  | slash | `slash` | icon set | drawn | type: slash |
+| banner | dangerGlyph | `warning-triangle` | icon set | drawn | tone: danger |
+|  | infoGlyph | `info-circle` | icon set | drawn | tone: info |
+|  | successGlyph | `check-circle` | icon set | drawn | tone: success |
+|  | warningGlyph | `error-circle` | icon set | drawn | tone: warning |
+| breadcrumbs | backGlyph | `chevron-left` | icon set | drawn | path: parent |
 | checkbox-control | checkGlyph | `check` | icon set | drawn | selection: checked |
 |  | dashGlyph | `minus` | icon set | drawn | selection: indeterminate |
 | field-message | errorGlyph | `warning-triangle` | icon set | drawn | status: error |
@@ -20,6 +27,13 @@ Generated from the component definitions and the emission by `packages/engine/em
 | icon | glyph | `{name}` | any (prop) | drawn | always |
 | image-placeholder | markerGlyph | `image` | icon set | drawn | always |
 | list-item | icon | `check` | icon set | swap default | type: icon |
+| pagination-item | gapIcon | `more-horizontal-filled` | icon set | drawn | type: ellipsis |
+|  | nextIcon | `chevron-right` | icon set | drawn | type: next |
+|  | previousIcon | `chevron-left` | icon set | drawn | type: previous |
+| progress | arc | `progress-arc-{size}` | component-owned | drawn | shape: circular; status: active, error |
+|  | arcFull | `progress-ring-{size}` | component-owned | drawn | shape: circular; status: complete |
+|  | ringTrack | `progress-ring-{size}` | component-owned | drawn | shape: circular |
+|  | stop | `progress-stop` | component-owned | drawn | shape: linear; type: determinate |
 | select | chevronGlyph | `chevron-down` | icon set | drawn | always |
 | spinner | ringGlyph | `spinner` | component-owned | drawn | always |
 | switch-control | offGlyph | `close` | icon set | drawn | selection: off |
@@ -27,6 +41,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | tag | checkGlyph | `check` | icon set | drawn | selection: selected |
 |  | dismissGlyph | `close` | icon set | drawn | type: dismissible |
 | textarea | gripGlyph | `resize-grip` | icon set | drawn | always |
+| toast | checkCircleGlyph | `check-circle` | icon set | drawn | intent: success |
 
 ### Icon slots
 
@@ -57,20 +72,26 @@ Parts that take any icon from the set. The file nominates the default unless the
 | Glyph | Drawn by |
 |---|---|
 | `check` | checkbox-control, list-item, switch-control, tag |
-| `check-circle` | field-message |
+| `check-circle` | banner, field-message, toast |
 | `chevron-down` | _accordion-indicator, select |
+| `chevron-left` | breadcrumbs, pagination-item |
+| `chevron-right` | _breadcrumb-separator, pagination-item |
 | `chevron-up` | _accordion-indicator |
 | `close` | switch-control, tag |
-| `error-circle` | field-message |
+| `error-circle` | banner, field-message |
 | `image` | image-placeholder |
+| `info-circle` | banner |
 | `minus` | _accordion-indicator, checkbox-control |
+| `more-horizontal-filled` | pagination-item |
 | `plus` | _accordion-indicator |
+| `progress-stop` | progress |
 | `resize-grip` | textarea |
+| `slash` | _breadcrumb-separator |
 | `spinner` | spinner |
-| `warning-triangle` | field-message |
+| `warning-triangle` | banner, field-message |
 
-## Glyphs no component names (34)
+## Glyphs no component names (30)
 
 Each is still reachable through Icon and through every icon slot.
 
-`FPO-default-icon`, `arrow-down`, `arrow-down-left`, `arrow-down-right`, `arrow-left`, `arrow-right`, `arrow-up`, `arrow-up-left`, `arrow-up-right`, `check-circle-filled`, `chevron-left`, `chevron-right`, `close-filled`, `error-circle-filled`, `external-link-filled`, `eye`, `eye-filled`, `eye-off`, `eye-off-filled`, `home`, `info-circle`, `info-circle-filled`, `link`, `menu`, `minus-filled`, `more-horizontal-filled`, `more-vertical-filled`, `pause-circle`, `play-circle`, `plus-circle`, `plus-circle-filled`, `plus-filled`, `search`, `warning-triangle-filled`
+`FPO-default-icon`, `arrow-down`, `arrow-down-left`, `arrow-down-right`, `arrow-left`, `arrow-right`, `arrow-up`, `arrow-up-left`, `arrow-up-right`, `check-circle-filled`, `close-filled`, `error-circle-filled`, `external-link-filled`, `eye`, `eye-filled`, `eye-off`, `eye-off-filled`, `home`, `info-circle-filled`, `link`, `menu`, `minus-filled`, `more-vertical-filled`, `pause-circle`, `play-circle`, `plus-circle`, `plus-circle-filled`, `plus-filled`, `search`, `warning-triangle-filled`
