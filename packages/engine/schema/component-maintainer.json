@@ -3663,6 +3663,49 @@
         ],
         "projection": []
       }
+    },
+    "progress": {
+      "codeOnly": [
+        "the fill's length — in code the fill is the track's inline size times (value − min) / (max − min), clamped, with a warning in development for a value out of range. Figma has no percentage width, so each still member splits the track by layout: half at active and error, the whole track at complete. A designer showing another amount sets the fill's width on the instance.",
+        "the sweep — an indeterminate bar moves a segment 30% of the track long from before the start edge to past the end, one pass every `var(--motion-duration-sweep)` (1600ms), on `var(--motion-easing-calm)`, repeating, with the track clipping it. Under `@media (prefers-reduced-motion: reduce)` the same pass runs every `var(--motion-duration-reduced-sweep)` (2600ms): slower, never stopped, because the moving segment is the only sign the work is continuing. Figma holds one still frame of it.",
+        "the fill transition — the fill moves to each new value over `var(--motion-duration-moderate)` on `var(--motion-easing-role-default)`, so bursty data reads as steady progress. Under reduced motion it runs `var(--motion-duration-reduced-moderate)`, which is 0ms, so it snaps. At complete and error the color crossfades over `var(--motion-duration-fast)`.",
+        "the ring in code — one `<svg viewBox=\"0 0 24 24\">`: the track circle in the track color and the value arc with `stroke-dasharray` set from the value, `stroke-linecap: round`, rotated -90deg so it starts at twelve o'clock. The stroke width is the band in viewBox units (2 at small, 2.4 at medium), its outer edge on the viewBox's edge, so it matches the Figma outlines.",
+        "right-to-left — the linear fill grows from the inline-start edge (the right) through logical properties, and the label and value swap sides. The ring runs counterclockwise from twelve o'clock. The sweep moves from right to left.",
+        "number formatting — the value text defaults to a percentage through Intl.NumberFormat (\"45%\", \"%45\", \"45 %\"), and a concrete amount (\"45 MB of 100 MB\", \"Step 3 of 5\") is localized with its word order. The value text is never truncated; the label wraps instead.",
+        "text expansion — the label wraps rather than truncating, and the value keeps its full text at the end of the header.",
+        "the value contract — `role=\"progressbar\"` named by the label (`aria-labelledby`, or `aria-label` on a ring, whose label does not show). Determinate: `aria-valuenow`, `aria-valuemin`, `aria-valuemax`, and `aria-valuetext` whenever the visible value is not a bare percentage. Indeterminate: none of the three, never a fixed `aria-valuenow=\"0\"` (it reads as stuck at 0%), and `aria-busy=\"true\"` on the region the work updates.",
+        "the milestone announcements — a visually hidden `aria-live=\"polite\"` region, in the DOM and empty from mount. The last milestone spoken is kept in a ref; when the value passes 25, 50 or 75% for the first time, the region's text is set to the value text; at max it is set to the message (\"Upload complete\"). An error message is set when the error happens. `aria-valuenow` never triggers speech. `announce=\"end\"` skips the milestones; `announce=\"none\"` leaves the region empty.",
+        "the anti-flash timers — the component waits `delay` (400ms) before it shows, and shows nothing if the work finishes first; once shown it stays at least `minDisplay` (500ms). Both timers are cleared on unmount.",
+        "an indeterminate ring — `shape=\"circular\"` with `type=\"indeterminate\"` is refused in development, pointing to Spinner: a spinning ring is the Spinner's job.",
+        "the end-state message — a nested FieldMessage, success at complete and error at error. Its glyph is aria-hidden; the caption carries the meaning. A \"Try again\" action after an error belongs to the host, placed beside the bar, not inside it."
+      ],
+      "notes": {
+        "contested": [
+          "REDUCED MOTION SLOWS THE SWEEP rather than substituting an opacity pulse (owner call 7 A, matching the Spinner). Brief §6 and §8 name a slow pulse (40% to 100% over about 1.5s) or a static \"Loading…\" as the substitute. Both agree on the rule that matters: never remove the only busy cue.",
+          "THE END STATES ARE A NESTED FieldMessage, not a message drawn here. The brief (§4) gives complete a checkmark replacing the percentage; the proposal and this def keep the value and add the message row below, so the end state carries a glyph and text the way a field's validation does (owner Q352/Q354: one way to show an error). The cost: the error glyph is FieldMessage's exclamation in a triangle, where the proposal named `error-circle`.",
+          "UNIFIED Progress with a `shape` prop (brief §10's practice default) rather than distinct LinearProgress and CircularProgress (MUI, Fluent). The bundle-size argument for the split is answered by tree-shaking.",
+          "THE DETERMINATE THRESHOLD (brief §15): when the work can honestly be measured. This def's answer is the `type` prop: determinate by default (owner item 7), indeterminate when the work cannot be measured, and the docs say never to fake a value.",
+          "THE GLOBAL ROUTE-CHANGE BAR (brief §4, §11) is out of scope: a product-shell placement whose visual eases while the value stays indeterminate. It can follow as a placement once a shell exists.",
+          "NO BUFFER, no segmented bar, no dashboard gauge (brief §4). A buffer fill is a media-player need not on the table; a gauge is a meter.",
+          "THE STILL MEMBERS SHOW 50%, not the proposal wireframe's 45% and 62%: Figma has no percentage width, and two growing boxes split the track evenly, so the value text reads 50% to match. A literal width would freeze the fill when an instance is stretched.",
+          "THE CIRCULAR MEMBERS CARRY THE MESSAGE TOO. The proposal's circular anatomy lists the ring and its value only; call 4 (never color alone) needs the glyph and message at complete and error on a ring as well, so the message is built on both shapes. The ring members are as wide as the message where it shows.",
+          "HELD FOR THE OWNER (QA on the build, 2026-10-16): \"100%\" at complete is its own text on a Figma-only TEXT property, \"complete value text\", beside \"value text\". One property could not show 50% and 100% (#1567). The alternative is a code prop for the complete text, which code does not need."
+        ],
+        "unverified": [
+          "The external 2026 version numbers, and Material 3's Expressive wavy tracks (brief §14 flags both).",
+          "Which screen readers speak a changing `aria-valuenow` (brief §6 asks for a check against current ones). The milestone region does not depend on it.",
+          "The arc over the ring's inside stroke, on a real host: the outlines are drawn to lie exactly on the stroke at both sizes, and that is measured on the plan, not in Figma."
+        ],
+        "evolution": [
+          "FIELD (brief §13.1): `role=\"meter\"` and `role=\"progressbar\"` were formalized as separate roles; React Aria ships separate hooks. A static measurement is not this component.",
+          "FIELD (brief §13.2): milestone announcements through a polite region replaced binding a screen reader to `aria-valuenow`.",
+          "FIELD (brief §13.3): the anti-flash delay and minimum display time became the standard; a 50ms flash reads worse than nothing.",
+          "FIELD (brief §13.4): reduced motion reduces the indeterminate animation and never removes it.",
+          "FIELD (brief §13.5): Material 3's stop indicator (December 2023), the 4dp end dot for SC 1.4.11, which this def's stop dot follows.",
+          "2026-10-16 (owner QA on the build): the complete members read \"100%\" through their own text and a Figma-only \"complete value text\" property, after one property showed \"50%\" on every member."
+        ],
+        "projection": []
+      }
     }
   }
 }

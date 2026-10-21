@@ -40,7 +40,7 @@ const WIRE_COMPONENTS: [string, string[]][] = [
   ['Accordion', ['Accordion', 'Accordion.Indicator']], ['Badge', ['Badge']], ['Banner', ['Banner']], ['Breadcrumbs', ['Breadcrumbs']], ['Buttons', ['Button', 'Button.Destructive', 'Button.Group', 'Button.Neutral']],
   ['Checkbox', ['Checkbox.Control', 'Checkbox.Group', 'Checkbox.Row']], ['Code input', ['CodeInput']], ['Counter', ['Counter']], ['Dialog', ['Dialog']], ['Divider', ['Divider']],
   ['Icon button', ['IconButton', 'IconButton.Destructive', 'IconButton.Neutral']], ['Link', ['Link']], ['List', ['List', 'List.Item']],
-  ['Password field', ['PasswordField']], ['Radio', ['Radio.Control', 'Radio.Group', 'Radio.Row']],
+  ['Password field', ['PasswordField']], ['Progress', ['Progress']], ['Radio', ['Radio.Control', 'Radio.Group', 'Radio.Row']],
   ['Segmented control', ['SegmentedControl', 'SegmentedControl.Segment']], ['Select', ['Select']], ['Switch', ['Switch.Control', 'Switch.Row']],
   ['Tabs', ['Tab.Item', 'Tabs']], ['Tag', ['Tag']], ['Text field', ['TextField']], ['Textarea', ['Textarea']], ['Toast', ['Toast']], ['Veil', ['Veil']],
 ];

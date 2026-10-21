@@ -806,6 +806,14 @@ const TEMPO_FACTOR = { snappy: 0.8, standard: 1, relaxed: 1.3 } as const;
 export const SPIN_ROLE = 'spin';
 export const SPIN_MS = 800;
 export const SPIN_REDUCED_MS = 2600;
+/** The progress bar's indeterminate sweep (#2670, owner call 6 A): `motion.duration.sweep` / `motion.duration-reduced.sweep`.
+ *  A loop period like the spin, so fixed, not tempo-scaled: one pass of the segment across the track every 1.6s, and
+ *  under reduced motion the same sweep, slower (2.6s, the spin's reduced period; owner call 7 A). */
+export const SWEEP_ROLE = 'sweep';
+export const SWEEP_MS = 1600;
+export const SWEEP_REDUCED_MS = 2600;
+/** The duration roles that are loop periods rather than steps of the tempo-scaled ramp. */
+export const LOOP_ROLES: readonly string[] = [SPIN_ROLE, SWEEP_ROLE];
 const round5 = (n: number) => Math.round(n / 5) * 5;
 
 const buildMotion = (p: MotionPersonality = {}): MotionAxis => {
@@ -824,6 +832,10 @@ const buildMotion = (p: MotionPersonality = {}): MotionAxis => {
   // instead of removing it. Written after the ramp loops so neither formula touches it.
   duration[SPIN_ROLE] = SPIN_MS;
   durationReduced[SPIN_ROLE] = SPIN_REDUCED_MS;
+  // THE PROGRESS BAR'S SWEEP (#2670) — the same kind of thing as the turn above: a loop period, kept and slowed
+  // under reduced motion, never removed, because the moving segment is the only busy cue an indeterminate bar has.
+  duration[SWEEP_ROLE] = SWEEP_MS;
+  durationReduced[SWEEP_ROLE] = SWEEP_REDUCED_MS;
   const easing: Record<string, Bezier> = {
     // Curves are named for their SHAPE, roles for their USE. They used to share names — `easing.enter`
     // and `easing-role.enter` — which made the role table read `enter → enter` and gave a reader no way

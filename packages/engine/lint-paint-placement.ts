@@ -295,7 +295,7 @@ const EXPECT_ANATOMY = [
   'image-placeholder', 'spinner', 'badge', 'tag', 'tab-item', 'tabs', 'divider', '_accordion-indicator', 'accordion',
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'list-item', 'list',
   'segmented-control-segment', 'segmented-control', 'link', 'button-group', 'dialog', 'password-field', 'counter', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', 'toast', 'banner',
-  'code-input-cell', 'code-input',
+  'code-input-cell', 'code-input', 'progress',
 ];
 const EXPECT_PAINTERS = [
   'focus-ring', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive',
@@ -312,6 +312,8 @@ const EXPECT_PAINTERS = [
   'counter',
   // #2428: the Code cell paints Text field's field chrome on its own box.
   'code-input-cell',
+  // #2670: the track's pale fill, the progress fill, and the ring's track stroke.
+  'progress',
 ];
 const closedSet = (what: string, expected: string[], live: string[], remedy: string): void => {
   for (const id of expected.filter((x) => !live.includes(x))) {
