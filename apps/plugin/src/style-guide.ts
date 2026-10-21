@@ -1699,23 +1699,52 @@ const setSizes = (grid: SgNode, key: 'gridColumnSizes' | 'gridRowSizes', sizes: 
  * its in-flow children (summed along its axis, the widest across), a frame without one its children's extent and the
  * same inset on the far side. An axis that hugs already fits; a FIXED one grows to fit, and never shrinks. A resize
  * leaves an axis that hugged hugging.
+ *
+ * A ROW THAT WRAPS (#2856; live: the owner's groups are HORIZONTAL with wrap on, their `_section-header` on the first
+ * row and the guides wrapping below it) needs only its widest child and its padding across: the children are laid in
+ * rows, not summed into one, so summing them doubled Semantic colors to 30994 and put Borders' first guide beside its
+ * header. Its height is its rows at the width it ends at: each row its tallest child, `counterAxisSpacing` between
+ * rows (`itemSpacing` where the host leaves it unset), and its padding.
+ *
+ * A WRAPPED FRAME THE ONE-ROW SUM WIDENED (#2856, the copy file after #2827's run): #2827 records nothing on a frame it
+ * grows, so the only sign of its widening is the width itself. A wrapped frame exactly as wide as that one-row sum of
+ * the children it holds now (to the half pixel), and wider than its widest row needs, is put back to what its widest
+ * row needs. Any other width is the owner's and is kept.
  */
 const fitToContent = (f: SgNode): void => {
   if (f.type !== 'FRAME' || f.layoutMode === 'GRID') return;
   const kids = ((f.children ?? []) as SgNode[]).filter((k) => k.visible !== false && read(k, 'layoutPositioning') !== 'ABSOLUTE');
   if (!kids.length) return;
   const auto = AUTO_LAYOUT.has(String(f.layoutMode));
+  const wraps = f.layoutMode === 'HORIZONTAL' && read(f, 'layoutWrap') === 'WRAP';
   const across = (k: SgNode, axis: 'h' | 'v'): number => (axis === 'h' ? num(k.width) : num(k.height));
   const fills = (k: SgNode, axis: 'h' | 'v'): boolean => read(k, axis === 'h' ? 'layoutSizingHorizontal' : 'layoutSizingVertical') === 'FILL';
-  const need = (axis: 'h' | 'v'): number => {
+  const padH = num(f.paddingLeft) + num(f.paddingRight), padV = num(f.paddingTop) + num(f.paddingBottom);
+  const oneRow = (axis: 'h' | 'v'): number => {
+    const along = (f.layoutMode === 'HORIZONTAL') === (axis === 'h');
+    const sized = kids.filter((k) => !fills(k, axis)).map((k) => across(k, axis));
+    return (axis === 'h' ? padH : padV) + (along ? sized.reduce((a, b) => a + b, 0) + num(f.itemSpacing) * Math.max(0, kids.length - 1) : Math.max(0, ...sized));
+  };
+  /** The wrapped rows' height at width `w`: a child starts a new row when it would pass the right padding. */
+  const rowsHigh = (w: number): number => {
+    const inner = w - padH, gap = num(f.itemSpacing);
+    const rows: number[] = [];
+    let run = 0;
+    for (const [i, k] of kids.entries()) {
+      const kw = num(k.width);
+      if (i === 0 || run + gap + kw > inner + 0.5) { rows.push(num(k.height)); run = kw; }
+      else { rows[rows.length - 1] = Math.max(rows[rows.length - 1], num(k.height)); run += gap + kw; }
+    }
+    const set = read(f, 'counterAxisSpacing'), between = typeof set === 'number' ? set : gap;
+    return padV + rows.reduce((a, b) => a + b, 0) + between * Math.max(0, rows.length - 1);
+  };
+  const need = (axis: 'h' | 'v', w: number): number => {
     if (!auto) {
       const lo = Math.min(...kids.map((k) => num(axis === 'h' ? k.x : k.y)));
       return Math.max(...kids.map((k) => num(axis === 'h' ? k.x : k.y) + across(k, axis))) + Math.max(0, lo);
     }
-    const along = (f.layoutMode === 'HORIZONTAL') === (axis === 'h');
-    const pad = axis === 'h' ? num(f.paddingLeft) + num(f.paddingRight) : num(f.paddingTop) + num(f.paddingBottom);
-    const sized = kids.filter((k) => !fills(k, axis)).map((k) => across(k, axis));
-    return pad + (along ? sized.reduce((a, b) => a + b, 0) + num(f.itemSpacing) * Math.max(0, kids.length - 1) : Math.max(0, ...sized));
+    if (wraps) return axis === 'h' ? padH + Math.max(0, ...kids.filter((k) => !fills(k, 'h')).map((k) => num(k.width))) : rowsHigh(w);
+    return oneRow(axis);
   };
   const fixed = (axis: 'h' | 'v'): boolean => {
     if (!auto) return true;
@@ -1724,8 +1753,10 @@ const fitToContent = (f: SgNode): void => {
     return read(f, (f.layoutMode === 'HORIZONTAL') === (axis === 'h') ? 'primaryAxisSizingMode' : 'counterAxisSizingMode') === 'FIXED';
   };
   const w0 = num(f.width), h0 = num(f.height);
-  const w = fixed('h') ? Math.max(w0, need('h')) : w0;
-  const h = fixed('v') ? Math.max(h0, need('v')) : h0;
+  const rowW = need('h', w0);
+  const widened = wraps && fixed('h') && w0 > rowW + 0.5 && near(w0, oneRow('h'));
+  const w = widened ? rowW : fixed('h') ? Math.max(w0, rowW) : w0;
+  const h = fixed('v') ? Math.max(h0, need('v', w)) : h0;
   if (near(w, w0) && near(h, h0)) return;
   const was = ['primaryAxisSizingMode', 'counterAxisSizingMode', 'layoutSizingHorizontal', 'layoutSizingVertical'].map((k) => [k, read(f, k)] as const);
   f.resize?.(w, h);
@@ -2946,7 +2977,8 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   }
 
   // NEVER CLIPPED (owner decision, 2026-10-19): a frame that holds a guide fits its content, on every page this run drew
-  // on. One that hugs already does; one a designer fixed grows to fit it on that axis, and is never made smaller.
+  // on. One that hugs already does; one a designer fixed grows to fit it on that axis, and is never made smaller — but for
+  // a wrapped frame #2827's one-row sum widened, put back to its widest row (#2856).
   for (const p of [...new Set([...drawnOn, ...pagesWithGroups])].filter(laidOut)) {
     const chain = new Set<SgNode>();
     for (const f of framesOn(p)) {

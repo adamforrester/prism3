@@ -266,8 +266,11 @@ until then it gets no furniture, so it never carries one backdrop per band. Labe
 enter the set, so the update's hand-edit check and the as-built record never read them. The switch is
 `CANVAS_FURNITURE` (engine), on for every def that builds a set; Icon and Spinner build single components and have
 none. A row thinner than its label (the 1px horizontal Divider, #2568 Q258 A) keeps the label's own height, centered
-on the row, with `Show bracket` off; every other row label spans its rows. Sets side by side sit `SET_GAP` (400) apart, so a later set's row labels fit between them. Gated by
-`test-canvas-furniture.ts`, which draws every def and measures the clearance on every shared page.
+on the row, with `Show bracket` off; every other row label spans its rows. Sets side by side keep `SET_GAP` (160) of white space between them, measured
+from the outer edge of one set's labels and backdrop to the next set's (#2723, Q335 A): a build places a new set again
+once its labels are drawn (`seatNewSet`), and Update moves a set that sits too close, or exactly where the earlier
+400-frame rule put it. Gated by `test-canvas-furniture.ts`, which draws every def and measures the 160 on every
+shared page.
 
 **The usage panel (#846 phase 2, wireframe approved 2026-10-19).** Beside every set the furniture labels, a build or an
 update draws the component's usage doc as a 560px frame, 40px right of the set and top-aligned with it
@@ -278,9 +281,13 @@ semantic variables and text styles (`src/doc-block.ts`), so it follows the brand
 sets and a theme are in the file, and says what is missing until then. The panel is tagged `prism3`/`docPanel`, never
 `furniture`, because the labels' clear removes what it finds: a redraw removes an earlier panel only while it still
 holds what was written (the style guide's `fingerprintOf`), and keeps an edited one aside, renamed "(edited)", below
-the new panel, and reported. A panel that would overlap anything on the page is not drawn and the run says so; the
-update makes room, because each set's box reaches past its panel when the sets are spaced (`pageSetMoves`). The dry
-run counts a panel that is missing, drawn from an older plan or out of place as "1 usage panel to draw". Gated by
+the new panel, and reported. A panel that would overlap anything on the page is not drawn and the run says so. When a
+Prism3 set later in the row is in the way, the update makes room: a live panel is part of its set's visible box, as
+its labels are, a set with no panel yet reaches as far as its panel will, and the next set goes 160px past it
+(`pageSetMoves`, `respaceLive`, which moves each live panel with its set); anything else, the run says to move. A new
+set is seated with room for its panel (`seatNewSet`) before the panel is drawn. The dry run counts a panel that is
+missing, drawn from an older plan or out of place as "1 usage panel to draw", but not one whose last draw was blocked
+by what is still there, unless the update itself moves it (`docPanelBlockers`). Gated by
 `test-doc-panel.ts`.
 
 **Interactive components (#2466, owner decision Q238 A).** Every set whose `state` axis holds `rest`, `hover` and

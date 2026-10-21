@@ -28,6 +28,16 @@
  *                  Mutation: the font preflight dropped → `fonts/refused`.
  *   replace/…      a child whose type changed is the one node replaced. Mutation: the old child not removed →
  *                  `replace/verdict`.
+ *   published/…    on a set in a team library (#2831), what an update breaks for consumer files is listed in its own
+ *                  section, in the headline and at the confirm: drops, layer replacements, property removals and
+ *                  retypes, and a rename to a `_` or `.` name; on a set not published, nothing changes. Mutations, each
+ *                  failing the arm it names: the publish test always true → `published/unpublished no-op`; each
+ *                  `breakingOf` arm dropped → `published/drop`, `/replace`, `/property removed`, `/retype`,
+ *                  `/private rename`; the status not read → `published/status`; the status out of the hash →
+ *                  `published/hash`; the apply's section dropped → `published/confirm`; the blocked-set guard dropped →
+ *                  `published/blocked`; the member-itself exclusion dropped → `published/member replaced`;
+ *                  `readSingleView` carrying no status → `published/single`; `breakingSection`'s per-set cap dropped →
+ *                  `published/cap`.
  *   property/…     a default the plan changed is edited in place, keeping the property's id.
  *   rename/…       a declared value rename and an added axis rename members in place, keeping keys.
  *   skip/…         an unstamped member, one with no record and one with a layer added by hand are untouched.
@@ -139,6 +149,11 @@
  *                  stops dropped from the draw check → `veil/dry run`, `veil/repaired`, `veil/verify`; verify's draw check dropped → `veil/verify`.
  *                  Stops at their color but 100% alpha read "to update" and fail verify; the alpha comparison dropped from
  *                  the draw check's gradient branch → `veil/alpha dry run`, `veil/alpha verify`.
+ *   status/…       a checkbox or switch control built with an `error` STATE moves onto the `status` axis in place
+ *                  (#2751, owner Q354): the error member to `status=error, state=rest`, every other to `status=default`,
+ *                  every id and key kept, the node a placed error instance points at still drawing the danger edge.
+ *                  Mutation: the two `move` entries dropped from `COMPONENT_RENAMES` → `status/<def> dry run`,
+ *                  `status/<def> placed`.
  *   <group>/…      Checkbox group, Radio group and Segmented control, each built with its FieldLabel `nest-fixed` (as
  *                  before #2748), update in place to the `nest-exposed` label (owner Q348 A): every key and id kept,
  *                  each label an exposed instance, still the secondary, bold member at its group's size, then
@@ -176,13 +191,13 @@
 import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, planComponentName } from '@prism3/engine/anatomy-figma';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { componentDefs } from '@prism3/engine/components/index';
-import { adoptions, applyComponentPlan, respaceSets, STAMP_KEY } from './src/write-components';
+import { adoptions, applyComponentPlan, respaceSets, snugSets, STAMP_KEY } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
 import { NS } from './src/persist-figma';
 import { materializeForBrand } from './src/brand-def';
 import { BASELINE_KEY } from './src/member-baseline';
 import { makeShim, STYLE_FONT, type Node, type Page } from './component-shim';
-import { adoptMembers, captureBaselines, previewLine, previewUpdate, previewVerdict, type UpdateHost, type UpdateTarget } from './src/update-plan';
+import { adoptMembers, breakingLine, breakingOf, breakingSection, captureBaselines, dryRunSet, hostPorts, previewLine, previewUpdate, previewVerdict, readSetView, readSingleView, type UpdateHost, type UpdateTarget } from './src/update-plan';
 import { drawnFaults, faultLine, varsById } from './src/drawn';
 import { BASELINE_V, baselineOf, resetStyleNames, snapshotMember } from './src/member-baseline';
 import { applyUpdate, applyVerdict, previewHashOf, namesMember, DEPRECATED_PREFIX, RETAINED_KEY, nestedFirst, type ApplyHost } from './src/update-apply';
@@ -629,6 +644,70 @@ for (const old of ['position', 'iconPosition']) {
     `display rename/${old} in place: every member renamed onto icon position, its key and id kept (${res.outcomes[0]?.renamed}; ${after.members.size}; ${applyVerdict(res).headline}; ${res.outcomes[0]?.refused ?? ''})`);
   const post = (await previewUpdate(w.host, [{ def: 'accordion', plans: w.plans }])).sets[0];
   ok(post?.counts.current === n, `display rename/${old} current: every member reads current after (${JSON.stringify(post?.counts)})`);
+}
+
+/* ── status ──────────────────────────────────────────────────────────────────────────────────────────── */
+// #2751 (owner Q354): error left the checkbox and switch controls' STATE axis for the fields' `status` axis. A file
+// built before holds `state=error` members and no `status` axis; the update must move each error member onto
+// `status=error, state=rest` IN PLACE, so an instance a designer placed at error keeps pointing at the same node and
+// still shows error, and give every other member `status=default`. The ledger the update reads is the engine's own
+// (`COMPONENT_RENAMES`, the default); the old names, the new names and the counts are the test's own literals.
+//
+// WHAT "A PLACED INSTANCE KEEPS SHOWING IT" IS HERE. A Figma instance tracks its main component by id, and reads its
+// variant properties off that main's name. The shim's `createInstance` copies a name descriptor rather than linking
+// the node, so the instance is modelled as Figma holds it: the main's NODE, captured before the update. The proof is
+// that node: still in the set, same id and key, now named at `status=error`, and still drawing the danger edge. What
+// the shim cannot show is Figma's own override layer on a placed Row whose nested control was switched to error by
+// hand; that instance points at the same member node, so it rides the same rename, and is named as unverified.
+//
+// Mutation: the two `move` entries dropped from `COMPONENT_RENAMES` → `status/<def> dry run`, `status/<def> placed`.
+section('status — a control built with an error STATE moves onto the status axis in place, every placed error instance kept (#2751)');
+for (const [def, errOld, errNew, n, add] of [
+  ['checkbox-control', 'selection=checked, size=medium, state=error', 'selection=checked, status=error, size=medium, state=rest', 54, 36],
+  ['switch-control', 'selection=on, size=medium, state=error', 'selection=on, status=error, size=medium, state=rest', 24, 16],
+] as const) {
+  const w = await world(def);
+  const set = w.set();
+  // The file as an earlier build left it: five states plus `error`, no `status` segment. Members at status=error and a
+  // state other than rest did not exist; the rest-state one WAS the error member.
+  (set as { children: Node[] }).children = membersOf(set).filter((m) => !/status=error/.test(String(m.name)) || /state=rest$/.test(String(m.name)));
+  for (const m of membersOf(set)) {
+    const nm = String(m.name);
+    m.name = /status=error/.test(nm) ? nm.replace(', status=error', '').replace('state=rest', 'state=error') : nm.replace(', status=default', '');
+  }
+  const names = membersOf(set).map((m) => String(m.name));
+  ok(names.length === n && names.includes(errOld) && !names.some((x) => x.includes('status=')),
+    `premise: ${def} holds the ${n} members of the old set, ${errOld} among them, none with a status (${names.length})`);
+  // THE PLACED INSTANCE: the main it points at, captured before the update. And its edge, read off the node.
+  const placed = membersOf(set).find((m) => m.name === errOld)!;
+  const placedId = String(placed.id), placedKey = String(placed.key);
+  const vars = await w.api.variables.getLocalVariablesAsync() as { id: string; name: string }[];
+  const strokeOf = (m: Node): string | undefined => {
+    const box = def === 'switch-control' ? childNamed(m, 'track') ?? m : m;
+    const id = ((box.strokes as { boundVariables?: { color?: { id?: string } } }[] | undefined) ?? [])[0]?.boundVariables?.color?.id;
+    // The variable's path below its collection (the shim names it `<collection>/color/…`, as the host shows it).
+    return vars.find((v) => v.id === id)?.name.replace(/^.*?(?=color\/)/, '');
+  };
+  ok(strokeOf(placed) === 'color/border/danger', `premise: the ${def} member at ${errOld} draws the danger edge (${strokeOf(placed)})`);
+  const before = identityOf(set);
+  const { pre, res } = await confirm(w, [{ def, plans: w.plans }]);
+  const p = pre.sets[0];
+  const moved = p?.renames.find((r) => r.from === errOld);
+  ok(!!p && !p.blockers.length && p.counts.rename === n && p.counts.add === add && p.counts.drop === 0 && moved?.to === errNew,
+    `status/${def} dry run: all ${n} renamed in place (${errOld} → ${errNew}), ${add} added, none dropped or blocked (${p ? `${p.counts.rename} renamed, ${p.counts.add} added, ${p.counts.drop} dropped; ${moved ? `${moved.from} → ${moved.to}` : 'the error member not renamed'}; ${p.blockers.join('; ') || 'no blockers'}` : 'no set'})`);
+  ok(applyVerdict(res).ok && res.outcomes[0]?.renamed === n && res.outcomes[0]?.added === add,
+    `status/${def} apply: ${applyVerdict(res).headline} (${res.outcomes[0]?.renamed} renamed, ${res.outcomes[0]?.added} added${res.outcomes[0]?.refused ? `; ${res.outcomes[0].refused}` : ''})`);
+  const now = membersOf(w.set()).find((m) => String(m.id) === placedId);
+  ok(!!now && now === placed && String(now.name) === errNew && String(now.key) === placedKey && strokeOf(now) === 'color/border/danger' && !String(now.description ?? '').startsWith(DEPRECATED_PREFIX),
+    `status/${def} placed: the node a placed error instance points at is still in the set, its id and key kept, now ${errNew}, still drawing the danger edge (${now ? `${String(now.name)}, ${strokeOf(now)}` : 'gone'})`);
+  const after = identityOf(w.set());
+  const lost = [...before.members].filter(([, b]) => ![...after.members.values()].some((a) => a.key === b.key && a.id === b.id)).map(([nm]) => nm);
+  ok(lost.length === 0 && after.members.size === n + add, `status/${def} keys: every member the file held keeps its key and id, and the set holds ${n + add} (${after.members.size}; lost ${lost.join(', ') || 'none'})`);
+  const defs = w.set().componentPropertyDefinitions as Record<string, { type: string; variantOptions?: string[] }>;
+  ok(JSON.stringify(defs.status?.variantOptions) === JSON.stringify(['default', 'error']) && !(defs.state?.variantOptions ?? []).includes('error'),
+    `status/${def} properties: the set offers status [default, error] and no state=error (status ${JSON.stringify(defs.status?.variantOptions)}, state ${JSON.stringify(defs.state?.variantOptions)})`);
+  const post = (await previewUpdate(w.host, [{ def, plans: w.plans }])).sets[0];
+  ok(post?.counts.current === n + add, `status/${def} current: every member reads current after (${JSON.stringify(post?.counts)})`);
 }
 
 section('list marker column — a file built at the old 24/32/40 column updates in place to 20/24/32 for bullet and number (#2727, Q340 A)');
@@ -1448,10 +1527,11 @@ section('re-lay — an update over a set leaves a member Prism3 didn\'t build wh
 /* ── sets on a page (#2542) ───────────────────────────────────────────────────────────────────────────── */
 section('page — an update re-spaces the sets Prism3 built on a page as a new build would, and moves nothing else (#2542)');
 {
-  // The button family on one page, built as a fresh file would be: 400 apart (`SET_GAP`, #2502). Then squeezed back
-  // to the old 160 a file built before #2502 has, with a note of the designer's own (a frame Prism3 didn't build) on
-  // the page. The set's `parent` is the page, as on the host (the shim leaves it unset). Mutation: the set-move pass
-  // dropped from the dry run and the apply → `page/set moves`, `page/converges`.
+  // The button family on one page, built as a fresh file would be: 160 apart (`SET_GAP`, #2723; these sets carry no
+  // furniture, so frame to frame). Then laid out as the #2502 rule built them, 400 frame to frame, with a note of the
+  // designer's own (a frame Prism3 didn't build) on the page. The set's `parent` is the page, as on the host (the shim
+  // leaves it unset). Mutations: the set-move pass dropped from the dry run and the apply → `page/set moves`,
+  // `page/converges`; the old rule's spot not recognized → the same.
   const IDS = ['button', 'button-destructive', 'button-neutral'];
   const plansBy = new Map(IDS.map((id) => [id, plansOf(id)] as const));
   const all = [...plansBy.values()].flat();
@@ -1467,8 +1547,8 @@ section('page — an update re-spaces the sets Prism3 built on a page as a new b
   const sets = page.children.filter((n) => n.type === 'COMPONENT_SET') as Node[];
   for (const set of sets) (set as { parent?: unknown }).parent = page;
   const fresh = sets.map((n) => [Number(n.x), Number(n.y)]);
-  // The old spacing: each later set 160 right of the one before.
-  for (let k = 1; k < sets.length; k++) sets[k].x = Number(sets[k - 1].x) + Number(sets[k - 1].width) + 160;
+  // The #2502 spacing: each later set 400 right of the one before.
+  for (let k = 1; k < sets.length; k++) sets[k].x = Number(sets[k - 1].x) + Number(sets[k - 1].width) + 400;
   const note = { type: 'FRAME', name: 'my notes', x: 0, y: 6000, width: 900, height: 200, children: [] } as unknown as Node;
   // And the page's section header above the sets, as a built page has (#2405): never moved, never in the row.
   const header = { type: 'INSTANCE', name: '_section-header', x: 0, y: -400, width: 3000, height: 152, children: [] } as unknown as Node;
@@ -1486,7 +1566,7 @@ section('page — an update re-spaces the sets Prism3 built on a page as a new b
   ok(JSON.stringify(moving) === JSON.stringify(['button-destructive', 'button-neutral']) && pre.sets.every((p) => !p.blockers.length)
     && v.headline === 'Would change 2 of 3' && v.lines.includes('2 sets to move, so the sets on each page sit as a new build spaces them.')
     && previewLine(pre.sets[1]) === 'button-destructive: 576 members. The set moves to its place on the page.',
-    `page/set moves: on a page squeezed to the old spacing, the dry run moves the 2 later sets and nothing else (${JSON.stringify(moving)}; ${v.headline}; ${previewLine(pre.sets[1])})`);
+    `page/set moves: on a page laid out under the old 400 rule, the dry run moves the 2 later sets and nothing else (${JSON.stringify(moving)}; ${v.headline}; ${previewLine(pre.sets[1])})`);
   // THE APPLY: each set lands where a fresh build put it, every id kept, the note untouched, and the next dry run up to date.
   const res = await applyUpdate(host, api, targets, previewHashOf(pre));
   const av = applyVerdict(res);
@@ -1498,26 +1578,28 @@ section('page — an update re-spaces the sets Prism3 built on a page as a new b
   ok(JSON.stringify([note.x, note.y]) === noteAt && JSON.stringify([header.x, header.y]) === headerAt,
     `page/untouched: a frame Prism3 didn't build, and the page header, stay where they were (${noteAt} → ${JSON.stringify([note.x, note.y])}; header ${headerAt} → ${JSON.stringify([header.x, header.y])})`);
   // IN ORDER, AS LITTLE AS IT TAKES: a note far right in the row pulls no set past it, and a set Prism3 didn't build stays
-  // put as an obstacle the later set goes around, never jumps over. Squeezed again, with the note moved into the row.
-  for (let k = 1; k < sets.length; k++) sets[k].x = Number(sets[k - 1].x) + Number(sets[k - 1].width) + 160;
+  // put as an obstacle the later set goes around, never jumps over. Squeezed to 100 apart, too close, with the note
+  // moved into the row: 0..864, then 1024 and 2048.
+  const squeeze = (): void => { for (let k = 1; k < sets.length; k++) sets[k].x = Number(sets[k - 1].x) + Number(sets[k - 1].width) + 100; };
+  squeeze();
   note.x = 9000; note.y = 0;
   const pre2 = await previewUpdate(host, targets);
-  ok(JSON.stringify(pre2.sets.map((p) => p.setMove?.to ?? null)) === JSON.stringify([null, { x: 1264, y: 0 }, { x: 2528, y: 0 }]),
+  ok(JSON.stringify(pre2.sets.map((p) => p.setMove?.to ?? null)) === JSON.stringify([null, { x: 1024, y: 0 }, { x: 2048, y: 0 }]),
     `page/in order: a note far right in the row pulls no set past it; the sets take the fresh spacing (${JSON.stringify(pre2.sets.map((p) => p.setMove?.to ?? null))})`);
   const neutral = sets[2];
   const stampsWas = membersOf(neutral).map((m) => (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY));
   for (const m of membersOf(neutral)) (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, STAMP_KEY, '');
   neutral.x = 1700;
   const pre3 = await previewUpdate(host, targets.slice(0, 2));
-  // button at 0..864; the unbuilt set at 1700..2564; button-destructive would sit at 1264..2128, which overlaps it, so it
-  // goes past it: 2564 + 400 = 2964. The unbuilt set never moves.
+  // button at 0..864; the unbuilt set at 1700..2564; button-destructive would sit at 1024..1888, which overlaps it, so it
+  // goes past it: 2564 + 160 = 2724. The unbuilt set never moves.
   await applyUpdate(host, api, targets.slice(0, 2), previewHashOf(pre3));
-  ok(pre3.sets[1]?.setMove?.to.x === 2964 && Number(sets[1].x) === 2964 && Number(neutral.x) === 1700,
+  ok(pre3.sets[1]?.setMove?.to.x === 2724 && Number(sets[1].x) === 2724 && Number(neutral.x) === 1700,
     `page/around: a set Prism3 didn't build stays put, and the set that would overlap it goes just past it, in the dry run and the apply (${JSON.stringify(pre3.sets[1]?.setMove ?? null)}; applied at ${sets[1].x}; the unbuilt set at ${neutral.x})`);
   membersOf(neutral).forEach((m, k) => (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, STAMP_KEY, stampsWas[k]));
   note.x = 0; note.y = 6000;
   // SCOPED TO ONE DEF, the page does not take part: the update reads one of its three sets, so it moves none.
-  for (let k = 1; k < sets.length; k++) sets[k].x = Number(sets[k - 1].x) + Number(sets[k - 1].width) + 160;
+  squeeze();
   const one = await previewUpdate(host, [targets[1]]);
   const xsBefore = JSON.stringify(sets.map((st) => Number(st.x)));
   await applyUpdate(host, api, [targets[1]], previewHashOf(one));
@@ -1536,7 +1618,8 @@ section('page — an update re-spaces the sets Prism3 built on a page as a new b
     `page/blocked: a page holding a set the update can't touch moves no set, in the dry run or the apply (${pre4.sets[1].blockers.length} blocker(s); moves ${JSON.stringify(pre4.sets.map((p) => p.setMove?.to ?? null))}; ${xs4} → ${JSON.stringify(sets.map((st) => Number(st.x)))})`);
   twin[1].name = nameWas;
   // THE RE-SPACING ONLY MAKES ROOM (owner decision Q248 A): a set moves only when it sits closer to its left neighbour
-  // than a fresh build's 400, and just far enough to clear it. Each laid out by hand here, button at 0..864.
+  // than a fresh build's 160, or at the old rule's 400 (#2723), and then to exactly 160. Each laid out by hand here,
+  // button at 0..864.
   const movesOf = async () => (await previewUpdate(host, targets)).sets.map((p) => p.setMove?.to ?? null);
   // Spaced wider than a fresh build: 600 apart. Nothing moves. Mutation: the "only when too close" check removed → this.
   sets[1].x = 864 + 600; sets[2].x = sets[1].x + 864 + 600;
@@ -1544,23 +1627,24 @@ section('page — an update re-spaces the sets Prism3 built on a page as a new b
   ok(JSON.stringify(wider) === JSON.stringify([null, null, null]),
     `page/wider: sets a designer spaced wider than a fresh build (600 apart) stay exactly where they are (${JSON.stringify(wider)})`);
   // A second row: button-neutral below the first row (its top under the first row's 3480), its x inside button's span.
-  // It has no Prism3 set to its left in its own row, so it stays; button-destructive, 160 from button, still moves.
+  // It has no Prism3 set to its left in its own row, so it stays; button-destructive, 100 from button, still moves.
   // Mutation: the left neighbour taken from any row, not the set's own → this.
-  sets[1].x = 864 + 160; sets[2].x = 300; sets[2].y = 4000;
+  sets[1].x = 864 + 100; sets[2].x = 300; sets[2].y = 4000;
   const rows = await movesOf();
-  ok(JSON.stringify(rows) === JSON.stringify([null, { x: 1264, y: 0 }, null]),
+  ok(JSON.stringify(rows) === JSON.stringify([null, { x: 1024, y: 0 }, null]),
     `page/second row: a set in a second row below the first stays where it is, never lifted into the first; the too-close set in the first row still moves (${JSON.stringify(rows)})`);
   sets[2].y = 0;
-  // Too close by a little, 300 apart: it moves to exactly 400 clear (1264), no further, and the set beyond it, already
-  // 572 clear of where it lands, stays. Mutation: the move sent past a fixed step rather than to `SET_GAP` → this.
-  sets[1].x = 864 + 300; sets[2].x = 2700;
+  // Too close by a little, 100 apart: it moves to exactly 160 clear (1024), no further, and the set beyond it, already
+  // 812 clear of where it lands (and 872 from where it was, not the old rule's 400), stays. Mutation: the move sent
+  // past a fixed step rather than to `SET_GAP` → this.
+  sets[1].x = 864 + 100; sets[2].x = 2700;
   const enough = await movesOf();
-  ok(JSON.stringify(enough) === JSON.stringify([null, { x: 1264, y: 0 }, null]),
-    `page/just enough: a set 300 from its neighbour moves just far enough to sit 400 clear (1264), and the one beyond, already clear, stays (${JSON.stringify(enough)})`);
+  ok(JSON.stringify(enough) === JSON.stringify([null, { x: 1024, y: 0 }, null]),
+    `page/just enough: a set 100 from its neighbour moves just far enough to sit 160 clear (1024), and the one beyond, already clear, stays (${JSON.stringify(enough)})`);
   // NEVER ONTO A SET THAT STAYS (the UI lane's repro on #2548): button at 0, button-destructive at 960 (96 clear, too
   // close), a frame of the designer's at 1800..1900, button-neutral at 1920 (1056 clear of button, so it stays). Pushed
-  // past the frame alone, button-destructive would land at 2300, over button-neutral (1920..2784); it goes past that set
-  // too, to 2784 + 400 = 3184. Read after the APPLY, from the page: no two nodes in the row overlap. Mutation: the
+  // past the frame alone, button-destructive would land at 2060, over button-neutral (1920..2784); it goes past that set
+  // too, to 2784 + 160 = 2944. Read after the APPLY, from the page: no two nodes in the row overlap. Mutation: the
   // obstacle push reading only the nodes Prism3 didn't build → this, and `page/respace onto a set` below.
   const post = { type: 'FRAME', name: 'my post-it', x: 1800, y: 0, width: 100, height: 200, children: [] } as unknown as Node;
   page.children.push(post);
@@ -1570,27 +1654,27 @@ section('page — an update re-spaces the sets Prism3 built on a page as a new b
   const row = page.children.filter((n) => n.type === 'COMPONENT_SET' || n === post) as Node[];
   const box = (n: Node) => [Number(n.x), Number(n.y), Number(n.width), Number(n.height)];
   const over = row.flatMap((a, i) => row.slice(i + 1).filter((b) => { const [ax, ay, aw, ah] = box(a), [bx, by, bw, bh] = box(b); return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by; }).map((b) => `${a.name} over ${b.name}`));
-  ok(over.length === 0 && Number(sets[1].x) === 3184 && Number(sets[2].x) === 1920 && Number(post.x) === 1800,
-    `page/never onto a set: a set pushed past a frame of the designer's goes past the Prism3 set that stays there too (3184), and after the apply no two nodes in the row overlap (${over.join(', ') || 'none overlap'}; at ${JSON.stringify(sets.map((st) => Number(st.x)))}; the frame at ${post.x})`);
+  ok(over.length === 0 && Number(sets[1].x) === 2944 && Number(sets[2].x) === 1920 && Number(post.x) === 1800,
+    `page/never onto a set: a set pushed past a frame of the designer's goes past the Prism3 set that stays there too (2944), and after the apply no two nodes in the row overlap (${over.join(', ') || 'none overlap'}; at ${JSON.stringify(sets.map((st) => Number(st.x)))}; the frame at ${post.x})`);
   page.children.splice(page.children.indexOf(post), 1);
   // A SET WHOSE ONLY STAMPS ARE NOT PRISM3'S is a designer's set, by the members' shared test (`builtByPrism3`, #2510),
   // so it stays put as an obstacle and does not hold the page still as a set the update didn't read. button-neutral at
   // 1700, read by neither update: first every stamp malformed, then a single valid stamp copied with its record from
-  // another member (a Duplicate), the rest blank. Either way button-destructive goes around it, to 2964. Mutation: the
+  // another member (a Duplicate), the rest blank. Either way button-destructive goes around it, to 2724. Mutation: the
   // set-level check reading "any member has a stamp" again → this.
   const nm = membersOf(neutral);
   const pdOfM = (m: Node, k: string): string => (m.getSharedPluginData as (a: string, b: string) => string)(NS, k);
   const putM = (m: Node, k: string, v: string): void => (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, k, v);
   const was6 = nm.map((m) => [pdOfM(m, STAMP_KEY), pdOfM(m, BASELINE_KEY)]);
-  const around = async (): Promise<number | null> => { sets[1].x = 864 + 160; neutral.x = 1700; return (await previewUpdate(host, targets.slice(0, 2))).sets[1]?.setMove?.to.x ?? null; };
+  const around = async (): Promise<number | null> => { sets[1].x = 864 + 100; neutral.x = 1700; return (await previewUpdate(host, targets.slice(0, 2))).sets[1]?.setMove?.to.x ?? null; };
   for (const m of nm) putM(m, STAMP_KEY, 'not a stamp');
   const malformed = await around();
   nm.forEach((m, k) => putM(m, STAMP_KEY, k === 1 ? was6[0][0] : ''));
   putM(nm[1], BASELINE_KEY, was6[0][1]);
   const copied = await around();
   nm.forEach((m, k) => { putM(m, STAMP_KEY, was6[k][0]); putM(m, BASELINE_KEY, was6[k][1]); });
-  ok(malformed === 2964 && copied === 2964,
-    `page/not ours by its stamps: a set whose stamps are all malformed, or whose one stamp is a copy, is a designer's set the moving set goes around (malformed → ${malformed}, copied → ${copied}; want 2964 each)`);
+  ok(malformed === 2724 && copied === 2724,
+    `page/not ours by its stamps: a set whose stamps are all malformed, or whose one stamp is a copy, is a designer's set the moving set goes around (malformed → ${malformed}, copied → ${copied}; want 2724 each)`);
 }
 
 /* ── sets beside a wide page header go below it (#2802, owner decision Q379 A) ───────────────────────────── */
@@ -1651,11 +1735,12 @@ section('header row — sets an earlier build put beside a wide page header move
   ]);
   ok(JSON.stringify(lone.map((m) => [m.id, m.to.x, m.to.y])) === JSON.stringify([['A', 0, -232 + 125 + 80]]),
     `header row/one set: a single set beside the header goes on its left edge, 80 below it (${JSON.stringify(lone)})`);
-  // A SET BELOW THE HEADER STAYS: the header is not a row member, so a set under it, wider spaced, is the designer's.
+  // A SET BELOW THE HEADER STAYS: the header is not a row member, so sets under it, a fresh build's 160 apart (no
+  // furniture, so frame to frame), stay where they are.
   const under = respaceSets([
     { id: 'H', type: 'INSTANCE', header: true, x: 0, y: -302, width: 2416, height: 125 },
     { id: 'A', type: 'COMPONENT_SET', prism3: true, x: 0, y: 0, width: 864, height: 600 },
-    { id: 'B', type: 'COMPONENT_SET', prism3: true, x: 1264, y: 0, width: 864, height: 600 },
+    { id: 'B', type: 'COMPONENT_SET', prism3: true, x: 1024, y: 0, width: 864, height: 600 },
   ]);
   ok(under.length === 0, `header row/below stays: sets already under a wide header, a fresh build's spacing apart, do not move (${JSON.stringify(under)})`);
   // A LIFTED SET JOINS THE ROW ALREADY UNDER THE HEADER, at that row's top, not at the header's bottom plus the gap
@@ -1666,12 +1751,25 @@ section('header row — sets an earlier build put beside a wide page header move
     { id: 'B', type: 'COMPONENT_SET', prism3: true, x: 0, y: 0, width: 864, height: 600 },
     { id: 'A', type: 'COMPONENT_SET', prism3: true, x: 4160, y: -302, width: 312, height: 600 },
   ]);
-  ok(JSON.stringify(joins.map((m) => [m.id, m.to.x, m.to.y])) === JSON.stringify([['A', 864 + 400, 0]]),
+  ok(JSON.stringify(joins.map((m) => [m.id, m.to.x, m.to.y])) === JSON.stringify([['A', 864 + 160, 0]]),
     `header row/joins below: a set beside the header joins the row under it, at that row's top, after its sets (${JSON.stringify(joins)})`);
+  // A LIFTED SET'S LABELS GO ON THE HEADER'S EDGE, NOT ITS FRAME (#2735), as `placeNewSet` places a new set under a
+  // header: A's row labels reach 300 left of its frame, so its frame lands at 300 and its labels at 0, the header's
+  // left edge. The second set, B, whose labels reach 100, lands 160 right of A's visible box (300 + 312 + 160 + 100).
+  // Mutation: the lifted set's start ignoring its reach → `header row/furniture edge`.
+  const edge = respaceSets([
+    { id: 'H', type: 'INSTANCE', header: true, x: 0, y: -232, width: 2517, height: 125 },
+    { id: 'A', type: 'COMPONENT_SET', prism3: true, x: 2677, y: -232, width: 312, height: 600 },
+    { id: 'LA', type: 'INSTANCE', furniture: true, of: 'A', x: 2377, y: -200, width: 290, height: 40 },
+    { id: 'B', type: 'COMPONENT_SET', prism3: true, x: 3389, y: -232, width: 400, height: 600 },
+    { id: 'LB', type: 'INSTANCE', furniture: true, of: 'B', x: 3289, y: -200, width: 90, height: 40 },
+  ]);
+  ok(JSON.stringify(edge.map((m) => [m.id, m.to.x, m.to.y])) === JSON.stringify([['A', 300, -232 + 125 + 80], ['B', 300 + 312 + 160 + 100, -232 + 125 + 80]]),
+    `header row/furniture edge: a lifted set's labels, not its frame, go on the header's left edge, and the next set sits 160 clear of its labels (${JSON.stringify(edge.map((m) => [m.id, m.to.x, m.to.y]))})`);
 }
 
 /* ── set moves and page order together (#2542 × #2568) ─────────────────────────────────────────────────── */
-// One run whose only work is BOTH: sets squeezed to the old spacing on their page (#2542), and component pages out of
+// One run whose only work is BOTH: sets squeezed too close on their page (#2542), and component pages out of
 // alphabetical order (#2568). One named version for all of it, both done, the hash covering both, the verdict naming
 // both. The expected title, headline and orders are literals. Mutations: the set's move dropped from `previewHashOf` →
 // `both/hash, set`; the page list dropped from it → `both/hash, page`.
@@ -1692,7 +1790,7 @@ section('both — set moves and page reorders in one run: one version, both done
   const sets = page.children.filter((n) => n.type === 'COMPONENT_SET') as Node[];
   for (const set of sets) (set as { parent?: unknown }).parent = page;
   const fresh = sets.map((n) => [Number(n.x), Number(n.y)]);
-  const squeeze = (): void => { for (let k = 1; k < sets.length; k++) sets[k].x = Number(sets[k - 1].x) + Number(sets[k - 1].width) + 160; };
+  const squeeze = (): void => { for (let k = 1; k < sets.length; k++) sets[k].x = Number(sets[k - 1].x) + Number(sets[k - 1].width) + 100; };
   squeeze();
   type P = { name: string; isPageDivider?: boolean; appendChild(): void };
   const pg = (name: string, isPageDivider = false): P => ({ name, isPageDivider, appendChild() {} });
@@ -1734,40 +1832,110 @@ section('both — set moves and page reorders in one run: one version, both done
 }
 
 /* ── re-spacing, as a function (#2542) ─────────────────────────────────────────────────────────────────── */
-section('respaceSets — a moving set never lands on another Prism3 set (#2548 review)');
+section('respaceSets — a moving set never lands on another Prism3 set (#2548 review), and the gap is what a designer sees (#2723)');
 {
-  // The UI lane's repro, exactly: A at 0, B at 960 (too close), a frame Prism3 didn't build at 1800..1900, C at 1920,
-  // all 800 wide. B needs 1200; the frame pushes it to 2300, which is over C (1920..2720), so it goes on to 3120.
+  // The UI lane's repro, re-measured for 160: A at 0, B at 850 (50 clear, too close), a frame Prism3 didn't build at
+  // 1700..1800, C at 1900, all 800 wide. B needs 960; the frame pushes it to 1960, which is past C's left edge and over
+  // C (1900..2700), so it goes on to 2860. C, 1100 from A, stays.
   const nodes = [
     { id: 'A', type: 'COMPONENT_SET', prism3: true, x: 0, y: 0, width: 800, height: 800 },
-    { id: 'B', type: 'COMPONENT_SET', prism3: true, x: 960, y: 0, width: 800, height: 800 },
-    { id: 'frame', type: 'FRAME', x: 1800, y: 0, width: 100, height: 800 },
-    { id: 'C', type: 'COMPONENT_SET', prism3: true, x: 1920, y: 0, width: 800, height: 800 },
+    { id: 'B', type: 'COMPONENT_SET', prism3: true, x: 850, y: 0, width: 800, height: 800 },
+    { id: 'frame', type: 'FRAME', x: 1700, y: 0, width: 100, height: 800 },
+    { id: 'C', type: 'COMPONENT_SET', prism3: true, x: 1900, y: 0, width: 800, height: 800 },
   ];
   const moves = respaceSets(nodes);
   const at = new Map(nodes.map((n) => [n.id, n.x]));
   for (const m of moves) at.set(m.id, m.to.x);
   const over = nodes.flatMap((a, i) => nodes.slice(i + 1).filter((b) => at.get(a.id)! < at.get(b.id)! + b.width && at.get(a.id)! + a.width > at.get(b.id)!).map((b) => `${a.id} over ${b.id}`));
-  ok(over.length === 0 && JSON.stringify(moves.map((m) => [m.id, m.to.x])) === JSON.stringify([['B', 3120]]),
-    `page/respace onto a set: B, pushed past the frame, goes past C as well (3120) and lands on nothing (${JSON.stringify(moves.map((m) => [m.id, m.to.x]))}; ${over.join(', ') || 'none overlap'})`);
+  ok(over.length === 0 && JSON.stringify(moves.map((m) => [m.id, m.to.x])) === JSON.stringify([['B', 2860]]),
+    `page/respace onto a set: B, pushed past the frame, goes past C as well (2860) and lands on nothing (${JSON.stringify(moves.map((m) => [m.id, m.to.x]))}; ${over.join(', ') || 'none overlap'})`);
 }
 {
-  // NEVER ONTO A SET ALREADY MOVED (the re-review's repro on #2548): A at 0 (800 wide), B at 900 (800), C at 1000 (900),
-  // a frame Prism3 didn't build at 1500..1600, all in one row. B needs 1200; the frame pushes it to 2000. C, whose left
-  // neighbour is still A, needs 1200 too; the frame pushes it to 2000, which is where B now sits (2000..2800), so it goes
-  // on to 3200. Mutation: the obstacle push leaving out the sets already placed (`...placed`) → this.
+  // NEVER ONTO A SET ALREADY MOVED (the re-review's repro on #2548, re-measured for 160): A at 0 (800 wide), B at 850
+  // (800), C at 900 (600), a frame Prism3 didn't build at 1400..1500, all in one row. B needs 960; the frame pushes it to
+  // 1660. C, whose left neighbour is still A, needs 960 too; the frame pushes it to 1660, which is where B now sits
+  // (1660..2460), so it goes on to 2620. Mutation: the obstacle push leaving out the sets already placed (`...placed`) → this.
   const nodes = [
     { id: 'A', type: 'COMPONENT_SET', prism3: true, x: 0, y: 0, width: 800, height: 800 },
-    { id: 'B', type: 'COMPONENT_SET', prism3: true, x: 900, y: 0, width: 800, height: 800 },
-    { id: 'C', type: 'COMPONENT_SET', prism3: true, x: 1000, y: 0, width: 900, height: 800 },
-    { id: 'frame', type: 'FRAME', x: 1500, y: 0, width: 100, height: 800 },
+    { id: 'B', type: 'COMPONENT_SET', prism3: true, x: 850, y: 0, width: 800, height: 800 },
+    { id: 'C', type: 'COMPONENT_SET', prism3: true, x: 900, y: 0, width: 600, height: 800 },
+    { id: 'frame', type: 'FRAME', x: 1400, y: 0, width: 100, height: 800 },
   ];
   const moves = respaceSets(nodes);
   const at = new Map(nodes.map((n) => [n.id, n.x]));
   for (const m of moves) at.set(m.id, m.to.x);
   const over = nodes.flatMap((a, i) => nodes.slice(i + 1).filter((b) => at.get(a.id)! < at.get(b.id)! + b.width && at.get(a.id)! + a.width > at.get(b.id)!).map((b) => `${a.id} over ${b.id}`));
-  ok(over.length === 0 && JSON.stringify(moves.map((m) => [m.id, m.to.x])) === JSON.stringify([['B', 2000], ['C', 3200]]),
-    `page/respace onto a moved set: C, pushed past the frame, goes past B where B was just moved (3200) and lands on nothing (${JSON.stringify(moves.map((m) => [m.id, m.to.x]))}; ${over.join(', ') || 'none overlap'})`);
+  ok(over.length === 0 && JSON.stringify(moves.map((m) => [m.id, m.to.x])) === JSON.stringify([['B', 1660], ['C', 2620]]),
+    `page/respace onto a moved set: C, pushed past the frame, goes past B where B was just moved (2620) and lands on nothing (${JSON.stringify(moves.map((m) => [m.id, m.to.x]))}; ${over.join(', ') || 'none overlap'})`);
+}
+{
+  // FROM THE FURNITURE'S EDGE (#2723, owner decision Q335 A). A at 0..800, its row label at -200..-20 and its backdrop
+  // reaching 12 past its right edge (to 812); B's frame at 900, its own row label at 700..880, 200 left of it. B's
+  // labels meet A's backdrop (700 < 812), so B moves until its label is 160 clear: 812 + 160 = 972 for the label,
+  // 1172 for the frame. Mutation: the reach left out (`reachOf` returning nothing) → this.
+  const nodes = [
+    { id: 'A', type: 'COMPONENT_SET', prism3: true, x: 0, y: 0, width: 800, height: 400 },
+    { id: 'a-label', type: 'INSTANCE', furniture: true, of: 'A', x: -200, y: 0, width: 180, height: 200 },
+    { id: 'a-backdrop', type: 'INSTANCE', furniture: true, of: 'A', x: -12, y: 200, width: 824, height: 212 },
+    { id: 'B', type: 'COMPONENT_SET', prism3: true, x: 900, y: 0, width: 600, height: 400 },
+    { id: 'b-label', type: 'INSTANCE', furniture: true, of: 'B', x: 700, y: 0, width: 180, height: 200 },
+  ];
+  const moves = respaceSets(nodes);
+  ok(JSON.stringify(moves.map((m) => [m.id, m.to.x])) === JSON.stringify([['B', 1172]]),
+    `respace/from the labels: B moves until its labels sit 160 clear of A's backdrop, frame at 1172 (${JSON.stringify(moves.map((m) => [m.id, m.to.x]))})`);
+}
+{
+  // THE OLD RULE'S SPOT (#2723). A at 0..800. B's frame exactly 400 past A's (1200), its label reaching 150 left: 250 of
+  // white space, room enough, but the spot is the #2502 rule's, not a designer's, so it moves to 160: label at 960,
+  // frame at 1110. C, no furniture, sat 400 past B's frame where B was (2000 + 400 = 2400), so it follows: B's frame now
+  // ends at 1910, and C goes to 2070. D, 600 past where C was, is a designer's spacing and stays. Mutation: the old
+  // rule's check removed → this.
+  const nodes = [
+    { id: 'A', type: 'COMPONENT_SET', prism3: true, x: 0, y: 0, width: 800, height: 400 },
+    { id: 'B', type: 'COMPONENT_SET', prism3: true, x: 1200, y: 0, width: 800, height: 400 },
+    { id: 'b-label', type: 'INSTANCE', furniture: true, of: 'B', x: 1050, y: 0, width: 130, height: 200 },
+    { id: 'C', type: 'COMPONENT_SET', prism3: true, x: 2400, y: 0, width: 800, height: 400 },
+    { id: 'D', type: 'COMPONENT_SET', prism3: true, x: 3800, y: 0, width: 800, height: 400 },
+  ];
+  const moves = respaceSets(nodes);
+  ok(JSON.stringify(moves.map((m) => [m.id, m.to.x])) === JSON.stringify([['B', 1110], ['C', 2070]]),
+    `respace/old rule: sets 400 apart frame to frame close to 160 of white space, and a designer's 600 stays (${JSON.stringify(moves.map((m) => [m.id, m.to.x]))})`);
+}
+{
+  // THE OLD RULE'S SPOT, ALREADY 160 CLEAR (#2737 review). A at 0..800, its backdrop reaching 120 past its right edge
+  // (to 920); B's frame exactly 400 past A's (1200), its label reaching 120 left (to 1080): 160 of white space. The spot
+  // is the #2502 rule's, and the rule's place for B is where it stands, so nothing moves, and the next dry run reads
+  // the same. Mutation: the zero-length move kept (no guard) → this, with B listed to move to 1200.
+  const nodes = [
+    { id: 'A', type: 'COMPONENT_SET', prism3: true, x: 0, y: 0, width: 800, height: 400 },
+    { id: 'a-backdrop', type: 'INSTANCE', furniture: true, of: 'A', x: -120, y: 0, width: 1040, height: 400 },
+    { id: 'B', type: 'COMPONENT_SET', prism3: true, x: 1200, y: 0, width: 800, height: 400 },
+    { id: 'b-label', type: 'INSTANCE', furniture: true, of: 'B', x: 1080, y: 0, width: 100, height: 200 },
+  ];
+  const moves = respaceSets(nodes);
+  ok(moves.length === 0,
+    `respace/old rule at 160: a set at the old rule's spot that already sits 160 clear does not move (${JSON.stringify(moves.map((m) => [m.id, m.to.x]))})`);
+}
+{
+  // PRISM3'S OWN SPACING, BEFORE A REDRAW (#2734). A at 0..800 with a backdrop reaching 100 past its right (to 900);
+  // B's frame 160 past that (1060); C 300 past B's frame end (2160), a designer's spacing. Only B is snug. Then A's
+  // backdrop is redrawn 60 narrower (to 840): with B named, B goes back to 160 clear, frame at 1000; unnamed, it stays
+  // at 220 of white space. C, 300 from where B was and 360 from where it goes, is not named, so it stays at 2160.
+  // Mutations: the snug check off by one gap (`SET_GAP` read as anything else) → the first arm; the snug set ignored
+  // in `respaceSets` → the second.
+  const nodes = [
+    { id: 'A', type: 'COMPONENT_SET', prism3: true, x: 0, y: 0, width: 800, height: 400 },
+    { id: 'a-backdrop', type: 'INSTANCE', furniture: true, of: 'A', x: -100, y: 0, width: 1000, height: 400 },
+    { id: 'B', type: 'COMPONENT_SET', prism3: true, x: 1060, y: 0, width: 800, height: 400 },
+    { id: 'C', type: 'COMPONENT_SET', prism3: true, x: 2160, y: 0, width: 800, height: 400 },
+  ];
+  const snug = snugSets(nodes);
+  ok(JSON.stringify([...snug]) === JSON.stringify(['B']), `respace/snug: B, 160 clear of A's backdrop, is at Prism3's spacing; C, 300 clear, is not (${JSON.stringify([...snug])})`);
+  const redrawn = nodes.map((n) => (n.id === 'a-backdrop' ? { ...n, width: 940 } : n));
+  const moves = respaceSets(redrawn, snug);
+  const kept = respaceSets(redrawn);
+  ok(JSON.stringify(moves.map((m) => [m.id, m.to.x])) === JSON.stringify([['B', 1000]]) && kept.length === 0,
+    `respace/snug after a redraw: A's backdrop 60 narrower, B named goes back to 160 clear at 1000 and C stays; unnamed, nothing moves (${JSON.stringify(moves.map((m) => [m.id, m.to.x]))}; ${JSON.stringify(kept.map((m) => [m.id, m.to.x]))})`);
 }
 
 /* ── no change ───────────────────────────────────────────────────────────────────────────────────────── */
@@ -3162,31 +3330,33 @@ for (const G of ['checkbox-group', 'radio-group', 'segmented-control']) {
   // FieldLabel's real set in the file, so each label instances a MEMBER and its coordinate is readable off the host.
   const w = await world(G, oldPlans, { fileSets: [{ name: 'field-label', variants: plansOf('field-label').map(planComponentName) }] });
   const labelOf = (m: Node): Node => childNamed(m, 'label');
+  // The member count each set holds, typed here: the two groups are status × size since #2751 (owner Q354).
+  const N = ({ 'checkbox-group': 6, 'radio-group': 6, 'segmented-control': 3 } as Record<string, number>)[G];
   const n = membersOf(w.set()).length;
-  ok(n === 3 && membersOf(w.set()).every((m) => labelOf(m)?.isExposedInstance === false),
+  ok(n === N && membersOf(w.set()).every((m) => labelOf(m)?.isExposedInstance === false),
     `${G}/premise: the file holds ${n} members built before #2748, each nested label not exposed`);
   const before = identityOf(w.set());
   const labelIds = new Map(membersOf(w.set()).map((m) => [String(m.name), String(labelOf(m).id)] as const));
   const { pre, res } = await confirm(w, [{ def: G, plans: newPlans }]);
   const p = pre.sets[0];
-  ok(p.counts.update === 3 && p.counts.add === 0 && p.counts.drop === 0 && !p.blockers.length && !p.replacements.length,
-    `${G}/dry run: all 3 members read update, none added, dropped or replaced, nothing refused (${JSON.stringify(p.counts)}, ${p.blockers.join('; ') || 'no blockers'})`);
+  ok(p.counts.update === N && p.counts.add === 0 && p.counts.drop === 0 && !p.blockers.length && !p.replacements.length,
+    `${G}/dry run: all ${N} members read update, none added, dropped or replaced, nothing refused (${JSON.stringify(p.counts)}, ${p.blockers.join('; ') || 'no blockers'})`);
   const v = applyVerdict(res);
   ok(v.ok, `${G}/verdict: ${v.headline} (${v.lines.slice(0, 2).join(' | ').slice(0, 240)})`);
   const after = identityOf(w.set());
   const moved = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || after.members.get(name)?.id !== b.id).map(([x]) => x);
-  ok(JSON.stringify(after.set) === JSON.stringify(before.set) && moved.length === 0 && after.members.size === 3,
-    `${G}/kept: the set and all 3 members keep their keys and ids (${moved.join('; ') || 'none moved'})`);
+  ok(JSON.stringify(after.set) === JSON.stringify(before.set) && moved.length === 0 && after.members.size === N,
+    `${G}/kept: the set and all ${N} members keep their keys and ids (${moved.join('; ') || 'none moved'})`);
   const lost = [...before.members].filter(([name, b]) => [...b.kids].some(([path, id]) => after.members.get(name)?.kids.get(path) !== id)).map(([x]) => x);
   ok(lost.length === 0 && membersOf(w.set()).every((m) => String(labelOf(m).id) === labelIds.get(String(m.name))),
     `${G}/ids: every node under every member, the nested label included, keeps its id (${lost.join('; ') || 'all kept'})`);
   // The exposure and the look, read off the shim's nodes. The weight is typed here from Q348 A: bold stays.
   const read = membersOf(w.set()).map((m) => ({ m: String(m.name), exposed: labelOf(m).isExposedInstance, main: String((labelOf(m).mainComponent as { name?: string } | undefined)?.name) }));
-  ok(read.every((x) => x.exposed === true), `${G}/exposed: every member's nested label is now an exposed instance (${read.filter((x) => x.exposed !== true).map((x) => x.m).join('; ') || 'all 3'})`);
+  ok(read.every((x) => x.exposed === true), `${G}/exposed: every member's nested label is now an exposed instance (${read.filter((x) => x.exposed !== true).map((x) => x.m).join('; ') || `all ${N}`})`);
   ok(read.every((x) => /emphasis=secondary/.test(x.main) && /weight=bold/.test(x.main) && x.main.includes(`size=${/size=(\w+)/.exec(x.m)?.[1]}`)),
     `${G}/bold kept: every label still instances the secondary, bold member at its group's size (${[...new Set(read.map((x) => x.main))].join(' | ')})`);
   const post = (await previewUpdate(w.host, [{ def: G, plans: newPlans }])).sets[0];
-  ok(post.counts.current === 3 && post.handEdits.length === 0, `${G}/current: the next dry run reads all 3 current (${JSON.stringify(post.counts)})`);
+  ok(post.counts.current === N && post.handEdits.length === 0, `${G}/current: the next dry run reads all ${N} current (${JSON.stringify(post.counts)})`);
 }
 
 /* ── segmented control (#2724) ───────────────────────────────────────────────────────────────────────── */
@@ -3387,6 +3557,139 @@ for (const [D, gained] of [['checkbox-row', ['disabled']], ['radio-row', ['disab
     `${D}/dry run: every member reads current (${JSON.stringify(p.counts)})`);
   ok(applyVerdict(res).headline === '✓ already up to date' && w.api._versions.length === 0 && dump() === was,
     `${D}/nothing written: no version, every member's id, key, stamp and record as built (${applyVerdict(res).headline})`);
+}
+
+/* ── published ───────────────────────────────────────────────────────────────────────────────────────── */
+section('published — on a set in a team library, what breaks consumer files is listed on its own, and named at the confirm (#2831)');
+{
+  // One plan change carrying every breaking class a plan can: the members at state=rest dropped, and the leading icon
+  // turned into a plain frame, which replaces that layer on every member and removes its swap property.
+  const breakingPlans = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.filter((p) => !planComponentName(p).includes('state=rest')).map((p) => {
+    const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
+    const lv = planChild(planChild(q.root, 'content'), 'leadingVisual') as unknown as Record<string, unknown>;
+    lv.type = 'FRAME';
+    for (const k of ['swapTarget', 'propertyRef', 'descendantFills']) delete lv[k];
+    return q;
+  });
+  const HEAD = /^Breaks library consumers: /;
+  const SWAP = '↳ swap leading icon';
+
+  // NOTHING CHANGES FOR AN UNPUBLISHED SET.
+  {
+    const w = await world(TAG);
+    const status = await (w.set().getPublishStatusAsync as () => Promise<string>)();
+    ok(status === 'UNPUBLISHED', `premise: a set never published answers UNPUBLISHED (${status})`);
+    const next = breakingPlans(w.plans);
+    const { pre, res } = await confirm(w, [{ def: TAG, plans: next }]);
+    const p = pre.sets[0];
+    ok(p.drops.length > 0 && p.replacements.length > 0 && p.properties.remove.length > 0, `premise: the plan drops, replaces and removes a property (${p.drops.length}, ${p.replacements.length}, ${p.properties.remove.length})`);
+    const v = previewVerdict(pre);
+    const a = applyVerdict(res);
+    ok(p.publish === undefined && p.breaking === undefined && !v.lines.some((l) => HEAD.test(l)) && !/library consumers/.test(v.headline)
+      && !a.lines.some((l) => HEAD.test(l)) && !/library consumers/.test(a.headline) && res.outcomes[0]?.breaking === undefined,
+      `published/unpublished no-op: no publish status, no breaking list, no section and no headline clause in the check or the confirm (${v.headline} | ${a.headline})`);
+  }
+
+  // A PUBLISHED SET: every class listed by name, in its own section, in the headline, and at the confirm.
+  {
+    const w = await world(TAG);
+    (w.api.publish as (n: Node, s: string) => void)(w.set(), 'CURRENT');
+    const next = breakingPlans(w.plans);
+    const dropped = w.plans.filter((p) => planComponentName(p).includes('state=rest')).map(planComponentName);
+    const { pre, res } = await confirm(w, [{ def: TAG, plans: next }]);
+    const p = pre.sets[0];
+    const b = p.breaking ?? [];
+    ok(p.publish === 'CURRENT', `published/status: the check reads the set's publish status (${p.publish})`);
+    ok(dropped.length > 0 && dropped.every((m) => b.some((x) => x.kind === 'drop' && x.member === m)),
+      `published/drop: each of the ${dropped.length} dropped members is listed as breaking, by name (${b.filter((x) => x.kind === 'drop').length})`);
+    const reps = b.filter((x) => x.kind === 'replace' && x.path === 'content/leadingVisual');
+    ok(reps.length === next.length, `published/replace: the leading icon's replacement is listed on each of the ${next.length} members kept (${reps.length})`);
+    ok(b.some((x) => x.kind === 'property' && x.name === SWAP && x.change === 'removed'), `published/property removed: the swap property's removal is listed (${JSON.stringify(b.filter((x) => x.kind === 'property'))})`);
+    const v = previewVerdict(pre);
+    const head = v.lines.find((l) => HEAD.test(l)) ?? '';
+    ok(head === `Breaks library consumers: ${b.length} changes in 1 published set, passed on at the next library publish.`
+      && v.lines.includes(`${TAG} · property ${SWAP} · removed — consumer overrides of it are dropped.`)
+      && v.lines.includes(`${TAG} · ${dropped[0]} · dropped — consumer instances of it point at a deprecated member.`),
+      `published/section: the check's own section heads the breaking changes and names them (${head})`);
+    ok(v.headline.endsWith(` · ${b.length} changes break library consumers`), `published/headline: the check's headline counts them (${v.headline})`);
+    const a = applyVerdict(res);
+    ok(res.outcomes[0]?.breaking?.length === b.length && a.lines.includes(`Breaks library consumers: ${b.length} changes made in 1 published set, passed on at the next library publish.`)
+      && a.lines.includes(`${TAG} · ${dropped[0]} · dropped — consumer instances of it point at a deprecated member.`) && a.headline.endsWith(` · ${b.length} changes break library consumers`),
+      `published/confirm: the confirm names what it broke (${a.headline} | ${a.lines.find((l) => HEAD.test(l))})`);
+  }
+
+  // CHANGED is published too; a retyped property and a rename to a private name are breaking; between private names not.
+  {
+    const w = await world(TAG);
+    (w.api.publish as (n: Node, s: string) => void)(w.set(), 'CHANGED');
+    const view = await readSetView(w.set() as never);
+    ok(view.publish === 'CHANGED', `published/changed: the view reads CHANGED (${view.publish})`);
+    const ports = await hostPorts(w.host as unknown as UpdateHost);
+    const defs = { ...view.definitions! };
+    const label = Object.keys(defs).find((k) => k.startsWith('label#'))!;
+    defs[label] = { ...defs[label], type: 'BOOLEAN' };
+    const p = dryRunSet(TAG, w.plans, { ...view, definitions: defs }, ports);
+    const b = breakingOf(p);
+    ok(b.some((x) => x.kind === 'property' && x.name === 'label' && x.change === 'retyped' && x.from === 'BOOLEAN' && x.to === 'TEXT'),
+      `published/retype: a property the plan retypes is listed (${JSON.stringify(b)})`);
+    const priv = breakingOf({ ...p, setRename: { from: TAG, to: `_${TAG}` } }).filter((x) => x.kind === 'private');
+    const dot = breakingOf({ ...p, setRename: { from: TAG, to: `.${TAG}` } }).filter((x) => x.kind === 'private');
+    const both = breakingOf({ ...p, setRename: { from: `_${TAG}`, to: `_${TAG}-item` } }).filter((x) => x.kind === 'private');
+    ok(priv.length === 1 && dot.length === 1 && both.length === 0
+      && breakingLine(TAG, priv[0]) === `${TAG} · renamed ${TAG} → _${TAG} — a name starting with _ or . is not published, so the set leaves the library.`,
+      `published/private rename: a rename to a _ or . name is listed, one between two such names is not (${priv.length}, ${dot.length}, ${both.length})`);
+    const quiet = breakingOf({ ...p, publish: undefined, setRename: { from: TAG, to: `_${TAG}` } });
+    ok(quiet.length === 0, `published/unpublished rename: on a set not published, the same rename and retype list nothing (${quiet.length})`);
+    // A set the update refuses changes nothing, so nothing on it breaks, however much its plan would.
+    const refused = breakingOf({ ...p, blockers: ['the set is refused'] });
+    ok(b.length > 0 && refused.length === 0, `published/blocked: a published set the update refuses lists nothing as breaking (${b.length} → ${refused.length})`);
+    // A replacement of the member itself is refused for that member, so it is not a change consumers get.
+    const self = breakingOf({ ...p, replacements: [{ member: 'size=small', path: '.', reason: 'the member itself' }, { member: 'size=small', path: 'content/label', reason: 'a layer' }] })
+      .filter((x) => x.kind === 'replace');
+    ok(self.length === 1 && self[0].kind === 'replace' && self[0].path === 'content/label',
+      `published/member replaced: a replacement of the member itself (path .) is not listed, one of a layer is (${JSON.stringify(self)})`);
+    // THE PER-SET CAP (Q435 A, the copy as built): at most 8 lines per set, then one overflow line counting the rest. The
+    // 8 and the wording are literals typed from the approved copy, never read off `DIFFERENCE_LINES` or `breakingSection`.
+    const many = Array.from({ length: 11 }, (_, i) => ({ kind: 'drop' as const, member: `size=s${i}` }));
+    const few = [{ kind: 'drop' as const, member: 'size=a' }, { kind: 'drop' as const, member: 'size=b' }];
+    const capped = breakingSection([{ set: TAG, breaking: many }, { set: 'other', breaking: few }], false);
+    const wantCap = [
+      'Breaks library consumers: 13 changes in 2 published sets, passed on at the next library publish.',
+      ...many.slice(0, 8).map((d) => `${TAG} · ${d.member} · dropped — consumer instances of it point at a deprecated member.`),
+      `${TAG}: 3 more breaking changes not listed.`,
+      ...few.map((d) => `other · ${d.member} · dropped — consumer instances of it point at a deprecated member.`),
+    ];
+    ok(JSON.stringify(capped) === JSON.stringify(wantCap),
+      `published/cap: each set lists at most 8 breaking changes, then "N more breaking changes not listed." (${capped.length} lines: ${JSON.stringify(capped.slice(9))})`);
+  }
+
+  // A SINGLE-COMPONENT DEF (the icons, #2296): each component is published on its own, and the def reads as its most
+  // published one, CHANGED over CURRENT. The icon set is exactly what a library publish ships (#2831).
+  {
+    const plans = plansOf('icon');
+    const w = await singleWorld(plans);
+    const t = { def: 'icon', plans, single: true };
+    const read = async () => (await readSingleView(w.host as unknown as UpdateHost, t)).view.publish;
+    const none = await read();
+    const [one, two] = w.comps();
+    (w.api.publish as (n: Node, s: string) => void)(one, 'CURRENT');
+    const current = await read();
+    (w.api.publish as (n: Node, s: string) => void)(two, 'CHANGED');
+    const changed = await read();
+    const p = (await previewUpdate(w.host, [t])).sets[0];
+    ok(none === 'UNPUBLISHED' && current === 'CURRENT' && changed === 'CHANGED' && p?.publish === 'CHANGED',
+      `published/single: a single-component def reads its components' status, CHANGED over CURRENT (${none}, ${current}, ${changed}, check ${p?.publish})`);
+  }
+
+  // PUBLISHED BETWEEN THE CHECK AND THE CONFIRM: the confirm is refused, so it never breaks what the check did not name.
+  {
+    const w = await world(TAG);
+    const next = breakingPlans(w.plans);
+    const pre = await previewUpdate(w.host, [{ def: TAG, plans: next }]);
+    (w.api.publish as (n: Node, s: string) => void)(w.set(), 'CURRENT');
+    const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: next }], previewHashOf(pre));
+    ok(!!res.refusedAll && res.outcomes.length === 0, `published/hash: a set published after the check refuses the confirm (${res.refusedAll ?? 'applied'})`);
+  }
 }
 
 void STYLE_FONT; void BASELINE_KEY;

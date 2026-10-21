@@ -52,10 +52,11 @@ import { COMPONENT_RENAMES, coordKey, coordPairs, renameCoordinate, slotMigratio
 import { captureSlotMigration, migrationLines, type MigNode, type SlotMigration } from './slot-migration';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { EXECUTOR_REVISION } from './executor-revision';
-import { adoptions, memberStamp, planHalf, revHalf, respaceSets, STAMP_KEY, type RespaceBox } from './write-components';
+import { adoptions, memberStamp, planHalf, revHalf, respaceSets, snugSets, STAMP_KEY, type RespaceBox } from './write-components';
 import { furnitureDue, furnitureDueCount, furnitureLayout, hasFurniture, readTag, type FurnitureApi, type FurnitureDue, type XNode } from './canvas-furniture';
+import { labelColumns, readLabelColumn } from './label-columns';
 import { NS } from './persist-figma';
-import { docPanelDue, docPanelReach, isLivePanel, panelModes, planDocPanel, type PanelApi, type PNode } from './doc-panel';
+import { PANEL_WIDTH, docPanelBlockers, docPanelDue, docPanelReach, ownerSet, isLivePanel, panelModes, planDocPanel, readPanelTag, type PanelApi, type PNode } from './doc-panel';
 import type { ComponentDef } from '@prism3/engine/component-schema';
 import { BASELINE_V, UPDATING_KEY, baselineDiff, baselineOf, builtByPrism3, readBaseline, recordFormat, snapshotMember, writeBaseline, type Baseline, type OwnershipRead, type SnapNode } from './member-baseline';
 import { drawnFaults, faultLine, type DrawnFault, type DrawVar } from './drawn';
@@ -93,7 +94,37 @@ export type HostSetView = {
   /** #2296 — a def built as single components (`emitAsComponents`): no set node, no property definitions, and each
    *  member a top-level component found anywhere in the file. */
   single?: boolean;
+  /** #2705 — the set's recorded label column width (`label-columns.ts`), absent when it has none. */
+  labelColumn?: number;
+  /** #2831 — whether the set is in a published team library, as `getPublishStatusAsync` answers (`publishOf`). A
+   *  single-component def reads as its most published component. Absent when the host would not say. */
+  publish?: PublishStatus;
 };
+
+/** #2831 — Figma's answer to `getPublishStatusAsync`: never published, published and unchanged, or published and edited
+ *  since. */
+export type PublishStatus = 'UNPUBLISHED' | 'CURRENT' | 'CHANGED';
+/** Whether a status is a published one: a set consumer files can hold instances of. */
+export const isPublished = (s: PublishStatus | undefined): boolean => s === 'CURRENT' || s === 'CHANGED';
+
+/**
+ * WHAT AN UPDATE BREAKS FOR LIBRARY CONSUMERS (#2831). Once a set is published, a consumer file holds instances of its
+ * members, and some of what an update does reaches those instances:
+ *
+ *   drop        a member the plan no longer has. The update keeps it and marks it deprecated (Q2), so consumer
+ *               instances of it now point at a deprecated member.
+ *   replace     a layer replaced instead of updated in place: consumer overrides on that layer are lost.
+ *   private     the set renamed to a name starting with `_` or `.`, which Figma hides from publishing: the set leaves
+ *               the library for every consumer.
+ *   property    a component property removed or retyped: consumer overrides of it are dropped.
+ *
+ * Nothing here for a set that is not published: the same changes reach no other file.
+ */
+export type Breaking =
+  | { kind: 'drop'; member: string }
+  | { kind: 'replace'; member: string; path: string; reason: string }
+  | { kind: 'private'; from: string; to: string }
+  | { kind: 'property'; name: string; change: 'removed' | 'retyped'; from?: string; to?: string };
 
 export type MemberState = 'current' | 'update' | 'handEdited' | 'unstamped' | 'noBaseline' | 'revisionUnknown';
 
@@ -111,6 +142,15 @@ export type SetPreview = {
     earlierRecord?: number;
     /** Members not where the plan's grid puts them (`gridMoves`): moved, never rewritten. Absent when none. */
     move?: number };
+  /** #2831 — the set's publish status, when it is published (`CURRENT` or `CHANGED`). Absent for a set that is not,
+   *  so an unpublished set's preview, and its hash, are what they were. In the hash: a set published between the check
+   *  and the confirm refuses the confirm. */
+  publish?: PublishStatus;
+  /** #2759 — the set is in the file under an earlier def id, which the apply renames to the current one in place. */
+  setRename?: { from: string; to: string };
+  /** #2831 — what this update breaks for library consumers (`breakingOf`). Absent for a set that is not published, or
+   *  where nothing breaks. */
+  breaking?: Breaking[];
   blockers: string[];
   axes: { from: string[]; to: string[]; renames: { from: string; to: string }[] };
   properties: { add: Prop[]; edit: Prop[]; rename: Prop[]; retype: Prop[]; remove: Prop[] };
@@ -142,7 +182,7 @@ export type SetPreview = {
   /** #2188 Q173 — the members an update moves to their place in the grid, by name (`gridMoves`). Absent when none. */
   positions?: string[];
   /** #2542 (owner decision Q245.2 A) — the WHOLE SET moves on its page, to where a fresh build would place it
-   *  (`respaceSets`), so sets sit `SET_GAP` apart. Absent when it stays. */
+   *  (`respaceSets`), so the visible gap between sets, furniture included, is `SET_GAP` (#2723). Absent when it stays. */
   setMove?: { from: { x: number; y: number }; to: { x: number; y: number } };
   /** #2803 (owner decision Q379 A) — the set's canvas furniture the page lacks or holds out of place (`furnitureDue`),
    *  which the apply draws, touching no member. Absent when the furniture is current, or the def has none. */
@@ -280,7 +320,7 @@ export const ownedView = (host: HostSetView): HostSetView => {
  * update's apply re-lays the grid and keeps every id. A member not built by Prism3 is never one of them (#2325,
  * #2464), adoptable or not; it still counts toward its row's height and its column's width, as the executor counts it.
  */
-export const gridMoves = (plans: AnatomyPlan[], members: readonly HostMember[]): string[] => {
+export const gridMoves = (plans: AnatomyPlan[], members: readonly HostMember[], labelColumn = 0): string[] => {
   if (!plans.length) return [];
   let cells: { name: string; row: number; col: number }[];
   try { cells = planSetLayout(plans, 'gridMoves').cells; } catch { return []; }
@@ -295,12 +335,14 @@ export const gridMoves = (plans: AnatomyPlan[], members: readonly HostMember[]):
     colW[c.col] = Math.max(colW[c.col] ?? 0, m.snap.width as number);
     rowH[c.row] = Math.max(rowH[c.row] ?? 0, m.snap.height as number);
   }
+  // Columns at least the set's recorded label width, members centered in the extra (#2705), as the executor lays them.
+  const cols = labelColumns(colW, labelColumn);
   // Sparse arrays, reduced as the executor reduces them: a row or column with no member adds nothing.
   const at = (arr: number[], n: number): number => PAD + arr.slice(0, n).reduce((a, b) => a + (b || 0) + GAP, 0);
   return placed.filter((m) => {
     if (!m.stamp) return false;
     const c = cellOf.get(m.name)!;
-    return Math.abs((m.snap.x as number) - at(colW, c.col)) > 0.5 || Math.abs((m.snap.y as number) - at(rowH, c.row)) > 0.5;
+    return Math.abs((m.snap.x as number) - at(cols.width, c.col) - (cols.inset[c.col] ?? 0)) > 0.5 || Math.abs((m.snap.y as number) - at(rowH, c.row)) > 0.5;
   }).map((m) => m.name);
 };
 
@@ -620,7 +662,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
   const adoptClears = refused?.adoptClears ? [refused.reason] : [];
 
   // A set with members refused or to collapse is refused by the update, so it reports no moves either.
-  const positions = blockers.length || host.single ? [] : gridMoves(plans, host.members);
+  const positions = blockers.length || host.single ? [] : gridMoves(plans, host.members, host.labelColumn);
   if (positions.length) counts.move = positions.length;
 
   const truncated: Record<string, number> = {};
@@ -634,6 +676,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
     page: host.page,
     setKey: host.key,
     counts,
+    ...(isPublished(read.publish) ? { publish: read.publish } : {}),
     blockers,
     axes: { from: hostAxes, to: planAxes, renames: axisRenames },
     properties,
@@ -665,6 +708,15 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
 // ---- reading the host --------------------------------------------------------------------------------------
 
 type LiveSet = { name?: unknown; id?: unknown; key?: unknown; parent?: unknown; children?: readonly unknown[]; componentPropertyDefinitions?: unknown };
+
+/** #2831 — a set's or component's publish status, read guarded: `undefined` when the host has no such call, throws, or
+ *  answers something else. */
+const publishOf = async (n: unknown): Promise<PublishStatus | undefined> => {
+  try {
+    const s = await (n as { getPublishStatusAsync?: () => Promise<unknown> }).getPublishStatusAsync?.();
+    return s === 'UNPUBLISHED' || s === 'CURRENT' || s === 'CHANGED' ? s : undefined;
+  } catch { return undefined; }
+};
 
 /** The page a node sits on, by walking up. */
 const pageOf = (n: unknown): string => {
@@ -712,7 +764,9 @@ export const readSetView = async (set: LiveSet, breathe?: () => Promise<void>, d
   try { definitions = (set.componentPropertyDefinitions ?? {}) as HostSetView['definitions']; } catch { definitions = null; }
   let key = '';
   try { key = typeof set.key === 'string' ? set.key : ''; } catch { key = ''; }
-  return { name: String(set.name ?? ''), id: String(set.id ?? ''), key, page: pageOf(set), members, others, definitions };
+  const labelColumn = readLabelColumn(set);
+  const publish = await publishOf(set);
+  return { name: String(set.name ?? ''), id: String(set.id ?? ''), key, page: pageOf(set), members, others, definitions, ...(labelColumn ? { labelColumn } : {}), ...(publish ? { publish } : {}) };
 };
 
 /** The reason a member is left out when its node moved between the read and the write (#2301). DRAFT. */
@@ -929,8 +983,11 @@ export const readSingleView = async (host: UpdateHost, t: UpdateTarget, breathe?
     members.push(await readMember(c, `${axis}=${value}`, nodeName, drawVars));
   }
   const page = comps.length ? pageOf(comps[0]) : '';
+  // #2831: each component is published on its own; the def reads as its most published one, CHANGED over CURRENT.
+  const statuses = await Promise.all(comps.map(publishOf));
+  const publish = (['CHANGED', 'CURRENT', 'UNPUBLISHED'] as const).find((s) => statuses.includes(s));
   return {
-    view: { name: component, id: '', key: '', page, members, others, definitions: null, single: true },
+    view: { name: component, id: '', key: '', page, members, others, definitions: null, single: true, ...(publish ? { publish } : {}) },
     set: { name: component, children: comps } as LiveSet,
   };
 };
@@ -974,38 +1031,67 @@ const setBuiltByPrism3 = (n: { children?: readonly unknown[] }): boolean => {
  * wasn't asked about. Read from the page's top-level nodes as they sit (`respaceSets`), so the dry run lists the moves
  * the file shows now, and the apply, called again after its sets land, moves them by their new sizes.
  */
-export const pageSetMoves = (found: readonly { name: string; set: LiveSet; blocked: boolean }[], reach = 0): Map<string, { from: { x: number; y: number }; to: { x: number; y: number } }> => {
+export const pageSetMoves = (found: readonly { name: string; set: LiveSet; blocked: boolean }[], snug: ReadonlySet<string> = new Set(), reach = 0): Map<string, { from: { x: number; y: number }; to: { x: number; y: number } }> => {
   const out = new Map<string, { from: { x: number; y: number }; to: { x: number; y: number } }>();
+  for (const { here, kids, boxes } of pageViews(found, reach)) {
+    const ids = new Set(here.filter((f) => snug.has(f.name)).map((f) => String(kids.indexOf(f.set as never))));
+    for (const m of respaceSets(boxes, ids)) {
+      const f = here.find((x) => x.set === (kids[Number(m.id)] as LiveSet));
+      if (f) out.set(f.name, { from: m.from, to: m.to });
+    }
+  }
+  return out;
+};
+
+/** The sets, by name, that sit at exactly `SET_GAP` from their left neighbor on their pages (`snugSets`, #2734), on the
+ *  pages `pageSetMoves` would re-space. Read by the apply just before it redraws the furniture. */
+export const pageSnugSets = (found: readonly { name: string; set: LiveSet; blocked: boolean }[], reach = 0): Set<string> => {
+  const out = new Set<string>();
+  for (const { here, kids, boxes } of pageViews(found, reach)) {
+    const ids = snugSets(boxes);
+    for (const f of here) if (ids.has(String(kids.indexOf(f.set as never)))) out.add(f.name);
+  }
+  return out;
+};
+
+/** Each page that takes part in the re-spacing, with its top-level nodes read as `respaceSets` reads them. A page takes
+ *  part only when every set Prism3 built on it is one this update reads and none is blocked. `reach` is how far a
+ *  set's usage panel reaches right of it (`docPanelReach`, #846): 0 when the file cannot draw one. */
+const pageViews = (found: readonly { name: string; set: LiveSet; blocked: boolean }[], reach = 0) => {
   const pages = new Map<unknown, typeof found[number][]>();
   for (const f of found) {
     const page = f.set.parent as { children?: readonly unknown[] } | null | undefined;
     if (!page || !Array.isArray(page.children)) continue;
     pages.set(page, [...(pages.get(page) ?? []), f]);
   }
+  const views: { here: typeof found[number][]; kids: { id?: unknown; type?: unknown; name?: unknown; x?: unknown; y?: unknown; width?: unknown; height?: unknown; children?: readonly unknown[] }[]; boxes: RespaceBox[] }[] = [];
   for (const [page, here] of pages) {
     const kids = (page as { children: readonly unknown[] }).children as { id?: unknown; type?: unknown; name?: unknown; x?: unknown; y?: unknown; width?: unknown; height?: unknown; children?: readonly unknown[] }[];
     const read = new Set(here.map((f) => f.set));
     const ours = kids.filter((k) => k.type === 'COMPONENT_SET' && setBuiltByPrism3(k));
     if (here.some((f) => f.blocked) || !ours.every((k) => read.has(k as LiveSet))) continue;
     // Keyed by the node's place on the page, never by its id: what maps a move back to its set is the node itself.
-    // A SET'S BOX REACHES PAST ITS USAGE PANEL (#846) when the file can draw one (`docPanelReach`): the panel sits right
-    // of the set, so the next set is spaced from the panel's edge, and the live panel itself follows its set, as the
-    // labels do. A panel kept aside after a hand edit is the designer's, and stays put like any other node.
-    const boxes: RespaceBox[] = kids.map((k, i) => {
-      const prism3 = k.type === 'COMPONENT_SET' && setBuiltByPrism3(k);
-      return {
-        id: String(i), type: String(k.type ?? ''), x: Number(k.x ?? 0), y: Number(k.y ?? 0), width: Number(k.width ?? 0) + (prism3 ? reach : 0), height: Number(k.height ?? 0),
-        header: (k.type === 'INSTANCE' || k.type === 'FRAME') && String(k.name ?? '').toLowerCase() === '_section-header',
-        prism3,
-        furniture: !!readTag(k as never) || isLivePanel(k as PNode),
-      };
-    });
-    for (const m of respaceSets(boxes)) {
-      const f = here.find((x) => x.set === (kids[Number(m.id)] as LiveSet));
-      if (f) out.set(f.name, { from: m.from, to: m.to });
+    // Furniture names its set by node id (#2723): mapped to that set's place on the page, its `id` here.
+    const at = new Map(kids.map((k, i) => [String(k.id ?? ''), String(i)] as const));
+    const boxes: RespaceBox[] = kids.map((k, i) => ({
+      id: String(i), type: String(k.type ?? ''), x: Number(k.x ?? 0), y: Number(k.y ?? 0), width: Number(k.width ?? 0), height: Number(k.height ?? 0),
+      header: (k.type === 'INSTANCE' || k.type === 'FRAME') && String(k.name ?? '').toLowerCase() === '_section-header',
+      prism3: k.type === 'COMPONENT_SET' && setBuiltByPrism3(k),
+      furniture: !!readTag(k as never) || isLivePanel(k as PNode),
+      of: at.get(readTag(k as never)?.set ?? readPanelTag(k as PNode)?.set ?? ''),
+    }));
+    // A SET'S USAGE PANEL IS PART OF ITS VISIBLE BOX (#846), as its labels are: a live panel is furniture of its set,
+    // so the next set is spaced from the panel's edge and the panel moves with its set (`respaceLive`). A Prism3 set
+    // with no live panel yet, in a file that can draw one, reaches as far as the panel will: that is the room the
+    // update makes for it. A panel kept aside after a hand edit is the designer's, and stays put like any other node.
+    if (reach > 0) {
+      const drawn = new Set(boxes.filter((b) => b.of !== undefined && isLivePanel(kids[Number(b.id)] as PNode)).map((b) => b.of));
+      for (const b of boxes.filter((x) => x.prism3 && !drawn.has(x.id)))
+        boxes.push({ id: `panel:${b.id}`, type: 'FRAME', x: b.x + b.width + reach - PANEL_WIDTH, y: b.y, width: PANEL_WIDTH, height: b.height, furniture: true, of: b.id });
     }
+    views.push({ here, kids, boxes });
   }
-  return out;
+  return views;
 };
 
 /** `update-components` in its dry-run mode: every target's set read and laid against its plans. Writes
@@ -1018,6 +1104,7 @@ export const previewUpdate = async (host: UpdateHost, targets: readonly UpdateTa
   // The file's modes for the panels' Theming, read once, and only when a target has a panel to check.
   let modesRead: ReturnType<typeof panelModes> | undefined;
   const modes = () => (modesRead ??= panelModes(host as unknown as Pick<PanelApi, 'variables'>));
+  const blockedPanels: { preview: SetPreview; set: LiveSet; due: FurnitureDue; by: PNode[] }[] = [];
   for (const t of targets) {
     const v = await locateView(host, t, breathe, ports.drawVars);
     if (v.kind === 'missing') { out.missing.push(t.def); continue; }
@@ -1034,10 +1121,16 @@ export const previewUpdate = async (host: UpdateHost, targets: readonly UpdateTa
     // after Set up file adds a template draws it, and "No changes found" means the furniture is current too.
     if (!t.single && !preview.blockers.length && hasFurniture(t.def)) {
       const due = furnitureDue(host as unknown as Pick<FurnitureApi, 'root'>, v.set as unknown as XNode, furnitureLayout(t.plans), t.def);
-      // THE USAGE PANEL (#846): due when missing, drawn from another plan, or not where the set puts it.
+      // THE USAGE PANEL (#846): due when missing, drawn from another plan, or not where the set puts it, unless its last
+      // draw was blocked by what still sits there. Then it is due only if this update moves every blocker (below).
       if (t.doc) {
-        const panels = docPanelDue(host as unknown as Pick<PanelApi, 'root'>, v.set as unknown as PNode, planDocPanel(t.doc.def, { modes: (await modes()).modes, names: t.doc.names }));
+        const plan = planDocPanel(t.doc.def, { modes: (await modes()).modes, names: t.doc.names });
+        const panels = docPanelDue(host as unknown as Pick<PanelApi, 'root'>, v.set as unknown as PNode, plan);
         if (panels) due.panels = panels;
+        else {
+          const by = docPanelBlockers(host as unknown as Pick<PanelApi, 'root'>, v.set as unknown as PNode, plan);
+          if (by.length) blockedPanels.push({ preview, set: v.set, due, by });
+        }
       }
       if (furnitureDueCount(due)) preview.furniture = due;
     }
@@ -1049,9 +1142,19 @@ export const previewUpdate = async (host: UpdateHost, targets: readonly UpdateTa
     out.sets.push(preview);
     if (!t.single) found.push({ preview, set: v.set });
   }
+  // #2831: what each published set's update breaks for library consumers, once everything above has named its changes.
+  for (const p of out.sets) { const b = breakingOf(p); if (b.length) p.breaking = b; }
   // #2542: the sets that move on their pages, read once every set has been.
-  const moves = pageSetMoves(found.map((f) => ({ name: f.preview.set, set: f.set, blocked: f.preview.blockers.length > 0 })), docPanelReach(host as unknown as Pick<PanelApi, 'root'>));
+  const moves = pageSetMoves(found.map((f) => ({ name: f.preview.set, set: f.set, blocked: f.preview.blockers.length > 0 })), undefined, docPanelReach(host as unknown as Pick<PanelApi, 'root'>));
   for (const f of found) { const m = moves.get(f.preview.set); if (m) f.preview.setMove = m; }
+  // A BLOCKED PANEL THIS UPDATE CLEARS (#846): every node in its way is, or belongs to, a set this update moves, and the
+  // move spaces that set past the panel. Then it is due, and the apply draws it once the sets have moved.
+  for (const b of blockedPanels) {
+    const kids = ((b.set.parent as { children?: readonly unknown[] } | null)?.children ?? []) as PNode[];
+    if (!b.by.every((n) => { const o = ownerSet(n, kids); return !!o && found.some((f) => f.set === (o as unknown) && f.preview.setMove); })) continue;
+    b.due.panels = 1;
+    b.preview.furniture = b.due;
+  }
   // THE PAGE ORDER (#2568): read once for the file, whichever sets the targets name, since the pages are the file's.
   const pages = host.root.children ? pagesOutOfOrder(host.root.children) : [];
   if (pages.length) out.pages = pages;
@@ -1256,6 +1359,51 @@ export const previewLine = (p: SetPreview): string => {
   return parts.length ? `${p.set}: ${n(c.members, 'member')}. ${parts.join(', ')}.${setMove}` : `${p.set}: ${n(c.members, 'member')}.${setMove}`;
 };
 
+/** #2831 — what a set's update breaks for library consumers, from what its dry run lists. Empty for a set that is not
+ *  published (nothing reaches another file), and for a set the update refuses (it changes nothing). A replacement of
+ *  the member itself is left out: the update refuses that member, so it is not replaced. */
+export const breakingOf = (p: SetPreview): Breaking[] => {
+  if (!isPublished(p.publish) || p.blockers.length) return [];
+  const hidden = (name: string): boolean => name.startsWith('_') || name.startsWith('.');
+  return [
+    ...(p.setRename && hidden(p.setRename.to) && !hidden(p.setRename.from) ? [{ kind: 'private' as const, ...p.setRename }] : []),
+    // The set-wide changes first, so the capped lines name them before the per-member ones.
+    ...p.properties.remove.map((x) => ({ kind: 'property' as const, name: x.name, change: 'removed' as const })),
+    ...p.properties.retype.map((x) => ({ kind: 'property' as const, name: x.name, change: 'retyped' as const, from: x.from, to: x.to })),
+    ...p.drops.map((member) => ({ kind: 'drop' as const, member })),
+    ...p.replacements.filter((r) => r.path !== '.').map((r) => ({ kind: 'replace' as const, ...r })),
+  ];
+};
+
+/** One breaking change, as a line. DRAFT wording for the owner (#2831). */
+export const breakingLine = (set: string, b: Breaking): string =>
+  b.kind === 'drop' ? `${set} · ${b.member} · dropped — consumer instances of it point at a deprecated member.`
+    : b.kind === 'replace' ? `${set} · ${b.member} / ${b.path} · replaced, not updated in place (${b.reason}) — consumer overrides on it are lost.`
+      : b.kind === 'private' ? `${set} · renamed ${b.from} → ${b.to} — a name starting with _ or . is not published, so the set leaves the library.`
+        : b.change === 'removed' ? `${set} · property ${b.name} · removed — consumer overrides of it are dropped.`
+          : `${set} · property ${b.name} · ${b.from} → ${b.to} — consumer overrides of it are dropped.`;
+
+/** THE "BREAKS LIBRARY CONSUMERS" SECTION (#2831), for the dry run (`made` false) and the apply (`made` true): a head
+ *  line counting the changes, then each set's changes named, capped as its differences are. Empty when nothing breaks.
+ *  DRAFT wording for the owner. */
+export const breakingSection = (sets: readonly { set: string; breaking?: Breaking[] }[], made: boolean): string[] => {
+  const hit = sets.filter((x) => x.breaking?.length);
+  const total = hit.reduce((k, x) => k + x.breaking!.length, 0);
+  if (!total) return [];
+  return [
+    `Breaks library consumers: ${n(total, 'change')} ${made ? 'made ' : ''}in ${n(hit.length, 'published set')}, passed on at the next library publish.`,
+    ...hit.flatMap((x) => [
+      ...x.breaking!.slice(0, DIFFERENCE_LINES).map((b) => breakingLine(x.set, b)),
+      ...(x.breaking!.length > DIFFERENCE_LINES ? [`${x.set}: ${x.breaking!.length - DIFFERENCE_LINES} more breaking changes not listed.`] : []),
+    ]),
+  ];
+};
+/** The headline's breaking clause (#2831), or empty. DRAFT wording for the owner. */
+export const breakingClause = (sets: readonly { breaking?: Breaking[] }[]): string => {
+  const total = sets.reduce((k, x) => k + (x.breaking?.length ?? 0), 0);
+  return total ? ` · ${n(total, 'change')} ${total === 1 ? 'breaks' : 'break'} library consumers` : '';
+};
+
 /** Owner-approved wording (#2568, the Q211/Q246 family; Q264 A): the component pages out of alphabetical order, named
  *  as the page list shows them less the `↳ `. Empty when none. */
 export const pagesLine = (pages: readonly string[] | undefined): string =>
@@ -1283,6 +1431,8 @@ export const previewVerdict = (r: UpdatePreview, whatChanged: (sets: string[]) =
     ...r.sets.flatMap((p) => [previewLine(p), ...namedLines(p.set, p.changes.filter((c) => c.field !== 'stamp').map((c) => ({ part: c.part, field: c.field, plan: c.to, file: c.from, members: c.members }))),
       // #2649: the rows moving into the slot, every placed instance named with what moves and what can't carry over.
       ...(p.slotMigration && !p.blockers.length ? migrationLines(p.set, p.slotMigration) : [])]),
+    // #2831: what the update breaks for library consumers, in its own section.
+    ...breakingSection(r.sets, false),
     ...r.refused.map((x) => `${x.def}: can't be checked. ${x.reason}.`),
     pagesLine(r.pages),
     r.missing.length ? `Not in this file: ${r.missing.join(', ')}.` : '',
@@ -1294,7 +1444,7 @@ export const previewVerdict = (r: UpdatePreview, whatChanged: (sets: string[]) =
     ...whatChanged(r.sets.filter((p) => !p.blockers.length && !noChanges(p)).map((p) => p.set)),
     'This was a check only. Nothing in the file changed.',
   ].filter(Boolean);
-  return { ok: blocked === 0, headline, summary: lines.join('\n'), lines };
+  return { ok: blocked === 0, headline: `${headline}${breakingClause(r.sets)}`, summary: lines.join('\n'), lines };
 };
 
 /** The verdict for a capture. `lines`, as for the dry run: one per set, the list `summary` is joined from. */

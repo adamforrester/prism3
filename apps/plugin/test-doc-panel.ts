@@ -16,11 +16,21 @@
  *                   one fresh panel. Mutation: the fingerprint check dropped (every earlier panel removed) → `hand edit/kept`.
  *   overlap/…       Tag and Badge built by the executor on one page, each with its labels and its panel: no panel overlaps
  *                   any other node on the page. A layer where the panel goes: no panel is drawn, and the run says why.
- *                   Mutation: the overlap check dropped → `overlap/blocked`.
+ *                   Mutation: the overlap check dropped → `overlap/blocked`. The run sends a designer to Update only
+ *                   when a Prism3 set later in the row is in the way (`overlap/blocked by a set`), else to move it.
  *   due/…           the dry run's check: due before a draw, not after, due again when the plan or the set's place moves,
- *                   never without the template.
- *   room/…          the update spaces two built sets past the first one's panel when the file has `_Doc-block`, and not
- *                   without it.
+ *                   never without the template; a panel whose draw was blocked is not due while the blocker stays, unless
+ *                   the update itself moves the blocker. Mutations: the blocker check dropped from `docPanelDue` →
+ *                   `due/blocked`; the post-move check dropped from `previewUpdate` → `due/update makes room`.
+ *   room/…          the update spaces two built sets past the first one's panel when the file has `_Doc-block` (160px
+ *                   visible gap, #2842), through the real apply, and a live panel moves with its set. Mutations:
+ *                   `respaceLive` given no reach (M1) → `room/apply`; the live panel dropped from `pageViews`' furniture
+ *                   (M3) → `room/panel follows`; the panel dropped from what `respaceLive` moves with a set →
+ *                   `room/panel follows`.
+ *   orphan/…        before a def is built again, its deleted set's unedited panel is removed and an edited one kept.
+ *                   Mutation: `clearOrphanPanels` without its `panelUnedited` check (M4) → `orphan/edited kept`.
+ *   seat/…          a new set is seated with room for its panel. Mutation: `seatNewSet` ignoring `panelReach` →
+ *                   `seat/room for the panel`.
  *   template/…      `_Doc-block` as Set up file builds it: nothing without Badge, Tag, List.Item, Divider and a theme,
  *                   naming each; with them, every Type × Size variant, the three booleans and the swap, each type's
  *                   layers, and the Prism3 components it nests.
@@ -39,10 +49,11 @@ import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffe
 import { applyComponentPlan } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
 import { makeShim, type Node } from './component-shim';
-import { drawDocPanel, docPanelDue, planDocPanel, panelItems, type PanelApi, type PNode } from './src/doc-panel';
+import { clearOrphanPanels, drawDocPanel, docPanelDue, planDocPanel, panelItems, type PanelApi, type PNode } from './src/doc-panel';
 import { ensureDocBlock, type DocBlockApi } from './src/doc-block';
-import { drawFurniture, furnitureLayout, templatesLine, withPanel, type FurnitureApi, type XNode } from './src/canvas-furniture';
-import { pageSetMoves } from './src/update-plan';
+import { drawFurniture, furnishUpdate, furnitureLayout, seatNewSet, templatesLine, withPanel, type FurnitureApi, type XNode } from './src/canvas-furniture';
+import { pageSetMoves, previewUpdate, type UpdateHost, type UpdateTarget } from './src/update-plan';
+import { applyUpdate, previewHashOf } from './src/update-apply';
 
 let failed = 0;
 const ok = (cond: boolean, label: string, detail = ''): void => {
@@ -283,6 +294,25 @@ section('replace/… and hand edit/… — an unedited panel is replaced, an edi
 
 /* ── overlap: real sets, their labels, their panels ────────────────────────────────────────────────────── */
 const plansOf = (id: string) => figmaAnatomySet(componentDefs.find((d) => d.id === id)!, { swapTarget: SWAP_TARGET });
+/** Several sets built on `p` by ONE component host, as a file holds them, and that host (for an update). */
+const buildAll = async (p: N, ids: readonly string[]) => {
+  const all = ids.flatMap(plansOf);
+  const api = makeShim({
+    vars: [...new Set(all.flatMap((pl) => [...planBoundVars(pl.root), ...planPaintVars(pl.root)]))],
+    styles: [...new Set(all.flatMap((pl) => planTextStyles(pl.root)))],
+    effects: [...new Set(all.flatMap((pl) => planEffectStyles(pl.root)))],
+    comps: [SWAP_TARGET, 'focus-ring', 'icon/close', 'icon/check'],
+    page: p as unknown as { children: Node[] },
+    liveRoot: true,
+    identities: true,
+  }) as Record<string, unknown>;
+  const sets: N[] = [];
+  for (const id of ids) {
+    await applyComponentPlan(plansOf(id), api as never, { targetPage: p as never });
+    sets.push(p.children.filter((c) => c.type === 'COMPONENT_SET').slice(-1)[0]);
+  }
+  return { api, sets };
+};
 const buildOn = async (p: N, id: string) => {
   const plans = plansOf(id);
   const api = makeShim({
@@ -335,8 +365,15 @@ section('overlap/… — a panel lies on nothing');
   const set = fakeSet(q, 'tag', 0, 0, 600, 400);
   q.appendChild!(mk('FRAME', 'Notes', [], { x: 700, y: 100, _w: 300, _h: 300 }));
   const r = await drawDocPanel(host([q]), set, componentDefs.find((d) => d.id === 'tag')!, { names });
-  ok(!r.drawn && panelsOn(q).length === 0 && panelItems(r).join(' ').includes('"Notes" sits right of the set') && panelItems(r).join(' ').includes('Run Update to make room'),
-    `overlap/blocked: no panel drawn, and the run says "${panelItems(r).join(' ')}"`);
+  ok(!r.drawn && panelsOn(q).length === 0 && panelItems(r).join(' ') === 'No usage panel for tag: "Notes" sits right of the set, where the panel goes. Move it, then build or update again',
+    `overlap/blocked: no panel drawn, and the run says to move the layer, not to Update, which never moves it: "${panelItems(r).join(' ')}"`);
+  // The dry run's view of it: not due while Notes is there, so Update does not list it on every run; due once it moves.
+  const plan = planDocPanel(componentDefs.find((d) => d.id === 'tag')!, { modes: ['light', 'dark'], names });
+  ok(docPanelDue(host([q]), set, plan) === 0, 'due/blocked: a panel the draw found blocked is not due while the layer is still there');
+  q.children.find((c) => c.name === 'Notes')!.x = 2000;
+  ok(docPanelDue(host([q]), set, plan) === 1, 'due/unblocked: due again once the layer has moved');
+  const r2 = await drawDocPanel(host([q]), set, componentDefs.find((d) => d.id === 'tag')!, { names });
+  ok(r2.drawn && docPanelDue(host([q]), set, plan) === 0 && !String(q.getSharedPluginData!('prism3', 'docPanelBlocked')), 'due/drawn: drawn then, and the record is gone');
 }
 
 /* ── due: the dry run's check ──────────────────────────────────────────────────────────────────────────── */
@@ -358,7 +395,7 @@ section('due/… — the dry run reads the panel as the draw would draw it');
 }
 
 /* ── room: the update spaces sets past the panel ───────────────────────────────────────────────────────── */
-section('room/… — the update makes room for the panel');
+section('room/… — the update makes room for the panel, and a panel follows its set');
 {
   const p = page('↳ Room');
   const a = await buildOn(p, 'badge');
@@ -366,9 +403,86 @@ section('room/… — the update makes room for the panel');
   a.set.x = 0; a.set.y = 0;
   b.set.x = Number(a.set.width) + 400; b.set.y = 0;
   const found = [{ name: 'badge', set: a.set, blocked: false }, { name: 'divider', set: b.set, blocked: false }] as never;
-  const withRoom = pageSetMoves(found, 600).get('divider');
-  ok(withRoom?.to.x === Number(a.set.width) + 40 + 560 + 400, `room/with template: Divider moves to ${withRoom?.to.x}, 400 past Badge's panel`, `want ${Number(a.set.width) + 1000}`);
-  ok(!pageSetMoves(found, 0).get('divider'), 'room/without template: nothing moves');
+  const withRoom = pageSetMoves(found, undefined, 600).get('divider');
+  ok(withRoom?.to.x === Number(a.set.width) + 40 + 560 + 160, `room/with template: Divider moves to ${withRoom?.to.x}, 160 past Badge's panel`, `want ${Number(a.set.width) + 760}`);
+  ok(pageSetMoves(found, undefined, 0).get('divider')?.to.x === Number(a.set.width) + 160,
+    'room/without template: the old spacing closes to 160 from the frame, with no panel to clear');
+}
+
+/** Two sets on one page, Badge then Divider at the #2502 spacing (400 frame to frame), as a file built before the
+ *  panels; Divider's panel drawn, Badge's blocked by Divider. And an update host over it, with `_Doc-block`. */
+const roomPage = async (name: string) => {
+  const p = page(name);
+  const { api, sets: [a, b] } = await buildAll(p, ['badge', 'divider']);
+  a.x = 0; a.y = 0;
+  b.x = Number(a.width) + 400; b.y = 0;
+  const panels = host([p]);
+  const rb = await drawDocPanel(panels, b, componentDefs.find((d) => d.id === 'divider')!, { names });
+  const ra = await drawDocPanel(panels, a, componentDefs.find((d) => d.id === 'badge')!, { names });
+  const uh = { ...api, root: { ...(api.root as object), findAllWithCriteria: (c: never) => labelHost(panels).root.findAllWithCriteria(c) } } as unknown as UpdateHost & PanelApi & FurnitureApi;
+  const doc = (id: string) => ({ def: componentDefs.find((d) => d.id === id)!, names });
+  const targets: UpdateTarget[] = ['badge', 'divider'].map((id) => ({ def: id, plans: plansOf(id), doc: doc(id) }));
+  const livePanel = (set: N) => panelsOn(p).find((n) => tagOf(n).state === 'live' && tagOf(n).set === set.id);
+  return { p, a, b, ra, rb, uh, targets, livePanel };
+};
+{
+  const { p, a, b, ra, rb, uh, targets, livePanel } = await roomPage('↳ Room apply');
+  ok(rb.drawn && !ra.drawn && panelItems(ra).join(' ') === 'No usage panel for badge: "divider" sits right of the set, where the panel goes. Run Update to make room, then the panel is drawn',
+    `overlap/blocked by a set: a Prism3 set later in the row is the one case the run sends to Update ("${panelItems(ra).join(' ')}")`);
+  const pre = await previewUpdate(uh, targets);
+  const pa = pre.sets.find((x) => x.set === 'badge'), pb = pre.sets.find((x) => x.set === 'divider');
+  ok(pb?.setMove?.to.x === Number(a.width) + 760 && pa?.furniture?.panels === 1,
+    `due/update makes room: the dry run moves Divider to ${pb?.setMove?.to.x} and lists Badge's blocked panel as due, since the move clears it (${JSON.stringify(pa?.furniture)})`);
+  // ONE UPDATE, as `main.ts` runs it: each set's furniture redrawn with its panel (`furnishUpdate` with the panel hook).
+  const furnish = async (def: string) => { await furnishUpdate(uh, { outcomes: [{ def }] }, targets, (set, id) => drawDocPanel(uh, set as unknown as PNode, componentDefs.find((d) => d.id === id)!, { names })); };
+  await applyUpdate(uh as never, uh as never, targets, previewHashOf(pre), { furnish });
+  const pa2 = livePanel(a), pb2 = livePanel(b);
+  const visibleLeft = Math.min(Number(b.x), ...p.children.filter((c) => { try { return JSON.parse(c.getSharedPluginData!('prism3', 'furniture') || 'null')?.set === b.id; } catch { return false; } }).map((c) => Number(c.x)));
+  const clashes = panelsOn(p).flatMap((pa) => p.children.filter((c) => c !== pa && overlap(pa, c)).map((c) => `${pa.name} on ${c.name}`));
+  ok(!!pa2 && !!pb2 && Number(pa2.x) === Number(a.x) + Number(a.width) + 40 && Math.round(visibleLeft - (Number(pa2.x) + Number(pa2.width))) === 160 && !clashes.length,
+    `room/apply: ONE Update draws Badge's panel and spaces Divider 160 past it (${pa2 ? Math.round(visibleLeft - (Number(pa2.x) + Number(pa2.width))) : 'no panel'}), no panel on anything (${clashes.join('; ')})`);
+  const next = await previewUpdate(uh, targets);
+  ok(next.sets.every((x) => !x.setMove && !x.furniture), `room/settled: the next dry run lists no move and no panel (${JSON.stringify(next.sets.map((x) => [x.set, x.setMove ?? null, x.furniture ?? null]))})`);
+}
+{
+  // No furniture redraw: the panel must move with its set, since nothing redraws it.
+  const { a, b, uh, targets, livePanel } = await roomPage('↳ Room follow');
+  await applyUpdate(uh as never, uh as never, targets, previewHashOf(await previewUpdate(uh, targets)));
+  const pb2 = livePanel(b);
+  ok(Number(b.x) === Number(a.width) + 760 && !!pb2 && Number(pb2.x) === Number(b.x) + Number(b.width) + 40 && Number(pb2.y) === Number(b.y),
+    `room/panel follows: Divider moves to ${Number(b.x)}, ${Number(a.width) + 760} wanted, and its panel with it, to ${pb2?.x}`);
+}
+
+/* ── orphan: a deleted set's panels before its def is built again ─────────────────────────────────────── */
+section('orphan/… — a set deleted, its def built again');
+{
+  const def = componentDefs.find((d) => d.id === 'tag')!;
+  const p = page('↳ Orphans');
+  const api = host([p]);
+  const one = fakeSet(p, 'tag', 0, 0);
+  await drawDocPanel(api, one, def, { names });
+  const two = fakeSet(p, 'tag', 0, 4000);
+  await drawDocPanel(api, two, def, { names });
+  const [plain, edited] = panelsOn(p);
+  const line = walk(edited).find((c) => c.type === 'TEXT' && c.name === 'text' && String(c.characters).length > 20)!;
+  line.characters = 'Our team uses tags for filters only.';
+  one.remove!(); two.remove!();
+  const n = await clearOrphanPanels(api, p, 'tag');
+  ok(n === 1 && plain.removed === true && !edited.removed && panelsOn(p).length === 1 && texts(edited).includes('Our team uses tags for filters only.'),
+    `orphan/edited kept: the unedited panel goes (${n}), the one a designer edited stays, its edit intact`);
+}
+
+/* ── seat: a new set is seated with room for its panel ─────────────────────────────────────────────────── */
+section('seat/… — a new set is seated where its panel fits');
+{
+  const p = page('↳ Seat');
+  p.appendChild!(mk('FRAME', '_section-header', [], { x: 0, y: -300, _w: 3000, _h: 200 }));
+  fakeSet(p, 'badge', 0, 0, 600, 400);
+  fakeSet(p, 'divider', 1400, 0, 600, 400);
+  const set = fakeSet(p, 'tag', 760, 0, 300, 400);
+  seatNewSet(set as unknown as XNode, 'tag', 600);
+  const r = await drawDocPanel(host([p]), set, componentDefs.find((d) => d.id === 'tag')!, { names });
+  ok(r.drawn && Number(set.x) === 2160, `seat/room for the panel: the set skips the gap its panel would not fit in, to ${set.x}, and its panel is drawn (${r.skipped.join('; ')})`);
 }
 
 /* ── template: `_Doc-block` as Set up file builds it ───────────────────────────────────────────────────── */

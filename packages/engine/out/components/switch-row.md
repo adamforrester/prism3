@@ -18,7 +18,7 @@ A control for a binary on/off setting that takes effect IMMEDIATELY — no save,
 
 ## Anatomy
 
-Shown on the default member: size `medium`.
+Shown on the default member: size `medium`, status `default`.
 
 1. **Label**
 2. **Control**
@@ -28,10 +28,11 @@ Shown on the default member: size `medium`.
 | Axis | Values | Changes | Description |
 | --- | --- | --- | --- |
 | `size` | `medium`, `small` | once, when authored | Two rungs, not three: switches rarely warrant a large. Scales the row: the label-to-control gap, the row's minimum height, the label's type, and — passed through to the nested control by `follow` — the track's height and length and the thumb's diameter. |
+| `status` | `default`, `error` | at runtime | — |
 
 ### States
 
-`rest`, `hover`, `pressed`, `pending`, `focus-visible`, `disabled`, `read-only`, `error`
+`rest`, `hover`, `pressed`, `pending`, `focus-visible`, `disabled`, `read-only`
 
 ## Usage guidelines
 
@@ -65,7 +66,7 @@ Use for a binary on/off setting that applies IMMEDIATELY — notifications, dark
 - **Focus:** :focus-visible ring on the TRACK, never the thumb — the thumb moves, and a ring that travels with it reads as two indicators. Offset, at least 3:1, keyboard traversal only. A read-only switch STAYS in the tab order and stays focusable; a disabled one is removed from it.
 - **Screen readers:** switch (native \<input type="checkbox" role="switch">), with aria-checked true/false — announced "on"/"off", NOT "checked"
 
-  Three roles are easily confused: checkbox is role="checkbox" (announced "checked"), switch is role="switch" (announced "on"/"off"), and a toggle button is role="button" + aria-pressed (announced "pressed"). Putting aria-pressed on a switch is a recurring and severe error that CORRUPTS the announcement. Prefer the styled native input — \<input type="checkbox" role="switch"> keeps focus, activation and the a11y tree for free. ANNOUNCE THE IMMEDIATE EFFECT: aria-checked flips on toggle; for an async effect set aria-busy during flight and announce the outcome politely (4.1.3). If the toggle changes the page layout (it reveals or removes content), announce that change through an aria-live region. The thumb glyph is decorative (aria-hidden) — the role and state already carry on/off. TWO IMPLEMENTATION TRAPS: the IA2 quirk, where both aria-pressed buttons and role="switch" map internally to IA2_ROLE_TOGGLE_BUTTON — author to the ARIA spec regardless; and shadow-DOM label detachment, where wrapping a web-component switch in a native \<label> does NOT associate the name with the input inside the shadow root, so set aria-label or aria-labelledby explicitly.
+  Three roles are easily confused: checkbox is role="checkbox" (announced "checked"), switch is role="switch" (announced "on"/"off"), and a toggle button is role="button" + aria-pressed (announced "pressed"). Putting aria-pressed on a switch is a recurring and severe error that CORRUPTS the announcement. Prefer the styled native input — \<input type="checkbox" role="switch"> keeps focus, activation and the a11y tree for free. ANNOUNCE THE IMMEDIATE EFFECT: aria-checked flips on toggle; for an async effect set aria-busy during flight and announce the outcome politely (4.1.3); on a failed change, set `status=error` and announce the message, since the danger border alone says nothing. If the toggle changes the page layout (it reveals or removes content), announce that change through an aria-live region. The thumb glyph is decorative (aria-hidden) — the role and state already carry on/off. TWO IMPLEMENTATION TRAPS: the IA2 quirk, where both aria-pressed buttons and role="switch" map internally to IA2_ROLE_TOGGLE_BUTTON — author to the ARIA spec regardless; and shadow-DOM label detachment, where wrapping a web-component switch in a native \<label> does NOT associate the name with the input inside the shadow root, so set aria-label or aria-labelledby explicitly.
 
 ### WCAG
 
@@ -112,6 +113,7 @@ The label names the setting and never changes. The description says what turning
 | `isPending` | boolean | `false` | no | A first-class state here, because an immediate change can still wait on the network. Locks input, swaps the thumb for a spinner and announces `aria-busy`. The practice ships optimistic-by-default — flip instantly, revert and message on failure — with this as the alternative for high-latency or critical toggles where an inconsistent intermediate is genuinely harmful. |
 | `readOnly` | boolean | `false` | no | Supported, which is not obvious for a toggle. Enterprise dashboards need users to review permission sets and system config they lack authority to change, and disabling those drops them from the tab order while swapping to static text hides the setting from screen readers. So: `aria-readonly="true"`, focusable and IN the tab order, at full WCAG contrast (unlike disabled), and visually distinct from disabled. |
 | `showStateLabel` | boolean | `true` | no | The on/off affordance — a checkmark in the thumb when on, an X when off. On by default; turn it off where thumb position plus track color are enough. Never the sole state signal. Exposed from the nested Switch.Control, which carries the glyph. This is NOT hardcoded "On"/"Off" text adjacent to the label, which is rejected outright: it competes with the track, duplicates the screen-reader output, and does not localize. |
+| `validation` | enum: 'default' \| 'error' | `default` | no | The outcome status. `error` draws the danger border on the track when a change did not take and the thumb reverted; pair it with a status message that says so. `default` is neutral. |
 | `size` | enum: 'small' \| 'medium' | `medium` | no | Two rungs, not three: switches rarely warrant a large. Scales the row: the label-to-control gap, the row's minimum height, the label's type, and — passed through to the nested control by `follow` — the track's height and length and the thumb's diameter. |
 
 ---

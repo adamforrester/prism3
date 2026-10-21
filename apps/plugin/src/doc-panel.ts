@@ -37,9 +37,13 @@
  *
  * NEVER ON TOP OF ANYTHING. The panel goes `PANEL_GAP` right of the set, top-aligned. Labels sit above and left of
  * the set and a backdrop reaches `BACKDROP_PAD` (12) past it, so none of them is in that spot; another set may be. A
- * panel that would overlap any node on the parent is not drawn, and the run says so and what to do: an update makes
- * room, because each set's box reaches past its panel when the update spaces the sets (`docPanelReach`,
- * `pageSetMoves`), and a new set is placed past every panel already on the page, which `placeNewSet` reads as content.
+ * panel that would overlap any node on the parent is not drawn, and the run says so and what to do. When what is in
+ * the way is a Prism3 set later in the set's row (or its labels or panel), Update makes room: each set's box reaches
+ * past its panel when the update spaces the sets (`docPanelReach`, `pageSetMoves`), so it moves that set `SET_GAP`
+ * past the panel. Anything else is the designer's to move, and the run says that instead. A new set is seated with
+ * room for its panel (`seatNewSet`) and past every panel already on the page, which `placeNewSet` reads as content.
+ * A blocked panel is recorded on the parent with the height it would have had, so the dry run counts it as due only
+ * once the spot is clear, or when the update itself would clear it (`docPanelBlockers`): never on every run.
  *
  * NEVER THROWS FOR A MISSING TEMPLATE. A file without `_Doc-block` draws no panel and keeps any it has; the run's
  * Set up file line names it (`templatesLine`), as for the labels.
@@ -51,6 +55,10 @@ import { docSections, type DocSection, type DocSectionId } from '@prism3/engine/
 import type { ComponentDef } from '@prism3/engine/component-schema';
 import { isTemplateSet } from './file-components';
 import { fingerprintOf, fnv, type SgNode } from './style-guide';
+import { NS } from './persist-figma';
+import { STAMP_KEY } from './write-components';
+import { builtByPrism3, readBaseline } from './member-baseline';
+import { readTag } from './canvas-furniture';
 import { CAPTION, CHIP_SLOTS, DOC_BLOCK_SET, DO_ROWS, SPECIMEN, docBlockVariant, type DocBlockSize, type DocBlockType } from './doc-block';
 
 export const DOC_PANEL_NS = 'prism3';
@@ -58,6 +66,9 @@ export const DOC_PANEL_KEY = 'docPanel';
 /** What the panel held when it was drawn, and the plan it was drawn from. Shared, so another tool can read them. */
 export const DOC_PANEL_PRINT = 'docPanelPrint';
 export const DOC_PANEL_PLAN = 'docPanelPlan';
+/** On the set's parent: each set whose panel the last draw found blocked, with the panel's height and plan then
+ *  (`docPanelBlockers`). Cleared when the panel is drawn. */
+export const DOC_PANEL_BLOCKED = 'docPanelBlocked';
 /** On each section frame: the model section it draws. */
 export const DOC_SECTION_KEY = 'docSection';
 export const PANEL_WIDTH = 560;
@@ -211,6 +222,8 @@ export interface PanelParent {
   readonly children: readonly unknown[];
   appendChild(child: unknown): void;
   insertChild(index: number, child: unknown): void;
+  getSharedPluginData?(ns: string, key: string): string;
+  setSharedPluginData?(ns: string, key: string, value: string): void;
 }
 export interface PanelVariable { id: string; name: string; variableCollectionId?: string }
 export interface PanelApi {
@@ -303,16 +316,72 @@ export const panelUnedited = async (n: PNode): Promise<boolean> => {
 /**
  * THE DRY RUN'S PANEL CHECK: 1 when an update would draw the set's panel, else 0. Read as the draw would draw it: the
  * same template lookup and the same plan. Due when the file can draw a panel and the set has none, or its panel was
- * drawn from another plan, or it is not where the set now puts it. A panel that is current is not due, edited or not.
+ * drawn from another plan, or it is not where the set now puts it. A panel that is current is not due, edited or not,
+ * and neither is one whose last draw was blocked by what still sits where it goes (`docPanelBlockers`).
  */
 export const docPanelDue = (api: Pick<PanelApi, 'root'>, set: PNode, plan: PanelPlan): number => {
   if (!findDocBlock(api) || !set.parent) return 0;
+  // Blocked when last drawn, and the spot is still taken: the draw would be refused again (`docPanelBlockers`).
+  if (docPanelBlockers(api, set, plan).length) return 0;
   const live = allPanels(api).filter(({ node, tag }) => tag.state === 'live' && tag.set === String(set.id ?? '') && node.parent === set.parent);
   if (live.length !== 1) return 1;
   const p = live[0].node;
   const at = panelSpot(set);
   const near = (a: number | undefined, b: number) => Math.abs((a ?? 0) - b) <= 0.5;
   return p.getSharedPluginData?.(DOC_PANEL_NS, DOC_PANEL_PLAN) === plan.hash && near(p.x, at.x) && near(p.y, at.y) ? 0 : 1;
+};
+
+/** Whether a node is a set Prism3 built: one of its members is, by the shared member test (`builtByPrism3`, #2510). */
+const prism3Set = (n: PNode | undefined): boolean => {
+  if (!n || n.type !== 'COMPONENT_SET') return false;
+  const reads = (n.children ?? []).map((m) => ({ id: m.id === undefined ? undefined : String(m.id), stamp: m.getSharedPluginData?.(NS, STAMP_KEY) ?? '', recordId: readBaseline(m as never)?.id }));
+  return reads.some(builtByPrism3(reads));
+};
+/** The set a node on the page stands for, as an obstacle: a set is itself, and a set's labels, backdrop or live
+ *  panel are that set's. Anything else stands for nothing. */
+export const ownerSet = (n: PNode, kids: readonly PNode[]): PNode | undefined => {
+  if (n.type === 'COMPONENT_SET') return n;
+  const id = readTag(n as never)?.set ?? (readPanelTag(n)?.state === 'live' ? readPanelTag(n)?.set : undefined);
+  return id ? kids.find((k) => k.type === 'COMPONENT_SET' && String(k.id ?? '') === id) : undefined;
+};
+const boxOf = (n: PNode): Box => ({ x: n.x ?? 0, y: n.y ?? 0, width: n.width ?? 0, height: n.height ?? 0 });
+/** THE NODES A PANEL AT `spot` WOULD LIE ON, as the draw tests it: every node on the parent but `skip` (the panels
+ *  this draw replaces or moves aside). Shared by the draw and the dry run, so the two cannot disagree. */
+const blockersAt = (kids: readonly PNode[], spot: Box, skip: ReadonlySet<PNode>): PNode[] =>
+  kids.filter((c) => !skip.has(c) && !c.removed && overlaps(spot, boxOf(c)));
+/** Whether Update makes room past these blockers: each one is, or belongs to, a Prism3 set in the set's row and right of
+ *  it, which the re-spacing moves `SET_GAP` past the panel (`respaceSets`). The dry run reads the moves themselves. */
+const updateMakesRoom = (set: PNode, hits: readonly PNode[], kids: readonly PNode[]): boolean => hits.every((h) => {
+  const o = ownerSet(h, kids);
+  return !!o && o !== set && prism3Set(o) && (o.x ?? 0) > (set.x ?? 0)
+    && (o.y ?? 0) < (set.y ?? 0) + (set.height ?? 0) && (o.y ?? 0) + (o.height ?? 0) > (set.y ?? 0);
+});
+type Blocked = Record<string, { h: number; plan: string }>;
+const readBlocked = (parent: PanelParent): Blocked => {
+  try { return JSON.parse(parent.getSharedPluginData?.(DOC_PANEL_NS, DOC_PANEL_BLOCKED) || '{}') as Blocked; } catch { return {}; }
+};
+const writeBlocked = (parent: PanelParent, setId: string, rec: { h: number; plan: string } | null): void => {
+  if (!parent.setSharedPluginData) return;
+  const all = readBlocked(parent);
+  if (rec) all[setId] = rec;
+  else if (!(setId in all)) return;
+  else delete all[setId];
+  parent.setSharedPluginData(DOC_PANEL_NS, DOC_PANEL_BLOCKED, Object.keys(all).length ? JSON.stringify(all) : '');
+};
+
+/**
+ * THE NODES THAT KEPT THIS SET'S PANEL FROM BEING DRAWN, and still would: read from the record the blocked draw left
+ * (its height and plan) with the draw's own overlap test. Empty when there is no record for this plan, or the spot is
+ * now clear: then the draw is worth trying, and `docPanelDue` counts it.
+ */
+export const docPanelBlockers = (api: Pick<PanelApi, 'root'>, set: PNode, plan: PanelPlan): PNode[] => {
+  const parent = set.parent as PanelParent | null | undefined;
+  if (!parent) return [];
+  const rec = readBlocked(parent)[String(set.id ?? '')];
+  if (!rec || rec.plan !== plan.hash) return [];
+  const at = panelSpot(set);
+  const skip = new Set<PNode>([...earlierPanels(api, set, plan.def), ...(parent.children as readonly PNode[]).filter((c) => readPanelTag(c)?.state === 'kept' && readPanelTag(c)?.def === plan.def)]);
+  return blockersAt(parent.children as readonly PNode[], { x: at.x, y: at.y, width: PANEL_WIDTH, height: rec.h }, skip);
 };
 
 /** The descendant named `name`, depth first. */
@@ -483,16 +552,23 @@ export const drawDocPanel = async (
 
   // NOTHING UNDER IT: every other node on the parent, the set and its labels included, but the edited panels this
   // draw is about to move, and the kept ones it moves when they are in the way.
-  const box = (n: PNode): Box => ({ x: n.x ?? 0, y: n.y ?? 0, width: n.width ?? 0, height: n.height ?? 0 });
-  const kept = (parent.children as readonly PNode[]).filter((c) => readPanelTag(c)?.state === 'kept' && readPanelTag(c)?.def === def.id);
-  const movers = new Set<PNode>([...edited.filter((e) => e.parent === parent), ...kept]);
-  const hit = (parent.children as readonly PNode[]).find((c) => c !== panel && !movers.has(c) && !c.removed && overlaps(box(panel), box(c)));
-  if (hit) {
+  const box = boxOf;
+  const kids = parent.children as readonly PNode[];
+  const kept = kids.filter((c) => readPanelTag(c)?.state === 'kept' && readPanelTag(c)?.def === def.id);
+  const movers = new Set<PNode>([panel, ...edited.filter((e) => e.parent === parent), ...kept]);
+  const hits = blockersAt(kids, box(panel), movers);
+  if (hits.length) {
+    // Recorded, so the dry run does not list it as due again until the spot is clear (`docPanelBlockers`).
+    writeBlocked(parent, String(set.id ?? ''), { h: panel.height ?? 0, plan: plan.hash });
     panel.remove?.();
     out.sections = [];
-    out.skipped.push(`No usage panel for ${def.id}: "${hit.name ?? 'a layer'}" sits right of the set, where the panel goes. Run Update to make room, then the panel is drawn`);
+    const hit = hits[0];
+    out.skipped.push(updateMakesRoom(set, hits, kids)
+      ? `No usage panel for ${def.id}: "${hit.name ?? 'a layer'}" sits right of the set, where the panel goes. Run Update to make room, then the panel is drawn`
+      : `No usage panel for ${def.id}: "${hit.name ?? 'a layer'}" sits right of the set, where the panel goes. Move it, then build or update again`);
     return out;
   }
+  writeBlocked(parent, String(set.id ?? ''), null);
 
   // THE PART MARKERS, once the panel has its layout: a numbered Badge on each part the specimen names, over the panel.
   const pos = (n: PNode): { x: number; y: number } => {

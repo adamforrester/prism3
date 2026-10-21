@@ -36,7 +36,8 @@
  * (`withFurnitureItems(applyVerdict(r), …)`) → `templates/update verdict`. The warning (Q284.3 A) dropped from the
  * build's post (`main.ts`, `withTemplateWarning({ type: 'component-result', … })`) → `templates/build warns`; from the
  * Update's → `templates/update warns`; a warning with every template present → `templates/build clean`,
- * `templates/update clean`.
+ * `templates/update clean`. `updateTargets` (`main.ts`) giving no target its `doc` → `panel/update due`; the per-def
+ * `furnish` hook without `panelFor` → `panel/update drawn`.
  */
 import { makeShim } from './component-shim';
 import type { Node } from './component-shim';
@@ -93,10 +94,12 @@ Object.assign(root, {
   getPluginData: () => '',
   setPluginData: () => undefined,
 });
-// A search for sets finds the ones on the pages, as Figma's does: the Update reads its targets this way.
+// A search for sets finds the ones on the pages, as Figma's does: the Update reads its targets this way. So does a
+// search for the usage panels (#846): top-level frames on the pages carrying the shared plugin data asked for.
 const shimFind = (root.findAllWithCriteria as (c?: { types?: string[] }) => unknown[]).bind(root);
-root.findAllWithCriteria = (c?: { types?: string[] }) => [...shimFind(c),
-  ...(c?.types?.includes('COMPONENT_SET') ? pages.flatMap((p) => p.children).filter((n) => n.type === 'COMPONENT_SET') : [])];
+root.findAllWithCriteria = (c?: { types?: string[]; sharedPluginData?: { namespace: string; keys: string[] } }) => [...shimFind(c),
+  ...(c?.types?.includes('COMPONENT_SET') ? pages.flatMap((p) => p.children).filter((n) => n.type === 'COMPONENT_SET') : []),
+  ...(c?.types?.includes('FRAME') && c.sharedPluginData ? pages.flatMap((p) => p.children).filter((n) => n.type === 'FRAME' && c.sharedPluginData!.keys.some((k) => (n as any).getSharedPluginData?.(c.sharedPluginData!.namespace, k))) : [])];
 const empty = async () => [];
 Object.assign(shim, {
   showUI: () => undefined,
@@ -211,6 +214,16 @@ const applied2 = (await runAction((sink) => ACTIONS.updateComponents('badge', ha
   .find((m) => m?.type === 'component-update-result');
 ok(!!applied2 && applied2.ok === true && String(applied2.headline).startsWith('✓') && !String(applied2.summary).includes('No canvas labels') && !String(applied2.summary).includes('No usage panels'),
   `templates/update clean: with the templates in the file, the same Update stays ✓ (ok ${applied2?.ok}, "${applied2?.headline}", ${JSON.stringify(applied2?.summary)})`);
+// #846: the real Update's dry run reads the panel (`updateTargets` gives each target its def) and its apply redraws it
+// (the per-def `furnish` hook passes `panelFor`). The panel is nudged off its spot, so it is the set's only work.
+const livePanel = () => (badgePage?.children ?? []).filter((c) => { try { return JSON.parse(String((c as any).getSharedPluginData?.('prism3', 'docPanel') || 'null'))?.state === 'live'; } catch { return false; } });
+const spotX = Number(set?.x ?? 0) + Number(set?.width ?? 0) + 40;
+(livePanel()[0] as any).x = spotX + 50;
+const check3 = await runAction((sink) => ACTIONS.updateComponents('badge', null, undefined, sink as never));
+const pre3 = check3.data.find((d) => (d.update as { mode?: string })?.mode === 'preview')?.update as { previewHash?: string; sets?: { furniture?: { panels?: number } }[] } | undefined;
+ok(pre3?.sets?.[0]?.furniture?.panels === 1, `panel/update due: the Update's dry run lists the moved usage panel as 1 to draw (${JSON.stringify(pre3?.sets?.[0]?.furniture)})`);
+await runAction((sink) => ACTIONS.updateComponents('badge', pre3?.previewHash ?? null, undefined, sink as never));
+ok(livePanel().length === 1 && Number((livePanel()[0] as any).x) === spotX, `panel/update drawn: the Update redraws it on its spot, ${spotX} (${livePanel().map((c) => (c as any).x).join(', ')})`);
 
 // 2. The same set, its members renamed onto a smaller axis list: refused, nothing built.
 const members = (set?.children ?? []) as Node[];
