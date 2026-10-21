@@ -56,8 +56,8 @@ import { NS } from './persist-figma';
 import { baselineDiff, baselineOf, readBaseline, snapshotMember } from './member-baseline';
 import { drawnFaults, faultLine, varsById } from './drawn';
 import { reorderPages, stripNestPrefix } from './file-setup';
-import { furnitureDueCount, type FurnitureDue } from './canvas-furniture';
-import { REACTIONS, breakingClause, breakingSection, furnitureParts, withSetSlots, hostPorts, pageSetMoves, previewLine, previewUpdate, readSetView, readSingleView, setUpToDate, slotMigrationFor, type Breaking, type SetPreview, type UpdateHost, type UpdatePreview, type UpdateTarget } from './update-plan';
+import { readTag, furnitureDueCount, type FurnitureDue } from './canvas-furniture';
+import { REACTIONS, breakingClause, breakingSection, furnitureParts, withSetSlots, hostPorts, pageSetMoves, pageSnugSets, previewLine, previewUpdate, readSetView, readSingleView, setUpToDate, slotMigrationFor, type Breaking, type SetPreview, type UpdateHost, type UpdatePreview, type UpdateTarget } from './update-plan';
 import { fillSlots, type FillOutcome, type MigNode } from './slot-migration';
 import { slotMigrationOf } from '@prism3/engine/component-renames';
 import { REACTIONS_PATH, plannedRead, reactionMap, reactionVerdict, reactionsText } from './reactions';
@@ -148,8 +148,8 @@ export type SetOutcome = {
   moved?: number;
   /** #2542 (owner decision Q245.2 A) — the whole set moved on its page, to where a fresh build would place it. */
   setMoved?: true;
-  /** #2803 (owner decision Q379 A) — the canvas furniture the dry run listed for this set, drawn after the apply by
-   *  `furnishUpdate`. A set whose only work this is touches no member. */
+  /** #2803 (owner decision Q379 A) — the canvas furniture the dry run listed for this set, drawn once the apply is
+   *  done (`settle`, through `opts.furnish`). A set whose only work this is touches no member. */
   furniture?: FurnitureDue;
   /** #2649 — the placed instances whose rows were carried into the set's new slot. A miss is also in `content`. */
   carried?: FillOutcome;
@@ -526,6 +526,112 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
   return out;
 };
 
+/** The canvas furniture's redraw for one set the update acted on (`main.ts`'s `furnishSet`, #2406). */
+export type Furnish = (def: string, set: { id?: unknown }) => Promise<void>;
+
+/**
+ * THE PAGE'S SETS, RE-SPACED FROM WHAT IS ON IT NOW (#2542, #2723). The sets this update reads, each blocked when the
+ * dry run named a blocker or the apply refused it, laid out by `pageSetMoves`. A set moves by `x` and `y` only, and
+ * its own furniture (tagged with its id, `canvas-furniture.ts`) moves with it by the same amount, so labels already
+ * drawn keep their place against the members. Returns the names of the sets it moved.
+ */
+const liveSets = async (host: ApplyHost, targets: readonly UpdateTarget[], preview: UpdatePreview, res: ApplyResult): Promise<{ name: string; set: LiveSet; blocked: boolean }[]> => {
+  const live: { name: string; set: LiveSet; blocked: boolean }[] = [];
+  for (const t of targets) {
+    if (t.single) continue;
+    const p = preview.sets.find((s) => s.set === (t.plans[0]?.component ?? t.def));
+    const set = p ? await liveFor(host, t, p.set) : undefined;
+    if (!p || !set) continue;
+    live.push({ name: p.set, set, blocked: p.blockers.length > 0 || res.outcomes.some((o) => o.set === p.set && !!o.refused) });
+  }
+  return live;
+};
+const respaceLive = async (host: ApplyHost, targets: readonly UpdateTarget[], preview: UpdatePreview, res: ApplyResult, choices: UpdateChoices | undefined, before?: (names: string[]) => Promise<boolean>, snug?: ReadonlySet<string>): Promise<string[]> => {
+  const live = await liveSets(host, targets, preview, res);
+  const moves = pageSetMoves(live as never, snug);
+  if (!moves.size || (before && !await before([...moves.keys()]))) return [];
+  const moved: string[] = [];
+  for (const { name, set } of live) {
+    const m = moves.get(name);
+    if (!m) continue;
+    const node = set as { x?: number; y?: number; parent?: { children?: readonly unknown[] } | null };
+    const dx = m.to.x - Number(node.x ?? 0), dy = m.to.y - Number(node.y ?? 0);
+    const own = (node.parent?.children ?? []).filter((k) => readTag(k as never)?.set === idOf(set)) as { x?: number; y?: number }[];
+    node.x = m.to.x;
+    node.y = m.to.y;
+    for (const f of own) { f.x = Number(f.x ?? 0) + dx; f.y = Number(f.y ?? 0) + dy; }
+    moved.push(name);
+    const t = targets.find((x) => (x.plans[0]?.component ?? x.def) === name)!;
+    let o = res.outcomes.find((x) => x.set === name);
+    if (!o) { o = { def: t.def, set: name, updated: [], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: choiceFor(choices, name), identity: [], content: [], misses: [] }; res.outcomes.push(o); }
+    o.setMoved = true;
+    // A set whose only work was the move no longer reads as it was previewed: it changed.
+    if (o.asPreviewed) delete o.asPreviewed;
+  }
+  return moved;
+};
+
+/**
+ * ONE UPDATE SETTLES THE PAGE (owner decision Q358 A). The canvas furniture is redrawn for every set the update acted
+ * on (`opts.furnish`), and a redraw can widen a set: its labels are measured as drawn, and #2705's columns grow to the
+ * widest label. The re-spacing above ran before that, from the old labels, so the set to the right can now sit closer
+ * than `SET_GAP`, its labels under the widened set's. So the re-spacing runs once more, from the furniture as now
+ * drawn. It makes room (Q248 A): a set clear at a spacing a designer chose stays. Nothing runs without
+ * `opts.furnish`, and nothing after a stop, as above.
+ *
+ * A REDRAW CAN NARROW A SET TOO (#2734). Labels that shrink leave the set to the right further than `SET_GAP` away, and
+ * a wider spacing reads as the designer's. So the sets sitting at exactly `SET_GAP` just before the redraw
+ * (`pageSnugSets`) are Prism3's spacing, and the second pass puts them back at exactly `SET_GAP`, nearer or further.
+ *
+ * A SECOND WRITE NEEDS THE NAMED VERSION TOO (Q7). When the update wrote nothing else, no version was saved yet, so one
+ * is saved before the first move; refused or unavailable, the sets stay where they are, and the next dry run lists
+ * the moves.
+ */
+const settle = async (host: ApplyHost, targets: readonly UpdateTarget[], preview: UpdatePreview, res: ApplyResult, opts: { furnish?: Furnish; choices?: UpdateChoices }): Promise<void> => {
+  if (!opts.furnish) return;
+  // #2734: which sets sit at exactly `SET_GAP` now, before a redraw can narrow the labels beside them.
+  const snug = pageSnugSets(await liveSets(host, targets, preview, res) as never);
+  for (const o of res.outcomes) {
+    const t = targets.find((x) => x.def === o.def);
+    if (!t || t.single) continue;
+    const set = await liveFor(host, t, o.set);
+    if (set) await opts.furnish(o.def, set);
+  }
+  if (res.outcomes.some((o) => o.stopped)) return;
+  await respaceLive(host, targets, preview, res, opts.choices, async (names) => {
+    if (res.version) return true;
+    try {
+      if (!host.saveVersionHistoryAsync) return false;
+      const title = versionTitle(names);
+      await host.saveVersionHistoryAsync(title);
+      res.version = title;
+      return true;
+    } catch { return false; }
+  }, snug);
+};
+
+/**
+ * THE ABOUT FRAME AND THE PUBLISH DESCRIPTION (#2858), once a run has written: `res.version` is set by whichever path
+ * saved the named version first, the apply's or `settle`'s re-spacing. The frame is redrawn last, so its date is the
+ * run's; a run that stopped in a set leaves it, and the next run finishes the sets and draws it. A host write refused
+ * here is named, never thrown: the sets are already written. The description's first sentence is that version's title.
+ */
+const finishAbout = async (host: ApplyHost, api: ComponentsApi, preview: UpdatePreview, res: ApplyResult, today: string | undefined): Promise<void> => {
+  if (!res.version) return;
+  if (preview.about && !res.outcomes.some((o) => o.stopped)) {
+    try {
+      res.about = await drawAbout(api as unknown as AboutApi, host.root as AboutRoot, { updated: today ?? new Date().toISOString().slice(0, 10) });
+    } catch (e) {
+      res.about = { drawn: false, skipped: `Figma refused the write (${(e as Error)?.message ?? String(e)})`, fontMisses: [] };
+    }
+  }
+  const changed = res.outcomes.filter((o) => !o.refused && (o.updated.length || o.added || o.renamed || o.deprecated.length)).map((o) => o.set);
+  res.publish = publishDescription({
+    title: res.version, sets: changed, from: res.about?.from ?? (preview.about?.state === 'stale' ? preview.about.from.engine : null),
+    consumerBreaks: res.outcomes.reduce((k, o) => k + (o.breaking?.length ?? 0), 0),
+  });
+};
+
 /**
  * `update-components` with `confirm: true`: the update, applied, over the targets the dry run checked.
  * `host` reads the file as the dry run does; `api` is the executor's port. Both are `figma` in the plugin.
@@ -536,7 +642,7 @@ export const applyUpdate = async (
   targets: readonly UpdateTarget[],
   previewHash: string,
   /** `ledger` is the engine's `COMPONENT_RENAMES` unless a test passes its own. */
-  opts: { descriptionOf?: (def: string) => string | undefined; breathe?: () => Promise<void>; yieldTo?: () => Promise<void>; ledger?: readonly ComponentRename[]; choices?: UpdateChoices;
+  opts: { descriptionOf?: (def: string) => string | undefined; breathe?: () => Promise<void>; yieldTo?: () => Promise<void>; ledger?: readonly ComponentRename[]; choices?: UpdateChoices; furnish?: Furnish;
     /** The run's date for the About frame, `YYYY-MM-DD`; today, UTC, unless a test passes its own. */
     today?: string } = {},
 ): Promise<ApplyResult> => {
@@ -564,7 +670,7 @@ export const applyUpdate = async (
       && Object.values(p.properties).every((l) => l.length === 0);
     if (nothing && p.counts.revisionUnknown) { ready.push({ t, p, live, stampOnly: true }); continue; }
     // A set whose only work is its canvas furniture (#2803) touches no member: it takes an outcome naming the furniture,
-    // which `furnishUpdate` draws once the apply is done, and the named version below covers it.
+    // which `settle` draws through `opts.furnish` once the apply is done, and the named version below covers it.
     if (nothing && furnitureDueCount(p.furniture)) {
       res.outcomes.push({ def: t.def, set: p.set, updated: [], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: choiceFor(opts.choices, p.set), identity: [], content: [], misses: [], furniture: p.furniture });
       furnishing.push(p);
@@ -585,7 +691,7 @@ export const applyUpdate = async (
   const reorder = !!preview.pages?.length && typeof host.root.insertChild === 'function' && !!host.root.children;
   // THE ABOUT FRAME (#2858) is work of its own when it is missing or drawn for another engine.
   const about = aboutIsWork(preview.about);
-  if (!ready.length && !moving.length && !reorder && !furnishing.length && !about) return res;
+  if (!ready.length && !moving.length && !reorder && !furnishing.length && !about) { await settle(host, targets, preview, res, opts); await finishAbout(host, api, preview, res, opts.today); return res; }
   // A NAMED VERSION, ONCE, BEFORE THE FIRST WRITE (Q7), for all of it: the sets updated or moved, then the page order.
   // Refused or unavailable, nothing is written.
   const title = versionTitle([...new Set([...ready.map((x) => x.p.set), ...moving.map((p) => p.set), ...furnishing.map((p) => p.set)]), ...(reorder ? ['the page order'] : []), ...(about ? [ABOUT_NAME] : [])]);
@@ -633,46 +739,9 @@ export const applyUpdate = async (
   // where a fresh build would place it. Read again from the live sets: the moves the dry run listed, plus any a resize
   // just made (as #2519 counts the member moves the dry run could not list). A set the apply refused or stopped in
   // holds its page still. Only `x` and `y` are written, so every set and member keeps its id.
-  if (!res.outcomes.some((o) => o.stopped)) {
-    const live: { name: string; set: LiveSet; blocked: boolean }[] = [];
-    for (const t of targets) {
-      if (t.single) continue;
-      const p = preview.sets.find((s) => s.set === (t.plans[0]?.component ?? t.def));
-      const set = p ? await liveFor(host, t, p.set) : undefined;
-      if (!p || !set) continue;
-      live.push({ name: p.set, set, blocked: p.blockers.length > 0 || res.outcomes.some((o) => o.set === p.set && !!o.refused) });
-    }
-    const moves = pageSetMoves(live as never);
-    for (const { name, set } of live) {
-      const m = moves.get(name);
-      if (!m) continue;
-      (set as { x?: number; y?: number }).x = m.to.x;
-      (set as { x?: number; y?: number }).y = m.to.y;
-      const t = targets.find((x) => (x.plans[0]?.component ?? x.def) === name)!;
-      let o = res.outcomes.find((x) => x.set === name);
-      if (!o) { o = { def: t.def, set: name, updated: [], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: choiceFor(opts.choices, name), identity: [], content: [], misses: [] }; res.outcomes.push(o); }
-      o.setMoved = true;
-      // A set whose only work was the move no longer reads as it was previewed: it changed.
-      if (o.asPreviewed) delete o.asPreviewed;
-    }
-  }
-  // THE ABOUT FRAME (#2858), redrawn by every run that wrote, last, so its date is the run's. A run that stopped in a set
-  // leaves it as it was: the next run finishes the sets and draws it. A host write refused here is named, never thrown:
-  // the sets are already written.
-  if (preview.about && !res.outcomes.some((o) => o.stopped)) {
-    try {
-      res.about = await drawAbout(api as unknown as AboutApi, host.root as AboutRoot, { updated: opts.today ?? new Date().toISOString().slice(0, 10) });
-    } catch (e) {
-      res.about = { drawn: false, skipped: `Figma refused the write (${(e as Error)?.message ?? String(e)})`, fontMisses: [] };
-    }
-  }
-  // THE PUBLISH DESCRIPTION (#2858): the named version's title, the engine it moved from, and what the sets the run
-  // changed carry in the release notes.
-  const changed = res.outcomes.filter((o) => !o.refused && (o.updated.length || o.added || o.renamed || o.deprecated.length)).map((o) => o.set);
-  res.publish = publishDescription({
-    title: title, sets: changed, from: res.about?.from ?? (preview.about?.state === 'stale' ? preview.about.from.engine : null),
-    consumerBreaks: res.outcomes.reduce((k, o) => k + (o.breaking?.length ?? 0), 0),
-  });
+  if (!res.outcomes.some((o) => o.stopped)) await respaceLive(host, targets, preview, res, opts.choices);
+  await settle(host, targets, preview, res, opts);
+  await finishAbout(host, api, preview, res, opts.today);
   return res;
 };
 
