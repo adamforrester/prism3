@@ -281,6 +281,19 @@ section('edited — a hand-edited cover keeps the edit; only the version text mo
     'edited/deleted version text: nothing written');
   ok(coverLine(r) === 'Cover: edited by hand, and its version text is gone. Nothing was written.', `edited/deleted version text: the result says so (${coverLine(r)})`);
 }
+{
+  // The designer retypes the wordmark and changes nothing else: that alone is an edit, so a renamed brand's Update
+  // keeps their text and sets only the version.
+  const f = host({ vars: themeVars() });
+  await drawCover(f.api, f.root, { brand: 'Aurora', engine: '0.236.0' });
+  const fr = tagged(f.cover)[0];
+  part(fr, 'brand')!.characters = 'Aurora Design';
+  const d = await coverDue(f.root, { brand: 'Aurora Labs', engine: '0.237.0', api: f.api });
+  ok(eq(d, { state: 'stale', shows: '0.236.0', edited: true }), `edited/a retyped wordmark alone reads as edited (${JSON.stringify(d)})`);
+  await drawCover(f.api, f.root, { brand: 'Aurora Labs', engine: '0.237.0' });
+  ok(part(fr, 'brand')!.characters === 'Aurora Design' && part(fr, 'version')!.characters === 'Prism3 0.237.0',
+    `edited/a retyped wordmark is kept (${JSON.stringify(texts(fr).map((t) => t.characters))})`);
+}
 
 /* ── page ────────────────────────────────────────────────────────────────────────────────────────────── */
 section('page — nothing to draw on, or nothing to draw');
