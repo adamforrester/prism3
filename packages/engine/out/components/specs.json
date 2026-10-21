@@ -29798,6 +29798,16 @@
               "focus-visible"
             ]
           }
+        },
+        {
+          "part": "container/bar",
+          "kind": "frame",
+          "members": 48,
+          "when": {
+            "selection": [
+              "selected"
+            ]
+          }
         }
       ],
       "redlineKey": [
@@ -29827,6 +29837,14 @@
                   "token": "icon.size.xs"
                 }
               }
+            },
+            {
+              "part": "container/bar",
+              "values": {
+                "height": {
+                  "token": "border-width.thick"
+                }
+              }
             }
           ]
         },
@@ -29853,6 +29871,14 @@
                   "token": "icon.size.xs"
                 }
               }
+            },
+            {
+              "part": "container/bar",
+              "values": {
+                "height": {
+                  "token": "border-width.thick"
+                }
+              }
             }
           ]
         },
@@ -29877,6 +29903,14 @@
                 },
                 "width": {
                   "token": "icon.size.sm"
+                }
+              }
+            },
+            {
+              "part": "container/bar",
+              "values": {
+                "height": {
+                  "token": "border-width.thick"
                 }
               }
             }
@@ -31066,16 +31100,16 @@
           },
           "parts": [
             {
-              "part": "container",
-              "stroke": "color.icon.link.default"
-            },
-            {
               "part": "container/label",
               "ink": "color.text.link.default"
             },
             {
               "part": "container/trailingVisual",
               "icon": "color.icon.link.default"
+            },
+            {
+              "part": "container/bar",
+              "fill": "color.icon.link.default"
             }
           ]
         },
@@ -31089,16 +31123,16 @@
           },
           "parts": [
             {
-              "part": "container",
-              "stroke": "color.icon.link.hover"
-            },
-            {
               "part": "container/label",
               "ink": "color.text.link.hover"
             },
             {
               "part": "container/trailingVisual",
               "icon": "color.icon.link.hover"
+            },
+            {
+              "part": "container/bar",
+              "fill": "color.icon.link.hover"
             }
           ]
         },
@@ -31112,16 +31146,16 @@
           },
           "parts": [
             {
-              "part": "container",
-              "stroke": "color.icon.link.pressed"
-            },
-            {
               "part": "container/label",
               "ink": "color.text.link.pressed"
             },
             {
               "part": "container/trailingVisual",
               "icon": "color.icon.link.pressed"
+            },
+            {
+              "part": "container/bar",
+              "fill": "color.icon.link.pressed"
             }
           ]
         },
@@ -31135,16 +31169,16 @@
           },
           "parts": [
             {
-              "part": "container",
-              "stroke": "color.icon.link.focused"
-            },
-            {
               "part": "container/label",
               "ink": "color.text.link.focused"
             },
             {
               "part": "container/trailingVisual",
               "icon": "color.icon.link.focused"
+            },
+            {
+              "part": "container/bar",
+              "fill": "color.icon.link.focused"
             }
           ]
         },
@@ -31234,16 +31268,16 @@
           },
           "parts": [
             {
-              "part": "container",
-              "stroke": "color.inverse.icon.link.default"
-            },
-            {
               "part": "container/label",
               "ink": "color.inverse.text.link.default"
             },
             {
               "part": "container/trailingVisual",
               "icon": "color.inverse.icon.link.default"
+            },
+            {
+              "part": "container/bar",
+              "fill": "color.inverse.icon.link.default"
             }
           ]
         },
@@ -31256,10 +31290,6 @@
             "state": "hover"
           },
           "parts": [
-            {
-              "part": "container",
-              "stroke": "color.inverse.icon.link.hover"
-            },
             {
               "part": "container/label",
               "ink": "color.inverse.text.link.hover"
@@ -31267,6 +31297,10 @@
             {
               "part": "container/trailingVisual",
               "icon": "color.inverse.icon.link.hover"
+            },
+            {
+              "part": "container/bar",
+              "fill": "color.inverse.icon.link.hover"
             }
           ]
         },
@@ -31279,10 +31313,6 @@
             "state": "pressed"
           },
           "parts": [
-            {
-              "part": "container",
-              "stroke": "color.inverse.icon.link.pressed"
-            },
             {
               "part": "container/label",
               "ink": "color.inverse.text.link.pressed"
@@ -31290,6 +31320,10 @@
             {
               "part": "container/trailingVisual",
               "icon": "color.inverse.icon.link.pressed"
+            },
+            {
+              "part": "container/bar",
+              "fill": "color.inverse.icon.link.pressed"
             }
           ]
         },
@@ -31303,16 +31337,16 @@
           },
           "parts": [
             {
-              "part": "container",
-              "stroke": "color.inverse.icon.link.focused"
-            },
-            {
               "part": "container/label",
               "ink": "color.inverse.text.link.focused"
             },
             {
               "part": "container/trailingVisual",
               "icon": "color.inverse.icon.link.focused"
+            },
+            {
+              "part": "container/bar",
+              "fill": "color.inverse.icon.link.focused"
             }
           ]
         },
@@ -31325,86 +31359,6 @@
             "state": "rest"
           },
           "parts": [
-            {
-              "part": "container/label",
-              "ink": "color.text.link.default"
-            },
-            {
-              "part": "container/trailingVisual",
-              "icon": "color.icon.link.default"
-            }
-          ]
-        },
-        {
-          "where": {
-            "style": "standalone",
-            "weight": "default",
-            "surface": "default",
-            "selection": "unselected",
-            "state": "hover"
-          },
-          "parts": [
-            {
-              "part": "container/label",
-              "ink": "color.text.link.hover"
-            },
-            {
-              "part": "container/trailingVisual",
-              "icon": "color.icon.link.hover"
-            }
-          ]
-        },
-        {
-          "where": {
-            "style": "standalone",
-            "weight": "default",
-            "surface": "default",
-            "selection": "unselected",
-            "state": "pressed"
-          },
-          "parts": [
-            {
-              "part": "container/label",
-              "ink": "color.text.link.pressed"
-            },
-            {
-              "part": "container/trailingVisual",
-              "icon": "color.icon.link.pressed"
-            }
-          ]
-        },
-        {
-          "where": {
-            "style": "standalone",
-            "weight": "default",
-            "surface": "default",
-            "selection": "unselected",
-            "state": "focus-visible"
-          },
-          "parts": [
-            {
-              "part": "container/label",
-              "ink": "color.text.link.focused"
-            },
-            {
-              "part": "container/trailingVisual",
-              "icon": "color.icon.link.focused"
-            }
-          ]
-        },
-        {
-          "where": {
-            "style": "standalone",
-            "weight": "default",
-            "surface": "default",
-            "selection": "selected",
-            "state": "rest"
-          },
-          "parts": [
-            {
-              "part": "container",
-              "stroke": "color.icon.link.default"
-            },
             {
               "part": "container/label",
               "ink": "color.text.link.default"
@@ -31420,14 +31374,10 @@
             "style": "standalone",
             "weight": "default",
             "surface": "default",
-            "selection": "selected",
+            "selection": "unselected",
             "state": "hover"
           },
           "parts": [
-            {
-              "part": "container",
-              "stroke": "color.icon.link.hover"
-            },
             {
               "part": "container/label",
               "ink": "color.text.link.hover"
@@ -31443,14 +31393,10 @@
             "style": "standalone",
             "weight": "default",
             "surface": "default",
-            "selection": "selected",
+            "selection": "unselected",
             "state": "pressed"
           },
           "parts": [
-            {
-              "part": "container",
-              "stroke": "color.icon.link.pressed"
-            },
             {
               "part": "container/label",
               "ink": "color.text.link.pressed"
@@ -31466,14 +31412,10 @@
             "style": "standalone",
             "weight": "default",
             "surface": "default",
-            "selection": "selected",
+            "selection": "unselected",
             "state": "focus-visible"
           },
           "parts": [
-            {
-              "part": "container",
-              "stroke": "color.icon.link.focused"
-            },
             {
               "part": "container/label",
               "ink": "color.text.link.focused"
@@ -31488,6 +31430,98 @@
           "where": {
             "style": "standalone",
             "weight": "default",
+            "surface": "default",
+            "selection": "selected",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "ink": "color.text.link.default"
+            },
+            {
+              "part": "container/trailingVisual",
+              "icon": "color.icon.link.default"
+            },
+            {
+              "part": "container/bar",
+              "fill": "color.icon.link.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "style": "standalone",
+            "weight": "default",
+            "surface": "default",
+            "selection": "selected",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "ink": "color.text.link.hover"
+            },
+            {
+              "part": "container/trailingVisual",
+              "icon": "color.icon.link.hover"
+            },
+            {
+              "part": "container/bar",
+              "fill": "color.icon.link.hover"
+            }
+          ]
+        },
+        {
+          "where": {
+            "style": "standalone",
+            "weight": "default",
+            "surface": "default",
+            "selection": "selected",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "ink": "color.text.link.pressed"
+            },
+            {
+              "part": "container/trailingVisual",
+              "icon": "color.icon.link.pressed"
+            },
+            {
+              "part": "container/bar",
+              "fill": "color.icon.link.pressed"
+            }
+          ]
+        },
+        {
+          "where": {
+            "style": "standalone",
+            "weight": "default",
+            "surface": "default",
+            "selection": "selected",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "ink": "color.text.link.focused"
+            },
+            {
+              "part": "container/trailingVisual",
+              "icon": "color.icon.link.focused"
+            },
+            {
+              "part": "container/bar",
+              "fill": "color.icon.link.focused"
+            }
+          ]
+        },
+        {
+          "where": {
+            "style": "standalone",
+            "weight": "default",
             "surface": "inverse",
             "selection": "unselected",
             "state": "rest"
@@ -31570,16 +31604,16 @@
           },
           "parts": [
             {
-              "part": "container",
-              "stroke": "color.inverse.icon.link.default"
-            },
-            {
               "part": "container/label",
               "ink": "color.inverse.text.link.default"
             },
             {
               "part": "container/trailingVisual",
               "icon": "color.inverse.icon.link.default"
+            },
+            {
+              "part": "container/bar",
+              "fill": "color.inverse.icon.link.default"
             }
           ]
         },
@@ -31593,16 +31627,16 @@
           },
           "parts": [
             {
-              "part": "container",
-              "stroke": "color.inverse.icon.link.hover"
-            },
-            {
               "part": "container/label",
               "ink": "color.inverse.text.link.hover"
             },
             {
               "part": "container/trailingVisual",
               "icon": "color.inverse.icon.link.hover"
+            },
+            {
+              "part": "container/bar",
+              "fill": "color.inverse.icon.link.hover"
             }
           ]
         },
@@ -31616,16 +31650,16 @@
           },
           "parts": [
             {
-              "part": "container",
-              "stroke": "color.inverse.icon.link.pressed"
-            },
-            {
               "part": "container/label",
               "ink": "color.inverse.text.link.pressed"
             },
             {
               "part": "container/trailingVisual",
               "icon": "color.inverse.icon.link.pressed"
+            },
+            {
+              "part": "container/bar",
+              "fill": "color.inverse.icon.link.pressed"
             }
           ]
         },
@@ -31639,16 +31673,16 @@
           },
           "parts": [
             {
-              "part": "container",
-              "stroke": "color.inverse.icon.link.focused"
-            },
-            {
               "part": "container/label",
               "ink": "color.inverse.text.link.focused"
             },
             {
               "part": "container/trailingVisual",
               "icon": "color.inverse.icon.link.focused"
+            },
+            {
+              "part": "container/bar",
+              "fill": "color.inverse.icon.link.focused"
             }
           ]
         },

@@ -1,6 +1,6 @@
 # Token usage
 
-Where each token is bound: by which component, on which part, and at which variants and states. 248 of 787 emitted tokens are bound by at least one component.
+Where each token is bound: by which component, on which part, and at which variants and states. 247 of 787 emitted tokens are bound by at least one component.
 
 Two sources feed each entry. **Keys** are the binding keys in the component definition. **Parts** are where the design-file projection draws the token; "where" lists the axis values a part is bound at, leaves out any axis bound at every value, and counts the members.
 
@@ -45,14 +45,6 @@ Type: dimension. Bound by 18 component(s).
 |  |  | control | every member (84 of 84) |
 |  |  | gripGlyph | every member (84 of 84) |
 
-### `border-width.none`
-
-Type: dimension. Bound by 1 component(s).
-
-| Component | Keys | Part | Where |
-|---|---|---|---|
-| link | `bar.side`, `bar.unselected` | container | every member (144 of 144) |
-
 ### `border-width.thick`
 
 Type: dimension. Bound by 6 component(s).
@@ -60,7 +52,7 @@ Type: dimension. Bound by 6 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | checkbox-control | `border-width` | control | every member (90 of 90) |
-| link | `bar.selected` | container | selection: selected · style: standalone (48 of 144) |
+| link | `bar-height` | bar | selection: selected · style: standalone (48 of 144) |
 | radio-control | `border-width` | control | every member (60 of 60) |
 | switch-control | `border-width` | track | every member (40 of 40) |
 | tab-item | `indicator-height` | indicator | every member (30 of 30) |
@@ -464,7 +456,7 @@ Type: color. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| link | `border.selected.rest`, `icon` | container | selection: selected · state: rest · style: standalone · surface: default (6 of 144) |
+| link | `fill.selected.rest`, `icon` | bar | selection: selected · state: rest · style: standalone · surface: default (6 of 144) |
 |  |  | trailingVisual | state: rest · style: standalone · surface: default (12 of 144) |
 
 ### `color.icon.link.focused`
@@ -473,7 +465,7 @@ Type: color. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| link | `border.selected.focus-visible`, `icon.focus-visible` | container | selection: selected · state: focus-visible · style: standalone · surface: default (6 of 144) |
+| link | `fill.selected.focus-visible`, `icon.focus-visible` | bar | selection: selected · state: focus-visible · style: standalone · surface: default (6 of 144) |
 |  |  | trailingVisual | state: focus-visible · style: standalone · surface: default (12 of 144) |
 
 ### `color.icon.link.hover`
@@ -482,7 +474,7 @@ Type: color. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| link | `border.selected.hover`, `icon.hover` | container | selection: selected · state: hover · style: standalone · surface: default (6 of 144) |
+| link | `fill.selected.hover`, `icon.hover` | bar | selection: selected · state: hover · style: standalone · surface: default (6 of 144) |
 |  |  | trailingVisual | state: hover · style: standalone · surface: default (12 of 144) |
 
 ### `color.icon.link.pressed`
@@ -491,7 +483,7 @@ Type: color. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| link | `border.selected.pressed`, `icon.pressed` | container | selection: selected · state: pressed · style: standalone · surface: default (6 of 144) |
+| link | `fill.selected.pressed`, `icon.pressed` | bar | selection: selected · state: pressed · style: standalone · surface: default (6 of 144) |
 |  |  | trailingVisual | state: pressed · style: standalone · surface: default (12 of 144) |
 
 ### `color.icon.primary`
@@ -1168,7 +1160,7 @@ Type: color. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| link | (projection only) | container | selection: selected · state: rest · style: standalone · surface: inverse (6 of 144) |
+| link | (projection only) | bar | selection: selected · state: rest · style: standalone · surface: inverse (6 of 144) |
 |  |  | trailingVisual | state: rest · style: standalone · surface: inverse (12 of 144) |
 
 ### `color.inverse.icon.link.focused`
@@ -1177,7 +1169,7 @@ Type: color. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| link | (projection only) | container | selection: selected · state: focus-visible · style: standalone · surface: inverse (6 of 144) |
+| link | (projection only) | bar | selection: selected · state: focus-visible · style: standalone · surface: inverse (6 of 144) |
 |  |  | trailingVisual | state: focus-visible · style: standalone · surface: inverse (12 of 144) |
 
 ### `color.inverse.icon.link.hover`
@@ -1186,7 +1178,7 @@ Type: color. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| link | (projection only) | container | selection: selected · state: hover · style: standalone · surface: inverse (6 of 144) |
+| link | (projection only) | bar | selection: selected · state: hover · style: standalone · surface: inverse (6 of 144) |
 |  |  | trailingVisual | state: hover · style: standalone · surface: inverse (12 of 144) |
 
 ### `color.inverse.icon.link.pressed`
@@ -1195,7 +1187,7 @@ Type: color. Bound by 1 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| link | (projection only) | container | selection: selected · state: pressed · style: standalone · surface: inverse (6 of 144) |
+| link | (projection only) | bar | selection: selected · state: pressed · style: standalone · surface: inverse (6 of 144) |
 |  |  | trailingVisual | state: pressed · style: standalone · surface: inverse (12 of 144) |
 
 ### `color.inverse.interactive.destructive.border.hover`
@@ -3169,9 +3161,9 @@ Drawn, not declared: `color.inverse.disabled.border`, `color.inverse.disabled.fi
 
 ### link
 
-36 token(s); 144 design-file member(s).
+35 token(s); 144 design-file member(s).
 
-`border-width.none`, `border-width.thick`, `color.icon.link.default`, `color.icon.link.focused`, `color.icon.link.hover`, `color.icon.link.pressed`, `color.inverse.icon.link.default`, `color.inverse.icon.link.focused`, `color.inverse.icon.link.hover`, `color.inverse.icon.link.pressed`, `color.inverse.text.link.default`, `color.inverse.text.link.focused`, `color.inverse.text.link.hover`, `color.inverse.text.link.pressed`, `color.text.link.default`, `color.text.link.focused`, `color.text.link.hover`, `color.text.link.pressed`, `focus.ring.offset`, `focus.ring.width`, `icon.size.sm`, `icon.size.xs`, `space.050`, `space.100`, `type.body.lg.default`, `type.body.lg.default-link`, `type.body.lg.strong`, `type.body.lg.strong-link`, `type.body.md.default`, `type.body.md.default-link`, `type.body.md.strong`, `type.body.md.strong-link`, `type.body.sm.default`, `type.body.sm.default-link`, `type.body.sm.strong`, `type.body.sm.strong-link`
+`border-width.thick`, `color.icon.link.default`, `color.icon.link.focused`, `color.icon.link.hover`, `color.icon.link.pressed`, `color.inverse.icon.link.default`, `color.inverse.icon.link.focused`, `color.inverse.icon.link.hover`, `color.inverse.icon.link.pressed`, `color.inverse.text.link.default`, `color.inverse.text.link.focused`, `color.inverse.text.link.hover`, `color.inverse.text.link.pressed`, `color.text.link.default`, `color.text.link.focused`, `color.text.link.hover`, `color.text.link.pressed`, `focus.ring.offset`, `focus.ring.width`, `icon.size.sm`, `icon.size.xs`, `space.050`, `space.100`, `type.body.lg.default`, `type.body.lg.default-link`, `type.body.lg.strong`, `type.body.lg.strong-link`, `type.body.md.default`, `type.body.md.default-link`, `type.body.md.strong`, `type.body.md.strong-link`, `type.body.sm.default`, `type.body.sm.default-link`, `type.body.sm.strong`, `type.body.sm.strong-link`
 
 Drawn, not declared: `color.inverse.icon.link.default`, `color.inverse.icon.link.focused`, `color.inverse.icon.link.hover`, `color.inverse.icon.link.pressed`, `color.inverse.text.link.default`, `color.inverse.text.link.focused`, `color.inverse.text.link.hover`, `color.inverse.text.link.pressed`
 
@@ -3299,11 +3291,11 @@ Declared, not drawn: `color.border.focus`
 
 ## Tokens no component binds
 
-259 semantic token(s) and 280 primitive(s). Primitives (`core.*`) are listed apart — components bind semantic roles, which alias the primitives, so an unbound primitive is expected.
+260 semantic token(s) and 280 primitive(s). Primitives (`core.*`) are listed apart — components bind semantic roles, which alias the primitives, so an unbound primitive is expected.
 
 ### Semantic
 
-- **border-width** — `border-width.heavy`
+- **border-width** — `border-width.heavy`, `border-width.none`
 - **breakpoint** — `breakpoint.2xl`, `breakpoint.lg`, `breakpoint.md`, `breakpoint.sm`, `breakpoint.xl`
 - **color.border** — `color.border.brand`
 - **color.field** — `color.field.placeholder`

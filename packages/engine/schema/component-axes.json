@@ -641,6 +641,10 @@
   },
   "link": {
     "axes": {
+      "selection": [
+        "selected",
+        "unselected"
+      ],
       "size": [
         "large",
         "medium",
@@ -665,7 +669,7 @@
         "emphasis"
       ]
     },
-    "members": 96,
+    "members": 144,
     "properties": {
       "label": "TEXT",
       "trailing icon": "BOOLEAN",

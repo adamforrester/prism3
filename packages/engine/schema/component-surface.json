@@ -631,24 +631,24 @@
       ]
     },
     "link": {
-      "members": 96,
-      "sha256": "56c6b59bb5853039c8a7cdb476ee20b147cd45da75f94c3433e6aeb1494c7f60",
+      "members": 144,
+      "sha256": "fd065672574e40e7716d1302c69f741a6148bc897a36de0215aaa6017bcc1838",
       "properties": [
         "label:TEXT",
         "trailing icon:BOOLEAN"
       ]
     },
     "link@body-emphasis": {
-      "members": 96,
-      "sha256": "9d31f1a7113dd53842189b692d570ae53ca05492b62f4d87da2156d68c3609d6",
+      "members": 144,
+      "sha256": "99471dfed22b52c4c7bd7479feeaba461f89443605f357b8546e3f630d041f9d",
       "properties": [
         "label:TEXT",
         "trailing icon:BOOLEAN"
       ]
     },
     "link@body-single": {
-      "members": 48,
-      "sha256": "d638e0d2252c4c6b6027d540f713c7bc928da7e76bb799af8e0448f8ed877232",
+      "members": 72,
+      "sha256": "5f79af6299f7cc03c83acd0c2226b7cffd9d8a39d8a48b108a22316fb0234b78",
       "properties": [
         "label:TEXT",
         "trailing icon:BOOLEAN"

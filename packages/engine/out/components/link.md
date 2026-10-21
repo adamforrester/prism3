@@ -19,10 +19,11 @@ Text that goes to another page, a place on the page, a file or another site. A l
 
 Shown on the default member: style `standalone`, weight `emphasis`, size `medium`, surface `default`, selection `unselected`.
 
-1. **Container** — The link: a row that hugs its label and any icon, with no padding and no fill. On the current page its bottom edge carries a 2px bar in the link color, drawn inside the row, so the box does not move.
+1. **Container** — The link: a row that hugs its label and any icon, with no padding and no fill.
 2. **Label** — The link text in the link color. Standalone: plain at rest, underlined at hover, pressed and focus. Inline: underlined at every state. The current page stays plain at every state: the bar is its line.
 3. **Trailing visual** (optional) — An optional icon after the label, in the link color, such as an arrow or the external icon for a link that opens a new tab. Standalone links only; an inline link carries none.
-4. **Focus ring** — The shared focus ring, around the whole link while it has keyboard focus. It follows the surface, so an inverse link keeps a ring that reads on the dark band.
+4. **Bar** — The current page's 2px bar in the link color, across the foot of the line box. Out of the flow, so the link keeps its size. Current links only.
+5. **Focus ring** — The shared focus ring, around the whole link while it has keyboard focus. It follows the surface, so an inverse link keeps a ring that reads on the dark band.
 
 ## Styles
 
@@ -129,6 +130,7 @@ Generated from the plan that builds the design-file component: 144 members. Valu
 | `container/label` | text | every member |
 | `container/trailingVisual` | swap | style=standalone |
 | `container/focusRing` | instance | state=focus-visible |
+| `container/bar` | frame | selection=selected |
 
 ### Spacing and size
 
@@ -142,6 +144,7 @@ Keyed by `size`.
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | `space.050` | — | — | — | — |
 | `container/trailingVisual` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/bar` | — | — | `border-width.thick` | — | — | — |
 
 **size=small**
 
@@ -149,6 +152,7 @@ Keyed by `size`.
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | `space.050` | — | — | — | — |
 | `container/trailingVisual` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/bar` | — | — | `border-width.thick` | — | — | — |
 
 **size=large**
 
@@ -156,6 +160,7 @@ Keyed by `size`.
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | `space.100` | — | — | — | — |
 | `container/trailingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/bar` | — | — | `border-width.thick` | — | — | — |
 
 ### Type
 
@@ -272,33 +277,33 @@ Keyed by `style`, `weight`, `surface`, `selection`, `state`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container` | — | `color.icon.link.default` | — | — |
 | `container/label` | — | — | `color.text.link.default` | — |
 | `container/trailingVisual` | — | — | — | `color.icon.link.default` |
+| `container/bar` | `color.icon.link.default` | — | — | — |
 
 **style=standalone, weight=emphasis, surface=default, selection=selected, state=hover**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container` | — | `color.icon.link.hover` | — | — |
 | `container/label` | — | — | `color.text.link.hover` | — |
 | `container/trailingVisual` | — | — | — | `color.icon.link.hover` |
+| `container/bar` | `color.icon.link.hover` | — | — | — |
 
 **style=standalone, weight=emphasis, surface=default, selection=selected, state=pressed**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container` | — | `color.icon.link.pressed` | — | — |
 | `container/label` | — | — | `color.text.link.pressed` | — |
 | `container/trailingVisual` | — | — | — | `color.icon.link.pressed` |
+| `container/bar` | `color.icon.link.pressed` | — | — | — |
 
 **style=standalone, weight=emphasis, surface=default, selection=selected, state=focus-visible**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container` | — | `color.icon.link.focused` | — | — |
 | `container/label` | — | — | `color.text.link.focused` | — |
 | `container/trailingVisual` | — | — | — | `color.icon.link.focused` |
+| `container/bar` | `color.icon.link.focused` | — | — | — |
 
 **style=standalone, weight=emphasis, surface=inverse, selection=unselected, state=rest**
 
@@ -332,33 +337,33 @@ Keyed by `style`, `weight`, `surface`, `selection`, `state`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container` | — | `color.inverse.icon.link.default` | — | — |
 | `container/label` | — | — | `color.inverse.text.link.default` | — |
 | `container/trailingVisual` | — | — | — | `color.inverse.icon.link.default` |
+| `container/bar` | `color.inverse.icon.link.default` | — | — | — |
 
 **style=standalone, weight=emphasis, surface=inverse, selection=selected, state=hover**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container` | — | `color.inverse.icon.link.hover` | — | — |
 | `container/label` | — | — | `color.inverse.text.link.hover` | — |
 | `container/trailingVisual` | — | — | — | `color.inverse.icon.link.hover` |
+| `container/bar` | `color.inverse.icon.link.hover` | — | — | — |
 
 **style=standalone, weight=emphasis, surface=inverse, selection=selected, state=pressed**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container` | — | `color.inverse.icon.link.pressed` | — | — |
 | `container/label` | — | — | `color.inverse.text.link.pressed` | — |
 | `container/trailingVisual` | — | — | — | `color.inverse.icon.link.pressed` |
+| `container/bar` | `color.inverse.icon.link.pressed` | — | — | — |
 
 **style=standalone, weight=emphasis, surface=inverse, selection=selected, state=focus-visible**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container` | — | `color.inverse.icon.link.focused` | — | — |
 | `container/label` | — | — | `color.inverse.text.link.focused` | — |
 | `container/trailingVisual` | — | — | — | `color.inverse.icon.link.focused` |
+| `container/bar` | `color.inverse.icon.link.focused` | — | — | — |
 
 **style=standalone, weight=default, surface=default, selection=unselected, state=rest**
 
@@ -392,33 +397,33 @@ Keyed by `style`, `weight`, `surface`, `selection`, `state`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container` | — | `color.icon.link.default` | — | — |
 | `container/label` | — | — | `color.text.link.default` | — |
 | `container/trailingVisual` | — | — | — | `color.icon.link.default` |
+| `container/bar` | `color.icon.link.default` | — | — | — |
 
 **style=standalone, weight=default, surface=default, selection=selected, state=hover**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container` | — | `color.icon.link.hover` | — | — |
 | `container/label` | — | — | `color.text.link.hover` | — |
 | `container/trailingVisual` | — | — | — | `color.icon.link.hover` |
+| `container/bar` | `color.icon.link.hover` | — | — | — |
 
 **style=standalone, weight=default, surface=default, selection=selected, state=pressed**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container` | — | `color.icon.link.pressed` | — | — |
 | `container/label` | — | — | `color.text.link.pressed` | — |
 | `container/trailingVisual` | — | — | — | `color.icon.link.pressed` |
+| `container/bar` | `color.icon.link.pressed` | — | — | — |
 
 **style=standalone, weight=default, surface=default, selection=selected, state=focus-visible**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container` | — | `color.icon.link.focused` | — | — |
 | `container/label` | — | — | `color.text.link.focused` | — |
 | `container/trailingVisual` | — | — | — | `color.icon.link.focused` |
+| `container/bar` | `color.icon.link.focused` | — | — | — |
 
 **style=standalone, weight=default, surface=inverse, selection=unselected, state=rest**
 
@@ -452,33 +457,33 @@ Keyed by `style`, `weight`, `surface`, `selection`, `state`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container` | — | `color.inverse.icon.link.default` | — | — |
 | `container/label` | — | — | `color.inverse.text.link.default` | — |
 | `container/trailingVisual` | — | — | — | `color.inverse.icon.link.default` |
+| `container/bar` | `color.inverse.icon.link.default` | — | — | — |
 
 **style=standalone, weight=default, surface=inverse, selection=selected, state=hover**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container` | — | `color.inverse.icon.link.hover` | — | — |
 | `container/label` | — | — | `color.inverse.text.link.hover` | — |
 | `container/trailingVisual` | — | — | — | `color.inverse.icon.link.hover` |
+| `container/bar` | `color.inverse.icon.link.hover` | — | — | — |
 
 **style=standalone, weight=default, surface=inverse, selection=selected, state=pressed**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container` | — | `color.inverse.icon.link.pressed` | — | — |
 | `container/label` | — | — | `color.inverse.text.link.pressed` | — |
 | `container/trailingVisual` | — | — | — | `color.inverse.icon.link.pressed` |
+| `container/bar` | `color.inverse.icon.link.pressed` | — | — | — |
 
 **style=standalone, weight=default, surface=inverse, selection=selected, state=focus-visible**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container` | — | `color.inverse.icon.link.focused` | — | — |
 | `container/label` | — | — | `color.inverse.text.link.focused` | — |
 | `container/trailingVisual` | — | — | — | `color.inverse.icon.link.focused` |
+| `container/bar` | `color.inverse.icon.link.focused` | — | — | — |
 
 **style=inline, weight=emphasis, surface=default, selection=unselected, state=rest**
 
