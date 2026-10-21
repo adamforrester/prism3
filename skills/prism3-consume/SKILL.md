@@ -214,6 +214,15 @@ JavaScript or JSON output until that is done. The no-custom-code rule stands: th
 custom transforms, and no reference production config with custom transforms ships for now. Do not
 look for one, and do not describe native output as supported or compiled when you hand off work.
 
+## Checking rebuilt Figma pages for consistency
+
+When you build or rebuild a set of spec pages in Figma, every element bound to Prism3 is not enough:
+the same control must be the same component on every page, and each element must keep the same text
+style, variant and spacing from page to page and the same desktop-to-mobile pairing. The rebind skill
+ships a read-only audit for this (`skills/prism3-rebind/consistency-audit.js`, run through the plugin's
+agent link). Its section 10 says when to run it, how to read the findings and how to log the run on
+#2886.
+
 ## If you have the MCP surface
 
 Call `export_theme` to write the brand's tree (`tokens.json`), its metadata sidecar
