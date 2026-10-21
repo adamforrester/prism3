@@ -24,7 +24,7 @@ Shown on the default member: type `unordered`, size `medium`.
 3. **Bullet** — The bullet: a round dot, in the icon color.
 4. **Number**
 5. **Icon** — The icon marker, a check by default and swappable, in the icon color. Decorative: the text carries the meaning.
-6. **Text** — The item text. It fills the rest of the row and wraps under itself, never under the marker.
+6. **Label** — The item text. It fills the rest of the row and wraps under itself, never under the marker.
 
 ## Styles
 
@@ -104,7 +104,7 @@ Generated from the plan that builds the design-file component: 9 members. Values
 | `row` | frame | every member |
 | `row/markerBox` | frame | every member |
 | `row/markerBox/bullet` | frame | type=unordered |
-| `row/text` | text | every member |
+| `row/label` | text | every member |
 | `row/markerBox/number` | text | type=ordered |
 | `row/markerBox/icon` | swap | type=icon |
 
@@ -189,11 +189,11 @@ Keyed by `size`.
 
 | Members | Part | Text style |
 | --- | --- | --- |
-| size=medium | `row/text` | `type.body.md.default` |
+| size=medium | `row/label` | `type.body.md.default` |
 | size=medium | `row/markerBox/number` | `type.body.md.default` |
-| size=small | `row/text` | `type.body.sm.default` |
+| size=small | `row/label` | `type.body.sm.default` |
 | size=small | `row/markerBox/number` | `type.body.sm.default` |
-| size=large | `row/text` | `type.body.lg.default` |
+| size=large | `row/label` | `type.body.lg.default` |
 | size=large | `row/markerBox/number` | `type.body.lg.default` |
 
 ### Color
@@ -205,21 +205,21 @@ Keyed by `type`.
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `row/markerBox/bullet` | `color.icon.primary` | — | — | — |
-| `row/text` | — | — | `color.text.primary` | — |
+| `row/label` | — | — | `color.text.primary` | — |
 
 **type=ordered**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `row/markerBox/number` | — | — | `color.text.primary` | — |
-| `row/text` | — | — | `color.text.primary` | — |
+| `row/label` | — | — | `color.text.primary` | — |
 
 **type=icon**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `row/markerBox/icon` | — | — | — | `color.icon.primary` |
-| `row/text` | — | — | `color.text.primary` | — |
+| `row/label` | — | — | `color.text.primary` | — |
 
 ### Nesting and properties
 

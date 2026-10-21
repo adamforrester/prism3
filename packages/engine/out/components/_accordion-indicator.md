@@ -20,10 +20,10 @@ The glyph an Accordion header shows to say whether its section is open: a chevro
 Shown on the default member: indicator `chevron`, expansion `collapsed`, size `medium`.
 
 1. **Frame** — The glyph's box, one icon square at the Accordion's size. Exactly one glyph shows in it.
-2. **Chevron down** — Closed: a chevron pointing down.
-3. **Chevron up** — Open: a chevron pointing up.
-4. **Plus** — Closed, when the pair is plus and minus: a plus.
-5. **Minus** — Open, when the pair is plus and minus: a minus.
+2. **Chevron down glyph** — Closed: a chevron pointing down.
+3. **Chevron up glyph** — Open: a chevron pointing up.
+4. **Plus glyph** — Closed, when the pair is plus and minus: a plus.
+5. **Minus glyph** — Open, when the pair is plus and minus: a minus.
 
 ## Styles
 
@@ -89,10 +89,10 @@ Generated from the plan that builds the design-file component: 12 members. Value
 | Part | Kind | In |
 | --- | --- | --- |
 | `frame` | frame | every member |
-| `frame/chevronDown` | instance | 3 of 12 members |
-| `frame/chevronUp` | instance | 3 of 12 members |
-| `frame/plus` | instance | 3 of 12 members |
-| `frame/minus` | instance | 3 of 12 members |
+| `frame/chevronDownGlyph` | instance | 3 of 12 members |
+| `frame/chevronUpGlyph` | instance | 3 of 12 members |
+| `frame/plusGlyph` | instance | 3 of 12 members |
+| `frame/minusGlyph` | instance | 3 of 12 members |
 
 ### Spacing and size
 
@@ -105,30 +105,30 @@ Keyed by `size`.
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `frame` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
-| `frame/chevronDown` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
-| `frame/chevronUp` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
-| `frame/plus` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
-| `frame/minus` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `frame/chevronDownGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `frame/chevronUpGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `frame/plusGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `frame/minusGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 
 **size=small**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `frame` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
-| `frame/chevronDown` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
-| `frame/chevronUp` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
-| `frame/plus` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
-| `frame/minus` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `frame/chevronDownGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `frame/chevronUpGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `frame/plusGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `frame/minusGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
 
 **size=large**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `frame` | — | — | `icon.size.md` | `icon.size.md` | — | — |
-| `frame/chevronDown` | — | — | `icon.size.md` | `icon.size.md` | — | — |
-| `frame/chevronUp` | — | — | `icon.size.md` | `icon.size.md` | — | — |
-| `frame/plus` | — | — | `icon.size.md` | `icon.size.md` | — | — |
-| `frame/minus` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+| `frame/chevronDownGlyph` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+| `frame/chevronUpGlyph` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+| `frame/plusGlyph` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+| `frame/minusGlyph` | — | — | `icon.size.md` | `icon.size.md` | — | — |
 
 ### Color
 
@@ -138,32 +138,32 @@ Keyed by `indicator`, `expansion`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `frame/chevronDown` | — | — | — | `color.interactive.neutral.icon.rest` |
+| `frame/chevronDownGlyph` | — | — | — | `color.interactive.neutral.icon.rest` |
 
 **indicator=chevron, expansion=expanded**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `frame/chevronUp` | — | — | — | `color.interactive.neutral.icon.rest` |
+| `frame/chevronUpGlyph` | — | — | — | `color.interactive.neutral.icon.rest` |
 
 **indicator=plus-minus, expansion=collapsed**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `frame/plus` | — | — | — | `color.interactive.neutral.icon.rest` |
+| `frame/plusGlyph` | — | — | — | `color.interactive.neutral.icon.rest` |
 
 **indicator=plus-minus, expansion=expanded**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `frame/minus` | — | — | — | `color.interactive.neutral.icon.rest` |
+| `frame/minusGlyph` | — | — | — | `color.interactive.neutral.icon.rest` |
 
 ### Nesting and properties
 
-- `frame/chevronDown` nests `icon/chevron-down`
-- `frame/chevronUp` nests `icon/chevron-up`
-- `frame/plus` nests `icon/plus`
-- `frame/minus` nests `icon/minus`
+- `frame/chevronDownGlyph` nests `icon/chevron-down`
+- `frame/chevronUpGlyph` nests `icon/chevron-up`
+- `frame/plusGlyph` nests `icon/plus`
+- `frame/minusGlyph` nests `icon/minus`
 
 ---
 

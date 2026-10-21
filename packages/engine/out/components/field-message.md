@@ -19,10 +19,10 @@ The small icon + caption below a form field. In its default status it is persist
 
 Shown on the default member: status `default`.
 
-1. **Icon error**
-2. **Icon warning**
-3. **Icon success**
-4. **Text**
+1. **Error glyph**
+2. **Warning glyph**
+3. **Success glyph**
+4. **Label**
 
 ## Styles
 
@@ -99,10 +99,10 @@ Generated from the plan that builds the design-file component: 4 members. Values
 | Part | Kind | In |
 | --- | --- | --- |
 | `message` | frame | every member |
-| `message/text` | text | every member |
-| `message/iconError` | instance | status=error |
-| `message/iconWarning` | instance | status=warning |
-| `message/iconSuccess` | instance | status=success |
+| `message/label` | text | every member |
+| `message/errorGlyph` | instance | status=error |
+| `message/warningGlyph` | instance | status=warning |
+| `message/successGlyph` | instance | status=success |
 
 ### Spacing and size
 
@@ -115,9 +115,9 @@ Keyed by nothing: one row covers every member.
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `message` | — | `space.075` | — | — | — | min height `icon.size.xs`; build width 320px (literal) |
-| `message/iconError` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
-| `message/iconWarning` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
-| `message/iconSuccess` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `message/errorGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `message/warningGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `message/successGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
 
 ### Type
 
@@ -125,7 +125,7 @@ Keyed by nothing: one row covers every member.
 
 | Members | Part | Text style |
 | --- | --- | --- |
-| every member | `message/text` | `type.caption.md.default` |
+| every member | `message/label` | `type.caption.md.default` |
 
 ### Color
 
@@ -135,34 +135,34 @@ Keyed by `status`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `message/text` | — | — | `color.text.secondary` | — |
+| `message/label` | — | — | `color.text.secondary` | — |
 
 **status=error**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `message/iconError` | — | — | — | `color.icon.danger` |
-| `message/text` | — | — | `color.text.danger` | — |
+| `message/errorGlyph` | — | — | — | `color.icon.danger` |
+| `message/label` | — | — | `color.text.danger` | — |
 
 **status=warning**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `message/iconWarning` | — | — | — | `color.icon.warning` |
-| `message/text` | — | — | `color.text.warning` | — |
+| `message/warningGlyph` | — | — | — | `color.icon.warning` |
+| `message/label` | — | — | `color.text.warning` | — |
 
 **status=success**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `message/iconSuccess` | — | — | — | `color.icon.success` |
-| `message/text` | — | — | `color.text.success` | — |
+| `message/successGlyph` | — | — | — | `color.icon.success` |
+| `message/label` | — | — | `color.text.success` | — |
 
 ### Nesting and properties
 
-- `message/iconError` nests `icon/warning-triangle`
-- `message/iconWarning` nests `icon/error-circle`
-- `message/iconSuccess` nests `icon/check-circle`
+- `message/errorGlyph` nests `icon/warning-triangle`
+- `message/warningGlyph` nests `icon/error-circle`
+- `message/successGlyph` nests `icon/check-circle`
 
 | Property | Type | Default |
 | --- | --- | --- |

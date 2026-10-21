@@ -48,7 +48,7 @@ import { tailOf } from '@prism3/engine/figma-names';
 import { planTargets } from './build-deps';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { diffAnatomy, type HostNode, type ReadPorts } from '@prism3/engine/anatomy-readback';
-import { COMPONENT_RENAMES, coordKey, coordPairs, formerDefIds, renameCoordinate, renameProperty, slotMigrationOf, type ComponentRename } from '@prism3/engine/component-renames';
+import { COMPONENT_RENAMES, coordKey, coordPairs, formerDefIds, partRenames, renameCoordinate, renameProperty, slotMigrationOf, type ComponentRename } from '@prism3/engine/component-renames';
 import { captureSlotMigration, migrationLines, type MigNode, type SlotMigration } from './slot-migration';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { EXECUTOR_REVISION } from './executor-revision';
@@ -377,6 +377,9 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
   // Copies and malformed stamps read as not built by Prism3 (#2300). The hash below still reads the file as it is.
   const host = ownedView(read);
   const blockers: string[] = [];
+  // The layers the ledger renames in this def's members (#2759): read under their new names below, renamed by the apply.
+  let layerMap = new Map<string, string>();
+  try { layerMap = partRenames(defId, ledger); } catch (err) { blockers.push((err as Error).message); }
   const planned = new Map<string, AnatomyPlan>();
   for (const p of plans) {
     const k = coordKey(planComponentName(p));
@@ -523,11 +526,12 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
     const rootName = plan.root.name;
     const rel = (p: string): string => (p === rootName ? '.' : p.startsWith(`${rootName}/`) ? p.slice(rootName.length + 1) : p);
     const touched = new Set<string>();
+    const snap = renamedSnap(m.snap, layerMap);
     // #2595 — the children the update moves into a frame the plan inserts: each is compared to its plan where it
     // lands, and listed as a move rather than as removed. `edited` is what the apply passes the executor.
     const moves: { from: string; to: string; plan: AnatomyPlan['root']; host: SnapNode }[] = [];
-    movesOf(plan.root, m.snap, '.', new Set([...(edit?.changed ?? []), ...(edit?.added ?? []), ...(edit?.removed ?? [])].map((p) => p.replace(/#\d+$/, ''))), moves);
-    const divs = diffAnatomy([plan], [m.snap as unknown as HostNode], () => m.name, ports).filter((d) => d.field !== 'member');
+    movesOf(plan.root, snap, '.', new Set([...(edit?.changed ?? []), ...(edit?.added ?? []), ...(edit?.removed ?? [])].map((p) => p.replace(/#\d+$/, ''))), moves);
+    const divs = diffAnatomy([plan], [snap as unknown as HostNode], () => m.name, ports).filter((d) => d.field !== 'member');
     const placed = [
       ...divs.map((d) => ({ d, part: rel(d.path) })),
       ...moves.flatMap((mv) => diffAnatomy([{ ...plan, root: mv.plan }], [mv.host as unknown as HostNode], () => mv.host.name, ports)
@@ -561,7 +565,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
     }
     const movedFrom = new Set(moves.map((mv) => mv.from));
     const extras: string[] = [];
-    extraChildren(plan.root, m.snap, '.', extras);
+    extraChildren(plan.root, snap, '.', extras);
     for (const mv of moves) extraChildren(mv.plan, mv.host, mv.to, extras);
     for (const part of extras.filter((x) => !movedFrom.has(x))) {
       const parent = part.includes('/') ? part.slice(0, part.lastIndexOf('/')) : '.';
@@ -573,7 +577,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
       changes.set(k, c);
     }
     const dropped: { part: string; file: string }[] = [];
-    droppedFills(plan.root, m.snap, '.', ports, dropped);
+    droppedFills(plan.root, snap, '.', ports, dropped);
     for (const mv of moves) droppedFills(mv.plan, mv.host, mv.to, ports, dropped);
     for (const { part, file } of dropped) {
       touched.add(part);
@@ -938,6 +942,27 @@ export const hostPorts = async (host: UpdateHost): Promise<UpdatePorts> => {
     return compsById.get(id) ?? null;
   };
   return { varName: (id) => v.get(id) ?? null, styleName: (id) => st.get(id) ?? null, componentName: (k) => comps.get(k) ?? null, componentById, drawVars };
+};
+
+/**
+ * A MEMBER'S SNAPSHOT AS ITS LAYERS WILL BE NAMED (#2759): each layer the ledger renames, under its new name. The apply
+ * renames those layers in place before anything else is written, so the plan is laid against the member as the build
+ * will meet it, and a renamed layer reads as the same node rather than one removed and one added. The member itself
+ * (the root) and an instance's contents (its main's) are never renamed. The record is left as it is: it was written
+ * under the old names and is compared with the snapshot as read.
+ */
+export const renamedSnap = <T extends { name?: unknown; type?: unknown; children?: T[] }>(snap: T, map: ReadonlyMap<string, string>): T => {
+  if (!map.size) return snap;
+  const walk = (n: T, root: boolean): T => {
+    const name = String(n.name ?? '');
+    const out = { ...n, ...(root || !map.has(name) ? {} : { name: map.get(name) }) } as T;
+    // The snapshot's `parent` (its parent's size) is not enumerable, so a spread drops it; the diff reads it.
+    const parent = Object.getOwnPropertyDescriptor(n, 'parent');
+    if (parent) Object.defineProperty(out, 'parent', parent);
+    if (n.type !== 'INSTANCE' && n.children) out.children = n.children.map((c) => walk(c, false));
+    return out;
+  };
+  return walk(snap, true);
 };
 
 /** The ports with the set's own SLOT properties (#2649): a member read as a snapshot has no set above its slots. */

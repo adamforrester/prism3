@@ -20,7 +20,7 @@ A small, static marker of one of three types. A status label is short text in th
 Shown on the default member: type `status`, emphasis `subtle`, tone `neutral`.
 
 1. **Surface** — The badge body, sized by what it holds: a small-radius label around a status text, a circle around one digit that grows into a pill, or the round dot itself. A subtle status label is the tone's tint with a 1px edge in the tone's border color, drawn inside the edge so it adds no size. A bold badge is the solid tone fill with no edge. Neither paints an interactive color.
-2. **Text** — The status text in the tone's text role. It carries the meaning, so the tone is never the only signal.
+2. **Label** — The status text in the tone's text role. It carries the meaning, so the tone is never the only signal.
 3. **Count** — The number, in the ink paired with the bold tone fill. Capped as the maximum followed by a plus sign, as in "99+".
 4. **Dot** — The dot's fixed square, about 8px. It paints nothing itself: the badge around it has no padding for this type, so the pill's round fill is the dot.
 
@@ -110,7 +110,7 @@ Generated from the plan that builds the design-file component: 20 members. Value
 | Part | Kind | In |
 | --- | --- | --- |
 | `surface` | frame | every member |
-| `surface/text` | text | type=status |
+| `surface/label` | text | type=status |
 | `surface/count` | text | type=count |
 | `surface/dot` | frame | type=dot |
 
@@ -145,7 +145,7 @@ Keyed by nothing: one row covers every member.
 
 | Members | Part | Text style |
 | --- | --- | --- |
-| every member | `surface/text` | `type.label.sm.emphasis` |
+| every member | `surface/label` | `type.label.sm.emphasis` |
 | every member | `surface/count` | `type.label.sm.emphasis` |
 
 ### Color
@@ -157,70 +157,70 @@ Keyed by `type`, `emphasis`, `tone`.
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `surface` | `color.foreground.secondary` | `color.border.tertiary` | — | — |
-| `surface/text` | — | — | `color.text.primary` | — |
+| `surface/label` | — | — | `color.text.primary` | — |
 
 **type=status, emphasis=subtle, tone=info**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `surface` | `color.foreground.info-subtle` | `color.border.info` | — | — |
-| `surface/text` | — | — | `color.text.info` | — |
+| `surface/label` | — | — | `color.text.info` | — |
 
 **type=status, emphasis=subtle, tone=success**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `surface` | `color.foreground.success-subtle` | `color.border.success` | — | — |
-| `surface/text` | — | — | `color.text.success` | — |
+| `surface/label` | — | — | `color.text.success` | — |
 
 **type=status, emphasis=subtle, tone=warning**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `surface` | `color.foreground.warning-subtle` | `color.border.warning` | — | — |
-| `surface/text` | — | — | `color.text.warning` | — |
+| `surface/label` | — | — | `color.text.warning` | — |
 
 **type=status, emphasis=subtle, tone=danger**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `surface` | `color.foreground.danger-subtle` | `color.border.danger` | — | — |
-| `surface/text` | — | — | `color.text.danger` | — |
+| `surface/label` | — | — | `color.text.danger` | — |
 
 **type=status, emphasis=bold, tone=neutral**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `surface` | `color.inverse.foreground.tertiary` | — | — | — |
-| `surface/text` | — | — | `color.inverse.text.primary` | — |
+| `surface/label` | — | — | `color.inverse.text.primary` | — |
 
 **type=status, emphasis=bold, tone=info**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `surface` | `color.foreground.info` | — | — | — |
-| `surface/text` | — | — | `color.text.on-info` | — |
+| `surface/label` | — | — | `color.text.on-info` | — |
 
 **type=status, emphasis=bold, tone=success**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `surface` | `color.foreground.success` | — | — | — |
-| `surface/text` | — | — | `color.text.on-success` | — |
+| `surface/label` | — | — | `color.text.on-success` | — |
 
 **type=status, emphasis=bold, tone=warning**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `surface` | `color.foreground.warning` | — | — | — |
-| `surface/text` | — | — | `color.text.on-warning` | — |
+| `surface/label` | — | — | `color.text.on-warning` | — |
 
 **type=status, emphasis=bold, tone=danger**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `surface` | `color.foreground.danger` | — | — | — |
-| `surface/text` | — | — | `color.text.on-danger` | — |
+| `surface/label` | — | — | `color.text.on-danger` | — |
 
 **type=count, emphasis=bold, tone=neutral**
 

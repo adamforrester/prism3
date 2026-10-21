@@ -716,7 +716,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   const STYLE_CONTRACT: Record<string, { parts: string[] | ((c: Record<string, string | undefined>) => string[]); style: (c: Record<string, string | undefined>) => string }> = {
     // #2324: a text button's label is its underlined twin, at every state.
     button:          { parts: ['label'], style: (c) => `${({ small: 'label/sm/emphasis', medium: 'label/md/emphasis', large: 'label/lg/emphasis' } as Record<string, string>)[c.size!]}${c.appearance === 'text' ? '-link' : ''}` },
-    'field-message': { parts: ['text'],  style: () => 'caption/md/default' },
+    'field-message': { parts: ['label'],  style: () => 'caption/md/default' },
     // #2266: the input type scales with the field's size, one body step above its label.
     'text-field':    { parts: fieldLayer, style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
     // #2317: the Password field's value and placeholder are TextField's, from the shared field factory.
@@ -727,8 +727,8 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     'radio-row':     { parts: ['label'], style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
     // #2715: List.Item's text, and an ordered item's number, read in the body style of the item's size (body small,
     // medium or large, its brief's size prop).
-    'list-item':     { parts: (c) => (c.type === 'ordered' ? ['number', 'text'] : ['text']), style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
-    'field-label':   { parts: ['text', 'indicator'], style: (c) => (({
+    'list-item':     { parts: (c) => (c.type === 'ordered' ? ['number', 'label'] : ['label']), style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
+    'field-label':   { parts: ['label', 'indicator'], style: (c) => (({
       // #2266: re-laddered 12 / 14 / 16.
       'small/regular': 'body/xs/default', 'small/bold': 'body/xs/strong',
       'medium/regular': 'body/sm/default', 'medium/bold': 'body/sm/strong',
@@ -967,7 +967,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   const def = componentDefs.find((d) => d.id === 'select')!;
   const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
   const page: Page = { children: [] };
-  const shim = makeShim({ ...fullFor(plans), page, nestedInstanceParts: ['text', 'placeholder', 'value'] });
+  const shim = makeShim({ ...fullFor(plans), page, nestedInstanceParts: ['text', 'label', 'placeholder', 'value'] });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
   const res = await applyComponentPlan(plans, shim as any, {});
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural read-back off the shim's members
@@ -1401,7 +1401,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     await applyComponentPlan(plans, shim as any, {});
     const members = (page.children[0]?.children ?? []) as unknown as HostNode[];
     const labels = members.map((m) => findByName(m, 'label'));
-    const controlBoxes = members.map((m) => findByName(m, 'controlBox'));
+    const controlBoxes = members.map((m) => findByName(m, 'controlCell'));
     // SCOPE FLOOR — a label was built into every member, or "they all wrap" is a statement about an empty set.
     ok(members.length > 0 && labels.every(Boolean),
       `#1424 host-truth: ${id} builds a label into every member (${labels.filter(Boolean).length}/${members.length})`);
@@ -1644,7 +1644,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
       ...base,
       figmaProperties: {
         ...base.figmaProperties,
-        texts: { message: { part: 'text', default: 'This is a status message.', byVariant: { status: SPREAD } } },
+        texts: { message: { part: 'label', default: 'This is a status message.', byVariant: { status: SPREAD } } },
       },
     } as typeof base;
     const plans = figmaAnatomySet(synthetic, { swapTarget: SWAP_TARGET });
@@ -1652,7 +1652,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     const shim = makeShim({ ...fullFor(plans), page });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
     const res = await applyComponentPlan(plans, shim as any, {});
-    const collapse = res.misses.filter((m) => /text\.characters -> COLLAPSED/.test(m));
+    const collapse = res.misses.filter((m) => /label\.characters -> COLLAPSED/.test(m));
     ok(collapse.length === 1 && collapse[0].includes('distinct captions'),
       `#1575 safety net: a def that DECLARES divergent captions on the bound part still trips the collapse report by name (${collapse.length} miss(es): ${collapse[0] ?? '—'})`);
   }
@@ -1860,7 +1860,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   for (const m of members) {
     const ctl = find(m, 'control'), row = find(m, 'messageRow'), mc = find(m, 'messageCell'), cc = find(m, 'counterCell');
     const msg = find(m, 'message') as (Node & { _main?: Node }) | undefined;
-    const text = find(msg?._main ?? msg, 'text');
+    const text = find(msg?._main ?? msg, 'label');
     if (!ctl || !row || !mc || !cc || !text) { const why = `${m.name}: incomplete (${[ctl, row, mc, cc, text].map((n) => (n ? 1 : 0)).join("")}; message ${msg?.type}, main ${msg?._main?.type}:${JSON.stringify(((msg?._main?.children as Node[] | undefined) ?? []).map((c) => c.name))})`; span.push(why); wrap.push(why); alone.push(why); continue; }
     cc.visible = true;
     const edge = () => `row ${W(row)} / field ${W(ctl)}; counter ${X(cc)}+${W(cc)}; message ${X(mc)}+${W(mc)}`;
@@ -1970,8 +1970,8 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     ok(members.length > 0 && off.length === 0,
       `#1757 ${host} ${part} wraps at the field's width: on every member the ${part} is as wide as the control (320, and 400 when widened) and a ${LONG.length}-character ${part} is two ${LINE}px lines (${off.length} off — ${off[0] ?? 'none'})`);
   };
-  await nestedWraps('text-field', 'message', 'text');
-  await nestedWraps('select', 'message', 'text');
+  await nestedWraps('text-field', 'message', 'label');
+  await nestedWraps('select', 'message', 'label');
 
   // ---- the nested LABEL stretches with the field, and its name wraps at field-label's 316 (#1762) ----
   // #1757 had the label's name wrap at the field's width. Since #1762 the name hugs and wraps at a max width
@@ -1984,7 +1984,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     for (const m of members) {
       const ctl = find(m, 'control');
       const inst = find(m, 'label');
-      const text = find(mainOf(inst), 'text');
+      const text = find(mainOf(inst), 'label');
       if (!ctl || !inst || !text) { off.push(`${m.name}: incomplete`); continue; }
       const was = text.characters;
       text.characters = LONG;
@@ -2009,7 +2009,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     const members = await setOf(id);
     const off: string[] = [];
     for (const m of members) {
-      const text = find(m, 'text');
+      const text = find(m, 'label');
       if (!text) { off.push(`${m.name}: no text`); continue; }
       const was = text.characters;
       text.characters = LONG;
@@ -2029,7 +2029,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     const members = await setOf('select');
     const off: string[] = [];
     for (const m of members) {
-      const ctl = find(m, 'control'), content = find(m, 'content'), chevron = find(m, 'chevron');
+      const ctl = find(m, 'control'), content = find(m, 'content'), chevron = find(m, 'chevronGlyph');
       const text = find(content, 'value') ?? find(content, 'placeholder');
       if (!ctl || !content || !chevron || !text) { off.push(`${m.name}: incomplete`); continue; }
       const was = text.characters;
@@ -2215,7 +2215,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   const members = ((page.children.find((c) => c.type === 'COMPONENT_SET')?.children as Node[] | undefined) ?? []);
   const kid = (m: Node, name: string) => ((m.children as Node[] | undefined) ?? []).find((c) => c.name === name);
   const measure = (m: Node, chars: string) => {
-    const text = kid(m, 'text')!, marker = kid(m, 'indicator')!;
+    const text = kid(m, 'label')!, marker = kid(m, 'indicator')!;
     const was = [text.characters, marker.visible];
     text.characters = chars;
     marker.visible = true;
@@ -2226,7 +2226,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   };
   const off: string[] = [];
   for (const m of members) {
-    if (!kid(m, 'text') || !kid(m, 'indicator')) { off.push(`${String(m.name)}: incomplete`); continue; }
+    if (!kid(m, 'label') || !kid(m, 'indicator')) { off.push(`${String(m.name)}: incomplete`); continue; }
     const short = measure(m, 'Label');
     const long = measure(m, 'x'.repeat(70));
     if (!(short.row === 320 && short.nameX === 0 && short.name === 30 && short.x === 34 && long.name === 316 && long.lines === 2 && long.x === 320))

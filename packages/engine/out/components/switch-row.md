@@ -126,8 +126,8 @@ Generated from the plan that builds the design-file component: 4 members. Values
 | --- | --- | --- |
 | `row` | frame | every member |
 | `row/label` | text | every member |
-| `row/trackBox` | frame | every member |
-| `row/trackBox/control` | instance | every member |
+| `row/controlCell` | frame | every member |
+| `row/controlCell/control` | instance | every member |
 
 ### Spacing and size
 
@@ -140,16 +140,16 @@ Keyed by `size`.
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `row` | — | `space.100` | — | — | — | — |
-| `row/trackBox` | — | — | `control.size.md.line-box` | — | — | — |
-| `row/trackBox/control` | — | — | `control.size.md.track` | — | — | — |
+| `row/controlCell` | — | — | `control.size.md.line-box` | — | — | — |
+| `row/controlCell/control` | — | — | `control.size.md.track` | — | — | — |
 
 **size=small**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `row` | — | `space.100` | — | — | — | — |
-| `row/trackBox` | — | — | `control.size.sm.line-box` | — | — | — |
-| `row/trackBox/control` | — | — | `control.size.sm.track` | — | — | — |
+| `row/controlCell` | — | — | `control.size.sm.line-box` | — | — | — |
+| `row/controlCell/control` | — | — | `control.size.sm.track` | — | — | — |
 
 ### Type
 
@@ -178,7 +178,7 @@ Keyed by `status`.
 
 ### Nesting and properties
 
-- `row/trackBox/control` nests `switch-control` at `selection=off, state=rest, status=default`; follows `size`, `status`; exposes `selection`, `state`, `showStateLabel`
+- `row/controlCell/control` nests `switch-control` at `selection=off, state=rest, status=default`; follows `size`, `status`; exposes `selection`, `state`, `showStateLabel`
 
 | Property | Type | Default |
 | --- | --- | --- |

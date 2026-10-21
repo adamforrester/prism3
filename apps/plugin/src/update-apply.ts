@@ -49,7 +49,7 @@
  */
 import { diffAnatomy, type HostNode } from '@prism3/engine/anatomy-readback';
 import { planComponentName, planSetProperties, type AnatomyPlan } from '@prism3/engine/anatomy-figma';
-import type { ComponentRename } from '@prism3/engine/component-renames';
+import { partRenames, type ComponentRename } from '@prism3/engine/component-renames';
 import { applyComponentPlan, emitCoordValue, memberStamp, STAMP_KEY, type ComponentApplyResult, type ComponentsApi, type CompPageTarget } from './write-components';
 import { planTargets } from './build-deps';
 import { NS } from './persist-figma';
@@ -351,7 +351,7 @@ export const namesMember = (miss: string, member: string, known: readonly string
   return false;
 };
 
-const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p: SetPreview, live: LiveSet, opts: { description?: string; yieldTo?: () => Promise<void>; handEdits: HandEditChoice; noBaseline: NoRecordChoice }): Promise<SetOutcome> => {
+const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p: SetPreview, live: LiveSet, opts: { description?: string; yieldTo?: () => Promise<void>; handEdits: HandEditChoice; noBaseline: NoRecordChoice; ledger?: readonly ComponentRename[] }): Promise<SetOutcome> => {
   const out: SetOutcome = { def: t.def, set: p.set, updated: [], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: opts.handEdits, identity: [], content: [], misses: [] };
   const work = plan(p, opts.handEdits, opts.noBaseline);
   out.skipped = work.skipped;
@@ -359,6 +359,27 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
   if (work.earlierRecord.length) out.earlierRecord = work.earlierRecord;
   out.kept = work.kept;
   const plans = new Map(t.plans.map((x) => [planComponentName(x), x] as const));
+
+  // ── LAYERS RENAMED IN PLACE (#2759), first, in every member this update configures: the dry run read them under
+  // their new names, and the build's pass finds them by those names, so each keeps its id and every override on it.
+  // The member itself and an instance's contents (its main's) are never renamed. Done before the identity is read,
+  // so the verify below holds each renamed layer to the id it had.
+  const layerMap = partRenames(t.def, opts.ledger);
+  if (layerMap.size) {
+    const rename = (n: LiveNode): void => {
+      for (const c of kidsOf(n)) {
+        const to = layerMap.get(String(c.name ?? ''));
+        if (to !== undefined) c.name = to;
+        if (c.type !== 'INSTANCE') rename(c);
+      }
+    };
+    const toCoord = namesFor(t).coordOf;
+    const movedTo = new Map(p.moves.map((m) => [m.from, m.to] as const));
+    for (const c of kidsOf(live)) {
+      const coord = toCoord(String(c.name ?? ''));
+      if (work.members.has(movedTo.get(coord) ?? coord)) rename(c);
+    }
+  }
 
   // ── THE IDENTITY BEFORE ─────────────────────────────────────────────────────────────────────────────────
   // A single-component def (#2296) has no set: its key and id are empty on both sides, and identity is per member.
@@ -702,7 +723,7 @@ export const applyUpdate = async (
     // REPEATING ROWS INTO A SLOT (#2649): the placed instances are read BEFORE the set changes under them, the same read
     // the dry run listed (its hash checked above), and filled after.
     const mig = p.slotMigration ? await slotMigrationFor(t, fresh as unknown as MigNode, opts.ledger, opts.breathe) : null;
-    const o = await applySet(host, api, t, p, fresh, { description: opts.descriptionOf?.(t.def), yieldTo: opts.yieldTo, handEdits: choiceFor(opts.choices, p.set), noBaseline: noRecordFor(opts.choices, p.set) });
+    const o = await applySet(host, api, t, p, fresh, { description: opts.descriptionOf?.(t.def), yieldTo: opts.yieldTo, handEdits: choiceFor(opts.choices, p.set), noBaseline: noRecordFor(opts.choices, p.set), ledger: opts.ledger });
     if (p.furniture && !o.refused && !o.stopped) o.furniture = p.furniture;
     // #2831: the confirm names what it broke for library consumers, as the check listed it.
     if (p.breaking && !o.refused && !o.stopped) o.breaking = p.breaking;

@@ -24,7 +24,7 @@ Shown on the default member: size `medium`, style `outline`, status `default`.
 2. **Caret**
 3. **Placeholder** — The placeholder, in the placeholder ink (the disabled ink when disabled). Shown on the empty field: rest, hover, focus and disabled. Wraps across the field width and reserves the default rows of its own line height.
 4. **Value** — The entered value, in the value ink. Shown on the filled, focused filled and read-only field. Wraps across the field width and reserves the default rows of its own line height.
-5. **Grip** (optional)
+5. **Grip glyph** (optional)
 6. **Focus ring**
 7. **Message**
 8. **Counter**
@@ -146,7 +146,7 @@ Generated from the plan that builds the design-file component: 84 members. Value
 | `container/body` | frame | every member |
 | `container/body/control` | frame | every member |
 | `container/body/control/placeholder` | text | state=rest or hover or focus-visible or disabled |
-| `container/body/control/grip` | instance | every member |
+| `container/body/control/gripGlyph` | instance | every member |
 | `container/body/messageRow` | frame | every member |
 | `container/body/messageRow/messageCell` | frame | every member |
 | `container/body/messageRow/messageCell/message` | instance | every member |
@@ -170,7 +170,7 @@ Keyed by `size`.
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | `space.100` | — | — | — | build width 320px (literal) |
 | `container/body/control` | `space.100` / `space.200` / `space.100` / `space.200` | — | — | — | 120px (literal) | — |
-| `container/body/control/grip` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
 | `container/body/messageRow` | — | `space.100` | — | — | — | — |
 | `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
 | `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
@@ -182,7 +182,7 @@ Keyed by `size`.
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | `space.100` | — | — | — | build width 320px (literal) |
 | `container/body/control` | `space.075` / `space.200` / `space.075` / `space.200` | — | — | — | 120px (literal) | — |
-| `container/body/control/grip` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
 | `container/body/messageRow` | — | `space.100` | — | — | — | — |
 | `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
 | `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
@@ -194,7 +194,7 @@ Keyed by `size`.
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | `space.100` | — | — | — | build width 320px (literal) |
 | `container/body/control` | `space.100` / `space.300` / `space.100` / `space.300` | — | — | — | 120px (literal) | — |
-| `container/body/control/grip` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
 | `container/body/messageRow` | — | `space.100` | — | — | — | — |
 | `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
 | `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
@@ -226,7 +226,7 @@ Keyed by `status`, `state`.
 | --- | --- | --- | --- | --- |
 | `container/body/control` | `color.field.fill` | `color.field.border.rest` | — | — |
 | `container/body/control/placeholder` | — | — | `color.text.secondary` | — |
-| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
 | `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
 
 **status=default, state=hover**
@@ -235,7 +235,7 @@ Keyed by `status`, `state`.
 | --- | --- | --- | --- | --- |
 | `container/body/control` | `color.interactive.neutral.overlay.hover` | `color.field.border.hover` | — | — |
 | `container/body/control/placeholder` | — | — | `color.text.secondary` | — |
-| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
 | `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
 
 **status=default, state=filled**
@@ -244,7 +244,7 @@ Keyed by `status`, `state`.
 | --- | --- | --- | --- | --- |
 | `container/body/control` | `color.field.fill` | `color.field.border.rest` | — | — |
 | `container/body/control/value` | — | — | `color.text.primary` | — |
-| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
 | `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
 
 **status=default, state=focus-visible**
@@ -254,7 +254,7 @@ Keyed by `status`, `state`.
 | `container/body/control` | `color.field.fill` | `color.border.focus` | — | — |
 | `container/body/control/caret` | `color.text.primary` | — | — | — |
 | `container/body/control/placeholder` | — | — | `color.text.secondary` | — |
-| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
 | `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
 
 **status=default, state=focus-visible-filled**
@@ -263,7 +263,7 @@ Keyed by `status`, `state`.
 | --- | --- | --- | --- | --- |
 | `container/body/control` | `color.field.fill` | `color.border.focus` | — | — |
 | `container/body/control/value` | — | — | `color.text.primary` | — |
-| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
 | `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
 
 **status=default, state=disabled**
@@ -272,7 +272,7 @@ Keyed by `status`, `state`.
 | --- | --- | --- | --- | --- |
 | `container/body/control` | `color.disabled.fill` | `color.disabled.border` | — | — |
 | `container/body/control/placeholder` | — | — | `color.disabled.on-fill` | — |
-| `container/body/control/grip` | — | — | — | `color.disabled.on-fill` |
+| `container/body/control/gripGlyph` | — | — | — | `color.disabled.on-fill` |
 | `container/body/messageRow/counterCell/counter` | — | — | `color.disabled.text` | — |
 
 **status=default, state=read-only**
@@ -281,7 +281,7 @@ Keyed by `status`, `state`.
 | --- | --- | --- | --- | --- |
 | `container/body/control` | `color.field.fill` | `color.field.border.rest` | — | — |
 | `container/body/control/value` | — | — | `color.text.primary` | — |
-| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
 | `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
 
 **status=error, state=rest**
@@ -290,7 +290,7 @@ Keyed by `status`, `state`.
 | --- | --- | --- | --- | --- |
 | `container/body/control` | `color.field.fill` | `color.border.danger` | — | — |
 | `container/body/control/placeholder` | — | — | `color.text.secondary` | — |
-| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
 | `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
 
 **status=error, state=hover**
@@ -299,7 +299,7 @@ Keyed by `status`, `state`.
 | --- | --- | --- | --- | --- |
 | `container/body/control` | `color.interactive.neutral.overlay.hover` | `color.border.danger` | — | — |
 | `container/body/control/placeholder` | — | — | `color.text.secondary` | — |
-| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
 | `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
 
 **status=error, state=filled**
@@ -308,7 +308,7 @@ Keyed by `status`, `state`.
 | --- | --- | --- | --- | --- |
 | `container/body/control` | `color.field.fill` | `color.border.danger` | — | — |
 | `container/body/control/value` | — | — | `color.text.primary` | — |
-| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
 | `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
 
 **status=error, state=focus-visible**
@@ -318,7 +318,7 @@ Keyed by `status`, `state`.
 | `container/body/control` | `color.field.fill` | `color.border.danger` | — | — |
 | `container/body/control/caret` | `color.text.primary` | — | — | — |
 | `container/body/control/placeholder` | — | — | `color.text.secondary` | — |
-| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
 | `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
 
 **status=error, state=focus-visible-filled**
@@ -327,7 +327,7 @@ Keyed by `status`, `state`.
 | --- | --- | --- | --- | --- |
 | `container/body/control` | `color.field.fill` | `color.border.danger` | — | — |
 | `container/body/control/value` | — | — | `color.text.primary` | — |
-| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
 | `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
 
 **status=error, state=disabled**
@@ -336,7 +336,7 @@ Keyed by `status`, `state`.
 | --- | --- | --- | --- | --- |
 | `container/body/control` | `color.disabled.fill` | `color.disabled.border` | — | — |
 | `container/body/control/placeholder` | — | — | `color.disabled.on-fill` | — |
-| `container/body/control/grip` | — | — | — | `color.disabled.on-fill` |
+| `container/body/control/gripGlyph` | — | — | — | `color.disabled.on-fill` |
 | `container/body/messageRow/counterCell/counter` | — | — | `color.disabled.text` | — |
 
 **status=error, state=read-only**
@@ -345,7 +345,7 @@ Keyed by `status`, `state`.
 | --- | --- | --- | --- | --- |
 | `container/body/control` | `color.field.fill` | `color.border.danger` | — | — |
 | `container/body/control/value` | — | — | `color.text.primary` | — |
-| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
 | `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
 
 **status=warning, state=rest**
@@ -354,7 +354,7 @@ Keyed by `status`, `state`.
 | --- | --- | --- | --- | --- |
 | `container/body/control` | `color.field.fill` | `color.border.warning` | — | — |
 | `container/body/control/placeholder` | — | — | `color.text.secondary` | — |
-| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
 | `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
 
 **status=warning, state=hover**
@@ -363,7 +363,7 @@ Keyed by `status`, `state`.
 | --- | --- | --- | --- | --- |
 | `container/body/control` | `color.interactive.neutral.overlay.hover` | `color.border.warning` | — | — |
 | `container/body/control/placeholder` | — | — | `color.text.secondary` | — |
-| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
 | `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
 
 **status=warning, state=filled**
@@ -372,7 +372,7 @@ Keyed by `status`, `state`.
 | --- | --- | --- | --- | --- |
 | `container/body/control` | `color.field.fill` | `color.border.warning` | — | — |
 | `container/body/control/value` | — | — | `color.text.primary` | — |
-| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
 | `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
 
 **status=warning, state=focus-visible**
@@ -382,7 +382,7 @@ Keyed by `status`, `state`.
 | `container/body/control` | `color.field.fill` | `color.border.warning` | — | — |
 | `container/body/control/caret` | `color.text.primary` | — | — | — |
 | `container/body/control/placeholder` | — | — | `color.text.secondary` | — |
-| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
 | `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
 
 **status=warning, state=focus-visible-filled**
@@ -391,7 +391,7 @@ Keyed by `status`, `state`.
 | --- | --- | --- | --- | --- |
 | `container/body/control` | `color.field.fill` | `color.border.warning` | — | — |
 | `container/body/control/value` | — | — | `color.text.primary` | — |
-| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
 | `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
 
 **status=warning, state=disabled**
@@ -400,7 +400,7 @@ Keyed by `status`, `state`.
 | --- | --- | --- | --- | --- |
 | `container/body/control` | `color.disabled.fill` | `color.disabled.border` | — | — |
 | `container/body/control/placeholder` | — | — | `color.disabled.on-fill` | — |
-| `container/body/control/grip` | — | — | — | `color.disabled.on-fill` |
+| `container/body/control/gripGlyph` | — | — | — | `color.disabled.on-fill` |
 | `container/body/messageRow/counterCell/counter` | — | — | `color.disabled.text` | — |
 
 **status=warning, state=read-only**
@@ -409,7 +409,7 @@ Keyed by `status`, `state`.
 | --- | --- | --- | --- | --- |
 | `container/body/control` | `color.field.fill` | `color.border.warning` | — | — |
 | `container/body/control/value` | — | — | `color.text.primary` | — |
-| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
 | `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
 
 **status=success, state=rest**
@@ -418,7 +418,7 @@ Keyed by `status`, `state`.
 | --- | --- | --- | --- | --- |
 | `container/body/control` | `color.field.fill` | `color.border.success` | — | — |
 | `container/body/control/placeholder` | — | — | `color.text.secondary` | — |
-| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
 | `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
 
 **status=success, state=hover**
@@ -427,7 +427,7 @@ Keyed by `status`, `state`.
 | --- | --- | --- | --- | --- |
 | `container/body/control` | `color.interactive.neutral.overlay.hover` | `color.border.success` | — | — |
 | `container/body/control/placeholder` | — | — | `color.text.secondary` | — |
-| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
 | `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
 
 **status=success, state=filled**
@@ -436,7 +436,7 @@ Keyed by `status`, `state`.
 | --- | --- | --- | --- | --- |
 | `container/body/control` | `color.field.fill` | `color.border.success` | — | — |
 | `container/body/control/value` | — | — | `color.text.primary` | — |
-| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
 | `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
 
 **status=success, state=focus-visible**
@@ -446,7 +446,7 @@ Keyed by `status`, `state`.
 | `container/body/control` | `color.field.fill` | `color.border.success` | — | — |
 | `container/body/control/caret` | `color.text.primary` | — | — | — |
 | `container/body/control/placeholder` | — | — | `color.text.secondary` | — |
-| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
 | `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
 
 **status=success, state=focus-visible-filled**
@@ -455,7 +455,7 @@ Keyed by `status`, `state`.
 | --- | --- | --- | --- | --- |
 | `container/body/control` | `color.field.fill` | `color.border.success` | — | — |
 | `container/body/control/value` | — | — | `color.text.primary` | — |
-| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
 | `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
 
 **status=success, state=disabled**
@@ -464,7 +464,7 @@ Keyed by `status`, `state`.
 | --- | --- | --- | --- | --- |
 | `container/body/control` | `color.disabled.fill` | `color.disabled.border` | — | — |
 | `container/body/control/placeholder` | — | — | `color.disabled.on-fill` | — |
-| `container/body/control/grip` | — | — | — | `color.disabled.on-fill` |
+| `container/body/control/gripGlyph` | — | — | — | `color.disabled.on-fill` |
 | `container/body/messageRow/counterCell/counter` | — | — | `color.disabled.text` | — |
 
 **status=success, state=read-only**
@@ -473,13 +473,13 @@ Keyed by `status`, `state`.
 | --- | --- | --- | --- | --- |
 | `container/body/control` | `color.field.fill` | `color.border.success` | — | — |
 | `container/body/control/value` | — | — | `color.text.primary` | — |
-| `container/body/control/grip` | — | — | — | `color.icon.secondary` |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
 | `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
 
 ### Nesting and properties
 
 - `container/label` nests `field-label` at `size=medium, emphasis=secondary, weight=regular, state=rest`; `state=disabled` takes `state=disabled`; follows `size`; exposes `emphasis`, `weight`
-- `container/body/control/grip` nests `icon/resize-grip`
+- `container/body/control/gripGlyph` nests `icon/resize-grip`
 - `container/body/messageRow/messageCell/message` nests `field-message` at `status=default`; follows `status`
 - `container/body/control/focusRing` nests `focus-ring` at `surface=default`
 

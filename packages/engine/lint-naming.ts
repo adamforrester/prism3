@@ -87,8 +87,8 @@ const SLOT_ITEMS: readonly string[] = ['tab-item', 'list-item', 'segmented-contr
 /** Exempt from the prefix by decision (Q349): each may be used on its own. */
 const STANDALONE: readonly string[] = ['checkbox-control', 'radio-control'];
 
-/** The role names a root part may take (the skill's naming table, §6). */
-const ROOT_ROLES: readonly string[] = ['container', 'row', 'control', 'track', 'label', 'message', 'ring', 'glyph', 'frame', 'wash', 'surface', 'panel'];
+/** The role names a root part may take (the skill's naming table, §6). Not `label`: that is the main text's name. */
+const ROOT_ROLES: readonly string[] = ['container', 'row', 'control', 'track', 'message', 'ring', 'glyph', 'frame', 'wash', 'surface', 'panel'];
 
 /** The suffix every non-root glyph layer carries, and the name of a Row's control cell. */
 const GLYPH_SUFFIX = 'Glyph';
@@ -108,25 +108,6 @@ const PENDING: readonly Pending[] = [
   // PR 2 — Figma property names lowercase (Q345 A): renamed here. #2660 removed the per-item names.
   // PR 3 — component renames. None breaches a rule here: Q394 A keeps the slot items unprefixed, and the
   // one rename left (`tab` → `tab-item`, Q353) is a name, not a rule this gate reads.
-  // PR 4 — layer and part renames (Q350).
-  { arm: 'root', def: 'divider', name: 'divider', pr: 4 },
-  { arm: 'glyph', def: 'checkbox-control', name: 'mark', pr: 4 },
-  { arm: 'glyph', def: 'checkbox-control', name: 'dash', pr: 4 },
-  { arm: 'glyph', def: 'field-message', name: 'iconError', pr: 4 },
-  { arm: 'glyph', def: 'field-message', name: 'iconWarning', pr: 4 },
-  { arm: 'glyph', def: 'field-message', name: 'iconSuccess', pr: 4 },
-  { arm: 'glyph', def: 'textarea', name: 'grip', pr: 4 },
-  { arm: 'glyph', def: 'select', name: 'chevron', pr: 4 },
-  { arm: 'glyph', def: 'image-placeholder', name: 'marker', pr: 4 },
-  { arm: 'glyph', def: 'spinner', name: 'ring', pr: 4 },
-  { arm: 'glyph', def: 'tag', name: 'check', pr: 4 },
-  { arm: 'glyph', def: '_accordion-indicator', name: 'chevronDown', pr: 4 },
-  { arm: 'glyph', def: '_accordion-indicator', name: 'chevronUp', pr: 4 },
-  { arm: 'glyph', def: '_accordion-indicator', name: 'plus', pr: 4 },
-  { arm: 'glyph', def: '_accordion-indicator', name: 'minus', pr: 4 },
-  { arm: 'control cell', def: 'checkbox-row', name: 'controlBox', pr: 4 },
-  { arm: 'control cell', def: 'radio-row', name: 'controlBox', pr: 4 },
-  { arm: 'control cell', def: 'switch-row', name: 'trackBox', pr: 4 },
 ];
 
 // ── THE WALK ────────────────────────────────────────────────────────────────────────────────────────

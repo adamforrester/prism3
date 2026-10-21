@@ -20,7 +20,7 @@ An empty-state media frame that holds a photograph at a fixed aspect ratio. Pick
 Shown on the default member: ratio `4:3`.
 
 1. **Frame** — The media frame: a neutral fill, an aspect-ratio lock, and clipping so a dropped image stays inside. Its width is nominal (720px) and a designer resizes it; the ratio holds while the size flexes.
-2. **Marker** (optional) — The centered "no image" marker — a muted glyph shown until a photograph is dropped in. It scales with the frame, so it reads as the same proportion at any size. The marker boolean hides it once an image is in.
+2. **Marker glyph** (optional) — The centered "no image" marker — a muted glyph shown until a photograph is dropped in. It scales with the frame, so it reads as the same proportion at any size. The marker boolean hides it once an image is in.
 
 ## Styles
 
@@ -89,7 +89,7 @@ Generated from the plan that builds the design-file component: 7 members. Values
 | Part | Kind | In |
 | --- | --- | --- |
 | `frame` | frame | every member |
-| `frame/marker` | instance | every member |
+| `frame/markerGlyph` | instance | every member |
 
 ### Spacing and size
 
@@ -112,53 +112,53 @@ Keyed by `ratio`.
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `frame` | `color.background.secondary` | — | — | — |
-| `frame/marker` | — | — | — | `color.icon.tertiary` |
+| `frame/markerGlyph` | — | — | — | `color.icon.tertiary` |
 
 **ratio=2:3**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `frame` | `color.background.secondary` | — | — | — |
-| `frame/marker` | — | — | — | `color.icon.tertiary` |
+| `frame/markerGlyph` | — | — | — | `color.icon.tertiary` |
 
 **ratio=3:4**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `frame` | `color.background.secondary` | — | — | — |
-| `frame/marker` | — | — | — | `color.icon.tertiary` |
+| `frame/markerGlyph` | — | — | — | `color.icon.tertiary` |
 
 **ratio=4:5**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `frame` | `color.background.secondary` | — | — | — |
-| `frame/marker` | — | — | — | `color.icon.tertiary` |
+| `frame/markerGlyph` | — | — | — | `color.icon.tertiary` |
 
 **ratio=1:1**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `frame` | `color.background.secondary` | — | — | — |
-| `frame/marker` | — | — | — | `color.icon.tertiary` |
+| `frame/markerGlyph` | — | — | — | `color.icon.tertiary` |
 
 **ratio=3:2**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `frame` | `color.background.secondary` | — | — | — |
-| `frame/marker` | — | — | — | `color.icon.tertiary` |
+| `frame/markerGlyph` | — | — | — | `color.icon.tertiary` |
 
 **ratio=16:9**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `frame` | `color.background.secondary` | — | — | — |
-| `frame/marker` | — | — | — | `color.icon.tertiary` |
+| `frame/markerGlyph` | — | — | — | `color.icon.tertiary` |
 
 ### Nesting and properties
 
-- `frame/marker` nests `icon/image`
+- `frame/markerGlyph` nests `icon/image`
 
 | Property | Type | Default |
 | --- | --- | --- |

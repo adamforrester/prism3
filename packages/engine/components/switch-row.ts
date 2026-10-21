@@ -175,7 +175,7 @@ export const switchRow: ComponentDef = {
 
   // ── ANATOMY — THE LABELED ROW THAT NESTS THE CONTROL (#1354) ───────────────────────────────────
   //
-  // Three parts now, not five: the whole ROW is the hit target, `trackBox` is the #1201 line-box
+  // Three parts now, not five: the whole ROW is the hit target, `controlCell` is the #1201 line-box
   // wrapper, and its CHILD is a `nest` of `switch-control` where the track, thumb, glyphs and focus ring
   // used to be authored in place. The atom paints itself and moves its own thumb; the Row paints the
   // label. The Row is LABEL-FIRST — the family's one structural divergence — because a switch's habitat
@@ -184,7 +184,7 @@ export const switchRow: ComponentDef = {
   // THE ROW MUST NOT CENTER. This def's content rules say long labels wrap while the fixed-width track
   // does not shrink, so `align: center` here would float the control to the middle of a two-line label
   // (the wrong repair `test.ts` #1009 half-1 forbids). The row stays top-aligned (`align: start`) and
-  // the centering lives one level down, in `trackBox`, which is one line-box tall.
+  // the centering lives one level down, in `controlCell`, which is one line-box tall.
   anatomy: {
     root: 'row',
     parts: {
@@ -197,7 +197,7 @@ export const switchRow: ComponentDef = {
         role: 'target',
         layout: { direction: 'row', align: 'start', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
         gap: 'size.{size}.gap',
-        children: ['label', 'trackBox'],
+        children: ['label', 'controlCell'],
       },
       // No `paintSlot` — the default is `label`, and at `disabled` the projector reaches `disabled.label`
       // (page ink) rather than `disabled.label.on-fill`, because this text sits beside the track's fill
@@ -211,7 +211,7 @@ export const switchRow: ComponentDef = {
       // `body.{rung}` line-box), centering the control on its cross axis. Draws nothing — it gives the
       // control a line-tall box to center within, so the top-aligned row holds it on the FIRST line of a
       // wrapping label. Height FIXED; width HUGs the (2:1) control.
-      trackBox: {
+      controlCell: {
         kind: 'box',
         role: 'presentation',
         height: 'size.{size}.control-box',
