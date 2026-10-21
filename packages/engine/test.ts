@@ -33356,8 +33356,8 @@ arm: {
   // widened its button and wrapped the row. The code line names both declarations, says the label wraps inside its
   // button, and sends long labels to stacked. Clauses typed here, read against the def's own line (docs/34).
   const fillLine = (bg.anatomy?.codeOnly ?? []).find((l) => l.startsWith('the inline row')) ?? '';
-  ok(fillLine.includes('`flex: 1 1 0; min-width: 0`') && fillLine.includes('wraps inside its button') && fillLine.includes('pick stacked'),
-    `#2880 button group fill: each button is \`flex: 1 1 0; min-width: 0\`, a long label wraps inside its button, and long labels pick stacked (got ${JSON.stringify(fillLine)})`);
+  ok(fillLine.includes('`flex: 1 1 0; min-width: 0`') && fillLine.includes('wraps inside its button') && fillLine.includes('`overflow-wrap: anywhere` on the label') && fillLine.includes('pick stacked'),
+    `#2880 button group fill: each button is \`flex: 1 1 0; min-width: 0\`, a long label wraps inside its button (\`overflow-wrap: anywhere\` on the label, so one long word breaks too), and long labels pick stacked (got ${JSON.stringify(fillLine)})`);
 
   // THE NEW SCHEMA FIELDS ARE REFUSED WHERE THEY CANNOT MEAN ANYTHING.
   const withPart = (part: string, patch: Record<string, unknown>): ComponentDef => ({ ...bg, anatomy: { ...bg.anatomy!, parts: { ...bg.anatomy!.parts, [part]: { ...bg.anatomy!.parts[part], ...patch } as PartDef } } });
