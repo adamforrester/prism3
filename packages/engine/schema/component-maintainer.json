@@ -903,7 +903,7 @@
       "docGaps": [
         {
           "section": "anatomy",
-          "field": "anatomy.parts.text.note",
+          "field": "anatomy.parts.label.note",
           "reason": "names a tool"
         },
         {
@@ -990,22 +990,22 @@
       "docGaps": [
         {
           "section": "anatomy",
-          "field": "anatomy.parts.iconError.note",
+          "field": "anatomy.parts.errorGlyph.note",
           "reason": "maintainer register"
         },
         {
           "section": "anatomy",
-          "field": "anatomy.parts.iconWarning.note",
+          "field": "anatomy.parts.warningGlyph.note",
           "reason": "maintainer register"
         },
         {
           "section": "anatomy",
-          "field": "anatomy.parts.iconSuccess.note",
+          "field": "anatomy.parts.successGlyph.note",
           "reason": "maintainer register"
         },
         {
           "section": "anatomy",
-          "field": "anatomy.parts.text.note",
+          "field": "anatomy.parts.label.note",
           "reason": "maintainer register"
         },
         {
@@ -1212,7 +1212,7 @@
         },
         {
           "section": "anatomy",
-          "field": "anatomy.parts.grip.note",
+          "field": "anatomy.parts.gripGlyph.note",
           "reason": "maintainer register"
         },
         {
@@ -1289,12 +1289,12 @@
         },
         {
           "section": "anatomy",
-          "field": "anatomy.parts.mark.note",
+          "field": "anatomy.parts.checkGlyph.note",
           "reason": "maintainer register"
         },
         {
           "section": "anatomy",
-          "field": "anatomy.parts.dash.note",
+          "field": "anatomy.parts.dashGlyph.note",
           "reason": "maintainer register"
         },
         {
@@ -1348,7 +1348,7 @@
       ],
       "notes": {
         "contested": [
-          "`alignment` (top/baseline vs center) is in brief §15's variants block and is NOT an axis here. The brief calls top/baseline \"the non-negotiable default, not center\", and a non-negotiable default with one admissible value is not an axis — it has no dimension. It is a layout rule for the anatomy block to encode. The alternative is to declare it and accept an axis of one, which `modifiers` already demonstrates the cost of (#845). #1201 REFINED how that rule is encoded without weakening it: the control+label ROW is still top-aligned (never centered — `test.ts` #1009 half-1 enforces it), but the control now sits in a `controlBox` exactly one label line-box tall and centers WITHIN that box, so a single-line label reads centered and a wrapping one keeps the control on the first line. That is the construction #1009 filed and could not build, unblocked by baking the line-box to a fixed px per rung (`control.size.*.line-box`) — the one thing a Figma variable can hold that `fontSize × ratio` is not.",
+          "`alignment` (top/baseline vs center) is in brief §15's variants block and is NOT an axis here. The brief calls top/baseline \"the non-negotiable default, not center\", and a non-negotiable default with one admissible value is not an axis — it has no dimension. It is a layout rule for the anatomy block to encode. The alternative is to declare it and accept an axis of one, which `modifiers` already demonstrates the cost of (#845). #1201 REFINED how that rule is encoded without weakening it: the control+label ROW is still top-aligned (never centered — `test.ts` #1009 half-1 enforces it), but the control now sits in a `controlCell` exactly one label line-box tall and centers WITHIN that box, so a single-line label reads centered and a wrapping one keeps the control on the first line. That is the construction #1009 filed and could not build, unblocked by baking the line-box to a fixed px per rung (`control.size.*.line-box`) — the one thing a Figma variable can hold that `fontSize × ratio` is not.",
           "The group's `orientation` and `density` are in brief §15's variants block and are not here because they are `CheckboxGroup`'s axes, not this component's. The alternative is folding the group into this def, which is the monolithic decomposition the brief evaluates and rejects (§2).",
           "BORDER AND FILL AT ONE COORDINATE — #1011's third finding, and the answer is NEITHER of the two the issue offered. The defect: a selected box named `fill.selected` for its fill and let its border fall through to `border.rest`, so two bindings that must AGREE about the box's boundary disagreed. Both resolved, both named tokens this def chose, and the box shipped with a visible seam — #802's class again, and the second on this component after #967's `role: 'target'` conflation. The issue asked whether this needs a new EXPRESSION or is PER-DEF CARE. It is a third thing. It needs no new expression: the grammar already says it, because an unbound slot returns `undefined` and paints nothing, so the ABSENCE of `unchecked.fill` IS the binding \"this coordinate has no fill\" — the fix was deleting seven keys, not adding a field. And per-def care is exactly what had already failed: the radio and switch defs of the time carried the identical pairing because they copied this def verbatim, which is per-def care performed correctly three times over one wrong premise. What was missing was neither vocabulary nor diligence but ENFORCEMENT, so the answer is a gate — `lint-paint.ts` arm 4, which measures whether a fill is self-bounding against the page (>= 3:1, SC 1.4.11) and fails a same-family border drawn beside one. It named all three defs in a single run before any of them was fixed. The measured fact underneath, which is why the rule generalizes rather than describing these three: `interactive.<intent>.fill.*` and `interactive.<intent>.border.*` were byte-identical at every rung they SHARE across the brands measured then (5 brands x 4 modes), and the border ladder has NO `selected` rung at all — so `fill.selected` beside `border.rest` was never two shades of one idea, it was a fill that moved and a border that could not follow. The asymmetry to keep in view: switch's OFF track KEEPS its rim, because no brand's neutral fill clears 3:1 (1.21-1.58:1 at rest) and the rim is that track's only edge — which is precisely why arm 4 asks about the FILL's contrast rather than comparing the two bindings to each other."
         ],
@@ -1710,7 +1710,7 @@
         "contested": [
           "THE ATOM IS A SEPARATE COMPONENT rather than kept inline in the row, and the #1354 precondition made it earn that: the split was built ONLY after confirming the switch Row nests it (the composition check), which it does — the switch was already a row containing a control subtree, the shape checkbox had before #1226. The rejected alternative (keep the track inline and let the family diverge) is exactly the per-def duplication #1011 found had shipped the identical fill/border pairing across three defs.",
           "THE THUMB IS AN `indicator` BOX THAT PARENTS A GLYPH, which #910's #864 rule refused until this def widened it. The widening is scoped to a `size`+`radius` disc (a deliberately-shaped filled mark), not a blanket permission — the #864 case was an SVG wrapper frame with no radius, where the fill was an incidental square. The rejected alternative was a transparent wrapper box inside the thumb to make the glyph an indirect child: it passes the literal check while reproducing the exact fill-behind-glyph #864 exists to prevent, which is a gate dodge the house discipline forbids (a false positive is narrowed with a reason, not worked around).",
-          "THE STATE GLYPH IS ONE FIGMA BOOLEAN (`State icon`, default on) OVER TWO SELECTION-GATED PARTS, not a variant axis (owner, 2026-09-28). A `showStateLabel` boolean VARIANT axis would add a name to the closed `VARIANT_AXES` family vocabulary for one def AND double the member count (24 → 48). The node-visibility boolean does neither: the check and the X are each built at their own `selection` value and each carries the property, so a designer turns the glyph off once, in the panel, and the set stays at 24. The cost is a narrowing of #1331's refusal — a boolean may now target parts that are `presentWhen`-gated, but only when they share one axis and cover all its values, so every member still has a node to toggle.",
+          "THE STATE GLYPH IS ONE FIGMA BOOLEAN (`state icon`, default on) OVER TWO SELECTION-GATED PARTS, not a variant axis (owner, 2026-09-28). A `showStateLabel` boolean VARIANT axis would add a name to the closed `VARIANT_AXES` family vocabulary for one def AND double the member count (24 → 48). The node-visibility boolean does neither: the check and the X are each built at their own `selection` value and each carries the property, so a designer turns the glyph off once, in the panel, and the set stays at 24. The cost is a narrowing of #1331's refusal — a boolean may now target parts that are `presentWhen`-gated, but only when they share one axis and cover all its values, so every member still has a node to toggle.",
           "THE OFF TRACK IS A LIGHT SURFACE STEP (`background.tertiary`) WITH A DARK THUMB, not the neutral button fill (owner, 2026-09-28). The neutral button fill is the one the `neutralEmphasis` lever darkens, and under `strong` emphasis on a brand-neutral action palette it made the off and on tracks both near-black (NB master theme: #2D2C2C off, #34383D on). A surface step no interactive lever moves keeps off light in every brand; the dark thumb in the border's ink is Material 3's unselected shape and Prism 2's. The cost: hover and pressed do not step the off fill (no darker surface step exists, and the overlay wash replaces a fill rather than layering on it).",
           "OFF HOVER AND PRESSED SHOW NO VISIBLE CHANGE, like checkbox and radio at unchecked (owner-decided, 2026-09-28). The off fill holds its rest value — the tier has no surface step darker than `background.tertiary`, and the interactive overlay wash REPLACES a box's fill (one `fills` array) rather than layering on it, so a 10% wash over the page would read lighter than `tertiary`. The `off.border.hover`/`.pressed` keys stay bound and resolve to the rest border in this tier. The rejected alternative was a new darker surface role, a token mint and a CONTRACT MINOR.",
           "THE DISABLED GLYPH TAKES `disabled.border`, not the thumb's `disabled.on-fill` (#1764, owner-directed 2026-09-28). Both keys bound `disabled.on-fill` before, so the glyph drew in its own thumb's color and could not be seen — and the glyph now defaults on. `disabled.border` equals the disabled track in every corpus mode, so the glyph repeats the rest-state inversion, 3.04–5.49:1 against the thumb. `disabled.text` was measured and rejected at 1.21–1.79:1."
@@ -1722,11 +1722,11 @@
           "THE INHERITED FOCUS-RING BINDING is now two layers deep (#1280/#1290), the same as `checkbox-control`: the ring is nested inside the track and the track inside the row, so an inherited dimension binding would have to be cleared twice. The symptom to look for: a nested ring sitting at the md control height instead of hugging the track."
         ],
         "evolution": [
-          "THE ON/OFF AFFORDANCE SIMPLIFIED across the field (KB switch brief §13): Material dropped its in-thumb icon emphasis, and thumb position plus track color now carry the state, with hardcoded On/Off text rejected. This atom keeps the glyph ON by default (the `State icon` boolean; `showStateLabel` in code), matching Prism 2, and treats it as a legibility aid — never the state signal.",
+          "THE ON/OFF AFFORDANCE SIMPLIFIED across the field (KB switch brief §13): Material dropped its in-thumb icon emphasis, and thumb position plus track color now carry the state, with hardcoded On/Off text rejected. This atom keeps the glyph ON by default (the `state icon` boolean; `showStateLabel` in code), matching Prism 2, and treats it as a legibility aid — never the state signal.",
           "`role=\"switch\"` MATURED from a newer role backed by checkbox fallbacks into the standard that distinguishes a switch from a checkbox in assistive tech (KB switch brief §13). The atom is presentational; the host row carries the role."
         ],
         "projection": [
-          "The Figma set carries `showStateLabel` as the `State icon` boolean, default on, so both surfaces start from the same default. (Moved from props.showStateLabel.description, #2411.)"
+          "The Figma set carries `showStateLabel` as the `state icon` boolean, default on, so both surfaces start from the same default. (Moved from props.showStateLabel.description, #2411.)"
         ]
       },
       "docGaps": [
@@ -1792,7 +1792,7 @@
         "read-only — not projected: the Row's Figma set carries no state of its own, and read-only has no treatment to project at either level. Since #1354 the Row projects a SIZE-ONLY set (no stateAxis): the control's `state` is EXPOSED from the nested `switch-control` and the consumer drives it from the Row, so no state is enumerated into the Row's own matrix. read-only binds NOTHING even in code: the brief recommends a lock affordance over a styled locked control, and the one candidate token resolves to the same step as the rest border in all four brands.",
         "pending — not projected: it is a THUMB SWAP (a spinner replaces the thumb) on the nested control plus an `aria-busy` lock, not a row skin, so no Figma member carries it; `button`'s `overlay` part (#848) is the mechanism, unauthored on the control here. In code it is first-class in `props`. The Row's own per-state LABEL treatment (`disabled.label` dimming the text) is the CODE projection's, not Figma's — `lint-paint` arm 2 reads `def.states` for reachability, so `disabled.label` stays reachable and keyed for code while the Figma SET collapses to size-only.",
         "states — the documented cost of collapsing 24 members to 2 (the #1354 decomposition). A disabled Row in Figma shows the disabled CONTROL (the exposed state) beside a full-ink label, because the Row no longer multiplies state.",
-        "showStateLabel — the X/checkmark affordance is exposed from the nested `switch-control` as a consumer property (React prop, `.ai.json` option, Figma exposed property). In Figma it is the control's own `State icon` boolean (default on), which the exposed nested instance surfaces on the Row, so the Row declares no boolean of its own for it. See `switch-control.ts`.",
+        "showStateLabel — the X/checkmark affordance is exposed from the nested `switch-control` as a consumer property (React prop, `.ai.json` option, Figma exposed property). In Figma it is the control's own `state icon` boolean (default on), which the exposed nested instance surfaces on the Row, so the Row declares no boolean of its own for it. See `switch-control.ts`.",
         "min-height — `size.*.min-height` is the row's FLOOR and Figma has no floor. `PartDef` carries `height`, which is fixed, so binding it on the row would clip a wrapping label at the one coordinate that matters most. The row hugs its children instead and the keys stay bound for the code projection.",
         "THE FULL-WIDTH SETTINGS ROW, this component's actual habitat and layout rather than anatomy. The row HUGS its children here, so `label` and the control sit adjacent with the gap between them; a settings panel stretches the row and pins the control to the trailing edge, and `justify` on a hugging row cannot express that. `labelPosition: trailing` — the control-leading order for a switch among other form controls — is the same kind of fact: a prop that reorders this row, and the reordered form is the code projection's.",
         "The `description` prop — helper text beneath the label, describedby-wired, where the CONSEQUENCE of the setting goes. A second text part under `label` rather than beside it, which would change the row's vertical shape for content that is optional at every member.",
@@ -1805,7 +1805,7 @@
           "THE ASYNC MODEL SHIPS BOTH STANCES — optimistic-by-default with revert-and-message, plus a first-class `pending` lock. The field genuinely splits here, and the brief's reconciliation is deliberate: mandating optimism universally puts the whole orchestration burden on every consumer, and mandating the lock kills the immediacy that is the entire component.",
           "READ-ONLY IS SUPPORTED, against the brief author's own first instinct and adopted on the external pass's enterprise argument: users review permission sets and system config they lack authority to change, and disabling those drops them from the tab order while swapping to static text hides the setting from screen readers.",
           "THE LABEL SIDE DEFAULTS TO LEADING, the opposite of every other control in the corpus, because the default follows the dominant habitat (the settings row). It is a prop, not a `variants` axis, because it paints nothing.",
-          "THE ON/OFF AFFORDANCE (the thumb glyph) DEFAULTS ON — `showStateLabel: true` in code and the `State icon` boolean on in Figma (owner, 2026-09-28), matching Prism 2. The contested part is not the default but what the glyph is FOR: a legibility aid, never the 1.4.1 answer, since thumb position already carries the state. Hardcoded adjacent On/Off text is rejected outright. The glyph lives on `switch-control`; why it is a node-visibility boolean rather than a variant axis is argued there."
+          "THE ON/OFF AFFORDANCE (the thumb glyph) DEFAULTS ON — `showStateLabel: true` in code and the `state icon` boolean on in Figma (owner, 2026-09-28), matching Prism 2. The contested part is not the default but what the glyph is FOR: a legibility aid, never the 1.4.1 answer, since thumb position already carries the state. Hardcoded adjacent On/Off text is rejected outright. The glyph lives on `switch-control`; why it is a node-visibility boolean rather than a variant axis is argued there."
         ],
         "unverified": [
           "THE DECOMPOSITION IS UNVERIFIED ON A REAL HOST, the same way `checkbox-control`'s was: the nested control instance must pin its own HEIGHT (the track height) rather than stretch to the `control-box` line box, and whether the instance's inherited sizing mode cooperates with the row's auto-layout is a real-host question the offline shim cannot answer. The symptom to look for: a control instance stretched to the line-box height instead of centered within it. The control is non-square, so the Row pins HEIGHT only and the width is the control's own 2:1 — a narrower pin than checkbox's square.",
@@ -1819,11 +1819,11 @@
           "FROM AESTHETIC TO SEMANTIC. Switch-versus-checkbox was once treated as a styling choice; `role=\"switch\"` enforcement and Apple's App Store rejections made the immediate-effect contract the boundary, not a look (KB switch brief §13).",
           "`role=\"switch\"` MATURED from a newer role backed by checkbox fallbacks into the standard that distinguishes switch from checkbox in assistive tech.",
           "ASYNC MOVED INTO THE COMPONENT CONTRACT. Components moved from presenting a boolean toward handling optimistic updates and pending state themselves (Primer's `loading`, Fluent's async triggers) — the reason `isPending` is first-class here.",
-          "THE ON/OFF AFFORDANCE SIMPLIFIED. Material dropped its in-thumb icon emphasis; position and color carry the state, and hardcoded On/Off text is rejected. The thumb glyph (`showStateLabel`, the `State icon` boolean in Figma) stays on by default as a legibility aid, never the state signal.",
+          "THE ON/OFF AFFORDANCE SIMPLIFIED. Material dropped its in-thumb icon emphasis; position and color carry the state, and hardcoded On/Off text is rejected. The thumb glyph (`showStateLabel`, the `state icon` boolean in Figma) stays on by default as a legibility aid, never the state signal.",
           "SWITCH SEPARATED FROM TOGGLE BUTTON (`role=\"switch\"` + aria-checked against `aria-pressed`), where older systems conflated them."
         ],
         "projection": [
-          "`showStateLabel`'s default matches the `State icon` boolean in the Figma set. (Moved from props.showStateLabel.description, #2411.)"
+          "`showStateLabel`'s default matches the `state icon` boolean in the Figma set. (Moved from props.showStateLabel.description, #2411.)"
         ]
       },
       "docGaps": [
@@ -1912,7 +1912,7 @@
         },
         {
           "section": "anatomy",
-          "field": "anatomy.parts.chevron.note",
+          "field": "anatomy.parts.chevronGlyph.note",
           "reason": "maintainer register"
         },
         {
@@ -2054,7 +2054,7 @@
         "aspect-lock derive — the frame holds its RATIO while its real size flexes, and Figma expresses that as an aspect-ratio LOCK (`lockAspectRatio()`) that DERIVES the second dimension from the first. The engine binds ONE nominal dimension and locks the ratio; that a variable BINDING on the single axis makes Figma derive the other at PASTE time (as a resize does) is a live-file behavior no offline host can witness, filed for the real-host round-trip arm (`tools/component-roundtrip/`). What the offline gates hold is the lock capturing the right ratio, read back as `targetAspectRatio`.",
         "raster swap — dropping an actual photograph onto the frame is a NATIVE Figma action (an image fill), not a modeled slot or variant. This def models the frame and its empty state; the image the designer supplies is theirs.",
         "scrim/veil and play-circle overlays — DEFERRED to a follow-up (#1316 residue, owner-held). A wash for text over the image nests the `veil` component, and a video affordance nests the `play-circle` glyph; both are compositions this core empty-state frame does not carry. Named here so the absence reads as a deferral rather than a gap.",
-        "marker — in code the \"no image\" marker draws while no image is supplied and goes once one is, so it is derived, not a prop (owner decision Q163.4b A). Figma cannot tell that a fill is a photograph, so the Figma set carries a Figma-only `Marker` toggle, on by default, that a designer turns off once an image is in.",
+        "marker — in code the \"no image\" marker draws while no image is supplied and goes once one is, so it is derived, not a prop (owner decision Q163.4b A). Figma cannot tell that a fill is a photograph, so the Figma set carries a Figma-only `marker` toggle, on by default, that a designer turns off once an image is in.",
         "the ratio is a magnitude of SHAPE, not a state — 2:3 through 16:9 is a proportion a designer selects, carried by Figma as a variant coordinate, never a runtime state. An image placeholder has no interaction states at all (`states: []`)."
       ],
       "notes": {
@@ -2378,7 +2378,7 @@
           "Owner, 2026-09-29 (\"respect none\"): the selected tint binds `interactive.primary.subtle-fill.selected`, which every brand whose outline interaction is not none now emits — one leaf on overlay-neutral, the family on solid-tint. It replaced `interactive.primary.overlay.selected`, a 20% neutral wash on the default lever rather than a primary tint. On none there is no tint.",
           "Owner, 2026-09-29: a selected tag with the check shown is one glyph and one gap wider than its unselected twin (30px at medium on comfortable density), and the width is not reserved, so a group reflows on toggle. It was held as a contested item against decision E's \"nothing reflows\".",
           "Owner, 2026-09-29: selected hover and pressed keep the tint and step the 2px outline (`interactive.primary.border.hover` / `.pressed`). It was held as a contested item.",
-          "Owner, 2026-09-29: the Figma switch for the Select check is `Check icon` (it was `check mark`); the code prop stays `showCheck`. The Dismissible × has no switch: it is the tag's action and is on every member.",
+          "Owner, 2026-09-29: the Figma switch for the Select check is `check icon` (it was `check mark`); the code prop stays `showCheck`. The Dismissible × has no switch: it is the tag's action and is on every member.",
           "Badge's hook, answered point by point. (1) Tag binds `color.interactive.*` only (plus disabled and the focus ring). (2) Tag has hover, pressed, focus-visible and disabled members, and selection as an axis. (3) Tag is in `lint-hit-target.ts` INTERACTIVE, 44px at medium. (4) Tag is a pill with an outline at rest, a tint and a 2px primary outline when selected; the status badge has a small radius and a tone fill, and binds no interactive role. (5) Tag no longer nests IconButton.Neutral: the × is a glyph in a square slot. `test.ts` holds (1) and (4) against Badge's projected rest paint.",
           "Two types, Select and Dismissible (owner, 2026-09-28), replace the three interactions (clickable | selectable | removable) of 2026-09-27. The plain clickable tag is dropped: an action in place is a Button. `type` is the variant axis name Badge shares (Badge's `genre` was renamed to match), and the code prop of the same name replaces `interaction`.",
           "The dual-action tag (select the body, remove with the ×, brief §2) is gone: Select has no dismiss at all (#1743), which also removed the × on the selected fill that measured 2.09–2.86:1.",
@@ -2433,7 +2433,7 @@
         }
       ]
     },
-    "tab": {
+    "tab-item": {
       "codeOnly": [
         "code delivery pending: behavior layer (#2454). The owner built the Figma components first (Q178.3); the entries below are a framework-neutral behavior contract for whichever layer the project's developers choose.",
         "The tab in code — a <button role=\"tab\"> with aria-selected (true or false, on every tab) and aria-controls naming its panel. The tab list owns roving tabindex: the selected tab is tabindex=\"0\", the rest -1.",
@@ -3398,8 +3398,8 @@
     "counter": {
       "codeOnly": [
         "the spinbutton — the value is one focusable element with role=\"spinbutton\" and tabindex=\"0\", not an <input>: a counter shows its value and is not typed into (typed entry is the number input). It carries aria-valuenow, aria-valuemin, aria-valuemax only when a max is set, aria-valuetext where the number alone is unclear (\"3 items\"), and the label as its name through aria-labelledby, which works with the label shown or hidden. The message, when shown, is added through aria-describedby.",
-        "the keyboard model — Up Arrow and Down Arrow change the value by one step, Page Up and Page Down by ten steps, and Home and End go to min and to max when a max is set. The value never passes min or max. Tab reaches the counter once, at the value.",
-        "the stepper buttons — each is a <button type=\"button\" tabindex=\"-1\"> (APG), out of the Tab order because the arrow keys do the same job, and still reached by pointer, touch and voice. Each has aria-controls pointing at the value and an accessible name from decrementLabel and incrementLabel. A press does not move focus. At a limit the button takes aria-disabled=\"true\", not native disabled, so it stays in the accessibility tree, and a press does nothing.",
+        "the keyboard model — Up Arrow and Down Arrow change the value by one step, Page Up and Page Down by ten steps, and Home and End go to min and to max when a max is set. The value never passes min or max. The counter is one Tab stop, at the value.",
+        "the stepper buttons — each is a <button type=\"button\" tabindex=\"-1\"> (APG), out of the Tab order because the arrow keys do the same job, and still reached by pointer, touch and voice. They are not aria-hidden: the ARIA Authoring Practices spin button example keeps such buttons in the accessibility tree, so pointer and touch users of assistive technology can still find them by name. Each has aria-controls pointing at the value and an accessible name from decrementLabel and incrementLabel. A press does not move focus. At a limit the button takes aria-disabled=\"true\", not native disabled, so it stays in the accessibility tree, and a press does nothing.",
         "the announcement — a button press writes the new value to the app's one shared polite live region, such as \"Quantity 3\", never a region of the counter's own. An arrow-key change is announced by the spinbutton itself and is not written there again.",
         "touch-target-expansion — each nested button extends its hit area in code to at least 44×44px at every size (the flush icon button's own rule). On outline the medium inset is 12px, so a 20px glyph's 44px area reaches the edge exactly; the value between the two buttons keeps their areas apart, at least 44px center to center.",
         "limits in Figma — min and max are code props. In Figma the designer shows a limit by setting that button's exposed state to disabled; in code the counter sets aria-disabled from min and max.",

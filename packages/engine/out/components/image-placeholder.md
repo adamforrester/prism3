@@ -12,7 +12,7 @@
 An empty-state media frame that holds a photograph at a fixed aspect ratio. Pick a ratio (portrait 2:3, 3:4 or 4:5; square 1:1; landscape 4:3, 3:2 or 16:9) and the frame keeps that proportion while its size flexes to its container; a designer drops an image fill onto it (not a modeled slot). Before an image arrives it shows a neutral fill and a centered "no image" marker that scales with the frame, and it clips its content so a mismatched photo cannot overflow the frame. Turn the marker off once an image is in.
 
 - **Purpose:** Reserve space for a photograph at a fixed aspect ratio, holding the proportion while the frame flexes to its container, and show a neutral empty state until an image is dropped in.
-- **Use when:** A layout needs a media slot at a known proportion before the image is chosen — a card's photo area, a hero, a gallery cell. Pick a ratio from the media it will hold (2:3, 3:4 or 4:5 portrait, 1:1, 4:3, 3:2 or 16:9 landscape); the frame keeps that ratio as it resizes and clips whatever image is dropped onto it. Once an image is supplied, turn the Marker property off so the "no image" marker does not draw over it.
+- **Use when:** A layout needs a media slot at a known proportion before the image is chosen — a card's photo area, a hero, a gallery cell. Pick a ratio from the media it will hold (2:3, 3:4 or 4:5 portrait, 1:1, 4:3, 3:2 or 16:9 landscape); the frame keeps that ratio as it resizes and clips whatever image is dropped onto it. Once an image is supplied, turn the marker property off so the "no image" marker does not draw over it.
 - **Avoid when:** The surface is a decorative wash over an existing photo (that is the veil component), the image is already present and fixed (place it directly), or the space needs a play button or a legibility scrim over the media (not built yet — this is the core empty-state frame only).
 
 ## Anatomy
@@ -20,7 +20,7 @@ An empty-state media frame that holds a photograph at a fixed aspect ratio. Pick
 Shown on the default member: ratio `4:3`.
 
 1. **Frame** — The media frame: a neutral fill, an aspect-ratio lock, and clipping so a dropped image stays inside. Its width is nominal (720px) and a designer resizes it; the ratio holds while the size flexes.
-2. **Marker** (optional) — The centered "no image" marker — a muted glyph shown until a photograph is dropped in. It scales with the frame, so it reads as the same proportion at any size. The Marker boolean hides it once an image is in.
+2. **Marker glyph** (optional) — The centered "no image" marker — a muted glyph shown until a photograph is dropped in. It scales with the frame, so it reads as the same proportion at any size. The marker boolean hides it once an image is in.
 
 ## Styles
 
@@ -30,12 +30,12 @@ Shown on the default member: ratio `4:3`.
 
 ## Usage guidelines
 
-Use an image placeholder wherever a layout reserves space for a photograph before one is chosen — a card's media slot, a hero, a gallery cell. Pick the ratio from the media it will hold (3:4, 4:5 or 2:3 for portrait product and apparel shots, 1:1 for square thumbnails, 4:3 or 3:2 for standard photography, 16:9 for video stills and wide banners); the frame keeps that proportion while it flexes to its container, so a row of cards stays aligned even as their widths change. Drop a photograph onto the frame as an image fill. Turn the Marker property off so the "no image" marker does not sit on the photo. The marker scales with the frame, so a small thumbnail shows a small marker. The frame clips its content, so a mismatched image stays inside the ratio rather than overflowing.
+Use an image placeholder wherever a layout reserves space for a photograph before one is chosen — a card's media slot, a hero, a gallery cell. Pick the ratio from the media it will hold (3:4, 4:5 or 2:3 for portrait product and apparel shots, 1:1 for square thumbnails, 4:3 or 3:2 for standard photography, 16:9 for video stills and wide banners); the frame keeps that proportion while it flexes to its container, so a row of cards stays aligned even as their widths change. Drop a photograph onto the frame as an image fill. Turn the marker property off so the "no image" marker does not sit on the photo. The marker scales with the frame, so a small thumbnail shows a small marker. The frame clips its content, so a mismatched image stays inside the ratio rather than overflowing.
 
 ### Do
 
 - Pick the ratio from the media the frame will hold, and let the lock keep it while the size flexes
-- Drop the photograph on as an image fill — the frame is the container, not a swappable slot — and turn the Marker off once it is in
+- Drop the photograph on as an image fill — the frame is the container, not a swappable slot — and turn the marker property off once it is in
 - Give an informative image an accessible name and a decorative one an empty alt; keep the empty-state marker decorative and aria-hidden
 - Let the frame clip — a photo cropped to the ratio reads better than one that overflows the layout
 
@@ -43,7 +43,7 @@ Use an image placeholder wherever a layout reserves space for a photograph befor
 
 - Hard-code a width and a height to fake a ratio — the frame holds the ratio and derives the second dimension, so two fixed sizes fight the lock and break on resize
 - Treat the "no image" marker as the image's description — it is a placeholder affordance, turned off when a photograph arrives
-- Leave the marker on over a supplied image — the frame cannot tell that a fill is a photo, so the Marker property is how the marker goes away
+- Leave the marker on over a supplied image — the frame cannot tell that a fill is a photo, so the marker property is how the marker goes away
 - Reach for an image placeholder as a decorative wash over a photo — that is the veil component (a follow-up may compose the two)
 - Expect a play or scrim overlay yet — those are not built yet; this is the core empty-state frame
 
@@ -89,7 +89,7 @@ Generated from the plan that builds the design-file component: 7 members. Values
 | Part | Kind | In |
 | --- | --- | --- |
 | `frame` | frame | every member |
-| `frame/marker` | instance | every member |
+| `frame/markerGlyph` | instance | every member |
 
 ### Spacing and size
 
@@ -112,57 +112,57 @@ Keyed by `ratio`.
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `frame` | `color.background.secondary` | — | — | — |
-| `frame/marker` | — | — | — | `color.icon.tertiary` |
+| `frame/markerGlyph` | — | — | — | `color.icon.tertiary` |
 
 **ratio=2:3**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `frame` | `color.background.secondary` | — | — | — |
-| `frame/marker` | — | — | — | `color.icon.tertiary` |
+| `frame/markerGlyph` | — | — | — | `color.icon.tertiary` |
 
 **ratio=3:4**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `frame` | `color.background.secondary` | — | — | — |
-| `frame/marker` | — | — | — | `color.icon.tertiary` |
+| `frame/markerGlyph` | — | — | — | `color.icon.tertiary` |
 
 **ratio=4:5**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `frame` | `color.background.secondary` | — | — | — |
-| `frame/marker` | — | — | — | `color.icon.tertiary` |
+| `frame/markerGlyph` | — | — | — | `color.icon.tertiary` |
 
 **ratio=1:1**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `frame` | `color.background.secondary` | — | — | — |
-| `frame/marker` | — | — | — | `color.icon.tertiary` |
+| `frame/markerGlyph` | — | — | — | `color.icon.tertiary` |
 
 **ratio=3:2**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `frame` | `color.background.secondary` | — | — | — |
-| `frame/marker` | — | — | — | `color.icon.tertiary` |
+| `frame/markerGlyph` | — | — | — | `color.icon.tertiary` |
 
 **ratio=16:9**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `frame` | `color.background.secondary` | — | — | — |
-| `frame/marker` | — | — | — | `color.icon.tertiary` |
+| `frame/markerGlyph` | — | — | — | `color.icon.tertiary` |
 
 ### Nesting and properties
 
-- `frame/marker` nests `icon/image`
+- `frame/markerGlyph` nests `icon/image`
 
 | Property | Type | Default |
 | --- | --- | --- |
-| `Marker` | boolean | `true` |
+| `marker` | boolean | `true` |
 
 ---
 

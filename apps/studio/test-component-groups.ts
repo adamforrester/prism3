@@ -42,7 +42,7 @@ const WIRE_COMPONENTS: [string, string[]][] = [
   ['Icon button', ['IconButton', 'IconButton.Destructive', 'IconButton.Neutral']], ['Link', ['Link']], ['List', ['List', 'List.Item']],
   ['Password field', ['PasswordField']], ['Radio', ['Radio.Control', 'Radio.Group', 'Radio.Row']],
   ['Segmented control', ['SegmentedControl', 'SegmentedControl.Segment']], ['Select', ['Select']], ['Switch', ['Switch.Control', 'Switch.Row']],
-  ['Tabs', ['Tab', 'Tabs']], ['Tag', ['Tag']], ['Text field', ['TextField']], ['Textarea', ['Textarea']], ['Veil', ['Veil']],
+  ['Tabs', ['Tab.Item', 'Tabs']], ['Tag', ['Tag']], ['Text field', ['TextField']], ['Textarea', ['Textarea']], ['Veil', ['Veil']],
 ];
 const WIRE_SUBS: [string, string[]][] = [
   ['Field label', ['FieldLabel']], ['Field message', ['FieldMessage']], ['Flush icon button', ['FlushIconButton', 'FlushIconButton.Destructive', 'FlushIconButton.Neutral']],
@@ -99,8 +99,8 @@ const ci = costOf(catalog, ['icon', 'badge']);
 ok(ci.variants === 20 && ci.components === 45, `a set built as separate components counts as components, not variants (Icon: ${ci.components})`);
 ok(JSON.stringify(alsoBuilds(catalog, four)) === JSON.stringify(['Icon', 'Spinner', 'Focus ring', 'Flush icon button Neutral', 'Divider', 'Button Group', 'Field label', 'Field message']),
   `idea 7: the sets a build makes first, transitively, minus the selection, named as the list names them (Q392 on #2812) (${alsoBuilds(catalog, four).join(', ')})`);
-ok(displayNameOf(catalog, 'button-destructive') === 'Button Destructive' && displayNameOf(catalog, 'tab') === 'Tab' && displayNameOf(catalog, 'image-placeholder') === 'Image placeholder',
-  `a part set reads as its base and its part, a set alone on its row as the row (${displayNameOf(catalog, 'button-destructive')}, ${displayNameOf(catalog, 'tab')}, ${displayNameOf(catalog, 'image-placeholder')})`);
+ok(displayNameOf(catalog, 'button-destructive') === 'Button Destructive' && displayNameOf(catalog, 'tab-item') === 'Tab Item' && displayNameOf(catalog, 'image-placeholder') === 'Image placeholder',
+  `a part set reads as its base and its part, a set alone on its row as the row (${displayNameOf(catalog, 'button-destructive')}, ${displayNameOf(catalog, 'tab-item')}, ${displayNameOf(catalog, 'image-placeholder')})`);
 ok(JSON.stringify(inListOrder(catalog, ['tag', 'badge', 'spinner', 'button-neutral', 'button'])) === JSON.stringify(['badge', 'button', 'button-neutral', 'tag', 'spinner']),
   `review N1 on #2812: a selection runs in the list's order, not the order it was ticked in (${JSON.stringify(inListOrder(catalog, ['tag', 'badge', 'spinner', 'button-neutral', 'button']))})`);
 ok(alsoBuilds(catalog, ['focus-ring']).length === 0, 'a set that nests nothing builds nothing first');

@@ -46,9 +46,9 @@
  * `onGlyph` a `check` at `selection=on`, `offGlyph` a `close` at `selection=off` — children of the
  * thumb, so they travel with it for free.
  *
- * **`State icon` — ONE Figma BOOLEAN over both glyphs, default ON (owner, 2026-09-28).** The glyph is a
+ * **`state icon` — ONE Figma BOOLEAN over both glyphs, default ON (owner, 2026-09-28).** The glyph is a
  * component property of the set, not a code-only gate: `figmaProperties.booleans` maps `showStateLabel`
- * to BOTH glyph parts under the panel name `State icon`. It is #1331's NODE-VISIBILITY mechanism — the
+ * to BOTH glyph parts under the panel name `state icon`. It is #1331's NODE-VISIBILITY mechanism — the
  * glyph node is built and its `visible` rides the property — so the set does NOT grow (40 members). A
  * boolean VARIANT axis stays rejected: it would add a name to the closed `VARIANT_AXES` vocabulary for one
  * def and DOUBLE the set to 48. One property drives TWO parts because the check and the X never coexist:
@@ -141,7 +141,7 @@ export const switchControl: ComponentDef = {
 
   // The atom's surface, not the field's. No `label`, no `description`, no form wiring — those are the
   // Row's. `showStateLabel` lives here because it gates a part of this atom (the thumb glyph); the Row
-  // exposes it to the consumer like every other control-level control. In Figma it is the `State icon`
+  // exposes it to the consumer like every other control-level control. In Figma it is the `state icon`
   // boolean (`figmaProperties.booleans`), default on to match the code default.
   props: [
     { name: 'checked', type: 'boolean', required: false, description: 'The on/off appearance. Driven by the host row — a bare Switch.Control is styled by the coordinate, not wired to state here. The flip is immediate by the Row\'s contract; this atom only renders the two positions.' },
@@ -325,25 +325,25 @@ export const switchControl: ComponentDef = {
       // THE ON GLYPH — a check, present only at `selection=on`. Sized from the thumb\'s own `dot` key (the
       // check artboard carries its own ~71% optical inset, so a second ladder would inset it twice — the
       // rule `checkbox-control`\'s `mark` follows). Its ink is `on.icon` (a dark check on the light on
-      // thumb), `disabled.icon.on-fill` when disabled. `optional` because the `State icon` boolean hides it.
+      // thumb), `disabled.icon.on-fill` when disabled. `optional` because the `state icon` boolean hides it.
       onGlyph: {
         kind: 'vector',
         glyph: 'check',
         size: 'size.{size}.dot',
         optional: true,
         presentWhen: { selection: ['on'] },
-        note: 'The on affordance (a check). Built at `selection=on`; its visibility is the `State icon` boolean (code: `showStateLabel`), default on. Never the sole state signal — thumb position already carries it.',
+        note: 'The on affordance (a check). Built at `selection=on`; its visibility is the `state icon` boolean (code: `showStateLabel`), default on. Never the sole state signal — thumb position already carries it.',
       },
       // THE OFF GLYPH — an X (`close`), present only at `selection=off`. Same geometry as the check; only
       // the outline differs. Its ink is `off.icon` (a light X on the dark off thumb). Rides the same
-      // `State icon` boolean as the check — one toggle, two parts that never coexist.
+      // `state icon` boolean as the check — one toggle, two parts that never coexist.
       offGlyph: {
         kind: 'vector',
         glyph: 'close',
         size: 'size.{size}.dot',
         optional: true,
         presentWhen: { selection: ['off'] },
-        note: 'The off affordance (an X). Built at `selection=off`; its visibility is the same `State icon` boolean as the check (code: `showStateLabel`), default on. The glyph is `close`, the set\'s X.',
+        note: 'The off affordance (an X). Built at `selection=off`; its visibility is the same `state icon` boolean as the check (code: `showStateLabel`), default on. The glyph is `close`, the set\'s X.',
       },
       // Radio's / switch's ring, on the TRACK. The two insets SUM in the executor, siting the ring at
       // -(2+2) = -4 so the visible gap is a full 2px (#801). FIXED at `surface=default` (#1134): this def
@@ -378,10 +378,10 @@ export const switchControl: ComponentDef = {
     stateAxis: { name: 'state', values: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled'] },
     // No `texts` (no text part), no `swaps` (the thumb is geometry this def owns), no `slotAxes` (the
     // glyphs are gated by a coordinate, which is what `presentWhen` draws). ONE boolean (owner, 2026-09-28):
-    // `State icon` shows or hides the thumb glyph — the check at `on` and the X at `off` ride the one
+    // `state icon` shows or hides the thumb glyph — the check at `on` and the X at `off` ride the one
     // property, each carrying `visibleProp` on its own node, so the set stays at 40 (#1331's mechanism, not
     // a variant axis). Default ON, matching `showStateLabel`'s code default.
-    booleans: { showStateLabel: { part: ['onGlyph', 'offGlyph'], default: true, figmaName: 'State icon' } },
+    booleans: { showStateLabel: { part: ['onGlyph', 'offGlyph'], default: true, figmaName: 'state icon' } },
   },
 
   accessibility: {
@@ -447,12 +447,12 @@ export const switchControl: ComponentDef = {
   notes: {
     // #2411 (owner Q167 call 3): how a consumer-facing fact is projected into the design file — maintainer-only.
     projection: [
-      'The Figma set carries `showStateLabel` as the `State icon` boolean, default on, so both surfaces start from the same default. (Moved from props.showStateLabel.description, #2411.)',
+      'The Figma set carries `showStateLabel` as the `state icon` boolean, default on, so both surfaces start from the same default. (Moved from props.showStateLabel.description, #2411.)',
     ],
     contested: [
       'THE ATOM IS A SEPARATE COMPONENT rather than kept inline in the row, and the #1354 precondition made it earn that: the split was built ONLY after confirming the switch Row nests it (the composition check), which it does — the switch was already a row containing a control subtree, the shape checkbox had before #1226. The rejected alternative (keep the track inline and let the family diverge) is exactly the per-def duplication #1011 found had shipped the identical fill/border pairing across three defs.',
       'THE THUMB IS AN `indicator` BOX THAT PARENTS A GLYPH, which #910\'s #864 rule refused until this def widened it. The widening is scoped to a `size`+`radius` disc (a deliberately-shaped filled mark), not a blanket permission — the #864 case was an SVG wrapper frame with no radius, where the fill was an incidental square. The rejected alternative was a transparent wrapper box inside the thumb to make the glyph an indirect child: it passes the literal check while reproducing the exact fill-behind-glyph #864 exists to prevent, which is a gate dodge the house discipline forbids (a false positive is narrowed with a reason, not worked around).',
-      'THE STATE GLYPH IS ONE FIGMA BOOLEAN (`State icon`, default on) OVER TWO SELECTION-GATED PARTS, not a variant axis (owner, 2026-09-28). A `showStateLabel` boolean VARIANT axis would add a name to the closed `VARIANT_AXES` family vocabulary for one def AND double the member count (24 → 48). The node-visibility boolean does neither: the check and the X are each built at their own `selection` value and each carries the property, so a designer turns the glyph off once, in the panel, and the set stays at 24. The cost is a narrowing of #1331\'s refusal — a boolean may now target parts that are `presentWhen`-gated, but only when they share one axis and cover all its values, so every member still has a node to toggle.',
+      'THE STATE GLYPH IS ONE FIGMA BOOLEAN (`state icon`, default on) OVER TWO SELECTION-GATED PARTS, not a variant axis (owner, 2026-09-28). A `showStateLabel` boolean VARIANT axis would add a name to the closed `VARIANT_AXES` family vocabulary for one def AND double the member count (24 → 48). The node-visibility boolean does neither: the check and the X are each built at their own `selection` value and each carries the property, so a designer turns the glyph off once, in the panel, and the set stays at 24. The cost is a narrowing of #1331\'s refusal — a boolean may now target parts that are `presentWhen`-gated, but only when they share one axis and cover all its values, so every member still has a node to toggle.',
       'THE OFF TRACK IS A LIGHT SURFACE STEP (`background.tertiary`) WITH A DARK THUMB, not the neutral button fill (owner, 2026-09-28). The neutral button fill is the one the `neutralEmphasis` lever darkens, and under `strong` emphasis on a brand-neutral action palette it made the off and on tracks both near-black (NB master theme: #2D2C2C off, #34383D on). A surface step no interactive lever moves keeps off light in every brand; the dark thumb in the border\'s ink is Material 3\'s unselected shape and Prism 2\'s. The cost: hover and pressed do not step the off fill (no darker surface step exists, and the overlay wash replaces a fill rather than layering on it).',
       'OFF HOVER AND PRESSED SHOW NO VISIBLE CHANGE, like checkbox and radio at unchecked (owner-decided, 2026-09-28). The off fill holds its rest value — the tier has no surface step darker than `background.tertiary`, and the interactive overlay wash REPLACES a box\'s fill (one `fills` array) rather than layering on it, so a 10% wash over the page would read lighter than `tertiary`. The `off.border.hover`/`.pressed` keys stay bound and resolve to the rest border in this tier. The rejected alternative was a new darker surface role, a token mint and a CONTRACT MINOR.',
       'THE DISABLED GLYPH TAKES `disabled.border`, not the thumb\'s `disabled.on-fill` (#1764, owner-directed 2026-09-28). Both keys bound `disabled.on-fill` before, so the glyph drew in its own thumb\'s color and could not be seen — and the glyph now defaults on. `disabled.border` equals the disabled track in every corpus mode, so the glyph repeats the rest-state inversion, 3.04–5.49:1 against the thumb. `disabled.text` was measured and rejected at 1.21–1.79:1.',
@@ -465,7 +465,7 @@ export const switchControl: ComponentDef = {
     ],
     // KB switch brief §13, the items this atom carries: the on/off affordance and the role that announces it.
     evolution: [
-      'THE ON/OFF AFFORDANCE SIMPLIFIED across the field (KB switch brief §13): Material dropped its in-thumb icon emphasis, and thumb position plus track color now carry the state, with hardcoded On/Off text rejected. This atom keeps the glyph ON by default (the `State icon` boolean; `showStateLabel` in code), matching Prism 2, and treats it as a legibility aid — never the state signal.',
+      'THE ON/OFF AFFORDANCE SIMPLIFIED across the field (KB switch brief §13): Material dropped its in-thumb icon emphasis, and thumb position plus track color now carry the state, with hardcoded On/Off text rejected. This atom keeps the glyph ON by default (the `state icon` boolean; `showStateLabel` in code), matching Prism 2, and treats it as a legibility aid — never the state signal.',
       '`role="switch"` MATURED from a newer role backed by checkbox fallbacks into the standard that distinguishes a switch from a checkbox in assistive tech (KB switch brief §13). The atom is presentational; the host row carries the role.',
     ],
   },

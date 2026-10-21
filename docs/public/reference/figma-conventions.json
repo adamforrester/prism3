@@ -118,7 +118,7 @@
           {
             "name": "↳ Tabs",
             "components": [
-              "tab",
+              "tab-item",
               "tabs"
             ]
           },
@@ -1375,7 +1375,7 @@
         ],
         "properties": [
           {
-            "name": "State icon",
+            "name": "state icon",
             "type": "BOOLEAN"
           }
         ],
@@ -1551,7 +1551,7 @@
         ],
         "properties": [
           {
-            "name": "Marker",
+            "name": "marker",
             "type": "BOOLEAN"
           }
         ],
@@ -1678,7 +1678,7 @@
             "type": "BOOLEAN"
           },
           {
-            "name": "Check icon",
+            "name": "check icon",
             "type": "BOOLEAN"
           }
         ],
@@ -1690,9 +1690,9 @@
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/tag.md"
       },
       {
-        "id": "tab",
-        "name": "Tab",
-        "figmaName": "tab",
+        "id": "tab-item",
+        "name": "Tab.Item",
+        "figmaName": "tab-item",
         "kind": "component set",
         "page": "↳ Tabs",
         "section": "Components",
@@ -1738,7 +1738,7 @@
             "type": "BOOLEAN"
           }
         ],
-        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/tab.md"
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/tab-item.md"
       },
       {
         "id": "tabs",
@@ -2018,7 +2018,7 @@
         ],
         "properties": [
           {
-            "name": "Label",
+            "name": "label",
             "type": "BOOLEAN"
           }
         ],
@@ -2371,7 +2371,7 @@
           "allowPreferredValuesOnly": true
         },
         "preferred": [
-          "tab"
+          "tab-item"
         ]
       },
       {
@@ -2558,7 +2558,7 @@
       "image-placeholder",
       "badge",
       "tag",
-      "tab",
+      "tab-item",
       "tabs",
       "divider",
       "_accordion-indicator",

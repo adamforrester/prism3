@@ -23,7 +23,7 @@ Shown on the default member: size `medium`, status `default`.
 2. **Leading visual** (optional) — An optional purpose glyph before the value, aria-hidden. Absent by default; the caller nominates the icon.
 3. **Placeholder** — The prompt before a choice is made, in the placeholder ink (the disabled ink when disabled). Shown on the empty control: rest, hover, focus and disabled. Wraps rather than truncating, and the control grows taller.
 4. **Value**
-5. **Chevron**
+5. **Chevron glyph**
 6. **Focus ring**
 7. **Message** (optional)
 
@@ -132,7 +132,7 @@ Generated from the plan that builds the design-file component: 84 members. Value
 | `container/control/content` | frame | every member |
 | `container/control/content/leadingVisual` | swap | every member |
 | `container/control/content/placeholder` | text | state=rest or hover or focus-visible or disabled |
-| `container/control/chevron` | instance | every member |
+| `container/control/chevronGlyph` | instance | every member |
 | `container/message` | instance | every member |
 | `container/control/content/value` | text | state=filled or focus-visible-filled or read-only |
 | `container/control/focusRing` | instance | state=focus-visible or focus-visible-filled |
@@ -153,7 +153,7 @@ Keyed by `size`.
 | `container/control` | `space.100` / `space.200` / `space.100` / `space.200` | `space.100` | — | — | 120px (literal) | min height `size.md.min-height` |
 | `container/control/content` | — | `space.100` | — | — | — | — |
 | `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
-| `container/control/chevron` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/chevronGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 
 **size=small**
 
@@ -163,7 +163,7 @@ Keyed by `size`.
 | `container/control` | `space.075` / `space.200` / `space.075` / `space.200` | `space.100` | — | — | 120px (literal) | min height `size.md.min-height` |
 | `container/control/content` | — | `space.100` | — | — | — | — |
 | `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
-| `container/control/chevron` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/chevronGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 
 **size=large**
 
@@ -173,7 +173,7 @@ Keyed by `size`.
 | `container/control` | `space.100` / `space.300` / `space.100` / `space.300` | `space.100` | — | — | 120px (literal) | min height `size.lg.height` |
 | `container/control/content` | — | `space.100` | — | — | — | — |
 | `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
-| `container/control/chevron` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/chevronGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
 
 ### Type
 
@@ -199,7 +199,7 @@ Keyed by `status`, `state`.
 | `container/control` | `color.field.fill` | `color.field.border.rest` | — | — |
 | `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
 | `container/control/content/placeholder` | — | — | `color.text.secondary` | — |
-| `container/control/chevron` | — | — | — | `color.icon.primary` |
+| `container/control/chevronGlyph` | — | — | — | `color.icon.primary` |
 
 **status=default, state=hover**
 
@@ -208,7 +208,7 @@ Keyed by `status`, `state`.
 | `container/control` | `color.interactive.neutral.overlay.hover` | `color.field.border.hover` | — | — |
 | `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
 | `container/control/content/placeholder` | — | — | `color.text.secondary` | — |
-| `container/control/chevron` | — | — | — | `color.icon.primary` |
+| `container/control/chevronGlyph` | — | — | — | `color.icon.primary` |
 
 **status=default, state=filled**
 
@@ -217,7 +217,7 @@ Keyed by `status`, `state`.
 | `container/control` | `color.field.fill` | `color.field.border.rest` | — | — |
 | `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
 | `container/control/content/value` | — | — | `color.text.primary` | — |
-| `container/control/chevron` | — | — | — | `color.icon.primary` |
+| `container/control/chevronGlyph` | — | — | — | `color.icon.primary` |
 
 **status=default, state=focus-visible**
 
@@ -226,7 +226,7 @@ Keyed by `status`, `state`.
 | `container/control` | `color.field.fill` | `color.border.focus` | — | — |
 | `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
 | `container/control/content/placeholder` | — | — | `color.text.secondary` | — |
-| `container/control/chevron` | — | — | — | `color.icon.primary` |
+| `container/control/chevronGlyph` | — | — | — | `color.icon.primary` |
 
 **status=default, state=focus-visible-filled**
 
@@ -235,7 +235,7 @@ Keyed by `status`, `state`.
 | `container/control` | `color.field.fill` | `color.border.focus` | — | — |
 | `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
 | `container/control/content/value` | — | — | `color.text.primary` | — |
-| `container/control/chevron` | — | — | — | `color.icon.primary` |
+| `container/control/chevronGlyph` | — | — | — | `color.icon.primary` |
 
 **status=default, state=disabled**
 
@@ -244,7 +244,7 @@ Keyed by `status`, `state`.
 | `container/control` | `color.disabled.fill` | `color.disabled.border` | — | — |
 | `container/control/content/leadingVisual` | — | — | — | `color.disabled.on-fill` |
 | `container/control/content/placeholder` | — | — | `color.disabled.on-fill` | — |
-| `container/control/chevron` | — | — | — | `color.disabled.on-fill` |
+| `container/control/chevronGlyph` | — | — | — | `color.disabled.on-fill` |
 
 **status=default, state=read-only**
 
@@ -253,7 +253,7 @@ Keyed by `status`, `state`.
 | `container/control` | `color.field.fill` | `color.field.border.rest` | — | — |
 | `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
 | `container/control/content/value` | — | — | `color.text.primary` | — |
-| `container/control/chevron` | — | — | — | `color.icon.primary` |
+| `container/control/chevronGlyph` | — | — | — | `color.icon.primary` |
 
 **status=error, state=rest**
 
@@ -262,7 +262,7 @@ Keyed by `status`, `state`.
 | `container/control` | `color.field.fill` | `color.border.danger` | — | — |
 | `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
 | `container/control/content/placeholder` | — | — | `color.text.secondary` | — |
-| `container/control/chevron` | — | — | — | `color.icon.primary` |
+| `container/control/chevronGlyph` | — | — | — | `color.icon.primary` |
 
 **status=error, state=hover**
 
@@ -271,7 +271,7 @@ Keyed by `status`, `state`.
 | `container/control` | `color.interactive.neutral.overlay.hover` | `color.border.danger` | — | — |
 | `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
 | `container/control/content/placeholder` | — | — | `color.text.secondary` | — |
-| `container/control/chevron` | — | — | — | `color.icon.primary` |
+| `container/control/chevronGlyph` | — | — | — | `color.icon.primary` |
 
 **status=error, state=filled**
 
@@ -280,7 +280,7 @@ Keyed by `status`, `state`.
 | `container/control` | `color.field.fill` | `color.border.danger` | — | — |
 | `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
 | `container/control/content/value` | — | — | `color.text.primary` | — |
-| `container/control/chevron` | — | — | — | `color.icon.primary` |
+| `container/control/chevronGlyph` | — | — | — | `color.icon.primary` |
 
 **status=error, state=focus-visible**
 
@@ -289,7 +289,7 @@ Keyed by `status`, `state`.
 | `container/control` | `color.field.fill` | `color.border.danger` | — | — |
 | `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
 | `container/control/content/placeholder` | — | — | `color.text.secondary` | — |
-| `container/control/chevron` | — | — | — | `color.icon.primary` |
+| `container/control/chevronGlyph` | — | — | — | `color.icon.primary` |
 
 **status=error, state=focus-visible-filled**
 
@@ -298,7 +298,7 @@ Keyed by `status`, `state`.
 | `container/control` | `color.field.fill` | `color.border.danger` | — | — |
 | `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
 | `container/control/content/value` | — | — | `color.text.primary` | — |
-| `container/control/chevron` | — | — | — | `color.icon.primary` |
+| `container/control/chevronGlyph` | — | — | — | `color.icon.primary` |
 
 **status=error, state=disabled**
 
@@ -307,7 +307,7 @@ Keyed by `status`, `state`.
 | `container/control` | `color.disabled.fill` | `color.disabled.border` | — | — |
 | `container/control/content/leadingVisual` | — | — | — | `color.disabled.on-fill` |
 | `container/control/content/placeholder` | — | — | `color.disabled.on-fill` | — |
-| `container/control/chevron` | — | — | — | `color.disabled.on-fill` |
+| `container/control/chevronGlyph` | — | — | — | `color.disabled.on-fill` |
 
 **status=error, state=read-only**
 
@@ -316,7 +316,7 @@ Keyed by `status`, `state`.
 | `container/control` | `color.field.fill` | `color.border.danger` | — | — |
 | `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
 | `container/control/content/value` | — | — | `color.text.primary` | — |
-| `container/control/chevron` | — | — | — | `color.icon.primary` |
+| `container/control/chevronGlyph` | — | — | — | `color.icon.primary` |
 
 **status=warning, state=rest**
 
@@ -325,7 +325,7 @@ Keyed by `status`, `state`.
 | `container/control` | `color.field.fill` | `color.border.warning` | — | — |
 | `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
 | `container/control/content/placeholder` | — | — | `color.text.secondary` | — |
-| `container/control/chevron` | — | — | — | `color.icon.primary` |
+| `container/control/chevronGlyph` | — | — | — | `color.icon.primary` |
 
 **status=warning, state=hover**
 
@@ -334,7 +334,7 @@ Keyed by `status`, `state`.
 | `container/control` | `color.interactive.neutral.overlay.hover` | `color.border.warning` | — | — |
 | `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
 | `container/control/content/placeholder` | — | — | `color.text.secondary` | — |
-| `container/control/chevron` | — | — | — | `color.icon.primary` |
+| `container/control/chevronGlyph` | — | — | — | `color.icon.primary` |
 
 **status=warning, state=filled**
 
@@ -343,7 +343,7 @@ Keyed by `status`, `state`.
 | `container/control` | `color.field.fill` | `color.border.warning` | — | — |
 | `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
 | `container/control/content/value` | — | — | `color.text.primary` | — |
-| `container/control/chevron` | — | — | — | `color.icon.primary` |
+| `container/control/chevronGlyph` | — | — | — | `color.icon.primary` |
 
 **status=warning, state=focus-visible**
 
@@ -352,7 +352,7 @@ Keyed by `status`, `state`.
 | `container/control` | `color.field.fill` | `color.border.warning` | — | — |
 | `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
 | `container/control/content/placeholder` | — | — | `color.text.secondary` | — |
-| `container/control/chevron` | — | — | — | `color.icon.primary` |
+| `container/control/chevronGlyph` | — | — | — | `color.icon.primary` |
 
 **status=warning, state=focus-visible-filled**
 
@@ -361,7 +361,7 @@ Keyed by `status`, `state`.
 | `container/control` | `color.field.fill` | `color.border.warning` | — | — |
 | `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
 | `container/control/content/value` | — | — | `color.text.primary` | — |
-| `container/control/chevron` | — | — | — | `color.icon.primary` |
+| `container/control/chevronGlyph` | — | — | — | `color.icon.primary` |
 
 **status=warning, state=disabled**
 
@@ -370,7 +370,7 @@ Keyed by `status`, `state`.
 | `container/control` | `color.disabled.fill` | `color.disabled.border` | — | — |
 | `container/control/content/leadingVisual` | — | — | — | `color.disabled.on-fill` |
 | `container/control/content/placeholder` | — | — | `color.disabled.on-fill` | — |
-| `container/control/chevron` | — | — | — | `color.disabled.on-fill` |
+| `container/control/chevronGlyph` | — | — | — | `color.disabled.on-fill` |
 
 **status=warning, state=read-only**
 
@@ -379,7 +379,7 @@ Keyed by `status`, `state`.
 | `container/control` | `color.field.fill` | `color.border.warning` | — | — |
 | `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
 | `container/control/content/value` | — | — | `color.text.primary` | — |
-| `container/control/chevron` | — | — | — | `color.icon.primary` |
+| `container/control/chevronGlyph` | — | — | — | `color.icon.primary` |
 
 **status=success, state=rest**
 
@@ -388,7 +388,7 @@ Keyed by `status`, `state`.
 | `container/control` | `color.field.fill` | `color.border.success` | — | — |
 | `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
 | `container/control/content/placeholder` | — | — | `color.text.secondary` | — |
-| `container/control/chevron` | — | — | — | `color.icon.primary` |
+| `container/control/chevronGlyph` | — | — | — | `color.icon.primary` |
 
 **status=success, state=hover**
 
@@ -397,7 +397,7 @@ Keyed by `status`, `state`.
 | `container/control` | `color.interactive.neutral.overlay.hover` | `color.border.success` | — | — |
 | `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
 | `container/control/content/placeholder` | — | — | `color.text.secondary` | — |
-| `container/control/chevron` | — | — | — | `color.icon.primary` |
+| `container/control/chevronGlyph` | — | — | — | `color.icon.primary` |
 
 **status=success, state=filled**
 
@@ -406,7 +406,7 @@ Keyed by `status`, `state`.
 | `container/control` | `color.field.fill` | `color.border.success` | — | — |
 | `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
 | `container/control/content/value` | — | — | `color.text.primary` | — |
-| `container/control/chevron` | — | — | — | `color.icon.primary` |
+| `container/control/chevronGlyph` | — | — | — | `color.icon.primary` |
 
 **status=success, state=focus-visible**
 
@@ -415,7 +415,7 @@ Keyed by `status`, `state`.
 | `container/control` | `color.field.fill` | `color.border.success` | — | — |
 | `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
 | `container/control/content/placeholder` | — | — | `color.text.secondary` | — |
-| `container/control/chevron` | — | — | — | `color.icon.primary` |
+| `container/control/chevronGlyph` | — | — | — | `color.icon.primary` |
 
 **status=success, state=focus-visible-filled**
 
@@ -424,7 +424,7 @@ Keyed by `status`, `state`.
 | `container/control` | `color.field.fill` | `color.border.success` | — | — |
 | `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
 | `container/control/content/value` | — | — | `color.text.primary` | — |
-| `container/control/chevron` | — | — | — | `color.icon.primary` |
+| `container/control/chevronGlyph` | — | — | — | `color.icon.primary` |
 
 **status=success, state=disabled**
 
@@ -433,7 +433,7 @@ Keyed by `status`, `state`.
 | `container/control` | `color.disabled.fill` | `color.disabled.border` | — | — |
 | `container/control/content/leadingVisual` | — | — | — | `color.disabled.on-fill` |
 | `container/control/content/placeholder` | — | — | `color.disabled.on-fill` | — |
-| `container/control/chevron` | — | — | — | `color.disabled.on-fill` |
+| `container/control/chevronGlyph` | — | — | — | `color.disabled.on-fill` |
 
 **status=success, state=read-only**
 
@@ -442,13 +442,13 @@ Keyed by `status`, `state`.
 | `container/control` | `color.field.fill` | `color.border.success` | — | — |
 | `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
 | `container/control/content/value` | — | — | `color.text.primary` | — |
-| `container/control/chevron` | — | — | — | `color.icon.primary` |
+| `container/control/chevronGlyph` | — | — | — | `color.icon.primary` |
 
 ### Nesting and properties
 
 - `container/label` nests `field-label` at `size=medium, emphasis=secondary, weight=regular, state=rest`; `state=disabled` takes `state=disabled`; follows `size`; exposes `emphasis`, `weight`
 - `container/control/content/leadingVisual` is a swap slot, property `↳ swap leading icon`, shown by `leading icon`
-- `container/control/chevron` nests `icon/chevron-down`
+- `container/control/chevronGlyph` nests `icon/chevron-down`
 - `container/message` nests `field-message` at `status=default`; follows `status`
 - `container/control/focusRing` nests `focus-ring` at `surface=default`
 

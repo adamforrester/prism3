@@ -47,7 +47,21 @@ export type ComponentRename =
        *  replacing nothing. `from` may then name one layer per member shape (`footerInline`, `footerStacked`). */
       readonly within?: string }
   /** A non-variant component property (BOOLEAN, TEXT, INSTANCE_SWAP or SLOT) gone with no successor, by its panel name. */
-  | { readonly def: string; readonly kind: 'property'; readonly property: string; readonly issue: number };
+  | { readonly def: string; readonly kind: 'property'; readonly property: string; readonly issue: number }
+  /** A component property renamed in the Figma panel, its type kept (#2759, owner decision Q345 A), e.g.
+   *  `State icon` → `state icon`. An update renames the set's property in place, so every instance keeps the
+   *  value a designer gave it. Names are the panel's, without Figma's `#id` suffix. */
+  | { readonly def: string; readonly kind: 'property-rename'; readonly from: string; readonly to: string; readonly issue: number }
+  /** A whole def renamed (#2759, owner decisions Q353, Q394), e.g. `tab` → `tab-item`. `def` is the OLD id, and
+   *  `to` the new. The set's name in Figma is the def id, so an update finds the set under its old name and renames it
+   *  in place: the set and every member keep their ids, and every placed instance keeps pointing at them. Entries for
+   *  the def's axes, values and properties after the rename name the NEW id. */
+  | { readonly def: string; readonly kind: 'def'; readonly to: string; readonly issue: number }
+  /** A part renamed, which is a layer renamed in every member (#2759, owner decision Q350). An update renames the
+   *  layer in place instead of removing it and building a new one, so it keeps its id and every override a designer
+   *  made on it in a placed instance. A def's part entries apply together, as one map from old name to new, so two
+   *  parts can swap names in one revision (FieldLabel's root and text). The root part is not a layer: the member is. */
+  | { readonly def: string; readonly kind: 'part'; readonly from: string; readonly to: string; readonly issue: number };
 
 /**
  * THE LEDGER. Names are the Figma panel's, as a set holds them: an axis renamed only for display
@@ -65,6 +79,8 @@ export type ComponentRename =
 export const COMPONENT_RENAMES: readonly ComponentRename[] = [
   { def: 'accordion', kind: 'axis', from: 'position', to: 'icon position', issue: 2592 },
   { def: 'accordion', kind: 'axis', from: 'iconPosition', to: 'icon position', issue: 2592 },
+  // #2759 PR 3 — Tab is renamed Tab item (owner decision Q353). It is Tabs' slot item, so it stays unprefixed (Q394 A).
+  { def: 'tab', kind: 'def', to: 'tab-item', issue: 2759 },
   { def: 'checkbox-control', kind: 'move', axis: 'state', from: 'error', to: { state: 'rest', status: 'error' }, issue: 2751 },
   { def: 'switch-control', kind: 'move', axis: 'state', from: 'error', to: { state: 'rest', status: 'error' }, issue: 2751 },
   // The repeating rows moved into a native `items` slot (#2649, owner decision Q307 A). `from` is the layer that held
@@ -78,11 +94,94 @@ export const COMPONENT_RENAMES: readonly ComponentRename[] = [
   // layers each held two fixed Buttons; the group's slot holds the same two by default, so a placed Dialog keeps its
   // changed labels on them, in order. No property left the set, so there are no booleans.
   { def: 'dialog', kind: 'slot', slot: 'items', within: 'button-group', from: ['footerInline', 'footerStacked'], rows: ['cancelInline', 'confirmInline', 'confirmStacked', 'cancelStacked'], booleans: [], issue: 2661 },
+  // #2759 PR 4 — layers named per the naming table (owner decision Q350): glyph layers `<shape>Glyph`, a Row's control cell
+  // `controlCell`, main text `label`. Roots are not layers (Divider's and FieldLabel's root renames need no entry).
+  { def: 'checkbox-control', kind: 'part', from: 'mark', to: 'checkGlyph', issue: 2759 },
+  { def: 'checkbox-control', kind: 'part', from: 'dash', to: 'dashGlyph', issue: 2759 },
+  { def: 'field-message', kind: 'part', from: 'iconError', to: 'errorGlyph', issue: 2759 },
+  { def: 'field-message', kind: 'part', from: 'iconWarning', to: 'warningGlyph', issue: 2759 },
+  { def: 'field-message', kind: 'part', from: 'iconSuccess', to: 'successGlyph', issue: 2759 },
+  { def: 'field-message', kind: 'part', from: 'text', to: 'label', issue: 2759 },
+  { def: 'textarea', kind: 'part', from: 'grip', to: 'gripGlyph', issue: 2759 },
+  { def: 'select', kind: 'part', from: 'chevron', to: 'chevronGlyph', issue: 2759 },
+  { def: 'image-placeholder', kind: 'part', from: 'marker', to: 'markerGlyph', issue: 2759 },
+  { def: 'spinner', kind: 'part', from: 'ring', to: 'ringGlyph', issue: 2759 },
+  { def: 'tag', kind: 'part', from: 'check', to: 'checkGlyph', issue: 2759 },
+  { def: '_accordion-indicator', kind: 'part', from: 'chevronDown', to: 'chevronDownGlyph', issue: 2759 },
+  { def: '_accordion-indicator', kind: 'part', from: 'chevronUp', to: 'chevronUpGlyph', issue: 2759 },
+  { def: '_accordion-indicator', kind: 'part', from: 'plus', to: 'plusGlyph', issue: 2759 },
+  { def: '_accordion-indicator', kind: 'part', from: 'minus', to: 'minusGlyph', issue: 2759 },
+  { def: 'checkbox-row', kind: 'part', from: 'controlBox', to: 'controlCell', issue: 2759 },
+  { def: 'radio-row', kind: 'part', from: 'controlBox', to: 'controlCell', issue: 2759 },
+  { def: 'switch-row', kind: 'part', from: 'trackBox', to: 'controlCell', issue: 2759 },
+  { def: 'field-label', kind: 'part', from: 'text', to: 'label', issue: 2759 },
+  { def: 'badge', kind: 'part', from: 'text', to: 'label', issue: 2759 },
+  { def: 'list-item', kind: 'part', from: 'text', to: 'label', issue: 2759 },
+  // #2759 PR 2 — Figma property names are lowercase (owner decision Q345 A).
+  { def: 'switch-control', kind: 'property-rename', from: 'State icon', to: 'state icon', issue: 2759 },
+  { def: 'image-placeholder', kind: 'property-rename', from: 'Marker', to: 'marker', issue: 2759 },
+  { def: 'tag', kind: 'property-rename', from: 'Check icon', to: 'check icon', issue: 2759 },
+  { def: 'segmented-control', kind: 'property-rename', from: 'Label', to: 'label', issue: 2759 },
 ];
 
 /** The ledger's slot entry for `def`, if its rows moved into a native slot (#2649). */
 export const slotMigrationOf = (def: string, ledger: readonly ComponentRename[] = COMPONENT_RENAMES): Extract<ComponentRename, { kind: 'slot' }> | undefined =>
   ledger.find((r): r is Extract<ComponentRename, { kind: 'slot' }> => r.def === def && r.kind === 'slot');
+
+/** The id a def has now, its ledger renames followed (`a` → `b` → `c` resolves to `c`). The id itself when the
+ *  ledger does not rename it. A cycle is a ledger error, refused by throwing. */
+export const currentDefId = (id: string, ledger: readonly ComponentRename[] = COMPONENT_RENAMES): string => {
+  let at = id;
+  const seen = new Set([id]);
+  for (;;) {
+    const next = ledger.find((r): r is Extract<ComponentRename, { kind: 'def' }> => r.kind === 'def' && r.def === at);
+    if (!next) return at;
+    if (seen.has(next.to)) throw new Error(`COMPONENT_RENAMES: the def renames from '${id}' loop back to '${next.to}'`);
+    seen.add(next.to);
+    at = next.to;
+  }
+};
+
+/** Every earlier id the ledger renames into `id`, nearest first: the names a file built before the renames holds
+ *  the set under. */
+export const formerDefIds = (id: string, ledger: readonly ComponentRename[] = COMPONENT_RENAMES): string[] => {
+  const out: string[] = [];
+  const walk = (to: string): void => {
+    for (const r of ledger) if (r.kind === 'def' && r.to === to && !out.includes(r.def) && r.def !== id) { out.push(r.def); walk(r.def); }
+  };
+  walk(id);
+  return out;
+};
+
+/** `def`'s part renames as one map from old layer name to new (see the `part` kind). A name renamed twice is a ledger
+ *  error, refused by throwing: the map would not say which. */
+export const partRenames = (def: string, ledger: readonly ComponentRename[] = COMPONENT_RENAMES): Map<string, string> => {
+  const out = new Map<string, string>();
+  for (const r of ledger) {
+    if (r.kind !== 'part' || r.def !== def) continue;
+    if (out.has(r.from)) throw new Error(`COMPONENT_RENAMES: '${def}' renames the part '${r.from}' twice`);
+    out.set(r.from, r.to);
+  }
+  return out;
+};
+
+/**
+ * Where a property named `name` on `def`'s set lands under the ledger's property renames, chains followed
+ * (`A` → `B` → `c` resolves to `c`). `null` when the ledger does not rename it. A cycle is a ledger error,
+ * refused by throwing, as `renameCoordinate` refuses one.
+ */
+export const renameProperty = (def: string, name: string, ledger: readonly ComponentRename[] = COMPONENT_RENAMES): string | null => {
+  let at = name;
+  const seen = new Set([name]);
+  for (;;) {
+    const next = ledger.find((r): r is Extract<ComponentRename, { kind: 'property-rename' }> => r.def === def && r.kind === 'property-rename' && r.from === at);
+    if (!next) break;
+    if (seen.has(next.to)) throw new Error(`COMPONENT_RENAMES: the property renames for '${def}' loop back to '${next.to}'`);
+    seen.add(next.to);
+    at = next.to;
+  }
+  return at === name ? null : at;
+};
 
 /** A coordinate as its canonical key: the `axis=value` segments, sorted by axis, joined with `, `. Two
  *  names that differ only in segment order share one key (Figma rewrites the order when an axis is renamed
@@ -163,19 +262,23 @@ export const isDeclaredDrop = (def: string, axis: string | null, value: string |
 
 /** `schema/component-axes.json`'s shape: per def, each axis with its sorted values, and the member count. Since #2649
  *  also its non-variant component properties, panel name → type; absent in a baseline written before then, which has
- *  nothing to compare on that side. */
+ *  nothing to compare on that side. A property renamed in place (#2759) is claimed by a `property-rename` entry. */
 export type AxesBaseline = Record<string, { axes: Record<string, string[]>; members: number; properties?: Record<string, string> }>;
 
 /** The differences between `before` and `after` that the ledger must claim, each as a line naming the
  *  missing claim. `lint-component-renames.ts` prints them. */
 export const unaccounted = (before: AxesBaseline, after: AxesBaseline, ledger: readonly ComponentRename[]): string[] => {
   const bad: string[] = [];
-  for (const [def, b] of Object.entries(before)) {
-    const mine = ledger.filter((r) => r.def === def);
+  for (const [old, b] of Object.entries(before)) {
+    // A RENAMED DEF (#2759) is compared under its new id, with the entries for either id.
+    let def = old;
+    try { def = after[old] ? old : currentDefId(old, ledger); } catch (err) { bad.push(`${old}: ${(err as Error).message}`); continue; }
+    const mine = ledger.filter((r) => r.def === def || r.def === old);
     const a = after[def];
     if (!a) {
-      if (!mine.some((r) => r.kind === 'drop' && r.axis === undefined && r.value === undefined))
-        bad.push(`${def}: the def no longer projects a set — needs { def: '${def}', kind: 'drop', issue }`);
+      if (def !== old) bad.push(`${old}: the def entry renames it to '${def}', which projects no set`);
+      else if (!mine.some((r) => r.kind === 'drop' && r.axis === undefined && r.value === undefined))
+        bad.push(`${def}: the def no longer projects a set — needs { def: '${def}', kind: 'drop', issue } or { def: '${def}', kind: 'def', to, issue }`);
       continue;
     }
     for (const [axis, values] of Object.entries(b.axes)) {
@@ -197,12 +300,14 @@ export const unaccounted = (before: AxesBaseline, after: AxesBaseline, ledger: r
       }
     }
     // THE COMPONENT PROPERTIES (#2649): a property at the base and not in the tree, or there under another type, must
-    // be claimed. A BOOLEAN by a slot entry that names it, any type by a property drop.
+    // be claimed. A BOOLEAN by a slot entry that names it, any type by a property drop, and a name renamed in place
+    // by a property rename (#2759), without which an update deletes it and adds the new one, and every instance loses
+    // the value a designer gave it.
     if (b.properties && a.properties) for (const [prop, type] of Object.entries(b.properties)) {
       if (a.properties[prop] === type) continue;
-      const claimed = mine.some((r) => (r.kind === 'slot' && type === 'BOOLEAN' && r.booleans.includes(prop)) || (r.kind === 'property' && r.property === prop));
+      const claimed = mine.some((r) => (r.kind === 'slot' && type === 'BOOLEAN' && r.booleans.includes(prop)) || (r.kind === 'property' && r.property === prop) || (r.kind === 'property-rename' && r.from === prop));
       if (!claimed)
-        bad.push(`${def}: the ${type} property '${prop}' is gone — needs { kind: 'slot', booleans: ['${prop}', …] } or { kind: 'property', property: '${prop}' }`);
+        bad.push(`${def}: the ${type} property '${prop}' is gone — needs { kind: 'slot', booleans: ['${prop}', …] }, { kind: 'property', property: '${prop}' } or { kind: 'property-rename', from: '${prop}', to } so instances keep their values`);
     }
   }
   return bad;
@@ -214,11 +319,26 @@ export const danglingTargets = (after: AxesBaseline, ledger: readonly ComponentR
   const bad: string[] = [];
   for (const r of ledger) {
     if (!Number.isInteger(r.issue) || r.issue <= 0) bad.push(`${r.def}: entry ${JSON.stringify(r)} names no issue`);
-    if (r.kind === 'drop' || r.kind === 'property') continue;
+    if (r.kind === 'drop' || r.kind === 'property' || r.kind === 'part') continue;
+    if (r.kind === 'def') {
+      let to = r.to;
+      try { to = currentDefId(r.def, ledger); } catch (err) { bad.push(`${r.def}: ${(err as Error).message}`); continue; }
+      if (!after[to]) bad.push(`${r.def}: def entry → '${r.to}' ends at '${to}', which projects no set`);
+      continue;
+    }
     const a = after[r.def];
     if (!a) {
       if (!ledger.some((d) => d.def === r.def && d.kind === 'drop' && d.axis === undefined && d.value === undefined))
         bad.push(`${r.def}: entry ${JSON.stringify(r)} renames into a def that no longer projects`);
+      continue;
+    }
+    if (r.kind === 'property-rename') {
+      // A property entry's successor must be declared on the set.
+      if (!a.properties) continue;
+      let to: string | null = null;
+      try { to = renameProperty(r.def, r.from, ledger); } catch (err) { bad.push(`${r.def}: ${(err as Error).message}`); continue; }
+      if (to === null || !(to in a.properties))
+        bad.push(`${r.def}: property entry '${r.from}' → '${r.to}' ends at '${to ?? r.to}', which the set does not declare`);
       continue;
     }
     if (r.kind === 'move') {

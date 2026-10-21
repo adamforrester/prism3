@@ -19,7 +19,7 @@ A 1px rule that separates groups of content when spacing alone leaves the groupi
 
 Shown on the default member: orientation `horizontal`, inset `none`.
 
-1. **Divider** — The divider's footprint: the thickness one way and the length the other, with the inset as its padding. It paints nothing.
+1. **Container** — The divider's footprint: the thickness one way and the length the other, with the inset as its padding. It paints nothing.
 2. **Rule** — The rule itself: one box, one fill, no children. Its thickness is the hairline border width; its length fills the container it sits in, less the inset, so the standalone length is a placeholder a host stretches.
 
 ## Styles
@@ -89,8 +89,8 @@ Generated from the plan that builds the design-file component: 5 members. Values
 
 | Part | Kind | In |
 | --- | --- | --- |
-| `divider` | frame | every member |
-| `divider/rule` | frame | every member |
+| `container` | frame | every member |
+| `container/rule` | frame | every member |
 
 ### Spacing and size
 
@@ -102,31 +102,31 @@ Keyed by `orientation`, `inset`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `divider` | `space.0` | — | `border-width.hairline` | `container.narrow` | — | — |
+| `container` | `space.0` | — | `border-width.hairline` | `container.narrow` | — | — |
 
 **orientation=horizontal, inset=inset**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `divider` | `space.0` / `space.0` / `space.0` / `space.200` | — | `border-width.hairline` | `container.narrow` | — | — |
+| `container` | `space.0` / `space.0` / `space.0` / `space.200` | — | `border-width.hairline` | `container.narrow` | — | — |
 
 **orientation=horizontal, inset=middle-inset**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `divider` | `space.0` / `space.200` / `space.0` / `space.200` | — | `border-width.hairline` | `container.narrow` | — | — |
+| `container` | `space.0` / `space.200` / `space.0` / `space.200` | — | `border-width.hairline` | `container.narrow` | — | — |
 
 **orientation=vertical, inset=none**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `divider` | `space.0` | — | `size.md.height` | `border-width.hairline` | — | — |
+| `container` | `space.0` | — | `size.md.height` | `border-width.hairline` | — | — |
 
 **orientation=vertical, inset=middle-inset**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `divider` | `space.100` / `space.0` / `space.100` / `space.0` | — | `size.md.height` | `border-width.hairline` | — | — |
+| `container` | `space.100` / `space.0` / `space.100` / `space.0` | — | `size.md.height` | `border-width.hairline` | — | — |
 
 ### Color
 
@@ -136,31 +136,31 @@ Keyed by `orientation`, `inset`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `divider/rule` | `color.border.secondary` | — | — | — |
+| `container/rule` | `color.border.secondary` | — | — | — |
 
 **orientation=horizontal, inset=inset**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `divider/rule` | `color.border.secondary` | — | — | — |
+| `container/rule` | `color.border.secondary` | — | — | — |
 
 **orientation=horizontal, inset=middle-inset**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `divider/rule` | `color.border.secondary` | — | — | — |
+| `container/rule` | `color.border.secondary` | — | — | — |
 
 **orientation=vertical, inset=none**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `divider/rule` | `color.border.secondary` | — | — | — |
+| `container/rule` | `color.border.secondary` | — | — | — |
 
 **orientation=vertical, inset=middle-inset**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `divider/rule` | `color.border.secondary` | — | — | — |
+| `container/rule` | `color.border.secondary` | — | — | — |
 
 ---
 

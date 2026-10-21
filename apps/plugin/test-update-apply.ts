@@ -1152,6 +1152,149 @@ section('property — a default the plan changed is edited in place, keeping the
   ok(texts.every((t) => t === 'Label'), `property/shown: every member's label reads Label (${[...new Set(texts)]})`);
 }
 
+/* ── property rename (#2759) ─────────────────────────────────────────────────────────────────────────── */
+section('property rename — each of the ledger\'s property renames renames the set\'s property in place, and an instance keeps its value (#2759)');
+// The four renames owner decision Q345 A made, typed here rather than read off COMPONENT_RENAMES: the ledger is
+// the subject, so deleting any shipped entry fails this section by its def's name (`docs/34` shape 1).
+const PROPERTY_RENAMES_Q345: readonly (readonly [def: string, from: string, to: string])[] = [
+  ['tag', 'Check icon', 'check icon'],
+  ['switch-control', 'State icon', 'state icon'],
+  ['image-placeholder', 'Marker', 'marker'],
+  ['segmented-control', 'Label', 'label'],
+];
+for (const [def, from, to] of PROPERTY_RENAMES_Q345) {
+  // A file built before Q345, by the real executor from the plans as they were: the set's switch was `from`.
+  const planned = plansOf(def);
+  const old = planned.map((p) => JSON.parse(JSON.stringify(p).split(`"visibleProp":${JSON.stringify(to)}`).join(`"visibleProp":${JSON.stringify(from)}`)) as AnatomyPlan);
+  ok(JSON.stringify(planned).includes(`"visibleProp":${JSON.stringify(to)}`) && !JSON.stringify(old).includes(`"visibleProp":${JSON.stringify(to)}`),
+    `premise: ${def}: the plans name the switch '${to}', and the file was built from plans naming it '${from}'`);
+  const w = await world(def, old);
+  const defs0 = w.set().componentPropertyDefinitions as Record<string, { type: string; defaultValue?: unknown }>;
+  const oldKey = Object.keys(defs0).find((k) => k.split('#')[0] === from)!;
+  ok(!!oldKey && defs0[oldKey].defaultValue === true, `premise: ${def}: the set as built declares '${from}', on by default (${Object.keys(defs0).filter((k) => !k.includes('=')).join(', ')})`);
+  const id = oldKey.slice(oldKey.lastIndexOf('#'));
+  // A designer's instance with the switch off: the value a rename must keep.
+  const comps = w.api.root.findAllWithCriteria({ types: ['COMPONENT'] }) as unknown as { name: string; createInstance: () => Node }[];
+  const inst = comps.find((c) => c.name === String(membersOf(w.set())[0].name))!.createInstance();
+  (inst.setProperties as (p: Record<string, boolean>) => void)({ [oldKey]: false });
+  const valueOf = (): unknown => Object.entries(inst.componentProperties as Record<string, { value: unknown }>).find(([k]) => k.endsWith(id))?.[1].value;
+  ok(valueOf() === false, `premise: ${def}: the instance's switch is off under '${oldKey}' (${String(valueOf())})`);
+  const before = identityOf(w.set());
+  const unclaimed = (await previewUpdate(w.host, [{ def, plans: planned }], undefined, [])).sets[0].properties;
+  ok(unclaimed.remove.some((x) => x.name === from) && unclaimed.add.some((x) => x.name === to) && !unclaimed.rename.length,
+    `premise: ${def}: with no ledger entry the dry run removes '${from}' and adds '${to}', which would reset every instance (${JSON.stringify(unclaimed)})`);
+  // The engine's own ledger, so the shipped entry is what is under test.
+  const pre = await previewUpdate(w.host, [{ def, plans: planned }]);
+  const props = pre.sets[0].properties;
+  ok(props.rename.length === 1 && props.rename[0].from === from && props.rename[0].to === to && !props.add.length && !props.remove.length,
+    `property rename/dry run: ${def}: one rename, '${from}' → '${to}', nothing added or removed (${JSON.stringify(props)})`);
+  const res = await applyUpdate(w.host, w.api as any, [{ def, plans: planned }], previewHashOf(pre));
+  ok(applyVerdict(res).ok && pre.sets[0].counts.handEdited === 0, `property rename/verdict: ${def}: ${applyVerdict(res).headline} (${applyVerdict(res).lines.slice(0, 2).join(' | ').slice(0, 240)})`);
+  const defs1 = w.set().componentPropertyDefinitions as Record<string, { type: string }>;
+  const named = Object.keys(defs1).filter((k) => !k.includes('=') && k.split('#')[0].toLowerCase() === to);
+  ok(named.length === 1 && named[0] === `${to}${id}`, `property rename/in place: ${def}: one property, '${to}' under the same id ${id} (${named.join(', ')})`);
+  ok(valueOf() === false, `property rename/instance kept: ${def}: the instance's switch is still off (${String(valueOf())})`);
+  const after = identityOf(w.set());
+  ok(after.set.join() === before.set.join() && [...before.members].every(([name, b]) => after.members.get(name)?.key === b.key && after.members.get(name)?.id === b.id), `property rename/keys: ${def}: the set and every member keep their keys and ids`);
+  const post = (await previewUpdate(w.host, [{ def, plans: planned }])).sets[0];
+  ok(post.counts.current === post.counts.members && !post.properties.rename.length && !post.properties.add.length && !post.properties.remove.length, `property rename/settled: ${def}: a second dry run lists no property change (${JSON.stringify(post.properties)})`);
+}
+
+/* ── def rename (#2759) ────────────────────────────────────────────────────────────────────────────────── */
+section('def rename — a set built under a def\'s earlier id is found and renamed in place, every id kept (#2759)');
+{
+  // A file built before Q353, by the real executor from the plans as they were: the set is named `tab`.
+  const NEW = 'tab-item';
+  const planned = plansOf(NEW);
+  const old = planned.map((p) => ({ ...JSON.parse(JSON.stringify(p)), component: 'tab' }) as AnatomyPlan);
+  ok(planned.every((p) => p.component === NEW) && old.every((p) => p.component === 'tab'), 'premise: the plans name the set `tab-item`, and the file was built from plans naming it `tab`');
+  const w = await world(NEW, old);
+  ok(String(w.set().name) === 'tab', `premise: the file holds the set as 'tab' (${String(w.set().name)})`);
+  const before = identityOf(w.set());
+  const unclaimed = await previewUpdate(w.host, [{ def: NEW, plans: planned }], undefined, []);
+  ok(unclaimed.missing.includes(NEW) && unclaimed.sets.length === 0, `premise: with no ledger entry the set is not found, so an update would build a second one (${JSON.stringify(unclaimed.missing)})`);
+  // The engine's own ledger, so the shipped entry is what is under test.
+  const pre = await previewUpdate(w.host, [{ def: NEW, plans: planned }]);
+  const p0 = pre.sets[0];
+  ok(!!p0 && p0.set === NEW && p0.setRename?.from === 'tab' && p0.setRename.to === NEW && !p0.blockers.length && !p0.counts.add && !p0.counts.drop,
+    `def rename/dry run: the set is read under 'tab', to be renamed '${NEW}', with nothing added or dropped (${JSON.stringify(p0 ? { set: p0.set, setRename: p0.setRename, counts: p0.counts, blockers: p0.blockers } : null)})`);
+  ok(previewLine(p0).endsWith('Renamed from tab.'), `def rename/line: the dry run's line says so (${previewLine(p0)})`);
+  const res = await applyUpdate(w.host, w.api as any, [{ def: NEW, plans: planned }], previewHashOf(pre));
+  ok(applyVerdict(res).ok, `def rename/verdict: ${applyVerdict(res).headline} (${applyVerdict(res).lines.slice(0, 2).join(' | ').slice(0, 240)})`);
+  ok(String(w.set().name) === NEW && w.page.children.filter((n) => n.type === 'COMPONENT_SET').length === 1, `def rename/in place: one set, now named '${NEW}' (${w.page.children.filter((n) => n.type === 'COMPONENT_SET').map((n) => String(n.name)).join(', ')})`);
+  const after = identityOf(w.set());
+  ok(after.set.join() === before.set.join() && after.members.size === before.members.size && [...before.members].every(([name, b]) => after.members.get(name)?.key === b.key && after.members.get(name)?.id === b.id),
+    'def rename/ids: the set and every member keep their keys and ids, so a placed instance still points at them');
+  const post = (await previewUpdate(w.host, [{ def: NEW, plans: planned }])).sets[0];
+  ok(!!post && !post.setRename && post.counts.current === post.counts.members, `def rename/settled: a second dry run finds the set under '${NEW}' and reads every member current (${JSON.stringify(post?.counts)})`);
+}
+
+section('def rename, nested — a set renamed in the same run counts as present for the set that nests it (#2759)');
+{
+  // Tab item and Tabs as a file built before Q353 holds them: the set `tab`, and Tabs' items nesting `tab`.
+  const swapId = <T,>(plans: T[]): T[] => plans.map((p) => JSON.parse(JSON.stringify(p).split('"tab-item"').join('"tab"')) as T);
+  const oldItem = swapId(plansOf('tab-item')), oldTabs = swapId(plansOf('tabs'));
+  ok(JSON.stringify(oldTabs).includes('"nestTarget":"tab"') && !JSON.stringify(oldTabs).includes('tab-item'), 'premise: the old Tabs plans nest `tab`');
+  const all = [...oldItem, ...oldTabs];
+  const page: Page = { children: [] };
+  const api = makeShim({
+    vars: [...new Set([...all.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), 'space/0'])],
+    styles: [...new Set(all.flatMap((p) => planTextStyles(p.root)))],
+    effects: [...new Set(all.flatMap((p) => planEffectStyles(p.root)))],
+    comps: [...new Set([SWAP_TARGET, 'focus-ring', ...all.flatMap((p) => planComps(p.root)).filter((c) => c !== 'tab')])],
+    page, liveRoot: true, identities: true, scaleConstrained: true,
+  }) as any;
+  for (const plans of [oldItem, oldTabs]) { const r = await applyComponentPlan(plans, api); if (r.misses.length) throw new Error(`premise: built with ${r.misses.length} miss(es): ${r.misses[0]}`); }
+  const host = { ...api, root: { ...api.root, findAllWithCriteria: (c: { types: string[] }) => (c.types.length === 1 && c.types[0] === 'COMPONENT_SET' ? page.children.filter((n) => n.type === 'COMPONENT_SET') : api.root.findAllWithCriteria(c)) } } as unknown as ApplyHost;
+  ok(JSON.stringify(page.children.filter((n) => n.type === 'COMPONENT_SET').map((n) => String(n.name))) === '["tab","tabs"]', 'premise: the file holds the sets `tab` and `tabs`');
+  const both = await previewUpdate(host, [{ def: 'tab-item', plans: plansOf('tab-item') }, { def: 'tabs', plans: plansOf('tabs') }]);
+  const tabsP = both.sets.find((x) => x.set === 'tabs');
+  ok(both.sets.find((x) => x.set === 'tab-item')?.setRename?.from === 'tab' && !!tabsP && !tabsP.blockers.some((b) => b.includes('tab-item')),
+    `def rename, nested/together: Tab item is renamed in the run, so Tabs is not refused for lacking it (${JSON.stringify(tabsP?.blockers)})`);
+  // Each nested instance's main is a member the run renames in place, so Tabs' items read as Tab item's, not the wrong set.
+  const wrong = JSON.stringify(tabsP ?? null).match(/[^"]*WRONG SET[^"]*/g) ?? [];
+  ok(!!tabsP && wrong.length === 0, `def rename, nested/together: Tabs' items read as instances of tab-item, with no WRONG SET line (${wrong.length}: ${wrong[0] ?? 'none'})`);
+  const alone = (await previewUpdate(host, [{ def: 'tabs', plans: plansOf('tabs') }])).sets[0];
+  ok(alone.blockers.some((b) => b.startsWith('Not in this file: tab-item')), `def rename, nested/alone: without Tab item in the run, Tabs is refused, naming it (${JSON.stringify(alone.blockers)})`);
+}
+
+/* ── part rename (#2759) ───────────────────────────────────────────────────────────────────────────────── */
+section('part rename — a layer the ledger renames is renamed in place, keeping its id, not replaced (#2759)');
+{
+  // A Tag built before Q350, by the real executor from the plans as they were: the check layer was `check`.
+  const planned = plansOf(TAG);
+  const old = planned.map((p) => JSON.parse(JSON.stringify(p).split('"checkGlyph"').join('"check"')) as AnatomyPlan);
+  ok(JSON.stringify(planned).includes('"name":"checkGlyph"') && !JSON.stringify(old).includes('checkGlyph'), 'premise: the plans name the layer `checkGlyph`, and the file was built from plans naming it `check`');
+  const w = await world(TAG, old);
+  const selected = (): Node[] => membersOf(w.set()).filter((m) => /selection=selected/.test(String(m.name)) && /type=select/.test(String(m.name)));
+  const findIn = (n: Node, name: string): Node | undefined => {
+    if (n.name === name) return n;
+    if (n.type === 'INSTANCE') return undefined;
+    for (const c of (n.children as Node[] | undefined) ?? []) { const f = findIn(c, name); if (f) return f; }
+    return undefined;
+  };
+  const idsBefore = new Map(selected().map((m) => [String(m.name), String(findIn(m, 'check')?.id ?? '')] as const));
+  ok(idsBefore.size === 15 && [...idsBefore.values()].every(Boolean), `premise: all 15 selected members hold a 'check' layer (${idsBefore.size})`);
+  const before = identityOf(w.set());
+  const unclaimed = (await previewUpdate(w.host, [{ def: TAG, plans: planned }], undefined, [])).sets[0];
+  ok(unclaimed.changes.some((c) => c.field === 'children') && unclaimed.changes.some((c) => c.part.endsWith('/check') && c.to.startsWith('removed')),
+    `premise: with no ledger entry the dry run removes 'check' and adds 'checkGlyph' (${JSON.stringify(unclaimed.changes.filter((c) => c.field === 'children').map((c) => [c.part, c.from, c.to])).slice(0, 240)})`);
+  // The engine's own ledger, so the shipped entry is what is under test.
+  const pre = await previewUpdate(w.host, [{ def: TAG, plans: planned }]);
+  const p0 = pre.sets[0];
+  ok(!p0.changes.some((c) => c.field === 'children' || c.field === 'type') && !p0.replacements.length && !p0.blockers.length && p0.counts.handEdited === 0,
+    `part rename/dry run: no layer is removed, added or replaced, and nothing reads as a hand edit (${JSON.stringify(p0.changes.map((c) => [c.part, c.field])).slice(0, 240)})`);
+  const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: planned }], previewHashOf(pre));
+  ok(applyVerdict(res).ok, `part rename/verdict: ${applyVerdict(res).headline} (${applyVerdict(res).lines.slice(0, 2).join(' | ').slice(0, 240)})`);
+  const off = selected().filter((m) => { const n = findIn(m, 'checkGlyph'); return !n || String(n.id) !== idsBefore.get(String(m.name)) || !!findIn(m, 'check'); }).map((m) => String(m.name));
+  ok(off.length === 0, `part rename/in place: on every selected member the layer is now 'checkGlyph' under the id it had as 'check' (${off.slice(0, 3).join('; ') || 'all 15'})`);
+  const after = identityOf(w.set());
+  ok(after.set.join() === before.set.join() && [...before.members].every(([name, b]) => after.members.get(name)?.id === b.id && after.members.get(name)?.key === b.key),
+    'part rename/members: the set and every member keep their keys and ids');
+  const post = (await previewUpdate(w.host, [{ def: TAG, plans: planned }])).sets[0];
+  ok(post.counts.current === post.counts.members, `part rename/settled: a second dry run reads every member current (${JSON.stringify(post.counts)})`);
+}
+
 /* ── rename ──────────────────────────────────────────────────────────────────────────────────────────── */
 section('rename — a declared value rename, and an added axis, rename members in place');
 {
@@ -2678,11 +2821,11 @@ section('swap — an instance the plan points elsewhere is swapped in place, and
   const before = identityOf(w.set());
   const next = w.plans.map((p) => {
     const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
-    (planChild(planChild(q.root, 'controlBox'), 'control') as unknown as Record<string, unknown>).nestTarget = 'radio-control';
+    (planChild(planChild(q.root, 'controlCell'), 'control') as unknown as Record<string, unknown>).nestTarget = 'radio-control';
     return q;
   });
   const { res } = await confirm(w, [{ def: ROW, plans: next }]);
-  const ctrls = membersOf(w.set()).map((m) => childNamed(childNamed(m, 'controlBox'), 'control'));
+  const ctrls = membersOf(w.set()).map((m) => childNamed(childNamed(m, 'controlCell'), 'control'));
   ok(ctrls.every((n) => (n.mainComponent as { name?: string } | undefined)?.name === 'radio-control'), `nest/pointed: every row's control now instances radio-control (${[...new Set(ctrls.map((n) => (n.mainComponent as { name?: string }).name))]}; ${applyVerdict(res).headline})`);
   const after = identityOf(w.set());
   ok([...before.members].every(([name, b]) => [...b.kids].every(([p, id]) => after.members.get(name)?.kids.get(p) === id)), 'nest/ids: every nested instance keeps its id');
@@ -2867,12 +3010,12 @@ section('image-placeholder — the NB master\'s 3-member set reaches 7 ratios, a
   // real def's projection on both sides.
   const IMG = 'image-placeholder';
   const now = componentDefs.find((x) => x.id === IMG)!;
-  const { optional: _o, scaleWithParent: _s, ...oldMarker } = now.anatomy.parts.marker;
+  const { optional: _o, scaleWithParent: _s, ...oldMarker } = now.anatomy.parts.markerGlyph;
   void _o; void _s;
   const before2345 = {
     ...now,
     variants: { ratio: ['1:1', '4:3', '16:9'] },
-    anatomy: { ...now.anatomy, parts: { ...now.anatomy.parts, marker: oldMarker } },
+    anatomy: { ...now.anatomy, parts: { ...now.anatomy.parts, markerGlyph: oldMarker } },
     figmaProperties: { ...now.figmaProperties, booleans: {} },
   } as typeof now;
   const oldPlans = figmaAnatomySet(before2345, { swapTarget: SWAP_TARGET });
@@ -2888,7 +3031,7 @@ section('image-placeholder — the NB master\'s 3-member set reaches 7 ratios, a
     `img/dry run: the three existing members read update, four are added, none dropped or renamed (${JSON.stringify(p.counts)}, ${p.renames.length} renames, ${p.blockers.length} blockers)`);
   // `absoluteScale` by name: the read-back has to see that the file's marker is not SCALE-constrained, or a marker
   // the update failed to constrain would read current.
-  ok(p.changes.some((c) => c.part === 'marker' && c.field === 'absoluteScale' && c.members === 3),
+  ok(p.changes.some((c) => c.part === 'markerGlyph' && c.field === 'absoluteScale' && c.members === 3),
     `img/dry run: the marker's SCALE placement is a named difference on all three (${JSON.stringify(p.changes.map((c) => [c.part, c.field, c.members])).slice(0, 200)})`);
   const v = applyVerdict(res);
   ok(v.ok, `img/verdict: ${v.headline} (${v.lines.slice(0, 2).join(' | ').slice(0, 240)})`);
@@ -2901,24 +3044,24 @@ section('image-placeholder — the NB master\'s 3-member set reaches 7 ratios, a
   const moved = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || after.members.get(name)?.id !== b.id).map(([n]) => n);
   ok(moved.length === 0, `img/members kept: the three existing members keep their keys and ids (${moved.join(', ') || 'none moved'})`);
   const markerMoved = [...before.members].filter(([name, b]) => {
-    const was = [...b.kids].find(([path]) => path.startsWith('marker#'))?.[1];
+    const was = [...b.kids].find(([path]) => path.startsWith('markerGlyph#'))?.[1];
     return !was || ![...(after.members.get(name)?.kids.values() ?? [])].includes(was);
   }).map(([n]) => n);
   ok(markerMoved.length === 0, `img/marker kept: each existing member's marker keeps its node id (${markerMoved.join(', ') || 'none replaced'})`);
   // Read off the shim's nodes: every member's marker lifted out of the flow and constrained SCALE/SCALE.
   const placement = membersOf(w.set()).map((m) => {
-    const k = childNamed(m, 'marker');
+    const k = childNamed(m, 'markerGlyph');
     const c = k?.constraints as { horizontal?: string; vertical?: string } | null;
     return `${String(m.name)}:${String(k?.layoutPositioning)} ${c?.horizontal}/${c?.vertical}`;
   });
   ok(placement.every((s) => s.endsWith(':ABSOLUTE SCALE/SCALE')), `img/marker scales: every member's marker is ABSOLUTE, SCALE/SCALE (${placement.filter((s) => !s.endsWith(':ABSOLUTE SCALE/SCALE')).join('; ') || 'all seven'})`);
   // The Marker boolean: declared on the set, default on, and every member's marker wired to it.
   const defs = (w.set().componentPropertyDefinitions ?? {}) as Record<string, { type: string; defaultValue: unknown }>;
-  const markerProp = Object.entries(defs).find(([k]) => k.split('#')[0] === 'Marker');
+  const markerProp = Object.entries(defs).find(([k]) => k.split('#')[0] === 'marker');
   ok(!!markerProp && markerProp[1].type === 'BOOLEAN' && markerProp[1].defaultValue === true,
-    `img/property: the set declares the BOOLEAN 'Marker', default on (${JSON.stringify(defs)})`);
-  const unwired = membersOf(w.set()).filter((m) => String(((childNamed(m, 'marker')?.componentPropertyReferences ?? {}) as Record<string, string>).visible ?? '').split('#')[0] !== 'Marker').map((m) => String(m.name));
-  ok(unwired.length === 0, `img/property wired: every member's marker visibility follows 'Marker' (${unwired.join(', ') || 'all seven'})`);
+    `img/property: the set declares the BOOLEAN 'marker', default on (${JSON.stringify(defs)})`);
+  const unwired = membersOf(w.set()).filter((m) => String(((childNamed(m, 'markerGlyph')?.componentPropertyReferences ?? {}) as Record<string, string>).visible ?? '').split('#')[0] !== 'marker').map((m) => String(m.name));
+  ok(unwired.length === 0, `img/property wired: every member's marker visibility follows 'marker' (${unwired.join(', ') || 'all seven'})`);
   const post = (await previewUpdate(w.host, [{ def: IMG, plans: newPlans }])).sets[0];
   ok(post.counts.current === 7 && post.handEdits.length === 0, `img/current: the next dry run reads all seven current (${JSON.stringify(post.counts)})`);
 }
@@ -2968,12 +3111,12 @@ section('icons — a set built with inline glyphs updates to icon instances, as 
   {
     const plans = plansOf('field-message');
     const w = await world('field-message', legacy(plans), { extraComps: iconsOf(plans) });
-    const err = (): Node | undefined => { const m = membersOf(w.set()).find((x) => String(x.name) === 'status=error'); return m && findPart(m, 'iconError'); };
+    const err = (): Node | undefined => { const m = membersOf(w.set()).find((x) => String(x.name) === 'status=error'); return m && findPart(m, 'errorGlyph'); };
     const before = identityOf(w.set());
     const oldErr = err();
     ok(oldErr?.type === 'FRAME', `premise: the error member's glyph is an inline FRAME before the update (${String(oldErr?.type)})`);
     const { pre, res } = await confirm(w, [{ def: 'field-message', plans }]);
-    const named = pre.sets[0].changes.filter((c) => c.part.endsWith('iconError') && (c.field === 'type' || c.field === 'nestTarget'));
+    const named = pre.sets[0].changes.filter((c) => c.part.endsWith('errorGlyph') && (c.field === 'type' || c.field === 'nestTarget'));
     // The read-back's `nestTarget` predicate is what names it: the file holds a FRAME where the plan wants an instance.
     ok(named.some((c) => c.field === 'nestTarget' && /^FRAME/.test(c.from) && /icon\/warning-triangle/.test(c.to)),
       `icons/dry run: the error glyph's move is NAMED — the file's FRAME against the plan's instance of icon/warning-triangle — not a silent re-apply (${JSON.stringify(named.map((c) => [c.field, c.from, c.to]))})`);
@@ -2995,11 +3138,11 @@ section('icons — a set built with inline glyphs updates to icon instances, as 
     const plans = plansOf('checkbox-control');
     const w = await world('checkbox-control', legacy(plans), { extraComps: iconsOf(plans) });
     const checked = (): Node => membersOf(w.set()).find((x) => /selection=checked/.test(String(x.name)))!;
-    const oldMark = findPart(checked(), 'mark');
+    const oldMark = findPart(checked(), 'checkGlyph');
     ok(oldMark?.type === 'FRAME' && ((oldMark.children as Node[]) ?? []).some((c) => c.type === 'VECTOR'), `premise: the check is an inline glyph frame holding a VECTOR before the update`);
     const { pre, res } = await confirm(w, [{ def: 'checkbox-control', plans }]);
     ok(applyVerdict(res).ok && !pre.sets[0].blockers.length, `icons/apply: ${applyVerdict(res).headline}`);
-    const mark = findPart(checked(), 'mark');
+    const mark = findPart(checked(), 'checkGlyph');
     const glyph = ((mark?.children as Node[] | undefined) ?? []).find((c) => c.name === 'glyph');
     ok(!!mark && mark.id === oldMark?.id, `icons/mark id: the mark frame is kept, so its id stays (${String(oldMark?.id)} → ${String(mark?.id)})`);
     ok(glyph?.type === 'INSTANCE' && mainName(glyph) === 'icon/check' && ((mark?.children as Node[]) ?? []).length === 1,
@@ -3187,8 +3330,8 @@ section('stepdown — Segmented control, Tab and Tag move their glyph one rung d
   const PX = { 'icon/size/xs': 16, 'icon/size/sm': 20, 'icon/size/md': 24, 'icon/size/lg': 32 };
   const CASES: Array<{ id: string; parts: string[]; members: number }> = [
     { id: 'segmented-control-segment', parts: ['leadingVisual'], members: 30 },
-    { id: 'tab', parts: ['leadingVisual'], members: 30 },
-    { id: 'tag', parts: ['leadingVisual', 'check', 'dismissGlyph'], members: 45 },
+    { id: 'tab-item', parts: ['leadingVisual'], members: 30 },
+    { id: 'tag', parts: ['leadingVisual', 'checkGlyph', 'dismissGlyph'], members: 45 },
   ];
   const sizeOf = (m: Node): string => /size=(small|medium|large)/.exec(String(m.name))?.[1] ?? '?';
   const glyphsOf = (m: Node, parts: string[]): Node[] => {

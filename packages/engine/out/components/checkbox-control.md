@@ -20,8 +20,8 @@ The atomic checkbox control — the painted square with its check or dash glyph 
 Shown on the default member: size `medium`, selection `unchecked`, status `default`.
 
 1. **Control**
-2. **Mark**
-3. **Dash**
+2. **Check glyph**
+3. **Dash glyph**
 4. **Focus ring**
 
 ## Styles
@@ -113,10 +113,10 @@ Generated from the plan that builds the design-file component: 90 members. Value
 | --- | --- | --- |
 | `control` | frame | every member |
 | `control/focusRing` | instance | state=focus-visible |
-| `control/mark` | frame | selection=checked |
-| `control/mark/glyph` | instance | selection=checked |
-| `control/dash` | frame | selection=indeterminate |
-| `control/dash/glyph` | instance | selection=indeterminate |
+| `control/checkGlyph` | frame | selection=checked |
+| `control/checkGlyph/glyph` | instance | selection=checked |
+| `control/dashGlyph` | frame | selection=indeterminate |
+| `control/dashGlyph/glyph` | instance | selection=indeterminate |
 
 ### Spacing and size
 
@@ -129,24 +129,24 @@ Keyed by `size`.
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `control` | — | — | `control.size.md.height` | `control.size.md.height` | — | — |
-| `control/mark` | — | — | `control.size.md.height` | `control.size.md.height` | — | — |
-| `control/dash` | — | — | `control.size.md.height` | `control.size.md.height` | — | — |
+| `control/checkGlyph` | — | — | `control.size.md.height` | `control.size.md.height` | — | — |
+| `control/dashGlyph` | — | — | `control.size.md.height` | `control.size.md.height` | — | — |
 
 **size=small**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `control` | — | — | `control.size.sm.height` | `control.size.sm.height` | — | — |
-| `control/mark` | — | — | `control.size.sm.height` | `control.size.sm.height` | — | — |
-| `control/dash` | — | — | `control.size.sm.height` | `control.size.sm.height` | — | — |
+| `control/checkGlyph` | — | — | `control.size.sm.height` | `control.size.sm.height` | — | — |
+| `control/dashGlyph` | — | — | `control.size.sm.height` | `control.size.sm.height` | — | — |
 
 **size=large**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `control` | — | — | `control.size.lg.height` | `control.size.lg.height` | — | — |
-| `control/mark` | — | — | `control.size.lg.height` | `control.size.lg.height` | — | — |
-| `control/dash` | — | — | `control.size.lg.height` | `control.size.lg.height` | — | — |
+| `control/checkGlyph` | — | — | `control.size.lg.height` | `control.size.lg.height` | — | — |
+| `control/dashGlyph` | — | — | `control.size.lg.height` | `control.size.lg.height` | — | — |
 
 ### Color
 
@@ -217,146 +217,146 @@ Keyed by `selection`, `status`, `state`.
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `control` | `color.interactive.primary.fill.selected` | — | — | — |
-| `control/mark/glyph` | — | — | — | `color.interactive.primary.on-fill` |
+| `control/checkGlyph/glyph` | — | — | — | `color.interactive.primary.on-fill` |
 
 **selection=checked, status=default, state=hover**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `control` | `color.interactive.primary.fill.hover` | — | — | — |
-| `control/mark/glyph` | — | — | — | `color.interactive.primary.on-fill` |
+| `control/checkGlyph/glyph` | — | — | — | `color.interactive.primary.on-fill` |
 
 **selection=checked, status=default, state=pressed**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `control` | `color.interactive.primary.fill.pressed` | — | — | — |
-| `control/mark/glyph` | — | — | — | `color.interactive.primary.on-fill` |
+| `control/checkGlyph/glyph` | — | — | — | `color.interactive.primary.on-fill` |
 
 **selection=checked, status=default, state=focus-visible**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `control` | `color.interactive.primary.fill.selected` | — | — | — |
-| `control/mark/glyph` | — | — | — | `color.interactive.primary.on-fill` |
+| `control/checkGlyph/glyph` | — | — | — | `color.interactive.primary.on-fill` |
 
 **selection=checked, status=default, state=disabled**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `control` | `color.disabled.fill` | — | — | — |
-| `control/mark/glyph` | — | — | — | `color.disabled.on-fill` |
+| `control/checkGlyph/glyph` | — | — | — | `color.disabled.on-fill` |
 
 **selection=checked, status=error, state=rest**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `control` | `color.interactive.primary.fill.selected` | `color.border.danger` | — | — |
-| `control/mark/glyph` | — | — | — | `color.interactive.primary.on-fill` |
+| `control/checkGlyph/glyph` | — | — | — | `color.interactive.primary.on-fill` |
 
 **selection=checked, status=error, state=hover**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `control` | `color.interactive.primary.fill.hover` | `color.border.danger` | — | — |
-| `control/mark/glyph` | — | — | — | `color.interactive.primary.on-fill` |
+| `control/checkGlyph/glyph` | — | — | — | `color.interactive.primary.on-fill` |
 
 **selection=checked, status=error, state=pressed**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `control` | `color.interactive.primary.fill.pressed` | `color.border.danger` | — | — |
-| `control/mark/glyph` | — | — | — | `color.interactive.primary.on-fill` |
+| `control/checkGlyph/glyph` | — | — | — | `color.interactive.primary.on-fill` |
 
 **selection=checked, status=error, state=focus-visible**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `control` | `color.interactive.primary.fill.selected` | `color.border.danger` | — | — |
-| `control/mark/glyph` | — | — | — | `color.interactive.primary.on-fill` |
+| `control/checkGlyph/glyph` | — | — | — | `color.interactive.primary.on-fill` |
 
 **selection=checked, status=error, state=disabled**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `control` | `color.disabled.fill` | — | — | — |
-| `control/mark/glyph` | — | — | — | `color.disabled.on-fill` |
+| `control/checkGlyph/glyph` | — | — | — | `color.disabled.on-fill` |
 
 **selection=indeterminate, status=default, state=rest**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `control` | `color.interactive.primary.fill.selected` | — | — | — |
-| `control/dash/glyph` | — | — | — | `color.interactive.primary.on-fill` |
+| `control/dashGlyph/glyph` | — | — | — | `color.interactive.primary.on-fill` |
 
 **selection=indeterminate, status=default, state=hover**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `control` | `color.interactive.primary.fill.hover` | — | — | — |
-| `control/dash/glyph` | — | — | — | `color.interactive.primary.on-fill` |
+| `control/dashGlyph/glyph` | — | — | — | `color.interactive.primary.on-fill` |
 
 **selection=indeterminate, status=default, state=pressed**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `control` | `color.interactive.primary.fill.pressed` | — | — | — |
-| `control/dash/glyph` | — | — | — | `color.interactive.primary.on-fill` |
+| `control/dashGlyph/glyph` | — | — | — | `color.interactive.primary.on-fill` |
 
 **selection=indeterminate, status=default, state=focus-visible**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `control` | `color.interactive.primary.fill.selected` | — | — | — |
-| `control/dash/glyph` | — | — | — | `color.interactive.primary.on-fill` |
+| `control/dashGlyph/glyph` | — | — | — | `color.interactive.primary.on-fill` |
 
 **selection=indeterminate, status=default, state=disabled**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `control` | `color.disabled.fill` | — | — | — |
-| `control/dash/glyph` | — | — | — | `color.disabled.on-fill` |
+| `control/dashGlyph/glyph` | — | — | — | `color.disabled.on-fill` |
 
 **selection=indeterminate, status=error, state=rest**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `control` | `color.interactive.primary.fill.selected` | `color.border.danger` | — | — |
-| `control/dash/glyph` | — | — | — | `color.interactive.primary.on-fill` |
+| `control/dashGlyph/glyph` | — | — | — | `color.interactive.primary.on-fill` |
 
 **selection=indeterminate, status=error, state=hover**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `control` | `color.interactive.primary.fill.hover` | `color.border.danger` | — | — |
-| `control/dash/glyph` | — | — | — | `color.interactive.primary.on-fill` |
+| `control/dashGlyph/glyph` | — | — | — | `color.interactive.primary.on-fill` |
 
 **selection=indeterminate, status=error, state=pressed**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `control` | `color.interactive.primary.fill.pressed` | `color.border.danger` | — | — |
-| `control/dash/glyph` | — | — | — | `color.interactive.primary.on-fill` |
+| `control/dashGlyph/glyph` | — | — | — | `color.interactive.primary.on-fill` |
 
 **selection=indeterminate, status=error, state=focus-visible**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `control` | `color.interactive.primary.fill.selected` | `color.border.danger` | — | — |
-| `control/dash/glyph` | — | — | — | `color.interactive.primary.on-fill` |
+| `control/dashGlyph/glyph` | — | — | — | `color.interactive.primary.on-fill` |
 
 **selection=indeterminate, status=error, state=disabled**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `control` | `color.disabled.fill` | — | — | — |
-| `control/dash/glyph` | — | — | — | `color.disabled.on-fill` |
+| `control/dashGlyph/glyph` | — | — | — | `color.disabled.on-fill` |
 
 ### Nesting and properties
 
 - `control/focusRing` nests `focus-ring` at `surface=default`
-- `control/mark/glyph` nests `icon/check`
-- `control/dash/glyph` nests `icon/minus`
+- `control/checkGlyph/glyph` nests `icon/check`
+- `control/dashGlyph/glyph` nests `icon/minus`
 
 ---
 

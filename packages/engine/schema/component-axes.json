@@ -634,7 +634,7 @@
     },
     "members": 7,
     "properties": {
-      "Marker": "BOOLEAN"
+      "marker": "BOOLEAN"
     }
   },
   "link": {
@@ -810,8 +810,8 @@
     },
     "members": 3,
     "properties": {
-      "Label": "BOOLEAN",
-      "items": "SLOT"
+      "items": "SLOT",
+      "label": "BOOLEAN"
     }
   },
   "segmented-control-segment": {
@@ -908,7 +908,7 @@
     },
     "members": 40,
     "properties": {
-      "State icon": "BOOLEAN"
+      "state icon": "BOOLEAN"
     }
   },
   "switch-row": {
@@ -927,7 +927,7 @@
       "label": "TEXT"
     }
   },
-  "tab": {
+  "tab-item": {
     "axes": {
       "selection": [
         "selected",
@@ -996,7 +996,7 @@
     },
     "members": 45,
     "properties": {
-      "Check icon": "BOOLEAN",
+      "check icon": "BOOLEAN",
       "label": "TEXT",
       "leading icon": "BOOLEAN",
       "↳ swap leading icon": "INSTANCE_SWAP"
