@@ -19,7 +19,7 @@
  *
  * THE EXECUTOR REVISION IS NOT SHOWN (Q479.5 A): it stays in each member's stamp. Item sentences are shown as the
  * release notes generate them (Q479.4 B ships A): "builds differently" names no change, and the follow-up for a
- * one-line reader summary per changed set is filed on #2858.
+ * one-line reader summary per changed set is #2875.
  *
  * DRAFT wording, an owner item, apart from what the approved wireframe already shows.
  */

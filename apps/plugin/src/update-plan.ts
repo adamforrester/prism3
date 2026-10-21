@@ -60,7 +60,7 @@ import { drawnFaults, faultLine, type DrawnFault, type DrawVar } from './drawn';
 import { REACTIONS_PATH, plannedRead, reactionMap, reactionVerdict, reactionsText, type PlannedReaction, type ReadReaction } from './reactions';
 import { pagesOutOfOrder, stripNestPrefix, type PageLike } from './file-setup';
 import { whatChangedLines } from './release-summary';
-import { aboutDue, aboutDueLine, type AboutDue } from './about-frame';
+import { ABOUT_NAME, aboutDue, aboutDueLine, aboutIsWork, type AboutDue } from './about-frame';
 
 /** One member of a set as the dry run reads it. */
 export type HostMember = {
@@ -1358,9 +1358,11 @@ export const previewVerdict = (r: UpdatePreview, whatChanged: (sets: string[]) =
   const blocked = r.sets.filter((p) => p.blockers.length).length + r.refused.length;
   const reorder = r.pages?.length ?? 0;
   // Owner-approved wording (#2568, Q264 A): pages to reorder and nothing else is its own headline.
-  const headline = r.sets.length + r.refused.length === 0 ? (reorder ? `Would reorder ${n(reorder, 'page')}` : 'No sets to check')
+  // DRAFT wording for the owner (#2858): the About frame as the only work reads as work, as the page order does.
+  const about = aboutIsWork(r.about) ? `Would ${r.about!.state === 'stale' ? 'redraw' : 'draw'} ${ABOUT_NAME}` : '';
+  const headline = r.sets.length + r.refused.length === 0 ? (reorder ? `Would reorder ${n(reorder, 'page')}` : about || 'No sets to check')
     : blocked ? `✗ ${n(blocked, 'set')} can't be checked`
-      : changing ? `Would change ${changing} of ${r.sets.length}` : reorder ? `Would reorder ${n(reorder, 'page')}`
+      : changing ? `Would change ${changing} of ${r.sets.length}` : reorder ? `Would reorder ${n(reorder, 'page')}` : about ? about
         : earlier || claimable ? '✓ No changes found' : '✓ All sets up to date';
   const lines = [
     // Each set's line, then each field it differs from its plan in, NAMED (#2295): where, what, the plan's value and

@@ -238,6 +238,7 @@ section('update — through a real Update in the component shim');
   const pre = await previewUpdate(host, targets);
   const v = previewVerdict(pre);
   ok(pre.about?.state === 'missing' && v.lines.includes('About this library: to draw on the Cover page.'), `update/dry run lists the frame (${v.lines.join(' | ')})`);
+  ok(v.headline === 'Would draw About this library', `update/dry run headline: the frame as the only work reads as work (${v.headline})`);
   ok(!tagged(cover).length && api._versions.length === 0, 'update/the check wrote nothing');
   // Hash: a frame drawn between the check and the confirm is a different file.
   const sneak = await previewUpdate(host, targets);
@@ -256,7 +257,7 @@ section('update — through a real Update in the component shim');
   ok(verdict.headline === '✓ About this library drawn' && verdict.lines.includes('About this library: drawn on the Cover page.'), `update/verdict (${verdict.headline}; ${verdict.lines.join(' | ')})`);
   ok(typeof res.publish === 'string' && res.publish.startsWith('Before Prism3 updated About this library. Engine ') && res.publish.endsWith('No breaking changes.'), `update/publish description returned (${JSON.stringify(res.publish)})`);
   const again = await previewUpdate(host, targets);
-  ok(again.about?.state === 'current' && !previewVerdict(again).lines.some((l) => l.startsWith('About this library')), 'update/converges: the next check reads the frame current');
+  ok(again.about?.state === 'current' && !previewVerdict(again).lines.some((l) => l.startsWith('About this library')) && previewVerdict(again).headline === '✓ All sets up to date', `update/converges: the next check reads the frame current (${previewVerdict(again).headline})`);
   const idle = await applyUpdate(host, api as never, targets, previewHashOf(again), { today: '2026-10-22' });
   ok(api._versions.length === 1 && !idle.about && !idle.publish && tagged(cover).length === 1, 'update/nothing to do: no version, no redraw, no description');
   // A plan change: the set is updated, and the frame, current, is redrawn for the run's date (every Update that writes).
