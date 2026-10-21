@@ -34,6 +34,15 @@ import { resolve } from 'node:path';
 import { brandTheme, type BrandInput } from '@prism3/engine/theme';
 import { resolveAllModes } from '@prism3/engine/modes';
 import exampleBrands from '@prism3/engine/schema/example-brands.json';
+import { serializeBrandInput } from '@prism3/engine/persist-input';
+import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles } from '@prism3/engine/anatomy-figma';
+import { componentDefs } from '@prism3/engine/components/index';
+import { applyComponentPlan } from './src/write-components';
+import { SWAP_TARGET } from './src/build-deps';
+import { makeShim, type Node } from './component-shim';
+import { previewUpdate, previewVerdict } from './src/update-plan';
+import { applyUpdate, applyVerdict, previewHashOf, type ApplyHost } from './src/update-apply';
+import { ABOUT_KEY } from './src/about-frame';
 import { scaffoldSkeleton, type PagesApi, type PageLike } from './src/file-setup';
 import { TAXONOMY } from './src/file-taxonomy';
 import {
@@ -348,7 +357,78 @@ section('setup — Set up file draws the cover');
   // The plugin's Set up file action calls it, with the saved brand, and reports its line.
   const main = readFileSync(resolve(import.meta.dirname, 'src/main.ts'), 'utf8');
   const body = main.slice(main.indexOf('const fileSetup = async'), main.indexOf('\n};', main.indexOf('const fileSetup = async')));
-  ok(/drawCover\(/.test(body) && /brandNameOf\(/.test(body) && /coverLine\(/.test(body), 'setup/Set up file draws the cover with the saved brand and reports it');
+  ok(/drawCover\(figma/.test(body) && /coverLine\(cover\)/.test(body), 'setup/Set up file draws the cover and reports it');
+  // With no brand passed, the cover reads the one the file holds (`persist-figma.ts`'s blob), name first.
+  const g = host({ vars: themeVars() });
+  const blob = new Map<string, string>([['prism3/brandInput', serializeBrandInput((exampleBrands as Record<string, BrandInput>).aurora)]]);
+  const root = { children: g.root.children, getSharedPluginData: (ns: string, k: string) => blob.get(`${ns}/${k}`) ?? '' };
+  const saved = await drawCover(g.api, root, { engine: '0.237.0' });
+  ok(saved.did === 'drawn' && part(tagged(g.cover)[0], 'brand')?.characters === 'Aurora', `setup/the saved brand's name (${part(tagged(g.cover)[0], 'brand')?.characters})`);
+}
+
+/* ── update ──────────────────────────────────────────────────────────────────────────────────────────── */
+section('update — through a real Update in the component shim');
+{
+  const planComps = (n: { swapTarget?: string; nestTarget?: string; nestOverrides?: readonly { type: string; value: string }[]; children?: unknown[] }): string[] => [
+    ...(n.swapTarget ? [n.swapTarget] : []), ...(n.nestTarget ? [n.nestTarget] : []),
+    ...(n.nestOverrides ?? []).filter((o) => o.type === 'INSTANCE_SWAP').map((o) => o.value),
+    ...((n.children ?? []) as (typeof n)[]).flatMap(planComps),
+  ];
+  const id = 'tag';
+  const d = componentDefs.find((x) => x.id === id)!;
+  const plans = figmaAnatomySet(d, { swapTarget: SWAP_TARGET });
+  type Pg = { name: string; children: Node[]; appendChild(c: Node): void };
+  const pageOf = (name: string): Pg => { const p: Pg = { name, children: [], appendChild(c: Node) { const was = c.parent as { children?: Node[] } | undefined; if (was?.children) was.children.splice(was.children.indexOf(c), 1); c.parent = p; p.children.push(c); } }; return p; };
+  const page = pageOf('↳ Tag');
+  const api = makeShim({
+    vars: [...new Set([...plans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), 'space/0'])],
+    styles: [...new Set(plans.flatMap((p) => planTextStyles(p.root)))],
+    effects: [...new Set(plans.flatMap((p) => planEffectStyles(p.root)))],
+    comps: [...new Set([SWAP_TARGET, 'focus-ring', ...plans.flatMap((p) => planComps(p.root))])],
+    page: page as never, liveRoot: true, identities: true, scaleConstrained: true,
+  }) as Record<string, any>;
+  const built = await applyComponentPlan(plans, api as never);
+  if (built.misses.length) throw new Error(`premise: ${id} built with misses: ${built.misses[0]}`);
+  let thumb: unknown = null;
+  api.getFileThumbnailNodeAsync = async () => thumb;
+  api.setFileThumbnailNodeAsync = async (n: unknown) => { thumb = n; };
+  const cover = pageOf('Cover');
+  const pages = [cover, page];
+  const blob = new Map<string, string>([['prism3/brandInput', serializeBrandInput({ ...(exampleBrands as Record<string, BrandInput>).harbor })]]);
+  const host = { ...api, root: { ...api.root, get children() { return pages; }, getSharedPluginData: (ns: string, k: string) => blob.get(`${ns}/${k}`) ?? '',
+    findAllWithCriteria: (c: { types: string[] }) => (c.types.length === 1 && c.types[0] === 'COMPONENT_SET' ? page.children.filter((n) => n.type === 'COMPONENT_SET') : api.root.findAllWithCriteria(c)) } } as unknown as ApplyHost;
+  const targets = [{ def: id, plans }];
+  // A cover an earlier engine drew, and its own thumbnail.
+  await drawCover(api as unknown as CoverApi, host.root as never, { engine: '0.236.0' });
+  const fr = tagged(cover as unknown as N)[0];
+  ok(!!fr && thumb === fr && part(fr, 'version')?.characters === 'Prism3 0.236.0', 'update/premise: a cover drawn by 0.236.0, the thumbnail');
+  const pre = await previewUpdate(host, targets);
+  const v = previewVerdict(pre);
+  ok(pre.cover?.state === 'stale' && v.lines.some((l) => l.startsWith('Cover: to set the version to 0.237.0 (shows 0.236.0).')), `update/dry run lists the cover (${v.lines.join(' | ')})`);
+  ok(part(fr, 'version')?.characters === 'Prism3 0.236.0', 'update/the check wrote nothing');
+  const res = await applyUpdate(host, api as never, targets, previewHashOf(pre), { today: '2026-10-21' });
+  const now = tagged(cover as unknown as N);
+  ok(now.length === 1 && now[0] === fr && part(fr, 'version')?.characters === 'Prism3 0.237.0', `update/version refreshed, read off the shim (${part(fr, 'version')?.characters})`);
+  const about = cover.children.find((n) => (n.getSharedPluginData as (a: string, b: string) => string)?.('prism3', ABOUT_KEY));
+  ok(!!about && about.x === (fr.x as number) + 1920 + 40 && about.y === fr.y, `update/the About frame beside the cover, the thumbnail (${about?.x}, ${about?.y})`);
+  const verdict = applyVerdict(res);
+  ok(verdict.lines.includes('Cover: version set to 0.237.0.') && verdict.lines.indexOf('Cover: version set to 0.237.0.') < verdict.lines.indexOf('About this library: drawn on the Cover page.'), `update/result line, the cover before the About frame (${verdict.lines.join(' | ')})`);
+  ok(verdict.lines.includes('No version saved first — only the cover and About this library changed, no set.') && !res.version, `update/cover-page furniture only: no version saved (${verdict.lines.join(' | ')})`);
+  // The brand renamed: the cover is the only work, and the hash covers it.
+  blob.set('prism3/brandInput', serializeBrandInput({ ...(exampleBrands as Record<string, BrandInput>).harbor, name: 'Harbor Fleet' }));
+  const pre2 = await previewUpdate(host, targets);
+  const v2 = previewVerdict(pre2);
+  ok(pre2.about?.state === 'current' && v2.headline === 'Would update the cover' && v2.lines.includes('No version is saved first — only the cover changes, no set.'), `update/cover only: the dry run (${v2.headline} | ${v2.lines.join(' | ')})`);
+  blob.set('prism3/brandInput', serializeBrandInput({ ...(exampleBrands as Record<string, BrandInput>).harbor, name: 'Harbor Fleet Co' }));
+  const refused = await applyUpdate(host, api as never, targets, previewHashOf(pre2), { today: '2026-10-22' });
+  ok(!!refused.refusedAll && part(fr, 'brand')?.characters === 'Harbor', `update/hash: a cover that changed since the check refuses the confirm (${refused.refusedAll})`);
+  const pre3 = await previewUpdate(host, targets);
+  const res3 = await applyUpdate(host, api as never, targets, previewHashOf(pre3), { today: '2026-10-22' });
+  const v3 = applyVerdict(res3);
+  ok(part(fr, 'brand')?.characters === 'Harbor Fleet Co' && v3.headline === '✓ Cover updated' && v3.lines.includes('Cover: brand name set to Harbor Fleet Co.') && v3.lines.includes('No version saved first — only the cover changed, no set.') && !res3.version,
+    `update/cover only: renamed, no version (${v3.headline} | ${v3.lines.join(' | ')})`);
+  const again = await previewUpdate(host, targets);
+  ok(again.cover?.state === 'current' && previewVerdict(again).headline === '✓ All sets up to date', `update/converges (${previewVerdict(again).headline})`);
 }
 
 console.log(failed ? `\n✗ ${failed} of ${executed} failed` : `\n✓ all passed — ${executed} assertions executed`);

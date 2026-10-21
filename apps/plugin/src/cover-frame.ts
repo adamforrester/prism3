@@ -32,9 +32,10 @@
  * (180 px on up to two lines when one line will not fit), the version at 64 px, 110 px off the bottom.
  */
 import { ENGINE_VERSION } from '@prism3/engine/version';
-import { TAXONOMY } from './file-taxonomy';
 import { REGULAR, SEMIBOLD, fontKey, solid, type FNode, type FileComponentsApi } from './file-components';
 import { fnv } from './style-guide';
+import { ABOUT_NAME, ABOUT_ONLY_CHECK, ABOUT_ONLY_DONE, coverPage as aboutCoverPage } from './about-frame';
+import { restoreInput, type SharedDataPort } from './persist-figma';
 
 export const COVER_NS = 'prism3';
 export const COVER_KEY = 'cover';
@@ -67,6 +68,13 @@ export const coverVersion = (engine: string = ENGINE_VERSION): string => `Prism3
 /** The brand's name as the cover shows it (Q?1 A): `name`, else the `id` as written. */
 export const brandNameOf = (brand: { id: string; name?: string } | null | undefined): string | null =>
   brand ? (brand.name?.trim() || brand.id) : null;
+/** The name of the brand the file holds (`persist-figma.ts`), or null for none, an unreadable one, or a root that
+ *  keeps no plugin data. */
+export const savedBrandName = (root: unknown): string | null => {
+  const r = root as Partial<SharedDataPort> | null;
+  if (typeof r?.getSharedPluginData !== 'function') return null;
+  try { return brandNameOf(restoreInput(r as SharedDataPort)); } catch { return null; }
+};
 
 export type CoverPart = 'brand' | 'version';
 /** What the frame records about itself. */
@@ -100,9 +108,8 @@ export type CoverApi = Pick<FileComponentsApi, 'createFrame' | 'createText' | 'l
   setFileThumbnailNodeAsync?(node: unknown): Promise<void>;
 };
 
-/** The Cover page, by the taxonomy's name: a page whose children can be read. */
-export const coverPage = (root: CoverRoot): CoverPage | null =>
-  ((root.children ?? []) as CoverPage[]).find((p) => typeof p.name === 'string' && p.name.trim() === TAXONOMY.cover && Array.isArray(p.children)) ?? null;
+/** The Cover page, found as the About frame finds it (one lookup for both). */
+const coverPage = (root: CoverRoot): CoverPage | null => aboutCoverPage(root) as CoverPage | null;
 
 const recordOf = (n: CNode): CoverRecord | null => {
   const raw = n.getSharedPluginData?.(COVER_NS, COVER_KEY) ?? '';
@@ -177,7 +184,7 @@ export const coverPrint = (frame: CNode): string => {
 /** The variable a tail names, as `furniture-templates.ts` finds the backdrop's. */
 const byTail = (all: readonly CoverVariable[], tail: string): CoverVariable | null =>
   all.find((v) => v.name === tail || v.name.endsWith(`/${tail}`)) ?? null;
-const localVariables = async (api: Pick<CoverApi, 'variables'>): Promise<readonly CoverVariable[]> => {
+const localVariables = async (api: { variables?: Pick<CoverVariables, 'getLocalVariablesAsync'> }): Promise<readonly CoverVariable[]> => {
   try { return (await api.variables?.getLocalVariablesAsync()) ?? []; } catch { return []; }
 };
 
@@ -206,7 +213,7 @@ const bindable = (frame: CNode, vars: readonly CoverVariable[]): boolean => {
  */
 export type CoverDue =
   | { state: 'no-cover' }
-  | { state: 'missing' }
+  | { state: 'missing'; noBrand?: true }
   | { state: 'stale'; shows?: string; name?: { from: string; to: string }; bind?: true; edited?: true }
   | { state: 'no-version'; edited: true }
   | { state: 'current'; edited?: true };
@@ -215,35 +222,49 @@ export type CoverDue =
 const shownVersion = (s: string): string => s.replace(/^Prism3\s+/, '');
 
 export const coverDue = async (
-  root: CoverRoot, o: { brand: string | null; engine?: string; api?: Pick<CoverApi, 'variables'> },
+  root: CoverRoot, o: { brand?: string | null; engine?: string; api?: { variables?: Pick<CoverVariables, 'getLocalVariablesAsync'> } } = {},
 ): Promise<CoverDue | undefined> => {
   if (!root.children) return undefined;
   const page = coverPage(root);
   if (!page) return { state: 'no-cover' };
+  const brand = o.brand === undefined ? savedBrandName(root) : o.brand;
+  // Nothing to draw without a brand: missing, and not work.
+  const missing = (): CoverDue => (brand === null ? { state: 'missing', noBrand: true } : { state: 'missing' });
   const own = ownCover(page);
-  if (!own) return { state: 'missing' };
+  if (!own) return missing();
   const engine = o.engine ?? ENGINE_VERSION;
   const edited = coverPrint(own.frame) !== own.record.print;
   const version = findPart(own.frame, 'version');
-  if (!version) return edited ? { state: 'no-version', edited: true } : { state: 'missing' };
+  if (!version) return edited ? { state: 'no-version', edited: true } : missing();
   const out: { shows?: string; name?: { from: string; to: string }; bind?: true } = {};
   if (version.characters !== coverVersion(engine)) out.shows = shownVersion(String(version.characters ?? ''));
   if (!edited) {
     const wordmark = findPart(own.frame, 'brand');
-    if (o.brand !== null && wordmark && wordmark.characters !== o.brand) out.name = { from: String(wordmark.characters ?? ''), to: o.brand };
+    if (brand !== null && wordmark && wordmark.characters !== brand) out.name = { from: String(wordmark.characters ?? ''), to: brand };
     if (bindable(own.frame, await localVariables(o.api ?? {}))) out.bind = true;
   }
   const flag = edited ? { edited: true as const } : {};
   return Object.keys(out).length ? { state: 'stale', ...out, ...flag } : { state: 'current', ...flag };
 };
 
-/** Whether the cover is work for an Update on its own. */
-export const coverIsWork = (d: CoverDue | undefined): boolean => d?.state === 'missing' || d?.state === 'stale';
+/** Whether the cover is work for an Update on its own: one to draw (with a brand to draw it for) or to bring current. */
+export const coverIsWork = (d: CoverDue | undefined): boolean => (d?.state === 'missing' && !d.noBrand) || d?.state === 'stale';
+
+/**
+ * WHEN THE COVER PAGE'S FURNITURE IS AN UPDATE'S ONLY WORK (owner decision Q498 B, which the approved wireframe extends to
+ * the cover): no named version is saved, and the dry run (`done` false) and the run log say so. With the About frame
+ * alone, its approved lines, unchanged. DRAFT wording where the cover is named.
+ */
+export const coverPageOnlyLine = (o: { about: boolean; cover: boolean }, done: boolean): string => {
+  if (!o.cover) return o.about ? (done ? ABOUT_ONLY_DONE : ABOUT_ONLY_CHECK) : '';
+  const what = o.about ? `the cover and ${ABOUT_NAME}` : 'the cover';
+  return done ? `No version saved first — only ${what} changed, no set.` : `No version is saved first — only ${what} change${o.about ? '' : 's'}, no set.`;
+};
 
 /** The dry run's line for the cover, or ''. DRAFT wording, the wireframe's where it has one. */
 export const coverDueLine = (d: CoverDue | undefined, engine: string = ENGINE_VERSION): string => {
   if (!d) return '';
-  if (d.state === 'missing') return `${COVER_NAME}: to draw on the Cover page.`;
+  if (d.state === 'missing') return d.noBrand ? `${COVER_NAME}: not drawn yet, the file has no brand. Apply Theme, then Update draws it.` : `${COVER_NAME}: to draw on the Cover page.`;
   if (d.state === 'no-version') return `${COVER_NAME}: edited by hand, and its version text is gone, so Update writes nothing to it.`;
   if (d.state !== 'stale') return '';
   const what = [
@@ -421,14 +442,15 @@ const drawNew = async (api: CoverApi, page: CoverPage, name: string, engine: str
  * bound, in place. An edited cover: only its tagged version text is set, or nothing when that text is gone. Never
  * throws for a missing page or font; a refused host write is the caller's to catch.
  */
-export const drawCover = async (api: CoverApi, root: CoverRoot, o: { brand: string | null; engine?: string }): Promise<CoverOutcome> => {
+export const drawCover = async (api: CoverApi, root: CoverRoot, o: { brand?: string | null; engine?: string } = {}): Promise<CoverOutcome> => {
   const engine = o.engine ?? ENGINE_VERSION;
+  const brand: string | null = o.brand === undefined ? savedBrandName(root) : o.brand;
   const page = coverPage(root);
   if (!page) return { did: 'none', skipped: 'not drawn, the file has no Cover page. Run Set up file, then Update', fontMisses: [] };
   const own = ownCover(page);
   if (!own) {
-    if (o.brand === null) return { did: 'none', skipped: 'not drawn yet, the file has no brand. Apply Theme, then Update draws it', fontMisses: [] };
-    return drawNew(api, page, o.brand, engine);
+    if (brand === null) return { did: 'none', skipped: 'not drawn yet, the file has no brand. Apply Theme, then Update draws it', fontMisses: [] };
+    return drawNew(api, page, brand, engine);
   }
   const { frame, record } = own;
   const edited = coverPrint(frame) !== record.print;
@@ -436,7 +458,7 @@ export const drawCover = async (api: CoverApi, root: CoverRoot, o: { brand: stri
   if (!version) {
     if (edited) return { did: 'none', skipped: 'edited by hand, and its version text is gone. Nothing was written', fontMisses: [] };
     // An unedited cover without its version text was never fully drawn: draw it again, beside the old one.
-    return o.brand === null ? { did: 'none', skipped: 'not drawn yet, the file has no brand. Apply Theme, then Update draws it', fontMisses: [] } : drawNew(api, page, o.brand, engine);
+    return brand === null ? { did: 'none', skipped: 'not drawn yet, the file has no brand. Apply Theme, then Update draws it', fontMisses: [] } : drawNew(api, page, brand, engine);
   }
   const misses: string[] = [];
   const out: CoverOutcome = { did: edited ? 'version' : 'refreshed', fontMisses: misses };
@@ -463,8 +485,8 @@ export const drawCover = async (api: CoverApi, root: CoverRoot, o: { brand: stri
     if (paintKey(t.fills) !== was) bound = true;
     if (!boundId(t, 'fontFamily') && await bindFont(api, vars, t, fv, misses)) bound = true;
   }
-  if (wordmark && o.brand !== null && wordmark.characters !== o.brand) {
-    if (await loadOwn(api, wordmark)) { setWordmark(wordmark, o.brand); out.name = o.brand; }
+  if (wordmark && brand !== null && wordmark.characters !== brand) {
+    if (await loadOwn(api, wordmark)) { setWordmark(wordmark, brand); out.name = brand; }
     else misses.push(`the brand text's font ${font(wordmark) || '(mixed)'} would not load, so it still shows ${String(wordmark.characters ?? '')}`);
   }
   frame.setSharedPluginData?.(COVER_NS, COVER_KEY, JSON.stringify({ engine, name: out.name ?? record.name, print: coverPrint(frame) } satisfies CoverRecord));

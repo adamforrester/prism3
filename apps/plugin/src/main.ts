@@ -52,7 +52,7 @@ import { withPanel, hasFurniture, clearFurniture, drawFurniture, seatNewSet, fur
 import type { FurnitureApi, FurnitureOutcome, FurnitureParent, FurnitureTag, XNode } from './canvas-furniture';
 import { ensureFurnitureTemplates } from './furniture-templates';
 import { ensureDocBlock, docBlockNote, type DocBlockApi } from './doc-block';
-import { brandNameOf, coverLine, drawCover, type CoverApi, type CoverOutcome, type CoverRoot } from './cover-frame';
+import { coverLine, drawCover, type CoverApi, type CoverOutcome, type CoverRoot } from './cover-frame';
 import { clearOrphanPanels, docPanelReach, drawDocPanel, type PanelApi, type PanelOutcome, type PNode } from './doc-panel';
 import type { TemplatesApi } from './furniture-templates';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
@@ -1084,10 +1084,9 @@ const fileSetup = async (sink: ActionSink): Promise<void> => {
     }
     // THE LIBRARY COVER (#2859, owner decision Q509 A, Q?5 A): drawn on the Cover page the scaffold just made, with the
     // saved brand's name, and set as the file thumbnail while that is still Figma's default. Every Update keeps it current.
-    let brand: string | null = null;
-    try { brand = brandNameOf(restoreInput(figma.root)); } catch { /* untrusted/absent → no brand, and the line says so */ }
+    // `drawCover` reads the brand the file holds; with none it draws nothing and says so.
     let cover: CoverOutcome;
-    try { cover = await drawCover(figma as unknown as CoverApi, figma.root as unknown as CoverRoot, { brand }); }
+    try { cover = await drawCover(figma as unknown as CoverApi, figma.root as unknown as CoverRoot); }
     catch (e) { cover = { did: 'none', skipped: `not drawn, Figma refused the write (${(e as Error)?.message ?? String(e)})`, fontMisses: [] }; }
     const coverNote = coverLine(cover);
     const summary = `pages: ${scaffold.created.length} created${scaffold.created.length ? ` (${scaffold.created.slice(0, 4).join(', ')}${scaffold.created.length > 4 ? '…' : ''})` : ' (all present)'}${assetNote}${coverNote ? `\n${coverNote}` : ''}`;
