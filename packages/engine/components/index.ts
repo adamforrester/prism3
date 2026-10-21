@@ -87,6 +87,7 @@ import { toast } from './toast';
 import { counter } from './counter';
 import { codeInputCell, codeInput } from './code-input';
 import { progress } from './progress';
+import { sliderThumb, slider } from './slider';
 
 /** Named access, kept ALONGSIDE the set rather than replaced by it. Most of `test.ts`'s component
  *  assertions are about one def's specific fields (`button.variants.appearance`,
@@ -94,7 +95,7 @@ import { progress } from './progress';
  *  be a worse call site, not a better one — a lookup that can return `undefined` standing in for a
  *  binding that cannot. The set is for iteration; these are for the assertions that are ABOUT one
  *  component. */
-export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tab, tabs, divider, accordionIndicator, accordion, listItem, list, segmentedControlSegment, segmentedControl, link, buttonGroup, dialog, passwordField, counter, breadcrumbSeparator, breadcrumbItem, breadcrumbs, banner, codeInputCell, codeInput, progress };
+export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tab, tabs, divider, accordionIndicator, accordion, listItem, list, segmentedControlSegment, segmentedControl, link, buttonGroup, dialog, passwordField, counter, breadcrumbSeparator, breadcrumbItem, breadcrumbs, banner, codeInputCell, codeInput, progress, sliderThumb, slider };
 
 /** Every component def the engine defines. The one thing a projection should iterate. */
 export const componentDefs: readonly ComponentDef[] = [
@@ -243,4 +244,8 @@ export const componentDefs: readonly ComponentDef[] = [
   codeInput,
   // `progress` (#2670) — the progress bar and ring. Nests `field-message` (its end-state message), above.
   progress,
+  // #2669 — the Slider, after the field parts and TextField it nests. Its Thumb leads it, the `_` prefix marking a
+  // part used only inside the Slider (Q349).
+  sliderThumb,
+  slider,
 ];

@@ -3706,6 +3706,58 @@
         ],
         "projection": []
       }
+    },
+    "_slider-thumb": {
+      "codeOnly": [
+        "The thumb in code — a visually hidden native <input type=\"range\"> under the drawn disc supplies focus, the keyboard, form submission and role=\"slider\". The disc is aria-hidden drawing.",
+        "touch-target-expansion — the visible disc is 24px at the default density and smaller at compact; its hit area is at least 44×44px at every size and density in code: a transparent ::before inset outward and centered on the thumb.",
+        "Pointer capture — on pointerdown call setPointerCapture(pointerId) on the thumb so a drag survives the pointer leaving the track; release on pointerup and pointercancel.",
+        "Motion — while dragging, the thumb follows the pointer 1:1 with transition: none (a data-dragging attribute), so it never lags the cursor.",
+        "forced-colors — the disc keeps a system-color fill or border, so the thumb still shows; the focus ring is an outline."
+      ],
+      "notes": {
+        "contested": [],
+        "unverified": [
+          "The 2px page-colored ring sits inside the 24px thumb in Figma (a page-colored disc padded 2px around the primary disc), so the visible disc is 20px; the wireframe drew it outside (a box-shadow). Code may draw either; the 3:1 against the page is the disc's fill, measured the same either way. A stroke cannot carry it: a stroke binds a border role (Q346), and no border role is the page color."
+        ],
+        "evolution": [
+          "2026-10-16 (#2669): built with the Slider to the approved proposal (all calls A). A nested component, not a part of the Slider, so the minimum thumb of a range can stay at rest while the maximum thumb shows the state (Q349 `_` prefix)."
+        ],
+        "projection": []
+      }
+    },
+    "slider": {
+      "codeOnly": [
+        "code delivery pending: behavior layer (#2454), as for Tabs. The entries below are a framework-neutral behavior contract.",
+        "The track in code — one rail across the control, with the fill and the thumbs positioned by value over it. Figma draws the same picture as growing segments around the thumbs, because auto layout has no per-child offset.",
+        "Each thumb is a visually hidden native <input type=\"range\"> under the drawn disc: focus, the keyboard, form submission and role=\"slider\" come from it. A range has two, each with its own name (\"Minimum {label}\", \"Maximum {label}\") and its own aria-valuemin and aria-valuemax: the other thumb's value, less minStepsBetweenThumbs.",
+        "aria-valuetext — set whenever the value is not a bare number (\"$40\", \"120%\"), from the same Intl.NumberFormat formatter as the visible value text.",
+        "Keyboard — Right and Up raise one step; Left and Down lower one step; Page Up and Page Down move one largeStep (ten steps by default); Home and End go to the ends of the thumb's own range; Tab moves from the minimum thumb to the maximum thumb.",
+        "Thumb collision — a thumb stops at the other thumb (less minStepsBetweenThumbs), by pointer and by keyboard; it never pushes or crosses it.",
+        "Click to jump — a pointerdown on the rail moves the nearer thumb there and starts a drag, so a user does not have to grab the thumb.",
+        "Rounding — each value snaps to the nearest exact multiple of step before onChange (0.1 + 0.2 is not 0.3 in floating point).",
+        "Edge alignment — at the minimum and maximum the thumb's outer edge stays inside the control: its translate runs from 0% to -100% of its own width across the range, so it never causes a horizontal scroll.",
+        "Geometry — value to pixel from the control's measured getBoundingClientRect, recomputed on resize (ResizeObserver) and when the direction changes.",
+        "Motion — while dragging, the thumb and the fill follow the pointer 1:1 with no transition. A rail click or a key step slides the thumb on motion.duration.fast with motion.easing-role.default. Under prefers-reduced-motion the slide is 0ms; motion.duration-reduced.fast keeps 100ms, so the slider sets 0 itself.",
+        "Paired inputs — one shared value; typing in an input moves its thumb and dragging updates the input. An incoming value is applied only if it differs, which stops an update loop. With inputs on, the value text is off.",
+        "disabled and readOnly — disabled drops the hidden inputs from the form payload; readOnly keeps them focusable and submitted, with the value unchangeable.",
+        "The Figma value text and inputs are placeholders: \"50\" for a single value, \"30 – 70\" and 30 and 70 for a range, near where the growing segments put the thumbs.",
+        "RTL — the minimum sits at the right and the fill grows leftward; Right Arrow lowers and Left Arrow raises, while Up and Down do not change. Logical properties and the measured dir handle it.",
+        "text expansion — the label and the value text share the header row; a long translated label wraps above the value rather than truncating it."
+      ],
+      "notes": {
+        "contested": [
+          "NO ERROR MEMBERS IN FIGMA. Q354 puts every control that can be invalid on the fields' `status` axis. The approved proposal (call 2 A, 10 members) holds that a slider's own value is always in range, so an error comes from a paired input or outside validation, and the field message carries it; there is no error skin on the track. So the set has no `status` axis, and code carries `validation` (default, error) onto the nested message. Held for the owner: a `status` axis would make 20 members."
+        ],
+        "unverified": [
+          "The fill against the rail measures under 3:1 in every committed brand and mode (call 5 A). The fill is told from the rail by its thickness (4px against 2px) and by the thumbs that bound it; the parts SC 1.4.11 needs (the thumb, which carries the value, and the rail, which carries the range) clear 3:1 against the page, held as literals in test.ts.",
+          "The nested inputs in Figma show TextField's own label (\"Label\") and its message: a host can set a nested instance's text and swap properties, not a boolean or a property two levels down (#2781); in code the inputs are labeled \"Minimum\" and \"Maximum\" and carry no message."
+        ],
+        "evolution": [
+          "2026-10-16 (#2669): owner decision, every call A on the proposal and wireframe. One Slider with a type axis (single, range) × five states = 10 members, one size, header value text, a 2px rail and 4px fill, a 24px ringed thumb nested as Slider.Thumb, optional end labels, inputs and message."
+        ],
+        "projection": []
+      }
     }
   }
 }

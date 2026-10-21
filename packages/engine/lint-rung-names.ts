@@ -324,6 +324,9 @@ const NO_SIZE_AXIS: Record<string, string> = {
   'banner': 'a banner has no size RUNG — its axes are `tone` and `width` (contained or full), and the brief names no size; density moves its padding and gaps (`densitySpacing`), and the nested buttons carry their own small rung (#2579)',
   'button-group': 'a layout of Buttons has no size RUNG of its own — its axis is `layout`, its gaps are `space.*` steps, and each nested Button is medium and measured under its own name; a size axis for smaller actions is held for the owner (#2661)',
   'divider': 'a rule has no size RUNG — its axis is `orientation`, its thickness is one border-width role (`border-width.hairline`), and its length is a NOMINAL standalone placeholder (`container.narrow` across, `size.md.height` tall) a host stretches; there is no size ladder to compare against the tier (#2455)',
+  // #2669, owner call 3 A: one size. Density moves the rungs it binds, so there is no ladder of its own.
+  'slider': 'one size by owner decision (#2669 call 3 A) — its control height is the one `size.md.min-height` rung, its rail and fill are border-width roles, and density moves those rungs; there is no size ladder to compare against the tier',
+  '_slider-thumb': 'one disc, `control.size.md.thumb`, at the Slider\'s one size (#2669 call 3 A); density moves the rung, and there is no size ladder of its own',
 };
 
 /**

@@ -5024,7 +5024,7 @@ export const CANVAS_FURNITURE: ReadonlySet<string> = new Set([
   'list', 'segmented-control-segment', 'segmented-control', 'link',
   'button-group', 'dialog', 'password-field', 'counter', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', 'toast', 'banner',
   // #2428: Code input and its cell, each a set with headers like every field's.
-  'code-input-cell', 'code-input', 'progress',
+  'code-input-cell', 'code-input', 'progress', '_slider-thumb', 'slider',
 ]);
 
 export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {

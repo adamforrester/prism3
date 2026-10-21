@@ -16411,6 +16411,154 @@ arm: {
         '#2416 Q179 tabs: no code prop drives a tab toggle (Figma-only; in code the count is children)');
     }
 
+    // ---- #2669 (owner decision 2026-10-16, every call A): Slider and Slider.Thumb ----
+    // Every expected value below is a literal typed here from the approved proposal, never read off the defs: the defs
+    // and their projected plans are the SUBJECT (docs/34 shape 1). Each arm names its call, so a mutation of the def
+    // fails the arm it breaks, by name.
+    {
+      const findIn = (n: AnatomyPlan['root'], name: string): AnatomyPlan['root'] | undefined => n.name === name ? n : n.children.map((k) => findIn(k, name)).find(Boolean);
+      const sliderDef = componentDefs.find((d) => d.id === 'slider')!;
+      const thumbDef = componentDefs.find((d) => d.id === '_slider-thumb')!;
+      const sMembers = figmaAnatomySet(sliderDef, {});
+      const tMembers = figmaAnatomySet(thumbDef, {});
+      const STATES5 = ['rest', 'hover', 'pressed', 'focus-visible', 'disabled'];
+      const sOf = (type: string, state: string) => sMembers.find((m) => m.coord.type === type && m.coord.state === state);
+      const tOf = (state: string) => tMembers.find((m) => m.coord.state === state);
+
+      // (1) Call 2 A: type [single, range] × five states = 10 members; Q347: the first member is the code default.
+      const WANT_NAMES = ['single', 'range'].flatMap((t) => STATES5.map((s) => `type=${t}, state=${s}`));
+      const gotNames = sMembers.map(planComponentName);
+      ok(JSON.stringify(gotNames) === JSON.stringify(WANT_NAMES) && gotNames[0] === 'type=single, state=rest',
+        `#2669 call 2 A slider: 10 members, type single then range × rest, hover, pressed, focus-visible, disabled, the first type=single, state=rest (${gotNames.length}: ${gotNames.join(' | ')})`);
+      ok(JSON.stringify(tMembers.map(planComponentName)) === JSON.stringify(STATES5.map((s) => `state=${s}`)),
+        `#2669 Q349 Slider.Thumb: a state-only set of 5 members (${tMembers.map(planComponentName).join(' | ')})`);
+      ok(thumbDef.id === '_slider-thumb' && sliderDef.composition?.composesWith?.includes('_slider-thumb'),
+        `#2669 Q349 the thumb is used only inside the Slider, so its id takes the _ prefix (${thumbDef.id})`);
+
+      // (2) Call 5 A: the track. A 2px rail in field.border.rest across the control, a 4px selected bar in the primary
+      // fill, in a control row as tall as the interactive floor. Single: [bar, thumb, spaceEnd]; range: [spaceStart,
+      // thumbMin, bar, thumb, spaceEnd]. Neither paint moves with the state (the state is on the thumb).
+      const trackOff: string[] = [];
+      const ORDER: Record<string, string[]> = { single: ['bar', 'thumb', 'spaceEnd'], range: ['spaceStart', 'thumbMin', 'bar', 'thumb', 'spaceEnd'] };
+      for (const type of ['single', 'range']) for (const state of STATES5) {
+        const m = sOf(type, state);
+        if (!m) { trackOff.push(`${type}/${state}: missing`); continue; }
+        const control = findIn(m.root, 'control'), track = findIn(m.root, 'track'), bar = findIn(m.root, 'bar');
+        const dis = state === 'disabled';
+        if (control?.bound?.height !== 'size/md/min-height') trackOff.push(`${type}/${state}: control height ${String(control?.bound?.height)}`);
+        if (track?.bound?.height !== 'border-width/thick' || track?.paints?.fills !== (dis ? 'color/disabled/fill' : 'color/field/border/rest')) trackOff.push(`${type}/${state}: rail ${String(track?.bound?.height)} ${String(track?.paints?.fills)}`);
+        if (bar?.bound?.height !== 'border-width/heavy' || bar?.paints?.fills !== (dis ? 'color/disabled/fill' : 'color/interactive/primary/fill/rest')) trackOff.push(`${type}/${state}: bar ${String(bar?.bound?.height)} ${String(bar?.paints?.fills)}`);
+        const kids = (track?.children ?? []).map((k) => k.name);
+        if (JSON.stringify(kids) !== JSON.stringify(ORDER[type])) trackOff.push(`${type}/${state}: track holds ${kids.join(', ')}`);
+        if (!['bar', 'spaceEnd', ...(type === 'range' ? ['spaceStart'] : [])].every((n) => findIn(m.root, n)?.layoutGrow === 1)) trackOff.push(`${type}/${state}: a segment does not grow`);
+      }
+      ok(trackOff.length === 0,
+        `#2669 call 5 A the track: a 2px rail (border-width/thick) in color/field/border/rest, a 4px bar (border-width/heavy) in color/interactive/primary/fill/rest, growing segments around the thumbs in a size/md/min-height control row, disabled in color/disabled/fill (${trackOff.length} off — ${trackOff.slice(0, 3).join('; ') || 'none'})`);
+
+      // (3) Call 2 A: the state shows on one thumb. The thumb of a single value, and the maximum thumb of a range,
+      // nest Slider.Thumb at the member's state; the minimum thumb stays at rest, except disabled.
+      const stateOff: string[] = [];
+      for (const type of ['single', 'range']) for (const state of STATES5) {
+        const m = sOf(type, state)!;
+        const t = findIn(m.root, 'thumb'), t0 = findIn(m.root, 'thumbMin');
+        if (t?.nestTarget !== '_slider-thumb' || t?.nestVariant?.state !== state) stateOff.push(`${type}/${state}: thumb ${String(t?.nestTarget)} at ${String(t?.nestVariant?.state)}`);
+        if (type === 'range' && (t0?.nestTarget !== '_slider-thumb' || t0?.nestVariant?.state !== (state === 'disabled' ? 'disabled' : 'rest'))) stateOff.push(`${type}/${state}: thumbMin at ${String(t0?.nestVariant?.state)}`);
+        if (type === 'single' && t0) stateOff.push(`${type}/${state}: a minimum thumb on a single value`);
+      }
+      ok(stateOff.length === 0, `#2669 call 2 A the state is on the maximum thumb; the minimum thumb of a range stays at rest except disabled (${stateOff.length} off — ${stateOff.slice(0, 3).join('; ') || 'none'})`);
+
+      // (3b) Owner QA 2026-10-19, item 1: the value readout sits INSIDE the component, at the header row's end opposite the
+      // label. Figma lays the header out left to right across the component's 320; a nested FieldLabel is built at its OWN
+      // 320 (its root's placementWidth, a literal here), so a label that does not grow takes the whole row and pushes the
+      // readout out of the box to the right. The readout's right edge is the sum of the widths ahead of it: a nested label
+      // counts as 320 unless it grows, a growing child counts as 0, and text counts as 0 (its advance is the brand font's).
+      // The readout must start BEFORE the box's right edge (a start at 320 is outside), on every member that shows one, and the header must span it.
+      {
+        const BOX = 320, FIELD_LABEL_BUILT_AT = 320;
+        const outside: string[] = [];
+        for (const m of sMembers) {
+          const header = findIn(m.root, 'header');
+          const value = findIn(m.root, m.coord.type === 'range' ? 'valueRange' : 'valueSingle');
+          if (!header || !value || m.root.placementWidth !== BOX || header.layoutAlign !== 'STRETCH') {
+            outside.push(`${planComponentName(m)}: no header spanning the ${BOX}px box (${String(header?.layoutAlign)}) or no readout`); continue;
+          }
+          let x = 0;
+          for (const c of header.children) {
+            if (c === value) break;
+            x += (c.layoutGrow === 1 ? 0 : c.type === 'NESTED_INSTANCE' ? FIELD_LABEL_BUILT_AT : 0);
+          }
+          if (x >= BOX) outside.push(`${planComponentName(m)}: the readout starts at ${x}px, at or past the ${BOX}px box edge`);
+        }
+        ok(outside.length === 0, `#2669 QA item 1 the value readout stays inside the component's ${BOX}px, at the header's end opposite the label (${outside.length} off — ${outside.slice(0, 2).join('; ') || 'none'})`);
+        // The label sits at the start and the readout is the last child, so it ends the row.
+        const order = sMembers.filter((m) => { const h = findIn(m.root, 'header'); return h?.children[0]?.name === 'label' && h.children[h.children.length - 1].name.startsWith('value'); });
+        ok(order.length === sMembers.length, `#2669 QA item 1 the header holds the label first and the readout last on every member (${order.length} of ${sMembers.length})`);
+      }
+
+      // (4) Call 6 A: the thumb, a 24px thumb (control/size/md/thumb) whose outer disc is the page color, padded 2px
+      // (space/025) around an inner disc in the primary fill stepping rest → hover → pressed. Q346: no stroke at all, since
+      // a stroke binds a border role and no border role is the page color. Disabled: the inner disc color/disabled/fill.
+      const FILL: Record<string, string> = { rest: 'color/interactive/primary/fill/rest', hover: 'color/interactive/primary/fill/hover', pressed: 'color/interactive/primary/fill/pressed', 'focus-visible': 'color/interactive/primary/fill/rest', disabled: 'color/disabled/fill' };
+      const thumbOff = STATES5.flatMap((s) => {
+        const r = tOf(s)?.root;
+        const disc = r ? findIn(r, 'disc') : undefined;
+        const ok1 = r?.paints?.fills === 'color/background/primary' && r?.paints?.strokes === undefined && r?.bound?.paddingTop === 'space/025' && r?.bound?.paddingLeft === 'space/025'
+          && r?.bound?.width === 'control/size/md/thumb' && r?.bound?.height === 'control/size/md/thumb' && r?.bound?.topLeftRadius === 'radius/round'
+          && disc?.paints?.fills === FILL[s] && disc?.bound?.topLeftRadius === 'radius/round' && disc?.layoutGrow === 1 && disc?.layoutAlign === 'STRETCH';
+        const ringNode = r ? findIn(r, 'focusRing') : undefined;
+        const ok2 = s === 'focus-visible' ? ringNode?.nestTarget === 'focus-ring' : !ringNode;
+        return ok1 && ok2 ? [] : [`${s}: ring ${String(r?.paints?.fills)} / stroke ${String(r?.paints?.strokes)} pad ${String(r?.bound?.paddingTop)}, disc ${String(disc?.paints?.fills)}, ${String(r?.bound?.width)}, focus ring ${String(ringNode?.nestTarget)}`];
+      });
+      ok(thumbOff.length === 0, `#2669 call 6 A / Q346 the thumb: a control/size/md/thumb thumb whose page-colored outer disc rings the primary-fill inner disc 2px in (space/025), no stroke, rest/hover/pressed on the inner disc, color/disabled/fill when disabled, the focus ring at focus-visible only (${thumbOff.join('; ') || 'none'})`);
+
+      // (5) Calls 4 A and 7 A, Q345: the panel. Lowercase names; label and value on, end labels, inputs and helper off.
+      const panel = planSetProperties(sMembers).filter((p) => p.type === 'BOOLEAN').map((p) => `${p.name}=${String(p.default)}`).sort();
+      ok(JSON.stringify(panel) === JSON.stringify(['end labels=false', 'helper=false', 'inputs=false', 'label=true', 'value=true']),
+        `#2669 calls 4 A / 7 A, Q345 slider booleans: label and value on, end labels, inputs and helper off, all lowercase (${panel.join(', ')})`);
+
+      // (6) The contrast floors, in every committed brand × mode (5 brands × 4 modes = 20 cells, a literal): the rail,
+      // the bar and the thumb at rest, hover and press clear 3:1 against the page (SC 1.4.11), the focus ring 3:1, and
+      // the value text and the end labels 4.5:1 (SC 1.4.3). The roles measured are read off the PLAN (the subject); the
+      // floors and the cell count are literals.
+      const sliderThemes: [string, any][] = loadedRows([
+        ['prism3', exampleTheme('prism3', () => brandTheme(exampleBrands()['prism3'] as BrandInput))],
+        ['nb', nbTheme()],
+        ['aurora', exampleTheme('aurora', () => brandTheme(exampleBrands()['aurora'] as BrandInput))],
+        ['harbor', exampleTheme('harbor', () => brandTheme(exampleBrands()['harbor'] as BrandInput))],
+        ['wendys', exampleTheme('wendys', () => brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input))],
+      ]);
+      const SLIDER_CELLS = 20;
+      const role = (v: unknown): string => String(v ?? '(unbound)').replace(/^color\//, '').replace(/\//g, '.');
+      // The ring the thumb nests at focus-visible, at the coordinate it nests (surface=default), as that member strokes it.
+      const ringNest = findIn(tOf('focus-visible')!.root, 'focusRing');
+      const ringMember = figmaAnatomySet(componentDefs.find((d) => d.id === 'focus-ring')!, {}).find((m) => m.coord.surface === ringNest?.nestVariant?.surface);
+      const ringRole = role(ringMember?.root.paints?.strokes);
+      const rest = sOf('range', 'rest')!;
+      const PAIRS: [string, string, number][] = [
+        ['the rail', role(findIn(rest.root, 'track')?.paints?.fills), 3],
+        ['the selected bar', role(findIn(rest.root, 'bar')?.paints?.fills), 3],
+        ['the thumb at rest', role(findIn(tOf('rest')!.root, 'disc')?.paints?.fills), 3],
+        ['the thumb at hover', role(findIn(tOf('hover')!.root, 'disc')?.paints?.fills), 3],
+        ['the thumb at press', role(findIn(tOf('pressed')!.root, 'disc')?.paints?.fills), 3],
+        ['the focus ring', ringRole, 3],
+        ['the value text', role(findIn(rest.root, 'valueRange')?.paints?.fills), 4.5],
+        ['the end labels', role(findIn(rest.root, 'minLabel')?.paints?.fills), 4.5],
+      ];
+      for (const [what, ink, floor] of PAIRS) {
+        const low: string[] = [];
+        let measured = 0, min = Infinity;
+        for (const [brand, th] of sliderThemes) for (const m of resolveAllModes(th)) {
+          const x = m.roles[ink], y = m.roles['background.primary'];
+          if (!x?.hex || !y?.hex) { low.push(`${brand}/${m.mode}: missing ${!x?.hex ? ink : 'background.primary'}`); continue; }
+          const r = contrast(hexToRgb(x.hex), hexToRgb(y.hex));
+          measured++; min = Math.min(min, r);
+          if (r < floor) low.push(`${brand}/${m.mode} ${r.toFixed(2)}`);
+        }
+        ok(measured === SLIDER_CELLS && low.length === 0,
+          `#2669 slider contrast (${what}): ${ink} against background.primary clears ${floor}:1 in all ${measured} of ${SLIDER_CELLS} brand × mode cells (lowest ${min.toFixed(2)})${low.length ? ` — ${low.join('; ')}` : ''}`);
+      }
+    }
+
     // ---- #2418 (owner decisions Q269 1-8 A): SegmentedControl.Segment and SegmentedControl ----
     // Every expected value below is a literal typed here from Q269 and the refreshed proposal it decided, never read
     // off the defs: the defs and their projected plans are the SUBJECT (docs/34 shape 1). Each arm names its decision,
@@ -25756,6 +25904,17 @@ arm: {
     brokeFp('an axis that does not exist in variants fails', /is not an axis in variants/, { variantAxes: ['intent', 'nope'] });
     brokeFp('the same axis twice fails', /listed twice/, { variantAxes: ['intent', 'intent'] });
     brokeFp('an empty axis list fails', /non-empty/, { variantAxes: [] });
+    // #2669: a def with NO variants projects a set over its state axis alone (Slider.Thumb), and only then. Without the
+    // state axis the empty list fails again, so the carve-out cannot admit a set with no axis at all.
+    {
+      const thumbDef = componentDefs.find((d) => d.id === '_slider-thumb')!;
+      const thumbFp = thumbDef.figmaProperties!;
+      const okEmpty = figmaPropertyErrors(thumbDef).filter((x) => /non-empty/.test(x));
+      ok(Object.keys(thumbDef.variants).length === 0 && thumbFp.variantAxes.length === 0 && okEmpty.length === 0,
+        `#2669 a state-only set (Slider.Thumb: no variants, five states) projects with an empty axis list (${okEmpty.join('; ') || 'no error'})`);
+      const noState = figmaPropertyErrors({ ...thumbDef, figmaProperties: { ...thumbFp, stateAxis: undefined } });
+      ok(noState.some((x) => /non-empty/.test(x)), `#2669 the same def with no state axis fails the empty axis list (${noState.join('; ') || 'nothing'})`);
+    }
     brokeFp('dropping an axis with no codeOnly explanation fails', /not explained in anatomy.codeOnly/, { variantAxes: ['intent'] });
     brokeFp("a legacy state name fails (it is not in the def's states)", /is not one of states/, { stateAxis: { name: 'state', values: ['rest', 'active'] } });
     // `hover`, not `inactive` — dropping `inactive` is now the SHIPPING config (#536 item 4), so this
@@ -28455,7 +28614,7 @@ arm: {
   // `tag` joins (2026-09-27): its check mark is gated on `selection: ['selected']`, the checkbox mark's shape.
   // `link` joins (#2580, owner Q297.2): its trailing icon is gated on `style: ['standalone']`, so an inline link carries none.
   // `checkbox-group` and `radio-group` since #2751: each gates its nested message on `status=error`.
-  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-group', 'radio-control', 'radio-group', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'button-group', 'dialog', 'password-field', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', 'toast', 'banner', 'code-input-cell', 'progress'];
+  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-group', 'radio-control', 'radio-group', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'button-group', 'dialog', 'password-field', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', 'toast', 'banner', 'code-input-cell', 'progress', 'slider'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {

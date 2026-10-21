@@ -41,7 +41,7 @@ const WIRE_COMPONENTS: [string, string[]][] = [
   ['Checkbox', ['Checkbox.Control', 'Checkbox.Group', 'Checkbox.Row']], ['Code input', ['CodeInput']], ['Counter', ['Counter']], ['Dialog', ['Dialog']], ['Divider', ['Divider']],
   ['Icon button', ['IconButton', 'IconButton.Destructive', 'IconButton.Neutral']], ['Link', ['Link']], ['List', ['List', 'List.Item']],
   ['Password field', ['PasswordField']], ['Progress', ['Progress']], ['Radio', ['Radio.Control', 'Radio.Group', 'Radio.Row']],
-  ['Segmented control', ['SegmentedControl', 'SegmentedControl.Segment']], ['Select', ['Select']], ['Switch', ['Switch.Control', 'Switch.Row']],
+  ['Segmented control', ['SegmentedControl', 'SegmentedControl.Segment']], ['Select', ['Select']], ['Slider', ['Slider', 'Slider.Thumb']], ['Switch', ['Switch.Control', 'Switch.Row']],
   ['Tabs', ['Tab.Item', 'Tabs']], ['Tag', ['Tag']], ['Text field', ['TextField']], ['Textarea', ['Textarea']], ['Toast', ['Toast']], ['Veil', ['Veil']],
 ];
 const WIRE_SUBS: [string, string[]][] = [
