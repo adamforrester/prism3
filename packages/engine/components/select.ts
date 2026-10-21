@@ -457,7 +457,7 @@ export const select: ComponentDef = {
         // fall back to the label inset.
         padding: { block: 'size.{size}.pad-y', inlineLabel: 'size.{size}.pad-x' },
         gap: 'size.{size}.gap',
-        children: ['content', 'chevron', 'focusRing'],
+        children: ['content', 'chevronGlyph', 'focusRing'],
       },
       // THE VALUE ROW — leading glyph + value text. Grows across the control on both surfaces (#1751): FIXED
       // and `layoutGrow` in Figma, `flex: 1` in code. The value and placeholder wrap inside it (#1758), and
@@ -504,7 +504,7 @@ export const select: ComponentDef = {
       },
       // THE TRAILING CHEVRON — a fixed `vector`, glyph `chevron-down` (the engine name; the Prism2 spec's
       // `arrow-down-s-line` is the source file's name, not ours). Its ink is the `icon` slot.
-      chevron: {
+      chevronGlyph: {
         kind: 'vector',
         glyph: 'chevron-down',
         size: 'icon-size',

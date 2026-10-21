@@ -140,10 +140,10 @@ export const imagePlaceholder: ComponentDef = {
         // in the corpus that opts into clipping (#1316); every other box keeps Figma's-off default.
         clipsContent: true,
         paintSlots: ['fill'],
-        children: ['marker'],
+        children: ['markerGlyph'],
         note: 'The media frame: a neutral fill, an aspect-ratio lock, and clipping so a dropped image stays inside. Its width is nominal (720px) and a designer resizes it; the ratio holds while the size flexes.',
       },
-      marker: {
+      markerGlyph: {
         kind: 'vector',
         // The "no image" glyph (#1316's `image` icon — a mountain-and-sun placeholder). Decorative; the
         // frame carries the accessible role.
@@ -198,7 +198,7 @@ export const imagePlaceholder: ComponentDef = {
     // rather than fourteen. Default on, so a fresh instance shows the empty state. FIGMA-ONLY (#2419's form, owner
     // decision Q163.4b A): code has no `showMarker` prop, because in code the marker follows whether an image is
     // supplied (see `codeOnly`), and a prop could only disagree with that.
-    booleans: { marker: { part: 'marker', default: true, figmaName: 'marker', figmaOnly: true } },
+    booleans: { marker: { part: 'markerGlyph', default: true, figmaName: 'marker', figmaOnly: true } },
   },
 
   accessibility: {

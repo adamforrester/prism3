@@ -19,7 +19,7 @@ The visible, persistent label above a form field — the field's accessible name
 
 Shown on the default member: size `small`, emphasis `secondary`, weight `regular`.
 
-1. **Text**
+1. **Label**
 2. **Indicator** (optional)
 
 ## Styles
@@ -101,9 +101,9 @@ Generated from the plan that builds the design-file component: 24 members. Value
 
 | Part | Kind | In |
 | --- | --- | --- |
-| `label` | frame | every member |
-| `label/text` | text | every member |
-| `label/indicator` | text | every member |
+| `container` | frame | every member |
+| `container/label` | text | every member |
+| `container/indicator` | text | every member |
 
 ### Spacing and size
 
@@ -115,22 +115,22 @@ Keyed by `size`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `label` | — | `space.050` | — | — | — | build width 320px (literal) |
-| `label/text` | — | — | — | — | — | max width 316px (literal) |
+| `container` | — | `space.050` | — | — | — | build width 320px (literal) |
+| `container/label` | — | — | — | — | — | max width 316px (literal) |
 
 **size=medium**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `label` | — | `space.050` | — | — | — | build width 320px (literal) |
-| `label/text` | — | — | — | — | — | max width 316px (literal) |
+| `container` | — | `space.050` | — | — | — | build width 320px (literal) |
+| `container/label` | — | — | — | — | — | max width 316px (literal) |
 
 **size=large**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `label` | — | `space.050` | — | — | — | build width 320px (literal) |
-| `label/text` | — | — | — | — | — | max width 316px (literal) |
+| `container` | — | `space.050` | — | — | — | build width 320px (literal) |
+| `container/label` | — | — | — | — | — | max width 316px (literal) |
 
 ### Type
 
@@ -138,18 +138,18 @@ Keyed by `size`, `weight`.
 
 | Members | Part | Text style |
 | --- | --- | --- |
-| size=small, weight=regular | `label/text` | `type.body.xs.default` |
-| size=small, weight=regular | `label/indicator` | `type.body.xs.default` |
-| size=medium, weight=regular | `label/text` | `type.body.sm.default` |
-| size=medium, weight=regular | `label/indicator` | `type.body.sm.default` |
-| size=large, weight=regular | `label/text` | `type.body.md.default` |
-| size=large, weight=regular | `label/indicator` | `type.body.md.default` |
-| size=small, weight=bold | `label/text` | `type.body.xs.strong` |
-| size=small, weight=bold | `label/indicator` | `type.body.xs.strong` |
-| size=medium, weight=bold | `label/text` | `type.body.sm.strong` |
-| size=medium, weight=bold | `label/indicator` | `type.body.sm.strong` |
-| size=large, weight=bold | `label/text` | `type.body.md.strong` |
-| size=large, weight=bold | `label/indicator` | `type.body.md.strong` |
+| size=small, weight=regular | `container/label` | `type.body.xs.default` |
+| size=small, weight=regular | `container/indicator` | `type.body.xs.default` |
+| size=medium, weight=regular | `container/label` | `type.body.sm.default` |
+| size=medium, weight=regular | `container/indicator` | `type.body.sm.default` |
+| size=large, weight=regular | `container/label` | `type.body.md.default` |
+| size=large, weight=regular | `container/indicator` | `type.body.md.default` |
+| size=small, weight=bold | `container/label` | `type.body.xs.strong` |
+| size=small, weight=bold | `container/indicator` | `type.body.xs.strong` |
+| size=medium, weight=bold | `container/label` | `type.body.sm.strong` |
+| size=medium, weight=bold | `container/indicator` | `type.body.sm.strong` |
+| size=large, weight=bold | `container/label` | `type.body.md.strong` |
+| size=large, weight=bold | `container/indicator` | `type.body.md.strong` |
 
 ### Color
 
@@ -159,57 +159,57 @@ Keyed by `emphasis`, `weight`, `state`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `label/text` | — | — | `color.text.secondary` | — |
-| `label/indicator` | — | — | `color.text.secondary` | — |
+| `container/label` | — | — | `color.text.secondary` | — |
+| `container/indicator` | — | — | `color.text.secondary` | — |
 
 **emphasis=secondary, weight=regular, state=disabled**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `label/text` | — | — | `color.disabled.text` | — |
-| `label/indicator` | — | — | `color.disabled.text` | — |
+| `container/label` | — | — | `color.disabled.text` | — |
+| `container/indicator` | — | — | `color.disabled.text` | — |
 
 **emphasis=secondary, weight=bold, state=rest**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `label/text` | — | — | `color.text.secondary` | — |
-| `label/indicator` | — | — | `color.text.secondary` | — |
+| `container/label` | — | — | `color.text.secondary` | — |
+| `container/indicator` | — | — | `color.text.secondary` | — |
 
 **emphasis=secondary, weight=bold, state=disabled**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `label/text` | — | — | `color.disabled.text` | — |
-| `label/indicator` | — | — | `color.disabled.text` | — |
+| `container/label` | — | — | `color.disabled.text` | — |
+| `container/indicator` | — | — | `color.disabled.text` | — |
 
 **emphasis=primary, weight=regular, state=rest**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `label/text` | — | — | `color.text.primary` | — |
-| `label/indicator` | — | — | `color.text.primary` | — |
+| `container/label` | — | — | `color.text.primary` | — |
+| `container/indicator` | — | — | `color.text.primary` | — |
 
 **emphasis=primary, weight=regular, state=disabled**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `label/text` | — | — | `color.disabled.text` | — |
-| `label/indicator` | — | — | `color.disabled.text` | — |
+| `container/label` | — | — | `color.disabled.text` | — |
+| `container/indicator` | — | — | `color.disabled.text` | — |
 
 **emphasis=primary, weight=bold, state=rest**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `label/text` | — | — | `color.text.primary` | — |
-| `label/indicator` | — | — | `color.text.primary` | — |
+| `container/label` | — | — | `color.text.primary` | — |
+| `container/indicator` | — | — | `color.text.primary` | — |
 
 **emphasis=primary, weight=bold, state=disabled**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `label/text` | — | — | `color.disabled.text` | — |
-| `label/indicator` | — | — | `color.disabled.text` | — |
+| `container/label` | — | — | `color.disabled.text` | — |
+| `container/indicator` | — | — | `color.disabled.text` | — |
 
 ### Nesting and properties
 

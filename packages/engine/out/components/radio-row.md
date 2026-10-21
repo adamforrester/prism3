@@ -121,8 +121,8 @@ Generated from the plan that builds the design-file component: 6 members. Values
 | Part | Kind | In |
 | --- | --- | --- |
 | `row` | frame | every member |
-| `row/controlBox` | frame | every member |
-| `row/controlBox/control` | instance | every member |
+| `row/controlCell` | frame | every member |
+| `row/controlCell/control` | instance | every member |
 | `row/label` | text | every member |
 
 ### Spacing and size
@@ -136,24 +136,24 @@ Keyed by `size`.
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `row` | `space.150` / `space.0` / `space.150` / `space.0` | `space.100` | — | — | 120px (literal) | build width 320px (literal) |
-| `row/controlBox` | — | — | `control.size.md.line-box` | — | — | — |
-| `row/controlBox/control` | — | — | `control.size.md.height` | `control.size.md.height` | — | — |
+| `row/controlCell` | — | — | `control.size.md.line-box` | — | — | — |
+| `row/controlCell/control` | — | — | `control.size.md.height` | `control.size.md.height` | — | — |
 
 **size=small**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `row` | `space.150` / `space.0` / `space.150` / `space.0` | `space.100` | — | — | 120px (literal) | build width 320px (literal) |
-| `row/controlBox` | — | — | `control.size.sm.line-box` | — | — | — |
-| `row/controlBox/control` | — | — | `control.size.sm.height` | `control.size.sm.height` | — | — |
+| `row/controlCell` | — | — | `control.size.sm.line-box` | — | — | — |
+| `row/controlCell/control` | — | — | `control.size.sm.height` | `control.size.sm.height` | — | — |
 
 **size=large**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `row` | `space.150` / `space.0` / `space.150` / `space.0` | `space.150` | — | — | 120px (literal) | build width 320px (literal) |
-| `row/controlBox` | — | — | `control.size.lg.line-box` | — | — | — |
-| `row/controlBox/control` | — | — | `control.size.lg.height` | `control.size.lg.height` | — | — |
+| `row/controlCell` | — | — | `control.size.lg.line-box` | — | — | — |
+| `row/controlCell/control` | — | — | `control.size.lg.height` | `control.size.lg.height` | — | — |
 
 ### Type
 
@@ -183,7 +183,7 @@ Keyed by `status`.
 
 ### Nesting and properties
 
-- `row/controlBox/control` nests `radio-control` at `selection=unchecked, state=rest, status=default`; follows `size`, `status`; exposes `selection`, `state`
+- `row/controlCell/control` nests `radio-control` at `selection=unchecked, state=rest, status=default`; follows `size`, `status`; exposes `selection`, `state`
 
 | Property | Type | Default |
 | --- | --- | --- |

@@ -2594,18 +2594,18 @@ ok(fmRun.properties.filter((p) => p.indexOf('TEXT') >= 0).length === 1,
 {
   type IconRow = { def: string; part: string; icon: string; size?: string; px?: number; inset?: number };
   const ICON_ROWS: IconRow[] = [
-    { def: 'field-message', part: 'iconError', icon: 'icon/warning-triangle', size: 'icon/size/xs' },
-    { def: 'field-message', part: 'iconWarning', icon: 'icon/error-circle', size: 'icon/size/xs' },
-    { def: 'field-message', part: 'iconSuccess', icon: 'icon/check-circle', size: 'icon/size/xs' },
-    { def: 'checkbox-control', part: 'mark', icon: 'icon/check', size: 'control/size/{size}/height', inset: 0.8 },
-    { def: 'checkbox-control', part: 'dash', icon: 'icon/minus', size: 'control/size/{size}/height', inset: 0.8 },
+    { def: 'field-message', part: 'errorGlyph', icon: 'icon/warning-triangle', size: 'icon/size/xs' },
+    { def: 'field-message', part: 'warningGlyph', icon: 'icon/error-circle', size: 'icon/size/xs' },
+    { def: 'field-message', part: 'successGlyph', icon: 'icon/check-circle', size: 'icon/size/xs' },
+    { def: 'checkbox-control', part: 'checkGlyph', icon: 'icon/check', size: 'control/size/{size}/height', inset: 0.8 },
+    { def: 'checkbox-control', part: 'dashGlyph', icon: 'icon/minus', size: 'control/size/{size}/height', inset: 0.8 },
     { def: 'switch-control', part: 'onGlyph', icon: 'icon/check', size: 'control/size/{size}/thumb' },
     { def: 'switch-control', part: 'offGlyph', icon: 'icon/close', size: 'control/size/{size}/thumb' },
-    { def: 'tag', part: 'check', icon: 'icon/check', size: 'icon/size/{size-1}' },
+    { def: 'tag', part: 'checkGlyph', icon: 'icon/check', size: 'icon/size/{size-1}' },
     { def: 'tag', part: 'dismissGlyph', icon: 'icon/close', size: 'icon/size/{size-1}' },
-    { def: 'select', part: 'chevron', icon: 'icon/chevron-down', size: 'icon/size/sm' },
-    { def: 'textarea', part: 'grip', icon: 'icon/resize-grip', size: 'icon/size/xs' },
-    { def: 'image-placeholder', part: 'marker', icon: 'icon/image', px: 180 },
+    { def: 'select', part: 'chevronGlyph', icon: 'icon/chevron-down', size: 'icon/size/sm' },
+    { def: 'textarea', part: 'gripGlyph', icon: 'icon/resize-grip', size: 'icon/size/xs' },
+    { def: 'image-placeholder', part: 'markerGlyph', icon: 'icon/image', px: 180 },
   ];
   const RUNG: Record<string, string> = { small: 'sm', medium: 'md', large: 'lg' };
   const RUNG_BELOW: Record<string, string> = { small: 'xs', medium: 'sm', large: 'md' };
@@ -3924,7 +3924,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
       parts: {
         ...la.parts,
         [la.root]: { ...la.parts[la.root], layout: { ...la.parts[la.root].layout!, sizing: { ...la.parts[la.root].layout!.sizing, x: 'hug' } }, placementWidth: undefined },
-        text: { ...la.parts.text, wrap: undefined },
+        label: { ...la.parts.label, wrap: undefined },
       },
     },
   };
@@ -4207,7 +4207,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 
   // ---- the grip: a `resize handle` boolean, ON by default, on every member ----
   const handle = boolProp(b.set, 'resize handle');
-  const grips = b.members.map((m) => find(m, 'grip'));
+  const grips = b.members.map((m) => find(m, 'gripGlyph'));
   ok(handle?.type === 'BOOLEAN' && handle.defaultValue === true
     && grips.every((g) => g && g.visible !== false && (g.componentPropertyReferences as Record<string, string> | null)?.visible === handle.key),
     `textarea grip default: a 'resize handle' BOOLEAN defaulting to true drives the grip's visibility, and all 24 members build it shown (${JSON.stringify(handle)}; ${grips.filter((g) => g && g.visible !== false).length} shown)`);
@@ -4215,7 +4215,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   // ---- the grip sits IN THE CORNER, out of the flow ----
   const cornerMiss: string[] = [];
   for (const m of b.members) {
-    const g = find(m, 'grip');
+    const g = find(m, 'gripGlyph');
     const ctl = find(m, 'control');
     if (!g || !ctl) { cornerMiss.push(`${m.name}: ${g ? '' : 'no grip '}${ctl ? '' : 'no control'}`); continue; }
     const wantX = (ctl.width as number) - GRIP - INSET;
@@ -4235,7 +4235,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const gripFoot: string[] = [];
   let contentDriven = 0;
   for (const m of b.members) {
-    const g = find(m, 'grip');
+    const g = find(m, 'gripGlyph');
     const ctl = find(m, 'control');
     const text = find(ctl, 'placeholder') ?? find(ctl, 'value');   // the layer this member's state shows (Option C)
     if (!g || !ctl || !text) { gripFoot.push(`${m.name}: incomplete`); continue; }

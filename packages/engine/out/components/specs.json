@@ -15135,17 +15135,17 @@
       "codeOnlyStates": [],
       "anatomy": [
         {
-          "part": "label",
+          "part": "container",
           "kind": "frame",
           "members": 24
         },
         {
-          "part": "label/text",
+          "part": "container/label",
           "kind": "text",
           "members": 24
         },
         {
-          "part": "label/indicator",
+          "part": "container/indicator",
           "kind": "text",
           "members": 24
         }
@@ -15160,7 +15160,7 @@
           },
           "parts": [
             {
-              "part": "label",
+              "part": "container",
               "values": {
                 "gap": {
                   "token": "space.050"
@@ -15172,7 +15172,7 @@
               }
             },
             {
-              "part": "label/text",
+              "part": "container/label",
               "values": {
                 "maxWidth": {
                   "px": 316,
@@ -15188,7 +15188,7 @@
           },
           "parts": [
             {
-              "part": "label",
+              "part": "container",
               "values": {
                 "gap": {
                   "token": "space.050"
@@ -15200,7 +15200,7 @@
               }
             },
             {
-              "part": "label/text",
+              "part": "container/label",
               "values": {
                 "maxWidth": {
                   "px": 316,
@@ -15216,7 +15216,7 @@
           },
           "parts": [
             {
-              "part": "label",
+              "part": "container",
               "values": {
                 "gap": {
                   "token": "space.050"
@@ -15228,7 +15228,7 @@
               }
             },
             {
-              "part": "label/text",
+              "part": "container/label",
               "values": {
                 "maxWidth": {
                   "px": 316,
@@ -15251,11 +15251,11 @@
           },
           "parts": [
             {
-              "part": "label/text",
+              "part": "container/label",
               "textStyle": "type.body.xs.default"
             },
             {
-              "part": "label/indicator",
+              "part": "container/indicator",
               "textStyle": "type.body.xs.default"
             }
           ]
@@ -15267,11 +15267,11 @@
           },
           "parts": [
             {
-              "part": "label/text",
+              "part": "container/label",
               "textStyle": "type.body.sm.default"
             },
             {
-              "part": "label/indicator",
+              "part": "container/indicator",
               "textStyle": "type.body.sm.default"
             }
           ]
@@ -15283,11 +15283,11 @@
           },
           "parts": [
             {
-              "part": "label/text",
+              "part": "container/label",
               "textStyle": "type.body.md.default"
             },
             {
-              "part": "label/indicator",
+              "part": "container/indicator",
               "textStyle": "type.body.md.default"
             }
           ]
@@ -15299,11 +15299,11 @@
           },
           "parts": [
             {
-              "part": "label/text",
+              "part": "container/label",
               "textStyle": "type.body.xs.strong"
             },
             {
-              "part": "label/indicator",
+              "part": "container/indicator",
               "textStyle": "type.body.xs.strong"
             }
           ]
@@ -15315,11 +15315,11 @@
           },
           "parts": [
             {
-              "part": "label/text",
+              "part": "container/label",
               "textStyle": "type.body.sm.strong"
             },
             {
-              "part": "label/indicator",
+              "part": "container/indicator",
               "textStyle": "type.body.sm.strong"
             }
           ]
@@ -15331,11 +15331,11 @@
           },
           "parts": [
             {
-              "part": "label/text",
+              "part": "container/label",
               "textStyle": "type.body.md.strong"
             },
             {
-              "part": "label/indicator",
+              "part": "container/indicator",
               "textStyle": "type.body.md.strong"
             }
           ]
@@ -15355,11 +15355,11 @@
           },
           "parts": [
             {
-              "part": "label/text",
+              "part": "container/label",
               "ink": "color.text.secondary"
             },
             {
-              "part": "label/indicator",
+              "part": "container/indicator",
               "ink": "color.text.secondary"
             }
           ]
@@ -15372,11 +15372,11 @@
           },
           "parts": [
             {
-              "part": "label/text",
+              "part": "container/label",
               "ink": "color.disabled.text"
             },
             {
-              "part": "label/indicator",
+              "part": "container/indicator",
               "ink": "color.disabled.text"
             }
           ]
@@ -15389,11 +15389,11 @@
           },
           "parts": [
             {
-              "part": "label/text",
+              "part": "container/label",
               "ink": "color.text.secondary"
             },
             {
-              "part": "label/indicator",
+              "part": "container/indicator",
               "ink": "color.text.secondary"
             }
           ]
@@ -15406,11 +15406,11 @@
           },
           "parts": [
             {
-              "part": "label/text",
+              "part": "container/label",
               "ink": "color.disabled.text"
             },
             {
-              "part": "label/indicator",
+              "part": "container/indicator",
               "ink": "color.disabled.text"
             }
           ]
@@ -15423,11 +15423,11 @@
           },
           "parts": [
             {
-              "part": "label/text",
+              "part": "container/label",
               "ink": "color.text.primary"
             },
             {
-              "part": "label/indicator",
+              "part": "container/indicator",
               "ink": "color.text.primary"
             }
           ]
@@ -15440,11 +15440,11 @@
           },
           "parts": [
             {
-              "part": "label/text",
+              "part": "container/label",
               "ink": "color.disabled.text"
             },
             {
-              "part": "label/indicator",
+              "part": "container/indicator",
               "ink": "color.disabled.text"
             }
           ]
@@ -15457,11 +15457,11 @@
           },
           "parts": [
             {
-              "part": "label/text",
+              "part": "container/label",
               "ink": "color.text.primary"
             },
             {
-              "part": "label/indicator",
+              "part": "container/indicator",
               "ink": "color.text.primary"
             }
           ]
@@ -15474,11 +15474,11 @@
           },
           "parts": [
             {
-              "part": "label/text",
+              "part": "container/label",
               "ink": "color.disabled.text"
             },
             {
-              "part": "label/indicator",
+              "part": "container/indicator",
               "ink": "color.disabled.text"
             }
           ]
@@ -15528,12 +15528,12 @@
           "members": 4
         },
         {
-          "part": "message/text",
+          "part": "message/label",
           "kind": "text",
           "members": 4
         },
         {
-          "part": "message/iconError",
+          "part": "message/errorGlyph",
           "kind": "instance",
           "members": 1,
           "when": {
@@ -15543,7 +15543,7 @@
           }
         },
         {
-          "part": "message/iconWarning",
+          "part": "message/warningGlyph",
           "kind": "instance",
           "members": 1,
           "when": {
@@ -15553,7 +15553,7 @@
           }
         },
         {
-          "part": "message/iconSuccess",
+          "part": "message/successGlyph",
           "kind": "instance",
           "members": 1,
           "when": {
@@ -15584,7 +15584,7 @@
               }
             },
             {
-              "part": "message/iconError",
+              "part": "message/errorGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.xs"
@@ -15595,7 +15595,7 @@
               }
             },
             {
-              "part": "message/iconWarning",
+              "part": "message/warningGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.xs"
@@ -15606,7 +15606,7 @@
               }
             },
             {
-              "part": "message/iconSuccess",
+              "part": "message/successGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.xs"
@@ -15625,7 +15625,7 @@
           "where": {},
           "parts": [
             {
-              "part": "message/text",
+              "part": "message/label",
               "textStyle": "type.caption.md.default"
             }
           ]
@@ -15641,7 +15641,7 @@
           },
           "parts": [
             {
-              "part": "message/text",
+              "part": "message/label",
               "ink": "color.text.secondary"
             }
           ]
@@ -15652,11 +15652,11 @@
           },
           "parts": [
             {
-              "part": "message/iconError",
+              "part": "message/errorGlyph",
               "icon": "color.icon.danger"
             },
             {
-              "part": "message/text",
+              "part": "message/label",
               "ink": "color.text.danger"
             }
           ]
@@ -15667,11 +15667,11 @@
           },
           "parts": [
             {
-              "part": "message/iconWarning",
+              "part": "message/warningGlyph",
               "icon": "color.icon.warning"
             },
             {
-              "part": "message/text",
+              "part": "message/label",
               "ink": "color.text.warning"
             }
           ]
@@ -15682,11 +15682,11 @@
           },
           "parts": [
             {
-              "part": "message/iconSuccess",
+              "part": "message/successGlyph",
               "icon": "color.icon.success"
             },
             {
-              "part": "message/text",
+              "part": "message/label",
               "ink": "color.text.success"
             }
           ]
@@ -15694,7 +15694,7 @@
       ],
       "nesting": [
         {
-          "part": "message/iconError",
+          "part": "message/errorGlyph",
           "kind": "instance",
           "component": "icon/warning-triangle",
           "variant": {},
@@ -15702,7 +15702,7 @@
           "exposes": []
         },
         {
-          "part": "message/iconWarning",
+          "part": "message/warningGlyph",
           "kind": "instance",
           "component": "icon/error-circle",
           "variant": {},
@@ -15710,7 +15710,7 @@
           "exposes": []
         },
         {
-          "part": "message/iconSuccess",
+          "part": "message/successGlyph",
           "kind": "instance",
           "component": "icon/check-circle",
           "variant": {},
@@ -17133,7 +17133,7 @@
           }
         },
         {
-          "part": "container/body/control/grip",
+          "part": "container/body/control/gripGlyph",
           "kind": "instance",
           "members": 84
         },
@@ -17239,7 +17239,7 @@
               }
             },
             {
-              "part": "container/body/control/grip",
+              "part": "container/body/control/gripGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.xs"
@@ -17325,7 +17325,7 @@
               }
             },
             {
-              "part": "container/body/control/grip",
+              "part": "container/body/control/gripGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.xs"
@@ -17411,7 +17411,7 @@
               }
             },
             {
-              "part": "container/body/control/grip",
+              "part": "container/body/control/gripGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.xs"
@@ -17542,7 +17542,7 @@
               "ink": "color.text.secondary"
             },
             {
-              "part": "container/body/control/grip",
+              "part": "container/body/control/gripGlyph",
               "icon": "color.icon.secondary"
             },
             {
@@ -17567,7 +17567,7 @@
               "ink": "color.text.secondary"
             },
             {
-              "part": "container/body/control/grip",
+              "part": "container/body/control/gripGlyph",
               "icon": "color.icon.secondary"
             },
             {
@@ -17592,7 +17592,7 @@
               "ink": "color.text.primary"
             },
             {
-              "part": "container/body/control/grip",
+              "part": "container/body/control/gripGlyph",
               "icon": "color.icon.secondary"
             },
             {
@@ -17621,7 +17621,7 @@
               "ink": "color.text.secondary"
             },
             {
-              "part": "container/body/control/grip",
+              "part": "container/body/control/gripGlyph",
               "icon": "color.icon.secondary"
             },
             {
@@ -17646,7 +17646,7 @@
               "ink": "color.text.primary"
             },
             {
-              "part": "container/body/control/grip",
+              "part": "container/body/control/gripGlyph",
               "icon": "color.icon.secondary"
             },
             {
@@ -17671,7 +17671,7 @@
               "ink": "color.disabled.on-fill"
             },
             {
-              "part": "container/body/control/grip",
+              "part": "container/body/control/gripGlyph",
               "icon": "color.disabled.on-fill"
             },
             {
@@ -17696,7 +17696,7 @@
               "ink": "color.text.primary"
             },
             {
-              "part": "container/body/control/grip",
+              "part": "container/body/control/gripGlyph",
               "icon": "color.icon.secondary"
             },
             {
@@ -17721,7 +17721,7 @@
               "ink": "color.text.secondary"
             },
             {
-              "part": "container/body/control/grip",
+              "part": "container/body/control/gripGlyph",
               "icon": "color.icon.secondary"
             },
             {
@@ -17746,7 +17746,7 @@
               "ink": "color.text.secondary"
             },
             {
-              "part": "container/body/control/grip",
+              "part": "container/body/control/gripGlyph",
               "icon": "color.icon.secondary"
             },
             {
@@ -17771,7 +17771,7 @@
               "ink": "color.text.primary"
             },
             {
-              "part": "container/body/control/grip",
+              "part": "container/body/control/gripGlyph",
               "icon": "color.icon.secondary"
             },
             {
@@ -17800,7 +17800,7 @@
               "ink": "color.text.secondary"
             },
             {
-              "part": "container/body/control/grip",
+              "part": "container/body/control/gripGlyph",
               "icon": "color.icon.secondary"
             },
             {
@@ -17825,7 +17825,7 @@
               "ink": "color.text.primary"
             },
             {
-              "part": "container/body/control/grip",
+              "part": "container/body/control/gripGlyph",
               "icon": "color.icon.secondary"
             },
             {
@@ -17850,7 +17850,7 @@
               "ink": "color.disabled.on-fill"
             },
             {
-              "part": "container/body/control/grip",
+              "part": "container/body/control/gripGlyph",
               "icon": "color.disabled.on-fill"
             },
             {
@@ -17875,7 +17875,7 @@
               "ink": "color.text.primary"
             },
             {
-              "part": "container/body/control/grip",
+              "part": "container/body/control/gripGlyph",
               "icon": "color.icon.secondary"
             },
             {
@@ -17900,7 +17900,7 @@
               "ink": "color.text.secondary"
             },
             {
-              "part": "container/body/control/grip",
+              "part": "container/body/control/gripGlyph",
               "icon": "color.icon.secondary"
             },
             {
@@ -17925,7 +17925,7 @@
               "ink": "color.text.secondary"
             },
             {
-              "part": "container/body/control/grip",
+              "part": "container/body/control/gripGlyph",
               "icon": "color.icon.secondary"
             },
             {
@@ -17950,7 +17950,7 @@
               "ink": "color.text.primary"
             },
             {
-              "part": "container/body/control/grip",
+              "part": "container/body/control/gripGlyph",
               "icon": "color.icon.secondary"
             },
             {
@@ -17979,7 +17979,7 @@
               "ink": "color.text.secondary"
             },
             {
-              "part": "container/body/control/grip",
+              "part": "container/body/control/gripGlyph",
               "icon": "color.icon.secondary"
             },
             {
@@ -18004,7 +18004,7 @@
               "ink": "color.text.primary"
             },
             {
-              "part": "container/body/control/grip",
+              "part": "container/body/control/gripGlyph",
               "icon": "color.icon.secondary"
             },
             {
@@ -18029,7 +18029,7 @@
               "ink": "color.disabled.on-fill"
             },
             {
-              "part": "container/body/control/grip",
+              "part": "container/body/control/gripGlyph",
               "icon": "color.disabled.on-fill"
             },
             {
@@ -18054,7 +18054,7 @@
               "ink": "color.text.primary"
             },
             {
-              "part": "container/body/control/grip",
+              "part": "container/body/control/gripGlyph",
               "icon": "color.icon.secondary"
             },
             {
@@ -18079,7 +18079,7 @@
               "ink": "color.text.secondary"
             },
             {
-              "part": "container/body/control/grip",
+              "part": "container/body/control/gripGlyph",
               "icon": "color.icon.secondary"
             },
             {
@@ -18104,7 +18104,7 @@
               "ink": "color.text.secondary"
             },
             {
-              "part": "container/body/control/grip",
+              "part": "container/body/control/gripGlyph",
               "icon": "color.icon.secondary"
             },
             {
@@ -18129,7 +18129,7 @@
               "ink": "color.text.primary"
             },
             {
-              "part": "container/body/control/grip",
+              "part": "container/body/control/gripGlyph",
               "icon": "color.icon.secondary"
             },
             {
@@ -18158,7 +18158,7 @@
               "ink": "color.text.secondary"
             },
             {
-              "part": "container/body/control/grip",
+              "part": "container/body/control/gripGlyph",
               "icon": "color.icon.secondary"
             },
             {
@@ -18183,7 +18183,7 @@
               "ink": "color.text.primary"
             },
             {
-              "part": "container/body/control/grip",
+              "part": "container/body/control/gripGlyph",
               "icon": "color.icon.secondary"
             },
             {
@@ -18208,7 +18208,7 @@
               "ink": "color.disabled.on-fill"
             },
             {
-              "part": "container/body/control/grip",
+              "part": "container/body/control/gripGlyph",
               "icon": "color.disabled.on-fill"
             },
             {
@@ -18233,7 +18233,7 @@
               "ink": "color.text.primary"
             },
             {
-              "part": "container/body/control/grip",
+              "part": "container/body/control/gripGlyph",
               "icon": "color.icon.secondary"
             },
             {
@@ -18270,7 +18270,7 @@
           ]
         },
         {
-          "part": "container/body/control/grip",
+          "part": "container/body/control/gripGlyph",
           "kind": "instance",
           "component": "icon/resize-grip",
           "variant": {},
@@ -18398,7 +18398,7 @@
           }
         },
         {
-          "part": "control/mark",
+          "part": "control/checkGlyph",
           "kind": "frame",
           "members": 30,
           "when": {
@@ -18408,7 +18408,7 @@
           }
         },
         {
-          "part": "control/mark/glyph",
+          "part": "control/checkGlyph/glyph",
           "kind": "instance",
           "members": 30,
           "when": {
@@ -18418,7 +18418,7 @@
           }
         },
         {
-          "part": "control/dash",
+          "part": "control/dashGlyph",
           "kind": "frame",
           "members": 30,
           "when": {
@@ -18428,7 +18428,7 @@
           }
         },
         {
-          "part": "control/dash/glyph",
+          "part": "control/dashGlyph/glyph",
           "kind": "instance",
           "members": 30,
           "when": {
@@ -18459,7 +18459,7 @@
               }
             },
             {
-              "part": "control/mark",
+              "part": "control/checkGlyph",
               "values": {
                 "height": {
                   "token": "control.size.md.height"
@@ -18470,7 +18470,7 @@
               }
             },
             {
-              "part": "control/dash",
+              "part": "control/dashGlyph",
               "values": {
                 "height": {
                   "token": "control.size.md.height"
@@ -18499,7 +18499,7 @@
               }
             },
             {
-              "part": "control/mark",
+              "part": "control/checkGlyph",
               "values": {
                 "height": {
                   "token": "control.size.sm.height"
@@ -18510,7 +18510,7 @@
               }
             },
             {
-              "part": "control/dash",
+              "part": "control/dashGlyph",
               "values": {
                 "height": {
                   "token": "control.size.sm.height"
@@ -18539,7 +18539,7 @@
               }
             },
             {
-              "part": "control/mark",
+              "part": "control/checkGlyph",
               "values": {
                 "height": {
                   "token": "control.size.lg.height"
@@ -18550,7 +18550,7 @@
               }
             },
             {
-              "part": "control/dash",
+              "part": "control/dashGlyph",
               "values": {
                 "height": {
                   "token": "control.size.lg.height"
@@ -18734,7 +18734,7 @@
               "fill": "color.interactive.primary.fill.selected"
             },
             {
-              "part": "control/mark/glyph",
+              "part": "control/checkGlyph/glyph",
               "icon": "color.interactive.primary.on-fill"
             }
           ]
@@ -18751,7 +18751,7 @@
               "fill": "color.interactive.primary.fill.hover"
             },
             {
-              "part": "control/mark/glyph",
+              "part": "control/checkGlyph/glyph",
               "icon": "color.interactive.primary.on-fill"
             }
           ]
@@ -18768,7 +18768,7 @@
               "fill": "color.interactive.primary.fill.pressed"
             },
             {
-              "part": "control/mark/glyph",
+              "part": "control/checkGlyph/glyph",
               "icon": "color.interactive.primary.on-fill"
             }
           ]
@@ -18785,7 +18785,7 @@
               "fill": "color.interactive.primary.fill.selected"
             },
             {
-              "part": "control/mark/glyph",
+              "part": "control/checkGlyph/glyph",
               "icon": "color.interactive.primary.on-fill"
             }
           ]
@@ -18802,7 +18802,7 @@
               "fill": "color.disabled.fill"
             },
             {
-              "part": "control/mark/glyph",
+              "part": "control/checkGlyph/glyph",
               "icon": "color.disabled.on-fill"
             }
           ]
@@ -18820,7 +18820,7 @@
               "stroke": "color.border.danger"
             },
             {
-              "part": "control/mark/glyph",
+              "part": "control/checkGlyph/glyph",
               "icon": "color.interactive.primary.on-fill"
             }
           ]
@@ -18838,7 +18838,7 @@
               "stroke": "color.border.danger"
             },
             {
-              "part": "control/mark/glyph",
+              "part": "control/checkGlyph/glyph",
               "icon": "color.interactive.primary.on-fill"
             }
           ]
@@ -18856,7 +18856,7 @@
               "stroke": "color.border.danger"
             },
             {
-              "part": "control/mark/glyph",
+              "part": "control/checkGlyph/glyph",
               "icon": "color.interactive.primary.on-fill"
             }
           ]
@@ -18874,7 +18874,7 @@
               "stroke": "color.border.danger"
             },
             {
-              "part": "control/mark/glyph",
+              "part": "control/checkGlyph/glyph",
               "icon": "color.interactive.primary.on-fill"
             }
           ]
@@ -18891,7 +18891,7 @@
               "fill": "color.disabled.fill"
             },
             {
-              "part": "control/mark/glyph",
+              "part": "control/checkGlyph/glyph",
               "icon": "color.disabled.on-fill"
             }
           ]
@@ -18908,7 +18908,7 @@
               "fill": "color.interactive.primary.fill.selected"
             },
             {
-              "part": "control/dash/glyph",
+              "part": "control/dashGlyph/glyph",
               "icon": "color.interactive.primary.on-fill"
             }
           ]
@@ -18925,7 +18925,7 @@
               "fill": "color.interactive.primary.fill.hover"
             },
             {
-              "part": "control/dash/glyph",
+              "part": "control/dashGlyph/glyph",
               "icon": "color.interactive.primary.on-fill"
             }
           ]
@@ -18942,7 +18942,7 @@
               "fill": "color.interactive.primary.fill.pressed"
             },
             {
-              "part": "control/dash/glyph",
+              "part": "control/dashGlyph/glyph",
               "icon": "color.interactive.primary.on-fill"
             }
           ]
@@ -18959,7 +18959,7 @@
               "fill": "color.interactive.primary.fill.selected"
             },
             {
-              "part": "control/dash/glyph",
+              "part": "control/dashGlyph/glyph",
               "icon": "color.interactive.primary.on-fill"
             }
           ]
@@ -18976,7 +18976,7 @@
               "fill": "color.disabled.fill"
             },
             {
-              "part": "control/dash/glyph",
+              "part": "control/dashGlyph/glyph",
               "icon": "color.disabled.on-fill"
             }
           ]
@@ -18994,7 +18994,7 @@
               "stroke": "color.border.danger"
             },
             {
-              "part": "control/dash/glyph",
+              "part": "control/dashGlyph/glyph",
               "icon": "color.interactive.primary.on-fill"
             }
           ]
@@ -19012,7 +19012,7 @@
               "stroke": "color.border.danger"
             },
             {
-              "part": "control/dash/glyph",
+              "part": "control/dashGlyph/glyph",
               "icon": "color.interactive.primary.on-fill"
             }
           ]
@@ -19030,7 +19030,7 @@
               "stroke": "color.border.danger"
             },
             {
-              "part": "control/dash/glyph",
+              "part": "control/dashGlyph/glyph",
               "icon": "color.interactive.primary.on-fill"
             }
           ]
@@ -19048,7 +19048,7 @@
               "stroke": "color.border.danger"
             },
             {
-              "part": "control/dash/glyph",
+              "part": "control/dashGlyph/glyph",
               "icon": "color.interactive.primary.on-fill"
             }
           ]
@@ -19065,7 +19065,7 @@
               "fill": "color.disabled.fill"
             },
             {
-              "part": "control/dash/glyph",
+              "part": "control/dashGlyph/glyph",
               "icon": "color.disabled.on-fill"
             }
           ]
@@ -19083,7 +19083,7 @@
           "exposes": []
         },
         {
-          "part": "control/mark/glyph",
+          "part": "control/checkGlyph/glyph",
           "kind": "instance",
           "component": "icon/check",
           "variant": {},
@@ -19091,7 +19091,7 @@
           "exposes": []
         },
         {
-          "part": "control/dash/glyph",
+          "part": "control/dashGlyph/glyph",
           "kind": "instance",
           "component": "icon/minus",
           "variant": {},
@@ -19134,12 +19134,12 @@
           "members": 6
         },
         {
-          "part": "row/controlBox",
+          "part": "row/controlCell",
           "kind": "frame",
           "members": 6
         },
         {
-          "part": "row/controlBox/control",
+          "part": "row/controlCell/control",
           "kind": "instance",
           "members": 6
         },
@@ -19187,7 +19187,7 @@
               }
             },
             {
-              "part": "row/controlBox",
+              "part": "row/controlCell",
               "values": {
                 "height": {
                   "token": "control.size.md.line-box"
@@ -19195,7 +19195,7 @@
               }
             },
             {
-              "part": "row/controlBox/control",
+              "part": "row/controlCell/control",
               "values": {
                 "height": {
                   "token": "control.size.md.height"
@@ -19241,7 +19241,7 @@
               }
             },
             {
-              "part": "row/controlBox",
+              "part": "row/controlCell",
               "values": {
                 "height": {
                   "token": "control.size.sm.line-box"
@@ -19249,7 +19249,7 @@
               }
             },
             {
-              "part": "row/controlBox/control",
+              "part": "row/controlCell/control",
               "values": {
                 "height": {
                   "token": "control.size.sm.height"
@@ -19295,7 +19295,7 @@
               }
             },
             {
-              "part": "row/controlBox",
+              "part": "row/controlCell",
               "values": {
                 "height": {
                   "token": "control.size.lg.line-box"
@@ -19303,7 +19303,7 @@
               }
             },
             {
-              "part": "row/controlBox/control",
+              "part": "row/controlCell/control",
               "values": {
                 "height": {
                   "token": "control.size.lg.height"
@@ -19383,7 +19383,7 @@
       ],
       "nesting": [
         {
-          "part": "row/controlBox/control",
+          "part": "row/controlCell/control",
           "kind": "instance",
           "component": "checkbox-control",
           "variant": {
@@ -20282,12 +20282,12 @@
           "members": 6
         },
         {
-          "part": "row/controlBox",
+          "part": "row/controlCell",
           "kind": "frame",
           "members": 6
         },
         {
-          "part": "row/controlBox/control",
+          "part": "row/controlCell/control",
           "kind": "instance",
           "members": 6
         },
@@ -20335,7 +20335,7 @@
               }
             },
             {
-              "part": "row/controlBox",
+              "part": "row/controlCell",
               "values": {
                 "height": {
                   "token": "control.size.md.line-box"
@@ -20343,7 +20343,7 @@
               }
             },
             {
-              "part": "row/controlBox/control",
+              "part": "row/controlCell/control",
               "values": {
                 "height": {
                   "token": "control.size.md.height"
@@ -20389,7 +20389,7 @@
               }
             },
             {
-              "part": "row/controlBox",
+              "part": "row/controlCell",
               "values": {
                 "height": {
                   "token": "control.size.sm.line-box"
@@ -20397,7 +20397,7 @@
               }
             },
             {
-              "part": "row/controlBox/control",
+              "part": "row/controlCell/control",
               "values": {
                 "height": {
                   "token": "control.size.sm.height"
@@ -20443,7 +20443,7 @@
               }
             },
             {
-              "part": "row/controlBox",
+              "part": "row/controlCell",
               "values": {
                 "height": {
                   "token": "control.size.lg.line-box"
@@ -20451,7 +20451,7 @@
               }
             },
             {
-              "part": "row/controlBox/control",
+              "part": "row/controlCell/control",
               "values": {
                 "height": {
                   "token": "control.size.lg.height"
@@ -20531,7 +20531,7 @@
       ],
       "nesting": [
         {
-          "part": "row/controlBox/control",
+          "part": "row/controlCell/control",
           "kind": "instance",
           "component": "radio-control",
           "variant": {
@@ -21637,12 +21637,12 @@
           "members": 4
         },
         {
-          "part": "row/trackBox",
+          "part": "row/controlCell",
           "kind": "frame",
           "members": 4
         },
         {
-          "part": "row/trackBox/control",
+          "part": "row/controlCell/control",
           "kind": "instance",
           "members": 4
         }
@@ -21665,7 +21665,7 @@
               }
             },
             {
-              "part": "row/trackBox",
+              "part": "row/controlCell",
               "values": {
                 "height": {
                   "token": "control.size.md.line-box"
@@ -21673,7 +21673,7 @@
               }
             },
             {
-              "part": "row/trackBox/control",
+              "part": "row/controlCell/control",
               "values": {
                 "height": {
                   "token": "control.size.md.track"
@@ -21696,7 +21696,7 @@
               }
             },
             {
-              "part": "row/trackBox",
+              "part": "row/controlCell",
               "values": {
                 "height": {
                   "token": "control.size.sm.line-box"
@@ -21704,7 +21704,7 @@
               }
             },
             {
-              "part": "row/trackBox/control",
+              "part": "row/controlCell/control",
               "values": {
                 "height": {
                   "token": "control.size.sm.track"
@@ -21770,7 +21770,7 @@
       ],
       "nesting": [
         {
-          "part": "row/trackBox/control",
+          "part": "row/controlCell/control",
           "kind": "instance",
           "component": "switch-control",
           "variant": {
@@ -21882,7 +21882,7 @@
           }
         },
         {
-          "part": "container/control/chevron",
+          "part": "container/control/chevronGlyph",
           "kind": "instance",
           "members": 84
         },
@@ -21983,7 +21983,7 @@
               }
             },
             {
-              "part": "container/control/chevron",
+              "part": "container/control/chevronGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.sm"
@@ -22059,7 +22059,7 @@
               }
             },
             {
-              "part": "container/control/chevron",
+              "part": "container/control/chevronGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.sm"
@@ -22135,7 +22135,7 @@
               }
             },
             {
-              "part": "container/control/chevron",
+              "part": "container/control/chevronGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.sm"
@@ -22223,7 +22223,7 @@
               "ink": "color.text.secondary"
             },
             {
-              "part": "container/control/chevron",
+              "part": "container/control/chevronGlyph",
               "icon": "color.icon.primary"
             }
           ]
@@ -22248,7 +22248,7 @@
               "ink": "color.text.secondary"
             },
             {
-              "part": "container/control/chevron",
+              "part": "container/control/chevronGlyph",
               "icon": "color.icon.primary"
             }
           ]
@@ -22273,7 +22273,7 @@
               "ink": "color.text.primary"
             },
             {
-              "part": "container/control/chevron",
+              "part": "container/control/chevronGlyph",
               "icon": "color.icon.primary"
             }
           ]
@@ -22298,7 +22298,7 @@
               "ink": "color.text.secondary"
             },
             {
-              "part": "container/control/chevron",
+              "part": "container/control/chevronGlyph",
               "icon": "color.icon.primary"
             }
           ]
@@ -22323,7 +22323,7 @@
               "ink": "color.text.primary"
             },
             {
-              "part": "container/control/chevron",
+              "part": "container/control/chevronGlyph",
               "icon": "color.icon.primary"
             }
           ]
@@ -22348,7 +22348,7 @@
               "ink": "color.disabled.on-fill"
             },
             {
-              "part": "container/control/chevron",
+              "part": "container/control/chevronGlyph",
               "icon": "color.disabled.on-fill"
             }
           ]
@@ -22373,7 +22373,7 @@
               "ink": "color.text.primary"
             },
             {
-              "part": "container/control/chevron",
+              "part": "container/control/chevronGlyph",
               "icon": "color.icon.primary"
             }
           ]
@@ -22398,7 +22398,7 @@
               "ink": "color.text.secondary"
             },
             {
-              "part": "container/control/chevron",
+              "part": "container/control/chevronGlyph",
               "icon": "color.icon.primary"
             }
           ]
@@ -22423,7 +22423,7 @@
               "ink": "color.text.secondary"
             },
             {
-              "part": "container/control/chevron",
+              "part": "container/control/chevronGlyph",
               "icon": "color.icon.primary"
             }
           ]
@@ -22448,7 +22448,7 @@
               "ink": "color.text.primary"
             },
             {
-              "part": "container/control/chevron",
+              "part": "container/control/chevronGlyph",
               "icon": "color.icon.primary"
             }
           ]
@@ -22473,7 +22473,7 @@
               "ink": "color.text.secondary"
             },
             {
-              "part": "container/control/chevron",
+              "part": "container/control/chevronGlyph",
               "icon": "color.icon.primary"
             }
           ]
@@ -22498,7 +22498,7 @@
               "ink": "color.text.primary"
             },
             {
-              "part": "container/control/chevron",
+              "part": "container/control/chevronGlyph",
               "icon": "color.icon.primary"
             }
           ]
@@ -22523,7 +22523,7 @@
               "ink": "color.disabled.on-fill"
             },
             {
-              "part": "container/control/chevron",
+              "part": "container/control/chevronGlyph",
               "icon": "color.disabled.on-fill"
             }
           ]
@@ -22548,7 +22548,7 @@
               "ink": "color.text.primary"
             },
             {
-              "part": "container/control/chevron",
+              "part": "container/control/chevronGlyph",
               "icon": "color.icon.primary"
             }
           ]
@@ -22573,7 +22573,7 @@
               "ink": "color.text.secondary"
             },
             {
-              "part": "container/control/chevron",
+              "part": "container/control/chevronGlyph",
               "icon": "color.icon.primary"
             }
           ]
@@ -22598,7 +22598,7 @@
               "ink": "color.text.secondary"
             },
             {
-              "part": "container/control/chevron",
+              "part": "container/control/chevronGlyph",
               "icon": "color.icon.primary"
             }
           ]
@@ -22623,7 +22623,7 @@
               "ink": "color.text.primary"
             },
             {
-              "part": "container/control/chevron",
+              "part": "container/control/chevronGlyph",
               "icon": "color.icon.primary"
             }
           ]
@@ -22648,7 +22648,7 @@
               "ink": "color.text.secondary"
             },
             {
-              "part": "container/control/chevron",
+              "part": "container/control/chevronGlyph",
               "icon": "color.icon.primary"
             }
           ]
@@ -22673,7 +22673,7 @@
               "ink": "color.text.primary"
             },
             {
-              "part": "container/control/chevron",
+              "part": "container/control/chevronGlyph",
               "icon": "color.icon.primary"
             }
           ]
@@ -22698,7 +22698,7 @@
               "ink": "color.disabled.on-fill"
             },
             {
-              "part": "container/control/chevron",
+              "part": "container/control/chevronGlyph",
               "icon": "color.disabled.on-fill"
             }
           ]
@@ -22723,7 +22723,7 @@
               "ink": "color.text.primary"
             },
             {
-              "part": "container/control/chevron",
+              "part": "container/control/chevronGlyph",
               "icon": "color.icon.primary"
             }
           ]
@@ -22748,7 +22748,7 @@
               "ink": "color.text.secondary"
             },
             {
-              "part": "container/control/chevron",
+              "part": "container/control/chevronGlyph",
               "icon": "color.icon.primary"
             }
           ]
@@ -22773,7 +22773,7 @@
               "ink": "color.text.secondary"
             },
             {
-              "part": "container/control/chevron",
+              "part": "container/control/chevronGlyph",
               "icon": "color.icon.primary"
             }
           ]
@@ -22798,7 +22798,7 @@
               "ink": "color.text.primary"
             },
             {
-              "part": "container/control/chevron",
+              "part": "container/control/chevronGlyph",
               "icon": "color.icon.primary"
             }
           ]
@@ -22823,7 +22823,7 @@
               "ink": "color.text.secondary"
             },
             {
-              "part": "container/control/chevron",
+              "part": "container/control/chevronGlyph",
               "icon": "color.icon.primary"
             }
           ]
@@ -22848,7 +22848,7 @@
               "ink": "color.text.primary"
             },
             {
-              "part": "container/control/chevron",
+              "part": "container/control/chevronGlyph",
               "icon": "color.icon.primary"
             }
           ]
@@ -22873,7 +22873,7 @@
               "ink": "color.disabled.on-fill"
             },
             {
-              "part": "container/control/chevron",
+              "part": "container/control/chevronGlyph",
               "icon": "color.disabled.on-fill"
             }
           ]
@@ -22898,7 +22898,7 @@
               "ink": "color.text.primary"
             },
             {
-              "part": "container/control/chevron",
+              "part": "container/control/chevronGlyph",
               "icon": "color.icon.primary"
             }
           ]
@@ -22937,7 +22937,7 @@
           "visibility": "leading icon"
         },
         {
-          "part": "container/control/chevron",
+          "part": "container/control/chevronGlyph",
           "kind": "instance",
           "component": "icon/chevron-down",
           "variant": {},
@@ -23565,7 +23565,7 @@
           "members": 7
         },
         {
-          "part": "frame/marker",
+          "part": "frame/markerGlyph",
           "kind": "instance",
           "members": 7
         }
@@ -23607,7 +23607,7 @@
               "fill": "color.background.secondary"
             },
             {
-              "part": "frame/marker",
+              "part": "frame/markerGlyph",
               "icon": "color.icon.tertiary"
             }
           ]
@@ -23622,7 +23622,7 @@
               "fill": "color.background.secondary"
             },
             {
-              "part": "frame/marker",
+              "part": "frame/markerGlyph",
               "icon": "color.icon.tertiary"
             }
           ]
@@ -23637,7 +23637,7 @@
               "fill": "color.background.secondary"
             },
             {
-              "part": "frame/marker",
+              "part": "frame/markerGlyph",
               "icon": "color.icon.tertiary"
             }
           ]
@@ -23652,7 +23652,7 @@
               "fill": "color.background.secondary"
             },
             {
-              "part": "frame/marker",
+              "part": "frame/markerGlyph",
               "icon": "color.icon.tertiary"
             }
           ]
@@ -23667,7 +23667,7 @@
               "fill": "color.background.secondary"
             },
             {
-              "part": "frame/marker",
+              "part": "frame/markerGlyph",
               "icon": "color.icon.tertiary"
             }
           ]
@@ -23682,7 +23682,7 @@
               "fill": "color.background.secondary"
             },
             {
-              "part": "frame/marker",
+              "part": "frame/markerGlyph",
               "icon": "color.icon.tertiary"
             }
           ]
@@ -23697,7 +23697,7 @@
               "fill": "color.background.secondary"
             },
             {
-              "part": "frame/marker",
+              "part": "frame/markerGlyph",
               "icon": "color.icon.tertiary"
             }
           ]
@@ -23705,7 +23705,7 @@
       ],
       "nesting": [
         {
-          "part": "frame/marker",
+          "part": "frame/markerGlyph",
           "kind": "instance",
           "component": "icon/image",
           "variant": {},
@@ -23746,7 +23746,7 @@
           "members": 4
         },
         {
-          "part": "frame/ring",
+          "part": "frame/ringGlyph",
           "kind": "glyph",
           "members": 4
         }
@@ -23772,7 +23772,7 @@
               }
             },
             {
-              "part": "frame/ring",
+              "part": "frame/ringGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.xs"
@@ -23801,7 +23801,7 @@
               }
             },
             {
-              "part": "frame/ring",
+              "part": "frame/ringGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.sm"
@@ -23830,7 +23830,7 @@
               }
             },
             {
-              "part": "frame/ring",
+              "part": "frame/ringGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.md"
@@ -23859,7 +23859,7 @@
               }
             },
             {
-              "part": "frame/ring",
+              "part": "frame/ringGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.lg"
@@ -23907,7 +23907,7 @@
           "where": {},
           "parts": [
             {
-              "part": "frame/ring",
+              "part": "frame/ringGlyph",
               "icon": "color.icon.primary"
             }
           ]
@@ -23961,7 +23961,7 @@
           "members": 20
         },
         {
-          "part": "surface/text",
+          "part": "surface/label",
           "kind": "text",
           "members": 10,
           "when": {
@@ -24085,7 +24085,7 @@
           "where": {},
           "parts": [
             {
-              "part": "surface/text",
+              "part": "surface/label",
               "textStyle": "type.label.sm.emphasis"
             },
             {
@@ -24114,7 +24114,7 @@
               "stroke": "color.border.tertiary"
             },
             {
-              "part": "surface/text",
+              "part": "surface/label",
               "ink": "color.text.primary"
             }
           ]
@@ -24132,7 +24132,7 @@
               "stroke": "color.border.info"
             },
             {
-              "part": "surface/text",
+              "part": "surface/label",
               "ink": "color.text.info"
             }
           ]
@@ -24150,7 +24150,7 @@
               "stroke": "color.border.success"
             },
             {
-              "part": "surface/text",
+              "part": "surface/label",
               "ink": "color.text.success"
             }
           ]
@@ -24168,7 +24168,7 @@
               "stroke": "color.border.warning"
             },
             {
-              "part": "surface/text",
+              "part": "surface/label",
               "ink": "color.text.warning"
             }
           ]
@@ -24186,7 +24186,7 @@
               "stroke": "color.border.danger"
             },
             {
-              "part": "surface/text",
+              "part": "surface/label",
               "ink": "color.text.danger"
             }
           ]
@@ -24203,7 +24203,7 @@
               "fill": "color.inverse.foreground.tertiary"
             },
             {
-              "part": "surface/text",
+              "part": "surface/label",
               "ink": "color.inverse.text.primary"
             }
           ]
@@ -24220,7 +24220,7 @@
               "fill": "color.foreground.info"
             },
             {
-              "part": "surface/text",
+              "part": "surface/label",
               "ink": "color.text.on-info"
             }
           ]
@@ -24237,7 +24237,7 @@
               "fill": "color.foreground.success"
             },
             {
-              "part": "surface/text",
+              "part": "surface/label",
               "ink": "color.text.on-success"
             }
           ]
@@ -24254,7 +24254,7 @@
               "fill": "color.foreground.warning"
             },
             {
-              "part": "surface/text",
+              "part": "surface/label",
               "ink": "color.text.on-warning"
             }
           ]
@@ -24271,7 +24271,7 @@
               "fill": "color.foreground.danger"
             },
             {
-              "part": "surface/text",
+              "part": "surface/label",
               "ink": "color.text.on-danger"
             }
           ]
@@ -24527,7 +24527,7 @@
           }
         },
         {
-          "part": "container/content/labelCheck/check",
+          "part": "container/content/labelCheck/checkGlyph",
           "kind": "instance",
           "members": 15,
           "when": {
@@ -24633,7 +24633,7 @@
               }
             },
             {
-              "part": "container/content/labelCheck/check",
+              "part": "container/content/labelCheck/checkGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.sm"
@@ -24716,7 +24716,7 @@
               }
             },
             {
-              "part": "container/content/labelCheck/check",
+              "part": "container/content/labelCheck/checkGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.xs"
@@ -24799,7 +24799,7 @@
               }
             },
             {
-              "part": "container/content/labelCheck/check",
+              "part": "container/content/labelCheck/checkGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.md"
@@ -25266,7 +25266,7 @@
               "ink": "color.interactive.neutral.text.rest"
             },
             {
-              "part": "container/content/labelCheck/check",
+              "part": "container/content/labelCheck/checkGlyph",
               "icon": "color.interactive.neutral.icon.rest"
             }
           ]
@@ -25292,7 +25292,7 @@
               "ink": "color.interactive.neutral.text.hover"
             },
             {
-              "part": "container/content/labelCheck/check",
+              "part": "container/content/labelCheck/checkGlyph",
               "icon": "color.interactive.neutral.icon.hover"
             }
           ]
@@ -25318,7 +25318,7 @@
               "ink": "color.interactive.neutral.text.pressed"
             },
             {
-              "part": "container/content/labelCheck/check",
+              "part": "container/content/labelCheck/checkGlyph",
               "icon": "color.interactive.neutral.icon.pressed"
             }
           ]
@@ -25344,7 +25344,7 @@
               "ink": "color.interactive.neutral.text.rest"
             },
             {
-              "part": "container/content/labelCheck/check",
+              "part": "container/content/labelCheck/checkGlyph",
               "icon": "color.interactive.neutral.icon.rest"
             }
           ]
@@ -25369,7 +25369,7 @@
               "ink": "color.disabled.text"
             },
             {
-              "part": "container/content/labelCheck/check",
+              "part": "container/content/labelCheck/checkGlyph",
               "icon": "color.disabled.icon"
             }
           ]
@@ -25520,7 +25520,7 @@
           "exposes": []
         },
         {
-          "part": "container/content/labelCheck/check",
+          "part": "container/content/labelCheck/checkGlyph",
           "kind": "instance",
           "component": "icon/check",
           "variant": {},
@@ -26636,12 +26636,12 @@
       "codeOnlyStates": [],
       "anatomy": [
         {
-          "part": "divider",
+          "part": "container",
           "kind": "frame",
           "members": 5
         },
         {
-          "part": "divider/rule",
+          "part": "container/rule",
           "kind": "frame",
           "members": 5
         }
@@ -26658,7 +26658,7 @@
           },
           "parts": [
             {
-              "part": "divider",
+              "part": "container",
               "values": {
                 "paddingTop": {
                   "token": "space.0"
@@ -26689,7 +26689,7 @@
           },
           "parts": [
             {
-              "part": "divider",
+              "part": "container",
               "values": {
                 "paddingTop": {
                   "token": "space.0"
@@ -26720,7 +26720,7 @@
           },
           "parts": [
             {
-              "part": "divider",
+              "part": "container",
               "values": {
                 "paddingTop": {
                   "token": "space.0"
@@ -26751,7 +26751,7 @@
           },
           "parts": [
             {
-              "part": "divider",
+              "part": "container",
               "values": {
                 "paddingTop": {
                   "token": "space.0"
@@ -26782,7 +26782,7 @@
           },
           "parts": [
             {
-              "part": "divider",
+              "part": "container",
               "values": {
                 "paddingTop": {
                   "token": "space.100"
@@ -26826,7 +26826,7 @@
           },
           "parts": [
             {
-              "part": "divider/rule",
+              "part": "container/rule",
               "fill": "color.border.secondary"
             }
           ]
@@ -26838,7 +26838,7 @@
           },
           "parts": [
             {
-              "part": "divider/rule",
+              "part": "container/rule",
               "fill": "color.border.secondary"
             }
           ]
@@ -26850,7 +26850,7 @@
           },
           "parts": [
             {
-              "part": "divider/rule",
+              "part": "container/rule",
               "fill": "color.border.secondary"
             }
           ]
@@ -26862,7 +26862,7 @@
           },
           "parts": [
             {
-              "part": "divider/rule",
+              "part": "container/rule",
               "fill": "color.border.secondary"
             }
           ]
@@ -26874,7 +26874,7 @@
           },
           "parts": [
             {
-              "part": "divider/rule",
+              "part": "container/rule",
               "fill": "color.border.secondary"
             }
           ]
@@ -26925,22 +26925,22 @@
           "members": 12
         },
         {
-          "part": "frame/chevronDown",
+          "part": "frame/chevronDownGlyph",
           "kind": "instance",
           "members": 3
         },
         {
-          "part": "frame/chevronUp",
+          "part": "frame/chevronUpGlyph",
           "kind": "instance",
           "members": 3
         },
         {
-          "part": "frame/plus",
+          "part": "frame/plusGlyph",
           "kind": "instance",
           "members": 3
         },
         {
-          "part": "frame/minus",
+          "part": "frame/minusGlyph",
           "kind": "instance",
           "members": 3
         }
@@ -26966,7 +26966,7 @@
               }
             },
             {
-              "part": "frame/chevronDown",
+              "part": "frame/chevronDownGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.sm"
@@ -26977,7 +26977,7 @@
               }
             },
             {
-              "part": "frame/chevronUp",
+              "part": "frame/chevronUpGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.sm"
@@ -26988,7 +26988,7 @@
               }
             },
             {
-              "part": "frame/plus",
+              "part": "frame/plusGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.sm"
@@ -26999,7 +26999,7 @@
               }
             },
             {
-              "part": "frame/minus",
+              "part": "frame/minusGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.sm"
@@ -27028,7 +27028,7 @@
               }
             },
             {
-              "part": "frame/chevronDown",
+              "part": "frame/chevronDownGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.xs"
@@ -27039,7 +27039,7 @@
               }
             },
             {
-              "part": "frame/chevronUp",
+              "part": "frame/chevronUpGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.xs"
@@ -27050,7 +27050,7 @@
               }
             },
             {
-              "part": "frame/plus",
+              "part": "frame/plusGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.xs"
@@ -27061,7 +27061,7 @@
               }
             },
             {
-              "part": "frame/minus",
+              "part": "frame/minusGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.xs"
@@ -27090,7 +27090,7 @@
               }
             },
             {
-              "part": "frame/chevronDown",
+              "part": "frame/chevronDownGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.md"
@@ -27101,7 +27101,7 @@
               }
             },
             {
-              "part": "frame/chevronUp",
+              "part": "frame/chevronUpGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.md"
@@ -27112,7 +27112,7 @@
               }
             },
             {
-              "part": "frame/plus",
+              "part": "frame/plusGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.md"
@@ -27123,7 +27123,7 @@
               }
             },
             {
-              "part": "frame/minus",
+              "part": "frame/minusGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.md"
@@ -27171,7 +27171,7 @@
           },
           "parts": [
             {
-              "part": "frame/chevronDown",
+              "part": "frame/chevronDownGlyph",
               "icon": "color.interactive.neutral.icon.rest"
             }
           ]
@@ -27183,7 +27183,7 @@
           },
           "parts": [
             {
-              "part": "frame/chevronUp",
+              "part": "frame/chevronUpGlyph",
               "icon": "color.interactive.neutral.icon.rest"
             }
           ]
@@ -27195,7 +27195,7 @@
           },
           "parts": [
             {
-              "part": "frame/plus",
+              "part": "frame/plusGlyph",
               "icon": "color.interactive.neutral.icon.rest"
             }
           ]
@@ -27207,7 +27207,7 @@
           },
           "parts": [
             {
-              "part": "frame/minus",
+              "part": "frame/minusGlyph",
               "icon": "color.interactive.neutral.icon.rest"
             }
           ]
@@ -27215,7 +27215,7 @@
       ],
       "nesting": [
         {
-          "part": "frame/chevronDown",
+          "part": "frame/chevronDownGlyph",
           "kind": "instance",
           "component": "icon/chevron-down",
           "variant": {},
@@ -27223,7 +27223,7 @@
           "exposes": []
         },
         {
-          "part": "frame/chevronUp",
+          "part": "frame/chevronUpGlyph",
           "kind": "instance",
           "component": "icon/chevron-up",
           "variant": {},
@@ -27231,7 +27231,7 @@
           "exposes": []
         },
         {
-          "part": "frame/plus",
+          "part": "frame/plusGlyph",
           "kind": "instance",
           "component": "icon/plus",
           "variant": {},
@@ -27239,7 +27239,7 @@
           "exposes": []
         },
         {
-          "part": "frame/minus",
+          "part": "frame/minusGlyph",
           "kind": "instance",
           "component": "icon/minus",
           "variant": {},
@@ -27919,7 +27919,7 @@
           }
         },
         {
-          "part": "row/text",
+          "part": "row/label",
           "kind": "text",
           "members": 9
         },
@@ -28341,7 +28341,7 @@
           },
           "parts": [
             {
-              "part": "row/text",
+              "part": "row/label",
               "textStyle": "type.body.md.default"
             },
             {
@@ -28356,7 +28356,7 @@
           },
           "parts": [
             {
-              "part": "row/text",
+              "part": "row/label",
               "textStyle": "type.body.sm.default"
             },
             {
@@ -28371,7 +28371,7 @@
           },
           "parts": [
             {
-              "part": "row/text",
+              "part": "row/label",
               "textStyle": "type.body.lg.default"
             },
             {
@@ -28395,7 +28395,7 @@
               "fill": "color.icon.primary"
             },
             {
-              "part": "row/text",
+              "part": "row/label",
               "ink": "color.text.primary"
             }
           ]
@@ -28410,7 +28410,7 @@
               "ink": "color.text.primary"
             },
             {
-              "part": "row/text",
+              "part": "row/label",
               "ink": "color.text.primary"
             }
           ]
@@ -28425,7 +28425,7 @@
               "icon": "color.icon.primary"
             },
             {
-              "part": "row/text",
+              "part": "row/label",
               "ink": "color.text.primary"
             }
           ]
