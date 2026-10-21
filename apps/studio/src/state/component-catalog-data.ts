@@ -41,7 +41,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "id": "button",
     "name": "Button",
     "category": "form",
-    "summary": "Triggers an action in place. For navigation, use a link.",
+    "summary": "Triggers an action in place, such as submit, save or confirm. For navigation, use a link.",
     "unit": "variants",
     "spacing": [
       {
@@ -242,7 +242,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "id": "icon-button",
     "name": "IconButton",
     "category": "form",
-    "summary": "Icon-only action. Needs an accessible name.",
+    "summary": "Icon-only action in the brand's primary style, such as edit or more. Needs an accessible name.",
     "unit": "variants",
     "spacing": [],
     "page": "Icon button",
@@ -484,7 +484,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 54,
+    "members": 90,
     "nests": [
       "focus-ring",
       "icon"
@@ -514,7 +514,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 3,
+    "members": 6,
     "nests": [
       "checkbox-control"
     ]
@@ -530,10 +530,11 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 3,
+    "members": 6,
     "nests": [
       "field-label",
-      "checkbox-row"
+      "checkbox-row",
+      "field-message"
     ]
   },
   {
@@ -547,7 +548,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 30,
+    "members": 60,
     "nests": [
       "focus-ring"
     ]
@@ -576,7 +577,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 3,
+    "members": 6,
     "nests": [
       "radio-control"
     ]
@@ -592,10 +593,11 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 3,
+    "members": 6,
     "nests": [
       "field-label",
-      "radio-row"
+      "radio-row",
+      "field-message"
     ]
   },
   {
@@ -609,7 +611,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 24,
+    "members": 40,
     "nests": [
       "icon",
       "focus-ring"
@@ -635,7 +637,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 2,
+    "members": 4,
     "nests": [
       "switch-control"
     ]
@@ -1037,7 +1039,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "id": "segmented-control-segment",
     "name": "SegmentedControl.Segment",
     "category": "form",
-    "summary": "One option of a segmented control. Selected, it shows a flat pill and a bold label.",
+    "summary": "One option of a segmented control. Selected, it shows a flat pill and an emphasis-weight label.",
     "unit": "variants",
     "spacing": [
       {

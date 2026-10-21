@@ -45,7 +45,8 @@
  *      (`NO-DATA SECTION DRAWN` / `SECTION NOT DRAWN` / `SECTION ORDER` / `SECTION TITLE`); F3 each section,
  *      emptied of its fields on every def, is not drawn and comes back as a gap — the corpus alone has
  *      almost no empty section, so without F3 the no-data rule would be checked on nothing; F4 each
- *      committed page's `##` headings are exactly the def's sections, in order (`SECTION PARITY`), and its
+ *      committed page's `##` headings are exactly the def's sections, in order, then `Specs` for a def the
+ *      committed `specs.json` covers (#2830) (`SECTION PARITY`), and its
  *      Anatomy is the gate's reading of the def: the default member, each noted part's line, and no held-back
  *      note anywhere on the page (`SPECIMEN` / `ANATOMY LINE` / `HELD-BACK NOTE`), with role and ARIA under
  *      one Screen readers row (`SCREEN READERS`); F5 the
@@ -212,6 +213,9 @@ const maint = JSON.parse(readFileSync(MAINTAINER_FILE, 'utf8'));
 const schema = JSON.parse(readFileSync(SCHEMA_PATH, 'utf8'));
 const manifest = JSON.parse(readFileSync(MANIFEST_PATH, 'utf8'));
 const pages = new Map(readdirSync(DIR).filter((f) => f.endsWith('.md')).map((f) => [f.replace(/\.md$/, ''), readFileSync(resolve(DIR, f), 'utf8')]));
+// #2830 — the defs the committed spec emission covers. Their pages end with a `Specs` section, after the section
+// model's (F4); it is read off the emitted file, not the emitter's own condition, so the two can disagree.
+const specIds = new Set(Object.keys(JSON.parse(readFileSync(resolve(DIR, 'specs.json'), 'utf8')).components ?? {}));
 const entries: Record<string, any> = doc.components ?? {};
 const maintEntries: Record<string, any> = maint.components ?? {};
 
@@ -570,7 +574,7 @@ for (const def of componentDefs) {
   // F4 — the committed page's `##` sections are exactly the def's, in order (brand-independent: no modes).
   const md = pages.get(def.id);
   if (md !== undefined) {
-    const want = expectedSections(def, []).map((r) => r.title);
+    const want = [...expectedSections(def, []).map((r) => r.title), ...(specIds.has(def.id) ? ['Specs'] : [])];
     const got = pageHeadings(md);
     if (got.join('|') !== want.join('|')) note(`SECTION PARITY (page): out/components/${def.id}.md has sections [${got.join(', ')}]; the def's data gives [${want.join(', ')}]`);
 

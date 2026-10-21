@@ -232,6 +232,20 @@ Rules, all enforced in the config + `test-file-setup.ts`:
   by name if a def is neither mapped to a leaf nor in `EXCLUDED_DEFS` (empty today — all 23 map). A def added
   to the engine and forgotten here is caught, not silently dropped onto the designer's current page.
 
+### Variable order, and what the plugin cannot do about it (#2860)
+
+The order of variables in a collection is the order Figma's variable picker and panels list them, and the emission
+writes the colour variables in one canonical order (`packages/engine/color-order.ts`): the families, then the roles a
+designer reaches for first, the statuses always brand, success, warning, danger, info, and every inverse group in its
+default group's order. A file built fresh from the emission reads in that order.
+
+**The Plugin API has no call to move a variable.** It moves styles (`moveLocal*StyleAfter`) but not variables, so the
+plugin cannot reorder or regroup an existing file's variables: new ones land at the end of the collection, and only a
+person can drag them into place. So the Update check **lists** the colour variables that are out of order and moves
+nothing ("Color variables: N out of order (…)"), naming the fewest to drag: the longest run already in order stays, the
+rest are listed. A variable the canonical order does not name, a designer's own, is neither listed nor counted. The check
+reads the order the host returns, which is host behaviour no shim here can confirm.
+
 ### The two file components
 
 `_Section-header` and `_Headings` are **plugin-only template assets** (owner-confirmed), NOT engine defs —
@@ -266,8 +280,11 @@ until then it gets no furniture, so it never carries one backdrop per band. Labe
 enter the set, so the update's hand-edit check and the as-built record never read them. The switch is
 `CANVAS_FURNITURE` (engine), on for every def that builds a set; Icon and Spinner build single components and have
 none. A row thinner than its label (the 1px horizontal Divider, #2568 Q258 A) keeps the label's own height, centered
-on the row, with `Show bracket` off; every other row label spans its rows. Sets side by side sit `SET_GAP` (400) apart, so a later set's row labels fit between them. Gated by
-`test-canvas-furniture.ts`, which draws every def and measures the clearance on every shared page.
+on the row, with `Show bracket` off; every other row label spans its rows. Sets side by side keep `SET_GAP` (160) of white space between them, measured
+from the outer edge of one set's labels and backdrop to the next set's (#2723, Q335 A): a build places a new set again
+once its labels are drawn (`seatNewSet`), and Update moves a set that sits too close, or exactly where the earlier
+400-frame rule put it. Gated by `test-canvas-furniture.ts`, which draws every def and measures the 160 on every
+shared page.
 
 **Interactive components (#2466, owner decision Q238 A).** Every set whose `state` axis holds `rest`, `hover` and
 `pressed` (the button family, icon buttons, tag, tab, and the checkbox, radio and switch controls) gets prototype

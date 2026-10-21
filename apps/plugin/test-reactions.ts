@@ -122,7 +122,8 @@ section('map — the per-def reaction map, literal (owner decision Q238 A, part 
   const want: Record<string, [number, number, number]> = {
     'button': [576, 192, 288], 'button-destructive': [576, 192, 288], 'button-neutral': [576, 192, 288],
     'icon-button': [216, 72, 108], 'icon-button-destructive': [216, 72, 108], 'icon-button-neutral': [216, 72, 108],
-    'checkbox-control': [54, 18, 27], 'radio-control': [30, 12, 18], 'switch-control': [24, 8, 12],
+    // #2751 (owner Q354): `status` doubles the three choice controls; an errored control still hovers and presses.
+    'checkbox-control': [90, 36, 54], 'radio-control': [60, 24, 36], 'switch-control': [40, 16, 24],
     'tag': [45, 18, 27], 'tab': [30, 12, 18], 'segmented-control-segment': [30, 12, 18], 'link': [96, 48, 72],
     // #2457: the flush icon button, 2 shapes × 3 sizes (Q287 A) × (rest → hover, rest → pressed, hover → pressed), in
     // each of its three families (Q295.2 B).
@@ -364,7 +365,7 @@ section('all three — reactions, set moves and page reorders in one run: one ve
   const sets = page.children.filter((n) => n.type === 'COMPONENT_SET') as Node[];
   for (const set of sets) (set as { parent?: unknown }).parent = page;
   const fresh = sets.map((n) => [Number(n.x), Number(n.y)]);
-  for (let k = 1; k < sets.length; k++) sets[k].x = Number(sets[k - 1].x) + Number(sets[k - 1].width) + 160;
+  for (let k = 1; k < sets.length; k++) sets[k].x = Number(sets[k - 1].x) + Number(sets[k - 1].width) + 100;
   type P = { name: string; isPageDivider?: boolean; appendChild(): void };
   const pg = (name: string, isPageDivider = false): P => ({ name, isPageDivider, appendChild() {} });
   const pages: P[] = [pg('Cover'), pg('---', true), pg('Components'), pg('↳ Tabs'), pg('↳ Badge'), pg('↳ Divider')];

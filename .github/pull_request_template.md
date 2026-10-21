@@ -22,6 +22,7 @@
 
 - [ ] Progress fragment: `docs/progress/pending/…md`
 - [ ] Engine bump: `packages/engine/changes/…md` declaring `engine: …` — or none owed, because …
+- [ ] Reuse: the existing mechanism this reused — or, for a new gate, script or helper, why nothing fit
 
 ## Gates
 

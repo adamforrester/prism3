@@ -143,13 +143,22 @@ maintainer channels, a part's `note` included, is also in the plugin bundle a de
 - no Prism 2, and no "follows Prism 2";
 - US English, and `docs/voice-standard.md` — its banned words, and the recessive voice;
 - a WCAG criterion the gates do not check is stated as intent ("targets SC 2.5.5"), never as a
-  guarantee.
+  guarantee;
+- no code spans: write a prop, a value, an attribute or a token path as plain text (inverse,
+  color.text.primary);
+- Button's implementation `do` items are held as they are (owner Q362); the register gate exempts
+  them by name until the owner decides where they belong.
+
+A part that is never generated on its own words `ai.whenToUse` as "Only as a child of Tabs. Generate Tabs,
+which places one tab per panel …", opening with the private-part wording `lint-naming` reads; a part a host nests that may stand alone words it as "Inside Checkbox.Row,
+the common case. On its own only when …". The host named is a registered component that nests the part.
 
 `packages/engine/test.ts` (`component-refs`, `component-names`, `component-prose`), `lint-us-english`
-and `lint-voice` catch Prism 2, dangling names, en-GB spellings and banned words. Nothing yet gates
-"brief §N", "def", all-caps emphasis or issue numbers in a component's shipped fields:
-`lint-figma-descriptions` refuses `#NNNN` in token descriptions only. So those four are yours to hold
-(#1717 is open on the entries that remain).
+and `lint-voice` catch Prism 2, dangling names, en-GB spellings and banned words. The `#2714 component
+register` block in `packages/engine/test.ts` refuses code spans, all-caps words outside its acronym list, "brief §N",
+"def" and issue numbers in the consumer fields (summary, description, prop descriptions, accessibility,
+content, docs and ai's three decision fields), and `#2714 child-only whenToUse` holds the two templates.
+Motion and a part's `note` ship too but are not gated yet (#2773), so hold them to the same rules by hand.
 
 ### Identity and relations — the #1700 rules
 
@@ -322,6 +331,23 @@ whose actual value comes from the host, not from the plan.
   (text-field and select, owner-directed in #1517). The status-led paint key leads the grammar
   (`{status}.{slot}.{state}` before `{slot}.{state}`), so the status boundary wins over the
   interactive-state progression and persists at rest, hover and focus.
+- **Error is a `status` axis, never a state.** Every control that can be invalid takes the
+  fields' `status` axis and the fields' `validation` prop (owner Q354, #2751). A choice control
+  carries the first two values, `[default, error]`, because it has no warning or success look;
+  `status` is orthogonal to the interaction states, so an errored box still hovers and focuses.
+  The error look is a danger border on the box, track or ring, bound per selection and per
+  non-disabled state under a status template one segment longer than the selection template
+  (`{status}.{selection}.{slot}.{state}`), so the two grammars cannot read each other's keys.
+  Who sets it depends on whether the choice stands alone:
+  - **A standalone choice sets its own.** A lone Checkbox.Row (a consent line) or a Switch.Row
+    takes `status` itself; the host shows the message.
+  - **A set's group sets it, and passes it down.** Checkbox.Group and Radio.Group carry
+    `status`, `follow` it into every row (each row into its control), and nest a FieldMessage
+    under the options, present only at `error`. A radio is never invalid alone, so Radio.Row and
+    Radio.Control carry the axis only to receive the group's value; their docs say so.
+  A row or group paints nothing by `status` itself: it follows the axis to the part that draws it.
+  Moving an existing `error` state onto the axis is a `move` entry in `COMPONENT_RENAMES`, so an
+  update renames the error member in place and a placed error instance keeps showing it.
 - **A border never binds an icon or text role** (owner decision Q346). An edge binds a border
   role: `border.*`, `interactive.<intent>.border.*`, `field.border.*`, or `color.disabled.border`.
   Every disabled edge binds `color.disabled.border`; a field-specific disabled border is fine only
@@ -592,7 +618,7 @@ one until that arc builds it.
 
 1. The def is authored from its KB brief: the header cites it exactly once, `category` is the brief's,
    and every brief section has landed in its field (§0) or is recorded as an omission in `notes`.
-2. Shipped fields are written for people — no brief sections, issue numbers, "def", all-caps or Prism 2 —
+2. Shipped fields are written for people — no brief sections, issue numbers, "def", all-caps, code spans or Prism 2 —
    and `summary` is one line under 100 characters. Provenance lives in `notes`, `codeOnly` and comments.
 3. `composesWith` equals what the anatomy nests; hosts and slot content are in `ai.commonPartners`;
    siblings differ in keywords, `ai.avoidWhen` and priority; `status` is `draft`.

@@ -97,6 +97,7 @@ const planIconComps = (n: { nestTarget?: string; children?: readonly unknown[] }
 ];
 
 import { Session as InspectorSession } from 'node:inspector/promises';
+import { componentSpec } from './component-specs';
 
 // ---- #1268 EVERY ASSERTION SITE RAN — a section going quiet is a failure, not a smaller pass ----------
 //
@@ -6979,7 +6980,7 @@ arm: {
   ok(labelProp?.default === 'Loading' && /role="status"/.test(labelProp.description) && /aria-hidden="true"/.test(labelProp.description),
     `spinner 2026-09-27: the label defaults to "Loading" on the role="status" wrapper, and a host opts out with aria-hidden="true" (${JSON.stringify(labelProp?.default)})`);
   const aria = spinner.accessibility.aria ?? '';
-  ok(/aria-live="polite"/.test(aria) && /Never `aria-valuenow` and never `role="progressbar"`/.test(aria) && /aria-hidden="true"/.test(aria),
+  ok(/aria-live="polite"/.test(aria) && /Never aria-valuenow and never role="progressbar"/.test(aria) && /aria-hidden="true"/.test(aria),
     'spinner 2026-09-27: accessibility.aria states the polite status, the host opt-out, and the no-value contract (never aria-valuenow, never role=progressbar)');
   ok(/aria-hidden="true"/.test(codeOnly) && /role="status"/.test(codeOnly) && /"Loading" by default/.test(codeOnly),
     'spinner 2026-09-27: the code rule is a role="status" wrapper named "Loading" by default, hidden by an announcing host with aria-hidden="true"');
@@ -14562,6 +14563,91 @@ arm: {
     ok(fieldsRead > 1000 && families.size >= 4, `component-prose: the scan is live (${fieldsRead} shipped strings, ${families.size} dotted families) — a walk that read nothing would pass every arm above`);
   }
 
+  // COMPONENT REGISTER (#2714, #1717). The build-component skill's "What ships" rules, which were held by hand
+  // until here: in the fields a reader acts on, no code spans, no all-caps emphasis, no "brief §N" or "§N",
+  // no "def" as a reader-facing word, no issue numbers. The older defs broke all five and the newer ones none,
+  // so a reader moving between pages met two registers. Scope is the seven consumer fields the audit counted
+  // (summary, description, prop descriptions, accessibility, content, docs, and ai's three decision fields).
+  // Motion and part notes ship too and are not in scope yet (#2773).
+  //
+  // The all-caps arm reads against a HAND-WRITTEN acronym list, each entry a term a reader meets as written,
+  // and the list must be live: an acronym no shipped field uses any more fails as stale, so the list cannot
+  // grow into a hole. The child-only arm holds the two whenToUse templates and resolves the host each names
+  // against the anatomy of the OTHER defs, so a template naming a host that does not nest the part fails.
+  {
+    const ACRONYMS = new Set(['AA', 'AAA', 'AI', 'APG', 'API', 'ARIA', 'CSS', 'DOM', 'FAQ', 'FAQs', 'HIG', 'HTML', 'IME', 'JSX', 'KB', 'MB', 'OK', 'OS', 'PDF', 'PIN', 'RTL', 'SC', 'SKUs', 'SMS', 'SVG', 'UI', 'URL', 'USWDS', 'UTF', 'W3C', 'WCAG', 'ZWJ']);
+    const consumerStrings = (d: ComponentDef): [string, string][] => {
+      const out: [string, string][] = [];
+      const walk = (path: string, v: unknown): void => {
+        if (typeof v === 'string') out.push([path, v]);
+        else if (Array.isArray(v)) v.forEach((x, i) => walk(`${path}[${i}]`, x));
+        else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) walk(`${path}.${k}`, x);
+      };
+      walk('summary', d.summary); walk('description', d.description);
+      for (const p of d.props ?? []) walk(`props.${p.name}`, p.description);
+      walk('accessibility', d.accessibility); walk('content', d.content); walk('docs', d.docs);
+      walk('ai.primaryPurpose', d.ai.primaryPurpose); walk('ai.whenToUse', d.ai.whenToUse); walk('ai.avoidWhen', d.ai.avoidWhen);
+      return out;
+    };
+    // HELD, NOT FIXED (owner Q362, on #2714). Button's implementation `do` items (the five brand settings'
+    // builds, the text-button underline, the two hover lines, the flush hit-area pair) keep the wording they
+    // have on main, code spans and all, until the owner decides where those lines belong. A hand-written
+    // exemption keyed by def and path, not a loosened pattern: every other string in these three defs is still
+    // scanned. It is live: each exempt path must still carry a hit, so the exemption cannot outlive the hold.
+    const HELD_Q362: Record<string, number[]> = Object.fromEntries(
+      ['button', 'button-destructive', 'button-neutral'].map((id) => [id, [3, 4, 5, 6, 7, 8, 9, 10, 11, 12]]));
+    const heldHits = new Set<string>(); const heldKeys: string[] = [];
+    for (const [id, idx] of Object.entries(HELD_Q362)) for (const i of idx) heldKeys.push(`${id} docs.do[${i}]`);
+    const bad: string[] = []; const used = new Set<string>(); let read = 0;
+    for (const d of componentDefs) {
+      const strs = consumerStrings(d);
+      for (const [path, text] of strs) {
+        read++;
+        const hits: string[] = [];
+        if (/`/.test(text)) hits.push(`${d.id} ${path}: a code span`);
+        for (const w of text.match(/\b[A-Z][A-Z0-9]*[A-Z]s?\b/g) ?? []) { if (ACRONYMS.has(w)) used.add(w); else hits.push(`${d.id} ${path}: all-caps "${w}"`); }
+        if (/brief §|§\s?\d/.test(text)) hits.push(`${d.id} ${path}: a brief section reference`);
+        if (/\bdefs?\b/i.test(text)) hits.push(`${d.id} ${path}: "def" as a reader-facing word`);
+        if (/#\d{3,}/.test(text)) hits.push(`${d.id} ${path}: an issue number`);
+        if (heldKeys.includes(`${d.id} ${path}`)) { if (hits.length) heldHits.add(`${d.id} ${path}`); continue; }
+        bad.push(...hits);
+      }
+      if (!['summary', 'description', 'docs.usage', 'ai.whenToUse'].every((f) => strs.some(([p]) => p === f))) bad.push(`${d.id}: the walk missed a required field`);
+      // One arm per field family, wherever the def has the field, so the walk reaching all seven does not
+      // ride on which acronyms happen to live in which field.
+      const families: [string, boolean][] = [
+        ['props.', (d.props ?? []).some((p) => p.description)], ['accessibility.', !!d.accessibility], ['content.', !!d.content],
+        ['docs.', !!d.docs], ['ai.primaryPurpose', !!d.ai.primaryPurpose], ['ai.avoidWhen', !!d.ai.avoidWhen],
+      ];
+      for (const [prefix, has] of families) if (has && !strs.some(([p]) => p.startsWith(prefix))) bad.push(`${d.id}: the walk missed ${prefix.replace(/\.$/, '')}`);
+    }
+    const heldDead = heldKeys.filter((k) => !heldHits.has(k));
+    ok(heldDead.length === 0, `#2714 component register: every held Button do item (owner Q362) still carries a hit, so the exemption has not outlived the hold${heldDead.length ? ` — dead: ${heldDead.join(', ')}` : ''}`);
+    ok(bad.length === 0, `#2714 component register: no code spans, all-caps emphasis, brief references, "def" or issue numbers in a component's consumer fields${bad.length ? ` — ${bad.length}: ${bad.slice(0, 12).join(' | ')}` : ''}`);
+    const stale = [...ACRONYMS].filter((a) => !used.has(a));
+    ok(stale.length === 0, `#2714 component register: every allowed acronym is still used by a shipped field (stale: ${stale.join(', ') || 'none'})`);
+    ok(read > 1000, `#2714 component register: the scan is live (${read} consumer strings)`);
+
+    const nests = (host: ComponentDef, id: string) => Object.values(host.anatomy?.parts ?? {}).some((p) => (p as { nests?: string }).nests === id);
+    const byName = (n: string) => componentDefs.find((h) => h.name === n);
+    const childBad: string[] = []; let templated = 0;
+    for (const d of componentDefs) {
+      const w = d.ai.whenToUse;
+      const only = /^Only as a child of (?:an? |the )?([A-Z][A-Za-z.]*)\. Generate (?:an? |the )?([A-Z][A-Za-z.]*), which \S/.exec(w);
+      const inside = /^Inside ([A-Z][A-Za-z.]*), the common case\. On its own only \S/.exec(w);
+      if (only) {
+        templated++;
+        const host = byName(only[1]);
+        if (only[1] !== only[2] || !host || !nests(host, d.id)) childBad.push(`${d.id}: "Only as a child of ${only[1]}" names no registered host that nests it`);
+      } else if (inside) {
+        templated++;
+        const host = byName(inside[1]);
+        if (!host || !nests(host, d.id)) childBad.push(`${d.id}: "Inside ${inside[1]}" names no registered host that nests it`);
+      } else if (/^(Only|Never|Nested by|Inside)\b/.test(w)) childBad.push(`${d.id}: a child-only whenToUse off the two templates: "${w.slice(0, 60)}"`);
+    }
+    ok(childBad.length === 0 && templated >= 7, `#2714 child-only whenToUse: "Only as a child of <Host>. Generate <Host>, which …" or "Inside <Host>, the common case. On its own only …", naming a host that nests the part (${templated} templated)${childBad.length ? ` — ${childBad.join(' | ')}` : ''}`);
+  }
+
   // (#1134) THE BOUNDED INVERSE SET BINDS ONLY COVERED ROLES — the enforceable half of the gap rule, one
   // tier below the token register (a3). A def carrying a `surface` axis with an `inverse` value paints its
   // `color.inverse.*` counterparts through the projector's rewrite (`anatomy-figma.ts`), NOT through keys
@@ -15936,7 +16022,9 @@ arm: {
           const size = (m.size ?? m.coord.size) as string;
           const kids = m.root.children.map((k) => k.name);
           const bad: string[] = [];
-          if (JSON.stringify(kids) !== JSON.stringify(['label', 'items'])) bad.push(`children ${kids.join(',')}`);
+          // #2751 (owner Q354): an errored group adds its message under the items; a valid one does not.
+          const want = /status=error/.test(planComponentName(m)) ? ['label', 'items', 'message'] : ['label', 'items'];
+          if (JSON.stringify(kids) !== JSON.stringify(want)) bad.push(`children ${kids.join(',')}`);
           const items = findIn(m.root, 'items');
           if (items?.type !== 'CONTENT_SLOT' || items.layoutAlign !== 'STRETCH') bad.push(`items ${String(items?.type)} ${String(items?.layoutAlign)}`);
           const rows = items?.children ?? [];
@@ -15947,8 +16035,8 @@ arm: {
           }
           return bad.length ? [`${planComponentName(m)}: ${bad.join('; ')}`] : [];
         });
-        ok(members.length === 3 && off.length === 0,
-          `#2649 ${def.id}: every member holds a label and an "items" slot of three ${row} rows following its size, stretched, none hidden (${members.length} members, ${off.length} off — ${off[0] ?? 'none'})`);
+        ok(members.length === 6 && off.length === 0,
+          `#2649 ${def.id}: every member holds a label and an "items" slot of three ${row} rows following its size, stretched, none hidden (the message under it at status=error only) (${members.length} members, ${off.length} off — ${off[0] ?? 'none'})`);
         const props = planSetProperties(members).map((p) => `${p.name}:${p.type}`);
         ok(JSON.stringify(props) === JSON.stringify(['items:SLOT']),
           `#2649 ${def.id}: the set declares one property, the "items" slot, and no row boolean (${props.join(', ')})`);
@@ -16561,8 +16649,9 @@ arm: {
     // interactive `checked.fill`/`checked.indicator`); this block LOCKS it. EXPECTED is the owner's decision;
     // ACTUAL is read off the emitted plan (host-facing), and the mutation adds the red-fill key the decision
     // forbids and confirms the assertion flips BY NAME (docs/34). The row nests this atom, so this is the
-    // error appearance of the checkbox row. RADIO LEFT THIS LOOP in #1698 (decision 1): radio error is
-    // group-level only, so `radio-control` has no error member to read — the #1698 block pins that absence.
+    // error appearance of the checkbox row. RADIO LEFT THIS LOOP in #1698 (decision 1) and is BACK since owner
+    // Q354 (#2751): error is the `status` axis on every control that can be invalid, so the error member is
+    // `status=error, state=rest` and radio has one again, set by its group.
     {
       const errFind = (n: FigmaNodePlan, name: string): FigmaNodePlan | undefined =>
         n.name === name ? n : (n.children ?? []).map((c) => errFind(c, name)).find(Boolean);
@@ -16573,10 +16662,11 @@ arm: {
       for (const { def, fillPart, mutKey } of [
         // The checkbox's inner fill is the filled BOX (`control`, fill slot); the radio's is the inner DOT
         // (`dot`, indicator slot → `paints.fills`). The error border is the `control`'s stroke on both.
-        { def: checkboxControl, fillPart: 'control', mutKey: 'checked.fill.error' },
+        { def: checkboxControl, fillPart: 'control', mutKey: 'error.checked.fill.rest' },
+        { def: radioControl, fillPart: 'dot', mutKey: 'error.checked.indicator.rest' },
       ] as { def: ComponentDef; fillPart: string; mutKey: string }[]) {
-        const rest = memberAt(def, /selection=checked, size=medium, state=rest/);
-        const error = memberAt(def, /selection=checked, size=medium, state=error/);
+        const rest = memberAt(def, /selection=checked, status=default, size=medium, state=rest/);
+        const error = memberAt(def, /selection=checked, status=error, size=medium, state=rest/);
         const restFill = errFind(rest, fillPart)?.paints?.fills;
         const errorFill = errFind(error, fillPart)?.paints?.fills;
         const restBorder = errFind(rest, 'control')?.paints?.strokes;
@@ -16592,7 +16682,7 @@ arm: {
         //   the decision forbids makes the error member's inner fill resolve to danger, diverging from the rest
         //   fill, flipping (a) BY NAME.
         const mutated = { ...def, tokens: { ...def.tokens, [mutKey]: 'color.border.danger' } } as ComponentDef;
-        const mErrorFill = errFind(memberAt(mutated, /selection=checked, size=medium, state=error/), fillPart)?.paints?.fills;
+        const mErrorFill = errFind(memberAt(mutated, /selection=checked, status=error, size=medium, state=rest/), fillPart)?.paints?.fills;
         ok(mErrorFill === DANGER && mErrorFill !== errorFill,
           `#1433a ${def.id} MUTATION: binding ${mutKey}→danger turns the error selected fill ${String(mErrorFill)} (was ${String(errorFill)}), flipping '#1433a ${def.id}: the selected inner fill stays on the interactive role under error' to failing`);
       }
@@ -17620,9 +17710,11 @@ arm: {
     const SH_GROUNDS = ['background.primary', 'background.secondary'];
     // #2709: Password field joins: the same field factory as Text field, so the same status borders.
     const SH_DEFS = ['text-field', 'textarea', 'select', 'password-field'];
+    const CHOICE_ERR = 'a choice control (or the row or group that only follows it): status is [default, error] only (Q354), the danger edge is one flat `color.border.danger` at every state, so there is no status hover step to measure, and a row or group paints nothing by it';
     // Defs with a status axis that are NOT a framed field, with the reason. The converse below reads the axis off
     // every def, so a new status-bearing def fails by name until it is pinned or excused here.
     const SH_EXEMPT: Record<string, string> = {
+      ...Object.fromEntries(['checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'switch-control', 'switch-row'].map((id) => [id, CHOICE_ERR])),
       'field-message': 'a message line under a field: no state axis and no stroked boundary, so there is no hover border to measure; its status shows in the text and glyph',
     };
     const SH_STATUSES = ['error', 'warning', 'success'];
@@ -17726,6 +17818,70 @@ arm: {
       `a11y(#1782) HC: the high-contrast sweep measured hc-light and hc-dark (${shHcCells} cells, ${shHcWashed} composited a hover wash)`);
     ok(shHcFails.length === 0,
       `a11y(#1782) HC: every status field border clears the high-contrast 4.5:1 non-text floor (owner decision, 2026-09-29) at hover against background.primary and background.secondary outside the control AND the hover wash composited over each inside, in hc-light and hc-dark of every corpus brand — ${shHcFails.length} members below, in ${shHcGrouped.size} cells: ` + [...shHcGrouped].slice(0, 12).map(([k, defs]) => `${k} (${[...new Set(defs)].join(', ')})`).join('; ') + (shHcGrouped.size > 12 ? '; …' : ''));
+
+    // ---- #2751 (owner Q354): THE CHOICE CONTROLS' ERROR EDGE CLEARS THE FLOOR THE FIELDS' STATUS BORDER HOLDS ----
+    // Checkbox, Switch and Radio draw their error as `status=error` now, a danger border on the box, track or ring
+    // at every non-disabled state. The old `error` state drew the same border and nothing measured it; its floor is
+    // the one this block holds the field status borders to: 3:1 (SC 1.4.11) against the page, 4.5:1 in the HC
+    // modes. SUBJECT: the stroke each PROJECTED member carries (the plan, not `def.tokens`). ORACLE: contrast
+    // recomputed from resolved hexes against the same two literal page grounds, every corpus brand × mode. The
+    // grounds are the page OUTSIDE the edge; inside, a checked box and an on track are self-bounding fills
+    // (`lint-paint` arm 4) and an empty box or ring has none, so the page is the ground the edge separates.
+    const CE_DEFS = ['checkbox-control', 'switch-control', 'radio-control'];
+    const CE_STATES = ['rest', 'hover', 'pressed', 'focus-visible'];
+    type CePaint = { def: string; coord: string; stroke: string };
+    const cePaints: CePaint[] = [];
+    const ceMissing: string[] = [];
+    for (const id of CE_DEFS) {
+      const d = componentDefs.find((c) => c.id === id);
+      if (!d) { ceMissing.push(id); continue; }
+      const sels = d.variants?.selection ?? [];
+      for (const plan of figmaAnatomySet(d, { swapTarget: 'FPO-default-icon' })) {
+        if (plan.coord.status !== 'error' || plan.coord.state === 'disabled') continue;
+        const coord = Object.entries(plan.coord).filter(([, v]) => v !== undefined).map(([k, v]) => `${k}=${v}`).join(',');
+        const before = cePaints.length;
+        const walk = (n: any): void => {
+          if (n.visible !== false && typeof n.paints?.strokes === 'string' && n.type !== 'NESTED_INSTANCE') cePaints.push({ def: id, coord, stroke: roleOfVar(n.paints.strokes) });
+          for (const c of n.children ?? []) walk(c);
+        };
+        walk(plan.root);
+        if (cePaints.length === before) ceMissing.push(`${id}[${coord}] draws no edge`);
+      }
+      // Every selection × non-disabled state is represented, so a member dropping out fails instead of shrinking the sweep.
+      for (const sel of sels) for (const st of CE_STATES)
+        if (!cePaints.some((p) => p.def === id && p.coord.includes(`selection=${sel}`) && p.coord.includes(`state=${st}`))) ceMissing.push(`${id}[selection=${sel}, state=${st}]`);
+    }
+    const ceNotDanger = cePaints.filter((p) => p.stroke !== 'border.danger').map((p) => `${p.def}[${p.coord}] → ${p.stroke}`);
+    ok(ceMissing.length === 0 && ceNotDanger.length === 0 && cePaints.length > 0,
+      `a11y(#2751): every checkbox, switch and radio control member at status=error and a non-disabled state draws its edge in border.danger (${cePaints.length} edges${ceMissing.length ? `; missing: ${ceMissing.slice(0, 4).join(', ')}` : ''}${ceNotDanger.length ? `; not danger: ${ceNotDanger.slice(0, 4).join(', ')}` : ''})`);
+    const ceFails: string[] = [], ceHcFails: string[] = [];
+    const ceModes = new Set<string>();
+    let ceCells = 0;
+    for (const [brand, th] of SH_CORPUS) {
+      for (const m of resolveAllModes(th)) {
+        ceModes.add(m.mode);
+        const isHc = m.mode === 'hc-light' || m.mode === 'hc-dark';
+        for (const p of cePaints) {
+          const tag = `${brand}/${m.mode} ${p.def}[${p.coord}]`;
+          const b = m.roles[p.stroke];
+          if (!b?.hex) { ceFails.push(`${tag} stroke ${p.stroke} unresolved`); continue; }
+          for (const g of SH_GROUNDS) {
+            const ground = m.roles[g];
+            if (!ground?.hex) { ceFails.push(`${tag} ground ${g} unresolved`); continue; }
+            const r = contrast(hexToRgb(b.hex), hexToRgb(ground.hex));
+            ceCells++;
+            if (r < 3) ceFails.push(`${tag} on ${g}: ${r.toFixed(2)}`);
+            if (isHc && r < 4.5) ceHcFails.push(`${tag} on ${g}: ${r.toFixed(2)}`);
+          }
+        }
+      }
+    }
+    ok(SH_MODES.every((mm) => ceModes.has(mm)) && ceCells > 0,
+      `a11y(#2751): the choice-control error sweep measured every corpus brand × mode (${ceCells} cells over ${[...ceModes].join(', ')})`);
+    ok(ceFails.length === 0,
+      `a11y(#2751): every checkbox / switch / radio error edge clears 3:1 (SC 1.4.11) against background.primary and background.secondary, every corpus brand × mode — ${ceFails.length} below: ${ceFails.slice(0, 6).join('; ')}`);
+    ok(ceHcFails.length === 0,
+      `a11y(#2751) HC: every checkbox / switch / radio error edge clears the high-contrast 4.5:1 non-text floor in hc-light and hc-dark — ${ceHcFails.length} below: ${ceHcFails.slice(0, 6).join('; ')}`);
 
     // STATUS ≠ FOCUS ARM (decision 2). The comparison is the resolved hex of each status border against the
     // resolved hex of `border.focus` in the SAME mode — never the engine's `avoid` list. Wireframe variants are
@@ -21013,7 +21169,8 @@ arm: {
       // compared axis by axis here — not through `nestVariantMatch`. Both file orders, because last-wins is
       // only wrong for whichever set comes last.
       {
-        const NEST_SETS = [checkboxControl, radioControl, switchControl, fieldLabel, checkboxRow, radioRow, switchRow, checkboxGroup, radioGroup];
+        // `fieldMessage` since #2751: an errored group nests its message under the rows.
+        const NEST_SETS = [checkboxControl, radioControl, switchControl, fieldLabel, fieldMessage, checkboxRow, radioRow, switchRow, checkboxGroup, radioGroup];
         const membersOf = (d: ComponentDef): string[] => figmaAnatomySet(d, { swapTarget: 'FPO-default-icon' }).map(planComponentName);
         const nestFile: StubFileNode[] = [
           ...NEST_SETS.map((d) => ({ name: d.id, type: 'COMPONENT_SET' as const, variants: membersOf(d) })),
@@ -22669,28 +22826,28 @@ arm: {
         const box = (n: Record<string, unknown> | undefined) => `${String(n?.width)}x${String(n?.height)}`;
         ok(at(first) === '0,0' && box(first) === '504x348',
           `#1809 the first set on an empty page stays at 0,0; its box is pinned as the input to the arms below (${at(first)}, ${box(first)})`);
-        // (f) A SECOND DEF ON THE SAME PAGE lands 400 right of the first (160 before #2502) (504 + 400 = 904), top-aligned. Chunk 2
+        // (f) A SECOND DEF ON THE SAME PAGE lands 160 right of the first (#2723's visible gap; neither set has labels here) (504 + 160 = 664), top-aligned. Chunk 2
         // onward append into it and do not move it.
         const dRuns = await paste(destructive, placePage);
         const second = setOf(placePage, 'button-destructive');
-        ok(dRuns.length >= 2 && placePage.children.length === 2 && at(second) === '904,0' && at(first) === '0,0',
-          `#1809 a second set pasted onto the page lands beside the first, 400px clear and top-aligned, at 904,0 (${dRuns.length} chunks; button-destructive at ${at(second)}, button at ${at(first)})`);
+        ok(dRuns.length >= 2 && placePage.children.length === 2 && at(second) === '664,0' && at(first) === '0,0',
+          `#1809 a second set pasted onto the page lands beside the first, 160px clear and top-aligned, at 664,0 (${dRuns.length} chunks; button-destructive at ${at(second)}, button at ${at(first)})`);
         // PARITY: the plugin places the same set at the same coordinate on the same page.
         const placePlug: StubPage = { children: [] };
         await plug(btn, placePlug);
         await plug(destructive, placePlug);
-        ok(at(setOf(placePlug, 'button-destructive')) === '904,0' && at(setOf(placePlug, 'button-destructive')) === at(second),
+        ok(at(setOf(placePlug, 'button-destructive')) === '664,0' && at(setOf(placePlug, 'button-destructive')) === at(second),
           `#1809 parity: the plugin places the second set at the same coordinate (plugin ${at(setOf(placePlug, 'button-destructive'))}, paste ${at(second)})`);
         // (g) A REBUILD NEVER MOVES A SET: re-pasting `button` after the designer moved it leaves it there.
         first!.x = 5000;
         first!.y = 7000;
         const again = await paste(btn, placePage);
-        ok(again.every((r) => r.added === 0) && at(first) === '5000,7000' && at(second) === '904,0',
+        ok(again.every((r) => r.added === 0) && at(first) === '5000,7000' && at(second) === '664,0',
           `#1809 a re-paste leaves a set the designer moved where they put it, and its sibling where it was (button at ${at(first)}, button-destructive at ${at(second)})`);
 
         // (h) WHAT SHARES THE ROW PUSHES IT RIGHT; WHAT SITS ABOVE DOES NOT. A header-wide frame above the sets
-        // (bottom edge at -80) and a note inside the row at x 600..1000. Expected x: 1000 + 400 = 1400, not the
-        // header's 5000 + 400.
+        // (bottom edge at -80) and a note inside the row at x 600..1000. Expected x: 1000 + 160 = 1160, not the
+        // header's 5000 + 160.
         const rowPage: StubPage = { children: [] };
         const rowPlug: StubPage = { children: [] };
         for (const pg of [rowPage, rowPlug]) {
@@ -22705,20 +22862,20 @@ arm: {
           const p = rect(a), q = rect(b);
           if (p.x < q.r && q.x < p.r && p.y < q.b && q.y < p.b) overlaps.push(`${String(a.name)} x ${String(b.name)}`);
         }));
-        ok(at(setOf(rowPage, 'button-destructive')) === '1400,0' && rowPage.children.length === 4 && overlaps.length === 0,
-          `#1809 a node in the set's row pushes it right (1000 + 400), a node wholly above it does not, and no two of the page's nodes overlap (at ${at(setOf(rowPage, 'button-destructive'))}; overlaps: ${overlaps.join(', ') || 'none'})`);
-        ok(at(setOf(rowPlug, 'button-destructive')) === '1400,0',
+        ok(at(setOf(rowPage, 'button-destructive')) === '1160,0' && rowPage.children.length === 4 && overlaps.length === 0,
+          `#1809 a node in the set's row pushes it right (1000 + 160), a node wholly above it does not, and no two of the page's nodes overlap (at ${at(setOf(rowPage, 'button-destructive'))}; overlaps: ${overlaps.join(', ') || 'none'})`);
+        ok(at(setOf(rowPlug, 'button-destructive')) === '1160,0',
           `#1809 parity: the plugin places it at the same coordinate on the same page (plugin ${at(setOf(rowPlug, 'button-destructive'))})`);
 
         // (i) CONTENT BUT NO SET YET: top-aligned with the content, right of it. A frame at x 100..600, y 40 →
-        // the set at 1000,40.
+        // the set at 600 + 160 = 760,40.
         const introPage: StubPage = { children: [{ type: 'FRAME', name: 'intro', x: 100, y: 40, width: 500, height: 300 }] };
         await paste(btn, introPage);
-        ok(at(setOf(introPage)) === '1000,40',
-          `#1809 on a page with content and no set, the set lands right of it, top-aligned, at 1000,40 (got ${at(setOf(introPage))})`);
+        ok(at(setOf(introPage)) === '760,40',
+          `#1809 on a page with content and no set, the set lands right of it, top-aligned, at 760,40 (got ${at(setOf(introPage))})`);
 
         // (i') A NODE WHOLLY BELOW THE ROW DOES NOT PUSH THE SET. A note at x 600..1000, y 400..500, under the
-        // `button` set's 348-high row. Expected: 504 + 400 = 904,0, not the note's 1000 + 400, in both executors.
+        // `button` set's 348-high row. Expected: 504 + 160 = 664,0, not the note's 1000 + 160, in both executors.
         const belowPage: StubPage = { children: [] };
         const belowPlug: StubPage = { children: [] };
         for (const pg of [belowPage, belowPlug]) {
@@ -22726,16 +22883,16 @@ arm: {
           pg.children.push({ type: 'FRAME', name: 'below', x: 600, y: 400, width: 400, height: 100 });
           if (pg === belowPage) await paste(destructive, pg); else await plug(destructive, pg);
         }
-        ok(at(setOf(belowPage, 'button-destructive')) === '904,0' && at(setOf(belowPlug, 'button-destructive')) === '904,0',
-          `#1809 a node wholly below the row does not push the set: 904,0 in both executors (paste ${at(setOf(belowPage, 'button-destructive'))}, plugin ${at(setOf(belowPlug, 'button-destructive'))}; destructive set ${String(setOf(belowPage, 'button-destructive')?.height)} high)`);
+        ok(at(setOf(belowPage, 'button-destructive')) === '664,0' && at(setOf(belowPlug, 'button-destructive')) === '664,0',
+          `#1809 a node wholly below the row does not push the set: 664,0 in both executors (paste ${at(setOf(belowPage, 'button-destructive'))}, plugin ${at(setOf(belowPlug, 'button-destructive'))}; destructive set ${String(setOf(belowPage, 'button-destructive')?.height)} high)`);
 
         // (j) THE REMEDY THE MISS STATES IS TRUE, and the new set lands beside the old: rename the refused set
-        // aside and paste again. The renamed set is 504 wide (the same 36 members), so the new one lands at 904,0.
+        // aside and paste again. The renamed set is 504 wide (the same 36 members), so the new one lands at 664,0.
         setOf(renPage)!.name = 'button (earlier axes)';
         const remedy = await paste(btn, renPage);
         ok(remedy.every((r) => !r.misses.length) && renPage.children.length === 2 && kids(setOf(renPage)).length === 36
-          && at(setOf(renPage)) === '904,0' && kids(setOf(renPage, 'button (earlier axes)')).every((m, i) => m === renBefore[i]),
-          `#1809 after renaming the old set aside, the paste makes a fresh 36-member set beside it at 904,0 and leaves the old one as it was (${renPage.children.length} top-level, new set at ${at(setOf(renPage))}, misses ${JSON.stringify(remedy.map((r) => r.misses.length))})`);
+          && at(setOf(renPage)) === '664,0' && kids(setOf(renPage, 'button (earlier axes)')).every((m, i) => m === renBefore[i]),
+          `#1809 after renaming the old set aside, the paste makes a fresh 36-member set beside it at 664,0 and leaves the old one as it was (${renPage.children.length} top-level, new set at ${at(setOf(renPage))}, misses ${JSON.stringify(remedy.map((r) => r.misses.length))})`);
       }
 
       // ---- #1377 / #1392: THE PAYLOAD EXECUTOR'S EXPOSURE WRITE, over EVERY nest-exposed def -------
@@ -27801,7 +27958,8 @@ arm: {
   // gating is now the atom's — the Row nests it and carries no glyphs of its own. The mechanism and the
   // three directions are unchanged; only the def that owns them moved.
   const cbGlyphs = (o: Record<string, unknown>): string =>
-    planPartNames(figmaAnatomyPlan(checkboxControl, 'medium', o as never).root).filter((n) => n === 'mark' || n === 'dash').join('+') || 'neither';
+    // #2751: `status` joined `selection` in the status template, so a coordinate naming one names both.
+    planPartNames(figmaAnatomyPlan(checkboxControl, 'medium', (o.selection ? { status: 'default', ...o } : o) as never).root).filter((n) => n === 'mark' || n === 'dash').join('+') || 'neither';
   ok(cbGlyphs({ selection: 'checked', state: 'rest' }) === 'mark',
     `checkbox-control: at selection=checked the tree carries the MARK and not the dash (got '${cbGlyphs({ selection: 'checked', state: 'rest' })}')`);
   ok(cbGlyphs({ selection: 'indeterminate', state: 'rest' }) === 'dash',
@@ -27827,7 +27985,7 @@ arm: {
   const PRISM2_MARK_TO_BOX = 0.8;                                   // checkFill 16 / control box 20
   const glyphNode = (part: string, selection: string) => {
     const f = (n: any): any => (n.name === part ? n : (n.children ?? []).map(f).find(Boolean));
-    return f(figmaAnatomyPlan(checkboxControl, 'medium', { selection, state: 'rest' } as never).root);
+    return f(figmaAnatomyPlan(checkboxControl, 'medium', { selection, status: 'default', state: 'rest' } as never).root);
   };
   ok((checkboxControl.anatomy!.parts.mark as any).size === 'size.{size}.control' && glyphNode('mark', 'checked')?.bound?.width === 'control/size/md/height',
     `checkbox-control: the mark FRAME binds the control box ('size.{size}.control'), so the inset below is box-relative (got size='${(checkboxControl.anatomy!.parts.mark as any).size}', bound width '${glyphNode('mark', 'checked')?.bound?.width}')`);
@@ -27875,7 +28033,8 @@ arm: {
   // own constant.
   // `tag` joins (2026-09-27): its check mark is gated on `selection: ['selected']`, the checkbox mark's shape.
   // `link` joins (#2580, owner Q297.2): its trailing icon is gated on `style: ['standalone']`, so an inline link carries none.
-  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'button-group', 'dialog', 'password-field'];
+  // `checkbox-group` and `radio-group` since #2751: each gates its nested message on `status=error`.
+  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-group', 'radio-control', 'radio-group', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'button-group', 'dialog', 'password-field'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {
@@ -28170,7 +28329,11 @@ arm: {
       // legal (the partial-coordinate guard throws only when SOME of a template's axes are missing), and it
       // must fall back to the parent's DECLARED justify rather than to the first entry of the map. Asserting
       // no position on no evidence — the same conservative answer `presentWhen` gives for absence.
-      const bare = alignAt(figmaAnatomyPlan(def, size, rest as never), parent);
+      // An axis that shares a paint template with the unsupplied one goes too (#2751: switch's `status` sits beside
+      // `selection` in its status template), or the plan is a PARTIAL coordinate, which the guard refuses.
+      const coAxes = new Set((def.paintKeys ?? []).filter((t) => t.includes(`{${axis}}`)).flatMap((t) => [...t.matchAll(/\{(\w+)\}/g)].map((m) => m[1])));
+      const bareRest = Object.fromEntries(Object.entries(rest).filter(([a]) => !coAxes.has(a)));
+      const bare = alignAt(figmaAnatomyPlan(def, size, bareRest as never), parent);
       ok(bare === JUSTIFY_EXPECT[def.anatomy!.parts[parent].layout?.justify ?? 'start'],
         `#990 ${def.id}: with '${axis}' unsupplied, '${parent}' falls back to its own declared justify — a structure-only plan asserts no position on no evidence, and reading the map's first entry instead would put the part somewhere nobody chose (got '${bare}')`);
     }
@@ -29466,8 +29629,9 @@ arm: {
   // than read off the projector, so a re-exposed child axis or a new group axis moves ACTUAL away from it.
   const expected = g!.figmaProperties!.variantAxes.reduce((n, a) => n * ((g!.variants as Record<string, string[] | undefined>)[a]?.length ?? 1), 1);
   const actual = figmaAnatomySet(g!, { swapTarget: 'FPO-default-icon' }).length;
-  ok(expected === 3 && actual === expected,
-    `#1347: the group projects a size-only ${expected}-member set (the Row's collapse inherited, not the atom's explosion) — got ${actual}`);
+  // 6 since #2751: `status` (default, error) joins `size`; still no child axis re-exposed.
+  ok(expected === 6 && actual === expected,
+    `#1347: the group projects a size × status ${expected}-member set (the Row's collapse inherited, not the atom's explosion) — got ${actual}`);
   // The nest chain is FOUR deep — group → checkbox-row → checkbox-control → focus-ring — walked by `nests`.
   const byId = (id: string) => componentDefs.find((d) => d.id === id)!;
   const nestsOf = (d: ComponentDef): string[] =>
@@ -29486,16 +29650,20 @@ arm: {
   ok(!!g, '#2715 radio-group: registered in componentDefs');
   type PN = { name: string; type?: string; children: PN[]; nestTarget?: string; nestVariant?: Record<string, string>; visible?: boolean; visibleProp?: string; layoutAlign?: string; slotSettings?: Record<string, unknown>; slotPreferred?: string[] };
   const members = figmaAnatomySet(g!, { swapTarget: 'FPO-default-icon' });
-  const NAMES = ['size=medium', 'size=small', 'size=large'];
+  // 6 since #2751 (owner Q354): `status` (default, error) joins `size`, as on checkbox-group.
+  const NAMES = ['default', 'error'].flatMap((status) => ['medium', 'small', 'large'].map((size) => `status=${status}, size=${size}`));
   ok(JSON.stringify(members.map(planComponentName).sort()) === JSON.stringify([...NAMES].sort()),
-    `#2715 radio-group set size: exactly three members, one per size (${NAMES.join(', ')}); the rows' selection is not re-enumerated into the group's own matrix (got ${JSON.stringify(members.map(planComponentName))})`);
+    `#2715 radio-group set size: exactly six members, one per status × size (${NAMES.join(', ')}); the rows' selection is not re-enumerated into the group's own matrix (got ${JSON.stringify(members.map(planComponentName))})`);
   const sorted = (r: Record<string, string> | undefined) => JSON.stringify(Object.entries(r ?? {}).sort());
   // Owner decision Q307 A (#2649): the rows live in a native "items" slot, three by default, at least one, only a Radio.Row.
   const off = members.flatMap((m) => {
     const size = (m.size ?? (m.coord as Record<string, string>).size) as string;
+    const status = (m.coord as Record<string, string>).status;
     const root = m.root as PN;
     const bad: string[] = [];
-    if (JSON.stringify(root.children.map((c) => c.name)) !== JSON.stringify(['label', 'items'])) bad.push(`children ${root.children.map((c) => c.name).join(',')}`);
+    // #2751 (owner Q354): an errored group adds its message under the items (its nest pinned by the `#2751 radio-group` arm).
+    const want = status === 'error' ? ['label', 'items', 'message'] : ['label', 'items'];
+    if (JSON.stringify(root.children.map((c) => c.name)) !== JSON.stringify(want)) bad.push(`children ${root.children.map((c) => c.name).join(',')}`);
     const label = root.children.find((c) => c.name === 'label');
     if (label?.nestTarget !== 'field-label' || sorted(label.nestVariant) !== sorted({ size, emphasis: 'secondary', weight: 'bold', state: 'rest' }))
       bad.push(`label ${String(label?.nestTarget)} ${JSON.stringify(label?.nestVariant)}`);
@@ -29506,13 +29674,13 @@ arm: {
     const rows = items?.children ?? [];
     if (JSON.stringify(rows.map((r) => r.name)) !== JSON.stringify(['row1', 'row2', 'row3'])) bad.push(`items holds ${rows.map((r) => r.name).join(',')}`);
     for (const r of rows) {
-      if (r.nestTarget !== 'radio-row' || sorted(r.nestVariant) !== sorted({ size }) || r.layoutAlign !== 'STRETCH') bad.push(`${r.name} ${String(r.nestTarget)} ${JSON.stringify(r.nestVariant)} ${String(r.layoutAlign)}`);
+      if (r.nestTarget !== 'radio-row' || sorted(r.nestVariant) !== sorted({ size, status }) || r.layoutAlign !== 'STRETCH') bad.push(`${r.name} ${String(r.nestTarget)} ${JSON.stringify(r.nestVariant)} ${String(r.layoutAlign)}`);
       if (r.visibleProp !== undefined || r.visible === false) bad.push(`${r.name} visibleProp ${String(r.visibleProp)}, visible ${String(r.visible)}`);
     }
     return bad.length ? [`${planComponentName(m)}: ${bad.join('; ')}`] : [];
   });
   ok(off.length === 0,
-    `#2715 radio-group nesting: on every member, one FieldLabel (secondary, bold, rest) then an items slot (at least one, preferred-only Radio.Row, stretched) holding three Radio.Rows, each following the group's size, none behind a boolean (${off.length} off — ${off[0] ?? 'none'})`);
+    `#2715 radio-group nesting: on every member, one FieldLabel (secondary, bold, rest) then an items slot (at least one, preferred-only Radio.Row, stretched) holding three Radio.Rows, each following the group's size and status, none behind a boolean (${off.length} off — ${off[0] ?? 'none'})`);
   const parts = Object.values(g!.anatomy!.parts);
   ok(parts.filter((p) => p.kind === 'nest' && p.nests === 'radio-row').every((p) => p.nesting?.kind === 'nest-fixed')
     && !parts.some((p) => p.nests === 'radio-control'),
@@ -29539,7 +29707,7 @@ arm: {
   type PNode = { name?: string; children?: PNode[] };
   const names = (n: PNode): string[] => [n.name ?? '', ...((n.children ?? []) as PNode[]).flatMap(names)];
   const planNames = (selection: string): string[] =>
-    names(figmaAnatomyPlan(sc, 'medium', { selection, state: 'rest' }).root as unknown as PNode);
+    names(figmaAnatomyPlan(sc, 'medium', { selection, status: 'default', state: 'rest' }).root as unknown as PNode);
 
   // (1) THE NEST-EXPOSED SPLIT. The Row nests switch-control as nest-exposed, exposing the control's
   // consumer axes and following size. A revert to nest-fixed, or dropping an exposed axis, fails here.
@@ -29553,11 +29721,12 @@ arm: {
   // carries selection×size×state. 24 → 2.
   const rowN = figmaAnatomySet(switchRow).length;
   const ctlN = figmaAnatomySet(sc).length;
-  const ctlProduct = sc.variants!.selection!.length * sc.variants!.size!.length * sc.figmaProperties!.stateAxis!.values.length;
-  ok(rowN === switchRow.variants!.size!.length && rowN === 2,
-    `#1354 the switch ROW projects SIZE-ONLY — ${rowN} members (its one axis), the 24→2 collapse against the atom's set`);
-  ok(ctlN === ctlProduct && ctlProduct === 24,
-    `#1354 switch-control carries the 24 — selection×size×state multiplies to ${ctlProduct}, enumerated ${ctlN}`);
+  // `status` multiplies both since #2751 (owner Q354): the atom 2 × 2 × 2 × 5 = 40, the Row 2 sizes × 2 statuses = 4.
+  const ctlProduct = sc.variants!.selection!.length * sc.variants!.size!.length * sc.variants!.status!.length * sc.figmaProperties!.stateAxis!.values.length;
+  ok(rowN === switchRow.variants!.size!.length * switchRow.variants!.status!.length && rowN === 4,
+    `#1354 the switch ROW projects size × status only — ${rowN} members, the collapse against the atom's set`);
+  ok(ctlN === ctlProduct && ctlProduct === 40,
+    `#1354 switch-control carries the 40 — selection×size×status×state multiplies to ${ctlProduct}, enumerated ${ctlN}`);
 
   // (3) THE X/CHECKMARK AFFORDANCE is present (read off the PROJECTED PLAN) and bound to the inverse-of-
   // thumb ink. The glyph's ink is the SAME selection's TRACK fill — derived from the track token, NOT read
@@ -29575,7 +29744,7 @@ arm: {
 
   // (4) THE PRISM 2 TRACK STYLING, read off the PROJECTED PLAN's bound variables: a 2px inside border
   // (`border-width/thick`, Prism 2's strokeWeight 2) and a full pill (`radius/round`, its cornerRadius 999).
-  const trackVars = planBoundVars(figmaAnatomyPlan(sc, 'medium', { selection: 'off', state: 'rest' }).root);
+  const trackVars = planBoundVars(figmaAnatomyPlan(sc, 'medium', { selection: 'off', status: 'default', state: 'rest' }).root);
   ok(trackVars.includes('border-width/thick') && trackVars.includes('radius/round'),
     `#1354 the track binds Prism 2's 2px inside border and full pill (${trackVars.filter((v) => v.startsWith('border-width') || v.startsWith('radius')).join(', ') || 'neither present'})`);
 
@@ -29586,7 +29755,7 @@ arm: {
     Object.entries(sc.anatomy!.parts)
       .filter(([n]) => n !== 'onGlyph' && n !== 'offGlyph')
       .map(([n, p]) => [n, n === 'thumb' ? { ...p, children: [] } : p])) } } as typeof sc;
-  const mutNames = names(figmaAnatomyPlan(noGlyphs, 'medium', { selection: 'on', state: 'rest' }).root as unknown as PNode);
+  const mutNames = names(figmaAnatomyPlan(noGlyphs, 'medium', { selection: 'on', status: 'default', state: 'rest' }).root as unknown as PNode);
   ok(!mutNames.includes('onGlyph') && !mutNames.includes('offGlyph'),
     `#1354 MUTATION: with the glyph parts removed the projection carries no thumb glyph — the presence arms above gate the real parts, not the def text (mutant plan nodes: ${mutNames.join(',')})`);
 
@@ -29995,16 +30164,16 @@ arm: {
   // carry it. Removing the boolean (or narrowing it to one glyph) fails here by name.
   const set = figmaAnatomySet(sc);
   const props = planSetProperties(set);
-  ok(set.length === 24, `#1354 switch-control still projects 24 members — the State icon boolean does not multiply the set (got ${set.length})`);
+  ok(set.length === 40, `#1354 switch-control still projects 40 members (24 before #2751's status axis) — the State icon boolean does not multiply the set (got ${set.length})`);
   ok(JSON.stringify(props) === JSON.stringify([{ name: 'State icon', type: 'BOOLEAN', default: true }]),
     `#1354 switch-control's set declares exactly one property, the BOOLEAN 'State icon' defaulting to true (got ${JSON.stringify(props)})`);
   type GNode = { name: string; visibleProp?: string; visible?: boolean; children: GNode[] };
   const glyphNodes = (n: GNode): GNode[] => [...(n.name === 'onGlyph' || n.name === 'offGlyph' ? [n] : []), ...n.children.flatMap(glyphNodes)];
   const glyphs = set.flatMap((p) => glyphNodes(p.root as unknown as GNode));
   const byName = (nm: string) => glyphs.filter((g) => g.name === nm);
-  ok(byName('onGlyph').length === 12 && byName('offGlyph').length === 12
+  ok(byName('onGlyph').length === 20 && byName('offGlyph').length === 20
     && glyphs.every((g) => g.visibleProp === 'State icon' && (g.visible ?? true) === true),
-    `#1354 both glyph nodes (12 checks, 12 X's — one per member) carry visibleProp 'State icon', built visible (on=${byName('onGlyph').length}, off=${byName('offGlyph').length}, props=[${[...new Set(glyphs.map((g) => `${g.visibleProp}/${g.visible ?? true}`))].join(', ')}])`);
+    `#1354 both glyph nodes (20 checks, 20 X's — one per member) carry visibleProp 'State icon', built visible (on=${byName('onGlyph').length}, off=${byName('offGlyph').length}, props=[${[...new Set(glyphs.map((g) => `${g.visibleProp}/${g.visible ?? true}`))].join(', ')}])`);
 
   // (6) THE CODE DEFAULT matches the Figma default: `showStateLabel` is `true` on the atom AND on the Row
   // that exposes it. A literal `true` — the owner's decision, not the boolean's `default` read back.
@@ -30033,7 +30202,7 @@ arm: {
   ok(!figmaPropertyErrors(onlyOn).some((e) => PRESENCE_REFUSAL.test(e))
     && onlyOnGlyphs.filter((m) => m.sel === 'on').every((m) => m.g.length === 1 && m.g[0].name === 'onGlyph')
     && onlyOnGlyphs.filter((m) => m.sel === 'off').every((m) => m.g.length === 0)
-    && onlyOnGlyphs.filter((m) => m.sel === 'on').length === 12 && onlyOnGlyphs.filter((m) => m.sel === 'off').length === 12,
+    && onlyOnGlyphs.filter((m) => m.sel === 'on').length === 20 && onlyOnGlyphs.filter((m) => m.sel === 'off').length === 20,
     `#1743 a boolean over ONE presentWhen-gated glyph is admitted — the uncovered selection=off members carry no node and nothing to toggle (errors: ${figmaPropertyErrors(onlyOn).filter((e) => PRESENCE_REFUSAL.test(e)).join('; ') || 'none'})`);
   ok(figmaPropertyErrors(withBool(['onGlyph', 'offGlyph'], { offGlyph: { ...sc.anatomy!.parts.offGlyph, presentWhen: { selection: ['on'] } } })).some((e) => OVERLAP_REFUSAL.test(e)),
     '#1354 MUTATION: two gated glyphs both gated to `selection=on` are refused BY NAME — they overlap there, and the boolean would drive two nodes at one member');
@@ -30332,7 +30501,7 @@ arm: {
   type PNode = { name?: string; children?: PNode[] };
   const nodeNames = (n: PNode): string[] => [n.name ?? '', ...((n.children ?? []) as PNode[]).flatMap(nodeNames)];
   const planNames = (selection: string): string[] =>
-    nodeNames(figmaAnatomyPlan(rc, 'medium', { selection, state: 'rest' }).root as unknown as PNode);
+    nodeNames(figmaAnatomyPlan(rc, 'medium', { selection, status: 'default', state: 'rest' }).root as unknown as PNode);
 
   // (0) THE COMPOSITION / NESTING PRECONDITION (#1348, the owner's flat requirement — confirm the Row
   // NESTS a control before building the split). The radio Row must nest EXACTLY ONE control, and it must be
@@ -30357,11 +30526,12 @@ arm: {
   // carries selection×size×state. 36 → 3 at #1348; the atom is 30 since #1698 dropped its error column.
   const rowN = figmaAnatomySet(radioRow).length;
   const ctlN = figmaAnatomySet(rc).length;
-  const ctlProduct = rc.variants!.selection!.length * rc.variants!.size!.length * rc.figmaProperties!.stateAxis!.values.length;
-  ok(rowN === radioRow.variants!.size!.length && rowN === 3,
-    `#1348 the radio ROW projects SIZE-ONLY — ${rowN} members (its one axis), the collapse against the atom's set`);
-  ok(ctlN === ctlProduct && ctlProduct === 30,
-    `#1348 radio-control carries the 30 — selection×size×state multiplies to ${ctlProduct}, enumerated ${ctlN} (36 before #1698 dropped the error column)`);
+  // `status` multiplies both since #2751 (owner Q354): the atom 2 × 3 × 2 × 5 = 60, the Row 3 sizes × 2 statuses = 6.
+  const ctlProduct = rc.variants!.selection!.length * rc.variants!.size!.length * rc.variants!.status!.length * rc.figmaProperties!.stateAxis!.values.length;
+  ok(rowN === radioRow.variants!.size!.length * radioRow.variants!.status!.length && rowN === 6,
+    `#1348 the radio ROW projects size × status only — ${rowN} members, the collapse against the atom's set`);
+  ok(ctlN === ctlProduct && ctlProduct === 60,
+    `#1348 radio-control carries the 60 — selection×size×status×state multiplies to ${ctlProduct}, enumerated ${ctlN} (30 before #2751's status axis)`);
 
   // (3) THE PRISM 2 VISUAL — CONSTANT-WEIGHT OUTLINED RING + INNER CIRCLE ON SELECT (#1348 point 2), read
   // four ways, each independent of the producer. Since #1423 the ring RECOLORS on select (constant WEIGHT,
@@ -30444,7 +30614,7 @@ arm: {
   const filledDisc = { ...rc, tokens: { ...rc.tokens, 'checked.fill': 'color.interactive.primary.fill.selected' },
     anatomy: { ...rc.anatomy!, parts: { ...rc.anatomy!.parts,
       control: { ...rc.anatomy!.parts.control, paintSlots: ['fill', 'border'] } } } } as typeof rc;
-  const mutFillVars = planBoundVars(figmaAnatomyPlan(filledDisc, 'medium', { selection: 'checked', state: 'rest' }).root);
+  const mutFillVars = planBoundVars(figmaAnatomyPlan(filledDisc, 'medium', { selection: 'checked', status: 'default', state: 'rest' }).root);
   ok(mutFillVars.some((v) => v.startsWith('color/interactive/primary/fill')),
     `#1348 MUTATION: with a filled-disc checked.fill restored the checked ring DOES paint a fill — arm (3b)'s no-fill reading gates the real outlined ring, not the def text (fill vars: ${mutFillVars.filter((v) => v.includes('fill')).join(', ') || 'none'})`);
 
@@ -30458,48 +30628,70 @@ arm: {
     `#1348 radio-control's control is a FULL-ROUND host (radius→${rc.tokens['radius']}) nesting focus-ring, so F2/#1388 yields a CIRCULAR focus ring by construction — confirmed, not re-derived`);
 }
 
-// ---- #1698: CHECKBOX + RADIO ALIGNMENT — the two gateable decisions, pinned by literal ------------------
+// ---- #1698 → Q354 (#2751): ONE ERROR MECHANISM FOR EVERY CHOICE CONTROL, pinned by literal ----------------
 //
-// Decision 1: radio error is GROUP-level only (brief §4: "error | group-level only, never per-option"), so
-// `radio-control` carries no `error` state, no error ring binding and no error member, and `radio-row`
-// declares no `error` state. Decision 2: `radio-group`'s `name` is required (brief §15: `{name: name, ...,
-// required: true}`). EXPECTED is written here from the brief, never read off a def (docs/34 shape 1); ACTUAL
-// is the def and the projected set. Each arm carries its own mutation, so the assertion is shown to fail by
-// name against a def that has the forbidden shape.
+// #1698 decision 1 made radio error group-level only, which the def read as "no option draws an error". Owner Q354
+// (#2751, wireframe approved) keeps the rule and unifies the mechanism: every control that can be invalid takes the
+// fields' `status` axis. The checkbox and switch controls and rows lose their `error` STATE for `status`
+// [default, error]; radio control and row gain it, set by the Radio group; both groups gain it, pass it to their
+// rows (`follow`) and show a nested FieldMessage under the options at `error`. EXPECTED is typed here from the
+// decision, never read off a def (docs/34 shape 1); ACTUAL is the def and the projected set. Decision 2 (radio
+// group's `name` is required) is unchanged.
 {
-  const rc = componentDefs.find((d) => d.id === 'radio-control')!;
-  const rrow = componentDefs.find((d) => d.id === 'radio-row')!;
-  const rgrp = componentDefs.find((d) => d.id === 'radio-group')!;
+  const STATUS = ['default', 'error'];
+  const IDS = ['checkbox-control', 'checkbox-row', 'checkbox-group', 'switch-control', 'switch-row', 'radio-control', 'radio-row', 'radio-group'];
   const errorShape = (d: ComponentDef): string[] => [
     ...(d.states ?? []).filter((st) => st === 'error').map(() => 'states has error'),
     ...(d.figmaProperties?.stateAxis?.values ?? []).filter((v) => v === 'error').map(() => 'stateAxis has error'),
-    ...Object.keys(d.tokens ?? {}).filter((k) => k.split('.').includes('error')).map((k) => `token ${k}`),
     ...figmaAnatomySet(d).map(planComponentName).filter((n) => /state=error/.test(n)).map((n) => `member ${n}`),
   ];
-  // (1a) the atom has no per-option error in any of the four places it could live.
-  const rcErr = errorShape(rc);
-  ok(rcErr.length === 0,
-    `#1698 radio-control has NO per-option error — no error state, no error ring binding, no error member (found: ${rcErr.slice(0, 4).join('; ') || 'none'})`);
-  // (1b) the option row declares no error state either (its Figma set is size-only, so the state list is
-  // the code projection's — a row `error` here would promise a per-option error the control cannot draw).
-  ok(!(rrow.states ?? []).includes('error'),
-    `#1698 radio-row declares no error state — radio error is group-level (states: ${(rrow.states ?? []).join(', ')})`);
-  // (1c) the family difference is deliberate: an isolated checkbox recolors its own boundary (brief
-  // checkbox §4), so checkbox-control KEEPS its error ring. Guards against a sweep that drops both.
-  ok(checkboxControl.states.includes('error') && checkboxControl.tokens['unchecked.border.error'] === 'color.border.danger',
-    `#1698 checkbox-control keeps its error ring — only radio error is group-level (states: ${checkboxControl.states.join(', ')}, unchecked.border.error=${checkboxControl.tokens['unchecked.border.error']})`);
-  //   MUTATION (1a) — restore the pre-#1698 danger ring on the unchecked option.
-  const mutRc = { ...rc, tokens: { ...rc.tokens, 'unchecked.border.error': 'color.border.danger' } } as ComponentDef;
-  ok(errorShape(mutRc).includes('token unchecked.border.error'),
-    `#1698 MUTATION: a restored unchecked.border.error is found by the per-option error scan — arm (1a) reads the def's live tokens`);
-  //   MUTATION (1a) — restore the error state and its column.
-  const mutRcState = { ...rc, states: [...rc.states, 'error'],
-    figmaProperties: { ...rc.figmaProperties!, stateAxis: { ...rc.figmaProperties!.stateAxis!, values: [...rc.figmaProperties!.stateAxis!.values, 'error'] } } } as ComponentDef;
-  const mutStateErr = errorShape(mutRcState);
-  ok(mutStateErr.includes('states has error') && mutStateErr.some((e) => e.startsWith('member ')),
-    `#1698 MUTATION: a restored error state projects error members the scan finds (${mutStateErr.filter((e) => e.startsWith('member ')).length} members)`);
-  // (2) the group's shared name is required — the literal the brief states.
-  const nameProp = rgrp.props.find((pr) => pr.name === 'name');
+  for (const id of IDS) {
+    const d = componentDefs.find((x) => x.id === id)!;
+    // (1) no error STATE anywhere it could live.
+    const err = errorShape(d);
+    ok(err.length === 0, `#2751 ${id}: error is not a state — no error state, no state=error member (found: ${err.slice(0, 3).join('; ') || 'none'})`);
+    // (2) the status axis, projected, over exactly the first two of the fields' values.
+    const members = figmaAnatomySet(d).map(planComponentName);
+    ok(JSON.stringify(d.variants?.status) === JSON.stringify(STATUS) && (d.figmaProperties?.variantAxes ?? []).includes('status')
+      && STATUS.every((v) => members.some((n) => n.includes(`status=${v}`))),
+      `#2751 ${id}: a projected status axis [${STATUS.join(', ')}] (got ${JSON.stringify(d.variants?.status)}, variantAxes ${JSON.stringify(d.figmaProperties?.variantAxes)})`);
+    // (3) the fields' prop name, over the same two values.
+    const v = d.props.find((p) => p.name === 'validation');
+    ok(!!v && JSON.stringify(v.values) === JSON.stringify(STATUS) && v.default === 'default',
+      `#2751 ${id}: a \`validation\` prop over [${STATUS.join(', ')}], default \`default\` (got ${v ? JSON.stringify(v.values) : 'none'})`);
+  }
+  // (4) every row and group nest FOLLOWS status, so a group's error reaches every box.
+  const follows = (id: string, nests: string): string[] => {
+    const d = componentDefs.find((x) => x.id === id)!;
+    return Object.entries(d.anatomy!.parts).filter(([, p]) => p.nests === nests && !(p.nesting?.follow ?? []).includes('status')).map(([n]) => n);
+  };
+  for (const [id, nests, n] of [['checkbox-row', 'checkbox-control', 1], ['switch-row', 'switch-control', 1], ['radio-row', 'radio-control', 1], ['checkbox-group', 'checkbox-row', 3], ['radio-group', 'radio-row', 3]] as const) {
+    const d = componentDefs.find((x) => x.id === id)!;
+    const all = Object.values(d.anatomy!.parts).filter((p) => p.nests === nests).length;
+    const miss = follows(id, nests);
+    ok(all === n && miss.length === 0, `#2751 ${id}: all ${n} ${nests} nest(s) follow status (${all} found; not following: ${miss.join(', ') || 'none'})`);
+  }
+  // (5) each group shows a nested FieldMessage under its options at error, and only at error.
+  for (const id of ['checkbox-group', 'radio-group']) {
+    const d = componentDefs.find((x) => x.id === id)!;
+    const set = figmaAnatomySet(d);
+    const last = (p: AnatomyPlan) => p.root.children[p.root.children.length - 1];
+    const bad = set.filter((p) => {
+      const err = /status=error/.test(planComponentName(p));
+      const m = p.root.children.find((k) => k.name === 'message');
+      return err ? !(m && last(p) === m && m.nestTarget === 'field-message' && (m.nestVariant as Record<string, string>)?.status === 'error') : !!m;
+    }).map(planComponentName);
+    ok(set.length === 6 && bad.length === 0, `#2751 ${id}: a nested field-message at status=error, under the options, and none at default (${set.length} members; wrong: ${bad.join('; ') || 'none'})`);
+  }
+  //   MUTATION (1) — restore the error state and its column on checkbox-control.
+  const cc = componentDefs.find((d) => d.id === 'checkbox-control')!;
+  const mutState = { ...cc, states: [...cc.states, 'error'],
+    figmaProperties: { ...cc.figmaProperties!, stateAxis: { ...cc.figmaProperties!.stateAxis!, values: [...cc.figmaProperties!.stateAxis!.values, 'error'] } } } as ComponentDef;
+  const mutErr = errorShape(mutState);
+  ok(mutErr.includes('states has error') && mutErr.some((e) => e.startsWith('member ')),
+    `#2751 MUTATION: a restored error state projects state=error members the scan finds (${mutErr.filter((e) => e.startsWith('member ')).length} members)`);
+  // Decision 2: the group's shared name is required — the literal the brief states.
+  const nameProp = componentDefs.find((d) => d.id === 'radio-group')!.props.find((pr) => pr.name === 'name');
   ok(nameProp?.required === true,
     `#1698 radio-group's name prop is required — it is what makes the set exclusive (required=${String(nameProp?.required)})`);
 }
@@ -31460,8 +31652,8 @@ arm: {
 // code that carries it. The list is the owner's, and its reasoning lives with the constant, not here.
 {
   const EXPECTED_FAMILY_ORDER = [
-    'background', 'foreground', 'text', 'icon', 'interactive',
-    'disabled', 'border', 'scrim', 'veil', 'field', 'inverse',
+    'background', 'foreground', 'text', 'interactive', 'border', 'icon',
+    'disabled', 'scrim', 'veil', 'field', 'inverse',
   ];
 
   // ---- (a) THE DTCG SIDE: object-key insertion order, read off the committed tree ----
@@ -31528,6 +31720,118 @@ arm: {
   })();
   ok(figmaFamilies.join('|') === dtcgFamilies.join('|') && figmaFamilies.length > 1,
     `#1150: the Figma creation order and the DTCG key order are the SAME sequence — one list drives both materialisations (figma: ${figmaFamilies.join(' → ')} | dtcg: ${dtcgFamilies.join(' → ')})`);
+}
+
+// ------------------------------------------------------------ #2860: ONE CANONICAL COLOUR-VARIABLE ORDER
+//
+// The #1150 block above pins the FAMILY order. This one pins what is inside a family, for default and inverse
+// alike: every group contiguous, every inverse group in its default counterpart's order, every status run in
+// the engine's SEMANTICS order, and the order a designer reaches for rather than the alphabetical one.
+//
+// docs/34: every expectation is a LITERAL typed below. `color-order.ts` is the subject and is not imported,
+// so a reorder there fails here by name instead of agreeing with itself. The studio's status-order gate
+// (`apps/studio/test-status-order.ts`, #2843) reads the same emission against its own copy of the statuses.
+//
+// Mutations that fail here by name: `foreground.danger` ranked last again (the #2836 shape) → `statuses in
+// canonical order`; an inverse family's segment order changed in `SEGMENT_ORDER` only for `inverse` → `inverse
+// mirrors default`; `.sort()` on the role keys in `orderedRoleKeys` → `design-UX order, not alphabetical`;
+// a role appended after the collection → `every group is contiguous`.
+{
+  const STATUSES = ['brand', 'success', 'warning', 'danger', 'info'];
+  const kindOf = (seg: string): { kind: string; status: string } | null => {
+    const m = /^(on-)?(brand|success|warning|danger|info)(-subtle)?$/.exec(seg);
+    return m ? { kind: m[1] ? 'on' : m[3] ? 'subtle' : 'bare', status: m[2] } : null;
+  };
+  const leafPaths = (n: any, pre: string[] = []): string[][] =>
+    Object.keys(n).filter((k) => k[0] !== '$').flatMap((k) =>
+      n[k] && n[k].$value !== undefined ? [[...pre, k]] : n[k] && typeof n[k] === 'object' ? leafPaths(n[k], [...pre, k]) : []);
+  /** Every prefix (at every depth) whose leaves are not one unbroken run, as `prefix`. */
+  const splitGroups = (paths: string[][]): string[] => {
+    const split = new Set<string>(), closed = new Set<string>();
+    let open: string[] = [];
+    for (const p of paths) {
+      const now = p.slice(0, -1).map((_, i) => p.slice(0, i + 1).join('.'));
+      for (const g of open) if (!now.includes(g)) closed.add(g);
+      for (const g of now) if (closed.has(g)) split.add(g);
+      open = now;
+    }
+    return [...split];
+  };
+  /** Every group whose status run (bare / subtle / on-) is not brand, success, warning, danger, info. */
+  const statusBreaks = (paths: string[][]): string[] => {
+    const seen = new Map<string, string[]>();
+    for (const p of paths) {
+      const k = kindOf(p[p.length - 1]);
+      if (!k) continue;
+      const key = `${p.slice(0, -1).join('.')}|${k.kind}`;
+      seen.set(key, [...(seen.get(key) ?? []), k.status]);
+    }
+    return [...seen].filter(([, v]) => v.join() !== STATUSES.join()).map(([k, v]) => `${k.replace('|', ' ')}: ${v.join(' → ')}`);
+  };
+  const strip = (paths: string[][]): string[] => paths.map((p) => p.join('.'));
+
+  const brands = ['nb', 'prism3', 'aurora', 'harbor', 'wendys'].filter((b) => existsSync(resolve(HERE, `./out/${b}.tokens.json`)));
+  ok(brands.length >= 5, `#2860: the colour order is checked on ${brands.length} brands (floor 5) — a dropped brand must not read as a clean pass`);
+  for (const brand of brands) {
+    const tree = JSON.parse(readFileSync(resolve(HERE, `./out/${brand}.tokens.json`), 'utf8'));
+    const color = tree[Object.keys(tree).find((k) => !k.startsWith('$'))!].color;
+    const { inverse, ...roles } = color;
+    const defLeaves = leafPaths(roles), invLeaves = leafPaths(inverse);
+    const all = [...defLeaves, ...invLeaves.map((p) => ['inverse', ...p])];
+
+    ok(splitGroups(all).length === 0, `#2860 ${brand}: every group is contiguous in the emission${splitGroups(all).length ? ` — SPLIT: ${splitGroups(all).join(', ')}` : ` (${all.length} leaves)`}`);
+    const breaks = statusBreaks(all);
+    ok(breaks.length === 0, `#2860 ${brand}: statuses in canonical order (brand, success, warning, danger, info) in every group, default and inverse${breaks.length ? ` — OUT OF ORDER: ${breaks.slice(0, 4).join(' | ')}` : ''}`);
+
+    // The inverse groups are the default groups' order, restricted to what the inverse has. A key the inverse
+    // has and the default lacks is its own failure: nothing then says where it should read.
+    const inv = new Set(strip(invLeaves));
+    const def = strip(defLeaves);
+    const mirrored = def.filter((k) => inv.has(k));
+    const orphans = [...inv].filter((k) => !def.includes(k));
+    ok(orphans.length === 0, `#2860 ${brand}: every inverse role has a default counterpart${orphans.length ? ` — NONE FOR: ${orphans.slice(0, 4).join(', ')}` : ''}`);
+    const firstDiff = strip(invLeaves).findIndex((k, i) => k !== mirrored[i]);
+    ok(firstDiff < 0 && mirrored.length === inv.size,
+      `#2860 ${brand}: inverse mirrors default — same keys in the same order, minus the groups with no inverse${firstDiff >= 0 ? ` — FIRST DIFFERENCE at inverse.${strip(invLeaves)[firstDiff]} (default order puts ${mirrored[firstDiff]} there)` : ''}`);
+    const noInverse = Object.keys(roles).filter((g) => !(g in inverse));
+    ok(noInverse.join() === 'scrim,veil', `#2860 ${brand}: the families without an inverse are exactly scrim and veil (got ${noInverse.join(', ')})`);
+
+    // Design-UX order, not alphabetical: a literal spot-check per axis that an alphabetical sort breaks.
+    const at = (k: string): number => def.indexOf(k);
+    ok(at('text.brand') < at('text.success') && at('text.success') < at('text.danger') && at('text.danger') < at('text.info') && at('text.info') < at('text.brand-subtle'),
+      `#2860 ${brand}: design-UX order, not alphabetical — the statuses run brand, success, danger, info ahead of their subtle tints on text`);
+    ok(at('interactive.primary.fill.rest') < at('interactive.primary.fill.hover')
+      && at('interactive.primary.fill.hover') < at('interactive.primary.fill.pressed')
+      && at('interactive.primary.fill.pressed') < at('interactive.primary.fill.focused')
+      && at('interactive.primary.fill.focused') < at('interactive.primary.fill.selected'),
+      `#2860 ${brand}: design-UX order, not alphabetical — states run rest, hover, pressed, focused, selected`);
+    ok(at('text.primary') < at('text.secondary') && at('text.secondary') < at('text.tertiary') && at('text.tertiary') < at('text.brand'),
+      `#2860 ${brand}: design-UX order, not alphabetical — primary, secondary, tertiary before the statuses`);
+    ok(at('foreground.danger') < at('foreground.info') && at('foreground.info') < at('foreground.brand-subtle'),
+      `#2860 ${brand}: foreground lists danger with the statuses, ahead of the subtle tints (#2836)`);
+    const inkParts = def.filter((k) => k.startsWith('interactive.primary.')).map((k) => k.split('.')[2]).filter((p, i, a) => a.indexOf(p) === i);
+    ok(inkParts.join() === 'fill,on-fill,text,icon,border,overlay,subtle-fill',
+      `#2860 ${brand}: interactive runs fill, on-fill, text, icon, border, overlay, subtle-fill (got ${inkParts.join(', ')})`);
+  }
+
+  // The Figma creation order is the same sequence, in every mode file, and contiguous at every depth.
+  const figmaBrands = ['nb', 'prism3', 'aurora', 'wendys'].filter((b) => existsSync(resolve(HERE, `./out/figma/${b}/color.light.json`)));
+  ok(figmaBrands.length >= 4, `#2860 figma: the colour order is checked on ${figmaBrands.length} brands (floor 4)`);
+  for (const brand of figmaBrands) {
+    const pfx = `${rootOfBrand(brand)}/color/`;
+    const seqs = ['light', 'dark', 'hc-light', 'hc-dark'].map((m) =>
+      (JSON.parse(readFileSync(resolve(HERE, `./out/figma/${brand}/color.${m}.json`), 'utf8')).variables as Array<{ name: string }>)
+        .map((v) => v.name.slice(pfx.length).split('/')));
+    const split = splitGroups(seqs[0]);
+    ok(split.length === 0, `#2860 figma(${brand}): every group is contiguous in the creation order${split.length ? ` — SPLIT: ${split.join(', ')}` : ` (${seqs[0].length} rows)`}`);
+    const fb = statusBreaks(seqs[0]);
+    ok(fb.length === 0, `#2860 figma(${brand}): statuses in canonical order in every group${fb.length ? ` — OUT OF ORDER: ${fb.slice(0, 4).join(' | ')}` : ''}`);
+    const light = strip(seqs[0]);
+    ok(seqs.every((q) => strip(q).join('|') === light.join('|')), `#2860 figma(${brand}): all four mode files create the variables in the same order`);
+    const invF = light.filter((k) => k.startsWith('inverse.')).map((k) => k.slice('inverse.'.length));
+    const mir = light.filter((k) => !k.startsWith('inverse.') && invF.includes(k));
+    ok(mir.join('|') === invF.join('|'), `#2860 figma(${brand}): inverse mirrors default in the creation order`);
+  }
 }
 
 // ---- #1816 RENAME STAMPS: the fold fills a rename rule's `since`, and the gate checks it did ----------
@@ -31898,6 +32202,28 @@ arm: {
   ok(display.length === 1 && display[0].startsWith("acc: axis 'iconPosition' is gone"), `#2592 renames lint: an axis renamed only for display needs an entry (${display.join('; ')})`);
   ok(renamesUnaccounted({ acc: { axes: { iconPosition: ['leading', 'trailing'] }, members: 2 } }, shown, [{ def: 'acc', kind: 'axis', from: 'iconPosition', to: 'icon position', issue: 2592 }]).length === 0, '#2592 renames lint: the axis entry claims it');
 
+  // #2751 (owner Q354): a value that LEFT its axis for a coordinate on others. `state=error` → `state=rest, status=error`.
+  // The expected keys are typed here; nothing reads them off the live ledger or a projection (docs/34).
+  const MV: ComponentRename[] = [{ def: 'box', kind: 'move', axis: 'state', from: 'error', to: { state: 'rest', status: 'error' }, issue: 1 }];
+  const mv = renameCoordinate('box', 'selection=checked, size=small, state=error', MV);
+  ok(mv.key === 'selection=checked, size=small, state=rest, status=error' && mv.renamed,
+    `#2751 renameCoordinate: a move replaces state=error with state=rest and status=error, one coordinate for one member (got ${mv.key})`);
+  ok(!renameCoordinate('box', 'selection=checked, size=small, state=hover', MV).renamed, '#2751 renameCoordinate: a move leaves every other state alone (the added axis is the plan\'s business)');
+  let clash = '';
+  try { renameCoordinate('box', 'state=error, status=default', MV); } catch (e) { clash = (e as Error).message; }
+  ok(/already carries status=default/.test(clash), `#2751 renameCoordinate: a move onto an axis the coordinate already holds at another value is refused (${clash || 'no throw'})`);
+  const mvBefore: AxesBaseline = { box: { axes: { size: ['small'], state: ['error', 'hover', 'rest'] }, members: 3 } };
+  const mvAfter: AxesBaseline = { box: { axes: { size: ['small'], state: ['hover', 'rest'], status: ['default', 'error'] }, members: 4 } };
+  ok(renamesUnaccounted(mvBefore, mvAfter, MV).length === 0, `#2751 renames lint: the move claims state=error (${renamesUnaccounted(mvBefore, mvAfter, MV).join('; ')})`);
+  const mvMissing = renamesUnaccounted(mvBefore, mvAfter, []);
+  ok(mvMissing.length === 1 && mvMissing[0].startsWith('box: state=error is gone') && mvMissing[0].includes("kind: 'move'"), `#2751 renames lint: without it, state=error is reported, the move named as one way to claim it (${mvMissing.join('; ')})`);
+  ok(renamesDangling(mvAfter, MV).length === 0, `#2751 renames lint: a move landing on projected values is not dangling (${renamesDangling(mvAfter, MV).join('; ')})`);
+  const mvDangling = renamesDangling({ box: { axes: { state: ['rest'] }, members: 1 } }, MV);
+  ok(mvDangling.length === 1 && mvDangling[0].includes('status=error'), `#2751 renames lint: a move onto an axis the tree does not project is refused (${mvDangling.join('; ')})`);
+  // The live ledger: the two controls that carried an error STATE move it, by these literals.
+  for (const def of ['checkbox-control', 'switch-control'])
+    ok(COMPONENT_RENAMES.some((r) => r.def === def && r.kind === 'move' && r.axis === 'state' && r.from === 'error' && JSON.stringify(r.to) === JSON.stringify({ state: 'rest', status: 'error' })),
+      `#2751 COMPONENT_RENAMES: ${def} moves state=error onto state=rest, status=error`);
   // #2649: the component PROPERTIES. A row BOOLEAN that leaves for a native slot is claimed by the slot entry naming it;
   // without the entry it is named; a property removed with no successor needs a property drop; a slot entry whose slot
   // the tree does not project, or that claims a boolean the tree still has, dangles. The real ledger's own five entries
@@ -33228,6 +33554,56 @@ arm: {
   const ROW_PROPS: [string, string][] = [['checkbox-row', 'disabled'], ['radio-row', 'disabled'], ['radio-row', 'readOnly'], ['switch-row', 'disabled']];
   const rowBad = ROW_PROPS.filter(([id, n]) => shapeOf(id, n) !== BOOL_OFF).map(([id, n]) => `${id}.${n}: ${shapeOf(id, n)}`);
   ok(rowBad.length === 0, `Q351 A row props: Checkbox.Row, Radio.Row and Switch.Row each carry disabled, and Radio.Row readOnly, as a real boolean defaulting false (${rowBad.join('; ') || 'all 4'})`);
+}
+
+// ---- #2830: THE COMPONENT SPEC MODEL — what a spec sheet shows, against the wireframe's hand-read values ----
+//
+// `component-specs.ts` builds the model from the plan; `apps/plugin/test-roundtrip.ts` holds it to the BUILT set,
+// both directions. What that read-back cannot see is a wrong plan (both sides descend from it, docs/34 shape 17), so
+// these arms pin the values the approved wireframe read off the plan on 2026-10-19 and the owner reviewed, written
+// here by hand: Button's slot-aware padding and its 88/104/128 floor, Text field's 120 floor and 320 build width,
+// its nested label's exposure, and each def's code-only states. Each is a literal, never a call to the projector.
+{
+  const specOf = (id: string, px?: (ref: string) => number | undefined) => componentSpec(componentDefs.find((d) => d.id === id)!, px ? { px } : {});
+  const btn = specOf('button');
+  const row = (where: Record<string, string>) => btn.redlines.find((r) => Object.entries(where).every(([a, v]) => r.where[a] === v));
+  const pad = (where: Record<string, string>, side: string) => JSON.stringify((row(where)?.parts.find((p) => p.part === 'container')?.values as Record<string, unknown> | undefined)?.[side]);
+  const bare = { size: 'medium', leading: 'false', trailing: 'false', inset: 'default' };
+  ok(pad(bare, 'paddingLeft') === '{"token":"space.200"}' && pad(bare, 'paddingTop') === '{"token":"space.100"}' && pad(bare, 'height') === '{"token":"size.md.height"}',
+    `#2830 spec: Button medium pads space.200 inline and space.100 block at size.md.height (${pad(bare, 'paddingLeft')}, ${pad(bare, 'paddingTop')}, ${pad(bare, 'height')})`);
+  ok(pad({ ...bare, leading: 'true' }, 'paddingLeft') === '{"token":"space.150"}' && pad({ ...bare, leading: 'true' }, 'paddingRight') === '{"token":"space.200"}',
+    `#2830 spec: Button medium pads space.150 on the icon side (${pad({ ...bare, leading: 'true' }, 'paddingLeft')})`);
+  const floors = ['small', 'medium', 'large'].map((size) => (row({ ...bare, size })?.parts[0].values.minWidth as { px?: number; source?: string } | undefined));
+  ok(floors.map((f) => `${f?.px}:${f?.source}`).join('/') === '88:derived/104:derived/128:derived',
+    `#2830 spec: Button's floor is derived per size, 88 / 104 / 128 (${floors.map((f) => JSON.stringify(f)).join(' / ')})`);
+  ok(btn.redlineKey.includes('inset'), `#2830 spec: Button's redlines key on inset, because a flush button drops its padding (${btn.redlineKey.join(', ')})`);
+  ok(pad(bare, 'paddingLeft') !== pad({ ...bare, inset: 'flush' }, 'paddingLeft'), `#2830 spec: a flush row's padding differs from the default row's (${pad({ ...bare, inset: 'flush' }, 'paddingLeft')})`);
+  const tf = specOf('text-field');
+  const tfMed = tf.redlines.find((r) => r.where.size === 'medium')!;
+  const val = (part: string, prop: string) => JSON.stringify((tfMed.parts.find((p) => p.part === part)?.values as Record<string, unknown> | undefined)?.[prop]);
+  ok(val('container/control', 'minWidth') === '{"px":120,"source":"literal"}' && val('container', 'buildWidth') === '{"px":320,"source":"literal"}',
+    `#2830 spec: Text field's control floor (120) and build width (320) are literals (${val('container/control', 'minWidth')}, ${val('container', 'buildWidth')})`);
+  const label = tf.nesting.find((n) => n.part === 'container/label');
+  ok(label?.kind === 'instance' && label.component === 'field-label' && label.follows.includes('size') && JSON.stringify(label.exposes) === '["emphasis","weight"]',
+    `#2830 spec: Text field's label nests field-label, follows size, exposes emphasis and weight (${JSON.stringify(label)})`);
+  ok(JSON.stringify(btn.codeOnlyStates) === '["inactive"]' && JSON.stringify(tf.codeOnlyStates) === '["pending","empty"]',
+    `#2830 spec: the code-only states are named — Button ${JSON.stringify(btn.codeOnlyStates)}, Text field ${JSON.stringify(tf.codeOnlyStates)}`);
+  const rest = btn.colors.find((r) => r.where.appearance === 'filled' && r.where.surface === 'default' && r.where.inset === 'default' && r.where.state === 'rest');
+  ok(rest?.parts.find((p) => p.part === 'container')?.fill === 'color.interactive.primary.fill.rest' && rest?.parts.find((p) => p.part === 'container/label')?.ink === 'color.interactive.primary.on-fill',
+    `#2830 spec: Button filled at rest fills color.interactive.primary.fill.rest under on-fill ink (${JSON.stringify(rest?.parts)})`);
+  ok(rest?.parts.find((p) => p.part === 'container/leadingVisual')?.icon === 'color.interactive.primary.on-fill' && rest?.parts.find((p) => p.part === 'container/trailingVisual')?.icon === 'color.interactive.primary.on-fill',
+    `#2830 spec: Button filled at rest inks both visuals color.interactive.primary.on-fill (${JSON.stringify(rest?.parts.filter((p) => p.part.endsWith('Visual')))})`);
+  // A nest's fixed variant and the host values that move it: Text field's label rests at secondary, regular, and
+  // dims with the field; Counter's ghost members nest the round shape, its outline ones the flush (Q287 A).
+  ok(JSON.stringify(label?.kind === 'instance' && label.variant) === '{"size":"medium","emphasis":"secondary","weight":"regular","state":"rest"}' && JSON.stringify(label?.kind === 'instance' && label.when) === '{"state":{"disabled":{"state":"disabled"}}}',
+    `#2830 spec: Text field's label nests field-label at secondary, regular, rest, and takes state=disabled on a disabled field (${JSON.stringify(label)})`);
+  const dec = specOf('counter').nesting.find((n) => n.part === 'container/control/decrement');
+  ok(dec?.kind === 'instance' && dec.variant.shape === 'flush' && dec.when?.appearance?.ghost?.shape === 'round' && dec.when?.appearance?.outline?.shape === 'flush',
+    `#2830 spec: Counter's minus nests the flush shape, and the round one on a ghost Counter (${JSON.stringify(dec)})`);
+  // A token carries px only when a caller passes a brand's resolver; the emitted model carries none.
+  const withPx = specOf('button', (r) => (r === 'space.200' ? 16 : undefined));
+  const wp = withPx.redlines.find((r) => Object.entries(bare).every(([a, v]) => r.where[a] === v))?.parts[0].values.paddingLeft;
+  ok(JSON.stringify(wp) === '{"token":"space.200","px":16}' && pad(bare, 'paddingLeft') === '{"token":"space.200"}', `#2830 spec: px rides a token only under a resolver (${JSON.stringify(wp)})`);
 }
 
 // ------------------------------------------------------------------- #2715: link and tabs paint

@@ -415,53 +415,53 @@
       ]
     },
     "checkbox-control": {
-      "members": 54,
-      "sha256": "177c270979cdea700f854ea76e89697bf5042808b6472f0255eec51ebf5478ef",
+      "members": 90,
+      "sha256": "2664a7b87e87a09828edf76eaa277fb9b3b1f08f3f9979d98929dc6af1fa932e",
       "properties": []
     },
     "checkbox-row": {
-      "members": 3,
-      "sha256": "420c04d3fc955b19ecfe69e14c13ca93264432fb6a3b7312d2e171d5bc67d467",
+      "members": 6,
+      "sha256": "888ecaa8980985ba76782782829791b5ac7c4b56fa91f37ddbb26ad883edb420",
       "properties": [
         "label:TEXT"
       ]
     },
     "checkbox-group": {
-      "members": 3,
-      "sha256": "3a2efcfb86048957c39b692ef2769e2880389bda3fada79fcb86d51fd1315690",
+      "members": 6,
+      "sha256": "220cfdff8d8cdb09fb6a4d35aedc91804aa872b5bd05619374ef8a08581dc2bc",
       "properties": [
         "items:SLOT"
       ]
     },
     "radio-control": {
-      "members": 30,
-      "sha256": "2e9f69cae7da551dc1749719b277fc9e1c8756b1a661e866359a357b90a25aed",
+      "members": 60,
+      "sha256": "3a3b391996c7362f629463a504234fcce7e73ae5cef73c5fb1110f827f879518",
       "properties": []
     },
     "radio-row": {
-      "members": 3,
-      "sha256": "127cd721215071fc4a5fa2edab9d21ccf562211f2836513a10e71d9a29823614",
+      "members": 6,
+      "sha256": "4ba6bf6c5b2c4a14e0c638a6bfab8eb0c8d24ed948eb96699a30321ce0add860",
       "properties": [
         "label:TEXT"
       ]
     },
     "radio-group": {
-      "members": 3,
-      "sha256": "ea10defbd2b31646db81b0102b942f857bc051d531503121ff6066f0b9e96069",
+      "members": 6,
+      "sha256": "ba35f07868d2e5c07b727e5fa183e5768c345ca85667b08cb91f6117f1804869",
       "properties": [
         "items:SLOT"
       ]
     },
     "switch-control": {
-      "members": 24,
-      "sha256": "c2ec76cdbc29395a4854ca7ac5f9a1d8eaa1e43e2d8496169c3fe97135759ea8",
+      "members": 40,
+      "sha256": "9384159a93ffa8691431e8623f2cf1c098983f4ae2236bc503d16f5f42ad6096",
       "properties": [
         "State icon:BOOLEAN"
       ]
     },
     "switch-row": {
-      "members": 2,
-      "sha256": "9e8357ed0f6be50d989c6e3f8a0820a40c55afcbb527fd3e35e5935da11b0218",
+      "members": 4,
+      "sha256": "8e79961a45ccd3705a0a7a40d74ea8d315f29a8563d0bfcb9eba3338fb041249",
       "properties": [
         "label:TEXT"
       ]

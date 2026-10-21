@@ -9,7 +9,7 @@
 
 ## Overview
 
-The small icon + caption below a form field. In its default status it is persistent helper guidance (the format shown BEFORE failure); its error / warning / success statuses carry a validation result. A shared field part — the same component under every field control, not re-authored per host. Icon + text together, never color alone.
+The small icon + caption below a form field. In its default status it is persistent helper guidance (the format shown before failure); its error / warning / success statuses carry a validation result. A shared field part — the same component under every field control, not re-authored per host. Icon + text together, never color alone.
 
 - **Purpose:** Carry helper guidance or a validation result below a form field, as icon + caption.
 - **Use when:** Under any field control that needs persistent guidance or an error/warning/success message.
@@ -36,21 +36,21 @@ Place directly below a field to carry persistent helper guidance (default status
 
 ### Do
 
-- Show the format/constraint in the default status BEFORE the user can fail
+- Show the format/constraint in the default status before the user can fail
 - Pair the status with an icon so it is never color-only
 - Let the host own aria-describedby + aria-invalid; keep this node presentational
 
 ### Don't
 
 - Signal error with color alone (fails SC 1.4.1)
-- Duplicate the error into a self-announcing live region here AND on the host — the host owns announcement
+- Duplicate the error into a self-announcing live region here and on the host — the host owns announcement
 - Use warning as a hard blocker — it is a soft, non-blocking caution (many systems fold it into helper/error)
 
 ## Accessibility
 
 - **Screen readers:** none (rendered text; the host associates it via aria-describedby)
 
-  The status icon is aria-hidden — the caption text carries the meaning, so a non-default status starts with a visually hidden prefix that names it ("Error:"), announced even where the glyph is not. The prefix is translatable, like the message after it — a hard-coded English prefix before a localized message is a broken reading. The message does NOT self-announce; the host field references its id in aria-describedby (and sets aria-invalid on error). If the message appears/changes dynamically, the host wraps it in a polite live region so it is announced without stealing focus.
+  The status icon is aria-hidden — the caption text carries the meaning, so a non-default status starts with a visually hidden prefix that names it ("Error:"), announced even where the glyph is not. The prefix is translatable, like the message after it — a hard-coded English prefix before a localized message is a broken reading. The message does not announce itself; the host field references its id in aria-describedby (and sets aria-invalid on error). If the message appears/changes dynamically, the host wraps it in a polite live region so it is announced without stealing focus.
 
 ### WCAG
 
@@ -73,7 +73,7 @@ Place directly below a field to carry persistent helper guidance (default status
 Say what is wrong and how to fix it, with the constraint stated: "Enter a valid email address, like name@example.com", "First name must be 35 characters or less" — never "Invalid" or an error code. Use plain language with no blame ("Enter your first name", not "You forgot to enter your name") and no humor. Reuse the field label's own words, and keep the message identical to its line in any error summary. Use a success status sparingly, for an asynchronous confirmation such as "Username available". In the default status, state the requirement up front so the error never has to.
 
 - **Labels:** Default status carries the format up front ("Use 8+ characters") so the guidance is seen before failure, not only in the error.
-- **Errors:** Say what is wrong AND how to fix it (SC 3.3.3): "Enter a valid email address, e.g. name@example.com" — specific, human, not "Invalid input", not blaming the user.
+- **Errors:** Say what is wrong and how to fix it (SC 3.3.3): "Enter a valid email address, e.g. name@example.com" — specific, human, not "Invalid input", not blaming the user.
 
 ## Related components
 
@@ -86,9 +86,87 @@ Say what is wrong and how to fix it, with the constraint stated: "Enter a valid 
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
 | `status` | enum: 'default' \| 'error' \| 'warning' \| 'success' | `default` | no | default = helper guidance (neutral); error / warning / success = a validation result. The status re-points both the caption ink and the icon at the matching semantic role. |
-| `message` | string \| node | — | yes | The message text. For error status, say what is wrong AND how to fix it (SC 3.3.3) — "Enter a valid email, e.g. name@example.com", not "Invalid input". |
+| `message` | string \| node | — | yes | The message text. For error status, say what is wrong and how to fix it (SC 3.3.3) — "Enter a valid email, e.g. name@example.com", not "Invalid input". |
 | `icon` | slot | — | no | Overrides the leading status glyph, aria-hidden (the text carries the meaning). Rarely needed: each validation status already picks its own mark — an exclamation in a triangle for error, in a circle for warning, a circled check for success — so this is for a host with a domain-specific status mark, not for supplying the one the status implies. On the default status there is no glyph unless one is supplied here, which is what makes it the only status where this prop adds a node rather than replacing one. |
 | `id` | string | — | no | Set by the host so it can reference this node from the field's aria-describedby chain. Auto-generated with useId when composed inside TextField. |
+
+## Specs
+
+Generated from the plan that builds the design-file component: 4 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `message` | frame | every member |
+| `message/text` | text | every member |
+| `message/iconError` | instance | status=error |
+| `message/iconWarning` | instance | status=warning |
+| `message/iconSuccess` | instance | status=success |
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by nothing: one row covers every member.
+
+**every member**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `message` | — | `space.075` | — | — | — | min height `icon.size.xs`; build width 320px (literal) |
+| `message/iconError` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `message/iconWarning` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `message/iconSuccess` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+
+### Type
+
+Keyed by nothing: one row covers every member.
+
+| Members | Part | Text style |
+| --- | --- | --- |
+| every member | `message/text` | `type.caption.md.default` |
+
+### Color
+
+Keyed by `status`.
+
+**status=default**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `message/text` | — | — | `color.text.secondary` | — |
+
+**status=error**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `message/iconError` | — | — | — | `color.icon.danger` |
+| `message/text` | — | — | `color.text.danger` | — |
+
+**status=warning**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `message/iconWarning` | — | — | — | `color.icon.warning` |
+| `message/text` | — | — | `color.text.warning` | — |
+
+**status=success**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `message/iconSuccess` | — | — | — | `color.icon.success` |
+| `message/text` | — | — | `color.text.success` | — |
+
+### Nesting and properties
+
+- `message/iconError` nests `icon/warning-triangle`
+- `message/iconWarning` nests `icon/error-circle`
+- `message/iconSuccess` nests `icon/check-circle`
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `message` | text | `This is a status message.` |
 
 ---
 
