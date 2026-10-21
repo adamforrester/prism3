@@ -21,7 +21,8 @@
  *   due/…           the dry run's check: due before a draw, not after, due again when the plan or the set's place moves,
  *                   never without the template; a panel whose draw was blocked is not due while the blocker stays, unless
  *                   the update itself moves the blocker. Mutations: the blocker check dropped from `docPanelDue` →
- *                   `due/blocked`; the post-move check dropped from `previewUpdate` → `due/update makes room`.
+ *                   `due/blocked`; the post-move check dropped from `previewUpdate` → `due/update makes room`; that check's
+ *                   `every` blocker moved read as `some` → `due/update leaves a blocker`.
  *   room/…          the update spaces two built sets past the first one's panel when the file has `_Doc-block` (160px
  *                   visible gap, #2842), through the real apply, and a live panel moves with its set. Mutations:
  *                   `respaceLive` given no reach (M1) → `room/apply`; the live panel dropped from `pageViews`' furniture
@@ -411,11 +412,12 @@ section('room/… — the update makes room for the panel, and a panel follows i
 
 /** Two sets on one page, Badge then Divider at the #2502 spacing (400 frame to frame), as a file built before the
  *  panels; Divider's panel drawn, Badge's blocked by Divider. And an update host over it, with `_Doc-block`. */
-const roomPage = async (name: string) => {
+const roomPage = async (name: string, also?: (p: N, a: N) => void) => {
   const p = page(name);
   const { api, sets: [a, b] } = await buildAll(p, ['badge', 'divider']);
   a.x = 0; a.y = 0;
   b.x = Number(a.width) + 400; b.y = 0;
+  also?.(p, a);
   const panels = host([p]);
   const uh = { ...api, root: { ...(api.root as object), findAllWithCriteria: (c: never) => labelHost(panels).root.findAllWithCriteria(c) } } as unknown as UpdateHost & PanelApi & FurnitureApi;
   // Drawn through the update host, so the blocked draw's record carries the plan the dry run reads.
@@ -452,6 +454,16 @@ const roomPage = async (name: string) => {
   const pb2 = livePanel(b);
   ok(Number(b.x) === Number(a.width) + 760 && !!pb2 && Number(pb2.x) === Number(b.x) + Number(b.width) + 40 && Number(pb2.y) === Number(b.y),
     `room/panel follows: Divider moves to ${Number(b.x)}, ${Number(a.width) + 760} wanted, and its panel with it, to ${pb2?.x}`);
+}
+
+{
+  // Two blockers: Divider, which the update moves, and a plain frame it does not. The draw would still be refused, so
+  // the panel is not due (OWN2: `every` → `some` in `previewUpdate`'s post-move check lists it).
+  const { rb, ra, uh, targets } = await roomPage('↳ Room mixed', (p, a) => p.appendChild!(mk('FRAME', 'Notes', [], { x: Number(a.width) + 100, y: 0, _w: 100, _h: 40 })));
+  const pre = await previewUpdate(uh, targets);
+  const pa = pre.sets.find((x) => x.set === 'badge'), pb = pre.sets.find((x) => x.set === 'divider');
+  ok(rb.drawn && !ra.drawn && !!pb?.setMove && !pa?.furniture?.panels,
+    `due/update leaves a blocker: Divider moves to ${pb?.setMove?.to.x}, but "Notes" stays in the way, so Badge's panel is not due (${JSON.stringify(pa?.furniture)})`);
 }
 
 /* ── orphan: a deleted set's panels before its def is built again ─────────────────────────────────────── */
