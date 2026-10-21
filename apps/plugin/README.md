@@ -207,7 +207,7 @@ Subcomponents
   ↳ Image Placeholder · ↳ Focus Ring · ↳ Field Label · ↳ Field Message · ↳ Spinner
 ───
 Sandbox
-  ↳ File Components     (holds _Section-header, _Headings, _Label, _inverse-backdrop — plugin-only template assets)
+  ↳ File Components     (holds _Section-header, _Headings, _Label, _inverse-backdrop, _Doc-block — plugin-only template assets)
 ```
 
 Rules, all enforced in the config + `test-file-setup.ts`:
@@ -285,6 +285,24 @@ from the outer edge of one set's labels and backdrop to the next set's (#2723, Q
 once its labels are drawn (`seatNewSet`), and Update moves a set that sits too close, or exactly where the earlier
 400-frame rule put it. Gated by `test-canvas-furniture.ts`, which draws every def and measures the 160 on every
 shared page.
+
+**The usage panel (#846 phase 2, wireframe approved 2026-10-19).** Beside every set the furniture labels, a build or an
+update draws the component's usage doc as a 560px frame, 40px right of the set and top-aligned with it
+(`src/doc-panel.ts`). Its sections are the engine's doc section model (`component-doc-sections.ts`), the one the
+Markdown page renders, less Building it in code, which is site-only; a section with no data is not drawn. It is built
+from `_Doc-block` instances, a template Set up file makes from the file's own Badge, Tag, List.Item and Divider and its
+semantic variables and text styles (`src/doc-block.ts`), so it follows the brand; Set up file builds it once those four
+sets and a theme are in the file, and says what is missing until then. The panel is tagged `prism3`/`docPanel`, never
+`furniture`, because the labels' clear removes what it finds: a redraw removes an earlier panel only while it still
+holds what was written (the style guide's `fingerprintOf`), and keeps an edited one aside, renamed "(edited)", below
+the new panel, and reported. A panel that would overlap anything on the page is not drawn and the run says so. When a
+Prism3 set later in the row is in the way, the update makes room: a live panel is part of its set's visible box, as
+its labels are, a set with no panel yet reaches as far as its panel will, and the next set goes 160px past it
+(`pageSetMoves`, `respaceLive`, which moves each live panel with its set); anything else, the run says to move. A new
+set is seated with room for its panel (`seatNewSet`) before the panel is drawn. The dry run counts a panel that is
+missing, drawn from an older plan or out of place as "1 usage panel to draw", but not one whose last draw was blocked
+by what is still there, unless the update itself moves it (`docPanelBlockers`). Gated by
+`test-doc-panel.ts`.
 
 **Interactive components (#2466, owner decision Q238 A).** Every set whose `state` axis holds `rest`, `hover` and
 `pressed` (the button family, icon buttons, tag, tab, and the checkbox, radio and switch controls) gets prototype

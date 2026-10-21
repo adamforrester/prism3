@@ -57,6 +57,7 @@ import { baselineDiff, baselineOf, readBaseline, snapshotMember } from './member
 import { drawnFaults, faultLine, varsById } from './drawn';
 import { reorderPages, stripNestPrefix } from './file-setup';
 import { readTag, furnitureDueCount, type FurnitureDue } from './canvas-furniture';
+import { docPanelReach, readPanelTag, type PanelApi, type PNode } from './doc-panel';
 import { REACTIONS, breakingClause, breakingSection, furnitureParts, withSetSlots, hostPorts, locateSets, pageSetMoves, pageSnugSets, previewLine, previewUpdate, readSetView, readSingleView, setUpToDate, slotMigrationFor, type Breaking, type SetPreview, type UpdateHost, type UpdatePreview, type UpdateTarget } from './update-plan';
 import { fillSlots, type FillOutcome, type MigNode } from './slot-migration';
 import { slotMigrationOf } from '@prism3/engine/component-renames';
@@ -585,7 +586,7 @@ const liveSets = async (host: ApplyHost, targets: readonly UpdateTarget[], previ
 };
 const respaceLive = async (host: ApplyHost, targets: readonly UpdateTarget[], preview: UpdatePreview, res: ApplyResult, opts: { choices?: UpdateChoices; ledger?: readonly ComponentRename[] }, before?: (names: string[]) => Promise<boolean>, snug?: ReadonlySet<string>): Promise<string[]> => {
   const live = await liveSets(host, targets, preview, res, opts);
-  const moves = pageSetMoves(live as never, snug);
+  const moves = pageSetMoves(live as never, snug, docPanelReach(host as unknown as Pick<PanelApi, 'root'>));
   if (!moves.size || (before && !await before([...moves.keys()]))) return [];
   const moved: string[] = [];
   for (const { name, set } of live) {
@@ -593,7 +594,8 @@ const respaceLive = async (host: ApplyHost, targets: readonly UpdateTarget[], pr
     if (!m) continue;
     const node = set as { x?: number; y?: number; parent?: { children?: readonly unknown[] } | null };
     const dx = m.to.x - Number(node.x ?? 0), dy = m.to.y - Number(node.y ?? 0);
-    const own = (node.parent?.children ?? []).filter((k) => readTag(k as never)?.set === idOf(set)) as { x?: number; y?: number }[];
+    // Its usage panel too (#846), while it is the live one: a panel kept aside after a hand edit stays where it is.
+    const own = (node.parent?.children ?? []).filter((k) => readTag(k as never)?.set === idOf(set) || (readPanelTag(k as PNode)?.state === 'live' && readPanelTag(k as PNode)?.set === idOf(set))) as { x?: number; y?: number }[];
     node.x = m.to.x;
     node.y = m.to.y;
     for (const f of own) { f.x = Number(f.x ?? 0) + dx; f.y = Number(f.y ?? 0) + dy; }
@@ -627,7 +629,7 @@ const respaceLive = async (host: ApplyHost, targets: readonly UpdateTarget[], pr
 const settle = async (host: ApplyHost, targets: readonly UpdateTarget[], preview: UpdatePreview, res: ApplyResult, opts: { furnish?: Furnish; choices?: UpdateChoices; ledger?: readonly ComponentRename[] }): Promise<void> => {
   if (!opts.furnish) return;
   // #2734: which sets sit at exactly `SET_GAP` now, before a redraw can narrow the labels beside them.
-  const snug = pageSnugSets(await liveSets(host, targets, preview, res, opts) as never);
+  const snug = pageSnugSets(await liveSets(host, targets, preview, res, opts) as never, docPanelReach(host as unknown as Pick<PanelApi, 'root'>));
   for (const o of res.outcomes) {
     const t = targets.find((x) => x.def === o.def);
     if (!t || t.single) continue;

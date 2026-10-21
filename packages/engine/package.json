@@ -12,6 +12,7 @@
     "./button-spacing": "./button-spacing.ts",
     "./color": "./color.ts",
     "./color-order": "./color-order.ts",
+    "./component-doc-sections": "./component-doc-sections.ts",
     "./component-renames": "./component-renames.ts",
     "./component-schema": "./component-schema.ts",
     "./components/button": "./components/button.ts",

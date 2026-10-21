@@ -1567,7 +1567,7 @@ const near = (a: number, b: number): boolean => Math.abs(a - b) < 0.5;
  * `planStamp` (`anatomy-figma.ts`, which holds the reasoning), written here because that helper is not exported
  * and this runs in the Figma sandbox, where `node:crypto` does not exist.
  */
-const fnv = (s: string, reverse: boolean): string => {
+export const fnv = (s: string, reverse: boolean): string => {
   let h = 0x811c9dc5;
   for (let i = 0; i < s.length; i++) {
     h ^= s.charCodeAt(reverse ? s.length - 1 - i : i);
