@@ -731,12 +731,14 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   },
   {
     axis: 'footer',
-    values: ['inline', 'stacked', 'none'],
+    values: ['inline', 'stacked', 'fill', 'none'],
     defs: ['dialog'],
     relation: 'sole',
     reason:
-      'How a panel lays out its actions (#2609, owner decision Q303.6 A): a row at the end edge, full-width buttons '
-      + 'stacked, or no footer. `inline` LEADS because it is the code default and Figma\'s default member. One def '
+      'How a panel lays out its actions (#2609, owner decision Q303.6 A; `fill` by Q492 B, #2880): a row at the end '
+      + 'edge, full-width buttons stacked, a row whose buttons share the width equally, or no footer. The first three '
+      + 'nest the Button group\'s `layout` of the same name, in its order. `inline` LEADS because it is the code '
+      + 'default and Figma\'s default member. One def '
       + 'carries it. Distinct from `orientation` and `alignment`, argued in `VARIANT_AXES`.',
   },
   {

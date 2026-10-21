@@ -31422,7 +31422,7 @@
     "dialog": {
       "id": "dialog",
       "name": "Dialog",
-      "members": 18,
+      "members": 24,
       "axes": [
         {
           "name": "placement",
@@ -31441,6 +31441,7 @@
           "values": [
             "inline",
             "stacked",
+            "fill",
             "none"
           ],
           "kind": "variant"
@@ -31461,67 +31462,69 @@
         {
           "part": "panel",
           "kind": "frame",
-          "members": 18
+          "members": 24
         },
         {
           "part": "panel/header",
           "kind": "frame",
-          "members": 18
+          "members": 24
         },
         {
           "part": "panel/header/titleBox",
           "kind": "frame",
-          "members": 18
+          "members": 24
         },
         {
           "part": "panel/header/titleBox/title",
           "kind": "text",
-          "members": 18
+          "members": 24
         },
         {
           "part": "panel/header/titleBox/description",
           "kind": "text",
-          "members": 18
+          "members": 24
         },
         {
           "part": "panel/header/close",
           "kind": "instance",
-          "members": 18
+          "members": 24
         },
         {
           "part": "panel/headerDivider",
           "kind": "instance",
-          "members": 18
+          "members": 24
         },
         {
           "part": "panel/body",
           "kind": "slot",
-          "members": 18
+          "members": 24
         },
         {
           "part": "panel/body/placeholder",
           "kind": "text",
-          "members": 18
+          "members": 24
         },
         {
           "part": "panel/footerDivider",
           "kind": "instance",
-          "members": 12,
+          "members": 18,
           "when": {
             "footer": [
               "inline",
-              "stacked"
+              "stacked",
+              "fill"
             ]
           }
         },
         {
           "part": "panel/footer",
           "kind": "frame",
-          "members": 12,
+          "members": 18,
           "when": {
             "footer": [
               "inline",
-              "stacked"
+              "stacked",
+              "fill"
             ]
           }
         },
@@ -31542,6 +31545,16 @@
           "when": {
             "footer": [
               "stacked"
+            ]
+          }
+        },
+        {
+          "part": "panel/footer/actionsFill",
+          "kind": "instance",
+          "members": 6,
+          "when": {
+            "footer": [
+              "fill"
             ]
           }
         }
@@ -32242,6 +32255,30 @@
         {
           "where": {
             "placement": "center",
+            "footer": "fill"
+          },
+          "parts": [
+            {
+              "part": "panel",
+              "fill": "color.foreground.primary"
+            },
+            {
+              "part": "panel/header/titleBox/title",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "panel/header/titleBox/description",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "panel/body/placeholder",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "placement": "center",
             "footer": "none"
           },
           "parts": [
@@ -32314,6 +32351,30 @@
         {
           "where": {
             "placement": "bottom",
+            "footer": "fill"
+          },
+          "parts": [
+            {
+              "part": "panel",
+              "fill": "color.foreground.primary"
+            },
+            {
+              "part": "panel/header/titleBox/title",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "panel/header/titleBox/description",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "panel/body/placeholder",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "placement": "bottom",
             "footer": "none"
           },
           "parts": [
@@ -32363,6 +32424,30 @@
           "where": {
             "placement": "full",
             "footer": "stacked"
+          },
+          "parts": [
+            {
+              "part": "panel",
+              "fill": "color.foreground.primary"
+            },
+            {
+              "part": "panel/header/titleBox/title",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "panel/header/titleBox/description",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "panel/body/placeholder",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "placement": "full",
+            "footer": "fill"
           },
           "parts": [
             {
@@ -32435,6 +32520,30 @@
           "where": {
             "placement": "end",
             "footer": "stacked"
+          },
+          "parts": [
+            {
+              "part": "panel",
+              "fill": "color.foreground.primary"
+            },
+            {
+              "part": "panel/header/titleBox/title",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "panel/header/titleBox/description",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "panel/body/placeholder",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "placement": "end",
+            "footer": "fill"
           },
           "parts": [
             {
@@ -32536,6 +32645,16 @@
           "component": "button-group",
           "variant": {
             "layout": "stacked"
+          },
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "panel/footer/actionsFill",
+          "kind": "instance",
+          "component": "button-group",
+          "variant": {
+            "layout": "fill"
           },
           "follows": [],
           "exposes": []

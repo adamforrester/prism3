@@ -994,6 +994,7 @@
         "footer": [
           "inline",
           "stacked",
+          "fill",
           "none"
         ]
       },
@@ -1050,6 +1051,7 @@
           "values": [
             "inline",
             "stacked",
+            "fill",
             "none"
           ]
         }
@@ -3945,6 +3947,7 @@
     "footer": [
       {
         "values": [
+          "fill",
           "inline",
           "none",
           "stacked"
@@ -4791,6 +4794,7 @@
         "values": [
           "inline",
           "stacked",
+          "fill",
           "none"
         ]
       }

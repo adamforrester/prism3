@@ -656,14 +656,14 @@
     },
     "button-group": {
       "members": 3,
-      "sha256": "c74587caf9edee460be6ad103657fe8388bc74f1e46d314fd1fd637b2d5e5b21",
+      "sha256": "a23c5cdf626ebd624827cb989863d4f934fb2917df2c562b94a232efae20f4d5",
       "properties": [
         "items:SLOT"
       ]
     },
     "dialog": {
-      "members": 18,
-      "sha256": "a753ed1dc00d2796e6f4520979c47676ab9b484621df4a644e68ca7112695636",
+      "members": 24,
+      "sha256": "f85c34aa8d07eca87ca274180c42faac2332bbeabd20ba4e2082c9325424f5ac",
       "properties": [
         "body:SLOT",
         "close:BOOLEAN",

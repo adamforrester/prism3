@@ -3257,7 +3257,7 @@
           ],
           "parts": {
             "panel": {
-              "members": 18,
+              "members": 24,
               "where": {}
             }
           }
@@ -11859,11 +11859,11 @@
           ],
           "parts": {
             "placeholder": {
-              "members": 18,
+              "members": 24,
               "where": {}
             },
             "title": {
-              "members": 18,
+              "members": 24,
               "where": {}
             }
           }
@@ -12063,7 +12063,7 @@
           ],
           "parts": {
             "description": {
-              "members": 18,
+              "members": 24,
               "where": {}
             }
           }
@@ -16002,7 +16002,7 @@
           ],
           "parts": {
             "panel": {
-              "members": 12,
+              "members": 16,
               "where": {
                 "placement": [
                   "bottom",
@@ -16121,7 +16121,7 @@
           ],
           "parts": {
             "panel": {
-              "members": 9,
+              "members": 12,
               "where": {
                 "placement": [
                   "bottom",
@@ -16452,7 +16452,7 @@
           ],
           "parts": {
             "panel": {
-              "members": 18,
+              "members": 24,
               "where": {}
             }
           }
@@ -17483,24 +17483,25 @@
           ],
           "parts": {
             "body": {
-              "members": 18,
+              "members": 24,
               "where": {}
             },
             "footer": {
-              "members": 12,
+              "members": 18,
               "where": {
                 "footer": [
+                  "fill",
                   "inline",
                   "stacked"
                 ]
               }
             },
             "header": {
-              "members": 18,
+              "members": 24,
               "where": {}
             },
             "panel": {
-              "members": 18,
+              "members": 24,
               "where": {}
             }
           }
@@ -18153,7 +18154,7 @@
           ],
           "parts": {
             "titleBox": {
-              "members": 18,
+              "members": 24,
               "where": {}
             }
           }
@@ -18789,7 +18790,7 @@
           ],
           "parts": {
             "body": {
-              "members": 6,
+              "members": 8,
               "where": {
                 "placement": [
                   "bottom",
@@ -18801,9 +18802,10 @@
               }
             },
             "footer": {
-              "members": 4,
+              "members": 6,
               "where": {
                 "footer": [
+                  "fill",
                   "inline",
                   "stacked"
                 ],
@@ -18817,11 +18819,11 @@
               }
             },
             "header": {
-              "members": 18,
+              "members": 24,
               "where": {}
             },
             "panel": {
-              "members": 18,
+              "members": 24,
               "where": {}
             }
           }
@@ -19149,7 +19151,7 @@
           ],
           "parts": {
             "body": {
-              "members": 12,
+              "members": 16,
               "where": {
                 "placement": [
                   "center",
@@ -19158,9 +19160,10 @@
               }
             },
             "footer": {
-              "members": 8,
+              "members": 12,
               "where": {
                 "footer": [
+                  "fill",
                   "inline",
                   "stacked"
                 ],
@@ -19171,7 +19174,7 @@
               }
             },
             "header": {
-              "members": 12,
+              "members": 16,
               "where": {
                 "placement": [
                   "center",
@@ -19180,7 +19183,7 @@
               }
             },
             "panel": {
-              "members": 12,
+              "members": 16,
               "where": {
                 "placement": [
                   "center",
@@ -19715,11 +19718,11 @@
           ],
           "parts": {
             "description": {
-              "members": 18,
+              "members": 24,
               "where": {}
             },
             "placeholder": {
-              "members": 18,
+              "members": 24,
               "where": {}
             }
           }
@@ -20730,7 +20733,7 @@
           ],
           "parts": {
             "title": {
-              "members": 18,
+              "members": 24,
               "where": {}
             }
           }
@@ -22093,9 +22096,10 @@
       "drawnNotDeclared": []
     },
     "dialog": {
-      "members": 18,
+      "members": 24,
       "axes": {
         "footer": [
+          "fill",
           "inline",
           "none",
           "stacked"
