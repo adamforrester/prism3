@@ -1375,7 +1375,7 @@
         ],
         "properties": [
           {
-            "name": "State icon",
+            "name": "state icon",
             "type": "BOOLEAN"
           }
         ],
@@ -1551,7 +1551,7 @@
         ],
         "properties": [
           {
-            "name": "Marker",
+            "name": "marker",
             "type": "BOOLEAN"
           }
         ],
@@ -1678,7 +1678,7 @@
             "type": "BOOLEAN"
           },
           {
-            "name": "Check icon",
+            "name": "check icon",
             "type": "BOOLEAN"
           }
         ],
@@ -2018,7 +2018,7 @@
         ],
         "properties": [
           {
-            "name": "Label",
+            "name": "label",
             "type": "BOOLEAN"
           }
         ],

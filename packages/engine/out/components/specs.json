@@ -21594,7 +21594,7 @@
       ],
       "properties": [
         {
-          "name": "State icon",
+          "name": "state icon",
           "type": "BOOLEAN",
           "default": true
         }
@@ -23715,7 +23715,7 @@
       ],
       "properties": [
         {
-          "name": "Marker",
+          "name": "marker",
           "type": "BOOLEAN",
           "default": true
         }
@@ -25552,7 +25552,7 @@
           "type": "INSTANCE_SWAP"
         },
         {
-          "name": "Check icon",
+          "name": "check icon",
           "type": "BOOLEAN",
           "default": true
         }
@@ -29694,7 +29694,7 @@
       ],
       "properties": [
         {
-          "name": "Label",
+          "name": "label",
           "type": "BOOLEAN",
           "default": true
         },

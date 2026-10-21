@@ -48,7 +48,7 @@ import { tailOf } from '@prism3/engine/figma-names';
 import { planTargets } from './build-deps';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { diffAnatomy, type HostNode, type ReadPorts } from '@prism3/engine/anatomy-readback';
-import { COMPONENT_RENAMES, coordKey, coordPairs, renameCoordinate, slotMigrationOf, type ComponentRename } from '@prism3/engine/component-renames';
+import { COMPONENT_RENAMES, coordKey, coordPairs, renameCoordinate, renameProperty, slotMigrationOf, type ComponentRename } from '@prism3/engine/component-renames';
 import { captureSlotMigration, migrationLines, type MigNode, type SlotMigration } from './slot-migration';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { EXECUTOR_REVISION } from './executor-revision';
@@ -636,6 +636,16 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
     for (const [k, d] of Object.entries(host.definitions)) {
       if (d.type === 'VARIANT') continue;
       have.set(k.replace(/#[^#]*$/, ''), { type: String(d.type ?? ''), defaultValue: d.defaultValue });
+    }
+    // A PROPERTY RENAMED IN THE LEDGER (#2759): the set's property under its old name, where the plan wants the new
+    // name and the set has none, is renamed in place, so every instance keeps the value a designer gave it. Its old
+    // name is then read as the new one, so it is neither removed nor added below.
+    for (const [name, h] of [...have]) {
+      const to = renameProperty(defId, name, ledger);
+      if (to === null || have.has(to) || !wanted.some((w) => w.name === to)) continue;
+      properties.rename.push({ name: to, type: h.type, from: name, to });
+      have.delete(name);
+      have.set(to, h);
     }
     for (const w of wanted) {
       const h = have.get(w.name);
