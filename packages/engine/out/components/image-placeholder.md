@@ -13,7 +13,7 @@ An empty-state media frame that holds a photograph at a fixed aspect ratio. Pick
 
 - **Purpose:** Reserve space for a photograph at a fixed aspect ratio, holding the proportion while the frame flexes to its container, and show a neutral empty state until an image is dropped in.
 - **Use when:** A layout needs a media slot at a known proportion before the image is chosen — a card's photo area, a hero, a gallery cell. Pick a ratio from the media it will hold (2:3, 3:4 or 4:5 portrait, 1:1, 4:3, 3:2 or 16:9 landscape); the frame keeps that ratio as it resizes and clips whatever image is dropped onto it. Once an image is supplied, turn the marker property off so the "no image" marker does not draw over it.
-- **Avoid when:** The surface is a decorative wash over an existing photo (that is the `veil` component), the image is already present and fixed (place it directly), or the space needs a play button or a legibility scrim over the media (not built yet — this is the core empty-state frame only).
+- **Avoid when:** The surface is a decorative wash over an existing photo (that is the veil component), the image is already present and fixed (place it directly), or the space needs a play button or a legibility scrim over the media (not built yet — this is the core empty-state frame only).
 
 ## Anatomy
 
@@ -26,7 +26,7 @@ Shown on the default member: ratio `4:3`.
 
 | Axis | Values | Changes | Description |
 | --- | --- | --- | --- |
-| `ratio` | `4:3`, `2:3`, `3:4`, `4:5`, `1:1`, `3:2`, `16:9` | once, when authored | The width-to-height PROPORTION the frame holds while its actual size flexes — portrait (2:3, 3:4 for apparel tiles, 4:5), a square (1:1), or landscape (the classic photo ratio 4:3, 3:2, widescreen 16:9). It is an aspect-ratio LOCK, not a pair of fixed dimensions: the frame derives its height from its width (or the reverse) so the shape survives being resized. Pick it from the media the frame will hold. |
+| `ratio` | `4:3`, `2:3`, `3:4`, `4:5`, `1:1`, `3:2`, `16:9` | once, when authored | The width-to-height proportion the frame holds while its actual size flexes — portrait (2:3, 3:4 for apparel tiles, 4:5), a square (1:1), or landscape (the classic photo ratio 4:3, 3:2, widescreen 16:9). It is an aspect-ratio lock, not a pair of fixed dimensions: the frame derives its height from its width (or the reverse) so the shape survives being resized. Pick it from the media the frame will hold. |
 
 ## Usage guidelines
 
@@ -41,22 +41,22 @@ Use an image placeholder wherever a layout reserves space for a photograph befor
 
 ### Don't
 
-- Hard-code a width AND a height to fake a ratio — the frame holds the ratio and derives the second dimension, so two fixed sizes fight the lock and break on resize
+- Hard-code a width and a height to fake a ratio — the frame holds the ratio and derives the second dimension, so two fixed sizes fight the lock and break on resize
 - Treat the "no image" marker as the image's description — it is a placeholder affordance, turned off when a photograph arrives
 - Leave the marker on over a supplied image — the frame cannot tell that a fill is a photo, so the marker property is how the marker goes away
-- Reach for an image placeholder as a decorative wash over a photo — that is the `veil` component (a follow-up may compose the two)
+- Reach for an image placeholder as a decorative wash over a photo — that is the veil component (a follow-up may compose the two)
 - Expect a play or scrim overlay yet — those are not built yet; this is the core empty-state frame
 
 ## Accessibility
 
 - **Focus:** None of its own — the frame is not focusable as an empty placeholder. If it becomes an interactive media element (a button that opens a picker), that control carries its own focus; the placeholder frame does not invent one.
-- **Screen readers:** img once it holds an image: with a descriptive accessible name when the image is informative, or an empty alt (`alt=""`) when it is decorative, which removes it from the accessibility tree. The empty frame is presentational. The "no image" marker inside it is decorative and aria-hidden; it is a visual affordance, not the accessible content.
+- **Screen readers:** img once it holds an image: with a descriptive accessible name when the image is informative, or an empty alt (alt="") when it is decorative, which removes it from the accessibility tree. The empty frame is presentational. The "no image" marker inside it is decorative and aria-hidden; it is a visual affordance, not the accessible content.
 
-  Once the frame holds a real image, decide whether the image is informative or decorative. Informative: an img role and an accessible name that describes its function, not the picture. Decorative: an empty alt (`alt=""`), never an omitted one — some screen readers announce the file name when alt is missing. Mark the "no image" marker aria-hidden — it is a decorative affordance, and announcing it would add nothing. Do not rely on the marker as the accessible description of the eventual image.
+  Once the frame holds a real image, decide whether the image is informative or decorative. Informative: an img role and an accessible name that describes its function, not the picture. Decorative: an empty alt (alt=""), never an omitted one — some screen readers announce the file name when alt is missing. Mark the "no image" marker aria-hidden — it is a decorative affordance, and announcing it would add nothing. Do not rely on the marker as the accessible description of the eventual image.
 
 ### WCAG
 
-- 1.1.1 Non-text Content — an image placeholder that ships as a real image needs a text alternative describing it, or an empty `alt=""` when the image is decorative (image.md §6: an omitted alt and an empty one behave oppositely); the empty-state marker is decorative and is hidden from assistive tech
+- 1.1.1 Non-text Content — an image placeholder that ships as a real image needs a text alternative describing it, or an empty alt="" when the image is decorative (an omitted alt and an empty one behave oppositely); the empty-state marker is decorative and is hidden from assistive tech
 - 1.4.11 Non-text Contrast — where the frame edge is a meaningful boundary, verify it against the surface behind it; the neutral fill is a background, not a UI boundary carrying meaning
 - 1.4.1 Use of Color — the marker signals "no image" by shape and position, not by color alone
 
@@ -78,7 +78,91 @@ The frame holds no copy. Where its ratio surfaces in a UI, name the proportion (
 
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
-| `ratio` | enum: '2:3' \| '3:4' \| '4:5' \| '1:1' \| '4:3' \| '3:2' \| '16:9' | `4:3` | no | The width-to-height PROPORTION the frame holds while its actual size flexes — portrait (2:3, 3:4 for apparel tiles, 4:5), a square (1:1), or landscape (the classic photo ratio 4:3, 3:2, widescreen 16:9). It is an aspect-ratio LOCK, not a pair of fixed dimensions: the frame derives its height from its width (or the reverse) so the shape survives being resized. Pick it from the media the frame will hold. |
+| `ratio` | enum: '2:3' \| '3:4' \| '4:5' \| '1:1' \| '4:3' \| '3:2' \| '16:9' | `4:3` | no | The width-to-height proportion the frame holds while its actual size flexes — portrait (2:3, 3:4 for apparel tiles, 4:5), a square (1:1), or landscape (the classic photo ratio 4:3, 3:2, widescreen 16:9). It is an aspect-ratio lock, not a pair of fixed dimensions: the frame derives its height from its width (or the reverse) so the shape survives being resized. Pick it from the media the frame will hold. |
+
+## Specs
+
+Generated from the plan that builds the design-file component: 7 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `frame` | frame | every member |
+| `frame/markerGlyph` | instance | every member |
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by nothing: one row covers every member.
+
+**every member**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `frame` | — | — | — | `container.narrow` | — | — |
+
+### Color
+
+Keyed by `ratio`.
+
+**ratio=4:3**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `frame` | `color.background.secondary` | — | — | — |
+| `frame/markerGlyph` | — | — | — | `color.icon.tertiary` |
+
+**ratio=2:3**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `frame` | `color.background.secondary` | — | — | — |
+| `frame/markerGlyph` | — | — | — | `color.icon.tertiary` |
+
+**ratio=3:4**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `frame` | `color.background.secondary` | — | — | — |
+| `frame/markerGlyph` | — | — | — | `color.icon.tertiary` |
+
+**ratio=4:5**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `frame` | `color.background.secondary` | — | — | — |
+| `frame/markerGlyph` | — | — | — | `color.icon.tertiary` |
+
+**ratio=1:1**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `frame` | `color.background.secondary` | — | — | — |
+| `frame/markerGlyph` | — | — | — | `color.icon.tertiary` |
+
+**ratio=3:2**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `frame` | `color.background.secondary` | — | — | — |
+| `frame/markerGlyph` | — | — | — | `color.icon.tertiary` |
+
+**ratio=16:9**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `frame` | `color.background.secondary` | — | — | — |
+| `frame/markerGlyph` | — | — | — | `color.icon.tertiary` |
+
+### Nesting and properties
+
+- `frame/markerGlyph` nests `icon/image`
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `marker` | boolean | `true` |
 
 ---
 

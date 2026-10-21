@@ -109,6 +109,75 @@ One or two words per option, nouns, sentence case: "List", not "Show list".
 | `name` | string | — | no | The form field name, in the form behavior. |
 | `disabled` | boolean | `false` | no | Disables every option and takes the control out of the Tab order. |
 
+## Specs
+
+Generated from the plan that builds the design-file component: 3 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `container` | frame | every member |
+| `container/label` | instance | every member |
+| `container/track` | frame | every member |
+| `container/track/items` | slot | every member |
+| `container/track/items/segment1` | instance | every member |
+| `container/track/items/segment2` | instance | every member |
+| `container/track/items/segment3` | instance | every member |
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by `size`.
+
+**size=medium**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/track` | `space.0` | `space.0` | — | — | — | — |
+| `container/track/items` | — | `space.0` | — | — | — | — |
+
+**size=small**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/track` | `space.0` | `space.0` | — | — | — | — |
+| `container/track/items` | — | `space.0` | — | — | — | — |
+
+**size=large**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/track` | `space.0` | `space.0` | — | — | — | — |
+| `container/track/items` | — | `space.0` | — | — | — | — |
+
+### Color
+
+Keyed by nothing: one row covers every member.
+
+**every member**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/track` | `color.background.secondary` | — | — | — |
+
+### Nesting and properties
+
+- `container/label` nests `field-label` at `size=medium, emphasis=secondary, weight=bold, state=rest`; follows `size`; exposes `emphasis`, `weight`
+- `container/track/items` is a slot, preferring `segmented-control-segment`
+- `container/track/items/segment1` nests `segmented-control-segment` at `selection=selected, size=medium, state=rest`; follows `size`
+- `container/track/items/segment2` nests `segmented-control-segment` at `selection=unselected, size=medium, state=rest`; follows `size`
+- `container/track/items/segment3` nests `segmented-control-segment` at `selection=unselected, size=medium, state=rest`; follows `size`
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `label` | boolean | `true` |
+| `items` | slot | — |
+
 ---
 
 Generated from the `segmented-control` component definition.

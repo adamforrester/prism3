@@ -12,7 +12,7 @@
 One item in a List: a marker in a fixed-width column, then short text that wraps under itself rather than under the marker. The marker is a bullet, a number or an icon, and it sits on the first line of the text however many lines the item runs to. The marker column has one width for each type, so the text of every item in a list starts at one edge. Used inside a List; the List sets the type and size of every item it holds.
 
 - **Purpose:** One item inside a List: a marker in a fixed column, then text that wraps under itself.
-- **Use when:** Only as a child of List.
+- **Use when:** Only as a child of a List. Generate a List, which places its items and sets their marker type and size.
 - **Avoid when:** Content a writer edits as normal copy (use a native text list in the text itself), a choice the user makes (a listbox), a command (a menu), or a navigation link (a navigation, not built yet).
 
 ## Anatomy
@@ -40,12 +40,14 @@ Use inside a List only. Each item is one short phrase or sentence after its mark
 ### Do
 
 - Keep items short and parallel
+- Put the words a reader scans for at the start of each item
 - Let the List set every item's type and size
 
 ### Don't
 
 - Mix types within one list
 - Put the meaning of an item in its icon alone
+- Make an item a link or a button; a list of links is a navigation, and a list of commands is a menu
 
 ## Accessibility
 
@@ -90,6 +92,144 @@ One phrase or sentence per item, sentence case, parallel with the items around i
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The text size (body small, medium or large) and the marker sized to it. Set by the List. |
 | `value` | number | — | no | In an ordered list, the number this item shows; the items after it count on from it. Leave it unset to let the list count. |
 | `icon` | slot | — | no | The marker glyph when type is icon. A check by default. Decorative: the item text carries the meaning. |
+
+## Specs
+
+Generated from the plan that builds the design-file component: 9 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `row` | frame | every member |
+| `row/markerBox` | frame | every member |
+| `row/markerBox/bullet` | frame | type=unordered |
+| `row/label` | text | every member |
+| `row/markerBox/number` | text | type=ordered |
+| `row/markerBox/icon` | swap | type=icon |
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by `size`, `type`.
+
+**size=medium, type=unordered**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `row` | — | `space.0` | — | — | 120px (literal) | build width 320px (literal) |
+| `row/markerBox` | — | — | `control.size.md.line-box` | `space.300` | — | — |
+| `row/markerBox/bullet` | — | — | `control.size.md.dot` | `control.size.md.dot` | — | — |
+
+**size=small, type=unordered**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `row` | — | `space.0` | — | — | 120px (literal) | build width 320px (literal) |
+| `row/markerBox` | — | — | `control.size.sm.line-box` | `space.250` | — | — |
+| `row/markerBox/bullet` | — | — | `control.size.sm.dot` | `control.size.sm.dot` | — | — |
+
+**size=large, type=unordered**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `row` | — | `space.0` | — | — | 120px (literal) | build width 320px (literal) |
+| `row/markerBox` | — | — | `control.size.lg.line-box` | `space.400` | — | — |
+| `row/markerBox/bullet` | — | — | `control.size.lg.dot` | `control.size.lg.dot` | — | — |
+
+**size=medium, type=ordered**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `row` | — | `space.0` | — | — | 120px (literal) | build width 320px (literal) |
+| `row/markerBox` | — | — | `control.size.md.line-box` | `space.300` | — | — |
+
+**size=small, type=ordered**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `row` | — | `space.0` | — | — | 120px (literal) | build width 320px (literal) |
+| `row/markerBox` | — | — | `control.size.sm.line-box` | `space.250` | — | — |
+
+**size=large, type=ordered**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `row` | — | `space.0` | — | — | 120px (literal) | build width 320px (literal) |
+| `row/markerBox` | — | — | `control.size.lg.line-box` | `space.400` | — | — |
+
+**size=medium, type=icon**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `row` | — | `space.0` | — | — | 120px (literal) | build width 320px (literal) |
+| `row/markerBox` | — | — | `control.size.md.line-box` | `space.400` | — | — |
+| `row/markerBox/icon` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+
+**size=small, type=icon**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `row` | — | `space.0` | — | — | 120px (literal) | build width 320px (literal) |
+| `row/markerBox` | — | — | `control.size.sm.line-box` | `space.300` | — | — |
+| `row/markerBox/icon` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=large, type=icon**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `row` | — | `space.0` | — | — | 120px (literal) | build width 320px (literal) |
+| `row/markerBox` | — | — | `control.size.lg.line-box` | `space.500` | — | — |
+| `row/markerBox/icon` | — | — | `icon.size.lg` | `icon.size.lg` | — | — |
+
+### Type
+
+Keyed by `size`.
+
+| Members | Part | Text style |
+| --- | --- | --- |
+| size=medium | `row/label` | `type.body.md.default` |
+| size=medium | `row/markerBox/number` | `type.body.md.default` |
+| size=small | `row/label` | `type.body.sm.default` |
+| size=small | `row/markerBox/number` | `type.body.sm.default` |
+| size=large | `row/label` | `type.body.lg.default` |
+| size=large | `row/markerBox/number` | `type.body.lg.default` |
+
+### Color
+
+Keyed by `type`.
+
+**type=unordered**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `row/markerBox/bullet` | `color.icon.primary` | — | — | — |
+| `row/label` | — | — | `color.text.primary` | — |
+
+**type=ordered**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `row/markerBox/number` | — | — | `color.text.primary` | — |
+| `row/label` | — | — | `color.text.primary` | — |
+
+**type=icon**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `row/markerBox/icon` | — | — | — | `color.icon.primary` |
+| `row/label` | — | — | `color.text.primary` | — |
+
+### Nesting and properties
+
+- `row/markerBox/icon` is a swap slot, property `swap icon`, default `check`
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `text` | text | `List item` |
+| `number` | text | `1.` |
+| `swap icon` | instance swap | — |
 
 ---
 

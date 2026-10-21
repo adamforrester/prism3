@@ -33,7 +33,7 @@ Shown on the default member: size `medium`, style `outline`, status `default`.
 
 | Axis | Values | Changes | Description |
 | --- | --- | --- | --- |
-| `size` | `medium`, `small`, `large` | once, when authored | Scales the value type with the field (small 14px, medium 16px, large 18px, `type.body.{sm,md,lg}`), the nested label one step below it (12 / 14 / 16), and the padding. NOT the height: that belongs to rows / auto-grow, so the reserved rows grow with the type's line height. `small` is for fine pointers only: on a coarse pointer (`@media (pointer: coarse)`) the code sets the small textarea to 16px, because iOS Safari zooms the page when it focuses a field under 16px. The same prop, with the same values, as TextField and Select. |
+| `size` | `medium`, `small`, `large` | once, when authored | Scales the value type with the field (small 14px, medium 16px, large 18px, from type.body.sm, md and lg), the nested label one step below it (12 / 14 / 16), and the padding. Not the height: that belongs to rows / auto-grow, so the reserved rows grow with the type's line height. small is for fine pointers only: on a coarse pointer (@media (pointer: coarse)) the code sets the small textarea to 16px, because iOS Safari zooms the page when it focuses a field under 16px. The same prop, with the same values, as TextField and Select. |
 | `style` | `outline` | once, when authored | — |
 | `status` | `default`, `error`, `warning`, `success` | at runtime | — |
 
@@ -65,10 +65,10 @@ Use for free-form text expected to exceed one line — comments, descriptions, m
 ## Accessibility
 
 - **Keyboard:** Native multi-line editing with undo/redo, spellcheck and IME. Enter inserts a newline — that is the contract aria-multiline advertises and the default. submitOnEnter inverts it for composers, and then Shift+Enter inserts the newline, a real submit button still exists, and the swap is stated visibly near the field.
-- **Focus:** :focus-visible with the field ring (`focus.ring.offset-field`, 0 offset). An inset indicator for large surfaces is not built. forwardRef must reach the \<textarea> itself, not the wrapper. Auto-resize must not move the caret or scroll the viewport — the measurement is synchronous with input, and it must also run on PROGRAMMATIC value changes (a reset, or AI-inserted text), which is the common auto-grow bug.
+- **Focus:** :focus-visible with the field ring (focus.ring.offset-field, 0 offset). An inset indicator for large surfaces is not built. forwardRef must reach the \<textarea> itself, not the wrapper. Auto-resize must not move the caret or scroll the viewport — the measurement is synchronous with input, and it must also run on programmatic value changes (a reset, or AI-inserted text), which is the common auto-grow bug.
 - **Screen readers:** textbox (native \<textarea>), with the implicit aria-multiline="true"
 
-  The counter is the central problem and it is two nodes, not one: the visual counter is aria-hidden and updates instantly, while a separate visually-hidden node carries announcements. Two channels — the static limit folded into aria-describedby so tabbing in announces the ceiling, and a threshold-based polite live region that speaks only near the limit (per-keystroke counting makes the field unusable), escalating to assertive only on breach. Over-limit sets aria-invalid and is ANNOUNCED, never color-only. aria-busy while content streams. Preserve the native aria-multiline; do not reconstruct a textarea from contenteditable, which loses undo/redo, spellcheck, reliable IME and form submission. Set dir="auto" so content direction can differ from UI direction, and do not run counting or auto-grow measurement mid-IME-composition.
+  The counter is the central problem and it is two nodes, not one: the visual counter is aria-hidden and updates instantly, while a separate visually-hidden node carries announcements. Two channels — the static limit folded into aria-describedby so tabbing in announces the ceiling, and a threshold-based polite live region that speaks only near the limit (per-keystroke counting makes the field unusable), escalating to assertive only on breach. Over-limit sets aria-invalid and is announced, never color-only. aria-busy while content streams. Preserve the native aria-multiline; do not reconstruct a textarea from contenteditable, which loses undo/redo, spellcheck, reliable IME and form submission. Set dir="auto" so content direction can differ from UI direction, and do not run counting or auto-grow measurement mid-IME-composition.
 
 ### WCAG
 
@@ -77,8 +77,8 @@ Use for free-form text expected to exceed one line — comments, descriptions, m
 - 3.3.2 Labels or Instructions (the "Shift+Enter for a new line" hint whenever Enter submits)
 - 1.3.5 Identify Input Purpose / 1.3.1 Info and Relationships (inherited substrate wiring)
 - 3.3.1 Error Identification / 3.3.3 Error Suggestion (over-limit states the overage and how to fix it)
-- 1.4.3 Contrast / 1.4.11 Non-text Contrast (field boundary ≥3:1 — the rest, hover and read-only borders are gated on `background.secondary`, the darkest permissible ground) / 2.4.13 Focus Appearance / 4.1.2 Name Role Value
-- 2.5.8 Target Size — intent: the resize handle is the browser's own control, sized by the browser, so this def does not set its target
+- 1.4.3 Contrast / 1.4.11 Non-text Contrast (field boundary ≥3:1 — the rest, hover and read-only borders are gated on background.secondary, the darkest permissible ground) / 2.4.13 Focus Appearance / 4.1.2 Name Role Value
+- 2.5.8 Target Size — intent: the resize handle is the browser's own control, sized by the browser, so Textarea does not set its target
 
 ### Motion
 
@@ -91,8 +91,8 @@ Use for free-form text expected to exceed one line — comments, descriptions, m
 Counter reads "240 / 280" or "40 characters remaining"; over-limit reads "12 characters over the limit" — constructive and numeric, never "Too long." If Enter submits, say so near the field.
 
 - **Labels:** Noun phrase, sentence case, no trailing colon — the substrate discipline (see field-label).
-- **Errors:** What is wrong AND how to fix it, with the number: "Description must be under 500 characters. Remove 24 to continue." (SC 3.3.3). May replace the helper text to conserve vertical space, provided it still carries the original constraint.
-- **Empty states:** Label plus an optional placeholder. The placeholder may model the expected SHAPE ("Describe the issue, including steps to reproduce") but still vanishes on the first keystroke — and the recall cost is higher here than on a single-line field, because a user may write several paragraphs, tab away, and come back to a prompt that is long gone. Nothing load-bearing lives in it.
+- **Errors:** What is wrong and how to fix it, with the number: "Description must be under 500 characters. Remove 24 to continue." (SC 3.3.3). May replace the helper text to conserve vertical space, provided it still carries the original constraint.
+- **Empty states:** Label plus an optional placeholder. The placeholder may model the expected shape ("Describe the issue, including steps to reproduce") but still vanishes on the first keystroke — and the recall cost is higher here than on a single-line field, because a user may write several paragraphs, tab away, and come back to a prompt that is long gone. Nothing load-bearing lives in it.
 
 ## Related components
 
@@ -113,25 +113,384 @@ Counter reads "240 / 280" or "40 characters remaining"; over-limit reads "12 cha
 | `value` | string | — | no | Controlled value; pair with onChange. The same prop as TextField's. |
 | `onChange` | function | — | no | Change handler (also onBlur / onFocus). The same prop as TextField's. |
 | `placeholder` | string | — | no | An example only; vanishes on input; nothing load-bearing lives here. The same prop as TextField's. |
-| `helpText` | string \| node | — | no | Persistent guidance (rendered as FieldMessage, default status); wired via aria-describedby. Show the format and any length limit BEFORE failure. The same prop as TextField's. |
-| `showMessage` | boolean | `true` | no | Whether the composed FieldMessage is shown. ON, the default, renders the helper or validation message below the field; turning it off hides the message entirely. The same prop as TextField's. Never hides a message the field needs. |
-| `rows` | number | `3` | no | Initial and minimum height, in LINES not pixels — a line count recomputes against the current line-height when the user raises their font size, where a pixel floor does not. Also a content cue: two rows signals brevity, six signals "write more". `cols` is dead on the web; width comes from CSS. |
-| `resize` | enum: 'none' \| 'vertical' \| 'auto' | `vertical` | no | The sizing model in ONE prop, so two props cannot contradict each other. `vertical` (the drag handle) for standalone form fields; `auto` (grow within minRows/maxRows) for composers; `none` where layout stability wins. NEVER horizontal or both — altering the inline dimension shatters grid and flex layouts for no user gain. |
+| `helpText` | string \| node | — | no | Persistent guidance (rendered as FieldMessage, default status); wired via aria-describedby. Show the format and any length limit before failure. The same prop as TextField's. |
+| `showMessage` | boolean | `true` | no | Whether the composed FieldMessage is shown. On, the default, renders the helper or validation message below the field; turning it off hides the message entirely. The same prop as TextField's. Never hides a message the field needs. |
+| `rows` | number | `3` | no | Initial and minimum height, in lines not pixels — a line count recomputes against the current line-height when the user raises their font size, where a pixel floor does not. Also a content cue: two rows signals brevity, six signals "write more". cols is dead on the web; width comes from CSS. |
+| `resize` | enum: 'none' \| 'vertical' \| 'auto' | `vertical` | no | The sizing model in one prop, so two props cannot contradict each other. vertical (the drag handle) for standalone form fields; auto (grow within minRows/maxRows) for composers; none where layout stability wins. Never horizontal or both — altering the inline dimension shatters grid and flex layouts for no user gain. |
 | `minRows` | number | — | no | Auto-grow floor, in lines. Only meaningful with resize="auto". |
-| `maxRows` | number | — | no | Auto-grow cap, in lines; beyond it the field scrolls. ALWAYS set this when auto-growing — an uncapped field pushes the submit button off-screen on a long paste, which is a shipped failure in the field, not a hypothetical. |
-| `maxLength` | number | — | no | Character limit, counted by GRAPHEME (Intl.Segmenter) rather than UTF-16 code unit — a flag emoji costs 4 units and a ZWJ family up to 11, so a .length limit hits non-Latin and emoji users artificially early. Enforce SOFT: allow the overflow, set aria-invalid, show the counter in error, block submit. Never the native hard maxlength, which silently truncates pasted overflow with no signal to anyone, AT users included. |
+| `maxRows` | number | — | no | Auto-grow cap, in lines; beyond it the field scrolls. Always set this when auto-growing — an uncapped field pushes the submit button off-screen on a long paste, which is a shipped failure in the field, not a hypothetical. |
+| `maxLength` | number | — | no | Character limit, counted by grapheme (Intl.Segmenter) rather than UTF-16 code unit — a flag emoji costs 4 units and a ZWJ family up to 11, so a .length limit hits non-Latin and emoji users artificially early. Enforce soft: allow the overflow, set aria-invalid, show the counter in error, block submit. Never the native hard maxlength, which silently truncates pasted overflow with no signal to anyone, at users included. |
 | `showCount` | boolean | `false` | no | The character counter — first-class here, unlike on TextField. Only ever with a real limit: a counter on an unlimited field implies a cap that does not exist. |
 | `spellCheck` | boolean | — | no | Native passthrough; worth surfacing because structured input often wants it off. |
-| `submitOnEnter` | boolean | `false` | no | Composer opt-in: Enter submits, Shift+Enter inserts a newline. NOT the base default — Enter inserting a newline is the platform contract a multi-line field advertises via aria-multiline, and hijacking it silently can lose a screen-reader user a drafted message. Whenever true, pair it with a real visible submit button and a visible "Shift+Enter for a new line" hint (SC 3.3.2). A composer that submits on Enter by default is its own specialization, named MessageComposer or ChatInput (brief §3, §10), not this base field. |
-| `validation` | enum: 'default' \| 'error' \| 'warning' \| 'success' | `default` | no | The validation state. Each non-default status swaps the field border to its own boundary (border-only — `error` → danger, `warning` → warning, `success` → success) and sets the composed message to the matching status; `default` is neutral. `error` also sets aria-invalid. The same prop, with the same values, as TextField and Select. |
-| `validationMessage` | string \| node | — | no | The validation text shown at error / warning / success, added to aria-describedby. For error, say what is wrong AND how to fix it, with the number when it is a length limit (SC 3.3.3), never "Invalid". |
+| `submitOnEnter` | boolean | `false` | no | Composer opt-in: Enter submits, Shift+Enter inserts a newline. Not the base default — Enter inserting a newline is the platform contract a multi-line field advertises via aria-multiline, and hijacking it silently can lose a screen-reader user a drafted message. Whenever true, pair it with a real visible submit button and a visible "Shift+Enter for a new line" hint (SC 3.3.2). A composer that submits on Enter by default is its own specialization, named MessageComposer or ChatInput, not this base field. |
+| `validation` | enum: 'default' \| 'error' \| 'warning' \| 'success' | `default` | no | The validation state. Each non-default status swaps the field border to its own boundary (border-only — error → danger, warning → warning, success → success) and sets the composed message to the matching status; default is neutral. error also sets aria-invalid. The same prop, with the same values, as TextField and Select. |
+| `validationMessage` | string \| node | — | no | The validation text shown at error / warning / success, added to aria-describedby. For error, say what is wrong and how to fix it, with the number when it is a length limit (SC 3.3.3), never "Invalid". |
 | `required` | boolean | `false` | no | Sets required / aria-required, and turns on the FieldLabel's required marker. The same prop as TextField's. |
-| `disabled` | boolean | `false` | no | Native disabled — removed from tab order, not submitted, silent to AT, contrast-exempt. Reserve for fields irrelevant in the current state. The same prop as TextField's. |
+| `disabled` | boolean | `false` | no | Native disabled — removed from tab order, not submitted, silent to assistive tech, contrast-exempt. Reserve for fields irrelevant in the current state. The same prop as TextField's. |
 | `readOnly` | boolean | `false` | no | Distinct from disabled: focusable, selectable and copyable, submitted with the form, and passes contrast. Use for text the user may read or copy but not edit (a submitted message, a generated summary). The same prop as TextField's. |
 | `isPending` | boolean | `false` | no | Content arriving asynchronously, such as a draft streaming into the field: sets aria-busy; does not block typing unless intended. The same prop as TextField's. |
-| `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | Scales the value type with the field (small 14px, medium 16px, large 18px, `type.body.{sm,md,lg}`), the nested label one step below it (12 / 14 / 16), and the padding. NOT the height: that belongs to rows / auto-grow, so the reserved rows grow with the type's line height. `small` is for fine pointers only: on a coarse pointer (`@media (pointer: coarse)`) the code sets the small textarea to 16px, because iOS Safari zooms the page when it focuses a field under 16px. The same prop, with the same values, as TextField and Select. |
+| `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | Scales the value type with the field (small 14px, medium 16px, large 18px, from type.body.sm, md and lg), the nested label one step below it (12 / 14 / 16), and the padding. Not the height: that belongs to rows / auto-grow, so the reserved rows grow with the type's line height. small is for fine pointers only: on a coarse pointer (@media (pointer: coarse)) the code sets the small textarea to 16px, because iOS Safari zooms the page when it focuses a field under 16px. The same prop, with the same values, as TextField and Select. |
 | `id` | string | — | no | Wiring + form submission; auto-generated with useId if omitted, tying label→textarea and the aria-describedby chain. The same prop as TextField's. |
 | `name` | string | — | no | A real \<textarea name> so the field works uncontrolled, in a native \<form>, with useFormStatus / Server Actions, and the Constraint Validation API. The same prop as TextField's. |
+
+## Specs
+
+Generated from the plan that builds the design-file component: 84 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `container` | frame | every member |
+| `container/label` | instance | every member |
+| `container/body` | frame | every member |
+| `container/body/control` | frame | every member |
+| `container/body/control/placeholder` | text | state=rest or hover or focus-visible or disabled |
+| `container/body/control/gripGlyph` | instance | every member |
+| `container/body/messageRow` | frame | every member |
+| `container/body/messageRow/messageCell` | frame | every member |
+| `container/body/messageRow/messageCell/message` | instance | every member |
+| `container/body/messageRow/counterCell` | frame | every member |
+| `container/body/messageRow/counterCell/counter` | text | every member |
+| `container/body/control/value` | text | state=filled or focus-visible-filled or read-only |
+| `container/body/control/caret` | frame | state=focus-visible |
+| `container/body/control/focusRing` | instance | state=focus-visible or focus-visible-filled |
+
+Code-only states, with no design-file member: `pending`, `empty`.
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by `size`.
+
+**size=medium**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.100` / `space.200` / `space.100` / `space.200` | — | — | — | 120px (literal) | — |
+| `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/messageRow` | — | `space.100` | — | — | — | — |
+| `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/control/caret` | — | — | `control.size.md.line-box` | `border-width.hairline` | — | — |
+
+**size=small**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.075` / `space.200` / `space.075` / `space.200` | — | — | — | 120px (literal) | — |
+| `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/messageRow` | — | `space.100` | — | — | — | — |
+| `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/control/caret` | — | — | `control.size.sm.line-box` | `border-width.hairline` | — | — |
+
+**size=large**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/body/control` | `space.100` / `space.300` / `space.100` / `space.300` | — | — | — | 120px (literal) | — |
+| `container/body/control/gripGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `container/body/messageRow` | — | `space.100` | — | — | — | — |
+| `container/body/messageRow/messageCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/messageRow/counterCell` | `space.100` / — / — / — | — | — | — | — | — |
+| `container/body/control/caret` | — | — | `control.size.lg.line-box` | `border-width.hairline` | — | — |
+
+### Type
+
+Keyed by `size`.
+
+| Members | Part | Text style |
+| --- | --- | --- |
+| size=medium | `container/body/control/placeholder` | `type.body.md.default` |
+| size=medium | `container/body/messageRow/counterCell/counter` | `type.caption.md.default` |
+| size=medium | `container/body/control/value` | `type.body.md.default` |
+| size=small | `container/body/control/placeholder` | `type.body.sm.default` |
+| size=small | `container/body/messageRow/counterCell/counter` | `type.caption.md.default` |
+| size=small | `container/body/control/value` | `type.body.sm.default` |
+| size=large | `container/body/control/placeholder` | `type.body.lg.default` |
+| size=large | `container/body/messageRow/counterCell/counter` | `type.caption.md.default` |
+| size=large | `container/body/control/value` | `type.body.lg.default` |
+
+### Color
+
+Keyed by `status`, `state`.
+
+**status=default, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.field.fill` | `color.field.border.rest` | — | — |
+| `container/body/control/placeholder` | — | — | `color.text.secondary` | — |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=default, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.interactive.neutral.overlay.hover` | `color.field.border.hover` | — | — |
+| `container/body/control/placeholder` | — | — | `color.text.secondary` | — |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=default, state=filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.field.fill` | `color.field.border.rest` | — | — |
+| `container/body/control/value` | — | — | `color.text.primary` | — |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=default, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.field.fill` | `color.border.focus` | — | — |
+| `container/body/control/caret` | `color.text.primary` | — | — | — |
+| `container/body/control/placeholder` | — | — | `color.text.secondary` | — |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=default, state=focus-visible-filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.field.fill` | `color.border.focus` | — | — |
+| `container/body/control/value` | — | — | `color.text.primary` | — |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=default, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.disabled.fill` | `color.disabled.border` | — | — |
+| `container/body/control/placeholder` | — | — | `color.disabled.on-fill` | — |
+| `container/body/control/gripGlyph` | — | — | — | `color.disabled.on-fill` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.disabled.text` | — |
+
+**status=default, state=read-only**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.field.fill` | `color.field.border.rest` | — | — |
+| `container/body/control/value` | — | — | `color.text.primary` | — |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=error, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.field.fill` | `color.border.danger` | — | — |
+| `container/body/control/placeholder` | — | — | `color.text.secondary` | — |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=error, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.interactive.neutral.overlay.hover` | `color.border.danger` | — | — |
+| `container/body/control/placeholder` | — | — | `color.text.secondary` | — |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=error, state=filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.field.fill` | `color.border.danger` | — | — |
+| `container/body/control/value` | — | — | `color.text.primary` | — |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=error, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.field.fill` | `color.border.danger` | — | — |
+| `container/body/control/caret` | `color.text.primary` | — | — | — |
+| `container/body/control/placeholder` | — | — | `color.text.secondary` | — |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=error, state=focus-visible-filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.field.fill` | `color.border.danger` | — | — |
+| `container/body/control/value` | — | — | `color.text.primary` | — |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=error, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.disabled.fill` | `color.disabled.border` | — | — |
+| `container/body/control/placeholder` | — | — | `color.disabled.on-fill` | — |
+| `container/body/control/gripGlyph` | — | — | — | `color.disabled.on-fill` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.disabled.text` | — |
+
+**status=error, state=read-only**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.field.fill` | `color.border.danger` | — | — |
+| `container/body/control/value` | — | — | `color.text.primary` | — |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=warning, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.field.fill` | `color.border.warning` | — | — |
+| `container/body/control/placeholder` | — | — | `color.text.secondary` | — |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=warning, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.interactive.neutral.overlay.hover` | `color.border.warning` | — | — |
+| `container/body/control/placeholder` | — | — | `color.text.secondary` | — |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=warning, state=filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.field.fill` | `color.border.warning` | — | — |
+| `container/body/control/value` | — | — | `color.text.primary` | — |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=warning, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.field.fill` | `color.border.warning` | — | — |
+| `container/body/control/caret` | `color.text.primary` | — | — | — |
+| `container/body/control/placeholder` | — | — | `color.text.secondary` | — |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=warning, state=focus-visible-filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.field.fill` | `color.border.warning` | — | — |
+| `container/body/control/value` | — | — | `color.text.primary` | — |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=warning, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.disabled.fill` | `color.disabled.border` | — | — |
+| `container/body/control/placeholder` | — | — | `color.disabled.on-fill` | — |
+| `container/body/control/gripGlyph` | — | — | — | `color.disabled.on-fill` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.disabled.text` | — |
+
+**status=warning, state=read-only**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.field.fill` | `color.border.warning` | — | — |
+| `container/body/control/value` | — | — | `color.text.primary` | — |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=success, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.field.fill` | `color.border.success` | — | — |
+| `container/body/control/placeholder` | — | — | `color.text.secondary` | — |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=success, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.interactive.neutral.overlay.hover` | `color.border.success` | — | — |
+| `container/body/control/placeholder` | — | — | `color.text.secondary` | — |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=success, state=filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.field.fill` | `color.border.success` | — | — |
+| `container/body/control/value` | — | — | `color.text.primary` | — |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=success, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.field.fill` | `color.border.success` | — | — |
+| `container/body/control/caret` | `color.text.primary` | — | — | — |
+| `container/body/control/placeholder` | — | — | `color.text.secondary` | — |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=success, state=focus-visible-filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.field.fill` | `color.border.success` | — | — |
+| `container/body/control/value` | — | — | `color.text.primary` | — |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+**status=success, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.disabled.fill` | `color.disabled.border` | — | — |
+| `container/body/control/placeholder` | — | — | `color.disabled.on-fill` | — |
+| `container/body/control/gripGlyph` | — | — | — | `color.disabled.on-fill` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.disabled.text` | — |
+
+**status=success, state=read-only**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/body/control` | `color.field.fill` | `color.border.success` | — | — |
+| `container/body/control/value` | — | — | `color.text.primary` | — |
+| `container/body/control/gripGlyph` | — | — | — | `color.icon.secondary` |
+| `container/body/messageRow/counterCell/counter` | — | — | `color.text.secondary` | — |
+
+### Nesting and properties
+
+- `container/label` nests `field-label` at `size=medium, emphasis=secondary, weight=regular, state=rest`; `state=disabled` takes `state=disabled`; follows `size`; exposes `emphasis`, `weight`
+- `container/body/control/gripGlyph` nests `icon/resize-grip`
+- `container/body/messageRow/messageCell/message` nests `field-message` at `status=default`; follows `status`
+- `container/body/control/focusRing` nests `focus-ring` at `surface=default`
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `placeholder` | text | `Placeholder` |
+| `count` | text | `0 / 200` |
+| `value` | text | `Entered text` |
+| `resize handle` | boolean | `true` |
+| `message` | boolean | `true` |
+| `character count` | boolean | `false` |
 
 ---
 

@@ -65,10 +65,10 @@ export const fieldLabel: ComponentDef = {
     // [none/required/optional] axis. A Figma boolean-VISIBILITY property (#1331/#1412): ON shows the marker
     // beside the label; OFF — the default since #1699 — hides it. Direct mapping — the prop's default is the
     // marker's BUILT visibility, so no inverted-boolean mechanism is needed (see `figmaProperties`).
-    { name: 'required', type: 'boolean', default: false, required: false, description: 'Whether the field is required. ON shows the marker beside the label; OFF, the default, hides it — the host\'s own `required` prop defaults off too. Never the sole signal: the field also carries required / aria-required, so the state is not marker-only.' },
-    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'small', required: false, description: 'Three steps. Scales the TYPE (`type.body.{xs,sm,md}` = 12/14/16px), not padding alone, one body step below the input of the same field size. Every field host passes its own size through, so a small field nests the small label. `small`, the default, is the 12px label.' },
-    { name: 'emphasis', type: "enum: 'secondary' | 'primary'", values: ['secondary', 'primary'], default: 'secondary', required: false, description: 'The label\'s ink. `secondary`, the default, is the de-emphasized label every field host nests; `primary` is the full-strength ink for a label that has to lead. Semantic ROLES, never shades — `color.text.{primary,secondary}` — so a brand changing its text palette carries this without the def moving.' },
-    { name: 'weight', type: "enum: 'regular' | 'bold'", values: ['regular', 'bold'], default: 'regular', required: false, description: 'How heavy the label reads. These are intents, not role names: `regular` resolves the brand\'s default body weight, `bold` the heaviest body weight the brand ships — Bold (700) on a brand that ships it, Medium (500) where that is its heaviest body cut. Use it for a label that has to carry a section, not for emphasis inside a form — a form where every label is bold has no emphasis in it.' },
+    { name: 'required', type: 'boolean', default: false, required: false, description: 'Whether the field is required. On shows the marker beside the label; off, the default, hides it, and the host\'s own required prop defaults off too. Never the sole signal: the field also carries required / aria-required, so the state is not marker-only.' },
+    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'small', required: false, description: 'Three steps. Scales the type (type.body.xs, sm and md: 12, 14 and 16px), not padding alone, one body step below the input of the same field size. Every field host passes its own size through, so a small field nests the small label. small, the default, is the 12px label.' },
+    { name: 'emphasis', type: "enum: 'secondary' | 'primary'", values: ['secondary', 'primary'], default: 'secondary', required: false, description: 'The label\'s ink. secondary, the default, is the de-emphasized label every field host nests; primary is the full-strength ink for a label that has to lead. Semantic roles, never shades (color.text.primary and color.text.secondary), so a brand that changes its text palette carries the label with it.' },
+    { name: 'weight', type: "enum: 'regular' | 'bold'", values: ['regular', 'bold'], default: 'regular', required: false, description: 'How heavy the label reads. These are intents, not role names: regular resolves the brand\'s default body weight, bold the heaviest body weight the brand ships — Bold (700) on a brand that ships it, Medium (500) where that is its heaviest body cut. Use it for a label that has to carry a section, not for emphasis inside a form — a form where every label is bold has no emphasis in it.' },
     // #1339 — DISABLED IS A STATE, NOT A PROP. The old `disabled` boolean prop duplicated the `disabled`
     // state axis; the owner decision (2026-09-13) collapses that to ONE mechanism. The label dims via the
     // projected `disabled` state (paint at the disabled coordinate → `color.disabled.text`, kept above the
@@ -439,17 +439,19 @@ export const fieldLabel: ComponentDef = {
   },
 
   docs: {
-    usage: 'Place above every field as its accessible name. Wire htmlFor to the field id. Set the `required` boolean per field (on shows the marker, off hides it), consistently across a form. Reuse the same component above every field control so the label-is-always-present contract holds family-wide. In code the marker flows inline after the name, and the name wraps at the field\'s width.',
+    usage: 'Place above every field as its accessible name. Wire htmlFor to the field id. Set required per field (on shows the marker, off hides it), consistently across a form. Reuse the same component above every field control so the label-is-always-present contract holds family-wide. In code the marker flows inline after the name, and the name wraps at the field\'s width.',
     do: [
       'Always render a label, even for search (visually-hidden, still in the DOM)',
       'Keep it a short noun phrase in sentence case, no trailing colon',
-      'Set `required` consistently across a form, and back the marker with aria-required — never the marker alone',
+      'Set required consistently across a form, and back the marker with aria-required — never the marker alone',
     ],
     dont: [
       'Use the placeholder as the label (it vanishes on input — fails SC 3.3.2)',
       'Write an instruction as the label ("Enter your email here") — that is helper text',
       'Rely on the required marker as the only required signal',
     ],
+    contentGuidelines:
+      'Write the label as a noun or noun phrase in sentence case, three words or fewer, with no trailing colon ("Email address"). Instructions and formats belong in helper text, not the label. Mark required fields the same way across a form.',
   },
 
   ai: {

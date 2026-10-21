@@ -73,7 +73,7 @@ export const imagePlaceholder: ComponentDef = {
     'An empty-state media frame that holds a photograph at a fixed aspect ratio. Pick a ratio (portrait 2:3, 3:4 or 4:5; square 1:1; landscape 4:3, 3:2 or 16:9) and the frame keeps that proportion while its size flexes to its container; a designer drops an image fill onto it (not a modeled slot). Before an image arrives it shows a neutral fill and a centered "no image" marker that scales with the frame, and it clips its content so a mismatched photo cannot overflow the frame. Turn the marker off once an image is in.',
 
   props: [
-    { name: 'ratio', type: "enum: '2:3' | '3:4' | '4:5' | '1:1' | '4:3' | '3:2' | '16:9'", values: ['2:3', '3:4', '4:5', '1:1', '4:3', '3:2', '16:9'], default: '4:3', required: false, description: 'The width-to-height PROPORTION the frame holds while its actual size flexes — portrait (2:3, 3:4 for apparel tiles, 4:5), a square (1:1), or landscape (the classic photo ratio 4:3, 3:2, widescreen 16:9). It is an aspect-ratio LOCK, not a pair of fixed dimensions: the frame derives its height from its width (or the reverse) so the shape survives being resized. Pick it from the media the frame will hold.' },
+    { name: 'ratio', type: "enum: '2:3' | '3:4' | '4:5' | '1:1' | '4:3' | '3:2' | '16:9'", values: ['2:3', '3:4', '4:5', '1:1', '4:3', '3:2', '16:9'], default: '4:3', required: false, description: 'The width-to-height proportion the frame holds while its actual size flexes — portrait (2:3, 3:4 for apparel tiles, 4:5), a square (1:1), or landscape (the classic photo ratio 4:3, 3:2, widescreen 16:9). It is an aspect-ratio lock, not a pair of fixed dimensions: the frame derives its height from its width (or the reverse) so the shape survives being resized. Pick it from the media the frame will hold.' },
   ],
 
   // `[]` — an image placeholder is not interactive of itself. Dropping an image onto it is a native
@@ -202,14 +202,14 @@ export const imagePlaceholder: ComponentDef = {
   },
 
   accessibility: {
-    role: 'img once it holds an image: with a descriptive accessible name when the image is informative, or an empty alt (`alt=""`) when it is decorative, which removes it from the accessibility tree. The empty frame is presentational. The "no image" marker inside it is decorative and aria-hidden; it is a visual affordance, not the accessible content.',
+    role: 'img once it holds an image: with a descriptive accessible name when the image is informative, or an empty alt (alt="") when it is decorative, which removes it from the accessibility tree. The empty frame is presentational. The "no image" marker inside it is decorative and aria-hidden; it is a visual affordance, not the accessible content.',
     wcag: [
-      '1.1.1 Non-text Content — an image placeholder that ships as a real image needs a text alternative describing it, or an empty `alt=""` when the image is decorative (image.md §6: an omitted alt and an empty one behave oppositely); the empty-state marker is decorative and is hidden from assistive tech',
+      '1.1.1 Non-text Content — an image placeholder that ships as a real image needs a text alternative describing it, or an empty alt="" when the image is decorative (an omitted alt and an empty one behave oppositely); the empty-state marker is decorative and is hidden from assistive tech',
       '1.4.11 Non-text Contrast — where the frame edge is a meaningful boundary, verify it against the surface behind it; the neutral fill is a background, not a UI boundary carrying meaning',
       '1.4.1 Use of Color — the marker signals "no image" by shape and position, not by color alone',
     ],
     focus: 'None of its own — the frame is not focusable as an empty placeholder. If it becomes an interactive media element (a button that opens a picker), that control carries its own focus; the placeholder frame does not invent one.',
-    aria: 'Once the frame holds a real image, decide whether the image is informative or decorative. Informative: an img role and an accessible name that describes its function, not the picture. Decorative: an empty alt (`alt=""`), never an omitted one — some screen readers announce the file name when alt is missing. Mark the "no image" marker aria-hidden — it is a decorative affordance, and announcing it would add nothing. Do not rely on the marker as the accessible description of the eventual image.',
+    aria: 'Once the frame holds a real image, decide whether the image is informative or decorative. Informative: an img role and an accessible name that describes its function, not the picture. Decorative: an empty alt (alt=""), never an omitted one — some screen readers announce the file name when alt is missing. Mark the "no image" marker aria-hidden — it is a decorative affordance, and announcing it would add nothing. Do not rely on the marker as the accessible description of the eventual image.',
   },
 
   content: {
@@ -225,10 +225,10 @@ export const imagePlaceholder: ComponentDef = {
       'Let the frame clip — a photo cropped to the ratio reads better than one that overflows the layout',
     ],
     dont: [
-      'Hard-code a width AND a height to fake a ratio — the frame holds the ratio and derives the second dimension, so two fixed sizes fight the lock and break on resize',
+      'Hard-code a width and a height to fake a ratio — the frame holds the ratio and derives the second dimension, so two fixed sizes fight the lock and break on resize',
       'Treat the "no image" marker as the image\'s description — it is a placeholder affordance, turned off when a photograph arrives',
       'Leave the marker on over a supplied image — the frame cannot tell that a fill is a photo, so the marker property is how the marker goes away',
-      'Reach for an image placeholder as a decorative wash over a photo — that is the `veil` component (a follow-up may compose the two)',
+      'Reach for an image placeholder as a decorative wash over a photo — that is the veil component (a follow-up may compose the two)',
       'Expect a play or scrim overlay yet — those are not built yet; this is the core empty-state frame',
     ],
     contentGuidelines: 'The frame holds no copy. Where its ratio surfaces in a UI, name the proportion ("16:9", "Square"), not a pixel size — the frame holds a ratio, not a fixed dimension.',
@@ -237,7 +237,7 @@ export const imagePlaceholder: ComponentDef = {
   ai: {
     primaryPurpose: 'Reserve space for a photograph at a fixed aspect ratio, holding the proportion while the frame flexes to its container, and show a neutral empty state until an image is dropped in.',
     whenToUse: 'A layout needs a media slot at a known proportion before the image is chosen — a card\'s photo area, a hero, a gallery cell. Pick a ratio from the media it will hold (2:3, 3:4 or 4:5 portrait, 1:1, 4:3, 3:2 or 16:9 landscape); the frame keeps that ratio as it resizes and clips whatever image is dropped onto it. Once an image is supplied, turn the marker property off so the "no image" marker does not draw over it.',
-    avoidWhen: 'The surface is a decorative wash over an existing photo (that is the `veil` component), the image is already present and fixed (place it directly), or the space needs a play button or a legibility scrim over the media (not built yet — this is the core empty-state frame only).',
+    avoidWhen: 'The surface is a decorative wash over an existing photo (that is the veil component), the image is already present and fixed (place it directly), or the space needs a play button or a legibility scrim over the media (not built yet — this is the core empty-state frame only).',
     // `veil` sits over an image this frame holds; it is not nested, so it is a partner, not a part (#1700).
     commonPartners: ['icon', 'veil'],
     triggerKeywords: ['image placeholder', 'media frame', 'photo frame', 'aspect ratio', '16:9', '4:3', '3:2', '3:4', '4:5', '2:3', 'portrait image', 'product image', 'square image', 'empty image', 'image slot', 'no image', 'media slot'],

@@ -93,6 +93,7 @@ Use a Dialog when the user must make a decision or finish a short task before go
 Titles are specific and in sentence case. Body text is short and states the consequence of an action, especially one that cannot be undone. Buttons are named by what they do.
 
 - **Labels:** The title names the task or asks the question ("Delete this address?"), never "Warning" or "Are you sure?". The main action echoes the title's verb ("Delete address"), not "OK" or "Yes". Sentence case.
+- **Dialogs:** A confirmation asks about the action in its title ("Delete this address?"). The body states what is lost and whether it can be undone. The destructive button repeats the verb ("Delete address") beside Cancel or a named way out ("Keep address"), and focus starts on that way out. Leave the close button off an alertdialog, so the user answers it.
 
 ## Related components
 
@@ -110,7 +111,7 @@ Titles are specific and in sentence case. Body text is short and states the cons
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
 | `open` | boolean | `false` | no | Whether the dialog is showing. Opening it moves focus into it and makes the page behind it inert. |
-| `onOpenChange` | function | — | no | Called with false on every attempt to close: the close button, Escape, a backdrop click on a standard dialog, or an action that closes it. Keep `open` in step with it. |
+| `onOpenChange` | function | — | no | Called with false on every attempt to close: the close button, Escape, a backdrop click on a standard dialog, or an action that closes it. Keep open in step with it. |
 | `title` | node | — | yes | The heading that names the task. It is the dialog's accessible name, so make it specific: "Delete this address?", not "Are you sure?". It wraps rather than truncating. |
 | `description` | node | — | no | One or two sentences under the title that say what the dialog is for or what an action will do. Linked as the dialog's accessible description. |
 | `children` | node | — | yes | The body content. The body is the only part that scrolls; the header and footer stay in place. |
@@ -119,6 +120,203 @@ Titles are specific and in sentence case. Body text is short and states the cons
 | `placement` | enum: 'center' \| 'bottom' \| 'full' | `center` | no | Where the panel sits. center on every screen by default; bottom (a bottom sheet) and full (full screen) are for small screens. Set per breakpoint; nothing switches automatically. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The width of a centered panel: 400, 560 or 720px. On a small screen a centered panel is as wide as the screen less its margins. Bottom and full panels are full width and ignore it. |
 | `footer` | enum: 'inline' \| 'stacked' \| 'none' | `inline` | no | How the actions are laid out. inline is a row at the end edge; stacked is full-width buttons, the main action on top; none is for a dialog whose body holds its own actions. |
+
+## Specs
+
+Generated from the plan that builds the design-file component: 15 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `panel` | frame | every member |
+| `panel/header` | frame | every member |
+| `panel/header/titleBox` | frame | every member |
+| `panel/header/titleBox/title` | text | every member |
+| `panel/header/titleBox/description` | text | every member |
+| `panel/header/close` | instance | every member |
+| `panel/headerDivider` | instance | every member |
+| `panel/body` | slot | every member |
+| `panel/body/placeholder` | text | every member |
+| `panel/footerDivider` | instance | footer=inline or stacked |
+| `panel/footer` | frame | footer=inline or stacked |
+| `panel/footer/actionsInline` | instance | footer=inline |
+| `panel/footer/actionsStacked` | instance | footer=stacked |
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by `size`, `placement`.
+
+**size=medium, placement=center**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `panel` | `space.300` / `space.0` / `space.300` / `space.0` | `space.200` | — | — | — | build width 560px (literal) |
+| `panel/header` | `space.0` / `space.300` / `space.0` / `space.300` | `space.200` | — | — | — | — |
+| `panel/header/titleBox` | — | `space.100` | — | — | — | — |
+| `panel/body` | `space.0` / `space.300` / `space.0` / `space.300` | — | — | — | — | — |
+| `panel/footer` | `space.0` / `space.300` / `space.0` / `space.300` | — | — | — | — | — |
+
+**size=small, placement=center**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `panel` | `space.300` / `space.0` / `space.300` / `space.0` | `space.200` | — | — | — | build width 400px (literal) |
+| `panel/header` | `space.0` / `space.300` / `space.0` / `space.300` | `space.200` | — | — | — | — |
+| `panel/header/titleBox` | — | `space.100` | — | — | — | — |
+| `panel/body` | `space.0` / `space.300` / `space.0` / `space.300` | — | — | — | — | — |
+| `panel/footer` | `space.0` / `space.300` / `space.0` / `space.300` | — | — | — | — | — |
+
+**size=large, placement=center**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `panel` | `space.300` / `space.0` / `space.300` / `space.0` | `space.200` | — | — | — | build width 720px (literal) |
+| `panel/header` | `space.0` / `space.300` / `space.0` / `space.300` | `space.200` | — | — | — | — |
+| `panel/header/titleBox` | — | `space.100` | — | — | — | — |
+| `panel/body` | `space.0` / `space.300` / `space.0` / `space.300` | — | — | — | — | — |
+| `panel/footer` | `space.0` / `space.300` / `space.0` / `space.300` | — | — | — | — | — |
+
+**size=medium, placement=bottom**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `panel` | `space.200` / `space.0` / `space.200` / `space.0` | `space.200` | — | — | — | build width 360px (literal) |
+| `panel/header` | `space.0` / `space.200` / `space.0` / `space.200` | `space.200` | — | — | — | — |
+| `panel/header/titleBox` | — | `space.100` | — | — | — | — |
+| `panel/body` | `space.0` / `space.200` / `space.0` / `space.200` | — | — | — | — | — |
+| `panel/footer` | `space.0` / `space.200` / `space.0` / `space.200` | — | — | — | — | — |
+
+**size=medium, placement=full**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `panel` | `space.200` / `space.0` / `space.200` / `space.0` | `space.200` | — | — | — | build width 360px (literal); build height 640px (literal) |
+| `panel/header` | `space.0` / `space.200` / `space.0` / `space.200` | `space.200` | — | — | — | — |
+| `panel/header/titleBox` | — | `space.100` | — | — | — | — |
+| `panel/body` | `space.0` / `space.200` / `space.0` / `space.200` | — | — | — | — | — |
+| `panel/footer` | `space.0` / `space.200` / `space.0` / `space.200` | — | — | — | — | — |
+
+### Type
+
+Keyed by `size`.
+
+| Members | Part | Text style |
+| --- | --- | --- |
+| size=medium | `panel/header/titleBox/title` | `type.label.lg.emphasis` |
+| size=medium | `panel/header/titleBox/description` | `type.body.md.default` |
+| size=medium | `panel/body/placeholder` | `type.body.md.default` |
+| size=small | `panel/header/titleBox/title` | `type.label.lg.emphasis` |
+| size=small | `panel/header/titleBox/description` | `type.body.md.default` |
+| size=small | `panel/body/placeholder` | `type.body.md.default` |
+| size=large | `panel/header/titleBox/title` | `type.label.lg.emphasis` |
+| size=large | `panel/header/titleBox/description` | `type.body.md.default` |
+| size=large | `panel/body/placeholder` | `type.body.md.default` |
+
+### Color
+
+Keyed by `placement`, `footer`.
+
+**placement=center, footer=inline**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `panel` | `color.foreground.primary` | — | — | — |
+| `panel/header/titleBox/title` | — | — | `color.text.primary` | — |
+| `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
+| `panel/body/placeholder` | — | — | `color.text.primary` | — |
+
+**placement=center, footer=stacked**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `panel` | `color.foreground.primary` | — | — | — |
+| `panel/header/titleBox/title` | — | — | `color.text.primary` | — |
+| `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
+| `panel/body/placeholder` | — | — | `color.text.primary` | — |
+
+**placement=center, footer=none**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `panel` | `color.foreground.primary` | — | — | — |
+| `panel/header/titleBox/title` | — | — | `color.text.primary` | — |
+| `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
+| `panel/body/placeholder` | — | — | `color.text.primary` | — |
+
+**placement=bottom, footer=inline**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `panel` | `color.foreground.primary` | — | — | — |
+| `panel/header/titleBox/title` | — | — | `color.text.primary` | — |
+| `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
+| `panel/body/placeholder` | — | — | `color.text.primary` | — |
+
+**placement=bottom, footer=stacked**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `panel` | `color.foreground.primary` | — | — | — |
+| `panel/header/titleBox/title` | — | — | `color.text.primary` | — |
+| `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
+| `panel/body/placeholder` | — | — | `color.text.primary` | — |
+
+**placement=bottom, footer=none**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `panel` | `color.foreground.primary` | — | — | — |
+| `panel/header/titleBox/title` | — | — | `color.text.primary` | — |
+| `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
+| `panel/body/placeholder` | — | — | `color.text.primary` | — |
+
+**placement=full, footer=inline**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `panel` | `color.foreground.primary` | — | — | — |
+| `panel/header/titleBox/title` | — | — | `color.text.primary` | — |
+| `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
+| `panel/body/placeholder` | — | — | `color.text.primary` | — |
+
+**placement=full, footer=stacked**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `panel` | `color.foreground.primary` | — | — | — |
+| `panel/header/titleBox/title` | — | — | `color.text.primary` | — |
+| `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
+| `panel/body/placeholder` | — | — | `color.text.primary` | — |
+
+**placement=full, footer=none**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `panel` | `color.foreground.primary` | — | — | — |
+| `panel/header/titleBox/title` | — | — | `color.text.primary` | — |
+| `panel/header/titleBox/description` | — | — | `color.text.secondary` | — |
+| `panel/body/placeholder` | — | — | `color.text.primary` | — |
+
+### Nesting and properties
+
+- `panel/header/close` nests `flush-icon-button-neutral` at `shape=flush, size=medium, state=rest`
+- `panel/headerDivider` nests `divider` at `orientation=horizontal, inset=none`
+- `panel/body` is a slot
+- `panel/footerDivider` nests `divider` at `orientation=horizontal, inset=none`
+- `panel/footer/actionsInline` nests `button-group` at `layout=inline`
+- `panel/footer/actionsStacked` nests `button-group` at `layout=stacked`
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `title` | text | `Dialog title` |
+| `description text` | text | `Supporting text` |
+| `description` | boolean | `false` |
+| `close` | boolean | `true` |
+| `dividers` | boolean | `false` |
+| `body` | slot | — |
 
 ---
 

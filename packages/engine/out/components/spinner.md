@@ -9,7 +9,7 @@
 
 ## Overview
 
-A rotating arc over a faint full ring, showing that work is in progress with no known end. Sized on the icon ladder (16 / 20 / 24 / 32) and inked from the surrounding text or icon color, so it drops into any icon slot — a button's leading visual, a field's trailing slot. On its own it is a polite status named "Loading", or a more specific `label`; inside a host that announces its own busy state, the host hides it with `aria-hidden`. It has no value, so it never stands in for a determinate progress bar.
+A rotating arc over a faint full ring, showing that work is in progress with no known end. Sized on the icon ladder (16 / 20 / 24 / 32) and inked from the surrounding text or icon color, so it drops into any icon slot — a button's leading visual, a field's trailing slot. On its own it is a polite status named "Loading", or a more specific label; inside a host that announces its own busy state, the host hides it with aria-hidden. It has no value, so it never stands in for a determinate progress bar.
 
 - **Purpose:** Show that work is in progress with no known end, inside the control or region that is waiting.
 - **Use when:** A short indeterminate wait of about 200ms to 5s (Material 3's bands) inside a host: a pending Button, a field validating its value, a region reloading. Size it to the host's icon slot.
@@ -30,36 +30,36 @@ Shown on the default member: size `x-small`.
 
 ## Usage guidelines
 
-Use a spinner for a short wait with no known end — about 200ms to 5s — inside the thing that is waiting: a button that is saving, a field checking its value, a region reloading. Size it to the icon slot it sits in, and let it take the ink around it. The host decides when it shows (after a short delay, so a fast operation does not flash). On its own the spinner announces a polite "Loading" status, or a more specific `label`; inside a host that announces its own busy state, such as a Button's `isPending`, the host sets `aria-hidden="true"` on it.
+Use a spinner for a short wait with no known end — about 200ms to 5s — inside the thing that is waiting: a button that is saving, a field checking its value, a region reloading. Size it to the icon slot it sits in, and let it take the ink around it. The host decides when it shows (after a short delay, so a fast operation does not flash). On its own the spinner announces a polite "Loading" status, or a more specific label; inside a host that announces its own busy state, such as a Button's isPending, the host sets aria-hidden="true" on it.
 
 ### Do
 
 - Put the spinner in the host's own icon slot at that slot's icon size, so nothing around it moves
 - Let the host delay showing it, so a fast operation does not flash a spinner
-- Give a standalone spinner a specific `label` ("Loading results") when the work is known
-- Set `aria-hidden="true"` on a spinner inside a host that announces its own busy state (`aria-busy`, a Button's `isPending`)
+- Give a standalone spinner a specific label ("Loading results") when the work is known
+- Set aria-hidden="true" on a spinner inside a host that announces its own busy state (aria-busy, a Button's isPending)
 - Keep the turn under reduced motion, slowed to the reduced duration
 
 ### Don't
 
 - Use a spinner for work with a known length — show determinate progress
 - Draw a static loading glyph from the icon set instead — it drops the rotation, the reduced-motion turn and the announcement
-- Leave a spinner exposed inside a host that already announces its busy state — the state is announced twice; set `aria-hidden="true"` on it
+- Leave a spinner exposed inside a host that already announces its busy state — the state is announced twice; set aria-hidden="true" on it
 - Keep the generic "Loading" when the work is known — name it ("Loading results")
 - Show many spinners at once — a dashboard that starts one per widget on load reads as noise; use one placeholder for the layout and keep the spinner for a single user-triggered wait (Primer)
-- Put `role="progressbar"` or `aria-valuenow` on a spinner — it has no value, and a value is determinate progress
+- Put role="progressbar" or aria-valuenow on a spinner — it has no value, and a value is determinate progress
 - Stop the turn under reduced motion — slow it
 
 ## Accessibility
 
-- **Focus:** None. The spinner takes no focus. A pending host control keeps its own: it takes `aria-disabled="true"`, not native `disabled`, which takes the control out of the focus order and sends focus to the page body (USWDS), and it suppresses the repeat click in script — see Button's `isPending`.
-- **Screen readers:** `status` with `aria-live="polite"`, named by `label` — "Loading" by default. Hidden (`aria-hidden="true"`) inside a host that announces its own busy state.
+- **Focus:** None. The spinner takes no focus. A pending host control keeps its own: it takes aria-disabled="true", not native disabled, which takes the control out of the focus order and sends focus to the page body (USWDS), and it suppresses the repeat click in script — see Button's isPending.
+- **Screen readers:** status with aria-live="polite", named by label — "Loading" by default. Hidden (aria-hidden="true") inside a host that announces its own busy state.
 
-  Standalone, the default: a `role="status"` wrapper with `aria-live="polite"`, named by `label` ("Loading" unless a more specific label is given), around an `aria-hidden` drawing. Inside a host that already announces its busy state — a Button or IconButton `isPending`, which set `aria-busy` and carry their own polite live region — the host sets `aria-hidden="true"` on the spinner, so the state is announced once rather than twice. Never `aria-valuenow` and never `role="progressbar"`: a spinner has no value, and an indeterminate progressbar can make some screen readers keep announcing the missing value.
+  Standalone, the default: a role="status" wrapper with aria-live="polite", named by label ("Loading" unless a more specific label is given), around an aria-hidden drawing. Inside a host that already announces its busy state — a Button or IconButton isPending, which set aria-busy and carry their own polite live region — the host sets aria-hidden="true" on the spinner, so the state is announced once rather than twice. Never aria-valuenow and never role="progressbar": a spinner has no value, and an indeterminate progressbar can make some screen readers keep announcing the missing value.
 
 ### WCAG
 
-- 1.1.1 Non-text Content (the drawing is `aria-hidden`; the status text is the name)
+- 1.1.1 Non-text Content (the drawing is aria-hidden; the status text is the name)
 - 1.4.11 Non-text Contrast (the arc takes its host's icon ink, meant to clear 3:1; the track is decorative and exempt)
 - 4.1.3 Status Messages (the polite "Loading" status when it stands alone; the host's own announcement when the host hides it)
 
@@ -89,7 +89,62 @@ Label: specific and in sentence case — "Loading results", "Updating profile" �
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
 | `size` | enum: 'x-small' \| 'small' \| 'medium' \| 'large' | `medium` | no | The icon ladder: 16 / 20 / 24 / 32. The band scales with it (2px at 24). Inside a host slot, take the slot's own icon size. |
-| `label` | string | `Loading` | no | The accessible name of the spinner's `role="status"` wrapper, visually hidden and announced politely. "Loading" by default; name the work when it is known ("Loading results"). A host that already announces its own busy state (a Button or IconButton `isPending`, which set `aria-busy` and carry their own live region) puts `aria-hidden="true"` on the spinner instead, so the state is announced once. |
+| `label` | string | `Loading` | no | The accessible name of the spinner's role="status" wrapper, visually hidden and announced politely. "Loading" by default; name the work when it is known ("Loading results"). A host that already announces its own busy state (a Button or IconButton isPending, which set aria-busy and carry their own live region) puts aria-hidden="true" on the spinner instead, so the state is announced once. |
+
+## Specs
+
+Generated from the plan that builds the design-file component: 4 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `frame` | frame | every member |
+| `frame/ringGlyph` | glyph | every member |
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by `size`.
+
+**size=x-small**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `frame` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `frame/ringGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+
+**size=small**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `frame` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `frame/ringGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=medium**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `frame` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+| `frame/ringGlyph` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+
+**size=large**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `frame` | — | — | `icon.size.lg` | `icon.size.lg` | — | — |
+| `frame/ringGlyph` | — | — | `icon.size.lg` | `icon.size.lg` | — | — |
+
+### Color
+
+Keyed by nothing: one row covers every member.
+
+**every member**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `frame/ringGlyph` | — | — | — | `color.icon.primary` |
 
 ---
 

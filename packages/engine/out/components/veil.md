@@ -9,7 +9,7 @@
 
 ## Overview
 
-A designer-selectable wash placed over a photograph or video so text set on top of it stays legible. Full-bleed, and chosen per image: pick a DARK wash under light text or a LIGHT wash under dark text (the `value` axis), then the intensity for how much the image needs muting, then the direction — a solid wash over the whole image, or one strongest at the edge the text sits on and fading to clear at the opposite edge. The intensity is a magnitude — a stronger wash mutes the image more — not a contrast guarantee, because the result depends on the specific photo; verify contrast against your own image. Not the modal backdrop, which is a separate mode-varying fill (scrim.default) that dialogs reference directly.
+A designer-selectable wash placed over a photograph or video so text set on top of it stays legible. Full-bleed, and chosen per image: pick a dark wash under light text or a light wash under dark text (the value axis), then the intensity for how much the image needs muting, then the direction — a solid wash over the whole image, or one strongest at the edge the text sits on and fading to clear at the opposite edge. The intensity is a magnitude — a stronger wash mutes the image more — not a contrast guarantee, because the result depends on the specific photo; verify contrast against your own image. Not the modal backdrop, which is a separate mode-varying fill (scrim.default) that dialogs reference directly.
 
 - **Purpose:** Place a designer-selected wash over a photograph or video so text set on top of it stays legible, choosing the wash's polarity and magnitude per image.
 - **Use when:** Text or controls sit over a photograph or video and need to stay readable against a varied image. Pick a dark wash under light text or a light wash under dark text, then the intensity for how much the image needs muting, then the direction — full for text anywhere, or a fade from the edge the text sits on — and verify contrast against the real photo where the text sits.
@@ -25,13 +25,13 @@ Shown on the default member: value `dark`, intensity `medium`, direction `full`.
 
 | Axis | Values | Changes | Description |
 | --- | --- | --- | --- |
-| `value` | `dark`, `light` | once, when authored | The wash's polarity — a DARK wash to lift light text off the image, a LIGHT wash to lift dark text. The designer picks it per image from what the photo needs; there is no automatic choice, because which polarity a given photograph wants is a judgment about that image. |
+| `value` | `dark`, `light` | once, when authored | The wash's polarity — a dark wash to lift light text off the image, a light wash to lift dark text. The designer picks it per image from what the photo needs; there is no automatic choice, because which polarity a given photograph wants is a judgment about that image. |
 | `intensity` | `medium`, `subtle`, `strong` | once, when authored | How much the wash mutes the image, weakest to strongest. A magnitude, not a contrast promise — a stronger wash darkens (or lightens) the photo more, and whether the text on top clears its floor depends on the image, so verify contrast against your own photo. subtle keeps the image most present; strong mutes it most. |
 | `direction` | `full`, `from-top`, `from-bottom`, `from-left`, `from-right` | once, when authored | Where the wash sits. full is a solid wash over the whole image. from-top, from-bottom, from-left and from-right put the full intensity at that edge and fade linearly to clear at the opposite edge — for text that sits along one edge. The intensity applies at the named edge only, so verify contrast where the text actually sits. |
 
 ## Usage guidelines
 
-Place a veil between a photograph (or video) and the text set over it, so the text stays legible. Pick the polarity from the image and the text on it — a DARK wash under light text, a LIGHT wash under dark text — then the intensity for how much the image needs muting: subtle keeps the photo most present, strong mutes it most. Then the direction: full for text anywhere on the image, or a from-top, from-bottom, from-left or from-right fade when the text sits along one edge — the wash is at full intensity on that edge, fading to clear at the opposite edge. The veil is full-bleed, sized to its media container, with the text and any controls as siblings on top rather than children of the wash. Treat the intensity as a starting point and VERIFY the text's contrast against your own image — the wash cannot guarantee a ratio over an unknown photo. For the mode-varying backdrop behind a modal, use scrim.default instead; the veil is for media.
+Place a veil between a photograph (or video) and the text set over it, so the text stays legible. Pick the polarity from the image and the text on it — a dark wash under light text, a light wash under dark text — then the intensity for how much the image needs muting: subtle keeps the photo most present, strong mutes it most. Then the direction: full for text anywhere on the image, or a from-top, from-bottom, from-left or from-right fade when the text sits along one edge — the wash is at full intensity on that edge, fading to clear at the opposite edge. The veil is full-bleed, sized to its media container, with the text and any controls as siblings on top rather than children of the wash. Treat the intensity as a starting point and verify the text's contrast against your own image — the wash cannot guarantee a ratio over an unknown photo. For the mode-varying backdrop behind a modal, use scrim.default instead; the veil is for media.
 
 ### Do
 
@@ -53,11 +53,11 @@ Place a veil between a photograph (or video) and the text set over it, so the te
 - **Focus:** None — the veil is not focusable and takes no place in the tab order. It is a decorative layer behind content; the interactive elements sit on top of it and own their own focus.
 - **Screen readers:** none — a presentational overlay. The veil conveys no information of its own; it is a wash behind text, so it is aria-hidden and the text on top carries the accessible content.
 
-  Mark the veil aria-hidden — it is presentational and announcing it would add nothing to the text it sits behind. Never place text INSIDE the veil node as its only home; the veil is a background layer, and the text is a sibling on top so assistive tech reads the text directly. The veil is a legibility aid, not a substitute for verified contrast: check the text against the actual image, because the wash cannot promise a ratio over an unknown photo.
+  Mark the veil aria-hidden — it is presentational and announcing it would add nothing to the text it sits behind. Never place text inside the veil node as its only home; the veil is a background layer, and the text is a sibling on top so assistive tech reads the text directly. The veil is a legibility aid, not a substitute for verified contrast: check the text against the actual image, because the wash cannot promise a ratio over an unknown photo.
 
 ### WCAG
 
-- 1.4.3 Contrast (Minimum) — the veil exists to help text on an image clear 4.5:1 (or 3:1 for large text), but it cannot GUARANTEE it: the result depends on the photo, so the contrast is verified against the real image, not assumed from the wash
+- 1.4.3 Contrast (Minimum) — the veil exists to help text on an image clear 4.5:1 (or 3:1 for large text), but it cannot guarantee it: the result depends on the photo, so the contrast is verified against the real image, not assumed from the wash
 - 1.4.11 Non-text Contrast — where content on the veil is itself a UI boundary, the same per-image verification applies
 - 1.4.1 Use of Color — the wash lifts text off the image; it is not itself a carrier of meaning
 
@@ -79,9 +79,215 @@ The veil holds no copy. Where its variants surface in a UI, name the polarity an
 
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
-| `value` | enum: 'dark' \| 'light' | `dark` | no | The wash's polarity — a DARK wash to lift light text off the image, a LIGHT wash to lift dark text. The designer picks it per image from what the photo needs; there is no automatic choice, because which polarity a given photograph wants is a judgment about that image. |
+| `value` | enum: 'dark' \| 'light' | `dark` | no | The wash's polarity — a dark wash to lift light text off the image, a light wash to lift dark text. The designer picks it per image from what the photo needs; there is no automatic choice, because which polarity a given photograph wants is a judgment about that image. |
 | `intensity` | enum: 'subtle' \| 'medium' \| 'strong' | `medium` | no | How much the wash mutes the image, weakest to strongest. A magnitude, not a contrast promise — a stronger wash darkens (or lightens) the photo more, and whether the text on top clears its floor depends on the image, so verify contrast against your own photo. subtle keeps the image most present; strong mutes it most. |
 | `direction` | enum: 'full' \| 'from-top' \| 'from-bottom' \| 'from-left' \| 'from-right' | `full` | no | Where the wash sits. full is a solid wash over the whole image. from-top, from-bottom, from-left and from-right put the full intensity at that edge and fade linearly to clear at the opposite edge — for text that sits along one edge. The intensity applies at the named edge only, so verify contrast where the text actually sits. |
+
+## Specs
+
+Generated from the plan that builds the design-file component: 30 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `wash` | frame | every member |
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by nothing: one row covers every member.
+
+**every member**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `wash` | — | — | `container.narrow` | `container.narrow` | — | — |
+
+### Color
+
+Keyed by `value`, `intensity`, `direction`.
+
+**value=dark, intensity=medium, direction=full**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | `color.veil.dark.medium` | — | — | — |
+
+**value=dark, intensity=medium, direction=from-top**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.dark.medium` → `color.veil.dark.clear` | — | — | — |
+
+**value=dark, intensity=medium, direction=from-bottom**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.dark.medium` → `color.veil.dark.clear` | — | — | — |
+
+**value=dark, intensity=medium, direction=from-left**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.dark.medium` → `color.veil.dark.clear` | — | — | — |
+
+**value=dark, intensity=medium, direction=from-right**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.dark.medium` → `color.veil.dark.clear` | — | — | — |
+
+**value=dark, intensity=subtle, direction=full**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | `color.veil.dark.subtle` | — | — | — |
+
+**value=dark, intensity=subtle, direction=from-top**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.dark.subtle` → `color.veil.dark.clear` | — | — | — |
+
+**value=dark, intensity=subtle, direction=from-bottom**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.dark.subtle` → `color.veil.dark.clear` | — | — | — |
+
+**value=dark, intensity=subtle, direction=from-left**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.dark.subtle` → `color.veil.dark.clear` | — | — | — |
+
+**value=dark, intensity=subtle, direction=from-right**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.dark.subtle` → `color.veil.dark.clear` | — | — | — |
+
+**value=dark, intensity=strong, direction=full**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | `color.veil.dark.strong` | — | — | — |
+
+**value=dark, intensity=strong, direction=from-top**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.dark.strong` → `color.veil.dark.clear` | — | — | — |
+
+**value=dark, intensity=strong, direction=from-bottom**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.dark.strong` → `color.veil.dark.clear` | — | — | — |
+
+**value=dark, intensity=strong, direction=from-left**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.dark.strong` → `color.veil.dark.clear` | — | — | — |
+
+**value=dark, intensity=strong, direction=from-right**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.dark.strong` → `color.veil.dark.clear` | — | — | — |
+
+**value=light, intensity=medium, direction=full**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | `color.veil.light.medium` | — | — | — |
+
+**value=light, intensity=medium, direction=from-top**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.light.medium` → `color.veil.light.clear` | — | — | — |
+
+**value=light, intensity=medium, direction=from-bottom**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.light.medium` → `color.veil.light.clear` | — | — | — |
+
+**value=light, intensity=medium, direction=from-left**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.light.medium` → `color.veil.light.clear` | — | — | — |
+
+**value=light, intensity=medium, direction=from-right**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.light.medium` → `color.veil.light.clear` | — | — | — |
+
+**value=light, intensity=subtle, direction=full**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | `color.veil.light.subtle` | — | — | — |
+
+**value=light, intensity=subtle, direction=from-top**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.light.subtle` → `color.veil.light.clear` | — | — | — |
+
+**value=light, intensity=subtle, direction=from-bottom**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.light.subtle` → `color.veil.light.clear` | — | — | — |
+
+**value=light, intensity=subtle, direction=from-left**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.light.subtle` → `color.veil.light.clear` | — | — | — |
+
+**value=light, intensity=subtle, direction=from-right**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.light.subtle` → `color.veil.light.clear` | — | — | — |
+
+**value=light, intensity=strong, direction=full**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | `color.veil.light.strong` | — | — | — |
+
+**value=light, intensity=strong, direction=from-top**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.light.strong` → `color.veil.light.clear` | — | — | — |
+
+**value=light, intensity=strong, direction=from-bottom**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.light.strong` → `color.veil.light.clear` | — | — | — |
+
+**value=light, intensity=strong, direction=from-left**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.light.strong` → `color.veil.light.clear` | — | — | — |
+
+**value=light, intensity=strong, direction=from-right**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `wash` | gradient `color.veil.light.strong` → `color.veil.light.clear` | — | — | — |
 
 ---
 

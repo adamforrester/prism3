@@ -3,7 +3,8 @@
  *
  *   npx tsx apps/studio/test-status-order.ts
  *
- * The order is the engine's (`SEMANTICS` in `modes.ts`), and the emitted `text`, `icon` and `border` groups follow it.
+ * The order is the engine's (`SEMANTICS` in `modes.ts`), and the emitted `foreground`, `text`, `icon` and `border` groups follow it
+ * (`foreground` since #2836, resolved under #2860; the gate no longer records an exception).
  * The studio's levers and its preview had each drifted: the preview put danger second, the Foreground fills lever put
  * info before danger.
  *
@@ -31,9 +32,8 @@ const same = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.str
 
 const CANON = ['brand', 'success', 'warning', 'danger', 'info'];
 const STATUS = new RegExp(`(${CANON.join('|')})`);
-/** Emitted groups held to the canon. `color.foreground` is the one named exception (#2836). */
-const EMITTED = ['text', 'icon', 'border', 'inverse.text', 'inverse.icon', 'inverse.border', 'inverse.foreground'];
-const EMISSION_EXCEPTIONS: Record<string, string[]> = { foreground: ['brand', 'success', 'warning', 'info', 'danger'] };
+/** Emitted groups held to the canon: every group that lists the statuses, default and inverse. */
+const EMITTED = ['foreground', 'text', 'icon', 'border', 'inverse.foreground', 'inverse.text', 'inverse.icon', 'inverse.border'];
 
 // ── the emission ────────────────────────────────────────────────────────────────────────────────
 const tree = JSON.parse(readFileSync(new URL('../../packages/engine/out/aurora.tokens.json', import.meta.url), 'utf8'));
@@ -41,9 +41,6 @@ const color = tree[Object.keys(tree).find((k) => !k.startsWith('$'))!].color;
 const group = (path: string): string[] => Object.keys(path.split('.').reduce((n: any, k) => n?.[k], color) ?? {});
 const statusKeys = (path: string): string[] => group(path).filter((k) => CANON.includes(k));
 for (const g of EMITTED) ok(statusKeys(g).length === CANON.length && same(statusKeys(g), CANON), `emission: color.${g} lists the statuses in the canonical order`);
-for (const [g, order] of Object.entries(EMISSION_EXCEPTIONS)) {
-  ok(same(statusKeys(g), order), `emission: color.${g} is the one named exception (#2836) and still has its recorded order — if this fails the exception is gone: delete it`);
-}
 
 // ── the preview ─────────────────────────────────────────────────────────────────────────────────
 ok(same(SEM.map(([, s]) => s), CANON), 'preview: SEM lists the statuses in the canonical order');

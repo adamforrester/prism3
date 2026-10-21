@@ -44,6 +44,9 @@ import { buildFigmaTextStyles } from '@prism3/engine/emit-figma-font';
 import { nbTheme } from '@prism3/engine/nb-fixture';
 import { sizeRefPx } from '@prism3/engine/scale';
 import { tailOf } from '@prism3/engine/figma-names';
+import { componentSpec, specMaterialize } from '@prism3/engine/component-specs';
+import type { ComponentSpec } from '@prism3/engine/component-specs';
+import { figmaVarName, figmaTextStyleName } from '@prism3/engine/anatomy-figma';
 import { applyComponentPlan } from './src/write-components';
 import { makeShim, varValue } from './component-shim';
 import { materializeForBrand } from './src/brand-def';
@@ -133,7 +136,7 @@ const componentNamesOf = async (shim: unknown, root: unknown): Promise<Map<strin
  * built from the plan would map every id to the name the diff was hoping for, which is the whole
  * failure mode in one line.
  */
-const roundTrip = async (def: (typeof componentDefs)[number], extra: Partial<ShimOpts> = {}): Promise<{ plans: AnatomyPlan[]; divergences: Divergence[]; members: number }> => {
+const roundTrip = async (def: (typeof componentDefs)[number], extra: Partial<ShimOpts> = {}): Promise<{ plans: AnatomyPlan[]; divergences: Divergence[]; members: number; hostMembers: HostNode[]; set: HostNode | undefined; ports: ReadPorts }> => {
   // NOMINATED, exactly as the real caller does (`apps/plugin/src/main.ts` — `SWAP_TARGET`). Building
   // the plan set without it is not a smaller version of the same build: the executor then reports
   // `swapTarget -> (none nominated; built as a placeholder frame)` and puts a FRAME where the plan
@@ -174,7 +177,7 @@ const roundTrip = async (def: (typeof componentDefs)[number], extra: Partial<Shi
   };
 
   const members = (set?.children ?? []) as unknown as HostNode[];
-  return { plans, divergences: diffAnatomy(plans, members, planComponentName, ports, EXERCISED), members: members.length };
+  return { plans, divergences: diffAnatomy(plans, members, planComponentName, ports, EXERCISED), members: members.length, hostMembers: members, set: set as unknown as HostNode | undefined, ports };
 };
 
 console.log(`component round-trip (#874) — ${INVENTORY ? 'INVENTORY' : 'GATE'} mode\n`);
@@ -191,6 +194,248 @@ console.log(`component round-trip (#874) — ${INVENTORY ? 'INVENTORY' : 'GATE'}
   console.log(`\n  declared UNCHECKED, with reasons (${cov.unchecked.length}):`);
   for (const u of cov.unchecked) console.log(`    ${u.field.padEnd(20)} ${u.reason}`);
 }
+
+// ── SPEC READ-BACK (#2830) — THE SPEC MODEL AGAINST WHAT THE HOST BUILT ─────────────────────────────────────────
+//
+// `componentSpec` (`packages/engine/component-specs.ts`) is what a spec sheet and the docs site show: parts, redlines,
+// type, colors and nesting, as token names. It is projected from the PLAN, so checking it against the plan would be
+// the model's own derivation run twice (docs/34 shape 2). It is checked here against the HOST: what
+// `applyComponentPlan` actually built into the shim, read by the reader below, which shares no code with the model —
+// its own Figma-key list, its own walk (host children by name, stopping at instances and drawn geometry), its own
+// member-name parse, names resolved through the host's own catalogs (`ports`).
+//
+// BOTH DIRECTIONS, PER MEMBER, BY NAME:
+//   · DROPPED — every part, redline binding, literal, text style, paint and nest the host holds must be in the model,
+//     in the one row whose `where` covers that member, with the same value. A model that forgot a part, a padding
+//     side, a stroke or a nested instance fails as `<def> · <member> · <path> · <property>`.
+//   · CLAIMED — every value a model row states must be held, at that path, by every member the row covers that holds
+//     the path, and by at least one member. A row that keys too coarsely (two values under one `where`) fails here.
+//
+// WHERE ITS COVERAGE STOPS (docs/34 shape 17), stated so the count below does not read as more: model and host both
+// descend from the plan, so a WRONG PLAN agrees with itself here — that is the round-trip diff above and the
+// projection gates in `test.ts`. A nest's `exposes` list is checked only as the host's one boolean
+// (`isExposedInstance`): the host does not hold which axes are exposed, so that list is pinned by hand in `test.ts`,
+// not read back here. A nest's fixed variant (with its `when` rules) is read off the host instance's main component
+// name only where that main is a member of a built set — the defs whose nested sets this harness prebuilds; elsewhere
+// the shim's nested target is a bare catalog component with no coordinate, and `test.ts` pins the variant by hand.
+// An instance's icon color (`icon` on a swap slot or a placed instance) sits on the VECTORs
+// inside it; the walk stops at instances, so this reader reaches them through the instance's own `findAll`, both
+// directions, and floors the count (`icons`) so a model that drops every instance icon cannot read as a pass.
+type SpecFinding = { member: string; path: string; property: string; expected: string; actual: string };
+type SpecCheck = { def: string; findings: SpecFinding[]; facts: Record<string, number> };
+const specChecks: SpecCheck[] = [];
+
+/** The Figma keys this reader reads as redlines, and the model property each is. RESTATED, not imported from the
+ *  model's `GEOMETRY`: a key the model's list drops must still be read here, or the drop is invisible (docs/34). */
+const HOST_GEOMETRY: Record<string, string> = {
+  paddingTop: 'paddingTop', paddingRight: 'paddingRight', paddingBottom: 'paddingBottom', paddingLeft: 'paddingLeft',
+  itemSpacing: 'gap', counterAxisSpacing: 'rowGap', height: 'height', minHeight: 'minHeight', width: 'width', minWidth: 'minWidth', maxWidth: 'maxWidth',
+};
+/** Node types that are drawn geometry inside a glyph frame, not parts. */
+const DRAWN = new Set(['VECTOR', 'BOOLEAN_OPERATION', 'STAR', 'ELLIPSE', 'POLYGON', 'LINE', 'RECTANGLE']);
+
+const specReadback = (spec: ComponentSpec, members: HostNode[], set: HostNode | undefined, ports: ReadPorts): Omit<SpecCheck, 'def'> => {
+  const findings: SpecFinding[] = [];
+  const facts: Record<string, number> = { parts: 0, redlines: 0, type: 0, colors: 0, icons: 0, nests: 0, variants: 0, properties: 0, claimed: 0 };
+  const miss = (member: string, path: string, property: string, expected: string, actual: string) => findings.push({ member, path, property, expected, actual });
+  // A host variable name is brand-rooted; the plan's (and so a token's Figma name) is not. Compared on the tail.
+  const varIs = (host: string | null, token: string): boolean => host !== null && (host === figmaVarName(token) || host.endsWith(`/${figmaVarName(token)}`));
+  const byFigma = new Map(spec.axes.map((a) => [a.figmaName, a.name] as const));
+  const coordOfName = (name: string): Record<string, string> =>
+    Object.fromEntries(name.split(', ').filter(Boolean).map((seg) => { const [k, v] = seg.split('='); return [byFigma.get(k) ?? `?${k}`, v]; }));
+  const covers = (where: Record<string, string>, coord: Record<string, string>) => Object.entries(where).every(([a, v]) => coord[a] === v);
+  const rowFor = <R extends { where: Record<string, string> }>(rows: R[], coord: Record<string, string>): R[] => rows.filter((r) => covers(r.where, coord));
+  const root = spec.anatomy[0]?.part ?? '(no parts)';
+
+  // ── read every member off the host ──
+  type Host = { name: string; coord: Record<string, string>; nodes: Map<string, HostNode> };
+  const hosts: Host[] = members.map((m) => {
+    const nodes = new Map<string, HostNode>();
+    const walk = (n: HostNode, path: string): void => {
+      nodes.set(path, n);
+      if (String(n.type) === 'INSTANCE') return; // another component's insides
+      for (const c of (Array.isArray(n.children) ? n.children : []) as HostNode[]) if (!DRAWN.has(String(c.type))) walk(c, `${path}/${String(c.name)}`);
+    };
+    walk(m, root);
+    return { name: String(m.name), coord: coordOfName(String(m.name)), nodes };
+  });
+  const paintVar = (arr: unknown): string | null => {
+    const first = Array.isArray(arr) ? (arr[0] as { boundVariables?: { color?: { id?: unknown } } } | undefined) : undefined;
+    const id = first?.boundVariables?.color?.id;
+    return typeof id === 'string' ? ports.varName(id) : null;
+  };
+  /** The ink on the first VECTOR inside an instance: another component's insides, which the walk does not enter. */
+  const instanceInk = (n: HostNode): string | null => {
+    const findAll = (n as { findAll?: (f: (x: HostNode) => boolean) => HostNode[] }).findAll;
+    const vecs = typeof findAll === 'function' ? findAll.call(n, (x) => String(x.type) === 'VECTOR') : [];
+    return vecs.map((v) => paintVar(v.fills)).find((v) => v !== null) ?? null;
+  };
+
+  // ── DROPPED: host → model ──
+  const holding = new Map<string, number>();
+  for (const h of hosts) {
+    for (const [path, n] of h.nodes) {
+      holding.set(path, (holding.get(path) ?? 0) + 1);
+      facts.parts++;
+      if (!spec.anatomy.some((p) => p.part === path)) { miss(h.name, path, 'part', 'in the anatomy', 'ABSENT from the model'); continue; }
+      const bv = (n.boundVariables ?? {}) as Record<string, { id?: unknown }>;
+      // Redlines: every bound geometry key, and every literal the build wrote.
+      const rl = rowFor(spec.redlines, h.coord);
+      if (rl.length !== 1) { miss(h.name, path, 'redline row', 'exactly one row covers the member', `${rl.length} rows`); continue; }
+      const values = rl[0].parts.find((p) => p.part === path)?.values ?? {};
+      for (const [key, prop] of Object.entries(HOST_GEOMETRY)) {
+        const id = bv[key]?.id;
+        if (typeof id !== 'string') continue;
+        facts.redlines++;
+        const host = ports.varName(id);
+        const want = (values as Record<string, { token?: string; px?: number }>)[prop];
+        if (!want?.token || !varIs(host, want.token)) miss(h.name, path, prop, want ? JSON.stringify(want) : 'in the model', `host binds ${host ?? `unresolvable ${id}`}`);
+      }
+      for (const key of ['minWidth', 'maxWidth', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft'] as const) {
+        const v = n[key];
+        if (typeof v !== 'number' || typeof bv[key]?.id === 'string' || v <= 0 || (String(n.type) === 'INSTANCE' && key.startsWith('padding'))) continue;
+        facts.redlines++;
+        const want = (values as Record<string, { token?: string; px?: number }>)[key];
+        if (want?.token !== undefined || want?.px !== v) miss(h.name, path, key, want ? JSON.stringify(want) : 'in the model', `host holds ${v}px, unbound`);
+      }
+      // Type.
+      if (typeof n.textStyleId === 'string' && n.textStyleId) {
+        facts.type++;
+        const host = ports.styleName(n.textStyleId);
+        const tr = rowFor(spec.type, h.coord);
+        const want = tr.length === 1 ? tr[0].parts.find((p) => p.part === path)?.textStyle : undefined;
+        if (!want || figmaTextStyleName(want) !== host) miss(h.name, path, 'textStyle', want ?? 'in the model', `host applies ${host}`);
+      }
+      // Colors.
+      const cr = rowFor(spec.colors, h.coord);
+      const colors = cr.length === 1 ? cr[0].parts.find((p) => p.part === path) : undefined;
+      if (cr.length !== 1 && (paintVar(n.fills) || paintVar(n.strokes))) miss(h.name, path, 'color row', 'exactly one row covers the member', `${cr.length} rows`);
+      const fill = paintVar(n.fills);
+      if (fill) {
+        facts.colors++;
+        const want = String(n.type) === 'TEXT' ? colors?.ink : colors?.fill ?? colors?.icon;
+        if (!want || !varIs(fill, want)) miss(h.name, path, String(n.type) === 'TEXT' ? 'ink' : 'fill', want ?? 'in the model', `host fills ${fill}`);
+      }
+      const gradient = Array.isArray(n.fills) && (n.fills[0] as { type?: string })?.type === 'GRADIENT_LINEAR'
+        ? ((n.fills[0] as { gradientStops?: { boundVariables?: { color?: { id?: unknown } } }[] }).gradientStops ?? []).map((g) => (typeof g.boundVariables?.color?.id === 'string' ? ports.varName(g.boundVariables.color.id) : null)) : null;
+      if (gradient) {
+        facts.colors++;
+        const want = colors?.gradient;
+        if (!want || want.length !== gradient.length || want.some((t, i) => !varIs(gradient[i], t))) miss(h.name, path, 'gradient', want ? JSON.stringify(want) : 'in the model', `host stops ${JSON.stringify(gradient)}`);
+      }
+      const ink = String(n.type) === 'INSTANCE' ? instanceInk(n) : null;
+      if (ink) {
+        facts.icons++;
+        if (!colors?.icon || !varIs(ink, colors.icon)) miss(h.name, path, 'icon', colors?.icon ?? 'in the model', `host instance inks ${ink}`);
+      }
+      const stroke = paintVar(n.strokes);
+      if (stroke) {
+        facts.colors++;
+        if (!colors?.stroke || !varIs(stroke, colors.stroke)) miss(h.name, path, 'stroke', colors?.stroke ?? 'in the model', `host strokes ${stroke}`);
+      }
+      // Nesting: an instance is a swap slot (a mainComponent reference) or a nest (whose component the host names).
+      if (String(n.type) === 'INSTANCE' || String(n.type) === 'SLOT') {
+        facts.nests++;
+        const entry = spec.nesting.find((x) => x.part === path);
+        const refs = (n.componentPropertyReferences ?? {}) as Record<string, unknown>;
+        if (String(n.type) === 'SLOT') { if (entry?.kind !== 'slot') miss(h.name, path, 'nesting', 'a slot', entry ? entry.kind : 'ABSENT from the model'); }
+        else if (typeof refs.mainComponent === 'string') {
+          const prop = refs.mainComponent.split('#')[0];
+          if (entry?.kind !== 'swap' || entry.property !== prop) miss(h.name, path, 'nesting', `a swap on ${prop}`, entry ? JSON.stringify(entry) : 'ABSENT from the model');
+        } else {
+          const main = n.mainComponent as { name?: unknown; parent?: { name?: unknown; type?: unknown } | null } | null | undefined;
+          const owner = main?.parent?.type === 'COMPONENT_SET' ? String(main.parent.name) : String(main?.name);
+          if (entry?.kind === 'fixed') { if (!entry.components.includes(owner)) miss(h.name, path, 'nesting', `one of ${entry.components.join(', ')}`, `host instance of ${owner}`); }
+          else if (entry?.kind !== 'instance' || entry.component !== owner) miss(h.name, path, 'nesting', `an instance of ${owner}`, entry ? JSON.stringify(entry) : 'ABSENT from the model');
+          else {
+            if (!!n.isExposedInstance !== entry.exposes.length > 0) miss(h.name, path, 'exposes', JSON.stringify(entry.exposes), `host isExposedInstance=${String(n.isExposedInstance)}`);
+            // The fixed variant: the host's main component is named by its variant coordinate. Every axis it pins
+            // that the nest neither follows nor exposes is the nest's fixed variant, and must be the model's.
+            if (main?.parent?.type === 'COMPONENT_SET') {
+              const pinned = Object.fromEntries(String(main.name).split(', ').filter(Boolean).map((seg) => seg.split('=') as [string, string]));
+              const fixedOf = (rec: Record<string, string>) => Object.entries(rec).filter(([k]) => ![...entry.follows, ...entry.exposes].some((a) => a === k || a.toLowerCase() === k.toLowerCase())).map(([k, v]) => `${k.toLowerCase()}=${String(v).toLowerCase()}`).sort().join(', ');
+              // A `when` rule moves it with the member's own value on another axis (Counter's ghost nests round).
+              const expect: Record<string, string> = { ...entry.variant };
+              for (const [axis, byValue] of Object.entries(entry.when ?? {})) Object.assign(expect, byValue[h.coord[axis]] ?? {});
+              facts.variants++;
+              if (fixedOf(pinned) !== fixedOf(expect)) miss(h.name, path, 'variant', `{${fixedOf(expect)}}`, `host instance of ${String(main.name)}`);
+            }
+          }
+        }
+      }
+    }
+  }
+  for (const p of spec.anatomy) if ((holding.get(p.part) ?? 0) !== p.members) miss('(set)', p.part, 'part', `held by ${p.members} member(s)`, `held by ${holding.get(p.part) ?? 0}`);
+  if (spec.members !== hosts.length) miss('(set)', '', 'members', String(spec.members), String(hosts.length));
+  // The set's component properties, by stem and type.
+  const defs = ((set as { componentPropertyDefinitions?: Record<string, { type?: string }> } | undefined)?.componentPropertyDefinitions) ?? {};
+  for (const [k, d] of Object.entries(defs)) {
+    if (d.type === 'VARIANT') continue;
+    facts.properties++;
+    if (!spec.properties.some((p) => p.name === k.split('#')[0] && p.type === d.type)) miss('(set)', '', 'property', `${k.split('#')[0]} (${String(d.type)})`, 'ABSENT from the model');
+  }
+  for (const p of spec.properties) if (!Object.entries(defs).some(([k, d]) => k.split('#')[0] === p.name && d.type === p.type)) miss('(set)', '', 'property', `${p.name} (${p.type})`, 'ABSENT from the host');
+
+  // ── CLAIMED: model → host ──
+  const claim = <R extends { where: Record<string, string>; parts: { part: string }[] }>(rows: R[], each: (h: Host, n: HostNode, part: R['parts'][number]) => void) => {
+    for (const row of rows) for (const part of row.parts) {
+      const hs = hosts.filter((h) => covers(row.where, h.coord) && h.nodes.has(part.part));
+      if (!hs.length) miss(JSON.stringify(row.where), part.part, 'row', 'held by a member it covers', 'NO MEMBER');
+      for (const h of hs) each(h, h.nodes.get(part.part)!, part);
+    }
+  };
+  claim(spec.redlines, (h, n, part) => {
+    const bv = (n.boundVariables ?? {}) as Record<string, { id?: unknown }>;
+    for (const [prop, v] of Object.entries(part.values) as [string, { token?: string; px?: number }][]) {
+      facts.claimed++;
+      const key = Object.entries(HOST_GEOMETRY).find(([, p]) => p === prop)?.[0] ?? prop;
+      if (v.token !== undefined) {
+        const id = bv[key]?.id;
+        if (typeof id !== 'string' || !varIs(ports.varName(id), v.token)) miss(h.name, part.part, prop, v.token, typeof id === 'string' ? `host binds ${ports.varName(id)}` : 'UNBOUND on the host');
+      } else {
+        const hostKey = prop === 'buildWidth' ? 'width' : prop === 'buildHeight' ? 'height' : key;
+        if (n[hostKey] !== v.px) miss(h.name, part.part, prop, `${v.px}px`, `host ${hostKey} ${String(n[hostKey])}`);
+      }
+    }
+  });
+  claim(spec.type, (h, n, part) => {
+    facts.claimed++;
+    const host = typeof n.textStyleId === 'string' ? ports.styleName(n.textStyleId) : null;
+    if (host !== figmaTextStyleName(part.textStyle)) miss(h.name, part.part, 'textStyle', part.textStyle, `host applies ${host}`);
+  });
+  claim(spec.colors, (h, n, part) => {
+    const want = part as { fill?: string; stroke?: string; ink?: string; icon?: string; gradient?: string[] };
+    for (const [k, t] of [['fill', want.fill], ['ink', want.ink], ['stroke', want.stroke]] as const) {
+      if (!t) continue;
+      facts.claimed++;
+      const host = paintVar(k === 'stroke' ? n.strokes : n.fills);
+      if (!varIs(host, t)) miss(h.name, part.part, k, t, `host ${k === 'stroke' ? 'strokes' : 'fills'} ${host}`);
+    }
+    // A drawn glyph's fill is on the geometry the importer made inside it; an instance's is on the VECTORs inside
+    // the instance, read through its own `findAll` (header).
+    if (want.icon) {
+      facts.claimed++;
+      const drawn = (x: HostNode): HostNode[] => ((Array.isArray(x.children) ? x.children : []) as HostNode[]).flatMap((c) => (DRAWN.has(String(c.type)) ? [c] : drawn(c)));
+      const host = String(n.type) === 'INSTANCE' ? instanceInk(n) : paintVar(n.fills) ?? drawn(n).map((d) => paintVar(d.fills)).find((v) => v !== null) ?? null;
+      if (!varIs(host, want.icon)) miss(h.name, part.part, 'icon', want.icon, `host fills ${host}`);
+    }
+    if (want.gradient) {
+      facts.claimed++;
+      const stops = Array.isArray(n.fills) ? ((n.fills[0] as { gradientStops?: { boundVariables?: { color?: { id?: unknown } } }[] }).gradientStops ?? []) : [];
+      const host = stops.map((g) => (typeof g.boundVariables?.color?.id === 'string' ? ports.varName(g.boundVariables.color.id) : null));
+      if (host.length !== want.gradient.length || want.gradient.some((t, i) => !varIs(host[i], t))) miss(h.name, part.part, 'gradient', JSON.stringify(want.gradient), `host stops ${JSON.stringify(host)}`);
+    }
+  });
+  // Every nest the model names is an instance (or a native slot) on every member that holds its path.
+  for (const nest of spec.nesting) for (const h of hosts) {
+    const n = h.nodes.get(nest.part);
+    if (!n) continue;
+    facts.claimed++;
+    const want = nest.kind === 'slot' ? 'SLOT' : 'INSTANCE';
+    if (String(n.type) !== want) miss(h.name, nest.part, 'nesting', `${nest.kind} (${want})`, `host ${String(n.type)}`);
+  }
+  return { findings, facts };
+};
 
 // ---- THE ROUND TRIP, over every def in the corpus ---------------------------------------------
 ok(PROJECTED.length + CODE_ONLY.length === componentDefs.length && PROJECTED.length > 0,
@@ -236,6 +481,8 @@ for (const def of [...PROJECTED, ...TINTED, ...BUTTON_LAID, ...SLOT_CONSTRAINED,
     const prefersNest = Object.values(def.anatomy?.parts ?? {}).some((p) => (p.preferred ?? []).length > 0);
     const r = await roundTrip(def, SLOT_CONSTRAINED.includes(def as (typeof SLOT_CONSTRAINED)[number]) ? SLOT_FILE : prefersNest ? { identities: true } : {});
     inventory.push({ def: def.id, divergences: r.divergences, members: r.members, plans: r.plans.length });
+    // #2830 — the spec model of the def AS BUILT HERE (no brand materialization, as `roundTrip` builds it).
+    specChecks.push({ def: def.id, ...specReadback(componentSpec(def, { def }), r.hostMembers, r.set, r.ports) });
   } catch (e) {
     inventory.push({ def: def.id, divergences: [{ member: '(build)', path: '', field: 'THREW', expected: 'a built set', actual: (e as Error).message }], members: 0, plans: 0 });
   }
@@ -329,6 +576,50 @@ if (dirty.length) {
 }
 
 ok(inventory.length > 0 && inventory.some((i) => i.plans > 0), `the corpus produced plans to compare (${inventory.reduce((n, i) => n + i.plans, 0)} plans, ${inventory.reduce((n, i) => n + i.members, 0)} members)`);
+
+// ── SPEC READ-BACK VERDICT (#2830) ───────────────────────────────────────────────────────────────────────────────
+{
+  const total = (k: string) => specChecks.reduce((n, c) => n + (c.facts[k] ?? 0), 0);
+  console.log(`\n  spec read-back (#2830): ${specChecks.length} def(s); host facts read — ${['parts', 'redlines', 'type', 'colors', 'icons', 'nests', 'variants', 'properties'].map((k) => `${total(k)} ${k}`).join(', ')}; ${total('claimed')} model claims checked`);
+  // SCOPE FLOOR: every block the model carries must have been compared against something, or a zero reads as a pass.
+  for (const k of ['parts', 'redlines', 'type', 'colors', 'icons', 'nests', 'variants', 'properties', 'claimed']) ok(total(k) > 0, `spec read-back: the ${k} block compared ${total(k)} host fact(s) (scope floor)`);
+  ok(specChecks.length === inventory.length, `spec read-back: every round-tripped def was read back against its spec model (${specChecks.length}/${inventory.length})`);
+  for (const c of specChecks) {
+    if (!c.findings.length) continue;
+    const head = c.findings.slice(0, 6).map((f) => `${f.member} · ${f.path} · ${f.property}: model ${f.expected}, ${f.actual}`).join('\n      ');
+    ok(false, `spec read-back: ${c.def} — ${c.findings.length} disagreement(s) between the spec model and the built set\n      ${head}`);
+  }
+  ok(specChecks.every((c) => !c.findings.length), `spec read-back: every spec model holds what its built set holds, both directions${specChecks.some((c) => c.findings.length) ? ` — ${specChecks.filter((c) => c.findings.length).map((c) => `${c.def} (${c.findings.length})`).join(', ')}` : ''}`);
+
+  // THE PREDICATE SPEAKS: the reader fails BY NAME on a model with one part, one padding side and one stroke dropped —
+  // built by hand from Button's real model, so the answer is known in advance (docs/34).
+  const btn = PROJECTED.find((d) => d.id === 'button')!;
+  const r = await roundTrip(btn);
+  const spec = componentSpec(btn, { def: btn });
+  const dropped: ComponentSpec = {
+    ...spec,
+    anatomy: spec.anatomy.filter((p) => p.part !== 'container/label'),
+    redlines: spec.redlines.map((row) => ({ ...row, parts: row.parts.map((p) => (p.part === 'container' ? { ...p, values: Object.fromEntries(Object.entries(p.values).filter(([k]) => k !== 'paddingLeft')) } : p)) })),
+    colors: spec.colors.map((row) => ({ ...row, parts: row.parts.map((p) => (p.part === 'container' ? { ...p, stroke: undefined } : p.part === 'container/leadingVisual' ? { ...p, icon: undefined } : p)) })),
+  };
+  const got = specReadback(dropped, r.hostMembers, r.set, r.ports).findings;
+  ok(specReadback(spec, r.hostMembers, r.set, r.ports).findings.length === 0, 'spec read-back premise: Button\'s own model reads back clean');
+  for (const [path, property] of [['container/label', 'part'], ['container', 'paddingLeft'], ['container', 'stroke'], ['container/leadingVisual', 'icon']] as const)
+    ok(got.some((f) => f.path === path && f.property === property), `spec read-back speaks: a model that drops ${path} · ${property} fails by name (${got.filter((f) => f.path === path && f.property === property).length} member(s))`);
+  // …and on a nest's fixed variant: Counter's model with its `when` rules dropped claims flush on a ghost Counter.
+  const counter = PROJECTED.find((d) => d.id === 'counter')!;
+  const rc = await roundTrip(counter);
+  const cs = componentSpec(counter, { def: counter });
+  const noWhen: ComponentSpec = { ...cs, nesting: cs.nesting.map((n) => (n.kind === 'instance' ? { ...n, when: undefined } : n)) };
+  ok(specReadback(cs, rc.hostMembers, rc.set, rc.ports).findings.length === 0, 'spec read-back premise: Counter\'s own model reads back clean');
+  const gotC = specReadback(noWhen, rc.hostMembers, rc.set, rc.ports).findings.filter((f) => f.path === 'container/control/decrement' && f.property === 'variant');
+  ok(gotC.length > 0, `spec read-back speaks: a model that drops a nest's variant rule fails by name (container/control/decrement · variant, ${gotC.length} member(s))`);
+
+  // THE TWO MATERIALIZATIONS AGREE: the model's `specMaterialize` restates the plugin's `materializeForBrand(def, null)`,
+  // which is what Apply builds for a file with no brand settings; a lever in one and not the other fails here by def.
+  const drift = componentDefs.filter((d) => JSON.stringify(specMaterialize(d)) !== JSON.stringify(materializeForBrand(d, null))).map((d) => d.id);
+  ok(drift.length === 0, `spec read-back: specMaterialize matches materializeForBrand(def, null) on all ${componentDefs.length} defs${drift.length ? ` — differs on ${drift.join(', ')}` : ''}`);
+}
 
 if (INVENTORY) {
   console.log(`\n📋 INVENTORY: ${clean.length}/${inventory.length} defs round-trip clean; ${dirty.length} diverge.`);
