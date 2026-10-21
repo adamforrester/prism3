@@ -242,6 +242,7 @@ const MUST_COVER = [
   'tag.focusRing', 'tab-item.focusRing', 'accordion.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing',
   'counter.focusRing',
   'code-input-cell.focusRing', '_slider-thumb.focusRing',
+  'pagination-item.focusRing',
 ];
 
 /**
@@ -261,6 +262,7 @@ const MUST_CLEAR_STROKE = [
   'tag.focusRing', 'tab-item.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing',
   'counter.focusRing',
   'code-input-cell.focusRing', '_slider-thumb.focusRing',
+  'pagination-item.focusRing',
 ];
 
 /**

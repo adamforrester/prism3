@@ -1025,6 +1025,8 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
     List: ['list-item', 'list'],
     // #2669: the Slider's thumb builds first on its page.
     Slider: ['_slider-thumb', 'slider'],
+    // #2665: Pagination.Item and the row.
+    Pagination: ['pagination-item', 'pagination'],
     // #2457 Q295.2 B: the flush icon button's three families share one page, as IconButton's do.
     'Flush Icon Button': ['flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral'],
     // #2666 Q382 A: the breadcrumb separator shares the item's page, first, as the Accordion indicator does.

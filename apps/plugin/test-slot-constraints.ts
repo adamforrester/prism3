@@ -64,6 +64,9 @@ const EXPECTED: Record<string, { slotSettings?: Record<string, unknown>; preferr
   // The Button group's buttons (#2661, owner decisions Q363.4 A and Q363.6 A): one to three, the Button family only, the
   // primary Button required, the Destructive and Neutral families offered when the file has them (Q386).
   'button-group.items': { slotSettings: { minChildren: 1, maxChildren: 3, allowPreferredValuesOnly: true }, preferred: ['button'], preferredWhenBuilt: ['button-destructive', 'button-neutral'] },
+  // At least one item (#2665, owner call 4 A), Pagination.Item preferred and preferred-only (owner decision Q394 A on
+  // #2783: a slot item is unprefixed and offered first, the Breadcrumbs shape).
+  'pagination.items': { slotSettings: { minChildren: 1, allowPreferredValuesOnly: true }, preferred: ['pagination-item'] },
 };
 console.log('the corpus');
 {

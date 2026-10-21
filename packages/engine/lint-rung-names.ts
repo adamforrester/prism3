@@ -230,6 +230,9 @@ const ICON_OFFSET_DEFS: Record<string, string> = {
   'segmented-control-segment': 'icon.size.*',
   'tab-item': 'icon.size.*',
   tag: 'icon.size.*',
+  // Pagination's chevrons and gap icon, one rung below the icon button's glyph (owner Q428 A, on #2796): 16/20/24 at
+  // small, medium and large, so the medium default is `sm`. The cell keeps its own `size.*.height` rung.
+  'pagination-item': 'icon.size.*',
 };
 
 /**
@@ -430,6 +433,8 @@ const DEFAULT_FIRST: Record<string, string> = {
   'code-input': 'the Figma default is `medium`, the code default (owner decisions Q330 A, Q347, Q359)',
   'code-input-cell': 'the Figma default is the medium cell, the code default (owner decisions Q330 A, Q347, Q359)',
   progress: 'the Figma default is the 40px medium ring, the proposal\'s axis table approved with every call at A, and the code default `type` is determinate to match (#2791)',
+  'pagination-item': Q1B,
+  pagination: Q1B,
 };
 
 const SIZE_BY_FOLLOW_ONLY: Record<string, string> = {
@@ -478,6 +483,7 @@ const MUST_COVER = [
   'dialog', 'password-field',
   'breadcrumb-item', 'breadcrumbs',
   'code-input-cell', 'code-input',
+  'pagination-item', 'pagination',
 ];
 
 /** Every token path in a brand's canonical tree, below the root — `icon.size.md`, `size.lg.height`. */

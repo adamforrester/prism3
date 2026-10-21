@@ -754,6 +754,227 @@
       ]
     },
     {
+      "from": "pagination",
+      "to": "pagination-item",
+      "part": "item1",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "page",
+        "selection": "unselected",
+        "style": "border",
+        "labeled": "false",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "pagination",
+      "to": "pagination-item",
+      "part": "item2",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "ellipsis",
+        "selection": "unselected",
+        "style": "border",
+        "labeled": "false",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "pagination",
+      "to": "pagination-item",
+      "part": "item3",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "page",
+        "selection": "unselected",
+        "style": "border",
+        "labeled": "false",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "pagination",
+      "to": "pagination-item",
+      "part": "item4",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "page",
+        "selection": "selected",
+        "style": "border",
+        "labeled": "false",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "style",
+        "size"
+      ]
+    },
+    {
+      "from": "pagination",
+      "to": "pagination-item",
+      "part": "item5",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "page",
+        "selection": "unselected",
+        "style": "border",
+        "labeled": "false",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "pagination",
+      "to": "pagination-item",
+      "part": "item6",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "ellipsis",
+        "selection": "unselected",
+        "style": "border",
+        "labeled": "false",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "pagination",
+      "to": "pagination-item",
+      "part": "item7",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "page",
+        "selection": "unselected",
+        "style": "border",
+        "labeled": "false",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "pagination",
+      "to": "pagination-item",
+      "part": "next",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "type": "next",
+        "selection": "unselected",
+        "style": "border",
+        "labeled": "false",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "state"
+      ]
+    },
+    {
+      "from": "pagination",
+      "to": "pagination-item",
+      "part": "nextButton",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "type": "next",
+        "selection": "unselected",
+        "style": "border",
+        "labeled": "true",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "state"
+      ]
+    },
+    {
+      "from": "pagination",
+      "to": "pagination-item",
+      "part": "previous",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "type": "previous",
+        "selection": "unselected",
+        "style": "border",
+        "labeled": "false",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "state"
+      ]
+    },
+    {
+      "from": "pagination",
+      "to": "pagination-item",
+      "part": "previousButton",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "type": "previous",
+        "selection": "unselected",
+        "style": "border",
+        "labeled": "true",
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "state"
+      ]
+    },
+    {
+      "from": "pagination-item",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      }
+    },
+    {
       "from": "password-field",
       "to": "focus-ring",
       "part": "focusRing",
@@ -1636,6 +1857,7 @@
         "icon-button-destructive",
         "icon-button-neutral",
         "link",
+        "pagination-item",
         "password-field",
         "radio-control",
         "segmented-control-segment",
@@ -1666,6 +1888,8 @@
         "icon-button-destructive",
         "icon-button-neutral",
         "link",
+        "pagination",
+        "pagination-item",
         "password-field",
         "radio-control",
         "radio-group",
@@ -1782,6 +2006,33 @@
       ],
       "affectedByChange": [
         "list"
+      ],
+      "inheritedBy": []
+    },
+    "pagination": {
+      "nests": [
+        "pagination-item"
+      ],
+      "nestsTransitively": [
+        "focus-ring",
+        "pagination-item"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
+    "pagination-item": {
+      "nests": [
+        "focus-ring"
+      ],
+      "nestsTransitively": [
+        "focus-ring"
+      ],
+      "nestedBy": [
+        "pagination"
+      ],
+      "affectedByChange": [
+        "pagination"
       ],
       "inheritedBy": []
     },
@@ -2079,6 +2330,8 @@
     "link": 1,
     "list": 1,
     "list-item": 0,
+    "pagination": 2,
+    "pagination-item": 1,
     "password-field": 2,
     "radio-control": 1,
     "radio-group": 3,

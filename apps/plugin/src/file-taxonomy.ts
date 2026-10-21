@@ -142,6 +142,10 @@ export const TAXONOMY: Taxonomy = {
         // Slider (#2669, owner call 9 A) — its own page under Components, sorted alphabetically (Q260 A). Its thumb builds
         // first, so the slider's two nested thumbs resolve against it on the same page, as Tabs' do.
         { page: 'Slider', defs: ['_slider-thumb', 'slider'] },
+        // Pagination (#2665, owner call 16 A) — its own page under Components, Pagination.Item beside it. The item builds
+        // first, so the row's slot items resolve against it on the same page; IconButton and Button build wherever their
+        // pages sort, before it.
+        { page: 'Pagination', defs: ['pagination-item', 'pagination'] },
       ],
     },
     {

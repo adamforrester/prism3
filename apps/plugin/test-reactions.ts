@@ -140,6 +140,12 @@ section('map — the per-def reaction map, literal (owner decision Q238 A, part 
     'code-input-cell': [28, 8, 12],
     // #2669: the Slider, 2 types × (rest → hover, rest → pressed, hover → pressed); its Thumb, one row of the same.
     'slider': [10, 4, 6], '_slider-thumb': [5, 2, 3],
+    // #2665: a page cell at three sizes, rest → hover, rest → pressed, hover → pressed (Q344). The current page (rest and
+    // focus-visible only, owner call 7, in both of Q381's styles) and the ellipsis (rest only) have no sibling to change
+    // to, so they carry none: the style adds six members and no reaction. Q414 A adds previous and next, unlabeled and
+    // labeled, at three sizes: 12 more rows with the same three reactions each (24 sources, 36 reactions); their
+    // disabled member (the inactive end) carries none.
+    'pagination-item': [87, 30, 45],
   };
   const got: Record<string, [number, number, number]> = {};
   for (const d of componentDefs) {
@@ -148,7 +154,7 @@ section('map — the per-def reaction map, literal (owner decision Q238 A, part 
     const lists = [...map.values()];
     got[d.id] = [map.size, lists.filter((l) => l.length).length, lists.reduce((k, l) => k + l.length, 0)];
   }
-  ok(JSON.stringify(Object.keys(got).sort()) === JSON.stringify(Object.keys(want).sort()), `map/scope: exactly the 18 defs with rest, hover and pressed, and the one naming its press state (${Object.keys(got).join(', ')})`);
+  ok(JSON.stringify(Object.keys(got).sort()) === JSON.stringify(Object.keys(want).sort()), `map/scope: exactly the 19 defs with rest, hover and pressed, and the one naming its press state (${Object.keys(got).join(', ')})`);
   ok(Object.entries(want).every(([id, w]) => JSON.stringify(got[id]) === JSON.stringify(w)), `map/counts: members, sources and reactions per def (${JSON.stringify(got)})`);
   const btn = reactionMap(plansOf('button').map(planComponentName));
   const B = (state: string): string => `appearance=filled, surface=default, inset=default, size=medium, state=${state}, leading icon=false, trailing icon=false`;

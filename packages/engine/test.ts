@@ -3936,6 +3936,8 @@ for (const b of brands) {
       toast: { prefix: 'bare', lt: [['gap', 'pad-x'], ['glyph-gap', 'pad-x']] },
       // Banner (#2579): both gaps sit inside the padding.
       banner: { prefix: 'bare', lt: [['gap', 'pad'], ['action-gap', 'pad']] },
+      // #2665 (Q414 A): a labeled previous or next cell's chevron→word gap sits under the cell's inset past two digits.
+      'pagination-item': { prefix: 'bare', lt: [['gap', 'padding-x']] },
     };
     const GAP_TAILS = ['gap', 'check-gap'];
     // `pad` (#2579): Banner's one padding, block and inline alike.
@@ -19294,8 +19296,9 @@ arm: {
     // `segmented-control-segment` joins (#2418, Q269.4): an unselected option's hover and pressed are the neutral wash,
     // and its selected tint is the subtle-fill Tag binds, so a solid-tint or no-hover brand reaches it as it reaches a tag.
     // `code-input-cell` joins (#2428): its hover is Text field's neutral wash, so the lever reaches it as it reaches a field.
-    ok(JSON.stringify(binders) === JSON.stringify(['button', 'button-destructive', 'button-neutral', 'code-input-cell', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'password-field', 'segmented-control-segment', 'select', 'tag', 'text-field', 'textarea']),
-      `#1608 the wash binders the lever reaches: button ×3, code-input-cell, flush-icon-button ×3 (round), icon-button ×3, password-field, segmented-control-segment, select, tag, text-field, textarea (${binders.join(', ')})`);
+    // `pagination-item` joins (#2665): a page cell's hover and pressed are IconButton.Neutral ghost's neutral wash.
+    ok(JSON.stringify(binders) === JSON.stringify(['button', 'button-destructive', 'button-neutral', 'code-input-cell', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'pagination-item', 'password-field', 'segmented-control-segment', 'select', 'tag', 'text-field', 'textarea']),
+      `#1608 the wash binders the lever reaches: button ×3, code-input-cell, flush-icon-button ×3 (round), icon-button ×3, pagination-item, password-field, segmented-control-segment, select, tag, text-field, textarea (${binders.join(', ')})`);
 
     // BY-NAME MUTATION, in-suite: the RAW def (no wrap) under solid-tint misses the page wash — the 96-miss
     // shape the owner saw, outline's 48 and text's 48. Since #2324 the text appearance keys no wash by default, so the
@@ -19684,6 +19687,14 @@ arm: {
       // CODE INPUT (#2428, Q330 A): the cell's character binds four rungs, 16 / 20 / 24 / 40. It exists only where the
       // cell holds a character.
       { def: componentDefs.find((d) => d.id === 'code-input-cell')!, part: 'digit', axes: { size: 4 }, at: { state: 'filled' } },
+      // Pagination (#2665): the item's number by selection (the current page's emphasis weight) and size, its bold reserve
+      // by size alone, and the compact text by size. The ellipsis is an icon (Q404 A), so it binds no type.
+      { def: componentDefs.find((d) => d.id === 'pagination-item')!, part: 'label', axes: { selection: 2, size: 3 } },
+      { def: componentDefs.find((d) => d.id === 'pagination-item')!, part: 'labelReserve', axes: { size: 3 } },
+      // Q414 A: a labeled previous or next cell's word, by size, in the page number's regular weight.
+      { def: componentDefs.find((d) => d.id === 'pagination-item')!, part: 'previousText', axes: { size: 3 }, at: { type: 'previous', labeled: 'true' } },
+      { def: componentDefs.find((d) => d.id === 'pagination-item')!, part: 'nextText', axes: { size: 3 }, at: { type: 'next', labeled: 'true' } },
+      { def: componentDefs.find((d) => d.id === 'pagination')!, part: 'status', axes: { size: 3 }, at: { type: 'compact' } },
     ];
 
     // DIRECTION 1 — the authored table is the corpus. Discovered by walking every def's anatomy for a
@@ -28613,8 +28624,9 @@ arm: {
   // own constant.
   // `tag` joins (2026-09-27): its check mark is gated on `selection: ['selected']`, the checkbox mark's shape.
   // `link` joins (#2580, owner Q297.2): its trailing icon is gated on `style: ['standalone']`, so an inline link carries none.
-  // `checkbox-group` and `radio-group` since #2751: each gates its nested message on `status=error`.
-  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-group', 'radio-control', 'radio-group', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'button-group', 'dialog', 'password-field', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', 'toast', 'banner', 'code-input-cell', 'progress', 'slider'];
+  // `pagination-item` joins (#2665, Q381, Q404 A): its number and its ellipsis icon are gated on `type`, its underline on
+  // `selection` and `style`.
+  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-group', 'radio-control', 'radio-group', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'button-group', 'dialog', 'password-field', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', 'toast', 'banner', 'code-input-cell', 'progress', 'slider', 'pagination-item', 'pagination'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {
@@ -30106,6 +30118,10 @@ arm: {
     // wraps, and the approved wireframe centers it on the ring.
     'progress.ringRow':
       "the ring's value is one short line in a row that hugs it, so it never wraps; the approved wireframe centers it on the ring.",
+    // `pagination-item` (#2665, Q414 A): a labeled previous or next cell pairs its chevron with one word, "Previous" or
+    // "Next". The cell's height is fixed at one line in Figma, and the word is one word that does not wrap.
+    'pagination-item.container':
+      "the cell's height is fixed at one line and a labeled previous or next shows one word that does not wrap, so the chevron centers against the only line.",
     'tag.labelCheck':
       "the tag's height is fixed at one line in Figma and its label is one line there, so the check mark (and, one row out, the leading icon) center against the only line; in code a wrapped label centers them on the label block, which is held for the owner (tag.ts notes.contested).",
   };
@@ -33613,6 +33629,7 @@ arm: {
     'tag.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'a select tag is selected by `selected`' },
     'tab-item.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'a tab is selected by `selected`' },
     'segmented-control-segment.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'a segment is selected by `selected`' },
+    'pagination-item.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'the current page is marked by `selected` (aria-current="page", #2665)' },
     'accordion.expansion': { prop: 'defaultExpanded', map: off('collapsed', 'expanded'), reason: 'an accordion opens by `defaultExpanded`' },
     // #2666 (owner call 11 A): code has no path prop. `responsive` (default true) swaps the trail for the parent link
     // below 480px by a container query, and either value renders the trail at every wider width, so the code default
@@ -33626,7 +33643,7 @@ arm: {
     'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'checkbox-row',
     'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'switch-control', 'switch-row', 'tag', 'tab-item', 'tabs',
     '_accordion-indicator', 'accordion', 'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'link',
-    'text-field', 'textarea', 'select', 'password-field', 'dialog',
+    'text-field', 'textarea', 'select', 'password-field', 'dialog', 'pagination-item', 'pagination',
   ];
   // NO SET, NO DEFAULT MEMBER: a def that materializes each value as its own component is never inserted as a set.
   const NO_SET = ['icon', 'spinner'];
@@ -34431,6 +34448,329 @@ arm: {
   }
 
   ok(validateComponentDef(td).errors.length === 0, `#2668 toast validates clean (${validateComponentDef(td).errors.slice(0, 2).join('; ')})`);
+}
+
+// ------------------------------------------------------------------- #2665: pagination
+// Each owner call held against a literal (the proposal on #2665, approved with every call A on 2026-10-16), plus the
+// owner rules of #2706 the build follows (Q347/Q359 medium first). EXPECTED is typed here; ACTUAL is the projected
+// plan (the subject) and, for contrast, the resolved roles of every committed brand × mode. Each arm names its call,
+// so a mutation of the def fails the arm it breaks, by name.
+{
+  const findIn = (n: AnatomyPlan['root'], name: string): AnatomyPlan['root'] | undefined => n.name === name ? n : n.children.map((k) => findIn(k, name)).find(Boolean);
+  const itemDef = componentDefs.find((d) => d.id === 'pagination-item')!;
+  const pagDef = componentDefs.find((d) => d.id === 'pagination')!;
+  const items = figmaAnatomySet(itemDef, { swapTarget: 'FPO-default-icon' });
+  const pags = figmaAnatomySet(pagDef, { swapTarget: 'FPO-default-icon' });
+  const RUNG: Record<string, string> = { small: 'sm', medium: 'md', large: 'lg' };
+  // Q428 A: the chevrons and the gap icon one icon-size rung under IconButton's glyph rung (RUNG), at every size. Typed.
+  const GLYPH: Record<string, string> = { small: 'xs', medium: 'sm', large: 'md' };
+  const SIZES = ['medium', 'small', 'large'];
+
+  // (1) THE ITEM'S 87 MEMBERS (calls 7 A and 3 A, Q381 2 A, Q414 A): every page state unselected, rest and focus-visible
+  // on the current page in each style, rest alone on the ellipsis; previous and next, each unlabeled and labeled, at
+  // rest, hover, pressed, focus-visible and disabled (the inactive end, call 9 A); medium first (Q347, Q359). Typed out,
+  // in the set's order.
+  const STEP_STATES = ['rest', 'hover', 'pressed', 'focus-visible', 'disabled'];
+  const ITEM_MEMBERS = [
+    ...SIZES.flatMap((s) => ['rest', 'hover', 'pressed', 'focus-visible'].map((st) => `type=page, selection=unselected, style=border, labeled=false, size=${s}, state=${st}`)),
+    ...['border', 'underline'].flatMap((y) => SIZES.flatMap((s) => ['rest', 'focus-visible'].map((st) => `type=page, selection=selected, style=${y}, labeled=false, size=${s}, state=${st}`))),
+    ...SIZES.map((s) => `type=ellipsis, selection=unselected, style=border, labeled=false, size=${s}, state=rest`),
+    ...['previous', 'next'].flatMap((t) => ['false', 'true'].flatMap((l) => SIZES.flatMap((s) => STEP_STATES.map((st) => `type=${t}, selection=unselected, style=border, labeled=${l}, size=${s}, state=${st}`)))),
+  ];
+  ok(JSON.stringify(items.map(planComponentName)) === JSON.stringify(ITEM_MEMBERS) && figmaVariantCount(itemDef) === 87,
+    `#2665 call 7 / Q381 / Q414 A pagination item: 87 members — a page at rest, hover, pressed and focus-visible, the current page at rest and focus-visible only in the border and underline styles, the ellipsis at rest only, previous and next unlabeled and labeled at rest, hover, pressed, focus-visible and disabled, medium first (got ${items.length}: ${items.map(planComponentName).filter((n) => !ITEM_MEMBERS.includes(n)).slice(0, 3).join(' | ') || 'order differs'})`);
+  ok(itemDef.id === 'pagination-item' && itemDef.name === 'Pagination.Item' && itemDef.category === 'navigation',
+    `#2665 call 16 / Q394 A pagination item: id pagination-item, unprefixed, named Pagination.Item, category navigation (got ${itemDef.id}, ${itemDef.name}, ${itemDef.category})`);
+
+  // (2) THE CELL AND ITS PAINT (call 8 A, Q381 1 A and 2 A), per member: IconButton's height rung, a floor as wide as
+  // it is tall, radius.md, a space.100 inset; the current page with no fill, a border/tertiary border in the border
+  // style or a 2px border/tertiary bar under the number (balanced by an empty 2px frame above it) in the underline
+  // style, its number in the neutral ink in the emphasis weight; another page the neutral wash at hover and pressed;
+  // the ellipsis the decorative more-horizontal icon (Q404 A) at the chevrons' glyph rung in the secondary icon ink,
+  // with no text node and no TEXT property, so nothing on it can read "1" or collapse.
+  const PAINT: Record<string, { fill?: string; stroke?: string; bar?: string; ink: string }> = {
+    'page/unselected/border/rest': { ink: 'color/interactive/neutral/text/rest' },
+    'page/unselected/border/hover': { fill: 'color/interactive/neutral/overlay/hover', ink: 'color/interactive/neutral/text/hover' },
+    'page/unselected/border/pressed': { fill: 'color/interactive/neutral/overlay/pressed', ink: 'color/interactive/neutral/text/pressed' },
+    'page/unselected/border/focus-visible': { ink: 'color/interactive/neutral/text/rest' },
+    'page/selected/border/rest': { stroke: 'color/border/secondary', ink: 'color/interactive/neutral/text/rest' },
+    'page/selected/border/focus-visible': { stroke: 'color/border/secondary', ink: 'color/interactive/neutral/text/rest' },
+    'page/selected/underline/rest': { bar: 'color/border/tertiary', ink: 'color/interactive/neutral/text/rest' },
+    'page/selected/underline/focus-visible': { bar: 'color/border/tertiary', ink: 'color/interactive/neutral/text/rest' },
+    'ellipsis/unselected/border/rest': { ink: 'color/icon/primary' },
+  };
+  const cellOff: string[] = [];
+  const pageCells = items.filter((m) => ['page', 'ellipsis'].includes((m.coord as Record<string, string>).type));
+  for (const m of pageCells) {
+    const c = m.coord as Record<string, string>;
+    const size = m.size!;
+    const want = PAINT[`${c.type}/${c.selection}/${c.style}/${c.state}`];
+    const page = c.type === 'page';
+    const label = findIn(m.root, 'label'), reserve = findIn(m.root, 'labelReserve'), ring = findIn(m.root, 'focusRing'), gap = findIn(m.root, 'gapIcon');
+    const bar = findIn(m.root, 'underline'), balance = findIn(m.root, 'balance');
+    const text = page ? label : undefined;
+    const texts: string[] = [];
+    const walkText = (n: AnatomyPlan['root']): void => { if (n.type === 'TEXT') texts.push(n.name); n.children.forEach(walkText); };
+    walkText(m.root);
+    const got = { h: m.root.bound?.height, minW: m.root.bound?.minWidth, r: m.root.bound?.topLeftRadius, px: m.root.bound?.paddingLeft, fill: m.root.paints?.fills, stroke: m.root.paints?.strokes,
+      sw: m.root.bound?.strokeWeight ?? m.root.bound?.strokeTopWeight, bar: bar && [bar.paints?.fills, bar.bound?.height], balance: balance?.bound?.height, ink: page ? text?.paints?.fills : gap?.descendantFills,
+      type: text?.textStyle, reserve: reserve?.textStyle, ring: !!ring, chars: text?.characters, ref: text?.propertyRef?.prop,
+      icon: gap && [gap.type, gap.nestTarget, gap.bound?.width, gap.bound?.height], texts: texts.join(',') };
+    const exp = { h: `size/${RUNG[size]}/height`, minW: `size/${RUNG[size]}/height`, r: 'radius/md', px: 'space/100', fill: want?.fill, stroke: want?.stroke,
+      sw: 'border-width/hairline', bar: want?.bar && [want.bar, 'border-width/thick'], balance: want?.bar && 'border-width/thick', ink: want?.ink,
+      type: page ? `label/${RUNG[size]}/${c.selection === 'selected' ? 'emphasis' : 'default'}` : undefined, reserve: page ? `label/${RUNG[size]}/emphasis` : undefined, ring: c.state === 'focus-visible',
+      chars: page ? '1' : undefined, ref: page ? 'label' : undefined,
+      icon: page ? undefined : ['NESTED_INSTANCE', 'icon/more-horizontal-filled', `icon/size/${GLYPH[size]}`, `icon/size/${GLYPH[size]}`], texts: page ? 'labelReserve,label' : '' };
+    if (JSON.stringify(got) !== JSON.stringify(exp)) cellOff.push(`${planComponentName(m)}: ${JSON.stringify(got)} (want ${JSON.stringify(exp)})`);
+  }
+  ok(pageCells.length === 27 && cellOff.length === 0,
+    `#2665 call 8 / Q381 / Q427 A / Q428 A pagination item cell: size/{md,sm,lg}/height tall and as wide, radius/md, space/100 inset; the current page unfilled with a hairline border/secondary border (border style, Q427 A) or a 2px border/tertiary underline balanced above (underline style), its number neutral in the emphasis weight; a page neutral text with the overlay wash at hover and pressed; the ellipsis the more-horizontal icon at icon/size/{sm,xs,md} (Q428 A) in icon/primary (owner QA) with no text node (Q404 A); the bold reserve in emphasis; the ring at focus-visible only (${cellOff.length} off — ${cellOff.slice(0, 2).join('; ') || 'none'})`);
+
+  // (2b) PREVIOUS AND NEXT (Q414 A), per member: the page cell's box (rung height and floor, radius.md, the space.100
+  // inset), a chevron (left on previous, right on next) at the chevrons' glyph rung in the neutral icon ink, and on a
+  // labeled cell the word, "Previous" before or "Next" after it at a 4px gap, in the regular label type and the neutral
+  // text ink, each on its own TEXT property; the neutral wash at hover and pressed; the disabled inks and no wash at
+  // disabled (the inactive end, call 9 A); the ring at focus-visible only.
+  const STEP_INK: Record<string, [string, string, string | undefined]> = {
+    rest: ['color/interactive/neutral/icon/rest', 'color/interactive/neutral/text/rest', undefined],
+    hover: ['color/interactive/neutral/icon/hover', 'color/interactive/neutral/text/hover', 'color/interactive/neutral/overlay/hover'],
+    pressed: ['color/interactive/neutral/icon/pressed', 'color/interactive/neutral/text/pressed', 'color/interactive/neutral/overlay/pressed'],
+    'focus-visible': ['color/interactive/neutral/icon/rest', 'color/interactive/neutral/text/rest', undefined],
+    disabled: ['color/disabled/icon', 'color/disabled/text', undefined],
+  };
+  const stepCells = items.filter((m) => ['previous', 'next'].includes((m.coord as Record<string, string>).type));
+  const stepOff: string[] = [];
+  for (const m of stepCells) {
+    const c = m.coord as Record<string, string>;
+    const size = m.size!, prev = c.type === 'previous', labeled = c.labeled === 'true';
+    const chev = findIn(m.root, prev ? 'previousIcon' : 'nextIcon'), word = findIn(m.root, prev ? 'previousText' : 'nextText');
+    const [icon, ink, stateWash] = STEP_INK[c.state];
+    // Q426 A: a labeled cell (simple's) draws no fill at any state; only its inks move.
+    const wash = labeled ? undefined : stateWash;
+    const got = { h: m.root.bound?.height, minW: m.root.bound?.minWidth, r: m.root.bound?.topLeftRadius, px: m.root.bound?.paddingLeft, gap: m.root.bound?.itemSpacing,
+      fill: m.root.paints?.fills, stroke: m.root.paints?.strokes, kids: m.root.children.map((k) => k.name).filter((n) => n !== 'focusRing'), ring: !!findIn(m.root, 'focusRing'),
+      chev: chev && [chev.type, chev.nestTarget, chev.bound?.width, chev.bound?.height, chev.descendantFills],
+      word: word && [word.characters, word.propertyRef?.prop, word.textStyle, word.paints?.fills] };
+    const exp = { h: `size/${RUNG[size]}/height`, minW: `size/${RUNG[size]}/height`, r: 'radius/md', px: 'space/100', gap: 'space/050',
+      fill: wash, stroke: undefined, kids: prev ? (labeled ? ['previousIcon', 'previousText'] : ['previousIcon']) : (labeled ? ['nextText', 'nextIcon'] : ['nextIcon']), ring: c.state === 'focus-visible',
+      chev: ['NESTED_INSTANCE', `icon/chevron-${prev ? 'left' : 'right'}`, `icon/size/${GLYPH[size]}`, `icon/size/${GLYPH[size]}`, icon],
+      word: labeled ? [prev ? 'Previous' : 'Next', prev ? 'previous label' : 'next label', `label/${RUNG[size]}/default`, ink] : undefined };
+    if (JSON.stringify(got) !== JSON.stringify(exp)) stepOff.push(`${planComponentName(m)}: ${JSON.stringify(got)} (want ${JSON.stringify(exp)})`);
+  }
+  ok(stepCells.length === 60 && stepOff.length === 0,
+    `#2665 Q414 A / Q426 A / Q428 A pagination item previous and next: the page cell's box, a chevron-left or chevron-right at icon/size/{sm,xs,md} in interactive/neutral/icon, the word "Previous" before or "Next" after it on a labeled cell (its own TEXT property, label default, neutral text, 4px gap), the neutral wash at hover and pressed on an unlabeled cell only (a labeled one no fill, its inks moving), disabled inks with no wash at disabled, the ring at focus-visible only (${stepCells.length} cells, ${stepOff.length} off — ${stepOff.slice(0, 2).join('; ') || 'none'})`);
+
+  // Q404 A (superseding Q396): the gap marker is an icon, so the item has no `mark` prop, and the ellipsis no TEXT
+  // property: the item's TEXT properties are the page number and, Q414 A, previous's and next's words, one caption each;
+  // the code contract hides the icon from assistive technology and makes it no control.
+  {
+    const textProps = Object.keys(itemDef.figmaProperties?.texts ?? {});
+    const markProp = itemDef.props.find((p) => p.name === 'mark');
+    const aria = itemDef.anatomy!.codeOnly.some((e) => /^The ellipsis in code — an <li aria-hidden="true"> holding the more-horizontal icon, with no control and no text in it/.test(e));
+    ok(!markProp && JSON.stringify(textProps) === JSON.stringify(['label', 'previousLabel', 'nextLabel']) && aria,
+      `#2665 Q404 A / Q414 A pagination item: no \`mark\` prop, the TEXT properties label, previousLabel and nextLabel (none on the ellipsis), and the ellipsis an aria-hidden icon with no control in code (got mark ${markProp ? 'present' : 'absent'}, texts ${textProps.join(', ')}, aria ${aria})`);
+  }
+  // Q414 A, the code contract (calls 9 A and 12 A): previous and next are links or buttons as a page is, named "Previous
+  // page" and "Next page", aria-disabled at an end and still focusable, never native disabled; the chevron aria-hidden.
+  ok(itemDef.anatomy!.codeOnly.some((e) => /^previous and next in code — an <a href> or a <button type="button">/.test(e) && /"Previous page" and "Next page"/.test(e)
+      && /aria-disabled="true"/.test(e) && /Native disabled is not used/.test(e) && /chevron is aria-hidden="true"/.test(e))
+    && itemDef.props.some((p) => p.name === 'isInactive' && p.type === 'boolean'),
+    '#2665 Q414 A pagination item code contract: previous and next are links or buttons named "Previous page" and "Next page", aria-disabled at an end (isInactive, never native disabled), the chevron aria-hidden');
+
+  // (3) CONTRAST over every committed brand × mode (5 brands × 4 modes = 20, a literal), measured from the resolved
+  // roles, never from the def: the current page's number on the page at 4.5:1 and its border and underline against the
+  // page at 3:1 (SC 1.4.3, 1.4.11; Q381 1 A); a page's number at rest on the page and at hover and pressed on the wash
+  // composited over the page at 4.5:1; the ellipsis and the compact text on the page at 4.5:1. The roles are the ones
+  // the plans bind (read off the subject above, then measured independently).
+  {
+    const themes: [string, any][] = loadedRows([
+      ['prism3', exampleTheme('prism3', () => brandTheme(exampleBrands()['prism3'] as BrandInput))],
+      ['nb', nbTheme()],
+      ['aurora', exampleTheme('aurora', () => brandTheme(exampleBrands()['aurora'] as BrandInput))],
+      ['harbor', exampleTheme('harbor', () => brandTheme(exampleBrands()['harbor'] as BrandInput))],
+      ['wendys', exampleTheme('wendys', () => brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input))],
+    ]);
+    const CELLS = 20;
+    const role = (v: string | undefined) => (v ?? '(unbound)').replace(/^color\//, '').replace(/\//g, '.');
+    const at = (sel: string, st: string, type = 'page', style = 'border') => items.find((m) => (m.coord as Record<string, string>).type === type && (m.coord as Record<string, string>).selection === sel && (m.coord as Record<string, string>).style === style && m.size === 'medium' && (m.coord as Record<string, string>).state === st)!;
+    const sel = at('selected', 'rest'), under = at('selected', 'rest', 'page', 'underline');
+    const BORDER = role(sel.root.paints?.strokes), BAR = role(findIn(under.root, 'underline')?.paints?.fills), CUR = role(findIn(sel.root, 'label')?.paints?.fills);
+    const pairs: { what: string; ink: string; wash?: string; ground?: string; floor: number }[] = [
+      { what: 'current page number on the page', ink: CUR, floor: 4.5 },
+      // Q427 A: the border style's border has no 3:1 floor (the emphasis weight is the second cue, held below); the
+      // underline is its style's only cue and keeps 3:1.
+      { what: 'current page underline against the page', ink: BAR, floor: 3 },
+      ...['rest', 'hover', 'pressed'].map((st) => ({ what: `page number at ${st}`, ink: role(findIn(at('unselected', st).root, 'label')?.paints?.fills), wash: at('unselected', st).root.paints?.fills ? role(at('unselected', st).root.paints!.fills) : undefined, floor: 4.5 })),
+      // Q414 A: previous's chevron (non-text, 3:1) and its word (4.5:1) at rest, and on the wash at hover and pressed.
+      ...['rest', 'hover', 'pressed'].flatMap((st) => {
+        const m = items.find((x) => (x.coord as Record<string, string>).type === 'previous' && (x.coord as Record<string, string>).labeled === 'true' && x.size === 'medium' && (x.coord as Record<string, string>).state === st)!;
+        const w = m.root.paints?.fills ? role(m.root.paints.fills) : undefined;
+        return [
+          { what: `previous chevron at ${st}`, ink: role(findIn(m.root, 'previousIcon')?.descendantFills), wash: w, floor: 3 },
+          { what: `previous word at ${st}`, ink: role(findIn(m.root, 'previousText')?.paints?.fills), wash: w, floor: 4.5 },
+        ];
+      }),
+      // Q426 A moved the wash to the unlabeled cells only: their chevron on it at hover and pressed.
+      ...['hover', 'pressed'].map((st) => {
+        const m = items.find((x) => (x.coord as Record<string, string>).type === 'previous' && (x.coord as Record<string, string>).labeled === 'false' && x.size === 'medium' && (x.coord as Record<string, string>).state === st)!;
+        return { what: `unlabeled previous chevron at ${st}`, ink: role(findIn(m.root, 'previousIcon')?.descendantFills), wash: m.root.paints?.fills ? role(m.root.paints.fills) : undefined, floor: 3 };
+      }),
+      { what: 'gap icon on the page', ink: role(findIn(at('unselected', 'rest', 'ellipsis').root, 'gapIcon')?.descendantFills), floor: 3 },
+      { what: 'compact text', ink: role(findIn(pags.find((p) => (p.coord as Record<string, string>).type === 'compact' && p.size === 'medium')!.root, 'status')?.paints?.fills), floor: 4.5 },
+    ];
+    for (const p of pairs) {
+      const low: string[] = [];
+      let measured = 0, min = Infinity;
+      for (const [brand, th] of themes) for (const m of resolveAllModes(th)) {
+        const r = m.roles as Record<string, { hex?: string; alpha?: number }>;
+        const page = r['background.primary'], ink = r[p.ink], ground = p.ground ? r[p.ground] : undefined, wash = p.wash ? r[p.wash] : undefined;
+        if (!page?.hex || !ink?.hex || (p.ground && !ground?.hex) || (p.wash && !wash?.hex)) { low.push(`${brand}/${m.mode}: missing`); continue; }
+        let bg = hexToRgb(page.hex);
+        if (ground?.hex) bg = composite(bg, hexToRgb(ground.hex), ground.alpha ?? 1);
+        if (wash?.hex) bg = composite(bg, hexToRgb(wash.hex), wash.alpha ?? 1);
+        const ratio = contrast(composite(bg, hexToRgb(ink.hex), ink.alpha ?? 1), bg);
+        measured++; min = Math.min(min, ratio);
+        if (ratio < p.floor) low.push(`${brand}/${m.mode} ${ratio.toFixed(2)}`);
+      }
+      ok(measured === CELLS && low.length === 0,
+        `#2665 contrast pagination (${p.what}): ${p.ink}${p.wash ? ` on ${p.wash} over the page` : p.ground ? ` on ${p.ground}` : ' on the page'} clears ${p.floor}:1 in all ${measured} of ${CELLS} brand × mode cells (lowest ${min.toFixed(2)})${low.length ? ` — ${low.join('; ')}` : ''}`);
+    }
+    ok(BAR === 'border.tertiary' && !sel.root.paints?.fills && !under.root.paints?.fills,
+      `#2665 Q381 1 A and 2 A: the current page has no fill, and its underline binds border.tertiary, the role measured at 3:1 above (got underline ${BAR}, fill ${sel.root.paints?.fills ?? 'none'})`);
+    // Q427 A: THE BORDER IS ONE RUNG LIGHTER THAN THE UNDERLINE, AND IT IS NOT THE ONLY CUE. The neutral border ladder,
+    // typed here lightest first, is the oracle: the border is the rung directly under the underline's, so it is a
+    // subtle edge (measured: lighter than the underline in every brand × mode cell, and below 3:1 in at least one,
+    // which is the deliberate exception), and the WCAG 1.4.11 second cue holds — the current page's number is in the
+    // emphasis weight while every other page's is regular, at the same reserved width. Scoped to this one part: a
+    // number in the regular weight on the current page fails this arm, and the underline keeps its 3:1 arm above.
+    const LADDER = ['border.primary', 'border.secondary', 'border.tertiary'];
+    const lum = (rr: string, r: Record<string, { hex?: string; alpha?: number }>) => {
+      const bg = hexToRgb(r['background.primary']!.hex!), ink = r[rr];
+      return ink?.hex ? contrast(composite(bg, hexToRgb(ink.hex), ink.alpha ?? 1), bg) : NaN;
+    };
+    const rows = themes.flatMap(([b, th]) => resolveAllModes(th).map((m) => ({ cell: `${b}/${m.mode}`, r: m.roles as Record<string, { hex?: string; alpha?: number }> })));
+    const lighter = rows.every(({ r }) => lum(BORDER, r) < lum(BAR, r));
+    const below3 = rows.filter(({ r }) => lum(BORDER, r) < 3).map(({ cell, r }) => `${cell} ${lum(BORDER, r).toFixed(2)}`);
+    const unsel = at('unselected', 'rest');
+    const cue = findIn(sel.root, 'label')?.textStyle === 'label/md/emphasis' && findIn(unsel.root, 'label')?.textStyle === 'label/md/default'
+      && findIn(sel.root, 'labelReserve')?.textStyle === 'label/md/emphasis' && findIn(unsel.root, 'labelReserve')?.textStyle === 'label/md/emphasis';
+    const reasoned = (itemDef.notes?.evolution ?? []).some((e) => /Q427 A/.test(e) && /1\.4\.11/.test(e) && /second, decorative cue/.test(e) && /emphasis weight/.test(e));
+    ok(BORDER === LADDER[LADDER.indexOf(BAR) - 1] && lighter && below3.length > 0 && cue && reasoned,
+      `#2665 Q427 A the current page's border (border style) is the neutral border rung one lighter than the underline's, a subtle edge below 3:1 by decision, with the emphasis weight as the second cue and the WCAG 1.4.11 reasoning in the notes (bound ${BORDER}, underline ${BAR}; lighter everywhere ${lighter}; below 3:1 in ${below3.length} of ${rows.length}, lowest ${Math.min(...rows.map(({ r }) => lum(BORDER, r))).toFixed(2)}; second cue ${cue}; reasoning recorded ${reasoned})`);
+    // Owner QA (2026-10-19): the gap icon in the page numbers' ink. Measured, never read off the def: the gap icon's
+    // role resolves to the same color as a page number's at rest in every brand × mode cell.
+    const GAP = role(findIn(at('unselected', 'rest', 'ellipsis').root, 'gapIcon')?.descendantFills), NUM = role(findIn(unsel.root, 'label')?.paints?.fills);
+    const inkOff = rows.filter(({ r }) => !r[GAP]?.hex || r[GAP]!.hex !== r[NUM]?.hex || (r[GAP]!.alpha ?? 1) !== (r[NUM]!.alpha ?? 1)).map(({ cell, r }) => `${cell} ${r[GAP]?.hex} vs ${r[NUM]?.hex}`);
+    ok(rows.length === CELLS && inkOff.length === 0,
+      `#2665 owner QA the gap icon is in the page numbers' ink: ${GAP} resolves to ${NUM}'s color in all ${rows.length} of ${CELLS} brand × mode cells (${inkOff.slice(0, 3).join('; ') || 'none off'})`);
+  }
+
+  // Owner QA (2026-10-19): IN THE UNDERLINE STYLE THE UNDERLINE IS AS WIDE AS THE NUMBER, NOT THE CELL. The label box
+  // hugs, and each of its childless frames (the balance above the number and the underline under it) STRETCHES to the
+  // box rather than holding a width of its own: a childless frame that hugs has nothing to hug, so the host keeps a new
+  // frame's default width, the box takes it, and the underline spans it. Only the number's text sets the width.
+  {
+    const off: string[] = [];
+    const unders = items.filter((m) => (m.coord as Record<string, string>).style === 'underline');
+    for (const m of unders) {
+      const box = findIn(m.root, 'labelBox')!;
+      const empties = box.children.filter((k) => k.type === 'FRAME' && !k.children.length);
+      const got = { box: [box.primaryAxisSizingMode, box.counterAxisSizingMode], empties: empties.map((k) => [k.name, k.layoutAlign]), sizers: box.children.filter((k) => !empties.includes(k)).map((k) => k.name) };
+      const exp = { box: ['AUTO', 'AUTO'], empties: [['balance', 'STRETCH'], ['underline', 'STRETCH']], sizers: ['reserve', 'label'] };
+      if (JSON.stringify(got) !== JSON.stringify(exp)) off.push(`${planComponentName(m)}: ${JSON.stringify(got)}`);
+    }
+    ok(unders.length === 6 && off.length === 0,
+      `#2665 owner QA underline under the number only: in every underline member the label box hugs, its balance and underline stretch to it, and only the number (its reserve and its text) sets the width (${unders.length} members, ${off.length} off — ${off.slice(0, 2).join('; ') || 'none'})`);
+  }
+
+  // (4) THE PAGINATION'S 12 MEMBERS AND WHAT EACH HOLDS (calls 1, 2, 4, 6, 16, Q381 2 A), typed out. The style is
+  // numbered's only, and the current page alone follows it. numbered: an IconButton.Neutral
+  // ghost square with the left chevron, the items slot holding 1 … 4 [5] 6 … 10 (page 5 of 10), and one with the right
+  // chevron; compact: the two buttons around "Page 5 of 10"; simple: two Button.Neutral text, "Previous" with a leading
+  // left chevron and "Next" with a trailing right chevron, built at 428px. Every nested size follows the row's.
+  // Q414 A supersedes call 2's nests: previous and next are Pagination.Item cells (type previous and next) in every type,
+  // unlabeled in numbered and compact, labeled in simple, so no node nests a Neutral button family (Q386).
+  const PAG_MEMBERS = [['numbered', 'border'], ['numbered', 'underline'], ['compact', 'border'], ['simple', 'border']].flatMap(([t, y]) => SIZES.map((s) => `type=${t}, style=${y}, size=${s}`));
+  ok(JSON.stringify(pags.map(planComponentName)) === JSON.stringify(PAG_MEMBERS),
+    `#2665 call 1 / Q381 pagination: 12 members, type numbered in the border and underline styles, compact and simple in border, × size medium, small, large, in that order (got ${pags.map(planComponentName).join(' | ')})`);
+  // An ellipsis carries no text override (Q404 A: it is an icon), so its row reads `none`.
+  const WINDOW = [['page', 'unselected', '1'], ['ellipsis', 'unselected', 'none'], ['page', 'unselected', '4'], ['page', 'selected', '5'], ['page', 'unselected', '6'], ['ellipsis', 'unselected', 'none'], ['page', 'unselected', '10']];
+  const ovText = (n: AnatomyPlan['root'] | undefined) => (n?.nestOverrides ?? []).find((o) => o.type === 'TEXT')?.value;
+  const ovSwap = (n: AnatomyPlan['root'] | undefined) => (n?.nestOverrides ?? []).find((o) => o.type === 'INSTANCE_SWAP')?.value;
+  const pagOff: string[] = [];
+  for (const m of pags) {
+    const t = (m.coord as Record<string, string>).type, size = m.size!;
+    const prev = findIn(m.root, 'previous'), next = findIn(m.root, 'next'), slot = findIn(m.root, 'items'), status = findIn(m.root, 'status');
+    const pb = findIn(m.root, 'previousButton'), nb = findIn(m.root, 'nextButton');
+    const icon = (n: AnatomyPlan['root'] | undefined) => n && { to: n.nestTarget, v: n.nestVariant, swap: ovSwap(n), text: ovText(n), expose: n.nestExpose };
+    const got = {
+      prev: icon(prev), next: icon(next),
+      slot: slot && { type: slot.type, gap: slot.bound?.itemSpacing, settings: slot.slotSettings, preferred: slot.slotPreferred, kids: slot.children.map((k) => [k.nestTarget, (k.nestVariant as Record<string, string>)?.type, (k.nestVariant as Record<string, string>)?.selection, (k.nestVariant as Record<string, string>)?.style, (k.nestVariant as Record<string, string>)?.size, ovText(k) ?? ((k.nestVariant as Record<string, string>)?.type === 'ellipsis' ? 'none' : '1')]) },
+      status: status && { chars: status.characters, type: status.textStyle, ink: status.paints?.fills },
+      simple: pb && nb && [icon(pb), icon(nb)],
+      width: m.root.placementWidth,
+      neutral: JSON.stringify(m.root).match(/"nestTarget":"(?:icon-)?button-neutral"/g)?.length ?? 0,
+    };
+    const ib = (type: string, labeled: string) => ({ to: 'pagination-item', v: { type, selection: 'unselected', style: 'border', labeled, size, state: 'rest' }, swap: undefined, text: undefined, expose: ['state'] });
+    const exp = {
+      prev: t === 'simple' ? undefined : ib('previous', 'false'), next: t === 'simple' ? undefined : ib('next', 'false'),
+      slot: t === 'numbered' ? { type: 'CONTENT_SLOT', gap: 'space/050', settings: { minChildren: 1, allowPreferredValuesOnly: true }, preferred: ['pagination-item'], kids: WINDOW.map(([ty, se, label]) => ['pagination-item', ty, se, se === 'selected' ? (m.coord as Record<string, string>).style : 'border', size, label]) } : undefined,
+      status: t === 'compact' ? { chars: 'Page 5 of 10', type: `label/${RUNG[size]}/default`, ink: 'color/text/primary' } : undefined,
+      simple: t === 'simple' ? [ib('previous', 'true'), ib('next', 'true')] : undefined,
+      width: t === 'simple' ? 428 : undefined,
+      neutral: 0,
+    };
+    if (JSON.stringify(got) !== JSON.stringify(exp)) pagOff.push(`${planComponentName(m)}: ${JSON.stringify(got).slice(0, 400)} (want ${JSON.stringify(exp).slice(0, 400)})`);
+  }
+  ok(pagOff.length === 0,
+    `#2665 calls 4, 6 and 16, Q414 A pagination contents: numbered is the item's own previous and next cells (unlabeled) around a native items slot (at least one, Pagination.Item preferred and preferred-only, Q394 A) of 1 … 4 [5] 6 … 10, the current page in the row's style; compact the same cells around "Page 5 of 10" in label default and text/primary; simple the labeled previous and next cells, built at 428px; no Neutral button family nested; every nested size follows the row's and prev and next expose their state (${pagOff.length} off — ${pagOff.slice(0, 1).join('; ') || 'none'})`);
+  ok(pagDef.summary === 'Moves between pages of a long list or set of results, and shows which page is open.' && pagDef.category === 'navigation'
+    && JSON.stringify(pagDef.aliases) === JSON.stringify(['pager', 'pagination-nav', 'page-controls']) && pagDef.props.find((p) => p.name === 'label')?.default === 'Pagination',
+    `#2665 call 16 pagination: the approved summary, category navigation, aliases pager, pagination-nav and page-controls, and the nav label "Pagination" (got ${pagDef.category}, ${JSON.stringify(pagDef.aliases)})`);
+  // Call 9 A and call 12 A, in the code contract: an end keeps previous and next in place with aria-disabled, never
+  // native disabled; getHref present renders links, absent buttons, never href="#".
+  ok(pagDef.anatomy!.codeOnly.some((e) => /^At an end — /.test(e) && /aria-disabled="true"/.test(e) && /Native disabled is not used/.test(e))
+    && pagDef.anatomy!.codeOnly.some((e) => /^links or buttons — with getHref/.test(e) && /Never <a href="#">/.test(e))
+    && pagDef.anatomy!.codeOnly.some((e) => /^The window — with siblingCount 1 and boundaryCount 1/.test(e) && /7 slots/.test(e)),
+    '#2665 calls 6, 9 and 12 pagination code contract: seven slots, previous and next aria-disabled at an end (never native disabled), and links from getHref or buttons, never href="#"');
+
+  // (5) excludeCoordinates OVER THE STATE AXIS (#2665, the mechanism call 7 needs). The validator takes the state
+  // axis as one more dimension, refuses a state value the axis does not have and an exclusion that removes the
+  // first member, and `figmaVariantCount` counts the removal by arithmetic (21 here, typed above).
+  const withEx = (ex: Record<string, string[]>[]): ComponentDef => ({ ...itemDef, figmaProperties: { ...itemDef.figmaProperties!, excludeCoordinates: ex } });
+  ok(figmaPropertyErrors(itemDef).length === 0, `#2665 excludeCoordinates on the state axis: Pagination.Item validates clean (${figmaPropertyErrors(itemDef).slice(0, 2).join('; ')})`);
+  ok(figmaPropertyErrors(withEx([{ selection: ['selected'], state: ['dragging'] }])).some((m) => /names 'dragging', which is not a value of 'state'/.test(m)),
+    '#2665 excludeCoordinates: a state value the state axis does not have is refused, naming it');
+  ok(figmaPropertyErrors(withEx([{ type: ['page'], state: ['rest'] }])).some((m) => /removes the set's first member/.test(m)),
+    '#2665 excludeCoordinates: removing rest from the default type removes the first member, and is refused');
+  ok(figmaVariantCount(withEx([])) === 480 && figmaVariantCount(withEx([{ selection: ['selected'], state: ['hover', 'pressed'] }])) === 384,
+    `#2665 figmaVariantCount: the full item grid is 4 × 2 × 2 × 2 × 3 × 5 = 480, and removing selected at hover and pressed (four types, both styles, both labeled, three sizes: 96) leaves 384 (got ${figmaVariantCount(withEx([]))}, ${figmaVariantCount(withEx([{ selection: ['selected'], state: ['hover', 'pressed'] }]))})`);
+}
+
+// ------------------------------------------------------------------- #2665: one caption per TEXT property
+// A set-level TEXT property holds ONE default, and every member's node bound to it displays that one value (#1567,
+// measured on the host). So two members that declare different captions behind one property cannot both show: the
+// plugin reports "-> COLLAPSED" at build and every member reads the property's default. Pagination.Item shipped that
+// way (its ellipsis read "1" on the host, two misses: label and its reserve; the ellipsis is an icon now, Q404 A). This arm reads every registered def's
+// projected plans (the subject) and asks the host's rule (the oracle, stated here): each TEXT property is behind one
+// caption across the set. A def whose members must say different things gives each its own part and property.
+{
+  const spreads: string[] = [];
+  let bound = 0;
+  for (const d of componentDefs) {
+    if (!d.figmaProperties) continue;
+    const byProp = new Map<string, Set<string>>();
+    for (const plan of figmaAnatomySet(d, { swapTarget: 'FPO-default-icon' })) {
+      const walk = (n: AnatomyPlan['root']): void => {
+        if (n.propertyRef?.field === 'characters') { bound++; byProp.set(n.propertyRef.prop, (byProp.get(n.propertyRef.prop) ?? new Set()).add(String(n.characters))); }
+        n.children.forEach(walk);
+      };
+      walk(plan.root);
+    }
+    for (const [prop, caps] of byProp) if (caps.size > 1) spreads.push(`${d.id}.${prop}: ${[...caps].map((c) => JSON.stringify(c)).join(' / ')}`);
+  }
+  ok(bound > 0 && spreads.length === 0,
+    `#2665 / #1567 one caption per TEXT property: no def declares two captions behind one property, which the host collapses to its one default (${bound} bound text nodes; ${spreads.join('; ') || 'none'})`);
 }
 
 // ------------------------------------------------------------------- #2661: the Button group

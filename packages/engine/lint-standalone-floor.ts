@@ -236,6 +236,7 @@ const MUST_PROJECT = [
   'code-input', 'code-input-cell',
   'progress',
   '_slider-thumb', 'slider',
+  'pagination-item', 'pagination',
 ];
 
 /** Whether the def declares the floor. Read here, ONCE, off the def — the EXPECTED half. */

@@ -127,16 +127,17 @@ const placements = (def: ComponentDef): { byPart: Map<string, Set<Prop>>; coords
   // A SPARSE GRID's missing members are skipped (`figmaProperties.excludeCoordinates`, 2026-09-28): the
   // projector refuses to plan one, and a coordinate the set does not have carries no placement to check.
   // Read from the declaration with this file's own matcher, like the rest of this enumeration.
-  const excluded = (size: string | undefined, c: Record<string, string>): boolean => {
-    const at: Record<string, string | undefined> = { ...c, size };
+  // The state is part of the coordinate (#2665): an entry may name it; unsupplied, no entry naming it matches.
+  const excluded = (size: string | undefined, c: Record<string, string>, st: string | undefined): boolean => {
+    const at: Record<string, string | undefined> = { ...c, size, ...(st ? { state: st } : {}) };
     return (def.figmaProperties?.excludeCoordinates ?? []).some((entry) => Object.keys(entry).every((a) => entry[a].includes(at[a] as string)));
   };
 
   let coords = 0;
   for (const size of sizes)
     for (const c of combos)
-      if (!excluded(size, c))
-        for (const st of states)
+      for (const st of states)
+        if (!excluded(size, c, st))
           for (const leading of [false, true])
             for (const trailing of [false, true]) {
               try {
@@ -296,6 +297,8 @@ const EXPECT_ANATOMY = [
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'list-item', 'list',
   'segmented-control-segment', 'segmented-control', 'link', 'button-group', 'dialog', 'password-field', 'counter', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', 'toast', 'banner',
   'code-input-cell', 'code-input', 'progress', '_slider-thumb', 'slider',
+  // #2665: the page cell and the pagination row.
+  'pagination-item', 'pagination',
 ];
 const EXPECT_PAINTERS = [
   'focus-ring', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive',
@@ -303,6 +306,8 @@ const EXPECT_PAINTERS = [
   'image-placeholder', 'badge', 'tag', 'tab-item', 'tabs', 'divider', 'list-item', 'segmented-control-segment', 'segmented-control', 'dialog', 'banner',
   // #2669: the thumb's disc and ring; the Slider's rail and selected bar.
   '_slider-thumb', 'slider',
+  // #2665: the page cell's current-page fill and hover wash.
+  'pagination-item',
   // #2457 Q287 A: the round shape's edge and wash. The flush shape's box resolves none of them.
   // Q295.2 B: three families, as IconButton's three.
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral',

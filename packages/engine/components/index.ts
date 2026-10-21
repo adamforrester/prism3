@@ -79,6 +79,7 @@ import { link } from './link';
 import { buttonGroup } from './button-group';
 import { dialog } from './dialog';
 import { banner } from './banner';
+import { paginationItem, pagination } from './pagination';
 import { passwordField } from './password-field';
 import { breadcrumbSeparator } from './breadcrumb-separator';
 import { breadcrumbItem } from './breadcrumb-item';
@@ -95,7 +96,7 @@ import { sliderThumb, slider } from './slider';
  *  be a worse call site, not a better one — a lookup that can return `undefined` standing in for a
  *  binding that cannot. The set is for iteration; these are for the assertions that are ABOUT one
  *  component. */
-export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tab, tabs, divider, accordionIndicator, accordion, listItem, list, segmentedControlSegment, segmentedControl, link, buttonGroup, dialog, passwordField, counter, breadcrumbSeparator, breadcrumbItem, breadcrumbs, banner, codeInputCell, codeInput, progress, sliderThumb, slider };
+export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tab, tabs, divider, accordionIndicator, accordion, listItem, list, segmentedControlSegment, segmentedControl, link, buttonGroup, dialog, passwordField, counter, breadcrumbSeparator, breadcrumbItem, breadcrumbs, banner, codeInputCell, codeInput, progress, sliderThumb, slider, paginationItem, pagination };
 
 /** Every component def the engine defines. The one thing a projection should iterate. */
 export const componentDefs: readonly ComponentDef[] = [
@@ -248,4 +249,8 @@ export const componentDefs: readonly ComponentDef[] = [
   // part used only inside the Slider (Q349).
   sliderThumb,
   slider,
+  // `pagination-item` and `pagination` (#2665) — one page cell and the row. The row nests the cell in its items
+  // slot, the neutral icon button (previous and next) and the neutral button (simple), so it comes after all three.
+  paginationItem,
+  pagination,
 ];
