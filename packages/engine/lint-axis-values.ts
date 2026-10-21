@@ -719,12 +719,13 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   },
   {
     axis: 'placement',
-    values: ['center', 'bottom', 'full'],
+    values: ['center', 'bottom', 'full', 'end'],
     defs: ['dialog'],
     relation: 'sole',
     reason:
       'Where a layer sits over the page (#2609, owner decision Q303.1): centered, attached to the bottom edge as a bottom '
-      + 'sheet, or filling a small screen. No side placement, by the same decision. `center` LEADS because it is the code '
+      + 'sheet, filling a small screen, or attached to the end edge as a side sheet (#2877, Q483 A, named `end` by Q488 A: '
+      + 'the writing direction\'s end, so it mirrors in right-to-left text and a `start` can join it with no rename). `center` LEADS because it is the code '
       + 'default on every screen and Figma\'s default member. One def carries it, so there is no other to stand in a '
       + 'relation with. Distinct from `alignment` and `direction`, argued in `VARIANT_AXES`.',
   },

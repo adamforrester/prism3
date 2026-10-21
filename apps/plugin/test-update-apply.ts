@@ -3833,6 +3833,26 @@ section('published — on a set in a team library, what breaks consumer files is
     const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: next }], previewHashOf(pre));
     ok(!!res.refusedAll && res.outcomes.length === 0, `published/hash: a set published after the check refuses the confirm (${res.refusedAll ?? 'applied'})`);
   }
+
+  // DIALOG GAINS ITS END PLACEMENT (#2877): a published Dialog built before the side sheet, its 15 members, updated to
+  // the plan with the three `placement=end` members. Adding a variant value is additive, so the check adds exactly those
+  // three and lists NOTHING as breaking: no member dropped, renamed or replaced, no property removed or retyped. The
+  // member names are literals typed here, never read off the def.
+  {
+    const next = plansOf('dialog');
+    // `before` is derived from this PR's own plans, so this arm proves the end members are additive, not that the 15
+    // existing members are unchanged; their identity is pinned by test.ts's literal `#2609 dialog …` arms.
+    const before = next.filter((p) => !/placement=end/.test(planComponentName(p)));
+    // The nested close's `swap icon` is a property of FlushIconButton.Neutral in a real file; the shim's plain component
+    // carries it here, or the build reads the close's swap override as a miss.
+    const w = await world('dialog', before, { extraVars: [...new Set(next.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]))], componentProps: { 'flush-icon-button-neutral': { 'swap icon#9:1': { type: 'INSTANCE_SWAP', defaultValue: 'icon/close' } } } });
+    (w.api.publish as (n: Node, s: string) => void)(w.set(), 'CURRENT');
+    const p = (await previewUpdate(w.host, [{ def: 'dialog', plans: next }])).sets[0];
+    const END = ['placement=end, footer=inline, size=medium', 'placement=end, footer=stacked, size=medium', 'placement=end, footer=none, size=medium'];
+    ok(before.length === 15 && next.length === 18, `premise: Dialog was 15 members and is 18 with the end placement (${before.length} → ${next.length})`);
+    ok(p?.publish === 'CURRENT' && JSON.stringify([...p.adds].sort()) === JSON.stringify([...END].sort()) && p.drops.length === 0 && (p.breaking ?? []).length === 0,
+      `published/dialog end additive: the three end members are added and nothing breaks library consumers (adds ${JSON.stringify(p?.adds)}, drops ${p?.drops.length}, breaking ${JSON.stringify((p?.breaking ?? []).slice(0, 3))})`);
+  }
 }
 
 void STYLE_FONT; void BASELINE_KEY;

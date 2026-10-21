@@ -22012,7 +22012,7 @@ arm: {
             return undefined;
           };
           const bad = dg.filter((pl) => JSON.stringify(findPart(pl.root, 'close')?.nestOverrides) !== '[{"property":"swap icon","type":"INSTANCE_SWAP","value":"icon/close"}]');
-          ok(dg.length === 15 && bad.length === 0, `#2609 dialog: every member's close swaps FlushIconButton.Neutral's 'swap icon' to icon/close (${dg.length} members, ${bad.length} wrong: ${JSON.stringify(bad[0] && findPart(bad[0].root, 'close')?.nestOverrides)})`);
+          ok(dg.length === 18 && bad.length === 0, `#2609 dialog: every member's close swaps FlushIconButton.Neutral's 'swap icon' to icon/close (${dg.length} members, ${bad.length} wrong: ${JSON.stringify(bad[0] && findPart(bad[0].root, 'close')?.nestOverrides)})`);
           ok(Object.keys(dDef.figmaProperties?.swaps ?? {}).length === 0, `#2609 dialog: no swap property on Dialog's Figma surface (${JSON.stringify(dDef.figmaProperties?.swaps)})`);
           ok(dDef.anatomy!.parts.close?.nesting?.kind === 'nest-fixed', `#2609 dialog: the close is not exposed, so the nested button's swap does not surface on Dialog (${dDef.anatomy!.parts.close?.nesting?.kind})`);
           // Q385 A (settling Q377 A): Dialog nests FlushIconButton.Neutral and depends on IconButton.Neutral nowhere, so a
@@ -33132,8 +33132,8 @@ arm: {
 }
 
 // ------------------------------------------------------------------- #2609: the dialog
-// Each owner decision held against a literal (the proposal on #2609 and Q303): the 15 members and their exact axes with
-// no side placement, the width and height per placement, the corners per placement, the padding, the panel's fill and
+// Each owner decision held against a literal (the proposal on #2609, Q303, and Q483 A with Q488–Q493 on #2877): the 18
+// members and their exact axes with the end placement, the width and height per placement, the corners per placement, the padding, the panel's fill and
 // shadow with no scrim anywhere in the set (the backdrop is canvas furniture), the close button and the footers, the
 // three toggles, and the alertdialog's hidden close in the docs. EXPECTED is typed here; ACTUAL is the projected plan,
 // so a def that moved fails the arm by name.
@@ -33145,39 +33145,47 @@ arm: {
   const all = (n: DN): DN[] => [n, ...n.children.flatMap(all)];
   const coord = (p: AnatomyPlan): Record<string, string> => ({ ...(p.coord as Record<string, string>), ...(p.size ? { size: p.size } : {}) });
 
-  // THE SHAPE (Q303.1, Q303.5, Q303.6): placement center, bottom, full and NO side; size on center only; 15 members.
+  // THE SHAPE (Q303.1, Q303.5, Q303.6; Q483 A, Q488 A, Q489 A): placement center, bottom, full and end; size on center
+  // only; 18 members, the three end members after the full ones.
   const MEMBERS = [
     'placement=center, footer=inline, size=medium', 'placement=center, footer=inline, size=small', 'placement=center, footer=inline, size=large',
     'placement=center, footer=stacked, size=medium', 'placement=center, footer=stacked, size=small', 'placement=center, footer=stacked, size=large',
     'placement=center, footer=none, size=medium', 'placement=center, footer=none, size=small', 'placement=center, footer=none, size=large',
     'placement=bottom, footer=inline, size=medium', 'placement=bottom, footer=stacked, size=medium', 'placement=bottom, footer=none, size=medium',
     'placement=full, footer=inline, size=medium', 'placement=full, footer=stacked, size=medium', 'placement=full, footer=none, size=medium',
+    'placement=end, footer=inline, size=medium', 'placement=end, footer=stacked, size=medium', 'placement=end, footer=none, size=medium',
   ];
-  ok(JSON.stringify(plans.map(planComponentName)) === JSON.stringify(MEMBERS) && figmaVariantCount(dg) === 15,
-    `#2609 dialog: 15 members, center at three sizes and bottom and full at the default size only, in this order (got ${plans.length}: ${plans.map(planComponentName).slice(9).join(' | ')})`);
-  ok(JSON.stringify(dg.variants) === JSON.stringify({ placement: ['center', 'bottom', 'full'], size: ['medium', 'small', 'large'], footer: ['inline', 'stacked', 'none'] })
+  ok(JSON.stringify(plans.map(planComponentName)) === JSON.stringify(MEMBERS) && figmaVariantCount(dg) === 18,
+    `#2609 #2877 dialog: 18 members, center at three sizes and bottom, full and end at the default size only, in this order (got ${plans.length}: ${plans.map(planComponentName).slice(9).join(' | ')})`);
+  ok(JSON.stringify(dg.variants) === JSON.stringify({ placement: ['center', 'bottom', 'full', 'end'], size: ['medium', 'small', 'large'], footer: ['inline', 'stacked', 'none'] })
     && JSON.stringify(dg.figmaProperties?.variantAxes) === JSON.stringify(['placement', 'size', 'footer']),
-    `#2609 dialog axes: placement [center, bottom, full] with no side (Q303.1), size [medium, small, large], footer [inline, stacked, none] (got ${JSON.stringify(dg.variants)})`);
-  const sideWords = [...Object.values(dg.variants).flat(), ...(dg.props.find((x) => x.name === 'placement')?.values ?? []), ...Object.keys(dg.tokens), ...Object.keys(dg.anatomy!.parts), ...Object.keys(dg.anatomy!.parts.panel.builtSize!.widths)];
-  ok(!sideWords.some((w) => /\bside\b|drawer/.test(String(w))) && !(dg.aliases ?? []).some((a) => /drawer|side/.test(a)),
-    '#2609 dialog: no side placement anywhere in the def, and no drawer or side-sheet alias (Q303.1, Q303.12)');
+    `#2609 #2877 dialog axes: placement [center, bottom, full, end] (Q303.1, Q488 A), size [medium, small, large], footer [inline, stacked, none] (got ${JSON.stringify(dg.variants)})`);
+  // The side placement is `end`, never `side`, `right`, `left` or `start` (Q488 A), in the code enum, the axis and the
+  // built sizes alike.
+  const placeProp = dg.props.find((x) => x.name === 'placement');
+  ok(JSON.stringify(placeProp?.values) === JSON.stringify(['center', 'bottom', 'full', 'end']) && placeProp?.type === "enum: 'center' | 'bottom' | 'full' | 'end'"
+    && JSON.stringify(Object.keys(dg.anatomy!.parts.panel.builtSize!.widths)) === JSON.stringify(['center', 'bottom', 'full', 'end'])
+    && ![...Object.values(dg.variants).flat(), ...Object.keys(dg.tokens)].some((w) => /\b(side|right|left|start)\b/.test(String(w))),
+    `#2877 dialog: the side placement is \`end\` in the prop, the axis and the built sizes, with no side, right, left or start value (Q488 A) (got ${JSON.stringify(placeProp?.values)})`);
   ok(dg.states.length === 0 && !dg.figmaProperties?.stateAxis, `#2609 dialog: no states and no state axis (got ${JSON.stringify(dg.states)})`);
-  ok(dg.name === 'Dialog' && dg.category === 'overlay' && JSON.stringify(dg.aliases) === JSON.stringify(['modal', 'sheet', 'bottom-sheet', 'full-screen-dialog']),
-    `#2609 dialog: named Dialog, category overlay, aliases modal, sheet, bottom-sheet and full-screen-dialog (Q303.12) (got ${dg.name}, ${dg.category}, ${JSON.stringify(dg.aliases)})`);
+  ok(dg.name === 'Dialog' && dg.category === 'overlay' && JSON.stringify(dg.aliases) === JSON.stringify(['modal', 'sheet', 'bottom-sheet', 'full-screen-dialog', 'side-sheet', 'drawer']),
+    `#2609 #2877 dialog: named Dialog, category overlay, aliases modal, sheet, bottom-sheet, full-screen-dialog, side-sheet and drawer (Q303.12, Q493 A) (got ${dg.name}, ${dg.category}, ${JSON.stringify(dg.aliases)})`);
 
   // THE SIZE AND THE CORNERS PER PLACEMENT (Q303.5 A, Q303.11 A as adjusted): [width, height or null, top corners,
-  // bottom corners, padding]. Center rounds all four, bottom its top two, full none.
+  // bottom corners, padding]. Center rounds all four, bottom its top two, full and end none (Q490 A). End is one width,
+  // 480 (Q489 A), built 800 tall with the body taking the height, and padded as center is.
   const WIDTH: Record<string, number> = { small: 400, medium: 560, large: 720 };
   const SHAPE: Record<string, [number | null, number | null, string, string, string]> = {
     center: [null, null, 'radius/2xl', 'radius/2xl', 'space/300'],
     bottom: [360, null, 'radius/2xl', 'radius/none', 'space/200'],
     full: [360, 640, 'radius/none', 'radius/none', 'space/200'],
+    end: [480, 800, 'radius/none', 'radius/none', 'space/300'],
   };
   const shapeBad: string[] = [];
   for (const p of plans) {
     const c = coord(p), r = p.root as DN, sh = SHAPE[c.placement];
-    // A placement outside the three (a side placement, Q303.1) has no expected shape and fails here, not throws.
-    if (!sh) { shapeBad.push(`${planComponentName(p)}: placement '${c.placement}' is not center, bottom or full`); continue; }
+    // A placement outside the four has no expected shape and fails here, not throws.
+    if (!sh) { shapeBad.push(`${planComponentName(p)}: placement '${c.placement}' is not center, bottom, full or end`); continue; }
     const [w, h, top, bottom, pad] = sh;
     const wantW = w ?? WIDTH[c.size];
     const body = find(r, 'body')!;
@@ -33189,7 +33197,7 @@ arm: {
     if (!okSize || !okCorners || !okPad) shapeBad.push(`${planComponentName(p)}: ${r.placementWidth}×${r.placementHeight ?? 'hug'} corners ${r.bound?.topLeftRadius}/${r.bound?.bottomLeftRadius} pad ${r.bound?.paddingTop}`);
   }
   ok(shapeBad.length === 0,
-    `#2609 dialog size, corners and padding: center 400/560/720 wide hugging its content, every corner radius/2xl, padding space/300; bottom 360 wide, its top corners radius/2xl and bottom none, padding space/200; full 360×640 with the body taking the height, every corner square, padding space/200${shapeBad.length ? ` — WRONG: ${shapeBad.slice(0, 3).join('; ')}` : ''}`);
+    `#2609 dialog size, corners and padding: center 400/560/720 wide hugging its content, every corner radius/2xl, padding space/300; bottom 360 wide, its top corners radius/2xl and bottom none, padding space/200; full 360×640 with the body taking the height, every corner square, padding space/200; end 480×800 with the body taking the height, every corner square, padding space/300${shapeBad.length ? ` — WRONG: ${shapeBad.slice(0, 3).join('; ')}` : ''}`);
 
   // THE PANEL, AND NO BACKDROP IN THE SET (Q303.2 A, Q303.3 A): the panel is foreground.primary with the shadow.xl
   // effect style, and no node of any member paints the scrim or any wash: the scrim is canvas furniture.
@@ -33203,21 +33211,21 @@ arm: {
     return !(close?.nestTarget === 'flush-icon-button-neutral' && JSON.stringify(close.nestVariant) === JSON.stringify({ shape: 'flush', size: 'medium', state: 'rest' })
       && close.visibleProp === 'close' && close.visible !== false && desc?.visible === false && desc.paints?.fills === 'color/text/secondary' && title?.paints?.fills === 'color/text/primary');
   });
-  ok(hdrBad.length === 0, `#2609 dialog header: the close is FlushIconButton.Neutral flush medium and shown (owner QA 2026-10-19: never round), the description hidden in secondary text, the title in primary text (${hdrBad.length ? `WRONG: ${hdrBad.map(planComponentName).slice(0, 2).join('; ')}` : 'all 15'})`);
+  ok(hdrBad.length === 0, `#2609 dialog header: the close is FlushIconButton.Neutral flush medium and shown (owner QA 2026-10-19: never round), the description hidden in secondary text, the title in primary text (${hdrBad.length ? `WRONG: ${hdrBad.map(planComponentName).slice(0, 2).join('; ')}` : 'all 18'})`);
 
   // THE FOOTERS (Q303.6 A; Q363, #2661): inline and stacked each nest ONE Button group, at its own layout, stretched
   // across a footer inset like the header; none has no footer and no rule above it. What the group holds is its own
   // arm below (#2661 button group).
   const footBad = plans.filter((p) => {
     const c = coord(p), r = p.root as DN, foot = find(r, 'footer'), inl = find(r, 'actionsInline'), st = find(r, 'actionsStacked'), rule = find(r, 'footerDivider');
-    const pad = c.placement === 'center' ? 'space/300' : 'space/200';
+    const pad = c.placement === 'center' || c.placement === 'end' ? 'space/300' : 'space/200';
     const group = (n: DN | undefined, layout: string) => n?.type === 'NESTED_INSTANCE' && n.nestTarget === 'button-group' && JSON.stringify(n.nestVariant) === JSON.stringify({ layout }) && (n as { layoutAlign?: string }).layoutAlign === 'STRETCH';
     const footOk = !!foot && !!rule && foot.bound?.paddingLeft === pad && foot.bound?.paddingRight === pad && (foot as { layoutAlign?: string }).layoutAlign === 'STRETCH';
     if (c.footer === 'inline') return !(footOk && group(inl, 'inline') && !st && foot!.children.length === 1);
     if (c.footer === 'stacked') return !(footOk && group(st, 'stacked') && !inl && foot!.children.length === 1);
     return !!(foot || inl || st || rule);
   });
-  ok(footBad.length === 0, `#2609 #2661 dialog footers: inline nests a Button group at layout=inline and stacked one at layout=stacked, each stretched across a footer padded like the header; none has no footer and no rule (${footBad.length ? `WRONG: ${footBad.map(planComponentName).slice(0, 3).join('; ')}` : 'all 15'})`);
+  ok(footBad.length === 0, `#2609 #2661 dialog footers: inline nests a Button group at layout=inline and stacked one at layout=stacked, each stretched across a footer padded like the header; none has no footer and no rule (${footBad.length ? `WRONG: ${footBad.map(planComponentName).slice(0, 3).join('; ')}` : 'all 18'})`);
   ok(!plans.some((p) => all(p.root as DN).some((n) => n.nestTarget === 'button' || n.nestTarget === 'button-neutral')),
     '#2661 dialog: no member nests a Button directly any more; the footer buttons live in the Button group (Q363)');
   const actions = dg.props.find((x) => x.name === 'actions');
@@ -33254,6 +33262,43 @@ arm: {
   let thrown = '';
   try { figmaEffectStyleName('color.scrim.default'); } catch (e) { thrown = (e as Error).message; }
   ok(figmaEffectStyleName('shadow.xl') === 'shadow/xl' && /not a shadow step/.test(thrown), `#2609 elevation names shadow/xl for shadow.xl and refuses a non-shadow ref (${thrown.slice(0, 80)})`);
+}
+
+// ------------------------------------------------------------------- #2877: the dialog's end placement
+// Q483 A: the side sheet is a value of Dialog's placement, NOT a lighter component, so it keeps every modal promise the
+// other placements make. EXPECTED is typed here as literal clauses; ACTUAL is the def's own contract text, so a def
+// that carves the end panel (or any placement) out of the modal semantics or the scrim fails this arm by name. And
+// Q491 A: reduced motion is instant at every placement, so no contract line may promise a fade under it.
+{
+  const dg = componentDefs.find((d) => d.id === 'dialog')!;
+  const lines = dg.anatomy!.codeOnly;
+  const line = (head: string) => lines.find((e) => e.startsWith(`${head} — `)) ?? '';
+  const a11y = [dg.accessibility.role, dg.accessibility.focus, dg.accessibility.aria, dg.accessibility.keyboard];
+  // Any clause that excepts a placement from the modal contract: "except end", "but not on an end panel", "unless full"...
+  const carve = /\b(except|but not|other than|unless|apart from|not modal|non-modal|without the scrim)\b[^.;]*\b(center|bottom|full|end|side)\b/i;
+  const modalText = [line('role'), line('focus held'), line('Escape'), line('the backdrop'), ...a11y];
+  const carved = modalText.filter((t) => carve.test(t));
+  // The modal contract is pinned as whole typed strings, so ANY reword of it fails this arm (a regex over a clause let
+  // ", though an end panel may drop aria-modal so the page stays reachable" pass — the #2881 review's M6). A deliberate
+  // rewording updates the literal here, in review. `carve` stays as a second net over the Escape line and the a11y fields
+  // that are not pinned.
+  const pinned: [string, string, string][] = [
+    ['role line', line('role'), 'role — `role="dialog"` with `aria-modal="true"` at every placement, an end panel included; the native `<dialog>` opened with `showModal()` provides both. `role: "alertdialog"` is a code prop with no Figma property: set it for a confirmation that interrupts and needs an answer. An alertdialog hides the close button (the Figma `close` toggle shows the result), keeps a backdrop click from closing it, and must hold at least one focusable control.'],
+    ['focus held line', line('focus held'), 'focus held — Tab and Shift+Tab cycle inside the dialog at every placement, and the page behind is inert. A modal `<dialog>` makes the page inert natively.'],
+    ['backdrop line', line('the backdrop'), 'the backdrop — `color.scrim.default` on `::backdrop`, at every placement but full, an end panel included. It is not part of the component: the Figma page draws it behind each example as canvas furniture.'],
+    ['accessibility.role', dg.accessibility.role, 'role="dialog" with aria-modal="true", or role="alertdialog" for a confirmation that needs an answer. A native <dialog> opened with showModal() provides the dialog role, the modal state, the top layer and an inert page.'],
+    ['accessibility.aria', dg.accessibility.aria, 'aria-modal="true"; aria-labelledby pointing at the title; aria-describedby pointing at the description when there is one. The close button\'s accessible name is "Close". Hide the dividers from assistive technology.'],
+  ];
+  const moved = pinned.filter(([, actual, expected]) => actual !== expected).map(([name]) => name);
+  ok(moved.length === 0 && carved.length === 0,
+    `#2877 dialog end: modal — role="dialog" with aria-modal, focus held, page inert and the scrim at every placement, the end panel included, and no line excepts a placement${moved.length ? ` — MOVED: ${moved.join(', ')}` : ''}${carved.length ? ` — CARVED: ${carved.map((t) => t.slice(0, 70)).join(' | ')}` : ''}`);
+  const rm = [dg.motion?.reduceMotion ?? '', line('motion')];
+  ok(rm.every((t) => /at once, with no movement and no fade/.test(t) && /0ms/.test(t)) && !rm.some((t) => /fades? only/.test(t)),
+    `#2877 dialog reduced motion: every placement opens and closes at once under prefers-reduced-motion, 0ms, and no line promises a fade (Q491 A) (got ${JSON.stringify(dg.motion?.reduceMotion)})`);
+  // The end panel's code rules: 480 wide, full height, capped at 100vw − 48px, sliding in from the end edge, mirrored.
+  ok(/An end panel is full height and 480px wide, at most `100vw − 48px`/.test(line('per-breakpoint placement, no automatic switch'))
+    && /an end panel slides in from the end edge/.test(line('motion')) && /An end panel sits at the left edge/.test(line('right-to-left')),
+    '#2877 dialog end in code: full height, 480px wide, at most 100vw − 48px, sliding in from the end edge, at the left edge in right-to-left text');
 }
 
 // ------------------------------------------------------------------- #2661: the Button group
