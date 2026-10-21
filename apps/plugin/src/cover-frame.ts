@@ -173,7 +173,7 @@ export const coverPrint = (frame: CNode): string => {
       : text ? `${Math.round(n.x ?? 0)},${Math.round(n.y ?? 0)}` : `${Math.round(n.x ?? 0)},${Math.round(n.y ?? 0)},${Math.round(n.width ?? 0)}x${Math.round(n.height ?? 0)}`;
     const typeface = text ? [boundId(n, 'fontFamily') ? `@${boundId(n, 'fontFamily')}` : font(n).split(' ')[0], boundId(n, 'fontStyle') ? `@${boundId(n, 'fontStyle')}` : font(n), String(n.fontSize ?? '')].join('/') : '';
     const chars = text && partOf(n) !== 'version' ? String(n.characters ?? '') : '';
-    parts.push([depth, n.type, n.name, n.visible === false ? 'hidden' : '', partOf(n), at, chars, typeface, paintKey(n.fills), paintKey(n.strokes)].join('\u241f'));
+    parts.push(JSON.stringify([depth, n.type, n.name, n.visible === false ? 'hidden' : '', partOf(n), at, chars, typeface, paintKey(n.fills), paintKey(n.strokes)]));
     for (const c of n.children ?? []) walk(c, depth + 1);
   };
   walk(frame, 0);
