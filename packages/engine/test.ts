@@ -56,7 +56,7 @@ import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, Unrecogniz
 import { validateComponentDef, VARIANT_AXES, axisKindOf, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, variantAxisFigmaName, isExcludedCoordinate, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef, type PartDef } from './component-schema';
 import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, settleChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, figmaEffectStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyFieldStyle, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, applyNestOverrides, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
-import { COMPONENT_RENAMES, coordKey, renameCoordinate, renameProperty, isDeclaredDrop, unaccounted as renamesUnaccounted, danglingTargets as renamesDangling, type ComponentRename, type AxesBaseline } from './component-renames';
+import { COMPONENT_RENAMES, coordKey, currentDefId, formerDefIds, renameCoordinate, renameProperty, isDeclaredDrop, unaccounted as renamesUnaccounted, danglingTargets as renamesDangling, type ComponentRename, type AxesBaseline } from './component-renames';
 // One of the two imports this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
 // is why: with two executors for one `AnatomyPlan`, a gate that only ever sees one of them cannot say
 // they agree. `write-components.ts` is pure TypeScript against a declared port — it touches no `figma`
@@ -3786,7 +3786,7 @@ for (const b of brands) {
       'radio-row': { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
       'switch-row': { keys: ['gap'], sizes: ['small', 'medium'] },
       tag: { keys: ['padding-x', 'select.gap', 'dismissible.visible-gap', 'check-gap', 'select.padding-end', 'dismissible.padding-end'], sizes: ['small', 'medium', 'large'] },
-      tab: { keys: ['padding-x', 'gap'], sizes: ['small', 'medium', 'large'] },
+      'tab-item': { keys: ['padding-x', 'gap'], sizes: ['small', 'medium', 'large'] },
       'segmented-control-segment': { keys: ['padding-x', 'gap'], sizes: ['small', 'medium', 'large'] },
       accordion: { keys: ['pad-x', 'pad-y', 'gap', 'panel-pad-end'], sizes: ['small', 'medium', 'large'] },
       list: { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
@@ -3806,7 +3806,7 @@ for (const b of brands) {
       // label→check / select trailing inset / dismissible trailing inset. Compact small's visible 6 steps to 4.
       tag: { compact: 'small 6/4/4/4/6/0 · medium 8/6/6/4/8/0 · large 12/8/6/6/12/0', comfortable: 'small 8/6/6/4/8/0 · medium 12/8/8/6/12/0 · large 16/12/8/8/16/0', spacious: 'small 12/8/8/6/12/0 · medium 16/12/12/8/16/0 · large 20/16/12/12/20/0' },
       // Tab (#2416): padding-x / icon→label→count gap. Comfortable is the proposal's 12/6 · 16/8 · 20/8.
-      tab: { compact: 'small 8/4 · medium 12/6 · large 16/6', comfortable: 'small 12/6 · medium 16/8 · large 20/8', spacious: 'small 16/8 · medium 20/12 · large 24/12' },
+      'tab-item': { compact: 'small 8/4 · medium 12/6 · large 16/6', comfortable: 'small 12/6 · medium 16/8 · large 20/8', spacious: 'small 16/8 · medium 20/12 · large 24/12' },
       // Segmented control option (#2418): padding-x / icon→label gap, Tab's numbers (the refreshed proposal §6).
       'segmented-control-segment': { compact: 'small 8/4 · medium 12/6 · large 16/6', comfortable: 'small 12/6 · medium 16/8 · large 20/8', spacious: 'small 16/8 · medium 20/12 · large 24/12' },
       // Accordion (#2417, DRAFT): header inline / header block / glyph-to-title gap / panel bottom inset. Comfortable is
@@ -3852,7 +3852,7 @@ for (const b of brands) {
       'text-field': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       select: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'checkbox-row': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
-      tab: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
+      'tab-item': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'segmented-control-segment': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'radio-row': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'switch-row': ['size.small.gap', 'size.medium.gap'],
@@ -3906,7 +3906,7 @@ for (const b of brands) {
       // Tag's icon→label is VISIBLE, the content gap plus the label row's leading inset (owner, 2026-09-29), per
       // type: the sum is what must stay under the padding. A `+` key is summed.
       tag: { prefix: 'sized', lt: [['select.gap+select.label-inset', 'padding-x'], ['dismissible.gap+dismissible.label-inset', 'padding-x'], ['check-gap', 'padding-x']] },
-      tab: { prefix: 'sized', lt: [['gap', 'padding-x']] },
+      'tab-item': { prefix: 'sized', lt: [['gap', 'padding-x']] },
       'segmented-control-segment': { prefix: 'sized', lt: [['gap', 'padding-x']] },
       accordion: { prefix: 'sized', lt: [['gap', 'pad-x']] },
     };
@@ -14495,7 +14495,7 @@ arm: {
     });
     const prefixed = (defs: readonly ComponentDef[]): string[] => slotItems(defs).filter((x) => /→ [_.]/.test(x));
     const items = slotItems(componentDefs);
-    const want = ['tabs.items → tab', 'list.items → list-item', 'segmented-control.items → segmented-control-segment', 'checkbox-group.items → checkbox-row', 'radio-group.items → radio-row', 'button-group.items → button-neutral'];
+    const want = ['tabs.items → tab-item', 'list.items → list-item', 'segmented-control.items → segmented-control-segment', 'checkbox-group.items → checkbox-row', 'radio-group.items → radio-row', 'button-group.items → button-neutral'];
     ok(want.every((w) => items.includes(w)), `Q394 slot items: the registry's slot items are read, the three the naming sweep renames among them, and one a slot prefers only when built (${want.filter((w) => !items.includes(w)).join('; ') || `${items.length} read`})`);
     ok(prefixed(componentDefs).length === 0, `Q394 slot items: no def a native slot holds is prefixed with _ or . (${prefixed(componentDefs).join('; ') || 'none'})`);
     // The sweep's failure, modeled on a copy: Tab renamed to `_tab`, its slot's `preferred` dropped, so only the items
@@ -14503,7 +14503,7 @@ arm: {
     const tabsDef = componentDefs.find((d) => d.id === 'tabs')!;
     const renamed = (keepPreferred: boolean, prefix = '_'): ComponentDef[] => {
       const parts = { ...(tabsDef.anatomy!.parts as Record<string, SlotPart>) };
-      for (const [k, p] of Object.entries(parts)) if (p.nests === 'tab') parts[k] = { ...p, nests: `${prefix}tab` };
+      for (const [k, p] of Object.entries(parts)) if (p.nests === 'tab-item') parts[k] = { ...p, nests: `${prefix}tab` };
       const { preferred: _p, ...slot } = parts.items;
       parts.items = keepPreferred ? { ...slot, preferred: [`${prefix}tab`] } : slot;
       return [{ ...tabsDef, anatomy: { ...tabsDef.anatomy!, parts } } as ComponentDef];
@@ -16061,7 +16061,7 @@ arm: {
       const WANT: Record<string, { anyOf: string; max: number | undefined; slot: string }> = {
         'checkbox-group': { anyOf: 'checkbox-row', max: undefined, slot: 'items' },
         'radio-group': { anyOf: 'radio-row', max: undefined, slot: 'items' },
-        tabs: { anyOf: 'tab', max: 6, slot: 'items' },
+        tabs: { anyOf: 'tab-item', max: 6, slot: 'items' },
         list: { anyOf: 'list-item', max: undefined, slot: 'items' },
         'segmented-control': { anyOf: 'segmented-control-segment', max: 5, slot: 'items' },
       };
@@ -16107,7 +16107,7 @@ arm: {
     {
       const findIn = (n: AnatomyPlan['root'], name: string): AnatomyPlan['root'] | undefined => n.name === name ? n : n.children.map((k) => findIn(k, name)).find(Boolean);
       const walk = (n: AnatomyPlan['root'], f: (x: AnatomyPlan['root']) => void): void => { f(n); n.children.forEach((k) => walk(k, f)); };
-      const tabDef = componentDefs.find((d) => d.id === 'tab')!;
+      const tabDef = componentDefs.find((d) => d.id === 'tab-item')!;
       const tabsDef = componentDefs.find((d) => d.id === 'tabs')!;
       const tabMembers = figmaAnatomySet(tabDef, { swapTarget: 'FPO-default-icon' });
       const SIZES = ['small', 'medium', 'large'];
@@ -16234,7 +16234,7 @@ arm: {
         TABS.forEach((t, i) => {
           const n = findIn(m.root, t);
           const v = n?.nestVariant ?? {};
-          if (n?.nestTarget !== 'tab' || v.selection !== (i === 0 ? 'selected' : 'unselected') || v.size !== size || v.state !== 'rest')
+          if (n?.nestTarget !== 'tab-item' || v.selection !== (i === 0 ? 'selected' : 'unselected') || v.size !== size || v.state !== 'rest')
             bad.push(`${t} nests ${String(n?.nestTarget)} ${JSON.stringify(v)}`);
           if (n?.visibleProp !== undefined || n?.visible === false) bad.push(`${t} visibleProp ${String(n?.visibleProp)}, visible ${String(n?.visible)}`);
         });
@@ -16438,7 +16438,7 @@ arm: {
         `#2418 Q269.1 behavior: view and form, view the default, and no Figma property (got ${JSON.stringify(beh?.values)} default ${String(beh?.default)})`);
 
       // (7) TABS POINTS AT IT: Tab's avoidWhen and Tabs' usage and avoidWhen name the segmented control, not "not built yet".
-      const tabDef = componentDefs.find((d) => d.id === 'tab')!, tabsDef = componentDefs.find((d) => d.id === 'tabs')!;
+      const tabDef = componentDefs.find((d) => d.id === 'tab-item')!, tabsDef = componentDefs.find((d) => d.id === 'tabs')!;
       const texts = [tabDef.ai.avoidWhen, tabsDef.docs.usage, tabsDef.ai.avoidWhen];
       ok(texts.every((t) => /segmented control|SegmentedControl/i.test(t) && !/segmented control, not built yet/i.test(t)) && tabsDef.composition?.alternativeTo?.includes('segmented-control') && !(tabDef.composition?.planned ?? []).includes('segmented-control') && !(tabsDef.composition?.planned ?? []).includes('segmented-control'),
         '#2418 Tab and Tabs name the registered segmented control: no "not built yet", and it is no longer planned');
@@ -17116,7 +17116,7 @@ arm: {
       'icon-button-destructive': 3, 'segmented-control': 3, badge: 3, tag: 3, divider: 3, spinner: 3, veil: 3, 'image-placeholder': 3,
       'flush-icon-button-neutral': 4, 'flush-icon-button': 5, 'flush-icon-button-destructive': 5,
       'checkbox-control': 6, 'radio-control': 6, 'switch-control': 6, 'field-label': 6, 'field-message': 6, 'focus-ring': 6,
-      tab: 9, 'list-item': 9, 'segmented-control-segment': 9, '_accordion-indicator': 9,
+      'tab-item': 9, 'list-item': 9, 'segmented-control-segment': 9, '_accordion-indicator': 9,
     };
     const prio = (d: ComponentDef) => d.ai.generationPriority;
     const offScale = componentDefs.filter((d) => !SCALE.includes(prio(d) as number));
@@ -17493,7 +17493,7 @@ arm: {
     const ONE_TO_ONE: Record<string, [string, number]> = { small: ['icon/size/sm', 20], medium: ['icon/size/md', 24], large: ['icon/size/lg', 32] };
     const GLYPH_CASES: Array<{ id: string; parts: string[]; want: Record<string, [string, number]> }> = [
       { id: 'segmented-control-segment', parts: ['leadingVisual'], want: STEP_DOWN },
-      { id: 'tab', parts: ['leadingVisual'], want: STEP_DOWN },
+      { id: 'tab-item', parts: ['leadingVisual'], want: STEP_DOWN },
       { id: 'tag', parts: ['leadingVisual', 'check', 'dismissGlyph'], want: STEP_DOWN },
       { id: 'icon-button', parts: ['icon'], want: ONE_TO_ONE },
       { id: 'icon-button-destructive', parts: ['icon'], want: ONE_TO_ONE },
@@ -29501,7 +29501,7 @@ arm: {
     // `tab` (#2416): the label row pairs the optional leading icon and count badge with the label. A tab's label
     // is one line by contract — a horizontal tab list scrolls rather than wrapping (tab.ts codeOnly, text
     // expansion) — and the tab's height is fixed, so the first line IS the block.
-    'tab.content':
+    'tab-item.content':
       "a tab's label is one line by contract (a horizontal tab list scrolls rather than wrapping) and the tab's height is fixed, so the leading icon and the count center against the only line.",
     // `list-item` (#2319): the marker column pairs the bullet with the number, but `presentWhen` on `type` puts at most
     // one of them in any member, and the column is exactly one body line tall with the ROW top-aligned (the #1201
@@ -32213,6 +32213,26 @@ arm: {
     try { renameProperty('chip', 'A', [{ def: 'chip', kind: 'property-rename', from: 'A', to: 'B', issue: 1 }, { def: 'chip', kind: 'property-rename', from: 'B', to: 'A', issue: 2 }]); } catch { threw = true; }
     ok(threw, '#2759 renameProperty: a cycle is refused');
   }
+  // #2759 — A DEF RENAME. The set's name is the def id, so a def that leaves the projection under a `def` entry is compared
+  // under its new id, and the entry's target must project. Hand-built baselines; nothing is read off a def.
+  {
+    const db: AxesBaseline = { tab: { axes: { size: ['small', 'medium'] }, members: 2 } };
+    const da: AxesBaseline = { 'tab-item': { axes: { size: ['small', 'medium'] }, members: 2 } };
+    const DL: ComponentRename[] = [{ def: 'tab', kind: 'def', to: 'tab-item', issue: 2759 }];
+    const gone = renamesUnaccounted(db, da, []);
+    ok(gone.length === 1 && gone[0].startsWith('tab: the def no longer projects'), `#2759 renames lint: a def that leaves unclaimed is named (${gone.join('; ')})`);
+    ok(renamesUnaccounted(db, da, DL).length === 0 && renamesDangling(da, DL).length === 0, `#2759 renames lint: a def entry claims it, and its target projects (${[...renamesUnaccounted(db, da, DL), ...renamesDangling(da, DL)].join('; ')})`);
+    const lost = renamesUnaccounted(db, { 'tab-item': { axes: { size: ['medium'] }, members: 1 } }, DL);
+    ok(lost.length === 1 && lost[0].startsWith('tab-item: size=small is gone'), `#2759 renames lint: a value lost across a def rename is still named, under the new id (${lost.join('; ')})`);
+    const off = renamesDangling(da, [{ def: 'tab', kind: 'def', to: 'tab-items', issue: 2759 }]);
+    ok(off.length === 1 && off[0].includes("ends at 'tab-items'"), `#2759 renames lint: a def entry whose target projects nothing is dangling (${off.join('; ')})`);
+    const chain: ComponentRename[] = [{ def: 'a', kind: 'def', to: 'b', issue: 1 }, { def: 'b', kind: 'def', to: 'c', issue: 2 }];
+    ok(currentDefId('a', chain) === 'c' && currentDefId('z', chain) === 'z' && JSON.stringify(formerDefIds('c', chain)) === '["b","a"]',
+      `#2759 currentDefId / formerDefIds: a chain resolves both ways, nearest first (${currentDefId('a', chain)}; ${JSON.stringify(formerDefIds('c', chain))})`);
+    let loop = false;
+    try { currentDefId('a', [{ def: 'a', kind: 'def', to: 'b', issue: 1 }, { def: 'b', kind: 'def', to: 'a', issue: 2 }]); } catch { loop = true; }
+    ok(loop, '#2759 currentDefId: a cycle is refused');
+  }
   // #2592: the baseline is keyed by the Figma panel's name, so an axis that gains a display name (`variantAxisNames`) on
   // main is an axis rename to the lint, and it demands the entry. Accordion's never did, because no merge base held it.
   const shown: AxesBaseline = { acc: { axes: { 'icon position': ['leading', 'trailing'] }, members: 2 } };
@@ -32600,7 +32620,7 @@ arm: {
     'radio-control.selection': { prop: 'checked', map: off('unchecked', 'checked'), reason: 'a radio is checked by `checked`' },
     'switch-control.selection': { prop: 'checked', map: off('off', 'on'), reason: 'a switch is on by `checked` (#930: announced on/off)' },
     'tag.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'a select tag is selected by `selected`' },
-    'tab.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'a tab is selected by `selected`' },
+    'tab-item.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'a tab is selected by `selected`' },
     'segmented-control-segment.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'a segment is selected by `selected`' },
     'accordion.expansion': { prop: 'defaultExpanded', map: off('collapsed', 'expanded'), reason: 'an accordion opens by `defaultExpanded`' },
   };
@@ -32609,7 +32629,7 @@ arm: {
   const SIZED = [
     'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral',
     'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'checkbox-row',
-    'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'switch-control', 'switch-row', 'tag', 'tab', 'tabs',
+    'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'switch-control', 'switch-row', 'tag', 'tab-item', 'tabs',
     '_accordion-indicator', 'accordion', 'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'link',
     'text-field', 'textarea', 'select', 'password-field', 'dialog',
   ];

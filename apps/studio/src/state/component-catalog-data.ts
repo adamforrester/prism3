@@ -835,8 +835,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     ]
   },
   {
-    "id": "tab",
-    "name": "Tab",
+    "id": "tab-item",
+    "name": "Tab.Item",
     "category": "navigation",
     "summary": "One trigger in a tab list. Selected, it shows an underline and switches the panel below.",
     "unit": "variants",
@@ -890,7 +890,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "reason": null,
     "members": 6,
     "nests": [
-      "tab"
+      "tab-item"
     ]
   },
   {

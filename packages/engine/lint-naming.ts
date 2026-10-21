@@ -82,7 +82,7 @@ const PRIVATE_WORDING: readonly RegExp[] = [/^Only as a child of /, /^Never dire
 const DECIDED_PRIVATE: readonly string[] = ['_accordion-indicator'];
 
 /** The owner's slot items (Q394 A): each is a native slot's preferred item, so it stays unprefixed. */
-const SLOT_ITEMS: readonly string[] = ['tab', 'list-item', 'segmented-control-segment'];
+const SLOT_ITEMS: readonly string[] = ['tab-item', 'list-item', 'segmented-control-segment'];
 
 /** Exempt from the prefix by decision (Q349): each may be used on its own. */
 const STANDALONE: readonly string[] = ['checkbox-control', 'radio-control'];

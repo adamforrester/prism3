@@ -302,7 +302,7 @@
       ],
       "iconSlots": []
     },
-    "tab": {
+    "tab-item": {
       "glyphs": [],
       "iconSlots": [
         "leadingVisual"

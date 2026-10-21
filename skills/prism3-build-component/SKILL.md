@@ -416,7 +416,7 @@ parent takes the `_` prefix on its id, which Figma reads as a building block and
 library. Its `ai.whenToUse` opens with one of two wordings: "Only as a child of …" or "Never directly
 …". The prefixed set is `_accordion-indicator`. A native slot's preferred item never takes the prefix
 (Q394): a designer inserts it from the assets panel, which works only for a published set, so it stays
-unprefixed even where its `ai.whenToUse` says "Only as a child of …". The slot items are `tab`,
+unprefixed even where its `ai.whenToUse` says "Only as a child of …". The slot items are `tab-item`,
 `list-item` and `segmented-control-segment`. The checkbox and radio controls (`checkbox-control`,
 `radio-control`) stay unprefixed because they may be used on their own.
 

@@ -51,7 +51,12 @@ export type ComponentRename =
   /** A component property renamed in the Figma panel, its type kept (#2759, owner decision Q345 A), e.g.
    *  `State icon` → `state icon`. An update renames the set's property in place, so every instance keeps the
    *  value a designer gave it. Names are the panel's, without Figma's `#id` suffix. */
-  | { readonly def: string; readonly kind: 'property-rename'; readonly from: string; readonly to: string; readonly issue: number };
+  | { readonly def: string; readonly kind: 'property-rename'; readonly from: string; readonly to: string; readonly issue: number }
+  /** A whole def renamed (#2759, owner decisions Q353, Q394), e.g. `tab` → `tab-item`. `def` is the OLD id, and
+   *  `to` the new. The set's name in Figma is the def id, so an update finds the set under its old name and renames it
+   *  in place: the set and every member keep their ids, and every placed instance keeps pointing at them. Entries for
+   *  the def's axes, values and properties after the rename name the NEW id. */
+  | { readonly def: string; readonly kind: 'def'; readonly to: string; readonly issue: number };
 
 /**
  * THE LEDGER. Names are the Figma panel's, as a set holds them: an axis renamed only for display
@@ -69,6 +74,8 @@ export type ComponentRename =
 export const COMPONENT_RENAMES: readonly ComponentRename[] = [
   { def: 'accordion', kind: 'axis', from: 'position', to: 'icon position', issue: 2592 },
   { def: 'accordion', kind: 'axis', from: 'iconPosition', to: 'icon position', issue: 2592 },
+  // #2759 PR 3 — Tab is renamed Tab item (owner decision Q353). It is Tabs' slot item, so it stays unprefixed (Q394 A).
+  { def: 'tab', kind: 'def', to: 'tab-item', issue: 2759 },
   { def: 'checkbox-control', kind: 'move', axis: 'state', from: 'error', to: { state: 'rest', status: 'error' }, issue: 2751 },
   { def: 'switch-control', kind: 'move', axis: 'state', from: 'error', to: { state: 'rest', status: 'error' }, issue: 2751 },
   // The repeating rows moved into a native `items` slot (#2649, owner decision Q307 A). `from` is the layer that held
@@ -92,6 +99,31 @@ export const COMPONENT_RENAMES: readonly ComponentRename[] = [
 /** The ledger's slot entry for `def`, if its rows moved into a native slot (#2649). */
 export const slotMigrationOf = (def: string, ledger: readonly ComponentRename[] = COMPONENT_RENAMES): Extract<ComponentRename, { kind: 'slot' }> | undefined =>
   ledger.find((r): r is Extract<ComponentRename, { kind: 'slot' }> => r.def === def && r.kind === 'slot');
+
+/** The id a def has now, its ledger renames followed (`a` → `b` → `c` resolves to `c`). The id itself when the
+ *  ledger does not rename it. A cycle is a ledger error, refused by throwing. */
+export const currentDefId = (id: string, ledger: readonly ComponentRename[] = COMPONENT_RENAMES): string => {
+  let at = id;
+  const seen = new Set([id]);
+  for (;;) {
+    const next = ledger.find((r): r is Extract<ComponentRename, { kind: 'def' }> => r.kind === 'def' && r.def === at);
+    if (!next) return at;
+    if (seen.has(next.to)) throw new Error(`COMPONENT_RENAMES: the def renames from '${id}' loop back to '${next.to}'`);
+    seen.add(next.to);
+    at = next.to;
+  }
+};
+
+/** Every earlier id the ledger renames into `id`, nearest first: the names a file built before the renames holds
+ *  the set under. */
+export const formerDefIds = (id: string, ledger: readonly ComponentRename[] = COMPONENT_RENAMES): string[] => {
+  const out: string[] = [];
+  const walk = (to: string): void => {
+    for (const r of ledger) if (r.kind === 'def' && r.to === to && !out.includes(r.def) && r.def !== id) { out.push(r.def); walk(r.def); }
+  };
+  walk(id);
+  return out;
+};
 
 /**
  * Where a property named `name` on `def`'s set lands under the ledger's property renames, chains followed
@@ -197,12 +229,16 @@ export type AxesBaseline = Record<string, { axes: Record<string, string[]>; memb
  *  missing claim. `lint-component-renames.ts` prints them. */
 export const unaccounted = (before: AxesBaseline, after: AxesBaseline, ledger: readonly ComponentRename[]): string[] => {
   const bad: string[] = [];
-  for (const [def, b] of Object.entries(before)) {
-    const mine = ledger.filter((r) => r.def === def);
+  for (const [old, b] of Object.entries(before)) {
+    // A RENAMED DEF (#2759) is compared under its new id, with the entries for either id.
+    let def = old;
+    try { def = after[old] ? old : currentDefId(old, ledger); } catch (err) { bad.push(`${old}: ${(err as Error).message}`); continue; }
+    const mine = ledger.filter((r) => r.def === def || r.def === old);
     const a = after[def];
     if (!a) {
-      if (!mine.some((r) => r.kind === 'drop' && r.axis === undefined && r.value === undefined))
-        bad.push(`${def}: the def no longer projects a set — needs { def: '${def}', kind: 'drop', issue }`);
+      if (def !== old) bad.push(`${old}: the def entry renames it to '${def}', which projects no set`);
+      else if (!mine.some((r) => r.kind === 'drop' && r.axis === undefined && r.value === undefined))
+        bad.push(`${def}: the def no longer projects a set — needs { def: '${def}', kind: 'drop', issue } or { def: '${def}', kind: 'def', to, issue }`);
       continue;
     }
     for (const [axis, values] of Object.entries(b.axes)) {
@@ -244,6 +280,12 @@ export const danglingTargets = (after: AxesBaseline, ledger: readonly ComponentR
   for (const r of ledger) {
     if (!Number.isInteger(r.issue) || r.issue <= 0) bad.push(`${r.def}: entry ${JSON.stringify(r)} names no issue`);
     if (r.kind === 'drop' || r.kind === 'property') continue;
+    if (r.kind === 'def') {
+      let to = r.to;
+      try { to = currentDefId(r.def, ledger); } catch (err) { bad.push(`${r.def}: ${(err as Error).message}`); continue; }
+      if (!after[to]) bad.push(`${r.def}: def entry → '${r.to}' ends at '${to}', which projects no set`);
+      continue;
+    }
     const a = after[r.def];
     if (!a) {
       if (!ledger.some((d) => d.def === r.def && d.kind === 'drop' && d.axis === undefined && d.value === undefined))

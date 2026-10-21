@@ -307,7 +307,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "indicator-height"
           ],
@@ -775,7 +775,7 @@
           ],
           "parts": {}
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "focus-ring"
           ],
@@ -948,7 +948,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "unselected.fill.hover",
             "unselected.fill.pressed"
@@ -1600,7 +1600,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "disabled.fill"
           ],
@@ -2163,7 +2163,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "disabled.icon"
           ],
@@ -2718,7 +2718,7 @@
           ],
           "parts": {}
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "disabled.label"
           ],
@@ -5308,7 +5308,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "unselected.icon.hover"
           ],
@@ -5476,7 +5476,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "unselected.icon.pressed"
           ],
@@ -5731,7 +5731,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "unselected.icon"
           ],
@@ -6262,7 +6262,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "unselected.label.hover"
           ],
@@ -6364,7 +6364,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "unselected.label.pressed"
           ],
@@ -6480,7 +6480,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "unselected.label"
           ],
@@ -6599,7 +6599,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "selected.fill.hover"
           ],
@@ -6709,7 +6709,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "selected.fill.pressed"
           ],
@@ -6824,7 +6824,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "selected.fill"
           ],
@@ -7264,7 +7264,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "selected.icon.hover"
           ],
@@ -7370,7 +7370,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "selected.icon.pressed"
           ],
@@ -7511,7 +7511,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "selected.icon"
           ],
@@ -7907,7 +7907,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "selected.label.hover"
           ],
@@ -7964,7 +7964,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "selected.label.pressed"
           ],
@@ -8023,7 +8023,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "selected.label"
           ],
@@ -13864,7 +13864,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "ring-offset"
           ],
@@ -14286,7 +14286,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "ring-width"
           ],
@@ -14958,7 +14958,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "size.large.icon"
           ],
@@ -15531,7 +15531,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "size.medium.icon"
           ],
@@ -15920,7 +15920,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "size.small.icon"
           ],
@@ -16690,7 +16690,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "size.large.height"
           ],
@@ -16976,7 +16976,7 @@
           ],
           "parts": {}
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "size.medium.height"
           ],
@@ -17290,7 +17290,7 @@
           ],
           "parts": {}
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "size.small.height"
           ],
@@ -17596,7 +17596,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "pad-y",
             "reserve-height"
@@ -17922,7 +17922,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "size.small.gap"
           ],
@@ -18331,7 +18331,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "size.large.gap",
             "size.medium.gap"
@@ -18632,7 +18632,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "size.small.padding-x"
           ],
@@ -18916,7 +18916,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "size.medium.padding-x"
           ],
@@ -19047,7 +19047,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "size.large.padding-x"
           ],
@@ -20609,7 +20609,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "size.large.type.unselected"
           ],
@@ -20753,7 +20753,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "size.large.type.selected"
           ],
@@ -20876,7 +20876,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "size.medium.type.unselected"
           ],
@@ -21009,7 +21009,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "size.medium.type.selected"
           ],
@@ -21132,7 +21132,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "size.small.type.unselected"
           ],
@@ -21291,7 +21291,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "size.small.type.selected"
           ],
@@ -23303,7 +23303,7 @@
       ],
       "drawnNotDeclared": []
     },
-    "tab": {
+    "tab-item": {
       "members": 30,
       "axes": {
         "selection": [

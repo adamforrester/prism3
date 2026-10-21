@@ -48,7 +48,7 @@ Parts that take any icon from the set. The file nominates the default unless the
 | password-field | leadingVisual |
 | segmented-control-segment | leadingVisual |
 | select | leadingVisual |
-| tab | leadingVisual |
+| tab-item | leadingVisual |
 | tag | leadingVisual |
 | text-field | leadingVisual, trailingVisual |
 

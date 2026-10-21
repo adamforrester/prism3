@@ -548,9 +548,9 @@
         "leading icon:BOOLEAN"
       ]
     },
-    "tab": {
+    "tab-item": {
       "members": 30,
-      "sha256": "e3fe46e92a0272085f0e620eee797a6a12d01cc39e05ff3f8dd51f3088d93674",
+      "sha256": "4ff89e08c53596e3242a48f7ef2e805337400285d81a1dbb87d6ee17bbcf5148",
       "properties": [
         "count:BOOLEAN",
         "label:TEXT",
@@ -559,7 +559,7 @@
     },
     "tabs": {
       "members": 6,
-      "sha256": "6e749a824887d7fe703ba7a2e86ae4fa1e9bf13991a5b6f45872052fc97322d9",
+      "sha256": "5396bfa0219e3844547afc605da41556e5e2f0f26480b7f29d44c776a1f1a18c",
       "properties": [
         "items:SLOT"
       ]
