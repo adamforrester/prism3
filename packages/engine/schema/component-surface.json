@@ -710,7 +710,7 @@
     },
     "breadcrumb-item": {
       "members": 10,
-      "sha256": "1a739afe5b6fef289c19db72d2d5a46d2b6b27a9881db6e4ad135978cf5f2023",
+      "sha256": "d1ac4dbbeb80e4fd4f39190e5a8fb0ab1874f493787674e49009ecf0174d367b",
       "properties": [
         "label:TEXT"
       ]
@@ -742,7 +742,7 @@
     },
     "banner": {
       "members": 8,
-      "sha256": "1e40f3634c614b83055c41947a4c2305417cbcbf26798a3e626eaff4937e7485",
+      "sha256": "94fc7102f4438bf025bf330f72c81df71b2732c026435a1d425788f97bc36b9e",
       "properties": [
         "actions:BOOLEAN",
         "body:SLOT",

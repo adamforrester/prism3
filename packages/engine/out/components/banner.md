@@ -251,7 +251,7 @@ Keyed by `tone`, `width`.
 - `container/content/body` is a slot
 - `container/content/actions/action1` nests `button` at `appearance=outline, size=small, surface=default, inset=default, state=rest, leading icon=false, trailing icon=false`
 - `container/content/actions/action2` nests `button` at `appearance=text, size=small, surface=default, inset=default, state=rest, leading icon=false, trailing icon=false`
-- `container/dismiss` nests `flush-icon-button-neutral` at `shape=flush, size=small, state=rest`
+- `container/dismiss` nests `flush-icon-button-neutral` at `shape=flush, size=small, surface=default, state=rest`
 - `container/successGlyph` nests `icon/check-circle`
 - `container/warningGlyph` nests `icon/error-circle`
 - `container/dangerGlyph` nests `icon/warning-triangle`

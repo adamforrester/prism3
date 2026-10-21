@@ -111,9 +111,9 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | accordion | trailingGlyph | nest | _accordion-indicator | nest-exposed | indicator=chevron, expansion=collapsed, size=medium | expansion, size | indicator |
 | banner | action1 | nest | button | nest-fixed | appearance=outline, size=small, surface=default, inset=default, state=rest, leading icon=false, trailing icon=false | — | — |
 | banner | action2 | nest | button | nest-fixed | appearance=text, size=small, surface=default, inset=default, state=rest, leading icon=false, trailing icon=false | — | — |
-| banner | dismiss | nest | flush-icon-button-neutral | nest-fixed | shape=flush, size=small, state=rest | — | — |
+| banner | dismiss | nest | flush-icon-button-neutral | nest-fixed | shape=flush, size=small, surface=default, state=rest | — | — |
 | breadcrumb-item | crumb | nest | link | nest-exposed | style=inline, weight=default, size=medium, surface=default, state=rest | size | state |
-| breadcrumb-item | overflow | nest | flush-icon-button-neutral | nest-exposed | shape=flush, size=small, state=rest | — | state |
+| breadcrumb-item | overflow | nest | flush-icon-button-neutral | nest-exposed | shape=flush, size=small, surface=default, state=rest | — | state |
 | breadcrumb-item | separator | nest | _breadcrumb-separator | nest-fixed | type=chevron | — | — |
 | breadcrumb-item | separatorSlash | nest | _breadcrumb-separator | nest-fixed | type=slash | — | — |
 | breadcrumbs | item1 | nest | breadcrumb-item | nest-fixed | kind=ancestor, separator=chevron, size=medium | separator, size | — |

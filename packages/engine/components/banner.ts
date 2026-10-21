@@ -214,7 +214,7 @@ export const banner: ComponentDef = {
         kind: 'nest',
         nests: 'flush-icon-button-neutral',
         optional: true,
-        nesting: { kind: 'nest-fixed', variant: { shape: 'flush', size: 'small', state: 'rest' } },
+        nesting: { kind: 'nest-fixed', variant: { shape: 'flush', size: 'small', surface: 'default', state: 'rest' } },
         overrides: { swaps: { icon: 'close' } },
         note: 'The dismiss button: a FlushIconButton.Neutral, flush, small (the bare glyph, no edge or fill, as Dialog\'s close; owner QA 2026-10-19), always the close glyph, with no swap (Q386). Off by default.',
       },

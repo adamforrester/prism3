@@ -34832,6 +34832,7 @@
           "variant": {
             "shape": "flush",
             "size": "small",
+            "surface": "default",
             "state": "rest"
           },
           "follows": [],
@@ -36574,6 +36575,7 @@
           "variant": {
             "shape": "flush",
             "size": "small",
+            "surface": "default",
             "state": "rest"
           },
           "follows": [],
