@@ -1,6 +1,6 @@
 # Button
 
-> Triggers an action in place. For navigation, use a link.
+> Triggers an action in place, such as submit, save or confirm. For navigation, use a link.
 
 - **ID:** `button`
 - **Category:** form
@@ -12,7 +12,7 @@
 In-flow trigger for an action that happens now, in the current context — submit, save, confirm, open a dialog, fire async work — in the brand's primary action style, the expected look of a button. Not navigation (use Link, or give the button an href so it renders an \<a>), not a persistent binary (Switch.Row), not one-of-many selection (segmented-control / toggle-button). For a destructive or a weightless action, use the Button.Destructive / Button.Neutral sibling components.
 
 - **Purpose:** Trigger an action in place.
-- **Use when:** The user needs to DO something on this surface — submit, confirm, open, apply, or start async work.
+- **Use when:** The user needs to act on this surface — submit, confirm, open, apply, or start async work.
 - **Avoid when:** The target is a different location/URL → use Link (or give the button an href, which renders an \<a>, if it must look like a button). A persistent on/off state → use Switch.Row. One-of-many selection → use Radio.Group (or SegmentedControl). A toggle with pressed state → use a toggle button (not built yet). Icon-only with no visible text → use IconButton (the accessible name is required there at the type level). The action deletes or removes something → use Button.Destructive. The action carries no brand emphasis (a toolbar control, a dense row) → use Button.Neutral.
 
 ## Anatomy
@@ -32,8 +32,8 @@ Shown on the default member: appearance `filled`, size `medium`, width `auto`, s
 | `appearance` | `filled`, `outline`, `text` | at runtime | Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only. (Reconciled from solid/outline/plain.) |
 | `size` | `medium`, `small`, `large` | once, when authored | Control size — drives height, padding, and label type. |
 | `width` | `auto`, `full` | once, when authored | — |
-| `surface` | `default`, `inverse` | once, when authored | The ground the button sits on. `default` for a normal page; `inverse` for a dark or brand-filled band, where the button binds its `color.inverse.*` counterparts so fill, ink, border, overlay and the disabled treatment keep contrast against the flipped surface. A host that cannot know its ground picks `default`, and the designer sets `inverse` on the instance — the same answer the nested focus ring gives. |
-| `inset` | `default`, `flush` | once, when authored | Text appearance only. `flush` removes the inline padding on both sides, so the label lines up with the content edge above and below it, whether the button starts, ends or centers a row. A flush button hovers by color only, and its hit target keeps its height. |
+| `surface` | `default`, `inverse` | once, when authored | The ground the button sits on. default for a normal page; inverse for a dark or brand-filled band, where the button binds its color.inverse counterparts so fill, ink, border, overlay and the disabled treatment keep contrast against the flipped surface. A host that cannot know its ground picks default, and the designer sets inverse on the instance — the same answer the nested focus ring gives. |
+| `inset` | `default`, `flush` | once, when authored | Text appearance only. flush removes the inline padding on both sides, so the label lines up with the content edge above and below it, whether the button starts, ends or centers a row. A flush button hovers by color only, and its hit target keeps its height. |
 
 ### States
 
@@ -65,16 +65,16 @@ Use for an immediate action in the current context — submit/save/reset a form,
 - Set inset=flush on a filled or outline button — their visible edge needs its padding; flush is for appearance=text
 - Use a button with no href for navigation to a URL — use Link, or give the button an href so it renders an \<a>
 - Stack multiple filled buttons competing for attention — differentiate rank by appearance, not by adding fills
-- Use native disabled on a relevant-but-blocked control (dead end for keyboard/SR users)
+- Use native disabled on a relevant-but-blocked control (a dead end for keyboard and screen reader users)
 - Remove the label to make room for a spinner — the button narrows mid-submit and screen readers lose the name; the spinner takes the leading visual's place, or overlays a label held at zero opacity
 
 ## Accessibility
 
 - **Keyboard:** Native \<button>: Enter activates on keydown, Space on keyup. (This asymmetry vs a link — which activates on Enter only, Space scrolls — is exactly why a navigating "button" must be a real link.)
 - **Focus:** A :focus-visible ring (color.border.focus) with an outline-offset so a sliver of background separates ring from border — it does not blend into the button's own fill (WCAG 1.4.11, target 3:1). Never suppressed. Focus is retained through pending and inactive (aria-disabled, not native disabled).
-- **Screen readers:** button (native \<button>; never div[role=button] — it inherits Space/Enter activation, focus, and HC affordances for free)
+- **Screen readers:** button (native \<button>; never div[role=button] — it inherits Space/Enter activation, focus, and high-contrast affordances for free)
 
-  State attributes are distinct, not interchangeable: aria-pressed only for a toggle-button; aria-expanded (+ aria-haspopup) for a menu/disclosure trigger; aria-checked only for the switch role. Do not conflate them. Busy: while isPending, set aria-busy and announce via a polite live region ("Saving…"), and set aria-hidden="true" on the embedded spinner, which otherwise announces its own "Loading" status (a double announcement); keep the control focusable so the busy state is discoverable. isInactive/isPending use aria-disabled (not native disabled) so focus and the explanatory name/description stay reachable. Localization (brief §9): the label wraps rather than truncating and has no fixed English width, the row mirrors under RTL through logical properties, and only directional glyphs flip.
+  State attributes are distinct, not interchangeable: aria-pressed only for a toggle-button; aria-expanded (+ aria-haspopup) for a menu/disclosure trigger; aria-checked only for the switch role. Do not conflate them. Busy: while isPending, set aria-busy and announce via a polite live region ("Saving…"), and set aria-hidden="true" on the embedded spinner, which otherwise announces its own "Loading" status (a double announcement); keep the control focusable so the busy state is discoverable. isInactive/isPending use aria-disabled (not native disabled) so focus and the explanatory name/description stay reachable. Localization: the label wraps rather than truncating and has no fixed English width, the row mirrors under RTL through logical properties, and only directional glyphs flip.
 
 ### WCAG
 
@@ -119,11 +119,11 @@ Verb-first, specific, sentence case, no terminal punctuation, ≤3 words to boun
 | `onClick` | function | — | no | Action handler. Suppressed while isPending or isInactive. |
 | `appearance` | enum: 'filled' \| 'outline' \| 'text' | `filled` | no | Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only. (Reconciled from solid/outline/plain.) |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | Control size — drives height, padding, and label type. |
-| `surface` | enum: 'default' \| 'inverse' | `default` | no | The ground the button sits on. `default` for a normal page; `inverse` for a dark or brand-filled band, where the button binds its `color.inverse.*` counterparts so fill, ink, border, overlay and the disabled treatment keep contrast against the flipped surface. A host that cannot know its ground picks `default`, and the designer sets `inverse` on the instance — the same answer the nested focus ring gives. |
-| `inset` | enum: 'default' \| 'flush' | `default` | no | Text appearance only. `flush` removes the inline padding on both sides, so the label lines up with the content edge above and below it, whether the button starts, ends or centers a row. A flush button hovers by color only, and its hit target keeps its height. |
+| `surface` | enum: 'default' \| 'inverse' | `default` | no | The ground the button sits on. default for a normal page; inverse for a dark or brand-filled band, where the button binds its color.inverse counterparts so fill, ink, border, overlay and the disabled treatment keep contrast against the flipped surface. A host that cannot know its ground picks default, and the designer sets inverse on the instance — the same answer the nested focus ring gives. |
+| `inset` | enum: 'default' \| 'flush' | `default` | no | Text appearance only. flush removes the inline padding on both sides, so the label lines up with the content edge above and below it, whether the button starts, ends or centers a row. A flush button hovers by color only, and its hit target keeps its height. |
 | `fullWidth` | boolean | `false` | no | Stretch to container. Aliases: block / isFullWidth. |
 | `type` | enum: 'button' \| 'submit' \| 'reset' | `button` | no | Opinionated default 'button' to neutralize the platform's submit-on-enter-in-form trap; require 'submit' explicitly. |
-| `isPending` | boolean | `false` | no | Delays the spinner, preserves width, keeps focus (aria-disabled, not native disabled), suppresses re-fire, announces busy. Preferred over `loading`. |
+| `isPending` | boolean | `false` | no | Delays the spinner, preserves width, keeps focus (aria-disabled, not native disabled), suppresses re-fire, announces busy. Preferred over a loading prop. |
 | `isInactive` | boolean | `false` | no | Focusable disabled — visually muted, retains tab order, surfaces the blockage reason on focus. Use for a control blocked by satisfiable app state (e.g. submit on an incomplete form). |
 | `disabled` | boolean | `false` | no | Native disabled. Reserved for controls fundamentally irrelevant to the current view; removes from tab order + a11y tree. Prefer isInactive for anything relevant-but-blocked. |
 | `leadingVisual` | slot | — | no | Icon / avatar / counter / spinner before the label. |

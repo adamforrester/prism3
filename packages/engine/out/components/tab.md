@@ -12,7 +12,7 @@
 One trigger in a tab list. Selecting a tab shows its panel in place and hides the others; the page and the address do not change. A selected tab carries a 2px underline and the primary text color, so the state never rests on color alone. A selected tab's label is set in the emphasis weight, and every tab keeps the width of its bold label, so selecting a tab never moves the tabs beside it. At hover, an unselected tab shows a neutral bar where the selected underline would be. A tab can carry a leading icon and a count.
 
 - **Purpose:** One trigger inside Tabs that shows its panel in place when selected.
-- **Use when:** Only as a child of Tabs.
+- **Use when:** Only as a child of Tabs. Generate Tabs, which places one tab per panel and sets which one is selected.
 - **Avoid when:** Changing the page or the address (a navigation of links), or switching a value within the current view (SegmentedControl).
 
 ## Anatomy
@@ -48,12 +48,14 @@ Use inside Tabs only. A tab names one panel of related content; selecting it sho
 ### Do
 
 - Keep labels short, parallel nouns
+- Use nouns, not verbs ("Activity", not "View activity")
 - Let the tab list set selected from its value
 
 ### Don't
 
 - Use a tab to go to another page; that is a link in a navigation
 - Set selected on a tab inside a list by hand
+- Wrap a label onto a second line; shorten it, or reconsider how many tabs the list needs
 
 ## Accessibility
 

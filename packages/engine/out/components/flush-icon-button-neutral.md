@@ -42,7 +42,7 @@ Use inside another component where the icon is itself the control: the minus and
 ### Do
 
 - Always give it an accessible name (a verb)
-- Extend its hit area in code to at least 44×44px at every size, with a transparent `::before` inset outward and centered on the glyph, so the target clears 44px while the box stays glyph-sized
+- Extend its hit area in code to at least 44×44px at every size, with a transparent ::before inset outward and centered on the glyph, so the target clears 44px while the box stays glyph-sized
 - Space two flush icon buttons at least 44px apart, center to center, so their tap areas don't overlap
 
 ### Don't

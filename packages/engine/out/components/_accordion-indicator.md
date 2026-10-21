@@ -12,7 +12,7 @@
 The glyph an Accordion header shows to say whether its section is open: a chevron that points down when closed and up when open, or a plus that becomes a minus. It lives inside the Accordion and is never placed on its own. Choose chevron or plus-minus on the Accordion; the open or closed glyph follows the Accordion's state. The glyph is decorative: the header button's expanded state carries the meaning.
 
 - **Purpose:** Show whether an Accordion section is open, with a chevron or a plus and minus inside its header.
-- **Use when:** Never directly: it is part of an Accordion. Generate an Accordion instead.
+- **Use when:** Only as a child of an Accordion. Generate an Accordion, which places the indicator in each header.
 - **Avoid when:** Always on its own. Use an Accordion; for a plain icon, use an Icon.
 
 ## Anatomy

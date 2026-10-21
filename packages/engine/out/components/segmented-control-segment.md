@@ -1,6 +1,6 @@
 # SegmentedControl.Segment
 
-> One option of a segmented control. Selected, it shows a flat pill and a bold label.
+> One option of a segmented control. Selected, it shows a flat pill and an emphasis-weight label.
 
 - **ID:** `segmented-control-segment`
 - **Category:** form
@@ -12,7 +12,7 @@
 One option in a segmented control: a cell as tall as a button, holding the option label and an optional leading icon. A selected option shows a flat pill in the page surface color inside the cell, and its label is set in the emphasis weight. Every option keeps the width of its bold label, so selecting one never moves the others. At hover, an unselected option shows a light neutral wash on the track. SegmentedControl places the options and owns the selection.
 
 - **Purpose:** One option inside a segmented control.
-- **Use when:** Only as a child of SegmentedControl.
+- **Use when:** Only as a child of a SegmentedControl. Generate the SegmentedControl, which places its options and sets which one is selected.
 - **Avoid when:** Anywhere outside a segmented control: a single toggle is a switch or a select tag, and a lone action is a button.
 
 ## Anatomy
@@ -47,12 +47,14 @@ Use inside SegmentedControl only. An option names one value; selecting it change
 ### Do
 
 - Give every option in a control the same kind of content: all labels, or all labels with icons
+- Keep labels to short nouns ("Daily", "Weekly")
 - Let the control set selected from its value
 
 ### Don't
 
 - Place an option outside a segmented control
 - Set selected on an option inside a control by hand
+- Wrap a label onto a second line; it breaks the shared track and makes the options uneven
 
 ## Accessibility
 
