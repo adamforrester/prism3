@@ -626,6 +626,10 @@
    one wrapping inside the drawer rather than widening it. */
 .p3-op-summary { margin: 0; padding: 0; list-style: none; font-family: var(--p3-font-mono); overflow-wrap: anywhere; }
 .p3-op-line { margin: 0; }
+/* An Update's library publish description and its Copy button (#2858). */
+.p3-op-publish { display: grid; gap: var(--p3-space-050); }
+.p3-op-publish-head { display: flex; align-items: center; justify-content: space-between; gap: var(--p3-space-100); }
+.p3-op-publish-text { margin: 0; padding: var(--p3-space-100); border: var(--p3-bw-hairline) solid var(--p3-edge); border-radius: var(--p3-radius-md); font-family: var(--p3-font-mono); white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; }
 .p3-op-phase { display: grid; gap: var(--p3-space-050); }
 .p3-op-prog { display: block; appearance: none; width: 100%; height: var(--p3-space-050); border: none; border-radius: var(--p3-radius-pill); background: var(--p3-line-1); overflow: hidden; }
 .p3-op-prog::-webkit-progress-bar { background: var(--p3-line-1); }

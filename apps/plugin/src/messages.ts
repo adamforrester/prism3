@@ -278,7 +278,10 @@ export type MainToUi =
    *  two commands today; the panel's control for them is held for the owner (PR 2). */
   | { type: 'component-update-result'; ok: boolean; headline: string; summary: string;
     /** The summary's items, one per line (#2177; see `apply-result`): one per set, then each closing line. */
-    lines: string[] }
+    lines: string[];
+    /** #2858: after an Update that wrote, the library publish description for Figma's Publish library dialog. No
+     *  Plugin API call sets it, so the drawer offers it with a Copy button. */
+    publish?: string }
   /** Result of a `file-setup` scaffold (#1554) — the same `{ok, headline, summary}` shape as
    *  `apply-result` / `component-result`, a DISTINCT variant for the same one-kind-per-fact reason: "did
    *  the page skeleton get laid" is separately true and separately actionable from a theme or component
