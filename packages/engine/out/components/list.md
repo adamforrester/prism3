@@ -95,6 +95,62 @@ One phrase or sentence per item, sentence case, every item the same grammatical 
 | `reversed` | boolean | `false` | no | Ordered only: count down instead of up. |
 | `items` | slot of `list-item`, 1 or more | — | yes | The items, each a List.Item, in order. Three by default; a designer adds, removes and reorders them in place. |
 
+## Specs
+
+Generated from the plan that builds the design-file component: 9 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `container` | frame | every member |
+| `container/items` | slot | every member |
+| `container/items/item1` | instance | every member |
+| `container/items/item2` | instance | every member |
+| `container/items/item3` | instance | every member |
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by `size`.
+
+**size=medium**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.150` | — | — | 120px (literal) | build width 320px (literal) |
+| `container/items` | — | `space.150` | — | — | — | — |
+
+**size=small**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | 120px (literal) | build width 320px (literal) |
+| `container/items` | — | `space.100` | — | — | — | — |
+
+**size=large**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.200` | — | — | 120px (literal) | build width 320px (literal) |
+| `container/items` | — | `space.200` | — | — | — | — |
+
+### Color
+
+Keyed by `type`.
+
+### Nesting and properties
+
+- `container/items` is a slot, preferring `list-item`
+- `container/items/item1` nests `list-item` at `type=unordered, size=medium`; follows `type`, `size`
+- `container/items/item2` nests `list-item` at `type=unordered, size=medium`; follows `type`, `size`
+- `container/items/item3` nests `list-item` at `type=unordered, size=medium`; follows `type`, `size`
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `items` | slot | — |
+
 ---
 
 Generated from the `list` component definition.

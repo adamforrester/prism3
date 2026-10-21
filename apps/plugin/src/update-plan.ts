@@ -62,6 +62,7 @@ import { REACTIONS_PATH, plannedRead, reactionMap, reactionVerdict, reactionsTex
 import { pagesOutOfOrder, stripNestPrefix, type PageLike } from './file-setup';
 import { whatChangedLines } from './release-summary';
 import { ABOUT_NAME, aboutDue, aboutDueLine, aboutIsWork, type AboutDue } from './about-frame';
+import { colorVariablesOutOfOrder } from '@prism3/engine/color-order';
 
 /** One member of a set as the dry run reads it. */
 export type HostMember = {
@@ -1009,6 +1010,10 @@ export type UpdatePreview = {
   /** #2858 — what the Update owes the Cover page's "About this library" frame (`about-frame.ts`). Absent for a host
    *  with no page list. */
   about?: AboutDue;
+  /** #2860 — the colour variables not in the canonical order (`colorVariablesOutOfOrder`), by full variable name, in the
+   *  file's order. A report: the Plugin API has no way to move a variable, so nothing applies it and it is not in the
+   *  hash. Absent when none. */
+  variables?: string[];
 };
 
 /** How many sets a dry run moves on their pages (#2542). */
@@ -1127,6 +1132,9 @@ export const previewUpdate = async (host: UpdateHost, targets: readonly UpdateTa
   // THE ABOUT FRAME (#2858): read once for the file, like the page order.
   const about = aboutDue(host.root);
   if (about) out.about = about;
+  // THE VARIABLE ORDER (#2860): read once for the file. Nothing here can move a variable, so this only names them.
+  const variables = colorVariablesOutOfOrder((await host.variables.getLocalVariablesAsync()).map((v) => v.name));
+  if (variables.length) out.variables = variables;
   return out;
 };
 
@@ -1378,6 +1386,17 @@ export const breakingClause = (sets: readonly { breaking?: Breaking[] }[]): stri
 export const pagesLine = (pages: readonly string[] | undefined): string =>
   pages?.length ? `Component pages: ${pages.length} to reorder (${pages.map(stripNestPrefix).join(', ')}).` : '';
 
+/** The colour variables out of canonical order (#2860), named as the variables panel shows them: the name under its
+ *  `<root>/color/`. A report only; the plugin cannot move a variable, so it says what to drag. Empty when none.
+ *  DRAFT wording, not owner-approved. */
+const VARIABLES_NAMED = 5;
+export const variablesLine = (variables: readonly string[] | undefined): string => {
+  if (!variables?.length) return '';
+  const shown = variables.slice(0, VARIABLES_NAMED).map((v) => v.replace(/^[^/]+\/color\//, ''));
+  const more = variables.length > VARIABLES_NAMED ? `, and ${variables.length - VARIABLES_NAMED} more` : '';
+  return `Color variables: ${variables.length} out of order (${shown.join(', ')}${more}). Figma lets a plugin add variables but not move them, so drag these into place in the variables panel.`;
+};
+
 /** The verdict for a dry run. `ok` is false only where a set could not be checked. `lines` is the Activity drawer's
  *  copy (#2177): one per set, then the closing lines, the same list `summary` is joined from. */
 export const previewVerdict = (r: UpdatePreview, whatChanged: (sets: string[]) => string[] = whatChangedLines): { ok: boolean; headline: string; summary: string; lines: string[] } => {
@@ -1407,6 +1426,7 @@ export const previewVerdict = (r: UpdatePreview, whatChanged: (sets: string[]) =
     ...r.refused.map((x) => `${x.def}: can't be checked. ${x.reason}.`),
     pagesLine(r.pages),
     aboutDueLine(r.about),
+    variablesLine(r.variables),
     r.missing.length ? `Not in this file: ${r.missing.join(', ')}.` : '',
     earlier ? `${earlier} built by an earlier plugin. Update ${earlier === 1 ? 'it to bring it' : 'them to bring them'} current.` : '',
     // Wording approved, Q246 A (#2542, Q245.2 A).

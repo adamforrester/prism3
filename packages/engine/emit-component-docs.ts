@@ -5,12 +5,14 @@
  *   npx tsx packages/engine/emit-component-docs.ts
  *     → out/components/components.ai.json      (PAYLOAD, machine-readable: every registered def)
  *     → out/components/<id>.md                 (PAYLOAD, human-readable: one page per def)
+ *     → out/components/specs.json              (PAYLOAD: every projected def's spec model, #2830 — `component-specs.ts`)
  *     → schema/component-maintainer.json       (NOT payload: each def's `codeOnly`, `notes.*` and `docGaps`)
  *
  * THE PAGE IS THE FIRST READER OF THE SECTION MODEL (#846). `component-doc-sections.ts` turns a def into
  * the ordered sections of its usage doc, and the Figma panel and the docs-site page will read the same
- * model. The page renders the model's sections, in its order, and nothing else; what the model could not
- * draw is the maintainer record's `docGaps`.
+ * model. The page renders the model's sections, in its order, then the spec model's Specs section (#2830,
+ * kept apart from the section model until it joins it); what the model could not draw is the maintainer
+ * record's `docGaps`.
  *
  * THE GAP THIS CLOSES. `component-schema.ts` carries `docs`, `accessibility`, `content`, `motion`,
  * `composition`, `ai` and `notes` "so docs are a projection, not a re-author" (docs/19 §6), and promised a
@@ -65,6 +67,7 @@ import { axisKindOf } from './component-schema';
 import type { DocField } from './component-doc-sections';
 import { docSections } from './component-doc-sections';
 import { componentDefs } from './components/index';
+import { componentSpec, projectComponentSpecs, renderSpecsMarkdown } from './component-specs';
 import { ENGINE_VERSION } from './version';
 
 /** The sidecar's schema id. `schema/component-docs.schema.json` carries the same `$id`; both move together. */
@@ -258,6 +261,10 @@ export const renderMarkdown = (def: ComponentDef): string => {
     }
   }
 
+  // #2830 — the spec model's Specs section, for a def built in the design file. Last, so the usage sections above
+  // read first; the same model is `specs.json`.
+  if (def.figmaProperties) out.push(...renderSpecsMarkdown(componentSpec(def)));
+
   out.push('---', '');
   out.push(`Generated from the ${code(def.id)} component definition.`, '');
   return out.join('\n');
@@ -274,7 +281,8 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   rmSync(COMPONENT_DOCS_DIR, { recursive: true, force: true });
   mkdirSync(COMPONENT_DOCS_DIR, { recursive: true });
   writeFileSync(resolve(COMPONENT_DOCS_DIR, 'components.ai.json'), JSON.stringify(projectComponentDocs(componentDefs), null, 2) + '\n');
+  writeFileSync(resolve(COMPONENT_DOCS_DIR, 'specs.json'), JSON.stringify(projectComponentSpecs(componentDefs), null, 2) + '\n');
   for (const def of componentDefs) writeFileSync(resolve(COMPONENT_DOCS_DIR, `${def.id}.md`), renderMarkdown(def));
   writeFileSync(COMPONENT_MAINTAINER_FILE, JSON.stringify(projectComponentMaintainer(componentDefs), null, 2) + '\n');
-  console.log(`[emit-component-docs] wrote ${COMPONENT_DOCS_DIR} — components.ai.json + ${componentDefs.length} pages; and ${COMPONENT_MAINTAINER_FILE}`);
+  console.log(`[emit-component-docs] wrote ${COMPONENT_DOCS_DIR} — components.ai.json, specs.json + ${componentDefs.length} pages; and ${COMPONENT_MAINTAINER_FILE}`);
 }

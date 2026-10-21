@@ -42,7 +42,7 @@ Use inside another component where the icon is itself the control: the minus and
 ### Do
 
 - Always give it an accessible name (a verb)
-- Extend its hit area in code to at least 44×44px at every size, with a transparent `::before` inset outward and centered on the glyph, so the target clears 44px while the box stays glyph-sized
+- Extend its hit area in code to at least 44×44px at every size, with a transparent ::before inset outward and centered on the glyph, so the target clears 44px while the box stays glyph-sized
 - Space two flush icon buttons at least 44px apart, center to center, so their tap areas don't overlap
 
 ### Don't
@@ -101,6 +101,144 @@ The accessible name is a verb naming the action ("Close", "Increase quantity"), 
 | `shape` | enum: 'flush' \| 'round' | `flush` | no | flush is the bare glyph, with no padding, fill or border, for a glyph that lines up with the content edge. round is a circle around the glyph with a light edge and a soft fill on hover and press, for a counter whose buttons stand on their own. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The glyph size: 20px at small and medium, 24px at large. A flush box is the glyph, with no padding. A round circle is 36, 44 or 56px across. The hit area in code is at least 44×44px at every size. |
 | `disabled` | boolean | `false` | no | Native disabled. Inside a component that sets it at a limit (a counter at its minimum), prefer aria-disabled so the button keeps its place in the accessibility tree. |
+
+## Specs
+
+Generated from the plan that builds the design-file component: 30 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `container` | frame | every member |
+| `container/icon` | swap | every member |
+| `container/focusRing` | instance | state=focus-visible |
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by `size`, `shape`.
+
+**size=medium, shape=flush**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/icon` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=small, shape=flush**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/icon` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=large, shape=flush**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+| `container/icon` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+
+**size=medium, shape=round**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | `size.md.height` | `size.md.height` | — | — |
+| `container/icon` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=small, shape=round**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | `size.sm.height` | `size.sm.height` | — | — |
+| `container/icon` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=large, shape=round**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | `size.lg.height` | `size.lg.height` | — | — |
+| `container/icon` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+
+### Color
+
+Keyed by `shape`, `state`.
+
+**shape=flush, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/icon` | — | — | — | `color.interactive.neutral.icon.rest` |
+
+**shape=flush, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/icon` | — | — | — | `color.interactive.neutral.icon.hover` |
+
+**shape=flush, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/icon` | — | — | — | `color.interactive.neutral.icon.pressed` |
+
+**shape=flush, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/icon` | — | — | — | `color.interactive.neutral.icon.rest` |
+
+**shape=flush, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/icon` | — | — | — | `color.disabled.icon` |
+
+**shape=round, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.border.secondary` | — | — |
+| `container/icon` | — | — | — | `color.interactive.neutral.icon.rest` |
+
+**shape=round, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.neutral.overlay.hover` | `color.border.secondary` | — | — |
+| `container/icon` | — | — | — | `color.interactive.neutral.icon.hover` |
+
+**shape=round, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.interactive.neutral.overlay.pressed` | `color.border.secondary` | — | — |
+| `container/icon` | — | — | — | `color.interactive.neutral.icon.pressed` |
+
+**shape=round, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.border.secondary` | — | — |
+| `container/icon` | — | — | — | `color.interactive.neutral.icon.rest` |
+
+**shape=round, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.disabled.border` | — | — |
+| `container/icon` | — | — | — | `color.disabled.icon` |
+
+### Nesting and properties
+
+- `container/icon` is a swap slot, property `swap icon`
+- `container/focusRing` nests `focus-ring` at `surface=default`
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `swap icon` | instance swap | — |
 
 ---
 
