@@ -3791,6 +3791,8 @@ for (const b of brands) {
       accordion: { keys: ['pad-x', 'pad-y', 'gap', 'panel-pad-end'], sizes: ['small', 'medium', 'large'] },
       list: { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
       link: { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
+      'breadcrumb-item': { keys: ['gap'], sizes: ['small', 'medium'] },
+      breadcrumbs: { bare: ['back-gap'], keys: ['gap'], sizes: ['small', 'medium'] },
     };
     const BTN = { compact: 'small 12/8/4/6 · medium 12/8/6/6 · large 20/12/6/8', comfortable: 'small 16/12/6/8 · medium 16/12/8/8 · large 24/16/8/12', spacious: 'small 20/16/8/12 · medium 20/16/12/12 · large 32/20/12/16' };
     const ROWS = { compact: 'small 6 · medium 6 · large 8', comfortable: 'small 8 · medium 8 · large 12', spacious: 'small 12 · medium 12 · large 16' };
@@ -3817,6 +3819,11 @@ for (const b of brands) {
       // Link (#2580, DRAFT): the icon-to-label gap. Comfortable is the proposal's space.050 / space.050 / space.100; compact
       // clamps small and medium at space.050, the bottom of the density ladder, as Tab's small gap does.
       link: { compact: 'small 4 · medium 4 · large 6', comfortable: 'small 4 · medium 4 · large 8', spacious: 'small 6 · medium 6 · large 12' },
+      // Breadcrumbs (#2666, DRAFT): the label-to-separator gap, repeated between items, and the parent path's
+      // chevron-to-link gap (Link's own icon gap). Comfortable is the proposal's space.050 / space.100; compact clamps
+      // the small gap at space.050, as Link's does.
+      'breadcrumb-item': { compact: 'small 4 · medium 6', comfortable: 'small 4 · medium 8', spacious: 'small 6 · medium 12' },
+      breadcrumbs: { compact: 'bare 4 · small 4 · medium 6', comfortable: 'bare 4 · small 4 · medium 8', spacious: 'bare 6 · small 6 · medium 12' },
     };
     const wrong: string[] = [];
     for (const [id, spec] of Object.entries(SPECS)) {
@@ -3861,6 +3868,9 @@ for (const b of brands) {
       'password-field': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       accordion: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       link: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
+      // #2666: the label-to-separator gap inside an item, and the same gap between items.
+      'breadcrumb-item': ['size.small.gap', 'size.medium.gap'],
+      breadcrumbs: ['size.small.gap', 'size.medium.gap'],
       tag: ['small', 'medium', 'large'].flatMap((v) => [
         `size.${v}.select.gap+size.${v}.select.label-inset`, `size.${v}.dismissible.gap+size.${v}.dismissible.label-inset`, `size.${v}.check-gap`]),
     };
@@ -18542,6 +18552,196 @@ arm: {
     }
   }
 
+  // ---- #2666: BREADCRUMBS, the approved wireframe (every numbered call A, 2026-10-16) — each held against a literal ----
+  // EXPECTED is typed here from the decisions on #2666 (and Q347 A / Q359 B on #2752 for the size order), never read
+  // from `breadcrumbs.ts` or `breadcrumb-item.ts`. ACTUAL is the real projection (`figmaAnatomySet`), node by node, and
+  // the def's shipped fields. Contrast is measured from the COMMITTED emission (`out/<brand>.tokens.json`, every brand
+  // the regen writes, each in its four modes), not from the theme the engine computes, so the measurement is independent
+  // of both the def and the role resolver. Mutations, each failing the arm named:
+  //   size order small-first, or a kind other than ancestor first → `#2666 breadcrumbs/members`;
+  //   the crumb nesting Link standalone, emphasis, or not exposing its state → `#2666 breadcrumbs/crumb` (calls 3 A, 4 A);
+  //   the current page as a link, in text.secondary, or at emphasis → `#2666 breadcrumbs/current` (calls 2 A, 4 A, 5 A);
+  //   a separator in the wrong look for its member, or after the current page → `#2666 breadcrumbs/separator` (call 6 A,
+  //   Q382 A); the separator's glyph, size or ink, or the slash's shape → `#2666 breadcrumbs/separator-looks`;   the overflow nesting IconButton or another glyph → `#2666 breadcrumbs/overflow`;
+  //   the slot's minimum, preferred item or default kinds → `#2666 breadcrumbs/slot`;
+  //   the parent path's glyph, link or wording → `#2666 breadcrumbs/parent` (call 11 A);
+  //   a gap off the proposal's space.050 / space.100 → `#2666 breadcrumbs/gaps`;
+  //   the collapse numbers or the nav label → `#2666 breadcrumbs/code-props` (calls 8 A, 9 A, 16 A);
+  //   the current page or the back chevron rebound off the measured role, or a measured role under its floor in any
+  //   committed cell → `#2666 breadcrumbs/contrast`.
+  {
+    const itemDef = componentDefs.find((d) => d.id === 'breadcrumb-item');
+    const trailDef = componentDefs.find((d) => d.id === 'breadcrumbs');
+    ok(!!itemDef && !!trailDef, '#2666 breadcrumbs: Breadcrumbs and BreadcrumbItem are registered');
+    if (itemDef && trailDef) {
+      type BN = { name: string; type: string; nestTarget?: string; nestVariant?: Record<string, string>; nestExpose?: string[]; nestOverrides?: { property: string; type: string; value: string }[]; descendantFills?: string; textStyle?: string; characters?: string; paints?: { fills?: string }; bound?: Record<string, string>; slotSettings?: Record<string, unknown>; slotPreferred?: string[]; children: BN[] };
+      const all = (n: BN): BN[] => [n, ...n.children.flatMap(all)];
+      const find = (n: BN, name: string): BN | undefined => all(n).find((x) => x.name === name);
+      const itemPlans = figmaAnatomySet(itemDef, { swapTarget: 'FPO-default-icon' }).map((p) => ({ kind: String((p.coord as Record<string, string>).kind), sep: String((p.coord as Record<string, string>).separator), size: String(p.size), root: p.root as unknown as BN }));
+      const trailPlans = figmaAnatomySet(trailDef, { swapTarget: 'FPO-default-icon' }).map((p) => ({ path: String((p.coord as Record<string, string>).path), sep: String((p.coord as Record<string, string>).separator), size: String(p.size), root: p.root as unknown as BN }));
+      const RUNG: Record<string, string> = { small: 'sm', medium: 'md' };
+
+      // MEMBERS (call 1 A, call 7 A; Q347 A and Q359 B; Q382 A): the item 3 kinds × 2 separators × 2 sizes less the current
+      // page's slash (10), the trail 2 paths × 2 separators × 2 sizes less the parent's slash (6), the first member the
+      // code default. Typed out, in the set's order.
+      const ITEM_MEMBERS = ['ancestor/chevron', 'ancestor/slash', 'current/chevron', 'overflow/chevron', 'overflow/slash'].flatMap((ks) => ['medium', 'small'].map((z) => `${ks}/${z}`));
+      const TRAIL_MEMBERS = ['full/chevron', 'full/slash', 'parent/chevron'].flatMap((ls) => ['medium', 'small'].map((z) => `${ls}/${z}`));
+      ok(JSON.stringify(itemPlans.map((p) => `${p.kind}/${p.sep}/${p.size}`)) === JSON.stringify(ITEM_MEMBERS) && JSON.stringify(trailPlans.map((p) => `${p.path}/${p.sep}/${p.size}`)) === JSON.stringify(TRAIL_MEMBERS)
+        && JSON.stringify(itemDef.variants) === '{"kind":["ancestor","current","overflow"],"separator":["chevron","slash"],"size":["medium","small"]}'
+        && JSON.stringify(trailDef.variants) === '{"path":["full","parent"],"separator":["chevron","slash"],"size":["medium","small"]}'
+        && [itemDef, trailDef].every((d) => d.props.find((p) => p.name === 'separator')?.default === 'chevron')
+        && itemPlans[0].kind === 'ancestor' && itemPlans[0].size === 'medium' && trailPlans[0].path === 'full' && trailPlans[0].size === 'medium'
+        && itemDef.states.length === 0 && trailDef.states.length === 0 && !itemDef.figmaProperties?.stateAxis && !trailDef.figmaProperties?.stateAxis
+        && [itemDef, trailDef].every((d) => d.props.find((p) => p.name === 'size')?.default === 'medium'),
+        `#2666 breadcrumbs/members (Q382 A): BreadcrumbItem kind [ancestor, current, overflow] × separator [chevron, slash] × size [medium, small] less the current page's slash = 10, Breadcrumbs path [full, parent] × separator × size less the parent's slash = 6, chevron by default, no state axis, the first member the code default (got ${itemPlans.length} / ${trailPlans.length}, ${JSON.stringify(itemDef.variants)} ${JSON.stringify(trailDef.variants)})`);
+
+      // THE CRUMB (calls 3 A, 4 A): Link, inline (underlined at every state), default weight, default surface, at the
+      // item's size, its state exposed. Only on an ancestor.
+      const crumbOff = itemPlans.filter((p) => {
+        const c = find(p.root, 'crumb');
+        if (p.kind !== 'ancestor') return !!c;
+        return !(c && c.nestTarget === 'link' && JSON.stringify(c.nestVariant) === JSON.stringify({ style: 'inline', weight: 'default', size: p.size, surface: 'default', state: 'rest' })
+          && JSON.stringify(c.nestExpose) === '["state"]');
+      });
+      ok(crumbOff.length === 0, `#2666 breadcrumbs/crumb (calls 3 A, 4 A): an ancestor nests Link inline, default weight, at its own size, state exposed, and nothing else nests it${crumbOff.length ? ` — OFF: ${crumbOff.map((p) => `${p.kind}/${p.size}`).join(', ')}` : ''}`);
+
+      // THE CURRENT PAGE (calls 2 A, 4 A, 5 A): text, not a link, in text.primary at the default body weight. Only on current.
+      const curOff = itemPlans.filter((p) => {
+        const t = find(p.root, 'current');
+        if (p.kind !== 'current') return !!t;
+        return !(t && t.type === 'TEXT' && t.paints?.fills === 'color/text/primary' && t.textStyle === `body/${RUNG[p.size]}/default` && t.characters === 'Current page'
+          && !all(p.root).some((n) => n.nestTarget === 'link'));
+      });
+      ok(curOff.length === 0, `#2666 breadcrumbs/current (calls 2 A, 4 A, 5 A): the current page is "Current page" text in color/text/primary at body/<rung>/default, with no link in its member${curOff.length ? ` — OFF: ${curOff.map((p) => `${p.kind}/${p.size}`).join(', ')}` : ''}`);
+
+      // THE SEPARATOR (call 6 A, Q382 A): after every step but the current one, the last child of its row, ONE nested
+      // `_breadcrumb-separator` in the member's own separator look; the current page nests none.
+      const sepOff = itemPlans.filter((p) => {
+        const seps = all(p.root).filter((n) => n.nestTarget === '_breadcrumb-separator');
+        if (p.kind === 'current') return seps.length > 0;
+        return !(seps.length === 1 && JSON.stringify(seps[0].nestVariant) === JSON.stringify({ type: p.sep }) && p.root.children[p.root.children.length - 1] === seps[0]);
+      });
+      ok(sepOff.length === 0, `#2666 breadcrumbs/separator (call 6 A, Q382 A): one BreadcrumbSeparator in the member's own look (chevron or slash) ends every ancestor and overflow member, and no current member${sepOff.length ? ` — OFF: ${sepOff.map((p) => `${p.kind}/${p.sep}/${p.size}`).join(', ')}` : ''}`);
+
+      // THE SEPARATOR'S TWO LOOKS (Q382 A): a 16px (icon.size.xs) chevron-right or slash in color/icon/secondary, the
+      // chevron first (the default). The slash is the set's own glyph, typed here (a 2px stroke on the 24px grid).
+      const sepDef = componentDefs.find((d) => d.id === '_breadcrumb-separator');
+      const sepPlans = sepDef ? figmaAnatomySet(sepDef, { swapTarget: 'FPO-default-icon' }) : [];
+      const SLASH = 'M14.03 4H16.17L9.97 20H7.83L14.03 4Z';
+      const looks = sepPlans.map((p) => {
+        const g = (p.root as unknown as BN).children;
+        return [String((p.coord as Record<string, string>).type), g.length, g[0]?.nestTarget, g[0]?.descendantFills, g[0]?.bound?.width, g[0]?.bound?.height];
+      });
+      const slashPath = (ICON_PATHS as Record<string, string | undefined>)['slash'];
+      ok(!!sepDef && sepDef.name === 'BreadcrumbSeparator' && JSON.stringify(looks) === JSON.stringify([['chevron', 1, 'icon/chevron-right', 'color/icon/secondary', 'icon/size/xs', 'icon/size/xs'], ['slash', 1, 'icon/slash', 'color/icon/secondary', 'icon/size/xs', 'icon/size/xs']])
+        && slashPath !== undefined && canonicalShape(slashPath) === canonicalShape(SLASH),
+        `#2666 breadcrumbs/separator-looks (Q382 A): _breadcrumb-separator is a 16px chevron-right or slash in color/icon/secondary, chevron first, and the set's slash is the 2px stroke typed here (got ${JSON.stringify(looks)}, slash ${slashPath ?? 'not in the set'})`);
+
+      // THE OVERFLOW STEP (calls 8 A, 14 A): FlushIconButton.Neutral, flush, small at both sizes, three dots, state exposed.
+      const ovOff = itemPlans.filter((p) => {
+        const o = find(p.root, 'overflow');
+        if (p.kind !== 'overflow') return !!o;
+        return !(o && o.nestTarget === 'flush-icon-button-neutral' && JSON.stringify(o.nestVariant) === '{"shape":"flush","size":"small","state":"rest"}'
+          && JSON.stringify(o.nestExpose) === '["state"]' && JSON.stringify(o.nestOverrides) === '[{"property":"swap icon","type":"INSTANCE_SWAP","value":"icon/more-horizontal-filled"}]');
+      });
+      ok(ovOff.length === 0, `#2666 breadcrumbs/overflow (calls 8 A, 14 A): the overflow step nests FlushIconButton.Neutral, flush and small, showing more-horizontal-filled, state exposed${ovOff.length ? ` — OFF: ${ovOff.map((p) => `${p.kind}/${p.size}`).join(', ')}` : ''}`);
+
+      // THE ITEMS SLOT (call 1 A, the proposal's properties table): at least two, BreadcrumbItem only, two ancestors and
+      // the current page by default at the trail's size. Only on the trail.
+      const slotOff = trailPlans.filter((p) => {
+        const s = find(p.root, 'items');
+        if (p.path !== 'full') return !!s;
+        return !(s && s.type === 'CONTENT_SLOT' && JSON.stringify(s.slotSettings) === '{"minChildren":2,"allowPreferredValuesOnly":true}'
+          && JSON.stringify(s.slotPreferred) === '["breadcrumb-item"]'
+          && JSON.stringify(s.children.map((c) => [c.nestTarget, c.nestVariant?.kind, c.nestVariant?.separator, c.nestVariant?.size])) === JSON.stringify([['breadcrumb-item', 'ancestor', p.sep, p.size], ['breadcrumb-item', 'ancestor', p.sep, p.size], ['breadcrumb-item', 'current', 'chevron', p.size]]));
+      });
+      ok(slotOff.length === 0, `#2666 breadcrumbs/slot: the trail holds a native items slot, at least 2, BreadcrumbItem only, defaulting to ancestor, ancestor, current at its own size, the ancestors in the trail's separator (Q382 A)${slotOff.length ? ` — OFF: ${slotOff.map((p) => `${p.path}/${p.sep}/${p.size}`).join(', ')}` : ''}`);
+
+      // THE PARENT LAYOUT (call 11 A): a 16px chevron-left in the link icon role, then Link inline, default weight,
+      // reading "Parent page", state exposed. Only on parent.
+      const parOff = trailPlans.filter((p) => {
+        const g = find(p.root, 'backGlyph'), l = find(p.root, 'parentLink');
+        if (p.path !== 'parent') return !!g || !!l;
+        return !(g && l && p.root.children.indexOf(g) === 0 && p.root.children.indexOf(l) === 1 && g.nestTarget === 'icon/chevron-left' && g.descendantFills === 'color/icon/link/default'
+          && g.bound?.width === 'icon/size/xs' && l.nestTarget === 'link' && JSON.stringify(l.nestVariant) === JSON.stringify({ style: 'inline', weight: 'default', size: p.size, surface: 'default', state: 'rest' })
+          && JSON.stringify(l.nestExpose) === '["state"]' && JSON.stringify(l.nestOverrides) === '[{"property":"label","type":"TEXT","value":"Parent page"}]');
+      });
+      ok(parOff.length === 0, `#2666 breadcrumbs/parent (call 11 A): the parent path is a 16px chevron-left in color/icon/link/default before an inline Link reading "Parent page"${parOff.length ? ` — OFF: ${parOff.map((p) => `${p.path}/${p.size}`).join(', ')}` : ''}`);
+
+      // THE GAPS (the proposal's token table, DRAFT): label to separator and item to item space.050 small / space.100
+      // medium; the parent path's chevron to link space.050, Link's own icon gap.
+      const SPACE: Record<string, string> = { small: 'space/050', medium: 'space/100' };
+      const gapOff = [
+        ...itemPlans.filter((p) => p.root.bound?.itemSpacing !== SPACE[p.size]).map((p) => `item ${p.kind}/${p.size} ${p.root.bound?.itemSpacing}`),
+        ...trailPlans.filter((p) => p.path === 'full' && find(p.root, 'items')?.bound?.itemSpacing !== SPACE[p.size]).map((p) => `slot ${p.size}`),
+        ...trailPlans.filter((p) => p.path === 'parent' && p.root.bound?.itemSpacing !== 'space/050').map((p) => `parent ${p.size} ${p.root.bound?.itemSpacing}`),
+      ];
+      ok(gapOff.length === 0, `#2666 breadcrumbs/gaps: space.050 / space.100 inside each item and between items, space.050 between the back chevron and its link${gapOff.length ? ` — OFF: ${gapOff.join('; ')}` : ''}`);
+
+      // CODE PROPS AND WORDING (calls 8 A, 9 A, 11 A, 15 A, 16 A).
+      const prop = (n: string) => trailDef.props.find((p) => p.name === n);
+      ok(prop('maxItems')?.default === 5 && prop('itemsBeforeCollapse')?.default === 1 && prop('itemsAfterCollapse')?.default === 2
+        && prop('collapse')?.default === 'expand' && prop('responsive')?.default === true && prop('label')?.default === 'Breadcrumb'
+        && trailDef.name === 'Breadcrumbs' && trailDef.category === 'navigation' && itemDef.name === 'BreadcrumbItem' && itemDef.category === 'navigation'
+        && JSON.stringify(trailDef.aliases) === '["breadcrumb","breadcrumb-trail","breadcrumb-list"]'
+        && trailDef.summary === 'The path to the current page as links, with the current page last and not a link.'
+        && itemDef.summary === 'One step in a breadcrumb trail: a link, the current page, or the collapsed steps.'
+        && itemDef.accessibility.aria.includes('"Show full path"') && trailDef.accessibility.aria.includes('aria-label="Breadcrumb"') && trailDef.accessibility.aria.includes('aria-current="page"'),
+        `#2666 breadcrumbs/code-props: collapse above 5 keeping 1 and 2, expand in place, the small-screen switch on, the nav named "Breadcrumb", the overflow "Show full path", and the approved names and summaries (maxItems ${prop('maxItems')?.default}, before ${prop('itemsBeforeCollapse')?.default}, after ${prop('itemsAfterCollapse')?.default})`);
+
+      // CONTRAST over every committed brand × mode (proposal §5): the roles the projection paints, measured from the
+      // committed emission. Link ink is Link's `text.link.*` (the nested instance), held here at 4.5:1 on both page grounds
+      // because a crumb is navigation text the page relies on; the current page 4.5:1 on both; the back chevron 3:1 on
+      // the page (SC 1.4.11). The separator is decorative and held to no floor.
+      const treeFiles = readdirSync(resolve(HERE, 'out')).filter((f) => /^[a-z0-9-]+\.tokens\.json$/.test(f));
+      const MODES = ['light', 'dark', 'hc-light', 'hc-dark'];
+      const colorOf = (tree: Record<string, any>, root: string, path: string, mode: string, depth = 0): string | null => {
+        let n: any = tree[root];
+        for (const k of path.split('.')) n = n?.[k];
+        if (!n || depth > 8) return null;
+        const v = mode === 'light' ? n.$value : (n.$extensions?.prism3?.modes?.[mode]?.$value ?? n.$value);
+        if (typeof v !== 'string') return null;
+        const ref = /^\{([^}]+)\}$/.exec(v);
+        if (ref) { const [r0, ...rest] = ref[1].split('.'); return colorOf(tree, r0, rest.join('.'), mode, depth + 1); }
+        const rgb = /^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)$/.exec(v);
+        if (rgb) return rgb[4] !== undefined && Number(rgb[4]) < 1 ? null : '#' + [rgb[1], rgb[2], rgb[3]].map((x) => Number(x).toString(16).padStart(2, '0')).join('');
+        return /^#[0-9a-f]{6}$/i.test(v) ? v : null;
+      };
+      const PAIRS: [string, string, number][] = [
+        ['color.text.link.default', 'color.background.primary', 4.5], ['color.text.link.default', 'color.background.secondary', 4.5],
+        ['color.text.link.hover', 'color.background.primary', 4.5], ['color.text.link.pressed', 'color.background.primary', 4.5],
+        ['color.text.link.focused', 'color.background.primary', 4.5],
+        ['color.text.primary', 'color.background.primary', 4.5], ['color.text.primary', 'color.background.secondary', 4.5],
+        ['color.icon.link.default', 'color.background.primary', 3],
+      ];
+      // The roles under test are the ones the projection paints: read back off the plans above, so a rebind moves both.
+      const painted = new Set([
+        ...itemPlans.flatMap((p) => all(p.root)).map((n) => n.paints?.fills).filter(Boolean),
+        ...trailPlans.flatMap((p) => all(p.root)).map((n) => n.descendantFills).filter(Boolean),
+      ].map((v) => String(v).replace(/\//g, '.')));
+      const CELLS = 20;
+      const lows: string[] = [];
+      for (const [fg, bg, floor] of PAIRS) {
+        let measured = 0, lowest = Infinity;
+        for (const f of treeFiles) {
+          const tree = JSON.parse(readFileSync(resolve(HERE, 'out', f), 'utf8'));
+          const root = Object.keys(tree)[0];
+          for (const m of MODES) {
+            const a = colorOf(tree, root, fg, m), b = colorOf(tree, root, bg, m);
+            if (!a || !b) { lows.push(`${f}/${m}: ${!a ? fg : bg} unresolved`); continue; }
+            const r = contrast(hexToRgb(a), hexToRgb(b));
+            measured++; lowest = Math.min(lowest, r);
+            if (r < floor) lows.push(`${fg} on ${bg} ${f}/${m} ${r.toFixed(2)}`);
+          }
+        }
+        if (measured !== CELLS) lows.push(`${fg} on ${bg}: ${measured} of ${CELLS} cells measured`);
+      }
+      const unpainted = ['color.text.primary', 'color.icon.link.default'].filter((r) => !painted.has(r));
+      ok(lows.length === 0 && unpainted.length === 0 && treeFiles.length === 5,
+        `#2666 breadcrumbs/contrast: link ink 4.5:1 on background.primary at every state and on background.secondary at rest, the current page's text.primary 4.5:1 on both, the back chevron's icon.link.default 3:1 on the page, in all ${CELLS} committed brand × mode cells (${treeFiles.length} brands)${unpainted.length ? ` — the projection no longer paints ${unpainted.join(', ')}` : ''}${lows.length ? ` — LOW: ${lows.slice(0, 6).join('; ')}` : ''}`);
+    }
+  }
+
   // ---- #1339: disabled is ONE mechanism (the STATE), not a state axis + a prop ----
   // The label dims when its field is disabled, carried by the `disabled` STATE (a paint change projected as a
   // Figma variant), with NO duplicating `disabled` prop. EXPECTED is the authored contract; ACTUAL is the
@@ -19158,6 +19358,9 @@ arm: {
       // LINK (#2580): the label crosses size, weight, style and, the first type key to do so, the interaction state. The
       // underline is the state half: a standalone link is plain at rest and underlined at hover, pressed and focus.
       { def: componentDefs.find((d) => d.id === 'link')!, part: 'label', axes: { size: 3, weight: 2, style: 2, state: 2 } },
+      // BREADCRUMBS (#2666, call 4 A): the current page binds the two default body rungs. It exists only on a current
+      // member.
+      { def: componentDefs.find((d) => d.id === 'breadcrumb-item')!, part: 'current', axes: { size: 2 }, at: { kind: 'current' } },
     ];
 
     // DIRECTION 1 — the authored table is the corpus. Discovered by walking every def's anatomy for a
@@ -23006,6 +23209,20 @@ arm: {
                 ...Object.entries(d.figmaProperties!.texts ?? {}).map(([k, t], i) => [`${t.figmaName ?? k}#7:${i}`, { type: 'TEXT', defaultValue: t.default }]),
                 ...Object.entries(d.figmaProperties!.swaps!).map(([k, s], i) => [`${s.figmaName ?? k}#8:${i}`, { type: 'INSTANCE_SWAP', defaultValue: '73:37' }]),
               ])])),
+            // #2666 — Breadcrumbs is the first nest-exposed def that also sets a nested GLYPH (#2645's swap override, the
+            // item's overflow button) and offers a slot's preferred set (#2646). As the real build: the icon component
+            // the override names is in the file (the nested component's own properties are declared just above), and a
+            // slot's preferred def is a built set with a key.
+            ...(() => {
+              const nodes = plans.flatMap((p) => walkPlan(p.root)) as (PlanNode & { nestOverrides?: { type: string; value: string }[]; slotPreferred?: string[] })[];
+              const swapped = nodes.filter((n) => n.nestTarget && n.nestOverrides?.some((o) => o.type === 'INSTANCE_SWAP'));
+              const glyphs = swapped.flatMap((n) => n.nestOverrides!.filter((o) => o.type === 'INSTANCE_SWAP').map((o) => o.value));
+              const preferred = [...new Set(nodes.flatMap((n) => n.slotPreferred ?? []))];
+              return {
+                ...(glyphs.length ? { comps: [...new Set([...plans.flatMap((p) => walkPlan(p.root)).flatMap((n) => [n.swapTarget, n.nestTarget]).filter((c): c is string => !!c), ...glyphs])] } : {}),
+                ...(preferred.length ? { fileNodes: preferred.map((id) => ({ name: id, type: 'COMPONENT_SET' as const, variants: figmaAnatomySet(componentDefs.find((d) => d.id === id)!, { swapTarget: 'FPO-default-icon' }).map(planComponentName) })) } : {}),
+              };
+            })(),
           };
           // The exposure lives on a NODE deep in each member; no `runPayload` summary field carries it, so
           // it is read off the PAGE the payload appended the combined set to. Returns every nested instance
@@ -27598,10 +27815,10 @@ arm: {
       byShape.set(c, [...(byShape.get(c) ?? []), n].sort());
     }
     // 41 since the textarea's `resize-grip` joined the set (2026-09-25); 42 since the hamburger `menu` did
-    // (Q253 A, 2026-10-12): each a new shape, so both counts move by one and the three collisions below stay the
-    // only ones.
-    ok(byShape.size === 42,
-      `glyph-shape: the vocabulary's ${ICON_NAMES.length} names draw 42 distinct RENDERED shapes (got ${byShape.size}) — 43 distinct path STRINGS, so string comparison is off by one`);
+    // (Q253 A, 2026-10-12); 43 since the breadcrumb `slash` did (Q382 A, 2026-10-16): each a new shape, so both counts
+    // move by one and the three collisions below stay the only ones.
+    ok(byShape.size === 43,
+      `glyph-shape: the vocabulary's ${ICON_NAMES.length} names draw 43 distinct RENDERED shapes (got ${byShape.size}) — 44 distinct path STRINGS, so string comparison is off by one`);
     const groups = [...byShape.values()].filter((g) => g.length > 1).map((g) => g.join('|')).sort();
     ok(groups.join(' , ') === 'close|close-filled , minus|minus-filled , plus|plus-filled',
       `glyph-shape: and they are exactly the three -fill/-line pairs the source set draws identically (got [${groups.join('] [')}]) — a count of three would also pass on three collisions somewhere else`);
@@ -28033,7 +28250,7 @@ arm: {
   // `tag` joins (2026-09-27): its check mark is gated on `selection: ['selected']`, the checkbox mark's shape.
   // `link` joins (#2580, owner Q297.2): its trailing icon is gated on `style: ['standalone']`, so an inline link carries none.
   // `checkbox-group` and `radio-group` since #2751: each gates its nested message on `status=error`.
-  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-group', 'radio-control', 'radio-group', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'button-group', 'dialog', 'password-field'];
+  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-group', 'radio-control', 'radio-group', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'button-group', 'dialog', 'password-field', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {
@@ -29512,6 +29729,10 @@ arm: {
     // link wraps, and the icon is inline with its word rather than centered on the block (link.ts codeOnly).
     'link.container':
       "a link is one text line tall in Figma and its label is one line there, so the trailing icon centers against the only line; in code the icon sits inline with the last word, never centered on a wrapped block (link.ts codeOnly).",
+    // `breadcrumb-item` (#2666): the label never wraps (ancestor labels do not wrap or truncate; the current page
+    // truncates on one line), so the separator centers against the only line, in Figma and in code.
+    'breadcrumb-item.container':
+      "a breadcrumb step is one text line tall and never wraps (breadcrumb-item.ts codeOnly), so the separator centers against the only line.",
     'tag.labelCheck':
       "the tag's height is fixed at one line in Figma and its label is one line there, so the check mark (and, one row out, the leading icon) center against the only line; in code a wrapped label centers them on the label block, which is held for the owner (tag.ts notes.contested).",
   };
@@ -32637,6 +32858,10 @@ arm: {
     'tab-item.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'a tab is selected by `selected`' },
     'segmented-control-segment.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'a segment is selected by `selected`' },
     'accordion.expansion': { prop: 'defaultExpanded', map: off('collapsed', 'expanded'), reason: 'an accordion opens by `defaultExpanded`' },
+    // #2666 (owner call 11 A): code has no path prop. `responsive` (default true) swaps the trail for the parent link
+    // below 480px by a container query, and either value renders the trail at every wider width, so the code default
+    // path is the full trail whatever `responsive` holds.
+    'breadcrumbs.path': { prop: 'responsive', map: { undefined: 'full', false: 'full', true: 'full' }, reason: 'Breadcrumbs renders the trail by default; `responsive` only swaps in the parent link below 480px' },
   };
   // NO RECORDED EXCEPTIONS (#2752, owner decisions Q1 B and Q2 A, 2026-10-16): every size ladder leads with medium and
   // Button's icon slots lead with false, so any mismatch fails. The size ladder is named only for MUST below.

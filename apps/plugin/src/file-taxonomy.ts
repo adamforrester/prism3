@@ -122,6 +122,9 @@ export const TAXONOMY: Taxonomy = {
         // Dialog (#2609, owner decision Q303.12 A) — its own page under Components, every placement on it. It nests the
         // Neutral IconButton, the Divider and the Button, which the build places first wherever their pages sort.
         { page: 'Dialog', defs: ['dialog'] },
+        // Breadcrumbs (#2666, owner call 15 A) — its own page under Components. It nests BreadcrumbItem in its items slot
+        // and Link, which the build places first wherever their pages sort.
+        { page: 'Breadcrumbs', defs: ['breadcrumbs'] },
         // Counter (#2427, owner decision Q283.14 A) — its own page, alphabetical under Components (between Checkbox and
         // Divider). It nests FlushIconButton.Neutral, whose page is under Subcomponents.
         { page: 'Counter', defs: ['counter'] },
@@ -144,6 +147,10 @@ export const TAXONOMY: Taxonomy = {
         // #1670 — owner-decided 2026-09-26: the spinner sits under Subcomponents, beside the other parts a
         // host swaps or nests in (the button's pending state swaps it into its icon slot).
         { page: 'Spinner', defs: ['spinner'] },
+        // #2666 (owner call 15 A) — the breadcrumb step, on its own page under Subcomponents: it is placed inside
+        // Breadcrumbs, never on its own. It nests Link, the neutral flush icon button and, since Q382 A, the separator,
+        // which shares its page, first, as the Accordion indicator shares the Accordion's.
+        { page: 'Breadcrumb Item', defs: ['_breadcrumb-separator', 'breadcrumb-item'] },
       ],
     },
     {

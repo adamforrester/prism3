@@ -65,6 +65,7 @@
             "plus-filled",
             "resize-grip",
             "search",
+            "slash",
             "warning-triangle",
             "warning-triangle-filled"
           ],
@@ -155,6 +156,7 @@
             "plus-filled",
             "resize-grip",
             "search",
+            "slash",
             "warning-triangle",
             "warning-triangle-filled"
           ],
@@ -7492,7 +7494,8 @@
         "commonPartners": [
           "icon",
           "button",
-          "text-field"
+          "text-field",
+          "breadcrumbs"
         ],
         "triggerKeywords": [
           "link",
@@ -7521,7 +7524,6 @@
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "breadcrumbs",
           "menu"
         ],
         "replacesPatterns": [
@@ -8151,6 +8153,449 @@
           "eye icon inside a password field",
           "password field with no way to show the characters",
           "autocomplete=\"off\" on a password"
+        ]
+      }
+    },
+    "_breadcrumb-separator": {
+      "id": "_breadcrumb-separator",
+      "name": "BreadcrumbSeparator",
+      "aliases": [
+        "breadcrumb-divider",
+        "crumb-separator"
+      ],
+      "category": "navigation",
+      "status": "draft",
+      "summary": "The mark between two breadcrumb steps: a chevron or a slash, in the secondary icon color.",
+      "description": "The mark between two steps of a Breadcrumbs trail, after every step but the current page. A chevron that points toward the current page, or a slash. Breadcrumbs chooses one for the whole trail. It is 16px at both breadcrumb sizes, in the secondary icon color, and decorative: it is never read aloud or focused.",
+      "props": [
+        {
+          "name": "type",
+          "type": "enum: 'chevron' | 'slash'",
+          "default": "chevron",
+          "required": false,
+          "values": [
+            "chevron",
+            "slash"
+          ],
+          "description": "chevron: a chevron pointing toward the current page. slash: a forward slash. Set by the Breadcrumbs it sits in, for every step at once."
+        }
+      ],
+      "states": [],
+      "variants": {
+        "type": {
+          "values": [
+            "chevron",
+            "slash"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "none: decorative, drawn by CSS and never in the accessibility tree",
+        "wcag": [
+          "1.3.1 Info and Relationships (the trail's order is the list's, not the separator's)"
+        ],
+        "focus": "None. The mark takes no focus.",
+        "aria": "None. The mark is CSS generated content, never announced."
+      },
+      "content": {
+        "labelPattern": "The mark carries no text."
+      },
+      "docs": {
+        "usage": "Part of a BreadcrumbItem. Choose chevron or slash once, on Breadcrumbs; every step shows the same mark.",
+        "do": [
+          "Choose the look once, on Breadcrumbs"
+        ],
+        "dont": [
+          "Place a separator on its own, or type one as text between links",
+          "Mix chevrons and slashes in one trail"
+        ],
+        "contentGuidelines": "The separator holds no copy."
+      },
+      "ai": {
+        "primaryPurpose": "The mark between two steps of a Breadcrumbs trail, a chevron or a slash.",
+        "whenToUse": "Only as a child of BreadcrumbItem. Generate Breadcrumbs instead.",
+        "avoidWhen": "Always on its own. Use Breadcrumbs; for a plain icon, use an Icon.",
+        "commonPartners": [
+          "breadcrumb-item",
+          "breadcrumbs"
+        ],
+        "triggerKeywords": [
+          "breadcrumb separator",
+          "breadcrumb slash",
+          "breadcrumb chevron"
+        ],
+        "generationPriority": 9
+      },
+      "motion": {
+        "enter": "None.",
+        "exit": "None.",
+        "reduceMotion": "No motion to reduce."
+      },
+      "composition": {
+        "composesWith": [],
+        "alternativeTo": [],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [],
+        "replacesPatterns": [
+          "a \"/\" or \">\" typed as text between breadcrumb links"
+        ]
+      }
+    },
+    "breadcrumb-item": {
+      "id": "breadcrumb-item",
+      "name": "BreadcrumbItem",
+      "aliases": [
+        "crumb",
+        "breadcrumb-step"
+      ],
+      "category": "navigation",
+      "status": "draft",
+      "summary": "One step in a breadcrumb trail: a link, the current page, or the collapsed steps.",
+      "description": "One step in a Breadcrumbs trail. An ancestor is an underlined link to a page above the current one, followed by a chevron or a slash. The current page is plain text in the primary text color, last in the trail and not a link. The overflow step stands for the steps a long trail hides: a small icon-only button that shows them in place when pressed. Items live inside Breadcrumbs and are never placed on their own.",
+      "props": [
+        {
+          "name": "kind",
+          "type": "enum: 'ancestor' | 'current' | 'overflow'",
+          "default": "ancestor",
+          "required": false,
+          "values": [
+            "ancestor",
+            "current",
+            "overflow"
+          ],
+          "description": "ancestor: a link to a page above this one. current: the page you are on, as text. overflow: the button that stands for the hidden steps of a long trail. Breadcrumbs sets it from the item's place in the trail."
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "description": "The page name, as the page titles itself. On an ancestor it is the link text; on the current page, the text."
+        },
+        {
+          "name": "href",
+          "type": "string",
+          "required": false,
+          "description": "The ancestor page's address. Ignored on the current page, which is not a link."
+        },
+        {
+          "name": "size",
+          "type": "enum: 'small' | 'medium'",
+          "default": "medium",
+          "required": false,
+          "values": [
+            "small",
+            "medium"
+          ],
+          "description": "The body type size, 14 or 16px, with the gap to the separator sized to it. Set by the Breadcrumbs it sits in."
+        },
+        {
+          "name": "separator",
+          "type": "enum: 'chevron' | 'slash'",
+          "default": "chevron",
+          "required": false,
+          "values": [
+            "chevron",
+            "slash"
+          ],
+          "description": "The mark after the step: a chevron or a slash. Set by the Breadcrumbs it sits in, the same for every step. Unused on the current page."
+        }
+      ],
+      "states": [],
+      "variants": {
+        "kind": {
+          "values": [
+            "ancestor",
+            "current",
+            "overflow"
+          ],
+          "kind": "authoring"
+        },
+        "separator": {
+          "values": [
+            "chevron",
+            "slash"
+          ],
+          "kind": "authoring"
+        },
+        "size": {
+          "values": [
+            "medium",
+            "small"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "listitem, holding a link, the current page's text, or a button",
+        "wcag": [
+          "1.3.1 Info and Relationships (each step is a list item)",
+          "1.4.1 Use of Color (an ancestor link is underlined at every state)",
+          "1.4.3 Contrast (targets 4.5:1 for the link and the current page against the page)",
+          "2.4.4 Link Purpose (the link text is the ancestor page's name)",
+          "2.4.7 Focus Visible (the nested link's and button's own focus rings)",
+          "2.5.8 Target Size (targets 24px for a link and 44px for the overflow button, through code-side hit areas)",
+          "4.1.2 Name, Role, Value"
+        ],
+        "keyboard": "Tab reaches an ancestor link or the overflow button; Enter follows the link; Enter or Space presses the button. The current page takes no focus.",
+        "focus": "The nested link's and button's own focus rings. The current page is not focusable.",
+        "aria": "aria-current=\"page\" on the current page's text. The overflow button is named \"Show full path\" (DRAFT), translated, and its glyph is aria-hidden. The separator is never exposed. In right-to-left text the separator mirrors."
+      },
+      "content": {
+        "labelPattern": "Each page's own title, short and in sentence case, matching the page heading. No \"Back to\" and no trailing punctuation."
+      },
+      "docs": {
+        "usage": "Items make up a Breadcrumbs trail and are set inside it: ancestors first, the current page last, and an overflow item where a long trail collapses. Change an item's kind in the trail; never place an item on its own.",
+        "do": [
+          "Make the last item the current page",
+          "Use the page's own title as each label",
+          "Use one overflow item in place of the hidden steps"
+        ],
+        "dont": [
+          "Place an item outside Breadcrumbs",
+          "Make the current page a link",
+          "Truncate an ancestor's label; collapse whole steps instead"
+        ],
+        "contentGuidelines": "Page titles, sentence case, as each page titles itself."
+      },
+      "ai": {
+        "primaryPurpose": "One step of a Breadcrumbs trail: an ancestor link, the current page, or the overflow button for collapsed steps.",
+        "whenToUse": "Inside Breadcrumbs only, as each step of the trail.",
+        "avoidWhen": "You need a trail of links (use Breadcrumbs, which holds the items), a link on its own (use Link) or a back link in history (use Link).",
+        "commonPartners": [
+          "breadcrumbs"
+        ],
+        "triggerKeywords": [
+          "breadcrumb item",
+          "crumb",
+          "breadcrumb step",
+          "current page crumb",
+          "collapsed breadcrumb"
+        ],
+        "generationPriority": 4
+      },
+      "motion": {
+        "enter": "None. Steps revealed from the overflow appear at once in its place.",
+        "exit": "None.",
+        "reduceMotion": "No motion to reduce."
+      },
+      "composition": {
+        "composesWith": [
+          "_breadcrumb-separator",
+          "link",
+          "flush-icon-button-neutral"
+        ],
+        "alternativeTo": [],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [],
+        "replacesPatterns": [
+          "a separator typed as text between links",
+          "the current page rendered as a link to itself"
+        ]
+      }
+    },
+    "breadcrumbs": {
+      "id": "breadcrumbs",
+      "name": "Breadcrumbs",
+      "aliases": [
+        "breadcrumb",
+        "breadcrumb-trail",
+        "breadcrumb-list"
+      ],
+      "category": "navigation",
+      "status": "draft",
+      "summary": "The path to the current page as links, with the current page last and not a link.",
+      "description": "Shows where the current page sits in the site's hierarchy: a row of links to the pages above it, root first, ending in the current page as plain text. Each link is underlined and followed by a chevron or a slash, one mark for the whole trail. A long trail keeps its first step and its last two and collapses the middle behind one button that shows them in place. On a small screen the trail becomes one link up to the parent page. Breadcrumbs follow the site's structure, not the pages a person visited, and supplement the main navigation rather than replace it.",
+      "props": [
+        {
+          "name": "items",
+          "type": "slot",
+          "required": true,
+          "anyOf": [
+            "breadcrumb-item"
+          ],
+          "minItems": 2,
+          "description": "The steps, root first, each with a label and an href. The last is rendered as the current page: text with aria-current=\"page\", its href ignored. At least two."
+        },
+        {
+          "name": "size",
+          "type": "enum: 'small' | 'medium'",
+          "default": "medium",
+          "required": false,
+          "values": [
+            "small",
+            "medium"
+          ],
+          "description": "The body type size, 14 or 16px, passed to every item. Medium suits a trail beside 16px body copy; small, a quieter line above a page title."
+        },
+        {
+          "name": "separator",
+          "type": "enum: 'chevron' | 'slash'",
+          "default": "chevron",
+          "required": false,
+          "values": [
+            "chevron",
+            "slash"
+          ],
+          "description": "The mark between steps, the same for every step: a chevron pointing toward the current page, or a slash."
+        },
+        {
+          "name": "maxItems",
+          "type": "number",
+          "default": 5,
+          "required": false,
+          "description": "Above this many items, the middle collapses behind one overflow button."
+        },
+        {
+          "name": "itemsBeforeCollapse",
+          "type": "number",
+          "default": 1,
+          "required": false,
+          "description": "How many items stay before the overflow button when the trail collapses."
+        },
+        {
+          "name": "itemsAfterCollapse",
+          "type": "number",
+          "default": 2,
+          "required": false,
+          "description": "How many items stay after the overflow button: the parent and the current page by default."
+        },
+        {
+          "name": "collapse",
+          "type": "enum: 'expand'",
+          "default": "expand",
+          "required": false,
+          "values": [
+            "expand"
+          ],
+          "description": "What the overflow button does: expand shows the hidden steps in place and moves focus to the first of them."
+        },
+        {
+          "name": "responsive",
+          "type": "boolean",
+          "default": true,
+          "required": false,
+          "description": "Below 480px, show one link up to the parent page in place of the trail. Turn it off where the full trail fits."
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "default": "Breadcrumb",
+          "required": false,
+          "description": "The accessible name of the navigation landmark, translated. Assistive technology adds \"navigation\" itself."
+        },
+        {
+          "name": "renderLink",
+          "type": "function",
+          "required": false,
+          "description": "Renders each ancestor through a router's link, so one anchor renders and the component depends on no router. The plain anchor by default."
+        }
+      ],
+      "states": [],
+      "variants": {
+        "path": {
+          "values": [
+            "full",
+            "parent"
+          ],
+          "kind": "authoring"
+        },
+        "separator": {
+          "values": [
+            "chevron",
+            "slash"
+          ],
+          "kind": "authoring"
+        },
+        "size": {
+          "values": [
+            "medium",
+            "small"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "navigation landmark named \"Breadcrumb\", holding an ordered list of steps",
+        "wcag": [
+          "1.3.1 Info and Relationships (an ordered list inside a named navigation landmark)",
+          "2.4.8 Location (shows where the page sits in the site)",
+          "2.4.5 Multiple Ways (one of the ways to reach a page)",
+          "1.4.1 Use of Color (links are underlined at every state)",
+          "1.4.3 Contrast (targets 4.5:1 for the links and the current page against the page)",
+          "1.4.10 Reflow (targets one link up to the parent below 480px)",
+          "2.4.4 Link Purpose",
+          "2.4.7 Focus Visible",
+          "2.5.8 Target Size (targets 24px for each link through a code-side hit area)",
+          "4.1.2 Name, Role, Value"
+        ],
+        "keyboard": "Tab moves through the ancestor links and the overflow button; Enter follows a link; Enter or Space presses the overflow button. The current page takes no focus.",
+        "focus": "Each link and the overflow button shows its own focus ring. After the overflow button is pressed, focus moves to the first revealed link.",
+        "aria": "A <nav> with aria-label=\"Breadcrumb\", translated. aria-current=\"page\" on the current page, never aria-current=\"location\". The separators are CSS, never in the accessibility tree. The overflow button is named \"Show full path\" (DRAFT). On a small screen the back chevron is aria-hidden. In right-to-left text the row and the chevrons mirror."
+      },
+      "content": {
+        "labelPattern": "Each step is its page's own title, short and in sentence case. The root is \"Home\". No \"You are here\" prefix and no separators typed as text."
+      },
+      "docs": {
+        "usage": "Use breadcrumbs on a site three or more levels deep, to show where a page sits and to climb back up. They follow the site's structure, not the visitor's history, and supplement the main navigation. For a one or two level site, use a single link back, or nothing. To go back in history, use the browser's Back or a Link. To switch between peers at one level, use Tabs.",
+        "do": [
+          "Start at the root and end at the current page",
+          "Use each page's own title as its label",
+          "Place breadcrumbs above the page heading",
+          "Let a long trail collapse its middle rather than wrap"
+        ],
+        "dont": [
+          "Show the visitor's click history",
+          "Make the current page a link",
+          "Truncate an ancestor's label",
+          "Use breadcrumbs as the only navigation"
+        ],
+        "contentGuidelines": "Page titles in sentence case, matching each page heading. \"Home\" for the root."
+      },
+      "ai": {
+        "primaryPurpose": "Show the current page's place in the site hierarchy as links to its ancestors, ending in the current page.",
+        "whenToUse": "A page three or more levels deep in a stable hierarchy (a catalog, documentation, settings), where people need to see where they are and climb back up.",
+        "avoidWhen": "The site is one or two levels deep (use a single Link back), the path is the visitor's history (use the browser's Back or a Link), the choice is between peers at one level (use Tabs), or the steps are a required sequence (a stepper, not built yet).",
+        "commonPartners": [
+          "breadcrumb-item",
+          "link",
+          "tabs"
+        ],
+        "triggerKeywords": [
+          "breadcrumbs",
+          "breadcrumb trail",
+          "breadcrumb navigation",
+          "you are here",
+          "page hierarchy path",
+          "back to parent page"
+        ],
+        "generationPriority": 2
+      },
+      "motion": {
+        "enter": "None. Steps revealed from the overflow button appear at once.",
+        "exit": "None.",
+        "reduceMotion": "No motion to reduce."
+      },
+      "composition": {
+        "composesWith": [
+          "breadcrumb-item",
+          "link"
+        ],
+        "alternativeTo": [
+          "link",
+          "tabs"
+        ],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [
+          "menu"
+        ],
+        "replacesPatterns": [
+          "links separated by typed \">\" or \"/\" characters",
+          "a history trail of visited pages",
+          "a breadcrumb whose last item links to the page itself"
         ]
       }
     },

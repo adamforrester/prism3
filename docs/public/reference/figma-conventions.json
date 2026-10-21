@@ -162,6 +162,12 @@
             ]
           },
           {
+            "name": "↳ Breadcrumbs",
+            "components": [
+              "breadcrumbs"
+            ]
+          },
+          {
             "name": "↳ Counter",
             "components": [
               "counter"
@@ -210,6 +216,13 @@
             "components": [
               "spinner"
             ]
+          },
+          {
+            "name": "↳ Breadcrumb Item",
+            "components": [
+              "_breadcrumb-separator",
+              "breadcrumb-item"
+            ]
           }
         ]
       },
@@ -249,7 +262,7 @@
         "kind": "component set",
         "page": "↳ Icons & assets",
         "section": "Foundations",
-        "members": 45,
+        "members": 46,
         "variantProperties": [
           {
             "name": "name",
@@ -297,6 +310,7 @@
               "plus-filled",
               "resize-grip",
               "search",
+              "slash",
               "warning-triangle",
               "warning-triangle-filled"
             ]
@@ -2234,6 +2248,101 @@
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/password-field.md"
       },
       {
+        "id": "_breadcrumb-separator",
+        "name": "BreadcrumbSeparator",
+        "figmaName": "_breadcrumb-separator",
+        "kind": "component set",
+        "private": true,
+        "page": "↳ Breadcrumb Item",
+        "section": "Subcomponents",
+        "members": 2,
+        "variantProperties": [
+          {
+            "name": "type",
+            "values": [
+              "chevron",
+              "slash"
+            ]
+          }
+        ],
+        "properties": [],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/_breadcrumb-separator.md"
+      },
+      {
+        "id": "breadcrumb-item",
+        "name": "BreadcrumbItem",
+        "figmaName": "breadcrumb-item",
+        "kind": "component set",
+        "page": "↳ Breadcrumb Item",
+        "section": "Subcomponents",
+        "members": 10,
+        "variantProperties": [
+          {
+            "name": "kind",
+            "values": [
+              "ancestor",
+              "current",
+              "overflow"
+            ]
+          },
+          {
+            "name": "separator",
+            "values": [
+              "chevron",
+              "slash"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "label",
+            "type": "TEXT"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/breadcrumb-item.md"
+      },
+      {
+        "id": "breadcrumbs",
+        "name": "Breadcrumbs",
+        "figmaName": "breadcrumbs",
+        "kind": "component set",
+        "page": "↳ Breadcrumbs",
+        "section": "Components",
+        "members": 6,
+        "variantProperties": [
+          {
+            "name": "path",
+            "values": [
+              "full",
+              "parent"
+            ]
+          },
+          {
+            "name": "separator",
+            "values": [
+              "chevron",
+              "slash"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small"
+            ]
+          }
+        ],
+        "properties": [],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/breadcrumbs.md"
+      },
+      {
         "id": "counter",
         "name": "Counter",
         "figmaName": "counter",
@@ -2334,6 +2443,7 @@
       "plus-filled",
       "resize-grip",
       "search",
+      "slash",
       "warning-triangle",
       "warning-triangle-filled"
     ]
@@ -2418,6 +2528,17 @@
       {
         "component": "dialog",
         "property": "body"
+      },
+      {
+        "component": "breadcrumbs",
+        "property": "items",
+        "settings": {
+          "minChildren": 2,
+          "allowPreferredValuesOnly": true
+        },
+        "preferred": [
+          "breadcrumb-item"
+        ]
       }
     ]
   },
@@ -2576,7 +2697,10 @@
       "button-group",
       "dialog",
       "password-field",
-      "counter"
+      "counter",
+      "_breadcrumb-separator",
+      "breadcrumb-item",
+      "breadcrumbs"
     ],
     "templates": [
       {

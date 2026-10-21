@@ -3400,6 +3400,76 @@
         }
       ]
     },
+    "_breadcrumb-separator": {
+      "codeOnly": [
+        "The separator in code — CSS ::after on every <li> but the last, with pointer-events: none: never text content, never a list item, never in the accessibility tree. In code it is part of Breadcrumbs, not a component of its own; Figma draws it as this glyph inside each ancestor and overflow item.",
+        "The look in code — Breadcrumbs' `separator` prop, chevron or slash, applied to every step.",
+        "RTL — the chevron flips to point left, toward the current page. The slash does not mirror."
+      ],
+      "notes": {
+        "contested": [
+          "HELD FOR THE OWNER (#2666, Q382): the slash glyph is drawn for this project, not taken from Remix, which has no plain slash. The name BreadcrumbSeparator matches BreadcrumbItem: Family.Part (Breadcrumb.Separator) would force Breadcrumb.Item too, which waits on the naming answer on #2783. The aliases are judgment calls."
+        ],
+        "unverified": [
+          "The separator's contrast (lowest 3.51:1 on background.primary, 3.16:1 on background.secondary, measured for the proposal) is decorative and held to no floor."
+        ],
+        "evolution": [
+          "2026-10-16 (Q382 A): split out of BreadcrumbItem as its own part, with a slash beside the chevron."
+        ],
+        "projection": []
+      }
+    },
+    "breadcrumb-item": {
+      "codeOnly": [
+        "code delivery pending: behavior layer. The entries below are a framework-neutral behavior contract for whichever layer the project's developers choose.",
+        "The element — each item is an <li> in the trail's <ol>. Breadcrumbs renders it from its items: the last one as the current page, the others as ancestors.",
+        "The separator in code — CSS ::after on every <li> but the last, with pointer-events: none: never text content, never a list item, never in the accessibility tree. Figma draws it as a glyph inside each ancestor and overflow item.",
+        "The current page in code — a <span aria-current=\"page\">, never an <a>, and out of the Tab order. Its label stops at a max width with an ellipsis when the trail cannot fit (DRAFT 240px); ancestor labels never truncate.",
+        "The overflow button — a <button type=\"button\"> named \"Show full path\" (DRAFT), its glyph aria-hidden. Pressed, the hidden steps appear in its place as ancestor links, the button is removed, and focus moves to the first revealed link. Its 44×44px hit area is extended in code.",
+        "The ancestor's hit area — the nested link's code-side expansion to 24px applies: a breadcrumb is not a link inside a sentence, so the inline exemption does not.",
+        "RTL — the row mirrors and the chevron separator flips to point left, toward the current page. The slash does not mirror.",
+        "text expansion — ancestor labels never wrap or truncate; a long trail collapses whole steps instead."
+      ],
+      "notes": {
+        "contested": [
+          "The ancestor's label in Figma: the item's own `label` text property drives the current page's text only. An ancestor's text is the nested Link's `label`, set on the exposed Link, so the slot's default ancestors read \"Link text\" rather than \"Home\" and \"Category\": a host cannot yet override a text two nesting levels down (#2781)."
+        ],
+        "unverified": [],
+        "evolution": [
+          "2026-10-16 (#2666): built from the approved wireframe, every numbered call A. Sizes medium-first by the later owner rule Q359 B, which supersedes the proposal's small-first order.",
+          "2026-10-16 (Q382 A, after QA): the separator is its own part, `_breadcrumb-separator`, chevron or slash, chosen once on Breadcrumbs through a `separator` axis the item carries."
+        ],
+        "projection": []
+      }
+    },
+    "breadcrumbs": {
+      "codeOnly": [
+        "code delivery pending: behavior layer. The entries below are a framework-neutral behavior contract for whichever layer the project's developers choose.",
+        "The landmark — <nav aria-label=\"Breadcrumb\">: singular, without the word \"navigation\", which assistive technology adds, and translated. The label tells this landmark apart from the main, footer and in-page navigations.",
+        "The list — an <ol> with each step in an <li>, so \"list, 4 items\" and each position are announced. The last item renders as the current page.",
+        "Collapsing a long trail — above maxItems (5), keep itemsBeforeCollapse (1) and itemsAfterCollapse (2) and put the middle behind one overflow button. The root and the current page always stay visible. A width-measuring collapse (ResizeObserver) can follow as an enhancement.",
+        "Expanding in place — pressed, the overflow button is replaced by the hidden steps as ordinary links, and focus moves to the first revealed link. No popover, no menu keyboard model and no aria-haspopup. When Menu is built, the same button can open a Menu instead (aria-haspopup=\"menu\", aria-expanded, Escape returning focus to it): a new collapse value, with no Figma change.",
+        "Long labels — ancestor labels never truncate. If the trail still does not fit once collapsed, only the current page's label stops at a max width (DRAFT 240px) with an ellipsis; the page's h1 carries the full name below it.",
+        "The small-screen switch — below breakpoint.sm (480px), a container query swaps the trail for one link up to the parent, still inside the <nav>, going up a level and never back in history. responsive={false} turns it off. In Figma, the parent path is a member the designer places for a small frame.",
+        "The back link in code — the chevron sits inside the anchor, aria-hidden, and takes the link's color at every state. Figma draws it beside the nested Link in the link's rest color.",
+        "Router integration — renderLink renders each ancestor through the router's own link (Link's asChild), so one <a href> renders per step.",
+        "Structured data — the component emits no JSON-LD BreadcrumbList; the page's search layer owns it. A script inside a component duplicates under server rendering and can be indexed from a hidden mobile subtree.",
+        "Figma item count — the native items slot holds three items by default and at least two; a designer adds, removes and reorders them, and sets a middle item's kind to overflow to show a collapsed trail. Items keep the size they were placed at when Breadcrumbs changes size.",
+        "RTL — the row mirrors: the root sits at the right edge, chevron separators point left (a slash does not mirror), and the back chevron points right.",
+        "The separator in code — the separator prop, chevron by default, sets the CSS ::after mark on every <li> but the last; it is never text and never in the accessibility tree."
+      ],
+      "notes": {
+        "contested": [],
+        "unverified": [
+          "The contrast figures (links lowest 4.94:1 on background.primary and 4.56:1 on background.secondary; the current page 15.98:1 and 14.05:1; the back chevron 4.26:1) were measured for the proposal from the committed emission; `test.ts` holds the link and current-page pairs over every committed brand and mode."
+        ],
+        "evolution": [
+          "2026-10-16 (#2666): built from the approved wireframe, every numbered call A, on the items-slot pattern of #2649 (PR #2660, open at the time). Sizes medium-first by the later owner rule Q359 B, which supersedes the proposal's small-first order.",
+          "2026-10-16 (Q382 A, after QA): one `separator` setting, chevron or slash, chevron by default, for every step, through `_breadcrumb-separator`. The overflow item and the parent path are unchanged."
+        ],
+        "projection": []
+      }
+    },
     "counter": {
       "codeOnly": [
         "the spinbutton — the value is one focusable element with role=\"spinbutton\" and tabindex=\"0\", not an <input>: a counter shows its value and is not typed into (typed entry is the number input). It carries aria-valuenow, aria-valuemin, aria-valuemax only when a max is set, aria-valuetext where the number alone is unclear (\"3 items\"), and the label as its name through aria-labelledby, which works with the label shown or hidden. The message, when shown, is added through aria-describedby.",
