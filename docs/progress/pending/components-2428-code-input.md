@@ -22,7 +22,7 @@ Built on #2660's items-slot pattern (merged), with current `main` merged in.
   the caret, `radius`) and `2xl` on its rung order.
 - **Reactions on a set with no pressed look.** `reactions.ts` planned While pressing only to `pressed`. The cell's def
   names `pressState: 'focus-visible'` (pressing a cell focuses the code input), carried on the plan only where declared,
-  so every other plan's `planStamp` is unchanged. `EXECUTOR_REVISION` is 35, one above main's 34 (`write-components.ts` passes it, and writes the trim).
+  so every other plan's `planStamp` is unchanged. `EXECUTOR_REVISION` is 36, one above main's 35 (`write-components.ts` passes it, and writes the trim).
 - **Default cells per member.** Each member's six cells show its state (`variantWhen` on `state`, which replaced
   `atState` on main in #2693): a fresh insert's picture of that
   state. A placed field's cells stay the designer's (Q329's accepted trade-off). Status has no nested mechanism, so an
@@ -91,3 +91,5 @@ Built on #2660's items-slot pattern (merged), with current `main` merged in.
   only the surface digest and the docs round-trip, both cleared by a regenerate and a re-accept.
 - Main's #2926 (every field's message off by default, owner decision item 1): Code input's `showMessage` defaults off,
   boolean, prop and built node, and `code-input` joins the test's `MESSAGE_OFF_FAMILY`, as that test's header names it.
+- Main's #2938 (Link current, Breadcrumbs, Search field): the registry lists take the union, `EXECUTOR_REVISION` is 36
+  over main's 35, and the artifact count is 210.

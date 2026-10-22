@@ -54,7 +54,7 @@ import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, Readback
 import { tailOf } from './figma-names';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
 import { validateComponentDef, VARIANT_AXES, axisKindOf, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, variantAxisFigmaName, isExcludedCoordinate, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef, type PartDef } from './component-schema';
-import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, settleChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, figmaEffectStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyFieldStyle, applyTagStyle, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, applyNestOverrides, type AnatomyPlan, type SwapFound } from './anatomy-figma';
+import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, settleChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, figmaEffectStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyFieldStyle, applyTagStyle, fieldStyleFor, SEARCH_FIELD_STYLE_DEFS, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, applyNestOverrides, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
 import { COMPONENT_RENAMES, coordKey, currentDefId, formerDefIds, partRenames, renameCoordinate, renameProperty, isDeclaredDrop, unaccounted as renamesUnaccounted, danglingTargets as renamesDangling, type ComponentRename, type AxesBaseline } from './component-renames';
 // One of the two imports this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
@@ -75,7 +75,7 @@ import type { AnatomyPlan, ButtonLayout } from './anatomy-figma';
 // ABOUT one component (`button.variants.appearance`, `textField.tokens[...]`), which a find-by-id
 // over the set would only make weaker. Completeness of the set is NOT asserted here — that is
 // `typecheck-components.ts`'s registry arm, whose oracle is git's index.
-import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioGroup, textarea, radioControl, radioRow, switchControl, switchRow, select, spinner, tag, tab, divider, counter } from './components/index';
+import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioGroup, textarea, radioControl, radioRow, switchControl, switchRow, select, spinner, tag, tab, divider, counter, searchField } from './components/index';
 // The glyph vocabulary, for #864's geometry assertions. Imported so EXPECTED comes from the set rather
 // than from the projector that read it — the two halves `docs/34` requires.
 import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-glyphs';
@@ -3780,6 +3780,8 @@ for (const b of brands) {
       'text-field': { keys: ['pad-x', 'pad-y', 'gap'], sizes: ['small', 'medium', 'large'] },
       // #2317: the Password field binds text-field's token block exactly, through the shared field factory.
       'password-field': { keys: ['pad-x', 'pad-y', 'gap'], sizes: ['small', 'medium', 'large'] },
+      // #2888: the Search field too.
+      'search-field': { keys: ['pad-x', 'pad-y', 'gap'], sizes: ['small', 'medium', 'large'] },
       textarea: { keys: ['pad-x', 'pad-y'], sizes: ['small', 'medium', 'large'] },
       select: { keys: ['pad-x', 'pad-y', 'gap'], sizes: ['small', 'medium', 'large'] },
       // #2894 (owner Q539, Q?4 A): the rows' block padding follows density too.
@@ -3795,6 +3797,8 @@ for (const b of brands) {
       // Toast (#2668): no size axis, so every key is bare. block / inline start / inline end / message-to-controls gap /
       // glyph-to-message gap. The action-to-close 4px is not listed: it stays at the floor.
       toast: { keys: [], sizes: [], bare: ['pad-y', 'pad-x', 'pad-end', 'gap', 'glyph-gap'] },
+      'breadcrumb-item': { keys: ['gap'], sizes: ['small', 'medium'] },
+      breadcrumbs: { bare: ['back-gap'], keys: ['gap'], sizes: ['small', 'medium'] },
     };
     const BTN = { compact: 'small 12/8/4/6 · medium 12/8/6/6 · large 20/12/6/8', comfortable: 'small 16/12/6/8 · medium 16/12/8/8 · large 24/16/8/12', spacious: 'small 20/16/8/12 · medium 20/16/12/12 · large 32/20/12/16' };
     // Rows: block padding (the per-size minimum, #2894) / control-to-label gap.
@@ -3803,6 +3807,7 @@ for (const b of brands) {
       button: BTN, 'button-destructive': BTN, 'button-neutral': BTN,
       'text-field': { compact: 'small 12/4/6 · medium 12/6/6 · large 20/6/6', comfortable: 'small 16/6/8 · medium 16/8/8 · large 24/8/8', spacious: 'small 20/8/12 · medium 20/12/12 · large 32/12/12' },
       'password-field': { compact: 'small 12/4/6 · medium 12/6/6 · large 20/6/6', comfortable: 'small 16/6/8 · medium 16/8/8 · large 24/8/8', spacious: 'small 20/8/12 · medium 20/12/12 · large 32/12/12' },
+      'search-field': { compact: 'small 12/4/6 · medium 12/6/6 · large 20/6/6', comfortable: 'small 16/6/8 · medium 16/8/8 · large 24/8/8', spacious: 'small 20/8/12 · medium 20/12/12 · large 32/12/12' },
       textarea: { compact: 'small 12/4 · medium 12/6 · large 20/6', comfortable: 'small 16/6 · medium 16/8 · large 24/8', spacious: 'small 20/8 · medium 20/12 · large 32/12' },
       select: { compact: 'small 12/4/6 · medium 12/6/6 · large 20/6/6', comfortable: 'small 16/6/8 · medium 16/8/8 · large 24/8/8', spacious: 'small 20/8/12 · medium 20/12/12 · large 32/12/12' },
       'checkbox-row': ROWS, 'radio-row': ROWS,
@@ -3824,6 +3829,11 @@ for (const b of brands) {
       link: { compact: 'small 4 · medium 4 · large 6', comfortable: 'small 4 · medium 4 · large 8', spacious: 'small 6 · medium 6 · large 12' },
       // Toast (#2668, the proposal's §8 approved by call 13 A): comfortable is 8/16/8 padding, 8 to the controls, 12 glyph to message.
       toast: { compact: 'bare 6/12/6/6/8', comfortable: 'bare 8/16/8/8/12', spacious: 'bare 12/20/12/12/16' },
+      // Breadcrumbs (#2666, DRAFT): the label-to-separator gap, repeated between items, and the parent path's
+      // chevron-to-link gap (Link's own icon gap). Comfortable is the proposal's space.050 / space.100; compact clamps
+      // the small gap at space.050, as Link's does.
+      'breadcrumb-item': { compact: 'small 4 · medium 6', comfortable: 'small 4 · medium 8', spacious: 'small 6 · medium 12' },
+      breadcrumbs: { compact: 'bare 4 · small 4 · medium 6', comfortable: 'bare 4 · small 4 · medium 8', spacious: 'bare 6 · small 6 · medium 12' },
     };
     const wrong: string[] = [];
     for (const [id, spec] of Object.entries(SPECS)) {
@@ -3867,8 +3877,13 @@ for (const b of brands) {
       toast: ['gap', 'glyph-gap', 'controls-gap'],
       // #2709: the three defs with a density-following gap that joined after this list was written.
       'password-field': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
+      // #2888: the Search field, TextField's gap through the shared field factory.
+      'search-field': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       accordion: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       link: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
+      // #2666: the label-to-separator gap inside an item, and the same gap between items.
+      'breadcrumb-item': ['size.small.gap', 'size.medium.gap'],
+      breadcrumbs: ['size.small.gap', 'size.medium.gap'],
       tag: ['small', 'medium', 'large'].flatMap((v) => [
         `size.${v}.select.gap+size.${v}.select.label-inset`, `size.${v}.dismissible.gap+size.${v}.dismissible.label-inset`, `size.${v}.check-gap`]),
     };
@@ -3910,6 +3925,7 @@ for (const b of brands) {
       button: { prefix: 'sized', lt: P326 }, 'button-destructive': { prefix: 'sized', lt: P326 }, 'button-neutral': { prefix: 'sized', lt: P326 },
       'text-field': { prefix: 'sized', lt: [['gap', 'pad-x']] },
       'password-field': { prefix: 'sized', lt: [['gap', 'pad-x']] },
+      'search-field': { prefix: 'sized', lt: [['gap', 'pad-x']] },
       select: { prefix: 'sized', lt: [['gap', 'pad-x']] },
       // Tag's icon→label is VISIBLE, the content gap plus the label row's leading inset (owner, 2026-09-29), per
       // type: the sum is what must stay under the padding. A `+` key is summed.
@@ -9787,6 +9803,9 @@ arm: {
       ['controlShape', 'boxed'], ['controlShape', 'hairline'], ['controlShape', 'pill'],
       // #2695 (owner Q333 taking Q15 A): "Field style: Underline" adds no token; it moves only the materialized field defs.
       ['fieldStyle', 'underline'],
+      // #2888: "Search field style" adds no token either; Outline and Underline move only the materialized search field
+      // (Outline where the brand's fields are underline: the plugin arm checks it there).
+      ['searchFieldStyle', 'outline'], ['searchFieldStyle', 'underline'],
       // #2887 (Q513.1 A): "Tag style: Underline" adds no token; it moves only the materialized Tag def.
       ['tagStyle', 'underline'],
     ];
@@ -14892,8 +14911,9 @@ arm: {
       const def = (id: string) => componentDefs.find((x) => x.id === id)!;
       const find = (n: any, name: string): any => (n.name === name ? n : (n.children ?? []).map((c: any) => find(c, name)).find(Boolean));
       const all = (n: any): any[] => [n, ...(n.children ?? []).flatMap(all)];
-      // The field family on main (Q332: Text field, Textarea, Select, Password field; Number and Code input are not built).
-      const FIELDS = ['password-field', 'select', 'text-field', 'textarea'];
+      // The field family on main (Q332: Text field, Textarea, Select, Password field; Number and Code input are not built),
+      // and the Search field (#2888), drawn here as `applyFieldStyle` draws it; which style it is given is `fieldStyleFor`'s.
+      const FIELDS = ['password-field', 'search-field', 'select', 'text-field', 'textarea'];
       // Code input's cell (#2428; #2719, Q332 A and Q12 A): a field box per character, so the lever reaches it. Its own
       // arm is below: 28 members on a `state` grid with no `status` axis, so the 84-member loop over FIELDS does not fit it.
       const FIELD_CELLS = ['code-input-cell'];
@@ -15062,8 +15082,10 @@ arm: {
       ok(lever?.label === 'Tag style' && lever.group === 'form' && lever.default === 'pill' && !lever.advanced
         && JSON.stringify(lever.options?.map((o) => [o.value, o.label])) === JSON.stringify([['pill', 'Pill'], ['underline', 'Underline']])
         && lever.description === 'The shape of every tag. Pill draws a rounded outline; Underline draws one line under the tag, 2px when selected or under the pointer. Either way the line clears 3:1.'
-        && order.indexOf('tagStyle') === order.indexOf('fieldStyle') + 1,
-        `#2887 lever (Q513.1, Q540 Q8): "Tag style", Pill / Underline, default Pill, not advanced, the owner's description, in Form right after Field style (form order: ${order.join(', ')})`);
+        // Both Tag style (Q513.1 A) and Search field style (#2888 Q?2 A) were placed right after Field style. Batched
+        // together, the field levers stay adjacent: Field style, Search field style, then Tag style (held for the owner).
+        && order.indexOf('tagStyle') === order.indexOf('searchFieldStyle') + 1 && order.indexOf('searchFieldStyle') === order.indexOf('fieldStyle') + 1,
+        `#2887 lever (Q513.1, Q540 Q8): "Tag style", Pill / Underline, default Pill, not advanced, the owner's description, in Form after Field style and Search field style (form order: ${order.join(', ')})`);
       const uDef = applyTagStyle(tag, 'underline');
       const errs = (validateComponentDef(uDef) as { errors: string[] }).errors;
       ok(errs.length === 0, `#2887 schema: the underline Tag validates, its {selection}/{state}-keyed bottom weight and its minHeight-based ratio floor admitted (${errs.slice(0, 2).join('; ') || 'clean'})`);
@@ -15208,7 +15230,7 @@ arm: {
         ok(JSON.stringify(got) === '["radius/hairline"]', `#2361 hairline: button@${size} binds radius/hairline (${got.join(', ') || 'none'})`);
       }
       // Fields: each one by name, and each binds the field rung radius/sm under rounded (the identity).
-      for (const id of ['text-field', 'select', 'textarea']) {
+      for (const id of ['text-field', 'select', 'textarea', 'search-field']) {
         // A field projects one size (no `size` axis), so it may declare none: project it once, at `undefined`.
         const sizes: (string | undefined)[] = def(id).variants?.size ?? [undefined];
         for (const size of sizes) {
@@ -17081,7 +17103,7 @@ arm: {
     //     `showMessage` boolean (Code input #2789, Search #2912) must join this list, and so take the same
     //     default. The expected `false` is the owner's answer, not a value read off any def (docs/34).
     {
-      const MESSAGE_OFF_FAMILY = ['code-input', 'counter', 'password-field', 'select', 'text-field', 'textarea'];
+      const MESSAGE_OFF_FAMILY = ['code-input', 'counter', 'password-field', 'search-field', 'select', 'text-field', 'textarea'];
       const withMsg = componentDefs.filter((d) => d.figmaProperties?.booleans?.showMessage).map((d) => d.id).sort();
       ok(JSON.stringify(withMsg) === JSON.stringify(MESSAGE_OFF_FAMILY),
         `#2926 the defs with a showMessage boolean are exactly the message-off family ${JSON.stringify(MESSAGE_OFF_FAMILY)} (got ${JSON.stringify(withMsg)}) — a new one joins the list and takes its default`);
@@ -17348,12 +17370,14 @@ arm: {
     const TIER: Record<string, number> = {
       button: 1,
       'button-destructive': 2, 'button-neutral': 2, 'icon-button': 2, 'icon-button-neutral': 2, icon: 2,
-      'text-field': 2, textarea: 2, 'password-field': 2, 'code-input': 2, select: 2, 'checkbox-row': 2, 'checkbox-group': 2,
+      'text-field': 2, textarea: 2, 'password-field': 2, 'search-field': 2, 'code-input': 2, select: 2, 'checkbox-row': 2, 'checkbox-group': 2,
       'radio-row': 2, 'radio-group': 2, 'switch-row': 2, counter: 2, 'button-group': 2, tabs: 2, accordion: 2, list: 2, link: 2, dialog: 2, toast: 2,
       'icon-button-destructive': 3, 'segmented-control': 3, badge: 3, tag: 3, divider: 3, spinner: 3, veil: 3, 'image-placeholder': 3,
       'flush-icon-button-neutral': 4, 'flush-icon-button': 5, 'flush-icon-button-destructive': 5,
       'checkbox-control': 6, 'radio-control': 6, 'switch-control': 6, 'field-label': 6, 'field-message': 6, 'focus-ring': 6,
       'tab-item': 9, 'list-item': 9, 'segmented-control-segment': 9, '_accordion-indicator': 9, 'code-input-cell': 9,
+      // Breadcrumbs (#2666): the trail is placed on its own; its step and separator are parts its host places.
+      breadcrumbs: 2, 'breadcrumb-item': 9, '_breadcrumb-separator': 9,
     };
     const prio = (d: ComponentDef) => d.ai.generationPriority;
     const offScale = componentDefs.filter((d) => !SCALE.includes(prio(d) as number));
@@ -17971,7 +17995,7 @@ arm: {
     const SH_MODES = ['light', 'dark', 'hc-light', 'hc-dark'];
     const SH_GROUNDS = ['background.primary', 'background.secondary'];
     // #2709: Password field joins: the same field factory as Text field, so the same status borders.
-    const SH_DEFS = ['text-field', 'textarea', 'select', 'password-field'];
+    const SH_DEFS = ['text-field', 'textarea', 'select', 'password-field', 'search-field'];
     const CHOICE_ERR = 'a choice control (or the row or group that only follows it): status is [default, error] only (Q354), the danger edge is one flat `color.border.danger` at every state, so there is no status hover step to measure, and a row or group paints nothing by it';
     // Defs with a status axis that are NOT a framed field, with the reason. The converse below reads the axis off
     // every def, so a new status-bearing def fails by name until it is pinned or excused here.
@@ -18222,7 +18246,7 @@ arm: {
     const RO_GROUNDS = ['background.primary', 'background.secondary'];
     // Pinned by name, independent of the discovery below: the three field defs #1710 names (select's
     // read-only member landed with #1699/#1709), and Password field (#2709), which joined after.
-    const RO_PINNED = ['text-field', 'textarea', 'select', 'password-field'];
+    const RO_PINNED = ['text-field', 'textarea', 'select', 'password-field', 'search-field'];
     // The STATES swept. `read-only` is #1710's subject; `rest`, `hover` and `filled` are swept too because the
     // three defs' SC 1.4.11 line claims "the rest, hover and read-only borders are gated on
     // `background.secondary`" — and before this sweep nothing gated a def's HOVER binding at all (the review of
@@ -18708,10 +18732,11 @@ arm: {
       const labelStyle = (n: LN): string | undefined => (n.name === 'label' ? n.textStyle : n.children.map(labelStyle).find(Boolean));
       const plans = figmaAnatomySet(linkDef, { swapTarget: 'FPO-default-icon' });
       const rows = plans.map((p) => ({ c: p.coord as Record<string, string>, size: String(p.size), style: labelStyle(p.root as unknown as LN) }));
-      ok(plans.length === 96, `#2580 link/members: style 2 × weight 2 × size 3 × surface 2 × 4 states = 96 members (got ${plans.length})`);
+      ok(plans.length === 144, `#2580 link/members: style 2 × weight 2 × size 3 × surface 2 × 4 states = 96 members, plus the 48 current-page members on standalone (#2872, Q507.2 A) = 144 (got ${plans.length})`);
       const want = (r: { c: Record<string, string>; size: string }, underlined: boolean) =>
         figmaTextStyleName(`type.body.${RUNG[r.size]}.${ROLE[r.c.weight]}${underlined ? '-link' : ''}`);
-      const standalone = rows.filter((r) => r.c.style === 'standalone');
+      // The current page (#2872) is held by its own arm; Q289.2 A is the unselected standalone link.
+      const standalone = rows.filter((r) => r.c.style === 'standalone' && r.c.selection === 'unselected');
       const sOff = standalone.filter((r) => r.style !== want(r, UNDERLINED_STANDALONE.has(r.c.state)));
       ok(standalone.length === 48 && sOff.length === 0,
         `#2580 link/standalone (Q289.2 A): a standalone link is plain at rest and underlined at hover, pressed and focus-visible, at every weight, size and surface (${standalone.length} members${sOff.length ? `; OFF: ${sOff.map((r) => `${JSON.stringify(r.c)} ${r.size} → ${r.style}`).join('; ')}` : ''})`);
@@ -18742,7 +18767,7 @@ arm: {
       };
       const PX: Record<string, number> = { small: 14, medium: 16, large: 18 };
       const tierOff = rows.filter((r) => !r.style?.startsWith('body/') || pxOf(r.style) !== PX[r.size]);
-      ok(rows.length === 96 && tierOff.length === 0,
+      ok(rows.length === 144 && tierOff.length === 0,
         `#2580 link/body-tier (Q297.1): every member, standalone and inline, sets body type at 14 / 16 / 18px, with no 12px link${tierOff.length ? `; OFF: ${tierOff.slice(0, 4).map((r) => `${JSON.stringify(r.c)} ${r.size} → ${r.style} (${pxOf(r.style ?? '')}px)`).join('; ')}` : ''}`);
 
       // Q297.2 — a trailing icon only, on standalone members only, 16px with 14px and 16px text and 20px with 18px text.
@@ -18770,8 +18795,8 @@ arm: {
       // its own emphasis role and keeps the underlined twin, rather than the `strong` it does not emit.
       const nbShape = figmaAnatomySet(applyWeightIntent(linkDef, { ...DEFAULT_WEIGHT_AVAILABILITY, body: ['default', 'emphasis'] }), { swapTarget: 'FPO-default-icon' });
       const nbAt = (state: string) => nbShape.map((p) => ({ c: p.coord as Record<string, string>, size: String(p.size), style: labelStyle(p.root as unknown as LN) }))
-        .find((r) => r.c.style === 'standalone' && r.c.weight === 'emphasis' && r.c.surface === 'default' && r.size === 'medium' && r.c.state === state)?.style;
-      ok(nbShape.length === 96 && nbAt('rest') === 'body/md/emphasis' && nbAt('hover') === 'body/md/emphasis-link',
+        .find((r) => r.c.style === 'standalone' && r.c.selection === 'unselected' && r.c.weight === 'emphasis' && r.c.surface === 'default' && r.size === 'medium' && r.c.state === state)?.style;
+      ok(nbShape.length === 144 && nbAt('rest') === 'body/md/emphasis' && nbAt('hover') === 'body/md/emphasis-link',
         `#2580 link/weight-intent (Q297.1, #1602): in a [default, emphasis] body brand, emphasis binds body/md/emphasis at rest and body/md/emphasis-link at hover (got ${nbShape.length} members, ${nbAt('rest')} / ${nbAt('hover')})`);
 
       ok(JSON.stringify(linkDef.variants.style) === JSON.stringify(['standalone', 'inline'])
@@ -18803,6 +18828,197 @@ arm: {
       const realErrs = validateComponentDef(linkDef).errors;
       ok(realErrs.length === 0 && stateGapErrs.some((e) => e.includes(`binding key '${STATE_GAP}' names placeholder '{state}', which is not an axis`)),
         `#2580 link/state-type-only: a type key may name {state}, a geometry key may not — Link validates clean, and a clone with a state-keyed gap is refused naming the placeholder (Link: ${realErrs.join('; ') || 'no errors'}; clone: ${stateGapErrs.join('; ') || 'no errors'})`);
+    }
+  }
+
+  // ---- #2666: BREADCRUMBS, the approved wireframe (every numbered call A, 2026-10-16) — each held against a literal ----
+  // EXPECTED is typed here from the decisions on #2666 (and Q347 A / Q359 B on #2752 for the size order), never read
+  // from `breadcrumbs.ts` or `breadcrumb-item.ts`. ACTUAL is the real projection (`figmaAnatomySet`), node by node, and
+  // the def's shipped fields. Contrast is measured from the COMMITTED emission (`out/<brand>.tokens.json`, every brand
+  // the regen writes, each in its four modes), not from the theme the engine computes, so the measurement is independent
+  // of both the def and the role resolver. Mutations, each failing the arm named:
+  //   size order small-first, or a kind other than ancestor first → `#2666 breadcrumbs/members`;
+  //   the crumb nesting Link standalone, emphasis, or not exposing its state → `#2666 breadcrumbs/crumb` (calls 3 A, 4 A);
+  //   the current page as a link, in text.secondary, or at emphasis → `#2666 breadcrumbs/current` (calls 2 A, 4 A, 5 A);
+  //   a separator in the wrong look for its member, or after the current page → `#2666 breadcrumbs/separator` (call 6 A,
+  //   Q382 A); the separator's glyph, size or ink, or the slash's shape → `#2666 breadcrumbs/separator-looks`;   the overflow nesting IconButton or another glyph → `#2666 breadcrumbs/overflow`;
+  //   the slot's minimum, preferred item or default kinds → `#2666 breadcrumbs/slot`;
+  //   the parent path's glyph, link or wording → `#2666 breadcrumbs/parent` (call 11 A);
+  //   a gap off the proposal's space.050 / space.100 → `#2666 breadcrumbs/gaps`;
+  //   the collapse numbers or the nav label → `#2666 breadcrumbs/code-props` (calls 8 A, 9 A, 16 A);
+  //   the current page or the back chevron rebound off the measured role, or a measured role under its floor in any
+  //   committed cell → `#2666 breadcrumbs/contrast`.
+  {
+    const itemDef = componentDefs.find((d) => d.id === 'breadcrumb-item');
+    const trailDef = componentDefs.find((d) => d.id === 'breadcrumbs');
+    ok(!!itemDef && !!trailDef, '#2666 breadcrumbs: Breadcrumbs and BreadcrumbItem are registered');
+    if (itemDef && trailDef) {
+      type BN = { name: string; type: string; nestTarget?: string; nestVariant?: Record<string, string>; nestExpose?: string[]; nestOverrides?: { property: string; type: string; value: string }[]; descendantFills?: string; textStyle?: string; characters?: string; paints?: { fills?: string }; bound?: Record<string, string>; slotSettings?: Record<string, unknown>; slotPreferred?: string[]; children: BN[] };
+      const all = (n: BN): BN[] => [n, ...n.children.flatMap(all)];
+      const find = (n: BN, name: string): BN | undefined => all(n).find((x) => x.name === name);
+      const itemPlans = figmaAnatomySet(itemDef, { swapTarget: 'FPO-default-icon' }).map((p) => ({ kind: String((p.coord as Record<string, string>).kind), sep: String((p.coord as Record<string, string>).separator), size: String(p.size), root: p.root as unknown as BN }));
+      const trailPlans = figmaAnatomySet(trailDef, { swapTarget: 'FPO-default-icon' }).map((p) => ({ path: String((p.coord as Record<string, string>).path), sep: String((p.coord as Record<string, string>).separator), size: String(p.size), root: p.root as unknown as BN }));
+      const RUNG: Record<string, string> = { small: 'sm', medium: 'md' };
+
+      // MEMBERS (call 1 A, call 7 A; Q347 A and Q359 B; Q382 A): the item 3 kinds × 2 separators × 2 sizes less the current
+      // page's slash (10), the trail 2 paths × 2 separators × 2 sizes less the parent's slash (6), the first member the
+      // code default. Typed out, in the set's order.
+      const ITEM_MEMBERS = ['ancestor/chevron', 'ancestor/slash', 'current/chevron', 'overflow/chevron', 'overflow/slash'].flatMap((ks) => ['medium', 'small'].map((z) => `${ks}/${z}`));
+      const TRAIL_MEMBERS = ['full/chevron', 'full/slash', 'parent/chevron'].flatMap((ls) => ['medium', 'small'].map((z) => `${ls}/${z}`));
+      ok(JSON.stringify(itemPlans.map((p) => `${p.kind}/${p.sep}/${p.size}`)) === JSON.stringify(ITEM_MEMBERS) && JSON.stringify(trailPlans.map((p) => `${p.path}/${p.sep}/${p.size}`)) === JSON.stringify(TRAIL_MEMBERS)
+        && JSON.stringify(itemDef.variants) === '{"kind":["ancestor","current","overflow"],"separator":["chevron","slash"],"size":["medium","small"]}'
+        && JSON.stringify(trailDef.variants) === '{"path":["full","parent"],"separator":["chevron","slash"],"size":["medium","small"]}'
+        && [itemDef, trailDef].every((d) => d.props.find((p) => p.name === 'separator')?.default === 'chevron')
+        && itemPlans[0].kind === 'ancestor' && itemPlans[0].size === 'medium' && trailPlans[0].path === 'full' && trailPlans[0].size === 'medium'
+        && itemDef.states.length === 0 && trailDef.states.length === 0 && !itemDef.figmaProperties?.stateAxis && !trailDef.figmaProperties?.stateAxis
+        && [itemDef, trailDef].every((d) => d.props.find((p) => p.name === 'size')?.default === 'medium'),
+        `#2666 breadcrumbs/members (Q382 A): BreadcrumbItem kind [ancestor, current, overflow] × separator [chevron, slash] × size [medium, small] less the current page's slash = 10, Breadcrumbs path [full, parent] × separator × size less the parent's slash = 6, chevron by default, no state axis, the first member the code default (got ${itemPlans.length} / ${trailPlans.length}, ${JSON.stringify(itemDef.variants)} ${JSON.stringify(trailDef.variants)})`);
+
+      // THE CRUMB (calls 3 A, 4 A): Link, inline (underlined at every state), default weight, default surface, at the
+      // item's size, its state exposed. Only on an ancestor. Never the current page (#2872's `selection`): the current
+      // page is the item's own text, not a Link.
+      const crumbOff = itemPlans.filter((p) => {
+        const c = find(p.root, 'crumb');
+        if (p.kind !== 'ancestor') return !!c;
+        return !(c && c.nestTarget === 'link' && JSON.stringify(c.nestVariant) === JSON.stringify({ style: 'inline', weight: 'default', size: p.size, surface: 'default', selection: 'unselected', state: 'rest' })
+          && JSON.stringify(c.nestExpose) === '["state"]');
+      });
+      ok(crumbOff.length === 0, `#2666 breadcrumbs/crumb (calls 3 A, 4 A): an ancestor nests Link inline, default weight, at its own size, state exposed, and nothing else nests it${crumbOff.length ? ` — OFF: ${crumbOff.map((p) => `${p.kind}/${p.size}`).join(', ')}` : ''}`);
+
+      // THE CURRENT PAGE (calls 2 A, 4 A, 5 A): text, not a link, in text.primary at the default body weight. Only on current.
+      const curOff = itemPlans.filter((p) => {
+        const t = find(p.root, 'current');
+        if (p.kind !== 'current') return !!t;
+        return !(t && t.type === 'TEXT' && t.paints?.fills === 'color/text/primary' && t.textStyle === `body/${RUNG[p.size]}/default` && t.characters === 'Current page'
+          && !all(p.root).some((n) => n.nestTarget === 'link'));
+      });
+      ok(curOff.length === 0, `#2666 breadcrumbs/current (calls 2 A, 4 A, 5 A): the current page is "Current page" text in color/text/primary at body/<rung>/default, with no link in its member${curOff.length ? ` — OFF: ${curOff.map((p) => `${p.kind}/${p.size}`).join(', ')}` : ''}`);
+
+      // THE SEPARATOR (call 6 A, Q382 A): after every step but the current one, the last child of its row, ONE nested
+      // `_breadcrumb-separator` in the member's own separator look; the current page nests none.
+      const sepOff = itemPlans.filter((p) => {
+        const seps = all(p.root).filter((n) => n.nestTarget === '_breadcrumb-separator');
+        if (p.kind === 'current') return seps.length > 0;
+        return !(seps.length === 1 && JSON.stringify(seps[0].nestVariant) === JSON.stringify({ type: p.sep }) && p.root.children[p.root.children.length - 1] === seps[0]);
+      });
+      ok(sepOff.length === 0, `#2666 breadcrumbs/separator (call 6 A, Q382 A): one BreadcrumbSeparator in the member's own look (chevron or slash) ends every ancestor and overflow member, and no current member${sepOff.length ? ` — OFF: ${sepOff.map((p) => `${p.kind}/${p.sep}/${p.size}`).join(', ')}` : ''}`);
+
+      // THE SEPARATOR'S TWO LOOKS (Q382 A): a 16px (icon.size.xs) chevron-right or slash in color/icon/secondary, the
+      // chevron first (the default). The slash is the set's own glyph, typed here (a 2px stroke on the 24px grid).
+      const sepDef = componentDefs.find((d) => d.id === '_breadcrumb-separator');
+      const sepPlans = sepDef ? figmaAnatomySet(sepDef, { swapTarget: 'FPO-default-icon' }) : [];
+      const SLASH = 'M14.03 4H16.17L9.97 20H7.83L14.03 4Z';
+      const looks = sepPlans.map((p) => {
+        const g = (p.root as unknown as BN).children;
+        return [String((p.coord as Record<string, string>).type), g.length, g[0]?.name, g[0]?.nestTarget, g[0]?.descendantFills, g[0]?.bound?.width, g[0]?.bound?.height];
+      });
+      const slashPath = (ICON_PATHS as Record<string, string | undefined>)['slash'];
+      ok(!!sepDef && sepDef.name === 'BreadcrumbSeparator' && JSON.stringify(looks) === JSON.stringify([['chevron', 1, 'chevronGlyph', 'icon/chevron-right', 'color/icon/secondary', 'icon/size/xs', 'icon/size/xs'], ['slash', 1, 'slashGlyph', 'icon/slash', 'color/icon/secondary', 'icon/size/xs', 'icon/size/xs']])
+        && slashPath !== undefined && canonicalShape(slashPath) === canonicalShape(SLASH),
+        `#2666 breadcrumbs/separator-looks (Q382 A): _breadcrumb-separator is a 16px chevron-right or slash in color/icon/secondary, chevron first, and the set's slash is the 2px stroke typed here (got ${JSON.stringify(looks)}, slash ${slashPath ?? 'not in the set'})`);
+
+      // THE OVERFLOW STEP (calls 8 A, 14 A): FlushIconButton.Neutral, flush, small at both sizes, three dots, state exposed.
+      const ovOff = itemPlans.filter((p) => {
+        const o = find(p.root, 'overflow');
+        if (p.kind !== 'overflow') return !!o;
+        return !(o && o.nestTarget === 'flush-icon-button-neutral' && JSON.stringify(o.nestVariant) === '{"shape":"flush","size":"small","surface":"default","state":"rest"}'
+          && JSON.stringify(o.nestExpose) === '["state"]' && JSON.stringify(o.nestOverrides) === '[{"property":"swap icon","type":"INSTANCE_SWAP","value":"icon/more-horizontal-filled"}]');
+      });
+      ok(ovOff.length === 0, `#2666 breadcrumbs/overflow (calls 8 A, 14 A): the overflow step nests FlushIconButton.Neutral, flush and small on the default surface, showing more-horizontal-filled, state exposed${ovOff.length ? ` — OFF: ${ovOff.map((p) => `${p.kind}/${p.size}`).join(', ')}` : ''}`);
+
+      // THE ITEMS SLOT (call 1 A, the proposal's properties table): at least two, BreadcrumbItem only, two ancestors and
+      // the current page by default at the trail's size. Only on the trail.
+      const slotOff = trailPlans.filter((p) => {
+        const s = find(p.root, 'items');
+        if (p.path !== 'full') return !!s;
+        return !(s && s.type === 'CONTENT_SLOT' && JSON.stringify(s.slotSettings) === '{"minChildren":2,"allowPreferredValuesOnly":true}'
+          && JSON.stringify(s.slotPreferred) === '["breadcrumb-item"]'
+          && JSON.stringify(s.children.map((c) => [c.nestTarget, c.nestVariant?.kind, c.nestVariant?.separator, c.nestVariant?.size])) === JSON.stringify([['breadcrumb-item', 'ancestor', p.sep, p.size], ['breadcrumb-item', 'ancestor', p.sep, p.size], ['breadcrumb-item', 'current', 'chevron', p.size]]));
+      });
+      ok(slotOff.length === 0, `#2666 breadcrumbs/slot: the trail holds a native items slot, at least 2, BreadcrumbItem only, defaulting to ancestor, ancestor, current at its own size, the ancestors in the trail's separator (Q382 A)${slotOff.length ? ` — OFF: ${slotOff.map((p) => `${p.path}/${p.sep}/${p.size}`).join(', ')}` : ''}`);
+
+      // THE PARENT LAYOUT (call 11 A): a 16px chevron-left in the link icon role, then Link inline, default weight,
+      // reading "Parent page", state exposed. Only on parent.
+      const parOff = trailPlans.filter((p) => {
+        const g = find(p.root, 'backGlyph'), l = find(p.root, 'parentLink');
+        if (p.path !== 'parent') return !!g || !!l;
+        return !(g && l && p.root.children.indexOf(g) === 0 && p.root.children.indexOf(l) === 1 && g.nestTarget === 'icon/chevron-left' && g.descendantFills === 'color/icon/link/default'
+          && g.bound?.width === 'icon/size/xs' && l.nestTarget === 'link' && JSON.stringify(l.nestVariant) === JSON.stringify({ style: 'inline', weight: 'default', size: p.size, surface: 'default', selection: 'unselected', state: 'rest' })
+          && JSON.stringify(l.nestExpose) === '["state"]' && JSON.stringify(l.nestOverrides) === '[{"property":"label","type":"TEXT","value":"Parent page"}]');
+      });
+      ok(parOff.length === 0, `#2666 breadcrumbs/parent (call 11 A): the parent path is a 16px chevron-left in color/icon/link/default before an inline Link reading "Parent page"${parOff.length ? ` — OFF: ${parOff.map((p) => `${p.path}/${p.size}`).join(', ')}` : ''}`);
+
+      // THE GAPS (the proposal's token table, DRAFT): label to separator and item to item space.050 small / space.100
+      // medium; the parent path's chevron to link space.050, Link's own icon gap.
+      const SPACE: Record<string, string> = { small: 'space/050', medium: 'space/100' };
+      const gapOff = [
+        ...itemPlans.filter((p) => p.root.bound?.itemSpacing !== SPACE[p.size]).map((p) => `item ${p.kind}/${p.size} ${p.root.bound?.itemSpacing}`),
+        ...trailPlans.filter((p) => p.path === 'full' && find(p.root, 'items')?.bound?.itemSpacing !== SPACE[p.size]).map((p) => `slot ${p.size}`),
+        ...trailPlans.filter((p) => p.path === 'parent' && p.root.bound?.itemSpacing !== 'space/050').map((p) => `parent ${p.size} ${p.root.bound?.itemSpacing}`),
+      ];
+      ok(gapOff.length === 0, `#2666 breadcrumbs/gaps: space.050 / space.100 inside each item and between items, space.050 between the back chevron and its link${gapOff.length ? ` — OFF: ${gapOff.join('; ')}` : ''}`);
+
+      // CODE PROPS AND WORDING (calls 8 A, 9 A, 11 A, 15 A, 16 A).
+      const prop = (n: string) => trailDef.props.find((p) => p.name === n);
+      ok(prop('maxItems')?.default === 5 && prop('itemsBeforeCollapse')?.default === 1 && prop('itemsAfterCollapse')?.default === 2
+        && prop('collapse')?.default === 'expand' && prop('responsive')?.default === true && prop('label')?.default === 'Breadcrumb'
+        && trailDef.name === 'Breadcrumbs' && trailDef.category === 'navigation' && itemDef.name === 'BreadcrumbItem' && itemDef.category === 'navigation'
+        && JSON.stringify(trailDef.aliases) === '["breadcrumb","breadcrumb-trail","breadcrumb-list"]'
+        && trailDef.summary === 'The path to the current page as links, with the current page last and not a link. Size applies to the items you haven\'t edited. After editing an item, select the items and set their size.'
+        && itemDef.summary === 'One step in a breadcrumb trail: a link, the current page, or the collapsed steps.'
+        && itemDef.accessibility.aria.includes('"Show full path"') && trailDef.accessibility.aria.includes('aria-label="Breadcrumb"') && trailDef.accessibility.aria.includes('aria-current="page"'),
+        `#2666 breadcrumbs/code-props: collapse above 5 keeping 1 and 2, expand in place, the small-screen switch on, the nav named "Breadcrumb", the overflow "Show full path", and the approved names and summaries (maxItems ${prop('maxItems')?.default}, before ${prop('itemsBeforeCollapse')?.default}, after ${prop('itemsAfterCollapse')?.default})`);
+
+      // CONTRAST over every committed brand × mode (proposal §5): the roles the projection paints, measured from the
+      // committed emission. Link ink is Link's `text.link.*` (the nested instance), held here at 4.5:1 on both page grounds
+      // because a crumb is navigation text the page relies on; the current page 4.5:1 on both; the back chevron 3:1 on
+      // the page (SC 1.4.11). The separator is decorative and held to no floor.
+      const treeFiles = readdirSync(resolve(HERE, 'out')).filter((f) => /^[a-z0-9-]+\.tokens\.json$/.test(f));
+      const MODES = ['light', 'dark', 'hc-light', 'hc-dark'];
+      const colorOf = (tree: Record<string, any>, root: string, path: string, mode: string, depth = 0): string | null => {
+        let n: any = tree[root];
+        for (const k of path.split('.')) n = n?.[k];
+        if (!n || depth > 8) return null;
+        const v = mode === 'light' ? n.$value : (n.$extensions?.prism3?.modes?.[mode]?.$value ?? n.$value);
+        if (typeof v !== 'string') return null;
+        const ref = /^\{([^}]+)\}$/.exec(v);
+        if (ref) { const [r0, ...rest] = ref[1].split('.'); return colorOf(tree, r0, rest.join('.'), mode, depth + 1); }
+        const rgb = /^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)$/.exec(v);
+        if (rgb) return rgb[4] !== undefined && Number(rgb[4]) < 1 ? null : '#' + [rgb[1], rgb[2], rgb[3]].map((x) => Number(x).toString(16).padStart(2, '0')).join('');
+        return /^#[0-9a-f]{6}$/i.test(v) ? v : null;
+      };
+      const PAIRS: [string, string, number][] = [
+        ['color.text.link.default', 'color.background.primary', 4.5], ['color.text.link.default', 'color.background.secondary', 4.5],
+        ['color.text.link.hover', 'color.background.primary', 4.5], ['color.text.link.pressed', 'color.background.primary', 4.5],
+        ['color.text.link.focused', 'color.background.primary', 4.5],
+        ['color.text.primary', 'color.background.primary', 4.5], ['color.text.primary', 'color.background.secondary', 4.5],
+        ['color.icon.link.default', 'color.background.primary', 3],
+      ];
+      // The roles under test are the ones the projection paints: read back off the plans above, so a rebind moves both.
+      const painted = new Set([
+        ...itemPlans.flatMap((p) => all(p.root)).map((n) => n.paints?.fills).filter(Boolean),
+        ...trailPlans.flatMap((p) => all(p.root)).map((n) => n.descendantFills).filter(Boolean),
+      ].map((v) => String(v).replace(/\//g, '.')));
+      const CELLS = 20;
+      const lows: string[] = [];
+      for (const [fg, bg, floor] of PAIRS) {
+        let measured = 0, lowest = Infinity;
+        for (const f of treeFiles) {
+          const tree = JSON.parse(readFileSync(resolve(HERE, 'out', f), 'utf8'));
+          const root = Object.keys(tree)[0];
+          for (const m of MODES) {
+            const a = colorOf(tree, root, fg, m), b = colorOf(tree, root, bg, m);
+            if (!a || !b) { lows.push(`${f}/${m}: ${!a ? fg : bg} unresolved`); continue; }
+            const r = contrast(hexToRgb(a), hexToRgb(b));
+            measured++; lowest = Math.min(lowest, r);
+            if (r < floor) lows.push(`${fg} on ${bg} ${f}/${m} ${r.toFixed(2)}`);
+          }
+        }
+        if (measured !== CELLS) lows.push(`${fg} on ${bg}: ${measured} of ${CELLS} cells measured`);
+      }
+      const unpainted = ['color.text.primary', 'color.icon.link.default'].filter((r) => !painted.has(r));
+      ok(lows.length === 0 && unpainted.length === 0 && treeFiles.length === 5,
+        `#2666 breadcrumbs/contrast: link ink 4.5:1 on background.primary at every state and on background.secondary at rest, the current page's text.primary 4.5:1 on both, the back chevron's icon.link.default 3:1 on the page, in all ${CELLS} committed brand × mode cells (${treeFiles.length} brands)${unpainted.length ? ` — the projection no longer paints ${unpainted.join(', ')}` : ''}${lows.length ? ` — LOW: ${lows.slice(0, 6).join('; ')}` : ''}`);
     }
   }
 
@@ -19039,8 +19255,8 @@ arm: {
     // `segmented-control-segment` joins (#2418, Q269.4): an unselected option's hover and pressed are the neutral wash,
     // and its selected tint is the subtle-fill Tag binds, so a solid-tint or no-hover brand reaches it as it reaches a tag.
     // `code-input-cell` joins (#2428): its hover is Text field's neutral wash, so the lever reaches it as it reaches a field.
-    ok(JSON.stringify(binders) === JSON.stringify(['button', 'button-destructive', 'button-neutral', 'code-input-cell', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'password-field', 'segmented-control-segment', 'select', 'tag', 'text-field', 'textarea']),
-      `#1608 the wash binders the lever reaches: button ×3, code-input-cell, flush-icon-button ×3 (round), icon-button ×3, password-field, segmented-control-segment, select, tag, text-field, textarea (${binders.join(', ')})`);
+    ok(JSON.stringify(binders) === JSON.stringify(['button', 'button-destructive', 'button-neutral', 'code-input-cell', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'password-field', 'search-field', 'segmented-control-segment', 'select', 'tag', 'text-field', 'textarea']),
+      `#1608 the wash binders the lever reaches: button ×3, code-input-cell, flush-icon-button ×3 (round), icon-button ×3, password-field, search-field, segmented-control-segment, select, tag, text-field, textarea (${binders.join(', ')})`);
 
     // BY-NAME MUTATION, in-suite: the RAW def (no wrap) under solid-tint misses the page wash — the 96-miss
     // shape the owner saw, outline's 48 and text's 48. Since #2324 the text appearance keys no wash by default, so the
@@ -19406,6 +19622,9 @@ arm: {
       // #2317: the Password field's two text layers are text-field's, through the shared field factory.
       { def: componentDefs.find((d) => d.id === 'password-field')!, part: 'placeholder', axes: { size: 3 } },
       { def: componentDefs.find((d) => d.id === 'password-field')!, part: 'value', axes: { size: 3 }, at: { state: 'filled' } },
+      // #2888: the Search field's are TextField's too.
+      { def: componentDefs.find((d) => d.id === 'search-field')!, part: 'placeholder', axes: { size: 3 } },
+      { def: componentDefs.find((d) => d.id === 'search-field')!, part: 'value', axes: { size: 3 }, at: { state: 'filled' } },
       { def: select, part: 'placeholder', axes: { size: 3 } },
       { def: select, part: 'value', axes: { size: 3 }, at: { state: 'filled' } },
       { def: textarea, part: 'placeholder', axes: { size: 3 } },
@@ -19422,7 +19641,13 @@ arm: {
       { def: componentDefs.find((d) => d.id === 'list-item')!, part: 'number', axes: { size: 3 }, at: { type: 'ordered' } },
       // LINK (#2580): the label crosses size, weight, style and, the first type key to do so, the interaction state. The
       // underline is the state half: a standalone link is plain at rest and underlined at hover, pressed and focus.
-      { def: componentDefs.find((d) => d.id === 'link')!, part: 'label', axes: { size: 3, weight: 2, style: 2, state: 2 } },
+      // `selection` (#2872, Q507.4) is ONE style at the rest coordinate this sweep holds: the current page and its
+      // unselected twin are both plain at rest, and part only at hover, pressed and focus, where the current page stays
+      // plain. That half is held by `#2872 link hover on current`, which reads every member.
+      { def: componentDefs.find((d) => d.id === 'link')!, part: 'label', axes: { size: 3, weight: 2, style: 2, selection: 1, state: 2 } },
+      // BREADCRUMBS (#2666, call 4 A): the current page binds the two default body rungs. It exists only on a current
+      // member.
+      { def: componentDefs.find((d) => d.id === 'breadcrumb-item')!, part: 'current', axes: { size: 2 }, at: { kind: 'current' } },
       // CODE INPUT (#2428, Q330 A): the cell's character binds four rungs, 16 / 20 / 24 / 40. It exists only where the
       // cell holds a character.
       { def: componentDefs.find((d) => d.id === 'code-input-cell')!, part: 'digit', axes: { size: 4 }, at: { state: 'filled' } },
@@ -21038,7 +21263,7 @@ arm: {
     {
       const bad: string[] = [];
       let pasted = 0;
-      for (const id of ['text-field', 'password-field', 'select', 'textarea']) {
+      for (const id of ['text-field', 'password-field', 'select', 'textarea', 'search-field']) {
         const d = componentDefs.find((x) => x.id === id)!;
         for (const state of ['rest', 'focus-visible']) {
           const plan = figmaAnatomyPlan(applyFieldStyle(d, 'underline'), 'medium', { state, status: 'default' } as never);
@@ -21055,7 +21280,7 @@ arm: {
           if (!control || got !== want || strokeMisses.length) bad.push(`${id}@${state}: ${control ? got : 'no control'}${strokeMisses.length ? `; ${strokeMisses[0]}` : ''}`);
         }
       }
-      ok(pasted === 8 && bad.length === 0,
+      ok(pasted === 10 && bad.length === 0,
         `#2695 paste: the underline fields' per-side stroke weights read back bound from the paste executor (none / none / hairline, thick at focus / none), nothing discarded (${bad.slice(0, 3).join(' | ') || 'clean'})`);
     }
 
@@ -21131,6 +21356,36 @@ arm: {
       const ctlPage: StubPage = { children: [] };
       await runPayload(planToPluginJs(centerOnly), { ...ipOpts, page: ctlPage });
       ok(markerFacts(ctlPage) === 'ABSOLUTE CENTER/CENTER centered', `#2345 control: without absoluteScale the centered child keeps CENTER/CENTER (got '${markerFacts(ctlPage)}')`);
+    }
+
+    // ---- #2872: Link's current-page bar is built OUT OF FLOW across the FOOT, STRETCH/MAX, on BOTH legs ----
+    // The plan-level arm (`#2872 link bar`) proves the plan carries `footPin`; this proves each EXECUTOR writes it. On a
+    // current, focus-visible member (the bar beside the lifted ring): ABSOLUTE, the literal STRETCH/MAX typed here, at
+    // x 0, as wide as the member and flush with its bottom, measured against the member's own live box as the stub
+    // reports it. Mutation: the paste executor's foot splice dropped → `#2872 paste leg`.
+    {
+      const linkDef = componentDefs.find((d) => d.id === 'link')!;
+      const cur = figmaAnatomySet(linkDef, { swapTarget: 'FPO-default-icon' }).find((q) => q.coord.selection === 'selected' && q.coord.state === 'focus-visible')!;
+      const lOpts: StubOpts = { vars: [...planBoundVars(cur.root), ...planPaintVars(cur.root)], styles: planTextStyles(cur.root), comps: ['FPO-default-icon', 'focus-ring'] };
+      const barFacts = (page: StubPage): string => {
+        const all = page.children.flatMap((c) => [c, ...(((c as Record<string, unknown>).children as Record<string, unknown>[] | undefined) ?? [])]);
+        const root = all.find((c) => c.name === planComponentName(cur)) as Record<string, unknown> | undefined;
+        const kid = ((root?.children as Record<string, unknown>[] | undefined) ?? []).find((c) => c.name === 'bar');
+        if (!root || !kid) return `no ${root ? 'bar' : 'member'} on the page`;
+        const c = kid.constraints as { horizontal?: string; vertical?: string } | null;
+        const at = kid.x === 0 && Math.abs((kid.y as number) - ((root.height as number) - (kid.height as number))) < 0.01 && Math.abs((kid.width as number) - (root.width as number)) < 0.01;
+        return `${String(kid.layoutPositioning)} ${c?.horizontal}/${c?.vertical} ${at ? 'across the foot' : `off the foot (${String(kid.x)},${String(kid.y)} ${String(kid.width)}x${String(kid.height)} in ${String(root.width)}x${String(root.height)})`}`;
+      };
+      const WANT_BAR = 'ABSOLUTE STRETCH/MAX across the foot';
+      const pastePage: StubPage = { children: [] };
+      const pasted = await runPayload(planToPluginJs(cur), { ...lOpts, page: pastePage });
+      ok(barFacts(pastePage) === WANT_BAR && pasted.misses.length === 0,
+        `#2872 paste leg: Link's current-page bar is ${WANT_BAR} (got '${barFacts(pastePage)}'; misses ${JSON.stringify(pasted.misses)})`);
+      const plugPage: StubPage = { children: [] };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the stub satisfies ComponentsApi
+      const plugged = await applyComponentPlan([cur], makeFigmaStub({ ...lOpts, page: plugPage }) as any);
+      ok(barFacts(plugPage) === WANT_BAR && plugged.misses.length === 0,
+        `#2872 plugin leg: Link's current-page bar is ${WANT_BAR} (got '${barFacts(plugPage)}'; misses ${JSON.stringify(plugged.misses)})`);
     }
 
     // ---- #1302: the stub's `textAlignVertical` refusal is LIVE ------------------------------------------
@@ -23300,6 +23555,20 @@ arm: {
                 ...Object.entries(d.figmaProperties!.texts ?? {}).map(([k, t], i) => [`${t.figmaName ?? k}#7:${i}`, { type: 'TEXT', defaultValue: t.default }]),
                 ...Object.entries(d.figmaProperties!.swaps!).map(([k, s], i) => [`${s.figmaName ?? k}#8:${i}`, { type: 'INSTANCE_SWAP', defaultValue: '73:37' }]),
               ])])),
+            // #2666 — Breadcrumbs is the first nest-exposed def that also sets a nested GLYPH (#2645's swap override, the
+            // item's overflow button) and offers a slot's preferred set (#2646). As the real build: the icon component
+            // the override names is in the file (the nested component's own properties are declared just above), and a
+            // slot's preferred def is a built set with a key.
+            ...(() => {
+              const nodes = plans.flatMap((p) => walkPlan(p.root)) as (PlanNode & { nestOverrides?: { type: string; value: string }[]; slotPreferred?: string[] })[];
+              const swapped = nodes.filter((n) => n.nestTarget && n.nestOverrides?.some((o) => o.type === 'INSTANCE_SWAP'));
+              const glyphs = swapped.flatMap((n) => n.nestOverrides!.filter((o) => o.type === 'INSTANCE_SWAP').map((o) => o.value));
+              const preferred = [...new Set(nodes.flatMap((n) => n.slotPreferred ?? []))];
+              return {
+                ...(glyphs.length ? { comps: [...new Set([...plans.flatMap((p) => walkPlan(p.root)).flatMap((n) => [n.swapTarget, n.nestTarget]).filter((c): c is string => !!c), ...glyphs])] } : {}),
+                ...(preferred.length ? { fileNodes: preferred.map((id) => ({ name: id, type: 'COMPONENT_SET' as const, variants: figmaAnatomySet(componentDefs.find((d) => d.id === id)!, { swapTarget: 'FPO-default-icon' }).map(planComponentName) })) } : {}),
+              };
+            })(),
           };
           // The exposure lives on a NODE deep in each member; no `runPayload` summary field carries it, so
           // it is read off the PAGE the payload appended the combined set to. Returns every nested instance
@@ -25088,6 +25357,7 @@ arm: {
       'icon-button:inactive', 'icon-button-destructive:inactive', 'icon-button-neutral:inactive',
       'icon:tone', 'focus-ring:offset', 'tag:read-only',
       'text-field:style', 'text-field:pending', 'text-field:empty', 'password-field:style', 'password-field:pending', 'password-field:empty',
+      'search-field:style', 'search-field:pending', 'search-field:empty',
       'textarea:style', 'textarea:pending', 'textarea:empty', 'select:pending', 'select:empty', 'code-input:pending',
       'checkbox-row:read-only', 'radio-row:read-only', 'switch-row:read-only', 'switch-row:pending',
     ];
@@ -27897,10 +28167,10 @@ arm: {
       byShape.set(c, [...(byShape.get(c) ?? []), n].sort());
     }
     // 41 since the textarea's `resize-grip` joined the set (2026-09-25); 42 since the hamburger `menu` did
-    // (Q253 A, 2026-10-12): each a new shape, so both counts move by one and the three collisions below stay the
-    // only ones.
-    ok(byShape.size === 42,
-      `glyph-shape: the vocabulary's ${ICON_NAMES.length} names draw 42 distinct RENDERED shapes (got ${byShape.size}) — 43 distinct path STRINGS, so string comparison is off by one`);
+    // (Q253 A, 2026-10-12); 43 since the breadcrumb `slash` did (Q382 A, 2026-10-16): each a new shape, so both counts
+    // move by one and the three collisions below stay the only ones.
+    ok(byShape.size === 43,
+      `glyph-shape: the vocabulary's ${ICON_NAMES.length} names draw 43 distinct RENDERED shapes (got ${byShape.size}) — 44 distinct path STRINGS, so string comparison is off by one`);
     const groups = [...byShape.values()].filter((g) => g.length > 1).map((g) => g.join('|')).sort();
     ok(groups.join(' , ') === 'close|close-filled , minus|minus-filled , plus|plus-filled',
       `glyph-shape: and they are exactly the three -fill/-line pairs the source set draws identically (got [${groups.join('] [')}]) — a count of three would also pass on three collisions somewhere else`);
@@ -28332,7 +28602,7 @@ arm: {
   // `tag` joins (2026-09-27): its check mark is gated on `selection: ['selected']`, the checkbox mark's shape.
   // `link` joins (#2580, owner Q297.2): its trailing icon is gated on `style: ['standalone']`, so an inline link carries none.
   // `checkbox-group` and `radio-group` since #2751: each gates its nested message on `status=error`.
-  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-group', 'radio-control', 'radio-group', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'button-group', 'dialog', 'password-field', 'toast', 'code-input-cell'];
+  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-group', 'radio-control', 'radio-group', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'button-group', 'dialog', 'password-field', 'search-field', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs', 'code-input-cell'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {
@@ -28462,7 +28732,7 @@ arm: {
   // both axes per orientation: a hairline thickness and a nominal length, two different variables.
   // List.Item's marker column (#2319) binds its width (the column) and its height (one body line), two different
   // variables: a fixed column one line tall.
-  const WIDTH_EXPECTED = ['text-field', 'textarea', 'switch-control', 'divider', 'list-item', 'password-field', 'code-input-cell'];
+  const WIDTH_EXPECTED = ['text-field', 'textarea', 'switch-control', 'divider', 'list-item', 'password-field', 'search-field', 'code-input-cell'];
   ok(WIDTH_EXPECTED.every((n) => widthDefs.some((d) => d.id === n)) && widthDefs.length === WIDTH_EXPECTED.length,
     `#990 the width projection rule below covers exactly [${WIDTH_EXPECTED.join(', ')}] — a def gaining a deliberately non-square box must be represented here, and a def losing one is a stale claim (found: ${widthDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of widthDefs) {
@@ -29778,6 +30048,9 @@ arm: {
     // #2317: the Password field's entry row is TextField's, from the shared field factory — the same design fact.
     'password-field.entry':
       "the Password field's entry row is text-field's, from the shared field factory: the single-line placeholder or masked value does not wrap, so the caret centred against its one line sits where a native caret sits (as text-field.entry).",
+    // #2888: the Search field's entry row is TextField's too.
+    'search-field.entry':
+      "the Search field's entry row is text-field's, from the shared field factory: the single-line placeholder or query does not wrap, so the caret centred against its one line sits where a native caret sits (as text-field.entry).",
     // `badge`'s surface (the type axis, 2026-09-27, first named `genre`) lists a text part and the sized `dot` box as children,
     // but `presentWhen` on `type` puts exactly one of them in any member: no member pairs the dot with a
     // label, so there is no line for the dot to float against. The status label is one or two words and the
@@ -29816,6 +30089,10 @@ arm: {
     // block to float against.
     'code-input-cell.content':
       "a code cell holds one character on one line, or the caret alone on the active empty cell (the two are gated on state and never present together), so centring places the only line in the middle of the cell.",
+    // `breadcrumb-item` (#2666): the label never wraps (ancestor labels do not wrap or truncate; the current page
+    // truncates on one line), so the separator centers against the only line, in Figma and in code.
+    'breadcrumb-item.container':
+      "a breadcrumb step is one text line tall and never wraps (breadcrumb-item.ts codeOnly), so the separator centers against the only line.",
     'tag.labelCheck':
       "the tag's height is fixed at one line in Figma and its label is one line there, so the check mark (and, one row out, the leading icon) center against the only line; in code a wrapped label centers them on the label block, which is held for the owner (tag.ts notes.contested).",
   };
@@ -33273,7 +33550,12 @@ arm: {
     'tag.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'a select tag is selected by `selected`' },
     'tab-item.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'a tab is selected by `selected`' },
     'segmented-control-segment.selection': { prop: 'selected', map: off('unselected', 'selected'), reason: 'a segment is selected by `selected`' },
+    'link.selection': { prop: 'current', map: off('unselected', 'selected'), reason: 'a link marks the current page by `current`, rendering aria-current="page" (#2872, Q507.3 A)' },
     'accordion.expansion': { prop: 'defaultExpanded', map: off('collapsed', 'expanded'), reason: 'an accordion opens by `defaultExpanded`' },
+    // #2666 (owner call 11 A): code has no path prop. `responsive` (default true) swaps the trail for the parent link
+    // below 480px by a container query, and either value renders the trail at every wider width, so the code default
+    // path is the full trail whatever `responsive` holds.
+    'breadcrumbs.path': { prop: 'responsive', map: { undefined: 'full', false: 'full', true: 'full' }, reason: 'Breadcrumbs renders the trail by default; `responsive` only swaps in the parent link below 480px' },
   };
   // NO RECORDED EXCEPTIONS (#2752, owner decisions Q1 B and Q2 A, 2026-10-16): every size ladder leads with medium and
   // Button's icon slots lead with false, so any mismatch fails. The size ladder is named only for MUST below.
@@ -33282,7 +33564,7 @@ arm: {
     'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'checkbox-row',
     'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'switch-control', 'switch-row', 'tag', 'tab-item', 'tabs',
     '_accordion-indicator', 'accordion', 'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'link',
-    'text-field', 'textarea', 'select', 'password-field', 'dialog',
+    'text-field', 'textarea', 'select', 'password-field', 'dialog', 'search-field',
   ];
   // NO SET, NO DEFAULT MEMBER: a def that materializes each value as its own component is never inserted as a set.
   const NO_SET = ['icon', 'spinner'];
@@ -34382,6 +34664,155 @@ arm: {
     `#2317 variantWhen.state: the Password field validates clean; a host state off the state axis, an axis the variant does not name, and a followed axis are each refused by name`);
 }
 
+// ------------------------------------------------------------------- #2888: the Search field
+// Each owner decision held against a literal (Q514, Q?1–Q?8 all A): the 84 members (Q?6 A), the properties (the label
+// switch, Q?4 A; the leading search glyph shown; the clear glyph built hidden at close-filled, Q?3 A), no submit button
+// (Q?5 A), the factory (TextField's token block), its own style lever (Q?1 A, Q?2 A copy verbatim) and its resolution,
+// and the approved code wording. EXPECTED is typed here; ACTUAL is the def, its projected plan and `fieldStyleFor`.
+{
+  const sf = searchField;
+  const sfPlans = figmaAnatomySet(sf, { swapTarget: 'FPO-default-icon' });
+  type PN = { name: string; type: string; children: PN[]; visible?: boolean; visibleProp?: string; swapTarget?: string; strokeEdges?: unknown; bound?: Record<string, string> };
+  const find = (n: PN, name: string): PN | undefined => (n.name === name ? n : (n.children ?? []).map((c) => find(c, name)).find(Boolean));
+  const STATES = ['rest', 'hover', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled', 'read-only'];
+
+  // MEMBERS AND AXES (Q?6 A): size × status × state = 84, TextField's, and no style axis (Q?1 A).
+  ok(sfPlans.length === 84 && new Set(sfPlans.map(planComponentName)).size === 84
+    && JSON.stringify(sf.figmaProperties?.variantAxes) === JSON.stringify(['size', 'status'])
+    && JSON.stringify(sf.variants) === JSON.stringify({ size: ['medium', 'small', 'large'], style: ['outline'], status: ['default', 'error', 'warning', 'success'] })
+    && JSON.stringify(sf.figmaProperties?.stateAxis?.values) === JSON.stringify(STATES)
+    && planComponentName(sfPlans[0]) === 'status=default, size=medium, state=rest',
+    `#2888 search-field: 84 members, size [medium, small, large] × status [default, error, warning, success] × the seven field states, style a code axis of one, no Figma style axis (got ${sfPlans.length}, ${JSON.stringify(sf.variants)})`);
+
+  // THE PANEL (Q?3 A, Q?4 A): the properties in panel order, each default typed here.
+  const props = planSetProperties(sfPlans).map((p: any) => `${p.name}:${p.type}:${p.default ?? p.swapTarget}`);
+  const WANT_PROPS = ['placeholder:TEXT:Placeholder', 'value:TEXT:Entered text', 'label:BOOLEAN:true', 'leading icon:BOOLEAN:true',
+    '↳ swap leading icon:INSTANCE_SWAP:icon/search', 'trailing icon:BOOLEAN:false', '↳ swap trailing icon:INSTANCE_SWAP:icon/close-filled', 'message:BOOLEAN:false'];
+  ok(JSON.stringify(props) === JSON.stringify(WANT_PROPS),
+    `#2888 search-field panel: the label switch on, the search glyph shown, the clear glyph close-filled and hidden, the message off (#2926) (got ${JSON.stringify(props)})`);
+  const showLabel = sf.figmaProperties?.booleans?.showLabel;
+  ok(typeof showLabel === 'object' && showLabel.figmaOnly === true && !sf.props.some((p) => p.name === 'showLabel')
+    && sf.props.find((p) => p.name === 'hideLabel')?.default === false,
+    '#2888 Q?4 A: the Figma `label` switch is Figma-only; the code prop is `hideLabel`, default false (visible)');
+
+  // ON EVERY MEMBER (Q?3 A, Q?5 A): the search glyph built visible, the clear glyph built hidden, the label switchable, and
+  // nothing in the box but the value row, the clear slot and the ring (no submit button).
+  const memberBad = sfPlans.filter((p) => {
+    const r = p.root as PN, lead = find(r, 'leadingVisual'), trail = find(r, 'trailingVisual'), label = find(r, 'label'), ctl = find(r, 'control');
+    const focus = String((p.coord as Record<string, string>).state).startsWith('focus-visible');
+    return lead?.swapTarget !== 'icon/search' || lead.visible === false
+      || trail?.swapTarget !== 'icon/close-filled' || trail.visible !== false
+      || label?.visibleProp !== 'label'
+      || JSON.stringify((ctl?.children ?? []).map((c) => c.name)) !== JSON.stringify(focus ? ['content', 'trailingVisual', 'focusRing'] : ['content', 'trailingVisual']);
+  });
+  ok(memberBad.length === 0,
+    `#2888 search-field members: the search glyph shown, the clear glyph hidden, the label behind the label switch, and no submit button in the box, on all 84${memberBad.length ? ` — WRONG on ${memberBad.length}: ${planComponentName(memberBad[0])}` : ''}`);
+
+  // THE FACTORY: the Search field binds TextField's token block key for key; TextField and the Password field keep
+  // their own glyph and label defaults (the factory's Search switches spread nothing for them).
+  const pwd = componentDefs.find((d) => d.id === 'password-field')!;
+  ok(JSON.stringify(sf.tokens) === JSON.stringify(textField.tokens)
+    && textField.anatomy?.parts.leadingVisual.swapDefault === undefined && textField.anatomy?.parts.trailingVisual.swapDefault === undefined
+    && textField.anatomy?.parts.label.optional === undefined && pwd.anatomy?.parts.label.optional === undefined
+    && textField.figmaProperties?.booleans?.showLabel === undefined && (textField.figmaProperties?.booleans?.leadingIcon as { default?: boolean }).default === false,
+    '#2888 field factory: the Search field binds TextField\'s token block, and TextField and the Password field keep no swap default, a fixed label and a hidden leading glyph');
+  ok(!(textField.composition?.planned ?? []).includes('search-field') && (textField.composition?.alternativeTo ?? []).includes('search-field'),
+    '#2888: search-field left TextField\'s planned for its alternativeTo');
+
+  // THE SHARED CODE-ONLY ENTRIES read the same as TextField's. `style` is not among them: the Search field names its own lever.
+  const SHARED = ['the SMALL field on a COARSE POINTER', 'pending', 'empty', 'the FOCUS CARET', 'the label / describedby WIRING'];
+  const bySubject = (list: readonly string[], subject: string) => list.filter((e) => e.startsWith(`${subject} `) || e.startsWith(`${subject} —`));
+  const sharedBad = SHARED.filter((sub) => { const t = bySubject(textField.anatomy!.codeOnly, sub), x = bySubject(sf.anatomy!.codeOnly, sub); return t.length !== 1 || x.length !== 1 || t[0] !== x[0]; });
+  const style = bySubject(sf.anatomy!.codeOnly, 'style');
+  ok(sharedBad.length === 0 && style.length === 1 && /Search field style/.test(style[0]) && /`follow`/.test(style[0]),
+    `#2888 search-field code-only: the ${SHARED.length} shared entries read as TextField's, and its style entry names the Search field style lever${sharedBad.length ? ` — DIFFER: ${sharedBad.join(', ')}` : ''}`);
+  // THE APPROVED WORDING (Q514 taking Q?3 A), verbatim where the code contract states it.
+  const clear = bySubject(sf.anatomy!.codeOnly, 'the CLEAR BUTTON in code');
+  ok(clear.length === 1 && clear[0].includes('aria-label="Clear search"') && clear[0].includes('"Search cleared"') && /RETURNS FOCUS TO THE INPUT/.test(clear[0])
+    && sf.accessibility.aria.includes('aria-label="Clear search"') && sf.accessibility.aria.includes('"Search cleared"')
+    && sf.anatomy!.codeOnly.some((e) => e.startsWith('ONE CLEAR BUTTON ONLY') && e.includes('::-webkit-search-cancel-button')),
+    '#2888 Q?3 A: the clear button is named "Clear search", returns focus to the input, announces "Search cleared", and the browser\'s own cancel glyph is hidden');
+  // THE CLEAR BUTTON'S HIT AREA (review Q1 A, WCAG 2.5.8): the button sits inside the input's own target, so the
+  // spacing exception cannot apply and the button must meet 24 CSS px itself. Its 20px glyph alone does not. The def
+  // must STATE a target of at least 24×24 around the glyph, adding no height, in codeOnly and in the trailingIcon
+  // description, and its 2.5.8 line must name both targets. The floor 24 is the WCAG number typed here (docs/34).
+  {
+    const FLOOR = 24;
+    const sized = (t: string | undefined) => [...(t ?? '').matchAll(/at least (\d+)×(\d+)/g)].map((m) => Math.min(Number(m[1]), Number(m[2])));
+    const trailing = sf.props.find((p) => p.name === 'trailingIcon')?.description;
+    const wcag = sf.accessibility.wcag.filter((w) => w.startsWith('2.5.8'));
+    const hitBad: string[] = [];
+    for (const [where, t] of [['codeOnly clear entry', clear[0]], ['trailingIcon description', trailing]] as const) {
+      const n = sized(t);
+      if (!n.length || n.some((x) => x < FLOOR)) hitBad.push(`${where}: target ${n.length ? n.join('/') : 'unstated'}`);
+      if (!/around the 20px glyph/.test(t ?? '') || !/adds no height to the field/.test(t ?? '')) hitBad.push(`${where}: not drawn around the 20px glyph with no added height`);
+    }
+    if (wcag.length !== 1 || !/the field/.test(wcag[0]) || !/the clear button/.test(wcag[0]) || !sized(wcag[0]).length || sized(wcag[0]).some((x) => x < FLOOR))
+      hitBad.push(`2.5.8 line names both targets: ${JSON.stringify(wcag)}`);
+    ok(hitBad.length === 0,
+      `#2912 search-field clear button: a hit area of at least ${FLOOR}×${FLOOR} CSS px around the 20px glyph, adding no height, stated in codeOnly and the trailingIcon description, and the 2.5.8 line names the field and the clear button${hitBad.length ? ` — WRONG: ${hitBad.join('; ')}` : ''}`);
+  }
+  // THE MESSAGE IS OFF BY DEFAULT (owner decision on #2926, item 1): the boolean, the prop and every built message node
+  // agree, and no prose says it is on by default. `false` is the owner's answer, typed here.
+  {
+    const b = sf.figmaProperties?.booleans?.showMessage as { default?: boolean; part?: string } | undefined;
+    const prop = sf.props.find((p) => p.name === 'showMessage');
+    const msgs = sfPlans.map((p) => find(p.root as PN, 'message'));
+    const onProse = /\b(shown|on) by default\b|on — the default/i.test(`${prop?.description ?? ''} ${sf.anatomy?.parts.message?.note ?? ''}`);
+    ok(b?.default === false && prop?.default === false && msgs.every((m) => m?.visibleProp === 'message' && m.visible === false) && !onProse,
+      `#2926 search-field: the message is off by default — boolean ${String(b?.default)}, prop ${String(prop?.default)}, ${msgs.filter((m) => m?.visible !== false).length} of ${msgs.length} message nodes built visible, prose says on: ${onProse}`);
+  }
+  const draft: string[] = [];
+  const walk = (v: unknown, path: string): void => {
+    if (path === 'notes' || path === 'anatomy.codeOnly') return;
+    if (typeof v === 'string') { if (/DRAFT/.test(v)) draft.push(path); return; }
+    if (Array.isArray(v)) { v.forEach((x, i) => walk(x, `${path}[${i}]`)); return; }
+    if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) walk(x, path ? `${path}.${k}` : k);
+  };
+  walk(sf, '');
+  ok(draft.length === 0, `#2888 search-field: no shipped string carries "DRAFT"${draft.length ? ` — FOUND at ${draft.join(', ')}` : ''}`);
+
+  // THE LEVER (Q?1 A, Q?2 A): the owner's copy verbatim, in Form right after Field style, default Follow.
+  const lever = leverManifest.find((l) => l.key === 'searchFieldStyle');
+  const order = leverManifest.filter((l) => l.group === 'form').map((l) => l.key);
+  ok(lever?.label === 'Search field style' && lever.group === 'form' && lever.control === 'enum' && lever.default === 'follow' && !lever.advanced
+    && JSON.stringify(lever.options?.map((o) => [o.value, o.label])) === JSON.stringify([['follow', 'Follow field style'], ['outline', 'Outline'], ['underline', 'Underline']])
+    && lever.description === 'The edge of the search field. Follow field style matches every other field; Outline or Underline sets search apart. Either way the line clears 3:1.'
+    && order.indexOf('searchFieldStyle') === order.indexOf('fieldStyle') + 1,
+    `#2888 lever (Q?2 A): "Search field style", Follow field style / Outline / Underline, default Follow, the approved description, in Form right after Field style (form order: ${order.join(', ')})`);
+  ok(['follow', 'outline', 'underline'].every((v) => validateBrandInput({ ...MINIMAL_BRAND, searchFieldStyle: v } as any).length === 0)
+    && validateBrandInput({ ...MINIMAL_BRAND, searchFieldStyle: 'filled' } as any).length > 0,
+    '#2888 input: searchFieldStyle accepts follow, outline and underline, and rejects a value the lever does not offer');
+
+  // THE RESOLUTION (`fieldStyleFor`): the search field takes its own setting unless it is Follow; every other def takes
+  // Field style whatever the search setting. A literal table, (fieldStyle, searchFieldStyle) → (search, text field).
+  const TABLE: [string | undefined, string | undefined, string, string][] = [
+    [undefined, undefined, 'outline', 'outline'], ['underline', undefined, 'underline', 'underline'],
+    [undefined, 'follow', 'outline', 'outline'], ['underline', 'follow', 'underline', 'underline'],
+    [undefined, 'underline', 'underline', 'outline'], ['outline', 'underline', 'underline', 'outline'],
+    ['underline', 'outline', 'outline', 'underline'], ['underline', 'underline', 'underline', 'underline'],
+  ];
+  const tableBad = TABLE.filter(([fs, ss, wantSearch, wantText]) => {
+    const input = { ...(fs ? { fieldStyle: fs } : {}), ...(ss ? { searchFieldStyle: ss } : {}) } as any;
+    return fieldStyleFor('search-field', input) !== wantSearch || fieldStyleFor('text-field', input) !== wantText;
+  }).map(([fs, ss]) => `${fs ?? 'unset'}/${ss ?? 'unset'}`);
+  ok(tableBad.length === 0 && fieldStyleFor('search-field', null) === 'outline' && JSON.stringify(SEARCH_FIELD_STYLE_DEFS) === JSON.stringify(['search-field']),
+    `#2888 fieldStyleFor: the search field takes its own setting unless Follow, every other def Field style, and no brand reads as outline (wrong at: ${tableBad.join(', ') || 'none'})`);
+  const otherBad = componentDefs.filter((d) => d.id !== 'search-field' && fieldStyleFor(d.id, { searchFieldStyle: 'underline' }) !== 'outline').map((d) => d.id);
+  ok(otherBad.length === 0, `#2888 fieldStyleFor: Search field style reaches the search field alone (moved: ${otherBad.join(', ') || 'none'})`);
+
+  // THE UNDERLINE PLAN FOR SEARCH (#2695's drawing, reached through `FIELD_FRAME_PARTS`): every member binds its four
+  // control sides apart, the bottom 1px and 2px at focus, and the leading glyph sits at the line's start with no inset.
+  const underBad = figmaAnatomySet(applyFieldStyle(sf, 'underline'), { swapTarget: 'FPO-default-icon' }).filter((p) => {
+    const b = find(p.root as PN, 'control')?.bound ?? {};
+    const focus = String((p.coord as Record<string, string>).state).startsWith('focus-visible');
+    return b.strokeTopWeight !== 'border-width/none' || b.strokeRightWeight !== 'border-width/none' || b.strokeLeftWeight !== 'border-width/none'
+      || b.strokeBottomWeight !== (focus ? 'border-width/thick' : 'border-width/hairline') || b.paddingLeft !== 'space/0' || 'strokeWeight' in b;
+  });
+  ok(underBad.length === 0,
+    `#2888 search-field underline plan: under Underline every member binds none / none / hairline (thick at focus) / none and no inline padding, so the search glyph sits at the line's start${underBad.length ? ` — WRONG on ${underBad.length}: ${planComponentName(underBad[0])}` : ''}`);
+}
+
 // ------------------------------------------------------------------- #2738: the fields' nested label dims with them
 // Text field, Password field, Select and Textarea each nest FieldLabel. In code a disabled field dims its label (#1339);
 // in Figma the nested label used to read at rest on every member, recorded as a projection limit in `codeOnly`. Each
@@ -34394,7 +34825,7 @@ arm: {
   const sorted = (r: Record<string, string> | undefined) => JSON.stringify(Object.entries(r ?? {}).sort());
   const labelNames = figmaAnatomySet(componentDefs.find((d) => d.id === 'field-label')!, { swapTarget: 'FPO-default-icon' }).map(planComponentName);
   // 84 members each (size 3 × status 4 × state 7); 12 of them disabled.
-  const FIELDS = ['text-field', 'password-field', 'select', 'textarea'];
+  const FIELDS = ['text-field', 'password-field', 'select', 'textarea', 'search-field'];
   for (const id of FIELDS) {
     const def = componentDefs.find((d) => d.id === id)!;
     const plans = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
@@ -34522,6 +34953,9 @@ arm: {
   const linkMembers = figmaAnatomySet(link, { swapTarget: 'FPO-default-icon' });
   const RUNG: Record<string, string> = { rest: 'default', hover: 'hover', pressed: 'pressed', 'focus-visible': 'focused' };
   const INK = (surface: string, state: string) => `color/${surface === 'inverse' ? 'inverse/' : ''}text/link/${RUNG[state]}`;
+  // THE CURRENT PAGE (#2872, owner decisions Q507): a selected member's bar is FILLED in the link ICON role stepped by
+  // state (1 C); the link box paints nothing on any member.
+  const BAR_INK = (surface: string, state: string) => `color/${surface === 'inverse' ? 'inverse/' : ''}icon/link/${RUNG[state]}`;
   const inkOff: string[] = [], boxOff: string[] = [], ringOff: string[] = [];
   for (const m of linkMembers) {
     const c = m.coord as Record<string, string>;
@@ -34529,16 +34963,55 @@ arm: {
     const ink = findIn(root, 'label')?.paints?.fills;
     if (ink !== INK(c.surface, c.state)) inkOff.push(`${planComponentName(m)}: ${String(ink)} (want ${INK(c.surface, c.state)})`);
     if (Object.keys(root.paints ?? {}).length) boxOff.push(`${planComponentName(m)}: ${JSON.stringify(root.paints)}`);
+    const barPaint = findIn(root, 'bar')?.paints;
+    const wantBar = c.selection === 'selected' ? JSON.stringify({ fills: BAR_INK(c.surface, c.state) }) : 'undefined';
+    if (String(JSON.stringify(barPaint)) !== wantBar) boxOff.push(`${planComponentName(m)}: bar ${JSON.stringify(barPaint)} (want ${wantBar})`);
     // (2) THE FOCUS RING: nested only at focus-visible, following the surface so an inverse link's ring reads on the band.
     const ring = findIn(root, 'focusRing');
     const want = c.state === 'focus-visible';
     if (want !== !!ring || (ring && (ring.nestTarget !== 'focus-ring' || JSON.stringify(ring.nestVariant) !== JSON.stringify({ surface: c.surface }))))
       ringOff.push(`${planComponentName(m)}: ${ring ? `${String(ring.nestTarget)} ${JSON.stringify(ring.nestVariant)}` : 'no ring'} (want ${want ? `focus-ring {"surface":"${c.surface}"}` : 'no ring'})`);
   }
-  ok(linkMembers.length === 96 && inkOff.length === 0 && boxOff.length === 0,
-    `#2715 link paint: 96 members; the label takes color/text/link/{default,hover,pressed,focused} on the page and color/inverse/text/link/… on an inverse band, by state, and the link box paints nothing (${linkMembers.length} members, ${inkOff.length} ink off, ${boxOff.length} painted box(es) — ${[...inkOff, ...boxOff].slice(0, 2).join('; ') || 'none'})`);
-  ok(ringOff.filter(Boolean).length === 0 && linkMembers.filter((m) => (m.coord as Record<string, string>).state === 'focus-visible').length === 24,
-    `#2715 link focus ring: a nested focus-ring on the 24 focus-visible members only, following the member's surface (${ringOff.length} off — ${ringOff.slice(0, 2).join('; ') || 'none'})`);
+  ok(linkMembers.length === 144 && inkOff.length === 0 && boxOff.length === 0,
+    `#2715 link paint: 144 members; the label takes color/text/link/{default,hover,pressed,focused} on the page and color/inverse/text/link/… on an inverse band, by state; the link box paints nothing, and a current member's bar fills color/[inverse/]icon/link/<state> (#2872) (${linkMembers.length} members, ${inkOff.length} ink off, ${boxOff.length} box(es) off — ${[...inkOff, ...boxOff].slice(0, 2).join('; ') || 'none'})`);
+  ok(ringOff.filter(Boolean).length === 0 && linkMembers.filter((m) => (m.coord as Record<string, string>).state === 'focus-visible').length === 36,
+    `#2715 link focus ring: a nested focus-ring on the 36 focus-visible members only, following the member's surface (${ringOff.length} off — ${ringOff.slice(0, 2).join('; ') || 'none'})`);
+
+  // #2872 (owner decisions Q507). THE SHAPE (2 A, 3 A): `selection` on standalone links only, so the inline × selected
+  // coordinates are absent: 48 standalone selected, 48 standalone unselected, 48 inline unselected. Typed, not read
+  // off the def's `excludeCoordinates`.
+  const linkCount = (f: (c: Record<string, string>) => boolean): number => linkMembers.filter((m) => f(m.coord as Record<string, string>)).length;
+  ok(linkCount((c) => c.style === 'standalone' && c.selection === 'selected') === 48 && linkCount((c) => c.style === 'standalone' && c.selection === 'unselected') === 48
+    && linkCount((c) => c.style === 'inline' && c.selection === 'unselected') === 48 && linkCount((c) => c.style === 'inline' && c.selection === 'selected') === 0,
+    `#2872 link shape: selection on standalone only — 48 standalone selected, 48 standalone unselected, 48 inline unselected, no inline selected (${linkCount((c) => c.style === 'standalone' && c.selection === 'selected')}, ${linkCount((c) => c.style === 'standalone' && c.selection === 'unselected')}, ${linkCount((c) => c.style === 'inline' && c.selection === 'unselected')}, ${linkCount((c) => c.style === 'inline' && c.selection === 'selected')})`);
+  // THE BAR (1 C): 2px at the foot of the line box. A current member carries ONE node more than its unselected twin, a
+  // childless `bar` frame 2px high (border-width/thick) pinned across the box's bottom edge out of the flow (`footPin`),
+  // just before the focus ring so the ring draws over it; every other member carries no bar, so the 96 members a
+  // published Link already has gain no layer. The box itself binds no stroke on any member.
+  const barOff: string[] = [];
+  for (const m of linkMembers) {
+    const c = m.coord as Record<string, string>;
+    const root = m.root as PN;
+    if (Object.keys(root.bound ?? {}).some((k) => /^stroke/.test(k))) barOff.push(`${planComponentName(m)}: the box binds a stroke`);
+    const bar = findIn(root, 'bar') as (PN & { footPin?: boolean }) | undefined;
+    if (c.selection !== 'selected') { if (bar) barOff.push(`${planComponentName(m)}: a bar on a member that is not current`); continue; }
+    if (!bar || bar.children.length || bar.footPin !== true || JSON.stringify(bar.bound) !== JSON.stringify({ height: 'border-width/thick' }))
+      barOff.push(`${planComponentName(m)}: bar ${bar ? JSON.stringify({ bound: bar.bound, footPin: bar.footPin, kids: bar.children.length }) : 'missing'}`);
+    const twin = linkMembers.find((x) => planComponentName(x) === planComponentName(m).replace('selection=selected', 'selection=unselected'));
+    const names = root.children.map((k) => k.name);
+    const twinNames = twin ? (twin.root as PN).children.map((k) => k.name) : [];
+    const want = twinNames.includes('focusRing') ? [...twinNames.slice(0, -1), 'bar', 'focusRing'] : [...twinNames, 'bar'];
+    if (!twin || JSON.stringify(names) !== JSON.stringify(want)) barOff.push(`${planComponentName(m)}: children ${JSON.stringify(names)} (want ${JSON.stringify(want)})`);
+  }
+  ok(barOff.length === 0 && linkMembers.filter((m) => !!findIn(m.root as PN, 'bar')).length === 48,
+    `#2872 link bar: the 48 current members carry a 2px (border-width/thick) bar frame pinned across the foot (footPin) before the focus ring, no other member carries one, and no box binds a stroke (${barOff.length} off — ${barOff.slice(0, 2).join('; ') || 'none'})`);
+  // HOVER ON THE CURRENT ITEM (4): color only. A current member's label takes the PLAIN body style at every state, never
+  // its `-link` twin, so no 1px underline joins the bar; an unselected standalone member still shows it at hover.
+  const typeOf = (m: (typeof linkMembers)[number]): string => String((findIn(m.root as PN, 'label') as PN & { textStyle?: string })?.textStyle);
+  const curUnderlined = linkMembers.filter((m) => (m.coord as Record<string, string>).selection === 'selected' && typeOf(m).endsWith('-link')).map(planComponentName);
+  const restHover = linkMembers.filter((m) => { const c = m.coord as Record<string, string>; return c.style === 'standalone' && c.selection === 'unselected' && c.state === 'hover'; });
+  ok(curUnderlined.length === 0 && restHover.length === 12 && restHover.every((m) => typeOf(m).endsWith('-link')),
+    `#2872 link hover on current: no current member takes an underlined (-link) style at any state, and the 12 unselected standalone hover members still do (${curUnderlined.length} underlined current — ${curUnderlined.slice(0, 2).join('; ') || 'none'}; ${restHover.filter((m) => typeOf(m).endsWith('-link')).length}/${restHover.length})`);
   // (3) MEASURED: every link ink the plan binds clears 4.5:1 (SC 1.4.3, body-size text) on its own ground, the page
   // for a default link and the inverse band for an inverse one, in all 16 brand × mode cells.
   const linkInks = new Map<string, string>();
@@ -34560,6 +35033,40 @@ arm: {
   const linkLow = linkCells.filter((x) => !(x.ratio >= 4.5)).map((x) => `${x.cell} ${x.ratio.toFixed(2)}`);
   ok(linkInks.size === 8 && linkCells.length === 16 * 8 && linkMiss.length === 0 && linkLow.length === 0,
     `#2715 link contrast: the 8 link inks (4 states × 2 surfaces) each clear 4.5:1 on their ground in all 16 brand × mode cells (${linkCells.length} measured, ${linkLow.length} under — ${linkLow.slice(0, 3).join('; ') || 'none'}${linkMiss.length ? `; missing ${linkMiss.slice(0, 2).join(', ')}` : ''})`);
+
+  // (3b) THE BAR'S CONTRAST (#2872, Q507.1 C): the bar is a non-text mark, so 3:1 (SC 1.4.11) against its ground, at
+  // every state the plan paints it, in all 16 brand × mode cells. Read off the plan's bar fills.
+  const barInks = new Map<string, string>();
+  for (const m of linkMembers) {
+    const c = m.coord as Record<string, string>;
+    const bar = findIn(m.root as PN, 'bar')?.paints?.fills;
+    if (bar) barInks.set(bar, c.surface === 'inverse' ? 'color/inverse/background/primary' : 'color/background/primary');
+  }
+  const barCells: { cell: string; ratio: number }[] = [];
+  const barMiss: string[] = [];
+  for (const { cell, vars } of exportsOf()) {
+    if (!vars) { barMiss.push(`${cell}: no export`); continue; }
+    for (const [ink, ground] of barInks) {
+      const fg = vars.get(ink), bg = vars.get(ground);
+      if (!fg || !bg || (fg.a ?? 1) !== 1 || (bg.a ?? 1) !== 1) { barMiss.push(`${cell}: ${ink} on ${ground}`); continue; }
+      barCells.push({ cell: `${cell} ${ink}`, ratio: contrast(solid(fg), solid(bg)) });
+    }
+  }
+  const barLow = barCells.filter((x) => !(x.ratio >= 3)).map((x) => `${x.cell} ${x.ratio.toFixed(2)}`);
+  const barMin = barCells.reduce((lo, x) => (x.ratio < lo.ratio ? x : lo), barCells[0] ?? { cell: 'none', ratio: NaN });
+  ok(barInks.size === 8 && barCells.length === 16 * 8 && barMiss.length === 0 && barLow.length === 0,
+    `#2872 link bar contrast: the 8 bar inks (4 states × 2 surfaces) each clear 3:1 on their ground in all 16 brand × mode cells (${barCells.length} measured, lowest ${barMin.cell} ${barMin.ratio.toFixed(2)}, ${barLow.length} under — ${barLow.slice(0, 3).join('; ') || 'none'}${barMiss.length ? `; missing ${barMiss.slice(0, 2).join(', ')}` : ''})`);
+  // (3c) THE HOVER STEP ON THE CURRENT ITEM (Q507.4), MEASURED AND REPORTED: hover changes the color only, so the step is
+  // the contrast of each hover ink against its rest ink. No floor: the owner accepted under 3:1 (the bar is the cue).
+  const stepCells: string[] = [];
+  let stepLo = Infinity;
+  for (const { cell, vars } of exportsOf()) for (const inv of ['', 'inverse/']) for (const role of ['text', 'icon']) {
+    const r = vars?.get(`color/${inv}${role}/link/default`), h = vars?.get(`color/${inv}${role}/link/hover`);
+    if (!r || !h) { stepCells.push(`${cell} ${inv}${role}: missing`); continue; }
+    stepLo = Math.min(stepLo, contrast(solid(h), solid(r)));
+  }
+  ok(stepCells.length === 0 && Number.isFinite(stepLo),
+    `#2872 link hover step on current (reported, no floor): the lowest hover-vs-rest step of the link text and icon inks, both surfaces, all 16 cells, is ${stepLo.toFixed(2)}:1${stepCells.length ? ` (${stepCells.slice(0, 2).join('; ')})` : ''}`);
 
   // TABS (#2416, owner decisions Q177, Q178, Q226). (4) The list paints one thing, the baseline: a fill of the
   // decorative hairline border (color/border/primary), no stroke. The container, the row of tabs and every other

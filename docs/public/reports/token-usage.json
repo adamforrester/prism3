@@ -12,7 +12,7 @@
     "used": 257,
     "unusedSemantic": 250,
     "unusedPrimitive": 280,
-    "components": 46
+    "components": 50
   },
   "tokens": {
     "border-width.hairline": {
@@ -199,6 +199,34 @@
             }
           }
         },
+        "search-field": {
+          "keys": [
+            "border-width",
+            "caret-width"
+          ],
+          "parts": {
+            "caret": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            },
+            "caretEnd": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "focus-visible-filled"
+                ]
+              }
+            },
+            "control": {
+              "members": 84,
+              "where": {}
+            }
+          }
+        },
         "select": {
           "keys": [
             "border-width"
@@ -302,6 +330,24 @@
             "control": {
               "members": 90,
               "where": {}
+            }
+          }
+        },
+        "link": {
+          "keys": [
+            "bar-height"
+          ],
+          "parts": {
+            "bar": {
+              "members": 48,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "style": [
+                  "standalone"
+                ]
+              }
             }
           }
         },
@@ -575,6 +621,35 @@
             }
           }
         },
+        "search-field": {
+          "keys": [
+            "error.border.empty",
+            "error.border.filled",
+            "error.border.focus-visible",
+            "error.border.focus-visible-filled",
+            "error.border.hover",
+            "error.border.read-only",
+            "error.border.rest"
+          ],
+          "parts": {
+            "control": {
+              "members": 18,
+              "where": {
+                "state": [
+                  "filled",
+                  "focus-visible",
+                  "focus-visible-filled",
+                  "hover",
+                  "read-only",
+                  "rest"
+                ],
+                "status": [
+                  "error"
+                ]
+              }
+            }
+          }
+        },
         "select": {
           "keys": [
             "error.border.empty",
@@ -794,6 +869,26 @@
             "focus-ring"
           ],
           "parts": {}
+        },
+        "search-field": {
+          "keys": [
+            "border.focus-visible",
+            "border.focus-visible-filled"
+          ],
+          "parts": {
+            "control": {
+              "members": 6,
+              "where": {
+                "state": [
+                  "focus-visible",
+                  "focus-visible-filled"
+                ],
+                "status": [
+                  "default"
+                ]
+              }
+            }
+          }
         },
         "segmented-control-segment": {
           "keys": [
@@ -1084,6 +1179,35 @@
             }
           }
         },
+        "search-field": {
+          "keys": [
+            "success.border.empty",
+            "success.border.filled",
+            "success.border.focus-visible",
+            "success.border.focus-visible-filled",
+            "success.border.hover",
+            "success.border.read-only",
+            "success.border.rest"
+          ],
+          "parts": {
+            "control": {
+              "members": 18,
+              "where": {
+                "state": [
+                  "filled",
+                  "focus-visible",
+                  "focus-visible-filled",
+                  "hover",
+                  "read-only",
+                  "rest"
+                ],
+                "status": [
+                  "success"
+                ]
+              }
+            }
+          }
+        },
         "select": {
           "keys": [
             "success.border.empty",
@@ -1230,6 +1354,35 @@
           }
         },
         "password-field": {
+          "keys": [
+            "warning.border.empty",
+            "warning.border.filled",
+            "warning.border.focus-visible",
+            "warning.border.focus-visible-filled",
+            "warning.border.hover",
+            "warning.border.read-only",
+            "warning.border.rest"
+          ],
+          "parts": {
+            "control": {
+              "members": 18,
+              "where": {
+                "state": [
+                  "filled",
+                  "focus-visible",
+                  "focus-visible-filled",
+                  "hover",
+                  "read-only",
+                  "rest"
+                ],
+                "status": [
+                  "warning"
+                ]
+              }
+            }
+          }
+        },
+        "search-field": {
           "keys": [
             "warning.border.empty",
             "warning.border.filled",
@@ -1629,6 +1782,21 @@
             }
           }
         },
+        "search-field": {
+          "keys": [
+            "disabled.border"
+          ],
+          "parts": {
+            "control": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "disabled"
+                ]
+              }
+            }
+          }
+        },
         "select": {
           "keys": [
             "disabled.border"
@@ -1948,6 +2116,21 @@
                 "selection": [
                   "checked"
                 ],
+                "state": [
+                  "disabled"
+                ]
+              }
+            }
+          }
+        },
+        "search-field": {
+          "keys": [
+            "disabled.fill"
+          ],
+          "parts": {
+            "control": {
+              "members": 12,
+              "where": {
                 "state": [
                   "disabled"
                 ]
@@ -2573,6 +2756,38 @@
             }
           }
         },
+        "search-field": {
+          "keys": [
+            "disabled.icon.on-fill",
+            "disabled.label.on-fill"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "disabled"
+                ]
+              }
+            },
+            "placeholder": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "disabled"
+                ]
+              }
+            },
+            "trailingVisual": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "disabled"
+                ]
+              }
+            }
+          }
+        },
         "select": {
           "keys": [
             "disabled.icon.on-fill",
@@ -2960,6 +3175,24 @@
             }
           }
         },
+        "search-field": {
+          "keys": [
+            "border.hover"
+          ],
+          "parts": {
+            "control": {
+              "members": 3,
+              "where": {
+                "state": [
+                  "hover"
+                ],
+                "status": [
+                  "default"
+                ]
+              }
+            }
+          }
+        },
         "select": {
           "keys": [
             "border.hover"
@@ -3121,6 +3354,27 @@
             }
           }
         },
+        "search-field": {
+          "keys": [
+            "border",
+            "border.read-only"
+          ],
+          "parts": {
+            "control": {
+              "members": 9,
+              "where": {
+                "state": [
+                  "filled",
+                  "read-only",
+                  "rest"
+                ],
+                "status": [
+                  "default"
+                ]
+              }
+            }
+          }
+        },
         "select": {
           "keys": [
             "border",
@@ -3228,6 +3482,25 @@
           }
         },
         "password-field": {
+          "keys": [
+            "fill"
+          ],
+          "parts": {
+            "control": {
+              "members": 60,
+              "where": {
+                "state": [
+                  "filled",
+                  "focus-visible",
+                  "focus-visible-filled",
+                  "read-only",
+                  "rest"
+                ]
+              }
+            }
+          }
+        },
+        "search-field": {
           "keys": [
             "fill"
           ],
@@ -3602,13 +3875,49 @@
     "color.icon.link.default": {
       "type": "color",
       "components": {
-        "link": {
+        "breadcrumbs": {
           "keys": [
             "icon"
           ],
           "parts": {
-            "trailingVisual": {
+            "backGlyph": {
+              "members": 2,
+              "where": {
+                "path": [
+                  "parent"
+                ],
+                "separator": [
+                  "chevron"
+                ]
+              }
+            }
+          }
+        },
+        "link": {
+          "keys": [
+            "fill.selected.rest",
+            "icon"
+          ],
+          "parts": {
+            "bar": {
               "members": 6,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "rest"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "surface": [
+                  "default"
+                ]
+              }
+            },
+            "trailingVisual": {
+              "members": 12,
               "where": {
                 "state": [
                   "rest"
@@ -3630,11 +3939,29 @@
       "components": {
         "link": {
           "keys": [
+            "fill.selected.focus-visible",
             "icon.focus-visible"
           ],
           "parts": {
-            "trailingVisual": {
+            "bar": {
               "members": 6,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "focus-visible"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "surface": [
+                  "default"
+                ]
+              }
+            },
+            "trailingVisual": {
+              "members": 12,
               "where": {
                 "state": [
                   "focus-visible"
@@ -3656,11 +3983,29 @@
       "components": {
         "link": {
           "keys": [
+            "fill.selected.hover",
             "icon.hover"
           ],
           "parts": {
-            "trailingVisual": {
+            "bar": {
               "members": 6,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "hover"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "surface": [
+                  "default"
+                ]
+              }
+            },
+            "trailingVisual": {
+              "members": 12,
               "where": {
                 "state": [
                   "hover"
@@ -3682,11 +4027,29 @@
       "components": {
         "link": {
           "keys": [
+            "fill.selected.pressed",
             "icon.pressed"
           ],
           "parts": {
-            "trailingVisual": {
+            "bar": {
               "members": 6,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "pressed"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "surface": [
+                  "default"
+                ]
+              }
+            },
+            "trailingVisual": {
+              "members": 12,
               "where": {
                 "state": [
                   "pressed"
@@ -3713,7 +4076,7 @@
           ],
           "parts": {
             "glyph": {
-              "members": 45,
+              "members": 46,
               "where": {}
             }
           }
@@ -3748,6 +4111,39 @@
           ],
           "parts": {
             "leadingVisual": {
+              "members": 72,
+              "where": {
+                "state": [
+                  "filled",
+                  "focus-visible",
+                  "focus-visible-filled",
+                  "hover",
+                  "read-only",
+                  "rest"
+                ]
+              }
+            }
+          }
+        },
+        "search-field": {
+          "keys": [
+            "icon"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 72,
+              "where": {
+                "state": [
+                  "filled",
+                  "focus-visible",
+                  "focus-visible-filled",
+                  "hover",
+                  "read-only",
+                  "rest"
+                ]
+              }
+            },
+            "trailingVisual": {
               "members": 72,
               "where": {
                 "state": [
@@ -3844,6 +4240,29 @@
     "color.icon.secondary": {
       "type": "color",
       "components": {
+        "_breadcrumb-separator": {
+          "keys": [
+            "icon"
+          ],
+          "parts": {
+            "chevronGlyph": {
+              "members": 1,
+              "where": {
+                "type": [
+                  "chevron"
+                ]
+              }
+            },
+            "slashGlyph": {
+              "members": 1,
+              "where": {
+                "type": [
+                  "slash"
+                ]
+              }
+            }
+          }
+        },
         "field-message": {
           "keys": [
             "default.icon"
@@ -6205,6 +6624,21 @@
           }
         },
         "password-field": {
+          "keys": [
+            "overlay.hover"
+          ],
+          "parts": {
+            "control": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "hover"
+                ]
+              }
+            }
+          }
+        },
+        "search-field": {
           "keys": [
             "overlay.hover"
           ],
@@ -9204,8 +9638,25 @@
         "link": {
           "keys": [],
           "parts": {
-            "trailingVisual": {
+            "bar": {
               "members": 6,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "rest"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "surface": [
+                  "inverse"
+                ]
+              }
+            },
+            "trailingVisual": {
+              "members": 12,
               "where": {
                 "state": [
                   "rest"
@@ -9228,8 +9679,25 @@
         "link": {
           "keys": [],
           "parts": {
-            "trailingVisual": {
+            "bar": {
               "members": 6,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "focus-visible"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "surface": [
+                  "inverse"
+                ]
+              }
+            },
+            "trailingVisual": {
+              "members": 12,
               "where": {
                 "state": [
                   "focus-visible"
@@ -9252,8 +9720,25 @@
         "link": {
           "keys": [],
           "parts": {
-            "trailingVisual": {
+            "bar": {
               "members": 6,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "hover"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "surface": [
+                  "inverse"
+                ]
+              }
+            },
+            "trailingVisual": {
+              "members": 12,
               "where": {
                 "state": [
                   "hover"
@@ -9276,8 +9761,25 @@
         "link": {
           "keys": [],
           "parts": {
-            "trailingVisual": {
+            "bar": {
               "members": 6,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "pressed"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "surface": [
+                  "inverse"
+                ]
+              }
+            },
+            "trailingVisual": {
+              "members": 12,
               "where": {
                 "state": [
                   "pressed"
@@ -12036,7 +12538,7 @@
           "keys": [],
           "parts": {
             "label": {
-              "members": 12,
+              "members": 18,
               "where": {
                 "state": [
                   "rest"
@@ -12057,7 +12559,7 @@
           "keys": [],
           "parts": {
             "label": {
-              "members": 12,
+              "members": 18,
               "where": {
                 "state": [
                   "focus-visible"
@@ -12078,7 +12580,7 @@
           "keys": [],
           "parts": {
             "label": {
-              "members": 12,
+              "members": 18,
               "where": {
                 "state": [
                   "hover"
@@ -12099,7 +12601,7 @@
           "keys": [],
           "parts": {
             "label": {
-              "members": 12,
+              "members": 18,
               "where": {
                 "state": [
                   "pressed"
@@ -12241,7 +12743,7 @@
           ],
           "parts": {
             "label": {
-              "members": 12,
+              "members": 18,
               "where": {
                 "state": [
                   "rest"
@@ -12264,7 +12766,7 @@
           ],
           "parts": {
             "label": {
-              "members": 12,
+              "members": 18,
               "where": {
                 "state": [
                   "focus-visible"
@@ -12287,7 +12789,7 @@
           ],
           "parts": {
             "label": {
-              "members": 12,
+              "members": 18,
               "where": {
                 "state": [
                   "hover"
@@ -12310,7 +12812,7 @@
           ],
           "parts": {
             "label": {
-              "members": 12,
+              "members": 18,
               "where": {
                 "state": [
                   "pressed"
@@ -12527,6 +13029,24 @@
             }
           }
         },
+        "breadcrumb-item": {
+          "keys": [
+            "label"
+          ],
+          "parts": {
+            "current": {
+              "members": 2,
+              "where": {
+                "kind": [
+                  "current"
+                ],
+                "separator": [
+                  "chevron"
+                ]
+              }
+            }
+          }
+        },
         "checkbox-row": {
           "keys": [
             "label"
@@ -12692,6 +13212,41 @@
             }
           }
         },
+        "search-field": {
+          "keys": [
+            "caret",
+            "caret-end",
+            "label"
+          ],
+          "parts": {
+            "caret": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            },
+            "caretEnd": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "focus-visible-filled"
+                ]
+              }
+            },
+            "value": {
+              "members": 36,
+              "where": {
+                "state": [
+                  "filled",
+                  "focus-visible-filled",
+                  "read-only"
+                ]
+              }
+            }
+          }
+        },
         "select": {
           "keys": [
             "label"
@@ -12843,6 +13398,26 @@
           }
         },
         "password-field": {
+          "keys": [
+            "label.empty",
+            "label.focus-visible",
+            "label.hover",
+            "label.rest"
+          ],
+          "parts": {
+            "placeholder": {
+              "members": 36,
+              "where": {
+                "state": [
+                  "focus-visible",
+                  "hover",
+                  "rest"
+                ]
+              }
+            }
+          }
+        },
+        "search-field": {
           "keys": [
             "label.empty",
             "label.focus-visible",
@@ -13457,6 +14032,35 @@
             }
           }
         },
+        "search-field": {
+          "keys": [
+            "size.large.caret-height"
+          ],
+          "parts": {
+            "caret": {
+              "members": 4,
+              "where": {
+                "size": [
+                  "large"
+                ],
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            },
+            "caretEnd": {
+              "members": 4,
+              "where": {
+                "size": [
+                  "large"
+                ],
+                "state": [
+                  "focus-visible-filled"
+                ]
+              }
+            }
+          }
+        },
         "text-field": {
           "keys": [
             "size.large.caret-height"
@@ -13746,6 +14350,35 @@
               "where": {
                 "size": [
                   "medium"
+                ]
+              }
+            }
+          }
+        },
+        "search-field": {
+          "keys": [
+            "size.medium.caret-height"
+          ],
+          "parts": {
+            "caret": {
+              "members": 4,
+              "where": {
+                "size": [
+                  "medium"
+                ],
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            },
+            "caretEnd": {
+              "members": 4,
+              "where": {
+                "size": [
+                  "medium"
+                ],
+                "state": [
+                  "focus-visible-filled"
                 ]
               }
             }
@@ -14175,6 +14808,35 @@
             }
           }
         },
+        "search-field": {
+          "keys": [
+            "size.small.caret-height"
+          ],
+          "parts": {
+            "caret": {
+              "members": 4,
+              "where": {
+                "size": [
+                  "small"
+                ],
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            },
+            "caretEnd": {
+              "members": 4,
+              "where": {
+                "size": [
+                  "small"
+                ],
+                "state": [
+                  "focus-visible-filled"
+                ]
+              }
+            }
+          }
+        },
         "switch-row": {
           "keys": [
             "size.small.control-box"
@@ -14539,7 +15201,7 @@
           ],
           "parts": {
             "focusRing": {
-              "members": 24,
+              "members": 36,
               "where": {
                 "state": [
                   "focus-visible"
@@ -14684,6 +15346,22 @@
           "parts": {}
         },
         "password-field": {
+          "keys": [
+            "ring-offset"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 24,
+              "where": {
+                "state": [
+                  "focus-visible",
+                  "focus-visible-filled"
+                ]
+              }
+            }
+          }
+        },
+        "search-field": {
           "keys": [
             "ring-offset"
           ],
@@ -14961,7 +15639,7 @@
           ],
           "parts": {
             "focusRing": {
-              "members": 24,
+              "members": 36,
               "where": {
                 "state": [
                   "focus-visible"
@@ -14996,6 +15674,22 @@
               "where": {
                 "state": [
                   "focus-visible"
+                ]
+              }
+            }
+          }
+        },
+        "search-field": {
+          "keys": [
+            "ring-width"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 24,
+              "where": {
+                "state": [
+                  "focus-visible",
+                  "focus-visible-filled"
                 ]
               }
             }
@@ -16234,7 +16928,7 @@
           ],
           "parts": {
             "trailingVisual": {
-              "members": 16,
+              "members": 32,
               "where": {
                 "size": [
                   "large"
@@ -16270,6 +16964,21 @@
           ],
           "parts": {
             "leadingVisual": {
+              "members": 84,
+              "where": {}
+            }
+          }
+        },
+        "search-field": {
+          "keys": [
+            "icon-size"
+          ],
+          "parts": {
+            "leadingVisual": {
+              "members": 84,
+              "where": {}
+            },
+            "trailingVisual": {
               "members": 84,
               "where": {}
             }
@@ -16515,6 +17224,51 @@
             }
           }
         },
+        "_breadcrumb-separator": {
+          "keys": [
+            "glyph-size"
+          ],
+          "parts": {
+            "chevronGlyph": {
+              "members": 1,
+              "where": {
+                "type": [
+                  "chevron"
+                ]
+              }
+            },
+            "frame": {
+              "members": 2,
+              "where": {}
+            },
+            "slashGlyph": {
+              "members": 1,
+              "where": {
+                "type": [
+                  "slash"
+                ]
+              }
+            }
+          }
+        },
+        "breadcrumbs": {
+          "keys": [
+            "back-icon"
+          ],
+          "parts": {
+            "backGlyph": {
+              "members": 2,
+              "where": {
+                "path": [
+                  "parent"
+                ],
+                "separator": [
+                  "chevron"
+                ]
+              }
+            }
+          }
+        },
         "button": {
           "keys": [
             "size.small.icon"
@@ -16722,7 +17476,7 @@
           ],
           "parts": {
             "trailingVisual": {
-              "members": 32,
+              "members": 64,
               "where": {
                 "size": [
                   "medium",
@@ -17289,6 +18043,17 @@
             }
           }
         },
+        "search-field": {
+          "keys": [
+            "radius"
+          ],
+          "parts": {
+            "control": {
+              "members": 84,
+              "where": {}
+            }
+          }
+        },
         "segmented-control-segment": {
           "keys": [
             "indicator-radius"
@@ -17597,6 +18362,21 @@
           "parts": {
             "row": {
               "members": 2,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
+        "search-field": {
+          "keys": [
+            "size.large.height"
+          ],
+          "parts": {
+            "control": {
+              "members": 28,
               "where": {
                 "size": [
                   "large"
@@ -18015,6 +18795,23 @@
           }
         },
         "password-field": {
+          "keys": [
+            "size.medium.height",
+            "size.small.height"
+          ],
+          "parts": {
+            "control": {
+              "members": 56,
+              "where": {
+                "size": [
+                  "medium",
+                  "small"
+                ]
+              }
+            }
+          }
+        },
+        "search-field": {
           "keys": [
             "size.medium.height",
             "size.small.height"
@@ -18733,6 +19530,44 @@
     "space.050": {
       "type": "dimension",
       "components": {
+        "breadcrumb-item": {
+          "keys": [
+            "size.small.gap"
+          ],
+          "parts": {
+            "container": {
+              "members": 5,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
+        "breadcrumbs": {
+          "keys": [
+            "back-gap",
+            "size.small.gap"
+          ],
+          "parts": {
+            "container": {
+              "members": 6,
+              "where": {}
+            },
+            "items": {
+              "members": 2,
+              "where": {
+                "path": [
+                  "full"
+                ],
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "counter": {
           "keys": [
             "size.medium.value-pad",
@@ -18768,7 +19603,7 @@
           ],
           "parts": {
             "container": {
-              "members": 64,
+              "members": 96,
               "where": {
                 "size": [
                   "medium",
@@ -18956,6 +19791,21 @@
             }
           }
         },
+        "search-field": {
+          "keys": [
+            "size.small.pad-y"
+          ],
+          "parts": {
+            "control": {
+              "members": 28,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "segmented-control-segment": {
           "keys": [
             "size.small.gap"
@@ -19114,6 +19964,39 @@
               "where": {
                 "type": [
                   "status"
+                ]
+              }
+            }
+          }
+        },
+        "breadcrumb-item": {
+          "keys": [
+            "size.medium.gap"
+          ],
+          "parts": {
+            "container": {
+              "members": 5,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
+        "breadcrumbs": {
+          "keys": [
+            "size.medium.gap"
+          ],
+          "parts": {
+            "items": {
+              "members": 2,
+              "where": {
+                "path": [
+                  "full"
+                ],
+                "size": [
+                  "medium"
                 ]
               }
             }
@@ -19284,7 +20167,7 @@
           ],
           "parts": {
             "container": {
-              "members": 32,
+              "members": 48,
               "where": {
                 "size": [
                   "large"
@@ -19378,6 +20261,30 @@
                   "medium"
                 ]
               }
+            }
+          }
+        },
+        "search-field": {
+          "keys": [
+            "root-gap",
+            "size.large.gap",
+            "size.large.pad-y",
+            "size.medium.gap",
+            "size.medium.pad-y",
+            "size.small.gap"
+          ],
+          "parts": {
+            "container": {
+              "members": 84,
+              "where": {}
+            },
+            "content": {
+              "members": 84,
+              "where": {}
+            },
+            "control": {
+              "members": 84,
+              "where": {}
             }
           }
         },
@@ -20057,6 +20964,23 @@
             }
           }
         },
+        "search-field": {
+          "keys": [
+            "size.medium.pad-x",
+            "size.small.pad-x"
+          ],
+          "parts": {
+            "control": {
+              "members": 56,
+              "where": {
+                "size": [
+                  "medium",
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "segmented-control-segment": {
           "keys": [
             "size.medium.padding-x"
@@ -20405,6 +21329,21 @@
             }
           }
         },
+        "search-field": {
+          "keys": [
+            "size.large.pad-x"
+          ],
+          "parts": {
+            "control": {
+              "members": 28,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
+        },
         "select": {
           "keys": [
             "size.large.pad-x"
@@ -20551,17 +21490,18 @@
         },
         "link": {
           "keys": [
-            "size.large.type.default.standalone.rest"
+            "size.large.type.default.standalone.selected.focus-visible",
+            "size.large.type.default.standalone.selected.hover",
+            "size.large.type.default.standalone.selected.pressed",
+            "size.large.type.default.standalone.selected.rest",
+            "size.large.type.default.standalone.unselected.rest"
           ],
           "parts": {
             "label": {
-              "members": 2,
+              "members": 10,
               "where": {
                 "size": [
                   "large"
-                ],
-                "state": [
-                  "rest"
                 ],
                 "style": [
                   "standalone"
@@ -20643,6 +21583,40 @@
               "where": {
                 "size": [
                   "large"
+                ]
+              }
+            }
+          }
+        },
+        "search-field": {
+          "keys": [
+            "size.large.type"
+          ],
+          "parts": {
+            "placeholder": {
+              "members": 16,
+              "where": {
+                "size": [
+                  "large"
+                ],
+                "state": [
+                  "disabled",
+                  "focus-visible",
+                  "hover",
+                  "rest"
+                ]
+              }
+            },
+            "value": {
+              "members": 12,
+              "where": {
+                "size": [
+                  "large"
+                ],
+                "state": [
+                  "filled",
+                  "focus-visible-filled",
+                  "read-only"
                 ]
               }
             }
@@ -20757,18 +21731,25 @@
       "components": {
         "link": {
           "keys": [
-            "size.large.type.default.inline.focus-visible",
-            "size.large.type.default.inline.hover",
-            "size.large.type.default.inline.pressed",
-            "size.large.type.default.inline.rest",
-            "size.large.type.default.standalone.focus-visible",
-            "size.large.type.default.standalone.hover",
-            "size.large.type.default.standalone.pressed"
+            "size.large.type.default.inline.selected.focus-visible",
+            "size.large.type.default.inline.selected.hover",
+            "size.large.type.default.inline.selected.pressed",
+            "size.large.type.default.inline.selected.rest",
+            "size.large.type.default.inline.unselected.focus-visible",
+            "size.large.type.default.inline.unselected.hover",
+            "size.large.type.default.inline.unselected.pressed",
+            "size.large.type.default.inline.unselected.rest",
+            "size.large.type.default.standalone.unselected.focus-visible",
+            "size.large.type.default.standalone.unselected.hover",
+            "size.large.type.default.standalone.unselected.pressed"
           ],
           "parts": {
             "label": {
               "members": 14,
               "where": {
+                "selection": [
+                  "unselected"
+                ],
                 "size": [
                   "large"
                 ],
@@ -20786,17 +21767,18 @@
       "components": {
         "link": {
           "keys": [
-            "size.large.type.emphasis.standalone.rest"
+            "size.large.type.emphasis.standalone.selected.focus-visible",
+            "size.large.type.emphasis.standalone.selected.hover",
+            "size.large.type.emphasis.standalone.selected.pressed",
+            "size.large.type.emphasis.standalone.selected.rest",
+            "size.large.type.emphasis.standalone.unselected.rest"
           ],
           "parts": {
             "label": {
-              "members": 2,
+              "members": 10,
               "where": {
                 "size": [
                   "large"
-                ],
-                "state": [
-                  "rest"
                 ],
                 "style": [
                   "standalone"
@@ -20815,18 +21797,25 @@
       "components": {
         "link": {
           "keys": [
-            "size.large.type.emphasis.inline.focus-visible",
-            "size.large.type.emphasis.inline.hover",
-            "size.large.type.emphasis.inline.pressed",
-            "size.large.type.emphasis.inline.rest",
-            "size.large.type.emphasis.standalone.focus-visible",
-            "size.large.type.emphasis.standalone.hover",
-            "size.large.type.emphasis.standalone.pressed"
+            "size.large.type.emphasis.inline.selected.focus-visible",
+            "size.large.type.emphasis.inline.selected.hover",
+            "size.large.type.emphasis.inline.selected.pressed",
+            "size.large.type.emphasis.inline.selected.rest",
+            "size.large.type.emphasis.inline.unselected.focus-visible",
+            "size.large.type.emphasis.inline.unselected.hover",
+            "size.large.type.emphasis.inline.unselected.pressed",
+            "size.large.type.emphasis.inline.unselected.rest",
+            "size.large.type.emphasis.standalone.unselected.focus-visible",
+            "size.large.type.emphasis.standalone.unselected.hover",
+            "size.large.type.emphasis.standalone.unselected.pressed"
           ],
           "parts": {
             "label": {
               "members": 14,
               "where": {
+                "selection": [
+                  "unselected"
+                ],
                 "size": [
                   "large"
                 ],
@@ -20852,6 +21841,27 @@
               "where": {
                 "expansion": [
                   "expanded"
+                ],
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
+        },
+        "breadcrumb-item": {
+          "keys": [
+            "size.medium.type"
+          ],
+          "parts": {
+            "current": {
+              "members": 1,
+              "where": {
+                "kind": [
+                  "current"
+                ],
+                "separator": [
+                  "chevron"
                 ],
                 "size": [
                   "medium"
@@ -20957,17 +21967,18 @@
         },
         "link": {
           "keys": [
-            "size.medium.type.default.standalone.rest"
+            "size.medium.type.default.standalone.selected.focus-visible",
+            "size.medium.type.default.standalone.selected.hover",
+            "size.medium.type.default.standalone.selected.pressed",
+            "size.medium.type.default.standalone.selected.rest",
+            "size.medium.type.default.standalone.unselected.rest"
           ],
           "parts": {
             "label": {
-              "members": 2,
+              "members": 10,
               "where": {
                 "size": [
                   "medium"
-                ],
-                "state": [
-                  "rest"
                 ],
                 "style": [
                   "standalone"
@@ -21049,6 +22060,40 @@
               "where": {
                 "size": [
                   "medium"
+                ]
+              }
+            }
+          }
+        },
+        "search-field": {
+          "keys": [
+            "size.medium.type"
+          ],
+          "parts": {
+            "placeholder": {
+              "members": 16,
+              "where": {
+                "size": [
+                  "medium"
+                ],
+                "state": [
+                  "disabled",
+                  "focus-visible",
+                  "hover",
+                  "rest"
+                ]
+              }
+            },
+            "value": {
+              "members": 12,
+              "where": {
+                "size": [
+                  "medium"
+                ],
+                "state": [
+                  "filled",
+                  "focus-visible-filled",
+                  "read-only"
                 ]
               }
             }
@@ -21189,18 +22234,25 @@
       "components": {
         "link": {
           "keys": [
-            "size.medium.type.default.inline.focus-visible",
-            "size.medium.type.default.inline.hover",
-            "size.medium.type.default.inline.pressed",
-            "size.medium.type.default.inline.rest",
-            "size.medium.type.default.standalone.focus-visible",
-            "size.medium.type.default.standalone.hover",
-            "size.medium.type.default.standalone.pressed"
+            "size.medium.type.default.inline.selected.focus-visible",
+            "size.medium.type.default.inline.selected.hover",
+            "size.medium.type.default.inline.selected.pressed",
+            "size.medium.type.default.inline.selected.rest",
+            "size.medium.type.default.inline.unselected.focus-visible",
+            "size.medium.type.default.inline.unselected.hover",
+            "size.medium.type.default.inline.unselected.pressed",
+            "size.medium.type.default.inline.unselected.rest",
+            "size.medium.type.default.standalone.unselected.focus-visible",
+            "size.medium.type.default.standalone.unselected.hover",
+            "size.medium.type.default.standalone.unselected.pressed"
           ],
           "parts": {
             "label": {
               "members": 14,
               "where": {
+                "selection": [
+                  "unselected"
+                ],
                 "size": [
                   "medium"
                 ],
@@ -21247,17 +22299,18 @@
         },
         "link": {
           "keys": [
-            "size.medium.type.emphasis.standalone.rest"
+            "size.medium.type.emphasis.standalone.selected.focus-visible",
+            "size.medium.type.emphasis.standalone.selected.hover",
+            "size.medium.type.emphasis.standalone.selected.pressed",
+            "size.medium.type.emphasis.standalone.selected.rest",
+            "size.medium.type.emphasis.standalone.unselected.rest"
           ],
           "parts": {
             "label": {
-              "members": 2,
+              "members": 10,
               "where": {
                 "size": [
                   "medium"
-                ],
-                "state": [
-                  "rest"
                 ],
                 "style": [
                   "standalone"
@@ -21276,18 +22329,25 @@
       "components": {
         "link": {
           "keys": [
-            "size.medium.type.emphasis.inline.focus-visible",
-            "size.medium.type.emphasis.inline.hover",
-            "size.medium.type.emphasis.inline.pressed",
-            "size.medium.type.emphasis.inline.rest",
-            "size.medium.type.emphasis.standalone.focus-visible",
-            "size.medium.type.emphasis.standalone.hover",
-            "size.medium.type.emphasis.standalone.pressed"
+            "size.medium.type.emphasis.inline.selected.focus-visible",
+            "size.medium.type.emphasis.inline.selected.hover",
+            "size.medium.type.emphasis.inline.selected.pressed",
+            "size.medium.type.emphasis.inline.selected.rest",
+            "size.medium.type.emphasis.inline.unselected.focus-visible",
+            "size.medium.type.emphasis.inline.unselected.hover",
+            "size.medium.type.emphasis.inline.unselected.pressed",
+            "size.medium.type.emphasis.inline.unselected.rest",
+            "size.medium.type.emphasis.standalone.unselected.focus-visible",
+            "size.medium.type.emphasis.standalone.unselected.hover",
+            "size.medium.type.emphasis.standalone.unselected.pressed"
           ],
           "parts": {
             "label": {
               "members": 14,
               "where": {
+                "selection": [
+                  "unselected"
+                ],
                 "size": [
                   "medium"
                 ],
@@ -21313,6 +22373,27 @@
               "where": {
                 "expansion": [
                   "expanded"
+                ],
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
+        "breadcrumb-item": {
+          "keys": [
+            "size.small.type"
+          ],
+          "parts": {
+            "current": {
+              "members": 1,
+              "where": {
+                "kind": [
+                  "current"
+                ],
+                "separator": [
+                  "chevron"
                 ],
                 "size": [
                   "small"
@@ -21382,17 +22463,18 @@
         },
         "link": {
           "keys": [
-            "size.small.type.default.standalone.rest"
+            "size.small.type.default.standalone.selected.focus-visible",
+            "size.small.type.default.standalone.selected.hover",
+            "size.small.type.default.standalone.selected.pressed",
+            "size.small.type.default.standalone.selected.rest",
+            "size.small.type.default.standalone.unselected.rest"
           ],
           "parts": {
             "label": {
-              "members": 2,
+              "members": 10,
               "where": {
                 "size": [
                   "small"
-                ],
-                "state": [
-                  "rest"
                 ],
                 "style": [
                   "standalone"
@@ -21474,6 +22556,40 @@
               "where": {
                 "size": [
                   "small"
+                ]
+              }
+            }
+          }
+        },
+        "search-field": {
+          "keys": [
+            "size.small.type"
+          ],
+          "parts": {
+            "placeholder": {
+              "members": 16,
+              "where": {
+                "size": [
+                  "small"
+                ],
+                "state": [
+                  "disabled",
+                  "focus-visible",
+                  "hover",
+                  "rest"
+                ]
+              }
+            },
+            "value": {
+              "members": 12,
+              "where": {
+                "size": [
+                  "small"
+                ],
+                "state": [
+                  "filled",
+                  "focus-visible-filled",
+                  "read-only"
                 ]
               }
             }
@@ -21603,18 +22719,25 @@
       "components": {
         "link": {
           "keys": [
-            "size.small.type.default.inline.focus-visible",
-            "size.small.type.default.inline.hover",
-            "size.small.type.default.inline.pressed",
-            "size.small.type.default.inline.rest",
-            "size.small.type.default.standalone.focus-visible",
-            "size.small.type.default.standalone.hover",
-            "size.small.type.default.standalone.pressed"
+            "size.small.type.default.inline.selected.focus-visible",
+            "size.small.type.default.inline.selected.hover",
+            "size.small.type.default.inline.selected.pressed",
+            "size.small.type.default.inline.selected.rest",
+            "size.small.type.default.inline.unselected.focus-visible",
+            "size.small.type.default.inline.unselected.hover",
+            "size.small.type.default.inline.unselected.pressed",
+            "size.small.type.default.inline.unselected.rest",
+            "size.small.type.default.standalone.unselected.focus-visible",
+            "size.small.type.default.standalone.unselected.hover",
+            "size.small.type.default.standalone.unselected.pressed"
           ],
           "parts": {
             "label": {
               "members": 14,
               "where": {
+                "selection": [
+                  "unselected"
+                ],
                 "size": [
                   "small"
                 ],
@@ -21661,17 +22784,18 @@
         },
         "link": {
           "keys": [
-            "size.small.type.emphasis.standalone.rest"
+            "size.small.type.emphasis.standalone.selected.focus-visible",
+            "size.small.type.emphasis.standalone.selected.hover",
+            "size.small.type.emphasis.standalone.selected.pressed",
+            "size.small.type.emphasis.standalone.selected.rest",
+            "size.small.type.emphasis.standalone.unselected.rest"
           ],
           "parts": {
             "label": {
-              "members": 2,
+              "members": 10,
               "where": {
                 "size": [
                   "small"
-                ],
-                "state": [
-                  "rest"
                 ],
                 "style": [
                   "standalone"
@@ -21690,18 +22814,25 @@
       "components": {
         "link": {
           "keys": [
-            "size.small.type.emphasis.inline.focus-visible",
-            "size.small.type.emphasis.inline.hover",
-            "size.small.type.emphasis.inline.pressed",
-            "size.small.type.emphasis.inline.rest",
-            "size.small.type.emphasis.standalone.focus-visible",
-            "size.small.type.emphasis.standalone.hover",
-            "size.small.type.emphasis.standalone.pressed"
+            "size.small.type.emphasis.inline.selected.focus-visible",
+            "size.small.type.emphasis.inline.selected.hover",
+            "size.small.type.emphasis.inline.selected.pressed",
+            "size.small.type.emphasis.inline.selected.rest",
+            "size.small.type.emphasis.inline.unselected.focus-visible",
+            "size.small.type.emphasis.inline.unselected.hover",
+            "size.small.type.emphasis.inline.unselected.pressed",
+            "size.small.type.emphasis.inline.unselected.rest",
+            "size.small.type.emphasis.standalone.unselected.focus-visible",
+            "size.small.type.emphasis.standalone.unselected.hover",
+            "size.small.type.emphasis.standalone.unselected.pressed"
           ],
           "parts": {
             "label": {
               "members": 14,
               "where": {
+                "selection": [
+                  "unselected"
+                ],
                 "size": [
                   "small"
                 ],
@@ -22717,6 +23848,21 @@
       "declaredNotDrawn": [],
       "drawnNotDeclared": []
     },
+    "_breadcrumb-separator": {
+      "members": 2,
+      "axes": {
+        "type": [
+          "chevron",
+          "slash"
+        ]
+      },
+      "tokens": [
+        "color.icon.secondary",
+        "icon.size.xs"
+      ],
+      "declaredNotDrawn": [],
+      "drawnNotDeclared": []
+    },
     "accordion": {
       "members": 24,
       "axes": {
@@ -22817,6 +23963,58 @@
         "space.100",
         "space.150",
         "type.label.sm.emphasis"
+      ],
+      "declaredNotDrawn": [],
+      "drawnNotDeclared": []
+    },
+    "breadcrumb-item": {
+      "members": 10,
+      "axes": {
+        "kind": [
+          "ancestor",
+          "current",
+          "overflow"
+        ],
+        "separator": [
+          "chevron",
+          "slash"
+        ],
+        "size": [
+          "medium",
+          "small"
+        ]
+      },
+      "tokens": [
+        "color.text.primary",
+        "space.050",
+        "space.100",
+        "type.body.md.default",
+        "type.body.sm.default"
+      ],
+      "declaredNotDrawn": [],
+      "drawnNotDeclared": []
+    },
+    "breadcrumbs": {
+      "members": 6,
+      "axes": {
+        "path": [
+          "full",
+          "parent"
+        ],
+        "separator": [
+          "chevron",
+          "slash"
+        ],
+        "size": [
+          "medium",
+          "small"
+        ]
+      },
+      "tokens": [
+        "color.icon.link.default",
+        "icon.size.xs",
+        "space.050",
+        "space.100"
       ],
       "declaredNotDrawn": [],
       "drawnNotDeclared": []
@@ -23802,7 +25000,7 @@
       ]
     },
     "icon": {
-      "members": 45,
+      "members": 46,
       "axes": {
         "name": [
           "FPO-default-icon",
@@ -23848,6 +25046,7 @@
           "plus-filled",
           "resize-grip",
           "search",
+          "slash",
           "warning-triangle",
           "warning-triangle-filled"
         ]
@@ -24188,8 +25387,12 @@
       "drawnNotDeclared": []
     },
     "link": {
-      "members": 96,
+      "members": 144,
       "axes": {
+        "selection": [
+          "selected",
+          "unselected"
+        ],
         "size": [
           "large",
           "medium",
@@ -24215,6 +25418,7 @@
         ]
       },
       "tokens": [
+        "border-width.thick",
         "color.icon.link.default",
         "color.icon.link.focused",
         "color.icon.link.hover",
@@ -24490,6 +25694,66 @@
       "declaredNotDrawn": [
         "color.disabled.text"
       ],
+      "drawnNotDeclared": []
+    },
+    "search-field": {
+      "members": 84,
+      "axes": {
+        "size": [
+          "large",
+          "medium",
+          "small"
+        ],
+        "state": [
+          "disabled",
+          "filled",
+          "focus-visible",
+          "focus-visible-filled",
+          "hover",
+          "read-only",
+          "rest"
+        ],
+        "status": [
+          "default",
+          "error",
+          "success",
+          "warning"
+        ]
+      },
+      "tokens": [
+        "border-width.hairline",
+        "color.border.danger",
+        "color.border.focus",
+        "color.border.success",
+        "color.border.warning",
+        "color.disabled.border",
+        "color.disabled.fill",
+        "color.disabled.on-fill",
+        "color.field.border.hover",
+        "color.field.border.rest",
+        "color.field.fill",
+        "color.icon.primary",
+        "color.interactive.neutral.overlay.hover",
+        "color.text.primary",
+        "color.text.secondary",
+        "control.size.lg.line-box",
+        "control.size.md.line-box",
+        "control.size.sm.line-box",
+        "focus.ring.offset-field",
+        "focus.ring.width",
+        "icon.size.sm",
+        "radius.sm",
+        "size.lg.height",
+        "size.md.min-height",
+        "space.075",
+        "space.100",
+        "space.200",
+        "space.300",
+        "type.body.lg.default",
+        "type.body.md.default",
+        "type.body.sm.default"
+      ],
+      "declaredNotDrawn": [],
       "drawnNotDeclared": []
     },
     "segmented-control": {

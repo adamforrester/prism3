@@ -3,14 +3,14 @@
   "defs": {
     "icon": {
       "set": {
-        "members": 45,
-        "assignments": 45,
-        "sha256": "411d317f62974a753f5cea5ebeaa71b988398adb653899ef92ef4ae5795b9d1f"
+        "members": 46,
+        "assignments": 46,
+        "sha256": "4050e35c90281646d097cf07a805d82ba610ad288e13c1fc5d95cec33f1cf6d3"
       },
       "grid": {
-        "members": 405,
-        "assignments": 405,
-        "sha256": "726f03a404fd52ef1c8750fdd00fab53988f79eda8591a929afaa1875bae2419"
+        "members": 414,
+        "assignments": 414,
+        "sha256": "c0daf376b461a125879a0a8f64eddc07ef4b46c502424c4849bdb9de45fded25"
       }
     },
     "focus-ring": {
@@ -459,14 +459,14 @@
     },
     "link": {
       "set": {
-        "members": 96,
-        "assignments": 144,
-        "sha256": "f787471a3c22c5a3d7c498c6ad42a0c2f9673a7f3ed3c68a48405f3fbddf9d3c"
+        "members": 144,
+        "assignments": 288,
+        "sha256": "a02866e4d111cecd20d1c94164454579afc1008401c7427afd217464ac1edbf1"
       },
       "grid": {
-        "members": 96,
-        "assignments": 144,
-        "sha256": "5480f441576c069f711473c032feaabf90c037ec47bcd140f87fb8e5145b2fb6"
+        "members": 144,
+        "assignments": 276,
+        "sha256": "f68b73c19632bbf447ff0d506095253ddb52e520d1a0024565b770a67db058f0"
       }
     },
     "button-group": {
@@ -517,6 +517,42 @@
         "sha256": "86197db62bd98180db1ac2e724718237609111d9b622c6a2e5db22568de79c91"
       }
     },
+    "_breadcrumb-separator": {
+      "set": {
+        "members": 2,
+        "assignments": 2,
+        "sha256": "ae53aecb553c12b1378d3eab208ad4a3fbdd8fde37d4b64ccbea068322821d4d"
+      },
+      "grid": {
+        "members": 2,
+        "assignments": 2,
+        "sha256": "c9afc2c06de163e22a7d7faaf17efcd22e7cf0512dc78ffedc698b5fb21ce85d"
+      }
+    },
+    "breadcrumb-item": {
+      "set": {
+        "members": 10,
+        "assignments": 2,
+        "sha256": "c24044ad2abdc33df23750eab33413b8195e68b60ab01c6423b9e69e310bc087"
+      },
+      "grid": {
+        "members": 10,
+        "assignments": 2,
+        "sha256": "9e0ef9db6ebdf4a4510225d6e95d19dc0580b712aa014dc453fad7adf511c7e6"
+      }
+    },
+    "breadcrumbs": {
+      "set": {
+        "members": 6,
+        "assignments": 2,
+        "sha256": "170dab417a04c35d7677eb0f113be652c93fd858997e5462e1d999a245b4f5ee"
+      },
+      "grid": {
+        "members": 6,
+        "assignments": 2,
+        "sha256": "d6e392003fd7f34ecc67f40ea9c73a71fd3bfa9742cd6e16c275b63be4d9a79f"
+      }
+    },
     "counter": {
       "set": {
         "members": 18,
@@ -551,6 +587,18 @@
         "members": 56,
         "assignments": 0,
         "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "search-field": {
+      "set": {
+        "members": 84,
+        "assignments": 444,
+        "sha256": "e3900fecab261c22d3829de7c8e240edd0cff7f1ea505d799bb0336ce726d129"
+      },
+      "grid": {
+        "members": 108,
+        "assignments": 564,
+        "sha256": "04316a98af67d09ef160dfeeb8ada50b0555b00f9ea7091cc5785820f2a59359"
       }
     }
   }

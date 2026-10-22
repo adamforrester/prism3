@@ -316,7 +316,11 @@
           "dialog",
           "password-field",
           "counter",
+          "search-field",
           "toast",
+          "_breadcrumb-separator",
+          "breadcrumb-item",
+          "breadcrumbs",
           "code-input-cell",
           "code-input"
         ]
