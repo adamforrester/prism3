@@ -1969,6 +1969,17 @@
           "description": "The glyph size: 20px at small and medium, 24px at large. A flush box is the glyph, with no padding. A round circle is 36, 44 or 56px across. The hit area in code is at least 44×44px at every size."
         },
         {
+          "name": "surface",
+          "type": "enum: 'default' | 'inverse'",
+          "default": "default",
+          "required": false,
+          "values": [
+            "default",
+            "inverse"
+          ],
+          "description": "The ground the button sits on, following IconButton. default for a normal page; inverse for a dark or brand-filled card or band, where the glyph binds its color.inverse counterpart so it keeps contrast against the flipped surface. Flush has no fill, so the glyph ink is all the axis changes. A host that cannot know its ground picks default, and the designer sets inverse on the instance, the same answer the nested focus ring gives."
+        },
+        {
           "name": "disabled",
           "type": "boolean",
           "default": false,
@@ -1996,6 +2007,13 @@
             "medium",
             "small",
             "large"
+          ],
+          "kind": "authoring"
+        },
+        "surface": {
+          "values": [
+            "default",
+            "inverse"
           ],
           "kind": "authoring"
         }
@@ -2138,6 +2156,17 @@
           "description": "The glyph size: 20px at small and medium, 24px at large. A flush box is the glyph, with no padding. A round circle is 36, 44 or 56px across. The hit area in code is at least 44×44px at every size."
         },
         {
+          "name": "surface",
+          "type": "enum: 'default' | 'inverse'",
+          "default": "default",
+          "required": false,
+          "values": [
+            "default",
+            "inverse"
+          ],
+          "description": "The ground the button sits on, following IconButton. default for a normal page; inverse for a dark or brand-filled card or band, where the glyph binds its color.inverse counterpart so it keeps contrast against the flipped surface. Flush has no fill, so the glyph ink is all the axis changes. A host that cannot know its ground picks default, and the designer sets inverse on the instance, the same answer the nested focus ring gives."
+        },
+        {
           "name": "disabled",
           "type": "boolean",
           "default": false,
@@ -2165,6 +2194,13 @@
             "medium",
             "small",
             "large"
+          ],
+          "kind": "authoring"
+        },
+        "surface": {
+          "values": [
+            "default",
+            "inverse"
           ],
           "kind": "authoring"
         }
@@ -2308,6 +2344,17 @@
           "description": "The glyph size: 20px at small and medium, 24px at large. A flush box is the glyph, with no padding. A round circle is 36, 44 or 56px across. The hit area in code is at least 44×44px at every size."
         },
         {
+          "name": "surface",
+          "type": "enum: 'default' | 'inverse'",
+          "default": "default",
+          "required": false,
+          "values": [
+            "default",
+            "inverse"
+          ],
+          "description": "The ground the button sits on, following IconButton. default for a normal page; inverse for a dark or brand-filled card or band, where the glyph binds its color.inverse counterpart so it keeps contrast against the flipped surface. Flush has no fill, so the glyph ink is all the axis changes. A host that cannot know its ground picks default, and the designer sets inverse on the instance, the same answer the nested focus ring gives."
+        },
+        {
           "name": "disabled",
           "type": "boolean",
           "default": false,
@@ -2335,6 +2382,13 @@
             "medium",
             "small",
             "large"
+          ],
+          "kind": "authoring"
+        },
+        "surface": {
+          "values": [
+            "default",
+            "inverse"
           ],
           "kind": "authoring"
         }
@@ -5481,8 +5535,7 @@
         "supersededBy": [],
         "planned": [
           "progress",
-          "skeleton",
-          "toast"
+          "skeleton"
         ],
         "replacesPatterns": [
           "an animated loading GIF",
@@ -5681,7 +5734,6 @@
         "supersededBy": [],
         "planned": [
           "avatar",
-          "toast",
           "banner"
         ],
         "replacesPatterns": [
@@ -7902,7 +7954,6 @@
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "toast",
           "popover",
           "menu"
         ],
@@ -8169,6 +8220,158 @@
           "eye icon inside a password field",
           "password field with no way to show the characters",
           "autocomplete=\"off\" on a password"
+        ]
+      }
+    },
+    "toast": {
+      "id": "toast",
+      "name": "Toast",
+      "aliases": [
+        "snackbar",
+        "notification",
+        "flag",
+        "flash-message"
+      ],
+      "category": "feedback",
+      "status": "draft",
+      "summary": "A short status message over the page after an action. Announced politely; it never takes focus.",
+      "description": "A short status message that appears over the page after something the user did, such as \"Added to bag\" or \"Address saved\", and goes away by itself. It confirms the user's own action, and the page already shows the change, so missing it costs nothing. It is announced politely and never takes focus. It can carry one action, which also exists elsewhere on the page, and a close button. One toast shows at a time: a new one replaces the one showing. Not a banner (a message the user must see, such as an error, stays in the page until it is resolved), not a dialog (a decision before going on), and not a field message (about one field).",
+      "props": [
+        {
+          "name": "message",
+          "type": "string",
+          "required": true,
+          "description": "The status, a few words stating the outcome (\"Added to bag\"). It wraps onto a second line rather than truncating."
+        },
+        {
+          "name": "intent",
+          "type": "enum: 'neutral' | 'success'",
+          "default": "neutral",
+          "required": false,
+          "values": [
+            "neutral",
+            "success"
+          ],
+          "description": "neutral for a plain confirmation, with no glyph. success adds a circled check beside the message. A message the user must not miss, such as an error, is a banner, not a toast."
+        },
+        {
+          "name": "action",
+          "type": "{ label: string; onAction: function }",
+          "required": false,
+          "description": "At most one action, a text button named by one verb (\"Undo\", \"View bag\"). The same action must also exist elsewhere on the page. A toast with an action does not close by itself."
+        },
+        {
+          "name": "duration",
+          "type": "number",
+          "default": 6000,
+          "required": false,
+          "description": "How long a toast with no action shows, in milliseconds. Never less than 5000; a shorter value is raised to 5000. Raise it for a longer or translated message. Ignored when there is an action."
+        },
+        {
+          "name": "dismissible",
+          "type": "boolean",
+          "default": true,
+          "required": false,
+          "description": "Shows the close button, named \"Dismiss\". On by default: it is the one exit a user can count on."
+        },
+        {
+          "name": "onDismiss",
+          "type": "function",
+          "required": false,
+          "description": "Called when the toast closes for any reason: the close button, the timer, the next toast replacing it, or the action."
+        }
+      ],
+      "states": [],
+      "variants": {
+        "intent": {
+          "values": [
+            "neutral",
+            "success"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "The toast sits in one shared role=\"status\" live region (polite, aria-atomic=\"true\"), inside a landmark labeled \"Notifications\". The toast itself takes no role and never takes focus.",
+        "wcag": [
+          "4.1.3 Status Messages (the message is announced through a live region without moving focus)",
+          "2.2.1 Timing Adjustable (a toast with no action shows for at least 5 seconds, pausing on hover, focus and a hidden window; a toast with an action does not time out)",
+          "1.4.1 Use of Color (success has a glyph shape and its text, not color alone)",
+          "1.4.3 Contrast (Minimum) (the message clears 4.5:1 on the inverse surface)",
+          "1.4.11 Non-text Contrast (the success glyph and the focus ring clear 3:1 on the inverse surface)",
+          "2.1.1 Keyboard (F6 reaches the action and the close button; the action also exists elsewhere on the page)",
+          "2.4.3 Focus Order (focus enters the region only when the user moves it there, and Escape returns it)",
+          "2.4.11 Focus Not Obscured (Minimum) (the page keeps a focused control clear of the toast)",
+          "2.5.8 Target Size (Minimum) (the close button is a 36px box, above 24px; targets 2.5.5 at 44×44 in code)"
+        ],
+        "keyboard": "F6 moves focus into the notifications region, to the newest toast's first control. Tab moves between the action and the close button. Escape or Shift+F6 returns focus to where it was. Enter and Space act on the focused button.",
+        "focus": "Showing a toast never moves focus. Focus enters only by F6, and Escape returns it.",
+        "aria": "The live region is role=\"status\" with aria-atomic=\"true\", present and empty from app start. The success glyph is aria-hidden. The close button's accessible name is \"Dismiss\" and the region's label is \"Notifications\"; both are translatable. Nothing mirrors in motion."
+      },
+      "content": {
+        "labelPattern": "State the outcome in a few words, in sentence case, with no period: \"Added to bag\", \"Address saved\". The action is one verb or a short verb phrase: \"Undo\", \"View bag\"."
+      },
+      "docs": {
+        "usage": "Use a Toast to confirm something the user did, when the page already shows the change: \"Added to bag\", \"Address saved\", \"Code copied\". If missing the message would cost the user something, use a banner. A decision before going on is a dialog; a message about one field is a field message.",
+        "do": [
+          "Confirm the user's own action in a few words",
+          "Use success when the action completed, and neutral otherwise",
+          "Keep the close button",
+          "Make the action also available elsewhere on the page",
+          "Raise the duration for a long or translated message"
+        ],
+        "dont": [
+          "Show an error or a warning in a toast. Use a banner.",
+          "Put the only route to an action in a toast",
+          "Add more than one action",
+          "Move focus to a toast",
+          "Set a duration under 5 seconds"
+        ],
+        "contentGuidelines": "Short and factual: the outcome, not a conversation. The glyph carries the tone, so the text stays plain. Name the action by what it does."
+      },
+      "ai": {
+        "primaryPurpose": "Confirm the user's own action with a short status over the page that is safe to miss.",
+        "whenToUse": "After an action whose result the page already shows (\"Added to bag\", \"Address saved\"), when a brief, polite confirmation helps and missing it costs nothing.",
+        "avoidWhen": "The message is an error, a warning or anything the user must see (a banner); it asks for a decision (a dialog); it is about one field (a field message); or its action has no other route on the page.",
+        "commonPartners": [
+          "button",
+          "flush-icon-button-neutral",
+          "field-message",
+          "dialog"
+        ],
+        "triggerKeywords": [
+          "toast",
+          "snackbar",
+          "notification",
+          "confirmation message",
+          "status message",
+          "added to bag"
+        ],
+        "generationPriority": 2
+      },
+      "motion": {
+        "enter": "An 8px slide up and a fade (motion.transition.enter: motion.duration.normal, motion.easing-role.enter).",
+        "exit": "A fade (motion.transition.exit: motion.duration.fast, motion.easing-role.exit). A replacement plays the exit, then the enter.",
+        "reduceMotion": "Under prefers-reduced-motion, the fade only, with no slide, at motion.duration-reduced.normal."
+      },
+      "composition": {
+        "composesWith": [
+          "button",
+          "flush-icon-button-neutral"
+        ],
+        "alternativeTo": [
+          "dialog",
+          "field-message"
+        ],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [
+          "banner"
+        ],
+        "replacesPatterns": [
+          "an alert() after a save",
+          "a status message that moves focus",
+          "a timed message with no pause"
         ]
       }
     },

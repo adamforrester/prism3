@@ -721,6 +721,605 @@
       }
     },
     {
+      "name": "pds3/color/border/primary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Default border — a decorative divider",
+      "value": {
+        "r": 0.21568627655506134,
+        "g": 0.21960784494876862,
+        "b": 0.22745098173618317,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/750"
+      }
+    },
+    {
+      "name": "pds3/color/border/secondary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Stronger border / divider",
+      "value": {
+        "r": 0.30588236451148987,
+        "g": 0.3137255012989044,
+        "b": 0.32156863808631897,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/650"
+      }
+    },
+    {
+      "name": "pds3/color/border/tertiary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Strongest border / divider",
+      "value": {
+        "r": 0.45490196347236633,
+        "g": 0.4627451002597809,
+        "b": 0.47058823704719543,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/500"
+      }
+    },
+    {
+      "name": "pds3/color/border/brand",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Brand border — 3:1 on background/primary",
+      "value": {
+        "r": 0.239215686917305,
+        "g": 0.40784314274787903,
+        "b": 0.9882352948188782,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/500"
+      }
+    },
+    {
+      "name": "pds3/color/border/success",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Success border — 3:1 on background/primary",
+      "value": {
+        "r": 0.21960784494876862,
+        "g": 0.572549045085907,
+        "b": 0.3686274588108063,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/success/450"
+      }
+    },
+    {
+      "name": "pds3/color/border/warning",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Warning border — 3:1 on background/primary",
+      "value": {
+        "r": 0.7098039388656616,
+        "g": 0.45098039507865906,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/warning/450"
+      }
+    },
+    {
+      "name": "pds3/color/border/danger",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Danger border — 3:1 on background/primary",
+      "value": {
+        "r": 0.8901960849761963,
+        "g": 0.29411765933036804,
+        "b": 0.2862745225429535,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/danger/450"
+      }
+    },
+    {
+      "name": "pds3/color/border/info",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Info border — 3:1 on background/primary",
+      "value": {
+        "r": 0.08235294371843338,
+        "g": 0.49803921580314636,
+        "b": 0.6509804129600525,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/info/500"
+      }
+    },
+    {
+      "name": "pds3/color/border/focus",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Focus ring color — 3:1 on background/primary",
+      "value": {
+        "r": 0.30980393290519714,
+        "g": 0.4745098054409027,
+        "b": 0.9803921580314636,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/450"
+      }
+    },
+    {
+      "name": "pds3/color/icon/primary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Primary icon — strongest neutral",
+      "value": {
+        "r": 0.9686274528503418,
+        "g": 0.9686274528503418,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/025"
+      }
+    },
+    {
+      "name": "pds3/color/icon/secondary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Secondary icon — 4.5:1 on background/secondary",
+      "value": {
+        "r": 0.501960813999176,
+        "g": 0.5098039507865906,
+        "b": 0.5176470875740051,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/450"
+      }
+    },
+    {
+      "name": "pds3/color/icon/tertiary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Tertiary icon — 3:1 on background/secondary",
+      "value": {
+        "r": 0.40392157435417175,
+        "g": 0.4117647111415863,
+        "b": 0.41960784792900085,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/550"
+      }
+    },
+    {
+      "name": "pds3/color/icon/brand",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Brand icon — 4.5:1 on background/secondary and on its own tint",
+      "value": {
+        "r": 0.30980393290519714,
+        "g": 0.4745098054409027,
+        "b": 0.9803921580314636,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/450"
+      }
+    },
+    {
+      "name": "pds3/color/icon/success",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Success icon — 4.5:1 on background/secondary and on its own tint",
+      "value": {
+        "r": 0.21960784494876862,
+        "g": 0.572549045085907,
+        "b": 0.3686274588108063,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/success/450"
+      }
+    },
+    {
+      "name": "pds3/color/icon/warning",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Warning icon — 4.5:1 on background/secondary and on its own tint",
+      "value": {
+        "r": 0.7098039388656616,
+        "g": 0.45098039507865906,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/warning/450"
+      }
+    },
+    {
+      "name": "pds3/color/icon/danger",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Danger icon — 4.5:1 on background/secondary and on its own tint",
+      "value": {
+        "r": 0.8901960849761963,
+        "g": 0.29411765933036804,
+        "b": 0.2862745225429535,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/danger/450"
+      }
+    },
+    {
+      "name": "pds3/color/icon/info",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Info icon — 4.5:1 on background/secondary and on its own tint",
+      "value": {
+        "r": 0.12156862765550613,
+        "g": 0.5490196347236633,
+        "b": 0.7098039388656616,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/info/450"
+      }
+    },
+    {
+      "name": "pds3/color/icon/brand-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Muted brand icon — 3:1 on background/primary",
+      "value": {
+        "r": 0.45098039507865906,
+        "g": 0.5960784554481506,
+        "b": 0.9725490212440491,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/350"
+      }
+    },
+    {
+      "name": "pds3/color/icon/success-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Muted success icon — 3:1 on background/primary",
+      "value": {
+        "r": 0.29411765933036804,
+        "g": 0.6823529601097107,
+        "b": 0.45490196347236633,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/success/350"
+      }
+    },
+    {
+      "name": "pds3/color/icon/warning-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Muted warning icon — 3:1 on background/primary",
+      "value": {
+        "r": 0.8352941274642944,
+        "g": 0.5372549295425415,
+        "b": 0.06666667014360428,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/warning/350"
+      }
+    },
+    {
+      "name": "pds3/color/icon/danger-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Muted danger icon — 3:1 on background/primary",
+      "value": {
+        "r": 0.9176470637321472,
+        "g": 0.47058823704719543,
+        "b": 0.4431372582912445,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/danger/350"
+      }
+    },
+    {
+      "name": "pds3/color/icon/info-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Muted info icon — 3:1 on background/primary",
+      "value": {
+        "r": 0.19607843458652496,
+        "g": 0.6509804129600525,
+        "b": 0.8352941274642944,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/info/350"
+      }
+    },
+    {
+      "name": "pds3/color/icon/on-brand",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Icon on a solid brand fill — 4.5:1 on foreground/brand",
+      "value": {
+        "r": 0.9686274528503418,
+        "g": 0.9686274528503418,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/025"
+      }
+    },
+    {
+      "name": "pds3/color/icon/on-success",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Icon on a solid success fill — 4.5:1 on foreground/success",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/white"
+      }
+    },
+    {
+      "name": "pds3/color/icon/on-warning",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Icon on a solid warning fill — 4.5:1 on foreground/warning",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black"
+      }
+    },
+    {
+      "name": "pds3/color/icon/on-danger",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Icon on a solid danger fill — 4.5:1 on foreground/danger",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/white"
+      }
+    },
+    {
+      "name": "pds3/color/icon/on-info",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Icon on a solid info fill — 4.5:1 on foreground/info",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/black"
+      }
+    },
+    {
+      "name": "pds3/color/icon/link/default",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Link icon, default — 4.5:1 on background/secondary",
+      "value": {
+        "r": 0.30980393290519714,
+        "g": 0.4745098054409027,
+        "b": 0.9803921580314636,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/450"
+      }
+    },
+    {
+      "name": "pds3/color/icon/link/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Link icon, hover — 4.5:1 on background/secondary",
+      "value": {
+        "r": 0.45098039507865906,
+        "g": 0.5960784554481506,
+        "b": 0.9725490212440491,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/350"
+      }
+    },
+    {
+      "name": "pds3/color/icon/link/visited",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Link icon, visited — 4.5:1 on background/secondary",
+      "value": {
+        "r": 0.7450980544090271,
+        "g": 0.8117647171020508,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/150"
+      }
+    },
+    {
+      "name": "pds3/color/icon/link/focused",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Link icon, focused — 4.5:1 on background/secondary",
+      "value": {
+        "r": 0.30980393290519714,
+        "g": 0.4745098054409027,
+        "b": 0.9803921580314636,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/450"
+      }
+    },
+    {
+      "name": "pds3/color/icon/link/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Link icon, pressed — 4.5:1 on background/secondary",
+      "value": {
+        "r": 0.6000000238418579,
+        "g": 0.7058823704719543,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/250"
+      }
+    },
+    {
       "name": "pds3/color/interactive/primary/fill/rest",
       "resolvedType": "COLOR",
       "scopes": [
@@ -1755,605 +2354,6 @@
       }
     },
     {
-      "name": "pds3/color/border/primary",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Default border — a decorative divider",
-      "value": {
-        "r": 0.21568627655506134,
-        "g": 0.21960784494876862,
-        "b": 0.22745098173618317,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/neutral/750"
-      }
-    },
-    {
-      "name": "pds3/color/border/secondary",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Stronger border / divider",
-      "value": {
-        "r": 0.30588236451148987,
-        "g": 0.3137255012989044,
-        "b": 0.32156863808631897,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/neutral/650"
-      }
-    },
-    {
-      "name": "pds3/color/border/tertiary",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Strongest border / divider",
-      "value": {
-        "r": 0.45490196347236633,
-        "g": 0.4627451002597809,
-        "b": 0.47058823704719543,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/neutral/500"
-      }
-    },
-    {
-      "name": "pds3/color/border/brand",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Brand border — 3:1 on background/primary",
-      "value": {
-        "r": 0.239215686917305,
-        "g": 0.40784314274787903,
-        "b": 0.9882352948188782,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/500"
-      }
-    },
-    {
-      "name": "pds3/color/border/success",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Success border — 3:1 on background/primary",
-      "value": {
-        "r": 0.21960784494876862,
-        "g": 0.572549045085907,
-        "b": 0.3686274588108063,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/success/450"
-      }
-    },
-    {
-      "name": "pds3/color/border/warning",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Warning border — 3:1 on background/primary",
-      "value": {
-        "r": 0.7098039388656616,
-        "g": 0.45098039507865906,
-        "b": 0,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/warning/450"
-      }
-    },
-    {
-      "name": "pds3/color/border/danger",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Danger border — 3:1 on background/primary",
-      "value": {
-        "r": 0.8901960849761963,
-        "g": 0.29411765933036804,
-        "b": 0.2862745225429535,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/danger/450"
-      }
-    },
-    {
-      "name": "pds3/color/border/info",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Info border — 3:1 on background/primary",
-      "value": {
-        "r": 0.08235294371843338,
-        "g": 0.49803921580314636,
-        "b": 0.6509804129600525,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/info/500"
-      }
-    },
-    {
-      "name": "pds3/color/border/focus",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Focus ring color — 3:1 on background/primary",
-      "value": {
-        "r": 0.30980393290519714,
-        "g": 0.4745098054409027,
-        "b": 0.9803921580314636,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/450"
-      }
-    },
-    {
-      "name": "pds3/color/icon/primary",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Primary icon — strongest neutral",
-      "value": {
-        "r": 0.9686274528503418,
-        "g": 0.9686274528503418,
-        "b": 0.9686274528503418,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/neutral/025"
-      }
-    },
-    {
-      "name": "pds3/color/icon/secondary",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Secondary icon — 4.5:1 on background/secondary",
-      "value": {
-        "r": 0.501960813999176,
-        "g": 0.5098039507865906,
-        "b": 0.5176470875740051,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/neutral/450"
-      }
-    },
-    {
-      "name": "pds3/color/icon/tertiary",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Tertiary icon — 3:1 on background/secondary",
-      "value": {
-        "r": 0.40392157435417175,
-        "g": 0.4117647111415863,
-        "b": 0.41960784792900085,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/neutral/550"
-      }
-    },
-    {
-      "name": "pds3/color/icon/brand",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Brand icon — 4.5:1 on background/secondary and on its own tint",
-      "value": {
-        "r": 0.30980393290519714,
-        "g": 0.4745098054409027,
-        "b": 0.9803921580314636,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/450"
-      }
-    },
-    {
-      "name": "pds3/color/icon/success",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Success icon — 4.5:1 on background/secondary and on its own tint",
-      "value": {
-        "r": 0.21960784494876862,
-        "g": 0.572549045085907,
-        "b": 0.3686274588108063,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/success/450"
-      }
-    },
-    {
-      "name": "pds3/color/icon/warning",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Warning icon — 4.5:1 on background/secondary and on its own tint",
-      "value": {
-        "r": 0.7098039388656616,
-        "g": 0.45098039507865906,
-        "b": 0,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/warning/450"
-      }
-    },
-    {
-      "name": "pds3/color/icon/danger",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Danger icon — 4.5:1 on background/secondary and on its own tint",
-      "value": {
-        "r": 0.8901960849761963,
-        "g": 0.29411765933036804,
-        "b": 0.2862745225429535,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/danger/450"
-      }
-    },
-    {
-      "name": "pds3/color/icon/info",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Info icon — 4.5:1 on background/secondary and on its own tint",
-      "value": {
-        "r": 0.12156862765550613,
-        "g": 0.5490196347236633,
-        "b": 0.7098039388656616,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/info/450"
-      }
-    },
-    {
-      "name": "pds3/color/icon/brand-subtle",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Muted brand icon — 3:1 on background/primary",
-      "value": {
-        "r": 0.45098039507865906,
-        "g": 0.5960784554481506,
-        "b": 0.9725490212440491,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/350"
-      }
-    },
-    {
-      "name": "pds3/color/icon/success-subtle",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Muted success icon — 3:1 on background/primary",
-      "value": {
-        "r": 0.29411765933036804,
-        "g": 0.6823529601097107,
-        "b": 0.45490196347236633,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/success/350"
-      }
-    },
-    {
-      "name": "pds3/color/icon/warning-subtle",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Muted warning icon — 3:1 on background/primary",
-      "value": {
-        "r": 0.8352941274642944,
-        "g": 0.5372549295425415,
-        "b": 0.06666667014360428,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/warning/350"
-      }
-    },
-    {
-      "name": "pds3/color/icon/danger-subtle",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Muted danger icon — 3:1 on background/primary",
-      "value": {
-        "r": 0.9176470637321472,
-        "g": 0.47058823704719543,
-        "b": 0.4431372582912445,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/danger/350"
-      }
-    },
-    {
-      "name": "pds3/color/icon/info-subtle",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Muted info icon — 3:1 on background/primary",
-      "value": {
-        "r": 0.19607843458652496,
-        "g": 0.6509804129600525,
-        "b": 0.8352941274642944,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/info/350"
-      }
-    },
-    {
-      "name": "pds3/color/icon/on-brand",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Icon on a solid brand fill — 4.5:1 on foreground/brand",
-      "value": {
-        "r": 0.9686274528503418,
-        "g": 0.9686274528503418,
-        "b": 0.9686274528503418,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/neutral/025"
-      }
-    },
-    {
-      "name": "pds3/color/icon/on-success",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Icon on a solid success fill — 4.5:1 on foreground/success",
-      "value": {
-        "r": 1,
-        "g": 1,
-        "b": 1,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/white"
-      }
-    },
-    {
-      "name": "pds3/color/icon/on-warning",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Icon on a solid warning fill — 4.5:1 on foreground/warning",
-      "value": {
-        "r": 0,
-        "g": 0,
-        "b": 0,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/black"
-      }
-    },
-    {
-      "name": "pds3/color/icon/on-danger",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Icon on a solid danger fill — 4.5:1 on foreground/danger",
-      "value": {
-        "r": 1,
-        "g": 1,
-        "b": 1,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/white"
-      }
-    },
-    {
-      "name": "pds3/color/icon/on-info",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Icon on a solid info fill — 4.5:1 on foreground/info",
-      "value": {
-        "r": 0,
-        "g": 0,
-        "b": 0,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/black"
-      }
-    },
-    {
-      "name": "pds3/color/icon/link/default",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Link icon, default — 4.5:1 on background/secondary",
-      "value": {
-        "r": 0.30980393290519714,
-        "g": 0.4745098054409027,
-        "b": 0.9803921580314636,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/450"
-      }
-    },
-    {
-      "name": "pds3/color/icon/link/hover",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Link icon, hover — 4.5:1 on background/secondary",
-      "value": {
-        "r": 0.45098039507865906,
-        "g": 0.5960784554481506,
-        "b": 0.9725490212440491,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/350"
-      }
-    },
-    {
-      "name": "pds3/color/icon/link/visited",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Link icon, visited — 4.5:1 on background/secondary",
-      "value": {
-        "r": 0.7450980544090271,
-        "g": 0.8117647171020508,
-        "b": 0.9686274528503418,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/150"
-      }
-    },
-    {
-      "name": "pds3/color/icon/link/focused",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Link icon, focused — 4.5:1 on background/secondary",
-      "value": {
-        "r": 0.30980393290519714,
-        "g": 0.4745098054409027,
-        "b": 0.9803921580314636,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/450"
-      }
-    },
-    {
-      "name": "pds3/color/icon/link/pressed",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Link icon, pressed — 4.5:1 on background/secondary",
-      "value": {
-        "r": 0.6000000238418579,
-        "g": 0.7058823704719543,
-        "b": 0.9686274528503418,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/250"
-      }
-    },
-    {
       "name": "pds3/color/disabled/fill",
       "resolvedType": "COLOR",
       "scopes": [
@@ -3308,6 +3308,510 @@
         "TEXT_FILL"
       ],
       "description": "Link text, pressed — 4.5:1 on inverse/background/secondary",
+      "value": {
+        "r": 0.04313725605607033,
+        "g": 0,
+        "b": 0.5490196347236633,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/800"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/border/primary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Default border — a decorative divider",
+      "value": {
+        "r": 0.7529411911964417,
+        "g": 0.7568627595901489,
+        "b": 0.7607843279838562,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/200"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/border/secondary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Stronger border / divider",
+      "value": {
+        "r": 0.45490196347236633,
+        "g": 0.4627451002597809,
+        "b": 0.47058823704719543,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/500"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/border/tertiary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Strongest border / divider",
+      "value": {
+        "r": 0.25882354378700256,
+        "g": 0.26274511218070984,
+        "b": 0.27450981736183167,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/700"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/border/brand",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Brand border — 3:1 on inverse/background/primary",
+      "value": {
+        "r": 0.239215686917305,
+        "g": 0.40784314274787903,
+        "b": 0.9882352948188782,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/500"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/border/success",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Success border — 3:1 on inverse/background/primary",
+      "value": {
+        "r": 0.18039216101169586,
+        "g": 0.5215686559677124,
+        "b": 0.3294117748737335,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/success/500"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/border/warning",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Warning border — 3:1 on inverse/background/primary",
+      "value": {
+        "r": 0.6470588445663452,
+        "g": 0.4117647111415863,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/warning/500"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/border/danger",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Danger border — 3:1 on inverse/background/primary",
+      "value": {
+        "r": 0.8235294222831726,
+        "g": 0.25882354378700256,
+        "b": 0.2549019753932953,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/danger/500"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/border/info",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Info border — 3:1 on inverse/background/primary",
+      "value": {
+        "r": 0.08235294371843338,
+        "g": 0.49803921580314636,
+        "b": 0.6509804129600525,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/info/500"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/border/focus",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Focus ring color — 3:1 on inverse/background/primary",
+      "value": {
+        "r": 0.11764705926179886,
+        "g": 0.11764705926179886,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/600"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/icon/primary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Primary icon — strongest neutral",
+      "value": {
+        "r": 0.05098039284348488,
+        "g": 0.05098039284348488,
+        "b": 0.054901961237192154,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/950"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/icon/secondary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Secondary icon — 4.5:1 on inverse/background/secondary",
+      "value": {
+        "r": 0.40392157435417175,
+        "g": 0.4117647111415863,
+        "b": 0.41960784792900085,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/550"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/icon/tertiary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Tertiary icon — 3:1 on inverse/background/secondary",
+      "value": {
+        "r": 0.501960813999176,
+        "g": 0.5098039507865906,
+        "b": 0.5176470875740051,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/neutral/450"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/icon/brand",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Brand icon — 4.5:1 on inverse/background/secondary and on its own tint",
+      "value": {
+        "r": 0.11764705926179886,
+        "g": 0.11764705926179886,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/600"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/icon/success",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Success icon — 4.5:1 on inverse/background/secondary and on its own tint",
+      "value": {
+        "r": 0.09803921729326248,
+        "g": 0.4117647111415863,
+        "b": 0.24705882370471954,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/success/600"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/icon/warning",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Warning icon — 4.5:1 on inverse/background/secondary and on its own tint",
+      "value": {
+        "r": 0.5098039507865906,
+        "g": 0.3176470696926117,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/warning/600"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/icon/danger",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Danger icon — 4.5:1 on inverse/background/secondary and on its own tint",
+      "value": {
+        "r": 0.658823549747467,
+        "g": 0.18039216101169586,
+        "b": 0.18039216101169586,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/danger/600"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/icon/info",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Info icon — 4.5:1 on inverse/background/secondary and on its own tint",
+      "value": {
+        "r": 0,
+        "g": 0.3921568691730499,
+        "b": 0.5215686559677124,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/info/600"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/icon/brand-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Muted brand icon — 3:1 on inverse/background/primary",
+      "value": {
+        "r": 0.09803921729326248,
+        "g": 0.0784313753247261,
+        "b": 0.886274516582489,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/650"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/icon/success-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Muted success icon — 3:1 on inverse/background/primary",
+      "value": {
+        "r": 0.05098039284348488,
+        "g": 0.3607843220233917,
+        "b": 0.20392157137393951,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/success/650"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/icon/warning-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Muted warning icon — 3:1 on inverse/background/primary",
+      "value": {
+        "r": 0.4431372582912445,
+        "g": 0.27450981736183167,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/warning/650"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/icon/danger-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Muted danger icon — 3:1 on inverse/background/primary",
+      "value": {
+        "r": 0.5803921818733215,
+        "g": 0.1411764770746231,
+        "b": 0.14509804546833038,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/danger/650"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/icon/info-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Muted info icon — 3:1 on inverse/background/primary",
+      "value": {
+        "r": 0,
+        "g": 0.33725491166114807,
+        "b": 0.45490196347236633,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/info/650"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/icon/link/default",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Link icon, default — 4.5:1 on inverse/background/secondary",
+      "value": {
+        "r": 0.11764705926179886,
+        "g": 0.11764705926179886,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/600"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/icon/link/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Link icon, hover — 4.5:1 on inverse/background/secondary",
+      "value": {
+        "r": 0.0784313753247261,
+        "g": 0.0313725508749485,
+        "b": 0.7764706015586853,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/700"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/icon/link/visited",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Link icon, visited — 4.5:1 on inverse/background/secondary",
+      "value": {
+        "r": 0.01568627543747425,
+        "g": 0,
+        "b": 0.3294117748737335,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/900"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/icon/link/focused",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Link icon, focused — 4.5:1 on inverse/background/secondary",
+      "value": {
+        "r": 0.11764705926179886,
+        "g": 0.11764705926179886,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "pds3/core/palette/primary/600"
+      }
+    },
+    {
+      "name": "pds3/color/inverse/icon/link/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Link icon, pressed — 4.5:1 on inverse/background/secondary",
       "value": {
         "r": 0.04313725605607033,
         "g": 0,
@@ -4328,510 +4832,6 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "pds3/core/palette/black-alpha/20"
-      }
-    },
-    {
-      "name": "pds3/color/inverse/border/primary",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Default border — a decorative divider",
-      "value": {
-        "r": 0.7529411911964417,
-        "g": 0.7568627595901489,
-        "b": 0.7607843279838562,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/neutral/200"
-      }
-    },
-    {
-      "name": "pds3/color/inverse/border/secondary",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Stronger border / divider",
-      "value": {
-        "r": 0.45490196347236633,
-        "g": 0.4627451002597809,
-        "b": 0.47058823704719543,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/neutral/500"
-      }
-    },
-    {
-      "name": "pds3/color/inverse/border/tertiary",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Strongest border / divider",
-      "value": {
-        "r": 0.25882354378700256,
-        "g": 0.26274511218070984,
-        "b": 0.27450981736183167,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/neutral/700"
-      }
-    },
-    {
-      "name": "pds3/color/inverse/border/brand",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Brand border — 3:1 on inverse/background/primary",
-      "value": {
-        "r": 0.239215686917305,
-        "g": 0.40784314274787903,
-        "b": 0.9882352948188782,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/500"
-      }
-    },
-    {
-      "name": "pds3/color/inverse/border/success",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Success border — 3:1 on inverse/background/primary",
-      "value": {
-        "r": 0.18039216101169586,
-        "g": 0.5215686559677124,
-        "b": 0.3294117748737335,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/success/500"
-      }
-    },
-    {
-      "name": "pds3/color/inverse/border/warning",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Warning border — 3:1 on inverse/background/primary",
-      "value": {
-        "r": 0.6470588445663452,
-        "g": 0.4117647111415863,
-        "b": 0,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/warning/500"
-      }
-    },
-    {
-      "name": "pds3/color/inverse/border/danger",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Danger border — 3:1 on inverse/background/primary",
-      "value": {
-        "r": 0.8235294222831726,
-        "g": 0.25882354378700256,
-        "b": 0.2549019753932953,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/danger/500"
-      }
-    },
-    {
-      "name": "pds3/color/inverse/border/info",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Info border — 3:1 on inverse/background/primary",
-      "value": {
-        "r": 0.08235294371843338,
-        "g": 0.49803921580314636,
-        "b": 0.6509804129600525,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/info/500"
-      }
-    },
-    {
-      "name": "pds3/color/inverse/border/focus",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Focus ring color — 3:1 on inverse/background/primary",
-      "value": {
-        "r": 0.11764705926179886,
-        "g": 0.11764705926179886,
-        "b": 1,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/600"
-      }
-    },
-    {
-      "name": "pds3/color/inverse/icon/primary",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Primary icon — strongest neutral",
-      "value": {
-        "r": 0.05098039284348488,
-        "g": 0.05098039284348488,
-        "b": 0.054901961237192154,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/neutral/950"
-      }
-    },
-    {
-      "name": "pds3/color/inverse/icon/secondary",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Secondary icon — 4.5:1 on inverse/background/secondary",
-      "value": {
-        "r": 0.40392157435417175,
-        "g": 0.4117647111415863,
-        "b": 0.41960784792900085,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/neutral/550"
-      }
-    },
-    {
-      "name": "pds3/color/inverse/icon/tertiary",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Tertiary icon — 3:1 on inverse/background/secondary",
-      "value": {
-        "r": 0.501960813999176,
-        "g": 0.5098039507865906,
-        "b": 0.5176470875740051,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/neutral/450"
-      }
-    },
-    {
-      "name": "pds3/color/inverse/icon/brand",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Brand icon — 4.5:1 on inverse/background/secondary and on its own tint",
-      "value": {
-        "r": 0.11764705926179886,
-        "g": 0.11764705926179886,
-        "b": 1,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/600"
-      }
-    },
-    {
-      "name": "pds3/color/inverse/icon/success",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Success icon — 4.5:1 on inverse/background/secondary and on its own tint",
-      "value": {
-        "r": 0.09803921729326248,
-        "g": 0.4117647111415863,
-        "b": 0.24705882370471954,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/success/600"
-      }
-    },
-    {
-      "name": "pds3/color/inverse/icon/warning",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Warning icon — 4.5:1 on inverse/background/secondary and on its own tint",
-      "value": {
-        "r": 0.5098039507865906,
-        "g": 0.3176470696926117,
-        "b": 0,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/warning/600"
-      }
-    },
-    {
-      "name": "pds3/color/inverse/icon/danger",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Danger icon — 4.5:1 on inverse/background/secondary and on its own tint",
-      "value": {
-        "r": 0.658823549747467,
-        "g": 0.18039216101169586,
-        "b": 0.18039216101169586,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/danger/600"
-      }
-    },
-    {
-      "name": "pds3/color/inverse/icon/info",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Info icon — 4.5:1 on inverse/background/secondary and on its own tint",
-      "value": {
-        "r": 0,
-        "g": 0.3921568691730499,
-        "b": 0.5215686559677124,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/info/600"
-      }
-    },
-    {
-      "name": "pds3/color/inverse/icon/brand-subtle",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Muted brand icon — 3:1 on inverse/background/primary",
-      "value": {
-        "r": 0.09803921729326248,
-        "g": 0.0784313753247261,
-        "b": 0.886274516582489,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/650"
-      }
-    },
-    {
-      "name": "pds3/color/inverse/icon/success-subtle",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Muted success icon — 3:1 on inverse/background/primary",
-      "value": {
-        "r": 0.05098039284348488,
-        "g": 0.3607843220233917,
-        "b": 0.20392157137393951,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/success/650"
-      }
-    },
-    {
-      "name": "pds3/color/inverse/icon/warning-subtle",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Muted warning icon — 3:1 on inverse/background/primary",
-      "value": {
-        "r": 0.4431372582912445,
-        "g": 0.27450981736183167,
-        "b": 0,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/warning/650"
-      }
-    },
-    {
-      "name": "pds3/color/inverse/icon/danger-subtle",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Muted danger icon — 3:1 on inverse/background/primary",
-      "value": {
-        "r": 0.5803921818733215,
-        "g": 0.1411764770746231,
-        "b": 0.14509804546833038,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/danger/650"
-      }
-    },
-    {
-      "name": "pds3/color/inverse/icon/info-subtle",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Muted info icon — 3:1 on inverse/background/primary",
-      "value": {
-        "r": 0,
-        "g": 0.33725491166114807,
-        "b": 0.45490196347236633,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/info/650"
-      }
-    },
-    {
-      "name": "pds3/color/inverse/icon/link/default",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Link icon, default — 4.5:1 on inverse/background/secondary",
-      "value": {
-        "r": 0.11764705926179886,
-        "g": 0.11764705926179886,
-        "b": 1,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/600"
-      }
-    },
-    {
-      "name": "pds3/color/inverse/icon/link/hover",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Link icon, hover — 4.5:1 on inverse/background/secondary",
-      "value": {
-        "r": 0.0784313753247261,
-        "g": 0.0313725508749485,
-        "b": 0.7764706015586853,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/700"
-      }
-    },
-    {
-      "name": "pds3/color/inverse/icon/link/visited",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Link icon, visited — 4.5:1 on inverse/background/secondary",
-      "value": {
-        "r": 0.01568627543747425,
-        "g": 0,
-        "b": 0.3294117748737335,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/900"
-      }
-    },
-    {
-      "name": "pds3/color/inverse/icon/link/focused",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Link icon, focused — 4.5:1 on inverse/background/secondary",
-      "value": {
-        "r": 0.11764705926179886,
-        "g": 0.11764705926179886,
-        "b": 1,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/600"
-      }
-    },
-    {
-      "name": "pds3/color/inverse/icon/link/pressed",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Link icon, pressed — 4.5:1 on inverse/background/secondary",
-      "value": {
-        "r": 0.04313725605607033,
-        "g": 0,
-        "b": 0.5490196347236633,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "pds3/core/palette/primary/800"
       }
     },
     {

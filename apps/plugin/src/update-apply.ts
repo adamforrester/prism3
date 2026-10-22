@@ -62,8 +62,9 @@ import { REACTIONS, breakingClause, breakingSection, furnitureParts, withSetSlot
 import { fillSlots, type FillOutcome, type MigNode } from './slot-migration';
 import { slotMigrationOf } from '@prism3/engine/component-renames';
 import { REACTIONS_PATH, plannedRead, reactionMap, reactionVerdict, reactionsText } from './reactions';
-import { ABOUT_NAME, ABOUT_ONLY_DONE, aboutIsWork, aboutLine, drawAbout, type AboutApi, type AboutOutcome, type AboutRoot } from './about-frame';
+import { ABOUT_NAME, aboutIsWork, aboutLine, drawAbout, type AboutApi, type AboutOutcome, type AboutRoot } from './about-frame';
 import { publishDescription } from './library-about';
+import { COVER_NAME, coverIsWork, coverLine, coverPageOnlyLine, drawCover, type CoverApi, type CoverOutcome, type CoverRoot } from './cover-frame';
 
 /** The set's record of the members an update kept and marked deprecated (Q2): a JSON list of member names. */
 export const RETAINED_KEY = 'retained';
@@ -84,7 +85,9 @@ export const previewHashOf = (r: UpdatePreview): string =>
   // or a font or variable that comes or goes (#2601), between the check and the confirm refuses the apply.
   fnv(JSON.stringify([r.sets.map((s) => [s.set, s.previewHash, ...(s.setMove ? [s.setMove] : []), ...(s.blockers.length ? [s.blockers] : []), ...(s.furniture ? [s.furniture] : [])]), r.missing, r.refused, ...(r.pages ? [r.pages] : []),
     // #2858: the About frame, only while it is work, so a file whose frame is current hashes as it did before it.
-    ...(aboutIsWork(r.about) ? [r.about] : [])]));
+    ...(aboutIsWork(r.about) ? [r.about] : []),
+    // #2859: the library cover, the same way.
+    ...(coverIsWork(r.cover) ? [{ cover: r.cover }] : [])]));
 
 /** The host an apply needs: the file the dry run reads, and the executor's port, which are the same `figma` in
  *  the plugin. Two parameters because they are two surfaces, and the offline host models each separately. */
@@ -173,7 +176,10 @@ export type ApplyResult = {
   /** #2858 — the library publish description, offered with a Copy button: no Plugin API call sets it. Absent when the
    *  run wrote nothing. */
   publish?: string;
-  /** #2858, owner decision Q498 B — the About frame was the run's only work, so no named version was saved for it. */
+  /** #2859 — the library cover, kept current before the About frame is drawn beside it. Absent when the run wrote nothing. */
+  cover?: CoverOutcome;
+  /** #2858, owner decision Q498 B — the Cover page's furniture (the About frame, and the cover, #2859) was the run's only
+   *  work, so no named version was saved for it. */
   aboutOnly?: true;
 };
 
@@ -657,7 +663,19 @@ const settle = async (host: ApplyHost, targets: readonly UpdateTarget[], preview
  */
 const finishAbout = async (host: ApplyHost, api: ComponentsApi, preview: UpdatePreview, res: ApplyResult, today: string | undefined): Promise<void> => {
   if (!res.version && !res.aboutOnly) return;
-  if (preview.about && !res.outcomes.some((o) => o.stopped)) {
+  // THE LIBRARY COVER (#2859) first, so a cover drawn now is the thumbnail the About frame is placed beside. An edited
+  // cover only has its version text set; a refused write is named, never thrown.
+  if (preview.cover && !res.outcomes.some((o) => o.stopped)) {
+    try {
+      res.cover = await drawCover(api as unknown as CoverApi, host.root as CoverRoot);
+    } catch (e) {
+      res.cover = { did: 'none', skipped: `not updated, Figma refused the write (${(e as Error)?.message ?? String(e)})`, fontMisses: [] };
+    }
+  }
+  // A run whose only work is the cover (#2859) leaves a current About frame as it is: no set changed, so its date and
+  // its words have nothing new to say.
+  const coverOnly = !!res.aboutOnly && !aboutIsWork(preview.about);
+  if (preview.about && !coverOnly && !res.outcomes.some((o) => o.stopped)) {
     try {
       res.about = await drawAbout(api as unknown as AboutApi, host.root as AboutRoot, { updated: today ?? new Date().toISOString().slice(0, 10) });
     } catch (e) {
@@ -731,7 +749,8 @@ export const applyUpdate = async (
   // THE PAGE ORDER (#2568) is work of its own: a file whose sets are all up to date can still have pages to reorder.
   const reorder = !!preview.pages?.length && typeof host.root.insertChild === 'function' && !!host.root.children;
   // THE ABOUT FRAME (#2858) is work of its own when it is missing or drawn for another engine.
-  const about = aboutIsWork(preview.about);
+  // …and the library cover (#2859), when it is missing or behind.
+  const about = aboutIsWork(preview.about) || coverIsWork(preview.cover);
   if (!ready.length && !moving.length && !reorder && !furnishing.length && !about) { await settle(host, targets, preview, res, opts); await finishAbout(host, api, preview, res, opts.today); return res; }
   // THE ABOUT FRAME ALONE SAVES NO VERSION (owner decision Q498 B): no set changes, so Q7's way back has nothing to
   // cover. `settle` still saves one before any re-spacing it finds, as for any other second write.
@@ -744,7 +763,7 @@ export const applyUpdate = async (
   }
   // A NAMED VERSION, ONCE, BEFORE THE FIRST WRITE (Q7), for all of it: the sets updated or moved, then the page order.
   // Refused or unavailable, nothing is written.
-  const title = versionTitle([...new Set([...ready.map((x) => x.p.set), ...moving.map((p) => p.set), ...furnishing.map((p) => p.set)]), ...(reorder ? ['the page order'] : []), ...(about ? [ABOUT_NAME] : [])]);
+  const title = versionTitle([...new Set([...ready.map((x) => x.p.set), ...moving.map((p) => p.set), ...furnishing.map((p) => p.set)]), ...(reorder ? ['the page order'] : []), ...(aboutIsWork(preview.about) ? [ABOUT_NAME] : []), ...(coverIsWork(preview.cover) ? [`the ${COVER_NAME.toLowerCase()}`] : [])]);
   try {
     if (!host.saveVersionHistoryAsync) throw new Error('this host cannot save a version');
     await host.saveVersionHistoryAsync(title);
@@ -815,6 +834,9 @@ const unfinishedOf = (o: SetOutcome): { members: string[]; others: string[] } =>
 };
 
 /** The verdict for an applied update. `lines` is the Activity drawer's copy (#2177). */
+/** Whether the run wrote to the cover. */
+const coverDid = (c: CoverOutcome | undefined): boolean => !!c && c.did !== 'none';
+
 export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; summary: string; lines: string[] } => {
   if (r.refusedAll) {
     const lines = [`Nothing was updated: ${r.refusedAll}.`];
@@ -887,9 +909,11 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
   if (reordered) lines.push(`Component pages: ${reordered} reordered (${r.reordered!.map(stripNestPrefix).join(', ')}).`);
   if (r.missing.length) lines.push(`Not in this file: ${r.missing.join(', ')}.`);
   // #2858: the Cover page's About frame, drawn last.
+  // #2859: the library cover, kept current before it.
+  if (r.cover && coverLine(r.cover)) lines.push(coverLine(r.cover));
   if (r.about) lines.push(aboutLine(r.about));
   if (r.version) lines.push(`Saved a version first: "${r.version}".`);
-  else if (r.aboutOnly && r.about?.drawn) lines.push(ABOUT_ONLY_DONE);
+  else if (r.aboutOnly && (r.about?.drawn || coverDid(r.cover))) lines.push(coverPageOnlyLine({ about: !!r.about?.drawn, cover: coverDid(r.cover) }, true));
   const headline = stopped ? `✗ update stopped at ${stopped.set}`
     : failed.length ? `⚠ ${n(failed.length, 'set')} not verified`
       : refused ? `✗ ${n(refused, 'set')} not updated`
@@ -905,6 +929,8 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
                       // DRAFT wording for the owner (#2803, Q379 A): a run whose only work was the canvas furniture.
                       : furnished ? `✓ canvas furniture drawn for ${n(furnished, 'set')}`
                         // DRAFT wording for the owner (#2858): a run whose only work was the About frame.
-                        : r.about?.drawn ? `✓ ${ABOUT_NAME} drawn` : r.outcomes.some((o) => o.asPreviewed && !o.asPreviewed.upToDate) ? '✓ No changes found' : '✓ already up to date';
+                        : r.about?.drawn ? `✓ ${ABOUT_NAME} drawn`
+                          // DRAFT wording for the owner (#2859): a run whose only work was the cover.
+                          : coverDid(r.cover) ? `✓ ${COVER_NAME} ${r.cover!.did === 'drawn' ? 'drawn' : 'updated'}` : r.outcomes.some((o) => o.asPreviewed && !o.asPreviewed.upToDate) ? '✓ No changes found' : '✓ already up to date';
   return { ok: !stopped && !failed.length && !refused, headline: `${headline}${breakingClause(r.outcomes)}`, summary: lines.join('\n'), lines };
 };

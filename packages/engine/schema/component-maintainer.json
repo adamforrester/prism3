@@ -3176,7 +3176,7 @@
       "codeOnly": [
         "the element — a `<div>` holding the buttons in order, with no role: each button is its own control, and a group of separate actions is not a radio group or a toolbar. Give it `role=\"group\"` and an `aria-label` only when the buttons need a shared name the page does not already give them.",
         "order — the DOM order is the order the buttons are given, which is also the focus order. Inline and fill take the main action last (Cancel, then Save); stacked takes it first (Save, then Cancel), so the visual order and the focus order match in every layout. Never reverse the order with CSS alone: focus would then move against what the eye reads.",
-        "the inline row — `display: flex; justify-content: flex-end; flex-wrap: wrap` with the row gap, so a row too wide for its container wraps instead of overflowing; nothing switches to stacked by itself. Fill gives each button `flex: 1 1 0; min-width: 0` so the buttons share the width equally at every width, and a label too long for its share wraps inside its button, the row's buttons stretching to one height; stacked is a column with each button at full width. For long labels, pick stacked.",
+        "the inline row — `display: flex; justify-content: flex-end; flex-wrap: wrap` with the row gap, so a row too wide for its container wraps instead of overflowing; nothing switches to stacked by itself. Fill gives each button `flex: 1 1 0; min-width: 0` so the buttons share the width equally at every width, and a label too long for its share wraps inside its button, with `overflow-wrap: anywhere` on the label so even one long word breaks, the row's buttons stretching to one height; stacked is a column with each button at full width. For long labels, pick stacked.",
         "button count — Figma holds the buttons in the native `items` slot, two by default and three at most; code takes `items` of one to three Button elements.",
         "Cancel — in Figma the group's own default Cancel is an outline Button; a host that nests the group (Dialog) may prefer another, such as Button.Neutral when the file has that set. In code, pass whichever the product uses.",
         "right-to-left — the row mirrors through logical properties: the end edge is the left, and the main action sits leftmost."
@@ -3195,7 +3195,7 @@
           "Owner decision Q363 (2026-10-16, #2661): the wireframe approved, all calls A except 8 (Cancel is Button.Neutral) and 9 (a fill layout too); a shared public Button group that Dialog nests now and Banner and Card later; the Button family preferred, preferred-only; stacked with the main action first; one to three buttons, two by default; three inline all at the end edge.",
           "Owner decision (2026-10-16, #2661, amending Q363.8) and Q386 (#2808): Cancel uses Button.Neutral when the file has it and the primary Button otherwise; no component requires the Neutral families.",
           "Owner decision Q418 (2026-10-18, #2661): the component that nests the group decides its buttons' defaults. Button.Group on its own defaults the secondary to the primary outline Button, with no Neutral preference; Dialog's nest prefers Button.Neutral, falling back to the primary Button; designers can still swap any button in the slot.",
-          "Owner decision Q492 B, Q?3 A (2026-10-21, #2880): at fill the buttons keep equal shares at every width. `min-width: 0` lets a button shrink below its label, which wraps inside it, where `flex: 1 1 0` alone left a long label's button wider than the other and wrapped the row. Nothing switches to stacked by itself."
+          "Owner decision Q492 B, Q?3 A (2026-10-21, #2880): at fill the buttons keep equal shares at every width. `min-width: 0` lets a button shrink below its label, which wraps inside it with `overflow-wrap: anywhere` on the label (a single long word breaks too), where `flex: 1 1 0` alone left a long label's button wider than the other and wrapped the row. Nothing switches to stacked by itself."
         ],
         "projection": []
       },
@@ -3252,7 +3252,7 @@
         "Escape — closes a dialog, and closes an alertdialog as Cancel. The close button is always reachable by keyboard, so the dialog is never a keyboard trap (SC 2.1.2).",
         "backdrop click — closes a dialog, never an alertdialog. Close only when the press started on the backdrop (`mousedown` target is the dialog element itself), so a text selection dragged out of the panel does not close it. A full-screen dialog has no visible backdrop; Escape and the close button still apply.",
         "scroll lock — the page behind does not scroll while the dialog is open (`html:has(dialog[open]) { overflow: hidden }`, with the scrollbar width added back as padding so the page does not shift). The body scrolls with `overscroll-behavior: contain`, so a scroll at its end does not move the page.",
-        "the fill footer — the footer's Button group at `layout=fill`: each button takes an equal share of the width at every width, and a label too long for its share wraps inside its button, so both buttons grow to the same height. Nothing switches to stacked by itself: for long labels, pick `footer: \"stacked\"`.",
+        "the fill footer — the footer's Button group at `layout=fill`: each button takes an equal share of the width at every width, and a label too long for its share wraps inside its button (`overflow-wrap: anywhere` on the label), so both buttons grow to the same height. Nothing switches to stacked by itself: for long labels, pick `footer: \"stacked\"`.",
         "only the body scrolls — the header and footer stay put and the body scrolls between them, so a focused field in the body is never hidden under the footer (SC 2.4.11). Show the two dividers only while the body overflows; in Figma they are the `dividers` toggle.",
         "per-breakpoint placement, no automatic switch — `placement` can take a value per breakpoint, but nothing switches on its own: a dialog stays centered on a phone unless the product chooses bottom or full, and an end panel stays at the end edge. A centered panel on a small screen is the viewport width less the grid margins. Bottom and full are full width; full is also full height. An end panel is full height and 480px wide, at most `100vw − 48px`, so the page shows beside it on a phone; below 768px prefer full for a form and bottom for a short list. A bottom sheet is at most 90% of the viewport height, so the page shows above it; a centered panel at most the viewport height less the grid margin top and bottom. Above that, the body scrolls.",
         "the panel padding below 480px — `space.200` instead of `space.300` on a centered or end panel when the viewport is narrower than 480px. Figma builds the bottom and full members, which are small-screen placements, with `space.200`.",
@@ -3373,6 +3373,81 @@
           "section": "anatomy",
           "field": "anatomy.parts.message.note",
           "reason": "maintainer register"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
+    },
+    "toast": {
+      "codeOnly": [
+        "the Toaster — the toast is never rendered in place. One `<Toaster />` is mounted once at the app root and renders the fixed-position region, the live region and the landmark. Code fires a toast with `toast(message, options)`, which returns an id; `toast.dismiss(id)` closes it. Options: `intent`, `action: { label, onAction }`, `duration`, `dismissible`. Toaster props: `placement` (per breakpoint), `offset`, `label`. Figma shows the toast, not the region.",
+        "the live region — one shared region with `role=\"status\"` and `aria-atomic=\"true\"` (polite), present and empty from app start. The message is written into it a frame after the region exists, because some screen readers (NVDA) ignore a region inserted together with its text. Never one region per toast. The message is announced once; the success glyph is `aria-hidden`.",
+        "no focus steal — showing a toast never moves focus.",
+        "placement — below `breakpoint.md` (768px): bottom center, the viewport width less `grid.sm.margin` (16px) each side, above `env(safe-area-inset-bottom)`. From 768px: the bottom inline-end corner, inset by the grid margin, 320 to 480px wide. In right-to-left the corner is the left one, through logical properties (`inset-inline-end`). A sticky bottom bar on the page raises the region by the Toaster `offset`, so the toast never sits on it. Figma builds the toast at 360 wide.",
+        "one at a time — a new toast replaces the one showing: the old one plays its exit, then the new one its enter. Nothing queues, so a stale message never shows after the user has moved on.",
+        "timing, no action — the toast closes after `duration`, 6000ms by default and never less than 5000ms (a shorter value is clamped). The timer pauses while the pointer is over the toast, while focus is inside the region, and while the window is hidden or blurred, and resumes with the time left; it does not restart. Figma has no timer.",
+        "timing, with an action — no timer. The toast stays until the action, the close button, the next toast, or a page change. `duration` is ignored.",
+        "the keyboard route — the region is a landmark, `<section aria-label=\"Notifications\">`. F6 moves focus into it, to the newest toast's first control; Escape or Shift+F6 returns focus to where it was. The action always also exists elsewhere on the page, so a keyboard user who never enters the region loses nothing.",
+        "the action — at most one. A text Button; when it navigates (\"View bag\") code renders it as a link element. Its label is set per toast in code; in Figma a designer edits the nested Button's label, since a nested instance's text cannot be a property of the toast.",
+        "the close button — `aria-label=\"Dismiss\"`. A small FlushIconButton is the bare 20px glyph; its hit area is extended to 44×44px in code, as FlushIconButton records.",
+        "focus not obscured — while a toast shows, the page sets `scroll-padding-bottom` to the toast's height plus its offset, so a focused control near the bottom of the viewport scrolls clear of it.",
+        "motion — enter: an 8px slide up and a fade on `motion.transition.enter` (`motion.duration.normal`, `motion.easing-role.enter`). Exit: a fade on `motion.transition.exit` (`motion.duration.fast`, `motion.easing-role.exit`). Under `prefers-reduced-motion`, the fade only, on `motion.duration-reduced.normal`. Both placements are anchored to the bottom, so the slide is upward in either reading direction and does not mirror. Figma shows the toast at rest.",
+        "RTL — the row mirrors through logical properties: the glyph and message move to the right and the controls to the left.",
+        "text expansion — a translated message wraps onto a second line, never truncates, and takes a longer `duration`.",
+        "out of scope — a loading or promise toast, a timeout bar, swipe to dismiss and a notification history. If swipe is added, the close button is its non-gesture alternative."
+      ],
+      "notes": {
+        "contested": [
+          "Decided: Q436 (a) (#2668): the close nests FlushIconButton.Neutral (Q386, as Dialog), not the proposal's IconButton.Neutral; FlushIconButton gains a `surface` axis (`default | inverse`, appended last, following IconButton's) so the glyph reads on the inverse card, with Counter and Dialog naming `surface: default` on their nests. Decided: Q367 (c): the action label stays the nested Button's text, as Dialog's footer, not a toast text property. Decided: Q532.1 A: the 8px gap between the message and the controls stays as built (the proposal leaves it open; the wireframe uses 8px)."
+        ],
+        "unverified": [
+          "That the nested Button and FlushIconButton.Neutral carry their prototype reactions into the toast's instances on the canvas, as they do inside Dialog.",
+          "The live-region timing (one frame after the region exists) and NVDA's behavior, against current assistive technology."
+        ],
+        "evolution": [
+          "Owner decisions: the proposal and wireframe on #2668, every numbered call A (2026-10-16): toast for the user's own action and safe to miss, errors to a banner; intents neutral and success; no glyph on neutral; bottom center below 768px and the bottom inline-end corner from 768px; one at a time, the newest replacing; 6s with a 5s floor and pauses, no timer with an action; at most one action that also exists elsewhere; close on by default; the inverse surface; F6 in, Escape out; built at 360; named Toast with its aliases; the wording as drafted.",
+          "The brief's severity set (info, success, warning, error, loading), its stacked toaster, its timeout bar and its swipe are not built: errors and warnings go to a banner (call 1 A), one toast shows at a time (call 5 A), and the rest is out of scope (the proposal's §11)."
+        ],
+        "projection": []
+      },
+      "docGaps": [
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
         },
         {
           "section": "content",

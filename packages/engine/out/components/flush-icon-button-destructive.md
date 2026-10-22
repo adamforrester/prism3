@@ -18,7 +18,7 @@ An icon-only button in the destructive color, made to sit inside another compone
 
 ## Anatomy
 
-Shown on the default member: shape `flush`, size `medium`.
+Shown on the default member: shape `flush`, size `medium`, surface `default`.
 
 1. **Container** — Flush: the glyph square, with no padding, fill or border; in code, an invisible overlay extends the hit area to at least 44×44px around it. Round: a circle with a light edge, the glyph centered in it.
 2. **Icon** — The single icon, and the entire visible control. Rendered aria-hidden; the button owns the accessible name.
@@ -30,6 +30,7 @@ Shown on the default member: shape `flush`, size `medium`.
 | --- | --- | --- | --- |
 | `shape` | `flush`, `round` | once, when authored | flush is the bare glyph, with no padding, fill or border, for a glyph that lines up with the content edge. round is a circle around the glyph with a light edge and a soft fill on hover and press, for a counter whose buttons stand on their own. |
 | `size` | `medium`, `small`, `large` | once, when authored | The glyph size: 20px at small and medium, 24px at large. A flush box is the glyph, with no padding. A round circle is 36, 44 or 56px across. The hit area in code is at least 44×44px at every size. |
+| `surface` | `default`, `inverse` | once, when authored | The ground the button sits on, following IconButton. default for a normal page; inverse for a dark or brand-filled card or band, where the glyph binds its color.inverse counterpart so it keeps contrast against the flipped surface. Flush has no fill, so the glyph ink is all the axis changes. A host that cannot know its ground picks default, and the designer sets inverse on the instance, the same answer the nested focus ring gives. |
 
 ### States
 
@@ -101,11 +102,12 @@ The accessible name is a verb naming the action ("Close", "Increase quantity"), 
 | `type` | enum: 'button' \| 'submit' \| 'reset' | `button` | no | Defaults to 'button', as Button does. The platform default is 'submit', so a flush icon button inside a form would submit it. |
 | `shape` | enum: 'flush' \| 'round' | `flush` | no | flush is the bare glyph, with no padding, fill or border, for a glyph that lines up with the content edge. round is a circle around the glyph with a light edge and a soft fill on hover and press, for a counter whose buttons stand on their own. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The glyph size: 20px at small and medium, 24px at large. A flush box is the glyph, with no padding. A round circle is 36, 44 or 56px across. The hit area in code is at least 44×44px at every size. |
+| `surface` | enum: 'default' \| 'inverse' | `default` | no | The ground the button sits on, following IconButton. default for a normal page; inverse for a dark or brand-filled card or band, where the glyph binds its color.inverse counterpart so it keeps contrast against the flipped surface. Flush has no fill, so the glyph ink is all the axis changes. A host that cannot know its ground picks default, and the designer sets inverse on the instance, the same answer the nested focus ring gives. |
 | `disabled` | boolean | `false` | no | Native disabled. Inside a component that sets it at a limit (a counter at its minimum), prefer aria-disabled so the button keeps its place in the accessibility tree. |
 
 ## Specs
 
-Generated from the plan that builds the design-file component: 30 members. Values are token names; a px value appears only where the build writes a number.
+Generated from the plan that builds the design-file component: 60 members. Values are token names; a px value appears only where the build writes a number.
 
 ### Anatomy
 
@@ -165,77 +167,142 @@ Keyed by `size`, `shape`.
 
 ### Color
 
-Keyed by `shape`, `state`.
+Keyed by `shape`, `surface`, `state`.
 
-**shape=flush, state=rest**
+**shape=flush, surface=default, state=rest**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container/icon` | — | — | — | `color.interactive.destructive.icon.rest` |
 
-**shape=flush, state=hover**
+**shape=flush, surface=default, state=hover**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container/icon` | — | — | — | `color.interactive.destructive.icon.hover` |
 
-**shape=flush, state=pressed**
+**shape=flush, surface=default, state=pressed**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container/icon` | — | — | — | `color.interactive.destructive.icon.pressed` |
 
-**shape=flush, state=focus-visible**
+**shape=flush, surface=default, state=focus-visible**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container/icon` | — | — | — | `color.interactive.destructive.icon.rest` |
 
-**shape=flush, state=disabled**
+**shape=flush, surface=default, state=disabled**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container/icon` | — | — | — | `color.disabled.icon` |
 
-**shape=round, state=rest**
+**shape=flush, surface=inverse, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.icon.rest` |
+
+**shape=flush, surface=inverse, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.icon.hover` |
+
+**shape=flush, surface=inverse, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.icon.pressed` |
+
+**shape=flush, surface=inverse, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.icon.rest` |
+
+**shape=flush, surface=inverse, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/icon` | — | — | — | `color.inverse.disabled.icon` |
+
+**shape=round, surface=default, state=rest**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container` | — | `color.border.secondary` | — | — |
 | `container/icon` | — | — | — | `color.interactive.destructive.icon.rest` |
 
-**shape=round, state=hover**
+**shape=round, surface=default, state=hover**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container` | `color.interactive.destructive.overlay.hover` | `color.border.secondary` | — | — |
 | `container/icon` | — | — | — | `color.interactive.destructive.icon.hover` |
 
-**shape=round, state=pressed**
+**shape=round, surface=default, state=pressed**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container` | `color.interactive.destructive.overlay.pressed` | `color.border.secondary` | — | — |
 | `container/icon` | — | — | — | `color.interactive.destructive.icon.pressed` |
 
-**shape=round, state=focus-visible**
+**shape=round, surface=default, state=focus-visible**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container` | — | `color.border.secondary` | — | — |
 | `container/icon` | — | — | — | `color.interactive.destructive.icon.rest` |
 
-**shape=round, state=disabled**
+**shape=round, surface=default, state=disabled**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
 | `container` | — | `color.disabled.border` | — | — |
 | `container/icon` | — | — | — | `color.disabled.icon` |
 
+**shape=round, surface=inverse, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.inverse.border.secondary` | — | — |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.icon.rest` |
+
+**shape=round, surface=inverse, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.destructive.overlay.hover` | `color.inverse.border.secondary` | — | — |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.icon.hover` |
+
+**shape=round, surface=inverse, state=pressed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | `color.inverse.interactive.destructive.overlay.pressed` | `color.inverse.border.secondary` | — | — |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.icon.pressed` |
+
+**shape=round, surface=inverse, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.inverse.border.secondary` | — | — |
+| `container/icon` | — | — | — | `color.inverse.interactive.destructive.icon.rest` |
+
+**shape=round, surface=inverse, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container` | — | `color.inverse.disabled.border` | — | — |
+| `container/icon` | — | — | — | `color.inverse.disabled.icon` |
+
 ### Nesting and properties
 
 - `container/icon` is a swap slot, property `swap icon`
-- `container/focusRing` nests `focus-ring` at `surface=default`
+- `container/focusRing` nests `focus-ring` at `surface=default`; follows `surface`
 
 | Property | Type | Default |
 | --- | --- | --- |
