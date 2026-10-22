@@ -460,7 +460,7 @@ export const fieldLabel: ComponentDef = {
     avoidWhen: 'As a section heading or standalone text (use a heading) — this is bound to one control via htmlFor. Never omit it in favor of a placeholder.',
     // The defs that nest this label, plus its sibling part (#1699). Stated once, here: `composesWith` holds
     // only what a def nests, and this one nests nothing (#1700).
-    commonPartners: ['text-field', 'password-field', 'textarea', 'select', 'checkbox-group', 'radio-group', 'segmented-control', 'counter', 'code-input', 'field-message'],
+    commonPartners: ['text-field', 'password-field', 'search-field', 'textarea', 'select', 'checkbox-group', 'radio-group', 'segmented-control', 'counter', 'code-input', 'field-message'],
     triggerKeywords: ['label', 'field label', 'form label', 'required indicator'],
     generationPriority: 6,
   },

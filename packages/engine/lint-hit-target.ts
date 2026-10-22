@@ -154,6 +154,8 @@ const INTERACTIVE: Record<string, Binding> = {
   'text-field': { key: (s) => `size.${s}.height`, why: 'the field control height — size.md.min-height, the interactive floor, at small and medium (#1437, #2266 Q6)' },
   // #2317: the Password field is TextField's box, from the same factory, so it binds the same height rung.
   'password-field': { key: (s) => `size.${s}.height`, why: 'the field control height — TextField\'s, from the shared field factory (#2317)' },
+  // #2888: the Search field is TextField's box too.
+  'search-field': { key: (s) => `size.${s}.height`, why: 'the field control height — TextField\'s, from the shared field factory (#2888)' },
   'select': { key: (s) => `size.${s}.min-height`, why: 'the select control floor — size.md.min-height, the interactive floor, at small and medium (#1437, #2266 Q6)' },
   'switch-row': { key: (s) => `size.${s}.min-height`, why: 'the labelled switch row floor' },
   'checkbox-row': { key: (s) => `size.${s}.min-height`, why: 'the labelled checkbox row floor' },
@@ -255,6 +257,8 @@ const FLUSH_NESTS: Record<string, { parts: readonly string[]; pair?: readonly [s
   counter: { parts: ['decrement', 'increment'], pair: ['decrement', 'increment'], why: "the Counter's minus and plus, either side of the value" },
   // #2808 (Q385 A): the Dialog's close is one code-side target, so there is no second hit area to space it from.
   dialog: { parts: ['close'], why: "the Dialog's close, the one code-side target in its header" },
+  // #2666: the overflow step's flush icon button is the one code-side target in a breadcrumb item, so there is no second hit area to space it from.
+  'breadcrumb-item': { parts: ['overflow'], why: "the collapsed-steps button, the one code-side target in a breadcrumb step" },
   // #2668 (Q386): the Toast's close is one code-side target beside the action Button, which is a separate target measured under its own name.
   toast: { parts: ['close'], why: "the Toast's close, the one code-side icon target in its controls" },
 };
@@ -313,6 +317,11 @@ const EXCLUDED: Record<string, string> = {
   // heights against the 44px floor as literals (`#2428 code-input: the row of cells is a target of at least 44px`).
   'code-input': 'its pointer target is the row of cells over its one input, built at literal cell heights (owner decision Q330 A, no token), so no binding to measure here; test.ts holds every size at 44px or taller',
   'code-input-cell': 'an aria-hidden drawing of one character inside a code input, never focusable and never a target of its own; the row of cells is the code input\'s one target',
+  // #2666: neither is a control of its own. The targets are the nested Link (one text line, its code-side 24px area
+  // stated under `link`) and the nested FlushIconButton.Neutral (measured under its own name, 44×44 in code).
+  'breadcrumbs': 'a navigation container — its targets are the nested items\' links and overflow button, and the parent path\'s Link, each a control of its own',
+  '_breadcrumb-separator': 'a decorative mark between breadcrumb steps (CSS ::after in code, never in the accessibility tree); it takes no pointer and no focus',
+  'breadcrumb-item': 'one step of a trail — its targets are the nested Link (one text line, code-side 24px, as `link`) and the nested FlushIconButton.Neutral (code-side 44×44, measured under its own name); the current page is text and not a target',
   'textarea': 'a multi-line field whose height is rows/auto-grow (fluid); it binds no single-line height, so there is no fixed hit-target dimension to measure',
 };
 

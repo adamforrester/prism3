@@ -79,7 +79,11 @@ import { link } from './link';
 import { buttonGroup } from './button-group';
 import { dialog } from './dialog';
 import { passwordField } from './password-field';
+import { searchField } from './search-field';
 import { toast } from './toast';
+import { breadcrumbSeparator } from './breadcrumb-separator';
+import { breadcrumbItem } from './breadcrumb-item';
+import { breadcrumbs } from './breadcrumbs';
 import { counter } from './counter';
 import { codeInputCell, codeInput } from './code-input';
 
@@ -89,7 +93,7 @@ import { codeInputCell, codeInput } from './code-input';
  *  be a worse call site, not a better one — a lookup that can return `undefined` standing in for a
  *  binding that cannot. The set is for iteration; these are for the assertions that are ABOUT one
  *  component. */
-export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tab, tabs, divider, accordionIndicator, accordion, listItem, list, segmentedControlSegment, segmentedControl, link, buttonGroup, dialog, passwordField, counter, codeInputCell, codeInput };
+export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tab, tabs, divider, accordionIndicator, accordion, listItem, list, segmentedControlSegment, segmentedControl, link, buttonGroup, dialog, passwordField, counter, searchField, breadcrumbSeparator, breadcrumbItem, breadcrumbs, codeInputCell, codeInput };
 
 /** Every component def the engine defines. The one thing a projection should iterate. */
 export const componentDefs: readonly ComponentDef[] = [
@@ -220,9 +224,18 @@ export const componentDefs: readonly ComponentDef[] = [
   // `toast` (#2668, every numbered call A) — a short status over the page after the user's own action, on the inverse
   // surface. Nests a Button (the action) and the neutral IconButton (the close), both at `surface: inverse`.
   toast,
+  // `_breadcrumb-separator`, `breadcrumb-item` and `breadcrumbs` (#2666) — the mark between steps, one step of a trail,
+  // and the trail. The item nests the separator (Q382 A), Link and the neutral flush icon button, all above; Breadcrumbs
+  // nests the item in its items slot, so the item comes first.
+  breadcrumbSeparator,
+  breadcrumbItem,
+  breadcrumbs,
   // Counter (#2427) — a quantity between a minus and a plus button. Nests `flush-icon-button-neutral` twice,
   // `field-label`, `field-message` and `focus-ring`, all above.
   counter,
+  // `search-field` (#2888) — TextField's second specialization, from the shared field factory. Nests `field-label`,
+  // `field-message` and `focus-ring`, all above, and starts its glyph slots at `search` and `close-filled`.
+  searchField,
   // `code-input` (#2428, owner Q321 / Q329 / Q330) — a one-time code drawn as cells over one input. Its cell builds
   // first: the field's `items` slot nests it.
   codeInputCell,

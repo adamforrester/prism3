@@ -297,6 +297,18 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'on both defs, so none is shared. Shared by List and List.Item because the List passes its type to every item '
       + '(`follow`), so the two must hold one set; one entry records both, and a drift between them fails here.',
   },
+  {
+    axis: 'type',
+    values: ['chevron', 'slash'],
+    defs: ['_breadcrumb-separator'],
+    relation: 'disjoint',
+    reason:
+      'Which LOOK the mark between breadcrumb steps takes (owner decision Q382 A, which names the axis `type`): a chevron '
+      + 'pointing toward the current page, or a slash. `chevron` LEADS because it is the code default and Figma\'s default '
+      + 'member. DISJOINT from Badge\'s canonical set, the loud kind of divergence: a badge type is a content kind and a '
+      + 'separator type a glyph, and no value would mean the same thing on both defs. The item picks it by its own '
+      + '`separator` axis, which holds the same two values.',
+  },
   // `indicator` IS GONE FROM THE REGISTER (#1338), and its absence is the point rather than an omission —
   // the same shape the `intent` note below records. field-label carried a three-way
   // `[none/required/optional]` axis whose most important value was ABSENCE, which is exactly why it never
@@ -323,7 +335,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       'error-circle', 'error-circle-filled', 'external-link-filled', 'eye', 'eye-filled', 'eye-off',
       'eye-off-filled', 'FPO-default-icon', 'home', 'image', 'info-circle', 'info-circle-filled', 'link', 'menu', 'minus', 'minus-filled',
       'more-horizontal-filled', 'more-vertical-filled', 'pause-circle', 'play-circle', 'plus', 'plus-circle', 'plus-circle-filled',
-      'plus-filled', 'resize-grip', 'search', 'warning-triangle', 'warning-triangle-filled',
+      'plus-filled', 'resize-grip', 'search', 'slash', 'warning-triangle', 'warning-triangle-filled',
     ],
     defs: ['icon'],
     relation: 'sole',
@@ -390,7 +402,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'selection',
     values: ['unselected', 'selected'],
-    defs: ['tag', 'tab-item', 'segmented-control-segment'],
+    defs: ['tag', 'tab-item', 'segmented-control-segment', 'link'],
     relation: 'disjoint',
     reason:
       'A selectable tag\'s two values, in the words the Tag brief uses (§4, §15) — `selected` is what a filter '
@@ -401,12 +413,12 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'once they do not match. `unselected` leads because it is the rest coordinate. The spelling is an '
       + 'axis-value choice held for the owner in the Tag PR (2026-09-27). Tab joins it (#2416, owner Q177.2): a '
       + 'tab\'s state IS aria-selected, so `selected` is its ARIA word too, and one spelling serves both. A segmented '
-      + 'control\'s option joins it (#2418, owner Q269): Tag\'s values, its state riding aria-current or a native radio.',
+      + 'control\'s option joins it (#2418, owner Q269): Tag\'s values, its state riding aria-current or a native radio. A standalone Link joins it for the current page in a navigation (#2872, owner Q507.3 A): its code prop is `current`, rendering aria-current="page".',
   },
   {
     axis: 'size',
     values: ['medium', 'small', 'large'],
-    defs: ['_accordion-indicator', 'accordion', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'tag', 'tab-item', 'tabs', 'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'link', 'text-field', 'select', 'textarea', 'dialog', 'password-field', 'counter'],
+    defs: ['_accordion-indicator', 'accordion', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'tag', 'tab-item', 'tabs', 'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'link', 'text-field', 'select', 'textarea', 'dialog', 'password-field', 'counter', 'search-field'],
     relation: 'canonical',
     reason:
       'The three-rung ladder, led by `medium` (#2752, owner decision Q1 B, 2026-10-16). Canonical on weight of use: '
@@ -459,7 +471,9 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
     values: ['medium', 'small'],
     // The `switch-row` ROW keeps `size` (it scales the label ramp, gap and row height) and passes it through
     // to the nested `switch-control` by `follow`; the atom declares the same two-rung ladder (#1354).
-    defs: ['switch-row', 'switch-control'],
+    // Breadcrumbs and its item join it (#2666, owner call 7 A): one line of 14 or 16px body text, and an 18px trail
+    // stops reading as secondary wayfinding.
+    defs: ['switch-row', 'switch-control', 'breadcrumbs', 'breadcrumb-item'],
     relation: 'subset',
     reason:
       'The ladder minus its top rung, for a def with no large form, led by medium as canonical is (#2752 Q1 B): a switch above medium stops reading '
@@ -505,7 +519,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'style',
     values: ['outline'],
-    defs: ['text-field', 'textarea', 'password-field'],
+    defs: ['text-field', 'textarea', 'password-field', 'search-field'],
     relation: 'canonical',
     reason:
       'An axis of ONE, declared rather than dropped. Underline is a BRAND choice since #2695 (the Field style '
@@ -580,7 +594,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'status',
     values: ['default', 'error', 'warning', 'success'],
-    defs: ['field-message', 'select', 'text-field', 'textarea', 'password-field'],
+    defs: ['field-message', 'select', 'text-field', 'textarea', 'password-field', 'search-field'],
     relation: 'canonical',
     reason:
       'A form field\'s VALIDATION OUTCOME. RENAMED from `tone` to `status` in #1334 (the owner\'s split of '
@@ -743,6 +757,39 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'the writing direction\'s end, so it mirrors in right-to-left text and a `start` can join it with no rename). `center` LEADS because it is the code '
       + 'default on every screen and Figma\'s default member. One def carries it, so there is no other to stand in a '
       + 'relation with. Distinct from `alignment` and `direction`, argued in `VARIANT_AXES`.',
+  },
+  {
+    axis: 'kind',
+    values: ['ancestor', 'current', 'overflow'],
+    defs: ['breadcrumb-item'],
+    relation: 'sole',
+    reason:
+      'Which role a step plays in its trail (#2666, owner call 1 A): a link to a page above, the current page as text, '
+      + 'or the button standing for collapsed steps. `ancestor` LEADS because it is the code default and Figma\'s '
+      + 'default member, the commonest step. One def carries it. Distinct from `type`, argued in `VARIANT_AXES`.',
+  },
+  {
+    axis: 'separator',
+    values: ['chevron', 'slash'],
+    defs: ['breadcrumbs', 'breadcrumb-item'],
+    relation: 'sole',
+    reason:
+      'Which mark stands between the steps of a trail (owner decision Q382 A): a chevron or a slash, one setting for the '
+      + 'whole trail. `chevron` LEADS because it is the code default and Figma\'s default member. Shared by Breadcrumbs and '
+      + 'BreadcrumbItem because the trail passes it to every ancestor (`follow`), so the two must hold one set. The same '
+      + 'two values as `_breadcrumb-separator`\'s `type`, which the item picks by them. Distinct from `indicator` and '
+      + '`style`, argued in `VARIANT_AXES`.',
+  },
+  {
+    axis: 'path',
+    values: ['full', 'parent'],
+    defs: ['breadcrumbs'],
+    relation: 'sole',
+    reason:
+      'How much of the route the navigation shows (#2666, owner calls 1 A and 11 A; named `layout` first and renamed by '
+      + 'Q424 A, because the Button group holds `layout`): the full trail, or one link up to the parent for a small '
+      + 'screen. `full` LEADS because it is the code default and Figma\'s default member. One def carries it. Distinct '
+      + 'from `width` and `footer`, argued in `VARIANT_AXES`.',
   },
   {
     axis: 'intent',
