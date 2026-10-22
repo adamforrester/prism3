@@ -1318,6 +1318,10 @@
           "medium",
           "small",
           "large"
+        ],
+        "surface": [
+          "default",
+          "inverse"
         ]
       },
       "props": [
@@ -1354,6 +1358,14 @@
             "small",
             "medium",
             "large"
+          ]
+        },
+        {
+          "name": "surface",
+          "default": "default",
+          "values": [
+            "default",
+            "inverse"
           ]
         },
         {
@@ -1395,6 +1407,10 @@
           "medium",
           "small",
           "large"
+        ],
+        "surface": [
+          "default",
+          "inverse"
         ]
       },
       "props": [
@@ -1431,6 +1447,14 @@
             "small",
             "medium",
             "large"
+          ]
+        },
+        {
+          "name": "surface",
+          "default": "default",
+          "values": [
+            "default",
+            "inverse"
           ]
         },
         {
@@ -1472,6 +1496,10 @@
           "medium",
           "small",
           "large"
+        ],
+        "surface": [
+          "default",
+          "inverse"
         ]
       },
       "props": [
@@ -1508,6 +1536,14 @@
             "small",
             "medium",
             "large"
+          ]
+        },
+        {
+          "name": "surface",
+          "default": "default",
+          "values": [
+            "default",
+            "inverse"
           ]
         },
         {
@@ -3582,6 +3618,47 @@
       "sizeDefault": "medium"
     },
     {
+      "id": "toast",
+      "name": "Toast",
+      "category": "feedback",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "intent": [
+          "neutral",
+          "success"
+        ]
+      },
+      "props": [
+        {
+          "name": "message"
+        },
+        {
+          "name": "intent",
+          "default": "neutral",
+          "values": [
+            "neutral",
+            "success"
+          ]
+        },
+        {
+          "name": "action"
+        },
+        {
+          "name": "duration",
+          "default": 6000
+        },
+        {
+          "name": "dismissible",
+          "default": true
+        },
+        {
+          "name": "onDismiss"
+        }
+      ],
+      "sizes": []
+    },
+    {
       "id": "veil",
       "name": "Veil",
       "category": "foundations",
@@ -4092,6 +4169,17 @@
         ]
       }
     ],
+    "intent": [
+      {
+        "values": [
+          "neutral",
+          "success"
+        ],
+        "components": [
+          "toast"
+        ]
+      }
+    ],
     "layout": [
       {
         "values": [
@@ -4348,6 +4436,9 @@
           "button",
           "button-destructive",
           "button-neutral",
+          "flush-icon-button",
+          "flush-icon-button-destructive",
+          "flush-icon-button-neutral",
           "focus-ring",
           "icon-button",
           "icon-button-destructive",
@@ -4484,6 +4575,11 @@
     ]
   },
   "propVocabulary": {
+    "action": [
+      {
+        "id": "toast"
+      }
+    ],
     "actions": [
       {
         "id": "banner"
@@ -4877,6 +4973,16 @@
       {
         "id": "banner",
         "default": false
+      },
+      {
+        "id": "toast",
+        "default": true
+      }
+    ],
+    "duration": [
+      {
+        "id": "toast",
+        "default": 6000
       }
     ],
     "emphasis": [
@@ -5139,6 +5245,16 @@
         ]
       }
     ],
+    "intent": [
+      {
+        "id": "toast",
+        "default": "neutral",
+        "values": [
+          "neutral",
+          "success"
+        ]
+      }
+    ],
     "isExternal": [
       {
         "id": "link",
@@ -5386,6 +5502,9 @@
       },
       {
         "id": "field-message"
+      },
+      {
+        "id": "toast"
       }
     ],
     "min": [
@@ -5552,6 +5671,9 @@
     "onDismiss": [
       {
         "id": "banner"
+      },
+      {
+        "id": "toast"
       }
     ],
     "onOpenChange": [
@@ -6253,6 +6375,30 @@
       },
       {
         "id": "button-neutral",
+        "default": "default",
+        "values": [
+          "default",
+          "inverse"
+        ]
+      },
+      {
+        "id": "flush-icon-button",
+        "default": "default",
+        "values": [
+          "default",
+          "inverse"
+        ]
+      },
+      {
+        "id": "flush-icon-button-destructive",
+        "default": "default",
+        "values": [
+          "default",
+          "inverse"
+        ]
+      },
+      {
+        "id": "flush-icon-button-neutral",
         "default": "default",
         "values": [
           "default",
@@ -7306,6 +7452,15 @@
         "field-label"
       ],
       "detail": "field-label defaults size to small; 34 of 35 sized components default to medium"
+    },
+    {
+      "kind": "prop default",
+      "subject": "prop dismissible",
+      "components": [
+        "banner",
+        "toast"
+      ],
+      "detail": "dismissible defaults differ over the same values — false in banner; true in toast"
     },
     {
       "kind": "prop default",

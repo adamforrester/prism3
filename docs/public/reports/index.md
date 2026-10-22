@@ -1,6 +1,6 @@
 # Analysis reports
 
-Generated reports on the 44 registered components, read from their definitions and the emission. Each report is a page and a JSON twin with the same data; `regen.ts --check` fails when either is stale.
+Generated reports on the 45 registered components, read from their definitions and the emission. Each report is a page and a JSON twin with the same data; `regen.ts --check` fails when either is stale.
 
 | Report | Covers | JSON |
 |---|---|---|

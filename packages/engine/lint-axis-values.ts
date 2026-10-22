@@ -518,7 +518,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'surface',
     values: ['default', 'inverse'],
-    defs: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'focus-ring', 'link'],
+    defs: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'focus-ring', 'link'],
     relation: 'sole',
     reason:
       'The ground a control sits on (#1134): `default` the page, `inverse` a dark or brand-filled band. THE '
@@ -529,6 +529,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'in #1427, following `button` 1:1 apart from the `shape` axis — each carries `surface` and drives its '
       + 'nested `focus-ring` by the same `follow: [\'surface\']`, and its inverse fill inherits the shared '
       + '`inverse.interactive.<family>.fill` role (white/black at rest since #1384, stepped 2 rungs per state since #1456). '
+      + 'The flush icon-button siblings join in #2668 (Q386): no fill, so the axis changes the glyph ink only, for the Toast\'s close. '
       + '`focus-ring`\'s axis was `color` until #1134 renamed it here; the two are one entry now because they '
       + 'are one distinction. ORDER matters as everywhere here: `default` is the rest coordinate the '
       + 'projector\'s inverse rewrite falls through to (an `inverse` coordinate binds `color.inverse.*`, a '
@@ -752,6 +753,18 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'the writing direction\'s end, so it mirrors in right-to-left text and a `start` can join it with no rename). `center` LEADS because it is the code '
       + 'default on every screen and Figma\'s default member. One def carries it, so there is no other to stand in a '
       + 'relation with. Distinct from `alignment` and `direction`, argued in `VARIANT_AXES`.',
+  },
+  {
+    axis: 'intent',
+    values: ['neutral', 'success'],
+    defs: ['toast'],
+    relation: 'sole',
+    reason:
+      'What a toast confirms (#2668, owner call 2 A): a plain confirmation, or a completed action with a circled check. '
+      + 'No danger, warning or info: a message the user must see goes to a banner (call 1 A). `neutral` LEADS because it '
+      + 'is the code default and Figma\'s default member. The axis returns here as a variant axis after #1225 retired it '
+      + 'from the button families (where intent became the component): a toast\'s two intents differ in one glyph and its '
+      + 'ink, not in a family of interactive colors, so they are members of one set. One def carries it.',
   },
   {
     axis: 'footer',

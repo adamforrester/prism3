@@ -316,7 +316,8 @@
           "dialog",
           "password-field",
           "counter",
-          "banner"
+          "banner",
+          "toast"
         ]
       }
     },

@@ -135,6 +135,7 @@ const MUST_COVER = [
   'switch-control.onGlyph', 'switch-control.offGlyph', 'select.chevronGlyph', 'image-placeholder.markerGlyph',
   '_accordion-indicator.chevronDownGlyph', '_accordion-indicator.chevronUpGlyph', '_accordion-indicator.plusGlyph', '_accordion-indicator.minusGlyph',
   'banner.infoGlyph', 'banner.successGlyph', 'banner.warningGlyph', 'banner.dangerGlyph',
+  'toast.checkCircleGlyph',
 ];
 
 /** The component name prefix an icon-set glyph is an instance of (#2380): `icon/<glyph>`, the component the
@@ -357,6 +358,12 @@ const FIXED_GLYPH: Record<string, { glyph: string; at: Record<string, readonly s
     glyph: 'warning-triangle',
     at: { tone: ['danger'] },
     why: 'the danger mark: an exclamation in a TRIANGLE, FieldMessage\'s error glyph, the one enclosure that is not a circle, so the most serious tone is told apart by shape',
+  },
+  // #2668 (owner call 3 A): the Toast's success glyph, the same circled check FieldMessage draws; neutral draws none.
+  'toast.checkCircleGlyph': {
+    glyph: 'check-circle',
+    at: { intent: ['success'] },
+    why: "the success mark, FieldMessage's circled check, so success reads the same in a field and in a toast. `glyph: '{intent}'` cannot express it: the vocabulary has no glyph named `success`, and neutral draws nothing (call 3 A)",
   },
 };
 

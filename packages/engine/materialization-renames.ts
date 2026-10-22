@@ -285,7 +285,7 @@ export const MATERIALIZATION_RENAMES: MaterializationRule[] = [
     //
     // Terminating without a `!startsWith` clause of its own: the image is `<root>/color/<role>`, and no
     // role's first segment is `appearance` (they are background, foreground, text, icon, interactive,
-    // disabled, border, scrim, veil, field, inverse — `tree.ts`'s `COLOR_FAMILY_ORDER`). A future role
+    // disabled, border, scrim, veil, field, inverse — `color-order.ts`'s `COLOR_FAMILY_ORDER`). A future role
     // group called `appearance` would make this rule claim its own image; `materialize`'s self-map guard
     // stops the walk and `planVariableRenames` then reports it, rather than spinning.
     domain: (collection, name, root) => collection === 'color' && name.startsWith(`${root}/color/appearance/`),
