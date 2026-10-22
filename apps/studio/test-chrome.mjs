@@ -10488,7 +10488,7 @@ const EXPECT_HEADINGS = {
   components: {
     L1: ['Components', 'Subcomponents'],
     L2: ['Button options'],
-    L3: ['Button icons', 'Button label & icon', 'Button label weight', 'Text button hover', 'Button minimum width'],
+    L3: ['Button icons', 'Medium button label & icon', 'Button label weight', 'Text button hover', 'Button minimum width'],
   },
   // #2215: the plugin's Build style guides page, with SG_RING_CATALOG posted (every kind selected, so every option group
   // draws). Its page title is not a level (HEADING_EXEMPT).
