@@ -3478,8 +3478,7 @@
         "the active cell — the cell at the input's caret, or the last cell once the code is complete, carries the ring while the input has focus from any pointer or the keyboard (an input matches :focus-visible on a mouse focus too). It is the code input's caret position, never a DOM focus move.",
         "the caret — Figma draws a static bar; code draws a blinking bar on the active empty cell, or hides the native caret and draws none, and stops blinking under prefers-reduced-motion.",
         "tabular figures — the character sets `font-variant-numeric: tabular-nums`, so every digit is one width and the code does not shimmer as it fills.",
-        "the character's optical centering — its box is trimmed to the cap height and the baseline (`text-box: trim-both cap alphabetic`, Figma's vertical trim), so the cell centers the figure itself, whatever the brand font's ascender and descender. Where `text-box` is unsupported, the box falls back to the line box, centered.",
-        "the character's text style in Figma — vertical trim lives inside a Figma text style, so the trimmed character carries the style's font family, style and size as variable binds and shows no style name. Code reads the same type role.",
+        "the character's optical centering — in code its box is trimmed to the cap height and the baseline (`text-box: trim-both cap alphabetic`), so the cell centers the figure itself, whatever the brand font's ascender and descender. Where `text-box` is unsupported, the box falls back to the line box, centered. Figma keeps vertical trim inside a text style, so the Figma character carries its size's text style untrimmed and centers its line box.",
         "fill width — Figma keeps each cell at its size until a designer sets it to fill; code's `width=\"full\"` makes every cell `flex: 1 1 0` with `min-inline-size: 32px`, and the height stays the size's.",
         "style — the cell's edge is the brand's Field style setting, not a prop or a Figma variant: `outline` draws a box around each cell, `underline` one line under each cell. The brand sets it once, every field takes it, and the cell set is built in that style (#2695, #2719).",
         "forced-colors — the borders become system-color borders and the active cell's ring a system-color outline, so the active cell still shows."
@@ -3491,11 +3490,12 @@
         ],
         "unverified": [
           "An empty cell in error: the approved states draw error with a character only. A field in error with a short code shows its empty cells at rest in Figma; code draws the danger border on every cell.",
-          "The character's vertical trim on a real host: that a layer trimmed after its style is applied keeps the style's variable binds (measured for the #1567 detach, not for this layer), and that the trimmed box centers the figure in the brand's own display font, are modeled offline only until the owner's QA build."
+          "The character's centering in Figma: the styled character centers its line box, so a brand font whose descender is deeper than the room above its figures sets the figure slightly high. Code trims to the cap height and centers the figure itself."
         ],
         "evolution": [
           "2026-10-15 (#2428): owner decision Q329 A, the cell as a part in the code input's native items slot, its character edited on the cell; Q330 A, the four sizes.",
-          "2026-10-17 (#2789): the character is trimmed to its cap height and baseline, so the cell centers the figure (owner QA 2026-10-16: the digit sat too high at medium and large; option A of the owner question on #2789)."
+          "2026-10-17 (#2789): the character is trimmed to its cap height and baseline, so the cell centers the figure (owner QA 2026-10-16: the digit sat too high at medium and large; option A of the owner question on #2789).",
+          "2026-10-22 (#2789): owner QA Q534, the character carries its size's text style in Figma, so it follows the brand's type. Figma keeps vertical trim inside the style, so the Figma character is no longer trimmed; code still trims."
         ],
         "projection": []
       },

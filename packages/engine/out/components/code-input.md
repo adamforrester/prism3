@@ -87,7 +87,7 @@ Use for a short, fixed-length code sent by text message, email or an authenticat
 
 Label = noun phrase, sentence case. Helper = the length and where the code went. Error = which case it is and what to do.
 
-- **Labels:** Noun phrase, sentence case: "Verification code". Never "OTP".
+- **Labels:** Noun phrase, sentence case: "Verification code". Spell it out; never an acronym.
 - **Errors:** Say which case it is: "Enter all 6 digits", "That code is wrong. Check the latest message and try again", "That code has expired. We sent a new one".
 - **Empty states:** The helper text says how many characters and where the code was sent: "Enter the 6-digit code sent to your phone."
 
@@ -112,7 +112,7 @@ Label = noun phrase, sentence case. Helper = the length and where the code went.
 | `value` | string | — | no | Controlled value; pair with onChange. |
 | `defaultValue` | string | — | no | Uncontrolled initial value. |
 | `onChange` | function | — | no | Called with the value after spaces and hyphens are removed. |
-| `onComplete` | function | — | no | Called once with the value when it reaches `length`, and again only if the value changes and reaches it again. The page decides whether to submit. |
+| `onComplete` | function | — | no | Called once with the value when it reaches the set length, and again only if the value changes and reaches it again. The page decides whether to submit. |
 | `inputMode` | enum: 'numeric' \| 'text' | `numeric` | no | numeric for a code of digits, text for a code with letters. |
 | `autoComplete` | string | `one-time-code` | no | one-time-code by default, so the phone offers the code from the message. Never off. |
 | `helpText` | string \| node | — | no | Persistent guidance (rendered as FieldMessage): how many characters and where the code was sent. |

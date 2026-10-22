@@ -20828,11 +20828,12 @@ arm: {
         `#2695 paste: the underline fields' per-side stroke weights read back bound from the paste executor (none / none / hairline, thick at focus / none), nothing discarded (${bad.slice(0, 3).join(' | ') || 'clean'})`);
     }
 
-    // ---- #2428: Code input's character keeps its cap-height trim through the PASTE executor, as through the plugin's ----
-    // `claimDefaults` writes the plan's CAP_HEIGHT (detaching the style, as the host does) and the #1567 re-apply stands
-    // down for a trimmed node, or the style's own NONE would erase the trim. The plugin leg is in test-write-components.
+    // ---- #2428: Code input's character keeps its size's text style through the PASTE executor, as through the plugin's ----
+    // Owner QA Q534 on #2789: an unstyled character took the build's own font in a brand's file. The style names are typed
+    // here, not read from the plan; the plugin leg is in test-write-components.
     {
       const cellDef = componentDefs.find((x) => x.id === 'code-input-cell')!;
+      const STYLE: Record<string, string> = { small: 'body/md/default', medium: 'title/sm/strong', large: 'title/md/strong', xlarge: 'title/2xl/strong' };
       const bad: string[] = [];
       let pasted = 0;
       for (const size of ['small', 'medium', 'large', 'xlarge']) {
@@ -20841,12 +20842,13 @@ arm: {
         const run = await runPayload(planToPluginJs(plan), { vars: [...planBoundVars(plan.root), ...planPaintVars(plan.root)], styles: planTextStyles(plan.root), comps: [], page });
         const walk = (n: Record<string, unknown>): Record<string, unknown>[] => [n, ...((n.children as Record<string, unknown>[] | undefined) ?? []).flatMap(walk)];
         const digit = page.children.flatMap((c) => walk(c as Record<string, unknown>)).find((n) => n.name === 'digit');
-        const trimMisses = run.misses.filter((m) => /digit\.(leadingTrim|textStyle)|THREW/.test(m));
+        const styleMisses = run.misses.filter((m) => /digit\.(leadingTrim|textStyle)|THREW/.test(m));
         pasted++;
-        if (!digit || digit.leadingTrim !== 'CAP_HEIGHT' || trimMisses.length) bad.push(`${size}: ${digit ? String(digit.leadingTrim) : 'no digit'}${trimMisses.length ? `; ${trimMisses[0]}` : ''}`);
+        if (!digit || digit.textStyleId !== `S:${STYLE[size]}` || digit.leadingTrim !== 'NONE' || styleMisses.length)
+          bad.push(`${size}: ${digit ? `${String(digit.textStyleId) || 'no style'}, trim ${String(digit.leadingTrim)}` : 'no digit'}${styleMisses.length ? `; ${styleMisses[0]}` : ''}`);
       }
       ok(pasted === 4 && bad.length === 0,
-        `#2428 paste: Code input's character reads leadingTrim CAP_HEIGHT from the paste executor at every size, nothing discarded (${bad.join(' | ') || 'clean'})`);
+        `#2428 paste: Code input's character carries its size's text style from the paste executor at every size, untrimmed, nothing discarded (${bad.join(' | ') || 'clean'})`);
     }
 
     // ---- the reserved-rows floor tolerates the host's SINGLE-PRECISION minHeight (live 2026-09-25) --------
@@ -32763,24 +32765,24 @@ arm: {
   const withMaxlength = codeOnlyLines.filter((l) => /maxlength/i.test(l.replace(/The input carries no native `maxlength`[^.]*\./, '')));
   ok(codeOnlyLines.some((l) => l.startsWith('ONE INPUT')) && withMaxlength.length === 0,
     `#2428 code-input: the one input in the code contract carries no native maxlength, so a pasted code with separators is not cut before it is normalized (off: ${withMaxlength.map((l) => l.split(' — ')[0]).join('; ') || 'none'})`);
-  // (3b) OPTICAL CENTERING (owner QA on #2428, 2026-10-16; option A on #2789): every character's text box is trimmed to the
-  // cap height and the baseline, centered on both axes in a `content` frame with no padding that fills the cell. A centered
-  // LINE box is not enough: it leaves the figure off center by the font's own metrics. And no other def's text is trimmed,
-  // so the trim (which detaches a Figma text style) stays where it was decided.
-  const trimOff = SIZES.flatMap((s) => CELL_STATES.map((st) => {
+  // (3b) THE CHARACTER IS STYLED AND CENTERED (owner QA Q534 on #2789): every character carries its size's text style
+  // (typed in STYLE above), untrimmed, its box centered on both axes in a `content` frame with no padding that fills the
+  // cell. Figma keeps vertical trim inside the style, so a trim on the layer would detach the style the brand's type
+  // reaches it through (#1567), which is how an unstyled character rendered in the default brand's display serif. And
+  // no def trims a text, so no other text loses its style that way.
+  const centerOff = SIZES.flatMap((s) => CELL_STATES.map((st) => {
     const root = cellAt(s, st)!.root;
     const d = findIn(root, 'digit');
     if (!d) return null;
     const c = findIn(root, 'content');
     const pad = ['paddingTop', 'paddingBottom'].map((k) => c?.bound?.[k]);
-    return d.leadingTrim === 'CAP_HEIGHT' && d.textAlignVertical === 'CENTER' && c?.counterAxisAlignItems === 'CENTER'
+    return d.textStyle === STYLE[s] && d.leadingTrim === undefined && d.textAlignVertical === 'CENTER' && c?.counterAxisAlignItems === 'CENTER'
       && c?.layoutGrow === 1 && root.primaryAxisAlignItems === 'CENTER' && pad.every((v: unknown) => v === 'space/0')
-      ? null : `${s}/${st}: trim ${String(d.leadingTrim)}, content ${String(c?.counterAxisAlignItems)} grow ${String(c?.layoutGrow)} pad ${pad.join('/')}`;
+      ? null : `${s}/${st}: style ${String(d.textStyle)}, trim ${String(d.leadingTrim)}, content ${String(c?.counterAxisAlignItems)} grow ${String(c?.layoutGrow)} pad ${pad.join('/')}`;
   })).filter(Boolean);
-  const trimmedElsewhere = componentDefs.filter((d) => d.id !== 'code-input-cell'
-    && Object.values(d.anatomy?.parts ?? {}).some((p) => (p as { verticalTrim?: unknown }).verticalTrim !== undefined)).map((d) => d.id);
-  ok(trimOff.length === 0 && trimmedElsewhere.length === 0,
-    `#2428 code-input: the character is trimmed to its cap height and baseline and centered in the cell at every size and state, and no other def trims a text (off: ${[...trimOff, ...trimmedElsewhere].join('; ') || 'none'})`);
+  const trimmed = componentDefs.filter((d) => Object.values(d.anatomy?.parts ?? {}).some((p) => (p as { verticalTrim?: unknown }).verticalTrim !== undefined)).map((d) => d.id);
+  ok(centerOff.length === 0 && trimmed.length === 0,
+    `#2428 code-input: the character carries its size's text style (body md, title sm, md, 2xl), untrimmed, centered in the cell at every size and state, and no def trims a text (off: ${[...centerOff, ...trimmed].join('; ') || 'none'})`);
   // The title weight resolves per brand (`typeWeight`): a brand shipping only a light title weight gets that weight, not a
   // missing `strong` style. The rule's own resolver, independent of the def.
   const lightTitle = applyWeightIntent(cellDef, { ...DEFAULT_WEIGHT_AVAILABILITY, title: ['subtle'] });

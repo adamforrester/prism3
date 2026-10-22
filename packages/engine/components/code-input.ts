@@ -162,15 +162,13 @@ export const codeInputCell: ComponentDef = {
       },
       digit: {
         kind: 'text',
+        // THE SIZE'S TEXT STYLE, APPLIED (owner QA Q534 on #2789): an unstyled character kept the build's own font and
+        // rendered in the default brand's display serif in a brand's file. Figma keeps vertical trim inside the text
+        // style and a trim written on the layer detaches it (#1567), so the Figma character is NOT trimmed: it is the
+        // style's line box, centered on both axes. Code trims the box to the cap height (`text-box`, in `codeOnly`).
         type: 'size.{size}.type',
-        // OPTICALLY CENTERED (owner QA on #2428, 2026-10-16; option A on #2789): the text box is trimmed to the cap
-        // height and the baseline, so the centered box is the figure itself. A centered LINE box left the figure off
-        // center by the font's own metrics, high in a display font whose descender is deeper than the room above its
-        // figures, and no line height changes that (the leading splits evenly). Figma keeps the trim in the text
-        // style, so the trim detaches the character's style; its variable binds stay (see `verticalTrim`).
-        verticalTrim: 'cap-height',
         presentWhen: { state: ['filled', 'focus-visible-filled', 'error'] },
-        note: 'The character, centered on its figure: its box is trimmed to the cap height and the baseline. Tabular figures in code, so every digit is one width.',
+        note: 'The character, in its size\'s text style, centered in the cell. Tabular figures in code, so every digit is one width.',
       },
       focusRing: {
         kind: 'absolute',
@@ -187,8 +185,7 @@ export const codeInputCell: ComponentDef = {
       'the active cell — the cell at the input\'s caret, or the last cell once the code is complete, carries the ring while the input has focus from any pointer or the keyboard (an input matches :focus-visible on a mouse focus too). It is the code input\'s caret position, never a DOM focus move.',
       'the caret — Figma draws a static bar; code draws a blinking bar on the active empty cell, or hides the native caret and draws none, and stops blinking under prefers-reduced-motion.',
       'tabular figures — the character sets `font-variant-numeric: tabular-nums`, so every digit is one width and the code does not shimmer as it fills.',
-      'the character\'s optical centering — its box is trimmed to the cap height and the baseline (`text-box: trim-both cap alphabetic`, Figma\'s vertical trim), so the cell centers the figure itself, whatever the brand font\'s ascender and descender. Where `text-box` is unsupported, the box falls back to the line box, centered.',
-      'the character\'s text style in Figma — vertical trim lives inside a Figma text style, so the trimmed character carries the style\'s font family, style and size as variable binds and shows no style name. Code reads the same type role.',
+      'the character\'s optical centering — in code its box is trimmed to the cap height and the baseline (`text-box: trim-both cap alphabetic`), so the cell centers the figure itself, whatever the brand font\'s ascender and descender. Where `text-box` is unsupported, the box falls back to the line box, centered. Figma keeps vertical trim inside a text style, so the Figma character carries its size\'s text style untrimmed and centers its line box.',
       'fill width — Figma keeps each cell at its size until a designer sets it to fill; code\'s `width="full"` makes every cell `flex: 1 1 0` with `min-inline-size: 32px`, and the height stays the size\'s.',
       'style — the cell\'s edge is the brand\'s Field style setting, not a prop or a Figma variant: `outline` draws a box around each cell, `underline` one line under each cell. The brand sets it once, every field takes it, and the cell set is built in that style (#2695, #2719).',
       'forced-colors — the borders become system-color borders and the active cell\'s ring a system-color outline, so the active cell still shows.',
@@ -226,7 +223,7 @@ export const codeInputCell: ComponentDef = {
 
   ai: {
     primaryPurpose: 'Show one character of a one-time code inside a code input.',
-    whenToUse: 'Only as a child of CodeInput.',
+    whenToUse: 'Only as a child of CodeInput. Generate CodeInput, which places one cell per character and sets which one is active.',
     avoidWhen: 'Anywhere outside a code input: a single character field is a text field, and a code is always one code input.',
     commonPartners: ['code-input'],
     triggerKeywords: ['code cell', 'otp cell', 'verification code box'],
@@ -253,11 +250,12 @@ export const codeInputCell: ComponentDef = {
     ],
     unverified: [
       'An empty cell in error: the approved states draw error with a character only. A field in error with a short code shows its empty cells at rest in Figma; code draws the danger border on every cell.',
-      'The character\'s vertical trim on a real host: that a layer trimmed after its style is applied keeps the style\'s variable binds (measured for the #1567 detach, not for this layer), and that the trimmed box centers the figure in the brand\'s own display font, are modeled offline only until the owner\'s QA build.',
+      'The character\'s centering in Figma: the styled character centers its line box, so a brand font whose descender is deeper than the room above its figures sets the figure slightly high. Code trims to the cap height and centers the figure itself.',
     ],
     evolution: [
       '2026-10-15 (#2428): owner decision Q329 A, the cell as a part in the code input\'s native items slot, its character edited on the cell; Q330 A, the four sizes.',
       '2026-10-17 (#2789): the character is trimmed to its cap height and baseline, so the cell centers the figure (owner QA 2026-10-16: the digit sat too high at medium and large; option A of the owner question on #2789).',
+      '2026-10-22 (#2789): owner QA Q534, the character carries its size\'s text style in Figma, so it follows the brand\'s type. Figma keeps vertical trim inside the style, so the Figma character is no longer trimmed; code still trims.',
     ],
   },
 };
@@ -307,7 +305,7 @@ export const codeInput: ComponentDef = {
     { name: 'value', type: 'string', required: false, description: 'Controlled value; pair with onChange.' },
     { name: 'defaultValue', type: 'string', required: false, description: 'Uncontrolled initial value.' },
     { name: 'onChange', type: 'function', required: false, description: 'Called with the value after spaces and hyphens are removed.' },
-    { name: 'onComplete', type: 'function', required: false, description: 'Called once with the value when it reaches `length`, and again only if the value changes and reaches it again. The page decides whether to submit.' },
+    { name: 'onComplete', type: 'function', required: false, description: 'Called once with the value when it reaches the set length, and again only if the value changes and reaches it again. The page decides whether to submit.' },
     { name: 'inputMode', type: "enum: 'numeric' | 'text'", values: ['numeric', 'text'], default: 'numeric', required: false, description: 'numeric for a code of digits, text for a code with letters.' },
     { name: 'autoComplete', type: 'string', default: 'one-time-code', required: false, description: 'one-time-code by default, so the phone offers the code from the message. Never off.' },
     { name: 'helpText', type: 'string | node', required: false, description: 'Persistent guidance (rendered as FieldMessage): how many characters and where the code was sent.' },
@@ -428,7 +426,7 @@ export const codeInput: ComponentDef = {
   },
 
   content: {
-    labelPattern: 'Noun phrase, sentence case: "Verification code". Never "OTP".',
+    labelPattern: 'Noun phrase, sentence case: "Verification code". Spell it out; never an acronym.',
     errorPattern: 'Say which case it is: "Enter all 6 digits", "That code is wrong. Check the latest message and try again", "That code has expired. We sent a new one".',
     emptyPattern: 'The helper text says how many characters and where the code was sent: "Enter the 6-digit code sent to your phone."',
   },

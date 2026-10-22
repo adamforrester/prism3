@@ -8487,7 +8487,7 @@
       },
       "ai": {
         "primaryPurpose": "Show one character of a one-time code inside a code input.",
-        "whenToUse": "Only as a child of CodeInput.",
+        "whenToUse": "Only as a child of CodeInput. Generate CodeInput, which places one cell per character and sets which one is active.",
         "avoidWhen": "Anywhere outside a code input: a single character field is a text field, and a code is always one code input.",
         "commonPartners": [
           "code-input"
@@ -8566,7 +8566,7 @@
           "name": "onComplete",
           "type": "function",
           "required": false,
-          "description": "Called once with the value when it reaches `length`, and again only if the value changes and reaches it again. The page decides whether to submit."
+          "description": "Called once with the value when it reaches the set length, and again only if the value changes and reaches it again. The page decides whether to submit."
         },
         {
           "name": "inputMode",
@@ -8712,7 +8712,7 @@
         "aria": "aria-describedby names the helper and any error, aria-invalid is set in error, and aria-busy while the code is checked. No aria-label on the input: it would hide the real value. Every name is translatable; the cell row stays left to right in every locale."
       },
       "content": {
-        "labelPattern": "Noun phrase, sentence case: \"Verification code\". Never \"OTP\".",
+        "labelPattern": "Noun phrase, sentence case: \"Verification code\". Spell it out; never an acronym.",
         "errorPattern": "Say which case it is: \"Enter all 6 digits\", \"That code is wrong. Check the latest message and try again\", \"That code has expired. We sent a new one\".",
         "emptyPattern": "The helper text says how many characters and where the code was sent: \"Enter the 6-digit code sent to your phone.\""
       },

@@ -714,21 +714,21 @@
     },
     "code-input-cell": {
       "members": 28,
-      "sha256": "0c0941bcbd18b486295542f59a2d7dada3955ce8841791c343994e86166b1527",
+      "sha256": "d0857df733826ea6e1f2a9e869c212c47b475d9613bc2582cef9bcbc95120a9c",
       "properties": [
         "digit:TEXT"
       ]
     },
     "code-input-cell@outline-solid-tint": {
       "members": 28,
-      "sha256": "65364c12f0be53e9ab089b44f05e33f27fed36af7df5a21196e7069f15e5b587",
+      "sha256": "dc1ce53587bb028f5fb6acf512a779b0e019ef50c4c52ce8abc55e54a6654cce",
       "properties": [
         "digit:TEXT"
       ]
     },
     "code-input-cell@outline-none": {
       "members": 28,
-      "sha256": "515c2926a50bc039f6b44c05ea7884f7ba61a47697907791240ce19d62127d77",
+      "sha256": "10273a351aca9f6670b859ae4f5999eafe21050f105f91e44c44654d6cbeede6",
       "properties": [
         "digit:TEXT"
       ]

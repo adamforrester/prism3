@@ -22,7 +22,7 @@ Built on #2660's items-slot pattern (merged), with current `main` merged in.
   the caret, `radius`) and `2xl` on its rung order.
 - **Reactions on a set with no pressed look.** `reactions.ts` planned While pressing only to `pressed`. The cell's def
   names `pressState: 'focus-visible'` (pressing a cell focuses the code input), carried on the plan only where declared,
-  so every other plan's `planStamp` is unchanged. `EXECUTOR_REVISION` is 34, one above main's 33 (`write-components.ts` passes it, and writes the trim).
+  so every other plan's `planStamp` is unchanged. `EXECUTOR_REVISION` is 35, one above main's 34 (`write-components.ts` passes it, and writes the trim).
 - **Default cells per member.** Each member's six cells show its state (`variantWhen` on `state`, which replaced
   `atState` on main in #2693): a fresh insert's picture of that
   state. A placed field's cells stay the designer's (Q329's accepted trade-off). Status has no nested mechanism, so an
@@ -45,7 +45,7 @@ Built on #2660's items-slot pattern (merged), with current `main` merged in.
   key (`size.{size}.radius`) rather than writing the template as a key. The field def binds no field chrome, so it and
   its gaps stay as authored. `test.ts` holds the cell's underline per state at every size (`#2719 code-input`).
 
-### The digit's vertical position (owner QA 2026-10-16; option A on #2789)
+### The digit's vertical position (owner QA 2026-10-16; option A on #2789; Q534 on 2026-10-22)
 
 - **Measured cause.** The layout was already centered: the line box sits dead center in every cell, so the line height
   cancels (the leading splits evenly). What is left is the font. A centered line box puts a figure off center by
@@ -62,5 +62,20 @@ Built on #2660's items-slot pattern (merged), with current `main` merged in.
   input and Dialog over #1798's 37,800 B unit ceiling (Dialog had 76 B left on main). The strip pass now drops leading
   indentation as well as comments, on the same ground (no literal in the payload spans lines; the gate now also refuses
   a line ending in a backslash): about 1 KB off every shell. `icon-button` packs into 17 chunks.
+- **Owner QA Q534 (2026-10-22): the character takes its text style.** In a brand's file the trimmed character had no
+  style, so it kept the build's own font, the default brand's display serif. The character now carries its size's text
+  style (`type.title.sm.strong` at medium, `type.body.md.default` at small, `type.title.md.strong` at large,
+  `type.title.2xl.strong` at xlarge), which main's spec read-back (#2830) expects. A trim written on a styled layer
+  detaches the style, so the Figma character is no longer trimmed: its line box is centered, and code still trims.
+  `verticalTrim` stays in the schema and both executors, and no def declares it. The trade-off is Q-#2789.2 on the PR.
+  Held by `#2428 code-input` (plan), `#2428 paste` (paste executor), `#2428 code-input-cell` (plugin executor) and the
+  round-trip's spec read-back.
 - **Found and filed, not fixed here:** prism3's title font sets old-style figures by default, so several digits drop
   below the baseline (#2814).
+
+### Main merge (2026-10-22)
+
+- Code input's `status` [default, error] subset in `lint-axis-values.ts` is folded into main's identical entry for the
+  choice controls (#2751), with its reason kept beside theirs.
+- Main's #2714 register: the cell's child-only `whenToUse` takes the template, `onComplete` loses its code span, and the
+  label pattern no longer writes an acronym in capitals.

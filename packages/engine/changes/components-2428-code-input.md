@@ -11,12 +11,13 @@ reactions Q344 sets (While pressing goes to the active cell). Two engine additio
 fixed weight intent for a type group, resolved per brand as `weightIntent` is, so the cell's title-step characters
 resolve on every brand. FieldLabel's agent partners name Code input. No token is added: CONTRACT is unchanged.
 
-The cell's character is optically centered (owner QA 2026-10-16, option A on #2789): a new text-part field,
-`verticalTrim: 'cap-height'`, trims the text box to the cap height and the baseline (Figma's `leadingTrim: CAP_HEIGHT`,
-code's `text-box: trim-both cap alphabetic`). The centered box is then the figure itself, whatever the brand font's
-metrics. Figma keeps the trim inside the text style, so both executors write the plan's trim in `claimDefaults` and do
-not re-apply the style over it. The trimmed character keeps the style's variable binds and shows no style name. Only
-Code input's cell declares it, and every other plan is byte-identical.
+The cell's character carries its size's text style in Figma (owner QA Q534 on #2789): `type.title.sm.strong` at
+medium, `type.body.md.default` at small, `type.title.md.strong` at large and `type.title.2xl.strong` at xlarge, with the
+title steps in the brand's bold title weight. Its line box is centered in the cell; code trims the box to the cap height
+and the baseline (`text-box: trim-both cap alphabetic`) so the figure itself is centered. A new text-part field,
+`verticalTrim: 'cap-height'`, projects Figma's `leadingTrim: CAP_HEIGHT`, and both executors write it without
+re-applying the style over it, because Figma keeps the trim inside the style. No def declares it: a trimmed layer
+cannot keep a text style, and the character's style decides. Every plan is byte-identical to one without the field.
 
 Code input joins the Field style lever (#2719, owner decisions Q332 A and Q12 A on #2695): under `underline` each cell
 draws one bottom line, 2px with the ring at the 2px offset on the active cells and `border.danger` in error, square,

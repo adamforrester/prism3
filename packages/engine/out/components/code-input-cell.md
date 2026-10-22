@@ -12,7 +12,7 @@
 One cell of a code input: a box that shows one character of the code. It is drawn, not typed into: the code input holds one real input, and each cell shows the character at its place. The active cell, where the next character goes, carries the focus ring and the caret. A cell in error takes the danger border. Used only inside a code input, which sets every cell from its input.
 
 - **Purpose:** Show one character of a one-time code inside a code input.
-- **Use when:** Only as a child of CodeInput.
+- **Use when:** Only as a child of CodeInput. Generate CodeInput, which places one cell per character and sets which one is active.
 - **Avoid when:** Anywhere outside a code input: a single character field is a text field, and a code is always one code input.
 
 ## Anatomy
@@ -22,7 +22,7 @@ Shown on the default member: size `medium`.
 1. **Container** — The cell: one box per character, as wide and tall as its size sets. Set to fill, it shares the row with the other cells and stops at 32px wide.
 2. **Content** — Centers the character, or the caret on the active empty cell.
 3. **Caret** — The insertion point on the active empty cell, in the character ink, as tall as the character.
-4. **Digit** — The character, centered on its figure: its box is trimmed to the cap height and the baseline. Tabular figures in code, so every digit is one width.
+4. **Digit** — The character, in its size's text style, centered in the cell. Tabular figures in code, so every digit is one width.
 5. **Focus ring** — The shared focus ring on the active cell, where the next character goes.
 
 ## Styles
