@@ -3018,27 +3018,32 @@ ok(rb.rows.every((r) => r.stroke !== null && r.weight === 'border-width/thick'),
   `#1348 radio's ring binds a CONSTANT 2px border (\`border-width/thick\`) at every member, error members included (#2751), unchecked and checked alike — the border weight does not change on select (${rb.rows.filter((r) => r.weight !== 'border-width/thick').map((r) => `${r.member} -> ${r.weight}`).slice(0, 3).join('; ') || 'all thick'})`);
 // RECOLORS ACROSS SELECTION (#1423), read off the BUILT node — the sharpest form of the rebind: at each
 // interactive non-error state the UNCHECKED ring resolves the neutral field-border edge and the CHECKED
-// ring the interactive brand edge, so the two DIFFER. Only the stroke COLOR moves; the WEIGHT is constant
-// (asserted above). Keyed off the built members by state × selection, so reverting `checked.border.*` back
-// to `color.field.border.*` (the pre-#1423 constant-colour ring, now the fork the atom documents) collapses
-// the two families back to one and fails these by name — the host-truth mirror of the engine suite's #1423 arm.
+// ring the checked checkbox's box color (#2939, owner Q574 A: `interactive/primary/fill/*`, before it the
+// `interactive/primary/border/*` edge), so the two DIFFER. Only the stroke COLOR moves; the WEIGHT is constant
+// (asserted above). EXPECTED is literal per state, the host-truth mirror of the engine suite's #2939 arm.
+const CHECKED_RING: Record<string, string> = {
+  'rest': 'color/interactive/primary/fill/selected', 'hover': 'color/interactive/primary/fill/hover',
+  'pressed': 'color/interactive/primary/fill/pressed', 'focus-visible': 'color/interactive/primary/fill/selected',
+};
 for (const st of ['rest', 'hover', 'pressed', 'focus-visible']) {
   const uStrokes = new Set(rb.rows.filter((r) => r.state === st && r.status === 'default' && r.selection === 'unchecked').map((r) => r.stroke));
   const cStrokes = new Set(rb.rows.filter((r) => r.state === st && r.status === 'default' && r.selection === 'checked').map((r) => r.stroke));
   const u = [...uStrokes][0], c = [...cStrokes][0];
   ok(uStrokes.size === 1 && cStrokes.size === 1
      && !!u && u.startsWith('color/field/border')
-     && !!c && c.startsWith('color/interactive/primary/border')
+     && c === CHECKED_RING[st]
      && u !== c,
-    `#1423 radio's ring RECOLORS across selection at \`${st}\` — unchecked resolves the field-border edge and checked the interactive brand edge, differing (unchecked ${u ?? 'none'}, checked ${c ?? 'none'})`);
+    `#2939 radio's ring RECOLORS across selection at \`${st}\` — unchecked resolves the field-border edge and checked the checked checkbox's box color ${CHECKED_RING[st]} (unchecked ${u ?? 'none'}, checked ${c ?? 'none'})`);
 }
-// At `disabled` the two selections still share the contrast-exempt disabled skin, so the ring is CONSTANT
-// across selection there — one stroke, unchecked and checked alike (the recolor is an interactive-state
-// affordance, not a disabled one).
+// At `disabled` the ring follows the checkbox too (#2939): the checked ring at the default status takes the disabled
+// box fill, every other disabled ring keeps the disabled border (the error member is held as it was; open question
+// on #2939's PR).
 const disRows = rb.rows.filter((r) => r.state === 'disabled');
-const disStrokes = new Set(disRows.map((r) => r.stroke));
-ok(disRows.length > 0 && disStrokes.size === 1,
-  `#1348 radio's ring is CONSTANT across selection at \`disabled\` — the shared disabled skin (${[...disStrokes].join(', ') || 'none'})`);
+const disWant = (r: { selection?: string; status?: string }): string =>
+  r.selection === 'checked' && r.status === 'default' ? 'color/disabled/fill' : 'color/disabled/border';
+const disWrong = disRows.filter((r) => r.stroke !== disWant(r));
+ok(disRows.length === 12 && disWrong.length === 0,
+  `#2939 radio's disabled ring: checked/default binds color/disabled/fill, the rest color/disabled/border (${disRows.length} of 12 members; wrong: ${disWrong.map((r) => `${r.member} -> ${r.stroke}`).slice(0, 3).join('; ') || 'none'})`);
 // #1698 made radio error GROUP-level only; owner Q354 (#2751) keeps that and shows it on every option through the
 // `status` axis the Radio group sets. So the danger ring is drawn exactly at status=error and a non-disabled state,
 // at both selections (the inner dot unchanged), and never at status=default.
