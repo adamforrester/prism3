@@ -12,7 +12,7 @@
     "used": 247,
     "unusedSemantic": 260,
     "unusedPrimitive": 280,
-    "components": 45
+    "components": 43
   },
   "tokens": {
     "border-width.hairline": {
@@ -79,7 +79,7 @@
             "vertical.width"
           ],
           "parts": {
-            "divider": {
+            "container": {
               "members": 5,
               "where": {}
             }
@@ -147,17 +147,6 @@
           "parts": {
             "container": {
               "members": 216,
-              "where": {}
-            }
-          }
-        },
-        "pagination-item": {
-          "keys": [
-            "border-width"
-          ],
-          "parts": {
-            "container": {
-              "members": 87,
               "where": {}
             }
           }
@@ -274,7 +263,7 @@
               "members": 84,
               "where": {}
             },
-            "grip": {
+            "gripGlyph": {
               "members": 84,
               "where": {}
             }
@@ -291,57 +280,8 @@
           ],
           "parts": {
             "control": {
-              "members": 54,
+              "members": 90,
               "where": {}
-            }
-          }
-        },
-        "pagination-item": {
-          "keys": [
-            "underline-height"
-          ],
-          "parts": {
-            "balance": {
-              "members": 6,
-              "where": {
-                "labeled": [
-                  "false"
-                ],
-                "selection": [
-                  "selected"
-                ],
-                "state": [
-                  "focus-visible",
-                  "rest"
-                ],
-                "style": [
-                  "underline"
-                ],
-                "type": [
-                  "page"
-                ]
-              }
-            },
-            "underline": {
-              "members": 6,
-              "where": {
-                "labeled": [
-                  "false"
-                ],
-                "selection": [
-                  "selected"
-                ],
-                "state": [
-                  "focus-visible",
-                  "rest"
-                ],
-                "style": [
-                  "underline"
-                ],
-                "type": [
-                  "page"
-                ]
-              }
             }
           }
         },
@@ -351,7 +291,7 @@
           ],
           "parts": {
             "control": {
-              "members": 30,
+              "members": 60,
               "where": {}
             }
           }
@@ -362,12 +302,12 @@
           ],
           "parts": {
             "track": {
-              "members": 24,
+              "members": 40,
               "where": {}
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "indicator-height"
           ],
@@ -456,13 +396,12 @@
           ],
           "parts": {
             "offGlyph": {
-              "members": 10,
+              "members": 16,
               "where": {
                 "selection": [
                   "off"
                 ],
                 "state": [
-                  "error",
                   "focus-visible",
                   "hover",
                   "pressed",
@@ -471,13 +410,12 @@
               }
             },
             "track": {
-              "members": 10,
+              "members": 16,
               "where": {
                 "selection": [
                   "off"
                 ],
                 "state": [
-                  "error",
                   "focus-visible",
                   "hover",
                   "pressed",
@@ -515,15 +453,30 @@
         },
         "checkbox-control": {
           "keys": [
-            "checked.border.error",
-            "indeterminate.border.error",
-            "unchecked.border.error"
+            "error.checked.border.focus-visible",
+            "error.checked.border.hover",
+            "error.checked.border.pressed",
+            "error.checked.border.rest",
+            "error.indeterminate.border.focus-visible",
+            "error.indeterminate.border.hover",
+            "error.indeterminate.border.pressed",
+            "error.indeterminate.border.rest",
+            "error.unchecked.border.focus-visible",
+            "error.unchecked.border.hover",
+            "error.unchecked.border.pressed",
+            "error.unchecked.border.rest"
           ],
           "parts": {
             "control": {
-              "members": 9,
+              "members": 36,
               "where": {
                 "state": [
+                  "focus-visible",
+                  "hover",
+                  "pressed",
+                  "rest"
+                ],
+                "status": [
                   "error"
                 ]
               }
@@ -550,6 +503,34 @@
                   "focus-visible-filled",
                   "hover",
                   "read-only",
+                  "rest"
+                ],
+                "status": [
+                  "error"
+                ]
+              }
+            }
+          }
+        },
+        "radio-control": {
+          "keys": [
+            "error.checked.border.focus-visible",
+            "error.checked.border.hover",
+            "error.checked.border.pressed",
+            "error.checked.border.rest",
+            "error.unchecked.border.focus-visible",
+            "error.unchecked.border.hover",
+            "error.unchecked.border.pressed",
+            "error.unchecked.border.rest"
+          ],
+          "parts": {
+            "control": {
+              "members": 24,
+              "where": {
+                "state": [
+                  "focus-visible",
+                  "hover",
+                  "pressed",
                   "rest"
                 ],
                 "status": [
@@ -590,14 +571,26 @@
         },
         "switch-control": {
           "keys": [
-            "off.border.error",
-            "on.border.error"
+            "error.off.border.focus-visible",
+            "error.off.border.hover",
+            "error.off.border.pressed",
+            "error.off.border.rest",
+            "error.on.border.focus-visible",
+            "error.on.border.hover",
+            "error.on.border.pressed",
+            "error.on.border.rest"
           ],
           "parts": {
             "track": {
-              "members": 4,
+              "members": 16,
               "where": {
                 "state": [
+                  "focus-visible",
+                  "hover",
+                  "pressed",
+                  "rest"
+                ],
+                "status": [
                   "error"
                 ]
               }
@@ -724,12 +717,6 @@
           ],
           "parts": {}
         },
-        "pagination-item": {
-          "keys": [
-            "focus-ring"
-          ],
-          "parts": {}
-        },
         "password-field": {
           "keys": [
             "border.focus-visible",
@@ -788,7 +775,7 @@
           ],
           "parts": {}
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "focus-ring"
           ],
@@ -961,36 +948,7 @@
             }
           }
         },
-        "pagination-item": {
-          "keys": [
-            "selected.border.page.border.focus-visible",
-            "selected.border.page.border.rest"
-          ],
-          "parts": {
-            "container": {
-              "members": 6,
-              "where": {
-                "labeled": [
-                  "false"
-                ],
-                "selection": [
-                  "selected"
-                ],
-                "state": [
-                  "focus-visible",
-                  "rest"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "page"
-                ]
-              }
-            }
-          }
-        },
-        "tab": {
+        "tab-item": {
           "keys": [
             "unselected.fill.hover",
             "unselected.fill.pressed"
@@ -1183,35 +1141,6 @@
             "separator.fill"
           ],
           "parts": {}
-        },
-        "pagination-item": {
-          "keys": [
-            "selected.underline.page.fill.focus-visible",
-            "selected.underline.page.fill.rest"
-          ],
-          "parts": {
-            "underline": {
-              "members": 6,
-              "where": {
-                "labeled": [
-                  "false"
-                ],
-                "selection": [
-                  "selected"
-                ],
-                "state": [
-                  "focus-visible",
-                  "rest"
-                ],
-                "style": [
-                  "underline"
-                ],
-                "type": [
-                  "page"
-                ]
-              }
-            }
-          }
         }
       }
     },
@@ -1438,7 +1367,7 @@
           ],
           "parts": {
             "control": {
-              "members": 3,
+              "members": 6,
               "where": {
                 "selection": [
                   "unchecked"
@@ -1606,7 +1535,7 @@
           ],
           "parts": {
             "control": {
-              "members": 6,
+              "members": 12,
               "where": {
                 "state": [
                   "disabled"
@@ -1637,7 +1566,7 @@
           ],
           "parts": {
             "offGlyph": {
-              "members": 2,
+              "members": 4,
               "where": {
                 "selection": [
                   "off"
@@ -1648,7 +1577,7 @@
               }
             },
             "onGlyph": {
-              "members": 2,
+              "members": 4,
               "where": {
                 "selection": [
                   "on"
@@ -1659,7 +1588,7 @@
               }
             },
             "track": {
-              "members": 2,
+              "members": 4,
               "where": {
                 "selection": [
                   "off"
@@ -1671,7 +1600,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "disabled.fill"
           ],
@@ -1817,7 +1746,7 @@
           ],
           "parts": {
             "control": {
-              "members": 6,
+              "members": 12,
               "where": {
                 "selection": [
                   "checked",
@@ -1914,7 +1843,7 @@
           ],
           "parts": {
             "dot": {
-              "members": 3,
+              "members": 6,
               "where": {
                 "selection": [
                   "checked"
@@ -1947,7 +1876,7 @@
           ],
           "parts": {
             "track": {
-              "members": 4,
+              "members": 8,
               "where": {
                 "state": [
                   "disabled"
@@ -2219,47 +2148,6 @@
             }
           }
         },
-        "pagination-item": {
-          "keys": [
-            "disabled.icon"
-          ],
-          "parts": {
-            "nextIcon": {
-              "members": 6,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "disabled"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "next"
-                ]
-              }
-            },
-            "previousIcon": {
-              "members": 6,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "disabled"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "previous"
-                ]
-              }
-            }
-          }
-        },
         "segmented-control-segment": {
           "keys": [
             "disabled.icon"
@@ -2275,7 +2163,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "disabled.icon"
           ],
@@ -2295,7 +2183,7 @@
             "disabled.icon"
           ],
           "parts": {
-            "check": {
+            "checkGlyph": {
               "members": 3,
               "where": {
                 "selection": [
@@ -2539,7 +2427,7 @@
           ],
           "parts": {
             "glyph": {
-              "members": 6,
+              "members": 12,
               "where": {
                 "selection": [
                   "checked",
@@ -2582,7 +2470,7 @@
             "disabled.label.on-fill"
           ],
           "parts": {
-            "chevron": {
+            "chevronGlyph": {
               "members": 12,
               "where": {
                 "state": [
@@ -2614,7 +2502,7 @@
           ],
           "parts": {
             "thumb": {
-              "members": 4,
+              "members": 8,
               "where": {
                 "state": [
                   "disabled"
@@ -2661,7 +2549,7 @@
             "disabled.label.on-fill"
           ],
           "parts": {
-            "grip": {
+            "gripGlyph": {
               "members": 12,
               "where": {
                 "state": [
@@ -2785,58 +2673,11 @@
                 ]
               }
             },
-            "text": {
+            "label": {
               "members": 12,
               "where": {
                 "state": [
                   "disabled"
-                ]
-              }
-            }
-          }
-        },
-        "pagination-item": {
-          "keys": [
-            "disabled.label"
-          ],
-          "parts": {
-            "nextText": {
-              "members": 3,
-              "where": {
-                "labeled": [
-                  "true"
-                ],
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "disabled"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "next"
-                ]
-              }
-            },
-            "previousText": {
-              "members": 3,
-              "where": {
-                "labeled": [
-                  "true"
-                ],
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "disabled"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "previous"
                 ]
               }
             }
@@ -2877,7 +2718,7 @@
           ],
           "parts": {}
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "disabled.label"
           ],
@@ -2948,6 +2789,9 @@
                 ],
                 "state": [
                   "hover"
+                ],
+                "status": [
+                  "default"
                 ]
               }
             }
@@ -2984,6 +2828,9 @@
                 ],
                 "state": [
                   "hover"
+                ],
+                "status": [
+                  "default"
                 ]
               }
             }
@@ -3063,6 +2910,9 @@
                   "focus-visible",
                   "pressed",
                   "rest"
+                ],
+                "status": [
+                  "default"
                 ]
               }
             }
@@ -3123,6 +2973,9 @@
                   "focus-visible",
                   "pressed",
                   "rest"
+                ],
+                "status": [
+                  "default"
                 ]
               }
             }
@@ -3404,7 +3257,7 @@
           ],
           "parts": {
             "panel": {
-              "members": 15,
+              "members": 24,
               "where": {}
             }
           }
@@ -3558,7 +3411,7 @@
             "error.icon"
           ],
           "parts": {
-            "iconError": {
+            "errorGlyph": {
               "members": 1,
               "where": {
                 "status": [
@@ -3730,33 +3583,6 @@
             }
           }
         },
-        "pagination-item": {
-          "keys": [
-            "unselected.ellipsis.icon"
-          ],
-          "parts": {
-            "gapIcon": {
-              "members": 3,
-              "where": {
-                "labeled": [
-                  "false"
-                ],
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "rest"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "ellipsis"
-                ]
-              }
-            }
-          }
-        },
         "password-field": {
           "keys": [
             "icon"
@@ -3782,7 +3608,7 @@
             "icon"
           ],
           "parts": {
-            "chevron": {
+            "chevronGlyph": {
               "members": 72,
               "where": {
                 "state": [
@@ -3815,7 +3641,7 @@
             "icon"
           ],
           "parts": {
-            "ring": {
+            "ringGlyph": {
               "members": 4,
               "where": {}
             }
@@ -3876,7 +3702,7 @@
             "icon"
           ],
           "parts": {
-            "grip": {
+            "gripGlyph": {
               "members": 72,
               "where": {
                 "state": [
@@ -3901,7 +3727,7 @@
             "success.icon"
           ],
           "parts": {
-            "iconSuccess": {
+            "successGlyph": {
               "members": 1,
               "where": {
                 "status": [
@@ -3933,7 +3759,7 @@
             "icon"
           ],
           "parts": {
-            "marker": {
+            "markerGlyph": {
               "members": 7,
               "where": {}
             }
@@ -3949,7 +3775,7 @@
             "warning.icon"
           ],
           "parts": {
-            "iconWarning": {
+            "warningGlyph": {
               "members": 1,
               "where": {
                 "status": [
@@ -4997,6 +4823,9 @@
                 ],
                 "state": [
                   "hover"
+                ],
+                "status": [
+                  "default"
                 ]
               }
             }
@@ -5083,6 +4912,9 @@
                 ],
                 "state": [
                   "pressed"
+                ],
+                "status": [
+                  "default"
                 ]
               }
             }
@@ -5167,13 +4999,12 @@
           ],
           "parts": {
             "thumb": {
-              "members": 10,
+              "members": 16,
               "where": {
                 "selection": [
                   "off"
                 ],
                 "state": [
-                  "error",
                   "focus-visible",
                   "hover",
                   "pressed",
@@ -5190,6 +5021,9 @@
                 "state": [
                   "focus-visible",
                   "rest"
+                ],
+                "status": [
+                  "default"
                 ]
               }
             }
@@ -5456,48 +5290,6 @@
             }
           }
         },
-        "pagination-item": {
-          "keys": [
-            "unselected.next.icon.hover",
-            "unselected.previous.icon.hover"
-          ],
-          "parts": {
-            "nextIcon": {
-              "members": 6,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "hover"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "next"
-                ]
-              }
-            },
-            "previousIcon": {
-              "members": 6,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "hover"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "previous"
-                ]
-              }
-            }
-          }
-        },
         "segmented-control-segment": {
           "keys": [
             "unselected.icon.hover"
@@ -5516,7 +5308,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "unselected.icon.hover"
           ],
@@ -5540,7 +5332,7 @@
             "unselected.icon.hover"
           ],
           "parts": {
-            "check": {
+            "checkGlyph": {
               "members": 3,
               "where": {
                 "selection": [
@@ -5666,48 +5458,6 @@
             }
           }
         },
-        "pagination-item": {
-          "keys": [
-            "unselected.next.icon.pressed",
-            "unselected.previous.icon.pressed"
-          ],
-          "parts": {
-            "nextIcon": {
-              "members": 6,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "pressed"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "next"
-                ]
-              }
-            },
-            "previousIcon": {
-              "members": 6,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "pressed"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "previous"
-                ]
-              }
-            }
-          }
-        },
         "segmented-control-segment": {
           "keys": [
             "unselected.icon.pressed"
@@ -5726,7 +5476,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "unselected.icon.pressed"
           ],
@@ -5750,7 +5500,7 @@
             "unselected.icon.pressed"
           ],
           "parts": {
-            "check": {
+            "checkGlyph": {
               "members": 3,
               "where": {
                 "selection": [
@@ -5798,7 +5548,7 @@
             "icon"
           ],
           "parts": {
-            "chevronDown": {
+            "chevronDownGlyph": {
               "members": 3,
               "where": {
                 "expansion": [
@@ -5809,7 +5559,7 @@
                 ]
               }
             },
-            "chevronUp": {
+            "chevronUpGlyph": {
               "members": 3,
               "where": {
                 "expansion": [
@@ -5820,7 +5570,7 @@
                 ]
               }
             },
-            "minus": {
+            "minusGlyph": {
               "members": 3,
               "where": {
                 "expansion": [
@@ -5831,7 +5581,7 @@
                 ]
               }
             },
-            "plus": {
+            "plusGlyph": {
               "members": 3,
               "where": {
                 "expansion": [
@@ -5962,50 +5712,6 @@
             }
           }
         },
-        "pagination-item": {
-          "keys": [
-            "unselected.next.icon",
-            "unselected.previous.icon"
-          ],
-          "parts": {
-            "nextIcon": {
-              "members": 12,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "focus-visible",
-                  "rest"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "next"
-                ]
-              }
-            },
-            "previousIcon": {
-              "members": 12,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "focus-visible",
-                  "rest"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "previous"
-                ]
-              }
-            }
-          }
-        },
         "segmented-control-segment": {
           "keys": [
             "selected.icon",
@@ -6025,7 +5731,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "unselected.icon"
           ],
@@ -6050,7 +5756,7 @@
             "unselected.icon"
           ],
           "parts": {
-            "check": {
+            "checkGlyph": {
               "members": 6,
               "where": {
                 "selection": [
@@ -6297,37 +6003,6 @@
             }
           }
         },
-        "pagination-item": {
-          "keys": [
-            "unselected.border.false.next.overlay.hover",
-            "unselected.border.false.previous.overlay.hover",
-            "unselected.page.overlay.hover"
-          ],
-          "parts": {
-            "container": {
-              "members": 9,
-              "where": {
-                "labeled": [
-                  "false"
-                ],
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "hover"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "next",
-                  "page",
-                  "previous"
-                ]
-              }
-            }
-          }
-        },
         "password-field": {
           "keys": [
             "overlay.hover"
@@ -6494,37 +6169,6 @@
             }
           }
         },
-        "pagination-item": {
-          "keys": [
-            "unselected.border.false.next.overlay.pressed",
-            "unselected.border.false.previous.overlay.pressed",
-            "unselected.page.overlay.pressed"
-          ],
-          "parts": {
-            "container": {
-              "members": 9,
-              "where": {
-                "labeled": [
-                  "false"
-                ],
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "pressed"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "next",
-                  "page",
-                  "previous"
-                ]
-              }
-            }
-          }
-        },
         "segmented-control-segment": {
           "keys": [
             "unselected.overlay.pressed"
@@ -6589,95 +6233,6 @@
             }
           }
         },
-        "pagination-item": {
-          "keys": [
-            "unselected.next.label.hover",
-            "unselected.page.label.hover",
-            "unselected.previous.label.hover"
-          ],
-          "parts": {
-            "label": {
-              "members": 3,
-              "where": {
-                "labeled": [
-                  "false"
-                ],
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "hover"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "page"
-                ]
-              }
-            },
-            "labelReserve": {
-              "members": 3,
-              "where": {
-                "labeled": [
-                  "false"
-                ],
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "hover"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "page"
-                ]
-              }
-            },
-            "nextText": {
-              "members": 3,
-              "where": {
-                "labeled": [
-                  "true"
-                ],
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "hover"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "next"
-                ]
-              }
-            },
-            "previousText": {
-              "members": 3,
-              "where": {
-                "labeled": [
-                  "true"
-                ],
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "hover"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "previous"
-                ]
-              }
-            }
-          }
-        },
         "segmented-control-segment": {
           "keys": [
             "unselected.label.hover"
@@ -6707,7 +6262,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "unselected.label.hover"
           ],
@@ -6780,95 +6335,6 @@
             }
           }
         },
-        "pagination-item": {
-          "keys": [
-            "unselected.next.label.pressed",
-            "unselected.page.label.pressed",
-            "unselected.previous.label.pressed"
-          ],
-          "parts": {
-            "label": {
-              "members": 3,
-              "where": {
-                "labeled": [
-                  "false"
-                ],
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "pressed"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "page"
-                ]
-              }
-            },
-            "labelReserve": {
-              "members": 3,
-              "where": {
-                "labeled": [
-                  "false"
-                ],
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "pressed"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "page"
-                ]
-              }
-            },
-            "nextText": {
-              "members": 3,
-              "where": {
-                "labeled": [
-                  "true"
-                ],
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "pressed"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "next"
-                ]
-              }
-            },
-            "previousText": {
-              "members": 3,
-              "where": {
-                "labeled": [
-                  "true"
-                ],
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "pressed"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "previous"
-                ]
-              }
-            }
-          }
-        },
         "segmented-control-segment": {
           "keys": [
             "unselected.label.pressed"
@@ -6898,7 +6364,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "unselected.label.pressed"
           ],
@@ -6984,88 +6450,6 @@
             }
           }
         },
-        "pagination-item": {
-          "keys": [
-            "selected.page.label",
-            "unselected.next.label",
-            "unselected.page.label",
-            "unselected.previous.label"
-          ],
-          "parts": {
-            "label": {
-              "members": 18,
-              "where": {
-                "labeled": [
-                  "false"
-                ],
-                "state": [
-                  "focus-visible",
-                  "rest"
-                ],
-                "type": [
-                  "page"
-                ]
-              }
-            },
-            "labelReserve": {
-              "members": 18,
-              "where": {
-                "labeled": [
-                  "false"
-                ],
-                "state": [
-                  "focus-visible",
-                  "rest"
-                ],
-                "type": [
-                  "page"
-                ]
-              }
-            },
-            "nextText": {
-              "members": 6,
-              "where": {
-                "labeled": [
-                  "true"
-                ],
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "focus-visible",
-                  "rest"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "next"
-                ]
-              }
-            },
-            "previousText": {
-              "members": 6,
-              "where": {
-                "labeled": [
-                  "true"
-                ],
-                "selection": [
-                  "unselected"
-                ],
-                "state": [
-                  "focus-visible",
-                  "rest"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "previous"
-                ]
-              }
-            }
-          }
-        },
         "segmented-control-segment": {
           "keys": [
             "selected.label",
@@ -7096,7 +6480,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "unselected.label"
           ],
@@ -7207,12 +6591,15 @@
                 ],
                 "state": [
                   "hover"
+                ],
+                "status": [
+                  "default"
                 ]
               }
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "selected.fill.hover"
           ],
@@ -7314,12 +6701,15 @@
                 ],
                 "state": [
                   "pressed"
+                ],
+                "status": [
+                  "default"
                 ]
               }
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "selected.fill.pressed"
           ],
@@ -7426,12 +6816,15 @@
                 "state": [
                   "focus-visible",
                   "rest"
+                ],
+                "status": [
+                  "default"
                 ]
               }
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "selected.fill"
           ],
@@ -7508,7 +6901,7 @@
           ],
           "parts": {
             "control": {
-              "members": 6,
+              "members": 12,
               "where": {
                 "selection": [
                   "checked",
@@ -7548,7 +6941,7 @@
           ],
           "parts": {
             "track": {
-              "members": 2,
+              "members": 4,
               "where": {
                 "selection": [
                   "on"
@@ -7596,7 +6989,7 @@
           ],
           "parts": {
             "control": {
-              "members": 6,
+              "members": 12,
               "where": {
                 "selection": [
                   "checked",
@@ -7636,7 +7029,7 @@
           ],
           "parts": {
             "track": {
-              "members": 2,
+              "members": 4,
               "where": {
                 "selection": [
                   "on"
@@ -7714,14 +7107,13 @@
           ],
           "parts": {
             "control": {
-              "members": 18,
+              "members": 24,
               "where": {
                 "selection": [
                   "checked",
                   "indeterminate"
                 ],
                 "state": [
-                  "error",
                   "focus-visible",
                   "rest"
                 ]
@@ -7735,7 +7127,7 @@
           ],
           "parts": {
             "dot": {
-              "members": 12,
+              "members": 24,
               "where": {
                 "selection": [
                   "checked"
@@ -7757,13 +7149,12 @@
           ],
           "parts": {
             "onGlyph": {
-              "members": 10,
+              "members": 16,
               "where": {
                 "selection": [
                   "on"
                 ],
                 "state": [
-                  "error",
                   "focus-visible",
                   "hover",
                   "pressed",
@@ -7772,13 +7163,12 @@
               }
             },
             "track": {
-              "members": 6,
+              "members": 8,
               "where": {
                 "selection": [
                   "on"
                 ],
                 "state": [
-                  "error",
                   "focus-visible",
                   "rest"
                 ]
@@ -7874,7 +7264,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "selected.icon.hover"
           ],
@@ -7980,7 +7370,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "selected.icon.pressed"
           ],
@@ -8121,7 +7511,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "selected.icon"
           ],
@@ -8245,14 +7635,13 @@
           ],
           "parts": {
             "glyph": {
-              "members": 30,
+              "members": 48,
               "where": {
                 "selection": [
                   "checked",
                   "indeterminate"
                 ],
                 "state": [
-                  "error",
                   "focus-visible",
                   "hover",
                   "pressed",
@@ -8306,13 +7695,12 @@
           ],
           "parts": {
             "thumb": {
-              "members": 10,
+              "members": 16,
               "where": {
                 "selection": [
                   "on"
                 ],
                 "state": [
-                  "error",
                   "focus-visible",
                   "hover",
                   "pressed",
@@ -8519,7 +7907,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "selected.label.hover"
           ],
@@ -8576,7 +7964,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "selected.label.pressed"
           ],
@@ -8635,7 +8023,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "selected.label"
           ],
@@ -12056,7 +11444,7 @@
                 ]
               }
             },
-            "text": {
+            "label": {
               "members": 1,
               "where": {
                 "emphasis": [
@@ -12082,7 +11470,7 @@
             "danger.status.subtle.label"
           ],
           "parts": {
-            "text": {
+            "label": {
               "members": 1,
               "where": {
                 "emphasis": [
@@ -12103,7 +11491,7 @@
             "error.label"
           ],
           "parts": {
-            "text": {
+            "label": {
               "members": 1,
               "where": {
                 "status": [
@@ -12123,7 +11511,7 @@
             "info.status.subtle.label"
           ],
           "parts": {
-            "text": {
+            "label": {
               "members": 1,
               "where": {
                 "emphasis": [
@@ -12256,7 +11644,7 @@
                 ]
               }
             },
-            "text": {
+            "label": {
               "members": 1,
               "where": {
                 "emphasis": [
@@ -12297,7 +11685,7 @@
                 ]
               }
             },
-            "text": {
+            "label": {
               "members": 1,
               "where": {
                 "emphasis": [
@@ -12338,7 +11726,7 @@
                 ]
               }
             },
-            "text": {
+            "label": {
               "members": 1,
               "where": {
                 "emphasis": [
@@ -12379,7 +11767,7 @@
                 ]
               }
             },
-            "text": {
+            "label": {
               "members": 1,
               "where": {
                 "emphasis": [
@@ -12420,7 +11808,7 @@
             "neutral.status.subtle.label"
           ],
           "parts": {
-            "text": {
+            "label": {
               "members": 1,
               "where": {
                 "emphasis": [
@@ -12442,7 +11830,7 @@
           ],
           "parts": {
             "label": {
-              "members": 3,
+              "members": 6,
               "where": {}
             }
           }
@@ -12471,11 +11859,11 @@
           ],
           "parts": {
             "placeholder": {
-              "members": 15,
+              "members": 24,
               "where": {}
             },
             "title": {
-              "members": 15,
+              "members": 24,
               "where": {}
             }
           }
@@ -12497,7 +11885,7 @@
                 ]
               }
             },
-            "text": {
+            "label": {
               "members": 6,
               "where": {
                 "emphasis": [
@@ -12515,33 +11903,15 @@
             "label"
           ],
           "parts": {
+            "label": {
+              "members": 9,
+              "where": {}
+            },
             "number": {
               "members": 3,
               "where": {
                 "type": [
                   "ordered"
-                ]
-              }
-            },
-            "text": {
-              "members": 9,
-              "where": {}
-            }
-          }
-        },
-        "pagination": {
-          "keys": [
-            "label"
-          ],
-          "parts": {
-            "status": {
-              "members": 3,
-              "where": {
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "compact"
                 ]
               }
             }
@@ -12588,7 +11958,7 @@
           ],
           "parts": {
             "label": {
-              "members": 3,
+              "members": 6,
               "where": {}
             }
           }
@@ -12616,7 +11986,7 @@
           ],
           "parts": {
             "label": {
-              "members": 2,
+              "members": 4,
               "where": {}
             }
           }
@@ -12693,7 +12063,7 @@
           ],
           "parts": {
             "description": {
-              "members": 15,
+              "members": 24,
               "where": {}
             }
           }
@@ -12715,7 +12085,7 @@
                 ]
               }
             },
-            "text": {
+            "label": {
               "members": 6,
               "where": {
                 "emphasis": [
@@ -12733,7 +12103,7 @@
             "default.label"
           ],
           "parts": {
-            "text": {
+            "label": {
               "members": 1,
               "where": {
                 "status": [
@@ -12847,7 +12217,7 @@
             "success.status.subtle.label"
           ],
           "parts": {
-            "text": {
+            "label": {
               "members": 1,
               "where": {
                 "emphasis": [
@@ -12868,7 +12238,7 @@
             "success.label"
           ],
           "parts": {
-            "text": {
+            "label": {
               "members": 1,
               "where": {
                 "status": [
@@ -12888,7 +12258,7 @@
             "warning.status.subtle.label"
           ],
           "parts": {
-            "text": {
+            "label": {
               "members": 1,
               "where": {
                 "emphasis": [
@@ -12909,7 +12279,7 @@
             "warning.label"
           ],
           "parts": {
-            "text": {
+            "label": {
               "members": 1,
               "where": {
                 "status": [
@@ -13119,7 +12489,7 @@
             "horizontal.width"
           ],
           "parts": {
-            "divider": {
+            "container": {
               "members": 3,
               "where": {
                 "orientation": [
@@ -13180,7 +12550,7 @@
           ],
           "parts": {
             "dot": {
-              "members": 5,
+              "members": 10,
               "where": {
                 "selection": [
                   "checked"
@@ -13202,30 +12572,30 @@
             "size.large.control"
           ],
           "parts": {
-            "control": {
-              "members": 18,
-              "where": {
-                "size": [
-                  "large"
-                ]
-              }
-            },
-            "dash": {
-              "members": 6,
+            "checkGlyph": {
+              "members": 10,
               "where": {
                 "selection": [
-                  "indeterminate"
+                  "checked"
                 ],
                 "size": [
                   "large"
                 ]
               }
             },
-            "mark": {
-              "members": 6,
+            "control": {
+              "members": 30,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            },
+            "dashGlyph": {
+              "members": 10,
               "where": {
                 "selection": [
-                  "checked"
+                  "indeterminate"
                 ],
                 "size": [
                   "large"
@@ -13240,7 +12610,7 @@
           ],
           "parts": {
             "control": {
-              "members": 1,
+              "members": 2,
               "where": {
                 "size": [
                   "large"
@@ -13255,7 +12625,7 @@
           ],
           "parts": {
             "control": {
-              "members": 10,
+              "members": 20,
               "where": {
                 "size": [
                   "large"
@@ -13270,7 +12640,7 @@
           ],
           "parts": {
             "control": {
-              "members": 1,
+              "members": 2,
               "where": {
                 "size": [
                   "large"
@@ -13289,8 +12659,8 @@
             "size.large.control-box"
           ],
           "parts": {
-            "controlBox": {
-              "members": 1,
+            "controlCell": {
+              "members": 2,
               "where": {
                 "size": [
                   "large"
@@ -13348,8 +12718,8 @@
             "size.large.control-box"
           ],
           "parts": {
-            "controlBox": {
-              "members": 1,
+            "controlCell": {
+              "members": 2,
               "where": {
                 "size": [
                   "large"
@@ -13416,7 +12786,7 @@
           ],
           "parts": {
             "control": {
-              "members": 18,
+              "members": 30,
               "where": {
                 "size": [
                   "large"
@@ -13454,7 +12824,7 @@
           ],
           "parts": {
             "dot": {
-              "members": 5,
+              "members": 10,
               "where": {
                 "selection": [
                   "checked"
@@ -13476,30 +12846,30 @@
             "size.medium.control"
           ],
           "parts": {
-            "control": {
-              "members": 18,
-              "where": {
-                "size": [
-                  "medium"
-                ]
-              }
-            },
-            "dash": {
-              "members": 6,
+            "checkGlyph": {
+              "members": 10,
               "where": {
                 "selection": [
-                  "indeterminate"
+                  "checked"
                 ],
                 "size": [
                   "medium"
                 ]
               }
             },
-            "mark": {
-              "members": 6,
+            "control": {
+              "members": 30,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            },
+            "dashGlyph": {
+              "members": 10,
               "where": {
                 "selection": [
-                  "checked"
+                  "indeterminate"
                 ],
                 "size": [
                   "medium"
@@ -13514,7 +12884,7 @@
           ],
           "parts": {
             "control": {
-              "members": 1,
+              "members": 2,
               "where": {
                 "size": [
                   "medium"
@@ -13529,7 +12899,7 @@
           ],
           "parts": {
             "control": {
-              "members": 10,
+              "members": 20,
               "where": {
                 "size": [
                   "medium"
@@ -13544,7 +12914,7 @@
           ],
           "parts": {
             "control": {
-              "members": 1,
+              "members": 2,
               "where": {
                 "size": [
                   "medium"
@@ -13564,7 +12934,7 @@
           ],
           "parts": {
             "track": {
-              "members": 12,
+              "members": 20,
               "where": {
                 "size": [
                   "medium"
@@ -13583,8 +12953,8 @@
             "size.medium.control-box"
           ],
           "parts": {
-            "controlBox": {
-              "members": 1,
+            "controlCell": {
+              "members": 2,
               "where": {
                 "size": [
                   "medium"
@@ -13642,8 +13012,8 @@
             "size.medium.control-box"
           ],
           "parts": {
-            "controlBox": {
-              "members": 1,
+            "controlCell": {
+              "members": 2,
               "where": {
                 "size": [
                   "medium"
@@ -13657,8 +13027,8 @@
             "size.medium.control-box"
           ],
           "parts": {
-            "trackBox": {
-              "members": 1,
+            "controlCell": {
+              "members": 2,
               "where": {
                 "size": [
                   "medium"
@@ -13725,7 +13095,7 @@
           ],
           "parts": {
             "control": {
-              "members": 18,
+              "members": 30,
               "where": {
                 "size": [
                   "medium"
@@ -13745,7 +13115,7 @@
           ],
           "parts": {
             "offGlyph": {
-              "members": 6,
+              "members": 10,
               "where": {
                 "selection": [
                   "off"
@@ -13756,7 +13126,7 @@
               }
             },
             "onGlyph": {
-              "members": 6,
+              "members": 10,
               "where": {
                 "selection": [
                   "on"
@@ -13767,7 +13137,7 @@
               }
             },
             "thumb": {
-              "members": 12,
+              "members": 20,
               "where": {
                 "size": [
                   "medium"
@@ -13787,7 +13157,7 @@
           ],
           "parts": {
             "track": {
-              "members": 12,
+              "members": 20,
               "where": {
                 "size": [
                   "medium"
@@ -13802,7 +13172,7 @@
           ],
           "parts": {
             "control": {
-              "members": 1,
+              "members": 2,
               "where": {
                 "size": [
                   "medium"
@@ -13822,7 +13192,7 @@
           ],
           "parts": {
             "track": {
-              "members": 12,
+              "members": 20,
               "where": {
                 "size": [
                   "medium"
@@ -13878,7 +13248,7 @@
           ],
           "parts": {
             "dot": {
-              "members": 5,
+              "members": 10,
               "where": {
                 "selection": [
                   "checked"
@@ -13900,30 +13270,30 @@
             "size.small.control"
           ],
           "parts": {
-            "control": {
-              "members": 18,
-              "where": {
-                "size": [
-                  "small"
-                ]
-              }
-            },
-            "dash": {
-              "members": 6,
+            "checkGlyph": {
+              "members": 10,
               "where": {
                 "selection": [
-                  "indeterminate"
+                  "checked"
                 ],
                 "size": [
                   "small"
                 ]
               }
             },
-            "mark": {
-              "members": 6,
+            "control": {
+              "members": 30,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            },
+            "dashGlyph": {
+              "members": 10,
               "where": {
                 "selection": [
-                  "checked"
+                  "indeterminate"
                 ],
                 "size": [
                   "small"
@@ -13938,7 +13308,7 @@
           ],
           "parts": {
             "control": {
-              "members": 1,
+              "members": 2,
               "where": {
                 "size": [
                   "small"
@@ -13953,7 +13323,7 @@
           ],
           "parts": {
             "control": {
-              "members": 10,
+              "members": 20,
               "where": {
                 "size": [
                   "small"
@@ -13968,7 +13338,7 @@
           ],
           "parts": {
             "control": {
-              "members": 1,
+              "members": 2,
               "where": {
                 "size": [
                   "small"
@@ -13988,7 +13358,7 @@
           ],
           "parts": {
             "track": {
-              "members": 12,
+              "members": 20,
               "where": {
                 "size": [
                   "small"
@@ -14007,8 +13377,8 @@
             "size.small.control-box"
           ],
           "parts": {
-            "controlBox": {
-              "members": 1,
+            "controlCell": {
+              "members": 2,
               "where": {
                 "size": [
                   "small"
@@ -14066,8 +13436,8 @@
             "size.small.control-box"
           ],
           "parts": {
-            "controlBox": {
-              "members": 1,
+            "controlCell": {
+              "members": 2,
               "where": {
                 "size": [
                   "small"
@@ -14081,8 +13451,8 @@
             "size.small.control-box"
           ],
           "parts": {
-            "trackBox": {
-              "members": 1,
+            "controlCell": {
+              "members": 2,
               "where": {
                 "size": [
                   "small"
@@ -14149,7 +13519,7 @@
           ],
           "parts": {
             "control": {
-              "members": 18,
+              "members": 30,
               "where": {
                 "size": [
                   "small"
@@ -14169,7 +13539,7 @@
           ],
           "parts": {
             "offGlyph": {
-              "members": 6,
+              "members": 10,
               "where": {
                 "selection": [
                   "off"
@@ -14180,7 +13550,7 @@
               }
             },
             "onGlyph": {
-              "members": 6,
+              "members": 10,
               "where": {
                 "selection": [
                   "on"
@@ -14191,7 +13561,7 @@
               }
             },
             "thumb": {
-              "members": 12,
+              "members": 20,
               "where": {
                 "size": [
                   "small"
@@ -14211,7 +13581,7 @@
           ],
           "parts": {
             "track": {
-              "members": 12,
+              "members": 20,
               "where": {
                 "size": [
                   "small"
@@ -14226,7 +13596,7 @@
           ],
           "parts": {
             "control": {
-              "members": 1,
+              "members": 2,
               "where": {
                 "size": [
                   "small"
@@ -14246,7 +13616,7 @@
           ],
           "parts": {
             "track": {
-              "members": 12,
+              "members": 20,
               "where": {
                 "size": [
                   "small"
@@ -14311,7 +13681,7 @@
           ],
           "parts": {
             "focusRing": {
-              "members": 9,
+              "members": 18,
               "where": {
                 "state": [
                   "focus-visible"
@@ -14449,33 +13819,13 @@
             }
           }
         },
-        "pagination-item": {
-          "keys": [
-            "ring-offset"
-          ],
-          "parts": {
-            "focusRing": {
-              "members": 21,
-              "where": {
-                "state": [
-                  "focus-visible"
-                ],
-                "type": [
-                  "next",
-                  "page",
-                  "previous"
-                ]
-              }
-            }
-          }
-        },
         "radio-control": {
           "keys": [
             "ring-offset"
           ],
           "parts": {
             "focusRing": {
-              "members": 6,
+              "members": 12,
               "where": {
                 "state": [
                   "focus-visible"
@@ -14505,7 +13855,7 @@
           ],
           "parts": {
             "focusRing": {
-              "members": 4,
+              "members": 8,
               "where": {
                 "state": [
                   "focus-visible"
@@ -14514,7 +13864,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "ring-offset"
           ],
@@ -14719,7 +14069,7 @@
           ],
           "parts": {
             "focusRing": {
-              "members": 9,
+              "members": 18,
               "where": {
                 "state": [
                   "focus-visible"
@@ -14859,26 +14209,6 @@
             }
           }
         },
-        "pagination-item": {
-          "keys": [
-            "ring-width"
-          ],
-          "parts": {
-            "focusRing": {
-              "members": 21,
-              "where": {
-                "state": [
-                  "focus-visible"
-                ],
-                "type": [
-                  "next",
-                  "page",
-                  "previous"
-                ]
-              }
-            }
-          }
-        },
         "password-field": {
           "keys": [
             "ring-width"
@@ -14901,7 +14231,7 @@
           ],
           "parts": {
             "focusRing": {
-              "members": 6,
+              "members": 12,
               "where": {
                 "state": [
                   "focus-visible"
@@ -14947,7 +14277,7 @@
           ],
           "parts": {
             "focusRing": {
-              "members": 4,
+              "members": 8,
               "where": {
                 "state": [
                   "focus-visible"
@@ -14956,7 +14286,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "ring-width"
           ],
@@ -15159,7 +14489,7 @@
                 ]
               }
             },
-            "ring": {
+            "ringGlyph": {
               "members": 1,
               "where": {
                 "size": [
@@ -15179,7 +14509,7 @@
             "size.large.icon"
           ],
           "parts": {
-            "chevronDown": {
+            "chevronDownGlyph": {
               "members": 1,
               "where": {
                 "expansion": [
@@ -15193,7 +14523,7 @@
                 ]
               }
             },
-            "chevronUp": {
+            "chevronUpGlyph": {
               "members": 1,
               "where": {
                 "expansion": [
@@ -15215,7 +14545,7 @@
                 ]
               }
             },
-            "minus": {
+            "minusGlyph": {
               "members": 1,
               "where": {
                 "expansion": [
@@ -15229,7 +14559,7 @@
                 ]
               }
             },
-            "plus": {
+            "plusGlyph": {
               "members": 1,
               "where": {
                 "expansion": [
@@ -15590,70 +14920,6 @@
             }
           }
         },
-        "pagination-item": {
-          "keys": [
-            "size.large.icon"
-          ],
-          "parts": {
-            "gapIcon": {
-              "members": 1,
-              "where": {
-                "labeled": [
-                  "false"
-                ],
-                "selection": [
-                  "unselected"
-                ],
-                "size": [
-                  "large"
-                ],
-                "state": [
-                  "rest"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "ellipsis"
-                ]
-              }
-            },
-            "nextIcon": {
-              "members": 10,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "size": [
-                  "large"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "next"
-                ]
-              }
-            },
-            "previousIcon": {
-              "members": 10,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "size": [
-                  "large"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "previous"
-                ]
-              }
-            }
-          }
-        },
         "segmented-control-segment": {
           "keys": [
             "size.large.icon"
@@ -15682,7 +14948,7 @@
                 ]
               }
             },
-            "ring": {
+            "ringGlyph": {
               "members": 1,
               "where": {
                 "size": [
@@ -15692,7 +14958,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "size.large.icon"
           ],
@@ -15712,7 +14978,7 @@
             "size.large.icon"
           ],
           "parts": {
-            "check": {
+            "checkGlyph": {
               "members": 5,
               "where": {
                 "selection": [
@@ -15760,7 +15026,7 @@
             "size.medium.icon"
           ],
           "parts": {
-            "chevronDown": {
+            "chevronDownGlyph": {
               "members": 1,
               "where": {
                 "expansion": [
@@ -15774,7 +15040,7 @@
                 ]
               }
             },
-            "chevronUp": {
+            "chevronUpGlyph": {
               "members": 1,
               "where": {
                 "expansion": [
@@ -15796,7 +15062,7 @@
                 ]
               }
             },
-            "minus": {
+            "minusGlyph": {
               "members": 1,
               "where": {
                 "expansion": [
@@ -15810,7 +15076,7 @@
                 ]
               }
             },
-            "plus": {
+            "plusGlyph": {
               "members": 1,
               "where": {
                 "expansion": [
@@ -16201,70 +15467,6 @@
             }
           }
         },
-        "pagination-item": {
-          "keys": [
-            "size.medium.icon"
-          ],
-          "parts": {
-            "gapIcon": {
-              "members": 1,
-              "where": {
-                "labeled": [
-                  "false"
-                ],
-                "selection": [
-                  "unselected"
-                ],
-                "size": [
-                  "medium"
-                ],
-                "state": [
-                  "rest"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "ellipsis"
-                ]
-              }
-            },
-            "nextIcon": {
-              "members": 10,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "size": [
-                  "medium"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "next"
-                ]
-              }
-            },
-            "previousIcon": {
-              "members": 10,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "size": [
-                  "medium"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "previous"
-                ]
-              }
-            }
-          }
-        },
         "password-field": {
           "keys": [
             "icon-size"
@@ -16296,7 +15498,7 @@
             "icon-size"
           ],
           "parts": {
-            "chevron": {
+            "chevronGlyph": {
               "members": 84,
               "where": {}
             },
@@ -16319,7 +15521,7 @@
                 ]
               }
             },
-            "ring": {
+            "ringGlyph": {
               "members": 1,
               "where": {
                 "size": [
@@ -16329,7 +15531,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "size.medium.icon"
           ],
@@ -16349,7 +15551,7 @@
             "size.medium.icon"
           ],
           "parts": {
-            "check": {
+            "checkGlyph": {
               "members": 5,
               "where": {
                 "selection": [
@@ -16412,7 +15614,7 @@
             "size.small.icon"
           ],
           "parts": {
-            "chevronDown": {
+            "chevronDownGlyph": {
               "members": 1,
               "where": {
                 "expansion": [
@@ -16426,7 +15628,7 @@
                 ]
               }
             },
-            "chevronUp": {
+            "chevronUpGlyph": {
               "members": 1,
               "where": {
                 "expansion": [
@@ -16448,7 +15650,7 @@
                 ]
               }
             },
-            "minus": {
+            "minusGlyph": {
               "members": 1,
               "where": {
                 "expansion": [
@@ -16462,7 +15664,7 @@
                 ]
               }
             },
-            "plus": {
+            "plusGlyph": {
               "members": 1,
               "where": {
                 "expansion": [
@@ -16624,7 +15826,7 @@
             "glyph-size"
           ],
           "parts": {
-            "iconError": {
+            "errorGlyph": {
               "members": 1,
               "where": {
                 "status": [
@@ -16632,7 +15834,11 @@
                 ]
               }
             },
-            "iconSuccess": {
+            "message": {
+              "members": 4,
+              "where": {}
+            },
+            "successGlyph": {
               "members": 1,
               "where": {
                 "status": [
@@ -16640,17 +15846,13 @@
                 ]
               }
             },
-            "iconWarning": {
+            "warningGlyph": {
               "members": 1,
               "where": {
                 "status": [
                   "warning"
                 ]
               }
-            },
-            "message": {
-              "members": 4,
-              "where": {}
             }
           }
         },
@@ -16675,70 +15877,6 @@
                 ],
                 "style": [
                   "standalone"
-                ]
-              }
-            }
-          }
-        },
-        "pagination-item": {
-          "keys": [
-            "size.small.icon"
-          ],
-          "parts": {
-            "gapIcon": {
-              "members": 1,
-              "where": {
-                "labeled": [
-                  "false"
-                ],
-                "selection": [
-                  "unselected"
-                ],
-                "size": [
-                  "small"
-                ],
-                "state": [
-                  "rest"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "ellipsis"
-                ]
-              }
-            },
-            "nextIcon": {
-              "members": 10,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "size": [
-                  "small"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "next"
-                ]
-              }
-            },
-            "previousIcon": {
-              "members": 10,
-              "where": {
-                "selection": [
-                  "unselected"
-                ],
-                "size": [
-                  "small"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "previous"
                 ]
               }
             }
@@ -16772,7 +15910,7 @@
                 ]
               }
             },
-            "ring": {
+            "ringGlyph": {
               "members": 1,
               "where": {
                 "size": [
@@ -16782,7 +15920,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "size.small.icon"
           ],
@@ -16802,7 +15940,7 @@
             "size.small.icon"
           ],
           "parts": {
-            "check": {
+            "checkGlyph": {
               "members": 5,
               "where": {
                 "selection": [
@@ -16845,7 +15983,7 @@
             "grip-size"
           ],
           "parts": {
-            "grip": {
+            "gripGlyph": {
               "members": 84,
               "where": {}
             }
@@ -16864,7 +16002,7 @@
           ],
           "parts": {
             "panel": {
-              "members": 12,
+              "members": 16,
               "where": {
                 "placement": [
                   "bottom",
@@ -16957,17 +16095,6 @@
             }
           }
         },
-        "pagination-item": {
-          "keys": [
-            "radius"
-          ],
-          "parts": {
-            "container": {
-              "members": 87,
-              "where": {}
-            }
-          }
-        },
         "segmented-control": {
           "keys": [
             "radius"
@@ -16987,15 +16114,18 @@
         "dialog": {
           "keys": [
             "placement.bottom.radius-bottom",
+            "placement.end.radius-bottom",
+            "placement.end.radius-top",
             "placement.full.radius-bottom",
             "placement.full.radius-top"
           ],
           "parts": {
             "panel": {
-              "members": 6,
+              "members": 12,
               "where": {
                 "placement": [
                   "bottom",
+                  "end",
                   "full"
                 ],
                 "size": [
@@ -17186,11 +16316,11 @@
           ],
           "parts": {
             "control": {
-              "members": 30,
+              "members": 60,
               "where": {}
             },
             "dot": {
-              "members": 15,
+              "members": 30,
               "where": {
                 "selection": [
                   "checked"
@@ -17205,11 +16335,11 @@
           ],
           "parts": {
             "thumb": {
-              "members": 24,
+              "members": 40,
               "where": {}
             },
             "track": {
-              "members": 24,
+              "members": 40,
               "where": {}
             }
           }
@@ -17322,7 +16452,7 @@
           ],
           "parts": {
             "panel": {
-              "members": 15,
+              "members": 24,
               "where": {}
             }
           }
@@ -17512,21 +16642,6 @@
             }
           }
         },
-        "pagination-item": {
-          "keys": [
-            "size.large.height"
-          ],
-          "parts": {
-            "container": {
-              "members": 29,
-              "where": {
-                "size": [
-                  "large"
-                ]
-              }
-            }
-          }
-        },
         "password-field": {
           "keys": [
             "size.large.height"
@@ -17578,7 +16693,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "size.large.height"
           ],
@@ -17713,7 +16828,7 @@
             "vertical.height"
           ],
           "parts": {
-            "divider": {
+            "container": {
               "members": 2,
               "where": {
                 "inset": [
@@ -17837,21 +16952,6 @@
             }
           }
         },
-        "pagination-item": {
-          "keys": [
-            "size.medium.height"
-          ],
-          "parts": {
-            "container": {
-              "members": 29,
-              "where": {
-                "size": [
-                  "medium"
-                ]
-              }
-            }
-          }
-        },
         "radio-row": {
           "keys": [
             "size.medium.min-height"
@@ -17879,7 +16979,7 @@
           ],
           "parts": {}
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "size.medium.height"
           ],
@@ -18166,21 +17266,6 @@
             }
           }
         },
-        "pagination-item": {
-          "keys": [
-            "size.small.height"
-          ],
-          "parts": {
-            "container": {
-              "members": 29,
-              "where": {
-                "size": [
-                  "small"
-                ]
-              }
-            }
-          }
-        },
         "radio-row": {
           "keys": [
             "size.small.min-height"
@@ -18208,7 +17293,7 @@
           ],
           "parts": {}
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "size.small.height"
           ],
@@ -18354,11 +17439,11 @@
           ],
           "parts": {
             "container": {
-              "members": 3,
+              "members": 6,
               "where": {}
             },
             "items": {
-              "members": 3,
+              "members": 6,
               "where": {}
             }
           }
@@ -18369,7 +17454,7 @@
           ],
           "parts": {
             "row": {
-              "members": 3,
+              "members": 6,
               "where": {}
             }
           }
@@ -18398,24 +17483,25 @@
           ],
           "parts": {
             "body": {
-              "members": 15,
+              "members": 24,
               "where": {}
             },
             "footer": {
-              "members": 10,
+              "members": 18,
               "where": {
                 "footer": [
+                  "fill",
                   "inline",
                   "stacked"
                 ]
               }
             },
             "header": {
-              "members": 15,
+              "members": 24,
               "where": {}
             },
             "panel": {
-              "members": 15,
+              "members": 24,
               "where": {}
             }
           }
@@ -18438,7 +17524,7 @@
             "vertical.none.pad-start"
           ],
           "parts": {
-            "divider": {
+            "container": {
               "members": 5,
               "where": {}
             }
@@ -18455,35 +17541,6 @@
             }
           }
         },
-        "pagination-item": {
-          "keys": [
-            "pad-y",
-            "reserve-height"
-          ],
-          "parts": {
-            "container": {
-              "members": 87,
-              "where": {}
-            },
-            "reserve": {
-              "members": 24,
-              "where": {
-                "labeled": [
-                  "false"
-                ],
-                "state": [
-                  "focus-visible",
-                  "hover",
-                  "pressed",
-                  "rest"
-                ],
-                "type": [
-                  "page"
-                ]
-              }
-            }
-          }
-        },
         "radio-group": {
           "keys": [
             "gap",
@@ -18491,11 +17548,11 @@
           ],
           "parts": {
             "container": {
-              "members": 3,
+              "members": 6,
               "where": {}
             },
             "items": {
-              "members": 3,
+              "members": 6,
               "where": {}
             }
           }
@@ -18506,7 +17563,7 @@
           ],
           "parts": {
             "row": {
-              "members": 3,
+              "members": 6,
               "where": {}
             }
           }
@@ -18543,7 +17600,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "pad-y",
             "reserve-height"
@@ -18680,7 +17737,7 @@
             "gap"
           ],
           "parts": {
-            "label": {
+            "container": {
               "members": 24,
               "where": {}
             }
@@ -18700,52 +17757,6 @@
                   "small"
                 ]
               }
-            }
-          }
-        },
-        "pagination": {
-          "keys": [
-            "gap"
-          ],
-          "parts": {
-            "items": {
-              "members": 6,
-              "where": {
-                "type": [
-                  "numbered"
-                ]
-              }
-            },
-            "row": {
-              "members": 9,
-              "where": {
-                "type": [
-                  "compact",
-                  "numbered"
-                ]
-              }
-            },
-            "simpleRow": {
-              "members": 3,
-              "where": {
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "simple"
-                ]
-              }
-            }
-          }
-        },
-        "pagination-item": {
-          "keys": [
-            "gap"
-          ],
-          "parts": {
-            "container": {
-              "members": 87,
-              "where": {}
             }
           }
         },
@@ -18915,7 +17926,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "size.small.gap"
           ],
@@ -19095,7 +18106,7 @@
           ],
           "parts": {
             "container": {
-              "members": 3,
+              "members": 6,
               "where": {}
             }
           }
@@ -19107,7 +18118,7 @@
           ],
           "parts": {
             "row": {
-              "members": 2,
+              "members": 4,
               "where": {
                 "size": [
                   "medium",
@@ -19143,7 +18154,7 @@
           ],
           "parts": {
             "titleBox": {
-              "members": 15,
+              "members": 24,
               "where": {}
             }
           }
@@ -19153,7 +18164,7 @@
             "vertical.middle-inset.pad-block"
           ],
           "parts": {
-            "divider": {
+            "container": {
               "members": 1,
               "where": {
                 "inset": [
@@ -19204,17 +18215,6 @@
             }
           }
         },
-        "pagination-item": {
-          "keys": [
-            "padding-x"
-          ],
-          "parts": {
-            "container": {
-              "members": 87,
-              "where": {}
-            }
-          }
-        },
         "password-field": {
           "keys": [
             "root-gap",
@@ -19249,7 +18249,7 @@
           ],
           "parts": {
             "container": {
-              "members": 3,
+              "members": 6,
               "where": {}
             }
           }
@@ -19261,7 +18261,7 @@
           ],
           "parts": {
             "row": {
-              "members": 2,
+              "members": 4,
               "where": {
                 "size": [
                   "medium",
@@ -19330,12 +18330,12 @@
           ],
           "parts": {
             "row": {
-              "members": 2,
+              "members": 4,
               "where": {}
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "size.large.gap",
             "size.medium.gap"
@@ -19561,7 +18561,7 @@
           ],
           "parts": {
             "row": {
-              "members": 3,
+              "members": 6,
               "where": {}
             }
           }
@@ -19616,7 +18616,7 @@
           ],
           "parts": {
             "row": {
-              "members": 3,
+              "members": 6,
               "where": {}
             }
           }
@@ -19636,7 +18636,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "size.small.padding-x"
           ],
@@ -19790,7 +18790,7 @@
           ],
           "parts": {
             "body": {
-              "members": 6,
+              "members": 8,
               "where": {
                 "placement": [
                   "bottom",
@@ -19802,9 +18802,10 @@
               }
             },
             "footer": {
-              "members": 4,
+              "members": 6,
               "where": {
                 "footer": [
+                  "fill",
                   "inline",
                   "stacked"
                 ],
@@ -19818,11 +18819,11 @@
               }
             },
             "header": {
-              "members": 15,
+              "members": 24,
               "where": {}
             },
             "panel": {
-              "members": 15,
+              "members": 24,
               "where": {}
             }
           }
@@ -19834,7 +18835,7 @@
             "horizontal.middle-inset.pad-start"
           ],
           "parts": {
-            "divider": {
+            "container": {
               "members": 2,
               "where": {
                 "inset": [
@@ -19920,7 +18921,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "size.medium.padding-x"
           ],
@@ -20016,6 +19017,26 @@
             }
           }
         },
+        "list-item": {
+          "keys": [
+            "size.small.ordered.marker-column",
+            "size.small.unordered.marker-column"
+          ],
+          "parts": {
+            "markerBox": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "small"
+                ],
+                "type": [
+                  "ordered",
+                  "unordered"
+                ]
+              }
+            }
+          }
+        },
         "segmented-control-segment": {
           "keys": [
             "size.large.padding-x"
@@ -20031,7 +19052,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "size.large.padding-x"
           ],
@@ -20125,42 +19146,48 @@
         },
         "dialog": {
           "keys": [
-            "placement.center.pad"
+            "placement.center.pad",
+            "placement.end.pad"
           ],
           "parts": {
             "body": {
-              "members": 9,
+              "members": 16,
               "where": {
                 "placement": [
-                  "center"
+                  "center",
+                  "end"
                 ]
               }
             },
             "footer": {
-              "members": 6,
+              "members": 12,
               "where": {
                 "footer": [
+                  "fill",
                   "inline",
                   "stacked"
                 ],
                 "placement": [
-                  "center"
+                  "center",
+                  "end"
                 ]
               }
             },
             "header": {
-              "members": 9,
+              "members": 16,
               "where": {
                 "placement": [
-                  "center"
+                  "center",
+                  "end"
                 ]
               }
             },
             "panel": {
-              "members": 9,
+              "members": 16,
               "where": {
                 "placement": [
-                  "center"
+                  "center",
+                  "end"
                 ]
               }
             }
@@ -20168,13 +19195,16 @@
         },
         "list-item": {
           "keys": [
-            "size.small.marker-column"
+            "size.medium.ordered.marker-column",
+            "size.medium.unordered.marker-column",
+            "size.small.icon.marker-column"
           ],
           "parts": {
             "markerBox": {
               "members": 3,
               "where": {
                 "size": [
+                  "medium",
                   "small"
                 ]
               }
@@ -20248,13 +19278,16 @@
       "components": {
         "list-item": {
           "keys": [
-            "size.medium.marker-column"
+            "size.large.ordered.marker-column",
+            "size.large.unordered.marker-column",
+            "size.medium.icon.marker-column"
           ],
           "parts": {
             "markerBox": {
               "members": 3,
               "where": {
                 "size": [
+                  "large",
                   "medium"
                 ]
               }
@@ -20268,14 +19301,17 @@
       "components": {
         "list-item": {
           "keys": [
-            "size.large.marker-column"
+            "size.large.icon.marker-column"
           ],
           "parts": {
             "markerBox": {
-              "members": 3,
+              "members": 1,
               "where": {
                 "size": [
                   "large"
+                ],
+                "type": [
+                  "icon"
                 ]
               }
             }
@@ -20310,7 +19346,7 @@
           ],
           "parts": {
             "label": {
-              "members": 1,
+              "members": 2,
               "where": {
                 "size": [
                   "large"
@@ -20363,6 +19399,14 @@
             "size.large.text"
           ],
           "parts": {
+            "label": {
+              "members": 3,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            },
             "number": {
               "members": 1,
               "where": {
@@ -20371,14 +19415,6 @@
                 ],
                 "type": [
                   "ordered"
-                ]
-              }
-            },
-            "text": {
-              "members": 3,
-              "where": {
-                "size": [
-                  "large"
                 ]
               }
             }
@@ -20424,7 +19460,7 @@
           ],
           "parts": {
             "label": {
-              "members": 1,
+              "members": 2,
               "where": {
                 "size": [
                   "large"
@@ -20651,7 +19687,7 @@
           ],
           "parts": {
             "label": {
-              "members": 1,
+              "members": 2,
               "where": {
                 "size": [
                   "medium"
@@ -20682,11 +19718,11 @@
           ],
           "parts": {
             "description": {
-              "members": 15,
+              "members": 24,
               "where": {}
             },
             "placeholder": {
-              "members": 15,
+              "members": 24,
               "where": {}
             }
           }
@@ -20707,7 +19743,7 @@
                 ]
               }
             },
-            "text": {
+            "label": {
               "members": 4,
               "where": {
                 "size": [
@@ -20749,6 +19785,14 @@
             "size.medium.text"
           ],
           "parts": {
+            "label": {
+              "members": 3,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            },
             "number": {
               "members": 1,
               "where": {
@@ -20757,14 +19801,6 @@
                 ],
                 "type": [
                   "ordered"
-                ]
-              }
-            },
-            "text": {
-              "members": 3,
-              "where": {
-                "size": [
-                  "medium"
                 ]
               }
             }
@@ -20810,7 +19846,7 @@
           ],
           "parts": {
             "label": {
-              "members": 1,
+              "members": 2,
               "where": {
                 "size": [
                   "medium"
@@ -20859,7 +19895,7 @@
           ],
           "parts": {
             "label": {
-              "members": 1,
+              "members": 2,
               "where": {
                 "size": [
                   "medium"
@@ -20986,7 +20022,7 @@
                 ]
               }
             },
-            "text": {
+            "label": {
               "members": 4,
               "where": {
                 "size": [
@@ -21081,7 +20117,7 @@
           ],
           "parts": {
             "label": {
-              "members": 1,
+              "members": 2,
               "where": {
                 "size": [
                   "small"
@@ -21121,7 +20157,7 @@
                 ]
               }
             },
-            "text": {
+            "label": {
               "members": 4,
               "where": {
                 "size": [
@@ -21163,6 +20199,14 @@
             "size.small.text"
           ],
           "parts": {
+            "label": {
+              "members": 3,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            },
             "number": {
               "members": 1,
               "where": {
@@ -21171,14 +20215,6 @@
                 ],
                 "type": [
                   "ordered"
-                ]
-              }
-            },
-            "text": {
-              "members": 3,
-              "where": {
-                "size": [
-                  "small"
                 ]
               }
             }
@@ -21224,7 +20260,7 @@
           ],
           "parts": {
             "label": {
-              "members": 1,
+              "members": 2,
               "where": {
                 "size": [
                   "small"
@@ -21273,7 +20309,7 @@
           ],
           "parts": {
             "label": {
-              "members": 1,
+              "members": 2,
               "where": {
                 "size": [
                   "small"
@@ -21400,7 +20436,7 @@
                 ]
               }
             },
-            "text": {
+            "label": {
               "members": 4,
               "where": {
                 "size": [
@@ -21487,7 +20523,7 @@
                 ]
               }
             },
-            "text": {
+            "label": {
               "members": 4,
               "where": {
                 "size": [
@@ -21521,7 +20557,7 @@
                 ]
               }
             },
-            "text": {
+            "label": {
               "members": 4,
               "where": {
                 "size": [
@@ -21544,7 +20580,7 @@
             "type"
           ],
           "parts": {
-            "text": {
+            "label": {
               "members": 4,
               "where": {}
             }
@@ -21566,100 +20602,6 @@
     "type.label.lg.default": {
       "type": "typography",
       "components": {
-        "pagination": {
-          "keys": [
-            "size.large.type"
-          ],
-          "parts": {
-            "status": {
-              "members": 1,
-              "where": {
-                "size": [
-                  "large"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "compact"
-                ]
-              }
-            }
-          }
-        },
-        "pagination-item": {
-          "keys": [
-            "size.large.type.unselected"
-          ],
-          "parts": {
-            "label": {
-              "members": 4,
-              "where": {
-                "labeled": [
-                  "false"
-                ],
-                "selection": [
-                  "unselected"
-                ],
-                "size": [
-                  "large"
-                ],
-                "state": [
-                  "focus-visible",
-                  "hover",
-                  "pressed",
-                  "rest"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "page"
-                ]
-              }
-            },
-            "nextText": {
-              "members": 5,
-              "where": {
-                "labeled": [
-                  "true"
-                ],
-                "selection": [
-                  "unselected"
-                ],
-                "size": [
-                  "large"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "next"
-                ]
-              }
-            },
-            "previousText": {
-              "members": 5,
-              "where": {
-                "labeled": [
-                  "true"
-                ],
-                "selection": [
-                  "unselected"
-                ],
-                "size": [
-                  "large"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "previous"
-                ]
-              }
-            }
-          }
-        },
         "segmented-control-segment": {
           "keys": [
             "size.large.type.unselected"
@@ -21678,7 +20620,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "size.large.type.unselected"
           ],
@@ -21791,56 +20733,8 @@
           ],
           "parts": {
             "title": {
-              "members": 15,
+              "members": 24,
               "where": {}
-            }
-          }
-        },
-        "pagination-item": {
-          "keys": [
-            "size.large.type.selected"
-          ],
-          "parts": {
-            "label": {
-              "members": 4,
-              "where": {
-                "labeled": [
-                  "false"
-                ],
-                "selection": [
-                  "selected"
-                ],
-                "size": [
-                  "large"
-                ],
-                "state": [
-                  "focus-visible",
-                  "rest"
-                ],
-                "type": [
-                  "page"
-                ]
-              }
-            },
-            "labelReserve": {
-              "members": 8,
-              "where": {
-                "labeled": [
-                  "false"
-                ],
-                "size": [
-                  "large"
-                ],
-                "state": [
-                  "focus-visible",
-                  "hover",
-                  "pressed",
-                  "rest"
-                ],
-                "type": [
-                  "page"
-                ]
-              }
             }
           }
         },
@@ -21870,7 +20764,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "size.large.type.selected"
           ],
@@ -21975,100 +20869,6 @@
     "type.label.md.default": {
       "type": "typography",
       "components": {
-        "pagination": {
-          "keys": [
-            "size.medium.type"
-          ],
-          "parts": {
-            "status": {
-              "members": 1,
-              "where": {
-                "size": [
-                  "medium"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "compact"
-                ]
-              }
-            }
-          }
-        },
-        "pagination-item": {
-          "keys": [
-            "size.medium.type.unselected"
-          ],
-          "parts": {
-            "label": {
-              "members": 4,
-              "where": {
-                "labeled": [
-                  "false"
-                ],
-                "selection": [
-                  "unselected"
-                ],
-                "size": [
-                  "medium"
-                ],
-                "state": [
-                  "focus-visible",
-                  "hover",
-                  "pressed",
-                  "rest"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "page"
-                ]
-              }
-            },
-            "nextText": {
-              "members": 5,
-              "where": {
-                "labeled": [
-                  "true"
-                ],
-                "selection": [
-                  "unselected"
-                ],
-                "size": [
-                  "medium"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "next"
-                ]
-              }
-            },
-            "previousText": {
-              "members": 5,
-              "where": {
-                "labeled": [
-                  "true"
-                ],
-                "selection": [
-                  "unselected"
-                ],
-                "size": [
-                  "medium"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "previous"
-                ]
-              }
-            }
-          }
-        },
         "segmented-control-segment": {
           "keys": [
             "size.medium.type.unselected"
@@ -22087,7 +20887,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "size.medium.type.unselected"
           ],
@@ -22194,54 +20994,6 @@
             }
           }
         },
-        "pagination-item": {
-          "keys": [
-            "size.medium.type.selected"
-          ],
-          "parts": {
-            "label": {
-              "members": 4,
-              "where": {
-                "labeled": [
-                  "false"
-                ],
-                "selection": [
-                  "selected"
-                ],
-                "size": [
-                  "medium"
-                ],
-                "state": [
-                  "focus-visible",
-                  "rest"
-                ],
-                "type": [
-                  "page"
-                ]
-              }
-            },
-            "labelReserve": {
-              "members": 8,
-              "where": {
-                "labeled": [
-                  "false"
-                ],
-                "size": [
-                  "medium"
-                ],
-                "state": [
-                  "focus-visible",
-                  "hover",
-                  "pressed",
-                  "rest"
-                ],
-                "type": [
-                  "page"
-                ]
-              }
-            }
-          }
-        },
         "segmented-control-segment": {
           "keys": [
             "size.medium.type.selected"
@@ -22268,7 +21020,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "size.medium.type.selected"
           ],
@@ -22373,100 +21125,6 @@
     "type.label.sm.default": {
       "type": "typography",
       "components": {
-        "pagination": {
-          "keys": [
-            "size.small.type"
-          ],
-          "parts": {
-            "status": {
-              "members": 1,
-              "where": {
-                "size": [
-                  "small"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "compact"
-                ]
-              }
-            }
-          }
-        },
-        "pagination-item": {
-          "keys": [
-            "size.small.type.unselected"
-          ],
-          "parts": {
-            "label": {
-              "members": 4,
-              "where": {
-                "labeled": [
-                  "false"
-                ],
-                "selection": [
-                  "unselected"
-                ],
-                "size": [
-                  "small"
-                ],
-                "state": [
-                  "focus-visible",
-                  "hover",
-                  "pressed",
-                  "rest"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "page"
-                ]
-              }
-            },
-            "nextText": {
-              "members": 5,
-              "where": {
-                "labeled": [
-                  "true"
-                ],
-                "selection": [
-                  "unselected"
-                ],
-                "size": [
-                  "small"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "next"
-                ]
-              }
-            },
-            "previousText": {
-              "members": 5,
-              "where": {
-                "labeled": [
-                  "true"
-                ],
-                "selection": [
-                  "unselected"
-                ],
-                "size": [
-                  "small"
-                ],
-                "style": [
-                  "border"
-                ],
-                "type": [
-                  "previous"
-                ]
-              }
-            }
-          }
-        },
         "segmented-control-segment": {
           "keys": [
             "size.small.type.unselected"
@@ -22485,7 +21143,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "size.small.type.unselected"
           ],
@@ -22539,7 +21197,7 @@
                 ]
               }
             },
-            "text": {
+            "label": {
               "members": 10,
               "where": {
                 "type": [
@@ -22618,54 +21276,6 @@
             }
           }
         },
-        "pagination-item": {
-          "keys": [
-            "size.small.type.selected"
-          ],
-          "parts": {
-            "label": {
-              "members": 4,
-              "where": {
-                "labeled": [
-                  "false"
-                ],
-                "selection": [
-                  "selected"
-                ],
-                "size": [
-                  "small"
-                ],
-                "state": [
-                  "focus-visible",
-                  "rest"
-                ],
-                "type": [
-                  "page"
-                ]
-              }
-            },
-            "labelReserve": {
-              "members": 8,
-              "where": {
-                "labeled": [
-                  "false"
-                ],
-                "size": [
-                  "small"
-                ],
-                "state": [
-                  "focus-visible",
-                  "hover",
-                  "pressed",
-                  "rest"
-                ],
-                "type": [
-                  "page"
-                ]
-              }
-            }
-          }
-        },
         "segmented-control-segment": {
           "keys": [
             "size.small.type.selected"
@@ -22692,7 +21302,7 @@
             }
           }
         },
-        "tab": {
+        "tab-item": {
           "keys": [
             "size.small.type.selected"
           ],
@@ -23330,7 +21940,7 @@
       ]
     },
     "checkbox-control": {
-      "members": 54,
+      "members": 90,
       "axes": {
         "selection": [
           "checked",
@@ -23344,11 +21954,14 @@
         ],
         "state": [
           "disabled",
-          "error",
           "focus-visible",
           "hover",
           "pressed",
           "rest"
+        ],
+        "status": [
+          "default",
+          "error"
         ]
       },
       "tokens": [
@@ -23379,12 +21992,16 @@
       "drawnNotDeclared": []
     },
     "checkbox-group": {
-      "members": 3,
+      "members": 6,
       "axes": {
         "size": [
           "large",
           "medium",
           "small"
+        ],
+        "status": [
+          "default",
+          "error"
         ]
       },
       "tokens": [
@@ -23395,12 +22012,16 @@
       "drawnNotDeclared": []
     },
     "checkbox-row": {
-      "members": 3,
+      "members": 6,
       "axes": {
         "size": [
           "large",
           "medium",
           "small"
+        ],
+        "status": [
+          "default",
+          "error"
         ]
       },
       "tokens": [
@@ -23475,9 +22096,10 @@
       "drawnNotDeclared": []
     },
     "dialog": {
-      "members": 15,
+      "members": 24,
       "axes": {
         "footer": [
+          "fill",
           "inline",
           "none",
           "stacked"
@@ -23485,6 +22107,7 @@
         "placement": [
           "bottom",
           "center",
+          "end",
           "full"
         ],
         "size": [
@@ -24268,6 +22891,7 @@
         "icon.size.sm",
         "radius.round",
         "space.0",
+        "space.250",
         "space.300",
         "space.400",
         "space.500",
@@ -24276,109 +22900,6 @@
         "type.body.sm.default"
       ],
       "declaredNotDrawn": [],
-      "drawnNotDeclared": []
-    },
-    "pagination": {
-      "members": 12,
-      "axes": {
-        "size": [
-          "large",
-          "medium",
-          "small"
-        ],
-        "style": [
-          "border",
-          "underline"
-        ],
-        "type": [
-          "compact",
-          "numbered",
-          "simple"
-        ]
-      },
-      "tokens": [
-        "color.text.primary",
-        "space.050",
-        "type.label.lg.default",
-        "type.label.md.default",
-        "type.label.sm.default"
-      ],
-      "declaredNotDrawn": [],
-      "drawnNotDeclared": []
-    },
-    "pagination-item": {
-      "members": 87,
-      "axes": {
-        "labeled": [
-          "false",
-          "true"
-        ],
-        "selection": [
-          "selected",
-          "unselected"
-        ],
-        "size": [
-          "large",
-          "medium",
-          "small"
-        ],
-        "state": [
-          "disabled",
-          "focus-visible",
-          "hover",
-          "pressed",
-          "rest"
-        ],
-        "style": [
-          "border",
-          "underline"
-        ],
-        "type": [
-          "ellipsis",
-          "next",
-          "page",
-          "previous"
-        ]
-      },
-      "tokens": [
-        "border-width.hairline",
-        "border-width.thick",
-        "color.border.focus",
-        "color.border.secondary",
-        "color.border.tertiary",
-        "color.disabled.icon",
-        "color.disabled.text",
-        "color.icon.primary",
-        "color.interactive.neutral.icon.hover",
-        "color.interactive.neutral.icon.pressed",
-        "color.interactive.neutral.icon.rest",
-        "color.interactive.neutral.overlay.hover",
-        "color.interactive.neutral.overlay.pressed",
-        "color.interactive.neutral.text.hover",
-        "color.interactive.neutral.text.pressed",
-        "color.interactive.neutral.text.rest",
-        "focus.ring.offset",
-        "focus.ring.width",
-        "icon.size.md",
-        "icon.size.sm",
-        "icon.size.xs",
-        "radius.md",
-        "size.lg.height",
-        "size.md.height",
-        "size.sm.height",
-        "space.0",
-        "space.050",
-        "space.100",
-        "type.label.lg.default",
-        "type.label.lg.emphasis",
-        "type.label.md.default",
-        "type.label.md.emphasis",
-        "type.label.sm.default",
-        "type.label.sm.emphasis"
-      ],
-      "declaredNotDrawn": [
-        "color.border.focus"
-      ],
       "drawnNotDeclared": []
     },
     "password-field": {
@@ -24442,7 +22963,7 @@
       "drawnNotDeclared": []
     },
     "radio-control": {
-      "members": 30,
+      "members": 60,
       "axes": {
         "selection": [
           "checked",
@@ -24459,10 +22980,15 @@
           "hover",
           "pressed",
           "rest"
+        ],
+        "status": [
+          "default",
+          "error"
         ]
       },
       "tokens": [
         "border-width.thick",
+        "color.border.danger",
         "color.border.focus",
         "color.disabled.border",
         "color.disabled.fill",
@@ -24488,12 +23014,16 @@
       "drawnNotDeclared": []
     },
     "radio-group": {
-      "members": 3,
+      "members": 6,
       "axes": {
         "size": [
           "large",
           "medium",
           "small"
+        ],
+        "status": [
+          "default",
+          "error"
         ]
       },
       "tokens": [
@@ -24504,12 +23034,16 @@
       "drawnNotDeclared": []
     },
     "radio-row": {
-      "members": 3,
+      "members": 6,
       "axes": {
         "size": [
           "large",
           "medium",
           "small"
+        ],
+        "status": [
+          "default",
+          "error"
         ]
       },
       "tokens": [
@@ -24696,7 +23230,7 @@
       "drawnNotDeclared": []
     },
     "switch-control": {
-      "members": 24,
+      "members": 40,
       "axes": {
         "selection": [
           "off",
@@ -24708,11 +23242,14 @@
         ],
         "state": [
           "disabled",
-          "error",
           "focus-visible",
           "hover",
           "pressed",
           "rest"
+        ],
+        "status": [
+          "default",
+          "error"
         ]
       },
       "tokens": [
@@ -24748,11 +23285,15 @@
       "drawnNotDeclared": []
     },
     "switch-row": {
-      "members": 2,
+      "members": 4,
       "axes": {
         "size": [
           "medium",
           "small"
+        ],
+        "status": [
+          "default",
+          "error"
         ]
       },
       "tokens": [
@@ -24775,7 +23316,7 @@
       ],
       "drawnNotDeclared": []
     },
-    "tab": {
+    "tab-item": {
       "members": 30,
       "axes": {
         "selection": [

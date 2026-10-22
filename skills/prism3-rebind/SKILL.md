@@ -2,14 +2,16 @@
 name: prism3-rebind
 description: >-
   Rebind an existing Figma design file onto Prism3: replace a legacy library's
-  variables, styles and components with the file's local Prism3 ones, screen by
-  screen, without losing what the designers built. Teaches the never-detach rule,
+  variables, styles and components with Prism3's, screen by screen, without
+  losing what the designers built. Covers Prism3 materialized in the file and
+  Prism3 consumed as a published team library. Teaches the never-detach rule,
   the read-only mapping pass that comes first, how to protect a backup you must
   not change, the Figma plugin-API traps that silently break a rebind, the
   mapping traps, the rogue-binding audit, and how to sort every remaining
   difference into a Prism3 improvement, a Prism3 gap to file, or a brand-only
   item. For an agent working in a brand's Figma file through a plugin or a
-  desktop bridge that runs plugin code, with Prism3 already materialized in that file.
+  desktop bridge that runs plugin code, with Prism3 either materialized in that
+  file or published as a team library the file can enable.
 when_to_use: >-
   When asked to move an existing product's screens onto Prism3 in Figma
   (rebind, rebuild, migrate, "swap to our components"), or to audit how far a
@@ -20,8 +22,9 @@ when_to_use: >-
 
 # prism3-rebind — moving an existing Figma file onto Prism3
 
-You are working in someone else's design file. Prism3's variables, text styles and components already
-live in it (the plugin materialized them); the screens still point at a legacy library. Your job is to
+You are working in someone else's design file. Prism3's variables, text styles and components are
+either already in it (the plugin materialized them) or published as a team library the file consumes
+(section 8); the screens still point at a legacy library. Your job is to
 make the screens use Prism3, and to report, precisely, everywhere Prism3 can't yet match the design.
 **The report is the deliverable as much as the rebinding is.** A rebind that hides its gaps teaches the
 team nothing.
@@ -36,6 +39,11 @@ decision for the owner (section 6), and most become component work.
 
 - **Detaching is only for the legacy library's instances you are replacing.** Before calling
   `detachInstance()`, confirm the main component is remote: `(await n.getMainComponentAsync()).remote`.
+  When Prism3 is a published library its instances are remote too, so `remote` alone is not enough:
+  confirm the main component's `key` is not one of Prism3's (section 8). Run the guard only on a
+  top-level legacy instance, never on a node inside a Prism3 instance: for a nested instance,
+  `detachInstance()` also detaches every ancestor that is an instance, so it would detach the Prism3
+  component around it.
 - **A layout override that keeps the instance attached is fine, and gets recorded.** For example, setting a
   nested part to FILL so a field stretches to its column. Record it as an override and as a gap: if every
   placement needs it, the component should do it.
@@ -49,13 +57,15 @@ decision for the owner (section 6), and most become component work.
 
 1. **Mapping pass, read-only.** Walk every visible paint, stroke, text run, gap, padding, radius, effect and
    instance in scope, along with what each is bound to. Map every distinct value to a Prism3 role once, in
-   one shared table, with a confidence: exact, close (give the ΔE or the px), judgment, or gap. Every
+   one shared table (against library keys on the section 8 path), with a confidence: exact, close (give the ΔE or the px), judgment, or gap. Every
    judgment row becomes an owner question **before** any write. Rows are referenced by ID from each
    screen, so a value is decided once.
 2. **Fonts.** Call `figma.listAvailableFontsAsync()` in the runtime that will write, and check every family
    and style in scope against it. Figma refuses to edit a text node's characters unless all its fonts load,
    and refuses to place a component whose text uses an unloaded font. A cloud runtime may lack fonts a
-   designer's desktop has, so check before planning anything else.
+   designer's desktop has, so check before planning anything else. A runtime that lacks a brand font
+   fails `loadFontAsync` for it, so do the text writes in a runtime that has the fonts (the
+   designer's desktop), not one that doesn't.
 3. **Dependents.** For every node you will write to, ask what renders it elsewhere. A component node (a
    main component) can have instances on a page you were told not to touch: `getInstancesAsync()` on each target. If a
    protected page is instances of your targets, editing the targets edits the protected page. Rebuild
@@ -109,8 +119,9 @@ decision for the owner (section 6), and most become component work.
 | A bound paint keeps its placeholder color | `setBoundVariableForPaint` returns a paint with the placeholder's color, and an export can render it: black text over a correct binding | Build the paint from `resolveForConsumer(node).value` |
 | Mixed-run text keeps stale node-level bindings | After every run is restyled and refilled, the node's own `boundVariables` still lists the legacy fill and font aliases | Set the whole node's fills and text style first, then the runs |
 | A legacy grid style counts as a rogue binding | `gridStyleId` points at the legacy library | Apply the Prism3 grid style for the frame's breakpoint (named by the breakpoint: `sm`, `md`, …). Only if the design's grid differs from it, unlink with `setGridStyleIdAsync('')`, write back identical `layoutGrids`, and log the difference as a gap |
-| Already-bound paints slip past a value table | A pass that classifies raw paints by color skips paints that already carry a binding, including ones bound to the **legacy** library | Treat "bound to a remote variable" exactly like raw |
+| Already-bound paints slip past a value table | A pass that classifies raw paints by color skips paints that already carry a binding, including ones bound to the **legacy** library | Treat "bound to a remote variable" exactly like raw (on the library path, "remote and not one of Prism3's keys", section 8) |
 | An uninstalled font hangs the load | `loadFontAsync` on an unlisted font can take most of the call budget to fail | Never load an unlisted font. A text node that uses one can still take a Prism3 text style: load only the style's font and call `setTextStyleIdAsync`. Only character edits need the missing font |
+| `node.textStyleId = …` throws | With `"documentAccess": "dynamic-page"` in the manifest, `textStyleId` is read-only; the typings say to use `setTextStyleIdAsync` | `await node.setTextStyleIdAsync(id)` |
 | A FILL instance of a hugging component doesn't stretch its parts | Placed to fill a column, the field's label stretches but its input box keeps its minimum width | Override the nested part to FILL on the instance (legal, still attached), and file it |
 | `createAutoLayout` isn't part of the plugin API | It isn't in the plugin typings, so a script written against it fails at its first call | `createFrame()`, then set the layout mode and auto sizing |
 | Mixed values are Symbols | A mixed `cornerRadius` or `strokeWeight` throws inside a template string | Guard for a Symbol before formatting |
@@ -127,7 +138,8 @@ decision for the owner (section 6), and most become component work.
 - **A legacy variable whose value no table row covers** (often on hidden layers, such as icon slots inside
   fields). Only the binding audit finds these; screenshots never will.
 - **Legacy names can look like Prism3's.** A legacy collection may reuse a similar root prefix. Tell them
-  apart by `remote: true`, never by name.
+  apart by `remote: true`, never by name. When Prism3 is itself a library, both are remote: tell them
+  apart by key against the whole library (section 8).
 - **Hand-drawn icons.** A "+" made of two thin rectangles, or a close glyph made of two vectors, is an icon.
   Look for small groups of rects or lines as well as vectors and instances.
 - **Contrast is measured on the real ground.** Status text on a tinted card or photo background is measured
@@ -162,18 +174,140 @@ A rogue binding is anything that still resolves to the legacy library. Walk ever
 - `boundVariables.color` on each fill and stroke paint;
 - `fillStyleId`, `strokeStyleId`, `effectStyleId`, `textStyleId` and `gridStyleId`;
 - per text run: `fillStyleId`, `textStyleId` and its `boundVariables`;
-- instances whose main component is remote (nested ones surface only after their parents are detached);
-- **inside Prism3 instances too**, for remote styles and variables left by a swap (section 4).
+- instances whose main component is remote (nested ones surface only after their parents are detached).
+  On the library path, "remote" means remote and not one of Prism3's keys (section 8);
+- **inside Prism3 instances too**, for remote styles and variables left by a swap (section 4). On the
+  library path, a remote style or variable counts only if its key is not Prism3's (section 8).
 
 Report "left on purpose" separately, with a reason for each: photo fills, third-party marks, effects with
 no Prism3 equivalent (map effects to Prism3's `shadow/*` and `shadow-dark/*` effect styles and its
 gradient styles first), hidden leftovers the owner deferred. Finish by rechecking every fingerprint.
 
-## 8. What to hand back
+Once a set of rebuilt pages is done, run the consistency audit too (section 10). Every node can be
+bound to Prism3 while the pages still disagree with each other.
+
+## 8. When Prism3 is a published library, not local
+
+Sections 1 to 7 hold unchanged: attached components, fonts checked first, the rogue-binding audit. What
+changes is how Prism3 gets into the file, and how you tell it from the legacy library. Wherever this
+skill says "remote" to mean legacy, read "remote, and not one of Prism3's keys".
+
+1. **The library must be enabled in the file first, by a person.** The plugin API can't enable one, and
+   `figma.teamLibrary.getAvailableLibraryVariableCollectionsAsync()` lists only collections from
+   libraries already enabled. If Prism3's collections aren't in that list, stop and ask the owner to
+   enable the library. Don't read an empty list as "no variables".
+2. **Collect the keys; the mapping table's Prism3 side is a key.** Variables: list the collections
+   (`name`, `key`, `libraryName`), then `getVariablesInLibraryCollectionAsync(collection.key)` for each
+   Prism3 collection. Those are descriptors (`name`, `key`, `resolvedType`), not variables, so keep
+   `resolvedType` in the row to catch a color row mapped to a number. The plugin API has no listing of
+   a library's components or styles from the consuming file: read each component set's, component's and
+   style's `key` in the library file itself (read-only), take them from the owner, or find them with
+   a design-system search the bridge offers. Treat a key found by search as unconfirmed until its
+   import succeeds (step 3). Judge what a set offers (ratios, sizes, states) from its variant
+   properties (`componentPropertyDefinitions`, or its `children`), never from its description, which
+   can be stale, before calling anything a gap (section 6).
+3. **Import everything in the table before the first screen, in its own step.**
+   `figma.variables.importVariableByKeyAsync(key)`, `figma.importComponentSetByKeyAsync(key)` (a set;
+   place from its `defaultVariant` or the variant the row names), `figma.importComponentByKeyAsync(key)`
+   (a standalone component), `figma.importStyleByKeyAsync(key)`. Each rejects when nothing is published
+   (or, for a style, no style exists) under that key, or the request fails: catch per key and report it as a failed table row, not a failed
+   screen. Imported mains are remote and read-only; override on the instance, never on the main.
+4. **Import before you bind.** `setBoundVariable` and `setBoundVariableForPaint` take a `Variable`, and
+   a library descriptor isn't one. Bind with the object `importVariableByKeyAsync` returned. For a
+   breakpoint mode, take the collection from an imported variable
+   (`getVariableCollectionByIdAsync(variable.variableCollectionId)`) and pass it to
+   `setExplicitVariableModeForCollection`; read its `modes` rather than assuming names (section 3).
+5. **Tell Prism3 from legacy by key, against the whole library, not the table.** The table holds only
+   what the design mapped to. Prism3's own internals (the icon inside a button, the variables and
+   styles a component binds inside itself) are not in it, and would read as legacy. Build the set of
+   Prism3 keys from the library: every variable key `getVariablesInLibraryCollectionAsync` returns for
+   each Prism3 collection (a variable is Prism3's when its collection's `key` is one of those
+   collections' keys), and every component, variant and style key read from the library file or from
+   an imported set's `children`. An instance is Prism3's when its main component's key is in the set,
+   a style when its `key` is. Resolve a binding's alias with `getVariableByIdAsync(alias.id)` to read
+   the variable's `key` and its `variableCollectionId`. Everything remote outside the set is legacy,
+   and goes to the same detach guard and audit as before. Never decide by name, and never run the
+   detach guard on a node inside a Prism3 instance (section 1).
+6. **Fonts: same check, run after the import.** A library component's fonts are known only once it is
+   imported. Import first, then compare the `fontName` of each imported text node with
+   `figma.listAvailableFontsAsync()` before the first placement.
+7. **Only published work is importable.** A change the Prism3 owner made in the library file can't be
+   imported until it is published, and the consuming file takes the update in the Figma UI. If a screen
+   needs something the owner says is fixed, check it was published and accepted before calling it still
+   a gap. In the library file, `getPublishStatusAsync()` on a component, style or variable says whether
+   it is unpublished, current or changed since it was published.
+
+Log the library's name, every key imported, every import that failed and its reason.
+
+## 9. What to hand back
 
 - Per screen: placed components, overrides, snaps, grays for review, and what was left on purpose.
+- On the library path: the library, the key table, imports that failed, and the publish status of
+  anything a gap depends on.
 - The difference table, each row sorted as improvement, gap or brand (proposed), with measurements.
+- For a set of rebuilt pages: the consistency audit's findings table, and its row on #2886 (section 10).
 - Issues for the gaps the owner confirms. Brand-only items and setting changes go on a list for the brand's
   own file, kept out of the shared repository.
 - Never put a client's name, file name, file key, product or page names into the shared repository,
   including issues and examples.
+
+## 10. The consistency audit for rebuilt spec pages
+
+A set of rebuilt pages must be consistent, not only bound to Prism3. The binding audit passes a control
+drawn as plain text, because the text uses a library text style. `consistency-audit.js`, next to this
+file, finds that kind of drift. It is read-only: it reads the pages and writes nothing.
+
+**When to run it.** After rebuilding a set of pages that share elements (one flow, one template at two
+breakpoints), and again after fixing what it found. Run it on the whole set at once: most checks compare
+pages with each other, so a single frame has nothing to disagree with.
+
+**How to run it.** It needs a dev build of the plugin with the agent link on, because it runs through the
+link's `run-code` command (`apps/plugin/README.md`, the agent link section). Send one input line, then the
+file's text, as the code:
+
+```js
+const auditInput = { pageId: '12:34', label: 'Checkout flow', run: 3 };
+// …then the whole of consistency-audit.js
+```
+
+Give `frameIds` instead of `pageId` to audit exactly those frames. The file's header lists every option:
+`allow` (roles and texts that check 1 skips, by default headings and titles), `controls` (which
+component names count as controls), `mobileMaxWidth` (767 by default) and `library` (which variables
+and styles count as the library's). On the library path (section 8), pass the Prism3 collection and
+style keys as `library`; the default treats every local variable and style as the library's, which is
+right only when Prism3 is materialized in the file. A large set can take longer than the 30-second
+default, so pass a longer `timeoutMs` in the command's args.
+
+**The four checks.**
+
+1. **Control label.** Plain text, outside any instance, that repeats the label of a button, link, tab,
+   tag or chip instance anywhere in the set. A page heading that matches a navigation link is expected:
+   the allowlist skips text whose role or text style name contains `heading` or `title`.
+2. **Pairing.** For each element role, the desktop text style and the mobile text style form the same
+   pair on every page.
+3. **Page to page.** At one breakpoint, each role uses one text style, one component and variant, and
+   one spacing to its parent (the auto layout gap, or the distance from the previous sibling).
+4. **Binding.** Every variable and style comes from the library, inside instances too, and no visible
+   solid fill or stroke outside an instance is a raw color. It does not read gradient or image paints. This is section 7's audit in short form; section 7
+   still applies in full to a rebind.
+
+**What the checks rely on.** A role is the layer name, normalized: lowercase, separators as spaces, and a
+trailing `copy` or `copy 2` removed, so `Price copy` and `price` are one role. A number stays, so
+`Heading 1` and `Heading 2` are two roles. A layer Figma named (`Frame 12`, `Rectangle 4`, or a text
+layer still named after its own text) has no role, and checks 2 and 3 skip it; the output's `coverage`
+block counts the text layers without one, so name the layers that matter. A frame is desktop or mobile by the words in its name (`desktop`, `lg`, `xl`;
+`mobile`, `sm`, `xs`), or by its width when the name has neither. Frames whose names match once those
+words are removed are one page at two breakpoints. Check the `frames` list in the output before reading
+the findings: a frame classified wrongly makes every pairing finding wrong.
+
+**Reading the findings.** Each finding names its check, frame, node, role, the expected value (what most
+pages use) and the actual one. Sort each into a true positive (fix it in the file, then rerun) or a
+false positive (intended, such as a drawer title that repeats its trigger's label). Add a false
+positive that will recur to `allow`, rather than ignoring it each run. A drift on one page shows up in
+checks 2 and 3 both; fix it once.
+
+**Logging the run.** The output's `runsRow` is a row for the Runs table on #2886. Fill its last three
+cells (true positives, false positives, and any rule change you made after the run) and add it to the
+issue with a comment, together with the findings table. Those rows decide when the audit becomes a
+plugin command. `apps/plugin/test-consistency-audit.ts` runs the audit on a fixture and proves each
+check fires on a seeded drift and stays quiet on a consistent set; change the audit only with it.

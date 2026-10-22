@@ -79,7 +79,7 @@ import { mountLayoutLevers } from '../domains/layout';
 import { mountLayoutPreview } from '../preview/layout';
 import { mountComponentsLevers } from '../domains/components';
 import { mountComponentsPreview } from '../preview/components';
-import { cancelEasedScroll, dropEdits, revealSection, takeSectionEdit, trackLeverSections } from '../preview/follow-edit';
+import { cancelEasedScroll, dropEdits, revealEdit, takeSectionEdit, trackLeverSections } from '../preview/follow-edit';
 
 /** The moved pages (S2 on): what each draws in the levers pane and in the preview body. A slice that moves
  *  a page adds its row; `NewPageKey` comes from the page data, so a page set to `new` with no row here is a
@@ -654,7 +654,7 @@ export const mountFrame = (app: HTMLElement, opts: {
         // handlers) reveals the preview section its lever section pairs with. A page whose levers never note one
         // (Palettes reveals its palette itself; Brand has no pairs) is never moved by this. Subscribed after the
         // preview, so the reveal measures the preview this edit repainted.
-        paneCleanups.push(subscribe('brand', () => { const s = takeSectionEdit(); if (s) revealSection(previewBody, s); }));
+        paneCleanups.push(subscribe('brand', () => { const s = takeSectionEdit(); if (s) revealEdit(previewBody, s); }));
         // QA-I11: back where this page was, at once (a restore is not an edit, and does not glide).
         const at = scrollMemo.get(moved);
         levers.scrollTo({ top: at?.levers ?? 0, behavior: 'instant' });

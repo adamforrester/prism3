@@ -566,9 +566,22 @@ export const planStyleGuide = (catalog: SgCatalog, contract: SgContract | null, 
   // THE TITLE CELL (owner decision 15, 2026-09-29): a leading Name column on every table type, when asked for.
   if (options.titleCell) for (const t of tables) t.columns.unshift('Name');
   // THE GROUP A FRESH FILE DRAWS IT IN (#2801, Q378 decision 1): by type and tier, never by family name. A semantic
-  // dimension table whose every row is a radius is Borders' (the kind is read from scopes and names, `varKind`).
-  for (const t of tables) t.group = styleGuideGroupOf({ type: t.type, tier: t.kind, allRadius: t.rows.length > 0 && t.rows.every((r) => r.specimen?.kind === 'radius') });
+  // dimension table whose every row is a radius is Borders' (the kind is read from scopes and names, `varKind`); an
+  // inverse color family is Inverse colors' (owner decision, 2026-10-19).
+  for (const t of tables) t.group = styleGuideGroupOf({ type: t.type, tier: t.kind, allRadius: t.rows.length > 0 && t.rows.every((r) => r.specimen?.kind === 'radius'), inverse: isInverseKey(t.key) });
   return narrow(tables, notes, options.tables);
+};
+
+/** A color table's inverse family: an `inverse` segment in its path. Its counterpart is the same path without it. */
+const pathSegs = (key: string): string[] => key.split('|').slice(2).join('|').split('/');
+const isInverseKey = (key: string): boolean => key.startsWith('color|') && pathSegs(key).includes('inverse');
+const counterpartKey = (key: string): string | null => {
+  if (!key.startsWith('color|')) return null;
+  const [type, col] = key.split('|');
+  const segs = pathSegs(key);
+  const i = segs.indexOf('inverse');
+  const mate = i >= 0 ? [...segs.slice(0, i), ...segs.slice(i + 1)] : segs.length > 1 ? [...segs.slice(0, -1), 'inverse', segs[segs.length - 1]] : null;
+  return mate && mate.length ? `${type}|${col}|${mate.join('/')}` : null;
 };
 
 // ── Phase 2: dimension, font variables and text styles (#259) ─────────────────────────────────────────
@@ -1326,8 +1339,8 @@ export interface StyleGuideResult {
    *  this run could not find. */
   unmatched: string[];
   /** The groups (#2801): drawn this run, hand-made ones adopted this run (by title), and empty ones removed.
-   *  `rearranged` (Q412 A, #2816): the hand-made groups whose guides this run put into a default row and an inverse
-   *  row, by name. */
+   *  `rearranged` (owner decision, 2026-10-19): the groups whose inverse guides this run moved out into Inverse colors,
+   *  by name. */
   groups?: { drawn: string[]; adopted: string[]; removed: string[]; rearranged: string[] };
   /** THE CLEANUP OFFER (Q412 A, #2816): the superseded tables this run left in place that the designer may remove,
    *  each by node id and name. Never removed by the run: the panel lists them and `removeRetiredTables` removes the
@@ -1416,9 +1429,10 @@ const TABLE_GAP = 160;
  * THE GROUPS (#2801, Q378; the owner approved the wireframe and its eight recommendations). Each group Prism3 draws is a
  * top-level frame, `Style guides — <title>`: a VERTICAL auto layout, transparent, padded 88 on top (the middle of the
  * measured 80–96) and 160 on the sides and bottom, with a `_Section-header` Size=Large holding the title only, then
- * 80 below it a GRID of guides, 160 between them. Semantic colors' grid has a second row: each inverse guide under the
- * default-surface guide it re-states. Groups stack down the page in the engine table's order, 320 apart, left-aligned;
- * ungrouped guides (effect styles) go below the last group.
+ * 80 below it a GRID of guides, 160 between them. Inverse colors (owner decision, 2026-10-19) is drawn directly below
+ * Semantic colors, 320 under it, each inverse guide in the column of the default-surface guide it re-states: the two
+ * grids share their column widths and their left edge. Groups stack down the page in the engine table's order, 320
+ * apart, left-aligned; ungrouped guides (effect styles) go below the last group.
  */
 const GROUP_PAD_TOP = 88;
 const GROUP_PAD = 160;
@@ -1553,7 +1567,7 @@ const near = (a: number, b: number): boolean => Math.abs(a - b) < 0.5;
  * `planStamp` (`anatomy-figma.ts`, which holds the reasoning), written here because that helper is not exported
  * and this runs in the Figma sandbox, where `node:crypto` does not exist.
  */
-const fnv = (s: string, reverse: boolean): string => {
+export const fnv = (s: string, reverse: boolean): string => {
   let h = 0x811c9dc5;
   for (let i = 0; i < s.length; i++) {
     h ^= s.charCodeAt(reverse ? s.length - 1 - i : i);
@@ -1621,7 +1635,7 @@ const FONT_FIELDS = ['fontName', 'fontSize', 'fontWeight', 'textStyleId'] as con
  * since the other one deletes a designer's work. Async because an instance's main component is read with
  * `getMainComponentAsync` under dynamic-page.
  */
-const fingerprintOf = async (wrap: SgNode): Promise<string> => {
+export const fingerprintOf = async (wrap: SgNode): Promise<string> => {
   const parts: string[] = [];
   // A TITLE CELL IS NOT AN EDIT (owner decision 15): a designer renames rows there, so a table with a title column
   // leaves the title column out (its cells and its "Name" header, which fills the column), and with it the widths that follow the title column's width: the table's own, its
@@ -1663,6 +1677,92 @@ const setWidth = (n: SgNode, w: number): void => {
 
 /** The collections a table key can name that this file still holds: its variable collections, and the text, effect and
  *  gradient styles' pseudo-collections while it has any. A table whose collection is gone is never removed. */
+/** A node's box on its page's canvas, as read. */
+interface Box { x: number; y: number; w: number; h: number }
+const boxOf = (n: SgNode): Box => ({ x: num(n.x), y: num(n.y), w: num(n.width), h: num(n.height) });
+const overlapsX = (a: Box, b: Box): boolean => a.x < b.x + b.w && b.x < a.x + a.w;
+const intersects = (a: Box, b: Box): boolean => overlapsX(a, b) && a.y < b.y + b.h && b.y < a.y + a.h;
+/** A node's left edge from its page's: the sum of its own x and each frame's above it. */
+const pageX = (n: SgNode): number => {
+  let x = 0;
+  for (let q: SgNode | null | undefined = n; q && q.type !== 'PAGE'; q = q.parent as SgNode | null | undefined) x += num(q.x);
+  return x;
+};
+/** A grid's track sizes written whole, or, on a host that refuses the array, one track at a time. */
+const setSizes = (grid: SgNode, key: 'gridColumnSizes' | 'gridRowSizes', sizes: { type: string; value?: number }[]): void => {
+  try { grid[key] = sizes; }
+  catch { for (const [i, sz] of (grid[key] ?? []).entries()) { sz.type = sizes[i]?.type ?? sz.type; if (sizes[i]?.value !== undefined) sz.value = sizes[i].value; } }
+};
+/**
+ * NEVER CLIPPED (owner decision, 2026-10-19; live: a hand-made Semantic colors frame FIXED at 15160 wide, clipping its
+ * content, clipped the right column of a 15676-wide grid). A frame fits what it holds: an auto layout its padding and
+ * its in-flow children (summed along its axis, the widest across), a frame without one its children's extent and the
+ * same inset on the far side. An axis that hugs already fits; a FIXED one grows to fit, and never shrinks. A resize
+ * leaves an axis that hugged hugging.
+ *
+ * A ROW THAT WRAPS (#2856; live: the owner's groups are HORIZONTAL with wrap on, their `_section-header` on the first
+ * row and the guides wrapping below it) needs only its widest child and its padding across: the children are laid in
+ * rows, not summed into one, so summing them doubled Semantic colors to 30994 and put Borders' first guide beside its
+ * header. Its height is its rows at the width it ends at: each row its tallest child, `counterAxisSpacing` between
+ * rows (`itemSpacing` where the host leaves it unset), and its padding.
+ *
+ * A WRAPPED FRAME THE ONE-ROW SUM WIDENED (#2856, the copy file after #2827's run): #2827 records nothing on a frame it
+ * grows, so the only sign of its widening is the width itself. A wrapped frame exactly as wide as that one-row sum of
+ * the children it holds now (to the half pixel), and wider than its widest row needs, is put back to what its widest
+ * row needs. Any other width is the owner's and is kept.
+ */
+const fitToContent = (f: SgNode): void => {
+  if (f.type !== 'FRAME' || f.layoutMode === 'GRID') return;
+  const kids = ((f.children ?? []) as SgNode[]).filter((k) => k.visible !== false && read(k, 'layoutPositioning') !== 'ABSOLUTE');
+  if (!kids.length) return;
+  const auto = AUTO_LAYOUT.has(String(f.layoutMode));
+  const wraps = f.layoutMode === 'HORIZONTAL' && read(f, 'layoutWrap') === 'WRAP';
+  const across = (k: SgNode, axis: 'h' | 'v'): number => (axis === 'h' ? num(k.width) : num(k.height));
+  const fills = (k: SgNode, axis: 'h' | 'v'): boolean => read(k, axis === 'h' ? 'layoutSizingHorizontal' : 'layoutSizingVertical') === 'FILL';
+  const padH = num(f.paddingLeft) + num(f.paddingRight), padV = num(f.paddingTop) + num(f.paddingBottom);
+  const oneRow = (axis: 'h' | 'v'): number => {
+    const along = (f.layoutMode === 'HORIZONTAL') === (axis === 'h');
+    const sized = kids.filter((k) => !fills(k, axis)).map((k) => across(k, axis));
+    return (axis === 'h' ? padH : padV) + (along ? sized.reduce((a, b) => a + b, 0) + num(f.itemSpacing) * Math.max(0, kids.length - 1) : Math.max(0, ...sized));
+  };
+  /** The wrapped rows' height at width `w`: a child starts a new row when it would pass the right padding. */
+  const rowsHigh = (w: number): number => {
+    const inner = w - padH, gap = num(f.itemSpacing);
+    const rows: number[] = [];
+    let run = 0;
+    for (const [i, k] of kids.entries()) {
+      const kw = num(k.width);
+      if (i === 0 || run + gap + kw > inner + 0.5) { rows.push(num(k.height)); run = kw; }
+      else { rows[rows.length - 1] = Math.max(rows[rows.length - 1], num(k.height)); run += gap + kw; }
+    }
+    const set = read(f, 'counterAxisSpacing'), between = typeof set === 'number' ? set : gap;
+    return padV + rows.reduce((a, b) => a + b, 0) + between * Math.max(0, rows.length - 1);
+  };
+  const need = (axis: 'h' | 'v', w: number): number => {
+    if (!auto) {
+      const lo = Math.min(...kids.map((k) => num(axis === 'h' ? k.x : k.y)));
+      return Math.max(...kids.map((k) => num(axis === 'h' ? k.x : k.y) + across(k, axis))) + Math.max(0, lo);
+    }
+    if (wraps) return axis === 'h' ? padH + Math.max(0, ...kids.filter((k) => !fills(k, 'h')).map((k) => num(k.width))) : rowsHigh(w);
+    return oneRow(axis);
+  };
+  const fixed = (axis: 'h' | 'v'): boolean => {
+    if (!auto) return true;
+    const sz = read(f, axis === 'h' ? 'layoutSizingHorizontal' : 'layoutSizingVertical');
+    if (sz) return sz === 'FIXED';
+    return read(f, (f.layoutMode === 'HORIZONTAL') === (axis === 'h') ? 'primaryAxisSizingMode' : 'counterAxisSizingMode') === 'FIXED';
+  };
+  const w0 = num(f.width), h0 = num(f.height);
+  const rowW = need('h', w0);
+  const widened = wraps && fixed('h') && w0 > rowW + 0.5 && near(w0, oneRow('h'));
+  const w = widened ? rowW : fixed('h') ? Math.max(w0, rowW) : w0;
+  const h = fixed('v') ? Math.max(h0, need('v', w)) : h0;
+  if (near(w, w0) && near(h, h0)) return;
+  const was = ['primaryAxisSizingMode', 'counterAxisSizingMode', 'layoutSizingHorizontal', 'layoutSizingVertical'].map((k) => [k, read(f, k)] as const);
+  f.resize?.(w, h);
+  for (const [k, v] of was) if (v === 'AUTO' || v === 'HUG') { try { (f as Record<string, unknown>)[k] = v; } catch { /* a host that refuses it keeps the size it was given */ } }
+};
+
 const collectionIdsOf = (catalog: SgCatalog): Set<string> => new Set([...catalog.collections.map((c) => c.id), ...(catalog.textStyles?.length ? [TEXT_STYLES_ID] : []),
   ...(catalog.effectStyles?.length ? [EFFECT_STYLES_ID] : []), ...(catalog.paintStyles?.some((st) => st.paints.some(isGradient)) ? [GRADIENT_STYLES_ID] : [])]);
 
@@ -1981,6 +2081,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   const guidesGridOf = (g: SgNode): SgNode | null => (((g.children ?? []) as SgNode[]).find((c) => c.getPluginData?.(PART_KEY) === 'guides') ?? null);
   const gridRowOf = (n: SgNode): number => num(read(n, 'gridRowAnchorIndex'));
   const gridColOf = (n: SgNode): number => num(read(n, 'gridColumnAnchorIndex'));
+  const moveCell = (k: SgNode, r: number, c: number): void => (k as SgNode & { setGridChildPosition?(r: number, c: number): void }).setGridChildPosition?.(r, c);
   /** Track counts set, every track HUG: assigned, as the table grid's are, and re-assigned whenever a count moves. */
   const setTracks = (grid: SgNode, rows: number, cols: number): void => {
     if (num(grid.gridRowCount) !== rows) grid.gridRowCount = rows;
@@ -1990,16 +2091,17 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
       catch { for (const sz of grid[key] ?? []) sz.type = 'HUG'; }
     }
   };
-  /** A color table's inverse family: an `inverse` segment in its path. Its counterpart is the same path without it. */
-  const pathSegs = (key: string): string[] => key.split('|').slice(2).join('|').split('/');
-  const isInverseKey = (key: string): boolean => key.startsWith('color|') && pathSegs(key).includes('inverse');
-  const counterpartKey = (key: string): string | null => {
-    if (!key.startsWith('color|')) return null;
-    const [type, col] = key.split('|');
-    const segs = pathSegs(key);
-    const i = segs.indexOf('inverse');
-    const mate = i >= 0 ? [...segs.slice(0, i), ...segs.slice(i + 1)] : segs.length > 1 ? [...segs.slice(0, -1), 'inverse', segs[segs.length - 1]] : null;
-    return mate && mate.length ? `${type}|${col}|${mate.join('/')}` : null;
+  /** A grid closed over its empty tracks: an empty column (and an empty last row) dropped, the guides keeping order. */
+  const closeGrid = (grid: SgNode): void => {
+    const kids = (grid.children ?? []) as SgNode[];
+    if (!kids.length) return;
+    const cols = [...new Set(kids.map(gridColOf))].sort((a, b) => a - b);
+    // Ascending, so each guide moves into a cell already left by the one before it.
+    for (const k of [...kids].sort((a, b) => gridColOf(a) - gridColOf(b))) {
+      const to = cols.indexOf(gridColOf(k));
+      if (to !== gridColOf(k)) moveCell(k, gridRowOf(k), to);
+    }
+    setTracks(grid, Math.max(...kids.map(gridRowOf)) + 1, cols.length);
   };
   // Where the page's groups stack from (Q2 A), read BEFORE anything is drawn: the groups Prism3 left in place, else
   // the guides an earlier build drew loose (its category rows), so a file drawn before groups is grouped where its
@@ -2007,7 +2109,10 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   const origins = new Map<SgPage, { x: number; y: number }>();
   /** Each group Prism3 drew, as it stood before this run: where and how tall (a partial run's push-down reads it). */
   const groupsBefore = new Map<SgNode, { y: number; h: number }>();
+  /** Every top-level node's box as it stood before this run: what moved or grew is told from it (NEVER OVERLAP, below). */
+  const boxesBefore = new Map<SgNode, Box>();
   for (const p of pages.values()) {
+    for (const n of p.children as readonly SgNode[]) if (n.visible !== false) boxesBefore.set(n, boxOf(n));
     const kids = (p.children as readonly SgNode[]).filter((n) => n.type === 'FRAME' && n.visible !== false);
     const ours = kids.filter((n) => isOurGroup(n));
     for (const g of ours) groupsBefore.set(g, { y: num(g.y), h: num(g.height) });
@@ -2075,49 +2180,55 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     newGroups.add(f);
     return { id, frame: f, container: grid, ours: true };
   };
-  const homeOf = async (p: SgPage, id: string): Promise<Home> => {
+  /** The home of group `id` on `p`: found, or drawn when `draw` (a group this run must put a guide in). */
+  async function homeOf(p: SgPage, id: string): Promise<Home>;
+  async function homeOf(p: SgPage, id: string, draw: false): Promise<Home | null>;
+  async function homeOf(p: SgPage, id: string, draw = true): Promise<Home | null> {
     const k = `${p.name}\u241f${id}`;
     const had = homes.get(k);
-    if (had) return had;
+    if (had) { if (draw) adopted(had); return had; }
     let home: Home | null = null;
     const own = (p.children as readonly SgNode[]).find((n) => isOurGroup(n) && n.getPluginData?.(GROUP_KEY) === id);
     if (own) home = { id, frame: own, container: guidesGridOf(own) ?? own, ours: true };
     else {
-      // ADOPTION: the page-level frame holding the most guides whose group is this one, the first on a tie.
+      // ADOPTION: the page-level frame holding the most guides whose group is this one, the first on a tie. Never
+      // another group Prism3 drew, and, for a group drawn under another (Inverse colors), never a frame that holds the
+      // other's guides too: that is the one frame of both rows an earlier build made, which this run splits (below).
+      const under = styleGuideGroup(id)?.under;
+      const holdsUnder = (top: SgNode): boolean => !!under && !!top.findOne?.((n) => groupByKey.get((n as SgNode).getPluginData?.(TABLE_KEY) || '') === under);
       const tally = new Map<SgNode, { n: number; container: SgNode }>();
       for (const f of framesOn(p)) {
         const key = f.getPluginData?.(TABLE_KEY);
         if (!key || groupByKey.get(key) !== id) continue;
         const top = topOf(f, p);
-        if (!top || top === f) continue;
+        if (!top || top === f || (isOurGroup(top) && top.getPluginData?.(GROUP_KEY) !== id) || holdsUnder(top)) continue;
         const was = tally.get(top);
         tally.set(top, { n: (was?.n ?? 0) + 1, container: was?.container ?? (f.parent as SgNode) });
       }
       const best = [...tally].sort((a, b) => b[1].n - a[1].n)[0];
-      if (best) {
-        home = { id, frame: best[0], container: best[1].container, ours: isOurGroup(best[0]) };
-        if (!home.ours && !groupsAdopted.includes(String(best[0].name))) groupsAdopted.push(String(best[0].name));
-      }
+      if (best) home = { id, frame: best[0], container: best[1].container, ours: isOurGroup(best[0]) };
     }
+    if (!home && !draw) return null;
     home ??= await drawGroup(p, id);
     homes.set(k, home);
+    if (draw) adopted(home);
     return home;
-  };
-  /** Put a guide that is in no group into its home: at the end, or under its counterpart in Semantic colors' inverse
-   *  row. A hand-made group that is no grid takes it as its layout allows: appended to an auto layout, or placed
-   *  GUIDE_GAP right of its rightmost guide. */
-  const placeGuide = (wrap: SgNode, key: string, home: Home): void => {
+  }
+  /** A hand-made group is reported adopted once a guide is put in it, not when it is only looked up. */
+  function adopted(home: Home): void {
+    if (!home.ours && !groupsAdopted.includes(String(home.frame.name))) groupsAdopted.push(String(home.frame.name));
+  }
+  /** Put a guide that is in no group into its home: at the end of its first row, or, in a group drawn under another
+   *  (Inverse colors), in the column its counterpart holds in that group's grid (`mateCol`). A hand-made group that is no
+   *  grid takes it as its layout allows: appended to an auto layout, or placed GUIDE_GAP right of its rightmost guide. */
+  const placeGuide = (wrap: SgNode, key: string, home: Home, mateCol?: number): void => {
     const c = home.container;
     const kids = ((c.children ?? []) as SgNode[]).filter((k) => k !== wrap);
     if (c.layoutMode === 'GRID') {
-      // The inverse row holds in a hand-made grid too (Q412 A, #2816), not only in a group Prism3 drew.
-      const row = styleGuideGroup(home.id)?.inverseRow && isInverseKey(key) ? 1 : 0;
-      const mateKey = counterpartKey(key);
-      const mate = mateKey ? kids.find((k) => k.getPluginData?.(TABLE_KEY) === mateKey) : undefined;
-      const taken = (r: number, col: number): boolean => kids.some((k) => gridRowOf(k) === r && gridColOf(k) === col);
-      const col = mate && !taken(row, gridColOf(mate)) ? gridColOf(mate) : kids.length ? Math.max(...kids.map(gridColOf)) + 1 : 0;
-      setTracks(c, Math.max(num(c.gridRowCount), row + 1), Math.max(num(c.gridColumnCount), col + 1));
-      c.appendChildAt?.(wrap, row, col);
+      const taken = (col: number): boolean => kids.some((k) => gridRowOf(k) === 0 && gridColOf(k) === col);
+      const col = mateCol !== undefined && !taken(mateCol) ? mateCol : kids.length ? Math.max(...kids.map(gridColOf)) + 1 : 0;
+      setTracks(c, Math.max(num(c.gridRowCount), 1), Math.max(num(c.gridColumnCount), col + 1));
+      c.appendChildAt?.(wrap, 0, col);
     } else if (AUTO_LAYOUT.has(String(c.layoutMode))) c.appendChild?.(wrap);
     else {
       const guides = kids.filter((k) => !!k.getPluginData?.(TABLE_KEY));
@@ -2129,6 +2240,19 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     sizing(wrap, 'HUG');
     try { wrap.layoutSizingVertical = 'HUG'; } catch { /* outside auto layout it hugs by its own sizing modes */ }
     wrap.setPluginData?.(IN_GROUP_KEY, String(home.frame.id));
+  };
+  /** The column a guide of group `id` takes in the grid of the group it is drawn under: its counterpart's there. */
+  const mateColOf = async (p: SgPage, id: string, key: string): Promise<number | undefined> => {
+    const under = styleGuideGroup(id)?.under;
+    const anchor = under ? await homeOf(p, under, false) : null;
+    if (!anchor || anchor.container.layoutMode !== 'GRID') return undefined;
+    const mate = ((anchor.container.children ?? []) as SgNode[]).find((k) => k.getPluginData?.(TABLE_KEY) === counterpartKey(key));
+    return mate ? gridColOf(mate) : undefined;
+  };
+  /** Put a guide into group `id` on `p`, its home found or drawn, in its counterpart's column where it has one. */
+  const joinGroup = async (wrap: SgNode, key: string, p: SgPage, id: string): Promise<void> => {
+    const home = await homeOf(p, id);
+    placeGuide(wrap, key, home, await mateColOf(p, id, key));
   };
 
   const headerColor = options.header === 'light' ? 'white' : 'dark';
@@ -2163,7 +2287,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
       // before groups, and it joins its group now.
       const top = topOf(wrap, page);
       if (top && top !== wrap) wrap.setPluginData?.(IN_GROUP_KEY, String(top.id));
-      else if (top && t.group && !wrap.getPluginData?.(IN_GROUP_KEY)) placeGuide(wrap, t.key, await homeOf(page, t.group));
+      else if (top && t.group && !wrap.getPluginData?.(IN_GROUP_KEY)) await joinGroup(wrap, t.key, page, t.group);
     } else {
       // Measured BEFORE the frame exists (#2269): the host adds a new frame to the CURRENT page at once, 100 × 100 at
       // 0, 0, so on the page being drawn (where a designer usually is) a measurement taken after `createFrame` counted
@@ -2178,7 +2302,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
       wrap.counterAxisSizingMode = 'AUTO';
       wrap.itemSpacing = 40;
       wrap.setPluginData?.(TABLE_KEY, t.key);
-      if (home) placeGuide(wrap, t.key, home);
+      if (home) placeGuide(wrap, t.key, home, await mateColOf(page, t.group!, t.key));
       else if (at) {
         page.appendChild(wrap);
         wrap.x = at.x;
@@ -2676,78 +2800,78 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     if (left.length) notes.push(`${left.join(', ')} ${left.length === 1 ? 'stays' : 'stay'} in place: the generator no longer draws ${left.length === 1 ? 'it' : 'them'}, and a run filtered to named tables deletes nothing. The next run without a Tables filter decides whether to delete ${left.length === 1 ? 'it' : 'them'}`);
   }
 
-  // AN ADOPTED GROUP TAKES THE INVERSE ROW TOO (Q412 A, #2816). A hand-made group that holds default and inverse guides
-  // of a group with an inverse row (Semantic colors) in one row, or loose, has them put into two column-aligned rows:
-  // its defaults on top, in the order the designer left them, and each inverse guide under its default counterpart; an
-  // inverse family with no default goes past the last column, and a default with no inverse leaves its cell below
-  // empty, as in a group Prism3 drew (#2801). The rows are a new HUG grid that takes the place the first guide held, the
-  // designer's own spacing between them. The group frame, its title, its other content and its place are kept. Done
-  // ONCE: a group whose guides already sit in a grid is the designer's to arrange, so a guide moved by hand stays where
-  // they put it, and a guide dragged out of the group is not in it. A stopped run writes nothing after the stop.
-  // What sits below the group, where the generator left it, moves down by exactly the group's change in height.
+  // INVERSE COLORS IS ITS OWN GROUP (owner decision, 2026-10-19, superseding the second row of #2801 and Q412 A of
+  // #2816). Where an earlier build put the inverse guides inside the frame of the default ones, this run moves them out
+  // into Inverse colors, drawn below that frame, each in its default counterpart's column; the frame keeps its title,
+  // its place and its other content. Two shapes an earlier build left:
+  //   • a grid of guides it drew or made (`guides`), the inverse guides in its second row (#2801 in a group Prism3 drew,
+  //     Q412 A in one a designer made): they move out, and the grid closes to the one row, its columns kept in order;
+  //   • a hand-made group holding default and inverse guides side by side in one row, or loose (the file #2816 met):
+  //     its defaults go into a one-row HUG grid that takes the place the first guide held, in the order the designer
+  //     left them, the designer's own spacing between them, and the inverse guides move out. The same grid is made when
+  //     the inverse guides joined Inverse colors this run, so they have columns to sit under. Done ONCE: a group whose
+  //     guides already sit in a grid is the designer's to arrange.
+  // A guide dragged out of the group is not in it, and is left where it was put. A stopped run writes nothing after the
+  // stop. The frame is fitted to its content and what it would run over is moved clear (both below).
   const groupsRearranged: string[] = [];
-  if (!stopped) for (const p of drawnOn) {
+  const inverseGroup = STYLE_GUIDE_GROUPS.find((g) => !!g.under);
+  if (!stopped && inverseGroup) for (const p of drawnOn) {
+    const keyOf = (k: SgNode): string => k.getPluginData?.(TABLE_KEY) || '';
     const containers = new Map<SgNode, SgNode>();
     for (const f of framesOn(p)) {
-      if (!f.getPluginData?.(TABLE_KEY)) continue;
+      if (!keyOf(f) || groupByKey.get(keyOf(f)) !== inverseGroup.id) continue;
       const top = topOf(f, p);
       const c = f.parent as SgNode | null | undefined;
-      if (!top || top === f || isOurGroup(top) || !c || c.layoutMode === 'GRID' || containers.has(c)) continue;
+      if (!top || top === f || top.getPluginData?.(GROUP_KEY) === inverseGroup.id || !c || containers.has(c)) continue;
+      if (c.layoutMode === 'GRID' && (c.getPluginData?.(PART_KEY) !== 'guides' || gridRowOf(f) < 1)) continue;
       containers.set(c, top);
     }
+    // A hand-made Semantic colors that is one row or loose, where the inverse guides are in Inverse colors already (they
+    // joined it this run): its defaults go into the one-row grid too, so the inverse guides have columns to sit under.
+    const underHome = await homeOf(p, inverseGroup.under!, false);
+    if (underHome && !underHome.ours && underHome.container.layoutMode !== 'GRID' && onPage(underHome.frame, p)
+      && framesOn(p).some((f) => groupByKey.get(keyOf(f)) === inverseGroup.id && topOf(f, p)?.getPluginData?.(GROUP_KEY) === inverseGroup.id)) {
+      if (!containers.has(underHome.container)) containers.set(underHome.container, underHome.frame);
+    }
     for (const [c, top] of containers) {
-      const keyOf = (k: SgNode): string => k.getPluginData?.(TABLE_KEY) || '';
       const guides = ((c.children ?? []) as SgNode[]).filter((k) => !!keyOf(k));
-      const inverse = guides.filter((k) => isInverseKey(keyOf(k)));
-      const defaults = guides.filter((k) => !isInverseKey(keyOf(k)));
-      if (!inverse.length || !defaults.some((k) => styleGuideGroup(groupByKey.get(keyOf(k)) ?? '')?.inverseRow)) continue;
-      const auto = AUTO_LAYOUT.has(String(c.layoutMode));
-      // In an auto layout the children's order is the row's; on a free frame, left to right.
-      if (!auto) defaults.sort((a, b) => num(a.x) - num(b.x) || num(a.y) - num(b.y));
-      const colOf = new Map<SgNode, number>(defaults.map((k, i) => [k, i]));
-      let past = defaults.length;
-      for (const k of inverse) {
-        const mate = defaults.find((d) => keyOf(d) === counterpartKey(keyOf(k)));
-        colOf.set(k, mate ? colOf.get(mate)! : past++);
+      const inverse = guides.filter((k) => groupByKey.get(keyOf(k)) === inverseGroup.id && (c.layoutMode !== 'GRID' || gridRowOf(k) >= 1));
+      const defaults = guides.filter((k) => !inverse.includes(k));
+      if (!defaults.some((k) => groupByKey.get(keyOf(k)) === inverseGroup.under)) continue;
+      let grid = c;
+      if (c.layoutMode !== 'GRID') {
+        const auto = AUTO_LAYOUT.has(String(c.layoutMode));
+        // In an auto layout the children's order is the row's; on a free frame, left to right.
+        if (!auto) defaults.sort((a, b) => num(a.x) - num(b.x) || num(a.y) - num(b.y));
+        const at = { x: Math.min(...guides.map((k) => num(k.x))), y: Math.min(...guides.map((k) => num(k.y))) };
+        const index = ((c.children ?? []) as SgNode[]).indexOf(guides[0]);
+        const gap = auto && num(c.itemSpacing) > 0 ? num(c.itemSpacing) : GUIDE_GAP;
+        grid = api.createFrame();
+        grid.name = 'Guides';
+        grid.fills = [];
+        grid.setPluginData?.(PART_KEY, 'guides');
+        grid.layoutMode = 'GRID';
+        setTracks(grid, 1, Math.max(1, defaults.length));
+        grid.gridRowGap = gap;
+        grid.gridColumnGap = gap;
+        if (auto && c.insertChild) c.insertChild(index, grid);
+        else { c.appendChild?.(grid); grid.x = at.x; grid.y = at.y; }
+        for (const [i, k] of defaults.entries()) {
+          grid.appendChildAt?.(k, 0, i);
+          sizing(k, 'HUG');
+          try { k.layoutSizingVertical = 'HUG'; } catch { /* outside auto layout it hugs by its own sizing modes */ }
+          k.setPluginData?.(IN_GROUP_KEY, String(top.id));
+        }
+        sizing(grid, 'HUG');
+        try { grid.layoutSizingVertical = 'HUG'; } catch { /* a host that refuses it leaves the grid as created */ }
       }
-      const y0 = num(top.y);
-      const h0 = num(top.height);
-      const at = { x: Math.min(...guides.map((k) => num(k.x))), y: Math.min(...guides.map((k) => num(k.y))) };
-      const index = ((c.children ?? []) as SgNode[]).indexOf(guides[0]);
-      const gap = auto && num(c.itemSpacing) > 0 ? num(c.itemSpacing) : GUIDE_GAP;
-      const grid = api.createFrame();
-      grid.name = 'Guides';
-      grid.fills = [];
-      grid.setPluginData?.(PART_KEY, 'guides');
-      grid.layoutMode = 'GRID';
-      setTracks(grid, 2, past);
-      grid.gridRowGap = gap;
-      grid.gridColumnGap = gap;
-      if (auto && c.insertChild) c.insertChild(index, grid);
-      else { c.appendChild?.(grid); grid.x = at.x; grid.y = at.y; }
-      for (const k of guides) {
-        grid.appendChildAt?.(k, inverse.includes(k) ? 1 : 0, colOf.get(k)!);
-        sizing(k, 'HUG');
-        try { k.layoutSizingVertical = 'HUG'; } catch { /* outside auto layout it hugs by its own sizing modes */ }
-        k.setPluginData?.(IN_GROUP_KEY, String(top.id));
-      }
-      sizing(grid, 'HUG');
-      try { grid.layoutSizingVertical = 'HUG'; } catch { /* a host that refuses it leaves the grid as created */ }
-      if (!groupsRearranged.includes(String(top.name))) groupsRearranged.push(String(top.name));
-      const dh = num(top.height) - h0;
-      if (near(dh, 0)) continue;
-      for (const n of p.children as readonly SgNode[]) {
-        if (n === top || !(num(n.y) > y0)) continue;
-        const ours = isOurGroup(n) && groupAt(n);
-        const table = !!n.getPluginData?.(TABLE_KEY) && !n.getPluginData?.(IN_GROUP_KEY) && !!recordOf(n) && near(num(n.x), recordOf(n)!.x) && near(num(n.y), recordOf(n)!.y);
-        if (!ours && !table) continue;
-        n.y = num(n.y) + dh;
-        if (ours) n.setPluginData?.(GROUP_AT_KEY, `${num(n.x)},${num(n.y)}`);
-        else n.setPluginData?.(AT_KEY, `${num(n.x)},${num(n.y)}`);
-      }
-      // The groups below re-stack from where they now start.
-      const o = origins.get(p);
-      if (o && o.y > y0) origins.set(p, { x: o.x, y: o.y + dh });
+      // The defaults' frame is the home the inverse guides are aligned to from now on.
+      const home = await homeOf(p, inverseGroup.under!, false);
+      if (home && home.frame === top) home.container = grid;
+      else homes.set(`${p.name}\u241f${inverseGroup.under}`, { id: inverseGroup.under!, frame: top, container: grid, ours: isOurGroup(top) });
+      for (const k of inverse) await joinGroup(k, keyOf(k), p, inverseGroup.id);
+      if (grid === c) closeGrid(grid);
+      if (inverse.length && !groupsRearranged.includes(String(top.name))) groupsRearranged.push(String(top.name));
     }
   }
 
@@ -2774,8 +2898,10 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     if (title && wrote && title.characters === wrote) await writeText(title, def.title);
     if (title?.characters === def.title) g.setPluginData?.(GROUP_TITLE_KEY, def.title);
   }
+  const freedGroupsOn = new Map<SgPage, { x: number; y: number }[]>();
   if (!partial) for (const p of pagesWithGroups) {
     const freedGroups: { x: number; y: number }[] = [];
+    freedGroupsOn.set(p, freedGroups);
     for (const g of (p.children as readonly SgNode[]).filter((n) => isOurGroup(n))) {
       const grid = guidesGridOf(g);
       const hasGuide = !!g.findOne?.((n) => !!(n as SgNode).getPluginData?.(TABLE_KEY));
@@ -2788,20 +2914,88 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
         groupsRemoved.push(name);
         continue;
       }
-      if (grid?.layoutMode === 'GRID') {
-        const kids = (grid.children ?? []) as SgNode[];
-        if (!kids.length) continue;
-        const cols = [...new Set(kids.map(gridColOf))].sort((a, b) => a - b);
-        // Ascending, so each guide moves into a cell already left by the one before it.
-        for (const k of [...kids].sort((a, b) => gridColOf(a) - gridColOf(b))) {
-          const to = cols.indexOf(gridColOf(k));
-          if (to !== gridColOf(k)) (k as SgNode & { setGridChildPosition?(r: number, c: number): void }).setGridChildPosition?.(gridRowOf(k), to);
-        }
-        setTracks(grid, Math.max(...kids.map(gridRowOf)) + 1, cols.length);
-      }
+      if (grid?.layoutMode === 'GRID') closeGrid(grid);
     }
+  }
+
+  // INVERSE COLORS LINES UP UNDER SEMANTIC COLORS (owner decision, 2026-10-19), on every run: each inverse guide in the
+  // column its default counterpart holds above, one with no default past the last of them, in the order they stood. The
+  // two grids share their gap and each shared column's width, the wider of the two guides in it, so every inverse guide
+  // starts where its default does and a default with no inverse leaves its cell empty. Its left edge is the grid's
+  // above. A group Prism3 drew under another that a designer moved is left where they put it.
+  /** Followers: each group Prism3 drew that is drawn under another, with that other's home, where both are found. */
+  const followers = new Map<SgNode, Home>();
+  /** Where what a frame runs over starts, when not at its own top: a group placed under another pushes everything
+   *  below the other's bottom edge, the gap between them included. */
+  const pushFrom = new Map<SgNode, number>();
+  /** The groups `placeUnder` put in place this run: they follow their anchor, and nothing else ever moves them. */
+  const placed = new Set<SgNode>();
+  const pageOf = (n: SgNode): SgPage => [...pages.values()].find((p) => onPage(n, p))!;
+  /** The pages this run lays out: every page with groups on a full run, only the pages it drew on otherwise (#1778). */
+  const laidOut = (p: SgPage): boolean => !partial || drawnOn.has(p);
+  /** Group `u` directly below `anchor`'s frame, GROUP_GAP down, its grid's left edge on the anchor's grid's. */
+  const placeUnder = (u: SgNode, anchor: Home): void => {
+    const g = guidesGridOf(u);
+    const top = anchor.frame;
+    u.x = g && anchor.container !== top ? num(u.x) + pageX(anchor.container) - pageX(g) : num(top.x);
+    u.y = num(top.y) + num(top.height) + GROUP_GAP;
+    u.setPluginData?.(GROUP_AT_KEY, `${num(u.x)},${num(u.y)}`);
+    pushFrom.set(u, num(top.y) + num(top.height));
+    placed.add(u);
+  };
+  for (const p of pagesWithGroups) for (const u of (p.children as readonly SgNode[]).filter((n) => isOurGroup(n))) {
+    const def = styleGuideGroup(u.getPluginData?.(GROUP_KEY) || '');
+    const anchor = def?.under ? await homeOf(p, def.under, false) : null;
+    if (!anchor || !onPage(anchor.frame, p)) continue;
+    followers.set(u, anchor);
+    const a = anchor.container, g = guidesGridOf(u);
+    // A filtered run touches no page it did not draw on (#1778).
+    if (!laidOut(p) || !g || a.layoutMode !== 'GRID' || g.layoutMode !== 'GRID') continue;
+    const kids = ((g.children ?? []) as SgNode[]).filter((k) => !!k.getPluginData?.(TABLE_KEY)).sort((x, y) => gridColOf(x) - gridColOf(y));
+    const above = (a.children ?? []) as SgNode[];
+    const n0 = Math.max(1, num(a.gridColumnCount));
+    const target = new Map<SgNode, number>();
+    const used = new Set<number>();
+    for (const k of kids) {
+      const mate = above.find((d) => d.getPluginData?.(TABLE_KEY) === counterpartKey(k.getPluginData?.(TABLE_KEY) || ''));
+      if (mate && !used.has(gridColOf(mate))) { target.set(k, gridColOf(mate)); used.add(gridColOf(mate)); }
+    }
+    let past = n0;
+    for (const k of kids) if (!target.has(k)) target.set(k, past++);
+    if (kids.some((k) => gridColOf(k) !== target.get(k) || gridRowOf(k) !== 0) || num(g.gridColumnCount) !== past) {
+      // Through free columns past every target, so no move lands on a cell another guide still holds.
+      setTracks(g, 1, past + kids.length);
+      for (const [i, k] of kids.entries()) moveCell(k, 0, past + i);
+      for (const k of kids) moveCell(k, 0, target.get(k)!);
+      setTracks(g, 1, past);
+    }
+    g.gridColumnGap = num(a.gridColumnGap);
+    const widest = (grid: SgNode, c: number): number => Math.max(0, ...((grid.children ?? []) as SgNode[]).filter((k) => gridColOf(k) === c && k.visible !== false).map((k) => num(k.width)));
+    const shared = Array.from({ length: n0 }, (_, c) => Math.max(widest(a, c), widest(g, c)));
+    setSizes(a, 'gridColumnSizes', shared.map((value) => ({ type: 'FIXED', value })));
+    setSizes(g, 'gridColumnSizes', Array.from({ length: past }, (_, c) => (c < n0 ? { type: 'FIXED', value: shared[c] } : { type: 'HUG' })));
+  }
+
+  // NEVER CLIPPED (owner decision, 2026-10-19): a frame that holds a guide fits its content, on every page this run drew
+  // on. One that hugs already does; one a designer fixed grows to fit it on that axis, and is never made smaller — but for
+  // a wrapped frame #2827's one-row sum widened, put back to its widest row (#2856).
+  for (const p of [...new Set([...drawnOn, ...pagesWithGroups])].filter(laidOut)) {
+    const chain = new Set<SgNode>();
+    for (const f of framesOn(p)) {
+      if (!f.getPluginData?.(TABLE_KEY)) continue;
+      const top = topOf(f, p);
+      if (!top || top === f) continue;
+      for (let n = f.parent as SgNode | null | undefined; n && !onPage(n, p); n = n.parent as SgNode | null | undefined) chain.add(n);
+      chain.add(top);
+    }
+    const depth = (n: SgNode): number => { let d = 0; for (let q = n.parent as SgNode | null | undefined; q; q = q.parent as SgNode | null | undefined) d++; return d; };
+    for (const n of [...chain].sort((x, y) => depth(y) - depth(x))) fitToContent(n);
+  }
+
+  if (!partial) for (const p of pagesWithGroups) {
+    const freedGroups = freedGroupsOn.get(p) ?? [];
     const rank = (g: SgNode): number => STYLE_GUIDE_GROUPS.findIndex((x) => x.id === g.getPluginData?.(GROUP_KEY));
-    const stack = (p.children as readonly SgNode[]).filter((n) => isOurGroup(n) && groupAt(n)).sort((a, b) => rank(a) - rank(b));
+    const stack = (p.children as readonly SgNode[]).filter((n) => isOurGroup(n) && groupAt(n) && !followers.has(n)).sort((a, b) => rank(a) - rank(b));
     if (!stack.length) continue;
     const o = origins.get(p) ?? { x: Math.min(...stack.map((g) => num(g.x))), y: Math.min(...stack.map((g) => num(g.y))) };
     const x = Math.min(o.x, ...freedGroups.map((f) => f.x));
@@ -2811,6 +3005,11 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
       g.y = y;
       g.setPluginData?.(GROUP_AT_KEY, `${x},${y}`);
       y += num(g.height) + GROUP_GAP;
+      // The group drawn under this one takes the next place down the stack.
+      for (const [u, anchor] of followers) if (anchor.frame === g && groupAt(u)) {
+        placeUnder(u, anchor);
+        y += num(u.height) + GROUP_GAP;
+      }
     }
     looseFrom.set(p, { x, y });
   }
@@ -2831,6 +3030,10 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
       else n.setPluginData?.(AT_KEY, `${num(n.x)},${num(n.y)}`);
     }
   }
+
+  // A group drawn under another goes directly below it, GROUP_GAP down, its grid's left edge on the other's: where it is
+  // drawn first, and on every run while it is where Prism3 left it.
+  for (const [u, anchor] of followers) if ((groupAt(u) || newGroups.has(u)) && laidOut(pageOf(u))) placeUnder(u, anchor);
 
   // ROWS BY CATEGORY (owner decision 16, 2026-09-29: "horizontal … a new category of tokens … ideally starts on a
   // new 'row'"). The generator's own tables on each page it drew on are re-flowed into one row per category
@@ -2912,6 +3115,83 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
         x += num(n.width) + TABLE_GAP;
       }
       y += Math.max(...row.map((n) => num(n.height))) + TABLE_GAP;
+    }
+  }
+
+  // NEVER OVERLAP (owner decision, 2026-10-19; live: a hand-made Semantic colors frame grew from about 4,700 to 9,175
+  // tall when the inverse row was added, and ran over the Borders and Fonts frames that sat just below it). Last, on
+  // every page this run laid out. A frame this run changed — a group drawn, placed, moved or grown, or a frame that holds
+  // guides and grew — that now runs over a top-level frame pushes it clear, by the frame's side it sits on:
+  //   • BESIDE (owner question on #2827, review of 4be045f4: a frame 100px to the right of a fixed frame that grew 516px
+  //     wide to stop clipping was pushed down, dragging Inverse colors off "directly below", and the next run moved
+  //     things again): a frame that sat clear of it to its right before the run, its top above the frame's bottom edge
+  //     then. It moves right, with everything to its right in the rows they span, so it keeps the gap it had.
+  //   • BELOW: any other, its top at or under the changed frame's own top, or, for a group placed under another, under
+  //     the other's bottom edge. It moves down, with everything below it in the columns they span, all by the same
+  //     distance, so their order and the gaps between them are kept. The distance restores the gap the first of them
+  //     had below the frame before the run, or GROUP_GAP for a frame that was not there.
+  // A group `placeUnder` put in place is never pushed: it follows its anchor, and is placed under it again when the
+  // anchor moves. Nothing moves up or left, a frame above is never moved, and a frame that changed nothing pushes
+  // nothing. A moved frame Prism3 placed keeps its record, so it is still where Prism3 left it.
+  for (const p of [...new Set([...drawnOn, ...pagesWithGroups])].filter(laidOut)) {
+    const sibs = (p.children as readonly SgNode[]).filter((n) => n.visible !== false);
+    const holdsGuides = (n: SgNode): boolean => n.type === 'FRAME' && (isOurGroup(n) || (!n.getPluginData?.(TABLE_KEY) && !!n.findOne?.((k) => !!(k as SgNode).getPluginData?.(TABLE_KEY))));
+    const changed = (n: SgNode): boolean => {
+      const b = boxesBefore.get(n), now = boxOf(n);
+      return !b || !near(b.x, now.x) || !near(b.y, now.y) || now.w > b.w + 0.5 || now.h > b.h + 0.5;
+    };
+    /** Moves a frame, and moves its record with it while it is where Prism3 left it. */
+    const shift = (n: SgNode, dx: number, dy: number): void => {
+      const ours = isOurGroup(n) && groupAt(n);
+      const table = !!n.getPluginData?.(TABLE_KEY) && leftAt(n);
+      n.x = num(n.x) + dx;
+      n.y = num(n.y) + dy;
+      if (ours) n.setPluginData?.(GROUP_AT_KEY, `${num(n.x)},${num(n.y)}`);
+      if (table) n.setPluginData?.(AT_KEY, `${num(n.x)},${num(n.y)}`);
+    };
+    const queue = sibs.filter((n) => holdsGuides(n) && changed(n));
+    /** A frame moved: what it pushes is looked at again, and the groups placed under it follow it. */
+    const moved = (n: SgNode): void => {
+      if (!queue.includes(n)) queue.push(n);
+      for (const [u, anchor] of followers) if (anchor.frame === n && placed.has(u)) { placeUnder(u, anchor); if (!queue.includes(u)) queue.push(u); }
+    };
+    const overlapsY = (a: Box, b: Box): boolean => a.y < b.y + b.h && b.y < a.y + a.h;
+    for (let guard = 0; queue.length && guard < 512; guard++) {
+      queue.sort((a, b) => num(a.y) - num(b.y));
+      const f = queue.shift()!;
+      const fb = boxOf(f), fb0 = boxesBefore.get(f);
+      const line = pushFrom.get(f) ?? fb.y;
+      const pushable = (n: SgNode): boolean => n !== f && !placed.has(n);
+      const hits = sibs.filter((n) => pushable(n) && intersects(fb, boxOf(n)));
+      // Beside: clear of the frame, to its right, before the run (where the frame was then, or where it is, if new).
+      const was = fb0 ?? fb;
+      const beside = hits.filter((n) => { const b = boxesBefore.get(n); return !!b && b.x >= was.x + was.w && b.y < was.y + was.h; });
+      const below = hits.filter((n) => !beside.includes(n) && num(n.y) >= line);
+      if (below.length) {
+        const gapOf = (n: SgNode): number => { const b = boxesBefore.get(n); return fb0 && b && b.y >= fb0.y + fb0.h ? b.y - (fb0.y + fb0.h) : GROUP_GAP; };
+        const dy = Math.max(...below.map((n) => fb.y + fb.h + gapOf(n) - num(n.y)));
+        const from = Math.min(...below.map((n) => num(n.y)));
+        const moving = new Set<SgNode>(below);
+        for (let more = true; more;) {
+          more = false;
+          for (const n of sibs) if (pushable(n) && !moving.has(n) && num(n.y) >= from && [...moving].some((m) => overlapsX(boxOf(m), boxOf(n)))) { moving.add(n); more = true; }
+        }
+        for (const n of moving) shift(n, 0, dy);
+        for (const n of moving) moved(n);
+      }
+      if (beside.length) {
+        const gapOf = (n: SgNode): number => boxesBefore.get(n)!.x - (was.x + was.w);
+        const dx = Math.max(...beside.map((n) => fb.x + fb.w + gapOf(n) - num(n.x)));
+        if (dx <= 0) continue;
+        const from = Math.min(...beside.map((n) => num(n.x)));
+        const moving = new Set<SgNode>(beside);
+        for (let more = true; more;) {
+          more = false;
+          for (const n of sibs) if (pushable(n) && !moving.has(n) && num(n.x) >= from && [...moving].some((m) => overlapsY(boxOf(m), boxOf(n)))) { moving.add(n); more = true; }
+        }
+        for (const n of moving) shift(n, dx, 0);
+        for (const n of moving) moved(n);
+      }
     }
   }
 
@@ -3031,11 +3311,11 @@ export const styleGuideSummary = (r: StyleGuideResult): { ok: boolean; headline:
   // The groups (#2801): what this run drew, took over and removed, by title.
   const groupsOf = (n: number): string => `${n} group${n === 1 ? '' : 's'}`;
   if (r.groups?.drawn.length) parts.push(`${groupsOf(r.groups.drawn.length)} drawn: ${list(r.groups.drawn)}`);
-  // A hand-made group this run rearranged (Q412 A) is said once, as rearranged, not also as kept as drawn.
+  // A group whose inverse guides this run moved out (owner decision, 2026-10-19) is said once, not also as kept as drawn.
   const rearranged = r.groups?.rearranged ?? [];
   const adopted = (r.groups?.adopted ?? []).filter((g) => !rearranged.includes(g));
   if (adopted.length) parts.push(`${groupsOf(adopted.length)} you made ${adopted.length === 1 ? 'is' : 'are'} kept as drawn, with new guides added: ${list(adopted)}`);
-  if (rearranged.length) parts.push(`${groupsOf(rearranged.length)} you made now ${rearranged.length === 1 ? 'has' : 'have'} each inverse guide under its default, ${rearranged.length === 1 ? 'its' : 'their'} title and place kept: ${list(rearranged)}`);
+  if (rearranged.length) parts.push(`${groupsOf(rearranged.length)} now ${rearranged.length === 1 ? 'has its' : 'have their'} inverse guides in Inverse colors, a group of their own below, ${rearranged.length === 1 ? 'its' : 'their'} title and place kept: ${list(rearranged)}`);
   if (r.groups?.removed.length) parts.push(`${groupsOf(r.groups.removed.length)} removed, empty: ${list(r.groups.removed)}`);
   const REASON: Record<Exclude<KeepReason, 'unrecorded'>, string> = {
     edited: 'edited', moved: 'moved', copied: 'a copy', 'no-collection': 'its collection is not in this file',

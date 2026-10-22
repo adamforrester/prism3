@@ -54,6 +54,11 @@
       "why": "Every registered component's documentation, projected from its def (#1701): usage, props, states, variants, accessibility, content, motion, composition and the `ai` decision surface. PAYLOAD because a client's coded component is built from it, and an ejected repo has no def files to read. It carries the fields the plugin already ships and nothing #1623 ruled maintainer-only. Brand-independent — one file, not one per brand — because a def binds token names and each brand's own sidecar resolves them."
     },
     {
+      "kind": "component-specs-data",
+      "pattern": "out/components/specs.json",
+      "why": "Every design-file component's spec (#2830): its parts, the spacing, size and type tokens per size, the color tokens per state, and what nests where, from the plan that builds it. PAYLOAD because a client's coded component and its docs site read the same values the design file binds, and an ejected repo has no plan to project. Token names only, so one file serves every brand."
+    },
+    {
       "kind": "component-docs-page",
       "pattern": "out/components/{file}.md",
       "why": "The same documentation as one human-readable page per component (#1701), for the people building the component and as the seed for the per-brand payload skills (#668). Payload for the same reason as the data file it mirrors. Written for people, so it leaves out the agent-only search and priority metadata the data file keeps."

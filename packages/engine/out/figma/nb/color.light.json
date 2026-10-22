@@ -174,6 +174,25 @@
       }
     },
     {
+      "name": "nbds/color/foreground/danger",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Bold danger fill — 3:1 on background/secondary",
+      "value": {
+        "r": 0.8117647171020508,
+        "g": 0.04313725605607033,
+        "b": 0.1725490242242813,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/550"
+      }
+    },
+    {
       "name": "nbds/color/foreground/info",
       "resolvedType": "COLOR",
       "scopes": [
@@ -285,25 +304,6 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "nbds/core/palette/info/100"
-      }
-    },
-    {
-      "name": "nbds/color/foreground/danger",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Bold danger fill — 3:1 on background/secondary",
-      "value": {
-        "r": 0.8117647171020508,
-        "g": 0.04313725605607033,
-        "b": 0.1725490242242813,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/550"
       }
     },
     {
@@ -638,14 +638,14 @@
       ],
       "description": "Link text, default — 4.5:1 on background/secondary",
       "value": {
-        "r": 0.8117647171020508,
-        "g": 0.04313725605607033,
-        "b": 0.1725490242242813,
+        "r": 0.7215686440467834,
+        "g": 0,
+        "b": 0.1411764770746231,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/550"
+        "name": "nbds/core/palette/red/600"
       }
     },
     {
@@ -656,14 +656,14 @@
       ],
       "description": "Link text, hover — 4.5:1 on background/secondary",
       "value": {
-        "r": 0.6313725709915161,
+        "r": 0.5411764979362488,
         "g": 0,
-        "b": 0.11764705926179886,
+        "b": 0.0941176488995552,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/650"
+        "name": "nbds/core/palette/red/700"
       }
     },
     {
@@ -674,14 +674,14 @@
       ],
       "description": "Link text, visited — 4.5:1 on background/secondary",
       "value": {
-        "r": 0.2862745225429535,
+        "r": 0.2078431397676468,
         "g": 0,
-        "b": 0.0313725508749485,
+        "b": 0.01568627543747425,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/850"
+        "name": "nbds/core/palette/red/900"
       }
     },
     {
@@ -692,14 +692,14 @@
       ],
       "description": "Link text, focused — 4.5:1 on background/secondary",
       "value": {
-        "r": 0.8117647171020508,
-        "g": 0.04313725605607033,
-        "b": 0.1725490242242813,
+        "r": 0.7215686440467834,
+        "g": 0,
+        "b": 0.1411764770746231,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/550"
+        "name": "nbds/core/palette/red/600"
       }
     },
     {
@@ -710,451 +710,14 @@
       ],
       "description": "Link text, pressed — 4.5:1 on background/secondary",
       "value": {
-        "r": 0.45098039507865906,
+        "r": 0.3686274588108063,
         "g": 0,
-        "b": 0.07450980693101883,
+        "b": 0.05098039284348488,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/750"
-      }
-    },
-    {
-      "name": "nbds/color/icon/primary",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Primary icon — strongest neutral",
-      "value": {
-        "r": 0.0470588244497776,
-        "g": 0.05098039284348488,
-        "b": 0.05882352963089943,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/950"
-      }
-    },
-    {
-      "name": "nbds/color/icon/secondary",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Secondary icon — 4.5:1 on background/secondary",
-      "value": {
-        "r": 0.38823530077934265,
-        "g": 0.4156862795352936,
-        "b": 0.43529412150382996,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/550"
-      }
-    },
-    {
-      "name": "nbds/color/icon/tertiary",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Tertiary icon — 3:1 on background/secondary",
-      "value": {
-        "r": 0.4901960790157318,
-        "g": 0.5137255191802979,
-        "b": 0.529411792755127,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/450"
-      }
-    },
-    {
-      "name": "nbds/color/icon/brand",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Brand icon — 4.5:1 on background/secondary and on its own tint",
-      "value": {
-        "r": 0.7215686440467834,
-        "g": 0,
-        "b": 0.1411764770746231,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/600"
-      }
-    },
-    {
-      "name": "nbds/color/icon/success",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Success icon — 4.5:1 on background/secondary and on its own tint",
-      "value": {
-        "r": 0,
-        "g": 0.40392157435417175,
-        "b": 0.19607843458652496,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/green/600"
-      }
-    },
-    {
-      "name": "nbds/color/icon/warning",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Warning icon — 4.5:1 on background/secondary and on its own tint",
-      "value": {
-        "r": 0.5529412031173706,
-        "g": 0.2980392277240753,
-        "b": 0,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/amber/600"
-      }
-    },
-    {
-      "name": "nbds/color/icon/danger",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Danger icon — 4.5:1 on background/secondary and on its own tint",
-      "value": {
-        "r": 0.7215686440467834,
-        "g": 0,
-        "b": 0.1411764770746231,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/600"
-      }
-    },
-    {
-      "name": "nbds/color/icon/info",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Info icon — 4.5:1 on background/secondary and on its own tint",
-      "value": {
-        "r": 0.12156862765550613,
-        "g": 0.3764705955982208,
-        "b": 0.5647059082984924,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/info/600"
-      }
-    },
-    {
-      "name": "nbds/color/icon/brand-subtle",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Muted brand icon — 3:1 on background/primary",
-      "value": {
-        "r": 0.8549019694328308,
-        "g": 0.33725491166114807,
-        "b": 0.34117648005485535,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/450"
-      }
-    },
-    {
-      "name": "nbds/color/icon/success-subtle",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Muted success icon — 3:1 on background/primary",
-      "value": {
-        "r": 0.21960784494876862,
-        "g": 0.5529412031173706,
-        "b": 0.3333333432674408,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/green/450"
-      }
-    },
-    {
-      "name": "nbds/color/icon/warning-subtle",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Muted warning icon — 3:1 on background/primary",
-      "value": {
-        "r": 0.729411780834198,
-        "g": 0.4470588266849518,
-        "b": 0.19607843458652496,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/amber/450"
-      }
-    },
-    {
-      "name": "nbds/color/icon/danger-subtle",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Muted danger icon — 3:1 on background/primary",
-      "value": {
-        "r": 0.8549019694328308,
-        "g": 0.33725491166114807,
-        "b": 0.34117648005485535,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/450"
-      }
-    },
-    {
-      "name": "nbds/color/icon/info-subtle",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Muted info icon — 3:1 on background/primary",
-      "value": {
-        "r": 0.22745098173618317,
-        "g": 0.529411792755127,
-        "b": 0.7647058963775635,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/info/450"
-      }
-    },
-    {
-      "name": "nbds/color/icon/on-brand",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Icon on a solid brand fill — 4.5:1 on foreground/brand",
-      "value": {
-        "r": 1,
-        "g": 1,
-        "b": 1,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/white"
-      }
-    },
-    {
-      "name": "nbds/color/icon/on-success",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Icon on a solid success fill — 4.5:1 on foreground/success",
-      "value": {
-        "r": 1,
-        "g": 1,
-        "b": 1,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/white"
-      }
-    },
-    {
-      "name": "nbds/color/icon/on-warning",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Icon on a solid warning fill — 4.5:1 on foreground/warning",
-      "value": {
-        "r": 1,
-        "g": 1,
-        "b": 1,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/white"
-      }
-    },
-    {
-      "name": "nbds/color/icon/on-danger",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Icon on a solid danger fill — 4.5:1 on foreground/danger",
-      "value": {
-        "r": 1,
-        "g": 1,
-        "b": 1,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/white"
-      }
-    },
-    {
-      "name": "nbds/color/icon/on-info",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Icon on a solid info fill — 4.5:1 on foreground/info",
-      "value": {
-        "r": 1,
-        "g": 1,
-        "b": 1,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/white"
-      }
-    },
-    {
-      "name": "nbds/color/icon/link/default",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Link icon, default — 4.5:1 on background/secondary",
-      "value": {
-        "r": 0.8117647171020508,
-        "g": 0.04313725605607033,
-        "b": 0.1725490242242813,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/550"
-      }
-    },
-    {
-      "name": "nbds/color/icon/link/hover",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Link icon, hover — 4.5:1 on background/secondary",
-      "value": {
-        "r": 0.6313725709915161,
-        "g": 0,
-        "b": 0.11764705926179886,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/650"
-      }
-    },
-    {
-      "name": "nbds/color/icon/link/visited",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Link icon, visited — 4.5:1 on background/secondary",
-      "value": {
-        "r": 0.2862745225429535,
-        "g": 0,
-        "b": 0.0313725508749485,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/850"
-      }
-    },
-    {
-      "name": "nbds/color/icon/link/focused",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Link icon, focused — 4.5:1 on background/secondary",
-      "value": {
-        "r": 0.8117647171020508,
-        "g": 0.04313725605607033,
-        "b": 0.1725490242242813,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/550"
-      }
-    },
-    {
-      "name": "nbds/color/icon/link/pressed",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Link icon, pressed — 4.5:1 on background/secondary",
-      "value": {
-        "r": 0.45098039507865906,
-        "g": 0,
-        "b": 0.07450980693101883,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/750"
+        "name": "nbds/core/palette/red/800"
       }
     },
     {
@@ -1280,14 +843,14 @@
       ],
       "description": "Primary label, rest — 4.5:1 on background/primary (outline, text)",
       "value": {
-        "r": 0.8117647171020508,
-        "g": 0.04313725605607033,
-        "b": 0.1725490242242813,
+        "r": 0.7215686440467834,
+        "g": 0,
+        "b": 0.1411764770746231,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/550"
+        "name": "nbds/core/palette/red/600"
       }
     },
     {
@@ -1298,14 +861,14 @@
       ],
       "description": "Primary label, hover — 4.5:1 on background/primary (outline, text)",
       "value": {
-        "r": 0.6313725709915161,
+        "r": 0.5411764979362488,
         "g": 0,
-        "b": 0.11764705926179886,
+        "b": 0.0941176488995552,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/650"
+        "name": "nbds/core/palette/red/700"
       }
     },
     {
@@ -1316,14 +879,14 @@
       ],
       "description": "Primary label, pressed — 4.5:1 on background/primary (outline, text)",
       "value": {
-        "r": 0.45098039507865906,
+        "r": 0.3686274588108063,
         "g": 0,
-        "b": 0.07450980693101883,
+        "b": 0.05098039284348488,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/750"
+        "name": "nbds/core/palette/red/800"
       }
     },
     {
@@ -1335,14 +898,14 @@
       ],
       "description": "Primary icon, rest — 4.5:1 on background/primary (outline, ghost, text)",
       "value": {
-        "r": 0.8117647171020508,
-        "g": 0.04313725605607033,
-        "b": 0.1725490242242813,
+        "r": 0.7215686440467834,
+        "g": 0,
+        "b": 0.1411764770746231,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/550"
+        "name": "nbds/core/palette/red/600"
       }
     },
     {
@@ -1354,14 +917,14 @@
       ],
       "description": "Primary icon, hover — 4.5:1 on background/primary (outline, ghost, text)",
       "value": {
-        "r": 0.6313725709915161,
+        "r": 0.5411764979362488,
         "g": 0,
-        "b": 0.11764705926179886,
+        "b": 0.0941176488995552,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/650"
+        "name": "nbds/core/palette/red/700"
       }
     },
     {
@@ -1373,14 +936,14 @@
       ],
       "description": "Primary icon, pressed — 4.5:1 on background/primary (outline, ghost, text)",
       "value": {
-        "r": 0.45098039507865906,
+        "r": 0.3686274588108063,
         "g": 0,
-        "b": 0.07450980693101883,
+        "b": 0.05098039284348488,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/750"
+        "name": "nbds/core/palette/red/800"
       }
     },
     {
@@ -1391,14 +954,14 @@
       ],
       "description": "Primary outline edge, rest — 3:1 on background/primary, follows the label",
       "value": {
-        "r": 0.8117647171020508,
-        "g": 0.04313725605607033,
-        "b": 0.1725490242242813,
+        "r": 0.7215686440467834,
+        "g": 0,
+        "b": 0.1411764770746231,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/550"
+        "name": "nbds/core/palette/red/600"
       }
     },
     {
@@ -1409,14 +972,14 @@
       ],
       "description": "Primary outline edge, hover — 3:1 on background/primary, follows the label",
       "value": {
-        "r": 0.6313725709915161,
+        "r": 0.5411764979362488,
         "g": 0,
-        "b": 0.11764705926179886,
+        "b": 0.0941176488995552,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/650"
+        "name": "nbds/core/palette/red/700"
       }
     },
     {
@@ -1427,14 +990,14 @@
       ],
       "description": "Primary outline edge, pressed — 3:1 on background/primary, follows the label",
       "value": {
-        "r": 0.45098039507865906,
+        "r": 0.3686274588108063,
         "g": 0,
-        "b": 0.07450980693101883,
+        "b": 0.05098039284348488,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/750"
+        "name": "nbds/core/palette/red/800"
       }
     },
     {
@@ -2192,100 +1755,6 @@
       }
     },
     {
-      "name": "nbds/color/disabled/fill",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Disabled control fill — one muted neutral, any intent",
-      "value": {
-        "r": 0.7450980544090271,
-        "g": 0.7568627595901489,
-        "b": 0.7686274647712708,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/200"
-      }
-    },
-    {
-      "name": "nbds/color/disabled/on-fill",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL"
-      ],
-      "description": "Label / icon on a disabled fill — muted, 3:1",
-      "value": {
-        "r": 0.38823530077934265,
-        "g": 0.4156862795352936,
-        "b": 0.43529412150382996,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/550"
-      }
-    },
-    {
-      "name": "nbds/color/disabled/text",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "TEXT_FILL"
-      ],
-      "description": "Disabled text — reduced contrast, 3:1 on background/secondary",
-      "value": {
-        "r": 0.4901960790157318,
-        "g": 0.5137255191802979,
-        "b": 0.529411792755127,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/450"
-      }
-    },
-    {
-      "name": "nbds/color/disabled/icon",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Disabled icon — reduced contrast, 3:1 on background/secondary",
-      "value": {
-        "r": 0.4901960790157318,
-        "g": 0.5137255191802979,
-        "b": 0.529411792755127,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/450"
-      }
-    },
-    {
-      "name": "nbds/color/disabled/border",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Disabled control border — muted neutral",
-      "value": {
-        "r": 0.7450980544090271,
-        "g": 0.7568627595901489,
-        "b": 0.7686274647712708,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/200"
-      }
-    },
-    {
       "name": "nbds/color/border/primary",
       "resolvedType": "COLOR",
       "scopes": [
@@ -2445,6 +1914,537 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "nbds/core/palette/red/550"
+      }
+    },
+    {
+      "name": "nbds/color/icon/primary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Primary icon — strongest neutral",
+      "value": {
+        "r": 0.0470588244497776,
+        "g": 0.05098039284348488,
+        "b": 0.05882352963089943,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/950"
+      }
+    },
+    {
+      "name": "nbds/color/icon/secondary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Secondary icon — 4.5:1 on background/secondary",
+      "value": {
+        "r": 0.38823530077934265,
+        "g": 0.4156862795352936,
+        "b": 0.43529412150382996,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/550"
+      }
+    },
+    {
+      "name": "nbds/color/icon/tertiary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Tertiary icon — 3:1 on background/secondary",
+      "value": {
+        "r": 0.4901960790157318,
+        "g": 0.5137255191802979,
+        "b": 0.529411792755127,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/450"
+      }
+    },
+    {
+      "name": "nbds/color/icon/brand",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Brand icon — 4.5:1 on background/secondary and on its own tint",
+      "value": {
+        "r": 0.7215686440467834,
+        "g": 0,
+        "b": 0.1411764770746231,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/600"
+      }
+    },
+    {
+      "name": "nbds/color/icon/success",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Success icon — 4.5:1 on background/secondary and on its own tint",
+      "value": {
+        "r": 0,
+        "g": 0.40392157435417175,
+        "b": 0.19607843458652496,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/green/600"
+      }
+    },
+    {
+      "name": "nbds/color/icon/warning",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Warning icon — 4.5:1 on background/secondary and on its own tint",
+      "value": {
+        "r": 0.5529412031173706,
+        "g": 0.2980392277240753,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/amber/600"
+      }
+    },
+    {
+      "name": "nbds/color/icon/danger",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Danger icon — 4.5:1 on background/secondary and on its own tint",
+      "value": {
+        "r": 0.7215686440467834,
+        "g": 0,
+        "b": 0.1411764770746231,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/600"
+      }
+    },
+    {
+      "name": "nbds/color/icon/info",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Info icon — 4.5:1 on background/secondary and on its own tint",
+      "value": {
+        "r": 0.12156862765550613,
+        "g": 0.3764705955982208,
+        "b": 0.5647059082984924,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/info/600"
+      }
+    },
+    {
+      "name": "nbds/color/icon/brand-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Muted brand icon — 3:1 on background/primary",
+      "value": {
+        "r": 0.8549019694328308,
+        "g": 0.33725491166114807,
+        "b": 0.34117648005485535,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/450"
+      }
+    },
+    {
+      "name": "nbds/color/icon/success-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Muted success icon — 3:1 on background/primary",
+      "value": {
+        "r": 0.21960784494876862,
+        "g": 0.5529412031173706,
+        "b": 0.3333333432674408,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/green/450"
+      }
+    },
+    {
+      "name": "nbds/color/icon/warning-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Muted warning icon — 3:1 on background/primary",
+      "value": {
+        "r": 0.729411780834198,
+        "g": 0.4470588266849518,
+        "b": 0.19607843458652496,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/amber/450"
+      }
+    },
+    {
+      "name": "nbds/color/icon/danger-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Muted danger icon — 3:1 on background/primary",
+      "value": {
+        "r": 0.8549019694328308,
+        "g": 0.33725491166114807,
+        "b": 0.34117648005485535,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/450"
+      }
+    },
+    {
+      "name": "nbds/color/icon/info-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Muted info icon — 3:1 on background/primary",
+      "value": {
+        "r": 0.22745098173618317,
+        "g": 0.529411792755127,
+        "b": 0.7647058963775635,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/info/450"
+      }
+    },
+    {
+      "name": "nbds/color/icon/on-brand",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Icon on a solid brand fill — 4.5:1 on foreground/brand",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/white"
+      }
+    },
+    {
+      "name": "nbds/color/icon/on-success",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Icon on a solid success fill — 4.5:1 on foreground/success",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/white"
+      }
+    },
+    {
+      "name": "nbds/color/icon/on-warning",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Icon on a solid warning fill — 4.5:1 on foreground/warning",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/white"
+      }
+    },
+    {
+      "name": "nbds/color/icon/on-danger",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Icon on a solid danger fill — 4.5:1 on foreground/danger",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/white"
+      }
+    },
+    {
+      "name": "nbds/color/icon/on-info",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Icon on a solid info fill — 4.5:1 on foreground/info",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/white"
+      }
+    },
+    {
+      "name": "nbds/color/icon/link/default",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Link icon, default — 4.5:1 on background/secondary",
+      "value": {
+        "r": 0.7215686440467834,
+        "g": 0,
+        "b": 0.1411764770746231,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/600"
+      }
+    },
+    {
+      "name": "nbds/color/icon/link/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Link icon, hover — 4.5:1 on background/secondary",
+      "value": {
+        "r": 0.5411764979362488,
+        "g": 0,
+        "b": 0.0941176488995552,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/700"
+      }
+    },
+    {
+      "name": "nbds/color/icon/link/visited",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Link icon, visited — 4.5:1 on background/secondary",
+      "value": {
+        "r": 0.2078431397676468,
+        "g": 0,
+        "b": 0.01568627543747425,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/900"
+      }
+    },
+    {
+      "name": "nbds/color/icon/link/focused",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Link icon, focused — 4.5:1 on background/secondary",
+      "value": {
+        "r": 0.7215686440467834,
+        "g": 0,
+        "b": 0.1411764770746231,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/600"
+      }
+    },
+    {
+      "name": "nbds/color/icon/link/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Link icon, pressed — 4.5:1 on background/secondary",
+      "value": {
+        "r": 0.3686274588108063,
+        "g": 0,
+        "b": 0.05098039284348488,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/800"
+      }
+    },
+    {
+      "name": "nbds/color/disabled/fill",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Disabled control fill — one muted neutral, any intent",
+      "value": {
+        "r": 0.7450980544090271,
+        "g": 0.7568627595901489,
+        "b": 0.7686274647712708,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/200"
+      }
+    },
+    {
+      "name": "nbds/color/disabled/on-fill",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL"
+      ],
+      "description": "Label / icon on a disabled fill — muted, 3:1",
+      "value": {
+        "r": 0.38823530077934265,
+        "g": 0.4156862795352936,
+        "b": 0.43529412150382996,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/550"
+      }
+    },
+    {
+      "name": "nbds/color/disabled/text",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Disabled text — reduced contrast, 3:1 on background/secondary",
+      "value": {
+        "r": 0.4901960790157318,
+        "g": 0.5137255191802979,
+        "b": 0.529411792755127,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/450"
+      }
+    },
+    {
+      "name": "nbds/color/disabled/icon",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Disabled icon — reduced contrast, 3:1 on background/secondary",
+      "value": {
+        "r": 0.4901960790157318,
+        "g": 0.5137255191802979,
+        "b": 0.529411792755127,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/450"
+      }
+    },
+    {
+      "name": "nbds/color/disabled/border",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Disabled control border — muted neutral",
+      "value": {
+        "r": 0.7450980544090271,
+        "g": 0.7568627595901489,
+        "b": 0.7686274647712708,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/200"
       }
     },
     {
@@ -2996,1184 +2996,6 @@
       }
     },
     {
-      "name": "nbds/color/inverse/interactive/primary/text/rest",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "TEXT_FILL"
-      ],
-      "description": "Primary label, rest — 4.5:1 on inverse/background/primary (outline, text)",
-      "value": {
-        "r": 0.8549019694328308,
-        "g": 0.33725491166114807,
-        "b": 0.34117648005485535,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/450"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/primary/text/hover",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "TEXT_FILL"
-      ],
-      "description": "Primary label, hover — 4.5:1 on inverse/background/primary (outline, text)",
-      "value": {
-        "r": 0.8823529481887817,
-        "g": 0.49803921580314636,
-        "b": 0.48235294222831726,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/350"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/primary/text/pressed",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "TEXT_FILL"
-      ],
-      "description": "Primary label, pressed — 4.5:1 on inverse/background/primary (outline, text)",
-      "value": {
-        "r": 0.9098039269447327,
-        "g": 0.6392157077789307,
-        "b": 0.6235294342041016,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/250"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/primary/icon/rest",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Primary icon, rest — 4.5:1 on inverse/background/primary (outline, ghost, text)",
-      "value": {
-        "r": 0.8549019694328308,
-        "g": 0.33725491166114807,
-        "b": 0.34117648005485535,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/450"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/primary/icon/hover",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Primary icon, hover — 4.5:1 on inverse/background/primary (outline, ghost, text)",
-      "value": {
-        "r": 0.8823529481887817,
-        "g": 0.49803921580314636,
-        "b": 0.48235294222831726,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/350"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/primary/icon/pressed",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Primary icon, pressed — 4.5:1 on inverse/background/primary (outline, ghost, text)",
-      "value": {
-        "r": 0.9098039269447327,
-        "g": 0.6392157077789307,
-        "b": 0.6235294342041016,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/250"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/primary/fill/rest",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Primary fill on inverse, rest — white / black, 3:1 on inverse/background/primary",
-      "value": {
-        "r": 1,
-        "g": 1,
-        "b": 1,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/white"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/primary/fill/hover",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Primary fill on inverse, hover — 2 neutral rungs off the white / black rest",
-      "value": {
-        "r": 0.8549019694328308,
-        "g": 0.8627451062202454,
-        "b": 0.8666666746139526,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/100"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/primary/fill/pressed",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Primary fill on inverse, pressed — 4 neutral rungs off the white / black rest",
-      "value": {
-        "r": 0.7450980544090271,
-        "g": 0.7568627595901489,
-        "b": 0.7686274647712708,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/200"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/primary/fill/focused",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Primary fill on inverse, focused — 2 neutral rungs off the white / black rest",
-      "value": {
-        "r": 0.8549019694328308,
-        "g": 0.8627451062202454,
-        "b": 0.8666666746139526,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/100"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/primary/fill/selected",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Primary fill on inverse, selected — 4 neutral rungs off the white / black rest",
-      "value": {
-        "r": 0.7450980544090271,
-        "g": 0.7568627595901489,
-        "b": 0.7686274647712708,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/200"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/primary/on-fill",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL"
-      ],
-      "description": "Label on the primary inverse fill — 4.5:1 at rest",
-      "value": {
-        "r": 0.6313725709915161,
-        "g": 0,
-        "b": 0.11764705926179886,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/650"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/primary/border/rest",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Primary outline edge, rest — 3:1 on inverse/background/primary, follows the label",
-      "value": {
-        "r": 0.8549019694328308,
-        "g": 0.33725491166114807,
-        "b": 0.34117648005485535,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/450"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/primary/border/hover",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Primary outline edge, hover — 3:1 on inverse/background/primary, follows the label",
-      "value": {
-        "r": 0.8823529481887817,
-        "g": 0.49803921580314636,
-        "b": 0.48235294222831726,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/350"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/primary/border/pressed",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Primary outline edge, pressed — 3:1 on inverse/background/primary, follows the label",
-      "value": {
-        "r": 0.9098039269447327,
-        "g": 0.6392157077789307,
-        "b": 0.6235294342041016,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/250"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/primary/overlay/hover",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Primary hover wash on inverse — 10%, opposite polarity to the page wash",
-      "value": {
-        "r": 1,
-        "g": 1,
-        "b": 1,
-        "a": 0.10000000149011612
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/white-alpha/10"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/primary/overlay/pressed",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Primary pressed wash on inverse — 20%, opposite polarity to the page wash",
-      "value": {
-        "r": 1,
-        "g": 1,
-        "b": 1,
-        "a": 0.20000000298023224
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/white-alpha/20"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/primary/overlay/selected",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Primary selected wash on inverse — 20%, opposite polarity to the page wash",
-      "value": {
-        "r": 1,
-        "g": 1,
-        "b": 1,
-        "a": 0.20000000298023224
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/white-alpha/20"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/destructive/text/rest",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "TEXT_FILL"
-      ],
-      "description": "Destructive label, rest — 4.5:1 on inverse/background/tertiary (outline, text)",
-      "value": {
-        "r": 0.8705882430076599,
-        "g": 0.42352941632270813,
-        "b": 0.4117647111415863,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/400"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/destructive/text/hover",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "TEXT_FILL"
-      ],
-      "description": "Destructive label, hover — 4.5:1 on inverse/background/tertiary (outline, text)",
-      "value": {
-        "r": 0.8980392217636108,
-        "g": 0.5686274766921997,
-        "b": 0.5529412031173706,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/300"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/destructive/text/pressed",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "TEXT_FILL"
-      ],
-      "description": "Destructive label, pressed — 4.5:1 on inverse/background/tertiary (outline, text)",
-      "value": {
-        "r": 0.9215686321258545,
-        "g": 0.7058823704719543,
-        "b": 0.6941176652908325,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/200"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/destructive/icon/rest",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Destructive icon, rest — 4.5:1 on inverse/background/tertiary (outline, ghost, text)",
-      "value": {
-        "r": 0.8705882430076599,
-        "g": 0.42352941632270813,
-        "b": 0.4117647111415863,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/400"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/destructive/icon/hover",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Destructive icon, hover — 4.5:1 on inverse/background/tertiary (outline, ghost, text)",
-      "value": {
-        "r": 0.8980392217636108,
-        "g": 0.5686274766921997,
-        "b": 0.5529412031173706,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/300"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/destructive/icon/pressed",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Destructive icon, pressed — 4.5:1 on inverse/background/tertiary (outline, ghost, text)",
-      "value": {
-        "r": 0.9215686321258545,
-        "g": 0.7058823704719543,
-        "b": 0.6941176652908325,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/200"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/destructive/fill/rest",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Destructive fill on inverse, rest — white / black, 3:1 on inverse/background/primary",
-      "value": {
-        "r": 1,
-        "g": 1,
-        "b": 1,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/white"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/destructive/fill/hover",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Destructive fill on inverse, hover — 2 neutral rungs off the white / black rest",
-      "value": {
-        "r": 0.8549019694328308,
-        "g": 0.8627451062202454,
-        "b": 0.8666666746139526,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/100"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/destructive/fill/pressed",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Destructive fill on inverse, pressed — 4 neutral rungs off the white / black rest",
-      "value": {
-        "r": 0.7450980544090271,
-        "g": 0.7568627595901489,
-        "b": 0.7686274647712708,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/200"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/destructive/fill/focused",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Destructive fill on inverse, focused — 2 neutral rungs off the white / black rest",
-      "value": {
-        "r": 0.8549019694328308,
-        "g": 0.8627451062202454,
-        "b": 0.8666666746139526,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/100"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/destructive/fill/selected",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Destructive fill on inverse, selected — 4 neutral rungs off the white / black rest",
-      "value": {
-        "r": 0.7450980544090271,
-        "g": 0.7568627595901489,
-        "b": 0.7686274647712708,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/200"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/destructive/on-fill",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL"
-      ],
-      "description": "Label on the destructive inverse fill — 4.5:1 at rest",
-      "value": {
-        "r": 0.6313725709915161,
-        "g": 0,
-        "b": 0.11764705926179886,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/650"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/destructive/border/rest",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Destructive outline edge, rest — 3:1 on inverse/background/tertiary, follows the label",
-      "value": {
-        "r": 0.8705882430076599,
-        "g": 0.42352941632270813,
-        "b": 0.4117647111415863,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/400"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/destructive/border/hover",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Destructive outline edge, hover — 3:1 on inverse/background/tertiary, follows the label",
-      "value": {
-        "r": 0.8980392217636108,
-        "g": 0.5686274766921997,
-        "b": 0.5529412031173706,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/300"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/destructive/border/pressed",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Destructive outline edge, pressed — 3:1 on inverse/background/tertiary, follows the label",
-      "value": {
-        "r": 0.9215686321258545,
-        "g": 0.7058823704719543,
-        "b": 0.6941176652908325,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/200"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/destructive/overlay/hover",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Destructive hover wash on inverse — 10%, opposite polarity to the page wash",
-      "value": {
-        "r": 1,
-        "g": 1,
-        "b": 1,
-        "a": 0.10000000149011612
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/white-alpha/10"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/destructive/overlay/pressed",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Destructive pressed wash on inverse — 20%, opposite polarity to the page wash",
-      "value": {
-        "r": 1,
-        "g": 1,
-        "b": 1,
-        "a": 0.20000000298023224
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/white-alpha/20"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/destructive/overlay/selected",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Destructive selected wash on inverse — 20%, opposite polarity to the page wash",
-      "value": {
-        "r": 1,
-        "g": 1,
-        "b": 1,
-        "a": 0.20000000298023224
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/white-alpha/20"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/neutral/text/rest",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "TEXT_FILL"
-      ],
-      "description": "Neutral label, rest — 4.5:1 on inverse/background/primary (outline, text)",
-      "value": {
-        "r": 0.9647058844566345,
-        "g": 0.9686274528503418,
-        "b": 0.9686274528503418,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/025"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/neutral/text/hover",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "TEXT_FILL"
-      ],
-      "description": "Neutral label, hover — 4.5:1 on inverse/background/primary (outline, text)",
-      "value": {
-        "r": 0.8549019694328308,
-        "g": 0.8627451062202454,
-        "b": 0.8666666746139526,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/100"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/neutral/text/pressed",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "TEXT_FILL"
-      ],
-      "description": "Neutral label, pressed — 4.5:1 on inverse/background/primary (outline, text)",
-      "value": {
-        "r": 0.7450980544090271,
-        "g": 0.7568627595901489,
-        "b": 0.7686274647712708,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/200"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/neutral/icon/rest",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Neutral icon, rest — 4.5:1 on inverse/background/primary (outline, ghost, text)",
-      "value": {
-        "r": 0.9647058844566345,
-        "g": 0.9686274528503418,
-        "b": 0.9686274528503418,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/025"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/neutral/icon/hover",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Neutral icon, hover — 4.5:1 on inverse/background/primary (outline, ghost, text)",
-      "value": {
-        "r": 0.8549019694328308,
-        "g": 0.8627451062202454,
-        "b": 0.8666666746139526,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/100"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/neutral/icon/pressed",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Neutral icon, pressed — 4.5:1 on inverse/background/primary (outline, ghost, text)",
-      "value": {
-        "r": 0.7450980544090271,
-        "g": 0.7568627595901489,
-        "b": 0.7686274647712708,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/200"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/neutral/fill/rest",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Neutral fill on inverse, rest — white / black, 3:1 on inverse/background/primary",
-      "value": {
-        "r": 1,
-        "g": 1,
-        "b": 1,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/white"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/neutral/fill/hover",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Neutral fill on inverse, hover — 2 neutral rungs off the white / black rest",
-      "value": {
-        "r": 0.8549019694328308,
-        "g": 0.8627451062202454,
-        "b": 0.8666666746139526,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/100"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/neutral/fill/pressed",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Neutral fill on inverse, pressed — 4 neutral rungs off the white / black rest",
-      "value": {
-        "r": 0.7450980544090271,
-        "g": 0.7568627595901489,
-        "b": 0.7686274647712708,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/200"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/neutral/fill/focused",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Neutral fill on inverse, focused — 2 neutral rungs off the white / black rest",
-      "value": {
-        "r": 0.8549019694328308,
-        "g": 0.8627451062202454,
-        "b": 0.8666666746139526,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/100"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/neutral/fill/selected",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Neutral fill on inverse, selected — 4 neutral rungs off the white / black rest",
-      "value": {
-        "r": 0.7450980544090271,
-        "g": 0.7568627595901489,
-        "b": 0.7686274647712708,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/200"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/neutral/on-fill",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL"
-      ],
-      "description": "Label on the neutral inverse fill — 4.5:1 at rest",
-      "value": {
-        "r": 0.0470588244497776,
-        "g": 0.05098039284348488,
-        "b": 0.05882352963089943,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/950"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/neutral/border/rest",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Neutral outline edge, rest — 3:1 on inverse/background/primary, follows the label",
-      "value": {
-        "r": 0.9647058844566345,
-        "g": 0.9686274528503418,
-        "b": 0.9686274528503418,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/025"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/neutral/border/hover",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Neutral outline edge, hover — 3:1 on inverse/background/primary, follows the label",
-      "value": {
-        "r": 0.8549019694328308,
-        "g": 0.8627451062202454,
-        "b": 0.8666666746139526,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/100"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/neutral/border/pressed",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Neutral outline edge, pressed — 3:1 on inverse/background/primary, follows the label",
-      "value": {
-        "r": 0.7450980544090271,
-        "g": 0.7568627595901489,
-        "b": 0.7686274647712708,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/200"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/neutral/overlay/hover",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Neutral hover wash on inverse — 10%, opposite polarity to the page wash",
-      "value": {
-        "r": 1,
-        "g": 1,
-        "b": 1,
-        "a": 0.10000000149011612
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/white-alpha/10"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/neutral/overlay/pressed",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Neutral pressed wash on inverse — 20%, opposite polarity to the page wash",
-      "value": {
-        "r": 1,
-        "g": 1,
-        "b": 1,
-        "a": 0.20000000298023224
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/white-alpha/20"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/interactive/neutral/overlay/selected",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Neutral selected wash on inverse — 20%, opposite polarity to the page wash",
-      "value": {
-        "r": 1,
-        "g": 1,
-        "b": 1,
-        "a": 0.20000000298023224
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/white-alpha/20"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/disabled/fill",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Disabled control fill — one muted neutral, any intent",
-      "value": {
-        "r": 0.16078431904315948,
-        "g": 0.1764705926179886,
-        "b": 0.1882352977991104,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/800"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/disabled/on-fill",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "TEXT_FILL"
-      ],
-      "description": "Label / icon on a disabled fill — muted, 3:1",
-      "value": {
-        "r": 0.43921568989753723,
-        "g": 0.4627451002597809,
-        "b": 0.48627451062202454,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/500"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/disabled/text",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "TEXT_FILL"
-      ],
-      "description": "Disabled text — reduced contrast, 3:1 on inverse/background/secondary",
-      "value": {
-        "r": 0.38823530077934265,
-        "g": 0.4156862795352936,
-        "b": 0.43529412150382996,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/550"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/disabled/icon",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Disabled icon — reduced contrast, 3:1 on inverse/background/secondary",
-      "value": {
-        "r": 0.38823530077934265,
-        "g": 0.4156862795352936,
-        "b": 0.43529412150382996,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/550"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/disabled/border",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Disabled control border — muted neutral",
-      "value": {
-        "r": 0.16078431904315948,
-        "g": 0.1764705926179886,
-        "b": 0.1882352977991104,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/800"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/field/fill",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Form field fill — transparent by default; the border marks the field",
-      "value": {
-        "r": 0,
-        "g": 0,
-        "b": 0,
-        "a": 0
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/transparent"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/field/border/rest",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Form field border — 3:1 on inverse/background/secondary",
-      "value": {
-        "r": 0.38823530077934265,
-        "g": 0.4156862795352936,
-        "b": 0.43529412150382996,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/550"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/field/border/hover",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Form field hover border — 3:1 on inverse/background/secondary; pair it with a second cue",
-      "value": {
-        "r": 0.4901960790157318,
-        "g": 0.5137255191802979,
-        "b": 0.529411792755127,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/450"
-      }
-    },
-    {
-      "name": "nbds/color/inverse/field/placeholder",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "TEXT_FILL"
-      ],
-      "description": "Form field placeholder — 4.5:1 on inverse/background/secondary",
-      "value": {
-        "r": 0.4901960790157318,
-        "g": 0.5137255191802979,
-        "b": 0.529411792755127,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/450"
-      }
-    },
-    {
       "name": "nbds/color/inverse/text/primary",
       "resolvedType": "COLOR",
       "scopes": [
@@ -4495,6 +3317,1179 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "nbds/core/palette/red/250"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/primary/fill/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Primary fill on inverse, rest — white / black, 3:1 on inverse/background/primary",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/white"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/primary/fill/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Primary fill on inverse, hover — 2 neutral rungs off the white / black rest",
+      "value": {
+        "r": 0.8549019694328308,
+        "g": 0.8627451062202454,
+        "b": 0.8666666746139526,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/100"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/primary/fill/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Primary fill on inverse, pressed — 4 neutral rungs off the white / black rest",
+      "value": {
+        "r": 0.7450980544090271,
+        "g": 0.7568627595901489,
+        "b": 0.7686274647712708,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/200"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/primary/fill/focused",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Primary fill on inverse, focused — 2 neutral rungs off the white / black rest",
+      "value": {
+        "r": 0.8549019694328308,
+        "g": 0.8627451062202454,
+        "b": 0.8666666746139526,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/100"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/primary/fill/selected",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Primary fill on inverse, selected — 4 neutral rungs off the white / black rest",
+      "value": {
+        "r": 0.7450980544090271,
+        "g": 0.7568627595901489,
+        "b": 0.7686274647712708,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/200"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/primary/on-fill",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL"
+      ],
+      "description": "Label on the primary inverse fill — 4.5:1 at rest",
+      "value": {
+        "r": 0.6313725709915161,
+        "g": 0,
+        "b": 0.11764705926179886,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/650"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/primary/text/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Primary label, rest — 4.5:1 on inverse/background/primary (outline, text)",
+      "value": {
+        "r": 0.8549019694328308,
+        "g": 0.33725491166114807,
+        "b": 0.34117648005485535,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/450"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/primary/text/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Primary label, hover — 4.5:1 on inverse/background/primary (outline, text)",
+      "value": {
+        "r": 0.8823529481887817,
+        "g": 0.49803921580314636,
+        "b": 0.48235294222831726,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/350"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/primary/text/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Primary label, pressed — 4.5:1 on inverse/background/primary (outline, text)",
+      "value": {
+        "r": 0.9098039269447327,
+        "g": 0.6392157077789307,
+        "b": 0.6235294342041016,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/250"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/primary/icon/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Primary icon, rest — 4.5:1 on inverse/background/primary (outline, ghost, text)",
+      "value": {
+        "r": 0.8549019694328308,
+        "g": 0.33725491166114807,
+        "b": 0.34117648005485535,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/450"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/primary/icon/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Primary icon, hover — 4.5:1 on inverse/background/primary (outline, ghost, text)",
+      "value": {
+        "r": 0.8823529481887817,
+        "g": 0.49803921580314636,
+        "b": 0.48235294222831726,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/350"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/primary/icon/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Primary icon, pressed — 4.5:1 on inverse/background/primary (outline, ghost, text)",
+      "value": {
+        "r": 0.9098039269447327,
+        "g": 0.6392157077789307,
+        "b": 0.6235294342041016,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/250"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/primary/border/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Primary outline edge, rest — 3:1 on inverse/background/primary, follows the label",
+      "value": {
+        "r": 0.8549019694328308,
+        "g": 0.33725491166114807,
+        "b": 0.34117648005485535,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/450"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/primary/border/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Primary outline edge, hover — 3:1 on inverse/background/primary, follows the label",
+      "value": {
+        "r": 0.8823529481887817,
+        "g": 0.49803921580314636,
+        "b": 0.48235294222831726,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/350"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/primary/border/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Primary outline edge, pressed — 3:1 on inverse/background/primary, follows the label",
+      "value": {
+        "r": 0.9098039269447327,
+        "g": 0.6392157077789307,
+        "b": 0.6235294342041016,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/250"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/primary/overlay/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Primary hover wash on inverse — 10%, opposite polarity to the page wash",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 0.10000000149011612
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/white-alpha/10"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/primary/overlay/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Primary pressed wash on inverse — 20%, opposite polarity to the page wash",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 0.20000000298023224
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/white-alpha/20"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/primary/overlay/selected",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Primary selected wash on inverse — 20%, opposite polarity to the page wash",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 0.20000000298023224
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/white-alpha/20"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/destructive/fill/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Destructive fill on inverse, rest — white / black, 3:1 on inverse/background/primary",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/white"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/destructive/fill/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Destructive fill on inverse, hover — 2 neutral rungs off the white / black rest",
+      "value": {
+        "r": 0.8549019694328308,
+        "g": 0.8627451062202454,
+        "b": 0.8666666746139526,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/100"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/destructive/fill/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Destructive fill on inverse, pressed — 4 neutral rungs off the white / black rest",
+      "value": {
+        "r": 0.7450980544090271,
+        "g": 0.7568627595901489,
+        "b": 0.7686274647712708,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/200"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/destructive/fill/focused",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Destructive fill on inverse, focused — 2 neutral rungs off the white / black rest",
+      "value": {
+        "r": 0.8549019694328308,
+        "g": 0.8627451062202454,
+        "b": 0.8666666746139526,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/100"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/destructive/fill/selected",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Destructive fill on inverse, selected — 4 neutral rungs off the white / black rest",
+      "value": {
+        "r": 0.7450980544090271,
+        "g": 0.7568627595901489,
+        "b": 0.7686274647712708,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/200"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/destructive/on-fill",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL"
+      ],
+      "description": "Label on the destructive inverse fill — 4.5:1 at rest",
+      "value": {
+        "r": 0.6313725709915161,
+        "g": 0,
+        "b": 0.11764705926179886,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/650"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/destructive/text/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Destructive label, rest — 4.5:1 on inverse/background/tertiary (outline, text)",
+      "value": {
+        "r": 0.8705882430076599,
+        "g": 0.42352941632270813,
+        "b": 0.4117647111415863,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/400"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/destructive/text/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Destructive label, hover — 4.5:1 on inverse/background/tertiary (outline, text)",
+      "value": {
+        "r": 0.8980392217636108,
+        "g": 0.5686274766921997,
+        "b": 0.5529412031173706,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/300"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/destructive/text/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Destructive label, pressed — 4.5:1 on inverse/background/tertiary (outline, text)",
+      "value": {
+        "r": 0.9215686321258545,
+        "g": 0.7058823704719543,
+        "b": 0.6941176652908325,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/200"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/destructive/icon/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Destructive icon, rest — 4.5:1 on inverse/background/tertiary (outline, ghost, text)",
+      "value": {
+        "r": 0.8705882430076599,
+        "g": 0.42352941632270813,
+        "b": 0.4117647111415863,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/400"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/destructive/icon/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Destructive icon, hover — 4.5:1 on inverse/background/tertiary (outline, ghost, text)",
+      "value": {
+        "r": 0.8980392217636108,
+        "g": 0.5686274766921997,
+        "b": 0.5529412031173706,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/300"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/destructive/icon/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Destructive icon, pressed — 4.5:1 on inverse/background/tertiary (outline, ghost, text)",
+      "value": {
+        "r": 0.9215686321258545,
+        "g": 0.7058823704719543,
+        "b": 0.6941176652908325,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/200"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/destructive/border/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Destructive outline edge, rest — 3:1 on inverse/background/tertiary, follows the label",
+      "value": {
+        "r": 0.8705882430076599,
+        "g": 0.42352941632270813,
+        "b": 0.4117647111415863,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/400"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/destructive/border/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Destructive outline edge, hover — 3:1 on inverse/background/tertiary, follows the label",
+      "value": {
+        "r": 0.8980392217636108,
+        "g": 0.5686274766921997,
+        "b": 0.5529412031173706,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/300"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/destructive/border/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Destructive outline edge, pressed — 3:1 on inverse/background/tertiary, follows the label",
+      "value": {
+        "r": 0.9215686321258545,
+        "g": 0.7058823704719543,
+        "b": 0.6941176652908325,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/200"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/destructive/overlay/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Destructive hover wash on inverse — 10%, opposite polarity to the page wash",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 0.10000000149011612
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/white-alpha/10"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/destructive/overlay/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Destructive pressed wash on inverse — 20%, opposite polarity to the page wash",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 0.20000000298023224
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/white-alpha/20"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/destructive/overlay/selected",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Destructive selected wash on inverse — 20%, opposite polarity to the page wash",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 0.20000000298023224
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/white-alpha/20"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/neutral/fill/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Neutral fill on inverse, rest — white / black, 3:1 on inverse/background/primary",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/white"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/neutral/fill/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Neutral fill on inverse, hover — 2 neutral rungs off the white / black rest",
+      "value": {
+        "r": 0.8549019694328308,
+        "g": 0.8627451062202454,
+        "b": 0.8666666746139526,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/100"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/neutral/fill/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Neutral fill on inverse, pressed — 4 neutral rungs off the white / black rest",
+      "value": {
+        "r": 0.7450980544090271,
+        "g": 0.7568627595901489,
+        "b": 0.7686274647712708,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/200"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/neutral/fill/focused",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Neutral fill on inverse, focused — 2 neutral rungs off the white / black rest",
+      "value": {
+        "r": 0.8549019694328308,
+        "g": 0.8627451062202454,
+        "b": 0.8666666746139526,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/100"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/neutral/fill/selected",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Neutral fill on inverse, selected — 4 neutral rungs off the white / black rest",
+      "value": {
+        "r": 0.7450980544090271,
+        "g": 0.7568627595901489,
+        "b": 0.7686274647712708,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/200"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/neutral/on-fill",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL"
+      ],
+      "description": "Label on the neutral inverse fill — 4.5:1 at rest",
+      "value": {
+        "r": 0.0470588244497776,
+        "g": 0.05098039284348488,
+        "b": 0.05882352963089943,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/950"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/neutral/text/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Neutral label, rest — 4.5:1 on inverse/background/primary (outline, text)",
+      "value": {
+        "r": 0.9647058844566345,
+        "g": 0.9686274528503418,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/025"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/neutral/text/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Neutral label, hover — 4.5:1 on inverse/background/primary (outline, text)",
+      "value": {
+        "r": 0.8549019694328308,
+        "g": 0.8627451062202454,
+        "b": 0.8666666746139526,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/100"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/neutral/text/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Neutral label, pressed — 4.5:1 on inverse/background/primary (outline, text)",
+      "value": {
+        "r": 0.7450980544090271,
+        "g": 0.7568627595901489,
+        "b": 0.7686274647712708,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/200"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/neutral/icon/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Neutral icon, rest — 4.5:1 on inverse/background/primary (outline, ghost, text)",
+      "value": {
+        "r": 0.9647058844566345,
+        "g": 0.9686274528503418,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/025"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/neutral/icon/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Neutral icon, hover — 4.5:1 on inverse/background/primary (outline, ghost, text)",
+      "value": {
+        "r": 0.8549019694328308,
+        "g": 0.8627451062202454,
+        "b": 0.8666666746139526,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/100"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/neutral/icon/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Neutral icon, pressed — 4.5:1 on inverse/background/primary (outline, ghost, text)",
+      "value": {
+        "r": 0.7450980544090271,
+        "g": 0.7568627595901489,
+        "b": 0.7686274647712708,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/200"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/neutral/border/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Neutral outline edge, rest — 3:1 on inverse/background/primary, follows the label",
+      "value": {
+        "r": 0.9647058844566345,
+        "g": 0.9686274528503418,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/025"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/neutral/border/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Neutral outline edge, hover — 3:1 on inverse/background/primary, follows the label",
+      "value": {
+        "r": 0.8549019694328308,
+        "g": 0.8627451062202454,
+        "b": 0.8666666746139526,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/100"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/neutral/border/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Neutral outline edge, pressed — 3:1 on inverse/background/primary, follows the label",
+      "value": {
+        "r": 0.7450980544090271,
+        "g": 0.7568627595901489,
+        "b": 0.7686274647712708,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/200"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/neutral/overlay/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Neutral hover wash on inverse — 10%, opposite polarity to the page wash",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 0.10000000149011612
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/white-alpha/10"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/neutral/overlay/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Neutral pressed wash on inverse — 20%, opposite polarity to the page wash",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 0.20000000298023224
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/white-alpha/20"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/interactive/neutral/overlay/selected",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Neutral selected wash on inverse — 20%, opposite polarity to the page wash",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 0.20000000298023224
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/white-alpha/20"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/border/primary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Default border — a decorative divider",
+      "value": {
+        "r": 0.16078431904315948,
+        "g": 0.1764705926179886,
+        "b": 0.1882352977991104,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/800"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/border/secondary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Stronger border / divider",
+      "value": {
+        "r": 0.33725491166114807,
+        "g": 0.364705890417099,
+        "b": 0.3843137323856354,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/600"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/border/tertiary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Strongest border / divider",
+      "value": {
+        "r": 0.5882353186607361,
+        "g": 0.6078431606292725,
+        "b": 0.6235294342041016,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/neutral/350"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/border/brand",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Brand border — 3:1 on inverse/background/primary",
+      "value": {
+        "r": 0.8352941274642944,
+        "g": 0.239215686917305,
+        "b": 0.2666666805744171,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/500"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/border/success",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Success border — 3:1 on inverse/background/primary",
+      "value": {
+        "r": 0.054901961237192154,
+        "g": 0.5098039507865906,
+        "b": 0.26274511218070984,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/green/500"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/border/warning",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Warning border — 3:1 on inverse/background/primary",
+      "value": {
+        "r": 0.7019608020782471,
+        "g": 0.3843137323856354,
+        "b": 0.0117647061124444,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/amber/500"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/border/danger",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Danger border — 3:1 on inverse/background/primary",
+      "value": {
+        "r": 0.8352941274642944,
+        "g": 0.239215686917305,
+        "b": 0.2666666805744171,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/500"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/border/info",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Info border — 3:1 on inverse/background/primary",
+      "value": {
+        "r": 0.1921568661928177,
+        "g": 0.48235294222831726,
+        "b": 0.6980392336845398,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/info/500"
+      }
+    },
+    {
+      "name": "nbds/color/inverse/border/focus",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Focus ring color — 3:1 on inverse/background/primary",
+      "value": {
+        "r": 0.8549019694328308,
+        "g": 0.33725491166114807,
+        "b": 0.34117648005485535,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/palette/red/450"
       }
     },
     {
@@ -4840,12 +4835,13 @@
       }
     },
     {
-      "name": "nbds/color/inverse/border/primary",
+      "name": "nbds/color/inverse/disabled/fill",
       "resolvedType": "COLOR",
       "scopes": [
-        "STROKE_COLOR"
+        "FRAME_FILL",
+        "SHAPE_FILL"
       ],
-      "description": "Default border — a decorative divider",
+      "description": "Disabled control fill — one muted neutral, any intent",
       "value": {
         "r": 0.16078431904315948,
         "g": 0.1764705926179886,
@@ -4858,147 +4854,151 @@
       }
     },
     {
-      "name": "nbds/color/inverse/border/secondary",
+      "name": "nbds/color/inverse/disabled/on-fill",
       "resolvedType": "COLOR",
       "scopes": [
-        "STROKE_COLOR"
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL"
       ],
-      "description": "Stronger border / divider",
+      "description": "Label / icon on a disabled fill — muted, 3:1",
       "value": {
-        "r": 0.33725491166114807,
-        "g": 0.364705890417099,
-        "b": 0.3843137323856354,
+        "r": 0.43921568989753723,
+        "g": 0.4627451002597809,
+        "b": 0.48627451062202454,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/600"
+        "name": "nbds/core/palette/neutral/500"
       }
     },
     {
-      "name": "nbds/color/inverse/border/tertiary",
+      "name": "nbds/color/inverse/disabled/text",
       "resolvedType": "COLOR",
       "scopes": [
-        "STROKE_COLOR"
+        "TEXT_FILL"
       ],
-      "description": "Strongest border / divider",
+      "description": "Disabled text — reduced contrast, 3:1 on inverse/background/secondary",
       "value": {
-        "r": 0.5882353186607361,
-        "g": 0.6078431606292725,
-        "b": 0.6235294342041016,
+        "r": 0.38823530077934265,
+        "g": 0.4156862795352936,
+        "b": 0.43529412150382996,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/350"
+        "name": "nbds/core/palette/neutral/550"
       }
     },
     {
-      "name": "nbds/color/inverse/border/brand",
+      "name": "nbds/color/inverse/disabled/icon",
       "resolvedType": "COLOR",
       "scopes": [
-        "STROKE_COLOR"
+        "FRAME_FILL",
+        "SHAPE_FILL"
       ],
-      "description": "Brand border — 3:1 on inverse/background/primary",
+      "description": "Disabled icon — reduced contrast, 3:1 on inverse/background/secondary",
       "value": {
-        "r": 0.8352941274642944,
-        "g": 0.239215686917305,
-        "b": 0.2666666805744171,
+        "r": 0.38823530077934265,
+        "g": 0.4156862795352936,
+        "b": 0.43529412150382996,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/500"
+        "name": "nbds/core/palette/neutral/550"
       }
     },
     {
-      "name": "nbds/color/inverse/border/success",
+      "name": "nbds/color/inverse/disabled/border",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
-      "description": "Success border — 3:1 on inverse/background/primary",
+      "description": "Disabled control border — muted neutral",
       "value": {
-        "r": 0.054901961237192154,
-        "g": 0.5098039507865906,
-        "b": 0.26274511218070984,
+        "r": 0.16078431904315948,
+        "g": 0.1764705926179886,
+        "b": 0.1882352977991104,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/green/500"
+        "name": "nbds/core/palette/neutral/800"
       }
     },
     {
-      "name": "nbds/color/inverse/border/warning",
+      "name": "nbds/color/inverse/field/fill",
       "resolvedType": "COLOR",
       "scopes": [
-        "STROKE_COLOR"
+        "FRAME_FILL",
+        "SHAPE_FILL"
       ],
-      "description": "Warning border — 3:1 on inverse/background/primary",
+      "description": "Form field fill — transparent by default; the border marks the field",
       "value": {
-        "r": 0.7019608020782471,
-        "g": 0.3843137323856354,
-        "b": 0.0117647061124444,
-        "a": 1
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 0
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/amber/500"
+        "name": "nbds/core/palette/transparent"
       }
     },
     {
-      "name": "nbds/color/inverse/border/danger",
+      "name": "nbds/color/inverse/field/border/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
-      "description": "Danger border — 3:1 on inverse/background/primary",
+      "description": "Form field border — 3:1 on inverse/background/secondary",
       "value": {
-        "r": 0.8352941274642944,
-        "g": 0.239215686917305,
-        "b": 0.2666666805744171,
+        "r": 0.38823530077934265,
+        "g": 0.4156862795352936,
+        "b": 0.43529412150382996,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/500"
+        "name": "nbds/core/palette/neutral/550"
       }
     },
     {
-      "name": "nbds/color/inverse/border/info",
+      "name": "nbds/color/inverse/field/border/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
-      "description": "Info border — 3:1 on inverse/background/primary",
+      "description": "Form field hover border — 3:1 on inverse/background/secondary; pair it with a second cue",
       "value": {
-        "r": 0.1921568661928177,
-        "g": 0.48235294222831726,
-        "b": 0.6980392336845398,
+        "r": 0.4901960790157318,
+        "g": 0.5137255191802979,
+        "b": 0.529411792755127,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/info/500"
+        "name": "nbds/core/palette/neutral/450"
       }
     },
     {
-      "name": "nbds/color/inverse/border/focus",
+      "name": "nbds/color/inverse/field/placeholder",
       "resolvedType": "COLOR",
       "scopes": [
-        "STROKE_COLOR"
+        "TEXT_FILL"
       ],
-      "description": "Focus ring color — 3:1 on inverse/background/primary",
+      "description": "Form field placeholder — 4.5:1 on inverse/background/secondary",
       "value": {
-        "r": 0.8549019694328308,
-        "g": 0.33725491166114807,
-        "b": 0.34117648005485535,
+        "r": 0.4901960790157318,
+        "g": 0.5137255191802979,
+        "b": 0.529411792755127,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/450"
+        "name": "nbds/core/palette/neutral/450"
       }
     }
   ]

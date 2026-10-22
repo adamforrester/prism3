@@ -110,8 +110,18 @@
  *      groups in order; a guide moved by hand into another group stays; a designer's note stays; a retitled group keeps
  *      its title and a title Prism3 wrote is refreshed; an empty group kept by a filtered and a stopped run and removed by
  *      a full one, a group holding only a note not empty; adoption of hand-made groups, one holding two groups' guides
- *      included, and one emptied by hand never removed; an inverse family with no default at the end of the inverse row;
- *      effect styles below the groups; a header set with no Size=Large.
+ *      included, and one emptied by hand never removed; an inverse family with no default past Semantic colors' last
+ *      column in Inverse colors; effect styles below the groups; a header set with no Size=Large.
+ *  38. A GROUP YOU MADE (Q412 A, superseded 2026-10-19): its inverse guides move out to Inverse colors, its defaults into
+ *      one grid, once; the cleanup offer for a table the generator no longer draws.
+ *  39. THE MEASURED FILE (owner decision, 2026-10-19): a fixed, clipping frame you made with the inverse guides in a second
+ *      row, running over the frames below. Inverse colors is its own titled group 320 below, column-aligned (read off the
+ *      shim's layout model); the fixed frame grows to fit; the frames below move clear, order and gap kept; a rerun is
+ *      stable.
+ *  40. A GROUP YOU MADE THAT WRAPS (#2856): a HORIZONTAL frame with wrap on, header on the first row and the guides
+ *      wrapping below, grows to its widest row (never the one-row sum), its height its rows; one #2827's one-row sum
+ *      widened is put back; a width wider than its rows need that is not that sum is kept; a rerun is stable. Expected
+ *      widths from the layout rule (padding + widest child), typed here; the shim lays wrapped rows out by its own rule.
  *
  * INDEPENDENCE (docs/34): expected values are literals written here. The ratios (19.42, 18.13, 21) and the
  * failing 3.27 (neutral/400 on white, computed by hand from the WCAG formula), 6.44 (foreground.brand on
@@ -293,6 +303,16 @@
  *     default ignoring its inverse's column → "37: a new default joins above its inverse…"; a hand-made group removed
  *     when empty → "37: a hand-made group with no guides left is never removed"; 160 top padding → "23: a group is a
  *     transparent vertical auto layout…".
+ *   - (owner decision 2026-10-19, each on a committed head, the suite run on it) the split skipped → "38: each inverse
+ *     guide moved out to Inverse colors…" and "39: the inverse guides move out of the frame you made into Inverse
+ *     colors…"; `fitToContent` returning at once → "39: never clipped: a fixed frame you made grows to fit…"; the
+ *     overlap pass given no frame to push from → "39: never overlapping: the frames below move down clear of Inverse
+ *     colors…" and "38: Inverse colors goes 320 below the group, and the group that sat there moves down…".
+ *   - (#2856, each on a committed head, the suite run on it) the wrap branch dropped from `fitToContent`'s `need` →
+ *     "40: a wrapped frame you made grows to its widest row…", "40: its height is its two rows…" and "40: a wrapped
+ *     frame the one-row sum widened is put back…"; the repair disabled (`widened` false) → "40: a wrapped frame the
+ *     one-row sum widened is put back…"; `rowsHigh` ignoring `counterAxisSpacing` (`between = gap`) or returning only
+ *     `padV` → "40: a wrapped frame with a fixed height grows to its two rows…".
  *
  * THE SHIM IGNORES A RESIZE THE HOST IGNORES: a FIXED text inside an instance keeps its main component's width under
  * `resize` (live, 2026-09-28). Before the shim modeled it, every width assertion passed over one-word-a-line text.
@@ -405,6 +425,22 @@ const LINE_H = 20;
 const padY = (n: N): number => padOf(n, 'paddingTop') + padOf(n, 'paddingBottom');
 /** Out of an auto-layout frame's flow: an ABSOLUTE child takes no part in what the frame hugs. */
 const inFlow = (k: N): boolean => k.layoutPositioning !== 'ABSOLUTE';
+/**
+ * A ROW THAT WRAPS (`layoutWrap: 'WRAP'`, a HORIZONTAL frame of a fixed width), as the host lays it out: its in-flow
+ * children left to right, `itemSpacing` apart, and a child that would pass the right padding starts the next row at the
+ * left padding (the first in a row always stays, however wide). Each row is as tall as its tallest child; the rows sit
+ * `counterAxisSpacing` apart (the host's `itemSpacing` where it is unset). The shim's own rule, for #2856.
+ */
+const wrapRows = (n: N): { kids: N[]; at: Map<N, number>; h: number }[] => {
+  const inner = n.w - padX(n), gap = Number(n.itemSpacing ?? 0);
+  const rows: { kids: N[]; at: Map<N, number>; h: number; run: number }[] = [];
+  for (const k of n.children.filter((c) => c.visible !== false && inFlow(c))) {
+    const r = rows[rows.length - 1];
+    if (!r || r.run + gap + k.width > inner) rows.push({ kids: [k], at: new Map([[k, 0]]), h: k.height, run: k.width });
+    else { r.at.set(k, r.run + gap); r.kids.push(k); r.h = Math.max(r.h, k.height); r.run += gap + k.width; }
+  }
+  return rows;
+};
 /** THE LAYOUT EPOCH: bumped by every write to every node (each `N` is a proxy that counts its writes), so a grid's
  *  tracks are computed once per state of the file rather than once per read. A 124-row table's fingerprint reads
  *  1,750 cell widths, each a column of 125 cells: uncached, the suite ran ~8× slower. The proxy cannot see a write
@@ -443,6 +479,15 @@ class N {
   get x(): number {
     const a = this._anchor as { pw: number; x: number; w: number } | undefined;
     if (a && this.parent && this.layoutPositioning === 'ABSOLUTE' && this._constraints?.horizontal === 'MAX') return this.parent.width - (a.pw - a.x);
+    // AN IN-FLOW CHILD OF AN AUTO LAYOUT sits where the layout puts it, as the host reads it back: its parent's left
+    // padding, and in a row every in-flow child before it and the spacing after each (children aligned to the start).
+    const p = this.parent;
+    if (p && isAuto(p) && inFlow(this)) {
+      if (p.layoutMode === 'VERTICAL') return padOf(p, 'paddingLeft');
+      if (p.layoutWrap === 'WRAP') return padOf(p, 'paddingLeft') + (wrapRows(p).find((r) => r.kids.includes(this))?.at.get(this) ?? 0);
+      const before = p.children.slice(0, p.children.indexOf(this)).filter((k) => k.visible !== false && inFlow(k));
+      return padOf(p, 'paddingLeft') + before.reduce((sum, k) => sum + k.width + Number(p.itemSpacing ?? 0), 0);
+    }
     return this._x;
   }
   set x(v: number) { if (refuseMove && insideInstance(this)) throw new Error('cannot move a layer inside an instance'); this._x = v; }
@@ -736,6 +781,10 @@ const contentH = (n: N): number => {
   if (n.type === 'TEXT') return linesOf(n) * LINE_H;
   if (n.layoutMode === 'GRID') return hugGridH(n);
   if (!isAuto(n)) return n.layoutSizingVertical === 'FILL' ? Number(n.minHeight ?? 0) : n.h;
+  if (n.layoutMode === 'HORIZONTAL' && n.layoutWrap === 'WRAP') {
+    const rows = wrapRows(n);
+    return padY(n) + rows.reduce((a, r) => a + r.h, 0) + Number(n.counterAxisSpacing ?? n.itemSpacing ?? 0) * Math.max(0, rows.length - 1);
+  }
   const hs = n.children.filter((k) => k.visible !== false && inFlow(k)).map((k) => k.height);
   return padY(n) + (n.layoutMode === 'VERTICAL' ? hs.reduce((a, b) => a + b, 0) + Number(n.itemSpacing ?? 0) * Math.max(0, hs.length - 1) : Math.max(0, ...hs));
 };
@@ -1001,7 +1050,7 @@ const GROW_DIMENSION = 2 * 44;
 const RAMP_H = 81 * 44 + 40;
 /** The prism3 emission's inverse families, in file order: one table each since #2801 (the owner's change of 2026-10-16),
  *  where they were one Inverse table. */
-const SEM_INVERSE = ['Inverse background', 'Inverse foreground', 'Inverse interactive', 'Inverse disabled', 'Inverse field', 'Inverse text', 'Inverse icon', 'Inverse border'];
+const SEM_INVERSE = ['Inverse background', 'Inverse foreground', 'Inverse text', 'Inverse interactive', 'Inverse border', 'Inverse icon', 'Inverse disabled', 'Inverse field'];
 const PRIM = '↳ Primitive tokens';
 const SEM = '↳ Semantic tokens';
 const FC = '↳ File Components';
@@ -1298,7 +1347,7 @@ const main = async (): Promise<void> => {
   const byTitle = (kind: string, title: string): SgTable | undefined => plan.tables.find((t) => t.kind === kind && t.title === title);
   {
     const sem = plan.tables.filter((t) => t.kind === 'semantic');
-    ok(JSON.stringify(sem.map((t) => t.title)) === JSON.stringify(['Background', 'Foreground', 'Text', 'Icon', 'Interactive', 'Disabled', 'Border', 'Scrim', 'Veil', 'Field', ...SEM_INVERSE]), '3: color groups by family, in file order, each inverse family its own table (#2801)');
+    ok(JSON.stringify(sem.map((t) => t.title)) === JSON.stringify(['Background', 'Foreground', 'Text', 'Interactive', 'Border', 'Icon', 'Disabled', 'Scrim', 'Veil', 'Field', ...SEM_INVERSE]), '3: color groups by family, in file order, each inverse family its own table (#2801)');
     ok(sem.every((t) => t.page === SEM), '3: semantic tables go on ↳ Semantic tokens');
     const prim = plan.tables.filter((t) => t.kind === 'primitive');
     ok(JSON.stringify(prim.map((t) => t.title)) === JSON.stringify(['Core — base', 'Primary', 'Neutral', 'Accent', 'Success', 'Warning', 'Info', 'Danger', 'Black alpha', 'White alpha', 'Legacy']), '3: primitive tables per palette');
@@ -1656,7 +1705,7 @@ const main = async (): Promise<void> => {
   {
     const two = twoRootVariables();
     const p2 = planStyleGuide({ collections: two.cols, variables: two.vars }, contract);
-    const fams = ['Background', 'Foreground', 'Text', 'Icon', 'Interactive', 'Disabled', 'Border', 'Scrim', 'Veil', 'Field', ...SEM_INVERSE];
+    const fams = ['Background', 'Foreground', 'Text', 'Interactive', 'Border', 'Icon', 'Disabled', 'Scrim', 'Veil', 'Field', ...SEM_INVERSE];
     ok(JSON.stringify(p2.tables.filter((t) => t.kind === 'semantic').map((t) => t.title)) === JSON.stringify([...fams.map((x) => `${x} — nbds`), ...fams.map((x) => `${x} — pds3`)]), '9: a two-root color collection groups by family within each root, the root named in the title');
     const pal = ['Primary', 'Neutral', 'Accent', 'Success', 'Warning', 'Info', 'Danger', 'Black alpha', 'White alpha'];
     ok(JSON.stringify(p2.tables.filter((t) => t.kind === 'primitive').map((t) => t.title)) === JSON.stringify(['Core — nbds base', ...pal.map((x) => `${x} — nbds`), 'Core — pds3 base', ...pal.map((x) => `${x} — pds3`), 'Legacy']), '9: the two Primary palettes are told apart by their root; a one-root collection names none');
@@ -1714,24 +1763,38 @@ const main = async (): Promise<void> => {
     ok(JSON.stringify(planStyleGuide(named, contract).tables.find((t) => t.title === 'Legacy')!.rows.map((r) => r.token)) === JSON.stringify(['white', 'black', '5', '50', '100', '900']), '9: named values lead, in file order, then steps ascending');
   }
 
-  console.log('10. groups on a rerun (#2801): column-aligned inverse row, a widened guide, a guide dragged out, tables from before groups');
+  console.log('10. groups on a rerun (#2801): Inverse colors its own group, column-aligned below; a widened guide, a guide dragged out, tables from before groups');
   {
     const r = await fullFile();
     await draw(r.api, contract, { collections: ['color'] });
     const sc = groupFrame(r.sem, 'Semantic colors')!;
+    const ic = groupFrame(r.sem, 'Inverse colors')!;
     const at = (title: string): string => cellOf(tableFrame(r.sem, title));
-    // THE INVERSE ROW (the owner's change on #2801): each inverse guide directly under the default-surface guide it
-    // re-states, by column. Scrim and Veil have no inverse, so their cells below stay empty; typed out here.
-    const want = { Background: '0,0', Foreground: '0,1', Text: '0,2', Icon: '0,3', Interactive: '0,4', Disabled: '0,5', Border: '0,6', Scrim: '0,7', Veil: '0,8', Field: '0,9',
-      'Inverse background': '1,0', 'Inverse foreground': '1,1', 'Inverse text': '1,2', 'Inverse icon': '1,3', 'Inverse interactive': '1,4', 'Inverse disabled': '1,5', 'Inverse border': '1,6', 'Inverse field': '1,9' };
+    // INVERSE COLORS IS ITS OWN GROUP (owner decision, 2026-10-19): the defaults in Semantic colors' one row, the inverse
+    // guides in their own titled frame, each in its default counterpart's column. Scrim and Veil have no inverse, so their
+    // cells below stay empty; typed out here.
+    const want = { Background: '0,0', Foreground: '0,1', Text: '0,2', Interactive: '0,3', Border: '0,4', Icon: '0,5', Disabled: '0,6', Scrim: '0,7', Veil: '0,8', Field: '0,9',
+      'Inverse background': '0,0', 'Inverse foreground': '0,1', 'Inverse text': '0,2', 'Inverse interactive': '0,3', 'Inverse border': '0,4', 'Inverse icon': '0,5', 'Inverse disabled': '0,6', 'Inverse field': '0,9' };
     const got = Object.keys(want).map((t) => `${t} ${at(t)}`);
-    ok(!!sc && pageFrames(r.sem).length === 1 && JSON.stringify(got) === JSON.stringify(Object.entries(want).map(([t, c]) => `${t} ${c}`))
-      && guidesOf(sc)!.gridRowCount === 2 && guidesOf(sc)!.gridColumnCount === 10,
-      `10: Semantic colors holds the defaults in one row and each inverse guide under its counterpart, in a 2 × 10 grid (${got.filter((g, i) => g !== `${Object.keys(want)[i]} ${Object.values(want)[i]}`).join(', ') || 'as typed'})`);
-    // THE GROUP'S WIDTH, read off the guides: its padding, each column as wide as its widest guide, 160 between.
-    const colW = (g: N): number[] => { const kids = guidesOf(g)!.children; return Array.from({ length: guidesOf(g)!.gridColumnCount }, (_, c) => Math.max(0, ...kids.filter((k) => k.gridCol === c).map((k) => k.width))); };
+    const inverseTitles = Object.keys(want).filter((t) => t.startsWith('Inverse '));
+    ok(!!sc && !!ic && pageFrames(r.sem).length === 2 && JSON.stringify(got) === JSON.stringify(Object.entries(want).map(([t, c]) => `${t} ${c}`))
+      && guidesOf(sc)!.gridRowCount === 1 && guidesOf(sc)!.gridColumnCount === 10 && guidesOf(ic)!.gridRowCount === 1
+      && Object.keys(want).every((t) => tableFrame(r.sem, t)!.parent === guidesOf(t.startsWith('Inverse ') ? ic : sc)),
+      `10: Semantic colors holds the defaults in one row, and Inverse colors, a group of its own, holds every inverse guide in its default's column (${got.filter((g, i) => g !== `${Object.keys(want)[i]} ${Object.values(want)[i]}`).join(', ') || 'as typed'})`);
+    ok(ic.children[0]?.findOne((k) => k.name === 'Title')?.characters === 'Inverse colors' && ic.layoutMode === 'VERTICAL',
+      `10: the inverse group is titled Inverse colors (${ic.children[0]?.findOne((k) => k.name === 'Title')?.characters})`);
+    // DIRECTLY BELOW, COLUMN BY COLUMN: read off the shim's layout model (an auto layout's children where it lays them,
+    // a grid's columns its tracks and gaps), never off the plugin's arithmetic.
+    const leftOf = (n: N): number => { let x = 0; for (let q: N | null = n; q && q.type !== 'PAGE'; q = q.parent) x += q.x; return x; };
+    const cellLeft = (k: N): number => { const g = k.parent!; let x = leftOf(g); for (let c = 0; c < k.gridCol!; c++) x += trackW(g, c) + Number(g.gridColumnGap ?? 0); return x; };
+    const misaligned = inverseTitles.filter((t) => cellLeft(tableFrame(r.sem, t)!) !== cellLeft(tableFrame(r.sem, t.replace('Inverse ', '').replace(/^./, (c) => c.toUpperCase()))!));
+    ok(ic.y === sc.y + sc.height + 320 && misaligned.length === 0,
+      `10: Inverse colors sits 320 below Semantic colors, each inverse guide starting where its default does (${ic.y} vs ${sc.y + sc.height + 320}; misaligned: ${misaligned.map((t) => `${t} ${cellLeft(tableFrame(r.sem, t)!)}`).join(', ') || 'none'})`);
+    // THE GROUP'S WIDTH, read off the guides: its padding, each column as wide as the widest guide in it, above or
+    // below (the two grids share their columns), 160 between.
+    const colW = (g: N): number[] => Array.from({ length: guidesOf(g)!.gridColumnCount }, (_, c) => Math.max(0, ...[sc, ic].flatMap((x) => guidesOf(x)!.children).filter((k) => k.gridCol === c && (c < guidesOf(sc)!.gridColumnCount || k.parent === guidesOf(g))).map((k) => k.width)));
     const fromGuides = (g: N): number => 320 + colW(g).reduce((x, y) => x + y, 0) + 160 * (colW(g).length - 1);
-    ok(sc.width === fromGuides(sc), `10: the group is as wide as its columns and gaps, read off its guides (${sc.width} vs ${fromGuides(sc)})`);
+    ok(sc.width === fromGuides(sc) && ic.width === fromGuides(ic), `10: each group is as wide as its columns and gaps, read off the guides (${sc.width} vs ${fromGuides(sc)}; ${ic.width} vs ${fromGuides(ic)})`);
     const text = tableFrame(r.sem, 'Text')!, border = tableFrame(r.sem, 'Border')!;
     const textW = text.width;
     const grow = (n: number, tag: string, description: string): void => { for (let i = 0; i < n; i++) r.vars.push({ id: `VariableID:color:${tag}${i}`, name: `pds3/color/text/${tag}-${i}`, variableCollectionId: 'VariableCollectionId:color', resolvedType: 'COLOR', description, valuesByMode: { 'color:0': { r: 0, g: 0, b: 0, a: 1 }, 'color:1': { r: 1, g: 1, b: 1, a: 1 }, 'color:2': { r: 0, g: 0, b: 0, a: 1 }, 'color:3': { r: 1, g: 1, b: 1, a: 1 } } }); };
@@ -1745,8 +1808,10 @@ const main = async (): Promise<void> => {
     await draw(r.api, contract, { collections: ['color'] });
     ok(text.width - textW === WIDEN_TEXT && cellOf(text) === '0,2' && sc.width === fromGuides(sc), `10: a guide that widens by ${WIDEN_TEXT}px keeps its cell, and the group takes its new width (Text +${text.width - textW}, ${cellOf(text)}; group ${sc.width} vs ${fromGuides(sc)})`);
     ok(border.parent === r.sem && border.x === bx && border.y === by && border.pluginData['prism3-style-guide-in-group'] === sc.id, '10: a guide a designer dragged out of its group stays where they put it, and is not put back');
-    // The grid closed over Border's empty cell: Inverse border keeps column 6, now alone in it, and nothing moved.
-    ok(at('Inverse border') === '1,6' && at('Scrim') === '0,7' && guidesOf(sc)!.gridColumnCount === 10, `10: the grid keeps every column that still holds a guide (Inverse border ${at('Inverse border')}, Scrim ${at('Scrim')})`);
+    // The grid closed over Border's empty cell, and Inverse colors follows: Inverse border, whose default is now out of the
+    // group, goes past the last column, and each other inverse guide keeps its default's.
+    ok(at('Scrim') === '0,6' && at('Field') === '0,8' && guidesOf(sc)!.gridColumnCount === 9 && at('Inverse field') === '0,8' && at('Inverse border') === '0,9',
+      `10: the grid closes over a guide dragged out, and Inverse colors follows its columns (Scrim ${at('Scrim')}, Inverse field ${at('Inverse field')}, Inverse border ${at('Inverse border')})`);
     // TABLES FROM BEFORE GROUPS: an earlier build drew every table loose on the page, in category rows, with no group
     // record. The next run puts each in its group, and the groups stack from where those rows started.
     const old = await fullFile();
@@ -1757,10 +1822,10 @@ const main = async (): Promise<void> => {
       for (const g of pageFrames(p).filter((n) => !n.pluginData['prism3-style-guide'])) g.remove();
     }
     const mig = await draw(old.api, contract, { collections: ['color', 'core'] });
-    const semG = groupFrame(old.sem, 'Semantic colors'), primG = groupFrame(old.prim, 'Palettes');
-    ok(!!semG && !!primG && pageFrames(old.sem).length === 1 && pageFrames(old.prim).length === 1 && tablesOn(old.sem).every((g) => g.parent === guidesOf(semG))
-      && semG.x === 1000 && semG.y === 500 && primG.x === 1000 && primG.y === 500 && cellOf(tableFrame(old.sem, 'Inverse text')) === '1,2' && mig.tables.every((t) => t.status === 'updated'),
-      `10: tables an earlier build drew loose join their groups, updated in place, and the groups start where the rows did (${semG?.x},${semG?.y}; ${primG?.x},${primG?.y}; ${pageFrames(old.sem).length} frames on the page; Inverse text ${cellOf(tableFrame(old.sem, 'Inverse text'))}; ${mig.tables.filter((t) => t.status !== 'updated').map((t) => t.title).join(', ')}; ${tablesOn(old.sem).filter((g) => g.parent !== guidesOf(semG)).length} outside)`);
+    const semG = groupFrame(old.sem, 'Semantic colors'), primG = groupFrame(old.prim, 'Palettes'), invG = groupFrame(old.sem, 'Inverse colors');
+    ok(!!semG && !!primG && pageFrames(old.sem).length === 2 && pageFrames(old.prim).length === 1 && tablesOn(old.sem).every((g) => g.parent === guidesOf(/^Style guide — Inverse /.test(g.name) ? invG : semG))
+      && semG.x === 1000 && semG.y === 500 && primG.x === 1000 && primG.y === 500 && cellOf(tableFrame(old.sem, 'Inverse text')) === '0,2' && mig.tables.every((t) => t.status === 'updated'),
+      `10: tables an earlier build drew loose join their groups, updated in place, and the groups start where the rows did (${semG?.x},${semG?.y}; ${primG?.x},${primG?.y}; ${pageFrames(old.sem).length} frames on the page; Inverse text ${cellOf(tableFrame(old.sem, 'Inverse text'))}; ${mig.tables.filter((t) => t.status !== 'updated').map((t) => t.title).join(', ')}; ${tablesOn(old.sem).filter((g) => g.parent !== guidesOf(/^Style guide — Inverse /.test(g.name) ? invG : semG)).length} outside)`);
 
     // A host that does not keep the grid's HUG tracks is named, not drawn silently wrong.
     const q = await fullFile();
@@ -2175,8 +2240,8 @@ const main = async (): Promise<void> => {
     const keys = new Set(wraps.map((w) => w.pluginData['prism3-style-guide']));
     ok(wraps.length === 29 && keys.size === 29 && wraps.every((w) => w.children.filter((c) => c.name === 'Table').length === 1)
       && first.ran && first.value.tables.length === 29 && first.value.tables.every((t) => t.status === 'created')
-      && pageFrames(f15.prim).length === 1 && pageFrames(f15.sem).length === 1,
-      `15: exactly one set of tables results: 29, each key once, one group a page, each with one grid (${wraps.length} tables, ${keys.size} keys)`);
+      && pageFrames(f15.prim).length === 1 && pageFrames(f15.sem).length === 2,
+      `15: exactly one set of tables results: 29, each key once, one group a page (Inverse colors with its own), each with one grid (${wraps.length} tables, ${keys.size} keys)`);
     const third = await request(() => draw(f15.api, contract, { collections: ['legacy'] }));
     ok(third.ran && !guard.busy('style-guide'), '15: once that run reports, the next is let through');
   }
@@ -2919,7 +2984,7 @@ const main = async (): Promise<void> => {
   {
     // THE TABLES THE PAGE OFFERS, typed here: the prism3 file's 29, in draw order (section 14 counts the same run).
     const PRISM3_TITLES = ['Core — base', 'Primary', 'Neutral', 'Accent', 'Success', 'Warning', 'Info', 'Danger', 'Black alpha', 'White alpha',
-      'Background', 'Foreground', 'Text', 'Icon', 'Interactive', 'Disabled', 'Border', 'Scrim', 'Veil', 'Field', ...SEM_INVERSE, 'Legacy'];
+      'Background', 'Foreground', 'Text', 'Interactive', 'Border', 'Icon', 'Disabled', 'Scrim', 'Veil', 'Field', ...SEM_INVERSE, 'Legacy'];
     const f25 = await fullFile();
     const cat = catalogFor({ collections: f25.cols, variables: f25.vars }, contract, isSetUp(f25.api.root));
     ok(JSON.stringify(cat.tables.map((t) => t.title)) === JSON.stringify(PRISM3_TITLES) && cat.tables.every((t) => t.kind === 'color')
@@ -3922,10 +3987,11 @@ const main = async (): Promise<void> => {
       && styleGuideGroupOf({ type: 'dimension', tier: 'semantic' }) === 'space-size' && styleGuideGroupOf({ type: 'dimension', tier: 'semantic', allRadius: true }) === 'borders'
       && styleGuideGroupOf({ type: 'borderWidth', tier: 'semantic' }) === 'borders' && styleGuideGroupOf({ type: 'fontSize', tier: 'primitive' }) === 'primitive-fonts'
       && styleGuideGroupOf({ type: 'fontWeight', tier: 'semantic' }) === 'semantic-fonts' && styleGuideGroupOf({ type: 'typography', tier: 'semantic' }) === 'semantic-fonts'
-      && styleGuideGroupOf({ type: 'shadow', tier: 'semantic' }) === null && styleGuideGroupOf({ type: 'gradient', tier: 'semantic' }) === null,
-      '37: the engine table groups by type and tier: palettes, dimensions, fonts; semantic colors, space & size, borders, fonts; effect and gradient styles stand alone');
-    ok(JSON.stringify(STYLE_GUIDE_GROUPS.map((g) => `${g.tier[0]}:${g.title}`)) === JSON.stringify(['p:Palettes', 'p:Dimensions', 'p:Fonts', 's:Semantic colors', 's:Space & size', 's:Borders', 's:Fonts']),
-      `37: seven groups in the order they stack, titled as decided (${STYLE_GUIDE_GROUPS.map((g) => g.title).join(', ')})`);
+      && styleGuideGroupOf({ type: 'shadow', tier: 'semantic' }) === null && styleGuideGroupOf({ type: 'gradient', tier: 'semantic' }) === null
+      && styleGuideGroupOf({ type: 'color', tier: 'semantic', inverse: true }) === 'inverse-colors',
+      '37: the engine table groups by type and tier: palettes, dimensions, fonts; semantic colors, inverse colors, space & size, borders, fonts; effect and gradient styles stand alone');
+    ok(JSON.stringify(STYLE_GUIDE_GROUPS.map((g) => `${g.tier[0]}:${g.title}${g.under ? ` under ${g.under}` : ''}`)) === JSON.stringify(['p:Palettes', 'p:Dimensions', 'p:Fonts', 's:Semantic colors', 's:Inverse colors under semantic-colors', 's:Space & size', 's:Borders', 's:Fonts']),
+      `37: eight groups in the order they stack, titled as decided, Inverse colors under Semantic colors (${STYLE_GUIDE_GROUPS.map((g) => g.title).join(', ')})`);
     // Through the plan, on a file with another brand's families: an `accent` ramp under a foreign root, a semantic `link`
     // family, an icon-size collection and a border-width collection the prism3 emission does not have.
     const gf = await phase2File();
@@ -4041,20 +4107,23 @@ const main = async (): Promise<void> => {
     await draw(ad.api, contract);
     ok(!ramps.removed && ramps.parent === ad.prim, '37: a hand-made group with no guides left is never removed');
 
-    // (6) A FAMILY WITH NO DEFAULT COUNTERPART sits at the end of the inverse row; one with no inverse leaves a gap.
+    // (6) A FAMILY WITH NO DEFAULT COUNTERPART sits past Semantic colors' last column in Inverse colors; one with no
+    // inverse leaves its cell below empty.
     const iv = await fullFile();
     const four = { 'color:0': { r: 0, g: 0, b: 1, a: 1 }, 'color:1': { r: 0, g: 0, b: 1, a: 1 }, 'color:2': { r: 0, g: 0, b: 1, a: 1 }, 'color:3': { r: 0, g: 0, b: 1, a: 1 } };
     iv.vars.push({ id: 'VariableID:color:invlink', name: 'pds3/color/inverse/link/primary', variableCollectionId: 'VariableCollectionId:color', resolvedType: 'COLOR', description: '', valuesByMode: four });
     await draw(iv.api, contract, { collections: ['color'] });
-    ok(cellOf(tableFrame(iv.sem, 'Inverse link')) === '1,10' && cellOf(tableFrame(iv.sem, 'Scrim')) === '0,7' && !guidesOf(groupFrame(iv.sem, 'Semantic colors'))!.children.some((k) => k.gridRow === 1 && k.gridCol === 7),
-      `37: an inverse family with no default sits at the end of the inverse row, and a default with no inverse leaves its cell below empty (Inverse link ${cellOf(tableFrame(iv.sem, 'Inverse link'))})`);
+    const invGrid = (): N => guidesOf(groupFrame(iv.sem, 'Inverse colors'))!;
+    ok(cellOf(tableFrame(iv.sem, 'Inverse link')) === '0,10' && tableFrame(iv.sem, 'Inverse link')!.parent === invGrid() && cellOf(tableFrame(iv.sem, 'Scrim')) === '0,7' && !invGrid().children.some((k) => k.gridCol === 7),
+      `37: an inverse family with no default sits past Semantic colors' last column, and a default with no inverse leaves its cell below empty (Inverse link ${cellOf(tableFrame(iv.sem, 'Inverse link'))})`);
     // A new default family drawn later joins the end, and its inverse counterpart, drawn after it, goes under it.
     iv.vars.push({ id: 'VariableID:color:link', name: 'pds3/color/link/primary', variableCollectionId: 'VariableCollectionId:color', resolvedType: 'COLOR', description: '', valuesByMode: four });
     iv.vars.push({ id: 'VariableID:color:invglow', name: 'pds3/color/inverse/glow/primary', variableCollectionId: 'VariableCollectionId:color', resolvedType: 'COLOR', description: '', valuesByMode: four });
     iv.vars.push({ id: 'VariableID:color:glow', name: 'pds3/color/glow/primary', variableCollectionId: 'VariableCollectionId:color', resolvedType: 'COLOR', description: '', valuesByMode: four });
     await draw(iv.api, contract, { collections: ['color'] });
-    ok(cellOf(tableFrame(iv.sem, 'Link')) === '0,10' && cellOf(tableFrame(iv.sem, 'Glow')) === '0,11' && cellOf(tableFrame(iv.sem, 'Inverse glow')) === '1,11',
-      `37: a new default joins above its inverse when that column is free, and a new pair takes a new column, inverse under default (Link ${cellOf(tableFrame(iv.sem, 'Link'))}, Glow ${cellOf(tableFrame(iv.sem, 'Glow'))}, Inverse glow ${cellOf(tableFrame(iv.sem, 'Inverse glow'))})`);
+    ok(cellOf(tableFrame(iv.sem, 'Link')) === '0,10' && cellOf(tableFrame(iv.sem, 'Inverse link')) === '0,10' && cellOf(tableFrame(iv.sem, 'Glow')) === '0,11' && cellOf(tableFrame(iv.sem, 'Inverse glow')) === '0,11'
+      && tableFrame(iv.sem, 'Inverse glow')!.parent === invGrid(),
+      `37: a new default joins the end, and its inverse moves under it; a new pair takes a new column, inverse under default (Link ${cellOf(tableFrame(iv.sem, 'Link'))}, Inverse link ${cellOf(tableFrame(iv.sem, 'Inverse link'))}, Glow ${cellOf(tableFrame(iv.sem, 'Glow'))}, Inverse glow ${cellOf(tableFrame(iv.sem, 'Inverse glow'))})`);
 
     // (7) UNGROUPED GUIDES (Q6 A, Q8 A): effect styles stand alone, below the last group, left-aligned with the groups.
     const ef = await phase2File();
@@ -4076,7 +4145,7 @@ const main = async (): Promise<void> => {
       `37: with no Size=Large header, a group's title uses Size=Medium, and the run says so (${rmh.misses.filter((m) => m.includes('Size=')).join(' / ')})`);
   }
 
-  console.log('38. a group you made takes the inverse row (Q412 A, #2816); a table the generator no longer draws is offered, removed only on confirm');
+  console.log('38. a group you made gives its inverse guides to Inverse colors (owner decision, 2026-10-19; Q412 A, #2816); a table the generator no longer draws is offered, removed only on confirm');
   {
     const KEY = 'prism3-style-guide';
     const keyOf = (k: N): string => k.pluginData[KEY] ?? '';
@@ -4117,13 +4186,15 @@ const main = async (): Promise<void> => {
       const mate = defaults.find((d) => keyOf(d) === keyOf(v).replace('/inverse', ''));
       return `${guideName(v)} ${cellOf(v)} ${mate ? `under ${guideName(mate)} ${cellOf(mate)}` : 'with no default'}`;
     });
-    const paired = (defaults: N[], inverses: N[], grid: N | undefined): boolean => inverses.every((v) => {
+    const invGridOf = (f: { sem: N }): N | undefined => guidesOf(groupFrame(f.sem, 'Inverse colors'));
+    /** Each inverse guide in Inverse colors, in its default's column (one with no default past the defaults' last). */
+    const paired = (defaults: N[], inverses: N[], grid: N | undefined, inv: N | undefined): boolean => !!inv && inverses.every((v) => {
       const mate = defaults.find((d) => keyOf(d) === keyOf(v).replace('/inverse', ''));
-      return v.parent === grid && v.gridRow === 1 && (mate ? v.gridCol === mate.gridCol : v.gridCol! >= defaults.length);
+      return v.parent === inv && v.gridRow === 0 && (mate ? mate.parent === grid && v.gridCol === mate.gridCol : v.gridCol! >= defaults.length);
     });
 
-    // (1) THE MEASURED RESULT: the inverse guides at the end of the row. One of them a designer dragged out of the row
-    // before this run: it carries the record of the group it was in.
+    // (1) THE MEASURED RESULT OF #2810: the inverse guides at the end of the row. One of them a designer dragged out of the
+    // row before this run: it carries the record of the group it was in.
     const a = await handMade(true);
     const out = a.inverses[a.inverses.length - 1];
     a.f.sem.appendChild(out); out.pluginData['prism3-style-guide-in-group'] = String(a.row.id); out.x = -7000; out.y = -90000;
@@ -4134,46 +4205,50 @@ const main = async (): Promise<void> => {
     ok(a.row.parent === a.f.sem && !a.row.removed && a.row.x === -7000 && a.row.y === a.y && a.row.name === 'Semantic colors' && a.row.layoutMode === 'HORIZONTAL'
       && a.row.itemSpacing === 96 && a.row.paddingTop === 24 && a.row.children[0] === a.title && a.title.characters === 'Semantic colors' && a.row.children[1] === grid
       && a.row.children[2] === a.note && a.row.children.length === 3,
-      `38: a group you made keeps its frame, title, place and layout; its guides go into one grid where the first guide was (${a.row.children.map((c) => c.name).join(', ')}; ${a.row.x},${a.row.y})`);
-    ok(grid?.layoutMode === 'GRID' && grid.gridRowCount === 2 && grid.gridColumnGap === 96 && grid.gridRowGap === 96 && a.defaults.every((d, i) => d.parent === grid && d.gridRow === 0 && d.gridCol === i),
-      `38: the defaults are the top row, in the designer's order, their own spacing kept (${a.defaults.map((d) => `${guideName(d)} ${cellOf(d)}`).join(', ')})`);
-    ok(paired(a.defaults, inRow, grid), `38: each inverse guide is under its default counterpart, one with no default past the last column (${pairing(a.defaults, inRow).join('; ')})`);
+      `38: a group you made keeps its frame, title, place and layout; its defaults go into one grid where the first guide was (${a.row.children.map((c) => c.name).join(', ')}; ${a.row.x},${a.row.y})`);
+    ok(grid?.layoutMode === 'GRID' && grid.gridRowCount === 1 && grid.gridColumnGap === 96 && a.defaults.every((d, i) => d.parent === grid && d.gridRow === 0 && d.gridCol === i),
+      `38: the defaults are one row, in the designer's order, their own spacing kept (${a.defaults.map((d) => `${guideName(d)} ${cellOf(d)}`).join(', ')})`);
+    ok(paired(a.defaults, inRow, grid, invGridOf(a.f)), `38: each inverse guide moved out to Inverse colors, in its default's column, one with no default past the last (${pairing(a.defaults, inRow).join('; ')})`);
     ok(out.parent === a.f.sem && out.x === -7000 && out.y === -90000, `38: a guide dragged out of the group by hand stays where it was put (${out.parent?.name})`);
-    const below = groupFrame(a.f.sem, 'Borders');
-    ok(!!below && pageOverlaps(a.f.sem).every((o) => !o.includes('Semantic colors')) && below.y === a.row.y + a.row.height + 320,
-      `38: the group grew taller, and the group below it moved down with it, 320 below (Borders at ${below?.y}, the row ends at ${a.row.y + a.row.height}; ${pageOverlaps(a.f.sem).filter((o) => o.includes('Semantic colors')).join('; ') || 'no overlap'})`);
+    const below = groupFrame(a.f.sem, 'Borders'), inv = groupFrame(a.f.sem, 'Inverse colors');
+    ok(!!below && !!inv && inv.y === a.row.y + a.row.height + 320 && pageOverlaps(a.f.sem).length === 0 && below.y === inv.y + inv.height + 320,
+      `38: Inverse colors goes 320 below the group, and the group that sat there moves down clear of it, 320 below (Inverse colors at ${inv?.y}, the row ends at ${a.row.y + a.row.height}; Borders at ${below?.y}; ${pageOverlaps(a.f.sem).join('; ') || 'no overlap'})`);
     ok(JSON.stringify(r1.groups?.rearranged) === JSON.stringify(['Semantic colors'])
-      && styleGuideSummary(r1).summary.includes('1 group you made now has each inverse guide under its default, its title and place kept: Semantic colors')
+      && styleGuideSummary(r1).summary.includes('1 group now has its inverse guides in Inverse colors, a group of their own below, its title and place kept: Semantic colors')
       && !/kept as drawn, with new guides added: [^.]*Semantic colors/.test(styleGuideSummary(r1).summary),
-      `38: the summary says the group was rearranged, once (${JSON.stringify(r1.groups?.rearranged)})`);
+      `38: the summary says the group's inverse guides moved out, once (${JSON.stringify(r1.groups?.rearranged)})`);
 
-    // (2) A RERUN LEAVES THE DESIGNER'S ARRANGEMENT ALONE: the rule is applied once; a guide moved by hand to another cell
-    // stays there, and no second grid is made.
+    // (2) A RERUN LEAVES THE DESIGNER'S ARRANGEMENT ALONE: the grid is made once; a default moved by hand to another cell
+    // stays there, no second grid is made, and its inverse guide follows it to its new column.
     const moved = a.defaults[0];
-    grid!.gridColumnCount = grid!.gridColumnCount + 1; grid!.gridColumnSizes = Array.from({ length: grid!.gridColumnCount }, () => ({ type: 'HUG' }));
-    moved.setGridChildPosition(0, grid!.gridColumnCount - 1);
+    // Without the grid (the split did not run) the hand move is skipped; the checks above already failed by name.
+    if (grid) {
+      grid.gridColumnCount = grid.gridColumnCount + 1; grid.gridColumnSizes = Array.from({ length: grid.gridColumnCount }, () => ({ type: 'HUG' }));
+      moved.setGridChildPosition(0, grid.gridColumnCount - 1);
+    }
     const at = cellOf(moved);
     const r2 = await draw(a.f.api, contract);
-    ok(gridIn(a.row) === grid && a.row.children.length === 3 && cellOf(moved) === at && moved.parent === grid && !r2.groups?.rearranged.length,
-      `38: a rerun keeps a guide moved by hand where it was put, and rearranges nothing (${guideName(moved)} ${cellOf(moved)}, was ${at})`);
+    const movedInv = inRow.find((v) => keyOf(v).replace('/inverse', '') === keyOf(moved));
+    ok(gridIn(a.row) === grid && a.row.children.length === 3 && cellOf(moved) === at && moved.parent === grid && !r2.groups?.rearranged.length
+      && (!movedInv || cellOf(movedInv) === at),
+      `38: a rerun keeps a guide moved by hand where it was put, rearranges nothing, and its inverse follows it (${guideName(moved)} ${cellOf(moved)}, was ${at}; ${guideName(movedInv)} ${cellOf(movedInv)})`);
 
-    // (3) A NEW PAIR LATER joins the adopted grid as it would one Prism3 drew: the default on top, its inverse under it.
+    // (3) A NEW PAIR LATER: the default joins the adopted grid, its inverse goes under it in Inverse colors.
     const four = { 'color:0': { r: 0, g: 0, b: 1, a: 1 }, 'color:1': { r: 0, g: 0, b: 1, a: 1 }, 'color:2': { r: 0, g: 0, b: 1, a: 1 }, 'color:3': { r: 0, g: 0, b: 1, a: 1 } };
     a.f.vars.push({ id: 'VariableID:color:glow', name: 'pds3/color/glow/primary', variableCollectionId: 'VariableCollectionId:color', resolvedType: 'COLOR', description: '', valuesByMode: four });
     a.f.vars.push({ id: 'VariableID:color:invglow', name: 'pds3/color/inverse/glow/primary', variableCollectionId: 'VariableCollectionId:color', resolvedType: 'COLOR', description: '', valuesByMode: four });
     await draw(a.f.api, contract);
     const glow = tableFrame(a.f.sem, 'Glow'), invGlow = tableFrame(a.f.sem, 'Inverse glow');
-    ok(glow?.parent === grid && invGlow?.parent === grid && glow.gridRow === 0 && invGlow.gridRow === 1 && invGlow.gridCol === glow.gridCol,
-      `38: a new pair joins a group you made, the inverse under its default (Glow ${cellOf(glow)} in ${glow?.parent?.parent?.name}, Inverse glow ${cellOf(invGlow)})`);
+    ok(glow?.parent === grid && invGlow?.parent === invGridOf(a.f) && glow.gridRow === 0 && invGlow.gridRow === 0 && invGlow.gridCol === glow.gridCol,
+      `38: a new pair: the default joins a group you made, its inverse goes under it in Inverse colors (Glow ${cellOf(glow)} in ${glow?.parent?.parent?.name}, Inverse glow ${cellOf(invGlow)} in ${invGlow?.parent?.parent?.name})`);
 
     // (4) ADOPTED THIS RUN: the row holds the defaults only, and the inverse guides are loose, drawn before groups. They
-    // join it and the row becomes the two rows in the same run.
+    // join Inverse colors, and the row's defaults go into one grid, so each inverse guide has its column, in the same run.
     const b = await handMade(false);
-    const rb = await draw(b.f.api, contract);
+    await draw(b.f.api, contract);
     const gb = gridIn(b.row);
-    ok(!!gb && b.defaults.every((d, i) => d.parent === gb && cellOf(d) === `0,${i}`) && paired(b.defaults, b.inverses, gb) && b.row.children[0] === b.title
-      && JSON.stringify(rb.groups?.rearranged) === JSON.stringify(['Semantic colors']),
-      `38: inverse guides that join a group you made this run go under their defaults too (${pairing(b.defaults, b.inverses).slice(0, 3).join('; ')}…)`);
+    ok(!!gb && b.defaults.every((d, i) => d.parent === gb && cellOf(d) === `0,${i}`) && paired(b.defaults, b.inverses, gb, invGridOf(b.f)) && b.row.children[0] === b.title,
+      `38: inverse guides that join Inverse colors this run go under their defaults in a group you made too (${pairing(b.defaults, b.inverses).slice(0, 3).join('; ')}…)`);
 
     // (5) THE CLEANUP OFFER: the owner's old single Inverse table, in their own "Inverse" frame, a copy of a table the
     // generator no longer draws (it now draws one per family). The run leaves it, says so, and lists it; it is removed
@@ -4247,6 +4322,187 @@ const main = async (): Promise<void> => {
     const rEmpty = await removeRetiredTables(empty.c.api, contract, [String(empty.old.id)]);
     ok(!empty.old.removed && rEmpty.removed.length === 0 && JSON.stringify(rEmpty.left) === JSON.stringify([String(empty.old.id)]),
       `38: a confirmed table is left in place when the plan draws nothing, by id (${JSON.stringify(rEmpty)})`);
+  }
+
+  console.log('39. the measured file (owner decision, 2026-10-19): inverse guides moved out of a group you made into Inverse colors below it; never clipped; never overlapping');
+  {
+    const KEY = 'prism3-style-guide';
+    const keyOf = (k: N): string => k.pluginData[KEY] ?? '';
+    const measured = async () => {
+      const f = await fullFile();
+      await draw(f.api, contract);
+      // AS #2818'S RUN LEFT THE OWNER'S PAGE: their own "Semantic colors" frame, a horizontal auto layout FIXED at a width
+      // narrower than what it holds, clipping, inset 161, holding a `Guides` grid of the defaults in row 1 and each inverse
+      // guide under its default in row 2. Their own "Borders" and "Fonts" frames sat just below its bottom edge before the
+      // inverse row was added, so the taller group now runs over both. Prism3's own groups are gone from the page.
+      const ours = groupFrame(f.sem, 'Semantic colors')!, oursInv = groupFrame(f.sem, 'Inverse colors')!;
+      const grid = guidesOf(ours)!;
+      const owner = new N('FRAME'); owner.name = 'Semantic colors'; owner.layoutMode = 'HORIZONTAL'; owner.primaryAxisSizingMode = 'FIXED'; owner.counterAxisSizingMode = 'AUTO';
+      owner.clipsContent = true; owner.paddingLeft = 161; owner.paddingRight = 161; owner.paddingTop = 161; owner.paddingBottom = 161; owner.itemSpacing = 0;
+      f.sem.appendChild(owner); owner.x = 0; owner.y = 0;
+      owner.appendChild(grid);
+      const oneRowH = owner.height;
+      const inverses = guidesOf(oursInv)!.children.slice();
+      grid.gridRowCount = 2; grid.gridColumnSizes = grid.gridColumnSizes.map(() => ({ type: 'HUG' })); grid.gridRowSizes = [{ type: 'HUG' }, { type: 'HUG' }];
+      for (const v of inverses) {
+        const mate = grid.children.find((d) => d.gridRow === 0 && keyOf(d) === keyOf(v).replace('/inverse', ''));
+        grid.appendChildAt(v, 1, mate!.gridCol!);
+      }
+      owner.w = grid.width + 322 - 516;
+      ours.remove(); oursInv.remove();
+      const sibling = (name: string, y: number): N => {
+        const n = new N('FRAME'); n.name = name; n.w = 4000; n.h = 1500; f.sem.appendChild(n); n.x = 0; n.y = y; return n;
+      };
+      const borders = sibling('Borders', oneRowH + 200);
+      const fonts = sibling('Fonts', oneRowH + 200 + 1500 + 300);
+      // A retired legacy table in its own frame to the right: left alone (its removal waits on the owner's confirm).
+      const legacy = new N('FRAME'); legacy.name = 'Inverse'; legacy.w = 3000; legacy.h = 2000; f.sem.appendChild(legacy); legacy.x = owner.width + 2000; legacy.y = 0;
+      const clipped = (): number => (owner.x + owner.width - 161) - (owner.x + grid.x + grid.width);
+      return { f, owner, grid, inverses, borders, fonts, legacy, clipped, oneRowH };
+    };
+    const { f, owner, grid, inverses, borders, fonts, legacy, clipped } = await measured();
+    const want = inverses.length;
+    ok(want === 8 && grid.gridRowCount === 2 && clipped() < 0 && pageOverlaps(f.sem).some((o) => o.startsWith('Semantic colors')) && grid.parent === owner,
+      `39: the precondition: ${want} inverse guides in the second row of a grid in a frame you made, its right column clipped by ${-clipped()}px, the frame over Borders and Fonts`);
+    const [ox, oy, ow] = [owner.x, owner.y, owner.width];
+    const gapBF = fonts.y - (borders.y + borders.height);
+    const r = await draw(f.api, contract);
+    const inv = groupFrame(f.sem, 'Inverse colors');
+    // RULE 1: the inverse guides leave the owner's frame for Inverse colors, its own titled frame directly below it, each
+    // in its default's column; the owner's frame keeps its title, its name and its place, and its grid closes to one row.
+    const leftOf = (n: N): number => { let x = 0; for (let q: N | null = n; q && q.type !== 'PAGE'; q = q.parent) x += q.x; return x; };
+    const cellLeft = (k: N): number => { const g = k.parent!; let x = leftOf(g); for (let c = 0; c < k.gridCol!; c++) x += trackW(g, c) + Number(g.gridColumnGap ?? 0); return x; };
+    const offColumn = inverses.filter((v) => {
+      const mate = grid.children.find((d) => keyOf(d) === keyOf(v).replace('/inverse', ''));
+      return !mate || cellLeft(v) !== cellLeft(mate);
+    });
+    ok(!!inv && inverses.every((v) => v.parent === guidesOf(inv)) && grid.parent === owner && grid.gridRowCount === 1 && grid.children.every((d) => !/\/inverse/.test(keyOf(d)))
+      && inv.children[0]?.findOne((k) => k.name === 'Title')?.characters === 'Inverse colors' && owner.name === 'Semantic colors' && owner.x === ox && owner.y === oy
+      && inv.y === owner.y + owner.height + 320 && offColumn.length === 0 && JSON.stringify(r.groups?.rearranged) === JSON.stringify(['Semantic colors']),
+      `39: the inverse guides move out of the frame you made into Inverse colors, 320 below it, each under its default's column; your frame keeps its title and place (${inverses.filter((v) => v.parent !== guidesOf(inv)).length} left behind; Inverse colors at ${inv?.y}, want ${owner.y + owner.height + 320}; off column: ${offColumn.map((v) => v.name).join(', ') || 'none'})`);
+    // RULE 2: never clipped. The fixed frame grows to fit its grid and stays fixed; Inverse colors hugs its own.
+    const invClip = inv ? (inv.x + inv.width - 160) - (leftOf(guidesOf(inv)!) + guidesOf(inv)!.width) : -1;
+    ok(clipped() >= 0 && owner.width >= ow && owner.primaryAxisSizingMode === 'FIXED' && owner.counterAxisSizingMode === 'AUTO' && invClip >= 0,
+      `39: never clipped: a fixed frame you made grows to fit what it holds and stays fixed, and Inverse colors fits its grid (${owner.width} wide, room ${clipped()}px; Inverse colors room ${invClip}px)`);
+    // RULE 3: never overlap. Borders and Fonts move down clear of Inverse colors, in order, their gap kept; the legacy frame
+    // beside the group is not moved.
+    ok(pageOverlaps(f.sem).length === 0 && !!inv && borders.y === inv.y + inv.height + 320 && fonts.y - (borders.y + borders.height) === gapBF && legacy.x === ow + 2000 && legacy.y === 0,
+      `39: never overlapping: the frames below move down clear of Inverse colors, in order, their gap kept, and a frame beside is left (${pageOverlaps(f.sem).join('; ') || 'no overlap'}; Borders at ${borders.y}, Inverse colors ends at ${inv ? inv.y + inv.height : '?'}; legacy ${legacy.x},${legacy.y})`);
+    // A RERUN IS STABLE: nothing moves, nothing grows.
+    const snap = pageFrames(f.sem).map((n) => `${n.name} ${n.x},${n.y} ${n.width}×${n.height}`).join('; ');
+    const r2 = await draw(f.api, contract);
+    const again = pageFrames(f.sem).map((n) => `${n.name} ${n.x},${n.y} ${n.width}×${n.height}`).join('; ');
+    ok(again === snap && !r2.groups?.rearranged.length, `39: a rerun moves and resizes nothing (${again === snap ? 'same' : `${snap} → ${again}`})`);
+
+    // A FRAME BESIDE, WITHIN THE GROWTH (owner question on #2827, review of 4be045f4): a frame of the owner's 100px to the
+    // right of their fixed frame, at its top, which the frame's no-clip growth now reaches. It moves right by the growth,
+    // keeping its 100px gap; it is never pushed down, and it never drags Inverse colors off directly below.
+    const m = await measured();
+    const note = new N('FRAME'); note.name = 'RightNote'; note.w = 2000; note.h = 800; m.f.sem.appendChild(note);
+    note.x = m.owner.x + m.owner.width + 100; note.y = 0;
+    m.legacy.x = note.x + note.width + 2000;
+    const [nw0, lx0] = [m.owner.width, m.legacy.x];
+    await draw(m.f.api, contract);
+    const mInv = groupFrame(m.f.sem, 'Inverse colors');
+    const grew = m.owner.width - nw0;
+    ok(grew > 0 && note.y === 0 && note.x === m.owner.x + m.owner.width + 100 && m.legacy.x === lx0 + grew && m.legacy.y === 0
+      && !!mInv && mInv.y === m.owner.y + m.owner.height + 320 && pageOverlaps(m.f.sem).length === 0,
+      `39: a frame beside that the growth reaches moves right by it, keeping its gap, and Inverse colors stays directly below (grew ${grew}; RightNote at ${note.x},${note.y}, want ${m.owner.x + m.owner.width + 100},0; Inverse colors at ${mInv?.y}, want ${m.owner.y + m.owner.height + 320}; ${pageOverlaps(m.f.sem).join('; ') || 'no overlap'})`);
+    const mSnap = pageFrames(m.f.sem).map((n) => `${n.name} ${n.x},${n.y} ${n.width}×${n.height}`).join('; ');
+    await draw(m.f.api, contract);
+    const mAgain = pageFrames(m.f.sem).map((n) => `${n.name} ${n.x},${n.y} ${n.width}×${n.height}`).join('; ');
+    ok(mAgain === mSnap, `39: with a frame beside, a rerun moves and resizes nothing (${mAgain === mSnap ? 'same' : `${mSnap} → ${mAgain}`})`);
+
+    // A FRAME BELOW, WITHIN A HEIGHT GROWTH: the owner's frame FIXED in height too, shorter than its one-row grid, with a
+    // caption of theirs 100 under it. The frame grows to fit and pushes the caption down; Inverse colors, placed under the
+    // frame, is never swept along with the caption, so it stays directly below and a rerun moves nothing.
+    const h = await measured();
+    const hh = h.oneRowH - 1000;
+    h.owner.counterAxisSizingMode = 'FIXED'; h.owner.h = hh;
+    const cap = new N('FRAME'); cap.name = 'Caption'; cap.w = 2000; cap.h = 200; h.f.sem.appendChild(cap); cap.x = 0; cap.y = hh + 100;
+    await draw(h.f.api, contract);
+    const hInv = groupFrame(h.f.sem, 'Inverse colors');
+    ok(h.owner.height > hh && !!hInv && hInv.y === h.owner.y + h.owner.height + 320 && cap.y >= h.owner.y + h.owner.height && pageOverlaps(h.f.sem).length === 0,
+      `39: a frame below that a height growth reaches moves down, and Inverse colors stays directly below, never pushed with it (frame ${hh} → ${h.owner.height} tall; Caption at ${cap.y}; Inverse colors at ${hInv?.y}, want ${h.owner.y + h.owner.height + 320}; ${pageOverlaps(h.f.sem).join('; ') || 'no overlap'})`);
+    const hSnap = pageFrames(h.f.sem).map((n) => `${n.name} ${n.x},${n.y} ${n.width}×${n.height}`).join('; ');
+    await draw(h.f.api, contract);
+    const hAgain = pageFrames(h.f.sem).map((n) => `${n.name} ${n.x},${n.y} ${n.width}×${n.height}`).join('; ');
+    ok(hAgain === hSnap, `39: with a frame below the growth, a rerun moves and resizes nothing (${hAgain === hSnap ? 'same' : `${hSnap} → ${hAgain}`})`);
+  }
+
+  console.log('40. a group you made that wraps (#2856): its width is its widest row, never the one-row sum; a frame the one-row sum widened is put back');
+  {
+    // AS THE OWNER'S PAGE IS BUILT (#2856): their "Semantic colors" frame is a HORIZONTAL auto layout with wrap on, FIXED
+    // wide, hugging its height, padding 240, 48 between items and 96 between rows. Their own `_section-header` sits on
+    // the first row and the `Guides` grid wraps below it; the grid is wider than the frame's inside, so it clipped.
+    const PAD = 240, GAP = 48, ROWGAP = 96;
+    const wrapped = async (width: (headerW: number, gridW: number) => number, fixedHeight?: number) => {
+      const f = await fullFile();
+      await draw(f.api, contract);
+      const ours = groupFrame(f.sem, 'Semantic colors')!;
+      const grid = guidesOf(ours)!;
+      const owner = new N('FRAME'); owner.name = 'Semantic colors'; owner.layoutMode = 'HORIZONTAL'; owner.layoutWrap = 'WRAP';
+      owner.primaryAxisSizingMode = 'FIXED'; owner.counterAxisSizingMode = 'AUTO'; owner.clipsContent = true;
+      owner.paddingLeft = PAD; owner.paddingRight = PAD; owner.paddingTop = PAD; owner.paddingBottom = PAD; owner.itemSpacing = GAP; owner.counterAxisSpacing = ROWGAP;
+      f.sem.appendChild(owner); owner.x = 0; owner.y = 0;
+      const header = new N('FRAME'); header.name = '_section-header'; header.w = grid.width - 838; header.h = 300;
+      owner.appendChild(header); owner.appendChild(grid);
+      ours.remove();
+      owner.w = width(header.width, grid.width);
+      if (fixedHeight !== undefined) { owner.counterAxisSizingMode = 'FIXED'; owner.h = fixedHeight; }
+      return { f, owner, header, grid };
+    };
+    // EXPECTED FROM THE LAYOUT RULE, never from `fitToContent`: a wrapped row needs its widest child and its padding;
+    // the header and the grid cannot share a row (header + 48 + grid passes it), so the grid wraps to the left padding.
+    const rule = (m: { header: N; grid: N }): number => PAD + Math.max(m.header.width, m.grid.width) + PAD;
+    const oneRow = (m: { header: N; grid: N }): number => PAD + m.header.width + GAP + m.grid.width + PAD;
+    const shape = (m: { owner: N; header: N; grid: N }): string => `${m.owner.width}×${m.owner.height} header ${m.header.x},row ${m.header.x === PAD ? 1 : '?'} grid x ${m.grid.x}`;
+
+    // 1. The clipping frame, narrower than its grid, grows to its widest row and no further.
+    const a = await wrapped((hw) => PAD + hw + 100 + PAD);
+    const aw0 = a.owner.width;
+    ok(aw0 - 2 * PAD < a.grid.width && a.grid.x === PAD && a.header.x === PAD,
+      `40: the precondition: the grid (${a.grid.width}) is wider than the frame's inside (${aw0 - 2 * PAD}) and wraps below the header`);
+    await draw(a.f.api, contract);
+    const aWant = rule(a);
+    ok(a.owner.width === aWant && a.owner.width < oneRow(a) && a.grid.x === PAD && a.header.x === PAD && a.owner.layoutWrap === 'WRAP' && a.owner.primaryAxisSizingMode === 'FIXED',
+      `40: a wrapped frame you made grows to its widest row, the grid kept on its own row below the header (${a.owner.width} wide, want ${aWant}; the one-row sum would be ${oneRow(a)}; ${shape(a)})`);
+    const aH = PAD + a.header.height + ROWGAP + a.grid.height + PAD;
+    ok(a.owner.height === aH && pageOverlaps(a.f.sem).length === 0,
+      `40: its height is its two rows, ${ROWGAP} apart, and nothing on the page overlaps (${a.owner.height} tall, want ${aH}; ${pageOverlaps(a.f.sem).join('; ') || 'no overlap'})`);
+    const aSnap = pageFrames(a.f.sem).map((n) => `${n.name} ${n.x},${n.y} ${n.width}×${n.height}`).join('; ');
+    await draw(a.f.api, contract);
+    const aAgain = pageFrames(a.f.sem).map((n) => `${n.name} ${n.x},${n.y} ${n.width}×${n.height}`).join('; ');
+    ok(aAgain === aSnap, `40: a wrapped frame: a rerun moves and resizes nothing (${aAgain === aSnap ? 'same' : `${aSnap} → ${aAgain}`})`);
+
+    // 2. A frame #2827's run already widened to the one-row sum is put back to its widest row, the grid wrapping again.
+    const b = await wrapped((hw, gw) => PAD + hw + GAP + gw + PAD);
+    ok(b.grid.x === PAD + b.header.width + GAP, `40: the precondition: widened to the one-row sum, the grid sits beside the header (grid x ${b.grid.x})`);
+    await draw(b.f.api, contract);
+    ok(b.owner.width === rule(b) && b.grid.x === PAD && b.owner.primaryAxisSizingMode === 'FIXED',
+      `40: a wrapped frame the one-row sum widened is put back to its widest row, the grid below the header again (${b.owner.width} wide, want ${rule(b)}; ${shape(b)})`);
+    const bSnap = pageFrames(b.f.sem).map((n) => `${n.name} ${n.x},${n.y} ${n.width}×${n.height}`).join('; ');
+    await draw(b.f.api, contract);
+    const bAgain = pageFrames(b.f.sem).map((n) => `${n.name} ${n.x},${n.y} ${n.width}×${n.height}`).join('; ');
+    ok(bAgain === bSnap, `40: once put back, a rerun moves and resizes nothing (${bAgain === bSnap ? 'same' : `${bSnap} → ${bAgain}`})`);
+
+    // 3. A width of the owner's own, wider than its rows need but not the one-row sum, is kept: never made smaller.
+    const c = await wrapped((hw, gw) => PAD + hw + GAP + gw + PAD + 1000);
+    const cw0 = c.owner.width;
+    await draw(c.f.api, contract);
+    ok(c.owner.width === cw0, `40: a wrapped frame you made wider than its rows need is never made smaller (${cw0} → ${c.owner.width})`);
+
+    // 4. A FIXED height shorter than the two rows clips the second: it grows to the rows' height (the only case the
+    //    wrapped-height arithmetic decides; a hugging frame's height is the shim's own). Typed here, not read off the code.
+    const d = await wrapped((hw) => PAD + hw + 100 + PAD, 500);
+    const dH = PAD + d.header.height + ROWGAP + d.grid.height + PAD;
+    ok(d.owner.height === 500 && d.owner.height < dH, `40: the precondition: a fixed height (${d.owner.height}) shorter than the two rows (${dH})`);
+    await draw(d.f.api, contract);
+    ok(d.owner.height === dH && d.owner.counterAxisSizingMode === 'FIXED',
+      `40: a wrapped frame with a fixed height grows to its two rows, ${ROWGAP} apart, and stays fixed (${d.owner.height} tall, want ${dH})`);
+    const e = await wrapped((hw) => PAD + hw + 100 + PAD, dH + 700);
+    await draw(e.f.api, contract);
+    ok(e.owner.height === dH + 700, `40: a wrapped frame taller than its rows is never made shorter (${dH + 700} → ${e.owner.height})`);
   }
 
   if (failures) { console.error(`\n${failures} style-guide check(s) failed`); process.exit(1); }
