@@ -90,8 +90,7 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | accordion | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | accordion | leadingGlyph | nest | _accordion-indicator | nest-exposed | indicator=chevron, expansion=collapsed, size=medium | expansion, size | indicator |
 | accordion | trailingGlyph | nest | _accordion-indicator | nest-exposed | indicator=chevron, expansion=collapsed, size=medium | expansion, size | indicator |
-| banner | action1 | nest | button | nest-fixed | appearance=outline, size=small, surface=default, inset=default, state=rest, leading icon=false, trailing icon=false | — | — |
-| banner | action2 | nest | button | nest-fixed | appearance=text, size=small, surface=default, inset=default, state=rest, leading icon=false, trailing icon=false | — | — |
+| banner | action | nest | button | nest-fixed | appearance=text, size=small, surface=default, inset=default, state=rest, leading icon=false, trailing icon=false | — | — |
 | banner | dismiss | nest | flush-icon-button-neutral | nest-fixed | shape=flush, size=small, state=rest | — | — |
 | button | focusRing | absolute | focus-ring | nest-fixed | surface=default | surface | — |
 | button | spinner | overlay | spinner | swap | — | — | — |

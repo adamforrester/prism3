@@ -4,9 +4,10 @@ Built from the proposal on #2579, approved as recommended (Q327), and the KB bri
 `tone` [info, success, warning, danger] × `width` [contained, full], no size or state axis. The container is the
 tone's subtle surface with a 1px edge in the tone's **border** role (Q346: an edge never binds an icon or text role;
 `color.border.{tone}` exists in every example brand, so no owner question was needed). Title and body in
-`color.text.primary`; the glyph in `color.icon.{tone}`. The body is a native slot. Two nested Button actions
-(outline, then text, small; Button.Neutral instead when the file has it, never required: Q386, Q398 resolved by Q419 A) and a flush FlushIconButton.Neutral dismiss (owner QA 2026-10-19: flush, not round) with the close glyph fixed and no swap (Q386, #2808),
-all off by default.
+`color.text.primary`; the glyph in `color.icon.{tone}`. The body is a native slot. One nested text Button action
+(small; Button.Neutral instead when the file has it, never required: Q386, Q398 resolved by Q419 A; one action only
+per owner QA Q533.1) and a flush FlushIconButton.Neutral dismiss (owner QA 2026-10-19: flush, not round) with the close
+glyph fixed and no swap (Q386, #2808), both off by default.
 
 ### Decisions the diff does not show
 
@@ -16,17 +17,20 @@ all off by default.
 - **`width`, not a new `placement` axis** (Q327.3 A). It shares `full` with Button's `auto | full`, so Button's set
   becomes `canonical` and Banner's is declared `overlapping` in `lint-axis-values`, argued there. `tone` is a `subset`
   of `icon`'s canonical set.
-- **Full width keeps all four edges.** The proposal said top and bottom only; the anatomy has no one-sided stroke.
-  Held for the owner and stated in `codeOnly`; options filed as #2788.
+- **Full width is a page-top bar** (owner QA Q533.4: the two widths looked the same). Built on the recommended
+  answer, held for the owner on the PR: full is built at 960 where contained is 480, square, and edged top and bottom
+  only, through the per-side stroke binding (`strokeEdges`, #2695) with the sides on `border-width.none`. That is the
+  proposal's own top-and-bottom edge, which #2788 was filed for. `builtSize` now admits a width-only map on a row root
+  (heights still need a column), so Banner's row root takes it; refusal and admission are tested by name.
 - **The title-to-body gap is fixed at 4px**, outside `densitySpacing`: one step down at compact is 2px, under the
   owner's 4px gap floor. The test's spacing table caught it before the def did.
 - **The title is padded down 4px** (`space.050`) to center its first line on the 24px glyph, the accordion's
   construction. The pad sits on a `titleBox`, which the `title` toggle hides with it, so a body-only banner has no
   stray offset.
-- **The actions are two fixed nested Buttons, not the Button group.** The group's buttons are medium and Banner's are
-  small, so the move (Q363, #2661) stays filed as #2787. Each action is made from `button` with `prefersWhenBuilt:
-  'button-neutral'`, so no file has to build the Neutral family (#2808 passes); the primary ink on the tints clears 4.5:1
-  through #2820's surface contract.
+- **One text action, no Button group** (owner QA Q533.1: the owner's research found no banner with two actions). The
+  `second action` toggle, the outline action and the `action-gap` token are gone, and #2787's move into the Button
+  group no longer applies. The action is made from `button` with `prefersWhenBuilt: 'button-neutral'`, so no file has
+  to build the Neutral family (#2808 passes); the primary ink on the tints clears 4.5:1 through #2820's surface contract.
 
 ### Gates
 
@@ -35,10 +39,11 @@ the four fills are admitted by name in `PROVENANCE_EXCEPTIONS`, as Badge's subtl
 ordering scope learned the bare `pad` tail, so a def whose one padding is named `pad` is now required to state its
 orderings. Banner's own block in `test.ts` holds the 8 member names, each member's fill, edge, corner, glyph and inks,
 the nested actions and dismiss, the defaults, the lowercase Figma property names (Q345), the first member being the code
-default (Q347), and 24 contrast pairs as literals over 5 brands × 4 modes: text 4.5:1 (lowest 13.92), the edge against
-the page 3:1 (lowest 3.75), the glyph on the fill 3:1 (lowest 3.31), and the neutral and primary action labels and the dismiss glyph on
-each fill. The studio's set list shows Banner's `pad` beside `gap` (the owner's C2 A: padding and gap only) and hides
-`actions-gap` and `action-gap`, as it hides Accordion's `panel-pad-end`.
+default (Q347), the built widths and per-side edges, and 32 contrast pairs as literals over 5 brands × 4 modes: text
+4.5:1 (lowest 13.92), the edge against the page 3:1 (lowest 3.75), the glyph on the fill 3:1 (lowest 3.31), the neutral
+and primary action labels, and the dismiss glyph at rest, hover and press and its focus ring on each fill (Q533.5).
+The studio's set list shows Banner's `pad` beside `gap` (the owner's C2 A: padding and gap only) and hides
+`actions-gap`, as it hides Accordion's `panel-pad-end`.
 
 ### Harness
 

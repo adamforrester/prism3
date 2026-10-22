@@ -8398,8 +8398,8 @@
       ],
       "category": "feedback",
       "status": "draft",
-      "summary": "A persistent message in the page flow about an important state, with optional actions.",
-      "description": "A message that sits in the page flow and stays until the user dismisses it or the condition clears: a page-level error, a service notice, or the result of a process that has to stay visible. Because it is part of the page and the tab order, it can carry actions. Four tones, each with its own glyph shape, so the tone is never carried by color alone. Contained inside a section, or full width at the top of a page. Not a toast (it does not go away by itself), not a field message (that belongs to one field), and not a dialog (it does not block the page).",
+      "summary": "A persistent message in the page flow about an important state, with an optional action.",
+      "description": "A message that sits in the page flow and stays until the user dismisses it or the condition clears: a page-level error, a service notice, or the result of a process that has to stay visible. Because it is part of the page and the tab order, it can carry an action. Four tones, each with its own glyph shape, so the tone is never carried by color alone. Contained inside a section, or full width at the top of a page. Not a toast (it does not go away by itself), not a field message (that belongs to one field), and not a dialog (it does not block the page).",
       "props": [
         {
           "name": "tone",
@@ -8423,7 +8423,7 @@
             "contained",
             "full"
           ],
-          "description": "contained is a rounded box inside a section or card. full has square corners and spans the page, for a message about the whole app at the top of the page."
+          "description": "contained is a rounded box with an edge on all four sides, inside a section or card. full is a bar across the top of the page, for a message about the whole app: square corners, and an edge on the top and bottom only, so it runs edge to edge."
         },
         {
           "name": "title",
@@ -8461,7 +8461,7 @@
           "name": "actions",
           "type": "node",
           "required": false,
-          "description": "Up to two buttons that resolve the message, the main one first: an outline Button, then a text Button (Button.Neutral when the file has it). Name each by what it does (\"Retry\", \"Update billing\")."
+          "description": "One text Button that resolves the message (Button.Neutral when the file has it). Name it by what it does (\"Retry\", \"Update billing\"). A banner carries one action at most."
         },
         {
           "name": "dismissible",
@@ -8515,16 +8515,16 @@
           "1.4.1 Use of Color (each tone has its own glyph shape, and the text says what happened)",
           "1.4.3 Contrast (the title and body clear 4.5:1 on every tone's fill, measured in every mode of the example brands)",
           "1.4.11 Non-text Contrast (the edge clears 3:1 against the page and the glyph 3:1 against the fill, measured in every mode of the example brands)",
-          "2.4.3 Focus Order (the actions are in the tab order, and a dismiss moves focus to a surviving element)",
-          "2.5.8 Target Size (Minimum) (the dismiss button is a 20px glyph; targets 44×44px through a code-side hit area)",
+          "2.4.3 Focus Order (the action is in the tab order, and a dismiss moves focus to a surviving element)",
+          "2.5.8 Target Size (Minimum) (the dismiss button is a 20px glyph; it passes by spacing, its 24px circle clear of every other target, and targets 44×44px through a code-side hit area)",
           "2.2.1 Timing Adjustable (the reason errors go in a banner, which stays, rather than a toast, which goes away)"
         ],
-        "keyboard": "The actions and the dismiss button are ordinary Tab stops in reading order. The banner itself takes no focus.",
+        "keyboard": "The action and the dismiss button are ordinary Tab stops in reading order. The banner itself takes no focus.",
         "focus": "No focus of its own. After a dismiss, focus moves to the control that caused the banner or to the page heading, never to the page body.",
         "aria": "The glyph is aria-hidden. A banner present at load: a section with aria-labelledby pointing at the title, and no role=\"alert\". An inserted banner: announced through a live region that already exists, role=\"alert\" for danger and role=\"status\" otherwise. The dismiss button's accessible name names what it dismisses (\"Dismiss error message\"), and is translated."
       },
       "content": {
-        "labelPattern": "Title: names the issue up front, in sentence case and with no period (\"Payment failed\", not \"Error\"). Body: what happened and what to do next, in one or two sentences, never repeating the title. Actions: a verb of one or two words (\"Retry\", \"Update billing\").",
+        "labelPattern": "Title: names the issue up front, in sentence case and with no period (\"Payment failed\", not \"Error\"). Body: what happened and what to do next, in one or two sentences, never repeating the title. Action: a verb of one or two words (\"Retry\", \"Update billing\").",
         "errorPattern": "Say what went wrong, whether anything was lost, and how to fix it. Use danger only for an error that blocks the user."
       },
       "docs": {
@@ -8532,28 +8532,28 @@
         "do": [
           "Match the tone to how serious the message is",
           "Name the issue in the title, and say what to do next in the body",
-          "Give each action a verb that says what it does",
+          "Give the action a verb that says what it does",
           "Move focus to a sensible place after a dismiss"
         ],
         "dont": [
           "Use a banner for a short confirmation like \"Saved\". Use a toast.",
           "Use a banner for one field's validation. Use the field's message.",
           "Stack banners. Show the most serious one.",
+          "Give a banner a second action. Link to the details in the body instead.",
           "Mark a banner present at page load as role=\"alert\"",
           "Let a dismissed banner come back on reload"
         ],
         "contentGuidelines": "Titles are short, specific and in sentence case, with no period. The body states the consequence and the fix in one or two sentences; for more, link to the details. Action labels are verbs."
       },
       "ai": {
-        "primaryPurpose": "Show a persistent, in-flow message about an important state, with optional actions to resolve it.",
+        "primaryPurpose": "Show a persistent, in-flow message about an important state, with an optional action to resolve it.",
         "whenToUse": "A page or section error, a service or maintenance notice, or a result that has to stay visible until the user acts on it or dismisses it.",
         "avoidWhen": "The message is a brief confirmation that can go away by itself (a toast), it is about one field (a field message), the user must decide before going on (a dialog), or it is a short status label beside content (a badge).",
         "commonPartners": [
           "link",
           "list",
           "button",
-          "button-neutral",
-          "button-group"
+          "button-neutral"
         ],
         "triggerKeywords": [
           "banner",

@@ -70,23 +70,7 @@
     {
       "from": "banner",
       "to": "button",
-      "part": "action1",
-      "partKind": "nest",
-      "relation": "nest-fixed",
-      "variant": {
-        "appearance": "outline",
-        "size": "small",
-        "surface": "default",
-        "inset": "default",
-        "state": "rest",
-        "leading icon": "false",
-        "trailing icon": "false"
-      }
-    },
-    {
-      "from": "banner",
-      "to": "button",
-      "part": "action2",
+      "part": "action",
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {

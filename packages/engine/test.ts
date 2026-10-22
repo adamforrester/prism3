@@ -3792,7 +3792,7 @@ for (const b of brands) {
       list: { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
       link: { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
       // Banner (#2579): no size axis, so its keys are bare.
-      banner: { keys: [], sizes: [], bare: ['pad', 'gap', 'actions-gap', 'action-gap'] },
+      banner: { keys: [], sizes: [], bare: ['pad', 'gap', 'actions-gap'] },
     };
     const BTN = { compact: 'small 12/8/4/6 · medium 12/8/6/6 · large 20/12/6/8', comfortable: 'small 16/12/6/8 · medium 16/12/8/8 · large 24/16/8/12', spacious: 'small 20/16/8/12 · medium 20/16/12/12 · large 32/20/12/16' };
     const ROWS = { compact: 'small 6 · medium 6 · large 8', comfortable: 'small 8 · medium 8 · large 12', spacious: 'small 12 · medium 12 · large 16' };
@@ -3821,7 +3821,7 @@ for (const b of brands) {
       link: { compact: 'small 4 · medium 4 · large 6', comfortable: 'small 4 · medium 4 · large 8', spacious: 'small 6 · medium 6 · large 12' },
       // Banner (#2579, DRAFT): padding / glyph→content gap / body→actions offset / action→action gap. Comfortable is the
       // proposal's 16 / 12 / 12, and 8 between the two buttons.
-      banner: { compact: 'bare 12/8/8/6', comfortable: 'bare 16/12/12/8', spacious: 'bare 20/16/16/12' },
+      banner: { compact: 'bare 12/8/8', comfortable: 'bare 16/12/12', spacious: 'bare 20/16/16' },
     };
     const wrong: string[] = [];
     for (const [id, spec] of Object.entries(SPECS)) {
@@ -3862,8 +3862,8 @@ for (const b of brands) {
       'radio-row': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'switch-row': ['size.small.gap', 'size.medium.gap'],
       list: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
-      // Banner (#2579): the glyph→content gap, the action→action gap, and the fixed title→body gap.
-      banner: ['gap', 'action-gap', 'content-gap'],
+      // Banner (#2579): the glyph→content gap and the fixed title→body gap (one action since Q533.1, so no action gap).
+      banner: ['gap', 'content-gap'],
       // #2709: the three defs with a density-following gap that joined after this list was written.
       'password-field': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       accordion: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
@@ -3916,8 +3916,8 @@ for (const b of brands) {
       'tab-item': { prefix: 'sized', lt: [['gap', 'padding-x']] },
       'segmented-control-segment': { prefix: 'sized', lt: [['gap', 'padding-x']] },
       accordion: { prefix: 'sized', lt: [['gap', 'pad-x']] },
-      // Banner (#2579): both gaps sit inside the padding.
-      banner: { prefix: 'bare', lt: [['gap', 'pad'], ['action-gap', 'pad']] },
+      // Banner (#2579): the gap sits inside the padding.
+      banner: { prefix: 'bare', lt: [['gap', 'pad']] },
     };
     const GAP_TAILS = ['gap', 'check-gap'];
     // `pad` (#2579): Banner's one padding, block and inline alike.
@@ -6354,8 +6354,10 @@ arm: {
 // ---- BANNER — the owner's decisions on #2579 (Q327, 2026-10-16), held here with literal expectations ---------------
 // Written from the decisions, not read back from the def: 8 members (tone info | success | warning | danger × width
 // contained | full), subtle only, a full 1px edge in the tone's BORDER role (Q346: never an icon or text role), the
-// title and body in text.primary, FieldMessage's glyph per status, up to two neutral actions (outline, then text) and a
-// dismiss, all off by default, lowercase Figma property names (Q345), and the first member the code default (Q347).
+// title and body in text.primary, FieldMessage's glyph per status, ONE text action (owner QA Q533.1: no second action, no
+// outline, no Button group) and a dismiss, both off by default, lowercase Figma property names (Q345), and the first member
+// the code default (Q347). The full member is a page-top bar (Q533.4, built on its recommended answer): built at 960 where
+// contained is 480, square, and edged top and bottom only.
 // Every expectation is a literal; the projected members are read off `figmaAnatomySet`, never off the def's tokens.
 // Contrast: the text at 4.5:1 and the edge and glyph at 3:1, in 5 brands × 4 modes.
 {
@@ -6380,7 +6382,14 @@ arm: {
       const r = m.root;
       if (r.paints?.fills !== `color/foreground/${tone}-subtle`) wrong.push(`${name} fill ${r.paints?.fills}`);
       if (r.paints?.strokes !== `color/border/${tone}`) wrong.push(`${name} edge ${r.paints?.strokes}`);
-      if (r.bound?.strokeWeight !== 'border-width/hairline') wrong.push(`${name} edge weight ${r.bound?.strokeWeight}`);
+      // The edge per side (Q533.4): hairline top and bottom on both widths; the sides hairline contained, none full.
+      const SIDE: Record<string, string> = { contained: 'border-width/hairline', full: 'border-width/none' };
+      const edges = [r.bound?.strokeTopWeight, r.bound?.strokeRightWeight, r.bound?.strokeBottomWeight, r.bound?.strokeLeftWeight];
+      if (r.bound?.strokeWeight !== undefined || JSON.stringify(edges) !== JSON.stringify(['border-width/hairline', SIDE[width], 'border-width/hairline', SIDE[width]]))
+        wrong.push(`${name} edge weights ${r.bound?.strokeWeight ?? '-'} / ${edges.join(' ')}`);
+      // The built width (Q533.4): 480 contained, 960 full, so the two read apart on the canvas.
+      const BUILT: Record<string, number> = { contained: 480, full: 960 };
+      if (r.placementWidth !== BUILT[width]) wrong.push(`${name} built at ${r.placementWidth}`);
       for (const c of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'])
         if (r.bound?.[c] !== CORNER[width]) wrong.push(`${name} ${c} ${r.bound?.[c]}`);
       const g = glyphs(r).filter((n) => n.name !== 'dismiss');
@@ -6388,17 +6397,18 @@ arm: {
         wrong.push(`${name} glyph ${g.map((n) => `${n.nestTarget} in ${n.descendantFills}`).join(', ') || 'none'}`);
       for (const t of ['title', 'placeholder'])
         if (find(r, t)?.paints?.fills !== 'color/text/primary') wrong.push(`${name} ${t} ink ${find(r, t)?.paints?.fills}`);
-      const a1 = find(r, 'action1'), a2 = find(r, 'action2'), d = find(r, 'dismiss');
-      if (a1?.nestTarget !== 'button' || a1?.nestPrefer !== 'button-neutral' || a1?.nestVariant?.appearance !== 'outline' || a1?.nestVariant?.size !== 'small') wrong.push(`${name} action1 ${a1?.nestTarget}/${a1?.nestVariant?.appearance}/${a1?.nestVariant?.size}`);
-      if (a2?.nestTarget !== 'button' || a2?.nestPrefer !== 'button-neutral' || a2?.nestVariant?.appearance !== 'text' || a2?.nestVariant?.size !== 'small') wrong.push(`${name} action2 ${a2?.nestTarget}/${a2?.nestVariant?.appearance}/${a2?.nestVariant?.size}`);
+      const row = find(r, 'actions'), a = find(r, 'action'), d = find(r, 'dismiss');
+      // Q533.1: ONE action, a text Button, small, the row's only child.
+      if (a?.nestTarget !== 'button' || a?.nestPrefer !== 'button-neutral' || a?.nestVariant?.appearance !== 'text' || a?.nestVariant?.size !== 'small') wrong.push(`${name} action ${a?.nestTarget}/${a?.nestVariant?.appearance}/${a?.nestVariant?.size}`);
+      if ((row?.children ?? []).length !== 1) wrong.push(`${name} actions row holds ${(row?.children ?? []).map((c: any) => c.name).join('+') || 'nothing'}`);
       // Q386 (#2808): the dismiss is FlushIconButton.Neutral, flush, small (owner QA 2026-10-19, as Dialog's close), the close glyph fixed.
       if (d?.nestTarget !== 'flush-icon-button-neutral' || d?.nestVariant?.shape !== 'flush' || d?.nestVariant?.size !== 'small' || d?.nestOverrides?.length !== 1 || d?.nestOverrides?.[0]?.value !== 'icon/close') wrong.push(`${name} dismiss ${d?.nestTarget}/${d?.nestVariant?.shape}/${d?.nestVariant?.size}/${d?.nestOverrides?.map((o: any) => o.value).join('+')}`);
-      // Off by default (Q327.6 A, the proposal's §4): the actions row, the second action and the dismiss are hidden.
-      if (find(r, 'actions')?.visible !== false || a2?.visible !== false || d?.visible !== false) wrong.push(`${name} actions/second/dismiss shown by default`);
+      // Off by default (Q327.6 A, the proposal's §4): the action's row and the dismiss are hidden.
+      if (row?.visible !== false || d?.visible !== false) wrong.push(`${name} action/dismiss shown by default`);
       if (find(r, 'titleBox')?.visible === false) wrong.push(`${name} title hidden by default`);
     }
     ok(wrong.length === 0,
-      `banner members: each paints foreground.<tone>-subtle with a 1px border.<tone> edge, its tone's glyph in icon.<tone>, text.primary ink, radius md contained and none full, and nests a primary outline and text action (Button.Neutral preferred when built, never required: Q386) and a flush close dismiss, all off${wrong.length ? ` — ${wrong.join('; ')}` : ''}`);
+      `banner members: each paints foreground.<tone>-subtle with a 1px border.<tone> edge, its tone's glyph in icon.<tone>, text.primary ink, radius md contained and none full, built 480 contained and 960 full with no side edges at full, and nests ONE primary text action (Button.Neutral preferred when built, never required: Q386) and a flush close dismiss, both off${wrong.length ? ` — ${wrong.join('; ')}` : ''}`);
     // Q346: an edge never binds an icon or text role. Read off the TOKENS too, so a border key on any coordinate counts.
     const badEdge = Object.entries(bannerDef.tokens).filter(([k, ref]) => /(^|\.)border$/.test(k) && !String(ref).startsWith('color.border.'));
     ok(badEdge.length === 0, `banner edge: every border key binds a color.border.* role (Q346)${badEdge.length ? ` — ${badEdge.map(([k, r]) => `${k} → ${r}`).join('; ')}` : ''}`);
@@ -6408,8 +6418,8 @@ arm: {
       ...Object.entries(fp.texts ?? {}).map(([k, t]: [string, any]) => t.figmaName ?? k),
       ...Object.entries(fp.booleans ?? {}).map(([k, b]: [string, any]) => (typeof b === 'object' && b.figmaName) || k),
     ];
-    ok(JSON.stringify(propNames) === JSON.stringify(['title text', 'title', 'icon', 'actions', 'second action', 'dismiss']),
-      `banner Figma properties: title text, title, icon, actions, second action, dismiss, all lowercase (Q345) (got ${propNames.join(', ')})`);
+    ok(JSON.stringify(propNames) === JSON.stringify(['title text', 'title', 'icon', 'actions', 'dismiss']),
+      `banner Figma properties: title text, title, icon, actions, dismiss, all lowercase (Q345), and no second action (Q533.1) (got ${propNames.join(', ')})`);
 
     // CONTRAST, as literals over every example brand × mode (20 cells).
     const themes: [string, any][] = loadedRows([
@@ -6436,13 +6446,18 @@ arm: {
       ['text.primary', `foreground.${t}-subtle`, 4.5, `title and body on the ${t} fill`],
       [`border.${t}`, 'background.primary', 3, `the ${t} edge against the page`],
       [`icon.${t}`, `foreground.${t}-subtle`, 3, `the ${t} glyph on its fill`],
-      // The nested neutral actions and dismiss paint their rest ink on the banner's fill.
-      ['interactive.neutral.text.rest', `foreground.${t}-subtle`, 4.5, `the action labels on the ${t} fill`],
-      // The fallback when the file has no Button.Neutral: the primary Button's outline and text label, held to 4.5:1 by #2820's surface contract (Q419 A).
-      ['interactive.primary.text.rest', `foreground.${t}-subtle`, 4.5, `the primary-Button action labels on the ${t} fill`],
+      // The nested neutral text action and dismiss paint their rest ink on the banner's fill.
+      ['interactive.neutral.text.rest', `foreground.${t}-subtle`, 4.5, `the action label on the ${t} fill`],
+      // The fallback when the file has no Button.Neutral: the primary Button's text label, held to 4.5:1 by #2820's surface contract (Q419 A).
+      ['interactive.primary.text.rest', `foreground.${t}-subtle`, 4.5, `the primary-Button action label on the ${t} fill`],
       ['interactive.neutral.icon.rest', `foreground.${t}-subtle`, 3, `the dismiss glyph on the ${t} fill`],
+      // Q533.5: the flush dismiss has no wash, so its hover and pressed states are the glyph ink alone, and its focus is
+      // the shared ring, drawn on the banner's fill. Each is held to the non-text 3:1 on every tint.
+      ['interactive.neutral.icon.hover', `foreground.${t}-subtle`, 3, `the dismiss glyph at hover on the ${t} fill`],
+      ['interactive.neutral.icon.pressed', `foreground.${t}-subtle`, 3, `the dismiss glyph at press on the ${t} fill`],
+      ['border.focus', `foreground.${t}-subtle`, 3, `the dismiss focus ring on the ${t} fill`],
     ] as [string, string, number, string][]);
-    ok(PAIRS.length === 24, `banner contrast covers 24 pairs, 6 per tone (got ${PAIRS.length})`);
+    ok(PAIRS.length === 32, `banner contrast covers 32 pairs, 8 per tone (got ${PAIRS.length})`);
     for (const [a, b, floor, what] of PAIRS) {
       const { measured, low, min } = measure(a, b, floor);
       ok(measured === CELLS && low.length === 0,

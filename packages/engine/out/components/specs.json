@@ -34685,12 +34685,7 @@
           "members": 8
         },
         {
-          "part": "container/content/actions/action1",
-          "kind": "instance",
-          "members": 8
-        },
-        {
-          "part": "container/content/actions/action2",
+          "part": "container/content/actions/action",
           "kind": "instance",
           "members": 8
         },
@@ -34730,10 +34725,14 @@
           }
         }
       ],
-      "redlineKey": [],
+      "redlineKey": [
+        "width"
+      ],
       "redlines": [
         {
-          "where": {},
+          "where": {
+            "width": "contained"
+          },
           "parts": [
             {
               "part": "container",
@@ -34791,9 +34790,105 @@
               "values": {
                 "paddingTop": {
                   "token": "space.150"
+                }
+              }
+            },
+            {
+              "part": "container/successGlyph",
+              "values": {
+                "height": {
+                  "token": "icon.size.md"
+                },
+                "width": {
+                  "token": "icon.size.md"
+                }
+              }
+            },
+            {
+              "part": "container/warningGlyph",
+              "values": {
+                "height": {
+                  "token": "icon.size.md"
+                },
+                "width": {
+                  "token": "icon.size.md"
+                }
+              }
+            },
+            {
+              "part": "container/dangerGlyph",
+              "values": {
+                "height": {
+                  "token": "icon.size.md"
+                },
+                "width": {
+                  "token": "icon.size.md"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "width": "full"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "paddingTop": {
+                  "token": "space.200"
+                },
+                "paddingRight": {
+                  "token": "space.200"
+                },
+                "paddingBottom": {
+                  "token": "space.200"
+                },
+                "paddingLeft": {
+                  "token": "space.200"
                 },
                 "gap": {
-                  "token": "space.100"
+                  "token": "space.150"
+                },
+                "buildWidth": {
+                  "px": 960,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/infoGlyph",
+              "values": {
+                "height": {
+                  "token": "icon.size.md"
+                },
+                "width": {
+                  "token": "icon.size.md"
+                }
+              }
+            },
+            {
+              "part": "container/content",
+              "values": {
+                "gap": {
+                  "token": "space.050"
+                }
+              }
+            },
+            {
+              "part": "container/content/titleBox",
+              "values": {
+                "paddingTop": {
+                  "token": "space.050"
+                }
+              }
+            },
+            {
+              "part": "container/content/actions",
+              "values": {
+                "paddingTop": {
+                  "token": "space.150"
                 }
               }
             },
@@ -35070,23 +35165,7 @@
           "preferred": []
         },
         {
-          "part": "container/content/actions/action1",
-          "kind": "instance",
-          "component": "button",
-          "variant": {
-            "appearance": "outline",
-            "size": "small",
-            "surface": "default",
-            "inset": "default",
-            "state": "rest",
-            "leading icon": "false",
-            "trailing icon": "false"
-          },
-          "follows": [],
-          "exposes": []
-        },
-        {
-          "part": "container/content/actions/action2",
+          "part": "container/content/actions/action",
           "kind": "instance",
           "component": "button",
           "variant": {
@@ -35156,11 +35235,6 @@
         },
         {
           "name": "actions",
-          "type": "BOOLEAN",
-          "default": false
-        },
-        {
-          "name": "second action",
           "type": "BOOLEAN",
           "default": false
         },

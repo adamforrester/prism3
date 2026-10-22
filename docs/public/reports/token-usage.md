@@ -1,6 +1,6 @@
 # Token usage
 
-Where each token is bound: by which component, on which part, and at which variants and states. 247 of 787 emitted tokens are bound by at least one component.
+Where each token is bound: by which component, on which part, and at which variants and states. 248 of 787 emitted tokens are bound by at least one component.
 
 Two sources feed each entry. **Keys** are the binding keys in the component definition. **Parts** are where the design-file projection draws the token; "where" lists the axis values a part is bound at, leaves out any axis bound at every value, and counts the members.
 
@@ -21,7 +21,7 @@ Type: dimension. Bound by 19 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `border-width` | surface | every member (20 of 20) |
-| banner | `border-width` | container | every member (8 of 8) |
+| banner | `border-width`, `width.contained.edge-side` | container | every member (8 of 8) |
 | button | `border-width` | container | every member (576 of 576) |
 | button-destructive | `border-width` | container | every member (576 of 576) |
 | button-neutral | `border-width` | container | every member (576 of 576) |
@@ -45,6 +45,14 @@ Type: dimension. Bound by 19 component(s).
 | textarea | `border-width`, `caret-width`, `grip-inset` | caret | state: focus-visible (12 of 84) |
 |  |  | control | every member (84 of 84) |
 |  |  | gripGlyph | every member (84 of 84) |
+
+### `border-width.none`
+
+Type: dimension. Bound by 1 component(s).
+
+| Component | Keys | Part | Where |
+|---|---|---|---|
+| banner | `width.full.edge-side` | container | width: full (4 of 8) |
 
 ### `border-width.thick`
 
@@ -2559,14 +2567,13 @@ Type: dimension. Bound by 12 component(s).
 
 ### `space.100`
 
-Type: dimension. Bound by 25 component(s).
+Type: dimension. Bound by 24 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `size.small.gap`, `size.small.pad-y` | header | size: small (8 of 24) |
 |  |  | titleRow | size: small (8 of 24) |
 | badge | `status.pad-y` | surface | type: status (10 of 20) |
-| banner | `action-gap` | actions | every member (8 of 8) |
 | button | `size.large.padding-y`, `size.medium.gap`, `size.medium.padding-y`, `size.small.gap` | container | every member (576 of 576) |
 | button-destructive | `size.large.padding-y`, `size.medium.gap`, `size.medium.padding-y`, `size.small.gap` | container | every member (576 of 576) |
 | button-group | `layout.stacked.gap` | items | layout: stacked (1 of 3) |
@@ -3019,7 +3026,7 @@ Every token each component uses. "Declared, not drawn" names tokens the definiti
 
 23 token(s); 8 design-file member(s).
 
-`border-width.hairline`, `color.border.danger`, `color.border.info`, `color.border.success`, `color.border.warning`, `color.foreground.danger-subtle`, `color.foreground.info-subtle`, `color.foreground.success-subtle`, `color.foreground.warning-subtle`, `color.icon.danger`, `color.icon.info`, `color.icon.success`, `color.icon.warning`, `color.text.primary`, `icon.size.md`, `radius.md`, `radius.none`, `space.050`, `space.100`, `space.150`, `space.200`, `type.body.md.default`, `type.label.md.emphasis`
+`border-width.hairline`, `border-width.none`, `color.border.danger`, `color.border.info`, `color.border.success`, `color.border.warning`, `color.foreground.danger-subtle`, `color.foreground.info-subtle`, `color.foreground.success-subtle`, `color.foreground.warning-subtle`, `color.icon.danger`, `color.icon.info`, `color.icon.success`, `color.icon.warning`, `color.text.primary`, `icon.size.md`, `radius.md`, `radius.none`, `space.050`, `space.150`, `space.200`, `type.body.md.default`, `type.label.md.emphasis`
 
 ### button
 
@@ -3317,11 +3324,11 @@ Declared, not drawn: `color.border.focus`
 
 ## Tokens no component binds
 
-260 semantic token(s) and 280 primitive(s). Primitives (`core.*`) are listed apart — components bind semantic roles, which alias the primitives, so an unbound primitive is expected.
+259 semantic token(s) and 280 primitive(s). Primitives (`core.*`) are listed apart — components bind semantic roles, which alias the primitives, so an unbound primitive is expected.
 
 ### Semantic
 
-- **border-width** — `border-width.heavy`, `border-width.none`
+- **border-width** — `border-width.heavy`
 - **breakpoint** — `breakpoint.2xl`, `breakpoint.lg`, `breakpoint.md`, `breakpoint.sm`, `breakpoint.xl`
 - **color.border** — `color.border.brand`
 - **color.field** — `color.field.placeholder`

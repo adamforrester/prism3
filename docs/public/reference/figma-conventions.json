@@ -2332,10 +2332,6 @@
             "type": "BOOLEAN"
           },
           {
-            "name": "second action",
-            "type": "BOOLEAN"
-          },
-          {
             "name": "dismiss",
             "type": "BOOLEAN"
           }
