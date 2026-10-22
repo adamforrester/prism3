@@ -97,14 +97,14 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | accordion | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | accordion | leadingGlyph | nest | _accordion-indicator | nest-exposed | indicator=chevron, expansion=collapsed, size=medium | expansion, size | indicator |
 | accordion | trailingGlyph | nest | _accordion-indicator | nest-exposed | indicator=chevron, expansion=collapsed, size=medium | expansion, size | indicator |
-| breadcrumb-item | crumb | nest | link | nest-exposed | style=inline, weight=default, size=medium, surface=default, state=rest | size | state |
+| breadcrumb-item | crumb | nest | link | nest-exposed | style=inline, weight=default, size=medium, surface=default, selection=unselected, state=rest | size | state |
 | breadcrumb-item | overflow | nest | flush-icon-button-neutral | nest-exposed | shape=flush, size=small, surface=default, state=rest | — | state |
 | breadcrumb-item | separator | nest | _breadcrumb-separator | nest-fixed | type=chevron | — | — |
 | breadcrumb-item | separatorSlash | nest | _breadcrumb-separator | nest-fixed | type=slash | — | — |
 | breadcrumbs | item1 | nest | breadcrumb-item | nest-fixed | kind=ancestor, separator=chevron, size=medium | separator, size | — |
 | breadcrumbs | item2 | nest | breadcrumb-item | nest-fixed | kind=ancestor, separator=chevron, size=medium | separator, size | — |
 | breadcrumbs | item3 | nest | breadcrumb-item | nest-fixed | kind=current, separator=chevron, size=medium | size | — |
-| breadcrumbs | parentLink | nest | link | nest-exposed | style=inline, weight=default, size=medium, surface=default, state=rest | size | state |
+| breadcrumbs | parentLink | nest | link | nest-exposed | style=inline, weight=default, size=medium, surface=default, selection=unselected, state=rest | size | state |
 | button | focusRing | absolute | focus-ring | nest-fixed | surface=default | surface | — |
 | button | spinner | overlay | spinner | swap | — | — | — |
 | button-destructive | focusRing | absolute | focus-ring | nest-fixed | surface=default | surface | — |

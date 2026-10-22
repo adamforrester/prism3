@@ -78,6 +78,7 @@
         "weight": "default",
         "size": "medium",
         "surface": "default",
+        "selection": "unselected",
         "state": "rest"
       },
       "follow": [
@@ -181,6 +182,7 @@
         "weight": "default",
         "size": "medium",
         "surface": "default",
+        "selection": "unselected",
         "state": "rest"
       },
       "follow": [

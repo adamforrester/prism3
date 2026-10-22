@@ -106,7 +106,7 @@ export const breadcrumbItem: ComponentDef = {
         kind: 'nest',
         nests: 'link',
         presentWhen: { kind: ['ancestor'] },
-        nesting: { kind: 'nest-exposed', variant: { style: 'inline', weight: 'default', size: 'medium', surface: 'default', state: 'rest' }, expose: ['state'], follow: ['size'] },
+        nesting: { kind: 'nest-exposed', variant: { style: 'inline', weight: 'default', size: 'medium', surface: 'default', selection: 'unselected', state: 'rest' }, expose: ['state'], follow: ['size'] },
         note: 'An ancestor: a Link, inline and default weight, underlined at every state, at the item\'s size. Its state is set on the item.',
       },
       current: {

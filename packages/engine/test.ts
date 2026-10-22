@@ -18642,11 +18642,12 @@ arm: {
         `#2666 breadcrumbs/members (Q382 A): BreadcrumbItem kind [ancestor, current, overflow] × separator [chevron, slash] × size [medium, small] less the current page's slash = 10, Breadcrumbs path [full, parent] × separator × size less the parent's slash = 6, chevron by default, no state axis, the first member the code default (got ${itemPlans.length} / ${trailPlans.length}, ${JSON.stringify(itemDef.variants)} ${JSON.stringify(trailDef.variants)})`);
 
       // THE CRUMB (calls 3 A, 4 A): Link, inline (underlined at every state), default weight, default surface, at the
-      // item's size, its state exposed. Only on an ancestor.
+      // item's size, its state exposed. Only on an ancestor. Never the current page (#2872's `selection`): the current
+      // page is the item's own text, not a Link.
       const crumbOff = itemPlans.filter((p) => {
         const c = find(p.root, 'crumb');
         if (p.kind !== 'ancestor') return !!c;
-        return !(c && c.nestTarget === 'link' && JSON.stringify(c.nestVariant) === JSON.stringify({ style: 'inline', weight: 'default', size: p.size, surface: 'default', state: 'rest' })
+        return !(c && c.nestTarget === 'link' && JSON.stringify(c.nestVariant) === JSON.stringify({ style: 'inline', weight: 'default', size: p.size, surface: 'default', selection: 'unselected', state: 'rest' })
           && JSON.stringify(c.nestExpose) === '["state"]');
       });
       ok(crumbOff.length === 0, `#2666 breadcrumbs/crumb (calls 3 A, 4 A): an ancestor nests Link inline, default weight, at its own size, state exposed, and nothing else nests it${crumbOff.length ? ` — OFF: ${crumbOff.map((p) => `${p.kind}/${p.size}`).join(', ')}` : ''}`);
@@ -18709,7 +18710,7 @@ arm: {
         const g = find(p.root, 'backGlyph'), l = find(p.root, 'parentLink');
         if (p.path !== 'parent') return !!g || !!l;
         return !(g && l && p.root.children.indexOf(g) === 0 && p.root.children.indexOf(l) === 1 && g.nestTarget === 'icon/chevron-left' && g.descendantFills === 'color/icon/link/default'
-          && g.bound?.width === 'icon/size/xs' && l.nestTarget === 'link' && JSON.stringify(l.nestVariant) === JSON.stringify({ style: 'inline', weight: 'default', size: p.size, surface: 'default', state: 'rest' })
+          && g.bound?.width === 'icon/size/xs' && l.nestTarget === 'link' && JSON.stringify(l.nestVariant) === JSON.stringify({ style: 'inline', weight: 'default', size: p.size, surface: 'default', selection: 'unselected', state: 'rest' })
           && JSON.stringify(l.nestExpose) === '["state"]' && JSON.stringify(l.nestOverrides) === '[{"property":"label","type":"TEXT","value":"Parent page"}]');
       });
       ok(parOff.length === 0, `#2666 breadcrumbs/parent (call 11 A): the parent path is a 16px chevron-left in color/icon/link/default before an inline Link reading "Parent page"${parOff.length ? ` — OFF: ${parOff.map((p) => `${p.path}/${p.size}`).join(', ')}` : ''}`);

@@ -168,7 +168,7 @@ Keyed by `path`, `separator`.
 - `container/items/item2` nests `breadcrumb-item` at `kind=ancestor, separator=chevron, size=medium`; follows `separator`, `size`
 - `container/items/item3` nests `breadcrumb-item` at `kind=current, separator=chevron, size=medium`; follows `size`
 - `container/backGlyph` nests `icon/chevron-left`
-- `container/parentLink` nests `link` at `style=inline, weight=default, size=medium, surface=default, state=rest`; follows `size`; exposes `state`
+- `container/parentLink` nests `link` at `style=inline, weight=default, size=medium, surface=default, selection=unselected, state=rest`; follows `size`; exposes `state`
 
 | Property | Type | Default |
 | --- | --- | --- |

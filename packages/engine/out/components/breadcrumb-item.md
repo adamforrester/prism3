@@ -154,7 +154,7 @@ Keyed by `kind`, `separator`.
 
 ### Nesting and properties
 
-- `container/crumb` nests `link` at `style=inline, weight=default, size=medium, surface=default, state=rest`; follows `size`; exposes `state`
+- `container/crumb` nests `link` at `style=inline, weight=default, size=medium, surface=default, selection=unselected, state=rest`; follows `size`; exposes `state`
 - `container/separator` nests `_breadcrumb-separator` at `type=chevron`
 - `container/separatorSlash` nests `_breadcrumb-separator` at `type=slash`
 - `container/overflow` nests `flush-icon-button-neutral` at `shape=flush, size=small, surface=default, state=rest`; exposes `state`

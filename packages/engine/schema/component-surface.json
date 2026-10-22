@@ -719,14 +719,14 @@
     },
     "breadcrumb-item": {
       "members": 10,
-      "sha256": "d1ac4dbbeb80e4fd4f39190e5a8fb0ab1874f493787674e49009ecf0174d367b",
+      "sha256": "98bb9f14a50b180786a1a529fb4f5c2685aa488a936b50bd75a55e03dcc13fd3",
       "properties": [
         "label:TEXT"
       ]
     },
     "breadcrumbs": {
       "members": 6,
-      "sha256": "2f8c8df777ff7b4718ffe63c70a1f655c1d063628ab7d784dd80f5944fb441f2",
+      "sha256": "975963e0cb466b987f8793b63f86de21c4b61953e6faec8a026f0ddaed6686bb",
       "properties": [
         "items:SLOT"
       ]

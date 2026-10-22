@@ -129,7 +129,7 @@ export const breadcrumbs: ComponentDef = {
         kind: 'nest',
         nests: 'link',
         presentWhen: { path: ['parent'] },
-        nesting: { kind: 'nest-exposed', variant: { style: 'inline', weight: 'default', size: 'medium', surface: 'default', state: 'rest' }, expose: ['state'], follow: ['size'] },
+        nesting: { kind: 'nest-exposed', variant: { style: 'inline', weight: 'default', size: 'medium', surface: 'default', selection: 'unselected', state: 'rest' }, expose: ['state'], follow: ['size'] },
         overrides: { texts: { label: 'Parent page' } },
         note: 'The parent path: a Link to the parent page, inline and default weight, reading "Parent page". Its state is set on Breadcrumbs.',
       },
