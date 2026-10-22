@@ -635,11 +635,24 @@ section('template/… — `_Doc-block`');
     const label = c.name === 'row' ? c.children.find((k) => k.name === 'label') : undefined;
     if (label) label.textAutoResize = 'NONE';
   }
+  // And hand edits the repair must leave alone: a fill and a vertical sizing on each layer it repairs, and a decoy `row`
+  // and `columns` inside a nested List.Item instance, which is that component's, not the block's.
+  const HAND = [{ type: 'SOLID', hand: true }];
+  const handEdited: N[] = [];
+  for (const v of set?.children ?? []) for (const c of v.children) {
+    if (![...['top-padding', 'bottom-padding'], 'row', 'columns', 'chips'].includes(String(c.name))) continue;
+    c.fills = HAND; c.layoutSizingVertical = 'FIXED'; handEdited.push(c);
+  }
+  const nestedItem = walk(set!).find((c) => c.type === 'INSTANCE' && c.main === 'list-item')!;
+  const decoys = ['row', 'columns'].map((name) => { const d = mk('FRAME', name, [], { layoutSizingHorizontal: 'HUG' }); nestedItem.appendChild!(d); return d; });
   const again = await ensureDocBlock(api(libs, true), fc as never);
   ok(again.status === 'present' && fc.children.filter((c) => c.type === 'COMPONENT_SET').length === 1, 'template/idempotent: a second run builds nothing');
   const repaired = notFilled();
   ok(!repaired.length && (again.repaired ?? 0) > 0 && fc.children.find((c) => c.type === 'COMPONENT_SET') === set && (set?.children ?? []).map((c) => c.id).join('|') === ids,
     `template/repair: a set built before the fix is brought up to date in place, the same set and members (${again.repaired} layers)`, repaired.slice(0, 4).join('; '));
+  const touched = handEdited.filter((c) => c.fills !== HAND || c.layoutSizingVertical !== 'FIXED').map((c) => `${String((c.parent as N).name)} ${String(c.name)}`);
+  ok(handEdited.length >= 48 && !touched.length, `template/repair leaves hand edits: the fill and vertical sizing on all ${handEdited.length} repaired layers survive`, touched.slice(0, 3).join('; '));
+  ok(decoys.every((d) => d.layoutSizingHorizontal === 'HUG'), 'template/repair stays out of nested instances: a "row" and a "columns" inside List.Item are untouched');
   const third = await ensureDocBlock(api(libs, true), fc as never);
   ok(third.status === 'present' && third.repaired === 0, `template/repair idempotent: a set already right is left as it is (${third.repaired})`);
 }
