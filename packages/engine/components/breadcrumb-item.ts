@@ -120,7 +120,7 @@ export const breadcrumbItem: ComponentDef = {
         kind: 'nest',
         nests: 'flush-icon-button-neutral',
         presentWhen: { kind: ['overflow'] },
-        nesting: { kind: 'nest-exposed', variant: { shape: 'flush', size: 'small', state: 'rest' }, expose: ['state'] },
+        nesting: { kind: 'nest-exposed', variant: { shape: 'flush', size: 'small', surface: 'default', state: 'rest' }, expose: ['state'] },
         overrides: { swaps: { icon: 'more-horizontal-filled' } },
         note: 'The collapsed steps: a FlushIconButton.Neutral, flush and small, showing three dots. Its state is set on the item.',
       },

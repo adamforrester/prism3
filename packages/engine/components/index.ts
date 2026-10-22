@@ -79,6 +79,7 @@ import { link } from './link';
 import { buttonGroup } from './button-group';
 import { dialog } from './dialog';
 import { passwordField } from './password-field';
+import { toast } from './toast';
 import { breadcrumbSeparator } from './breadcrumb-separator';
 import { breadcrumbItem } from './breadcrumb-item';
 import { breadcrumbs } from './breadcrumbs';
@@ -218,6 +219,9 @@ export const componentDefs: readonly ComponentDef[] = [
   dialog,
   // `password-field` (#2317) — TextField's first specialization, from the shared field factory. Nests a Button.
   passwordField,
+  // `toast` (#2668, every numbered call A) — a short status over the page after the user's own action, on the inverse
+  // surface. Nests a Button (the action) and the neutral IconButton (the close), both at `surface: inverse`.
+  toast,
   // `_breadcrumb-separator`, `breadcrumb-item` and `breadcrumbs` (#2666) — the mark between steps, one step of a trail,
   // and the trail. The item nests the separator (Q382 A), Link and the neutral flush icon button, all above; Breadcrumbs
   // nests the item in its items slot, so the item comes first.

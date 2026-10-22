@@ -230,8 +230,8 @@ const MUST_PROJECT = [
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral',
   'field-label', 'field-message', 'text-field', 'textarea', 'select', 'password-field',
   'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'switch-control', 'switch-row',
-  'veil', 'image-placeholder', 'spinner', 'badge', 'tag', 'tab', 'tabs', 'divider', '_accordion-indicator', 'accordion',
-  'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'link', 'button-group', 'dialog', 'counter',
+  'veil', 'image-placeholder', 'spinner', 'badge', 'tag', 'tab-item', 'tabs', 'divider', '_accordion-indicator', 'accordion',
+  'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'link', 'button-group', 'dialog', 'counter', 'toast',
   '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs',
 ];
 

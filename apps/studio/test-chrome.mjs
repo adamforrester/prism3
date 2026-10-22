@@ -3633,7 +3633,7 @@ const EXPECT_FILLS_SPECIMENS = ['Background', 'Scrim', 'Foreground', 'Text color
  *  badges, Foreground included since it sits on the floor it is measured against (GR2, owner 2026-10-04). Literal. */
 const FILLS_GROUND_SECTIONS = ['Background'];
 /** GR2: the Foreground roles measured against the contrast floor, each badged in the Foreground section. Literal. */
-const FLOOR_BADGED = ['brand', 'danger', 'success', 'warning', 'info'];
+const FLOOR_BADGED = ['brand', 'success', 'warning', 'danger', 'info'];
 /** #1971 Q13(a) (owner, 2026-10-05): the Foreground cards whose badge describes the text drawn on the card's own fill,
  *  as [fill, text]: the three Inverse cards (their label) and the five Subtle cards. Literal. */
 const ON_FILL_CARDS = [...['primary', 'secondary', 'tertiary'].map((t) => [`inverse.foreground.${t}`, 'inverse.text.primary']),
@@ -6705,6 +6705,135 @@ console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembe
   } finally { await ctx.close(); }
 }
 
+// 21b. #2832: the reveal anchors to the edited token's own card, and only a move to ANOTHER lever moves the preview.
+//      Editing `foreground.success-subtle` with its card already in view leaves the preview where it is, on every
+//      value change; it used to glide back to the top of the Foreground section on each one.
+//
+//      Two rules the card in view cannot show are held on their own. A lever with no card (Gradients) whose section is
+//      taller than the preview: its second edit does not touch the preview at all, though the section is still only
+//      partly in view. And a viewer who has scrolled the preview away from the card between two edits on one lever gets
+//      the card back, because the "same lever" rule holds only while the preview rests where the last edit left it.
+//
+//      Mutations this fails by name: the reveal back on the section's top (no `sameLever` early return, no card
+//      target) → `#2832: editing a Subtle foreground fill with its card in view does not move the preview` and
+//      `#2832: a second value change on the same lever leaves the preview where it was`; the `if (sameLever) return
+//      true;` early return dropped → `#2832: a second edit on a lever with no card never touches the preview`;
+//      `sameLever` reading the lever alone (not where the preview rests) → `#2832: after the viewer scrolls the preview
+//      away, the next edit on the same lever brings its card back into view`.
+console.log(`\n#2832 — the edit reveal anchors to the token's own card\n${'='.repeat(78)}`);
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    const ROLE = 'foreground.success-subtle';
+    const CARD = `[data-p3="preview-body"] [data-sg-role="${ROLE}"][data-sg-paint="background"]`;
+    /** The card's box and the Foreground section's against the preview body's, and the body's scroll. */
+    const read = (role = ROLE) => page.evaluate((r) => {
+      const body = document.querySelector('[data-p3="preview-body"]');
+      const b = body.getBoundingClientRect();
+      const card = [...body.querySelectorAll('[data-sg-role]')].find((n) => n.dataset.sgRole === r && n.dataset.sgPaint === 'background');
+      const sec = [...body.querySelectorAll('[data-p3="section-title"]')].find((n) => n.textContent === 'Foreground')?.closest('.psec');
+      const c = card?.getBoundingClientRect(), s = sec?.getBoundingClientRect();
+      return { top: Math.round(body.scrollTop), found: !!c && !!s, cardIn: !!c && c.top >= b.top && c.bottom <= b.bottom,
+        secTopAbove: !!s && s.top < b.top, secBottomIn: !!s && s.bottom < b.bottom - 8 };
+    }, role);
+    const settle = () => page.evaluate(() => new Promise((res) => {
+      const b = document.querySelector('[data-p3="preview-body"]');
+      let last = -1, still = 0;
+      const tick = () => { const y = Math.round(b.scrollTop); still = y === last ? still + 1 : 0; last = y; if (still >= 12) res(y); else requestAnimationFrame(tick); };
+      requestAnimationFrame(tick);
+    }));
+    const step = () => hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="step-picker-step"][aria-pressed="false"]').first());
+
+    await goPlace(page, 'color-fills');
+    // The Subtle card in the middle of the view, which puts the end of the Foreground section on screen as well.
+    await page.evaluate((sel) => {
+      const body = document.querySelector('[data-p3="preview-body"]');
+      const r = document.querySelector(sel).getBoundingClientRect(), b = body.getBoundingClientRect();
+      body.scrollTop += r.top - b.top - (b.height - r.height) / 2;
+    }, CARD);
+    const before = await read();
+    ok(before.found && before.cardIn && before.secTopAbove && before.secBottomIn,
+      `#2832: the Subtle success card is in view with the Foreground section partly scrolled past it (${JSON.stringify(before)})`);
+
+    await hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="fill-pick"][data-role="${ROLE}"]`));
+    await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]');
+    ok((await read()).top === before.top, `#2832: opening the picker does not move the preview (scrollTop ${(await read()).top}, was ${before.top})`);
+
+    await step();
+    const after1 = await read(); const settled1 = await settle();
+    ok(after1.cardIn && settled1 === before.top,
+      `#2832: editing a Subtle foreground fill with its card in view does not move the preview (scrollTop ${settled1}, was ${before.top}; card in view ${after1.cardIn})`);
+    await step();
+    await step();
+    const settled2 = await settle();
+    ok(settled2 === before.top && (await read()).cardIn,
+      `#2832: a second value change on the same lever leaves the preview where it was (scrollTop ${settled2}, was ${before.top})`);
+
+    // Another lever whose card is out of view: the preview does move, and the edited card ends in view.
+    await page.keyboard.press('Escape');
+    await page.evaluate(() => { document.querySelector('[data-p3="preview-body"]').scrollTop = 0; });
+    const OTHER = 'foreground.danger-subtle';
+    await hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="fill-pick"][data-role="${OTHER}"]`));
+    await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]');
+    await step();
+    await settle();
+    const moved = await read(OTHER);
+    ok(moved.cardIn && moved.top > 0, `#2832: editing another lever whose card is out of view brings that card into view (scrollTop ${moved.top}; card in view ${moved.cardIn})`);
+
+    // The viewer scrolls the preview away from that card; the next edit on the SAME lever brings the card back.
+    await page.evaluate(() => { document.querySelector('[data-p3="preview-body"]').scrollTop = 0; });
+    const away = await read(OTHER);
+    await step();
+    await settle();
+    const back = await read(OTHER);
+    ok(!away.cardIn && back.cardIn, `#2832: after the viewer scrolls the preview away, the next edit on the same lever brings its card back into view (card in view ${away.cardIn} before, ${back.cardIn} after; scrollTop ${back.top})`);
+    ok(errors.length === 0, `#2832: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `#2832: the case stopped at a step that threw — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
+// A lever with no card: Gradients is taller than the preview here, so after its first edit lands the section's top the
+// section is still only partly in view. The second edit on that lever leaves the preview alone: no scroll is issued.
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 560 });
+  try {
+    await goPlace(page, 'color-fills');
+    const read = () => page.evaluate(() => {
+      const body = document.querySelector('[data-p3="preview-body"]');
+      const b = body.getBoundingClientRect();
+      const s = [...body.querySelectorAll('[data-p3="section-title"]')].find((n) => n.textContent === 'Gradients')?.closest('.psec')?.getBoundingClientRect();
+      return { top: Math.round(body.scrollTop), tall: !!s && s.height > b.height, partly: !!s && s.top >= b.top && s.bottom > b.bottom, calls: window.__p3BodyScrolls };
+    });
+    await page.evaluate(() => {
+      const body = document.querySelector('[data-p3="preview-body"]');
+      window.__p3BodyScrolls = 0;
+      const was = Element.prototype.scrollTo;
+      Element.prototype.scrollTo = function scrollTo(...a) { if (this === body) window.__p3BodyScrolls++; return was.apply(this, a); };
+      const s = [...body.querySelectorAll('[data-p3="section-title"]')].find((n) => n.textContent === 'Gradients').closest('.psec');
+      body.scrollTop += s.getBoundingClientRect().top - body.getBoundingClientRect().top - 120;
+    });
+    const settle = () => page.evaluate(() => new Promise((res) => {
+      const b = document.querySelector('[data-p3="preview-body"]');
+      let last = -1, still = 0;
+      const tick = () => { const y = Math.round(b.scrollTop); still = y === last ? still + 1 : 0; last = y; if (still >= 12) res(y); else requestAnimationFrame(tick); };
+      requestAnimationFrame(tick);
+    }));
+    const kind = page.locator('[data-p3="levers-pane"] select[data-p3="gradient-kind"]').first();
+    const kinds = await kind.evaluate((n) => [...n.options].map((o) => o.value));
+    const pick = async (v) => { await kind.selectOption(v); await settle(); };
+    await pick(kinds.find((k) => k !== kinds[0]));   // the first edit on this lever: it may bring the section in
+    const first = await read();
+    await page.evaluate(() => { window.__p3BodyScrolls = 0; });
+    await pick(kinds[0]);
+    const second = await read();
+    ok(first.tall && first.partly, `#2832: the Gradients section is taller than the preview and still only partly in view after the first edit (${JSON.stringify(first)})`);
+    ok(second.calls === 0 && second.top === first.top, `#2832: a second edit on a lever with no card never touches the preview (${second.calls} scrolls issued; scrollTop ${second.top}, was ${first.top})`);
+    ok(errors.length === 0, `#2832: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `#2832: the no-card case stopped at a step that threw — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
+
 // =============================================================================================
 // 22. The shared styling pass (the owner's QA, evening 2026-10-02: QA-B2, B5, B8, B11, B18, I12, R1), read from the RENDERED layout on both hosts and in both chrome themes.
 //
@@ -7722,7 +7851,8 @@ for (const host of ['web', 'figma']) {
       const want = `${size} button · ${HEIGHT_PX(step)}px`;
       ok(r.heights[step] === want, `D6: ${host}: the ${size} button height reads "${want}" (${JSON.stringify(r.heights[step])})`);
     }
-    ok(r.used.find(([s]) => s === 'md')?.[1]?.includes('Button') && r.used.find(([s]) => s === 'xl')?.[1] === SHAPE_COPY.usedByNone,
+    // radius.lg is the unbound size probed: Toast binds radius.xl since #2668.
+    ok(r.used.find(([s]) => s === 'md')?.[1]?.includes('Button') && r.used.find(([s]) => s === 'lg')?.[1] === SHAPE_COPY.usedByNone,
       `${host}: "used by" names Button on radius.md under the default Control shape, and the fallback "${SHAPE_COPY.usedByNone}" where nothing binds a size (${JSON.stringify(r.used.slice(2, 5))})`);
     ok(JSON.stringify(r.shapes) === JSON.stringify([['boxed', null], ['hairline', null], ['rounded', 'true'], ['pill', null]]), `${host}: the four control shapes, Rounded marked current (${JSON.stringify(r.shapes)})`);
     // D16 and E2's plain words: no "ramp", "ladder", "face", "band", "rung", "muted" or "column" in Shape's visible copy,
@@ -7902,8 +8032,8 @@ for (const host of ['web', 'figma']) {
     await hooks.click(page.locator('[data-p3="shape-see-components"]'));
     await page.waitForFunction(() => !!document.querySelector('[data-p3="components-levers"]'), null, { timeout: 5000 }).catch(() => {});
     const s = await page.evaluate(() => ({ place: document.querySelector('[data-p3="frame"]')?.dataset.place,
-      // #2700: the Button options sit with the Buttons family, in the preview pane.
-      buttons: !!document.querySelector('[data-p3="components-style-guide"] [data-p3="lever-button-icons"]') }));
+      // #2815 step 1: the Button options sit under the Buttons row, in the list (the levers pane).
+      buttons: !!document.querySelector('[data-p3="levers-pane"] [data-p3="lever-button-icons"]') }));
     ok(s.place === 'components' && s.buttons, `${host}: See Components opens the Components tab, where the Button options are (${JSON.stringify(s)})`);
     ok(errors.length === 0, `${host} Shape routes: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
@@ -8066,7 +8196,7 @@ for (const host of ['web', 'figma']) {
         lsec: [...pane.querySelectorAll('[data-p3="cp-section-title"]')].map((x) => x.dataset.name),
         options: [document.querySelector('[data-p3="button-options-title"]')?.textContent ?? null, document.querySelector('[data-p3="button-options-desc"]')?.textContent ?? null],
         psec: [...pv.querySelectorAll('.psec')].map((x) => [x.querySelector('.psec-t')?.textContent ?? null, x.querySelector('.psec-d')?.textContent ?? null]),
-        density: [pv.querySelector('[data-p3="components-density"] .p3-sub')?.textContent ?? null, pv.querySelector('[data-p3="components-density-link"]')?.textContent ?? null],
+        density: [pane.querySelector('[data-p3="components-density"] .p3-sub')?.textContent ?? null, pane.querySelector('[data-p3="components-density-link"]')?.textContent ?? null],
         sets: [...pane.querySelectorAll('[data-p3="cp-row"][data-set], [data-p3="cp-member"][data-set]')].map((n) => n.dataset.set),
         offered: [...pane.querySelectorAll('[data-set][data-off="true"]')].map((n) => n.dataset.set),
         build: [...document.querySelectorAll('[data-p3="components-build"]')].map((n) => [n.querySelector('[data-p3="label-idle"]')?.textContent ?? null, n.querySelector('[data-p3="label-busy"]')?.textContent ?? null, n.disabled]),
@@ -8158,8 +8288,9 @@ for (const host of ['web', 'figma']) {
           link: !document.querySelector('[data-p3="components-density-link"]')?.matches(':disabled'),
           line: document.querySelector('[data-p3="button-options-derived"]')?.textContent ?? null,
           frameLine: !!document.querySelector('[data-p3="levers-derived-note"]'),
-          listHeld: [...(list?.querySelectorAll('button') ?? [])].filter((b) => b.matches(':disabled') || b.getAttribute('aria-disabled') === 'true').length,
-          listN: list?.querySelectorAll('button').length ?? 0,
+          // #2815 step 1: the Button options sit in the list now, and hold themselves (above); the list is the rest.
+          listHeld: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"]') && (b.matches(':disabled') || b.getAttribute('aria-disabled') === 'true')).length,
+          listN: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"]')).length,
           preview: [...document.querySelectorAll('[data-p3="components-style-guide"] .psec-t')].map((t) => t.textContent),
           buttons: document.querySelectorAll('[data-p3="components-style-guide"] .btnl-btn').length };
       });
@@ -8194,7 +8325,7 @@ for (const host of ['web', 'figma']) {
   } finally { await ctx.close(); }
 }
 // Q54, brand-wide: previewing Dark, a chip writes the same key as from Light and no per-mode value. (QA-B9's reveal ended
-// here with #2700: the Button options are drawn in the preview itself, beside the specimen they change.)
+// here with #2700; since #2815 step 1 the Button options sit under the Buttons row, beside the list, the specimen right.)
 {
   const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
   try {
@@ -8212,6 +8343,113 @@ for (const host of ['web', 'figma']) {
     ok(errors.length === 0, `components Q54: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     ok(false, `S8.2 Q54: the case stopped at a step that threw — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
+// #2815 step 1 (the phase-2 wireframe, call 3 A): settings left, preview right. On both hosts, at 1280 and at 380, the
+// Button options are drawn once, in the list (the levers pane), inside the Buttons row's own list item and after its row,
+// and nowhere in the preview pane; the preview pane keeps the family's head, its Preview and its sets. Focusing another
+// family (Badge, which has no settings) takes the options away with the preview's Buttons; focusing Buttons again
+// brings them back under its row. At 380 the list is the Settings pane and the preview the Preview pane, as on every page.
+//
+// Oracle: the hooks and the family names are literals typed here; "under its row" is read off the DOM's own nesting and
+// order, never from the page's `focusedRow`.
+//
+// Mutation this fails by name (focus): the `inSettings` restore dropped from `paintList` → `#2815 step 1: <host> <w>: a
+// focused Button option keeps its focus across the list's redraw at the tier flip (on BODY)`, at both hosts and widths.
+//
+// Mutation this fails by name: the block drawn under the Buttons row whatever the preview shows (`shownKey === row.key`
+// turned into `row.page === PREVIEW_DEFAULT_PAGE` in `domains/components.ts`) → `#2815 step 1: <host> <w>: focusing Badge
+// takes the Button options away …`, at both hosts and both widths.
+for (const host of ['web', 'figma']) {
+  for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 760 }]) {
+    const { ctx, page, errors } = await open({ host, theme: 'light', w, h });
+    try {
+      await goPlace(page, 'components');
+      await hooks.need(page, '[data-p3="components-levers"]');
+      const read = () => page.evaluate(() => {
+        const pane = document.querySelector('[data-p3="levers-pane"]');
+        const opts = [...document.querySelectorAll('[data-p3="button-options-section"]')];
+        const o = opts[0] ?? null;
+        const li = o?.closest('[data-p3="cp-item"]') ?? null;
+        const row = li?.querySelector(':scope > [data-p3="cp-row"]') ?? null;
+        return {
+          n: opts.length, inPane: !!o && pane.contains(o),
+          inPreview: !!document.querySelector('[data-p3="preview-body"] [data-p3="button-options-section"], [data-p3="preview-body"] [data-p3^="lever-button-"]'),
+          rowName: row?.querySelector('[data-p3="cp-name"]')?.textContent ?? null,
+          after: !!row && !!o && !!(row.compareDocumentPosition(o) & Node.DOCUMENT_POSITION_FOLLOWING),
+          levers: o ? o.querySelectorAll('[data-p3^="lever-button-"]').length : 0,
+          family: document.querySelector('[data-p3="components-style-guide"]')?.dataset.family ?? null,
+          title: document.querySelector('[data-p3="components-detail-title"]')?.textContent ?? null,
+        };
+      });
+      const r0 = await read();
+      ok(r0.n === 1 && r0.inPane && !r0.inPreview && r0.rowName === 'Buttons' && r0.after && r0.levers === 5,
+        `#2815 step 1: ${host} ${w}: the Button options sit in the list, under the Buttons row, once, and not in the preview (${JSON.stringify(r0)})`);
+      ok(r0.title === 'Buttons', `#2815 step 1: ${host} ${w}: with nothing focused the preview shows Buttons, the family whose settings are open (${r0.title})`);
+      await hooks.click(page.locator('[data-p3="cp-name"]').filter({ hasText: /^Badge$/ }).first());
+      await page.waitForFunction(() => document.querySelector('[data-p3="components-style-guide"]')?.dataset.family !== undefined
+        && document.querySelector('[data-p3="components-detail-title"]')?.textContent === 'Badge', null, { timeout: 5000 }).catch(() => {});
+      const r1 = await read();
+      ok(r1.n === 0 && r1.title === 'Badge', `#2815 step 1: ${host} ${w}: focusing Badge takes the Button options away with the preview's Buttons (${JSON.stringify(r1)})`);
+      await hooks.click(page.locator('[data-p3="cp-name"]').filter({ hasText: /^Buttons$/ }).first());
+      await page.waitForFunction(() => !!document.querySelector('[data-p3="button-options-section"]'), null, { timeout: 5000 }).catch(() => {});
+      const r2 = await read();
+      ok(r2.n === 1 && r2.inPane && r2.rowName === 'Buttons' && r2.after && r2.title === 'Buttons',
+        `#2815 step 1: ${host} ${w}: focusing Buttons opens its options under its row again (${JSON.stringify(r2)})`);
+      // A choice inside the block keeps its focus after its write.
+      await hooks.click(page.locator('[data-p3="button-icons-choice-edges"]'));
+      await page.waitForTimeout(120);
+      const f = await page.evaluate(() => document.activeElement?.getAttribute('data-p3') ?? null);
+      ok(f === 'button-icons-choice-edges', `#2815 step 1: ${host} ${w}: a Button option keeps its focus after its write (on ${f})`);
+      // A chip's write does not redraw the list, so the check above cannot tell a restored focus from one never lost. A
+      // tier flip does redraw it (the tier observer calls paintList): the chip, focused, keeps its focus across that.
+      await page.evaluate(() => document.querySelector('[data-p3="button-icons-choice-edges"]')?.focus());
+      await page.setViewportSize({ width: w === 1280 ? 380 : 1280, height: h });
+      await page.waitForTimeout(400);
+      const f2 = await page.evaluate(() => document.activeElement?.getAttribute('data-p3') ?? document.activeElement?.tagName ?? null);
+      ok(f2 === 'button-icons-choice-edges', `#2815 step 1: ${host} ${w}: a focused Button option keeps its focus across the list's redraw at the tier flip (on ${f2})`);
+      ok(errors.length === 0, `#2815 step 1 ${host} ${w}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `#2815 step 1 ${host} ${w}: the case stopped at a step that threw — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+}
+// #2825 (owner QA, 2026-10-19): in the plugin, each section head's box is centered on its title's FIRST line, as each
+// row's box is centered on its name, at 1280 and at 380 (where "Components" wraps its count onto a second line), and
+// Subcomponents' Build all on the same line. Measured off the render: the box's center against the center of the glyph
+// box of the title's first text (a DOM Range over the title's own words), held to the row's own offset within 1px.
+//
+// Mutations this fails by name: the head's `.p3-cp-line1` cells dropped (the box back on the grid's `align-items`) →
+// `#2825: figma 380: the Components head's box is centered on its title's first line …`.
+for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 760 }]) {
+  const { ctx, page, errors } = await open({ host: 'figma', theme: 'light', w, h });
+  try {
+    await goPlace(page, 'components');
+    await hooks.need(page, '[data-p3="cp-section-head"] [data-p3="cp-box"]');
+    const m = await page.evaluate(() => {
+      const mid = (r) => (r.top + r.bottom) / 2;
+      const textMid = (node) => { const r = document.createRange(); r.selectNodeContents(node); return mid(r.getClientRects()[0]); };
+      const row = document.querySelector('[data-p3="cp-row"]');
+      const rowOff = mid(row.querySelector('.p3-check-box').getBoundingClientRect()) - textMid(row.querySelector('[data-p3="cp-name"] .p3-btn-label').firstChild);
+      return { rowOff, heads: [...document.querySelectorAll('[data-p3="cp-section-head"]')].map((hd) => {
+        const t = hd.querySelector('[data-p3="cp-section-title"]');
+        const line = textMid(t.firstChild);
+        const all = hd.querySelector('[data-p3="cp-build-all"]');
+        return { name: t.dataset.name, off: mid(hd.querySelector('[data-p3="cp-box"] .p3-check-box').getBoundingClientRect()) - line,
+          lines: Math.round(t.getBoundingClientRect().height / parseFloat(getComputedStyle(t).lineHeight)),
+          allOff: all ? mid(all.getBoundingClientRect()) - line : null };
+      }) };
+    });
+    ok(Math.abs(m.rowOff) <= 1, `#2825: figma ${w}: a row's box is centered on its name, the reference (${m.rowOff.toFixed(2)}px)`);
+    for (const hd of m.heads) {
+      ok(Math.abs(hd.off - m.rowOff) <= 1, `#2825: figma ${w}: the ${hd.name} head's box is centered on its title's first line, as a row's is on its name (${hd.off.toFixed(2)}px off the line, the row's ${m.rowOff.toFixed(2)}px; the title is ${hd.lines} line${hd.lines === 1 ? '' : 's'})`);
+      if (hd.allOff !== null) ok(Math.abs(hd.allOff) <= 1, `#2825: figma ${w}: ${hd.name}' Build all is centered on the title's first line (${hd.allOff.toFixed(2)}px)`);
+    }
+    ok(m.heads.length === 2 && m.heads.some((x) => x.allOff !== null), `#2825: figma ${w}: both heads measured, Build all among them (${m.heads.length})`);
+    if (w === 380) ok(m.heads.some((x) => x.lines >= 2), `#2825: figma 380: a head's title wraps, so the first-line rule is tested where it differs from centering on the head (${JSON.stringify(m.heads.map((x) => x.lines))})`);
+    ok(errors.length === 0, `#2825 figma ${w}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `#2825 figma ${w}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // C3 A (#2086): the build stamp moved from the foot of the Pages menu to the foot of the Inspect menu, in small text, on
@@ -10246,11 +10484,12 @@ const EXPECT_HEADINGS = {
     L1: ['Breakpoints', 'Grid', 'Containers'],
     L2: ['Grid columns', 'Maximum width', 'Content container', 'sm', 'md', 'lg', 'xl', '2xl'],
   },
-  // #2700: the levers pane is the list, in its two sections; the Button options (and their L2 names) moved to the preview
-  // pane, with the Buttons family, which this audit does not sweep.
+  // #2700: the levers pane is the list, in its two sections. #2815 step 1 brought the Button options back into it, under
+  // the Buttons row: a group in the Components section, its title L2 and its levers' names L3, as Interactive's sets are.
   components: {
     L1: ['Components', 'Subcomponents'],
-    L2: [],
+    L2: ['Button options'],
+    L3: ['Button icons', 'Button label & icon', 'Button label weight', 'Text button hover', 'Button minimum width'],
   },
   // #2215: the plugin's Build style guides page, with SG_RING_CATALOG posted (every kind selected, so every option group
   // draws). Its page title is not a level (HEADING_EXEMPT).

@@ -1253,6 +1253,16 @@ npx tsx packages/engine/lint-release-notes.ts       # every release's notes in d
                                                     # each fail by name. The diff is re-derived from
                                                     # the committed records with the gate's own code,
                                                     # never the generator. Needs git history.
+npx tsx packages/engine/lint-naming.ts              # the defs follow the build-component skill's
+                                                    # naming table (#2759; Q345, Q349, Q350, Q355):
+                                                    # lowercase Figma property names, the `_` prefix
+                                                    # exactly where whenToUse says a part is used only
+                                                    # inside its parent, roots from a closed role list
+                                                    # and never the def's id, `<shape>Glyph` glyph
+                                                    # layers, a Row's `controlCell`. The rules are
+                                                    # literals in the gate. Known breaches wait in
+                                                    # PENDING, which fails as stale when one clears.
+                                                    # NOT checked: "main text is `label`" (a judgment).
 ```
 
 CI (`.github/workflows/ci.yml`) also runs the web and plugin gates below **on every PR,
@@ -1647,6 +1657,16 @@ isn't good enough to hand over cold, fix the issue before starting the work.
 `exit 0`, `336/336 per brand`) and the `out/*` impact. "Tests pass" is not a result.
 Agents are good at this loop and bad at noticing when a gate silently stopped covering
 the thing it was there to cover.
+
+**End every verdict with `Gaps`.** Every Ready, and every review, delta or re-gate verdict,
+closes with a `Gaps` section: what was not done, what was not checked, and the risks that
+remain. When there are none it says `Gaps: none` — the section is never omitted, because a
+verdict with no such line cannot be told apart from one that never asked (#2850).
+
+**Search before you build a mechanism.** Before adding a new gate, script, helper or
+convention, look for one that already does the job (the lint gates, the harnesses under
+`tools/`, the commands under `.claude/commands/`, this file). The PR body says what it
+reused, or why nothing fit.
 
 Two failure modes worth watching for specifically: **scope creep** (an agent tidying
 adjacent code — principle 3 says don't), and **plausible-but-unverified claims** about

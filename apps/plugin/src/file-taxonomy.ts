@@ -103,7 +103,7 @@ export const TAXONOMY: Taxonomy = {
         { page: 'Tag', defs: ['tag'] },
         // Tabs — its own page under Components, owner-decided 2026-10-09 (#2416 Q177.14: no navigation grouping,
         // no new section). Tab builds first, so the list's nested tabs resolve against it on the same page.
-        { page: 'Tabs', defs: ['tab', 'tabs'] },
+        { page: 'Tabs', defs: ['tab-item', 'tabs'] },
         // Segmented control (#2418, owner Q269.7) — its own page under Components, after Tabs. The option builds
         // first, so the control's nested options resolve against it on the same page, as Tabs' do.
         { page: 'Segmented control', defs: ['segmented-control-segment', 'segmented-control'] },
@@ -125,6 +125,9 @@ export const TAXONOMY: Taxonomy = {
         // Breadcrumbs (#2666, owner call 15 A) — its own page under Components. It nests BreadcrumbItem in its items slot
         // and Link, which the build places first wherever their pages sort.
         { page: 'Breadcrumbs', defs: ['breadcrumbs'] },
+        // Toast (#2668, owner call 12 A) — its own page under Components, sorted alphabetically (Q260 A). It nests the
+        // Button and the FlushIconButton.Neutral, which the build places first wherever their pages sort.
+        { page: 'Toast', defs: ['toast'] },
         // Counter (#2427, owner decision Q283.14 A) — its own page, alphabetical under Components (between Checkbox and
         // Divider). It nests FlushIconButton.Neutral, whose page is under Subcomponents.
         { page: 'Counter', defs: ['counter'] },

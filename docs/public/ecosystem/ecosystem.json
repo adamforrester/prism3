@@ -302,7 +302,7 @@
           "spinner",
           "badge",
           "tag",
-          "tab",
+          "tab-item",
           "tabs",
           "divider",
           "_accordion-indicator",
@@ -316,6 +316,7 @@
           "dialog",
           "password-field",
           "counter",
+          "toast",
           "_breadcrumb-separator",
           "breadcrumb-item",
           "breadcrumbs"

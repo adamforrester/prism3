@@ -6,7 +6,7 @@
  * never imports the definitions themselves (UI redesign S7, T4; the generator's header says why).
  */
 export const USED_BY = {
-  defs: 46,
+  defs: 47,
   radius: {
     rounded: {
       "radius.2xl": [
@@ -38,6 +38,9 @@ export const USED_BY = {
         "SegmentedControl",
         "PasswordField",
         "Counter"
+      ],
+      "radius.xl": [
+        "Toast"
       ]
     },
     pill: {
@@ -72,6 +75,9 @@ export const USED_BY = {
         "SegmentedControl",
         "PasswordField",
         "Counter"
+      ],
+      "radius.xl": [
+        "Toast"
       ]
     },
     boxed: {
@@ -105,6 +111,9 @@ export const USED_BY = {
         "SegmentedControl",
         "PasswordField",
         "Counter"
+      ],
+      "radius.xl": [
+        "Toast"
       ]
     },
     hairline: {
@@ -140,6 +149,9 @@ export const USED_BY = {
         "SegmentedControl",
         "PasswordField",
         "Counter"
+      ],
+      "radius.xl": [
+        "Toast"
       ]
     }
   },
@@ -153,7 +165,7 @@ export const USED_BY = {
       "Radio.Row",
       "Select",
       "Tag",
-      "Tab",
+      "Tab.Item",
       "Accordion",
       "SegmentedControl",
       "PasswordField",
@@ -168,7 +180,7 @@ export const USED_BY = {
       "Radio.Row",
       "Switch.Row",
       "Tag",
-      "Tab",
+      "Tab.Item",
       "Divider",
       "SegmentedControl",
       "Counter"
@@ -181,7 +193,7 @@ export const USED_BY = {
       "Radio.Row",
       "Switch.Row",
       "Tag",
-      "Tab",
+      "Tab.Item",
       "SegmentedControl",
       "Counter"
     ]

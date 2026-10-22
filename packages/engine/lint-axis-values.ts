@@ -402,7 +402,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'selection',
     values: ['unselected', 'selected'],
-    defs: ['tag', 'tab', 'segmented-control-segment'],
+    defs: ['tag', 'tab-item', 'segmented-control-segment'],
     relation: 'disjoint',
     reason:
       'A selectable tag\'s two values, in the words the Tag brief uses (§4, §15) — `selected` is what a filter '
@@ -418,7 +418,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'size',
     values: ['medium', 'small', 'large'],
-    defs: ['_accordion-indicator', 'accordion', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'tag', 'tab', 'tabs', 'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'link', 'text-field', 'select', 'textarea', 'dialog', 'password-field', 'counter'],
+    defs: ['_accordion-indicator', 'accordion', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'tag', 'tab-item', 'tabs', 'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'link', 'text-field', 'select', 'textarea', 'dialog', 'password-field', 'counter'],
     relation: 'canonical',
     reason:
       'The three-rung ladder, led by `medium` (#2752, owner decision Q1 B, 2026-10-16). Canonical on weight of use: '
@@ -532,7 +532,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'surface',
     values: ['default', 'inverse'],
-    defs: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'focus-ring', 'link'],
+    defs: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'focus-ring', 'link'],
     relation: 'sole',
     reason:
       'The ground a control sits on (#1134): `default` the page, `inverse` a dark or brand-filled band. THE '
@@ -543,6 +543,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'in #1427, following `button` 1:1 apart from the `shape` axis — each carries `surface` and drives its '
       + 'nested `focus-ring` by the same `follow: [\'surface\']`, and its inverse fill inherits the shared '
       + '`inverse.interactive.<family>.fill` role (white/black at rest since #1384, stepped 2 rungs per state since #1456). '
+      + 'The flush icon-button siblings join in #2668 (Q386): no fill, so the axis changes the glyph ink only, for the Toast\'s close. '
       + '`focus-ring`\'s axis was `color` until #1134 renamed it here; the two are one entry now because they '
       + 'are one distinction. ORDER matters as everywhere here: `default` is the rest coordinate the '
       + 'projector\'s inverse rewrite falls through to (an `inverse` coordinate binds `color.inverse.*`, a '
@@ -582,7 +583,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
     axis: 'status',
     values: ['default', 'error', 'warning', 'success'],
     defs: ['field-message', 'select', 'text-field', 'textarea', 'password-field'],
-    relation: 'sole',
+    relation: 'canonical',
     reason:
       'A form field\'s VALIDATION OUTCOME. RENAMED from `tone` to `status` in #1334 (the owner\'s split of '
       + 'the overloaded `tone`): this set was recorded here as `overlapping` with `icon`\'s ink vocabulary '
@@ -596,6 +597,18 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'entry records them. '
       + '`error` (not `danger`) mirrors the closed `STATES` vocabulary a validation outcome tracks; the '
       + '`error → danger` ink mapping lives in `lint-paint.ts` as a named provenance exception.',
+  },
+  {
+    axis: 'status',
+    values: ['default', 'error'],
+    defs: ['checkbox-control', 'checkbox-row', 'checkbox-group', 'switch-control', 'switch-row', 'radio-control', 'radio-row', 'radio-group'],
+    relation: 'subset',
+    reason:
+      'The choice controls\' validation outcome (owner Q354, #2751): every control that can be invalid takes the '
+      + 'fields\' `status` axis, and a checkbox, switch or radio has an error look and no warning or success look, '
+      + 'so it carries the canonical set\'s first two values. A shared value means exactly what it means on a '
+      + 'field, which is what lets a group follow its `status` into its rows and its nested `field-message` by '
+      + 'name. The canonical set became `canonical` (from `sole`) when this one joined.',
   },
   {
     axis: 'width',
@@ -721,12 +734,13 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   },
   {
     axis: 'placement',
-    values: ['center', 'bottom', 'full'],
+    values: ['center', 'bottom', 'full', 'end'],
     defs: ['dialog'],
     relation: 'sole',
     reason:
       'Where a layer sits over the page (#2609, owner decision Q303.1): centered, attached to the bottom edge as a bottom '
-      + 'sheet, or filling a small screen. No side placement, by the same decision. `center` LEADS because it is the code '
+      + 'sheet, filling a small screen, or attached to the end edge as a side sheet (#2877, Q483 A, named `end` by Q488 A: '
+      + 'the writing direction\'s end, so it mirrors in right-to-left text and a `start` can join it with no rename). `center` LEADS because it is the code '
       + 'default on every screen and Figma\'s default member. One def carries it, so there is no other to stand in a '
       + 'relation with. Distinct from `alignment` and `direction`, argued in `VARIANT_AXES`.',
   },
@@ -764,13 +778,27 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'from `width` and `footer`, argued in `VARIANT_AXES`.',
   },
   {
+    axis: 'intent',
+    values: ['neutral', 'success'],
+    defs: ['toast'],
+    relation: 'sole',
+    reason:
+      'What a toast confirms (#2668, owner call 2 A): a plain confirmation, or a completed action with a circled check. '
+      + 'No danger, warning or info: a message the user must see goes to a banner (call 1 A). `neutral` LEADS because it '
+      + 'is the code default and Figma\'s default member. The axis returns here as a variant axis after #1225 retired it '
+      + 'from the button families (where intent became the component): a toast\'s two intents differ in one glyph and its '
+      + 'ink, not in a family of interactive colors, so they are members of one set. One def carries it.',
+  },
+  {
     axis: 'footer',
-    values: ['inline', 'stacked', 'none'],
+    values: ['inline', 'stacked', 'fill', 'none'],
     defs: ['dialog'],
     relation: 'sole',
     reason:
-      'How a panel lays out its actions (#2609, owner decision Q303.6 A): a row at the end edge, full-width buttons '
-      + 'stacked, or no footer. `inline` LEADS because it is the code default and Figma\'s default member. One def '
+      'How a panel lays out its actions (#2609, owner decision Q303.6 A; `fill` by Q492 B, #2880): a row at the end '
+      + 'edge, full-width buttons stacked, a row whose buttons share the width equally, or no footer. The first three '
+      + 'nest the Button group\'s `layout` of the same name, in its order. `inline` LEADS because it is the code '
+      + 'default and Figma\'s default member. One def '
       + 'carries it. Distinct from `orientation` and `alignment`, argued in `VARIANT_AXES`.',
   },
   {

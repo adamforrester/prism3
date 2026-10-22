@@ -5,7 +5,8 @@
  * WHAT IS DRAWN. After a build or an in-place update lands a set, this places, OUTSIDE the set and on the set's own
  * parent (the page, in every build):
  *   - COLUMN LABELS above the set, one per value of the def's grid axis (`gridAxis`), a `Text=Top` label as wide as
- *     its column;
+ *     its column, or as its own text where that is wider, centered on it; the columns widen to the widest label so
+ *     no two meet (`widenColumns`, #2705);
  *   - ROW LABELS to the left, `Text=Left` labels as tall as the rows they group: nested brackets for the OUTER row
  *     axes only, `ROW_LABEL_DEPTH` of them, innermost nearest the set. An on/off axis (one whose values are
  *     `true`/`false`, such as "leading icon") gets none. A bracket is drawn only where its axis actually varies
@@ -45,6 +46,12 @@ import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { isTemplateSet } from './file-components';
 import { LABEL_SET, BACKDROP_COMPONENT, SCRIM_COMPONENT, SCRIM_BACKDROP, BRACKET_PROPERTY, labelVariant, bindBackdrop } from './furniture-templates';
 import type { BackdropVariables } from './furniture-templates';
+import { NS } from './persist-figma';
+import { STAMP_KEY, placeNewSet, pageBox, reachOf } from './write-components';
+import { builtByPrism3, readBaseline } from './member-baseline';
+import { LABEL_COLUMN_KEY, labelColumns, readLabelColumn } from './label-columns';
+import { DOC_BLOCK_SET } from './doc-block';
+import { panelItems, type PanelOutcome } from './doc-panel';
 
 export { CANVAS_FURNITURE };
 /** Shared plugin data namespace and key the tag lives under. The namespace is `persist-figma.ts`'s `NS`. */
@@ -65,12 +72,13 @@ export const ROW_LABEL_DEPTH = 3;
  * modal backdrop, `color.scrim.default`, is drawn here, one `_scrim-backdrop` instance behind each member, keyed by
  * the def's placement value. Each entry is how far the scrim reaches past the member on each side, `[top, right,
  * bottom, left]` in px: a centered panel floats with scrim all round; a bottom sheet sits on the screen's bottom edge
- * at its full width, so the scrim shows above it only. A full-screen dialog covers the page and has no visible
+ * at its full width, so the scrim shows above it only; an end panel (#2877) sits on the screen's end edge at its full
+ * height, so the scrim shows on its start side only, the left on this left-to-right canvas. A full-screen dialog covers the page and has no visible
  * backdrop (Q303.8), so it has no entry. Every reach is at most half the grid's 24px gap, `BACKDROP_PAD`, so a
  * scrim never reaches the neighboring member's. HELD FOR THE OWNER, every number here.
  */
 export const SCRIM_BACKDROPS: Readonly<Record<string, { axis: string; reach: Readonly<Record<string, readonly [number, number, number, number]>> }>> = {
-  dialog: { axis: 'placement', reach: { center: [BACKDROP_PAD, BACKDROP_PAD, BACKDROP_PAD, BACKDROP_PAD], bottom: [BACKDROP_PAD, 0, 0, 0] } },
+  dialog: { axis: 'placement', reach: { center: [BACKDROP_PAD, BACKDROP_PAD, BACKDROP_PAD, BACKDROP_PAD], bottom: [BACKDROP_PAD, 0, 0, 0], end: [0, 0, 0, BACKDROP_PAD] } },
 };
 
 /** A def's furniture switch: the engine's list, the one switch `planSetLayout` reads too. */
@@ -280,6 +288,8 @@ export interface FurnitureOutcome {
   backdropBinding?: 'bound' | 'kept' | 'no-variable';
   /** The same for the scrim template and `color/scrim/default` (#2609). */
   scrimBinding?: 'bound' | 'kept' | 'no-variable';
+  /** The usage panel beside the set (#846, `doc-panel.ts`); its missing `_Doc-block` is in `missing`. */
+  panel?: PanelOutcome;
 }
 
 /** What the executor reads of `planSetLayout`: each member's cell by name, and the axis lists. */
@@ -347,6 +357,49 @@ const gridMembers = (set: XNode, cells: readonly { name: string; row: number; co
     out.push({ row: cell.row, col: cell.col, values, x: m.x ?? 0, y: m.y ?? 0, width: m.width ?? 0, height: m.height ?? 0 });
   }
   return out;
+};
+
+/**
+ * WIDEN THE COLUMNS TO THE LABELS (#2705, `label-columns.ts`): record `min`, the widest column label's own width, on the
+ * set, and re-lay its columns at least that wide, the members centered in the extra, as the executor's LAY OUT pass
+ * lays them from the record. Only `x` moves, and the set grows to the right; rows and the set's position stay.
+ *
+ * NOTHING MOVES UNLESS THE GRID IS THE EXECUTOR'S: every member Prism3 built must sit where the grid at the width
+ * recorded before puts it. A set laid out by hand or by an earlier plugin keeps its members; the record still
+ * changes, so the update that moves them onto the grid (its dry run lists them) lays the widened one. A member Prism3
+ * didn't build is never moved (#2325, #2464), and counts toward its column's width, as the executor counts it.
+ * Returns whether any member moved, so the caller re-reads them.
+ */
+export const widenColumns = (set: XNode, cells: readonly { name: string; row: number; col: number }[], min: number): boolean => {
+  const was = readLabelColumn(set);
+  if (!(min > 0) || min === was) return false;
+  set.setSharedPluginData?.(NS, LABEL_COLUMN_KEY, String(min));
+  // The grid's own numbers, as `write-components.ts` lays it: 24 in from the set's edge, columns 24 apart.
+  const PAD = 24, GAP = 24;
+  const byName = new Map(cells.map((c) => [c.name, c] as const));
+  const kids = [...(set.children ?? [])];
+  const cellOf = kids.map((k) => byName.get(String(k.name)));
+  const colW: number[] = [];
+  kids.forEach((k, i) => { const c = cellOf[i]; if (c) colW[c.col] = Math.max(colW[c.col] ?? 0, k.width ?? 0); });
+  const left = (cols: { width: number[]; inset: number[] }, col: number): number =>
+    PAD + cols.width.slice(0, col).reduce((a, b) => a + (b || 0) + GAP, 0) + (cols.inset[col] ?? 0);
+  const before = labelColumns(colW, was);
+  const after = labelColumns(colW, min);
+  const ownership = kids.map((k) => ({ id: k.id, stamp: k.getSharedPluginData?.(NS, STAMP_KEY) ?? '', recordId: readBaseline(k)?.id }));
+  const owned = builtByPrism3(ownership);
+  const ours = kids.map((k, i) => !!cellOf[i] && (!k.getSharedPluginData || owned(ownership[i])));
+  if (kids.some((k, i) => ours[i] && Math.abs((k.x ?? 0) - left(before, cellOf[i]!.col)) > 0.5)) return false;
+  let moved = false;
+  kids.forEach((k, i) => {
+    if (!ours[i]) return;
+    const x = left(after, cellOf[i]!.col);
+    if (Math.abs((k.x ?? 0) - x) > 0.5) { k.x = x; moved = true; }
+  });
+  // The set as wide as the widened grid, or as anything outside it (a kept deprecated row, a designer's copy) needs.
+  const gridW = after.width.reduce((a, b) => a + (b || 0) + GAP, 0) - GAP + 2 * PAD;
+  const width = Math.max(gridW, ...kids.filter((_, i) => !cellOf[i]).map((k) => (k.x ?? 0) + (k.width ?? 0) + PAD));
+  if (moved && Math.abs((set.width ?? 0) - width) > 0.5) set.resize?.(width, set.height ?? 0);
+  return moved;
 };
 
 /** Whether the members with `surface=inverse` form one band no other member's rows enter. True with none. */
@@ -422,8 +475,8 @@ const templatePicker = (api: Pick<FurnitureApi, 'root'>): ((type: string, name: 
 /** What a set's furniture lacks, as the dry run lists it (#2803). Each count is a part the draw would place and the page
  *  does not hold where the draw would place it; `clear` counts the def's furniture on the set's parent that no wanted
  *  part matched, which the draw clears. All zero when the furniture is current. */
-export interface FurnitureDue { labels: number; backdrops: number; clear: number }
-export const furnitureDueCount = (d: FurnitureDue | undefined): number => (d ? d.labels + d.backdrops + d.clear : 0);
+export interface FurnitureDue { labels: number; backdrops: number; clear: number; /** The usage panel to draw (#846, `docPanelDue`). */ panels?: number }
+export const furnitureDueCount = (d: FurnitureDue | undefined): number => (d ? d.labels + d.backdrops + d.clear + (d.panels ?? 0) : 0);
 
 /**
  * THE DRY RUN'S FURNITURE CHECK (#2803, owner decision Q379 A). The update compared a set's members only, so furniture
@@ -437,7 +490,8 @@ export const furnitureDueCount = (d: FurnitureDue | undefined): number => (d ? d
  * it is due none; its regroup is the members' change, and the apply redraws after it.
  *
  * WHAT COUNTS AS DRAWN is the def's tagged furniture on the set's parent, the instances the draw clears first, matched in place: a backdrop or scrim by its box,
- * a column label by its left edge, width and bottom, a row label by its vertical center (a thin row's label is centered
+ * a column label by its center, its bottom and a width at least its column's (#2705: a label wider than its column is
+ * as wide as its text, centered on the column), a row label by its vertical center (a thin row's label is centered
  * on it) and its right edge, which the draw sets column by column. Each drawn instance answers one wanted part. Text and a
  * label's own width are the template's and are not compared, so a label whose text the designer edited is not due.
  * Positions match within half a pixel.
@@ -475,7 +529,8 @@ export const furnitureDue = (api: Pick<FurnitureApi, 'root'>, set: XNode, layout
   const w = (n: XNode): number => n.width ?? 0;
   let due = 0;
   for (const c of columns)
-    if (!take(drawnLabels, (n) => near(n.x, c.x) && near(w(n), c.width) && near((n.y ?? 0) + h(n), c.bottom))) due++;
+    // Centered on its column and at least as wide (#2705): a label wider than its column is its own text's width.
+    if (!take(drawnLabels, (n) => near((n.x ?? 0) + w(n) / 2, c.x + c.width / 2) && w(n) >= c.width - 0.5 && near((n.y ?? 0) + h(n), c.bottom))) due++;
   // Column by column, innermost first, as the draw places them: each column's right edge is `LEVEL_GAP` left of the
   // widest label in the one before it, read off the labels matched there. A column with a part missing has no edge to
   // read, so every label in the columns outside it is due: the draw places them from that edge.
@@ -515,7 +570,7 @@ export const drawFurniture = async (
   if (!parent || typeof parent.insertChild !== 'function')
     return { def: defId, parent: '', columns: 0, rows: 0, backdrops: 0, scrims: 0, cleared: 0, skipped: [`No canvas labels for ${defId}: the set has no parent to place them on`], fontMisses: [] };
   const out: FurnitureOutcome = { def: defId, parent: parent.name ?? '', columns: 0, rows: 0, backdrops: 0, scrims: 0, cleared: clearFurniture(parent, defId) + clearMovedFurniture(api, set, parent), skipped: [], fontMisses: [] };
-  const members = gridMembers(set, layout.cells);
+  let members = gridMembers(set, layout.cells);
   if (!members.length) { out.skipped.push(`No canvas labels for ${defId}: the set has no member this plan lays out`); return out; }
   // ONLY OVER ONE INVERSE BLOCK (#2188 Q173): a set still laid out the earlier way has a band of inverse rows per
   // appearance, and would get a backdrop and an "Inverse" bracket on each. Its old furniture is cleared above; none
@@ -523,7 +578,7 @@ export const drawFurniture = async (
   // A def whose `surface` is the GRID axis (Focus ring) has its inverse members in a column, beside the default ones,
   // never in rows of their own; there is no row block to wait for, and no backdrop is planned (#2502).
   if (layout.rowKeys.includes('surface') && !inverseContiguous(members)) { out.skipped.push(`No canvas labels for ${defId}: its inverse rows are not in one block yet. Run Update to move them, then the labels are drawn`); return out; }
-  const plan = planFurniture({ x: set.x ?? 0, y: set.y ?? 0 }, members, layout, defId);
+  let plan = planFurniture({ x: set.x ?? 0, y: set.y ?? 0 }, members, layout, defId);
   const setTag = { v: 1 as const, def: defId, set: String(set.id ?? '') };
 
   const pick = templatePicker(api);
@@ -533,16 +588,33 @@ export const drawFurniture = async (
     const top = labelMember(labels, 'Top');
     const left = labelMember(labels, 'Left');
     if (plan.columns.length && !top?.createInstance) out.skipped.push(`No column labels for ${defId}: ${LABEL_SET} has no ${labelVariant('Top')} variant`);
-    else for (const c of plan.columns) {
-      const inst = top!.createInstance!();
-      parent.appendChild(inst);
-      await writeText(api, inst, c.text, out.fontMisses);
-      inst.layoutSizingHorizontal = 'FIXED';
-      inst.resize?.(c.width, inst.height ?? 0);
-      inst.x = c.x;
-      inst.y = c.bottom - (inst.height ?? 0);
-      tag(inst, { ...setTag, kind: 'label' });
-      out.columns++;
+    else if (plan.columns.length) {
+      // EVERY COLUMN LABEL READS IN FULL (#2705). Each is written first and measured as its text hugs it; the columns
+      // then widen to the widest (`widenColumns`), and each label is as wide as its column, or as its own text where
+      // that is wider, centered on the column. A label was fixed to its column's width, and on radio-control's 32px
+      // columns "Hover" read "Hove".
+      const made: XNode[] = [];
+      for (const c of plan.columns) {
+        const inst = top!.createInstance!();
+        parent.appendChild(inst);
+        await writeText(api, inst, c.text, out.fontMisses);
+        made.push(inst);
+      }
+      const natural = made.map((inst) => inst.width ?? 0);
+      if (widenColumns(set, layout.cells, Math.ceil(Math.max(...natural)))) {
+        members = gridMembers(set, layout.cells);
+        plan = planFurniture({ x: set.x ?? 0, y: set.y ?? 0 }, members, layout, defId);
+      }
+      plan.columns.forEach((c, i) => {
+        const inst = made[i];
+        const width = Math.max(c.width, natural[i]);
+        inst.layoutSizingHorizontal = 'FIXED';
+        inst.resize?.(width, inst.height ?? 0);
+        inst.x = c.x + (c.width - width) / 2;
+        inst.y = c.bottom - (inst.height ?? 0);
+        tag(inst, { ...setTag, kind: 'label' });
+        out.columns++;
+      });
     }
     if (plan.rows.length && !left?.createInstance) out.skipped.push(`No row labels for ${defId}: ${LABEL_SET} has no ${labelVariant('Left')} variant`);
     else {
@@ -621,6 +693,41 @@ export const drawFurniture = async (
 };
 
 /**
+ * A NEW SET, PLACED AGAIN ONCE ITS LABELS ARE DRAWN (#2723, owner decision Q335 A). The gap between sets is measured
+ * from each set's furniture, and a label's width is its text's, which only the host knows once the label is drawn.
+ * So the build places a new set with no furniture (`placeNewSet`, in the executor), draws the furniture, then calls
+ * this: the set's own furniture is measured as its reach, and the set is placed again by the same rule against every
+ * other node on its parent. The set and its furniture move together, by `x` only, so nothing is redrawn and the
+ * labels keep their place against the members. Returns how far they moved; 0 when the set has no furniture or is
+ * already where the rule puts it.
+ *
+ * ROOM FOR ITS USAGE PANEL (#846): `panelReach` is how far the panel the build draws next reaches right of the frame
+ * (`docPanelReach`, 0 when the file cannot draw one), so the set is seated where the panel fits too. The panel is drawn
+ * after this, beside the set where it now sits.
+ *
+ * ONLY FOR A SET THIS RUN CREATED (`ComponentApplyResult.placed`). A set that was already there is the designer's to
+ * place; Update's re-spacing (`respaceSets`) is the only thing that moves it.
+ */
+export const seatNewSet = (set: XNode, defId: string, panelReach = 0): number => {
+  const parent = set.parent as FurnitureParent | null | undefined;
+  if (!parent) return 0;
+  const setId = String(set.id ?? '');
+  const kids = parent.children as readonly XNode[];
+  // By the set's id and its def, the pair `drawFurniture` tagged it with.
+  const own = kids.filter((c) => { const t = c === set ? null : readTag(c); return !!t && t.set === setId && t.def === defId; });
+  if (!own.length && !panelReach) return 0;
+  const frame = pageBox(set as Parameters<typeof pageBox>[0]);
+  const others = kids.filter((c) => c !== set && !own.includes(c)).map((c) => pageBox(c as Parameters<typeof pageBox>[0]));
+  const reach = reachOf(frame, own.map((c) => pageBox(c as Parameters<typeof pageBox>[0])));
+  const at = placeNewSet(others, frame.height, frame.width, { left: reach.left, right: Math.max(reach.right, panelReach) });
+  const dx = at ? at.x - frame.x : 0;
+  if (!dx) return 0;
+  set.x = frame.x + dx;
+  for (const c of own) c.x = (c.x ?? 0) + dx;
+  return dx;
+};
+
+/**
  * THE UPDATE'S FURNITURE (#2406, #2188; #2803), redrawn for every piloted set the apply acted on — from the members as
  * they now sit, so the labels follow the update — including a set whose only work was its furniture. A set is found
  * by its component name and drawn only when exactly one set has it. Nothing is drawn when the apply refused the
@@ -631,6 +738,8 @@ export const furnishUpdate = async (
   api: FurnitureApi,
   r: { outcomes: readonly { def: string }[]; refusedAll?: string },
   targets: readonly { def: string; plans: AnatomyPlan[] }[],
+  /** The usage panel's draw for a set (#846), after its labels; absent, no panel is drawn. */
+  panel?: (set: XNode, defId: string) => Promise<PanelOutcome>,
 ): Promise<FurnitureOutcome[]> => {
   const out: FurnitureOutcome[] = [];
   if (r.refusedAll) return out;
@@ -640,7 +749,11 @@ export const furnishUpdate = async (
     const name = t.plans[0]?.component ?? t.def;
     const sets = (api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly XNode[]).filter((n) => n.type === 'COMPONENT_SET' && n.name === name);
     if (sets.length !== 1) continue;
-    try { out.push(await drawFurniture(api, sets[0], furnitureLayout(t.plans), o.def)); }
+    try {
+      const f = await drawFurniture(api, sets[0], furnitureLayout(t.plans), o.def);
+      if (panel) withPanel(f, await panel(sets[0], o.def));
+      out.push(f);
+    }
     catch (e) { out.push({ def: o.def, parent: '', columns: 0, rows: 0, backdrops: 0, scrims: 0, cleared: 0, skipped: [`No canvas labels for ${o.def}: Figma refused the write (${(e as Error)?.message ?? String(e)})`], fontMisses: [] }); }
   }
   return out;
@@ -677,14 +790,21 @@ export const furniturePruneText = (n: number, applied: boolean): string => {
     : `${what} ${n === 1 ? 'belongs' : 'belong'} to a set no longer in this file. Deleting ${n === 1 ? 'it' : 'them'} touches no component.`;
 };
 
+/** A set's usage panel folded into its furniture outcome, so the run's template line and warning cover both. */
+export const withPanel = (f: FurnitureOutcome, p: PanelOutcome): FurnitureOutcome => {
+  f.panel = p;
+  if (p.missing?.length) f.missing = [...(f.missing ?? []), ...p.missing];
+  return f;
+};
+
 /**
  * THE MISSING-TEMPLATE LINE (#2598), once per run, naming every template a set needed and the file lacks, and what to
  * do: run Set up file, then the same action again. Empty when nothing is missing. Wording approved, Q284.1 A.
  */
 export const templatesLine = (outcomes: readonly FurnitureOutcome[], action: 'build' | 'update'): string => {
-  const missing = [LABEL_SET, BACKDROP_COMPONENT, SCRIM_COMPONENT].filter((t) => outcomes.some((o) => o.missing?.includes(t)));
+  const missing = [LABEL_SET, BACKDROP_COMPONENT, SCRIM_COMPONENT, DOC_BLOCK_SET].filter((t) => outcomes.some((o) => o.missing?.includes(t)));
   if (!missing.length) return '';
-  const what = missing.map((t) => (t === LABEL_SET ? 'canvas labels' : t === SCRIM_COMPONENT ? 'scrim backdrops' : 'inverse backdrops')).join(' or ');
+  const what = missing.map((t) => (t === LABEL_SET ? 'canvas labels' : t === SCRIM_COMPONENT ? 'scrim backdrops' : t === DOC_BLOCK_SET ? 'usage panels' : 'inverse backdrops')).join(' or ');
   const names = missing.join(' or ');
   return `No ${what} drawn: this file has no ${names} component. Run Set up file, then ${action === 'build' ? 'build' : 'update'} again`;
 };
@@ -699,6 +819,7 @@ export const furnitureItems = (outcomes: readonly FurnitureOutcome[], action: 'b
     if (o.fontMisses.length) parts.push(`Some canvas labels for ${o.def} kept their placeholder text (${[...new Set(o.fontMisses)].join('; ')})`);
     if (o.backdropBinding === 'no-variable') parts.push(`The inverse backdrop for ${o.def} is not bound yet: apply the theme, then build again`);
     if (o.scrimBinding === 'no-variable') parts.push(`The scrim backdrop for ${o.def} is not bound yet: apply the theme, then build again`);
+    parts.push(...panelItems(o.panel));
   }
   return parts;
 };

@@ -20,7 +20,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Foundations",
     "buildable": true,
     "reason": null,
-    "members": 46,
+    "members": 45,
     "nests": []
   },
   {
@@ -41,7 +41,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "id": "button",
     "name": "Button",
     "category": "form",
-    "summary": "Triggers an action in place. For navigation, use a link.",
+    "summary": "Triggers an action in place, such as submit, save or confirm. For navigation, use a link.",
     "unit": "variants",
     "spacing": [
       {
@@ -242,7 +242,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "id": "icon-button",
     "name": "IconButton",
     "category": "form",
-    "summary": "Icon-only action. Needs an accessible name.",
+    "summary": "Icon-only action in the brand's primary style, such as edit or more. Needs an accessible name.",
     "unit": "variants",
     "spacing": [],
     "page": "Icon button",
@@ -303,7 +303,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Subcomponents",
     "buildable": true,
     "reason": null,
-    "members": 30,
+    "members": 60,
     "nests": [
       "icon",
       "focus-ring"
@@ -320,7 +320,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Subcomponents",
     "buildable": true,
     "reason": null,
-    "members": 30,
+    "members": 60,
     "nests": [
       "icon",
       "focus-ring"
@@ -337,7 +337,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Subcomponents",
     "buildable": true,
     "reason": null,
-    "members": 30,
+    "members": 60,
     "nests": [
       "icon",
       "focus-ring"
@@ -484,7 +484,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 54,
+    "members": 90,
     "nests": [
       "focus-ring",
       "icon"
@@ -514,7 +514,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 3,
+    "members": 6,
     "nests": [
       "checkbox-control"
     ]
@@ -523,17 +523,18 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "id": "checkbox-group",
     "name": "Checkbox.Group",
     "category": "form",
-    "summary": "Labeled stack of Checkbox rows. Owns the value array, required and validation.",
+    "summary": "Labeled stack of Checkbox rows. Owns the value array, required and validation. Size applies to the items you haven't edited. After editing an item, select the items and set their size.",
     "unit": "variants",
     "spacing": [],
     "page": "Checkbox",
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 3,
+    "members": 6,
     "nests": [
       "field-label",
-      "checkbox-row"
+      "checkbox-row",
+      "field-message"
     ]
   },
   {
@@ -547,7 +548,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 30,
+    "members": 60,
     "nests": [
       "focus-ring"
     ]
@@ -576,7 +577,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 3,
+    "members": 6,
     "nests": [
       "radio-control"
     ]
@@ -585,17 +586,18 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "id": "radio-group",
     "name": "Radio.Group",
     "category": "form",
-    "summary": "Labeled stack of Radio rows. Owns the shared name, one value and validation.",
+    "summary": "Labeled stack of Radio rows. Owns the shared name, one value and validation. Size applies to the items you haven't edited. After editing an item, select the items and set their size.",
     "unit": "variants",
     "spacing": [],
     "page": "Radio",
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 3,
+    "members": 6,
     "nests": [
       "field-label",
-      "radio-row"
+      "radio-row",
+      "field-message"
     ]
   },
   {
@@ -609,7 +611,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 24,
+    "members": 40,
     "nests": [
       "icon",
       "focus-ring"
@@ -635,7 +637,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 2,
+    "members": 4,
     "nests": [
       "switch-control"
     ]
@@ -833,8 +835,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     ]
   },
   {
-    "id": "tab",
-    "name": "Tab",
+    "id": "tab-item",
+    "name": "Tab.Item",
     "category": "navigation",
     "summary": "One trigger in a tab list. Selected, it shows an underline and switches the panel below.",
     "unit": "variants",
@@ -879,7 +881,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "id": "tabs",
     "name": "Tabs",
     "category": "navigation",
-    "summary": "A row of tabs that switches between panels of related content in place.",
+    "summary": "A row of tabs that switches between panels of related content in place. Size applies to the items you haven't edited. After editing an item, select the items and set their size.",
     "unit": "variants",
     "spacing": [],
     "page": "Tabs",
@@ -888,7 +890,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "reason": null,
     "members": 6,
     "nests": [
-      "tab"
+      "tab-item"
     ]
   },
   {
@@ -1008,7 +1010,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "id": "list",
     "name": "List",
     "category": "data",
-    "summary": "Short UI items after a bullet, number or icon. For running text, use a native text list.",
+    "summary": "Short UI items after a bullet, number or icon. For running text, use a native text list. Size applies to the items you haven't edited. After editing an item, select the items and set their size.",
     "unit": "variants",
     "spacing": [
       {
@@ -1037,7 +1039,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "id": "segmented-control-segment",
     "name": "SegmentedControl.Segment",
     "category": "form",
-    "summary": "One option of a segmented control. Selected, it shows a flat pill and a bold label.",
+    "summary": "One option of a segmented control. Selected, it shows a flat pill and an emphasis-weight label.",
     "unit": "variants",
     "spacing": [
       {
@@ -1079,7 +1081,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "id": "segmented-control",
     "name": "SegmentedControl",
     "category": "form",
-    "summary": "A row of two to five options in one track, where exactly one is selected and all stay visible.",
+    "summary": "A row of two to five options in one track, where exactly one is selected and all stay visible. Size applies to the items you haven't edited. After editing an item, select the items and set their size.",
     "unit": "variants",
     "spacing": [],
     "page": "Segmented control",
@@ -1142,14 +1144,14 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "id": "dialog",
     "name": "Dialog",
     "category": "overlay",
-    "summary": "A panel over the page for a short task or a decision. Centered, a bottom sheet, or full screen.",
+    "summary": "A panel over the page for a short task or a decision. Centered, full screen, a bottom or side sheet.",
     "unit": "variants",
     "spacing": [],
     "page": "Dialog",
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 15,
+    "members": 24,
     "nests": [
       "flush-icon-button-neutral",
       "icon",
@@ -1215,78 +1217,42 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     ]
   },
   {
-    "id": "_breadcrumb-separator",
-    "name": "BreadcrumbSeparator",
-    "category": "navigation",
-    "summary": "The mark between two breadcrumb steps: a chevron or a slash, in the secondary icon color.",
+    "id": "toast",
+    "name": "Toast",
+    "category": "feedback",
+    "summary": "A short status message over the page after an action. Announced politely; it never takes focus.",
     "unit": "variants",
-    "spacing": [],
-    "page": "Breadcrumb Item",
-    "section": "Subcomponents",
+    "spacing": [
+      {
+        "key": "pad-y",
+        "ref": "space.100"
+      },
+      {
+        "key": "pad-x",
+        "ref": "space.200"
+      },
+      {
+        "key": "pad-end",
+        "ref": "space.100"
+      },
+      {
+        "key": "gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "glyph-gap",
+        "ref": "space.150"
+      }
+    ],
+    "page": "Toast",
+    "section": "Components",
     "buildable": true,
     "reason": null,
     "members": 2,
     "nests": [
-      "icon"
-    ]
-  },
-  {
-    "id": "breadcrumb-item",
-    "name": "BreadcrumbItem",
-    "category": "navigation",
-    "summary": "One step in a breadcrumb trail: a link, the current page, or the collapsed steps.",
-    "unit": "variants",
-    "spacing": [
-      {
-        "key": "size.medium.gap",
-        "ref": "space.100"
-      },
-      {
-        "key": "size.small.gap",
-        "ref": "space.050"
-      }
-    ],
-    "page": "Breadcrumb Item",
-    "section": "Subcomponents",
-    "buildable": true,
-    "reason": null,
-    "members": 10,
-    "nests": [
-      "link",
-      "_breadcrumb-separator",
+      "button",
       "flush-icon-button-neutral",
       "icon"
-    ]
-  },
-  {
-    "id": "breadcrumbs",
-    "name": "Breadcrumbs",
-    "category": "navigation",
-    "summary": "The path to the current page as links, with the current page last and not a link.",
-    "unit": "variants",
-    "spacing": [
-      {
-        "key": "size.medium.gap",
-        "ref": "space.100"
-      },
-      {
-        "key": "size.small.gap",
-        "ref": "space.050"
-      },
-      {
-        "key": "back-gap",
-        "ref": "space.050"
-      }
-    ],
-    "page": "Breadcrumbs",
-    "section": "Components",
-    "buildable": true,
-    "reason": null,
-    "members": 6,
-    "nests": [
-      "breadcrumb-item",
-      "icon",
-      "link"
     ]
   },
   {

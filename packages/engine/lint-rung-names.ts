@@ -222,7 +222,7 @@ const ICON_OFFSET_DEFS: Record<string, string> = {
   // The text-bearing controls follow Button (owner Q337 A, #2725): the leading icon is 16/20/24, so the medium
   // default is `sm`. Icon button and Flush icon button keep their own rung.
   'segmented-control-segment': 'icon.size.*',
-  tab: 'icon.size.*',
+  'tab-item': 'icon.size.*',
   tag: 'icon.size.*',
 };
 
@@ -284,6 +284,7 @@ const NO_SIZE_AXIS: Record<string, string> = {
   'veil': 'a media wash is full-bleed and has no size RUNG — its axes are `value` × `intensity`, and its only dimension binding is a NOMINAL standalone square (`container.narrow`), overwritten by the designer resizing it over the image; there is no size ladder to compare against the tier',
   'image-placeholder': 'a media frame has no size RUNG — its axis is `ratio` (an aspect PROPORTION, not a scale ladder), its one dimension binding is a NOMINAL width (`container.narrow`) the designer resizes, and its glyph size is a def-local literal (`glyphPx`, #1340), not a rung; there is no size ladder to compare against the tier (#1316)',
   '_breadcrumb-separator': 'one 16px mark (`icon.size.xs`) at both breadcrumb sizes (#2666, owner call 6 A, kept by Q382 A), bound under a non-`size.*` key; its axis is `type`, chevron or slash, so there is no ladder to compare. The item it sits in carries the size',
+  'toast': 'one size: the brief names none and the owner approved one (#2668 call 11 A). It is built 360 wide as a literal (`placementWidth`), its type is one role (`type.body.md.default`), its glyph one rung (`icon.size.sm`), and its nested Button and IconButton.Neutral are fixed at small; there is no size ladder to compare against the tier',
   'button-group': 'a layout of Buttons has no size RUNG of its own — its axis is `layout`, its gaps are `space.*` steps, and each nested Button is medium and measured under its own name; a size axis for smaller actions is held for the owner (#2661)',
   'divider': 'a rule has no size RUNG — its axis is `orientation`, its thickness is one border-width role (`border-width.hairline`), and its length is a NOMINAL standalone placeholder (`container.narrow` across, `size.md.height` tall) a host stretches; there is no size ladder to compare against the tier (#2455)',
 };
@@ -372,7 +373,7 @@ const DEFAULT_FIRST: Record<string, string> = {
   'switch-control': Q1B,
   'switch-row': Q1B,
   tag: Q1B,
-  tab: Q1B,
+  'tab-item': Q1B,
   tabs: Q1B,
   '_accordion-indicator': Q1B,
   accordion: Q1B,
@@ -422,7 +423,7 @@ const MUST_COVER = [
   'icon-button', 'icon-button-destructive', 'icon-button-neutral',
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral',
   'field-label', 'text-field', 'textarea', 'select', 'tag', 'counter',
-  'tab', 'tabs',
+  'tab-item', 'tabs',
   'checkbox-control', 'checkbox-row', 'checkbox-group',
   'radio-control', 'radio-row', 'radio-group',
   'switch-control', 'switch-row',
