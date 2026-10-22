@@ -85,6 +85,22 @@
  *      layer gap is derived from it, visible − 4, never below 0 (`visibleGaps`, `visibleGapStep`): a 2px layer
  *      gap is intended. A select tag does not change.
  *
+ * ── THE OWNER'S DECISIONS (2026-10-21/22, #2887 Q513 and Q540): THE TAG STYLE LEVER ──────────────────────
+ *
+ * A brand lever, `tagStyle: pill | underline` (Form, after Field style, default `pill`), materialized before projection
+ * by `applyTagStyle`, never a variant: the def above IS the pill, and under `pill` the lever returns it unchanged.
+ * Under `underline`, every tag draws one line under itself:
+ *   Q513.2 SELECTED: a 2px primary line plus the check, and no tint.
+ *   Q513.3 HOVER AND PRESSED (unselected): the neutral line steps its color AND goes to 2px. No state has a fill.
+ *   Q513.4 FOCUS: the ring only; the line keeps its weight.
+ *   Q513.5 SIDE PADDING: the pill's, 8/12/16, so lines in a group stay 8px apart.
+ *   Q513.6 DISMISSIBLE: the line runs under the × slot.
+ *   Q513.7 THE UNSELECTED LINE: `interactive.neutral.border`, the pill's own (decision 3 holds).
+ *   THE GAP TO THE LINE (owner ask on Q513, #2894's route): the height becomes a minimum at the same rung, so the hit
+ *     target holds, and the content row sits at the bottom on `size.{size}.underline.inset`, `space.050 / 075 / 100`
+ *     (Q540 Q9 A), the same at every density (Q10 A). The label row is held at the glyph's height, so the label does
+ *     not move when the check appears.
+ *
  * The selected label and check keep the unselected NEUTRAL ink. The primary ink fails on the tint:
  * `interactive.primary.text.rest` measures 3.02:1 (aurora/light) against 4.5:1. The neutral ink clears 10.19:1.
  *
@@ -382,6 +398,7 @@ export const tag: ComponentDef = {
       'text expansion — the tag has no fixed width and never truncates: a long label WRAPS onto more lines and the tag grows taller, and the full text stays visible at 200% zoom. Truncation would need the full text reachable by keyboard, touch and screen reader, and a title attribute is none of those. Translations run 30–50% longer. Figma holds one line of placeholder text.',
       'Minimum width — min-inline-size is 1.5 times the tag\'s height, rounded to the nearest 8px: 56px small, 64px medium and 88px large on comfortable density, following the height at compact and spacious. A short label centers inside it (justify-content: center). Figma holds the same floor as a number per size, written when the component is built, so a brand change reaches it on a rebuild.',
       'Spacing — the row is padding-inline, then the leading icon, a gap, and the label and check mark in their own inline group with a smaller gap: at medium on comfortable density, 12px padding, 8px from icon to label and 6px from label to check mark. A dismissible tag has no inline-end padding on that row, so the label runs straight to the × slot. Its label group takes padding-inline-start: 4px at every density, and the gap before it is 4px less than the icon-to-label distance (6px small, 8px medium, 8px large on comfortable density), never below 0; with no leading icon the label sits the padding plus 4px from the edge. Every value is a space token. A compact or spacious brand moves the padding, the label-to-check gap, a select tag\'s icon-to-label gap and a dismissible tag\'s icon-to-label distance one step along the space scale, and never takes a gap or that distance under 4px. The dismissible gap is not stepped: it is recomputed as that distance less 4px, so at spacious density it goes from 4px to 8px on a medium or large tag.',
+      'Tag style (the brand\'s tagStyle setting) — Pill, the default, is everything above: a rounded outline, 1px unselected and 2px selected, with the selected tint. Underline draws one line under the tag and no other edge: square corners, no fill in any state, the line 1px at rest and 2px when selected or on hover and pressed, in interactive.neutral.border unselected and interactive.primary.border selected; focus adds the ring and keeps the line weight. In CSS draw the line as an inset bottom box-shadow (box-shadow: inset 0 -1px 0, or -2px), so the box does not grow; set min-block-size to the tag\'s height in place of a fixed block size, align-items: end, and padding-block-end to the underline inset (4px small, 6px medium, 8px large, at every density), keeping the side padding. The × slot stays a square as tall as the tag with its glyph on the same inset, and the line runs under it. The setting is brand-wide, never a prop.',
       'The hit-target expansion — a small tag is 36px tall on comfortable density and 28px at compact, and a medium tag is 36px at compact. Reaching 44px there is a code-side hit area larger than the visible box, which Figma cannot hold.',
     ],
   },
