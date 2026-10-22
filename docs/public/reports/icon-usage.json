@@ -354,6 +354,22 @@
         }
       ],
       "iconSlots": []
+    },
+    "toast": {
+      "glyphs": [
+        {
+          "part": "checkCircleGlyph",
+          "glyph": "check-circle",
+          "source": "icon set",
+          "how": "drawn",
+          "when": {
+            "intent": [
+              "success"
+            ]
+          }
+        }
+      ],
+      "iconSlots": []
     }
   },
   "glyphs": {
@@ -373,7 +389,8 @@
       "tag"
     ],
     "check-circle": [
-      "field-message"
+      "field-message",
+      "toast"
     ],
     "check-circle-filled": [],
     "chevron-down": [

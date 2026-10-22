@@ -316,6 +316,7 @@
           "dialog",
           "password-field",
           "counter",
+          "toast",
           "code-input-cell",
           "code-input"
         ]
