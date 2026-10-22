@@ -3373,13 +3373,13 @@ export type State = (typeof STATES)[number];
  *
  * ── `footer`: THE TWENTY-SEVENTH NAME, FOR THE DIALOG'S ACTIONS (owner decision Q303.6 A, #2609) ──
  *
- * `footer` (`inline | stacked | none`) is HOW a panel lays out its closing actions: a row at the end edge, a column of
- * full-width buttons, or no action row at all. The proposal named the axis and the owner chose its three values. It
+ * `footer` (`inline | stacked | fill | none`) is HOW a panel lays out its closing actions: a row at the end edge, a column of
+ * full-width buttons, a row whose buttons share the width (`fill`, Q492 B, #2880), or no action row at all. The proposal named the axis and the owner chose its values. It
  * clears the bar with the nearest defeated: `orientation` is which way a rule runs, a line and not a group of controls;
  * `alignment` places a row along its bar and never stacks it; `width` is a control's own extent. None says whether a
  * part exists and how its children run, which is why the name is the part's own: the axis is the footer's layout, and
  * `none` removes it. Naming it `orientation` would claim a missing footer is a direction. An AUTHORING axis.
- * `lint-axis-values.ts` carries the three values as a `sole` set.
+ * `lint-axis-values.ts` carries the four values as a `sole` set.
  *
  * ── `layout`: THE TWENTY-EIGHTH NAME, FOR THE BUTTON GROUP (owner decisions Q363.9 B and Q363 "all A", #2661) ──
  *

@@ -250,8 +250,8 @@ Keyed by `appearance`, `state`.
 ### Nesting and properties
 
 - `container/label` nests `field-label` at `size=medium, emphasis=secondary, weight=regular, state=rest`; `state=disabled` takes `state=disabled`; follows `size`; exposes `emphasis`, `weight`
-- `container/control/decrement` nests `flush-icon-button-neutral` at `shape=flush, size=medium, state=rest`; `appearance=outline` takes `shape=flush`, `appearance=ghost` takes `shape=round`, `state=disabled` takes `state=disabled`; follows `size`; exposes `state`
-- `container/control/increment` nests `flush-icon-button-neutral` at `shape=flush, size=medium, state=rest`; `appearance=outline` takes `shape=flush`, `appearance=ghost` takes `shape=round`, `state=disabled` takes `state=disabled`; follows `size`; exposes `state`
+- `container/control/decrement` nests `flush-icon-button-neutral` at `shape=flush, size=medium, surface=default, state=rest`; `appearance=outline` takes `shape=flush`, `appearance=ghost` takes `shape=round`, `state=disabled` takes `state=disabled`; follows `size`; exposes `state`
+- `container/control/increment` nests `flush-icon-button-neutral` at `shape=flush, size=medium, surface=default, state=rest`; `appearance=outline` takes `shape=flush`, `appearance=ghost` takes `shape=round`, `state=disabled` takes `state=disabled`; follows `size`; exposes `state`
 - `container/message` nests `field-message` at `status=default`
 - `container/control/focusRing` nests `focus-ring` at `surface=default`
 
