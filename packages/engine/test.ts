@@ -33366,6 +33366,10 @@ arm: {
   ok(errs(dg).length === 0, `#2609 dialog validates clean (${errs(dg).slice(0, 2).join('; ')})`);
   ok(errs(withPart('header', { builtSize: dg.anatomy!.parts.panel.builtSize })).some((m) => /builtSize' but is not the anatomy ROOT/.test(m)), '#2609 builtSize off the root is refused');
   ok(errs(withPart('panel', { builtSize: { ...dg.anatomy!.parts.panel.builtSize!, widths: { center: 560, bottom: 360 } } })).some((m) => /names no width for 'placement=full'/.test(m)), '#2609 builtSize missing a placement\'s width is refused');
+  // #2786: a WIDTH alone fits a row root (Banner's full member); HEIGHTS still need the column they grow down.
+  const rowPanel = { ...dg.anatomy!.parts.panel.layout!, direction: 'row' as const };
+  ok(errs(withPart('panel', { layout: rowPanel, builtSize: { axis: 'placement', widths: { center: 560, bottom: 360, full: 360, end: 480 } } })).every((m) => !/declares 'builtSize' but is not a 'box'/.test(m)), '#2786 builtSize widths on a row root are admitted');
+  ok(errs(withPart('panel', { layout: rowPanel })).some((m) => /declares 'builtSize' but is not a 'box' with a layout, and a 'column' one for its heights/.test(m)), '#2786 builtSize heights on a row root are refused by name');
   ok(errs(withPart('panel', { radius: 'placement.{placement}.radius-top' })).some((m) => /both 'radius' and 'radiusEdges'/.test(m)), '#2609 radius beside radiusEdges is refused');
   ok(errs(withPart('title', { elevation: 'shadow' })).some((m) => /declares 'elevation'/.test(m)), '#2609 elevation on a text part is refused');
   const oneTogether = { ...dg, figmaProperties: { ...dg.figmaProperties!, booleans: { ...dg.figmaProperties!.booleans, dividers: { part: ['headerDivider'], default: false, figmaName: 'dividers', figmaOnly: true, together: true as const } } } };
