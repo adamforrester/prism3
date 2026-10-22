@@ -96,10 +96,13 @@
  *   Q513.5 SIDE PADDING: the pill's, 8/12/16, so lines in a group stay 8px apart.
  *   Q513.6 DISMISSIBLE: the line runs under the × slot.
  *   Q513.7 THE UNSELECTED LINE: `interactive.neutral.border`, the pill's own (decision 3 holds).
- *   THE GAP TO THE LINE (owner ask on Q513, #2894's route): the height becomes a minimum at the same rung, so the hit
- *     target holds, and the content row sits at the bottom on `size.{size}.underline.inset`, `space.050 / 075 / 100`
- *     (Q540 Q9 A), the same at every density (Q10 A). The label row is held at the glyph's height, so the label does
- *     not move when the check appears.
+ *   THE GAP TO THE LINE (owner ask on Q513): the content row sits at the bottom on `size.{size}.underline.inset`,
+ *     `space.050 / 075 / 100` (Q540 Q9 A), the same at every density (Q10 A). The label row is held at the glyph's
+ *     height, so the label does not move when the check appears.
+ *   THE HEIGHT (#2945, owner Q585 A, 2026-10-22): the tag HUGS its content, with no floor at the rung. It is the label
+ *     row plus the inset, 20 / 26 / 32px at small / medium / large (it was 36 / 44 / 56, with 18px of empty frame above
+ *     the content at medium). The 24px target moves to code, as Link's does (`codeOnly`). The × slot keeps the rung
+ *     height as its width and hugs its height (Q585.1 A), and the width floor stays 1.5 × the rung height (Q585.2 A).
  *
  * The selected label and check keep the unselected NEUTRAL ink. The primary ink fails on the tint:
  * `interactive.primary.text.rest` measures 3.02:1 (aurora/light) against 4.5:1. The neutral ink clears 10.19:1.
@@ -398,7 +401,8 @@ export const tag: ComponentDef = {
       'text expansion — the tag has no fixed width and never truncates: a long label WRAPS onto more lines and the tag grows taller, and the full text stays visible at 200% zoom. Truncation would need the full text reachable by keyboard, touch and screen reader, and a title attribute is none of those. Translations run 30–50% longer. Figma holds one line of placeholder text.',
       'Minimum width — min-inline-size is 1.5 times the tag\'s height, rounded to the nearest 8px: 56px small, 64px medium and 88px large on comfortable density, following the height at compact and spacious. A short label centers inside it (justify-content: center). Figma holds the same floor as a number per size, written when the component is built, so a brand change reaches it on a rebuild.',
       'Spacing — the row is padding-inline, then the leading icon, a gap, and the label and check mark in their own inline group with a smaller gap: at medium on comfortable density, 12px padding, 8px from icon to label and 6px from label to check mark. A dismissible tag has no inline-end padding on that row, so the label runs straight to the × slot. Its label group takes padding-inline-start: 4px at every density, and the gap before it is 4px less than the icon-to-label distance (6px small, 8px medium, 8px large on comfortable density), never below 0; with no leading icon the label sits the padding plus 4px from the edge. Every value is a space token. A compact or spacious brand moves the padding, the label-to-check gap, a select tag\'s icon-to-label gap and a dismissible tag\'s icon-to-label distance one step along the space scale, and never takes a gap or that distance under 4px. The dismissible gap is not stepped: it is recomputed as that distance less 4px, so at spacious density it goes from 4px to 8px on a medium or large tag.',
-      'Tag style (the brand\'s tagStyle setting) — Pill, the default, is everything above: a rounded outline, 1px unselected and 2px selected, with the selected tint. Underline draws one line under the tag and no other edge: square corners, no fill in any state, the line 1px at rest and 2px when selected or on hover and pressed, in interactive.neutral.border unselected and interactive.primary.border selected; focus adds the ring and keeps the line weight. In CSS draw the line as an inset bottom box-shadow (box-shadow: inset 0 -1px 0, or -2px), so the box does not grow; set min-block-size to the tag\'s height in place of a fixed block size, align-items: end, and padding-block-end to the underline inset (4px small, 6px medium, 8px large, at every density), keeping the side padding. The × slot stays a square as tall as the tag with its glyph on the same inset, and the line runs under it. The setting is brand-wide, never a prop.',
+      'Tag style (the brand\'s tagStyle setting) — Pill, the default, is everything above: a rounded outline, 1px unselected and 2px selected, with the selected tint. Underline draws one line under the tag and no other edge: square corners, no fill in any state, the line 1px at rest and 2px when selected or on hover and pressed, in interactive.neutral.border unselected and interactive.primary.border selected; focus adds the ring and keeps the line weight. In CSS draw the line as an inset bottom box-shadow (box-shadow: inset 0 -1px 0, or -2px), so the box does not grow; set no block size at all, so the tag hugs its content: align-items: end, padding-block-end to the underline inset (4px small, 6px medium, 8px large, at every density), and the label row a min-block-size of the icon size (16px, 20px, 24px), so the label does not move when the check mark appears. The tag is then 20px tall at small, 26px at medium and 32px at large, and keeps the side padding and the minimum width. The × slot is as wide as the pill tag is tall (36px, 44px, 56px on comfortable density) and hugs its glyph and the inset, and the line runs under it. The setting is brand-wide, never a prop.',
+      'The hit-target expansion, Underline — the tag is one label row tall, so where it is under 24px (a small tag, 20px), a code-side hit area (padding with a matching negative margin, or a pseudo-element) reaches 24px without moving the line or the tags around it. Medium (26px) and large (32px) clear 24px as drawn. The × slot takes the same expansion when only the slot is the button.',
       'The hit-target expansion — a small tag is 36px tall on comfortable density and 28px at compact, and a medium tag is 36px at compact. Reaching 44px there is a code-side hit area larger than the visible box, which Figma cannot hold.',
     ],
   },
@@ -433,7 +437,7 @@ export const tag: ComponentDef = {
       '2.1.1 Keyboard (every tag can be toggled or removed from the keyboard)',
       '2.4.3 Focus Order (after a removal, focus moves to the next tag, the previous one or the group, never to the top of the page)',
       '2.4.7 Focus Visible (a focus ring around the tag on keyboard focus)',
-      '2.5.8 Target Size (Minimum) (24×24 — a small tag and its × slot are 36px on comfortable density and 28px at compact)',
+      '2.5.8 Target Size (Minimum) (24×24 — a small tag and its × slot are 36px on comfortable density and 28px at compact; under Tag style Underline a small tag is 20px tall and reaches 24px through a code-side hit area)',
       '2.5.5 Target Size (Enhanced) (44×44, as intent — a medium tag and its × slot clear 44px on comfortable and spacious density and miss it at compact (36px); a small tag reaches 44 only at spacious density, and elsewhere through a code-side hit area)',
       '1.1.1 Non-text Content / 4.1.2 Name, Role, Value (the remove control is named "Remove" followed by the label, and a select tag exposes its state)',
     ],
@@ -523,6 +527,7 @@ export const tag: ComponentDef = {
       'The label wraps rather than truncating (#1758): the earlier guidance, an ellipsis paired with a title or tooltip, left the full text unreachable by keyboard, touch and screen reader.',
       'The brief\'s `Token` alias is not carried as a bare alias: in this repo "token" means a design token, and an agent asked for one would land here. "recipient token" is kept as a trigger phrase.',
       'The glyph rung moved one below the control rung, as Button\'s did (#1350): 16 / 20 / 24px, where the 1:1 rung was 20 / 24 / 32px (owner Q337 A, #2725). The one rung sizes the leading icon, the check and the ×, so all three step down together; the × keeps its 44px slot at medium (owner Q356 A).',
+      'Owner, 2026-10-22 (#2945, Q585 A, from QA on a real library file): under Tag style Underline the tag hugs its content. It was held at the rung height (44px at medium), which left 18px of empty frame above a 26px tag. It is now the label row plus the inset, 20 / 26 / 32px at small / medium / large, and the 24px target moves to code, as Link\'s does. The × slot keeps the rung height as its width and hugs its height, and the minimum width stays 1.5 times the rung height. The pill is unchanged.',
     ],
   },
 };
