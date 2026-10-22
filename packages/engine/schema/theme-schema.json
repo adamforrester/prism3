@@ -512,6 +512,7 @@
       "description": "OPTIONAL. Corner shape for pill-able controls (button, icon-button). 'boxed' is sharp (radius.none, 0px); 'hairline' is a fixed 1px edge (radius.hairline, implies the hairline rung); 'rounded' follows radius softness (radius.md); 'pill' is a full height ÷ 2 (radius.capsule). Default 'rounded'."
     },
     "fieldStyle": { "type": "string", "enum": ["outline", "underline"], "default": "outline", "description": "OPTIONAL. The edge every field component draws (text field, password field, select, textarea). 'outline' is a box; 'underline' is one line under the value, with no side padding and square corners. Default 'outline'." },
+    "tagStyle": { "type": "string", "enum": ["pill", "underline"], "default": "pill", "description": "OPTIONAL. The shape every tag draws. 'pill' is a rounded outline; 'underline' is one line under the tag, 1px at rest and 2px when selected or under the pointer, with square corners and no fill in any state. Default 'pill'." },
     "buttonIcons": { "type": "string", "enum": ["attached", "edges"], "default": "attached", "description": "OPTIONAL. Button icons: 'attached' beside the label, or 'edges' with the label centered between them." },
     "buttonContentSize": { "type": "string", "enum": ["match", "smaller"], "default": "match", "description": "OPTIONAL. 'smaller': a medium button takes the small label and icon." },
     "buttonLabelWeight": { "type": "string", "enum": ["default", "emphasis"], "default": "emphasis", "description": "OPTIONAL. 'default': buttons bind type.label.*.default." },

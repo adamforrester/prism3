@@ -2963,6 +2963,42 @@ section('field style — a field set built in one Field style is redrawn in plac
   }
 }
 
+section('tag style — a Tag set built in one Tag style is redrawn in place in the other, both ways, in one Update (#2887)');
+{
+  // The Tag set is built from `materializeForBrand` under one style, then updated with the plans of the other: a brand
+  // switching its Tag style on a file that already holds the set. The build plan promises additive consumer impact:
+  // the same 45 members and layers, so Update rewrites strokes, the corner, the height floor and paint in place and
+  // instances stay linked. Read off the shim's nodes, never off the plans' own claims.
+  const def = componentDefs.find((d) => d.id === 'tag')!;
+  const pill = figmaAnatomySet(materializeForBrand(def, { tagStyle: 'pill' } as never), { swapTarget: SWAP_TARGET });
+  const underline = figmaAnatomySet(materializeForBrand(def, { tagStyle: 'underline' } as never), { swapTarget: SWAP_TARGET });
+  const extra = (ps: AnatomyPlan[]) => ({ extraVars: ps.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), extraStyles: ps.flatMap((p) => planTextStyles(p.root)), extraComps: ps.flatMap((p) => planComps(p.root)) });
+  for (const [from, to, fromName, toName] of [[pill, underline, 'pill', 'underline'], [underline, pill, 'underline', 'pill']] as const) {
+    const tag = `tag ${fromName}→${toName}`;
+    const w = await world('tag', [...from], extra([...to]));
+    const n = membersOf(w.set()).length;
+    const before = identityOf(w.set());
+    const { pre, res } = await confirm(w, [{ def: 'tag', plans: [...to] }]);
+    const v = applyVerdict(res);
+    ok(n === 45 && pre.sets[0].counts.update === n && v.ok, `tag style/${tag}: all ${n} of 45 members read to update, and one apply succeeds (${JSON.stringify(pre.sets[0].counts)}; ${v.headline}${v.ok ? '' : ` — ${v.lines.slice(0, 2).join(' | ').slice(0, 240)}`})`);
+    const after = identityOf(w.set());
+    const lost = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || [...b.kids].some(([path, kid]) => after.members.get(name)?.kids.get(path) !== kid)).map(([x]) => x);
+    ok(lost.length === 0 && JSON.stringify(after.set) === JSON.stringify(before.set), `tag style/${tag} in place: the set, every member and every node under it keep their keys and ids (${lost.slice(0, 2).join('; ') || 'all kept'})`);
+    // The drawn result, off the stored nodes: under underline no member keeps a fill and the bottom side carries the
+    // line; under pill the four sides are one weight again (no side at none).
+    const vars = new Map<string, string>((await w.api.variables.getLocalVariablesAsync()).map((x: { id: string; name: string }) => [x.id, x.name.slice(x.name.indexOf('/') + 1)] as [string, string]));
+    const off = membersOf(w.set()).filter((m) => {
+      const bv = (m.boundVariables ?? {}) as Record<string, { id?: string } | undefined>;
+      const top = vars.get(String(bv.strokeTopWeight?.id)), bottom = vars.get(String(bv.strokeBottomWeight?.id));
+      const fills = (m.fills as unknown[] | undefined) ?? [];
+      return toName === 'underline' ? !(top === 'border-width/none' && /^border-width\/(hairline|thick)$/.test(String(bottom)) && fills.length === 0) : top === 'border-width/none';
+    }).map((m) => String(m.name));
+    ok(off.length === 0, `tag style/${tag} drawn: ${toName === 'underline' ? 'every member draws the bottom line alone and no fill' : 'no member keeps a side at none'} (${off.slice(0, 2).join('; ') || 'ok'})`);
+    const post = (await previewUpdate(w.host, [{ def: 'tag', plans: [...to] }])).sets[0];
+    ok(post.counts.current === n, `tag style/${tag} converges: the next dry run reads all ${n} current (${JSON.stringify(post.counts)})`);
+  }
+}
+
 section('corpus — every def, re-applied in place by an executor revision bump, keeps every key and reads back as its plan');
 {
   // A newer executor revision makes every member out of date with nothing else moved, so the update configures

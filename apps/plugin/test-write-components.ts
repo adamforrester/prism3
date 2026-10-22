@@ -5145,6 +5145,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     ['controlShape', 'boxed'], ['controlShape', 'hairline'], ['controlShape', 'pill'],
     // #2695: Field style moves only the field defs' geometry and paints, never the tree.
     ['fieldStyle', 'underline'],
+    // #2887 (Q513.1 A): "Tag style: Underline" adds no token; it moves only the materialized Tag def.
+    ['tagStyle', 'underline'],
   ];
   const getIn = (o: any, key: string): unknown => key.split('.').reduce((a, p) => a?.[p], o);
   const setIn = (o: any, key: string, v: unknown): any => {
@@ -5216,6 +5218,49 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   ok(read === 4 * 84 && wrong.length === 0,
     `#2695 underline fields read back with their per-side weights bound: none / none / hairline (thick at focus) / none, on all ${read} of 336 members (${wrong.slice(0, 3).join('; ') || 'ok'})`);
   ok(misses.length === 0, `#2695 underline fields: no stroke binding is reported discarded (${misses.slice(0, 3).join('; ') || 'none'})`);
+}
+
+// =============================================================================================
+// #2887 — THE UNDERLINE TAG, built through `materializeForBrand` and read back from the host shim
+// =============================================================================================
+// A brand on "Tag style: Underline" builds the Tag set with its four stroke sides bound apart (top, end and start to
+// `border-width/none`; the bottom to `border-width/hairline` at an unselected rest, focus-visible or disabled member and
+// `border-width/thick` on hover, pressed and every selected member), a bound `minHeight` in place of the height, the
+// frame aligned to the end, and the content row on its block-end inset. Read back off the host's own nodes. Expected
+// names typed from the decisions (Q513, Q540). The first host-side read-back of `minHeight` plus end alignment on Tag.
+{
+  const input = { ...parseDesignMd(readFileSync(new URL('../../packages/engine/examples/nb-redesign.design.md', import.meta.url), 'utf8')).input, tagStyle: 'underline' } as BrandInput;
+  const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, input), { swapTarget: SWAP });
+  const all = componentDefs.flatMap((d) => { try { return project(d); } catch { return []; } });
+  const f = fullFor(all);
+  const id = (v: unknown): string | null => (v as { id?: string } | undefined)?.id?.replace(/^V:/, '') ?? null;
+  const RUNG: Record<string, string> = { small: 'sm', medium: 'md', large: 'lg' };
+  const INSET: Record<string, string> = { small: 'space/050', medium: 'space/075', large: 'space/100' };
+  const def = componentDefs.find((d) => d.id === 'tag')!;
+  const page: Page = { children: [] };
+  const shim = makeShim({ vars: f.vars, styles: f.styles, effects: f.effects, comps: [], liveRoot: true, page });
+  const build = (d: ComponentDef) => applyComponentPlan(project(d), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents });
+  await prebuildDependencies(def, { defs: componentDefs, project, host: shim as any, build });
+  const run = await build(def);
+  const misses = run.misses.filter((m) => /stroke|minHeight|padding/i.test(m));
+  const set = page.children.find((c) => c.type === 'COMPONENT_SET' && c.name === project(def)[0].component) as Node | undefined;
+  const wrong: string[] = [];
+  let read = 0;
+  for (const m of (set?.children ?? []) as Node[]) {
+    const name = String(m.name);
+    const size = /size=(\w+)/.exec(name)?.[1] ?? '';
+    const thick = /selection=selected/.test(name) || /state=(hover|pressed)/.test(name);
+    const bv = (m.boundVariables ?? {}) as Record<string, unknown>;
+    const content = ((m.children as Node[]) ?? []).find((n) => n.name === 'content');
+    read++;
+    const got = [id(bv.strokeTopWeight), id(bv.strokeRightWeight), id(bv.strokeBottomWeight), id(bv.strokeLeftWeight), id(bv.minHeight), id(bv.height), m.counterAxisAlignItems,
+      id(((content?.boundVariables ?? {}) as Record<string, unknown>).paddingBottom)];
+    const want = ['border-width/none', 'border-width/none', thick ? 'border-width/thick' : 'border-width/hairline', 'border-width/none', `size/${RUNG[size]}/height`, null, 'MAX', INSET[size]];
+    if (JSON.stringify(got) !== JSON.stringify(want)) wrong.push(`${name}: ${got.join(' / ')}`);
+  }
+  ok(read === 45 && wrong.length === 0,
+    `#2887 underline tag reads back: per-side weights none / none / hairline (thick on hover, pressed and selected) / none, minHeight at the height rung and no bound height, the frame at the end and the content on its inset, on all ${read} of 45 members (${wrong.slice(0, 2).join('; ') || 'ok'})`);
+  ok(misses.length === 0, `#2887 underline tag: no stroke, minHeight or padding binding is reported discarded (${misses.slice(0, 3).join('; ') || 'none'})`);
 }
 
 // =============================================================================================

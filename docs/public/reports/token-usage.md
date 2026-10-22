@@ -2577,7 +2577,7 @@ Type: dimension. Bound by 6 component(s).
 | field-label | `gap` | container | every member (24 of 24) |
 | link | `size.medium.gap`, `size.small.gap` | container | size: medium, small (64 of 96) |
 | segmented-control-segment | `inset` | container | every member (30 of 30) |
-| tag | `size.large.dismissible.gap`, `size.large.dismissible.label-inset`, `size.medium.dismissible.gap`, `size.medium.dismissible.label-inset`, `size.small.check-gap`, `size.small.dismissible.label-inset` | content | selection: unselected · size: large, medium · type: dismissible (10 of 45) |
+| tag | `size.large.dismissible.gap`, `size.large.dismissible.label-inset`, `size.medium.dismissible.gap`, `size.medium.dismissible.label-inset`, `size.small.check-gap`, `size.small.dismissible.label-inset`, `size.small.underline.inset` | content | selection: unselected · size: large, medium · type: dismissible (10 of 45) |
 |  |  | labelCheck | every member (25 of 45) |
 | toast | `controls-gap` | controls | every member (2 of 2) |
 
@@ -2599,7 +2599,7 @@ Type: dimension. Bound by 15 component(s).
 | select | `size.small.pad-y` | control | size: small (28 of 84) |
 | switch-row | `size.small.pad-y` | row | size: small (2 of 4) |
 | tab-item | `size.small.gap` | content | size: small (10 of 30) |
-| tag | `size.medium.check-gap`, `size.small.dismissible.visible-gap`, `size.small.select.gap` | content | size: small · type: select (10 of 45) |
+| tag | `size.medium.check-gap`, `size.medium.underline.inset`, `size.small.dismissible.visible-gap`, `size.small.select.gap` | content | size: small · type: select (10 of 45) |
 |  |  | labelCheck | size: medium (15 of 45) |
 | text-field | `size.small.pad-y` | control | size: small (28 of 84) |
 | textarea | `size.small.pad-y` | control | size: small (28 of 84) |
@@ -2642,7 +2642,7 @@ Type: dimension. Bound by 25 component(s).
 | switch-row | `size.medium.gap`, `size.medium.pad-y`, `size.small.gap` | content | every member (4 of 4) |
 |  |  | row | size: medium (2 of 4) |
 | tab-item | `size.large.gap`, `size.medium.gap` | content | size: large, medium (20 of 30) |
-| tag | `group-gap`, `size.large.check-gap`, `size.large.dismissible.visible-gap`, `size.medium.dismissible.visible-gap`, `size.medium.select.gap`, `size.small.padding-x`, `size.small.select.padding-end` | content | size: medium, small (25 of 45) |
+| tag | `group-gap`, `size.large.check-gap`, `size.large.dismissible.visible-gap`, `size.large.underline.inset`, `size.medium.dismissible.visible-gap`, `size.medium.select.gap`, `size.small.padding-x`, `size.small.select.padding-end` | content | size: medium, small (25 of 45) |
 |  |  | labelCheck | size: large (15 of 45) |
 | text-field | `root-gap`, `size.large.gap`, `size.large.pad-y`, `size.medium.gap`, `size.medium.pad-y`, `size.small.gap` | container | every member (84 of 84) |
 |  |  | content | every member (84 of 84) |

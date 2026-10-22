@@ -18464,7 +18464,8 @@
             "size.medium.dismissible.gap",
             "size.medium.dismissible.label-inset",
             "size.small.check-gap",
-            "size.small.dismissible.label-inset"
+            "size.small.dismissible.label-inset",
+            "size.small.underline.inset"
           ],
           "parts": {
             "content": {
@@ -18686,6 +18687,7 @@
         "tag": {
           "keys": [
             "size.medium.check-gap",
+            "size.medium.underline.inset",
             "size.small.dismissible.visible-gap",
             "size.small.select.gap"
           ],
@@ -19126,6 +19128,7 @@
             "group-gap",
             "size.large.check-gap",
             "size.large.dismissible.visible-gap",
+            "size.large.underline.inset",
             "size.medium.dismissible.visible-gap",
             "size.medium.select.gap",
             "size.small.padding-x",
