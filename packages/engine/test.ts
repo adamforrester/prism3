@@ -24397,13 +24397,12 @@ arm: {
       // Cancel's Button.Neutral when the file has it) and the slot's preferred-when-built ids, in every chunk's shell.
       // icon-button uses neither. Re-pinned per the same standing instruction; every chunk stays under budget.
       //
-      // NOW 17, AS OF #2428 MEETING #2661 — two shell-byte moves. #2428 adds about 130 B: the paste script's
-      // `claimDefaults` writes the plan's vertical trim (Code input's character) and the #1567 re-apply stands down for a
-      // trimmed node, with a read-back. That put Code input and Dialog over #1798's unit ceiling, so the strip pass now
-      // drops leading indentation too, about 1 KB off every chunk's shell, and icon-button packs one chunk tighter.
-      // Re-pinned per the same standing instruction; every chunk stays under budget.
+      // NOW 16, AS OF #2428 — a shell-byte move: the strip pass drops leading indentation as well as comments, about
+      // 1 KB off every chunk's shell, so icon-button packs two chunks tighter. (The vertical-trim lines #2428 first added
+      // to the shell went with the trim, Q560 A on #2789.) Re-pinned per the same standing instruction; every chunk stays
+      // under budget.
       const ibChunks = planSetChunks(ibSet);
-      ok(ibChunks.length === 17, `anatomy/icon-button: the set packs into 17 chunks (${ibChunks.length})`);
+      ok(ibChunks.length === 16, `anatomy/icon-button: the set packs into 16 chunks (${ibChunks.length})`);
       ok(ibChunks.every((c) => c.bytes <= SET_CHUNK_BYTES),
         `anatomy/icon-button: no chunk exceeds the byte budget (${ibChunks.map((c) => c.bytes).join(', ')} vs ${SET_CHUNK_BYTES})`);
       // And the chunks partition the set — no member dropped, none written twice. A packer that lost a
@@ -32798,24 +32797,57 @@ arm: {
   const withMaxlength = codeOnlyLines.filter((l) => /maxlength/i.test(l.replace(/The input carries no native `maxlength`[^.]*\./, '')));
   ok(codeOnlyLines.some((l) => l.startsWith('ONE INPUT')) && withMaxlength.length === 0,
     `#2428 code-input: the one input in the code contract carries no native maxlength, so a pasted code with separators is not cut before it is normalized (off: ${withMaxlength.map((l) => l.split(' — ')[0]).join('; ') || 'none'})`);
+  // (3d) THE ONE-INPUT CONTRACT (#2428 decisions; review of #2789 on d3333d1e, S1): exactly one real input, holding the
+  // whole value, with `autocomplete="one-time-code"` (SC 1.3.5) and the inputmode the def's own props default to; the
+  // cells presentational and hidden from assistive tech; the label wired to that one input. Read from the def's
+  // `codeOnly`, `accessibility`, `props` and `anatomy`, held against literals typed from the decisions, so a contract
+  // that drifts to one input per cell, a focusable or named cell, or autocomplete off fails here by name, not only in
+  // the surface digest an author re-accepts.
+  const fieldCode = (fieldDef.anatomy.codeOnly ?? []).join('\n');
+  const cellCode = (cellDef.anatomy.codeOnly ?? []).join('\n');
+  const inputTags = fieldCode.match(/<input\b[^>]*>/g) ?? [];
+  const tag = inputTags[0] ?? '';
+  const attr = (name: string) => new RegExp(`\\s${name}="([^"]*)"`).exec(tag)?.[1];
+  const propDefault = (name: string) => fieldDef.props.find((p) => p.name === name)?.default;
+  const cellNests = (fieldDef.anatomy.parts.items?.children ?? []).map((c) => fieldDef.anatomy.parts[c]);
+  const fieldA11y = fieldDef.accessibility;
+  const cellA11y = cellDef.accessibility;
+  const oneInputOff = [
+    inputTags.length === 1 ? null : `field codeOnly names ${inputTags.length} <input> elements`,
+    /<input\b/.test(cellCode) ? 'the cell codeOnly names an <input>' : null,
+    attr('autocomplete') === 'one-time-code' ? null : `autocomplete="${attr('autocomplete')}"`,
+    attr('inputmode') === 'numeric' && propDefault('inputMode') === 'numeric' ? null : `inputmode="${attr('inputmode')}" vs the inputMode prop's default ${String(propDefault('inputMode'))}`,
+    propDefault('autoComplete') === 'one-time-code' ? null : `the autoComplete prop defaults to ${String(propDefault('autoComplete'))}`,
+    /Never one input per cell/.test(fieldCode) && /one textbox with one name and one value/.test(fieldCode) ? null : 'the contract no longer says one textbox, one value, never one input per cell',
+    /^textbox \(one native <input>\); the cells are aria-hidden$/.test(fieldA11y?.role ?? '') ? null : `field role '${fieldA11y?.role}'`,
+    /No aria-label on the input/.test(fieldA11y?.aria ?? '') ? null : 'the field allows an aria-label over the real value',
+    /^One Tab stop\./.test(fieldA11y?.keyboard ?? '') && /^Focus stays on the one input\./.test(fieldA11y?.focus ?? '') ? null : 'the field has more than one Tab stop or moves focus',
+    /^none: an aria-hidden drawing/.test(cellA11y?.role ?? '') ? null : `cell role '${cellA11y?.role}'`,
+    /^aria-hidden="true"\./.test(cellA11y?.aria ?? '') ? null : `cell aria '${cellA11y?.aria}'`,
+    /^Never focused itself\./.test(cellA11y?.focus ?? '') && /never focusable and has no role/.test(cellCode) ? null : 'the cell is focusable or has a role',
+    cellNests.length === 6 && cellNests.every((p) => p?.kind === 'nest' && p.nests === 'code-input-cell') ? null : 'the items slot holds something other than six presentational cells',
+    fieldDef.anatomy.parts.label?.kind === 'nest' && fieldDef.anatomy.parts.label.nests === 'field-label'
+      && /the host ties the FieldLabel to the input/.test(fieldCode) ? null : 'the FieldLabel is not wired to the one input',
+  ].filter(Boolean);
+  ok(oneInputOff.length === 0,
+    `#2428 code-input: the one-input contract — exactly one <input> holding the whole value, autocomplete="one-time-code" and inputmode="numeric" as the props default, one Tab stop, the cells aria-hidden with no role and no focus, the FieldLabel wired to that input (off: ${oneInputOff.join('; ') || 'none'})`);
   // (3b) THE CHARACTER IS STYLED AND CENTERED (owner QA Q534 on #2789): every character carries its size's text style
   // (typed in STYLE above), untrimmed, its box centered on both axes in a `content` frame with no padding that fills the
   // cell. Figma keeps vertical trim inside the style, so a trim on the layer would detach the style the brand's type
-  // reaches it through (#1567), which is how an unstyled character rendered in the default brand's display serif. And
-  // no def trims a text, so no other text loses its style that way.
+  // reaches it through (#1567), which is how an unstyled character rendered in the default brand's display serif. The
+  // plan carries no trim (Q560 A on #2789 removed the trim from the schema); the executor arms hold the built `NONE`.
   const centerOff = SIZES.flatMap((s) => CELL_STATES.map((st) => {
     const root = cellAt(s, st)!.root;
     const d = findIn(root, 'digit');
     if (!d) return null;
     const c = findIn(root, 'content');
     const pad = ['paddingTop', 'paddingBottom'].map((k) => c?.bound?.[k]);
-    return d.textStyle === STYLE[s] && d.leadingTrim === undefined && d.textAlignVertical === 'CENTER' && c?.counterAxisAlignItems === 'CENTER'
+    return d.textStyle === STYLE[s] && !('leadingTrim' in d) && d.textAlignVertical === 'CENTER' && c?.counterAxisAlignItems === 'CENTER'
       && c?.layoutGrow === 1 && root.primaryAxisAlignItems === 'CENTER' && pad.every((v: unknown) => v === 'space/0')
-      ? null : `${s}/${st}: style ${String(d.textStyle)}, trim ${String(d.leadingTrim)}, content ${String(c?.counterAxisAlignItems)} grow ${String(c?.layoutGrow)} pad ${pad.join('/')}`;
+      ? null : `${s}/${st}: style ${String(d.textStyle)}, trim ${String((d as Record<string, unknown>).leadingTrim)}, content ${String(c?.counterAxisAlignItems)} grow ${String(c?.layoutGrow)} pad ${pad.join('/')}`;
   })).filter(Boolean);
-  const trimmed = componentDefs.filter((d) => Object.values(d.anatomy?.parts ?? {}).some((p) => (p as { verticalTrim?: unknown }).verticalTrim !== undefined)).map((d) => d.id);
-  ok(centerOff.length === 0 && trimmed.length === 0,
-    `#2428 code-input: the character carries its size's text style (body md, title sm, md, 2xl), untrimmed, centered in the cell at every size and state, and no def trims a text (off: ${[...centerOff, ...trimmed].join('; ') || 'none'})`);
+  ok(centerOff.length === 0,
+    `#2428 code-input: the character carries its size's text style (body md, title sm, md, 2xl), untrimmed, centered in the cell at every size and state (off: ${centerOff.join('; ') || 'none'})`);
   // The title weight resolves per brand (`typeWeight`): a brand shipping only a light title weight gets that weight, not a
   // missing `strong` style. The rule's own resolver, independent of the def.
   const lightTitle = applyWeightIntent(cellDef, { ...DEFAULT_WEIGHT_AVAILABILITY, title: ['subtle'] });

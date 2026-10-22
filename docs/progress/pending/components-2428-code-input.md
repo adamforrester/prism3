@@ -52,7 +52,7 @@ Built on #2660's items-slot pattern (merged), with current `main` merged in.
   ((descender − (ascender − figure height)) ÷ 2) × size. Inter is 0.0px at every size, by design. Playfair Display (prism3's
   title) sits 1.2 / 1.5 / 2.5px low at medium / large / xlarge with lining figures. The owner's test brand's display font
   sits high: its metrics are not in the repo.
-- **The fix.** `verticalTrim: 'cap-height'` on the cell's character trims the box to the cap height and the baseline,
+- **The first fix (superseded below).** `verticalTrim: 'cap-height'` on the cell's character trims the box to the cap height and the baseline,
   measured 0.0px off center (±0.7 at the worst digit) in every font measured, at every size.
 - **Host trap.** Figma stores vertical trim in the text style, and writing it on a styled layer detaches the style
   (#1567). So `claimDefaults` writes the plan's trim and the #1567 re-apply stands down for a trimmed node, in both
@@ -61,13 +61,15 @@ Built on #2660's items-slot pattern (merged), with current `main` merged in.
 - **Paste chunks.** The trim adds about 130 B to every chunk's shell. After #2661's own shell growth that put Code
   input and Dialog over #1798's 37,800 B unit ceiling (Dialog had 76 B left on main). The strip pass now drops leading
   indentation as well as comments, on the same ground (no literal in the payload spans lines; the gate now also refuses
-  a line ending in a backslash): about 1 KB off every shell. `icon-button` packs into 17 chunks.
+  a line ending in a backslash): about 1 KB off every shell. With the trim gone (below), `icon-button` packs into 16
+  chunks.
 - **Owner QA Q534 (2026-10-22): the character takes its text style.** In a brand's file the trimmed character had no
   style, so it kept the build's own font, the default brand's display serif. The character now carries its size's text
   style (`type.title.sm.strong` at medium, `type.body.md.default` at small, `type.title.md.strong` at large,
   `type.title.2xl.strong` at xlarge), which main's spec read-back (#2830) expects. A trim written on a styled layer
   detaches the style, so the Figma character is no longer trimmed: its line box is centered, and code still trims.
-  `verticalTrim` stays in the schema and both executors, and no def declares it. The trade-off is Q-#2789.2 on the PR.
+  The owner kept the style (Q560 A = Q-#2789.2 A, 2026-10-22), so `verticalTrim` and the executors' trim handling,
+  which no def declared, are removed; both shims still model a style apply writing `NONE`.
   Held by `#2428 code-input` (plan), `#2428 paste` (paste executor), `#2428 code-input-cell` (plugin executor) and the
   round-trip's spec read-back.
 - **Found and filed, not fixed here:** prism3's title font sets old-style figures by default, so several digits drop
@@ -79,3 +81,11 @@ Built on #2660's items-slot pattern (merged), with current `main` merged in.
   choice controls (#2751), with its reason kept beside theirs.
 - Main's #2714 register: the cell's child-only `whenToUse` takes the template, `onComplete` loses its code span, and the
   label pattern no longer writes an acronym in capitals.
+
+### The one-input contract arm (review of #2789 on d3333d1e, S1)
+
+- `#2428 code-input: the one-input contract` reads the field's and the cell's `codeOnly`, `accessibility`, `props` and
+  `anatomy` against literals: exactly one `<input>`, `autocomplete="one-time-code"`, `inputmode="numeric"` matching the
+  `inputMode` prop's default, one Tab stop, no `aria-label` over the value, the cells `aria-hidden` with no role and no
+  focus, six cell nests in the slot, and the FieldLabel wired to the input. Before it, a change to the contract failed
+  only the surface digest and the docs round-trip, both cleared by a regenerate and a re-accept.

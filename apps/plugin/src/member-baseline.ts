@@ -106,7 +106,7 @@ const SNAP_KEYS = [
   'strokeWeight', 'strokeTopWeight', 'strokeRightWeight', 'strokeBottomWeight', 'strokeLeftWeight', 'strokeAlign',
   'layoutGrow', 'layoutAlign', 'layoutPositioning', 'layoutSizingHorizontal', 'layoutSizingVertical', 'constraints',
   'clipsContent', 'minWidth', 'maxWidth', 'minHeight', 'maxHeight', 'width', 'height', 'x', 'y', 'targetAspectRatio',
-  'characters', 'fontSize', 'lineHeight', 'fontName', 'letterSpacing', 'textAutoResize', 'textAlignHorizontal', 'textAlignVertical', 'leadingTrim',
+  'characters', 'fontSize', 'lineHeight', 'fontName', 'letterSpacing', 'textAutoResize', 'textAlignHorizontal', 'textAlignVertical',
   'textStyleId', 'effectStyleId', 'effects', 'fills', 'strokes', 'boundVariables', 'componentPropertyReferences',
   'isExposedInstance', 'componentProperties',
 ] as const;
