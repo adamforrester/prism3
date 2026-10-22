@@ -1303,7 +1303,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "id": "breadcrumbs",
     "name": "Breadcrumbs",
     "category": "navigation",
-    "summary": "The path to the current page as links, with the current page last and not a link.",
+    "summary": "The path to the current page as links, with the current page last and not a link. Size applies to the items you haven't edited. After editing an item, select the items and set their size.",
     "unit": "variants",
     "spacing": [
       {

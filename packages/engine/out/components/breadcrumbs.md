@@ -1,6 +1,6 @@
 # Breadcrumbs
 
-> The path to the current page as links, with the current page last and not a link.
+> The path to the current page as links, with the current page last and not a link. Size applies to the items you haven't edited. After editing an item, select the items and set their size.
 
 - **ID:** `breadcrumbs`
 - **Category:** navigation
