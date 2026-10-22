@@ -2821,11 +2821,11 @@ section('swap — an instance the plan points elsewhere is swapped in place, and
   const before = identityOf(w.set());
   const next = w.plans.map((p) => {
     const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
-    (planChild(planChild(q.root, 'controlCell'), 'control') as unknown as Record<string, unknown>).nestTarget = 'radio-control';
+    (planChild(planChild(planChild(q.root, 'content'), 'controlCell'), 'control') as unknown as Record<string, unknown>).nestTarget = 'radio-control';
     return q;
   });
   const { res } = await confirm(w, [{ def: ROW, plans: next }]);
-  const ctrls = membersOf(w.set()).map((m) => childNamed(childNamed(m, 'controlCell'), 'control'));
+  const ctrls = membersOf(w.set()).map((m) => childNamed(childNamed(childNamed(m, 'content'), 'controlCell'), 'control'));
   ok(ctrls.every((n) => (n.mainComponent as { name?: string } | undefined)?.name === 'radio-control'), `nest/pointed: every row's control now instances radio-control (${[...new Set(ctrls.map((n) => (n.mainComponent as { name?: string }).name))]}; ${applyVerdict(res).headline})`);
   const after = identityOf(w.set());
   ok([...before.members].every(([name, b]) => [...b.kids].every(([p, id]) => after.members.get(name)?.kids.get(p) === id)), 'nest/ids: every nested instance keeps its id');

@@ -197,12 +197,12 @@
       "set": {
         "members": 6,
         "assignments": 6,
-        "sha256": "19005d90827c20b72b02a6e43dda1796bcbef10cf40b18698968dbcc9a216139"
+        "sha256": "3516bba1f27126a5269df50ff85c353fc3e2e81a03d34ab9fbbf2acb7dfaa8ac"
       },
       "grid": {
         "members": 36,
         "assignments": 36,
-        "sha256": "b66c34f843982956916aaa0dae7529a9f06cb5fa72d4e551c2deb5c9550e33da"
+        "sha256": "b4354522d872bdff35e655b7b8f0083ea4cbae7d5ba0e78ce7c30416ef59e725"
       }
     },
     "checkbox-group": {
@@ -233,12 +233,12 @@
       "set": {
         "members": 6,
         "assignments": 6,
-        "sha256": "19005d90827c20b72b02a6e43dda1796bcbef10cf40b18698968dbcc9a216139"
+        "sha256": "3516bba1f27126a5269df50ff85c353fc3e2e81a03d34ab9fbbf2acb7dfaa8ac"
       },
       "grid": {
         "members": 36,
         "assignments": 36,
-        "sha256": "b66c34f843982956916aaa0dae7529a9f06cb5fa72d4e551c2deb5c9550e33da"
+        "sha256": "b4354522d872bdff35e655b7b8f0083ea4cbae7d5ba0e78ce7c30416ef59e725"
       }
     },
     "radio-group": {
@@ -269,12 +269,12 @@
       "set": {
         "members": 4,
         "assignments": 4,
-        "sha256": "0ddcbb0a9fa0f1d0826c23044d2c38348b47b5e7b5624a403365405b94069ca2"
+        "sha256": "0340268fbb26331c7d4c07124edfc7f1c62f0c7f776ad3905cda01cf1f411e82"
       },
       "grid": {
         "members": 28,
         "assignments": 28,
-        "sha256": "c7cbe7ffc6548a8181ee83c11d2038463249249386163883a4453aeb0e40c819"
+        "sha256": "abd2b6eb87c941527f7eb66e013a0e5a25871739bac6daac26ff00bfc9b64415"
       }
     },
     "select": {
