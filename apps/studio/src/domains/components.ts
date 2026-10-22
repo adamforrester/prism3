@@ -219,7 +219,7 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
       // settings change (#2844, small call 2; wireframe v2 on #2905).
       const mine = rowOfFocus(catalog, s.focus);
       const first = sec.rows[0];
-      const focus = mine && sec.rows.includes(mine) ? s.focus : first.family ? setFocusKey(first.ids[0]) : first.key;
+      const focus = mine && sec.rows.some((r) => r.key === mine.key) ? s.focus : first.family ? setFocusKey(first.ids[0]) : first.key;
       setComponentsPage({ optsOpen: o, focus });
     };
     const li = hook(h('div', 'p3-cp-optsline'), 'cp-opts-line');

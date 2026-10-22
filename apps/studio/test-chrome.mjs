@@ -8292,6 +8292,7 @@ for (const host of ['web', 'figma']) {
     await page.waitForFunction(() => !!document.querySelector('[data-p3="mode-option"][data-mode="wireframe"], [data-p3="mode-select"] option[value="wireframe"]'));
     await goPlace(page, 'components');
     await openButtonOptions(page);
+    await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=fields"]'));
     for (const [mode, label] of [['hc-light', 'HC light'], ['hc-dark', 'HC dark'], ['wireframe', 'Wireframe']]) {
       await chooseAnyMode(page, mode);
       await page.waitForFunction((l) => document.querySelector('[data-p3="button-options-derived"]')?.textContent?.startsWith(l), label, { timeout: 5000 }).catch(() => {});
@@ -8303,15 +8304,23 @@ for (const host of ['web', 'figma']) {
           link: !document.querySelector('[data-p3="components-density-link"]')?.matches(':disabled'),
           line: document.querySelector('[data-p3="button-options-derived"]')?.textContent ?? null,
           frameLine: !!document.querySelector('[data-p3="levers-derived-note"]'),
-          // #2815 step 1: the Button options sit in the list now, and hold themselves (above); the list is the rest.
-          listHeld: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"]') && (b.matches(':disabled') || b.getAttribute('aria-disabled') === 'true')).length,
-          listN: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"]')).length,
+          // #2815 step 1: the Button options sit in the list now, and hold themselves (above); #2905: so do the Field
+          // options (below). The list is the rest.
+          listHeld: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"], [data-p3="field-options"]') && (b.matches(':disabled') || b.getAttribute('aria-disabled') === 'true')).length,
+          listN: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"], [data-p3="field-options"]')).length,
+          field: {
+            line: document.querySelector('[data-p3="field-options-derived"]')?.textContent ?? null,
+            chips: [...document.querySelectorAll('[data-p3="field-options"] [data-p3^="field-style-choice-"]')].map((n) => n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true'),
+            link: !!document.querySelector('[data-p3="components-control-shape-link"]') && !document.querySelector('[data-p3="components-control-shape-link"]').matches(':disabled'),
+          },
           preview: [...document.querySelectorAll('[data-p3="components-style-guide"] .psec-t')].map((t) => t.textContent),
           buttons: document.querySelectorAll('[data-p3="components-style-guide"] .btnl-btn').length };
       });
       ok(d.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.`, `Q59: previewing ${label}, Button options carry the derived line, in the frame's words (N-3 A) ("${d.line}")`);
       ok(d.n >= 7 && d.enabled.length === 0 && d.link, `Q59: previewing ${label}, every Button option is held (${d.n - d.enabled.length}/${d.n}), the way to Shape left live (RX1 A: ${d.link})${d.enabled.length ? ` — enabled ${[...new Set(d.enabled)].join(', ')}` : ''}`);
       for (const hk of ['button-icons-choice-edges', 'button-content-size-choice-smaller', 'button-label-weight-choice-default', 'button-min-width-slider']) ok(d.hooks.includes(hk), `Q59: previewing ${label}, the ${hk} control is among the Button options held`);
+      ok(d.field.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.` && d.field.chips.length === 2 && d.field.chips.every(Boolean) && d.field.link,
+        `#2905 Q59: previewing ${label}, Field options carry the derived line and hold Field style's chips, the way to Control shape left live (${JSON.stringify(d.field)})`);
       ok(!d.frameLine && d.listN > 20 && d.listHeld === 0, `#2700: previewing ${label}, the list stays usable (selecting edits no brand setting), with no frame hold over it (${d.listHeld} of ${d.listN} held, frame line ${d.frameLine})`);
       ok(JSON.stringify(d.preview) === JSON.stringify(COMPONENTS_PREVIEW_SECTIONS) && d.buttons === 9, `Q59: previewing ${label}, the Components preview is still drawn (${d.preview.join(', ')}; ${d.buttons} buttons)`);
       // #2096: the write itself is refused, not only the DOM's disabled flag. A scripted `input` on the disabled
@@ -8551,7 +8560,8 @@ for (const host of ['web', 'figma']) {
       await hooks.click(page.locator('[data-p3="field-style-choice-underline"]'));
       await page.waitForFunction(() => document.querySelector('[data-p3="components-control-shape-readout"]')?.textContent !== 'Rounded', null, { timeout: 5000 }).catch(() => {});
       const u = await page.evaluate(() => document.querySelector('[data-p3="components-control-shape-readout"]')?.textContent ?? null);
-      ok((await persisted(page))?.fieldStyle === 'underline' && u === 'No corners on an underline field.',
+      // The web persists the brand input; the plugin's store is the host's, so there the readout is the write's witness.
+      ok((host !== 'web' || (await persisted(page))?.fieldStyle === 'underline') && u === 'No corners on an underline field.',
         `#2905 Q3 B: ${host} ${w}: Underline writes fieldStyle: underline, and under Underline the Control shape line reads "No corners on an underline field." (${(await persisted(page))?.fieldStyle}, ${JSON.stringify(u)})`);
       // With a set of the section in focus, opening its block keeps that focus.
       await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=fields"]'));
@@ -8597,7 +8607,8 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 760 }]) {
       ok(Math.abs(hd.off - m.rowOff) <= 1, `#2825: figma ${w}: the ${hd.name} head's box is centered on its title's first line, as a row's is on its name (${hd.off.toFixed(2)}px off the line, the row's ${m.rowOff.toFixed(2)}px; the title is ${hd.lines} line${hd.lines === 1 ? '' : 's'})`);
       if (hd.allOff !== null) ok(Math.abs(hd.allOff) <= 1, `#2825: figma ${w}: ${hd.name}' Build all is centered on the title's first line (${hd.allOff.toFixed(2)}px)`);
     }
-    ok(m.heads.length === 2 && m.heads.some((x) => x.allOff !== null), `#2825: figma ${w}: both heads measured, Build all among them (${m.heads.length})`);
+    // #2905: four sections now (Buttons, Fields, Other components, Subcomponents), each head measured.
+    ok(m.heads.length === 4 && m.heads.some((x) => x.allOff !== null), `#2825: figma ${w}: every section head measured, Build all among them (${m.heads.length})`);
     if (w === 380) ok(m.heads.some((x) => x.lines >= 2), `#2825: figma 380: a head's title wraps, so the first-line rule is tested where it differs from centering on the head (${JSON.stringify(m.heads.map((x) => x.lines))})`);
     ok(errors.length === 0, `#2825 figma ${w}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
