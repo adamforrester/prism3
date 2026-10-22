@@ -248,12 +248,10 @@ Every part declares a `kind` from a closed vocabulary (`packages/engine/componen
 | `nest` | an in-flow instance of another component — takes a cell like a box, content resolved from `nests` |
 | `vector` | a filled outline whose content is geometry — names a `glyph` from the icon vocabulary |
 
-**The root part is named for its role, never `root` and never the component's own id.** A box that
-holds the component's content is `container`; a root that is something more specific takes that
-role's name. The list is closed (owner decision Q365): `container`, `row`, `control`, `track`, `label`,
-`message`, `ring`, `glyph`, `frame`, `wash`, `surface`, `panel`. A new role needs an owner decision.
-Part names are layer names a designer reads in Figma, so they follow the naming table in §6:
-pick the name the table or an existing def already gives that job rather than inventing one.
+**The root part is named for its role, never `root` and never the component's own id.** Pick it
+from the role list in §6's naming table (`container` for most controls, `row` for the Rows, `track`
+for switch-control, `panel` for dialog, and so on) rather than inventing one. The list is closed: a new
+role needs an owner decision (Q365).
 
 **`anatomy.codeOnly` is required and non-empty** — what will not survive the Figma leg, stated per
 def rather than discovered. It carries two kinds of entry: structure Figma cannot hold, and the
@@ -375,7 +373,9 @@ whose actual value comes from the host, not from the plan.
   - **A set's group sets it, and passes it down.** Checkbox.Group and Radio.Group carry
     `status`, `follow` it into every row (each row into its control), and nest a FieldMessage
     under the options, present only at `error`. A radio is never invalid alone, so Radio.Row and
-    Radio.Control carry the axis only to receive the group's value; their docs say so.
+    Radio.Control carry the axis only to receive the group's value; their docs say so. That is the
+    one stated reason a family differs, and a new def that departs from this rule states its own
+    reason in the PR.
   A row or group paints nothing by `status` itself: it follows the axis to the part that draws it.
   Moving an existing `error` state onto the axis is a `move` entry in `COMPONENT_RENAMES`, so an
   update renames the error member in place and a placed error instance keeps showing it.
@@ -386,24 +386,6 @@ whose actual value comes from the host, not from the plan.
   outline darker: a disabled control is outside SC 1.4.11, and how strong its edge reads is the
   token tier's to decide, not your component's. `packages/engine/lint-paint.ts` arm 5 refuses a
   stroke bound to a variable the emitted color collection does not scope for strokes.
-- **Error is a `status` axis, never a state** (owner decision Q354). Every control that can be invalid
-  takes the fields' `status` axis and the fields' `validation` prop. A choice control carries the first
-  two values, `[default, error]`, because it has no warning or success look; `status` is orthogonal to the
-  interaction states, so an errored box still hovers and focuses. The error look is a danger border on the
-  box, track or ring, bound per selection and per non-disabled state under a status template one segment
-  longer than the selection template (`{status}.{selection}.{slot}.{state}`), so the two grammars cannot
-  read each other's keys. Who sets it depends on whether the choice stands alone:
-  - **A standalone choice sets its own.** A lone Checkbox.Row (a consent line) or a Switch.Row takes
-    `status` itself; the host shows the message.
-  - **A set's group sets it, and passes it down.** Checkbox.Group and Radio.Group carry `status`,
-    `follow` it into every row (each row into its control), and nest a FieldMessage under the options,
-    present only at `error`. A radio is never invalid alone, so Radio.Row and Radio.Control carry the
-    axis only to receive the group's value; their docs say so. That is the one stated reason a family
-    differs, and a new def that departs from this rule states its own reason in the PR.
-
-  A row or group paints nothing by `status` itself: it follows the axis to the part that draws it.
-  Moving an existing `error` state onto the axis is a `move` entry in `COMPONENT_RENAMES`, so an update
-  renames the error member in place and a placed error instance keeps showing it.
 - **Paint-key grammar.** A paint key is templated over the def's own axes with the `{axis}.{axis}`
   syntax — veil's `paintKeys: ['{value}.{intensity}']` fills the full 2×3 grid, each coordinate
   binding the matching semantic role. A `text` part names one ink slot in `paintSlot`; a `box`
@@ -473,11 +455,14 @@ library. Its `ai.whenToUse` opens with one of two wordings: "Only as a child of 
 (Q394): a designer inserts it from the assets panel, which works only for a published set, so it stays
 unprefixed even where its `ai.whenToUse` says "Only as a child of …". The slot items are `tab-item`,
 `list-item` and `segmented-control-segment`. The checkbox and radio controls (`checkbox-control`,
-`radio-control`) stay unprefixed because they may be used on their own.
+`radio-control`) stay unprefixed because they may be used on their own, and so does Radio row: it is a
+whole option, not a part.
 
 **Figma property names are lowercase (owner decision Q345).** Every name a designer reads in the
 properties panel is lowercase: each `figmaName` (or the key, when there is none), and each variant axis
 under its display name. So `check icon`, `state icon`, `marker`, `label`, never `Check icon`.
+Renaming a property a placed instance already uses is a rename for that instance, so it rides
+`COMPONENT_RENAMES` in `packages/engine/component-renames.ts` and an update carries the instance across in place.
 
 `packages/engine/lint-naming.ts` checks all of this except the main-text row, which is a judgment
 (a dialog has a title and a description). Its rules are literals in the gate, never read off a def,
@@ -519,18 +504,13 @@ against `props[].name`; `figmaName`, when present, is the panel name and need no
 Absent, the key is the panel name. A variant axis whose code name is not the panel name takes its display
 name in `figmaProperties.variantAxisNames` (Accordion's `iconPosition` reads `icon position`).
 
-**Every Figma property name is lowercase** (owner decision Q345): text, boolean, swap, slot-axis and
-variant-axis names alike (`leading icon`, `message`, `close`, `dividers`), never Title case. Renaming a
-property a placed instance already uses is a rename for that instance, so it rides `COMPONENT_RENAMES` in
-`packages/engine/component-renames.ts` and an update carries the instance across in place.
-
 **The icon-property canon (#1380, split at #1331/#1379).** A leading/trailing icon has two Figma
 properties — its presence (is the glyph there?) and its content (which glyph) — and the canon governs how
 each projects. Content is always a swap: `figmaName` `↳ swap leading icon` / `↳ swap trailing icon`, the
 `↳ ` prefix (U+21B3 + space) making Figma nest it beneath the presence toggle, while the key stays the
 idiomatic code prop (`leadingIcon`, validated against `props`). A required single icon has no presence
 toggle, so its swap takes `figmaName: 'swap icon'` — no `↳`, nothing to nest under (icon-button). The
-component's text property (`label` / `value`) projects first, at the top of the panel.
+component's text property (`label` / `value`) projects first, at the top of the panel. All lowercase.
 
 Presence is where the split lives, and it turns on one question — does the glyph's presence move the
 container's geometry?
@@ -578,36 +558,6 @@ the missing coordinates in `figmaProperties.excludeCoordinates` as partial coord
 value. The validator refuses an entry naming an axis or value the set does not have, an exclusion that
 empties the set or leaves a declared value on no member, and one that removes the first member or the code
 default. `packages/engine/components/badge.ts` is the worked example.
-
-### The naming table (owner decision Q350)
-
-Part keys are the layer names a designer reads in Figma, and one job takes one name across the
-catalog. A new def uses these names; the existing defs are renamed to them in one sweep, which reaches
-files already built through Update, in place. Until that sweep lands, a def that still shows an older
-name is waiting on it: do not copy the older name into a new def.
-
-| Job | Name | Not |
-|---|---|---|
-| the root | one of the 12 roles in §2; `container` for a box holding the content | `root`, or the component's own id |
-| the main text | `label`; Dialog keeps `title` and `description` as the one stated exception | `text`, `title` |
-| a glyph layer | `<shape>Glyph`: `checkGlyph`, `dashGlyph`, `errorGlyph`, `chevronGlyph`, `gripGlyph`, `markerGlyph`, `ringGlyph`; the close glyph stays `dismissGlyph` | a bare shape name (`check`, `chevron`), or `mark`, `dash` |
-| a Row's control cell | `controlCell` | `controlBox`, `trackBox` |
-| repeated children | the native `items` slot, below | numbered parts (`row1`, `tab1`) |
-| a Figma property | lowercase words (`leading icon`) | Title case |
-
-**The `_` prefix marks a component that is not used outside its parent** (owner decisions Q349, Q355,
-narrowed by Q394 A). It goes on a component's id, never on a part key. Figma reads it as private and
-leaves the component out of a published library, so it is for a building block no consumer places by
-hand. The decided set is `_accordion-indicator`. Only the checkbox and radio controls are exempt from
-the prefix, and Radio row stays unprefixed too: it is a whole option, not a part.
-
-**A slot's items are unprefixed, and preferred** (owner decision Q394 A, #2831). The tab item, the list
-item and the Segmented control's segment are what designers place into a native slot, and a `_` prefix
-hides them from library publishing, which breaks every consumer file that holds one. They take plain ids
-(`tab-item`, renamed from `tab`, which reads too close to `tabs`, displayed `Tab.Item` to match
-`List.Item`; `list-item`; `segmented-control-segment`) and are named in the slot's `preferred`
-(below). Never rename one to `_…` and back. Whether any other new component is private is a design call:
-propose it in the wireframe.
 
 ### Repeating content: an `items` slot, never a boolean per child (#2660, owner decision Q307)
 
@@ -703,7 +653,7 @@ the failures, by name.** Two surface gates guard every component:
 For each decision the def takes from its brief, add an arm to `packages/engine/test.ts` that holds it
 against a literal from the brief, and mutate the def to watch that arm fail by name. Give a new def at
 least the kinds of test its nearest sibling has (paint, contrast, nesting, plugin build): siblings with
-different kinds of test are an open finding (#2715), not a pattern to copy. Commit a `wip:`
+different kinds of test are an open finding (#2764), not a pattern to copy. Commit a `wip:`
 checkpoint before each mutation so the `git checkout --` restore reaches your work and not a stale
 HEAD (the pathspec trap in `CLAUDE.md`), mutate, confirm the named failure, restore, and confirm clean.
 
