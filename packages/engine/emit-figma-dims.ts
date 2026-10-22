@@ -122,7 +122,7 @@ export type FigmaDimsCollections = {
 //   control      → control-box ladder (#900) — `<rung>/height` (a checkbox square, a radio circle,
 //                  a switch track's height) and `<rung>/width` (a switch track's width). Both alias
 //                  dimension. Scope: WIDTH_HEIGHT for both — `width` is a track, not a padding.
-//   border-width → hairline/thick/heavy + none, aliased. Scope: STROKE_FLOAT.
+//   border-width → hairline/thick/heavy/x-heavy + none, aliased. Scope: STROKE_FLOAT.
 //   focus        → ring.width / ring.offset / ring.offset-field (STROKE_FLOAT). The
 //                  fourth `focus.ring.style` DTCG token (a `strokeStyle: 'solid'`
 //                  literal) is intentionally SKIPPED — Figma has no strokeStyle

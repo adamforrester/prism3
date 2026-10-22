@@ -649,7 +649,12 @@ export const ENGINE_VERSION = '0.237.0';
  * the type it measures, the first non-composite leaf under `type.*`. An added path cannot break a reference. Nothing
  * is removed or retyped.
  */
-export const CONTRACT_VERSION = '14.7.0';
+/**
+ * 14.8.0 (#2669, owner Q550 e, 2026-10-22): MINOR. `border-width.x-heavy` (6px, aliasing `core.dimension.6`) joins
+ * the guaranteed surface, the step above `heavy`: the large Slider's track, so the three slider sizes read 2, 4 and
+ * 6px. An added path cannot break a reference. Nothing is removed or retyped.
+ */
+export const CONTRACT_VERSION = '14.8.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {

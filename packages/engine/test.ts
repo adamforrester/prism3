@@ -19961,10 +19961,10 @@ arm: {
       // name-derived number would make the footprint arm's hand-written `2` unfalsifiable — the drift
       // would be `2 x whatever the stub invented` and the expected side would have to be computed from
       // the same value it is checking. These four are the one group where a real figure is available and
-      // brand-INVARIANT: `border-width.{none,hairline,thick,heavy}` resolve to 0/1/2/4 in all four corpus
-      // brands, aliased to `<root>.core.dimension.{0,1,2,4}`. Authored here from the emitted tokens, not
+      // brand-INVARIANT: `border-width.{none,hairline,thick,heavy,x-heavy}` resolve to 0/1/2/4/6 in all four corpus
+      // brands, aliased to `<root>.core.dimension.{0,1,2,4,6}`. Authored here from the emitted tokens, not
       // read off the def under test, so the expected drift stays independent of what `button.ts` binds.
-      const BORDER_PX: Record<string, number> = { none: 0, hairline: 1, thick: 2, heavy: 4 };
+      const BORDER_PX: Record<string, number> = { none: 0, hairline: 1, thick: 2, heavy: 4, 'x-heavy': 6 };
       const varValue = (name: string): number => {
         // `varValues` PINS a variable's resolved VALUE (what `boundVariables[field].value` reads back),
         // where `varOverrides` pins `resolveForConsumer` (the inset path). Both exist so the concentric
