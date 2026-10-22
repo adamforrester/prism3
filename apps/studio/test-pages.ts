@@ -115,6 +115,9 @@ ok(unknown.length === 0, `no row names a key the manifest lacks${unknown.length 
 // draws it no more. A literal, so moving it anywhere else (back to Shape included) fails here by name.
 const fieldHome = seen.get('fieldStyle') ?? [];
 ok(JSON.stringify(fieldHome) === JSON.stringify(['Components › Field']), `#2905 Q578: fieldStyle's one home is Components › Field, not Shape (${fieldHome.join(' + ') || 'none'})`);
+// Q578 part 2 (A on #2931's wireframe): Tag style the same way, to Components › Tag.
+const tagHome = seen.get('tagStyle') ?? [];
+ok(JSON.stringify(tagHome) === JSON.stringify(['Components › Tag']), `#2931 Q579: tagStyle's one home is Components › Tag, not Shape (${tagHome.join(' + ') || 'none'})`);
 ok(tierWrong.length === 0, `each lever's tier follows the manifest flag, outside ${FIRST_CLASS.join(', ')}${tierWrong.length ? ` — advanced tier disagrees with the manifest flag: ${tierWrong.join('; ')}` : ''}`);
 for (const k of FIRST_CLASS) ok(PAGES.some((p) => p.key === k), `FIRST_CLASS names a page the data has: ${k}`);
 

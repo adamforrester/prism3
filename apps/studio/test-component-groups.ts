@@ -21,6 +21,8 @@
  *   · a search opening every family (`familiesToOpen` dropping its match) → `call 7 on #2812: a search opens the families…`.
  *   · Textarea dropped from Fields' `SETTING_SECTIONS` ids → `#2905 Q548: Fields holds the sets Field style draws …` and
  *     `#2905 Q6 A: … Other components …` (Textarea back in Other components).
+ *   · Tag dropped from Tags' `SETTING_SECTIONS` ids → `#2931 Q579 A: Tags holds the sets Tag style draws …` (and the
+ *     five-section and Other components checks).
  *   · a set focus key resolving to no row (`rowOfFocus` keying on row keys only) → `#2905 Q8 A: a set in a flat section
  *     focuses as itself …`.
  *
@@ -32,7 +34,7 @@
 import { COMPONENT_CATALOG_DATA as catalog } from './src/state/component-catalog-data';
 import type { Catalog, CatalogEntry } from './src/state/component-catalog';
 import { alsoBuilds, boxOfSets, costOf, displayNameOf, familiesToOpen, groupsOf, inListOrder, rowMatches, rowOfFocus, sentenceCase, setFocusKey, toggleSets, GROUPS_COPY } from './src/state/component-groups';
-import { FIELD_FRAME_PARTS } from '@prism3/engine/anatomy-figma';
+import { FIELD_FRAME_PARTS, TAG_STYLE_PARTS } from '@prism3/engine/anatomy-figma';
 import { currentOf, positionOf, record, runVerdict, startRun, stopRun, RUN_COPY } from './src/state/build-queue';
 
 let failed = 0;
@@ -48,13 +50,15 @@ console.log('\n1. The sections and their rows (notes 2–4, calls 11, 12 and 14;
 // The wireframes' lists, typed: [label, the family's sets by component name] (a single set has one).
 const WIRE_BUTTONS: [string, string[]][] = [['Buttons', ['Button', 'Button.Destructive', 'Button.Group', 'Button.Neutral']]];
 const WIRE_FIELDS: [string, string[]][] = [['Password field', ['PasswordField']], ['Select', ['Select']], ['Text field', ['TextField']], ['Textarea', ['Textarea']]];
+// Q578 part 2 (A on #2931's wireframe): Tag leaves Other components for its own Tags section.
+const WIRE_TAGS: [string, string[]][] = [['Tag', ['Tag']]];
 const WIRE_COMPONENTS: [string, string[]][] = [
   ['Accordion', ['Accordion', 'Accordion.Indicator']], ['Badge', ['Badge']],
   ['Checkbox', ['Checkbox.Control', 'Checkbox.Group', 'Checkbox.Row']], ['Counter', ['Counter']], ['Dialog', ['Dialog']], ['Divider', ['Divider']],
   ['Icon button', ['IconButton', 'IconButton.Destructive', 'IconButton.Neutral']], ['Link', ['Link']], ['List', ['List', 'List.Item']],
   ['Radio', ['Radio.Control', 'Radio.Group', 'Radio.Row']],
   ['Segmented control', ['SegmentedControl', 'SegmentedControl.Segment']], ['Switch', ['Switch.Control', 'Switch.Row']],
-  ['Tabs', ['Tab.Item', 'Tabs']], ['Tag', ['Tag']], ['Toast', ['Toast']], ['Veil', ['Veil']],
+  ['Tabs', ['Tab.Item', 'Tabs']], ['Toast', ['Toast']], ['Veil', ['Veil']],
 ];
 const WIRE_SUBS: [string, string[]][] = [
   ['Field label', ['FieldLabel']], ['Field message', ['FieldMessage']], ['Flush icon button', ['FlushIconButton', 'FlushIconButton.Destructive', 'FlushIconButton.Neutral']],
@@ -62,14 +66,17 @@ const WIRE_SUBS: [string, string[]][] = [
 ];
 const groups = groupsOf(catalog);
 const drawn = (kind: string) => (groups.find((g) => g.kind === kind)?.rows ?? []).map((r) => [r.label, r.ids.map(name)] as [string, string[]]);
-ok(JSON.stringify(groups.map((g) => g.title)) === JSON.stringify(['Buttons', 'Fields', 'Other components', 'Subcomponents']),
-  `#2905 Q548, Q10 A: four sections, Buttons, Fields, Other components, Subcomponents (${groups.map((g) => g.title).join(', ')})`);
-ok(JSON.stringify(groups.map((g) => g.flat)) === JSON.stringify([true, true, false, false]),
+ok(JSON.stringify(groups.map((g) => g.title)) === JSON.stringify(['Buttons', 'Fields', 'Tags', 'Other components', 'Subcomponents']),
+  `#2905 Q548, Q10 A, #2931 Q579 A: five sections, Buttons, Fields, Tags, Other components, Subcomponents (${groups.map((g) => g.title).join(', ')})`);
+ok(JSON.stringify(groups.map((g) => g.flat)) === JSON.stringify([true, true, true, false, false]),
   `#2905 Q8 A: the sections with settings list their sets flat; Other components and Subcomponents keep their family rows (${JSON.stringify(groups.map((g) => g.flat))})`);
 ok(JSON.stringify(drawn('buttons')) === JSON.stringify(WIRE_BUTTONS), `#2905 Q548: Buttons holds the Buttons family's four sets (${JSON.stringify(drawn('buttons'))})`);
 const fieldIds = (groups.find((g) => g.kind === 'fields')?.rows ?? []).flatMap((r) => r.ids).sort();
 ok(JSON.stringify(drawn('fields')) === JSON.stringify(WIRE_FIELDS) && JSON.stringify(fieldIds) === JSON.stringify(Object.keys(FIELD_FRAME_PARTS).sort()),
   `#2905 Q548: Fields holds the sets Field style draws, the engine's FIELD_FRAME_PARTS (${Object.keys(FIELD_FRAME_PARTS).sort().join(', ')}), as the wireframe lists them (${JSON.stringify(drawn('fields'))})`);
+const tagIds = (groups.find((g) => g.kind === 'tags')?.rows ?? []).flatMap((r) => r.ids).sort();
+ok(JSON.stringify(drawn('tags')) === JSON.stringify(WIRE_TAGS) && JSON.stringify(tagIds) === JSON.stringify(Object.keys(TAG_STYLE_PARTS).sort()),
+  `#2931 Q579 A: Tags holds the sets Tag style draws, the engine's TAG_STYLE_PARTS (${Object.keys(TAG_STYLE_PARTS).sort().join(', ')}), as the wireframe lists them (${JSON.stringify(drawn('tags'))})`);
 ok(JSON.stringify(drawn('components').map((r) => r[0])) === JSON.stringify(WIRE_COMPONENTS.map((r) => r[0])),
   `notes 2, 3, #2905 Q6 A: Other components holds every other component row, alphabetical, families grouped by page (${drawn('components').map((r) => r[0]).join(', ')})`);
 ok(JSON.stringify(drawn('subcomponents').map((r) => r[0])) === JSON.stringify(WIRE_SUBS.map((r) => r[0])),
@@ -83,7 +90,7 @@ ok(groups.flatMap((g) => g.rows).flatMap((r) => r.ids).length === catalog.length
 ok(sentenceCase('Field Label') === 'Field label' && sentenceCase('Text field') === 'Text field' && sentenceCase('Icons & assets') === 'Icons & assets',
   'call 14: a page name reads in sentence case ("Field Label" → "Field label")');
 ok(GROUPS_COPY.sectionCount('components', 19, 32) === '19 families and sets · 32 sets' && GROUPS_COPY.sectionCount('subcomponents', 7, 9) === '7 entries · 9 sets'
-  && GROUPS_COPY.sectionCount('buttons', 1, 4) === '4 sets' && GROUPS_COPY.sectionCount('fields', 4, 4) === '4 sets',
+  && GROUPS_COPY.sectionCount('buttons', 1, 4) === '4 sets' && GROUPS_COPY.sectionCount('fields', 4, 4) === '4 sets' && GROUPS_COPY.sectionCount('tags', 1, 1) === '1 set',
   `the section counts, in the wireframes' words (${GROUPS_COPY.sectionCount('components', 19, 32)}; ${GROUPS_COPY.sectionCount('subcomponents', 7, 9)}; ${GROUPS_COPY.sectionCount('buttons', 1, 4)})`);
 const btnRow = groups.find((g) => g.kind === 'buttons')?.rows[0];
 ok(!!btnRow && rowOfFocus(catalog, setFocusKey('button-neutral'))?.key === btnRow.key && rowOfFocus(catalog, btnRow.key)?.key === btnRow.key && rowOfFocus(catalog, 'set=nothing') === undefined,
@@ -124,7 +131,7 @@ ok(JSON.stringify(alsoBuilds(catalog, four)) === JSON.stringify(['Icon', 'Spinne
   `idea 7: the sets a build makes first, transitively, minus the selection, named as the list names them (Q392 on #2812) (${alsoBuilds(catalog, four).join(', ')})`);
 ok(displayNameOf(catalog, 'button-destructive') === 'Button Destructive' && displayNameOf(catalog, 'tab-item') === 'Tab Item' && displayNameOf(catalog, 'image-placeholder') === 'Image placeholder',
   `a part set reads as its base and its part, a set alone on its row as the row (${displayNameOf(catalog, 'button-destructive')}, ${displayNameOf(catalog, 'tab-item')}, ${displayNameOf(catalog, 'image-placeholder')})`);
-ok(JSON.stringify(inListOrder(catalog, ['tag', 'badge', 'spinner', 'button-neutral', 'button'])) === JSON.stringify(['button', 'button-neutral', 'badge', 'tag', 'spinner']),
+ok(JSON.stringify(inListOrder(catalog, ['tag', 'badge', 'spinner', 'button-neutral', 'button'])) === JSON.stringify(['button', 'button-neutral', 'tag', 'badge', 'spinner']),
   `review N1 on #2812: a selection runs in the list's order, not the order it was ticked in (${JSON.stringify(inListOrder(catalog, ['tag', 'badge', 'spinner', 'button-neutral', 'button']))})`);
 ok(alsoBuilds(catalog, ['focus-ring']).length === 0, 'a set that nests nothing builds nothing first');
 ok(RUN_COPY.runLabel(4) === 'Build 4 sets' && RUN_COPY.runLabel(1) === 'Build 1 set' && RUN_COPY.runLabel(0) === 'Build',

@@ -30,8 +30,8 @@
  */
 import { brandState, currentMode, getPath, lastError, searchQuery, setPage, setSearchHits, subscribe } from '../state/store';
 import { isDerived } from '../state/verdict';
-import { brandBaseMd, brandControlShape, brandTagStyle, densityIn, radiusScaleIn, setBaseMd, setControlShape, setDensity, setRadiusScale, setTagStyle } from '../state/shape-input';
-import type { ControlShape, Density, TagStyle } from '@prism3/engine/scale';
+import { brandBaseMd, brandControlShape, densityIn, radiusScaleIn, setBaseMd, setControlShape, setDensity, setRadiusScale } from '../state/shape-input';
+import type { ControlShape, Density } from '@prism3/engine/scale';
 import { DOMAINS, pageOfTab, type PageData, type Section } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { glyph, h, hook } from '../shell/dom';
@@ -166,19 +166,6 @@ export const mountShapeLevers = (hostEl: HTMLElement, cleanups: (() => void)[], 
     return { el: b.el, said: `${b.said} ${opts.map((o) => o.l).join(' ')}`.toLowerCase(), key: 'controlShape', block: b };
   };
 
-  // Tag style (#2887, owner Q513.1 A and Q540): brand-wide chips, after Control shape, as Field style's were
-  // (Field style moved to Components › Field options, Q578). Its label,
-  // options and description are the manifest's.
-  const tagStyle = (): Item => {
-    const L = leverOf('tagStyle');
-    const b = leverBlock('tagStyle', { group: true });
-    const opts = (L?.options ?? []).map((o) => ({ v: String(o.value) as TagStyle, l: o.label }));
-    const c = choice(L?.label ?? 'Tag style', 'tag-style-choice', opts, (v) => edit('tagStyle', () => setTagStyle(v)));
-    c.set(brandTagStyle());
-    b.ctl.append(c.el);
-    return { el: b.el, said: `${b.said} ${opts.map((o) => o.l).join(' ')}`.toLowerCase(), key: 'tagStyle', block: b };
-  };
-
   // ── Base radius (advanced) ──────────────────────────────────────────────────────────────────────
   const baseRadius = (): Item => {
     const b = leverBlock('baseMd', { label: SHAPE_COPY.baseLabel, desc: SHAPE_COPY.baseTip, forId: 'p3-base-radius' });
@@ -220,7 +207,7 @@ export const mountShapeLevers = (hostEl: HTMLElement, cleanups: (() => void)[], 
   };
   /** Each lever key the page data places, drawn by its builder. A key with no builder draws nothing, and
    *  `test:chrome`'s rendered coverage then fails it by name. */
-  const BUILDERS: Record<string, () => Item> = { density, radiusScale: softness, controlShape, tagStyle, baseMd: baseRadius };
+  const BUILDERS: Record<string, () => Item> = { density, radiusScale: softness, controlShape, baseMd: baseRadius };
   const section = (s: Section, i: number): { el: HTMLElement; items: Item[] } => {
     const el = sectionShell(s, i);
     const out: Item[] = [];
