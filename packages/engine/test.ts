@@ -15047,10 +15047,11 @@ arm: {
       ok(applyTagStyle(tag, 'underline') !== tag, '#2887 reach: underline rewrites the Tag def');
       // #2945: the pill is untouched by the hug. ORACLE = the sha256 of the pill set as Apply builds it at the null brand
       // (`specMaterialize`), computed on main BEFORE #2945 (0221419e) and pinned here as a literal, so a change that reaches
-      // the pill through the schema, `applyMinWidthRatio` or the projector fails this line by name.
-      const pillHash = createHash('sha256').update(JSON.stringify(figmaAnatomySet(specMaterialize(tag), { swapTarget: 'FPO-default-icon' }))).digest('hex');
-      ok(pillHash === 'e0ff27effc156a0687bfcd2b44ceb30ac4451ebbfc8691ffa6659472d36a04af',
-        `tag pill unchanged (#2945): the 45 pill members, materialized at the null brand, are byte-identical to main before the underline hug (sha256 ${pillHash.slice(0, 12)}…)`);
+      // the pill through the schema, `applyMinWidthRatio` or the projector fails this line by name. Every plan field but
+      // `codeOnly` is hashed: that is the def's code-tier prose, copied onto each plan, and #2945 rewrites its underline line.
+      const pillHash = createHash('sha256').update(JSON.stringify(figmaAnatomySet(specMaterialize(tag), { swapTarget: 'FPO-default-icon' }).map(({ codeOnly: _prose, ...p }) => p))).digest('hex');
+      ok(pillHash === '85641a65e850c037a5607e96ad12f41bbf26690d9de84b7e135036fbc1bebdc4',
+        `tag pill unchanged (#2945): the 45 pill members, materialized at the null brand, are byte-identical to main before the underline hug, its code-tier prose aside (sha256 ${pillHash.slice(0, 12)}…)`);
       ok(validateBrandInput({ ...MINIMAL_BRAND, tagStyle: 'underline' } as any).length === 0 && validateBrandInput({ ...MINIMAL_BRAND, tagStyle: 'outline' } as any).length > 0,
         '#2887 input: tagStyle accepts underline and rejects a value the lever does not offer (outline is a field style)');
       const lever = leverManifest.find((l) => l.key === 'tagStyle');
