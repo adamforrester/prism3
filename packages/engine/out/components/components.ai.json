@@ -8417,7 +8417,7 @@
       },
       "ai": {
         "primaryPurpose": "The mark between two steps of a Breadcrumbs trail, a chevron or a slash.",
-        "whenToUse": "Only as a child of BreadcrumbItem. Generate Breadcrumbs instead.",
+        "whenToUse": "Only as a child of BreadcrumbItem. Generate BreadcrumbItem, which shows the separator in the look its Breadcrumbs sets.",
         "avoidWhen": "Always on its own. Use Breadcrumbs; for a plain icon, use an Icon.",
         "commonPartners": [
           "breadcrumb-item",
@@ -8543,7 +8543,7 @@
         ],
         "keyboard": "Tab reaches an ancestor link or the overflow button; Enter follows the link; Enter or Space presses the button. The current page takes no focus.",
         "focus": "The nested link's and button's own focus rings. The current page is not focusable.",
-        "aria": "aria-current=\"page\" on the current page's text. The overflow button is named \"Show full path\" (DRAFT), translated, and its glyph is aria-hidden. The separator is never exposed. In right-to-left text the separator mirrors."
+        "aria": "aria-current=\"page\" on the current page's text. The overflow button is named \"Show full path\", translated, and its glyph is aria-hidden. The separator is never exposed. In right-to-left text the separator mirrors."
       },
       "content": {
         "labelPattern": "Each page's own title, short and in sentence case, matching the page heading. No \"Back to\" and no trailing punctuation."
@@ -8564,7 +8564,7 @@
       },
       "ai": {
         "primaryPurpose": "One step of a Breadcrumbs trail: an ancestor link, the current page, or the overflow button for collapsed steps.",
-        "whenToUse": "Inside Breadcrumbs only, as each step of the trail.",
+        "whenToUse": "Only as a child of Breadcrumbs. Generate Breadcrumbs, which places each step and sets the separator and size for all of them.",
         "avoidWhen": "You need a trail of links (use Breadcrumbs, which holds the items), a link on its own (use Link) or a back link in history (use Link).",
         "commonPartners": [
           "breadcrumbs"
@@ -8576,7 +8576,7 @@
           "current page crumb",
           "collapsed breadcrumb"
         ],
-        "generationPriority": 4
+        "generationPriority": 9
       },
       "motion": {
         "enter": "None. Steps revealed from the overflow appear at once in its place.",
@@ -8736,7 +8736,7 @@
         ],
         "keyboard": "Tab moves through the ancestor links and the overflow button; Enter follows a link; Enter or Space presses the overflow button. The current page takes no focus.",
         "focus": "Each link and the overflow button shows its own focus ring. After the overflow button is pressed, focus moves to the first revealed link.",
-        "aria": "A <nav> with aria-label=\"Breadcrumb\", translated. aria-current=\"page\" on the current page, never aria-current=\"location\". The separators are CSS, never in the accessibility tree. The overflow button is named \"Show full path\" (DRAFT). On a small screen the back chevron is aria-hidden. In right-to-left text the row and the chevrons mirror."
+        "aria": "A <nav> with aria-label=\"Breadcrumb\", translated. aria-current=\"page\" on the current page, never aria-current=\"location\". The separators are CSS, never in the accessibility tree. The overflow button is named \"Show full path\". On a small screen the back chevron is aria-hidden. In right-to-left text the row and the chevrons mirror."
       },
       "content": {
         "labelPattern": "Each step is its page's own title, short and in sentence case. The root is \"Home\". No \"You are here\" prefix and no separators typed as text."

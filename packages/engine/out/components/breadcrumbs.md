@@ -59,7 +59,7 @@ Use breadcrumbs on a site three or more levels deep, to show where a page sits a
 - **Focus:** Each link and the overflow button shows its own focus ring. After the overflow button is pressed, focus moves to the first revealed link.
 - **Screen readers:** navigation landmark named "Breadcrumb", holding an ordered list of steps
 
-  A \<nav> with aria-label="Breadcrumb", translated. aria-current="page" on the current page, never aria-current="location". The separators are CSS, never in the accessibility tree. The overflow button is named "Show full path" (DRAFT). On a small screen the back chevron is aria-hidden. In right-to-left text the row and the chevrons mirror.
+  A \<nav> with aria-label="Breadcrumb", translated. aria-current="page" on the current page, never aria-current="location". The separators are CSS, never in the accessibility tree. The overflow button is named "Show full path". On a small screen the back chevron is aria-hidden. In right-to-left text the row and the chevrons mirror.
 
 ### WCAG
 

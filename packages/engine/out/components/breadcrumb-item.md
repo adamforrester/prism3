@@ -12,7 +12,7 @@
 One step in a Breadcrumbs trail. An ancestor is an underlined link to a page above the current one, followed by a chevron or a slash. The current page is plain text in the primary text color, last in the trail and not a link. The overflow step stands for the steps a long trail hides: a small icon-only button that shows them in place when pressed. Items live inside Breadcrumbs and are never placed on their own.
 
 - **Purpose:** One step of a Breadcrumbs trail: an ancestor link, the current page, or the overflow button for collapsed steps.
-- **Use when:** Inside Breadcrumbs only, as each step of the trail.
+- **Use when:** Only as a child of Breadcrumbs. Generate Breadcrumbs, which places each step and sets the separator and size for all of them.
 - **Avoid when:** You need a trail of links (use Breadcrumbs, which holds the items), a link on its own (use Link) or a back link in history (use Link).
 
 ## Anatomy
@@ -56,7 +56,7 @@ Items make up a Breadcrumbs trail and are set inside it: ancestors first, the cu
 - **Focus:** The nested link's and button's own focus rings. The current page is not focusable.
 - **Screen readers:** listitem, holding a link, the current page's text, or a button
 
-  aria-current="page" on the current page's text. The overflow button is named "Show full path" (DRAFT), translated, and its glyph is aria-hidden. The separator is never exposed. In right-to-left text the separator mirrors.
+  aria-current="page" on the current page's text. The overflow button is named "Show full path", translated, and its glyph is aria-hidden. The separator is never exposed. In right-to-left text the separator mirrors.
 
 ### WCAG
 
