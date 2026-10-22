@@ -675,7 +675,7 @@ export const pagination: ComponentDef = {
     alternativeTo: ['tabs'],
     replacesPatterns: ['page links built from <a href="#"> and click handlers', 'a disabled next button that drops focus at the last page', 'infinite scroll on a page with a footer'],
     supersededBy: [],
-    planned: ['table', 'carousel', 'breadcrumbs'],
+    planned: ['table', 'carousel'],
   },
 
   motion: {

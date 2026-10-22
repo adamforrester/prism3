@@ -9486,8 +9486,7 @@
         "supersededBy": [],
         "planned": [
           "table",
-          "carousel",
-          "breadcrumbs"
+          "carousel"
         ],
         "replacesPatterns": [
           "page links built from <a href=\"#\"> and click handlers",
