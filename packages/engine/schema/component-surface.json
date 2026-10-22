@@ -2,8 +2,8 @@
   "note": "AUTHORED BASELINE, never a regen artifact (see lint-component-surface.ts). Rewritten only by an explicit `npx tsx packages/engine/lint-component-surface.ts --accept`, which refuses unless an engine bump is already declared (a change note in packages/engine/changes/, #1807) — a gate allowed to rewrite what it reads has no memory. Per def: the member count of the DEFAULT Figma projection, a sha256 over its sorted `planComponentName|planStamp` rows, and its non-variant component properties as sorted `name:TYPE` (#2649). `null` means the def declares no figmaProperties and projects no set. Mostly brand-independent: figmaAnatomySet takes a def and no theme. The exception is a def with weightIntent (#1602), whose weight axis resolves per brand — for those, extra `<id>@<scenario>` rows record the surface under canonical availability scenarios (body-emphasis = NB's bold→emphasis, body-single = the axis collapse), so a change to the resolution or collapse rule moves a row. Likewise a def binding the interactive overlay wash (#1608) carries `<id>@outline-solid-tint` and `<id>@outline-none` rows — its outline/text hover fill under the other two outlineInteraction methods. The button family (#1667) carries `<id>@button-default`, `<id>@button-edges` and `<id>@button-smaller` rows — its derived minimum width, the Locked to edges layout and the One step smaller medium content, against the default-density heights. It records no engine version of its own on purpose — a pure value change bumps the engine and moves no component surface. A failure here is a CHANGED projection: read the diff, decide whether the change was intended, add a change note declaring the bump, then accept.",
   "defs": {
     "icon": {
-      "members": 45,
-      "sha256": "dcc2f8cd0714ff301f32fb7a9d966caebd292ede3aaaef741cc90cafda33a190",
+      "members": 46,
+      "sha256": "10ad9afab46142d55db91c664d8f9806e9128069af18a4c8e68652ab71b0fc7a",
       "properties": []
     },
     "focus-ring": {
@@ -631,24 +631,24 @@
       ]
     },
     "link": {
-      "members": 96,
-      "sha256": "56c6b59bb5853039c8a7cdb476ee20b147cd45da75f94c3433e6aeb1494c7f60",
+      "members": 144,
+      "sha256": "fd065672574e40e7716d1302c69f741a6148bc897a36de0215aaa6017bcc1838",
       "properties": [
         "label:TEXT",
         "trailing icon:BOOLEAN"
       ]
     },
     "link@body-emphasis": {
-      "members": 96,
-      "sha256": "9d31f1a7113dd53842189b692d570ae53ca05492b62f4d87da2156d68c3609d6",
+      "members": 144,
+      "sha256": "99471dfed22b52c4c7bd7479feeaba461f89443605f357b8546e3f630d041f9d",
       "properties": [
         "label:TEXT",
         "trailing icon:BOOLEAN"
       ]
     },
     "link@body-single": {
-      "members": 48,
-      "sha256": "d638e0d2252c4c6b6027d540f713c7bc928da7e76bb799af8e0448f8ed877232",
+      "members": 72,
+      "sha256": "5f79af6299f7cc03c83acd0c2226b7cffd9d8a39d8a48b108a22316fb0234b78",
       "properties": [
         "label:TEXT",
         "trailing icon:BOOLEAN"
@@ -712,6 +712,25 @@
         "message:TEXT"
       ]
     },
+    "_breadcrumb-separator": {
+      "members": 2,
+      "sha256": "df058f92381f6af2bf8c0450c829572fa2de4994eb92d6b346028788880ecdb8",
+      "properties": []
+    },
+    "breadcrumb-item": {
+      "members": 10,
+      "sha256": "98bb9f14a50b180786a1a529fb4f5c2685aa488a936b50bd75a55e03dcc13fd3",
+      "properties": [
+        "label:TEXT"
+      ]
+    },
+    "breadcrumbs": {
+      "members": 6,
+      "sha256": "975963e0cb466b987f8793b63f86de21c4b61953e6faec8a026f0ddaed6686bb",
+      "properties": [
+        "items:SLOT"
+      ]
+    },
     "counter": {
       "members": 18,
       "sha256": "1f534456377e288873a351331de1d5b8eb53426b7e2256c5aee78c8c8e6ca2a1",
@@ -719,6 +738,48 @@
         "label:BOOLEAN",
         "message:BOOLEAN",
         "value:TEXT"
+      ]
+    },
+    "search-field": {
+      "members": 84,
+      "sha256": "fdcf9873c85c47f4cf8b183a06cc385ce376363fae0f354fd8615d2ed7c48885",
+      "properties": [
+        "label:BOOLEAN",
+        "leading icon:BOOLEAN",
+        "message:BOOLEAN",
+        "placeholder:TEXT",
+        "trailing icon:BOOLEAN",
+        "value:TEXT",
+        "↳ swap leading icon:INSTANCE_SWAP",
+        "↳ swap trailing icon:INSTANCE_SWAP"
+      ]
+    },
+    "search-field@outline-solid-tint": {
+      "members": 84,
+      "sha256": "55c1da79153294658e54db4d592f27b0e69962d36b74d0822525725f2ce8ab0d",
+      "properties": [
+        "label:BOOLEAN",
+        "leading icon:BOOLEAN",
+        "message:BOOLEAN",
+        "placeholder:TEXT",
+        "trailing icon:BOOLEAN",
+        "value:TEXT",
+        "↳ swap leading icon:INSTANCE_SWAP",
+        "↳ swap trailing icon:INSTANCE_SWAP"
+      ]
+    },
+    "search-field@outline-none": {
+      "members": 84,
+      "sha256": "5b2a706e4b3e264d4c08d72e12621f657d06897e24429c36f75fd567c0bdfac5",
+      "properties": [
+        "label:BOOLEAN",
+        "leading icon:BOOLEAN",
+        "message:BOOLEAN",
+        "placeholder:TEXT",
+        "trailing icon:BOOLEAN",
+        "value:TEXT",
+        "↳ swap leading icon:INSTANCE_SWAP",
+        "↳ swap trailing icon:INSTANCE_SWAP"
       ]
     }
   }

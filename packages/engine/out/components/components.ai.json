@@ -65,6 +65,7 @@
             "plus-filled",
             "resize-grip",
             "search",
+            "slash",
             "warning-triangle",
             "warning-triangle-filled"
           ],
@@ -155,6 +156,7 @@
             "plus-filled",
             "resize-grip",
             "search",
+            "slash",
             "warning-triangle",
             "warning-triangle-filled"
           ],
@@ -2593,6 +2595,7 @@
         "commonPartners": [
           "text-field",
           "password-field",
+          "search-field",
           "textarea",
           "select",
           "checkbox-group",
@@ -3065,7 +3068,8 @@
           "select",
           "checkbox-row",
           "switch-row",
-          "password-field"
+          "password-field",
+          "search-field"
         ],
         "supersedes": [],
         "supersededBy": [],
@@ -3074,7 +3078,6 @@
           "tooltip",
           "combobox",
           "number-field",
-          "search-field",
           "date-picker"
         ],
         "replacesPatterns": [
@@ -7384,7 +7387,7 @@
       "category": "navigation",
       "status": "draft",
       "summary": "Text that goes to another page, a place on the page or a file. Underlined in running text.",
-      "description": "Text that goes to another page, a place on the page, a file or another site. A link is always a real anchor with an href; an action in place is a button, however light it looks. The standalone style sits on its own line, below a form, in a footer or beside a control, and shows its underline at hover, pressed and keyboard focus. The inline style is underlined at every state, for a link that sits in body copy, so it is never told apart by color alone. Both come in two weights: emphasis, the starting value, and default, which is lighter. A link inside a paragraph is a text range with that text's own link style rather than this component.",
+      "description": "Text that goes to another page, a place on the page, a file or another site. A link is always a real anchor with an href; an action in place is a button, however light it looks. The standalone style sits on its own line, below a form, in a footer or beside a control, and shows its underline at hover, pressed and keyboard focus. The inline style is underlined at every state, for a link that sits in body copy, so it is never told apart by color alone. Both come in two weights: emphasis, the starting value, and default, which is lighter. In a navigation, the standalone link to the page the user is on is current: it shows a 2px bar under the text, and at hover only its color changes. A link inside a paragraph is a text range with that text's own link style rather than this component.",
       "props": [
         {
           "name": "label",
@@ -7431,6 +7434,13 @@
             "large"
           ],
           "description": "The body type size: 14, 16 or 18px. The box is one text line tall; the icon (16px at small and medium, 20px at large) sits inside it."
+        },
+        {
+          "name": "current",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Marks the link to the page the user is on, in a navigation: a 2px bar under the text and aria-current=\"page\". Standalone links only. It stays a link with its href."
         },
         {
           "name": "surface",
@@ -7499,6 +7509,13 @@
             "inverse"
           ],
           "kind": "authoring"
+        },
+        "selection": {
+          "values": [
+            "unselected",
+            "selected"
+          ],
+          "kind": "runtime"
         }
       },
       "accessibility": {
@@ -7508,7 +7525,7 @@
           "2.4.4 Link Purpose (the link text names the destination)",
           "4.1.2 Name, Role, Value (the link role from a real anchor)",
           "1.4.3 Contrast (targets 4.5:1 for the link text against the page)",
-          "1.4.11 Non-text Contrast (targets 3:1 for an icon against the page)",
+          "1.4.11 Non-text Contrast (targets 3:1 for an icon and the current-page bar against the page)",
           "2.4.7 Focus Visible and 2.4.13 Focus Appearance (the shared focus ring)",
           "2.5.8 Target Size (targets 24px through a code-side hit area; an inline link in a sentence is exempt)",
           "3.2.5 Change on Request (a link that opens a new tab says so)",
@@ -7516,7 +7533,7 @@
         ],
         "keyboard": "Tab moves to the link; Enter follows it. Space does not activate a link: it scrolls the page.",
         "focus": "The shared focus ring at :focus-visible, so a mouse click leaves no ring behind.",
-        "aria": "Usually none: the anchor and its text carry the role and the name. aria-current=\"page\" marks the current page in a navigation. A link that opens a new tab adds visually hidden \"(opens in new tab)\" text; the icons are aria-hidden. Where space forces generic text such as \"Read more\", an aria-label names the destination. The hidden text and any aria-label are translated; in right-to-left text the trailing icon moves to the leading edge and directional icons mirror."
+        "aria": "Usually none: the anchor and its text carry the role and the name. aria-current=\"page\" marks the current page in a navigation, set by current; the bar shows it. A link that opens a new tab adds visually hidden \"(opens in new tab)\" text; the icons are aria-hidden. Where space forces generic text such as \"Read more\", an aria-label names the destination. The hidden text and any aria-label are translated; in right-to-left text the trailing icon moves to the leading edge and directional icons mirror."
       },
       "content": {
         "labelPattern": "Names the destination and makes sense on its own: \"Shipping and returns\", \"Annual report (PDF, 2 MB)\". Link the noun phrase, not the whole sentence. Never a bare \"click here\" or \"learn more\", and never a raw URL."
@@ -7527,13 +7544,15 @@
           "Write link text that names the destination",
           "State the format and size of a file link",
           "Keep opening in a new tab for narrow cases, and say so",
-          "Use the inline style for a link in body copy, so it is underlined at rest"
+          "Use the inline style for a link in body copy, so it is underlined at rest",
+          "Mark the page the user is on in a navigation with current, which also sets aria-current=\"page\""
         ],
         "dont": [
           "Use a link for an action that does not change the address; that is a button",
           "Make a disabled link; render plain text instead",
           "Add an icon to an inline link",
-          "Tell a link in running text apart by color alone"
+          "Tell a link in running text apart by color alone",
+          "Mark the current page with the inline style; it reads as a link in running text"
         ],
         "contentGuidelines": "Descriptive text that stands alone, sentence case. Front-load the words that name the destination. File links state format and size."
       },
@@ -7544,7 +7563,8 @@
         "commonPartners": [
           "icon",
           "button",
-          "text-field"
+          "text-field",
+          "breadcrumbs"
         ],
         "triggerKeywords": [
           "link",
@@ -7554,7 +7574,9 @@
           "inline link",
           "standalone link",
           "skip link",
-          "external link"
+          "external link",
+          "current page link",
+          "navigation link"
         ],
         "generationPriority": 2
       },
@@ -7573,7 +7595,6 @@
         "supersedes": [],
         "supersededBy": [],
         "planned": [
-          "breadcrumbs",
           "menu"
         ],
         "replacesPatterns": [
@@ -8357,6 +8378,449 @@
         ]
       }
     },
+    "_breadcrumb-separator": {
+      "id": "_breadcrumb-separator",
+      "name": "BreadcrumbSeparator",
+      "aliases": [
+        "breadcrumb-divider",
+        "crumb-separator"
+      ],
+      "category": "navigation",
+      "status": "draft",
+      "summary": "The mark between two breadcrumb steps: a chevron or a slash, in the secondary icon color.",
+      "description": "The mark between two steps of a Breadcrumbs trail, after every step but the current page. A chevron that points toward the current page, or a slash. Breadcrumbs chooses one for the whole trail. It is 16px at both breadcrumb sizes, in the secondary icon color, and decorative: it is never read aloud or focused.",
+      "props": [
+        {
+          "name": "type",
+          "type": "enum: 'chevron' | 'slash'",
+          "default": "chevron",
+          "required": false,
+          "values": [
+            "chevron",
+            "slash"
+          ],
+          "description": "chevron: a chevron pointing toward the current page. slash: a forward slash. Set by the Breadcrumbs it sits in, for every step at once."
+        }
+      ],
+      "states": [],
+      "variants": {
+        "type": {
+          "values": [
+            "chevron",
+            "slash"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "none: decorative, drawn by CSS and never in the accessibility tree",
+        "wcag": [
+          "1.3.1 Info and Relationships (the trail's order is the list's, not the separator's)"
+        ],
+        "focus": "None. The mark takes no focus.",
+        "aria": "None. The mark is CSS generated content, never announced."
+      },
+      "content": {
+        "labelPattern": "The mark carries no text."
+      },
+      "docs": {
+        "usage": "Part of a BreadcrumbItem. Choose chevron or slash once, on Breadcrumbs; every step shows the same mark.",
+        "do": [
+          "Choose the look once, on Breadcrumbs"
+        ],
+        "dont": [
+          "Place a separator on its own, or type one as text between links",
+          "Mix chevrons and slashes in one trail"
+        ],
+        "contentGuidelines": "The separator holds no copy."
+      },
+      "ai": {
+        "primaryPurpose": "The mark between two steps of a Breadcrumbs trail, a chevron or a slash.",
+        "whenToUse": "Only as a child of BreadcrumbItem. Generate BreadcrumbItem, which shows the separator in the look its Breadcrumbs sets.",
+        "avoidWhen": "Always on its own. Use Breadcrumbs; for a plain icon, use an Icon.",
+        "commonPartners": [
+          "breadcrumb-item",
+          "breadcrumbs"
+        ],
+        "triggerKeywords": [
+          "breadcrumb separator",
+          "breadcrumb slash",
+          "breadcrumb chevron"
+        ],
+        "generationPriority": 9
+      },
+      "motion": {
+        "enter": "None.",
+        "exit": "None.",
+        "reduceMotion": "No motion to reduce."
+      },
+      "composition": {
+        "composesWith": [],
+        "alternativeTo": [],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [],
+        "replacesPatterns": [
+          "a \"/\" or \">\" typed as text between breadcrumb links"
+        ]
+      }
+    },
+    "breadcrumb-item": {
+      "id": "breadcrumb-item",
+      "name": "BreadcrumbItem",
+      "aliases": [
+        "crumb",
+        "breadcrumb-step"
+      ],
+      "category": "navigation",
+      "status": "draft",
+      "summary": "One step in a breadcrumb trail: a link, the current page, or the collapsed steps.",
+      "description": "One step in a Breadcrumbs trail. An ancestor is an underlined link to a page above the current one, followed by a chevron or a slash. The current page is plain text in the primary text color, last in the trail and not a link. The overflow step stands for the steps a long trail hides: a small icon-only button that shows them in place when pressed. Items live inside Breadcrumbs and are never placed on their own.",
+      "props": [
+        {
+          "name": "kind",
+          "type": "enum: 'ancestor' | 'current' | 'overflow'",
+          "default": "ancestor",
+          "required": false,
+          "values": [
+            "ancestor",
+            "current",
+            "overflow"
+          ],
+          "description": "ancestor: a link to a page above this one. current: the page you are on, as text. overflow: the button that stands for the hidden steps of a long trail. Breadcrumbs sets it from the item's place in the trail."
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "required": true,
+          "description": "The page name, as the page titles itself. On an ancestor it is the link text; on the current page, the text."
+        },
+        {
+          "name": "href",
+          "type": "string",
+          "required": false,
+          "description": "The ancestor page's address. Ignored on the current page, which is not a link."
+        },
+        {
+          "name": "size",
+          "type": "enum: 'small' | 'medium'",
+          "default": "medium",
+          "required": false,
+          "values": [
+            "small",
+            "medium"
+          ],
+          "description": "The body type size, 14 or 16px, with the gap to the separator sized to it. Set by the Breadcrumbs it sits in."
+        },
+        {
+          "name": "separator",
+          "type": "enum: 'chevron' | 'slash'",
+          "default": "chevron",
+          "required": false,
+          "values": [
+            "chevron",
+            "slash"
+          ],
+          "description": "The mark after the step: a chevron or a slash. Set by the Breadcrumbs it sits in, the same for every step. Unused on the current page."
+        }
+      ],
+      "states": [],
+      "variants": {
+        "kind": {
+          "values": [
+            "ancestor",
+            "current",
+            "overflow"
+          ],
+          "kind": "authoring"
+        },
+        "separator": {
+          "values": [
+            "chevron",
+            "slash"
+          ],
+          "kind": "authoring"
+        },
+        "size": {
+          "values": [
+            "medium",
+            "small"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "listitem, holding a link, the current page's text, or a button",
+        "wcag": [
+          "1.3.1 Info and Relationships (each step is a list item)",
+          "1.4.1 Use of Color (an ancestor link is underlined at every state)",
+          "1.4.3 Contrast (targets 4.5:1 for the link and the current page against the page)",
+          "2.4.4 Link Purpose (the link text is the ancestor page's name)",
+          "2.4.7 Focus Visible (the nested link's and button's own focus rings)",
+          "2.5.8 Target Size (targets 24px for a link and 44px for the overflow button, through code-side hit areas)",
+          "4.1.2 Name, Role, Value"
+        ],
+        "keyboard": "Tab reaches an ancestor link or the overflow button; Enter follows the link; Enter or Space presses the button. The current page takes no focus.",
+        "focus": "The nested link's and button's own focus rings. The current page is not focusable.",
+        "aria": "aria-current=\"page\" on the current page's text. The overflow button is named \"Show full path\", translated, and its glyph is aria-hidden. The separator is never exposed. In right-to-left text the separator mirrors."
+      },
+      "content": {
+        "labelPattern": "Each page's own title, short and in sentence case, matching the page heading. No \"Back to\" and no trailing punctuation."
+      },
+      "docs": {
+        "usage": "Items make up a Breadcrumbs trail and are set inside it: ancestors first, the current page last, and an overflow item where a long trail collapses. Change an item's kind in the trail; never place an item on its own.",
+        "do": [
+          "Make the last item the current page",
+          "Use the page's own title as each label",
+          "Use one overflow item in place of the hidden steps"
+        ],
+        "dont": [
+          "Place an item outside Breadcrumbs",
+          "Make the current page a link",
+          "Truncate an ancestor's label; collapse whole steps instead"
+        ],
+        "contentGuidelines": "Page titles, sentence case, as each page titles itself."
+      },
+      "ai": {
+        "primaryPurpose": "One step of a Breadcrumbs trail: an ancestor link, the current page, or the overflow button for collapsed steps.",
+        "whenToUse": "Only as a child of Breadcrumbs. Generate Breadcrumbs, which places each step and sets the separator and size for all of them.",
+        "avoidWhen": "You need a trail of links (use Breadcrumbs, which holds the items), a link on its own (use Link) or a back link in history (use Link).",
+        "commonPartners": [
+          "breadcrumbs"
+        ],
+        "triggerKeywords": [
+          "breadcrumb item",
+          "crumb",
+          "breadcrumb step",
+          "current page crumb",
+          "collapsed breadcrumb"
+        ],
+        "generationPriority": 9
+      },
+      "motion": {
+        "enter": "None. Steps revealed from the overflow appear at once in its place.",
+        "exit": "None.",
+        "reduceMotion": "No motion to reduce."
+      },
+      "composition": {
+        "composesWith": [
+          "_breadcrumb-separator",
+          "link",
+          "flush-icon-button-neutral"
+        ],
+        "alternativeTo": [],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [],
+        "replacesPatterns": [
+          "a separator typed as text between links",
+          "the current page rendered as a link to itself"
+        ]
+      }
+    },
+    "breadcrumbs": {
+      "id": "breadcrumbs",
+      "name": "Breadcrumbs",
+      "aliases": [
+        "breadcrumb",
+        "breadcrumb-trail",
+        "breadcrumb-list"
+      ],
+      "category": "navigation",
+      "status": "draft",
+      "summary": "The path to the current page as links, with the current page last and not a link. Size applies to the items you haven't edited. After editing an item, select the items and set their size.",
+      "description": "Shows where the current page sits in the site's hierarchy: a row of links to the pages above it, root first, ending in the current page as plain text. Each link is underlined and followed by a chevron or a slash, one mark for the whole trail. A long trail keeps its first step and its last two and collapses the middle behind one button that shows them in place. On a small screen the trail becomes one link up to the parent page. Breadcrumbs follow the site's structure, not the pages a person visited, and supplement the main navigation rather than replace it.",
+      "props": [
+        {
+          "name": "items",
+          "type": "slot",
+          "required": true,
+          "anyOf": [
+            "breadcrumb-item"
+          ],
+          "minItems": 2,
+          "description": "The steps, root first, each with a label and an href. The last is rendered as the current page: text with aria-current=\"page\", its href ignored. At least two."
+        },
+        {
+          "name": "size",
+          "type": "enum: 'small' | 'medium'",
+          "default": "medium",
+          "required": false,
+          "values": [
+            "small",
+            "medium"
+          ],
+          "description": "The body type size, 14 or 16px, passed to every item. Medium suits a trail beside 16px body copy; small, a quieter line above a page title."
+        },
+        {
+          "name": "separator",
+          "type": "enum: 'chevron' | 'slash'",
+          "default": "chevron",
+          "required": false,
+          "values": [
+            "chevron",
+            "slash"
+          ],
+          "description": "The mark between steps, the same for every step: a chevron pointing toward the current page, or a slash."
+        },
+        {
+          "name": "maxItems",
+          "type": "number",
+          "default": 5,
+          "required": false,
+          "description": "Above this many items, the middle collapses behind one overflow button."
+        },
+        {
+          "name": "itemsBeforeCollapse",
+          "type": "number",
+          "default": 1,
+          "required": false,
+          "description": "How many items stay before the overflow button when the trail collapses."
+        },
+        {
+          "name": "itemsAfterCollapse",
+          "type": "number",
+          "default": 2,
+          "required": false,
+          "description": "How many items stay after the overflow button: the parent and the current page by default."
+        },
+        {
+          "name": "collapse",
+          "type": "enum: 'expand'",
+          "default": "expand",
+          "required": false,
+          "values": [
+            "expand"
+          ],
+          "description": "What the overflow button does: expand shows the hidden steps in place and moves focus to the first of them."
+        },
+        {
+          "name": "responsive",
+          "type": "boolean",
+          "default": true,
+          "required": false,
+          "description": "Below 480px, show one link up to the parent page in place of the trail. Turn it off where the full trail fits."
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "default": "Breadcrumb",
+          "required": false,
+          "description": "The accessible name of the navigation landmark, translated. Assistive technology adds \"navigation\" itself."
+        },
+        {
+          "name": "renderLink",
+          "type": "function",
+          "required": false,
+          "description": "Renders each ancestor through a router's link, so one anchor renders and the component depends on no router. The plain anchor by default."
+        }
+      ],
+      "states": [],
+      "variants": {
+        "path": {
+          "values": [
+            "full",
+            "parent"
+          ],
+          "kind": "authoring"
+        },
+        "separator": {
+          "values": [
+            "chevron",
+            "slash"
+          ],
+          "kind": "authoring"
+        },
+        "size": {
+          "values": [
+            "medium",
+            "small"
+          ],
+          "kind": "authoring"
+        }
+      },
+      "accessibility": {
+        "role": "navigation landmark named \"Breadcrumb\", holding an ordered list of steps",
+        "wcag": [
+          "1.3.1 Info and Relationships (an ordered list inside a named navigation landmark)",
+          "2.4.8 Location (shows where the page sits in the site)",
+          "2.4.5 Multiple Ways (one of the ways to reach a page)",
+          "1.4.1 Use of Color (links are underlined at every state)",
+          "1.4.3 Contrast (targets 4.5:1 for the links and the current page against the page)",
+          "1.4.10 Reflow (targets one link up to the parent below 480px)",
+          "2.4.4 Link Purpose",
+          "2.4.7 Focus Visible",
+          "2.5.8 Target Size (targets 24px for each link through a code-side hit area)",
+          "4.1.2 Name, Role, Value"
+        ],
+        "keyboard": "Tab moves through the ancestor links and the overflow button; Enter follows a link; Enter or Space presses the overflow button. The current page takes no focus.",
+        "focus": "Each link and the overflow button shows its own focus ring. After the overflow button is pressed, focus moves to the first revealed link.",
+        "aria": "A <nav> with aria-label=\"Breadcrumb\", translated. aria-current=\"page\" on the current page, never aria-current=\"location\". The separators are CSS, never in the accessibility tree. The overflow button is named \"Show full path\". On a small screen the back chevron is aria-hidden. In right-to-left text the row and the chevrons mirror."
+      },
+      "content": {
+        "labelPattern": "Each step is its page's own title, short and in sentence case. The root is \"Home\". No \"You are here\" prefix and no separators typed as text."
+      },
+      "docs": {
+        "usage": "Use breadcrumbs on a site three or more levels deep, to show where a page sits and to climb back up. They follow the site's structure, not the visitor's history, and supplement the main navigation. For a one or two level site, use a single link back, or nothing. To go back in history, use the browser's Back or a Link. To switch between peers at one level, use Tabs.",
+        "do": [
+          "Start at the root and end at the current page",
+          "Use each page's own title as its label",
+          "Place breadcrumbs above the page heading",
+          "Let a long trail collapse its middle rather than wrap"
+        ],
+        "dont": [
+          "Show the visitor's click history",
+          "Make the current page a link",
+          "Truncate an ancestor's label",
+          "Use breadcrumbs as the only navigation"
+        ],
+        "contentGuidelines": "Page titles in sentence case, matching each page heading. \"Home\" for the root."
+      },
+      "ai": {
+        "primaryPurpose": "Show the current page's place in the site hierarchy as links to its ancestors, ending in the current page.",
+        "whenToUse": "A page three or more levels deep in a stable hierarchy (a catalog, documentation, settings), where people need to see where they are and climb back up.",
+        "avoidWhen": "The site is one or two levels deep (use a single Link back), the path is the visitor's history (use the browser's Back or a Link), the choice is between peers at one level (use Tabs), or the steps are a required sequence (a stepper, not built yet).",
+        "commonPartners": [
+          "breadcrumb-item",
+          "link",
+          "tabs"
+        ],
+        "triggerKeywords": [
+          "breadcrumbs",
+          "breadcrumb trail",
+          "breadcrumb navigation",
+          "you are here",
+          "page hierarchy path",
+          "back to parent page"
+        ],
+        "generationPriority": 2
+      },
+      "motion": {
+        "enter": "None. Steps revealed from the overflow button appear at once.",
+        "exit": "None.",
+        "reduceMotion": "No motion to reduce."
+      },
+      "composition": {
+        "composesWith": [
+          "breadcrumb-item",
+          "link"
+        ],
+        "alternativeTo": [
+          "link",
+          "tabs"
+        ],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [
+          "menu"
+        ],
+        "replacesPatterns": [
+          "links separated by typed \">\" or \"/\" characters",
+          "a history trail of visited pages",
+          "a breadcrumb whose last item links to the page itself"
+        ]
+      }
+    },
     "counter": {
       "id": "counter",
       "name": "Counter",
@@ -8588,6 +9052,284 @@
           "an <input type=\"number\"> for an item count",
           "a select of 1 to 10 for a bag quantity",
           "two IconButtons around a <span> with no spinbutton semantics"
+        ]
+      }
+    },
+    "search-field": {
+      "id": "search-field",
+      "name": "SearchField",
+      "aliases": [
+        "search-input",
+        "search-box",
+        "search"
+      ],
+      "category": "form",
+      "status": "draft",
+      "summary": "Search field: a text field with a search glyph and a clear button, for a query.",
+      "description": "A single-line field for a query the user types to find something — a site search, a filter over a list. TextField's anatomy and contract with a leading search glyph, a clear button while it holds a value, and an edge the brand can set apart from its other fields. Not for suggestions as the user types (a combobox, not built yet), and not for any other single-line text (TextField).",
+      "props": [
+        {
+          "name": "label",
+          "type": "string | node",
+          "required": true,
+          "description": "The persistent label (rendered as FieldLabel), usually \"Search\" or what is searched (\"Search products\"). Required, even when hidden. Never the placeholder."
+        },
+        {
+          "name": "hideLabel",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Hides the label visually and keeps it in the accessibility tree, so the field keeps its name. For a search whose purpose is plain from where it sits, such as a site header. Never display: none."
+        },
+        {
+          "name": "value",
+          "type": "string",
+          "required": false,
+          "description": "Controlled value; pair with onChange."
+        },
+        {
+          "name": "defaultValue",
+          "type": "string",
+          "required": false,
+          "description": "Uncontrolled initial value."
+        },
+        {
+          "name": "onChange",
+          "type": "function",
+          "required": false,
+          "description": "Change handler (also onBlur / onFocus). Also fires with an empty value when the clear button clears the field."
+        },
+        {
+          "name": "placeholder",
+          "type": "string",
+          "required": false,
+          "description": "An example query only; vanishes on input. Never the label."
+        },
+        {
+          "name": "helpText",
+          "type": "string | node",
+          "required": false,
+          "description": "Persistent guidance (rendered as FieldMessage, default status), wired via aria-describedby. Off by default in most searches."
+        },
+        {
+          "name": "validation",
+          "type": "enum: 'default' | 'error' | 'warning' | 'success'",
+          "default": "default",
+          "required": false,
+          "values": [
+            "default",
+            "error",
+            "warning",
+            "success"
+          ],
+          "description": "The validation state, as on TextField: each non-default status swaps the input border and sets the nested message to the matching status; error also sets aria-invalid. A search rarely needs one; a query that is too short is one case."
+        },
+        {
+          "name": "validationMessage",
+          "type": "string | node",
+          "required": false,
+          "description": "The validation text shown at error / warning / success, added to aria-describedby. Say what is wrong and how to fix it (SC 3.3.3)."
+        },
+        {
+          "name": "showMessage",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Whether the composed FieldMessage is shown. Off by default; turn it on to render the helper or validation message below the input. Never hides a message the field needs: turn it on wherever there is helper or validation text."
+        },
+        {
+          "name": "required",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Sets required / aria-required, and turns on the FieldLabel's required marker."
+        },
+        {
+          "name": "disabled",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Native disabled. The clear button is not shown while the field is disabled."
+        },
+        {
+          "name": "readOnly",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Focusable, copyable and submitted, and passes contrast. The clear button is not shown, because the value cannot change."
+        },
+        {
+          "name": "autoComplete",
+          "type": "string (WHATWG token)",
+          "required": false,
+          "description": "Usually off for a site search, so the browser does not offer earlier queries over the page. Pass a token where a saved value helps."
+        },
+        {
+          "name": "leadingIcon",
+          "type": "slot",
+          "required": false,
+          "description": "The search glyph before the value, aria-hidden and never the accessible name. Shown by default; turn it off or swap it where the field's purpose needs a different mark."
+        },
+        {
+          "name": "trailingIcon",
+          "type": "slot",
+          "required": false,
+          "description": "The clear button's glyph, close-filled by default. In code the clear button is a focusable button named \"Clear search\", shown only while the field holds a value. Its hit area is at least 24×24 px, drawn around the 20px glyph, and adds no height to the field."
+        },
+        {
+          "name": "onClear",
+          "type": "function",
+          "required": false,
+          "description": "Called after the clear button empties the field, with focus back on the input."
+        },
+        {
+          "name": "isPending",
+          "type": "boolean",
+          "default": false,
+          "required": false,
+          "description": "Results are loading; sets aria-busy and does not block typing."
+        },
+        {
+          "name": "size",
+          "type": "enum: 'small' | 'medium' | 'large'",
+          "default": "medium",
+          "required": false,
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "description": "TextField's three tiers: the input type, the nested label and the padding scale with it. Every size keeps the 44px target. small is for fine pointers only: on a coarse pointer the code sets the small input to 16px, because iOS Safari zooms the page when it focuses an input under 16px. The edge, outline or underline, is the brand's Search field style setting, not a prop."
+        },
+        {
+          "name": "id",
+          "type": "string",
+          "required": false,
+          "description": "Wiring + form submission; auto-generated with useId if omitted. The clear button's aria-controls names it."
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": false,
+          "description": "A real <input name>, so the query submits with the host's form (\"q\" is common)."
+        }
+      ],
+      "states": [
+        "rest",
+        "hover",
+        "pending",
+        "filled",
+        "focus-visible",
+        "focus-visible-filled",
+        "disabled",
+        "read-only",
+        "empty"
+      ],
+      "variants": {
+        "size": {
+          "values": [
+            "medium",
+            "small",
+            "large"
+          ],
+          "kind": "authoring"
+        },
+        "style": {
+          "values": [
+            "outline"
+          ],
+          "kind": "authoring"
+        },
+        "status": {
+          "values": [
+            "default",
+            "error",
+            "warning",
+            "success"
+          ],
+          "kind": "runtime"
+        }
+      },
+      "accessibility": {
+        "role": "searchbox (native <input type=\"search\">), plus a native <button type=\"button\"> to clear it",
+        "wcag": [
+          "1.3.1 Info and Relationships (a label, kept in the DOM when visually hidden, and the search landmark)",
+          "2.4.6 Headings and Labels (the label names what is searched)",
+          "3.3.2 Labels or Instructions",
+          "4.1.2 Name, Role, Value (the clear button is named \"Clear search\")",
+          "4.1.3 Status Messages (\"Search cleared\" through a polite live region)",
+          "1.4.11 Non-text Contrast (TextField's field boundary, outline or underline)",
+          "2.5.8 Target Size (the field, and the clear button: a hit area of at least 24×24 px around its glyph)",
+          "2.4.13 Focus Appearance (intent)"
+        ],
+        "keyboard": "Tab reaches the input, then the clear button while the field holds a value. Enter submits the host's form. Escape empties the field. Enter or Space on the clear button empties the field and returns focus to the input.",
+        "focus": "The input takes TextField's focus ring. The clear button takes its own focus ring, and pressing it moves focus back to the input.",
+        "aria": "The host wires the label, aria-describedby and aria-invalid as TextField does. A hidden label stays in the DOM, visually hidden, never display: none. The clear button carries aria-label=\"Clear search\" and aria-controls naming the input; the cleared state is announced once through the app's shared polite live region: \"Search cleared\". While results load, aria-busy."
+      },
+      "content": {
+        "labelPattern": "Noun phrase, sentence case, no trailing colon: \"Search\", \"Search products\", \"Filter orders\".",
+        "errorPattern": "What is wrong and how to fix it, such as \"Enter at least 2 characters\"; never \"Invalid search\".",
+        "emptyPattern": "The label plus an optional placeholder with an example query; the search glyph stays."
+      },
+      "docs": {
+        "usage": "Use for a query that finds or filters: a site search, a search within a section, a filter over a long list. The field nests FieldLabel above the box and FieldMessage below it; the box starts with the search glyph and ends with a clear button while it holds a value. Wrap a site or section search in a search landmark. Keep the label visible in a form; hide it only where the field's purpose is plain from where it sits, and it still names the field. In a site header, as an example and not a separate component: on a wide screen a small field sits inline in the header with its label hidden; on a narrow screen an Icon button named \"Search\" opens a search row under the header with a Cancel button, focus moves into the field, and Cancel closes the row and returns focus to the Search button.",
+        "do": [
+          "Wrap a site or section search in a search landmark",
+          "Keep a label on every search field, visually hidden where the context makes it plain",
+          "Return focus to the input after the clear button empties it",
+          "Hide the browser's own cancel glyph, so the field shows one clear button"
+        ],
+        "dont": [
+          "Use the placeholder as the label",
+          "Show the clear button on an empty field",
+          "Add a suggestions list to this field; use a combobox for that",
+          "Set the search field's edge per instance; the brand sets it once"
+        ],
+        "contentGuidelines": "Label = noun phrase, sentence case, no trailing colon, naming what is searched. Placeholder = an example query. Clear button = \"Clear search\". After clearing, announce \"Search cleared\"."
+      },
+      "ai": {
+        "primaryPurpose": "Capture a search query, with a search glyph and a clear button.",
+        "whenToUse": "Site search, a search within a section, a filter over a list: a single-line query the user types to find something.",
+        "avoidWhen": "Suggestions appear as the user types (a combobox, not built yet), the text is not a query (TextField), or the value comes from a known set (Select).",
+        "commonPartners": [
+          "field-label",
+          "field-message",
+          "icon",
+          "icon-button",
+          "spinner"
+        ],
+        "triggerKeywords": [
+          "search field",
+          "search input",
+          "search box",
+          "search bar",
+          "filter field"
+        ],
+        "generationPriority": 2
+      },
+      "motion": {
+        "enter": "none (present on mount)",
+        "exit": "none",
+        "reduceMotion": "The clear button appears and disappears with the value, as an instant change with no animation, so it reads the same under prefers-reduced-motion. The field's own state transitions are TextField's."
+      },
+      "composition": {
+        "composesWith": [
+          "field-label",
+          "field-message",
+          "focus-ring"
+        ],
+        "alternativeTo": [
+          "text-field"
+        ],
+        "supersedes": [],
+        "supersededBy": [],
+        "planned": [
+          "combobox"
+        ],
+        "replacesPatterns": [
+          "search field with no label",
+          "two clear buttons in a search field",
+          "clear button on an empty search field"
         ]
       }
     }

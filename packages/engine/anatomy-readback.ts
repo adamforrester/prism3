@@ -542,6 +542,19 @@ export const FIELDS: Record<string, FieldCheck> = {
         : `${str(n.layoutPositioning)}, constraints ${str(c)}`;
     },
   },
+  // THE FOOT PIN (#2872, Link's current-page bar): out of the flow AND anchored across the bottom edge. Both halves are
+  // plain properties the host echoes, so both are read: a bar left in the flow reads `AUTO`, and one lifted without
+  // `STRETCH`/`MAX` stays where it was placed when a longer label resizes the instance. Its x/y/width are geometry
+  // against the parent's live size, gated in `apps/plugin/test-write-components.ts`.
+  footPin: {
+    show: () => 'ABSOLUTE, constraints STRETCH/MAX',
+    check: (_p, n) => {
+      const c = n.constraints as { horizontal?: unknown; vertical?: unknown } | undefined;
+      return n.layoutPositioning === 'ABSOLUTE' && c?.horizontal === 'STRETCH' && c?.vertical === 'MAX'
+        ? null
+        : `${str(n.layoutPositioning)}, constraints ${str(c)}`;
+    },
+  },
   absoluteStrokeInset: { reason: 'a modifier on `absoluteInset`\'s arithmetic, not a property the host holds separately' },
   absoluteCenterOn: { reason: 'names the node to center ON; the resulting coordinates are geometry, which `docs/40` §7 step 6 checks visually' },
 

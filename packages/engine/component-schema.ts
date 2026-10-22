@@ -1163,6 +1163,29 @@ export type PartDef = {
    *  it `MAX`/`MAX`, so it stays in the corner when a designer resizes the instance. `lint-absolute-inset.ts`
    *  holds the inset to the parent's stroke weight in every brand, so the artboard never overlaps the edge. */
   corner?: 'bottom-right';
+  /** For a `box`: PIN it across its parent's BOTTOM EDGE, out of the auto-layout flow (#2872, Link's current-page bar,
+   *  owner decisions Q507). The box keeps its own bound `height` and spans the parent's full width, flush with its
+   *  bottom, so it draws a line at the foot of the parent without taking a cell: the parent keeps its size whether
+   *  the box is there or not, which is what lets a `presentWhen`-gated bar sit on some members of a runtime axis and
+   *  not others under the footprint rule.
+   *
+   *  WHY A FILLED BOX AND NOT THE PARENT'S BOTTOM STROKE (`strokeEdges`). A stroke binds a STROKE-scoped role, and a
+   *  stroke never binds an ink role (Q346, `lint-paint.ts` arm 5). Link's bar is in the link ICON role, which is
+   *  scoped to fills, so the bar is a fill, as Tab's bar is. And a stroke would sit on every member, a filled box only
+   *  where `presentWhen` puts it.
+   *
+   *  WHY NOT `absolute`. That kind is an INSTANCE of a shared component sized by its parent on all four sides (a
+   *  focus ring); this is the def's own frame, one bound dimension high and the parent's width across.
+   *
+   *  PROJECTED as `FigmaNodePlan.footPin`. Both executors lift the node (`layoutPositioning: 'ABSOLUTE'`), size it to
+   *  the parent's width at its bound height, place it at `x = 0`, `y = parent height − its height`, and constrain it
+   *  `STRETCH`/`MAX`, so it follows the bottom edge and the width when a designer's longer label resizes the
+   *  instance. `x`/`y`/width take no binding, so they are written from the live parent, after the flow pass. Code
+   *  draws it as a positioned pseudo-element or an inset shadow, never a border that adds height.
+   *
+   *  Refused on a non-`box`, on the root, without a `height`, beside `width`, `size`, `layout` or `children` (a bar
+   *  draws nothing but its fill), and under a parent that is not an auto-layout box. */
+  foot?: true;
   /** For a `vector` sized by `glyphPx`: take the glyph OUT of the auto-layout flow, CENTER it in its parent,
    *  and constrain it `SCALE`/`SCALE`, so it keeps its fraction of the parent when a designer resizes an
    *  instance (#2345). image-placeholder's marker is the case: a fixed 180px marker inside a 64px thumbnail
@@ -3396,13 +3419,45 @@ export type State = (typeof STATES)[number];
  * `footer` would tell a Banner its actions are a footer. An AUTHORING axis: a product picks the layout where it
  * places the group. Read by the slot's `directionWhen` (`PartDef.directionWhen`), so the one `items` slot runs as a
  * row or a column per member. `lint-axis-values.ts` carries the three values as a `sole` set.
+ *
+ * ── `kind`: THE TWENTY-NINTH NAME, FOR THE BREADCRUMB ITEM (owner decision on #2666, 2026-10-16, call 1 A) ──
+ *
+ * `kind` (`ancestor | current | overflow`) is WHICH ROLE a step plays in its parent's sequence: a link to a page above,
+ * the page itself, or the stand-in for collapsed steps. The approved proposal named the axis and its values. It clears
+ * this list's bar as a distinct kind of distinction with the nearest defeated: `type` is a content format that keeps
+ * the element (a badge's count or dot, a list's markers); `selection` is a value the user picks; `state` is a
+ * transient interaction. None says "this step renders a different element (a link, text, a button) because of where
+ * it sits in the trail", and naming it `type` would put a marker style and an element's role under one name, the
+ * #756 failure. An AUTHORING axis: Breadcrumbs sets it from the item's place. `lint-axis-values.ts` carries the three
+ * values as a `sole` set.
+ *
+ * ── `path`: THE THIRTIETH NAME, FOR BREADCRUMBS (owner decision on #2666, 2026-10-16, calls 1 A and 11 A; renamed from `layout`, Q424 A) ──
+ *
+ * `path` (`full | parent`) is HOW MUCH OF THE ROUTE a navigation shows: every step down to the current page, or one link
+ * up to the parent for a small screen. The approved proposal named the axis `layout`; the Button group took that name
+ * first (#2661) for how a row of buttons shares its space, and one name for two different questions is the #756
+ * failure, so the owner renamed this one (Q424 A). It clears the bar with the nearest defeated: `footer` lays out one
+ * part's actions; `orientation` is which way a rule runs; `width` is a control's extent; `placement` is where a layer
+ * attaches. None says "how much of the route is drawn", and naming it `width` would claim the parent link is a narrower
+ * trail when it is a different element. An AUTHORING axis: a product picks it per breakpoint in code.
+ * `lint-axis-values.ts` carries the two values as a `sole` set.
+ *
+ * ── `separator`: THE THIRTY-FIRST NAME, FOR BREADCRUMBS (owner decision Q382 A, 2026-10-16) ──
+ *
+ * `separator` (`chevron | slash`) is WHICH MARK stands between the steps of a trail. The owner named it: one setting on
+ * Breadcrumbs that applies to every step. Breadcrumbs passes it to each item (`follow` passes an axis by its own name),
+ * and the item picks the matching look of `_breadcrumb-separator`, whose own axis is `type`, as Q382 names it. It
+ * clears the bar with the nearest defeated: `indicator` is a glyph that shows a state (open or closed); `style` is a
+ * line treatment of the control itself; `type` is a content format. None says "the mark drawn between items", and
+ * naming it `style` would put a link's placement and a trail's divider under one name, the #756 failure. An AUTHORING
+ * axis. `lint-axis-values.ts` carries the two values, shared by Breadcrumbs, its item and the separator.
  */
 export const VARIANT_AXES = [
   'size', 'intent', 'appearance', 'tone',
   'width', 'style', 'indicator', 'offset', 'selection',
   'name', 'surface', 'weight', 'value', 'intensity', 'ratio',
   'status', 'emphasis', 'shape', 'type', 'direction', 'inset', 'orientation', 'alignment', 'expansion', 'iconPosition',
-  'placement', 'footer', 'layout',
+  'placement', 'footer', 'layout', 'kind', 'path', 'separator',
 ] as const;
 
 /** One member of the closed axis-NAME vocabulary. Values are not constrained — see `VARIANT_AXES`. */
@@ -4610,6 +4665,30 @@ const anatomyErrors = (def: ComponentDef): string[] => {
         const pp = parent ? parts[parent] : undefined;
         if (!pp || pp.kind !== 'box' || !pp.layout)
           e.push(`anatomy part '${n}' declares corner '${p.corner}' under '${parent ?? '(none)'}', which is not an auto-layout 'box' — Figma ignores 'layoutPositioning' on a child of a frame with no auto-layout, silently, so the glyph would take a cell in the flow`);
+      }
+    }
+    // ---- THE FOOT PIN (#2872, Link's current-page bar) ----
+    // The corner pin's four ways to project nothing or into the flow, for a box: the wrong kind, no height to draw,
+    // the root, a parent Figma will not lift a child out of; and a fifth, a box that lays out content of its own,
+    // which a pinned bar has none of.
+    if (p.foot !== undefined) {
+      if (p.foot !== true)
+        e.push(`anatomy part '${n}' declares foot ${String(p.foot)} — the field is a switch that is on or absent`);
+      if (p.kind !== 'box')
+        e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'foot' — only a 'box' is drawn as the def's own filled frame and can be pinned across its parent's bottom edge`);
+      if (!p.height)
+        e.push(`anatomy part '${n}' declares 'foot' but binds no 'height' — the executor places it its own height up from the parent's bottom edge, so without one it has no thickness to draw`);
+      if (p.width !== undefined || p.size !== undefined)
+        e.push(`anatomy part '${n}' declares 'foot' and binds its own width ('width' or 'size') — a foot pin spans the parent's width, so the width is stated twice`);
+      if (p.layout !== undefined || (p.children ?? []).length)
+        e.push(`anatomy part '${n}' declares 'foot' with a 'layout' or 'children' — a foot pin is a bar that draws its fill and nothing else`);
+      if (n === a.root)
+        e.push(`anatomy part '${n}' is the anatomy ROOT and declares 'foot' — a bottom edge belongs to a parent, and the root has none`);
+      else {
+        const parent = Object.keys(parts).find((k) => (parts[k].children ?? []).includes(n));
+        const pp = parent ? parts[parent] : undefined;
+        if (!pp || pp.kind !== 'box' || !pp.layout)
+          e.push(`anatomy part '${n}' declares 'foot' under '${parent ?? '(none)'}', which is not an auto-layout 'box' — Figma ignores 'layoutPositioning' on a child of a frame with no auto-layout, silently, so the bar would take a cell in the flow`);
       }
     }
     // `strokeInset` gets the same rule for the same reason: it is a compensation applied to `inset`, so
