@@ -3791,6 +3791,9 @@ for (const b of brands) {
       accordion: { keys: ['pad-x', 'pad-y', 'gap', 'panel-pad-end'], sizes: ['small', 'medium', 'large'] },
       list: { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
       link: { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
+      // Toast (#2668): no size axis, so every key is bare. block / inline start / inline end / message-to-controls gap /
+      // glyph-to-message gap. The action-to-close 4px is not listed: it stays at the floor.
+      toast: { keys: [], sizes: [], bare: ['pad-y', 'pad-x', 'pad-end', 'gap', 'glyph-gap'] },
     };
     const BTN = { compact: 'small 12/8/4/6 · medium 12/8/6/6 · large 20/12/6/8', comfortable: 'small 16/12/6/8 · medium 16/12/8/8 · large 24/16/8/12', spacious: 'small 20/16/8/12 · medium 20/16/12/12 · large 32/20/12/16' };
     const ROWS = { compact: 'small 6 · medium 6 · large 8', comfortable: 'small 8 · medium 8 · large 12', spacious: 'small 12 · medium 12 · large 16' };
@@ -3817,6 +3820,8 @@ for (const b of brands) {
       // Link (#2580, DRAFT): the icon-to-label gap. Comfortable is the proposal's space.050 / space.050 / space.100; compact
       // clamps small and medium at space.050, the bottom of the density ladder, as Tab's small gap does.
       link: { compact: 'small 4 · medium 4 · large 6', comfortable: 'small 4 · medium 4 · large 8', spacious: 'small 6 · medium 6 · large 12' },
+      // Toast (#2668, the proposal's §8 approved by call 13 A): comfortable is 8/16/8 padding, 8 to the controls, 12 glyph to message.
+      toast: { compact: 'bare 6/12/6/6/8', comfortable: 'bare 8/16/8/8/12', spacious: 'bare 12/20/12/12/16' },
     };
     const wrong: string[] = [];
     for (const [id, spec] of Object.entries(SPECS)) {
@@ -3857,6 +3862,7 @@ for (const b of brands) {
       'radio-row': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'switch-row': ['size.small.gap', 'size.medium.gap'],
       list: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
+      toast: ['gap', 'glyph-gap', 'controls-gap'],
       // #2709: the three defs with a density-following gap that joined after this list was written.
       'password-field': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       accordion: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
@@ -3909,6 +3915,8 @@ for (const b of brands) {
       'tab-item': { prefix: 'sized', lt: [['gap', 'padding-x']] },
       'segmented-control-segment': { prefix: 'sized', lt: [['gap', 'padding-x']] },
       accordion: { prefix: 'sized', lt: [['gap', 'pad-x']] },
+      // Toast (#2668): no size axis, so the keys are bare. Both content gaps sit under the inline-start padding.
+      toast: { prefix: 'bare', lt: [['gap', 'pad-x'], ['glyph-gap', 'pad-x']] },
     };
     const GAP_TAILS = ['gap', 'check-gap'];
     const PAD_TAILS = ['padding-x', 'pad-x'];
@@ -17139,7 +17147,7 @@ arm: {
       button: 1,
       'button-destructive': 2, 'button-neutral': 2, 'icon-button': 2, 'icon-button-neutral': 2, icon: 2,
       'text-field': 2, textarea: 2, 'password-field': 2, select: 2, 'checkbox-row': 2, 'checkbox-group': 2,
-      'radio-row': 2, 'radio-group': 2, 'switch-row': 2, counter: 2, 'button-group': 2, tabs: 2, accordion: 2, list: 2, link: 2, dialog: 2,
+      'radio-row': 2, 'radio-group': 2, 'switch-row': 2, counter: 2, 'button-group': 2, tabs: 2, accordion: 2, list: 2, link: 2, dialog: 2, toast: 2,
       'icon-button-destructive': 3, 'segmented-control': 3, badge: 3, tag: 3, divider: 3, spinner: 3, veil: 3, 'image-placeholder': 3,
       'flush-icon-button-neutral': 4, 'flush-icon-button': 5, 'flush-icon-button-destructive': 5,
       'checkbox-control': 6, 'radio-control': 6, 'switch-control': 6, 'field-label': 6, 'field-message': 6, 'focus-ring': 6,
@@ -17292,14 +17300,39 @@ arm: {
     ok(JSON.stringify(FAMILIES.map((f) => f.def.id)) === JSON.stringify(['flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral']),
       `#2457 the three flush icon-button families are registered, the bare id primary (Q295.2 B) — got [${FAMILIES.map((f) => f.def.id).join(', ')}]`);
     for (const { def, id, family, ink, wash } of FAMILIES) {
-      const plans = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
+      const allPlans = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
+      // The literals below are the default ground's; the inverse members (Q386, #2668) are held in their own arm after.
+      const plans = allPlans.filter((p) => p.coord.surface !== 'inverse');
       // SCOPE FLOOR: every owner-decided shape × size × state is a member, so a dropped value cannot shrink what is checked.
       const coords = new Set(plans.map((p) => `${p.coord.shape}|${p.size}|${p.coord.state}`));
       const missing = SHAPES.flatMap((sh) => Object.keys(FLUSH_SIDE).flatMap((sz) => Object.keys(ink).map((st) => `${sh}|${sz}|${st}`))).filter((c) => !coords.has(c));
-      ok(plans.length === 30 && missing.length === 0,
-        `#2457 ${id} projects every shape × size × state, 2 × 3 × 5 = 30 members (got ${plans.length}; missing: [${missing.join(', ')}])`);
+      ok(plans.length === 30 && allPlans.length === 60 && missing.length === 0,
+        `#2457 ${id} projects every shape × size × state, 2 × 3 × 5 = 30 members on the default ground and 30 more on the inverse (got ${plans.length} of ${allPlans.length}; missing: [${missing.join(', ')}])`);
+      // THE INVERSE GROUND (Q386, #2668): the glyph walks the family's inverse ink, rest → hover → pressed, and the flush
+      // box paints nothing, so the Toast's close is visible on the dark card. EXPECTED is the ink map above, rewritten to
+      // `color/inverse/…` as a literal prefix; ACTUAL is the projected glyph.
+      const inverseBad = allPlans.filter((p) => p.coord.surface === 'inverse' && p.coord.shape === 'flush').flatMap((p) => {
+        const glyph = p.root.children.find((c) => c.name === 'icon');
+        const want = ink[String(p.coord.state)].replace('color/', 'color/inverse/');
+        return glyph?.descendantFills === want && planPaintVars({ ...p.root, children: [] }).length === 0 ? [] : [`${planComponentName(p)} (${glyph?.descendantFills}, want ${want})`];
+      });
+      ok(inverseBad.length === 0 && allPlans.filter((p) => p.coord.surface === 'inverse' && p.coord.shape === 'flush').length === 15,
+        `#2457 ${id}'s flush glyph on the inverse ground walks the family's color.inverse ink at every state and its box paints nothing (Q386)${inverseBad.length ? ` — ${inverseBad.slice(0, 3).join('; ')}` : ''}`);
+      // THE FOCUS RING FOLLOWS surface (Q436 (a), as IconButton's #1427 arm): every focus-visible member nests the ring
+      // on its own ground, so the inverse ring lands on the Toast's dark card. EXPECTED is the member's coordinate.
+      const ringPlans = allPlans.filter((p) => p.coord.state === 'focus-visible');
+      const ringBad = ringPlans.filter((p) => p.root.children.find((c) => c.name === 'focusRing')?.nestVariant?.surface !== p.coord.surface).map(planComponentName);
+      ok(ringPlans.length === 12 && ringBad.length === 0,
+        `#2457 ${id}'s focus ring follows surface: each focus-visible member nests the ring on its own ground (Q436 (a))${ringBad.length ? ` — WRONG: ${ringBad.slice(0, 3).join(', ')}` : ''} (${ringPlans.length} of 12 members)`);
       ok(JSON.stringify(def.variants?.shape) === JSON.stringify(SHAPES),
         `#2457 ${id}'s shape axis is [flush, round], flush first (Q287 A) — got ${JSON.stringify(def.variants?.shape)}`);
+      // THE surface AXIS IS APPENDED LAST (Q436 (a), as IconButton's was, #1427): declared after shape and size in the
+      // def's variants and in its Figma variant axes, default first. EXPECTED is typed here from the decision; a reorder
+      // otherwise fails only the component-surface pin, which an `--accept` rewrites.
+      const AXES = ['shape', 'size', 'surface'];
+      ok(JSON.stringify(Object.keys(def.variants ?? {})) === JSON.stringify(AXES) && JSON.stringify(def.figmaProperties?.variantAxes) === JSON.stringify(AXES)
+        && JSON.stringify(def.variants?.surface) === JSON.stringify(['default', 'inverse']),
+        `#2457 ${id}'s surface axis is appended last, [default, inverse] (Q436 (a)) — got variants [${Object.keys(def.variants ?? {}).join(', ')}], Figma axes [${(def.figmaProperties?.variantAxes ?? []).join(', ')}], surface ${JSON.stringify(def.variants?.surface)}`);
       const paddingBound: string[] = [], wrongSide: string[] = [], painted: string[] = [], wrongInk: string[] = [];
       const roundSide: string[] = [], roundEdge: string[] = [], roundWash: string[] = [];
       for (const p of plans) {
@@ -17430,7 +17463,7 @@ arm: {
       const control = p.root.children.find((c) => c.name === 'control');
       for (const side of ['decrement', 'increment']) {
         const n = control?.children.find((c) => c.name === side);
-        const want = { shape: SHAPE[ap], size: sz, state: st === 'disabled' ? 'disabled' : 'rest' };
+        const want = { shape: SHAPE[ap], size: sz, surface: 'default', state: st === 'disabled' ? 'disabled' : 'rest' };
         if (n?.nestTarget !== 'flush-icon-button-neutral' || JSON.stringify(n?.nestVariant) !== JSON.stringify(want) || JSON.stringify(n?.nestExpose) !== JSON.stringify(['state']))
           offNest.push(`${name}/${side}: ${n?.nestTarget} ${JSON.stringify(n?.nestVariant)} exposing ${JSON.stringify(n?.nestExpose)}, want ${JSON.stringify(want)}`);
       }
@@ -28060,7 +28093,7 @@ arm: {
   // `tag` joins (2026-09-27): its check mark is gated on `selection: ['selected']`, the checkbox mark's shape.
   // `link` joins (#2580, owner Q297.2): its trailing icon is gated on `style: ['standalone']`, so an inline link carries none.
   // `checkbox-group` and `radio-group` since #2751: each gates its nested message on `status=error`.
-  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-group', 'radio-control', 'radio-group', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'button-group', 'dialog', 'password-field'];
+  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-group', 'radio-control', 'radio-group', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'button-group', 'dialog', 'password-field', 'toast'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {
@@ -33237,7 +33270,7 @@ arm: {
   // THE HEADER: the title, the description (off), and the close (on): FlushIconButton.Neutral, flush, medium (Q385 A; flush per owner QA 2026-10-19).
   const hdrBad = plans.filter((p) => {
     const r = p.root as DN, close = find(r, 'close'), desc = find(r, 'description'), title = find(r, 'title');
-    return !(close?.nestTarget === 'flush-icon-button-neutral' && JSON.stringify(close.nestVariant) === JSON.stringify({ shape: 'flush', size: 'medium', state: 'rest' })
+    return !(close?.nestTarget === 'flush-icon-button-neutral' && JSON.stringify(close.nestVariant) === JSON.stringify({ shape: 'flush', size: 'medium', surface: 'default', state: 'rest' })
       && close.visibleProp === 'close' && close.visible !== false && desc?.visible === false && desc.paints?.fills === 'color/text/secondary' && title?.paints?.fills === 'color/text/primary');
   });
   ok(hdrBad.length === 0, `#2609 dialog header: the close is FlushIconButton.Neutral flush medium and shown (owner QA 2026-10-19: never round), the description hidden in secondary text, the title in primary text (${hdrBad.length ? `WRONG: ${hdrBad.map(planComponentName).slice(0, 2).join('; ')}` : 'all 24'})`);
@@ -33292,6 +33325,154 @@ arm: {
   let thrown = '';
   try { figmaEffectStyleName('color.scrim.default'); } catch (e) { thrown = (e as Error).message; }
   ok(figmaEffectStyleName('shadow.xl') === 'shadow/xl' && /not a shadow step/.test(thrown), `#2609 elevation names shadow/xl for shadow.xl and refuses a non-shadow ref (${thrown.slice(0, 80)})`);
+}
+
+// ------------------------------------------------------------------- #2668: the toast
+// The owner's approved proposal and wireframe on #2668, every numbered call A (2026-10-16). EXPECTED is typed here as
+// literals from the proposal; ACTUAL is the projected plan and, for contrast, the committed emission under `out/`, read
+// as files, never through the def. So a def that moved fails the arm by name.
+{
+  const td = componentDefs.find((d) => d.id === 'toast')!;
+  const plans = figmaAnatomySet(td, { swapTarget: 'FPO-default-icon' });
+  type TN = { name: string; type: string; children: TN[]; bound?: Record<string, string>; paints?: Record<string, string>; nestTarget?: string; nestVariant?: Record<string, string>; effectStyle?: string; placementWidth?: number; primaryAxisSizingMode?: string; counterAxisSizingMode?: string; layoutGrow?: number; visibleProp?: string; visible?: boolean; layoutMode?: string; descendantFills?: string; textStyle?: string; nestOverrides?: { property: string; type: string; value: string }[] };
+  const find = (n: TN, name: string): TN | undefined => (n.name === name ? n : n.children.map((c) => find(c, name)).find(Boolean));
+  const all = (n: TN): TN[] => [n, ...n.children.flatMap(all)];
+
+  // THE SHAPE (calls 2, 12): 2 members, neutral first; no size, no state; named Toast in feedback, with its aliases.
+  ok(JSON.stringify(plans.map(planComponentName)) === JSON.stringify(['intent=neutral', 'intent=success']) && figmaVariantCount(td) === 2,
+    `#2668 toast: 2 members, intent=neutral then intent=success (call 2 A) (got ${plans.map(planComponentName).join(' | ')})`);
+  ok(JSON.stringify(td.variants) === JSON.stringify({ intent: ['neutral', 'success'] }) && td.states.length === 0 && !td.figmaProperties?.stateAxis
+    && td.props.find((p) => p.name === 'intent')?.default === 'neutral',
+    `#2668 toast: intent [neutral, success] only, neutral the code default and the first member, no state axis (got ${JSON.stringify(td.variants)})`);
+  ok(td.name === 'Toast' && td.category === 'feedback' && JSON.stringify(td.aliases) === JSON.stringify(['snackbar', 'notification', 'flag', 'flash-message']),
+    `#2668 toast: named Toast, category feedback, aliases snackbar, notification, flag and flash-message (call 12 A) (got ${td.name}, ${td.category}, ${JSON.stringify(td.aliases)})`);
+  ok(!JSON.stringify(td.variants).match(/danger|error|warning|info/) && !(td.props.find((p) => p.name === 'intent')?.values ?? []).some((v) => /danger|error|warning|info/.test(v)),
+    '#2668 toast: no danger, error, warning or info intent anywhere (calls 1 A, 2 A)');
+
+  // THE CARD (calls 9, 11): built 360 wide, hugging its height, on the inverse surface with shadow.lg and radius.xl, padded
+  // 8 / 16 / 8 (block, inline start, inline end) with an 8px gap to the controls.
+  const cardBad = plans.filter((p) => {
+    const r = p.root as TN, b = r.bound ?? {};
+    return !(r.layoutMode === 'HORIZONTAL' && r.placementWidth === 360 && r.primaryAxisSizingMode === 'FIXED' && r.counterAxisSizingMode === 'AUTO'
+      && r.paints?.fills === 'color/inverse/background/primary' && r.effectStyle === 'shadow/lg'
+      && b.topLeftRadius === 'radius/xl' && b.bottomRightRadius === 'radius/xl'
+      && b.paddingTop === 'space/100' && b.paddingBottom === 'space/100' && b.paddingLeft === 'space/200' && b.paddingRight === 'space/100' && b.itemSpacing === 'space/100'
+      && !Object.keys(r.paints ?? {}).includes('strokes'));
+  }).map((p) => `${planComponentName(p)}: ${JSON.stringify({ w: (p.root as TN).placementWidth, fills: (p.root as TN).paints?.fills, fx: (p.root as TN).effectStyle, b: (p.root as TN).bound })}`);
+  ok(cardBad.length === 0, `#2668 toast card: 360 wide hugging its height, inverse.background.primary with no border, shadow/lg, radius/xl, padding 8/16/8, 8 to the controls (calls 9 A, 11 A)${cardBad.length ? ` — WRONG: ${cardBad[0]}` : ''}`);
+
+  // THE GLYPH (call 3): success only, a circled check on inverse.icon.success, 20px, 12px from the message; neutral none.
+  const glyphBad = plans.filter((p) => {
+    const r = p.root as TN, icon = find(r, 'checkCircleGlyph'), content = find(r, 'content');
+    const success = (p.coord as Record<string, string>).intent === 'success';
+    return success ? !(icon && icon.nestTarget === 'icon/check-circle' && icon.descendantFills === 'color/inverse/icon/success' && icon.bound?.width === 'icon/size/sm' && content?.bound?.itemSpacing === 'space/150')
+      : !!icon || all(r).some((n) => /^icon\//.test(n.nestTarget ?? ''));
+  }).map(planComponentName);
+  ok(glyphBad.length === 0, `#2668 toast glyph: success shows check-circle on inverse.icon.success at icon.size.sm, 12px from the message; neutral shows no glyph (call 3 A)${glyphBad.length ? ` — WRONG: ${glyphBad.join(', ')}` : ''}`);
+
+  // THE MESSAGE: inverse.text.primary in type.body.md.default, wrapping, the "Status message" placeholder.
+  const msgBad = plans.filter((p) => { const m = find(p.root as TN, 'message'); return !(m && m.paints?.fills === 'color/inverse/text/primary' && m.layoutGrow === 1); }).map(planComponentName);
+  ok(msgBad.length === 0 && td.tokens.type === 'type.body.md.default', `#2668 toast message: inverse.text.primary, body.md, wrapping across the row${msgBad.length ? ` — WRONG: ${msgBad.join(', ')}` : ''}`);
+
+  // THE CONTROLS (calls 7, 8, 9): the action a text Button, small, inverse, off, reading "Action"; the close an
+  // FlushIconButton.Neutral, flush, small, on, showing the close glyph (Q386); 4px apart, at the end edge.
+  const ctlBad = plans.filter((p) => {
+    const r = p.root as TN, action = find(r, 'action'), close = find(r, 'close'), ctl = find(r, 'controls');
+    return !(action?.nestTarget === 'button' && JSON.stringify(action.nestVariant) === JSON.stringify({ appearance: 'text', size: 'small', surface: 'inverse', inset: 'default', state: 'rest', 'leading icon': 'false', 'trailing icon': 'false' })
+      && action.visibleProp === 'action' && action.visible === false && JSON.stringify(action.nestOverrides) === JSON.stringify([{ property: 'label', type: 'TEXT', value: 'Action' }])
+      && close?.nestTarget === 'flush-icon-button-neutral' && JSON.stringify(close.nestVariant) === JSON.stringify({ shape: 'flush', size: 'small', surface: 'inverse', state: 'rest' })
+      && close.visibleProp === 'close' && close.visible !== false && JSON.stringify(close.nestOverrides) === JSON.stringify([{ property: 'swap icon', type: 'INSTANCE_SWAP', value: 'icon/close' }])
+      && ctl?.bound?.itemSpacing === 'space/050' && JSON.stringify(ctl.children.map((c) => c.name)) === JSON.stringify(['action', 'close']));
+  }).map(planComponentName);
+  ok(ctlBad.length === 0, `#2668 toast controls: a text Button small inverse (off, "Action") then FlushIconButton.Neutral flush small (on, close glyph), 4px apart (calls 7 A, 8 A, Q386)${ctlBad.length ? ` — WRONG: ${ctlBad.join(', ')}` : ''}`);
+  ok(JSON.stringify(td.composition?.composesWith) === JSON.stringify(['button', 'flush-icon-button-neutral']),
+    `#2668 toast nests exactly Button and FlushIconButton.Neutral (got ${JSON.stringify(td.composition?.composesWith)})`);
+
+  // THE PROPERTIES (calls 8, 13): message "Status message"; action off; close on. Lowercase names (Q345).
+  ok(JSON.stringify(planSetProperties(plans)) === JSON.stringify([
+    { name: 'message', type: 'TEXT', default: 'Status message' }, { name: 'action', type: 'BOOLEAN', default: false }, { name: 'close', type: 'BOOLEAN', default: true },
+  ]), `#2668 toast properties: message "Status message", action off, close on, all lowercase (got ${JSON.stringify(planSetProperties(plans))})`);
+
+  // THE CODE-SIDE BEHAVIOR (calls 4, 5, 6, 10), each stated in codeOnly and the props as literals.
+  const co = td.anatomy!.codeOnly.join('\n');
+  const dur = td.props.find((p) => p.name === 'duration'), dis = td.props.find((p) => p.name === 'dismissible');
+  const behavior: [string, boolean][] = [
+    ['duration defaults to 6000, never under 5000', dur?.default === 6000 && /6000ms by default and never less than 5000ms/.test(co) && /Never less than 5000/.test(dur?.description ?? '')],
+    ['the timer pauses on hover, focus and a hidden window, and resumes with the time left', /pauses while the pointer is over the toast, while focus is inside the region, and while the window is hidden or blurred, and resumes with the time left/.test(co)],
+    ['a toast with an action has no timer', /timing, with an action — no timer/.test(co)],
+    ['bottom center below 768px, the bottom inline-end corner from 768px', /below `breakpoint\.md` \(768px\): bottom center/.test(co) && /From 768px: the bottom inline-end corner/.test(co)],
+    ['one at a time, the newest replacing', /one at a time — a new toast replaces the one showing/.test(co)],
+    ['F6 in, Escape or Shift+F6 out', /F6 moves focus into it/.test(co) && /Escape or Shift\+F6 returns focus/.test(co)],
+    ['close on by default', dis?.default === true],
+    ['the live region is polite and present from app start', /role="status"` and `aria-atomic="true"` \(polite\), present and empty from app start/.test(co)],
+  ];
+  const behaviorBad = behavior.filter(([, v]) => !v).map(([k]) => k);
+  ok(behaviorBad.length === 0, `#2668 toast code-side behavior, stated: ${behavior.map(([k]) => k).join('; ')}${behaviorBad.length ? ` — MISSING: ${behaviorBad.join('; ')}` : ''}`);
+
+  // CONTRAST, over every committed brand × mode, inverse included. Read from `out/<brand>.tokens.json` (light at
+  // `$value`, every other mode under `$extensions.prism3.modes`), resolving aliases, never through the def.
+  {
+    const OUT = resolve(HERE, 'out');
+    const brands = readdirSync(OUT).filter((f) => /^[a-z0-9-]+\.tokens\.json$/.test(f) && !f.includes('.base.') && !f.includes('.overlay.'));
+    const PAIRS: [string, string, number, string][] = [
+      ['color.inverse.text.primary', 'color.inverse.background.primary', 4.5, 'message on the card'],
+      ['color.inverse.icon.success', 'color.inverse.background.primary', 3, 'success glyph on the card'],
+      ['color.inverse.interactive.primary.text.rest', 'color.inverse.background.primary', 4.5, 'action label at rest'],
+      ['color.inverse.interactive.primary.text.hover', 'color.inverse.background.primary', 4.5, 'action label at hover'],
+      ['color.inverse.interactive.primary.text.pressed', 'color.inverse.background.primary', 4.5, 'action label at pressed'],
+      ['color.inverse.interactive.neutral.icon.rest', 'color.inverse.background.primary', 3, 'close glyph at rest'],
+      ['color.inverse.interactive.neutral.icon.hover', 'color.inverse.background.primary', 3, 'close glyph at hover'],
+      ['color.inverse.interactive.neutral.icon.pressed', 'color.inverse.background.primary', 3, 'close glyph at pressed'],
+      ['color.inverse.border.focus', 'color.inverse.background.primary', 3, 'focus ring on the card'],
+      ['color.inverse.background.primary', 'color.background.primary', 3, 'the card against the page'],
+    ];
+    const misses: string[] = [];
+    let checked = 0;
+    for (const f of brands) {
+      const doc = JSON.parse(readFileSync(resolve(OUT, f), 'utf8'));
+      const rootKey = Object.keys(doc).find((k) => !k.startsWith('$'))!;
+      const leaf = (path: string) => path.split('.').reduce((o: any, k) => o?.[k], doc[rootKey]);
+      const modes = ['light', ...Object.keys(leaf('color.inverse.background.primary')?.$extensions?.prism3?.modes ?? {})];
+      const valueAt = (path: string, mode: string, depth = 0): string | undefined => {
+        const l = leaf(path);
+        if (!l || depth > 12) return undefined;
+        const v = mode !== 'light' && l.$extensions?.prism3?.modes?.[mode] ? l.$extensions.prism3.modes[mode].$value : l.$value;
+        if (typeof v !== 'string') return undefined;
+        const m = /^\{(.+)\}$/.exec(v);
+        return m ? valueAt(m[1].replace(new RegExp(`^${rootKey}\\.`), ''), mode, depth + 1) : v;
+      };
+      for (const mode of modes) for (const [fg, bg, floor, what] of PAIRS) {
+        // A leaf is a hex or an opaque `rgb(r, g, b)`; anything else (an alpha, a gradient) is unresolved and fails.
+        const rgbOf = (v: string | undefined): RGB | undefined => {
+          if (!v) return undefined;
+          if (/^#[0-9a-f]{6}$/i.test(v)) return hexToRgb(v);
+          const m = /^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/.exec(v);
+          return m ? hexToRgb(`#${[m[1], m[2], m[3]].map((n) => Number(n).toString(16).padStart(2, '0')).join('')}`) : undefined;
+        };
+        const a = rgbOf(valueAt(fg, mode)), b = rgbOf(valueAt(bg, mode));
+        if (!a || !b) { misses.push(`${f}/${mode} ${what}: unresolved (${valueAt(fg, mode)} on ${valueAt(bg, mode)})`); continue; }
+        const ratio = contrast(a, b);
+        checked++;
+        if (ratio < floor) misses.push(`${f}/${mode} ${what}: ${ratio.toFixed(2)}:1 under ${floor}:1`);
+      }
+    }
+    ok(brands.length >= 5 && checked >= brands.length * 4 * PAIRS.length && misses.length === 0,
+      `#2668 toast contrast: ${PAIRS.length} inverse pairs clear their floors in every committed brand × mode (${brands.length} brands, ${checked} ratios)${misses.length ? ` — MISS: ${misses.slice(0, 4).join('; ')}` : ''}`);
+  }
+
+  // THE SPACING ORDER: each gap is tighter than the inline-start padding beside it, at every density.
+  {
+    const SPACE_PX = new Map(spaceScale(SPACE_BASE).map((sp) => [`space.${sp.key}`, sp.px]));
+    const bad: string[] = [];
+    for (const d of ['compact', 'comfortable', 'spacious'] as const) {
+      const m = applySpacingDensity(td, d);
+      const px = (k: string) => SPACE_PX.get(m.tokens[k])!;
+      if (!(px('gap') < px('pad-x') && px('glyph-gap') < px('pad-x') && px('controls-gap') === 4)) bad.push(`${d}: gap ${px('gap')} glyph ${px('glyph-gap')} controls ${px('controls-gap')} start ${px('pad-x')}`);
+    }
+    ok(bad.length === 0, `#2668 toast spacing: the gaps sit under the 16px-class start padding at every density, the action-to-close gap a fixed 4px${bad.length ? ` — ${bad.join('; ')}` : ''}`);
+  }
+
+  ok(validateComponentDef(td).errors.length === 0, `#2668 toast validates clean (${validateComponentDef(td).errors.slice(0, 2).join('; ')})`);
 }
 
 // ------------------------------------------------------------------- #2877: the dialog's end placement
