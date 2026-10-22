@@ -9,7 +9,7 @@
  *   · Another editable mode writes `modeLevers[mode].density` / `.radius` through the store's pruning helper, and
  *     Return to Auto unsets it (`setModeLever(…, undefined)`), so an all-cleared mode is byte-identical to never
  *     having had one. A value equal to Light's is written as a value, as the legacy select wrote it.
- *   · `controlShape`, `fieldStyle` (#2695), `searchFieldStyle` (#2888) and `baseMd` are brand-wide (the engine has no per-mode value for either), so they write the
+ *   · `controlShape`, `fieldStyle` (#2695), `searchFieldStyle` (#2888), `tagStyle` (#2887) and `baseMd` are brand-wide (the engine has no per-mode value for either), so they write the
  *     same bytes from any editable mode (the Q54 rule).
  * The retired `radiusHairline` (#2053) has no writer: the engine always emits `radius.hairline`, so the switch
  * went with the legacy page and nothing here writes the key.
@@ -19,7 +19,7 @@
  * `modeLevers[m]` against the brand's own `density` / `radiusScale`), so a custom mode based on Dark does not
  * follow Dark's override. `autoOf` reads the brand value for that reason, whatever the mode's base.
  */
-import type { Density, ControlShape, FieldStyle, SearchFieldStyle } from '@prism3/engine/scale';
+import type { Density, ControlShape, FieldStyle, SearchFieldStyle, TagStyle } from '@prism3/engine/scale';
 import { brandState, getModeLever, getPath, setModeLever, setPath } from './store';
 import { leverManifest } from '@prism3/engine/levers';
 
@@ -31,6 +31,7 @@ export const brandRadiusScale = (): number => Number(getPath(brandState, 'radius
 export const brandControlShape = (): ControlShape => (getPath(brandState, 'controlShape') ?? defaultOf('controlShape') ?? 'rounded') as ControlShape;
 export const brandFieldStyle = (): FieldStyle => (getPath(brandState, 'fieldStyle') ?? defaultOf('fieldStyle') ?? 'outline') as FieldStyle;
 export const brandSearchFieldStyle = (): SearchFieldStyle => (getPath(brandState, 'searchFieldStyle') ?? defaultOf('searchFieldStyle') ?? 'follow') as SearchFieldStyle;
+export const brandTagStyle = (): TagStyle => (getPath(brandState, 'tagStyle') ?? defaultOf('tagStyle') ?? 'pill') as TagStyle;
 export const brandBaseMd = (): number => Number(getPath(brandState, 'baseMd') ?? defaultOf('baseMd') ?? 4);
 
 /** A per-mode lever as a control reads it in `mode`: the value it resolves to, and whether the mode sets its own
@@ -65,5 +66,7 @@ export const setControlShape = (v: ControlShape): void => { setPath(brandState, 
 export const setFieldStyle = (v: FieldStyle): void => { setPath(brandState, 'fieldStyle', v); };
 /** Search field style (#2888), brand-wide like Field style. */
 export const setSearchFieldStyle = (v: SearchFieldStyle): void => { setPath(brandState, 'searchFieldStyle', v); };
+/** Tag style (#2887), brand-wide like Field style: the engine has no per-mode value for it. */
+export const setTagStyle = (v: TagStyle): void => { setPath(brandState, 'tagStyle', v); };
 /** The base radius, brand-wide (legacy slider, a number). */
 export const setBaseMd = (v: number): void => { setPath(brandState, 'baseMd', Number(v)); };

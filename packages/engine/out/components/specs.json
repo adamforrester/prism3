@@ -17583,7 +17583,7 @@
         {
           "name": "message",
           "type": "BOOLEAN",
-          "default": true
+          "default": false
         }
       ]
     },
@@ -18858,7 +18858,7 @@
         {
           "name": "message",
           "type": "BOOLEAN",
-          "default": true
+          "default": false
         },
         {
           "name": "character count",
@@ -19668,17 +19668,22 @@
           "members": 6
         },
         {
-          "part": "row/controlCell",
+          "part": "row/content",
           "kind": "frame",
           "members": 6
         },
         {
-          "part": "row/controlCell/control",
+          "part": "row/content/controlCell",
+          "kind": "frame",
+          "members": 6
+        },
+        {
+          "part": "row/content/controlCell/control",
           "kind": "instance",
           "members": 6
         },
         {
-          "part": "row/label",
+          "part": "row/content/label",
           "kind": "text",
           "members": 6
         }
@@ -19696,19 +19701,19 @@
               "part": "row",
               "values": {
                 "paddingTop": {
-                  "token": "space.150"
+                  "token": "space.100"
                 },
                 "paddingRight": {
                   "token": "space.0"
                 },
                 "paddingBottom": {
-                  "token": "space.150"
+                  "token": "space.100"
                 },
                 "paddingLeft": {
                   "token": "space.0"
                 },
-                "gap": {
-                  "token": "space.100"
+                "minHeight": {
+                  "token": "size.md.height"
                 },
                 "minWidth": {
                   "px": 120,
@@ -19721,7 +19726,15 @@
               }
             },
             {
-              "part": "row/controlCell",
+              "part": "row/content",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                }
+              }
+            },
+            {
+              "part": "row/content/controlCell",
               "values": {
                 "height": {
                   "token": "control.size.md.line-box"
@@ -19729,7 +19742,7 @@
               }
             },
             {
-              "part": "row/controlCell/control",
+              "part": "row/content/controlCell/control",
               "values": {
                 "height": {
                   "token": "control.size.md.height"
@@ -19750,19 +19763,19 @@
               "part": "row",
               "values": {
                 "paddingTop": {
-                  "token": "space.150"
+                  "token": "space.075"
                 },
                 "paddingRight": {
                   "token": "space.0"
                 },
                 "paddingBottom": {
-                  "token": "space.150"
+                  "token": "space.075"
                 },
                 "paddingLeft": {
                   "token": "space.0"
                 },
-                "gap": {
-                  "token": "space.100"
+                "minHeight": {
+                  "token": "size.sm.height"
                 },
                 "minWidth": {
                   "px": 120,
@@ -19775,7 +19788,15 @@
               }
             },
             {
-              "part": "row/controlCell",
+              "part": "row/content",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                }
+              }
+            },
+            {
+              "part": "row/content/controlCell",
               "values": {
                 "height": {
                   "token": "control.size.sm.line-box"
@@ -19783,7 +19804,7 @@
               }
             },
             {
-              "part": "row/controlCell/control",
+              "part": "row/content/controlCell/control",
               "values": {
                 "height": {
                   "token": "control.size.sm.height"
@@ -19815,8 +19836,8 @@
                 "paddingLeft": {
                   "token": "space.0"
                 },
-                "gap": {
-                  "token": "space.150"
+                "minHeight": {
+                  "token": "size.lg.height"
                 },
                 "minWidth": {
                   "px": 120,
@@ -19829,7 +19850,15 @@
               }
             },
             {
-              "part": "row/controlCell",
+              "part": "row/content",
+              "values": {
+                "gap": {
+                  "token": "space.150"
+                }
+              }
+            },
+            {
+              "part": "row/content/controlCell",
               "values": {
                 "height": {
                   "token": "control.size.lg.line-box"
@@ -19837,7 +19866,7 @@
               }
             },
             {
-              "part": "row/controlCell/control",
+              "part": "row/content/controlCell/control",
               "values": {
                 "height": {
                   "token": "control.size.lg.height"
@@ -19860,7 +19889,7 @@
           },
           "parts": [
             {
-              "part": "row/label",
+              "part": "row/content/label",
               "textStyle": "type.body.md.default"
             }
           ]
@@ -19871,7 +19900,7 @@
           },
           "parts": [
             {
-              "part": "row/label",
+              "part": "row/content/label",
               "textStyle": "type.body.sm.default"
             }
           ]
@@ -19882,7 +19911,7 @@
           },
           "parts": [
             {
-              "part": "row/label",
+              "part": "row/content/label",
               "textStyle": "type.body.lg.default"
             }
           ]
@@ -19898,7 +19927,7 @@
           },
           "parts": [
             {
-              "part": "row/label",
+              "part": "row/content/label",
               "ink": "color.text.primary"
             }
           ]
@@ -19909,7 +19938,7 @@
           },
           "parts": [
             {
-              "part": "row/label",
+              "part": "row/content/label",
               "ink": "color.text.primary"
             }
           ]
@@ -19917,7 +19946,7 @@
       ],
       "nesting": [
         {
-          "part": "row/controlCell/control",
+          "part": "row/content/controlCell/control",
           "kind": "instance",
           "component": "checkbox-control",
           "variant": {
@@ -20816,17 +20845,22 @@
           "members": 6
         },
         {
-          "part": "row/controlCell",
+          "part": "row/content",
           "kind": "frame",
           "members": 6
         },
         {
-          "part": "row/controlCell/control",
+          "part": "row/content/controlCell",
+          "kind": "frame",
+          "members": 6
+        },
+        {
+          "part": "row/content/controlCell/control",
           "kind": "instance",
           "members": 6
         },
         {
-          "part": "row/label",
+          "part": "row/content/label",
           "kind": "text",
           "members": 6
         }
@@ -20844,19 +20878,19 @@
               "part": "row",
               "values": {
                 "paddingTop": {
-                  "token": "space.150"
+                  "token": "space.100"
                 },
                 "paddingRight": {
                   "token": "space.0"
                 },
                 "paddingBottom": {
-                  "token": "space.150"
+                  "token": "space.100"
                 },
                 "paddingLeft": {
                   "token": "space.0"
                 },
-                "gap": {
-                  "token": "space.100"
+                "minHeight": {
+                  "token": "size.md.height"
                 },
                 "minWidth": {
                   "px": 120,
@@ -20869,7 +20903,15 @@
               }
             },
             {
-              "part": "row/controlCell",
+              "part": "row/content",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                }
+              }
+            },
+            {
+              "part": "row/content/controlCell",
               "values": {
                 "height": {
                   "token": "control.size.md.line-box"
@@ -20877,7 +20919,7 @@
               }
             },
             {
-              "part": "row/controlCell/control",
+              "part": "row/content/controlCell/control",
               "values": {
                 "height": {
                   "token": "control.size.md.height"
@@ -20898,19 +20940,19 @@
               "part": "row",
               "values": {
                 "paddingTop": {
-                  "token": "space.150"
+                  "token": "space.075"
                 },
                 "paddingRight": {
                   "token": "space.0"
                 },
                 "paddingBottom": {
-                  "token": "space.150"
+                  "token": "space.075"
                 },
                 "paddingLeft": {
                   "token": "space.0"
                 },
-                "gap": {
-                  "token": "space.100"
+                "minHeight": {
+                  "token": "size.sm.height"
                 },
                 "minWidth": {
                   "px": 120,
@@ -20923,7 +20965,15 @@
               }
             },
             {
-              "part": "row/controlCell",
+              "part": "row/content",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                }
+              }
+            },
+            {
+              "part": "row/content/controlCell",
               "values": {
                 "height": {
                   "token": "control.size.sm.line-box"
@@ -20931,7 +20981,7 @@
               }
             },
             {
-              "part": "row/controlCell/control",
+              "part": "row/content/controlCell/control",
               "values": {
                 "height": {
                   "token": "control.size.sm.height"
@@ -20963,8 +21013,8 @@
                 "paddingLeft": {
                   "token": "space.0"
                 },
-                "gap": {
-                  "token": "space.150"
+                "minHeight": {
+                  "token": "size.lg.height"
                 },
                 "minWidth": {
                   "px": 120,
@@ -20977,7 +21027,15 @@
               }
             },
             {
-              "part": "row/controlCell",
+              "part": "row/content",
+              "values": {
+                "gap": {
+                  "token": "space.150"
+                }
+              }
+            },
+            {
+              "part": "row/content/controlCell",
               "values": {
                 "height": {
                   "token": "control.size.lg.line-box"
@@ -20985,7 +21043,7 @@
               }
             },
             {
-              "part": "row/controlCell/control",
+              "part": "row/content/controlCell/control",
               "values": {
                 "height": {
                   "token": "control.size.lg.height"
@@ -21008,7 +21066,7 @@
           },
           "parts": [
             {
-              "part": "row/label",
+              "part": "row/content/label",
               "textStyle": "type.body.md.default"
             }
           ]
@@ -21019,7 +21077,7 @@
           },
           "parts": [
             {
-              "part": "row/label",
+              "part": "row/content/label",
               "textStyle": "type.body.sm.default"
             }
           ]
@@ -21030,7 +21088,7 @@
           },
           "parts": [
             {
-              "part": "row/label",
+              "part": "row/content/label",
               "textStyle": "type.body.lg.default"
             }
           ]
@@ -21046,7 +21104,7 @@
           },
           "parts": [
             {
-              "part": "row/label",
+              "part": "row/content/label",
               "ink": "color.text.primary"
             }
           ]
@@ -21057,7 +21115,7 @@
           },
           "parts": [
             {
-              "part": "row/label",
+              "part": "row/content/label",
               "ink": "color.text.primary"
             }
           ]
@@ -21065,7 +21123,7 @@
       ],
       "nesting": [
         {
-          "part": "row/controlCell/control",
+          "part": "row/content/controlCell/control",
           "kind": "instance",
           "component": "radio-control",
           "variant": {
@@ -22166,17 +22224,22 @@
           "members": 4
         },
         {
-          "part": "row/label",
-          "kind": "text",
-          "members": 4
-        },
-        {
-          "part": "row/controlCell",
+          "part": "row/content",
           "kind": "frame",
           "members": 4
         },
         {
-          "part": "row/controlCell/control",
+          "part": "row/content/label",
+          "kind": "text",
+          "members": 4
+        },
+        {
+          "part": "row/content/controlCell",
+          "kind": "frame",
+          "members": 4
+        },
+        {
+          "part": "row/content/controlCell/control",
           "kind": "instance",
           "members": 4
         }
@@ -22193,13 +22256,33 @@
             {
               "part": "row",
               "values": {
+                "paddingTop": {
+                  "token": "space.100"
+                },
+                "paddingRight": {
+                  "token": "space.0"
+                },
+                "paddingBottom": {
+                  "token": "space.100"
+                },
+                "paddingLeft": {
+                  "token": "space.0"
+                },
+                "minHeight": {
+                  "token": "size.md.height"
+                }
+              }
+            },
+            {
+              "part": "row/content",
+              "values": {
                 "gap": {
                   "token": "space.100"
                 }
               }
             },
             {
-              "part": "row/controlCell",
+              "part": "row/content/controlCell",
               "values": {
                 "height": {
                   "token": "control.size.md.line-box"
@@ -22207,7 +22290,7 @@
               }
             },
             {
-              "part": "row/controlCell/control",
+              "part": "row/content/controlCell/control",
               "values": {
                 "height": {
                   "token": "control.size.md.track"
@@ -22224,13 +22307,33 @@
             {
               "part": "row",
               "values": {
+                "paddingTop": {
+                  "token": "space.075"
+                },
+                "paddingRight": {
+                  "token": "space.0"
+                },
+                "paddingBottom": {
+                  "token": "space.075"
+                },
+                "paddingLeft": {
+                  "token": "space.0"
+                },
+                "minHeight": {
+                  "token": "size.sm.height"
+                }
+              }
+            },
+            {
+              "part": "row/content",
+              "values": {
                 "gap": {
                   "token": "space.100"
                 }
               }
             },
             {
-              "part": "row/controlCell",
+              "part": "row/content/controlCell",
               "values": {
                 "height": {
                   "token": "control.size.sm.line-box"
@@ -22238,7 +22341,7 @@
               }
             },
             {
-              "part": "row/controlCell/control",
+              "part": "row/content/controlCell/control",
               "values": {
                 "height": {
                   "token": "control.size.sm.track"
@@ -22258,7 +22361,7 @@
           },
           "parts": [
             {
-              "part": "row/label",
+              "part": "row/content/label",
               "textStyle": "type.body.md.default"
             }
           ]
@@ -22269,7 +22372,7 @@
           },
           "parts": [
             {
-              "part": "row/label",
+              "part": "row/content/label",
               "textStyle": "type.body.sm.default"
             }
           ]
@@ -22285,7 +22388,7 @@
           },
           "parts": [
             {
-              "part": "row/label",
+              "part": "row/content/label",
               "ink": "color.text.primary"
             }
           ]
@@ -22296,7 +22399,7 @@
           },
           "parts": [
             {
-              "part": "row/label",
+              "part": "row/content/label",
               "ink": "color.text.primary"
             }
           ]
@@ -22304,7 +22407,7 @@
       ],
       "nesting": [
         {
-          "part": "row/controlCell/control",
+          "part": "row/content/controlCell/control",
           "kind": "instance",
           "component": "switch-control",
           "variant": {
@@ -23524,7 +23627,7 @@
         {
           "name": "message",
           "type": "BOOLEAN",
-          "default": true
+          "default": false
         }
       ]
     },
@@ -35302,7 +35405,7 @@
         {
           "name": "message",
           "type": "BOOLEAN",
-          "default": true
+          "default": false
         }
       ]
     },

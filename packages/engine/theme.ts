@@ -14,7 +14,7 @@
  *                     / hex; primitives under palette). This is what makes the system white-label.
  */
 import { generateRamp, peakChromaL, autoPlaceStep, Step } from './ramp';
-import { dimensionGrid, spaceScale, radiusScale, componentSizes, SpaceStep, RadiusStep, SizeStep, Density, ControlShape, FieldStyle, SearchFieldStyle, ButtonIcons, ButtonContentSize, ButtonLabelWeight, ButtonTextHover, iconSizes, IconSizeStep, controlSizes, ControlSizeStep, SPACE_BASE, GRID_BASE } from './scale';
+import { dimensionGrid, spaceScale, radiusScale, componentSizes, SpaceStep, RadiusStep, SizeStep, Density, ControlShape, FieldStyle, SearchFieldStyle, TagStyle, ButtonIcons, ButtonContentSize, ButtonLabelWeight, ButtonTextHover, iconSizes, IconSizeStep, controlSizes, ControlSizeStep, SPACE_BASE, GRID_BASE } from './scale';
 import { oklchToRgb, RGB, contrast, hex as rgbHex, inGamut, maxChroma, deltaE2000, ACHROMATIC_C } from './color';
 import type { ModeName, BuiltinModeName, ModeOverrides } from './modes';
 import { resolveVocabulary } from './vocabulary';
@@ -618,6 +618,7 @@ export type BrandInput = {
   controlShape?: ControlShape;       // 'rounded' (default) | 'pill' | 'boxed' | 'hairline' — corner shape for pill-able controls (#1371)
   fieldStyle?: FieldStyle;           // 'outline' (default) | 'underline' — the edge every field component draws (#2695)
   searchFieldStyle?: SearchFieldStyle; // 'follow' (default) | 'outline' | 'underline' — the search field's own edge (#2888)
+  tagStyle?: TagStyle;               // 'pill' (default) | 'underline' — the shape every tag draws (#2887)
   /** RETIRED (#2053, owner 2026-10-04). `radius.hairline` (1px) is always emitted, so this changes nothing.
    *  Still ACCEPTED, so brand files that set it keep loading; a note says it is ignored. It was the opt-in
    *  for that rung (#1362): the scaled ramp rides an even 2px sub-grid, so 1px is otherwise unreachable. */
@@ -2532,6 +2533,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     { path: 'controlShape', value: input.controlShape, options: ['rounded', 'pill', 'boxed', 'hairline'] },
     { path: 'fieldStyle', value: input.fieldStyle, options: ['outline', 'underline'] },
     { path: 'searchFieldStyle', value: input.searchFieldStyle, options: ['follow', 'outline', 'underline'] },
+    { path: 'tagStyle', value: input.tagStyle, options: ['pill', 'underline'] },
     { path: 'buttonIcons', value: input.buttonIcons, options: ['attached', 'edges'] },
     { path: 'buttonContentSize', value: input.buttonContentSize, options: ['match', 'smaller'] },
     { path: 'buttonLabelWeight', value: input.buttonLabelWeight, options: ['default', 'emphasis'] },

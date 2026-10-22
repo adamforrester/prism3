@@ -53,6 +53,27 @@
  * `checkbox`, #1347) is prose for a human (nothing in the engine resolves it): the form-field substrate
  * reaches this def through the checkbox Row.
  *
+ * ── THE ROW'S HEIGHT LANDS ON THE CONTROL LADDER (#2894, owner decision Q539: A on every question) ─────────
+ *
+ * The rows used no block padding at all (the row hugged its line box, 21/24 in Figma), so no row sat on the
+ * control-height ladder, and the floor was code-only. The owner chose one rule for Radio.Row, Checkbox.Row and
+ * Switch.Row (Q?5 A):
+ *
+ *   · **Q?1 A** — the floor `size.{size}.min-height` (the ladder, 36/44 at comfortable) sets a single-line
+ *     row's height and the content is centered in it; the pad is a per-size MINIMUM, `space.075`/`100` (6/8px; Switch.Row has no large), that only shows
+ *     once a label wraps. Existing `space.*` steps, no new token, so CONTRACT holds.
+ *   · **Q?2 A** — Figma gets the floor too, bound as the row's auto-layout `minHeight` the way Select and
+ *     Accordion bind theirs. The row still hugs a wrapped label.
+ *   · **Q?3 A** — centering the row's own items would float the control to the middle of a wrapped label
+ *     (#1009 half-1), so the row centers ONE inner box, named `content`, and that box keeps the control and
+ *     label top-aligned: Accordion's Q276 A construction.
+ *   · **Q?4 A** — the block padding joins `densitySpacing`, so compact rows compact (29/36) and spacious rows grow.
+ *   · **Q?6 A** — the update cost is accepted: inserting `content` moves the label and the nested control under a
+ *     new frame in files that already hold the row, and a per-instance override on the nested control may not
+ *     carry over. A dry run on a copy of a shipped file comes before any master update.
+ *
+ * `test.ts` #2894 measures the result in every corpus brand.
+ *
  * ── THE LABEL LEADS, WHICH IS THE FAMILY'S ONE STRUCTURAL DIVERGENCE ────────────────────────────────
  *
  * Brief §3: the label LEADS and the control TRAILS, because a switch's habitat is a settings row where
@@ -127,8 +148,9 @@ export const switchRow: ComponentDef = {
   // track; keeping them here with nothing selection-dependent left to resolve would be unreachable keys.
   paintKeys: ['{slot}'],
 
-  // The spacing this spec states at comfortable, which density moves one step along the space ladder.
-  densitySpacing: ['size.{size}.gap'],
+  // The spacing this spec states at comfortable, which density moves one step along the space ladder. The
+  // block padding joins it (owner Q539, Q?4 A on #2894), so a compact row compacts with its floor.
+  densitySpacing: ['size.{size}.gap', 'size.{size}.pad-y'],
 
   tokens: {
     // ── THE ROW'S OWN PAINT IS ONE INK: THE LABEL. Every color binding for the track, thumb, glyphs,
@@ -138,10 +160,20 @@ export const switchRow: ComponentDef = {
     'label': 'color.text.primary',
     'disabled.label': 'color.disabled.text',
 
+    // ── THE ROW'S TOP/BOTTOM PADDING, a MINIMUM per size (owner Q539, Q?1 A and Q?5 A on #2894). The row had no
+    // block padding, so in Figma it hugged its line box (21/24 at comfortable) and the track spilled past it
+    // (#1439). The floor below now sets a single-line row's height and the row centers its content in it, so the
+    // pad only matters once a label wraps: 6/8px (`space.075`/`100`, existing steps, no new token, CONTRACT holds),
+    // density moving each one step. The inline sides are zero, a literal-zero slot because
+    // `PaddingDef.inlineLabel` is required, as Checkbox.Row binds its own.
+    'size.small.pad-y': 'space.075',
+    'size.medium.pad-y': 'space.100',
+    'pad-x': 'space.0',
+
     // ── THE CONTROL-TO-LABEL GAP and the ROW'S FLOOR. The gap is this spec's own `space.*` step at
     // comfortable (8px at both sizes, the spacing model), which density moves one step (`densitySpacing`).
-    // `min-height` is the code projection's floor; Figma
-    // has no floor, so the row hugs its children and the key stays bound only for code (see `codeOnly`).
+    // `min-height` is the control-height ladder (36/44 at comfortable), the row's floor in BOTH projections since
+    // #2894 (owner Q539, Q?2 A): Figma binds it as the row's auto-layout `minHeight`, so the row still hugs a wrapped label.
     'size.small.gap': 'space.100',
     'size.medium.gap': 'space.100',
     'size.small.min-height': 'size.sm.height',
@@ -181,23 +213,36 @@ export const switchRow: ComponentDef = {
   // label. The Row is LABEL-FIRST — the family's one structural divergence — because a switch's habitat
   // is the settings row with the toggle at the trailing edge.
   //
-  // THE ROW MUST NOT CENTER. This def's content rules say long labels wrap while the fixed-width track
-  // does not shrink, so `align: center` here would float the control to the middle of a two-line label
-  // (the wrong repair `test.ts` #1009 half-1 forbids). The row stays top-aligned (`align: start`) and
-  // the centering lives one level down, in `controlCell`, which is one line-box tall.
+  // THE CONTROL AND LABEL MUST NOT CENTER ON EACH OTHER. This def's content rules say long labels wrap while the
+  // fixed-width track does not shrink, so centering them would float the control to the middle of a two-line
+  // label (the wrong repair `test.ts` #1009 half-1 forbids). Since #2894 (owner Q539, Q?3 A and Q?5 A,
+  // Accordion's Q276 A pattern) the ROW centers ONE child, `content`, in its ladder floor; `content` stays
+  // top-aligned and the centering lives one level further down, in `controlCell`, which is one line-box tall.
   anatomy: {
     root: 'row',
     parts: {
       // THE HIT TARGET, and nothing else. No `paintSlots` (#933): this box is structure, and the def keys
-      // no row-level fill or border for it to name. LABEL-FIRST: `children` is `[label, trackBox]`, the
-      // switch's structural divergence. Its extent comes from its children; `min-height` is the row's
-      // FLOOR and is in `codeOnly`, because Figma has no floor.
+      // no row-level fill or border for it to name. Its floor is the control-height ladder (`minHeight`, #2894),
+      // and it centers `content` in it, so a single-line row measures 36/44 at comfortable with the slack split
+      // above and below.
       row: {
         kind: 'box',
         role: 'target',
+        layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
+        minHeight: 'size.{size}.min-height',
+        padding: { block: 'size.{size}.pad-y', inlineLabel: 'pad-x' },
+        children: ['content'],
+      },
+      // THE ROW'S ONE FLOW CHILD (#2894, owner Q539 Q?3 A — named `content`). The row centers this box; the box
+      // keeps the label and control TOP-aligned inside it. LABEL-FIRST: `children` is `[label, controlCell]`,
+      // the switch's structural divergence. Draws nothing; hugs, as the row does.
+      content: {
+        kind: 'box',
+        role: 'presentation',
         layout: { direction: 'row', align: 'start', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
         gap: 'size.{size}.gap',
         children: ['label', 'controlCell'],
+        note: 'The label and the control, side by side and top-aligned. The row centers this box in its minimum height, and the control stays beside the label\'s first line.',
       },
       // No `paintSlot` — the default is `label`, and at `disabled` the projector reaches `disabled.label`
       // (page ink) rather than `disabled.label.on-fill`, because this text sits beside the track's fill
@@ -249,7 +294,6 @@ export const switchRow: ComponentDef = {
       'pending — not projected: it is a THUMB SWAP (a spinner replaces the thumb) on the nested control plus an `aria-busy` lock, not a row skin, so no Figma member carries it; `button`\'s `overlay` part (#848) is the mechanism, unauthored on the control here. In code it is first-class in `props`. The Row\'s own per-state LABEL treatment (`disabled.label` dimming the text) is the CODE projection\'s, not Figma\'s — `lint-paint` arm 2 reads `def.states` for reachability, so `disabled.label` stays reachable and keyed for code while the Figma SET collapses to size-only.',
       'states — the documented cost of collapsing 24 members to 2 (the #1354 decomposition). A disabled Row in Figma shows the disabled CONTROL (the exposed state) beside a full-ink label, because the Row no longer multiplies state.',
       'showStateLabel — the X/checkmark affordance is exposed from the nested `switch-control` as a consumer property (React prop, `.ai.json` option, Figma exposed property). In Figma it is the control\'s own `state icon` boolean (default on), which the exposed nested instance surfaces on the Row, so the Row declares no boolean of its own for it. See `switch-control.ts`.',
-      'min-height — `size.*.min-height` is the row\'s FLOOR and Figma has no floor. `PartDef` carries `height`, which is fixed, so binding it on the row would clip a wrapping label at the one coordinate that matters most. The row hugs its children instead and the keys stay bound for the code projection.',
       'THE FULL-WIDTH SETTINGS ROW, this component\'s actual habitat and layout rather than anatomy. The row HUGS its children here, so `label` and the control sit adjacent with the gap between them; a settings panel stretches the row and pins the control to the trailing edge, and `justify` on a hugging row cannot express that. `labelPosition: trailing` — the control-leading order for a switch among other form controls — is the same kind of fact: a prop that reorders this row, and the reordered form is the code projection\'s.',
       'The `description` prop — helper text beneath the label, describedby-wired, where the CONSEQUENCE of the setting goes. A second text part under `label` rather than beside it, which would change the row\'s vertical shape for content that is optional at every member.',
       'RTL — the label-leading row mirrors AND the thumb travel flips (`on` sits at the inline-END). Logical properties make that automatic in CSS; a Figma projection would need it stated, and nothing does.',
@@ -292,7 +336,7 @@ export const switchRow: ComponentDef = {
       '4.1.2 Name Role Value (the switch role and aria-checked doing the work)',
       '1.4.1 Use of Color (thumb position distinguishes on from off, never track color alone; the thumb glyph is a legibility aid on top of that)',
       '1.4.11 Non-text Contrast (the off-state track must be distinguishable from the background) / 2.4.13 Focus Appearance',
-      '2.5.8 Target Size — intent: the whole row is the target, as in Checkbox.Row. No padding is bound, so the 24×24 minimum is met by the consumer\'s layout, not by a number Switch.Row carries',
+      '2.5.8 Target Size — intent: the whole row is the target, as in Checkbox.Row. The row\'s minimum height is the control-height ladder, so every row is at least 24px tall, and the default (medium) row is 44px on comfortable density',
       '4.1.3 Status Messages (the async outcome or error of an immediate change)',
     ],
     keyboard: 'Each switch is its own tab stop — like Checkbox.Row, unlike Radio.Row, and there is no group to traverse. Space toggles, which is the canonical W3C activation; some systems also accept Enter. Nothing else: no arrow keys, because a switch is never one of a mutually-related set.',
@@ -380,7 +424,7 @@ export const switchRow: ComponentDef = {
       'THE LABEL SIDE HAS ONE EXPRESSION AND `labelPosition` STILL HAS NONE. The anatomy states the DEFAULT (`row.children` is `[label, trackBox]`, label-leading); the flipped order the prop selects is not expressible, because a prop is not a coordinate. RTL is the sharper half and inverts twice over (the row mirrors AND the thumb travel flips).',
       'THE TRAVEL\'S TWO ENDPOINTS ARE EXPRESSED AND THE MOTION BETWEEN THEM IS NOT — on `switch-control` now. The ~150–200ms ease-in-out slide with the synchronized track-color crossfade (dropping to 0ms under prefers-reduced-motion) is the animation the component is most recognized by and has no expression in the schema.',
       'THE role="switch" ANNOUNCEMENT INSIDE A SHADOW ROOT on older Safari with VoiceOver, where no explicit aria-label or aria-labelledby is set (KB switch brief §15, from Material 3\'s notes). The `aria` block already tells a web-component host to set the name explicitly; whether older Safari announces the role and state correctly across the shadow boundary is not checked by anything here.',
-      'THE WHOLE-ROW HIT TARGET NOW HAS A NODE AND STILL HAS NO NUMBER. `row` is the part it lands on; the padding that would expand it to SC 2.5.8\'s 24×24 is a per-consumer decision about the surrounding layout, so no value is bound. It is sharper here than on the siblings because the row is label-leading (the control sits at the trailing edge, furthest from the label) and the track is 24px tall at `small` in every corpus brand, 16px at compact density.',
+      'THE WHOLE-ROW HIT TARGET HAS A NUMBER SINCE #2894: the row\'s floor, `size.*.min-height` (the control-height ladder), is bound in Figma as well as code, so a single-line row measures 36/44 at comfortable and 29/36 at compact, and every row clears SC 2.5.8\'s 24×24 (`test.ts` #2894). Still unverified on a real host, and sharper here than on the siblings because the row is label-leading (the control sits at the trailing edge, furthest from the label). The track spilling past its line-box cell is #1439, which the taller row hides but does not fix.',
     ],
     // KB switch brief §13, carried whole: the Row is the component the brief describes.
     evolution: [

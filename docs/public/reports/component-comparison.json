@@ -2490,7 +2490,7 @@
         },
         {
           "name": "showMessage",
-          "default": true
+          "default": false
         },
         {
           "name": "required",
@@ -3084,7 +3084,7 @@
         },
         {
           "name": "showMessage",
-          "default": true
+          "default": false
         },
         {
           "name": "leadingIcon"
@@ -3624,7 +3624,7 @@
         },
         {
           "name": "showMessage",
-          "default": true
+          "default": false
         },
         {
           "name": "required",
@@ -3754,7 +3754,7 @@
         },
         {
           "name": "showMessage",
-          "default": true
+          "default": false
         },
         {
           "name": "rows",
@@ -6316,7 +6316,7 @@
       },
       {
         "id": "password-field",
-        "default": true
+        "default": false
       },
       {
         "id": "search-field",
@@ -6324,15 +6324,15 @@
       },
       {
         "id": "select",
-        "default": true
+        "default": false
       },
       {
         "id": "text-field",
-        "default": true
+        "default": false
       },
       {
         "id": "textarea",
-        "default": true
+        "default": false
       }
     ],
     "showStateLabel": [
@@ -7890,19 +7890,6 @@
         "spinner"
       ],
       "detail": "label defaults differ over the same values — Breadcrumb in breadcrumbs; Loading in spinner"
-    },
-    {
-      "kind": "prop default",
-      "subject": "prop showMessage",
-      "components": [
-        "counter",
-        "password-field",
-        "search-field",
-        "select",
-        "text-field",
-        "textarea"
-      ],
-      "detail": "showMessage defaults differ over the same values — false in counter, search-field; true in password-field, select, text-field, textarea"
     },
     {
       "kind": "axis without prop",

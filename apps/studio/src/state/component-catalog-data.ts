@@ -508,6 +508,18 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
       {
         "key": "size.large.gap",
         "ref": "space.150"
+      },
+      {
+        "key": "size.medium.pad-y",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.small.pad-y",
+        "ref": "space.075"
+      },
+      {
+        "key": "size.large.pad-y",
+        "ref": "space.150"
       }
     ],
     "page": "Checkbox",
@@ -571,6 +583,18 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
       {
         "key": "size.large.gap",
         "ref": "space.150"
+      },
+      {
+        "key": "size.medium.pad-y",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.small.pad-y",
+        "ref": "space.075"
+      },
+      {
+        "key": "size.large.pad-y",
+        "ref": "space.150"
       }
     ],
     "page": "Radio",
@@ -631,6 +655,14 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
       {
         "key": "size.small.gap",
         "ref": "space.100"
+      },
+      {
+        "key": "size.medium.pad-y",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.small.pad-y",
+        "ref": "space.075"
       }
     ],
     "page": "Switch",

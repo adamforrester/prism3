@@ -118,6 +118,10 @@ export const leverManifest: Lever[] = [
   { key: 'searchFieldStyle', group: 'form', label: 'Search field style', control: 'enum', default: 'follow',
     options: enumOpts(['follow', 'Follow field style'], ['outline', 'Outline'], ['underline', 'Underline']),
     description: 'The edge of the search field. Follow field style matches every other field; Outline or Underline sets search apart. Either way the line clears 3:1.' },
+  // #2887 — label, option labels and description are the owner's (Q513.1 A, Q540 taking Q8 A as revised for the 2px hover).
+  { key: 'tagStyle', group: 'form', label: 'Tag style', control: 'enum', default: 'pill',
+    options: enumOpts(['pill', 'Pill'], ['underline', 'Underline']),
+    description: 'The shape of every tag. Pill draws a rounded outline; Underline draws one line under the tag, 2px when selected or under the pointer. Either way the line clears 3:1.' },
   // The button levers (#1667). Labels and option labels are the owner's exact words.
   { key: 'buttonIcons', group: 'form', label: 'Button icons', control: 'enum', default: 'attached',
     options: enumOpts(['attached', 'Attached to label'], ['edges', 'Locked to edges']),

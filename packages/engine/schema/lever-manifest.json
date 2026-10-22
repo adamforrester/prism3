@@ -267,6 +267,24 @@
       "description": "The edge of the search field. Follow field style matches every other field; Outline or Underline sets search apart. Either way the line clears 3:1."
     },
     {
+      "key": "tagStyle",
+      "group": "form",
+      "label": "Tag style",
+      "control": "enum",
+      "default": "pill",
+      "options": [
+        {
+          "value": "pill",
+          "label": "Pill"
+        },
+        {
+          "value": "underline",
+          "label": "Underline"
+        }
+      ],
+      "description": "The shape of every tag. Pill draws a rounded outline; Underline draws one line under the tag, 2px when selected or under the pointer. Either way the line clears 3:1."
+    },
+    {
       "key": "buttonIcons",
       "group": "form",
       "label": "Button icons",

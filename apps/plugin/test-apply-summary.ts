@@ -35,6 +35,7 @@
 import { applyHeadline, APPLY_FAILED_HEADLINE, conflictHeadline, componentHeadline, staleNote, refsNote, refsItems, partialWriteHeadline, partialWriteNote, partialWriteItem, fromClauses, motionReplacedItem } from './src/apply-summary';
 import type { PartialWriteFacts } from './src/apply-summary';
 import { fieldStyleNote, searchFieldStyleNote } from './src/field-style-note';
+import { tagStyleNote } from './src/tag-style-note';
 import type { BrandInput } from '@prism3/engine/theme';
 import { readFileSync as readSrc } from 'node:fs';
 
@@ -330,7 +331,7 @@ ok(motionReplacedItem(0) === '', `#2412: nothing replaced, no clause (${JSON.str
   // Apply's list, off the brand `runApplyTheme` read BEFORE it persisted the new one.
   const main = readSrc(new URL('./src/main.ts', import.meta.url), 'utf8');
   const apply = readSrc(new URL('./src/apply-theme.ts', import.meta.url), 'utf8');
-  ok(/fieldStyleNote\(before, input\),\n\s*\]\.map/.test(main) && apply.indexOf('before = restoreInput(host.root)') > 0
+  ok(/fieldStyleNote\(before, input\),\n/.test(main) && apply.indexOf('before = restoreInput(host.root)') > 0
     && apply.indexOf('before = restoreInput(host.root)') < apply.indexOf('persistInput(host.root, input)'),
     '#2695 Q16: Apply reads the stored brand before persisting the new one, and its clause list carries the notice');
 }
@@ -354,6 +355,25 @@ ok(motionReplacedItem(0) === '', `#2412: nothing replaced, no clause (${JSON.str
     '#2888: a search field that follows a changed Field style is said by the field style notice, not twice');
   const main = readSrc(new URL('./src/main.ts', import.meta.url), 'utf8');
   ok(/searchFieldStyleNote\(before, input\),/.test(main), '#2888: Apply\'s clause list carries the search field style notice');
+}
+
+// ---- #2887: the tag style notice, Field style's twin (copy DRAFT for the owner) ---------------------------------
+// A tag style switch reaches the Tag set through Update, so Apply says so. Literals typed here.
+{
+  const b = { brandColors: [] } as unknown as BrandInput;
+  const under = { ...b, tagStyle: 'underline' } as BrandInput;
+  const pill = { ...b, tagStyle: 'pill' } as BrandInput;
+  ok(tagStyleNote(pill, under) === 'Tag style is now Underline. Update components to redraw the tag set.',
+    `#2887: pill → underline says so and points at Update (${tagStyleNote(pill, under)})`);
+  ok(tagStyleNote(under, b) === 'Tag style is now Pill. Update components to redraw the tag set.',
+    `#2887: underline → unset reads as Pill, the default (${tagStyleNote(under, b)})`);
+  ok(tagStyleNote(null, under) === 'Tag style is now Underline. Update components to redraw the tag set.',
+    '#2887: a file with no stored brand was built in pill, so underline is a change');
+  ok(tagStyleNote(under, under) === '' && tagStyleNote(null, b) === '' && tagStyleNote(b, pill) === '' && tagStyleNote({ ...b, fieldStyle: 'underline' } as BrandInput, b) === '',
+    '#2887: no change, no clause (unset and pill are the same style; a field style change is not a tag style change)');
+  const main = readSrc(new URL('./src/main.ts', import.meta.url), 'utf8');
+  ok(/tagStyleNote\(before, input\),\n\s*\]\.map/.test(main),
+    '#2887: Apply\'s clause list carries the tag style notice, off the brand read before the new one persisted');
 }
 
 console.log(`\nplugin apply-result headline: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);

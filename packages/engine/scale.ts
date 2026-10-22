@@ -80,6 +80,10 @@ export type FieldStyle = 'outline' | 'underline';
  *  (the default) takes `fieldStyle`; `outline` or `underline` sets search apart from the other fields. A brand-level
  *  choice like `fieldStyle`, never a per-instance variant — see `fieldStyleFor`. */
 export type SearchFieldStyle = 'follow' | FieldStyle;
+/** The `tagStyle` FORM lever (#2887, owner Q513 and Q540): the shape every tag draws. `pill` is the rounded outline;
+ *  `underline` is one line under the tag, 2px when selected or under the pointer. Its own lever, not `fieldStyle`'s
+ *  (Q513.1 A): a tag is not a field. Applied to a def before projection, like `fieldStyle` — see `applyTagStyle`. */
+export type TagStyle = 'pill' | 'underline';
 /** The button-family FORM levers (#1667, owner-decided 2026-09-25). Brand-level choices applied to a def
  *  before projection — see `applyButtonLayout`. `buttonIcons`: `attached` keeps the icons next to the label
  *  (the default); `edges` pins them to the button's edges, and the label centers in the space between them
