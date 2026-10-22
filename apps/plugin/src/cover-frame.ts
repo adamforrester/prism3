@@ -207,7 +207,7 @@ const bindable = (frame: CNode, vars: readonly CoverVariable[]): boolean => {
  *   `missing`    no cover on it;
  *   `stale`      its version text shows another engine (`shows`), or, unedited, its name is another (`name`) or a
  *                placeholder can now bind (`bind`). An edited cover is stale only for its version;
- *   `no-version` edited by hand and the tagged version text is gone: nothing can be written;
+ *   `no-version` the tagged version text is gone, a hand edit whatever the fingerprint reads: nothing can be written;
  *   `current`.
  * `brand` is the name the cover should show, or null when the file holds no brand: then the name is not compared.
  */
@@ -235,7 +235,8 @@ export const coverDue = async (
   const engine = o.engine ?? ENGINE_VERSION;
   const edited = coverPrint(own.frame) !== own.record.print;
   const version = findPart(own.frame, 'version');
-  if (!version) return edited ? { state: 'no-version', edited: true } : missing();
+  // A gone version text is a hand edit whatever the fingerprint says: redrawing would put a second cover on the page.
+  if (!version) return { state: 'no-version', edited: true };
   const out: { shows?: string; name?: { from: string; to: string }; bind?: true } = {};
   if (version.characters !== coverVersion(engine)) out.shows = shownVersion(String(version.characters ?? ''));
   if (!edited) {
@@ -457,11 +458,8 @@ export const drawCover = async (api: CoverApi, root: CoverRoot, o: { brand?: str
   const { frame, record } = own;
   const edited = coverPrint(frame) !== record.print;
   const version = findPart(frame, 'version');
-  if (!version) {
-    if (edited) return { did: 'none', skipped: 'edited by hand, and its version text is gone. Nothing was written', fontMisses: [] };
-    // An unedited cover without its version text was never fully drawn: draw it again, beside the old one.
-    return brand === null ? { did: 'none', skipped: 'not drawn yet, the file has no brand. Apply Theme, then Update draws it', fontMisses: [] } : drawNew(api, page, brand, engine);
-  }
+  // As `coverDue` reads it: never a second cover, since `ownCover` would keep finding this one.
+  if (!version) return { did: 'none', skipped: 'edited by hand, and its version text is gone. Nothing was written', fontMisses: [] };
   const misses: string[] = [];
   const out: CoverOutcome = { did: edited ? 'version' : 'refreshed', fontMisses: misses };
   if (version.characters !== coverVersion(engine)) {

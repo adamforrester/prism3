@@ -280,7 +280,7 @@ export const dialog: ComponentDef = {
         crossAxisFill: true,
         nesting: { kind: 'nest-fixed', variant: { layout: 'fill' } },
         nestItemPrefers: { cancelFill: 'button-neutral' },
-        note: 'The fill footer: a Button group at fill: Cancel, then Save, each half the width.',
+        note: 'The fill footer: a Button group at fill, Cancel then Save, sharing the width equally.',
       },
     },
     codeOnly: [
@@ -292,7 +292,7 @@ export const dialog: ComponentDef = {
       'Escape — closes a dialog, and closes an alertdialog as Cancel. The close button is always reachable by keyboard, so the dialog is never a keyboard trap (SC 2.1.2).',
       'backdrop click — closes a dialog, never an alertdialog. Close only when the press started on the backdrop (`mousedown` target is the dialog element itself), so a text selection dragged out of the panel does not close it. A full-screen dialog has no visible backdrop; Escape and the close button still apply.',
       'scroll lock — the page behind does not scroll while the dialog is open (`html:has(dialog[open]) { overflow: hidden }`, with the scrollbar width added back as padding so the page does not shift). The body scrolls with `overscroll-behavior: contain`, so a scroll at its end does not move the page.',
-      'the fill footer — the footer\'s Button group at `layout=fill`: each button takes an equal share of the width at every width, and a label too long for its share wraps inside its button, so both buttons grow to the same height. Nothing switches to stacked by itself: for long labels, pick `footer: "stacked"`.',
+      'the fill footer — the footer\'s Button group at `layout=fill`: each button takes an equal share of the width at every width, and a label too long for its share wraps inside its button (`overflow-wrap: anywhere` on the label), so both buttons grow to the same height. Nothing switches to stacked by itself: for long labels, pick `footer: "stacked"`.',
       'only the body scrolls — the header and footer stay put and the body scrolls between them, so a focused field in the body is never hidden under the footer (SC 2.4.11). Show the two dividers only while the body overflows; in Figma they are the `dividers` toggle.',
       'per-breakpoint placement, no automatic switch — `placement` can take a value per breakpoint, but nothing switches on its own: a dialog stays centered on a phone unless the product chooses bottom or full, and an end panel stays at the end edge. A centered panel on a small screen is the viewport width less the grid margins. Bottom and full are full width; full is also full height. An end panel is full height and 480px wide, at most `100vw − 48px`, so the page shows beside it on a phone; below 768px prefer full for a form and bottom for a short list. A bottom sheet is at most 90% of the viewport height, so the page shows above it; a centered panel at most the viewport height less the grid margin top and bottom. Above that, the body scrolls.',
       'the panel padding below 480px — `space.200` instead of `space.300` on a centered or end panel when the viewport is narrower than 480px. Figma builds the bottom and full members, which are small-screen placements, with `space.200`.',
