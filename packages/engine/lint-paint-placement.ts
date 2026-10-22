@@ -295,9 +295,7 @@ const EXPECT_ANATOMY = [
   'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'switch-control', 'switch-row', 'select', 'veil',
   'image-placeholder', 'spinner', 'badge', 'tag', 'tab-item', 'tabs', 'divider', '_accordion-indicator', 'accordion',
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'list-item', 'list',
-  'segmented-control-segment', 'segmented-control', 'link', 'button-group', 'dialog', 'password-field', 'counter',
-  // #2665: the page cell and the pagination row.
-  'pagination-item', 'pagination',
+  'segmented-control-segment', 'segmented-control', 'link', 'button-group', 'dialog', 'password-field', 'counter', 'pagination-item', 'pagination', 'search-field', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs',
 ];
 const EXPECT_PAINTERS = [
   'focus-ring', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive',
@@ -310,8 +308,14 @@ const EXPECT_PAINTERS = [
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral',
   // #2317: the Password field paints as TextField does.
   'password-field',
+  // #2668: the inverse card.
+  'toast',
   // #2427: the outline Counter's fill and edge. A ghost member's box resolves none of them.
   'counter',
+  // #2872 (Q507.1 C): the current-page bar's fill. An unselected member has no bar, so it paints nothing.
+  'link',
+  // #2888: the Search field paints as TextField does.
+  'search-field',
 ];
 const closedSet = (what: string, expected: string[], live: string[], remedy: string): void => {
   for (const id of expected.filter((x) => !live.includes(x))) {

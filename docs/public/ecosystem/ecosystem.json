@@ -317,7 +317,12 @@
           "password-field",
           "counter",
           "pagination-item",
-          "pagination"
+          "pagination",
+          "search-field",
+          "toast",
+          "_breadcrumb-separator",
+          "breadcrumb-item",
+          "breadcrumbs"
         ]
       }
     },

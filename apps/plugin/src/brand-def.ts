@@ -7,6 +7,8 @@
  *
  *   · `controlShape` (#1163) — the corner a pill brand builds its controls with.
  *   · `fieldStyle` (#2695) — the edge every field draws: the outline box, or one line under the value.
+ *   · `searchFieldStyle` (#2888) — the search field's own edge, which follows `fieldStyle` unless the brand sets it apart.
+ *   · `tagStyle` (#2887) — the shape every tag draws: the pill, or one line under the tag.
  *   · weight availability (#1605, the runtime half of #1602) — which body weight roles the brand
  *     ships. Without it, `field-label` on an NB file (`body: [default, emphasis]`) projects
  *     `body/<size>/strong`, a text style NB never emits, and every bold member misses its style.
@@ -31,7 +33,7 @@
  * before. A persisted brand whose theme fails to build falls back the same way — the build still runs,
  * against the defaults, which is what the `controlShape` read already did on an untrusted input.
  */
-import { applyControlShape, applyFieldStyle, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_WEIGHT_AVAILABILITY, DEFAULT_BUTTON_LAYOUT } from '@prism3/engine/anatomy-figma';
+import { applyControlShape, applyFieldStyle, fieldStyleFor, applyTagStyle, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_WEIGHT_AVAILABILITY, DEFAULT_BUTTON_LAYOUT } from '@prism3/engine/anatomy-figma';
 import type { WeightAvailability, ButtonLayout } from '@prism3/engine/anatomy-figma';
 import { componentSizes, sizeRefPx, SPACE_BASE } from '@prism3/engine/scale';
 import type { SizeStep, Density } from '@prism3/engine/scale';
@@ -66,7 +68,7 @@ export const brandButtonLayout = (input: BrandInput | null): ButtonLayout => ({
 });
 
 /** `def` resolved against the brand: corner shape, then the field style (#2695 — after the corner, which it squares
- *  on a field), then weight intent (#1605's owner-locked order), then
+ *  on a field; the search field's own, #2888, through `fieldStyleFor`), then the tag style (#2887 — after the corner too, which it squares on a tag), then weight intent (#1605's owner-locked order), then
  *  the outline hover family (#1608 — independent of the other two: it touches only `color.*` refs), then
  *  the spacing density (the spacing model — it touches only the `space.*` refs `densitySpacing` names), then
  *  the button layout (#1667 — it touches the button family's geometry, its label type refs (#1752) and its two
@@ -75,6 +77,6 @@ export const brandButtonLayout = (input: BrandInput | null): ButtonLayout => ({
 export const materializeForBrand = (def: ComponentDef, input: BrandInput | null): ComponentDef => {
   const { avail, outline, sizes, density } = brandLevers(input);
   return applyMinWidthRatio(applyButtonLayout(
-    applySpacingDensity(applyOutlineInteraction(applyWeightIntent(applyFieldStyle(applyControlShape(def, input?.controlShape ?? 'rounded'), input?.fieldStyle ?? 'outline'), avail), outline), density),
+    applySpacingDensity(applyOutlineInteraction(applyWeightIntent(applyTagStyle(applyFieldStyle(applyControlShape(def, input?.controlShape ?? 'rounded'), fieldStyleFor(def.id, input)), input?.tagStyle ?? 'pill'), avail), outline), density),
     brandButtonLayout(input), sizeRefPx(sizes)), sizeRefPx(sizes));
 };

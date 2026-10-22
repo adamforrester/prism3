@@ -33,7 +33,8 @@ import { isRefusal } from '@prism3/engine/rename-map';
 import { rootOf } from '@prism3/engine/figma-names';
 import { conflictSummary } from './preflight';
 import { runApplyTheme } from './apply-theme';
-import { fieldStyleNote } from './field-style-note';
+import { fieldStyleNote, searchFieldStyleNote } from './field-style-note';
+import { tagStyleNote } from './tag-style-note';
 import { gridSkippedNote } from './write-grid-styles';
 import { applyComponentPlan, partialWriteOf } from './write-components';
 import type { ComponentProgress, CompPageTarget, CompNode, ComponentsApi } from './write-components';
@@ -330,8 +331,12 @@ const applyTheme = async (input: BrandInput, sink: ActionSink): Promise<void> =>
       motionReplacedItem(mv.replaced.length),
       `${r.bound + f.bound + tv.bound + mv.bound + ts.bound} bindings`, misses ? `${misses} misses` : '',
       ...renameNotes, orphanNote, strandedNote, resolvedNote, skippedNote, gridSkippedNote(gs.skipped), fontNote, refusedNote,
+      // #2888: the search field's own edge, the same way. Before the field style line, which ends the list.
+      searchFieldStyleNote(before, input),
       // #2695 (Q16 A): a field style switch reaches the field sets through Update, so Apply says so.
       fieldStyleNote(before, input),
+      // #2887: the tag style reaches the Tag set the same way (copy DRAFT for the owner, tag-style-note.ts).
+      tagStyleNote(before, input),
     ].map((x) => [', ', x] as const));
     // Skipped fonts aren't a "failure" (variables still wrote); only true misses flip ok=false. The
     // pill's headline is derived from the COUNTS (see `apply-summary.ts`), never from `summary` — the

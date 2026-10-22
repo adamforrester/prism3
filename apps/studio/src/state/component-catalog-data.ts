@@ -20,7 +20,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Foundations",
     "buildable": true,
     "reason": null,
-    "members": 45,
+    "members": 46,
     "nests": []
   },
   {
@@ -303,7 +303,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Subcomponents",
     "buildable": true,
     "reason": null,
-    "members": 30,
+    "members": 60,
     "nests": [
       "icon",
       "focus-ring"
@@ -320,7 +320,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Subcomponents",
     "buildable": true,
     "reason": null,
-    "members": 30,
+    "members": 60,
     "nests": [
       "icon",
       "focus-ring"
@@ -337,7 +337,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Subcomponents",
     "buildable": true,
     "reason": null,
-    "members": 30,
+    "members": 60,
     "nests": [
       "icon",
       "focus-ring"
@@ -508,6 +508,18 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
       {
         "key": "size.large.gap",
         "ref": "space.150"
+      },
+      {
+        "key": "size.medium.pad-y",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.small.pad-y",
+        "ref": "space.075"
+      },
+      {
+        "key": "size.large.pad-y",
+        "ref": "space.150"
       }
     ],
     "page": "Checkbox",
@@ -571,6 +583,18 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
       {
         "key": "size.large.gap",
         "ref": "space.150"
+      },
+      {
+        "key": "size.medium.pad-y",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.small.pad-y",
+        "ref": "space.075"
+      },
+      {
+        "key": "size.large.pad-y",
+        "ref": "space.150"
       }
     ],
     "page": "Radio",
@@ -631,6 +655,14 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
       {
         "key": "size.small.gap",
         "ref": "space.100"
+      },
+      {
+        "key": "size.medium.pad-y",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.small.pad-y",
+        "ref": "space.075"
       }
     ],
     "page": "Switch",
@@ -1118,7 +1150,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 96,
+    "members": 144,
     "nests": [
       "icon",
       "focus-ring"
@@ -1217,6 +1249,120 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     ]
   },
   {
+    "id": "toast",
+    "name": "Toast",
+    "category": "feedback",
+    "summary": "A short status message over the page after an action. Announced politely; it never takes focus.",
+    "unit": "variants",
+    "spacing": [
+      {
+        "key": "pad-y",
+        "ref": "space.100"
+      },
+      {
+        "key": "pad-x",
+        "ref": "space.200"
+      },
+      {
+        "key": "pad-end",
+        "ref": "space.100"
+      },
+      {
+        "key": "gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "glyph-gap",
+        "ref": "space.150"
+      }
+    ],
+    "page": "Toast",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 2,
+    "nests": [
+      "button",
+      "flush-icon-button-neutral",
+      "icon"
+    ]
+  },
+  {
+    "id": "_breadcrumb-separator",
+    "name": "BreadcrumbSeparator",
+    "category": "navigation",
+    "summary": "The mark between two breadcrumb steps: a chevron or a slash, in the secondary icon color.",
+    "unit": "variants",
+    "spacing": [],
+    "page": "Breadcrumb Item",
+    "section": "Subcomponents",
+    "buildable": true,
+    "reason": null,
+    "members": 2,
+    "nests": [
+      "icon"
+    ]
+  },
+  {
+    "id": "breadcrumb-item",
+    "name": "BreadcrumbItem",
+    "category": "navigation",
+    "summary": "One step in a breadcrumb trail: a link, the current page, or the collapsed steps.",
+    "unit": "variants",
+    "spacing": [
+      {
+        "key": "size.medium.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.small.gap",
+        "ref": "space.050"
+      }
+    ],
+    "page": "Breadcrumb Item",
+    "section": "Subcomponents",
+    "buildable": true,
+    "reason": null,
+    "members": 10,
+    "nests": [
+      "link",
+      "_breadcrumb-separator",
+      "flush-icon-button-neutral",
+      "icon"
+    ]
+  },
+  {
+    "id": "breadcrumbs",
+    "name": "Breadcrumbs",
+    "category": "navigation",
+    "summary": "The path to the current page as links, with the current page last and not a link. Size applies to the items you haven't edited. After editing an item, select the items and set their size.",
+    "unit": "variants",
+    "spacing": [
+      {
+        "key": "size.medium.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.small.gap",
+        "ref": "space.050"
+      },
+      {
+        "key": "back-gap",
+        "ref": "space.050"
+      }
+    ],
+    "page": "Breadcrumbs",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 6,
+    "nests": [
+      "breadcrumb-item",
+      "icon",
+      "link"
+    ]
+  },
+  {
     "id": "counter",
     "name": "Counter",
     "category": "form",
@@ -1267,6 +1413,62 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "members": 12,
     "nests": [
       "pagination-item"
+    ]
+  },
+  {
+    "id": "search-field",
+    "name": "SearchField",
+    "category": "form",
+    "summary": "Search field: a text field with a search glyph and a clear button, for a query.",
+    "unit": "variants",
+    "spacing": [
+      {
+        "key": "size.medium.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.small.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.large.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.medium.pad-x",
+        "ref": "space.200"
+      },
+      {
+        "key": "size.small.pad-x",
+        "ref": "space.200"
+      },
+      {
+        "key": "size.large.pad-x",
+        "ref": "space.300"
+      },
+      {
+        "key": "size.medium.pad-y",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.small.pad-y",
+        "ref": "space.075"
+      },
+      {
+        "key": "size.large.pad-y",
+        "ref": "space.100"
+      }
+    ],
+    "page": "Search field",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 84,
+    "nests": [
+      "field-label",
+      "icon",
+      "field-message",
+      "focus-ring"
     ]
   }
 ];

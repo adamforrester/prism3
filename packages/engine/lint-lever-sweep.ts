@@ -46,14 +46,14 @@
  *     for them the delta and the absolute check are the same thing.
  *
  * (b) COMPONENTS. SUBJECT = every def's projection after brand materialization — `applyControlShape`
- *     (off the raw input, as the plugin reads it), then `applyFieldStyle` (#2695, off the raw input), then `applyWeightIntent` and `applyOutlineInteraction`
+ *     (off the raw input, as the plugin reads it), then `applyFieldStyle` (#2695, off the raw input, in the style `fieldStyleFor` resolves for the def, #2888), then `applyTagStyle` (#2887, off the raw input), then `applyWeightIntent` and `applyOutlineInteraction`
  *     (off the resolved theme), then `applySpacingDensity` (the spacing model, off the theme's density), then
  *     `applyButtonLayout` (#1667 and #1752's label weight, off the raw input and the theme's heights), then
  *     `applyMinWidthRatio` (Tag's floor, off the theme's heights). This is the composition `apps/plugin/src/brand-def.ts`'s
  *     `materializeForBrand` performs. It is restated here, not imported, because the engine must not
  *     depend on a surface. The plugin's own `test-write-components.ts` pins that function's weight-intent
  *     (#1605), outline-hover (#1608) and button-setting (#1667, #1752) reads; its `controlShape` read has no
- *     plugin-side arm. This gate pins the seven engine materializers under every setting. ORACLE = the Figma EMISSION for that setting
+ *     plugin-side arm. This gate pins the eight engine materializers under every setting. ORACLE = the Figma EMISSION for that setting
  *     (`figmaArtifacts`, the in-memory form of the `out/figma/<brand>/*.json` files Apply writes): its
  *     variable tails, its text styles and its effect styles, checked separately by `planBindingErrors`.
  *     No allowlist: a component that binds a thing its brand does not emit is always a miss on paste.
@@ -94,7 +94,7 @@ import { componentDefs } from './components';
 import type { ComponentDef } from './component-schema';
 import { sizeRefPx } from './scale';
 import {
-  figmaAnatomySet, applyControlShape, applyFieldStyle, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT,
+  figmaAnatomySet, applyControlShape, applyFieldStyle, fieldStyleFor, applyTagStyle, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT,
   planBindingErrors, planComponentName, planBoundVars, planTextStyles, planEffectStyles, type AnatomyPlan,
 } from './anatomy-figma';
 
@@ -175,7 +175,7 @@ const figmaEmitted = (theme: Theme): Emitted => {
 // off the raw input like `controlShape`, with the brand's own size ladder; the ratio floor (Tag's) is last.
 const materialize = (def: ComponentDef, input: BrandInput, theme: Theme): ComponentDef =>
   applyMinWidthRatio(applyButtonLayout(
-    applySpacingDensity(applyOutlineInteraction(applyWeightIntent(applyFieldStyle(applyControlShape(def, input.controlShape ?? 'rounded'), input.fieldStyle ?? 'outline'), weightAvailability(theme.typography)), theme.outlineInteraction), theme.dims.density),
+    applySpacingDensity(applyOutlineInteraction(applyWeightIntent(applyTagStyle(applyFieldStyle(applyControlShape(def, input.controlShape ?? 'rounded'), fieldStyleFor(def.id, input)), input.tagStyle ?? 'pill'), weightAvailability(theme.typography)), theme.outlineInteraction), theme.dims.density),
     {
       icons: input.buttonIcons ?? DEFAULT_BUTTON_LAYOUT.icons,
       content: input.buttonContentSize ?? DEFAULT_BUTTON_LAYOUT.content,
