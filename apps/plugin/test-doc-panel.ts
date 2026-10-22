@@ -83,6 +83,17 @@ const LAYERS: Record<string, string[]> = {
   Chips: ['label', 'chips', 'chip1', 'chip16', 'note'],
   Divider: ['divider'],
 };
+/** List.Item's item-text layer as the projection builds it (#2902): the one TEXT node of an unordered member. Read
+ *  from the plan the host builds, not from the def's `figmaProperties` mapping the panel reads, so a panel that writes
+ *  any other layer (the `text` PROPERTY's name, say) finds nothing and fails `panel/do-dont`. */
+const LIST_ITEM_TEXT = (() => {
+  const plan = figmaAnatomySet(componentDefs.find((d) => d.id === 'list-item')!, { swapTarget: SWAP_TARGET }).find((pl) => pl.coord.type === 'unordered')!;
+  const all = (n: { type?: string; name: string; children?: readonly unknown[] }): { type?: string; name: string }[] =>
+    [n, ...((n.children ?? []) as typeof n[]).flatMap(all)];
+  const found = all(plan.root as never).filter((n) => n.type === 'TEXT').map((n) => n.name);
+  if (found.length !== 1) throw new Error(`list-item: want one TEXT layer in an unordered member, got [${found.join(', ')}]`);
+  return found[0];
+})();
 const TYPES = ['Heading', 'Paragraph', 'Field', 'Do-Dont', 'Specimen', 'Part-marker', 'Chips', 'Divider'];
 const SIZES = ['sm', 'md', 'lg'];
 
@@ -135,7 +146,7 @@ const blockInstance = (type: string): N => {
   const t = (name: string) => mk('TEXT', name);
   const body: N[] =
     type === 'Field' ? [mk('FRAME', 'row', [t('label'), t('text')], { layoutMode: 'HORIZONTAL' })]
-      : type === 'Do-Dont' ? [mk('FRAME', 'columns', ['do', 'dont'].map((c) => mk('FRAME', c, [mk('FRAME', 'rule'), t('heading'), ...[1, 2, 3, 4].map((k) => { const it = prism3Instance('text'); it.name = `item${k}`; return it; })], { layoutMode: 'VERTICAL', itemSpacing: 8 })), { layoutMode: 'HORIZONTAL' })]
+      : type === 'Do-Dont' ? [mk('FRAME', 'columns', ['do', 'dont'].map((c) => mk('FRAME', c, [mk('FRAME', 'rule'), t('heading'), ...[1, 2, 3, 4].map((k) => { const it = prism3Instance(LIST_ITEM_TEXT); it.name = `item${k}`; return it; })], { layoutMode: 'VERTICAL', itemSpacing: 8 })), { layoutMode: 'HORIZONTAL' })]
         : type === 'Specimen' ? [mk('FRAME', 'stage', [mk('INSTANCE', 'specimen', [], { _h: 40 })], { layoutMode: 'VERTICAL', paddingTop: 24, paddingBottom: 24 }), t('caption')]
           : type === 'Part-marker' ? [(() => { const m = prism3Instance('count'); m.name = 'marker'; m._w = 20; m._h = 20; return m; })()]
             : type === 'Chips' ? [t('label'), mk('FRAME', 'chips', Array.from({ length: 16 }, (_, k) => { const c = prism3Instance('label'); c.name = `chip${k + 1}`; c._h = 32; return c; }), { layoutMode: 'HORIZONTAL' }), t('note')]
@@ -220,6 +231,27 @@ for (const def of withSets) {
   const got = panels[0] ? drawnSections(panels[0]) : [];
   ok(r.drawn && panels.length === 1 && tagOf(panels[0]).def === def.id && tagOf(panels[0]).set === set.id && got.join() === want.join(),
     `present/${def.id}: one panel, sections ${got.join(', ')}`, `want [${want.join(', ')}], got ${panels.length} panel(s) [${got.join(', ')}] ${r.skipped.join('; ')}`);
+}
+
+section('panel/do-dont — each Do and Don\'t item\'s text is written into List.Item\'s text layer');
+{
+  let items = 0;
+  const unwritten: string[] = [];
+  for (const def of withSets) {
+    const p = page(`↳ d ${def.id}`);
+    const r = await drawDocPanel(host([p]), fakeSet(p, def.id), def, { names });
+    const shown = texts(panelsOn(p)[0] ?? mk('FRAME', 'none'));
+    const plan = planDocPanel(def, { modes: ['light', 'dark'], names });
+    for (const b of plan.sections.flatMap((s) => s.blocks)) {
+      if (b.type !== 'Do-Dont') continue;
+      for (const t of [...b.do, ...b.dont]) {
+        items++;
+        if (!shown.includes(t)) unwritten.push(`${def.id}: "${t.slice(0, 40)}"`);
+      }
+    }
+    if (r.misses.some((m) => m.includes('item text'))) unwritten.push(`${def.id}: ${r.misses.join('; ')}`);
+  }
+  ok(items >= 20 && !unwritten.length, `panel/do-dont: all ${items} Do and Don't items are written, into List.Item's "${LIST_ITEM_TEXT}" layer`, unwritten.slice(0, 3).join('; '));
 }
 
 section('present/modes — the file\'s light and dark, side by side, each pinned');
@@ -509,7 +541,7 @@ section('template/… — `_Doc-block`');
 {
   const made: N[] = [];
   const memberSet = (name: string, member: string, text: string) => mk('COMPONENT_SET', name, [mk('COMPONENT', member, [], { createInstance: () => { const i = prism3Instance(text); i.main = name; return i; } })]);
-  const libs = [memberSet('badge', 'type=count, emphasis=bold, tone=neutral', 'count'), memberSet('tag', 'type=select, selection=unselected, size=small, state=rest', 'label'), memberSet('list-item', 'type=unordered, size=small', 'text'), memberSet('divider', 'orientation=horizontal, inset=none', 'rule')];
+  const libs = [memberSet('badge', 'type=count, emphasis=bold, tone=neutral', 'count'), memberSet('tag', 'type=select, selection=unselected, size=small, state=rest', 'label'), memberSet('list-item', 'type=unordered, size=small', LIST_ITEM_TEXT), memberSet('divider', 'orientation=horizontal, inset=none', 'rule')];
   const props: { name: string; type: string; value: unknown }[] = [];
   // The host's rule (#2902): a node is FILL only inside an auto-layout parent, so FILL set before the append throws.
   const fillRule = (n: N): N => {

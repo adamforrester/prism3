@@ -53,6 +53,7 @@
  */
 import { docSections, type DocSection, type DocSectionId } from '@prism3/engine/component-doc-sections';
 import type { ComponentDef } from '@prism3/engine/component-schema';
+import { componentDefs } from '@prism3/engine/components/index';
 import { isTemplateSet } from './file-components';
 import { fingerprintOf, fnv, type SgNode } from './style-guide';
 import { NS } from './persist-figma';
@@ -384,6 +385,9 @@ export const docPanelBlockers = (api: Pick<PanelApi, 'root'>, set: PNode, plan: 
   return blockersAt(parent.children as readonly PNode[], { x: at.x, y: at.y, width: PANEL_WIDTH, height: rec.h }, skip);
 };
 
+/** List.Item's text layer in a Do or Don't row: the part its item text is written into, read from the def (#2902).
+ *  The text PROPERTY is named `text`; the LAYER is the part, `label`. */
+const ITEM_TEXT = componentDefs.find((d) => d.id === 'list-item')?.figmaProperties?.texts?.children?.part ?? '';
 /** The descendant named `name`, depth first. */
 const find = (n: PNode | undefined, name: string): PNode | undefined => {
   for (const c of n?.children ?? []) { if (c.name === name) return c; const d = find(c, name); if (d) return d; }
@@ -492,7 +496,7 @@ export const drawDocPanel = async (
             const row = find(c, `item${k}`);
             if (!row) { if (k <= items.length) out.misses.push(`${DOC_BLOCK_SET} has no item${k} in ${col}`); continue; }
             if (k > items.length) { row.visible = false; continue; }
-            await write(findText(row, 'text'), items[k - 1], 'item text');
+            await write(findText(row, ITEM_TEXT), items[k - 1], 'item text');
           }
         }
         break;
