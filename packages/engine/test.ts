@@ -18719,7 +18719,7 @@ arm: {
         && prop('collapse')?.default === 'expand' && prop('responsive')?.default === true && prop('label')?.default === 'Breadcrumb'
         && trailDef.name === 'Breadcrumbs' && trailDef.category === 'navigation' && itemDef.name === 'BreadcrumbItem' && itemDef.category === 'navigation'
         && JSON.stringify(trailDef.aliases) === '["breadcrumb","breadcrumb-trail","breadcrumb-list"]'
-        && trailDef.summary === 'The path to the current page as links, with the current page last and not a link.'
+        && trailDef.summary === 'The path to the current page as links, with the current page last and not a link. Size applies to the items you haven\'t edited. After editing an item, select the items and set their size.'
         && itemDef.summary === 'One step in a breadcrumb trail: a link, the current page, or the collapsed steps.'
         && itemDef.accessibility.aria.includes('"Show full path"') && trailDef.accessibility.aria.includes('aria-label="Breadcrumb"') && trailDef.accessibility.aria.includes('aria-current="page"'),
         `#2666 breadcrumbs/code-props: collapse above 5 keeping 1 and 2, expand in place, the small-screen switch on, the nav named "Breadcrumb", the overflow "Show full path", and the approved names and summaries (maxItems ${prop('maxItems')?.default}, before ${prop('itemsBeforeCollapse')?.default}, after ${prop('itemsAfterCollapse')?.default})`);
