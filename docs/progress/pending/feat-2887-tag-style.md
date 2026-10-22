@@ -19,5 +19,9 @@ and the unpadded label row takes the floor, which gives the arm's geometry exact
 **Mutations, each failing by name:** the unselected hover weight bound to `hairline` → `tag underline: hover and pressed
 are 2px`; `applyTagStyle` changing the def under `pill` → `#2887 identity`; the focus-visible line thickened → `tag
 underline: focus-visible keeps the line weight`; the container back to `align: center` → `#2887 underline label sits on
-its inset`; `minHeight` dropped → the same arm; `applyTagStyle` dropped from the plugin chain → the plugin read-back and
-`test-roundtrip`'s chain agreement.
+its inset` (an arm that first stayed green on that mutation, since its walk read NaN and a NaN comparison never
+failed; fixed to ask for a measured match); `minHeight` dropped → the schema arm, `tag underline: the tag hugs above a
+minHeight` and the inset arm; `applyTagStyle` dropped from the plugin chain → `#2887 underline tag reads back`
+(`test-write-components.ts`) and the `tag style/…` Update arms (`test-update-apply.ts`). `test-roundtrip`'s chain
+agreement cannot see that one: its null brand is on Pill, where the lever is the identity. `lint-hit-target.ts` does
+not see a dropped `minHeight` either, because it measures the Pill def.
