@@ -57,7 +57,7 @@ export const buttonGroup: ComponentDef = {
   status: 'draft',
   summary: 'One to three buttons laid out together: in a row at the end, stacked, or sharing the width.',
   description:
-    'A set of one to three buttons for the actions that close a task: Cancel and Save at the foot of a dialog, the actions of a banner, the buttons under a form. Inline puts them in a row at the end edge with the main action last; stacked puts them in a column of full-width buttons with the main action on top; fill puts them in a row whose buttons share the width. The buttons are Button, Button.Destructive and Button.Neutral, each its own action and spaced apart. Not a segmented control, whose buttons join edge to edge as one choice, and not a toolbar.',
+    'A set of one to three buttons for the actions that close a task: Cancel and Save at the foot of a dialog, the buttons under a form. Inline puts them in a row at the end edge with the main action last; stacked puts them in a column of full-width buttons with the main action on top; fill puts them in a row whose buttons share the width. The buttons are Button, Button.Destructive and Button.Neutral, each its own action and spaced apart. Not a segmented control, whose buttons join edge to edge as one choice, and not a toolbar.',
 
   props: [
     { name: 'items', type: 'slot', anyOf: ['button', 'button-destructive', 'button-neutral'], minItems: 1, maxItems: 3, required: true, description: 'The buttons, each a Button, Button.Destructive or Button.Neutral, in order. Two by default, three at most. Inline and fill, the main action last; stacked, the main action first.' },
@@ -150,7 +150,7 @@ export const buttonGroup: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use a Button.Group for the actions that close a task: the foot of a dialog, the actions of a banner or a card, the buttons under a form. Inline for a row at the end edge on a wide surface; stacked for full-width buttons on a phone or a bottom sheet; fill for a row whose buttons share the width. Put the main action last inline and at fill, and first when stacked.',
+    usage: 'Use a Button.Group for the actions that close a task: the foot of a dialog, the actions of a card, the buttons under a form. Inline for a row at the end edge on a wide surface; stacked for full-width buttons on a phone or a bottom sheet; fill for a row whose buttons share the width. Put the main action last inline and at fill, and first when stacked.',
     do: [
       'Keep to one main action, the filled Button',
       'Put the main action last in a row and on top when stacked',
@@ -168,9 +168,9 @@ export const buttonGroup: ComponentDef = {
 
   ai: {
     primaryPurpose: 'Lay out the one to three buttons that close a task, as a row at the end edge, a full-width stack or a row that shares the width.',
-    whenToUse: 'The actions at the foot of a dialog, banner, card or form: a main action with a Cancel beside it, or up to three related actions.',
+    whenToUse: 'The actions at the foot of a dialog, card or form: a main action with a Cancel beside it, or up to three related actions.',
     avoidWhen: 'One choice among joined options (segmented-control), a toolbar of tools, navigation (links), or a single action on its own (a Button by itself).',
-    commonPartners: ['dialog', 'banner', 'button', 'button-destructive', 'button-neutral'],
+    commonPartners: ['dialog', 'button', 'button-destructive', 'button-neutral'],
     triggerKeywords: ['button group', 'button set', 'actions', 'action buttons', 'dialog footer', 'form actions', 'cancel and save'],
     generationPriority: 2,
   },
