@@ -30965,8 +30965,8 @@ arm: {
       `#2939 the ring sweep read every radio-control member (checked/default ${checkedSeen} of 15, others ${unchangedSeen} of 45)`);
   }
   // …and the recolored CHECKED ring keeps a live SC 1.4.11 3:1 contract as a graphical object on the page.
-  // The interactive border role is gated against `background.primary` at `nonTextMin` (modes.ts `iBorder`,
-  // rated to clear it), so the role's own measured ratio IS the ring-vs-page ratio. Measured live via
+  // Since #2939 the ring binds the interactive FILL rungs, each rated against the page floor (modes.ts), so the
+  // role's own measured ratio IS the ring-vs-page ratio — the same reading the checked checkbox's box relies on. Measured live via
   // resolveAllModes (independent of the def) across the example brands × every mode — the same sweep #1349 uses.
   // Read defensively — a mutation reverting the rebind may DROP the `pressed` key entirely (the pre-#1423
   // field-border ring had none), and this sweep must not crash on it: the by-name EQUALS/NOT assertions
