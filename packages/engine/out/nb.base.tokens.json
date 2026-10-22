@@ -4150,6 +4150,11 @@
         "$type": "dimension",
         "$value": "{nbds.core.dimension.4}",
         "$description": "border-width heavy — 4px"
+      },
+      "x-heavy": {
+        "$type": "dimension",
+        "$value": "{nbds.core.dimension.6}",
+        "$description": "border-width x-heavy — 6px"
       }
     },
     "focus": {

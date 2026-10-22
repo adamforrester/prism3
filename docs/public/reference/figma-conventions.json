@@ -2357,8 +2357,16 @@
         "private": true,
         "page": "↳ Slider",
         "section": "Components",
-        "members": 5,
+        "members": 15,
         "variantProperties": [
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          },
           {
             "name": "state",
             "values": [
@@ -2380,13 +2388,21 @@
         "kind": "component set",
         "page": "↳ Slider",
         "section": "Components",
-        "members": 10,
+        "members": 30,
         "variantProperties": [
           {
             "name": "type",
             "values": [
               "single",
               "range"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
             ]
           },
           {
@@ -2410,6 +2426,10 @@
             "type": "TEXT"
           },
           {
+            "name": "milestone",
+            "type": "TEXT"
+          },
+          {
             "name": "max label",
             "type": "TEXT"
           },
@@ -2426,7 +2446,7 @@
             "type": "BOOLEAN"
           },
           {
-            "name": "end labels",
+            "name": "milestones",
             "type": "BOOLEAN"
           },
           {

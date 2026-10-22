@@ -81,17 +81,37 @@
         "focus-visible",
         "disabled"
       ],
-      "axes": {},
+      "axes": {
+        "size": [
+          "medium",
+          "small",
+          "large"
+        ]
+      },
       "props": [
         {
           "name": "aria-label"
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
         },
         {
           "name": "disabled",
           "default": false
         }
       ],
-      "sizes": []
+      "sizes": [
+        "medium",
+        "small",
+        "large"
+      ],
+      "sizeDefault": "medium"
     },
     {
       "id": "accordion",
@@ -2875,6 +2895,11 @@
         "disabled"
       ],
       "axes": {
+        "size": [
+          "medium",
+          "small",
+          "large"
+        ],
         "type": [
           "single",
           "range"
@@ -2930,12 +2955,24 @@
           ]
         },
         {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        {
           "name": "showValue",
           "default": true
         },
         {
-          "name": "showEndLabels",
+          "name": "showMilestones",
           "default": false
+        },
+        {
+          "name": "milestones"
         },
         {
           "name": "showInputs",
@@ -2967,7 +3004,12 @@
           "name": "name"
         }
       ],
-      "sizes": []
+      "sizes": [
+        "medium",
+        "small",
+        "large"
+      ],
+      "sizeDefault": "medium"
     },
     {
       "id": "spinner",
@@ -4401,6 +4443,7 @@
         ],
         "components": [
           "_accordion-indicator",
+          "_slider-thumb",
           "accordion",
           "button",
           "button-destructive",
@@ -4427,6 +4470,7 @@
           "segmented-control",
           "segmented-control-segment",
           "select",
+          "slider",
           "tab-item",
           "tabs",
           "tag",
@@ -5580,6 +5624,11 @@
         "id": "toast"
       }
     ],
+    "milestones": [
+      {
+        "id": "slider"
+      }
+    ],
     "min": [
       {
         "id": "counter",
@@ -6031,12 +6080,6 @@
         "default": false
       }
     ],
-    "showEndLabels": [
-      {
-        "id": "slider",
-        "default": false
-      }
-    ],
     "showInputs": [
       {
         "id": "slider",
@@ -6071,6 +6114,12 @@
         "default": true
       }
     ],
+    "showMilestones": [
+      {
+        "id": "slider",
+        "default": false
+      }
+    ],
     "showStateLabel": [
       {
         "id": "switch-control",
@@ -6096,6 +6145,15 @@
     "size": [
       {
         "id": "_accordion-indicator",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "id": "_slider-thumb",
         "default": "medium",
         "values": [
           "small",
@@ -6340,6 +6398,15 @@
       },
       {
         "id": "select",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "id": "slider",
         "default": "medium",
         "values": [
           "small",
@@ -7203,6 +7270,7 @@
       "subject": "axis size",
       "components": [
         "_accordion-indicator",
+        "_slider-thumb",
         "accordion",
         "button",
         "button-destructive",
@@ -7229,6 +7297,7 @@
         "segmented-control",
         "segmented-control-segment",
         "select",
+        "slider",
         "spinner",
         "switch-control",
         "switch-row",
@@ -7238,7 +7307,7 @@
         "text-field",
         "textarea"
       ],
-      "detail": "the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab-item, tabs, tag, text-field, textarea; [medium, small] in switch-control, switch-row; [large, medium, small, x-small] in spinner"
+      "detail": "the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, slider, tab-item, tabs, tag, text-field, textarea; [medium, small] in switch-control, switch-row; [large, medium, small, x-small] in spinner"
     },
     {
       "kind": "axis values",
@@ -7308,6 +7377,14 @@
         "_accordion-indicator"
       ],
       "detail": "_accordion-indicator declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "_slider-thumb",
+      "components": [
+        "_slider-thumb"
+      ],
+      "detail": "_slider-thumb declares its sizes as [medium, small, large], not smallest first"
     },
     {
       "kind": "size order",
@@ -7511,6 +7588,14 @@
     },
     {
       "kind": "size order",
+      "subject": "slider",
+      "components": [
+        "slider"
+      ],
+      "detail": "slider declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
       "subject": "switch-control",
       "components": [
         "switch-control"
@@ -7571,7 +7656,7 @@
       "components": [
         "field-label"
       ],
-      "detail": "field-label defaults size to small; 34 of 35 sized components default to medium"
+      "detail": "field-label defaults size to small; 36 of 37 sized components default to medium"
     },
     {
       "kind": "prop default",

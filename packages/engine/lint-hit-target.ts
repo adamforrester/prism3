@@ -169,9 +169,10 @@ const INTERACTIVE: Record<string, Binding> = {
   // #2427: the Counter's row, the height of the value it centers (the spinbutton, its one Tab stop). Its two buttons
   // are code-side targets nested in it, measured under FLUSH_NESTS below.
   'counter': { key: (s) => `size.${s}.height`, why: 'the Counter row height, on Button\'s height rung' },
-  // #2669: one size (owner call 3 A), so `single`: the control row around the track is the click-to-jump target, on the
-  // interactive floor `size.md.min-height`. Each thumb is its own code-side target below (CODE_SIDE_TARGETS).
-  'slider': { key: () => 'control-height', why: 'the control row around the track, the click-to-jump target', single: true },
+  // #2669: the control row around the track is the click-to-jump target, on the interactive floor `size.md.min-height`
+  // at every size (owner Q550 e: the size axis moves the thumb and the track, never the row). Each thumb is its own
+  // code-side target below (CODE_SIDE_TARGETS).
+  'slider': { key: () => 'control-height', why: 'the control row around the track, the click-to-jump target, the same at every size' },
 };
 
 // ── TARGETS INSIDE A CONTROL (#1741): `<def>.<part>` → the tokens KEY of the part's side at a size ─────────
@@ -249,9 +250,9 @@ const CODE_SIDE_TARGETS: Record<string, { key: (size: string) => string; why: st
   'flush-icon-button': FLUSH_ICON_BUTTON_TARGET(),
   'flush-icon-button-destructive': FLUSH_ICON_BUTTON_TARGET(),
   'flush-icon-button-neutral': FLUSH_ICON_BUTTON_TARGET(),
-  // #2669 (owner call 6 A): the slider thumb's disc is 24px at comfortable and smaller at compact, and its hit area is
-  // 44×44 in code at every density. One size, so `single`: measured once, at its one binding.
-  '_slider-thumb': { key: () => 'size', why: "the slider thumb's disc, `control.size.md.thumb`", single: true },
+  // #2669 (owner call 6 A, Q550 e): the slider thumb's disc is 18, 24 or 30px by size (smaller at compact), and its hit
+  // area is 44×44 in code at every size and density, so the small 18px disc's target is well over 24×24.
+  '_slider-thumb': { key: (s) => `size.${s}.thumb`, why: "the slider thumb's disc, `control.size.{sm,md,lg}.thumb`" },
 };
 // The thumb's entry is centered on the THUMB, the flush icon button's on the GLYPH: one rule, two words for the box.
 const CODE_SIDE_RULE = [/at least 44×44px at every size/, /::before`? inset outward/, /centered on the (glyph|thumb)/];

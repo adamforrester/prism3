@@ -722,19 +722,20 @@
       ]
     },
     "_slider-thumb": {
-      "members": 5,
-      "sha256": "dd71eb9ff387eff51be57fcc7190ffd25de883e1a6aebfa88b089adb5c4ab2b1",
+      "members": 15,
+      "sha256": "1182808f96e60938100262e24d6a68a81a2eca6ee5267a6425850550017c1959",
       "properties": []
     },
     "slider": {
-      "members": 10,
-      "sha256": "9e62b003d9b69945602385e43925134e77c881c0da6b4a13c1d03ce89725e081",
+      "members": 30,
+      "sha256": "76f82ee3be7f7c2d90667311d83bb3456465e2d7f0bad923c9ec55877a735e2d",
       "properties": [
-        "end labels:BOOLEAN",
         "helper:BOOLEAN",
         "inputs:BOOLEAN",
         "label:BOOLEAN",
         "max label:TEXT",
+        "milestone:TEXT",
+        "milestones:BOOLEAN",
         "min label:TEXT",
         "range text:TEXT",
         "value text:TEXT",

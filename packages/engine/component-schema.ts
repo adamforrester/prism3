@@ -2279,10 +2279,7 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
   });
 
   // ---- variant axes ----
-  // A def with NO variants and a state axis projects a set over its states alone (#2669, Slider.Thumb: one disc whose
-  // only difference is its state). Any def that declares a variant still needs a non-empty list.
-  const stateOnly = Object.keys(def.variants ?? {}).length === 0 && !!fp.stateAxis?.values?.length;
-  if (!Array.isArray(fp.variantAxes) || (fp.variantAxes.length === 0 && !stateOnly)) {
+  if (!Array.isArray(fp.variantAxes) || fp.variantAxes.length === 0) {
     e.push('figmaProperties.variantAxes must be a non-empty array');
   } else {
     const seen = new Set<string>();

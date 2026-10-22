@@ -20,6 +20,11 @@
   },
   "_slider-thumb": {
     "axes": {
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
       "state": [
         "disabled",
         "focus-visible",
@@ -28,7 +33,7 @@
         "rest"
       ]
     },
-    "members": 5,
+    "members": 15,
     "properties": {}
   },
   "accordion": {
@@ -901,6 +906,11 @@
   },
   "slider": {
     "axes": {
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
       "state": [
         "disabled",
         "focus-visible",
@@ -913,13 +923,14 @@
         "single"
       ]
     },
-    "members": 10,
+    "members": 30,
     "properties": {
-      "end labels": "BOOLEAN",
       "helper": "BOOLEAN",
       "inputs": "BOOLEAN",
       "label": "BOOLEAN",
       "max label": "TEXT",
+      "milestone": "TEXT",
+      "milestones": "BOOLEAN",
       "min label": "TEXT",
       "range text": "TEXT",
       "value": "BOOLEAN",

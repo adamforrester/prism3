@@ -8601,14 +8601,26 @@
       ],
       "category": "form",
       "status": "draft",
-      "summary": "The thumb a Slider moves: a filled disc with a page-colored ring. Used only inside a Slider.",
-      "description": "The handle a Slider moves along its track: a filled disc in the primary fill with a 2px ring in the page color, which keeps it apart from the fill beside it. It darkens at hover and press, and shows the focus ring while it has keyboard focus. It lives inside a Slider, which places one thumb for a single value and two for a range, and is never placed on its own.",
+      "summary": "The thumb a Slider moves: an ink disc that sits on the track. Used only inside a Slider.",
+      "description": "The handle a Slider moves along its track: a disc in neutral ink that sits on the track with no gap. A light halo grows around it at hover and wider while pressed, and it shows the focus ring while it has keyboard focus. It comes in the Slider's three sizes. It lives inside a Slider, which places one thumb for a single value and two for a range, and is never placed on its own.",
       "props": [
         {
           "name": "aria-label",
           "type": "string",
           "required": false,
           "description": "The thumb's accessible name. Set by the Slider: the label for a single value, \"Minimum {label}\" and \"Maximum {label}\" for a range."
+        },
+        {
+          "name": "size",
+          "type": "enum: 'small' | 'medium' | 'large'",
+          "default": "medium",
+          "required": false,
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "description": "The disc's diameter: 18, 24 or 30px at the default density, from control.size.*.thumb. Set by the Slider."
         },
         {
           "name": "disabled",
@@ -8625,13 +8637,22 @@
         "focus-visible",
         "disabled"
       ],
-      "variants": {},
+      "variants": {
+        "size": {
+          "values": [
+            "medium",
+            "small",
+            "large"
+          ],
+          "kind": "authoring"
+        }
+      },
       "accessibility": {
         "role": "slider, from a visually hidden native <input type=\"range\">; the Slider wires its name, value and range",
         "wcag": [
-          "1.4.11 Non-text Contrast (the disc targets 3:1 against the page at rest, hover and press)",
+          "1.4.11 Non-text Contrast (the disc targets 3:1 against the page and against the track at rest, hover and press)",
           "2.4.7 Focus Visible / 2.4.13 Focus Appearance (the shared focus ring, as intent)",
-          "2.5.8 Target Size (targets a 44×44px hit area in code, beyond the visible disc)"
+          "2.5.8 Target Size (targets a 44×44px hit area in code at every size, beyond the visible disc)"
         ],
         "keyboard": "Set by the Slider: arrow keys move one step, Page Up and Page Down one large step, Home and End to the ends of the thumb's range.",
         "focus": "A focus ring around the thumb on :focus-visible, never around the track.",
@@ -8641,9 +8662,9 @@
         "labelPattern": "None of its own. The Slider names each thumb: its label for a single value, \"Minimum {label}\" and \"Maximum {label}\" for a range."
       },
       "docs": {
-        "usage": "Part of a Slider. The Slider places one thumb for a single value and two for a range, and sets each thumb's name, value and state.",
+        "usage": "Part of a Slider. The Slider places one thumb for a single value and two for a range, and sets each thumb's name, value, size and state.",
         "do": [
-          "Extend its hit area in code to at least 44×44px at every size, with a transparent `::before` inset outward",
+          "Extend its hit area in code to at least 44×44px at every size, with a transparent ::before inset outward",
           "Let the Slider name each thumb, so a range announces \"Minimum\" and \"Maximum\", not \"slider, slider\""
         ],
         "dont": [
@@ -8654,7 +8675,7 @@
       },
       "ai": {
         "primaryPurpose": "The handle a Slider moves, inside a Slider only.",
-        "whenToUse": "Only as part of a Slider.",
+        "whenToUse": "Only as a child of a Slider. Generate a Slider, which places one thumb for a single value and two for a range, and sets their size and state.",
         "avoidWhen": "Anywhere outside a Slider. A switch handle is Switch.Control; a value chosen by dragging is a Slider.",
         "commonPartners": [
           "slider",
@@ -8670,7 +8691,7 @@
       "motion": {
         "enter": "None.",
         "exit": "None.",
-        "reduceMotion": "While dragging the thumb follows the pointer with no transition. After a track click or a key step it slides on the fast duration; under reduced motion it moves at once."
+        "reduceMotion": "While dragging the thumb follows the pointer with no transition. After a track click or a key step it slides on the fast duration, and the halo grows on the same duration; under reduced motion both change at once."
       },
       "composition": {
         "composesWith": [
@@ -8786,6 +8807,18 @@
           "description": "Read from value: a number is single, a pair is range. Not set on its own; listed so the two looks have a name."
         },
         {
+          "name": "size",
+          "type": "enum: 'small' | 'medium' | 'large'",
+          "default": "medium",
+          "required": false,
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "description": "The thumb and the track: an 18px thumb on a 2px track, 24 on 4, or 30 on 6. The label, the value text and the 44px hit area stay the same at every size."
+        },
+        {
           "name": "showValue",
           "type": "boolean",
           "default": true,
@@ -8793,11 +8826,17 @@
           "description": "Shows the value text above the track. Turn it off only when the paired inputs show the value instead."
         },
         {
-          "name": "showEndLabels",
+          "name": "showMilestones",
           "type": "boolean",
           "default": false,
           "required": false,
-          "description": "Shows the minimum and maximum under the ends of the track."
+          "description": "Shows labeled milestones under the track: the minimum and the maximum at its ends, and any values in milestones between them, each under its own position."
+        },
+        {
+          "name": "milestones",
+          "type": "Array<number | { value: number; label: string }>",
+          "required": false,
+          "description": "The values labeled under the track when showMilestones is on, such as [500, 1000]. A plain number is formatted like the value text; an object gives its own label. The minimum and the maximum are always labeled."
         },
         {
           "name": "showInputs",
@@ -8858,6 +8897,14 @@
         "disabled"
       ],
       "variants": {
+        "size": {
+          "values": [
+            "medium",
+            "small",
+            "large"
+          ],
+          "kind": "authoring"
+        },
         "type": {
           "values": [
             "single",
@@ -8871,8 +8918,8 @@
         "wcag": [
           "4.1.2 Name, Role, Value (each thumb named, with aria-valuetext for a formatted value)",
           "2.1.1 Keyboard (arrow, Page and Home and End keys on every thumb)",
-          "1.4.11 Non-text Contrast (the rail, the fill and the thumb target 3:1 against the page)",
-          "1.4.1 Use of Color (the fill is thicker than the rail and bounded by the thumbs, not told apart by color alone)",
+          "1.4.11 Non-text Contrast (the track, the selected part and the thumb target 3:1 against the page, and the selected part 3:1 against the track)",
+          "1.4.1 Use of Color (the selected part is bounded by the thumbs, and the value text states it, so it is not told apart by color alone)",
           "2.4.7 Focus Visible / 2.4.13 Focus Appearance (the focus ring on the thumb, as intent)",
           "2.5.7 Dragging Movements (a click on the rail, the keys or the paired inputs move a thumb without dragging)",
           "2.5.8 Target Size (targets a 44×44px hit area on each thumb in code)",
@@ -8920,7 +8967,7 @@
           "range input",
           "min max slider"
         ],
-        "generationPriority": 4
+        "generationPriority": 2
       },
       "motion": {
         "enter": "None.",

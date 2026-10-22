@@ -35364,8 +35364,18 @@
     "_slider-thumb": {
       "id": "_slider-thumb",
       "name": "Slider.Thumb",
-      "members": 5,
+      "members": 15,
       "axes": [
+        {
+          "name": "size",
+          "figmaName": "size",
+          "values": [
+            "medium",
+            "small",
+            "large"
+          ],
+          "kind": "size"
+        },
         {
           "name": "state",
           "figmaName": "state",
@@ -35382,19 +35392,29 @@
       "codeOnlyStates": [],
       "anatomy": [
         {
-          "part": "thumb",
+          "part": "frame",
           "kind": "frame",
-          "members": 5
+          "members": 15
         },
         {
-          "part": "thumb/disc",
+          "part": "frame/pressHalo",
           "kind": "frame",
-          "members": 5
+          "members": 15
         },
         {
-          "part": "thumb/focusRing",
+          "part": "frame/pressHalo/hoverHalo",
+          "kind": "frame",
+          "members": 15
+        },
+        {
+          "part": "frame/pressHalo/hoverHalo/disc",
+          "kind": "frame",
+          "members": 15
+        },
+        {
+          "part": "frame/focusRing",
           "kind": "instance",
-          "members": 1,
+          "members": 3,
           "when": {
             "state": [
               "focus-visible"
@@ -35402,26 +35422,63 @@
           }
         }
       ],
-      "redlineKey": [],
+      "redlineKey": [
+        "size"
+      ],
       "redlines": [
         {
-          "where": {},
+          "where": {
+            "size": "medium"
+          },
           "parts": [
             {
-              "part": "thumb",
+              "part": "frame",
+              "values": {
+                "height": {
+                  "token": "control.size.md.thumb"
+                },
+                "width": {
+                  "token": "control.size.md.thumb"
+                }
+              }
+            },
+            {
+              "part": "frame/pressHalo",
               "values": {
                 "paddingTop": {
-                  "token": "space.025"
+                  "token": "space.050"
                 },
                 "paddingRight": {
-                  "token": "space.025"
+                  "token": "space.050"
                 },
                 "paddingBottom": {
-                  "token": "space.025"
+                  "token": "space.050"
                 },
                 "paddingLeft": {
-                  "token": "space.025"
+                  "token": "space.050"
+                }
+              }
+            },
+            {
+              "part": "frame/pressHalo/hoverHalo",
+              "values": {
+                "paddingTop": {
+                  "token": "space.050"
                 },
+                "paddingRight": {
+                  "token": "space.050"
+                },
+                "paddingBottom": {
+                  "token": "space.050"
+                },
+                "paddingLeft": {
+                  "token": "space.050"
+                }
+              }
+            },
+            {
+              "part": "frame/pressHalo/hoverHalo/disc",
+              "values": {
                 "height": {
                   "token": "control.size.md.thumb"
                 },
@@ -35431,12 +35488,154 @@
               }
             }
           ]
+        },
+        {
+          "where": {
+            "size": "small"
+          },
+          "parts": [
+            {
+              "part": "frame",
+              "values": {
+                "height": {
+                  "token": "control.size.sm.thumb"
+                },
+                "width": {
+                  "token": "control.size.sm.thumb"
+                }
+              }
+            },
+            {
+              "part": "frame/pressHalo",
+              "values": {
+                "paddingTop": {
+                  "token": "space.050"
+                },
+                "paddingRight": {
+                  "token": "space.050"
+                },
+                "paddingBottom": {
+                  "token": "space.050"
+                },
+                "paddingLeft": {
+                  "token": "space.050"
+                }
+              }
+            },
+            {
+              "part": "frame/pressHalo/hoverHalo",
+              "values": {
+                "paddingTop": {
+                  "token": "space.050"
+                },
+                "paddingRight": {
+                  "token": "space.050"
+                },
+                "paddingBottom": {
+                  "token": "space.050"
+                },
+                "paddingLeft": {
+                  "token": "space.050"
+                }
+              }
+            },
+            {
+              "part": "frame/pressHalo/hoverHalo/disc",
+              "values": {
+                "height": {
+                  "token": "control.size.sm.thumb"
+                },
+                "width": {
+                  "token": "control.size.sm.thumb"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large"
+          },
+          "parts": [
+            {
+              "part": "frame",
+              "values": {
+                "height": {
+                  "token": "control.size.lg.thumb"
+                },
+                "width": {
+                  "token": "control.size.lg.thumb"
+                }
+              }
+            },
+            {
+              "part": "frame/pressHalo",
+              "values": {
+                "paddingTop": {
+                  "token": "space.050"
+                },
+                "paddingRight": {
+                  "token": "space.050"
+                },
+                "paddingBottom": {
+                  "token": "space.050"
+                },
+                "paddingLeft": {
+                  "token": "space.050"
+                }
+              }
+            },
+            {
+              "part": "frame/pressHalo/hoverHalo",
+              "values": {
+                "paddingTop": {
+                  "token": "space.050"
+                },
+                "paddingRight": {
+                  "token": "space.050"
+                },
+                "paddingBottom": {
+                  "token": "space.050"
+                },
+                "paddingLeft": {
+                  "token": "space.050"
+                }
+              }
+            },
+            {
+              "part": "frame/pressHalo/hoverHalo/disc",
+              "values": {
+                "height": {
+                  "token": "control.size.lg.thumb"
+                },
+                "width": {
+                  "token": "control.size.lg.thumb"
+                }
+              }
+            }
+          ]
         }
       ],
-      "typeKey": [],
+      "typeKey": [
+        "size"
+      ],
       "type": [
         {
-          "where": {},
+          "where": {
+            "size": "medium"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "size": "small"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "size": "large"
+          },
           "parts": []
         }
       ],
@@ -35450,12 +35649,8 @@
           },
           "parts": [
             {
-              "part": "thumb",
-              "fill": "color.background.primary"
-            },
-            {
-              "part": "thumb/disc",
-              "fill": "color.interactive.primary.fill.rest"
+              "part": "frame/pressHalo/hoverHalo/disc",
+              "fill": "color.interactive.neutral.border.rest"
             }
           ]
         },
@@ -35465,12 +35660,12 @@
           },
           "parts": [
             {
-              "part": "thumb",
-              "fill": "color.background.primary"
+              "part": "frame/pressHalo/hoverHalo",
+              "stroke": "color.border.primary"
             },
             {
-              "part": "thumb/disc",
-              "fill": "color.interactive.primary.fill.hover"
+              "part": "frame/pressHalo/hoverHalo/disc",
+              "fill": "color.interactive.neutral.border.hover"
             }
           ]
         },
@@ -35480,12 +35675,16 @@
           },
           "parts": [
             {
-              "part": "thumb",
-              "fill": "color.background.primary"
+              "part": "frame/pressHalo",
+              "fill": "color.border.primary"
             },
             {
-              "part": "thumb/disc",
-              "fill": "color.interactive.primary.fill.pressed"
+              "part": "frame/pressHalo/hoverHalo",
+              "stroke": "color.border.primary"
+            },
+            {
+              "part": "frame/pressHalo/hoverHalo/disc",
+              "fill": "color.interactive.neutral.border.pressed"
             }
           ]
         },
@@ -35495,12 +35694,8 @@
           },
           "parts": [
             {
-              "part": "thumb",
-              "fill": "color.background.primary"
-            },
-            {
-              "part": "thumb/disc",
-              "fill": "color.interactive.primary.fill.rest"
+              "part": "frame/pressHalo/hoverHalo/disc",
+              "fill": "color.interactive.neutral.border.rest"
             }
           ]
         },
@@ -35510,19 +35705,15 @@
           },
           "parts": [
             {
-              "part": "thumb",
-              "fill": "color.background.primary"
-            },
-            {
-              "part": "thumb/disc",
-              "fill": "color.disabled.fill"
+              "part": "frame/pressHalo/hoverHalo/disc",
+              "fill": "color.disabled.icon"
             }
           ]
         }
       ],
       "nesting": [
         {
-          "part": "thumb/focusRing",
+          "part": "frame/focusRing",
           "kind": "instance",
           "component": "focus-ring",
           "variant": {
@@ -35537,7 +35728,7 @@
     "slider": {
       "id": "slider",
       "name": "Slider",
-      "members": 10,
+      "members": 30,
       "axes": [
         {
           "name": "type",
@@ -35547,6 +35738,16 @@
             "range"
           ],
           "kind": "variant"
+        },
+        {
+          "name": "size",
+          "figmaName": "size",
+          "values": [
+            "medium",
+            "small",
+            "large"
+          ],
+          "kind": "size"
         },
         {
           "name": "state",
@@ -35566,22 +35767,27 @@
         {
           "part": "container",
           "kind": "frame",
-          "members": 10
+          "members": 30
         },
         {
-          "part": "container/header",
+          "part": "container/field",
           "kind": "frame",
-          "members": 10
+          "members": 30
         },
         {
-          "part": "container/header/label",
+          "part": "container/field/header",
+          "kind": "frame",
+          "members": 30
+        },
+        {
+          "part": "container/field/header/label",
           "kind": "instance",
-          "members": 10
+          "members": 30
         },
         {
-          "part": "container/header/valueSingle",
+          "part": "container/field/header/valueSingle",
           "kind": "text",
-          "members": 5,
+          "members": 15,
           "when": {
             "type": [
               "single"
@@ -35589,54 +35795,59 @@
           }
         },
         {
-          "part": "container/control",
+          "part": "container/field/control",
           "kind": "frame",
-          "members": 10
+          "members": 30
         },
         {
-          "part": "container/control/track",
+          "part": "container/field/control/track",
           "kind": "frame",
-          "members": 10
+          "members": 30
         },
         {
-          "part": "container/control/track/bar",
+          "part": "container/field/control/track/bar",
           "kind": "frame",
-          "members": 10
+          "members": 30
         },
         {
-          "part": "container/control/track/thumb",
+          "part": "container/field/control/track/thumb",
           "kind": "instance",
-          "members": 10
+          "members": 30
         },
         {
-          "part": "container/control/track/spaceEnd",
+          "part": "container/field/control/track/spaceEnd",
           "kind": "frame",
-          "members": 10
+          "members": 30
         },
         {
-          "part": "container/ends",
+          "part": "container/field/milestones",
           "kind": "frame",
-          "members": 10
+          "members": 30
         },
         {
-          "part": "container/ends/minLabel",
+          "part": "container/field/milestones/minLabel",
           "kind": "text",
-          "members": 10
+          "members": 30
         },
         {
-          "part": "container/ends/maxLabel",
+          "part": "container/field/milestones/milestone",
           "kind": "text",
-          "members": 10
+          "members": 30
+        },
+        {
+          "part": "container/field/milestones/maxLabel",
+          "kind": "text",
+          "members": 30
         },
         {
           "part": "container/inputs",
           "kind": "frame",
-          "members": 10
+          "members": 30
         },
         {
           "part": "container/inputs/inputSingle",
           "kind": "instance",
-          "members": 5,
+          "members": 15,
           "when": {
             "type": [
               "single"
@@ -35646,12 +35857,12 @@
         {
           "part": "container/message",
           "kind": "instance",
-          "members": 10
+          "members": 30
         },
         {
-          "part": "container/header/valueRange",
+          "part": "container/field/header/valueRange",
           "kind": "text",
-          "members": 5,
+          "members": 15,
           "when": {
             "type": [
               "range"
@@ -35659,9 +35870,9 @@
           }
         },
         {
-          "part": "container/control/track/spaceStart",
+          "part": "container/field/control/track/spaceStart",
           "kind": "frame",
-          "members": 5,
+          "members": 15,
           "when": {
             "type": [
               "range"
@@ -35669,9 +35880,9 @@
           }
         },
         {
-          "part": "container/control/track/thumbMin",
+          "part": "container/field/control/track/thumbMin",
           "kind": "instance",
-          "members": 5,
+          "members": 15,
           "when": {
             "type": [
               "range"
@@ -35681,7 +35892,7 @@
         {
           "part": "container/inputs/inputMin",
           "kind": "instance",
-          "members": 5,
+          "members": 15,
           "when": {
             "type": [
               "range"
@@ -35691,7 +35902,7 @@
         {
           "part": "container/inputs/inputMax",
           "kind": "instance",
-          "members": 5,
+          "members": 15,
           "when": {
             "type": [
               "range"
@@ -35699,10 +35910,14 @@
           }
         }
       ],
-      "redlineKey": [],
+      "redlineKey": [
+        "size"
+      ],
       "redlines": [
         {
-          "where": {},
+          "where": {
+            "size": "medium"
+          },
           "parts": [
             {
               "part": "container",
@@ -35717,7 +35932,15 @@
               }
             },
             {
-              "part": "container/control",
+              "part": "container/field",
+              "values": {
+                "gap": {
+                  "token": "space.0"
+                }
+              }
+            },
+            {
+              "part": "container/field/control",
               "values": {
                 "height": {
                   "token": "size.md.min-height"
@@ -35725,15 +35948,7 @@
               }
             },
             {
-              "part": "container/control/track",
-              "values": {
-                "height": {
-                  "token": "border-width.thick"
-                }
-              }
-            },
-            {
-              "part": "container/control/track/bar",
+              "part": "container/field/control/track",
               "values": {
                 "height": {
                   "token": "border-width.heavy"
@@ -35741,7 +35956,90 @@
               }
             },
             {
-              "part": "container/control/track/spaceEnd",
+              "part": "container/field/control/track/bar",
+              "values": {
+                "height": {
+                  "token": "border-width.heavy"
+                }
+              }
+            },
+            {
+              "part": "container/field/control/track/spaceEnd",
+              "values": {
+                "height": {
+                  "token": "border-width.heavy"
+                }
+              }
+            },
+            {
+              "part": "container/inputs",
+              "values": {
+                "gap": {
+                  "token": "space.150"
+                }
+              }
+            },
+            {
+              "part": "container/field/control/track/spaceStart",
+              "values": {
+                "height": {
+                  "token": "border-width.heavy"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                },
+                "buildWidth": {
+                  "px": 320,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/field",
+              "values": {
+                "gap": {
+                  "token": "space.0"
+                }
+              }
+            },
+            {
+              "part": "container/field/control",
+              "values": {
+                "height": {
+                  "token": "size.md.min-height"
+                }
+              }
+            },
+            {
+              "part": "container/field/control/track",
+              "values": {
+                "height": {
+                  "token": "border-width.thick"
+                }
+              }
+            },
+            {
+              "part": "container/field/control/track/bar",
+              "values": {
+                "height": {
+                  "token": "border-width.thick"
+                }
+              }
+            },
+            {
+              "part": "container/field/control/track/spaceEnd",
               "values": {
                 "height": {
                   "token": "border-width.thick"
@@ -35757,7 +36055,7 @@
               }
             },
             {
-              "part": "container/control/track/spaceStart",
+              "part": "container/field/control/track/spaceStart",
               "values": {
                 "height": {
                   "token": "border-width.thick"
@@ -35765,27 +36063,164 @@
               }
             }
           ]
-        }
-      ],
-      "typeKey": [],
-      "type": [
+        },
         {
-          "where": {},
+          "where": {
+            "size": "large"
+          },
           "parts": [
             {
-              "part": "container/header/valueSingle",
+              "part": "container",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                },
+                "buildWidth": {
+                  "px": 320,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/field",
+              "values": {
+                "gap": {
+                  "token": "space.0"
+                }
+              }
+            },
+            {
+              "part": "container/field/control",
+              "values": {
+                "height": {
+                  "token": "size.md.min-height"
+                }
+              }
+            },
+            {
+              "part": "container/field/control/track",
+              "values": {
+                "height": {
+                  "token": "border-width.x-heavy"
+                }
+              }
+            },
+            {
+              "part": "container/field/control/track/bar",
+              "values": {
+                "height": {
+                  "token": "border-width.x-heavy"
+                }
+              }
+            },
+            {
+              "part": "container/field/control/track/spaceEnd",
+              "values": {
+                "height": {
+                  "token": "border-width.x-heavy"
+                }
+              }
+            },
+            {
+              "part": "container/inputs",
+              "values": {
+                "gap": {
+                  "token": "space.150"
+                }
+              }
+            },
+            {
+              "part": "container/field/control/track/spaceStart",
+              "values": {
+                "height": {
+                  "token": "border-width.x-heavy"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "typeKey": [
+        "size"
+      ],
+      "type": [
+        {
+          "where": {
+            "size": "medium"
+          },
+          "parts": [
+            {
+              "part": "container/field/header/valueSingle",
               "textStyle": "type.body.sm.default"
             },
             {
-              "part": "container/ends/minLabel",
+              "part": "container/field/milestones/minLabel",
               "textStyle": "type.body.xs.default"
             },
             {
-              "part": "container/ends/maxLabel",
+              "part": "container/field/milestones/milestone",
               "textStyle": "type.body.xs.default"
             },
             {
-              "part": "container/header/valueRange",
+              "part": "container/field/milestones/maxLabel",
+              "textStyle": "type.body.xs.default"
+            },
+            {
+              "part": "container/field/header/valueRange",
+              "textStyle": "type.body.sm.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small"
+          },
+          "parts": [
+            {
+              "part": "container/field/header/valueSingle",
+              "textStyle": "type.body.sm.default"
+            },
+            {
+              "part": "container/field/milestones/minLabel",
+              "textStyle": "type.body.xs.default"
+            },
+            {
+              "part": "container/field/milestones/milestone",
+              "textStyle": "type.body.xs.default"
+            },
+            {
+              "part": "container/field/milestones/maxLabel",
+              "textStyle": "type.body.xs.default"
+            },
+            {
+              "part": "container/field/header/valueRange",
+              "textStyle": "type.body.sm.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large"
+          },
+          "parts": [
+            {
+              "part": "container/field/header/valueSingle",
+              "textStyle": "type.body.sm.default"
+            },
+            {
+              "part": "container/field/milestones/minLabel",
+              "textStyle": "type.body.xs.default"
+            },
+            {
+              "part": "container/field/milestones/milestone",
+              "textStyle": "type.body.xs.default"
+            },
+            {
+              "part": "container/field/milestones/maxLabel",
+              "textStyle": "type.body.xs.default"
+            },
+            {
+              "part": "container/field/header/valueRange",
               "textStyle": "type.body.sm.default"
             }
           ]
@@ -35803,23 +36238,27 @@
           },
           "parts": [
             {
-              "part": "container/header/valueSingle",
+              "part": "container/field/header/valueSingle",
               "ink": "color.text.primary"
             },
             {
-              "part": "container/control/track",
+              "part": "container/field/control/track",
               "fill": "color.field.border.rest"
             },
             {
-              "part": "container/control/track/bar",
-              "fill": "color.interactive.primary.fill.rest"
+              "part": "container/field/control/track/bar",
+              "fill": "color.interactive.neutral.border.rest"
             },
             {
-              "part": "container/ends/minLabel",
+              "part": "container/field/milestones/minLabel",
               "ink": "color.text.secondary"
             },
             {
-              "part": "container/ends/maxLabel",
+              "part": "container/field/milestones/milestone",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/field/milestones/maxLabel",
               "ink": "color.text.secondary"
             }
           ]
@@ -35831,23 +36270,27 @@
           },
           "parts": [
             {
-              "part": "container/header/valueSingle",
+              "part": "container/field/header/valueSingle",
               "ink": "color.text.primary"
             },
             {
-              "part": "container/control/track",
+              "part": "container/field/control/track",
               "fill": "color.field.border.rest"
             },
             {
-              "part": "container/control/track/bar",
-              "fill": "color.interactive.primary.fill.rest"
+              "part": "container/field/control/track/bar",
+              "fill": "color.interactive.neutral.border.rest"
             },
             {
-              "part": "container/ends/minLabel",
+              "part": "container/field/milestones/minLabel",
               "ink": "color.text.secondary"
             },
             {
-              "part": "container/ends/maxLabel",
+              "part": "container/field/milestones/milestone",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/field/milestones/maxLabel",
               "ink": "color.text.secondary"
             }
           ]
@@ -35859,23 +36302,27 @@
           },
           "parts": [
             {
-              "part": "container/header/valueSingle",
+              "part": "container/field/header/valueSingle",
               "ink": "color.text.primary"
             },
             {
-              "part": "container/control/track",
+              "part": "container/field/control/track",
               "fill": "color.field.border.rest"
             },
             {
-              "part": "container/control/track/bar",
-              "fill": "color.interactive.primary.fill.rest"
+              "part": "container/field/control/track/bar",
+              "fill": "color.interactive.neutral.border.rest"
             },
             {
-              "part": "container/ends/minLabel",
+              "part": "container/field/milestones/minLabel",
               "ink": "color.text.secondary"
             },
             {
-              "part": "container/ends/maxLabel",
+              "part": "container/field/milestones/milestone",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/field/milestones/maxLabel",
               "ink": "color.text.secondary"
             }
           ]
@@ -35887,23 +36334,27 @@
           },
           "parts": [
             {
-              "part": "container/header/valueSingle",
+              "part": "container/field/header/valueSingle",
               "ink": "color.text.primary"
             },
             {
-              "part": "container/control/track",
+              "part": "container/field/control/track",
               "fill": "color.field.border.rest"
             },
             {
-              "part": "container/control/track/bar",
-              "fill": "color.interactive.primary.fill.rest"
+              "part": "container/field/control/track/bar",
+              "fill": "color.interactive.neutral.border.rest"
             },
             {
-              "part": "container/ends/minLabel",
+              "part": "container/field/milestones/minLabel",
               "ink": "color.text.secondary"
             },
             {
-              "part": "container/ends/maxLabel",
+              "part": "container/field/milestones/milestone",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/field/milestones/maxLabel",
               "ink": "color.text.secondary"
             }
           ]
@@ -35915,23 +36366,27 @@
           },
           "parts": [
             {
-              "part": "container/header/valueSingle",
+              "part": "container/field/header/valueSingle",
               "ink": "color.disabled.text"
             },
             {
-              "part": "container/control/track",
+              "part": "container/field/control/track",
               "fill": "color.disabled.fill"
             },
             {
-              "part": "container/control/track/bar",
-              "fill": "color.disabled.fill"
+              "part": "container/field/control/track/bar",
+              "fill": "color.disabled.icon"
             },
             {
-              "part": "container/ends/minLabel",
+              "part": "container/field/milestones/minLabel",
               "ink": "color.disabled.text"
             },
             {
-              "part": "container/ends/maxLabel",
+              "part": "container/field/milestones/milestone",
+              "ink": "color.disabled.text"
+            },
+            {
+              "part": "container/field/milestones/maxLabel",
               "ink": "color.disabled.text"
             }
           ]
@@ -35943,23 +36398,27 @@
           },
           "parts": [
             {
-              "part": "container/header/valueRange",
+              "part": "container/field/header/valueRange",
               "ink": "color.text.primary"
             },
             {
-              "part": "container/control/track",
+              "part": "container/field/control/track",
               "fill": "color.field.border.rest"
             },
             {
-              "part": "container/control/track/bar",
-              "fill": "color.interactive.primary.fill.rest"
+              "part": "container/field/control/track/bar",
+              "fill": "color.interactive.neutral.border.rest"
             },
             {
-              "part": "container/ends/minLabel",
+              "part": "container/field/milestones/minLabel",
               "ink": "color.text.secondary"
             },
             {
-              "part": "container/ends/maxLabel",
+              "part": "container/field/milestones/milestone",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/field/milestones/maxLabel",
               "ink": "color.text.secondary"
             }
           ]
@@ -35971,23 +36430,27 @@
           },
           "parts": [
             {
-              "part": "container/header/valueRange",
+              "part": "container/field/header/valueRange",
               "ink": "color.text.primary"
             },
             {
-              "part": "container/control/track",
+              "part": "container/field/control/track",
               "fill": "color.field.border.rest"
             },
             {
-              "part": "container/control/track/bar",
-              "fill": "color.interactive.primary.fill.rest"
+              "part": "container/field/control/track/bar",
+              "fill": "color.interactive.neutral.border.rest"
             },
             {
-              "part": "container/ends/minLabel",
+              "part": "container/field/milestones/minLabel",
               "ink": "color.text.secondary"
             },
             {
-              "part": "container/ends/maxLabel",
+              "part": "container/field/milestones/milestone",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/field/milestones/maxLabel",
               "ink": "color.text.secondary"
             }
           ]
@@ -35999,23 +36462,27 @@
           },
           "parts": [
             {
-              "part": "container/header/valueRange",
+              "part": "container/field/header/valueRange",
               "ink": "color.text.primary"
             },
             {
-              "part": "container/control/track",
+              "part": "container/field/control/track",
               "fill": "color.field.border.rest"
             },
             {
-              "part": "container/control/track/bar",
-              "fill": "color.interactive.primary.fill.rest"
+              "part": "container/field/control/track/bar",
+              "fill": "color.interactive.neutral.border.rest"
             },
             {
-              "part": "container/ends/minLabel",
+              "part": "container/field/milestones/minLabel",
               "ink": "color.text.secondary"
             },
             {
-              "part": "container/ends/maxLabel",
+              "part": "container/field/milestones/milestone",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/field/milestones/maxLabel",
               "ink": "color.text.secondary"
             }
           ]
@@ -36027,23 +36494,27 @@
           },
           "parts": [
             {
-              "part": "container/header/valueRange",
+              "part": "container/field/header/valueRange",
               "ink": "color.text.primary"
             },
             {
-              "part": "container/control/track",
+              "part": "container/field/control/track",
               "fill": "color.field.border.rest"
             },
             {
-              "part": "container/control/track/bar",
-              "fill": "color.interactive.primary.fill.rest"
+              "part": "container/field/control/track/bar",
+              "fill": "color.interactive.neutral.border.rest"
             },
             {
-              "part": "container/ends/minLabel",
+              "part": "container/field/milestones/minLabel",
               "ink": "color.text.secondary"
             },
             {
-              "part": "container/ends/maxLabel",
+              "part": "container/field/milestones/milestone",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/field/milestones/maxLabel",
               "ink": "color.text.secondary"
             }
           ]
@@ -36055,23 +36526,27 @@
           },
           "parts": [
             {
-              "part": "container/header/valueRange",
+              "part": "container/field/header/valueRange",
               "ink": "color.disabled.text"
             },
             {
-              "part": "container/control/track",
+              "part": "container/field/control/track",
               "fill": "color.disabled.fill"
             },
             {
-              "part": "container/control/track/bar",
-              "fill": "color.disabled.fill"
+              "part": "container/field/control/track/bar",
+              "fill": "color.disabled.icon"
             },
             {
-              "part": "container/ends/minLabel",
+              "part": "container/field/milestones/minLabel",
               "ink": "color.disabled.text"
             },
             {
-              "part": "container/ends/maxLabel",
+              "part": "container/field/milestones/milestone",
+              "ink": "color.disabled.text"
+            },
+            {
+              "part": "container/field/milestones/maxLabel",
               "ink": "color.disabled.text"
             }
           ]
@@ -36079,7 +36554,7 @@
       ],
       "nesting": [
         {
-          "part": "container/header/label",
+          "part": "container/field/header/label",
           "kind": "instance",
           "component": "field-label",
           "variant": {
@@ -36099,10 +36574,11 @@
           "exposes": []
         },
         {
-          "part": "container/control/track/thumb",
+          "part": "container/field/control/track/thumb",
           "kind": "instance",
           "component": "_slider-thumb",
           "variant": {
+            "size": "medium",
             "state": "rest"
           },
           "when": {
@@ -36121,7 +36597,9 @@
               }
             }
           },
-          "follows": [],
+          "follows": [
+            "size"
+          ],
           "exposes": []
         },
         {
@@ -36154,10 +36632,11 @@
           "exposes": []
         },
         {
-          "part": "container/control/track/thumbMin",
+          "part": "container/field/control/track/thumbMin",
           "kind": "instance",
           "component": "_slider-thumb",
           "variant": {
+            "size": "medium",
             "state": "rest"
           },
           "when": {
@@ -36167,7 +36646,9 @@
               }
             }
           },
-          "follows": [],
+          "follows": [
+            "size"
+          ],
           "exposes": []
         },
         {
@@ -36221,6 +36702,11 @@
           "default": "0"
         },
         {
+          "name": "milestone",
+          "type": "TEXT",
+          "default": "50"
+        },
+        {
           "name": "max label",
           "type": "TEXT",
           "default": "100"
@@ -36241,7 +36727,7 @@
           "default": true
         },
         {
-          "name": "end labels",
+          "name": "milestones",
           "type": "BOOLEAN",
           "default": false
         },

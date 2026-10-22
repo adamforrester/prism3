@@ -995,8 +995,12 @@
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
+        "size": "medium",
         "state": "rest"
-      }
+      },
+      "follow": [
+        "size"
+      ]
     },
     {
       "from": "slider",
@@ -1005,8 +1009,12 @@
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
+        "size": "medium",
         "state": "rest"
-      }
+      },
+      "follow": [
+        "size"
+      ]
     },
     {
       "from": "switch-control",

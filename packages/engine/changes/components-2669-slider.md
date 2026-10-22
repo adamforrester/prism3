@@ -1,15 +1,17 @@
 ---
 engine: minor
 ---
-Slider (#2669, the owner's approval with every call A): choose a value, or a range, by moving a thumb along a track.
-One `Slider` with a `type` axis [single, range] × five states = 10 members; range comes from a two-value `value` in
-code. One size. A header row holds a nested FieldLabel and the value text (`type.body.sm.default`,
-`color.text.primary`); the control row is `size.md.min-height` tall and holds the track: a 2px rail
-(`border-width.thick`, `color.field.border.rest`) with a 4px selected bar (`border-width.heavy`,
-`color.interactive.primary.fill.rest`) and the thumbs, drawn as growing segments around them. Optional end labels
-(`type.body.xs.default`, `color.text.secondary`), paired number inputs (nested TextFields) and a FieldMessage, all off
-by default; `label` and `value` on. Each thumb nests a new Slider.Thumb (`_slider-thumb`, 5 members, a state-only set):
-a `control.size.md.thumb` thumb whose outer disc is `color.background.primary`, padded `space.025` around an inner disc
-in the primary fill stepping rest, hover and pressed (`color.disabled.fill` when disabled), and the shared focus ring. In a range member the state shows on the
-maximum thumb; the minimum one stays at rest. The schema now admits a set with no variant axis when the def has no
-variants and a state axis. Its own page under Components. No token moves, so CONTRACT is unchanged.
+Slider (#2669, the owner's approval with every call A, then owner decision Q550): choose a value, or a range, by moving
+a thumb along a track. One `Slider` with a `size` axis [medium, small, large] × a `type` axis [single, range] × five
+states = 30 members; range comes from a two-value `value` in code. A header row holds a nested FieldLabel and the value
+text (`type.body.sm.default`, `color.text.primary`), with no gap above the control row, which is `size.md.min-height`
+tall at every size and holds the track: one thickness per size (`border-width.thick`, `heavy`, `x-heavy`: 2, 4, 6px) in
+`color.field.border.rest`, the selected part at the same thickness in `color.interactive.neutral.border.rest`, and the
+thumbs, drawn as growing segments around them. Optional labeled milestones (`type.body.xs.default`,
+`color.text.secondary`), paired number inputs (nested TextFields) and a FieldMessage, all off by default; `label` and
+`value` on. Each thumb nests a new Slider.Thumb (`_slider-thumb`, 3 sizes × 5 states = 15 members): a disc in
+`color.interactive.neutral.border` rest, hover and pressed, `control.size.sm/md/lg.thumb` (18, 24, 30px), sitting on
+the track with no ring; a `color.border.primary` halo, 4px at hover and 8px pressed; the shared focus ring; and
+`color.disabled.icon` when disabled, with the selected part. In a range member the state shows on the maximum thumb; the
+minimum one stays at rest. New token `border-width.x-heavy` (6px): CONTRACT 14.7.0 → 14.8.0. Its own page under
+Components.

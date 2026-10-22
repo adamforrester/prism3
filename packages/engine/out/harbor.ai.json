@@ -7909,6 +7909,12 @@
       "when_to_use": "Stroke width of borders, dividers and outlines.",
       "resolves_to": "{hds.core.dimension.4}"
     },
+    "border-width.x-heavy": {
+      "$description": "border-width x-heavy — 6px",
+      "meaning": "Border-width role — x-heavy",
+      "when_to_use": "Stroke width of borders, dividers and outlines.",
+      "resolves_to": "{hds.core.dimension.6}"
+    },
     "focus.ring.width": {
       "$description": "focus ring width — 2px (meets WCAG 2.4.13, AAA focus appearance)",
       "meaning": "Focus-ring geometry — width",
@@ -10378,6 +10384,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
+        "border-width.x-heavy",
         "radius.lg",
         "space.075"
       ]

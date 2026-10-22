@@ -128,8 +128,8 @@ section('map — the per-def reaction map, literal (owner decision Q238 A, part 
     // #2457: the flush icon button, 2 shapes × 3 sizes (Q287 A) × (rest → hover, rest → pressed, hover → pressed), in
     // each of its three families (Q295.2 B).
     'flush-icon-button': [60, 24, 36], 'flush-icon-button-destructive': [60, 24, 36], 'flush-icon-button-neutral': [60, 24, 36],
-    // #2669: the Slider, 2 types × (rest → hover, rest → pressed, hover → pressed); its Thumb, one row of the same.
-    'slider': [10, 4, 6], '_slider-thumb': [5, 2, 3],
+    // #2669: the Slider, 3 sizes × 2 types × (rest → hover, rest → pressed, hover → pressed); its Thumb, 3 sizes of the same.
+    'slider': [30, 12, 18], '_slider-thumb': [15, 6, 9],
   };
   const got: Record<string, [number, number, number]> = {};
   for (const d of componentDefs) {

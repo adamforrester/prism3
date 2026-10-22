@@ -162,8 +162,8 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | slider | inputSingle | nest | text-field | nest-fixed | size=medium, status=default, state=filled | — | — |
 | slider | label | nest | field-label | nest-fixed | size=medium, emphasis=secondary, weight=bold, state=rest | — | — |
 | slider | message | nest | field-message | nest-fixed | status=default | — | — |
-| slider | thumb | nest | _slider-thumb | nest-fixed | state=rest | — | — |
-| slider | thumbMin | nest | _slider-thumb | nest-fixed | state=rest | — | — |
+| slider | thumb | nest | _slider-thumb | nest-fixed | size=medium, state=rest | size | — |
+| slider | thumbMin | nest | _slider-thumb | nest-fixed | size=medium, state=rest | size | — |
 | switch-control | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | switch-row | control | nest | switch-control | nest-exposed | selection=off, state=rest, status=default | size, status | selection, state, showStateLabel |
 | tab-item | count | nest | badge | nest-fixed | type=count, emphasis=bold, tone=neutral | — | — |

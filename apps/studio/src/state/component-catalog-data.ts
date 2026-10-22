@@ -1279,14 +1279,14 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "id": "_slider-thumb",
     "name": "Slider.Thumb",
     "category": "form",
-    "summary": "The thumb a Slider moves: a filled disc with a page-colored ring. Used only inside a Slider.",
+    "summary": "The thumb a Slider moves: an ink disc that sits on the track. Used only inside a Slider.",
     "unit": "variants",
     "spacing": [],
     "page": "Slider",
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 5,
+    "members": 15,
     "nests": [
       "focus-ring"
     ]
@@ -1302,7 +1302,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Components",
     "buildable": true,
     "reason": null,
-    "members": 10,
+    "members": 30,
     "nests": [
       "field-label",
       "_slider-thumb",

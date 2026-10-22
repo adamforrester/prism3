@@ -17,33 +17,36 @@ A slider picks an approximate value, or a range between two values, by moving a 
 
 ## Anatomy
 
-Shown on the default member: type `single`.
+Shown on the default member: size `medium`, type `single`.
 
-1. **Container** — The slider: a header with the label and the value, the track, and the optional end labels, inputs and message. It fills its column.
-2. **Header** — The label at the start and the value text at the end.
-3. **Label** (optional) — The visible label, naming the dimension being set; it fills the room the value leaves.
-4. **Value single** (optional) — The current value, formatted as the thumb announces it.
-5. **Value range** (optional) — The current range, the minimum and the maximum, formatted as the thumbs announce them.
-6. **Control** — The hit area around the track, as tall as the hit target. A click anywhere on it moves the nearer thumb there.
-7. **Track** — The rail: 2px, the full range, across the control. The selected bar and the thumbs sit on it and stand out above and below it.
-8. **Space start** — The rail before the minimum thumb of a range, outside the selected range. Paints nothing: the rail shows through.
-9. **Thumb min** — The minimum thumb of a range. It stays at rest while the maximum thumb shows the state.
-10. **Bar** — The selected part of the track: 4px, from the start to the thumb, or between the two thumbs of a range.
-11. **Thumb** — The thumb of a single value, or the maximum thumb of a range. It shows the state.
-12. **Space end** — The rail after the thumb, outside the selected value or range. Paints nothing: the rail shows through.
-13. **Ends** (optional) — The minimum and maximum under the ends of the track. Off by default.
-14. **Min label** — The minimum value.
-15. **Max label** — The maximum value.
-16. **Inputs** (optional) — Paired number inputs for exact entry: one for a single value, two for a range. Off by default.
-17. **Input single** — The number input of a single value.
-18. **Input min** — The minimum input of a range.
-19. **Input max** — The maximum input of a range.
-20. **Message** (optional) — Help or error text under the slider. Off by default.
+1. **Container** — The slider: the field (label, value, track and milestones), then the optional inputs and message. It fills its column.
+2. **Field** — The header, the track and the milestones, with no gap between them (Q550 c).
+3. **Header** — The label at the start and the value text at the end.
+4. **Label** (optional) — The visible label, naming the dimension being set; it fills the room the value leaves.
+5. **Value single** (optional) — The current value, formatted as the thumb announces it.
+6. **Value range** (optional) — The current range, the minimum and the maximum, formatted as the thumbs announce them.
+7. **Control** — The hit area around the track, as tall as the hit target. A click anywhere on it moves the nearer thumb there.
+8. **Track** — The track: one thickness (2, 4 or 6px by size), the full range, across the control. The selected bar runs along it and the thumbs sit on it.
+9. **Space start** — The track before the minimum thumb of a range, outside the selected range. Paints nothing: the track shows through.
+10. **Thumb min** — The minimum thumb of a range. It stays at rest while the maximum thumb shows the state.
+11. **Bar** — The selected part of the track, in ink at the track's own thickness: from the start to the thumb, or between the two thumbs of a range. Square-ended, so it meets the disc with no gap.
+12. **Thumb** — The thumb of a single value, or the maximum thumb of a range. It shows the state.
+13. **Space end** — The track after the thumb, outside the selected value or range. Paints nothing: the track shows through.
+14. **Milestones** (optional) — Labeled milestones under the track (Q550 d): the minimum, a value between, and the maximum, spaced evenly. Off by default. No tick marks.
+15. **Min label** — The minimum value, under the start of the track.
+16. **Milestone**
+17. **Max label** — The maximum value, under the end of the track.
+18. **Inputs** (optional) — Paired number inputs for exact entry: one for a single value, two for a range. Off by default.
+19. **Input single** — The number input of a single value.
+20. **Input min** — The minimum input of a range.
+21. **Input max** — The maximum input of a range.
+22. **Message** (optional) — Help or error text under the slider. Off by default.
 
 ## Styles
 
 | Axis | Values | Changes | Description |
 | --- | --- | --- | --- |
+| `size` | `medium`, `small`, `large` | once, when authored | The thumb and the track: an 18px thumb on a 2px track, 24 on 4, or 30 on 6. The label, the value text and the 44px hit area stay the same at every size. |
 | `type` | `single`, `range` | once, when authored | Read from value: a number is single, a pair is range. Not set on its own; listed so the two looks have a name. |
 
 ### States
@@ -80,8 +83,8 @@ Use a slider for an approximate value, or a range, where seeing the position wit
 
 - 4.1.2 Name, Role, Value (each thumb named, with aria-valuetext for a formatted value)
 - 2.1.1 Keyboard (arrow, Page and Home and End keys on every thumb)
-- 1.4.11 Non-text Contrast (the rail, the fill and the thumb target 3:1 against the page)
-- 1.4.1 Use of Color (the fill is thicker than the rail and bounded by the thumbs, not told apart by color alone)
+- 1.4.11 Non-text Contrast (the track, the selected part and the thumb target 3:1 against the page, and the selected part 3:1 against the track)
+- 1.4.1 Use of Color (the selected part is bounded by the thumbs, and the value text states it, so it is not told apart by color alone)
 - 2.4.7 Focus Visible / 2.4.13 Focus Appearance (the focus ring on the thumb, as intent)
 - 2.5.7 Dragging Movements (a click on the rail, the keys or the paired inputs move a thumb without dragging)
 - 2.5.8 Target Size (targets a 44×44px hit area on each thumb in code)
@@ -128,8 +131,10 @@ The label names the dimension. The value text shows the value with its unit; a r
 | `formatOptions` | Intl.NumberFormatOptions | — | no | How the value reads: a currency, a percent, a unit. Drives the visible value text and each thumb's aria-valuetext from one formatter, so what is seen and what is heard match. |
 | `thumbLabels` | [string, string] | — | no | For a range, the two thumb names. "Minimum {label}" and "Maximum {label}" when not set. |
 | `type` | enum: 'single' \| 'range' | `single` | no | Read from value: a number is single, a pair is range. Not set on its own; listed so the two looks have a name. |
+| `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The thumb and the track: an 18px thumb on a 2px track, 24 on 4, or 30 on 6. The label, the value text and the 44px hit area stay the same at every size. |
 | `showValue` | boolean | `true` | no | Shows the value text above the track. Turn it off only when the paired inputs show the value instead. |
-| `showEndLabels` | boolean | `false` | no | Shows the minimum and maximum under the ends of the track. |
+| `showMilestones` | boolean | `false` | no | Shows labeled milestones under the track: the minimum and the maximum at its ends, and any values in milestones between them, each under its own position. |
+| `milestones` | Array\<number \| { value: number; label: string }> | — | no | The values labeled under the track when showMilestones is on, such as [500, 1000]. A plain number is formatted like the value text; an object gives its own label. The minimum and the maximum are always labeled. |
 | `showInputs` | boolean | `false` | no | Shows paired number inputs under the track: one for a single value, "Minimum" and "Maximum" for a range. Typing moves the thumb; dragging updates the input. With inputs on, turn the value text off. |
 | `helpText` | string | — | no | Guidance under the slider, in a field message. |
 | `validation` | enum: 'default' \| 'error' | `default` | no | error marks the slider invalid: the field message shows the error status and each thumb carries aria-invalid. A slider's own value is always in range, so an error comes from a paired input or from validation elsewhere in the form. |
@@ -140,30 +145,32 @@ The label names the dimension. The value text shows the value with its unit; a r
 
 ## Specs
 
-Generated from the plan that builds the design-file component: 10 members. Values are token names; a px value appears only where the build writes a number.
+Generated from the plan that builds the design-file component: 30 members. Values are token names; a px value appears only where the build writes a number.
 
 ### Anatomy
 
 | Part | Kind | In |
 | --- | --- | --- |
 | `container` | frame | every member |
-| `container/header` | frame | every member |
-| `container/header/label` | instance | every member |
-| `container/header/valueSingle` | text | type=single |
-| `container/control` | frame | every member |
-| `container/control/track` | frame | every member |
-| `container/control/track/bar` | frame | every member |
-| `container/control/track/thumb` | instance | every member |
-| `container/control/track/spaceEnd` | frame | every member |
-| `container/ends` | frame | every member |
-| `container/ends/minLabel` | text | every member |
-| `container/ends/maxLabel` | text | every member |
+| `container/field` | frame | every member |
+| `container/field/header` | frame | every member |
+| `container/field/header/label` | instance | every member |
+| `container/field/header/valueSingle` | text | type=single |
+| `container/field/control` | frame | every member |
+| `container/field/control/track` | frame | every member |
+| `container/field/control/track/bar` | frame | every member |
+| `container/field/control/track/thumb` | instance | every member |
+| `container/field/control/track/spaceEnd` | frame | every member |
+| `container/field/milestones` | frame | every member |
+| `container/field/milestones/minLabel` | text | every member |
+| `container/field/milestones/milestone` | text | every member |
+| `container/field/milestones/maxLabel` | text | every member |
 | `container/inputs` | frame | every member |
 | `container/inputs/inputSingle` | instance | type=single |
 | `container/message` | instance | every member |
-| `container/header/valueRange` | text | type=range |
-| `container/control/track/spaceStart` | frame | type=range |
-| `container/control/track/thumbMin` | instance | type=range |
+| `container/field/header/valueRange` | text | type=range |
+| `container/field/control/track/spaceStart` | frame | type=range |
+| `container/field/control/track/thumbMin` | instance | type=range |
 | `container/inputs/inputMin` | instance | type=range |
 | `container/inputs/inputMax` | instance | type=range |
 
@@ -171,30 +178,68 @@ Generated from the plan that builds the design-file component: 10 members. Value
 
 Padding reads top / right / bottom / left when its sides differ.
 
-Keyed by nothing: one row covers every member.
+Keyed by `size`.
 
-**every member**
+**size=medium**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `container` | — | `space.100` | — | — | — | build width 320px (literal) |
-| `container/control` | — | — | `size.md.min-height` | — | — | — |
-| `container/control/track` | — | — | `border-width.thick` | — | — | — |
-| `container/control/track/bar` | — | — | `border-width.heavy` | — | — | — |
-| `container/control/track/spaceEnd` | — | — | `border-width.thick` | — | — | — |
+| `container/field` | — | `space.0` | — | — | — | — |
+| `container/field/control` | — | — | `size.md.min-height` | — | — | — |
+| `container/field/control/track` | — | — | `border-width.heavy` | — | — | — |
+| `container/field/control/track/bar` | — | — | `border-width.heavy` | — | — | — |
+| `container/field/control/track/spaceEnd` | — | — | `border-width.heavy` | — | — | — |
 | `container/inputs` | — | `space.150` | — | — | — | — |
-| `container/control/track/spaceStart` | — | — | `border-width.thick` | — | — | — |
+| `container/field/control/track/spaceStart` | — | — | `border-width.heavy` | — | — | — |
+
+**size=small**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/field` | — | `space.0` | — | — | — | — |
+| `container/field/control` | — | — | `size.md.min-height` | — | — | — |
+| `container/field/control/track` | — | — | `border-width.thick` | — | — | — |
+| `container/field/control/track/bar` | — | — | `border-width.thick` | — | — | — |
+| `container/field/control/track/spaceEnd` | — | — | `border-width.thick` | — | — | — |
+| `container/inputs` | — | `space.150` | — | — | — | — |
+| `container/field/control/track/spaceStart` | — | — | `border-width.thick` | — | — | — |
+
+**size=large**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/field` | — | `space.0` | — | — | — | — |
+| `container/field/control` | — | — | `size.md.min-height` | — | — | — |
+| `container/field/control/track` | — | — | `border-width.x-heavy` | — | — | — |
+| `container/field/control/track/bar` | — | — | `border-width.x-heavy` | — | — | — |
+| `container/field/control/track/spaceEnd` | — | — | `border-width.x-heavy` | — | — | — |
+| `container/inputs` | — | `space.150` | — | — | — | — |
+| `container/field/control/track/spaceStart` | — | — | `border-width.x-heavy` | — | — | — |
 
 ### Type
 
-Keyed by nothing: one row covers every member.
+Keyed by `size`.
 
 | Members | Part | Text style |
 | --- | --- | --- |
-| every member | `container/header/valueSingle` | `type.body.sm.default` |
-| every member | `container/ends/minLabel` | `type.body.xs.default` |
-| every member | `container/ends/maxLabel` | `type.body.xs.default` |
-| every member | `container/header/valueRange` | `type.body.sm.default` |
+| size=medium | `container/field/header/valueSingle` | `type.body.sm.default` |
+| size=medium | `container/field/milestones/minLabel` | `type.body.xs.default` |
+| size=medium | `container/field/milestones/milestone` | `type.body.xs.default` |
+| size=medium | `container/field/milestones/maxLabel` | `type.body.xs.default` |
+| size=medium | `container/field/header/valueRange` | `type.body.sm.default` |
+| size=small | `container/field/header/valueSingle` | `type.body.sm.default` |
+| size=small | `container/field/milestones/minLabel` | `type.body.xs.default` |
+| size=small | `container/field/milestones/milestone` | `type.body.xs.default` |
+| size=small | `container/field/milestones/maxLabel` | `type.body.xs.default` |
+| size=small | `container/field/header/valueRange` | `type.body.sm.default` |
+| size=large | `container/field/header/valueSingle` | `type.body.sm.default` |
+| size=large | `container/field/milestones/minLabel` | `type.body.xs.default` |
+| size=large | `container/field/milestones/milestone` | `type.body.xs.default` |
+| size=large | `container/field/milestones/maxLabel` | `type.body.xs.default` |
+| size=large | `container/field/header/valueRange` | `type.body.sm.default` |
 
 ### Color
 
@@ -204,109 +249,119 @@ Keyed by `type`, `state`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container/header/valueSingle` | — | — | `color.text.primary` | — |
-| `container/control/track` | `color.field.border.rest` | — | — | — |
-| `container/control/track/bar` | `color.interactive.primary.fill.rest` | — | — | — |
-| `container/ends/minLabel` | — | — | `color.text.secondary` | — |
-| `container/ends/maxLabel` | — | — | `color.text.secondary` | — |
+| `container/field/header/valueSingle` | — | — | `color.text.primary` | — |
+| `container/field/control/track` | `color.field.border.rest` | — | — | — |
+| `container/field/control/track/bar` | `color.interactive.neutral.border.rest` | — | — | — |
+| `container/field/milestones/minLabel` | — | — | `color.text.secondary` | — |
+| `container/field/milestones/milestone` | — | — | `color.text.secondary` | — |
+| `container/field/milestones/maxLabel` | — | — | `color.text.secondary` | — |
 
 **type=single, state=hover**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container/header/valueSingle` | — | — | `color.text.primary` | — |
-| `container/control/track` | `color.field.border.rest` | — | — | — |
-| `container/control/track/bar` | `color.interactive.primary.fill.rest` | — | — | — |
-| `container/ends/minLabel` | — | — | `color.text.secondary` | — |
-| `container/ends/maxLabel` | — | — | `color.text.secondary` | — |
+| `container/field/header/valueSingle` | — | — | `color.text.primary` | — |
+| `container/field/control/track` | `color.field.border.rest` | — | — | — |
+| `container/field/control/track/bar` | `color.interactive.neutral.border.rest` | — | — | — |
+| `container/field/milestones/minLabel` | — | — | `color.text.secondary` | — |
+| `container/field/milestones/milestone` | — | — | `color.text.secondary` | — |
+| `container/field/milestones/maxLabel` | — | — | `color.text.secondary` | — |
 
 **type=single, state=pressed**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container/header/valueSingle` | — | — | `color.text.primary` | — |
-| `container/control/track` | `color.field.border.rest` | — | — | — |
-| `container/control/track/bar` | `color.interactive.primary.fill.rest` | — | — | — |
-| `container/ends/minLabel` | — | — | `color.text.secondary` | — |
-| `container/ends/maxLabel` | — | — | `color.text.secondary` | — |
+| `container/field/header/valueSingle` | — | — | `color.text.primary` | — |
+| `container/field/control/track` | `color.field.border.rest` | — | — | — |
+| `container/field/control/track/bar` | `color.interactive.neutral.border.rest` | — | — | — |
+| `container/field/milestones/minLabel` | — | — | `color.text.secondary` | — |
+| `container/field/milestones/milestone` | — | — | `color.text.secondary` | — |
+| `container/field/milestones/maxLabel` | — | — | `color.text.secondary` | — |
 
 **type=single, state=focus-visible**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container/header/valueSingle` | — | — | `color.text.primary` | — |
-| `container/control/track` | `color.field.border.rest` | — | — | — |
-| `container/control/track/bar` | `color.interactive.primary.fill.rest` | — | — | — |
-| `container/ends/minLabel` | — | — | `color.text.secondary` | — |
-| `container/ends/maxLabel` | — | — | `color.text.secondary` | — |
+| `container/field/header/valueSingle` | — | — | `color.text.primary` | — |
+| `container/field/control/track` | `color.field.border.rest` | — | — | — |
+| `container/field/control/track/bar` | `color.interactive.neutral.border.rest` | — | — | — |
+| `container/field/milestones/minLabel` | — | — | `color.text.secondary` | — |
+| `container/field/milestones/milestone` | — | — | `color.text.secondary` | — |
+| `container/field/milestones/maxLabel` | — | — | `color.text.secondary` | — |
 
 **type=single, state=disabled**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container/header/valueSingle` | — | — | `color.disabled.text` | — |
-| `container/control/track` | `color.disabled.fill` | — | — | — |
-| `container/control/track/bar` | `color.disabled.fill` | — | — | — |
-| `container/ends/minLabel` | — | — | `color.disabled.text` | — |
-| `container/ends/maxLabel` | — | — | `color.disabled.text` | — |
+| `container/field/header/valueSingle` | — | — | `color.disabled.text` | — |
+| `container/field/control/track` | `color.disabled.fill` | — | — | — |
+| `container/field/control/track/bar` | `color.disabled.icon` | — | — | — |
+| `container/field/milestones/minLabel` | — | — | `color.disabled.text` | — |
+| `container/field/milestones/milestone` | — | — | `color.disabled.text` | — |
+| `container/field/milestones/maxLabel` | — | — | `color.disabled.text` | — |
 
 **type=range, state=rest**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container/header/valueRange` | — | — | `color.text.primary` | — |
-| `container/control/track` | `color.field.border.rest` | — | — | — |
-| `container/control/track/bar` | `color.interactive.primary.fill.rest` | — | — | — |
-| `container/ends/minLabel` | — | — | `color.text.secondary` | — |
-| `container/ends/maxLabel` | — | — | `color.text.secondary` | — |
+| `container/field/header/valueRange` | — | — | `color.text.primary` | — |
+| `container/field/control/track` | `color.field.border.rest` | — | — | — |
+| `container/field/control/track/bar` | `color.interactive.neutral.border.rest` | — | — | — |
+| `container/field/milestones/minLabel` | — | — | `color.text.secondary` | — |
+| `container/field/milestones/milestone` | — | — | `color.text.secondary` | — |
+| `container/field/milestones/maxLabel` | — | — | `color.text.secondary` | — |
 
 **type=range, state=hover**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container/header/valueRange` | — | — | `color.text.primary` | — |
-| `container/control/track` | `color.field.border.rest` | — | — | — |
-| `container/control/track/bar` | `color.interactive.primary.fill.rest` | — | — | — |
-| `container/ends/minLabel` | — | — | `color.text.secondary` | — |
-| `container/ends/maxLabel` | — | — | `color.text.secondary` | — |
+| `container/field/header/valueRange` | — | — | `color.text.primary` | — |
+| `container/field/control/track` | `color.field.border.rest` | — | — | — |
+| `container/field/control/track/bar` | `color.interactive.neutral.border.rest` | — | — | — |
+| `container/field/milestones/minLabel` | — | — | `color.text.secondary` | — |
+| `container/field/milestones/milestone` | — | — | `color.text.secondary` | — |
+| `container/field/milestones/maxLabel` | — | — | `color.text.secondary` | — |
 
 **type=range, state=pressed**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container/header/valueRange` | — | — | `color.text.primary` | — |
-| `container/control/track` | `color.field.border.rest` | — | — | — |
-| `container/control/track/bar` | `color.interactive.primary.fill.rest` | — | — | — |
-| `container/ends/minLabel` | — | — | `color.text.secondary` | — |
-| `container/ends/maxLabel` | — | — | `color.text.secondary` | — |
+| `container/field/header/valueRange` | — | — | `color.text.primary` | — |
+| `container/field/control/track` | `color.field.border.rest` | — | — | — |
+| `container/field/control/track/bar` | `color.interactive.neutral.border.rest` | — | — | — |
+| `container/field/milestones/minLabel` | — | — | `color.text.secondary` | — |
+| `container/field/milestones/milestone` | — | — | `color.text.secondary` | — |
+| `container/field/milestones/maxLabel` | — | — | `color.text.secondary` | — |
 
 **type=range, state=focus-visible**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container/header/valueRange` | — | — | `color.text.primary` | — |
-| `container/control/track` | `color.field.border.rest` | — | — | — |
-| `container/control/track/bar` | `color.interactive.primary.fill.rest` | — | — | — |
-| `container/ends/minLabel` | — | — | `color.text.secondary` | — |
-| `container/ends/maxLabel` | — | — | `color.text.secondary` | — |
+| `container/field/header/valueRange` | — | — | `color.text.primary` | — |
+| `container/field/control/track` | `color.field.border.rest` | — | — | — |
+| `container/field/control/track/bar` | `color.interactive.neutral.border.rest` | — | — | — |
+| `container/field/milestones/minLabel` | — | — | `color.text.secondary` | — |
+| `container/field/milestones/milestone` | — | — | `color.text.secondary` | — |
+| `container/field/milestones/maxLabel` | — | — | `color.text.secondary` | — |
 
 **type=range, state=disabled**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `container/header/valueRange` | — | — | `color.disabled.text` | — |
-| `container/control/track` | `color.disabled.fill` | — | — | — |
-| `container/control/track/bar` | `color.disabled.fill` | — | — | — |
-| `container/ends/minLabel` | — | — | `color.disabled.text` | — |
-| `container/ends/maxLabel` | — | — | `color.disabled.text` | — |
+| `container/field/header/valueRange` | — | — | `color.disabled.text` | — |
+| `container/field/control/track` | `color.disabled.fill` | — | — | — |
+| `container/field/control/track/bar` | `color.disabled.icon` | — | — | — |
+| `container/field/milestones/minLabel` | — | — | `color.disabled.text` | — |
+| `container/field/milestones/milestone` | — | — | `color.disabled.text` | — |
+| `container/field/milestones/maxLabel` | — | — | `color.disabled.text` | — |
 
 ### Nesting and properties
 
-- `container/header/label` nests `field-label` at `size=medium, emphasis=secondary, weight=bold, state=rest`; `state=disabled` takes `state=disabled`
-- `container/control/track/thumb` nests `_slider-thumb` at `state=rest`; `state=hover` takes `state=hover`, `state=pressed` takes `state=pressed`, `state=focus-visible` takes `state=focus-visible`, `state=disabled` takes `state=disabled`
+- `container/field/header/label` nests `field-label` at `size=medium, emphasis=secondary, weight=bold, state=rest`; `state=disabled` takes `state=disabled`
+- `container/field/control/track/thumb` nests `_slider-thumb` at `size=medium, state=rest`; `state=hover` takes `state=hover`, `state=pressed` takes `state=pressed`, `state=focus-visible` takes `state=focus-visible`, `state=disabled` takes `state=disabled`; follows `size`
 - `container/inputs/inputSingle` nests `text-field` at `size=medium, status=default, state=filled`; `state=disabled` takes `state=disabled`
 - `container/message` nests `field-message` at `status=default`
-- `container/control/track/thumbMin` nests `_slider-thumb` at `state=rest`; `state=disabled` takes `state=disabled`
+- `container/field/control/track/thumbMin` nests `_slider-thumb` at `size=medium, state=rest`; `state=disabled` takes `state=disabled`; follows `size`
 - `container/inputs/inputMin` nests `text-field` at `size=medium, status=default, state=filled`; `state=disabled` takes `state=disabled`
 - `container/inputs/inputMax` nests `text-field` at `size=medium, status=default, state=filled`; `state=disabled` takes `state=disabled`
 
@@ -314,11 +369,12 @@ Keyed by `type`, `state`.
 | --- | --- | --- |
 | `value text` | text | `50` |
 | `min label` | text | `0` |
+| `milestone` | text | `50` |
 | `max label` | text | `100` |
 | `range text` | text | `30 – 70` |
 | `label` | boolean | `true` |
 | `value` | boolean | `true` |
-| `end labels` | boolean | `false` |
+| `milestones` | boolean | `false` |
 | `inputs` | boolean | `false` |
 | `helper` | boolean | `false` |
 

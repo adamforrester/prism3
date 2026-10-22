@@ -10,7 +10,7 @@ Peers come from three groupings, each derived from the definitions:
 
 Generated from the component definitions and the emission by `packages/engine/emit-analysis-reports.ts`; `regen.ts --check` fails when this page is stale. The same data for agents: [component-comparison.json](component-comparison.json). All reports: [index](index.md).
 
-## Findings (84)
+## Findings (86)
 
 ### axis values
 
@@ -19,7 +19,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 - **axis inset** — the inset axis takes 2 value sets — [default, flush] in button, button-destructive, button-neutral; [inset, middle-inset, none] in divider
 - **axis selection** — the selection axis takes 4 value sets — [selected, unselected] in segmented-control-segment, tab-item, tag; [checked, indeterminate, unchecked] in checkbox-control; [checked, unchecked] in radio-control; [off, on] in switch-control
 - **axis shape** — the shape axis takes 2 value sets — [circular, square] in icon-button, icon-button-destructive, icon-button-neutral; [flush, round] in flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral
-- **axis size** — the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab-item, tabs, tag, text-field, textarea; [medium, small] in switch-control, switch-row; [large, medium, small, x-small] in spinner
+- **axis size** — the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, slider, tab-item, tabs, tag, text-field, textarea; [medium, small] in switch-control, switch-row; [large, medium, small, x-small] in spinner
 - **axis status** — the status axis takes 2 value sets — [default, error] in checkbox-control, checkbox-group, checkbox-row, radio-control, radio-group, radio-row, switch-control, switch-row; [default, error, success, warning] in field-message, password-field, select, text-field, textarea
 - **axis style** — the style axis takes 2 value sets — [outline] in password-field, text-field, textarea; [inline, standalone] in link
 - **axis tone** — the tone axis takes 2 value sets — [brand, danger, info, inherit, primary, secondary, success, tertiary, warning] in icon; [danger, info, neutral, success, warning] in badge
@@ -55,11 +55,12 @@ Generated from the component definitions and the emission by `packages/engine/em
 
 ### size default
 
-- **field-label** — field-label defaults size to small; 34 of 35 sized components default to medium
+- **field-label** — field-label defaults size to small; 36 of 37 sized components default to medium
 
 ### size order
 
 - **_accordion-indicator** — _accordion-indicator declares its sizes as [medium, small, large], not smallest first
+- **_slider-thumb** — _slider-thumb declares its sizes as [medium, small, large], not smallest first
 - **accordion** — accordion declares its sizes as [medium, small, large], not smallest first
 - **button** — button declares its sizes as [medium, small, large], not smallest first
 - **button-destructive** — button-destructive declares its sizes as [medium, small, large], not smallest first
@@ -85,6 +86,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 - **segmented-control** — segmented-control declares its sizes as [medium, small, large], not smallest first
 - **segmented-control-segment** — segmented-control-segment declares its sizes as [medium, small, large], not smallest first
 - **select** — select declares its sizes as [medium, small, large], not smallest first
+- **slider** — slider declares its sizes as [medium, small, large], not smallest first
 - **switch-control** — switch-control declares its sizes as [medium, small], not smallest first
 - **switch-row** — switch-row declares its sizes as [medium, small], not smallest first
 - **tab-item** — tab-item declares its sizes as [medium, small, large], not smallest first
@@ -234,7 +236,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 |  | off, on | switch-control |
 | shape | circular, square | icon-button, icon-button-destructive, icon-button-neutral |
 |  | flush, round | flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral |
-| size | large, medium, small | _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab-item, tabs, tag, text-field, textarea |
+| size | large, medium, small | _accordion-indicator, _slider-thumb, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, slider, tab-item, tabs, tag, text-field, textarea |
 |  | medium, small | switch-control, switch-row |
 |  | large, medium, small, x-small | spinner |
 | status | default, error | checkbox-control, checkbox-group, checkbox-row, radio-control, radio-group, radio-row, switch-control, switch-row |
@@ -260,6 +262,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 | Component | Sizes, as declared | Default |
 |---|---|---|
 | _accordion-indicator | medium, small, large | medium |
+| _slider-thumb | medium, small, large | medium |
 | accordion | medium, small, large | medium |
 | button | medium, small, large | medium |
 | button-destructive | medium, small, large | medium |
@@ -286,6 +289,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 | segmented-control | medium, small, large | medium |
 | segmented-control-segment | medium, small, large | medium |
 | select | medium, small, large | medium |
+| slider | medium, small, large | medium |
 | spinner | x-small, small, medium, large | medium |
 | switch-control | medium, small | medium |
 | switch-row | medium, small | medium |
@@ -536,6 +540,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 | showStateLabel | switch-control | true | — |
 |  | switch-row | true | — |
 | size | _accordion-indicator | medium | small, medium, large |
+|  | _slider-thumb | medium | small, medium, large |
 |  | accordion | medium | small, medium, large |
 |  | button | medium | small, medium, large |
 |  | button-destructive | medium | small, medium, large |
@@ -563,6 +568,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | segmented-control | medium | small, medium, large |
 |  | segmented-control-segment | medium | small, medium, large |
 |  | select | medium | small, medium, large |
+|  | slider | medium | small, medium, large |
 |  | spinner | medium | x-small, small, medium, large |
 |  | switch-control | medium | small, medium |
 |  | switch-row | medium | small, medium |

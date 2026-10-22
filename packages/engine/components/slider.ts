@@ -5,44 +5,60 @@
  *
  * Owner decision (2026-10-16, on #2669): the proposal approved with every numbered call at its recommendation (A):
  *   1 A  One `Slider`; range comes from a two-value `value` (`[40, 120]`), the price-filter case. No RangeSlider.
- *   2 A  `type` [single, range] × five states = 10 members.
- *   3 A  One size. Density moves `control.size.md.thumb` and `size.md.min-height`; no size axis.
+ *   2 A  `type` [single, range] × five states. (Q550 e adds the size axis: 30 members.)
+ *   3 A  One size. (Superseded by Q550 e.)
  *   4 A  The value readout is header text, always visible. No bubble (it would need a Tooltip).
- *   5 A  A 2px rail in `color.field.border.rest` and a 4px fill in `color.interactive.primary.fill.rest`, every part
- *        at 3:1 or more against the page; the fill is told from the rail by thickness and by the thumbs, not color.
- *   6 A  A 24px filled disc in the primary fill with a 2px page-colored ring; 44×44 hit area in code.
+ *   5 A  A 2px rail and a 4px primary fill. (Superseded by Q550 a.)
+ *   6 A  A 24px filled disc with a 2px page-colored ring; 44×44 hit area in code. (Ring removed by Q550 b.)
  *   7 A  Paired inputs behind an `inputs` boolean, off by default, nesting TextField.
  *   8 A  Thumbs stop at each other, by pointer and keyboard.
  *   9 A  `Slider` / `slider`, category `form`, aliases `range-slider`, `range-input`, `range`; its own page.
  *  10 A  The wording as listed ("Label", "Minimum", "Maximum", "Minimum {label}", "Maximum {label}", the summary).
  *
+ * Owner decision Q550 (2026-10-22, A on Q536 a–f, on the Q536 wireframe):
+ *   a  One track thickness, in `color.field.border.rest`; the selected part and the thumb in neutral ink
+ *      (`color.interactive.neutral.border.*`). With one thickness, color alone tells the selected part apart, and
+ *      ink clears 3:1 against the track where the primary fill does not.
+ *   b  No gap: the thumb sits on the track, with no page-colored ring.
+ *   c  A 0px gap under the header; the 44px control row stays.
+ *   d  Milestones off by default; one opt-in, labeled milestones, which replace the end labels. No tick marks.
+ *   e  A `size` axis, small / medium / large: thumb 18 / 24 / 30px (`control.size.{sm,md,lg}.thumb`), track 2 / 4 /
+ *      6px (`border-width.thick`, `heavy`, `x-heavy`, the last new for this). Medium first.
+ *   f  A halo around the thumb in `color.border.primary`, 4px at hover and 8px pressed; focus-visible is the shared
+ *      2px ring at a 2px offset; disabled dims the thumb and the selected part together.
+ *
  * Owner rules this build follows (#2706, 2026-10-15/16): Rest carries While hovering and While pressing, Hover
  * carries While pressing (Q344, the plugin's reaction map, nothing to author here); a border never binds an icon or
  * text role, and a disabled border binds `color.disabled.border` (Q346); the Figma first member is the code default
- * (Q347: `type=single, state=rest`); property names are lowercase (Q345); a part used only inside its parent takes
- * the `_` prefix (Q349), which is why the thumb is `_slider-thumb`.
+ * (Q347: `type=single, size=medium, state=rest`); property names are lowercase (Q345); a part used only inside its
+ * parent takes the `_` prefix (Q349), which is why the thumb is `_slider-thumb`.
  *
  * ── WHY THE THUMB IS ITS OWN COMPONENT ───────────────────────────────────────────────────────────────────
  * A range member shows its state on the maximum thumb while the minimum thumb stays at rest (call 2). `paintOf` is
  * part-blind, so two boxes in one def that take the same slot paint the same variable at a coordinate: the two thumbs
  * could not differ. Nesting one Thumb component twice, each `nest-fixed` at rest and moved by `variantWhen`, lets the
- * maximum thumb follow every host state and the minimum one follow only `disabled`. The focus ring sits inside the
- * Thumb, so it lands on the thumb and never on the track.
+ * maximum thumb follow every host state and the minimum one follow only `disabled`. The focus ring and the halo sit
+ * inside the Thumb, so they land on the thumb and never on the track. Both thumbs follow the Slider's size.
  *
  * ── THE TRACK IS FLOW, NOT OFFSETS ───────────────────────────────────────────────────────────────────────
- * Figma auto layout has no per-child main-axis offset, and `positionWhen` is three positions only. So the control row
- * is a flow of growing segments around fixed thumbs: single is [fill, thumb, rail], range is [rail, thumb, fill,
- * thumb, rail]. The growing segments share the row equally, so a single thumb sits at the middle and the two range
- * thumbs near a third and two thirds. The thumb's own page-colored ring covers each joint. Code draws one rail and
- * positions the fill and thumbs by value; see `codeOnly`.
+ * Figma auto layout has no per-child main-axis offset, and `positionWhen` is three positions only. So the track is
+ * a flow of growing segments around fixed thumbs: single is [bar, thumb, spaceEnd], range is [spaceStart, thumbMin,
+ * bar, thumb, spaceEnd]. The growing segments share the track equally, so a single thumb sits at the middle and the
+ * two range thumbs near a third and two thirds. The bar is square-ended, so it meets the ink disc with no visible
+ * gap. Code draws one rail and positions the fill and thumbs by value; see `codeOnly`.
+ *
+ * ── THE HALO STAYS OUT OF THE FLOW ───────────────────────────────────────────────────────────────────────
+ * The thumb's frame is exactly the disc's size, so the track segments never move with state. The halo boxes around
+ * the disc are larger than the frame and overflow it on every side (centered, unclipped), as a box-shadow does.
  *
  * ── PAINT ────────────────────────────────────────────────────────────────────────────────────────────────
- * Slider: the rails take `fill` (`color.field.border.rest`), the selected bar takes `indicator`
- * (`color.interactive.primary.fill.rest`), the value readout takes `label` (`color.text.primary`) and the end labels
- * take `body` (`color.text.secondary`). None moves with hover or press: the state is on the thumb. Thumb: the inner
- * disc's `indicator` steps rest / hover / pressed on the primary fill; the outer disc's `fill` is the 2px page-colored
- * ring (`color.background.primary`), padded 2px around the inner one, not a stroke (Q346: a stroke binds a border role).
- * Disabled: rails, bar and inner disc `color.disabled.fill`, text `color.disabled.text`; the ring keeps the page color.
+ * Slider: the track takes `fill` (`color.field.border.rest`), the selected bar takes `indicator`
+ * (`color.interactive.neutral.border.rest`), the value readout takes `label` (`color.text.primary`) and the
+ * milestones take `body` (`color.text.secondary`). None moves with hover or press: the state is on the thumb.
+ * Thumb: the disc's `indicator` steps rest / hover / pressed on the same ink; the inner halo is a 4px `border`
+ * stroke at hover and pressed, and the outer halo a `fill` at pressed only, both `color.border.primary`.
+ * Disabled: the track `color.disabled.fill`; the bar and the disc together `color.disabled.icon`; text
+ * `color.disabled.text`; no halo.
  */
 import { ComponentDef } from '../component-schema';
 
@@ -52,62 +68,88 @@ export const sliderThumb: ComponentDef = {
   aliases: ['slider-handle', 'slider-knob'],
   category: 'form',
   status: 'draft',
-  summary: 'The thumb a Slider moves: a filled disc with a page-colored ring. Used only inside a Slider.',
+  summary: 'The thumb a Slider moves: an ink disc that sits on the track. Used only inside a Slider.',
   description:
-    'The handle a Slider moves along its track: a filled disc in the primary fill with a 2px ring in the page color, which keeps it apart from the fill beside it. It darkens at hover and press, and shows the focus ring while it has keyboard focus. It lives inside a Slider, which places one thumb for a single value and two for a range, and is never placed on its own.',
+    'The handle a Slider moves along its track: a disc in neutral ink that sits on the track with no gap. A light halo grows around it at hover and wider while pressed, and it shows the focus ring while it has keyboard focus. It comes in the Slider\'s three sizes. It lives inside a Slider, which places one thumb for a single value and two for a range, and is never placed on its own.',
 
   props: [
     { name: 'aria-label', type: 'string', required: false, description: 'The thumb\'s accessible name. Set by the Slider: the label for a single value, "Minimum {label}" and "Maximum {label}" for a range.' },
+    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'The disc\'s diameter: 18, 24 or 30px at the default density, from control.size.*.thumb. Set by the Slider.' },
     { name: 'disabled', type: 'boolean', default: false, required: false, description: 'The disabled look. Set by the Slider when the whole control is disabled.' },
   ],
 
   states: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled'],
-  variants: {},
+  // Medium first (Q347): the code default is the first member.
+  variants: { size: ['medium', 'small', 'large'] },
+  axisKinds: { size: 'authoring' },
 
   paintKeys: ['{slot}.{state}', '{slot}'],
 
   tokens: {
-    // The disc: `control.size.md.thumb` (24px at the default density), round.
-    'size': 'control.size.md.thumb',
+    // The disc: `control.size.{sm,md,lg}.thumb` (18 / 24 / 30px at the default density), round.
+    'size.small.thumb': 'control.size.sm.thumb',
+    'size.medium.thumb': 'control.size.md.thumb',
+    'size.large.thumb': 'control.size.lg.thumb',
     'radius': 'radius.round',
-    // THE RING (call 6 A): the outer disc in the page color, padded 2px around the inner disc. Structure, not a stroke:
-    // a stroke binds a border role (Q346), and no border role is the page color.
-    'ring-inset': 'space.025',
-    'fill': 'color.background.primary',
-    'indicator': 'color.interactive.primary.fill.rest',
-    'indicator.hover': 'color.interactive.primary.fill.hover',
-    'indicator.pressed': 'color.interactive.primary.fill.pressed',
-    // Disabled (contrast-exempt): the ring keeps the page color, the disc dims.
-    'disabled.fill': 'color.background.primary',
-    'disabled.indicator': 'color.disabled.fill',
+    // THE HALO (Q550 f): two 4px bands around the disc. The inner band is a 4px stroke, drawn at hover and pressed;
+    // the outer band is a fill padded 4px around it, drawn only pressed, so the halo is 4px at hover and 8px pressed.
+    'halo-step': 'space.050',
+    'halo-width': 'border-width.heavy',
+    'border.hover': 'color.border.primary',
+    'border.pressed': 'color.border.primary',
+    'fill.pressed': 'color.border.primary',
+    // THE DISC (Q550 a): neutral ink, stepping at hover and press.
+    'indicator': 'color.interactive.neutral.border.rest',
+    'indicator.hover': 'color.interactive.neutral.border.hover',
+    'indicator.pressed': 'color.interactive.neutral.border.pressed',
+    // Disabled (contrast-exempt): the disc dims with the Slider's selected bar; no halo.
+    'disabled.indicator': 'color.disabled.icon',
     'focus-ring': 'color.border.focus',
     'ring-width': 'focus.ring.width',
     'ring-offset': 'focus.ring.offset',
   },
 
   anatomy: {
-    root: 'thumb',
+    root: 'frame',
     parts: {
-      thumb: {
+      frame: {
         kind: 'box',
         role: 'target',
-        paintSlots: ['fill'],
-        size: 'size',
+        size: 'size.{size}.thumb',
         radius: 'radius',
-        padding: { block: 'ring-inset', inlineLabel: 'ring-inset' },
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'fixed', y: 'fixed' } },
-        children: ['disc', 'focusRing'],
-        note: 'The thumb: a disc in the page color, the 2px ring that keeps the thumb apart from the fill bar beside it, around the inner disc.',
+        children: ['pressHalo', 'focusRing'],
+        note: 'The thumb, exactly the disc\'s size, so the track never moves with state. The halo overflows it.',
+      },
+      pressHalo: {
+        kind: 'box',
+        role: 'presentation',
+        paintSlots: ['fill'],
+        radius: 'radius',
+        padding: { block: 'halo-step', inlineLabel: 'halo-step' },
+        layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'hug' } },
+        children: ['hoverHalo'],
+        note: 'The outer 4px of the halo, painted only while pressed. Centered on the frame and larger than it, so it overflows on every side.',
+      },
+      hoverHalo: {
+        kind: 'box',
+        role: 'presentation',
+        paintSlots: ['border'],
+        strokeWidth: 'halo-width',
+        radius: 'radius',
+        padding: { block: 'halo-step', inlineLabel: 'halo-step' },
+        layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'hug' } },
+        children: ['disc'],
+        note: 'The inner 4px of the halo: a stroke inside its own edge, at hover and pressed.',
       },
       disc: {
         kind: 'box',
         role: 'presentation',
         paintSlots: ['indicator'],
+        size: 'size.{size}.thumb',
         radius: 'radius',
-        layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'hug' } },
-        grow: true,
-        crossAxisFill: true,
-        note: 'The inner disc in the primary fill. It darkens at hover and press.',
+        layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'fixed', y: 'fixed' } },
+        note: 'The disc in neutral ink. It steps darker or lighter at hover and press.',
       },
       focusRing: {
         kind: 'absolute',
@@ -116,20 +158,21 @@ export const sliderThumb: ComponentDef = {
         inset: 'ring-offset',
         strokeInset: 'ring-width',
         nesting: { kind: 'nest-fixed', variant: { surface: 'default' } },
-        note: 'The shared focus ring, around the thumb while it has keyboard focus. On the thumb, never the track.',
+        note: 'The shared focus ring, 2px at a 2px offset around the disc while it has keyboard focus. On the thumb, never the track.',
       },
     },
     codeOnly: [
       'The thumb in code — a visually hidden native <input type="range"> under the drawn disc supplies focus, the keyboard, form submission and role="slider". The disc is aria-hidden drawing.',
-      'touch-target-expansion — the visible disc is 24px at the default density and smaller at compact; its hit area is at least 44×44px at every size and density in code: a transparent ::before inset outward and centered on the thumb.',
+      'touch-target-expansion — the visible disc is 18, 24 or 30px; its hit area is at least 44×44px at every size and density in code, never under 24×24px: a transparent ::before inset outward and centered on the thumb. The small 18px disc relies on it most.',
+      'The halo — a box-shadow on the disc, 0 0 0 4px at hover and 0 0 0 8px while pressed, in color.border.primary. It does not move the thumb or change its hit area. Under forced-colors the halo is dropped.',
       'Pointer capture — on pointerdown call setPointerCapture(pointerId) on the thumb so a drag survives the pointer leaving the track; release on pointerup and pointercancel.',
-      'Motion — while dragging, the thumb follows the pointer 1:1 with transition: none (a data-dragging attribute), so it never lags the cursor.',
+      'Motion — while dragging, the thumb follows the pointer 1:1 with transition: none (a data-dragging attribute), so it never lags the cursor. The halo grows on motion.duration.fast; under reduced motion it changes at once.',
       'forced-colors — the disc keeps a system-color fill or border, so the thumb still shows; the focus ring is an outline.',
     ],
   },
 
   figmaProperties: {
-    variantAxes: [],
+    variantAxes: ['size'],
     stateAxis: { name: 'state', values: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled'] },
     booleans: {},
   },
@@ -137,9 +180,9 @@ export const sliderThumb: ComponentDef = {
   accessibility: {
     role: 'slider, from a visually hidden native <input type="range">; the Slider wires its name, value and range',
     wcag: [
-      '1.4.11 Non-text Contrast (the disc targets 3:1 against the page at rest, hover and press)',
+      '1.4.11 Non-text Contrast (the disc targets 3:1 against the page and against the track at rest, hover and press)',
       '2.4.7 Focus Visible / 2.4.13 Focus Appearance (the shared focus ring, as intent)',
-      '2.5.8 Target Size (targets a 44×44px hit area in code, beyond the visible disc)',
+      '2.5.8 Target Size (targets a 44×44px hit area in code at every size, beyond the visible disc)',
     ],
     keyboard: 'Set by the Slider: arrow keys move one step, Page Up and Page Down one large step, Home and End to the ends of the thumb\'s range.',
     focus: 'A focus ring around the thumb on :focus-visible, never around the track.',
@@ -151,9 +194,9 @@ export const sliderThumb: ComponentDef = {
   },
 
   docs: {
-    usage: 'Part of a Slider. The Slider places one thumb for a single value and two for a range, and sets each thumb\'s name, value and state.',
+    usage: 'Part of a Slider. The Slider places one thumb for a single value and two for a range, and sets each thumb\'s name, value, size and state.',
     do: [
-      'Extend its hit area in code to at least 44×44px at every size, with a transparent `::before` inset outward',
+      'Extend its hit area in code to at least 44×44px at every size, with a transparent ::before inset outward',
       'Let the Slider name each thumb, so a range announces "Minimum" and "Maximum", not "slider, slider"',
     ],
     dont: ['Place a thumb outside a Slider', 'Put the focus ring on the track instead of the thumb'],
@@ -162,7 +205,7 @@ export const sliderThumb: ComponentDef = {
 
   ai: {
     primaryPurpose: 'The handle a Slider moves, inside a Slider only.',
-    whenToUse: 'Only as part of a Slider.',
+    whenToUse: 'Only as a child of a Slider. Generate a Slider, which places one thumb for a single value and two for a range, and sets their size and state.',
     avoidWhen: 'Anywhere outside a Slider. A switch handle is Switch.Control; a value chosen by dragging is a Slider.',
     commonPartners: ['slider', 'focus-ring'],
     triggerKeywords: ['slider thumb', 'slider handle', 'slider knob'],
@@ -179,38 +222,41 @@ export const sliderThumb: ComponentDef = {
   motion: {
     enter: 'None.',
     exit: 'None.',
-    reduceMotion: 'While dragging the thumb follows the pointer with no transition. After a track click or a key step it slides on the fast duration; under reduced motion it moves at once.',
+    reduceMotion: 'While dragging the thumb follows the pointer with no transition. After a track click or a key step it slides on the fast duration, and the halo grows on the same duration; under reduced motion both change at once.',
   },
 
   notes: {
     contested: [],
     unverified: [
-      'The 2px page-colored ring sits inside the 24px thumb in Figma (a page-colored disc padded 2px around the primary disc), so the visible disc is 20px; the wireframe drew it outside (a box-shadow). Code may draw either; the 3:1 against the page is the disc\'s fill, measured the same either way. A stroke cannot carry it: a stroke binds a border role (Q346), and no border role is the page color.',
+      'The halo overflows the thumb\'s frame in Figma: two boxes larger than the frame, centered on it and unclipped, so the track segments do not move with state. Code draws it as a box-shadow. The halo is pointer feedback and carries no contrast floor (1.4.11 asks it of the disc, not the halo).',
     ],
     evolution: [
       '2026-10-16 (#2669): built with the Slider to the approved proposal (all calls A). A nested component, not a part of the Slider, so the minimum thumb of a range can stay at rest while the maximum thumb shows the state (Q349 `_` prefix).',
+      '2026-10-22 (#2669, owner Q550): an ink disc on the track with no ring, a size axis (18 / 24 / 30px), and a halo in color.border.primary, 4px at hover and 8px pressed. 15 members.',
     ],
   },
 };
 
-// Each thumb nests the Thumb at rest; `variantWhen` moves it with the host. The maximum thumb follows every state; the
-// minimum thumb of a range follows only `disabled`, so the state shows on one thumb (call 2 A).
+// Each thumb nests the Thumb at rest and follows the Slider's size; `variantWhen` moves it with the host. The maximum
+// thumb follows every state; the minimum thumb of a range follows only `disabled`, so the state shows on one thumb
+// (call 2 A).
 const thumbNest = (states: readonly string[]) => ({
   kind: 'nest' as const,
   nests: '_slider-thumb',
   nesting: {
     kind: 'nest-fixed' as const,
-    variant: { state: 'rest' },
+    variant: { size: 'medium', state: 'rest' },
+    follow: ['size'],
     variantWhen: { state: Object.fromEntries(states.map((s) => [s, { state: s }])) },
   },
 });
 
-// A segment of the track: it grows along the rail, so the segments share it equally. Structure only, unless a part
-// gives it a paint slot (the selected bar).
-const segment = (height: string) => ({
+// A segment of the track: it grows along the rail, so the segments share it equally. One thickness (Q550 a): every
+// segment is the track's own height. Structure only, unless a part gives it a paint slot (the selected bar).
+const segment = () => ({
   kind: 'box' as const,
   role: 'presentation' as const,
-  height,
+  height: 'size.{size}.thickness',
   layout: { direction: 'row' as const, align: 'center' as const, justify: 'start' as const, sizing: { x: 'hug' as const, y: 'fixed' as const } },
   grow: true,
 });
@@ -248,8 +294,10 @@ export const slider: ComponentDef = {
     { name: 'formatOptions', type: 'Intl.NumberFormatOptions', required: false, description: 'How the value reads: a currency, a percent, a unit. Drives the visible value text and each thumb\'s aria-valuetext from one formatter, so what is seen and what is heard match.' },
     { name: 'thumbLabels', type: '[string, string]', required: false, description: 'For a range, the two thumb names. "Minimum {label}" and "Maximum {label}" when not set.' },
     { name: 'type', type: "enum: 'single' | 'range'", values: ['single', 'range'], default: 'single', required: false, description: 'Read from value: a number is single, a pair is range. Not set on its own; listed so the two looks have a name.' },
+    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'The thumb and the track: an 18px thumb on a 2px track, 24 on 4, or 30 on 6. The label, the value text and the 44px hit area stay the same at every size.' },
     { name: 'showValue', type: 'boolean', default: true, required: false, description: 'Shows the value text above the track. Turn it off only when the paired inputs show the value instead.' },
-    { name: 'showEndLabels', type: 'boolean', default: false, required: false, description: 'Shows the minimum and maximum under the ends of the track.' },
+    { name: 'showMilestones', type: 'boolean', default: false, required: false, description: 'Shows labeled milestones under the track: the minimum and the maximum at its ends, and any values in milestones between them, each under its own position.' },
+    { name: 'milestones', type: 'Array<number | { value: number; label: string }>', required: false, description: 'The values labeled under the track when showMilestones is on, such as [500, 1000]. A plain number is formatted like the value text; an object gives its own label. The minimum and the maximum are always labeled.' },
     { name: 'showInputs', type: 'boolean', default: false, required: false, description: 'Shows paired number inputs under the track: one for a single value, "Minimum" and "Maximum" for a range. Typing moves the thumb; dragging updates the input. With inputs on, turn the value text off.' },
     { name: 'helpText', type: 'string', required: false, description: 'Guidance under the slider, in a field message.' },
     { name: 'validation', type: "enum: 'default' | 'error'", values: ['default', 'error'], default: 'default', required: false, description: 'error marks the slider invalid: the field message shows the error status and each thumb carries aria-invalid. A slider\'s own value is always in range, so an error comes from a paired input or from validation elsewhere in the form.' },
@@ -260,32 +308,39 @@ export const slider: ComponentDef = {
   ],
 
   states: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled'],
-  variants: { type: ['single', 'range'] },
-  axisKinds: { type: 'authoring' },
+  // Medium first (Q347, Q550 e): the code default is the first member.
+  variants: { size: ['medium', 'small', 'large'], type: ['single', 'range'] },
+  axisKinds: { size: 'authoring', type: 'authoring' },
 
   paintKeys: ['{slot}'],
 
   tokens: {
     'gap': 'space.100',
+    // Q550 c: no gap under the header. The 44px control row already sets the label 10px above a medium thumb.
+    'header-gap': 'space.0',
     'inputs-gap': 'space.150',
-    // The control row: the target height, `size.md.min-height` (44px at comfortable and spacious density).
+    // The control row: the target height, `size.md.min-height` (44px at comfortable and spacious density), at every
+    // size, so the hit area never shrinks with the thumb.
     'control-height': 'size.md.min-height',
-    // Call 5 A: a 2px rail and a 4px fill, both round-ended.
-    'rail-height': 'border-width.thick',
-    'bar-height': 'border-width.heavy',
+    // Q550 a / e: one track thickness per size, round-ended.
+    'size.small.thickness': 'border-width.thick',
+    'size.medium.thickness': 'border-width.heavy',
+    'size.large.thickness': 'border-width.x-heavy',
     'radius': 'radius.round',
     'value-type': 'type.body.sm.default',
-    'end-type': 'type.body.xs.default',
+    'milestone-type': 'type.body.xs.default',
 
-    // The rails (3:1 against the page) and the selected bar (3:1 against the page). Neither moves with state.
+    // The track (3:1 against the page) and the selected bar, in ink (3:1 against the page and against the track).
+    // Neither moves with state: the state is on the thumb.
     'fill': 'color.field.border.rest',
-    'indicator': 'color.interactive.primary.fill.rest',
-    // The value readout and the end labels (4.5:1 against the page).
+    'indicator': 'color.interactive.neutral.border.rest',
+    // The value readout and the milestones (4.5:1 against the page).
     'label': 'color.text.primary',
     'body': 'color.text.secondary',
 
+    // Q550 f: disabled dims the selected bar with the thumb (`color.disabled.icon`, the disc's own disabled ink).
     'disabled.fill': 'color.disabled.fill',
-    'disabled.indicator': 'color.disabled.fill',
+    'disabled.indicator': 'color.disabled.icon',
     'disabled.label': 'color.disabled.text',
     'disabled.body': 'color.disabled.text',
   },
@@ -296,13 +351,22 @@ export const slider: ComponentDef = {
       container: {
         kind: 'box',
         role: 'presentation',
-        children: ['header', 'control', 'ends', 'inputs', 'message'],
+        children: ['field', 'inputs', 'message'],
         layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
         gap: 'gap',
         // BUILT AT 320 (the fields' width) and fills its column; the control row stretches across it, so the growing
         // track segments have a bounded width to share.
         placementWidth: 320,
-        note: 'The slider: a header with the label and the value, the track, and the optional end labels, inputs and message. It fills its column.',
+        note: 'The slider: the field (label, value, track and milestones), then the optional inputs and message. It fills its column.',
+      },
+      field: {
+        kind: 'box',
+        role: 'presentation',
+        children: ['header', 'control', 'milestones'],
+        layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
+        gap: 'header-gap',
+        crossAxisFill: true,
+        note: 'The header, the track and the milestones, with no gap between them (Q550 c).',
       },
       header: {
         kind: 'box',
@@ -351,15 +415,15 @@ export const slider: ComponentDef = {
         paintSlots: ['fill'],
         children: ['spaceStart', 'thumbMin', 'bar', 'thumb', 'spaceEnd'],
         layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'hug', y: 'fixed' } },
-        height: 'rail-height',
+        height: 'size.{size}.thickness',
         radius: 'radius',
         grow: true,
-        note: 'The rail: 2px, the full range, across the control. The selected bar and the thumbs sit on it and stand out above and below it.',
+        note: 'The track: one thickness (2, 4 or 6px by size), the full range, across the control. The selected bar runs along it and the thumbs sit on it.',
       },
       spaceStart: {
-        ...segment('rail-height'),
+        ...segment(),
         presentWhen: { type: ['range'] },
-        note: 'The rail before the minimum thumb of a range, outside the selected range. Paints nothing: the rail shows through.',
+        note: 'The track before the minimum thumb of a range, outside the selected range. Paints nothing: the track shows through.',
       },
       thumbMin: {
         ...thumbNest(['disabled']),
@@ -367,30 +431,30 @@ export const slider: ComponentDef = {
         note: 'The minimum thumb of a range. It stays at rest while the maximum thumb shows the state.',
       },
       bar: {
-        ...segment('bar-height'),
+        ...segment(),
         paintSlots: ['indicator'],
-        radius: 'radius',
-        note: 'The selected part of the track: 4px, from the start to the thumb, or between the two thumbs of a range.',
+        note: 'The selected part of the track, in ink at the track\'s own thickness: from the start to the thumb, or between the two thumbs of a range. Square-ended, so it meets the disc with no gap.',
       },
       thumb: {
         ...thumbNest(['hover', 'pressed', 'focus-visible', 'disabled']),
         note: 'The thumb of a single value, or the maximum thumb of a range. It shows the state.',
       },
       spaceEnd: {
-        ...segment('rail-height'),
-        note: 'The rail after the thumb, outside the selected value or range. Paints nothing: the rail shows through.',
+        ...segment(),
+        note: 'The track after the thumb, outside the selected value or range. Paints nothing: the track shows through.',
       },
-      ends: {
+      milestones: {
         kind: 'box',
         role: 'presentation',
-        children: ['minLabel', 'maxLabel'],
+        children: ['minLabel', 'milestone', 'maxLabel'],
         layout: { direction: 'row', align: 'center', justify: 'space-between', sizing: { x: 'hug', y: 'hug' } },
         crossAxisFill: true,
         optional: true,
-        note: 'The minimum and maximum under the ends of the track. Off by default.',
+        note: 'Labeled milestones under the track (Q550 d): the minimum, a value between, and the maximum, spaced evenly. Off by default. No tick marks.',
       },
-      minLabel: { kind: 'text', type: 'end-type', paintSlot: 'body', note: 'The minimum value.' },
-      maxLabel: { kind: 'text', type: 'end-type', paintSlot: 'body', note: 'The maximum value.' },
+      minLabel: { kind: 'text', type: 'milestone-type', paintSlot: 'body', note: 'The minimum value, under the start of the track.' },
+      milestone: { kind: 'text', type: 'milestone-type', paintSlot: 'body', note: 'A milestone between the ends, halfway along in Figma.' },
+      maxLabel: { kind: 'text', type: 'milestone-type', paintSlot: 'body', note: 'The maximum value, under the end of the track.' },
       inputs: {
         kind: 'box',
         role: 'presentation',
@@ -415,7 +479,9 @@ export const slider: ComponentDef = {
     },
     codeOnly: [
       'code delivery pending: behavior layer (#2454), as for Tabs. The entries below are a framework-neutral behavior contract.',
-      'The track in code — one rail across the control, with the fill and the thumbs positioned by value over it. Figma draws the same picture as growing segments around the thumbs, because auto layout has no per-child offset.',
+      'The track in code — one rail across the control, with the fill and the thumbs positioned by value over it; the fill runs under the thumb to its center, so the two meet with no gap. Figma draws the same picture as growing segments around the thumbs, because auto layout has no per-child offset.',
+      'Size — small, medium and large set the thumb (control.size.sm/md/lg.thumb: 18, 24, 30px) and the track (border-width.thick, heavy, x-heavy: 2, 4, 6px). The control row stays size.md.min-height and each thumb\'s hit area stays at least 44×44px at every size, so the small 18px thumb keeps a target well over 24×24px.',
+      'Milestones — with showMilestones on, the minimum and the maximum are labeled under the ends of the track and each value in milestones under its own position (left: the value\'s fraction of the range, centered on it; the end labels align to the track\'s edges). Figma draws three labels, the ends and one between, spaced evenly; code draws one label per value in milestones. The labels are text, not ticks, and are aria-hidden: each thumb\'s aria-valuetext already carries the value.',
       'Each thumb is a visually hidden native <input type="range"> under the drawn disc: focus, the keyboard, form submission and role="slider" come from it. A range has two, each with its own name ("Minimum {label}", "Maximum {label}") and its own aria-valuemin and aria-valuemax: the other thumb\'s value, less minStepsBetweenThumbs.',
       'aria-valuetext — set whenever the value is not a bare number ("$40", "120%"), from the same Intl.NumberFormat formatter as the visible value text.',
       'Keyboard — Right and Up raise one step; Left and Down lower one step; Page Up and Page Down move one largeStep (ten steps by default); Home and End go to the ends of the thumb\'s own range; Tab moves from the minimum thumb to the maximum thumb.',
@@ -426,30 +492,33 @@ export const slider: ComponentDef = {
       'Geometry — value to pixel from the control\'s measured getBoundingClientRect, recomputed on resize (ResizeObserver) and when the direction changes.',
       'Motion — while dragging, the thumb and the fill follow the pointer 1:1 with no transition. A rail click or a key step slides the thumb on motion.duration.fast with motion.easing-role.default. Under prefers-reduced-motion the slide is 0ms; motion.duration-reduced.fast keeps 100ms, so the slider sets 0 itself.',
       'Paired inputs — one shared value; typing in an input moves its thumb and dragging updates the input. An incoming value is applied only if it differs, which stops an update loop. With inputs on, the value text is off.',
-      'disabled and readOnly — disabled drops the hidden inputs from the form payload; readOnly keeps them focusable and submitted, with the value unchangeable.',
-      'The Figma value text and inputs are placeholders: "50" for a single value, "30 – 70" and 30 and 70 for a range, near where the growing segments put the thumbs.',
+      'readOnly and disabled — readOnly keeps the hidden inputs focusable and submitted, with the value unchangeable; disabled drops them from the form payload.',
+      'The Figma value text, inputs and milestones are placeholders: "50" for a single value, "30 – 70" and 30 and 70 for a range, near where the growing segments put the thumbs, and 0, 50 and 100 under the track.',
       'RTL — the minimum sits at the right and the fill grows leftward; Right Arrow lowers and Left Arrow raises, while Up and Down do not change. Logical properties and the measured dir handle it.',
       'text expansion — the label and the value text share the header row; a long translated label wraps above the value rather than truncating it.',
     ],
   },
 
   figmaProperties: {
-    variantAxes: ['type'],
+    variantAxes: ['size', 'type'],
     stateAxis: { name: 'state', values: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled'] },
     gridAxis: 'state',
     texts: {
       // Keyed by the code prop each text reads from (a texts key must be a declared prop): the readout of a single
       // value and of a range are two properties, because a set carries ONE default per text property and the two
-      // members need different placeholders ("50", "30 – 70"). The end labels read `min` and `max`.
+      // members need different placeholders ("50", "30 – 70"). The first and last milestones read `min` and `max`.
       value: { part: 'valueSingle', default: '50', figmaName: 'value text' },
       defaultValue: { part: 'valueRange', default: '30 – 70', figmaName: 'range text' },
       min: { part: 'minLabel', default: '0', figmaName: 'min label' },
+      // The milestone between the ends: one Figma placeholder for the `milestones` list, which code draws one label
+      // per value.
+      milestones: { part: 'milestone', default: '50', figmaName: 'milestone' },
       max: { part: 'maxLabel', default: '100', figmaName: 'max label' },
     },
     booleans: {
       showLabel: { part: 'label', default: true, figmaName: 'label', figmaOnly: true },
       showValue: { part: ['valueSingle', 'valueRange'], default: true, figmaName: 'value' },
-      showEndLabels: { part: 'ends', default: false, figmaName: 'end labels' },
+      showMilestones: { part: 'milestones', default: false, figmaName: 'milestones' },
       showInputs: { part: 'inputs', default: false, figmaName: 'inputs' },
       showHelper: { part: 'message', default: false, figmaName: 'helper', figmaOnly: true },
     },
@@ -460,8 +529,8 @@ export const slider: ComponentDef = {
     wcag: [
       '4.1.2 Name, Role, Value (each thumb named, with aria-valuetext for a formatted value)',
       '2.1.1 Keyboard (arrow, Page and Home and End keys on every thumb)',
-      '1.4.11 Non-text Contrast (the rail, the fill and the thumb target 3:1 against the page)',
-      '1.4.1 Use of Color (the fill is thicker than the rail and bounded by the thumbs, not told apart by color alone)',
+      '1.4.11 Non-text Contrast (the track, the selected part and the thumb target 3:1 against the page, and the selected part 3:1 against the track)',
+      '1.4.1 Use of Color (the selected part is bounded by the thumbs, and the value text states it, so it is not told apart by color alone)',
       '2.4.7 Focus Visible / 2.4.13 Focus Appearance (the focus ring on the thumb, as intent)',
       '2.5.7 Dragging Movements (a click on the rail, the keys or the paired inputs move a thumb without dragging)',
       '2.5.8 Target Size (targets a 44×44px hit area on each thumb in code)',
@@ -500,7 +569,7 @@ export const slider: ComponentDef = {
     avoidWhen: 'The user knows the exact number (use a text field, or turn on the paired inputs), there are a few named options (use a segmented control or a radio group), it is on or off (use a switch), or the range is too wide for the track to reach each value.',
     commonPartners: ['_slider-thumb', 'field-label', 'field-message', 'text-field'],
     triggerKeywords: ['slider', 'range slider', 'price filter', 'volume control', 'range input', 'min max slider'],
-    generationPriority: 4,
+    generationPriority: 2,
   },
 
   composition: {
@@ -521,11 +590,12 @@ export const slider: ComponentDef = {
       'NO ERROR MEMBERS IN FIGMA. Q354 puts every control that can be invalid on the fields\' `status` axis. The approved proposal (call 2 A, 10 members) holds that a slider\'s own value is always in range, so an error comes from a paired input or outside validation, and the field message carries it; there is no error skin on the track. So the set has no `status` axis, and code carries `validation` (default, error) onto the nested message. Held for the owner: a `status` axis would make 20 members.',
     ],
     unverified: [
-      'The fill against the rail measures under 3:1 in every committed brand and mode (call 5 A). The fill is told from the rail by its thickness (4px against 2px) and by the thumbs that bound it; the parts SC 1.4.11 needs (the thumb, which carries the value, and the rail, which carries the range) clear 3:1 against the page, held as literals in test.ts.',
+      'Figma draws three milestone labels (the ends and one between) spaced evenly, so a middle value sits exactly only at the halfway point; code places one label under each value in milestones (Q550 d). A file that needs more labels between the ends has none to turn on.',
       'The nested inputs in Figma show TextField\'s own label ("Label") and its message: a host can set a nested instance\'s text and swap properties, not a boolean or a property two levels down (#2781); in code the inputs are labeled "Minimum" and "Maximum" and carry no message.',
     ],
     evolution: [
       '2026-10-16 (#2669): owner decision, every call A on the proposal and wireframe. One Slider with a type axis (single, range) × five states = 10 members, one size, header value text, a 2px rail and 4px fill, a 24px ringed thumb nested as Slider.Thumb, optional end labels, inputs and message.',
+      '2026-10-22 (#2669): owner decision Q550, A on Q536 a–f. One track thickness in field.border.rest with the selected part and the thumb in neutral ink; the thumb on the track with no ring; a 0px header gap; labeled milestones in place of the end labels, off by default; a size axis (small, medium, large) for 30 members; a halo at hover and press.',
     ],
   },
 };
