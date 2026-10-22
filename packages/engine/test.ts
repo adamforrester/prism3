@@ -15125,9 +15125,9 @@ arm: {
           const checkBottom = check ? inset + (lcH - pxVar(check.bound?.height)) / 2 : undefined;
           const want = INSET_PX[size] + (icon - lineBox) / 2;
           measured++;
-          if (Math.abs(labelBottom - want) > 0.01) gap.push(`${f} ${size} ${type} ${selection}: label bottom ${labelBottom} (want ${want})`);
+          if (!(Math.abs(labelBottom - want) <= 0.01)) gap.push(`${f} ${size} ${type} ${selection}: label bottom ${labelBottom} (want ${want})`);
           if (frameH !== H) gap.push(`${f} ${size} ${type} ${selection}: height ${frameH} (want ${H})`);
-          if (checkBottom !== undefined && checkBottom - 2 < 2) gap.push(`${f} ${size}: the check sits ${checkBottom - 2}px above a 2px line`);
+          if (checkBottom !== undefined && !(checkBottom - 2 >= 2)) gap.push(`${f} ${size}: the check sits ${checkBottom - 2}px above a 2px line`);
         }
       }
       ok(exampleThemes.length === 5 && measured === 5 * 9 && gap.length === 0,
