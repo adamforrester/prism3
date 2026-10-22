@@ -32,7 +32,6 @@ export const BUTTON_OPTIONS_COPY = {
   densityLabel: 'Density',
   density: 'Density sets component heights and spacing.',
   densityLink: 'Set it in Shape › Density',
-  scope: 'Applies to buttons, not icon buttons.',
   /** The derived-mode line, as the frame words it (N-3 A, RO1 A). */
   derived: (mode: string): string => `${mode} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.`,
 } as const;
@@ -124,7 +123,8 @@ export const mountButtonOptions = (hostEl: HTMLElement, cleanups: (() => void)[]
     const parts: HTMLElement[] = [];
     const derived = isDerived(currentMode);
     if (derived) parts.push(hook(h('p', 'p3-sg-note p3-sg-warn'), 'button-options-derived'));
-    parts.push(densityLink(), ...BUTTON_OPTION_KEYS.map(chips), minWidth(), hook(h('p', 'p3-sub', BUTTON_OPTIONS_COPY.scope), 'button-options-scope'));
+    // #2905 Q10 A: the block's description says icon buttons are not affected, so no scope line closes it.
+    parts.push(densityLink(), ...BUTTON_OPTION_KEYS.map(chips), minWidth());
     root.replaceChildren(...parts);
     if (derived) {
       const note = parts[0];

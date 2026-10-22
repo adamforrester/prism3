@@ -27,7 +27,7 @@ import { brandControlShape } from '../state/shape-input';
 import { buttonLayout } from '../state/button-input';
 import { componentCatalog, type Catalog } from '../state/component-catalog';
 import { componentsPage, watchComponentsPage } from '../state/components-page';
-import { costOf, entryOf, groupsOf, GROUPS_COPY, type GroupRow } from '../state/component-groups';
+import { costOf, entryOf, groupsOf, rowOfFocus, GROUPS_COPY, type GroupRow } from '../state/component-groups';
 import { leverManifest } from '@prism3/engine/levers';
 import { sizeRefPx } from '@prism3/engine/scale';
 import { h, hook } from '../shell/dom';
@@ -54,10 +54,10 @@ export const DETAIL_COPY = {
 /** The family the page shows when nothing is focused: Buttons (the one with a preview), else the first row. */
 export const PREVIEW_DEFAULT_PAGE = 'Buttons';
 
-/** The row a focus key names, or the default. */
+/** The row a focus key names (a set in a flat section names its family's row, #2905), or the default. */
 export const focusedRow = (catalog: Catalog, focus: string | null): GroupRow | null => {
   const rows = groupsOf(catalog).flatMap((s) => s.rows);
-  return rows.find((r) => r.key === focus) ?? rows.find((r) => r.page === PREVIEW_DEFAULT_PAGE) ?? rows[0] ?? null;
+  return rowOfFocus(catalog, focus) ?? rows.find((r) => r.page === PREVIEW_DEFAULT_PAGE) ?? rows[0] ?? null;
 };
 
 /** The brand's density, by the manifest's option label. */

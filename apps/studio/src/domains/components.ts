@@ -18,14 +18,19 @@
  * A NAME FOCUSES, A BOX SELECTS: focusing does not select, and the preview pane shows the focused family. At the narrow
  * tier (one column) a row's meta drops to its count, and the preview is the frame's Preview, as on every page.
  *
- * SETTINGS LEFT, COLLAPSED (#2815 step 1, the phase-2 wireframe, call 3 A; placement #2844, Q439 A). A family's own
- * settings sit under its row, outside the family's drawer, behind one disclosure line that is closed on open. The line
- * comes AFTER the family's set checkboxes, then the settings: the sets are what the page is for, so they come first.
- * Buttons is the one family with settings today (the Button options, `domains/button-options.ts`). The line shows on
- * every row that has settings, not only the focused one; opening it also focuses its family, so the preview shows what
- * the settings change; the open state lasts the session (`state/components-page.ts`). The chevron still opens the sets:
- * the two disclosures are independent. The block is mounted once per family and moved, not rebuilt, when the list
- * redraws (hidden while closed), so a selection or a verdict never resets it.
+ * SECTIONS WITH SETTINGS (#2905 phase 1, owner decisions Q538 and Q548 on wireframe v2, every call A). The components
+ * that share settings are grouped, one section per group, its settings set once: **Buttons** (its sets, then Button
+ * options, `domains/button-options.ts`) and **Fields** (Password field, Select, Text field and Textarea, then Field
+ * options, `domains/field-options.ts`). The section title stands in for the family row (Q8 A), so a section's sets are
+ * rows at its edge, and its settings start at that same edge (Q1 A: one edge for rows and blocks). Every other row is
+ * drawn as before, in Other components (Q6 A); the grouping is `state/component-groups.ts`'s.
+ *
+ * SETTINGS AFTER THE SETS, COLLAPSED (#2815 step 1; placement #2844, Q439 A; kept by Q7 A and Q9 A on #2905). A
+ * section's settings come AFTER its sets, behind one disclosure line that is closed on open: the sets are what the page
+ * is for, so they come first. Opening the line also focuses the section's first set, unless one of its sets already has
+ * focus, so the preview shows what the settings change; the open state lasts the session (`state/components-page.ts`).
+ * Each block is mounted once per section and moved, not rebuilt, when the list redraws (hidden while closed), so a
+ * selection or a verdict never resets it.
  *
  * SEARCH (the Studio's search, Q3) filters the rows: a family stays while any of its sets matches (#2700's edge state).
  *
@@ -43,18 +48,28 @@ import { searchQuery, setSearchHits, subscribe } from '../state/store';
 import { componentCatalog, type Catalog } from '../state/component-catalog';
 import { componentsPage, setComponentsPage, watchComponentsPage } from '../state/components-page';
 import {
-  alsoBuilds, boxOfSets, buildableOf, costOf, entryOf, familiesToOpen, fmt, groupsOf, GROUPS_COPY, inListOrder, rowMatches, toggleSets,
-  type BoxState, type GroupRow, type GroupSection,
+  alsoBuilds, boxOfSets, buildableOf, costOf, entryOf, familiesToOpen, fmt, groupsOf, GROUPS_COPY, inListOrder, rowMatches, rowOfFocus,
+  setFocusKey, toggleSets, type BoxState, type GroupRow, type GroupSection, type SectionKind,
 } from '../state/component-groups';
 import { currentOf, positionOf, RUN_COPY } from '../state/build-queue';
 import { glyph, h, hook, pendingLabel, setBusy } from '../shell/dom';
 import { stateLine } from '../ui/lever-kit';
 import { SETS_COPY } from '../preview/sections/component-sets';
-import { PREVIEW_DEFAULT_PAGE } from '../preview/components';
 import type { PageLends } from '../preview/brand';
 import { BUTTON_DESC } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { mountButtonOptions, BUTTON_OPTIONS_COPY } from './button-options';
+import { mountFieldOptions, FIELD_OPTIONS_COPY } from './field-options';
+
+/** Each section's settings block (#2905): its hook prefix, its title and description (Q10 A: wireframe v2's words), and
+ *  its builder. A section with none has no entry. */
+const SECTION_SETTINGS: Partial<Record<SectionKind, {
+  readonly hook: string; readonly title: string; readonly desc: string;
+  readonly mount: (el: HTMLElement, cleanups: (() => void)[], modeName: (m: string) => string) => void;
+}>> = {
+  buttons: { hook: 'button-options', title: BUTTON_OPTIONS_COPY.title, desc: BUTTON_DESC, mount: mountButtonOptions },
+  fields: { hook: 'field-options', title: FIELD_OPTIONS_COPY.title, desc: FIELD_OPTIONS_COPY.desc, mount: mountFieldOptions },
+};
 
 /** Mount the Components list into `hostEl`. Subscriptions are released through `cleanups`. */
 export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void)[], lend: PageLends): void => {
@@ -65,27 +80,30 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
   root.append(list);
   if (bar) root.append(bar);
   hostEl.replaceChildren(root);
-  /** A family's settings (see the header): its row's key, the block, and the subscriptions its controls hold. */
-  let settings: { key: string; el: HTMLElement; own: (() => void)[] } | null = null;
-  const dropSettings = (): void => { if (settings) for (const fn of settings.own) fn(); settings = null; };
-  const optsId = (row: GroupRow): string => `p3-cp-opts-${row.key.replace(/[^\w-]/g, '-')}`;
-  /** The settings block for `row`, mounted once and kept while the same family is shown; null for a family with none. */
-  const settingsOf = (row: GroupRow): HTMLElement | null => {
-    if (row.page !== PREVIEW_DEFAULT_PAGE) return null;
-    if (settings?.key === row.key) return settings.el;
-    dropSettings();
+  /** Each section's settings (see the header), by section: the block, and the subscriptions its controls hold. */
+  const settings = new Map<SectionKind, { el: HTMLElement; own: (() => void)[] }>();
+  const dropSettings = (keep: ReadonlySet<SectionKind> = new Set()): void => {
+    for (const [k, v] of settings) if (!keep.has(k)) { for (const fn of v.own) fn(); settings.delete(k); }
+  };
+  const optsId = (kind: SectionKind): string => `p3-cp-opts-${kind}`;
+  /** The settings block for a section, mounted once and kept while the section is shown; null for a section with none. */
+  const settingsOf = (kind: SectionKind): HTMLElement | null => {
+    const def = SECTION_SETTINGS[kind];
+    if (!def) return null;
+    const had = settings.get(kind);
+    if (had) return had.el;
     const own: (() => void)[] = [];
     // A group inside the L1 section, as Color › Interactive's button sets are (`.p3-icol`): its title L2, its levers' names
     // L3 (TY2 A). No name, so not a landmark: only Inspect and Activity carry landmark names (Q197, #2487).
-    const el = hook(h('section', 'p3-icol p3-cp-optsec'), 'button-options-section');
-    el.id = optsId(row);
+    const el = hook(h('section', 'p3-icol p3-cp-optsec'), `${def.hook}-section`);
+    el.id = optsId(kind);
     const head = h('div', 'p3-icol-head');
-    const title = hook(h('h3', 'p3-icol-title', BUTTON_OPTIONS_COPY.title), 'button-options-title');
-    head.append(title, hook(h('p', 'p3-lsec-desc p3-cp-opt-desc', BUTTON_DESC), 'button-options-desc'));
+    const title = hook(h('h3', 'p3-icol-title', def.title), `${def.hook}-title`);
+    head.append(title, hook(h('p', 'p3-lsec-desc p3-cp-opt-desc', def.desc), `${def.hook}-desc`));
     const opts = h('div', 'p3-cp-opts');
-    mountButtonOptions(opts, own, modeLabel);
+    def.mount(opts, own, modeLabel);
     el.append(head, opts);
-    settings = { key: row.key, el, own };
+    settings.set(kind, { el, own });
     return el;
   };
   const frame = (): HTMLElement | null => hostEl.closest<HTMLElement>('[data-w]');
@@ -114,18 +132,19 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     setComponentsPage({ sel, open: nextOpen });
   };
 
-  /** One set row inside a family, or a set on its own (`single` is its row). */
-  const setRow = (catalog: Catalog, id: string, row: GroupRow, member: boolean): HTMLElement => {
+  /** One set row inside a family, or a set on its own (`single` is its row). `flat`: a family's set listed at a section's
+   *  edge (#2905, Q8 A), which focuses as itself, since its family has no row. */
+  const setRow = (catalog: Catalog, id: string, row: GroupRow, member: boolean, flat = false): HTMLElement => {
     const e = entryOf(catalog, id)!;
     const r = hook(h('div', member ? 'p3-cp-row p3-cp-member' : 'p3-cp-row'), member ? 'cp-member' : 'cp-row');
     r.dataset.set = id;
     if (!member) r.dataset.row = row.key;
     if (!e.buildable) r.dataset.off = 'true';
     const label = member ? e.name : row.label;
-    if (plugin && e.buildable) r.append(box(`set=${id}`, componentsPage().sel.has(id) ? 'on' : 'off', GROUPS_COPY.selectSet(label), () => select([id], row.family ? row.key : undefined)));
+    if (plugin && e.buildable) r.append(box(`set=${id}`, componentsPage().sel.has(id) ? 'on' : 'off', GROUPS_COPY.selectSet(label), () => select([id], row.family && !flat ? row.key : undefined)));
     else if (plugin) r.append(h('span', 'p3-cp-nobox'));
     r.append(h('span', 'p3-cp-fold-space'));
-    r.append(nameButton(row, label, member));
+    r.append(nameButton(row, label, member, flat ? setFocusKey(id) : undefined));
     const meta = hook(h('span', 'p3-cp-meta'), 'cp-meta');
     if (!e.buildable) meta.append(hook(h('span', 'p3-cp-reason', SETS_COPY.cannot(e.reason ? e.reason.replace(/^\S+:\s*/, '') : SETS_COPY.noProjection)), 'cp-reason'));
     else if (e.members !== null) {
@@ -137,18 +156,21 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     r.append(meta);
     return r;
   };
-  /** The name: a button that focuses the row's family in the preview (focus is not selection). */
-  const nameButton = (row: GroupRow, label: string, member: boolean): HTMLButtonElement => {
+  /** The name: a button that focuses the row's family in the preview (focus is not selection). A set in a flat section
+   *  focuses by its own key (`own`), which names the same family. */
+  const nameButton = (row: GroupRow, label: string, member: boolean, own?: string): HTMLButtonElement => {
     const b = hook(h('button', 'p3-btn p3-btn-ghost p3-cp-name'), 'cp-name');
     b.type = 'button';
     b.dataset.key = `name=${row.key}=${label}`;
     // The row in focus is marked on its own name; a set inside it focuses the same family but is not the row.
-    if (!member && componentsPage().focus === row.key) b.setAttribute('aria-current', 'true');
+    const mine = own ?? (member ? null : row.key);
+    if (mine !== null && mine === componentsPage().focus) b.setAttribute('aria-current', 'true');
     b.append(h('span', 'p3-btn-label', label));
     b.onclick = () => {
       const s = componentsPage();
       // Call 15 A: a family opens when it is focused.
-      setComponentsPage({ focus: row.key, open: row.family ? new Set([...s.open, row.key]) : s.open });
+      if (own) setComponentsPage({ focus: own });
+      else setComponentsPage({ focus: row.key, open: row.family ? new Set([...s.open, row.key]) : s.open });
     };
     return b;
   };
@@ -179,23 +201,27 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     return r;
   };
 
-  /** The disclosure line for a family's settings: a standard disclosure (`aria-expanded`, `aria-controls`), one job. */
-  const optsToggle = (row: GroupRow, open: boolean): HTMLElement => {
+  /** The disclosure line for a section's settings: a standard disclosure (`aria-expanded`, `aria-controls`), one job. */
+  const optsToggle = (catalog: Catalog, sec: GroupSection, title: string, open: boolean): HTMLElement => {
     const b = hook(h('button', 'p3-btn p3-btn-ghost p3-cp-optstoggle'), 'cp-opts-toggle');
     b.type = 'button';
-    b.dataset.key = `opts=${row.key}`;
+    b.dataset.key = `opts=${sec.kind}`;
     b.setAttribute('aria-expanded', String(open));
-    b.setAttribute('aria-controls', optsId(row));
-    b.append(glyph('chevr'), h('span', 'p3-btn-label', BUTTON_OPTIONS_COPY.title));
+    b.setAttribute('aria-controls', optsId(sec.kind));
+    b.append(glyph('chevr'), h('span', 'p3-btn-label', title));
     b.onclick = () => {
       const s = componentsPage();
       const o = new Set(s.optsOpen);
-      if (o.has(row.key)) { o.delete(row.key); setComponentsPage({ optsOpen: o }); return; }
-      // Opening also focuses the family, so the preview shows what the settings change (#2844, small call 2).
-      o.add(row.key);
-      setComponentsPage({ optsOpen: o, focus: row.key });
+      if (o.has(sec.kind)) { o.delete(sec.kind); setComponentsPage({ optsOpen: o }); return; }
+      o.add(sec.kind);
+      // Opening also focuses the section's first set, unless one of its sets has focus, so the preview shows what the
+      // settings change (#2844, small call 2; wireframe v2 on #2905).
+      const mine = rowOfFocus(catalog, s.focus);
+      const first = sec.rows[0];
+      const focus = mine && sec.rows.includes(mine) ? s.focus : first.family ? setFocusKey(first.ids[0]) : first.key;
+      setComponentsPage({ optsOpen: o, focus });
     };
-    const li = h('div', 'p3-cp-optsline');
+    const li = hook(h('div', 'p3-cp-optsline'), 'cp-opts-line');
     li.append(b);
     return li;
   };
@@ -237,6 +263,15 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     const ul = h('ul', 'p3-cp-rows');
     const s = componentsPage();
     for (const row of rows) {
+      if (sec.flat) {
+        // Q8 A: the section title stands in for the family row, so each set is a row at the section's edge.
+        for (const id of row.ids) {
+          const li = hook(h('li', 'p3-cp-li'), 'cp-item');
+          li.append(setRow(catalog, id, row, row.family, row.family));
+          ul.append(li);
+        }
+        continue;
+      }
       const li = hook(h('li', 'p3-cp-li'), 'cp-item');
       li.append(row.family ? familyRow(catalog, row) : setRow(catalog, row.ids[0], row, false));
       if (row.family && s.open.has(row.key)) {
@@ -246,29 +281,29 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
         for (const id of row.ids) { const m = h('li'); m.append(setRow(catalog, id, row, true)); sub.append(m); }
         li.append(sub);
       }
-      const set = settingsOf(row);
-      if (set) {
-        // After the family's sets (when open), never before them: the disclosure, then its block, hidden while closed.
-        const open = s.optsOpen.has(row.key);
-        li.append(optsToggle(row, open), set);
-        set.hidden = !open;
-        shownHere = true;
-      }
       ul.append(li);
     }
     el.append(ul);
+    const set = settingsOf(sec.kind);
+    if (set) {
+      // After the section's sets, never before them (Q9 A): the disclosure, then its block, hidden while closed.
+      const open = s.optsOpen.has(sec.kind);
+      el.append(optsToggle(catalog, sec, SECTION_SETTINGS[sec.kind]!.title, open), set);
+      set.hidden = !open;
+      shownHere.add(sec.kind);
+    }
     return el;
   };
 
-  /** Whether this draw placed the settings block (a search can hide the family's row, and the block with it). */
-  let shownHere = false;
+  /** The sections whose settings this draw placed (a search can hide a section's rows, and its block with them). */
+  const shownHere = new Set<SectionKind>();
   const paintList = (): void => {
     const had = document.activeElement as HTMLElement | null;
     const key = had && root.contains(had) ? had.dataset.key ?? null : null;
     // A control inside the settings block is the same node after the redraw: it gets its focus back as itself.
-    const inSettings = had && settings?.el.contains(had) ? had : null;
+    const inSettings = had && [...settings.values()].some((x) => x.el.contains(had)) ? had : null;
     const scrollTop = hostEl.scrollTop;
-    shownHere = false;
+    shownHere.clear();
     const catalog = componentCatalog();
     const q = searchQuery.trim();
     const parts: HTMLElement[] = [];
@@ -288,7 +323,7 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
       if (!plugin) parts.push(hook(stateLine(SETS_COPY.web), 'components-web-line'));
     }
     list.replaceChildren(...parts);
-    if (!shownHere) dropSettings();
+    dropSettings(shownHere);
     if (inSettings?.isConnected) inSettings.focus({ preventScroll: true });
     else if (key) root.querySelector<HTMLElement>(`[data-key="${CSS.escape(key)}"]`)?.focus({ preventScroll: true });
     if (hostEl.scrollTop !== scrollTop) hostEl.scrollTop = scrollTop;
@@ -380,7 +415,7 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     () => mo.disconnect(),
     watchComponentsPage(paint),
     subscribe('host', paint), subscribe('host:components', paint), subscribe('search', onSearch),
-    dropSettings,
+    () => dropSettings(),
     () => { if (searchQuery.trim()) setSearchHits(null); },
   );
   paint();

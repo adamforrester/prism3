@@ -81,7 +81,8 @@ export const LAYOUT_LABELS = { columns: 'Columns', gutter: 'Gutter', margin: 'Ma
 
 /** The Components sections' copy (S8.2), each shared by the levers section and the preview section it pairs with
  *  (owner decision Q23). DRAFT, pending the owner's approval (the S8.2 PR's "Copy for owner approval" block). */
-export const BUTTON_DESC = 'How buttons place their icons, size their label and set their minimum width. Applies to buttons, not icon buttons.';
+// #2905 Q10 A: wireframe v2's words, now that the Buttons section lists which buttons the options change.
+export const BUTTON_DESC = 'How buttons place their icons, size and weight their label, and set their minimum width. Icon buttons are not affected.';
 export const SETS_DESC = 'Every component set the engine defines, with what each contains and its spacing at your density.';
 
 /** Which host a legacy page list applies to. Components mapped to a different legacy page per host until S8.2 (§4). */
