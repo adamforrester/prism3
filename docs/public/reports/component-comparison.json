@@ -2319,7 +2319,7 @@
         },
         {
           "name": "showMessage",
-          "default": true
+          "default": false
         },
         {
           "name": "required",
@@ -2782,7 +2782,7 @@
         },
         {
           "name": "showMessage",
-          "default": true
+          "default": false
         },
         {
           "name": "leadingIcon"
@@ -3322,7 +3322,7 @@
         },
         {
           "name": "showMessage",
-          "default": true
+          "default": false
         },
         {
           "name": "required",
@@ -3452,7 +3452,7 @@
         },
         {
           "name": "showMessage",
-          "default": true
+          "default": false
         },
         {
           "name": "rows",
@@ -5814,19 +5814,19 @@
       },
       {
         "id": "password-field",
-        "default": true
+        "default": false
       },
       {
         "id": "select",
-        "default": true
+        "default": false
       },
       {
         "id": "text-field",
-        "default": true
+        "default": false
       },
       {
         "id": "textarea",
-        "default": true
+        "default": false
       }
     ],
     "showStateLabel": [
@@ -7284,18 +7284,6 @@
         "field-label"
       ],
       "detail": "field-label defaults size to small; 34 of 35 sized components default to medium"
-    },
-    {
-      "kind": "prop default",
-      "subject": "prop showMessage",
-      "components": [
-        "counter",
-        "password-field",
-        "select",
-        "text-field",
-        "textarea"
-      ],
-      "detail": "showMessage defaults differ over the same values — false in counter; true in password-field, select, text-field, textarea"
     },
     {
       "kind": "axis without prop",

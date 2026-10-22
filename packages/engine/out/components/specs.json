@@ -17571,7 +17571,7 @@
         {
           "name": "message",
           "type": "BOOLEAN",
-          "default": true
+          "default": false
         }
       ]
     },
@@ -18846,7 +18846,7 @@
         {
           "name": "message",
           "type": "BOOLEAN",
-          "default": true
+          "default": false
         },
         {
           "name": "character count",
@@ -23615,7 +23615,7 @@
         {
           "name": "message",
           "type": "BOOLEAN",
-          "default": true
+          "default": false
         }
       ]
     },
@@ -34540,7 +34540,7 @@
         {
           "name": "message",
           "type": "BOOLEAN",
-          "default": true
+          "default": false
         }
       ]
     },
