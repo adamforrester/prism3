@@ -402,9 +402,13 @@
         "hover",
         "pressed",
         "rest"
+      ],
+      "surface": [
+        "default",
+        "inverse"
       ]
     },
-    "members": 30,
+    "members": 60,
     "properties": {
       "swap icon": "INSTANCE_SWAP"
     }
@@ -426,9 +430,13 @@
         "hover",
         "pressed",
         "rest"
+      ],
+      "surface": [
+        "default",
+        "inverse"
       ]
     },
-    "members": 30,
+    "members": 60,
     "properties": {
       "swap icon": "INSTANCE_SWAP"
     }
@@ -450,9 +458,13 @@
         "hover",
         "pressed",
         "rest"
+      ],
+      "surface": [
+        "default",
+        "inverse"
       ]
     },
-    "members": 30,
+    "members": 60,
     "properties": {
       "swap icon": "INSTANCE_SWAP"
     }
@@ -1069,6 +1081,20 @@
       "placeholder": "TEXT",
       "resize handle": "BOOLEAN",
       "value": "TEXT"
+    }
+  },
+  "toast": {
+    "axes": {
+      "intent": [
+        "neutral",
+        "success"
+      ]
+    },
+    "members": 2,
+    "properties": {
+      "action": "BOOLEAN",
+      "close": "BOOLEAN",
+      "message": "TEXT"
     }
   },
   "veil": {
