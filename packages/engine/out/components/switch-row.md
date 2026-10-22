@@ -20,8 +20,9 @@ A control for a binary on/off setting that takes effect immediately — no save,
 
 Shown on the default member: size `medium`, status `default`.
 
-1. **Label**
-2. **Control**
+1. **Content** — The label and the control, side by side and top-aligned. The row centers this box in its minimum height, and the control stays beside the label's first line.
+2. **Label**
+3. **Control**
 
 ## Styles
 
@@ -73,7 +74,7 @@ Use for a binary on/off setting that applies immediately — notifications, dark
 - 4.1.2 Name Role Value (the switch role and aria-checked doing the work)
 - 1.4.1 Use of Color (thumb position distinguishes on from off, never track color alone; the thumb glyph is a legibility aid on top of that)
 - 1.4.11 Non-text Contrast (the off-state track must be distinguishable from the background) / 2.4.13 Focus Appearance
-- 2.5.8 Target Size — intent: the whole row is the target, as in Checkbox.Row. No padding is bound, so the 24×24 minimum is met by the consumer's layout, not by a number Switch.Row carries
+- 2.5.8 Target Size — intent: the whole row is the target, as in Checkbox.Row. The row's minimum height is the control-height ladder, so every row is at least 24px tall, and the default (medium) row is 44px on comfortable density
 - 4.1.3 Status Messages (the async outcome or error of an immediate change)
 
 ### Motion
@@ -125,9 +126,10 @@ Generated from the plan that builds the design-file component: 4 members. Values
 | Part | Kind | In |
 | --- | --- | --- |
 | `row` | frame | every member |
-| `row/label` | text | every member |
-| `row/controlCell` | frame | every member |
-| `row/controlCell/control` | instance | every member |
+| `row/content` | frame | every member |
+| `row/content/label` | text | every member |
+| `row/content/controlCell` | frame | every member |
+| `row/content/controlCell/control` | instance | every member |
 
 ### Spacing and size
 
@@ -139,17 +141,19 @@ Keyed by `size`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `row` | — | `space.100` | — | — | — | — |
-| `row/controlCell` | — | — | `control.size.md.line-box` | — | — | — |
-| `row/controlCell/control` | — | — | `control.size.md.track` | — | — | — |
+| `row` | `space.100` / `space.0` / `space.100` / `space.0` | — | — | — | — | min height `size.md.height` |
+| `row/content` | — | `space.100` | — | — | — | — |
+| `row/content/controlCell` | — | — | `control.size.md.line-box` | — | — | — |
+| `row/content/controlCell/control` | — | — | `control.size.md.track` | — | — | — |
 
 **size=small**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `row` | — | `space.100` | — | — | — | — |
-| `row/controlCell` | — | — | `control.size.sm.line-box` | — | — | — |
-| `row/controlCell/control` | — | — | `control.size.sm.track` | — | — | — |
+| `row` | `space.075` / `space.0` / `space.075` / `space.0` | — | — | — | — | min height `size.sm.height` |
+| `row/content` | — | `space.100` | — | — | — | — |
+| `row/content/controlCell` | — | — | `control.size.sm.line-box` | — | — | — |
+| `row/content/controlCell/control` | — | — | `control.size.sm.track` | — | — | — |
 
 ### Type
 
@@ -157,8 +161,8 @@ Keyed by `size`.
 
 | Members | Part | Text style |
 | --- | --- | --- |
-| size=medium | `row/label` | `type.body.md.default` |
-| size=small | `row/label` | `type.body.sm.default` |
+| size=medium | `row/content/label` | `type.body.md.default` |
+| size=small | `row/content/label` | `type.body.sm.default` |
 
 ### Color
 
@@ -168,17 +172,17 @@ Keyed by `status`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `row/label` | — | — | `color.text.primary` | — |
+| `row/content/label` | — | — | `color.text.primary` | — |
 
 **status=error**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `row/label` | — | — | `color.text.primary` | — |
+| `row/content/label` | — | — | `color.text.primary` | — |
 
 ### Nesting and properties
 
-- `row/controlCell/control` nests `switch-control` at `selection=off, state=rest, status=default`; follows `size`, `status`; exposes `selection`, `state`, `showStateLabel`
+- `row/content/controlCell/control` nests `switch-control` at `selection=off, state=rest, status=default`; follows `size`, `status`; exposes `selection`, `state`, `showStateLabel`
 
 | Property | Type | Default |
 | --- | --- | --- |

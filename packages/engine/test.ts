@@ -3782,9 +3782,10 @@ for (const b of brands) {
       'password-field': { keys: ['pad-x', 'pad-y', 'gap'], sizes: ['small', 'medium', 'large'] },
       textarea: { keys: ['pad-x', 'pad-y'], sizes: ['small', 'medium', 'large'] },
       select: { keys: ['pad-x', 'pad-y', 'gap'], sizes: ['small', 'medium', 'large'] },
-      'checkbox-row': { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
-      'radio-row': { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
-      'switch-row': { keys: ['gap'], sizes: ['small', 'medium'] },
+      // #2894 (owner Q539, Q?4 A): the rows' block padding follows density too.
+      'checkbox-row': { keys: ['pad-y', 'gap'], sizes: ['small', 'medium', 'large'] },
+      'radio-row': { keys: ['pad-y', 'gap'], sizes: ['small', 'medium', 'large'] },
+      'switch-row': { keys: ['pad-y', 'gap'], sizes: ['small', 'medium'] },
       tag: { keys: ['padding-x', 'select.gap', 'dismissible.visible-gap', 'check-gap', 'select.padding-end', 'dismissible.padding-end'], sizes: ['small', 'medium', 'large'] },
       'tab-item': { keys: ['padding-x', 'gap'], sizes: ['small', 'medium', 'large'] },
       'segmented-control-segment': { keys: ['padding-x', 'gap'], sizes: ['small', 'medium', 'large'] },
@@ -3796,7 +3797,8 @@ for (const b of brands) {
       toast: { keys: [], sizes: [], bare: ['pad-y', 'pad-x', 'pad-end', 'gap', 'glyph-gap'] },
     };
     const BTN = { compact: 'small 12/8/4/6 · medium 12/8/6/6 · large 20/12/6/8', comfortable: 'small 16/12/6/8 · medium 16/12/8/8 · large 24/16/8/12', spacious: 'small 20/16/8/12 · medium 20/16/12/12 · large 32/20/12/16' };
-    const ROWS = { compact: 'small 6 · medium 6 · large 8', comfortable: 'small 8 · medium 8 · large 12', spacious: 'small 12 · medium 12 · large 16' };
+    // Rows: block padding (the per-size minimum, #2894) / control-to-label gap.
+    const ROWS = { compact: 'small 4/6 · medium 6/6 · large 8/8', comfortable: 'small 6/8 · medium 8/8 · large 12/12', spacious: 'small 8/12 · medium 12/12 · large 16/16' };
     const EXPECTED: Record<string, Record<typeof densities[number], string>> = {
       button: BTN, 'button-destructive': BTN, 'button-neutral': BTN,
       'text-field': { compact: 'small 12/4/6 · medium 12/6/6 · large 20/6/6', comfortable: 'small 16/6/8 · medium 16/8/8 · large 24/8/8', spacious: 'small 20/8/12 · medium 20/12/12 · large 32/12/12' },
@@ -3804,7 +3806,7 @@ for (const b of brands) {
       textarea: { compact: 'small 12/4 · medium 12/6 · large 20/6', comfortable: 'small 16/6 · medium 16/8 · large 24/8', spacious: 'small 20/8 · medium 20/12 · large 32/12' },
       select: { compact: 'small 12/4/6 · medium 12/6/6 · large 20/6/6', comfortable: 'small 16/6/8 · medium 16/8/8 · large 24/8/8', spacious: 'small 20/8/12 · medium 20/12/12 · large 32/12/12' },
       'checkbox-row': ROWS, 'radio-row': ROWS,
-      'switch-row': { compact: 'small 6 · medium 6', comfortable: 'small 8 · medium 8', spacious: 'small 12 · medium 12' },
+      'switch-row': { compact: 'small 4/6 · medium 6/6', comfortable: 'small 6/8 · medium 8/8', spacious: 'small 8/12 · medium 12/12' },
       // Tag: padding-x / select icon→label / dismissible VISIBLE icon→label (owner, 2026-09-29: 6/8/8) /
       // label→check / select trailing inset / dismissible trailing inset. Compact small's visible 6 steps to 4.
       tag: { compact: 'small 6/4/4/4/6/0 · medium 8/6/6/4/8/0 · large 12/8/6/6/12/0', comfortable: 'small 8/6/6/4/8/0 · medium 12/8/8/6/12/0 · large 16/12/8/8/16/0', spacious: 'small 12/8/8/6/12/0 · medium 16/12/12/8/16/0 · large 20/16/12/12/20/0' },
@@ -29606,8 +29608,13 @@ arm: {
     const box = boxName ? ps[boxName] : undefined;
     ok(!!box && (box.height ?? '').includes('control-box') && box.layout?.align === 'center',
       `#1201 ${def.id}: the control sits in a line-box wrapper — height→'…control-box', cross-axis centred (got '${boxName}' height='${box?.height}' align='${box?.layout?.align}')`);
-    ok(rootRow.layout?.align === 'start',
-      `#1201 ${def.id}: and the row itself stays top-aligned (align='${rootRow.layout?.align}') — the centring lives in the box, never the row`);
+    // The row that PAIRS the control cell with the label stays top-aligned. Since #2894 (owner Q539, Q?3 A) that is
+    // `content`, one level inside the root, and the root centers `content` as its ONE flow child (Accordion's Q276 A
+    // construction), so a single line is centered in the floor and a wrapped label still holds line one.
+    const pairName = Object.keys(ps).find((n) => (ps[n].children ?? []).includes(boxName ?? ''));
+    const pair = pairName ? ps[pairName] : undefined;
+    ok(pair?.layout?.align === 'start' && (pair === rootRow || (rootRow.children ?? []).length === 1 && rootRow.children![0] === pairName),
+      `#1201 ${def.id}: and the row pairing the control with its label stays top-aligned ('${pairName}' align='${pair?.layout?.align}'; root children [${(rootRow.children ?? []).join(', ')}]) — the centring lives in the box, never on the control-and-label row`);
     // #1226 step 2 / #1354 — THE NESTED CONTROL DOES NOT STRETCH TO THE LINE BOX. A nested instance in an
     // auto-layout cell can be made to FILL the counter axis; the decided shape forbids it. The nest pins
     // its OWN height to `control.size.*.height` (16/20/24 on nb), strictly SHORTER than the wrapper's
@@ -29633,6 +29640,113 @@ arm: {
     ok(pxOf(nbCtl[rung]['line-box']) > pxOf(nbCtl[rung].height),
       `#1201 nb: control.size.${rung}.line-box (${pxOf(nbCtl[rung]['line-box'])}px) is taller than the control (${pxOf(nbCtl[rung].height)}px), so centring within it is a real first-line inset`);
   }
+}
+
+// ---- #2894: THE OPTION ROWS LAND ON THE CONTROL-HEIGHT LADDER (owner decision Q539, A on every question) --------
+//
+// Radio.Row, Checkbox.Row and Switch.Row bind their floor `size.{size}.min-height` (the ladder) as the Figma row's
+// `minHeight` as well as in code, center ONE inner box (`content`) in it, and keep the control and label top-aligned
+// inside that box; the block padding is a per-size minimum that follows density. A layout model places a one- and a
+// TWO-line label with the PLAN's own alignments and bound variables (the Figma projection) and, separately, with the
+// def's own token keys and CSS's `min-height` + `align-items` (the code projection), each resolved through a brand's
+// EMITTED tokens. EXPECTED heights are the wireframe's numbers (6320371912), typed here, never read off the ladder:
+//   comfortable 36/44/56 in every corpus brand; compact 29/36/44; spacious 44/56/68 (Switch.Row has no large).
+// Mutations: the row back to align:start → `… centered`; `minHeight` dropped from the row part → `… lands on the
+// ladder` (Figma 40 at medium, not 44); `content` centered → #1009 half-1 and #1201, by name.
+{
+  type PN = { name: string; type?: string; children: PN[]; bound?: Record<string, string>; counterAxisAlignItems?: string };
+  const find = (n: PN, name: string): PN | undefined => (n.name === name ? n : n.children.map((c) => find(c, name)).find(Boolean));
+  const at = (root: any, ref: string): any => ref.replace(/^\{|\}$/g, '').split('.').slice(ref.startsWith('{') ? 1 : 0).reduce((n: any, k) => n?.[k], root);
+  const num = (root: any, v: any): number => { const leaf = typeof v === 'string' && v.startsWith('{') ? at(root, v) : v; if (leaf && typeof leaf === 'object' && '$value' in leaf) return leaf.$extensions?.prism3?.px ?? num(root, leaf.$value); return parseFloat(String(leaf)); };
+  const place = (align: string | undefined, h: number, inH: number) => (align === 'CENTER' ? (inH - h) / 2 : align === 'MAX' ? inH - h : 0);
+  const EXPECT: Record<string, Record<string, number>> = {
+    compact: { small: 29, medium: 36, large: 44 },
+    comfortable: { small: 36, medium: 44, large: 56 },
+    spacious: { small: 44, medium: 56, large: 68 },
+  };
+  // The per-size minimum pad (Q?1 A) at comfortable, as the space step it binds: 6/8/12px.
+  const PAD_STEP: Record<string, string> = { small: 'space.075', medium: 'space.100', large: 'space.150' };
+  const ROW_IDS = ['radio-row', 'checkbox-row', 'switch-row'];
+  const rows = componentDefs.filter((d) => ROW_IDS.includes(d.id));
+  ok(rows.length === 3, `#2894: the three option rows are present to measure (got ${rows.map((d) => d.id).join(', ')})`);
+  // Each world: a brand's emitted tree at one density. Comfortable reads the committed emission of every corpus brand;
+  // compact and spacious BUILD each design.md brand at that density (nb is a measured fixture with no density lever).
+  const treeOf = (t: any) => t[Object.keys(t).find((k) => !k.startsWith('$'))!];
+  const worlds: { brand: string; density: 'compact' | 'comfortable' | 'spacious'; root: any }[] = [];
+  const corpus = readdirSync(resolve(HERE, 'out')).filter((f) => /^[a-z0-9-]+\.tokens\.json$/.test(f)).map((f) => f.replace('.tokens.json', ''));
+  for (const b of corpus) worlds.push({ brand: b, density: 'comfortable', root: treeOf(JSON.parse(readFileSync(resolve(HERE, `out/${b}.tokens.json`), 'utf8'))) });
+  let rebuilt = 0;
+  for (const f of readdirSync(resolve(HERE, 'examples')).filter((x) => x.endsWith('.design.md'))) {
+    const text = readFileSync(resolve(HERE, 'examples', f), 'utf8');
+    const std = parseStandardDesignMd(text);
+    const input = isStandardDesignMd(std) ? standardToBrandInput(std).input : parseDesignMd(text).input;
+    if (!corpus.includes(input.id)) continue;
+    rebuilt++;
+    for (const density of ['compact', 'spacious'] as const) {
+      const theme = brandTheme({ ...input, density });
+      ok(theme.dims.density === density, `#2894: ${input.id} built at ${density} resolves to that density (got ${theme.dims.density})`);
+      worlds.push({ brand: input.id, density, root: treeOf(buildTree(theme).tree) });
+    }
+  }
+  ok(corpus.length >= 5 && rebuilt >= 4, `#2894: the corpus brands are present to measure (${corpus.length} emitted, ${rebuilt} rebuilt at compact and spacious from their design.md)`);
+  const offLadder: string[] = [], offCenter: string[] = [], offLine: string[] = [], offPad: string[] = [], offTarget: string[] = [];
+  let measured = 0;
+  for (const def of rows) {
+    for (const density of ['compact', 'comfortable', 'spacious'] as const) {
+      const m = applySpacingDensity(def, density);
+      const plans = figmaAnatomySet(m, { swapTarget: 'FPO-default-icon' }).filter((p) => (p.coord as Record<string, string>).status !== 'error');
+      for (const p of plans) {
+        const size = p.size ?? (p.coord as Record<string, string>).size;
+        const row = p.root as PN, cell = find(row, 'controlCell'), label = find(row, 'label');
+        const pair = row.children.find((c) => c.children.some((k) => k.name === 'controlCell')) ?? (row.children.some((k) => k.name === 'controlCell') ? row : undefined);
+        for (const w of worlds.filter((x) => x.density === density)) {
+          const v = (name: string | undefined) => (name ? num(w.root, at(w.root, name.replace(/\//g, '.'))) : 0);
+          const type = at(w.root, m.tokens[`size.${size}.text`]).$value;
+          const line = num(w.root, type.fontSize) * num(w.root, type.lineHeight);
+          const cellH = v(cell?.bound?.height);
+          // FIGMA: the plan's bound floor, padding and alignments.
+          const figma = (lines: number) => {
+            const padT = v(row.bound?.paddingTop), padB = v(row.bound?.paddingBottom), floor = v(row.bound?.minHeight);
+            const content = Math.max(cellH, lines * line);
+            const H = Math.max(floor, padT + content + padB);
+            const top = padT + place(row.counterAxisAlignItems, content, H - padT - padB);
+            // Inside `content`: the cell and the label at the pairing row's alignment; line one's middle vs the cell's.
+            const cellMid = place(pair?.counterAxisAlignItems, cellH, content) + cellH / 2;
+            const lineOneMid = place(pair?.counterAxisAlignItems, lines * line, content) + line / 2;
+            return { H, mid: top + content / 2, firstLine: Math.abs(cellMid - lineOneMid), padT, padB };
+          };
+          // CODE: the def's own keys (`min-height`, `pad-y`), CSS's border-box min-height, the row's `align`.
+          const code = (lines: number) => {
+            const pad = num(w.root, at(w.root, m.tokens[`size.${size}.pad-y`])), floor = num(w.root, at(w.root, m.tokens[`size.${size}.min-height`]));
+            return Math.max(floor, pad + Math.max(cellH, lines * line) + pad);
+          };
+          const want = EXPECT[density][size];
+          const one = figma(1), two = figma(2), c1 = code(1);
+          measured++;
+          const at1 = `${def.id} ${w.brand} ${density} ${size}`;
+          if (!(Math.abs(one.H - want) <= 0.5 && Math.abs(c1 - want) <= 0.5)) offLadder.push(`${at1}: Figma ${one.H.toFixed(1)} · code ${c1.toFixed(1)} (want ${want})`);
+          if (Math.abs(one.mid - one.H / 2) > 0.5) offCenter.push(`${at1} (row ${row.counterAxisAlignItems}): content center ${one.mid.toFixed(2)} vs ${(one.H / 2).toFixed(2)}`);
+          if (!(pair && pair !== row && pair.counterAxisAlignItems === 'MIN' && one.firstLine <= 1 && two.firstLine <= 1 && two.H >= one.padT + 2 * line + one.padB - 0.01 && Math.abs(code(2) - two.H) <= 0.5))
+            offLine.push(`${at1} (content ${pair?.name} ${pair?.counterAxisAlignItems}): cell off line one by ${two.firstLine.toFixed(2)} on two lines; two-line Figma ${two.H.toFixed(1)} · code ${code(2).toFixed(1)}`);
+          if (density === 'comfortable' && !(row.bound?.paddingTop === PAD_STEP[size].replace('.', '/') && row.bound?.paddingBottom === PAD_STEP[size].replace('.', '/')))
+            offPad.push(`${at1}: pad ${row.bound?.paddingTop}/${row.bound?.paddingBottom} (want ${PAD_STEP[size]})`);
+          if (!(one.H >= 24 && label)) offTarget.push(`${at1}: ${one.H.toFixed(1)}px`);
+        }
+      }
+    }
+  }
+  // The rows' sizes (3 + 3 + 2) × every world (each emitted brand at comfortable, each rebuilt one at compact and spacious).
+  ok(measured === 8 * worlds.length && measured >= 104, `#2894: every row, size and density measured in every world (${measured} of ${8 * worlds.length})`);
+  ok(offLadder.length === 0,
+    `#2894 option rows land on the ladder: a single-line row measures 36/44/56 at comfortable in every corpus brand, 29/36/44 compact and 44/56/68 spacious, in Figma and in code alike${offLadder.length ? ` — OFF: ${offLadder.slice(0, 6).join('; ')}` : ''}`);
+  ok(offCenter.length === 0,
+    `#2894 option rows: a single-line row's content is centered in its floor, within 0.5px${offCenter.length ? ` — OFF: ${offCenter.slice(0, 6).join('; ')}` : ''}`);
+  ok(offLine.length === 0,
+    `#2894 option rows: inside a top-aligned \`content\` box, the control stays on line one of a one- and a two-line label (within 1px), and a wrapped row grows by its padding, Figma and code agreeing${offLine.length ? ` — OFF: ${offLine.slice(0, 6).join('; ')}` : ''}`);
+  ok(offPad.length === 0,
+    `#2894 option rows: the block padding is the per-size minimum, space.075/100/150, top and bottom at comfortable${offPad.length ? ` — OFF: ${offPad.slice(0, 6).join('; ')}` : ''}`);
+  ok(offTarget.length === 0,
+    `#2894 option rows: every row is a hit target of at least 24px (SC 2.5.8) at every size and density${offTarget.length ? ` — OFF: ${offTarget.slice(0, 6).join('; ')}` : ''}`);
 }
 
 // ---- #1347: THE CHECKBOX GROUP composes via the ALREADY-COLLAPSED Row, not the atom ----------------
