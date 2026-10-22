@@ -174,7 +174,7 @@ export const breadcrumbs: ComponentDef = {
     ],
     keyboard: 'Tab moves through the ancestor links and the overflow button; Enter follows a link; Enter or Space presses the overflow button. The current page takes no focus.',
     focus: 'Each link and the overflow button shows its own focus ring. After the overflow button is pressed, focus moves to the first revealed link.',
-    aria: 'A <nav> with aria-label="Breadcrumb", translated. aria-current="page" on the current page, never aria-current="location". The separators are CSS, never in the accessibility tree. The overflow button is named "Show full path" (DRAFT). On a small screen the back chevron is aria-hidden. In right-to-left text the row and the chevrons mirror.',
+    aria: 'A <nav> with aria-label="Breadcrumb", translated. aria-current="page" on the current page, never aria-current="location". The separators are CSS, never in the accessibility tree. The overflow button is named "Show full path". On a small screen the back chevron is aria-hidden. In right-to-left text the row and the chevrons mirror.',
   },
 
   content: {

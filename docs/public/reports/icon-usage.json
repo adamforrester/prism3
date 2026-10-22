@@ -74,7 +74,7 @@
     "_breadcrumb-separator": {
       "glyphs": [
         {
-          "part": "chevron",
+          "part": "chevronGlyph",
           "glyph": "chevron-right",
           "source": "icon set",
           "how": "drawn",
@@ -85,7 +85,7 @@
           }
         },
         {
-          "part": "slash",
+          "part": "slashGlyph",
           "glyph": "slash",
           "source": "icon set",
           "how": "drawn",

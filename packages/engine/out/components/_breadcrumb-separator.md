@@ -20,8 +20,8 @@ The mark between two steps of a Breadcrumbs trail, after every step but the curr
 Shown on the default member: type `chevron`.
 
 1. **Frame** — The mark's box, one 16px icon square. Exactly one glyph shows in it.
-2. **Chevron** — A chevron pointing toward the current page.
-3. **Slash** — A forward slash.
+2. **Chevron glyph** — A chevron pointing toward the current page.
+3. **Slash glyph** — A forward slash.
 
 ## Styles
 
@@ -88,8 +88,8 @@ Generated from the plan that builds the design-file component: 2 members. Values
 | Part | Kind | In |
 | --- | --- | --- |
 | `frame` | frame | every member |
-| `frame/chevron` | instance | type=chevron |
-| `frame/slash` | instance | type=slash |
+| `frame/chevronGlyph` | instance | type=chevron |
+| `frame/slashGlyph` | instance | type=slash |
 
 ### Spacing and size
 
@@ -102,8 +102,8 @@ Keyed by nothing: one row covers every member.
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
 | `frame` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
-| `frame/chevron` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
-| `frame/slash` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `frame/chevronGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `frame/slashGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
 
 ### Color
 
@@ -113,18 +113,18 @@ Keyed by `type`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `frame/chevron` | — | — | — | `color.icon.secondary` |
+| `frame/chevronGlyph` | — | — | — | `color.icon.secondary` |
 
 **type=slash**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `frame/slash` | — | — | — | `color.icon.secondary` |
+| `frame/slashGlyph` | — | — | — | `color.icon.secondary` |
 
 ### Nesting and properties
 
-- `frame/chevron` nests `icon/chevron-right`
-- `frame/slash` nests `icon/slash`
+- `frame/chevronGlyph` nests `icon/chevron-right`
+- `frame/slashGlyph` nests `icon/slash`
 
 ---
 

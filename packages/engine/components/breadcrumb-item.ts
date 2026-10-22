@@ -173,7 +173,7 @@ export const breadcrumbItem: ComponentDef = {
     ],
     keyboard: 'Tab reaches an ancestor link or the overflow button; Enter follows the link; Enter or Space presses the button. The current page takes no focus.',
     focus: 'The nested link\'s and button\'s own focus rings. The current page is not focusable.',
-    aria: 'aria-current="page" on the current page\'s text. The overflow button is named "Show full path" (DRAFT), translated, and its glyph is aria-hidden. The separator is never exposed. In right-to-left text the separator mirrors.',
+    aria: 'aria-current="page" on the current page\'s text. The overflow button is named "Show full path", translated, and its glyph is aria-hidden. The separator is never exposed. In right-to-left text the separator mirrors.',
   },
 
   content: {
@@ -197,11 +197,11 @@ export const breadcrumbItem: ComponentDef = {
 
   ai: {
     primaryPurpose: 'One step of a Breadcrumbs trail: an ancestor link, the current page, or the overflow button for collapsed steps.',
-    whenToUse: 'Inside Breadcrumbs only, as each step of the trail.',
+    whenToUse: 'Only as a child of Breadcrumbs. Generate Breadcrumbs, which places each step and sets the separator and size for all of them.',
     avoidWhen: 'You need a trail of links (use Breadcrumbs, which holds the items), a link on its own (use Link) or a back link in history (use Link).',
     commonPartners: ['breadcrumbs'],
     triggerKeywords: ['breadcrumb item', 'crumb', 'breadcrumb step', 'current page crumb', 'collapsed breadcrumb'],
-    generationPriority: 4,
+    generationPriority: 9,
   },
 
   composition: {

@@ -17,7 +17,9 @@
  * `separator=slash` (`presentWhen`). No engine change.
  *
  * THE SLASH GLYPH IS NOT REMIX'S. Remix has no plain slash, so `slash` is drawn for this project (`icon-set.ts`,
- * `icons/NOTICE.md`): a 2px stroke on the 24px grid, the chevron's weight. Held for the owner on #2666.
+ * `icons/NOTICE.md`): a 2px stroke on the 24px grid, the chevron's weight. It is a permanent member of the icon set
+ * (owner decision, 2026-10-22), so both glyph parts are instances of the Icon component, `icon/chevron-right` and
+ * `icon/slash`, never a private drawing. Glyph layers are named `<shape>Glyph` (Q350).
  */
 import { ComponentDef } from '../component-schema';
 
@@ -60,11 +62,11 @@ export const breadcrumbSeparator: ComponentDef = {
         role: 'target',
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'fixed', y: 'fixed' } },
         size: 'glyph-size',
-        children: ['chevron', 'slash'],
+        children: ['chevronGlyph', 'slashGlyph'],
         note: 'The mark\'s box, one 16px icon square. Exactly one glyph shows in it.',
       },
-      chevron: { kind: 'vector', glyph: 'chevron-right', size: 'glyph-size', presentWhen: { type: ['chevron'] }, note: 'A chevron pointing toward the current page.' },
-      slash: { kind: 'vector', glyph: 'slash', size: 'glyph-size', presentWhen: { type: ['slash'] }, note: 'A forward slash.' },
+      chevronGlyph: { kind: 'vector', glyph: 'chevron-right', size: 'glyph-size', presentWhen: { type: ['chevron'] }, note: 'A chevron pointing toward the current page.' },
+      slashGlyph: { kind: 'vector', glyph: 'slash', size: 'glyph-size', presentWhen: { type: ['slash'] }, note: 'A forward slash.' },
     },
     codeOnly: [
       'The separator in code — CSS ::after on every <li> but the last, with pointer-events: none: never text content, never a list item, never in the accessibility tree. In code it is part of Breadcrumbs, not a component of its own; Figma draws it as this glyph inside each ancestor and overflow item.',
@@ -105,7 +107,7 @@ export const breadcrumbSeparator: ComponentDef = {
 
   ai: {
     primaryPurpose: 'The mark between two steps of a Breadcrumbs trail, a chevron or a slash.',
-    whenToUse: 'Only as a child of BreadcrumbItem. Generate Breadcrumbs instead.',
+    whenToUse: 'Only as a child of BreadcrumbItem. Generate BreadcrumbItem, which shows the separator in the look its Breadcrumbs sets.',
     avoidWhen: 'Always on its own. Use Breadcrumbs; for a plain icon, use an Icon.',
     commonPartners: ['breadcrumb-item', 'breadcrumbs'],
     triggerKeywords: ['breadcrumb separator', 'breadcrumb slash', 'breadcrumb chevron'],
@@ -129,13 +131,14 @@ export const breadcrumbSeparator: ComponentDef = {
 
   notes: {
     contested: [
-      'HELD FOR THE OWNER (#2666, Q382): the slash glyph is drawn for this project, not taken from Remix, which has no plain slash. The name BreadcrumbSeparator matches BreadcrumbItem: Family.Part (Breadcrumb.Separator) would force Breadcrumb.Item too, which waits on the naming answer on #2783. The aliases are judgment calls.',
+      'The aliases are judgment calls.',
     ],
     unverified: [
       'The separator\'s contrast (lowest 3.51:1 on background.primary, 3.16:1 on background.secondary, measured for the proposal) is decorative and held to no floor.',
     ],
     evolution: [
       '2026-10-16 (Q382 A): split out of BreadcrumbItem as its own part, with a slash beside the chevron.',
+      '2026-10-22 (Q531 A): the slash is drawn for this project and the name stays BreadcrumbSeparator, matching BreadcrumbItem. The owner then made the slash a permanent icon in the set, which the part nests.',
     ],
   },
 };

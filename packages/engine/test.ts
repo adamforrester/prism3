@@ -17135,6 +17135,8 @@ arm: {
       'flush-icon-button-neutral': 4, 'flush-icon-button': 5, 'flush-icon-button-destructive': 5,
       'checkbox-control': 6, 'radio-control': 6, 'switch-control': 6, 'field-label': 6, 'field-message': 6, 'focus-ring': 6,
       'tab-item': 9, 'list-item': 9, 'segmented-control-segment': 9, '_accordion-indicator': 9,
+      // Breadcrumbs (#2666): the trail is placed on its own; its step and separator are parts its host places.
+      breadcrumbs: 2, 'breadcrumb-item': 9, '_breadcrumb-separator': 9,
     };
     const prio = (d: ComponentDef) => d.ai.generationPriority;
     const offScale = componentDefs.filter((d) => !SCALE.includes(prio(d) as number));
@@ -18663,10 +18665,10 @@ arm: {
       const SLASH = 'M14.03 4H16.17L9.97 20H7.83L14.03 4Z';
       const looks = sepPlans.map((p) => {
         const g = (p.root as unknown as BN).children;
-        return [String((p.coord as Record<string, string>).type), g.length, g[0]?.nestTarget, g[0]?.descendantFills, g[0]?.bound?.width, g[0]?.bound?.height];
+        return [String((p.coord as Record<string, string>).type), g.length, g[0]?.name, g[0]?.nestTarget, g[0]?.descendantFills, g[0]?.bound?.width, g[0]?.bound?.height];
       });
       const slashPath = (ICON_PATHS as Record<string, string | undefined>)['slash'];
-      ok(!!sepDef && sepDef.name === 'BreadcrumbSeparator' && JSON.stringify(looks) === JSON.stringify([['chevron', 1, 'icon/chevron-right', 'color/icon/secondary', 'icon/size/xs', 'icon/size/xs'], ['slash', 1, 'icon/slash', 'color/icon/secondary', 'icon/size/xs', 'icon/size/xs']])
+      ok(!!sepDef && sepDef.name === 'BreadcrumbSeparator' && JSON.stringify(looks) === JSON.stringify([['chevron', 1, 'chevronGlyph', 'icon/chevron-right', 'color/icon/secondary', 'icon/size/xs', 'icon/size/xs'], ['slash', 1, 'slashGlyph', 'icon/slash', 'color/icon/secondary', 'icon/size/xs', 'icon/size/xs']])
         && slashPath !== undefined && canonicalShape(slashPath) === canonicalShape(SLASH),
         `#2666 breadcrumbs/separator-looks (Q382 A): _breadcrumb-separator is a 16px chevron-right or slash in color/icon/secondary, chevron first, and the set's slash is the 2px stroke typed here (got ${JSON.stringify(looks)}, slash ${slashPath ?? 'not in the set'})`);
 
@@ -18674,10 +18676,10 @@ arm: {
       const ovOff = itemPlans.filter((p) => {
         const o = find(p.root, 'overflow');
         if (p.kind !== 'overflow') return !!o;
-        return !(o && o.nestTarget === 'flush-icon-button-neutral' && JSON.stringify(o.nestVariant) === '{"shape":"flush","size":"small","state":"rest"}'
+        return !(o && o.nestTarget === 'flush-icon-button-neutral' && JSON.stringify(o.nestVariant) === '{"shape":"flush","size":"small","surface":"default","state":"rest"}'
           && JSON.stringify(o.nestExpose) === '["state"]' && JSON.stringify(o.nestOverrides) === '[{"property":"swap icon","type":"INSTANCE_SWAP","value":"icon/more-horizontal-filled"}]');
       });
-      ok(ovOff.length === 0, `#2666 breadcrumbs/overflow (calls 8 A, 14 A): the overflow step nests FlushIconButton.Neutral, flush and small, showing more-horizontal-filled, state exposed${ovOff.length ? ` — OFF: ${ovOff.map((p) => `${p.kind}/${p.size}`).join(', ')}` : ''}`);
+      ok(ovOff.length === 0, `#2666 breadcrumbs/overflow (calls 8 A, 14 A): the overflow step nests FlushIconButton.Neutral, flush and small on the default surface, showing more-horizontal-filled, state exposed${ovOff.length ? ` — OFF: ${ovOff.map((p) => `${p.kind}/${p.size}`).join(', ')}` : ''}`);
 
       // THE ITEMS SLOT (call 1 A, the proposal's properties table): at least two, BreadcrumbItem only, two ancestors and
       // the current page by default at the trail's size. Only on the trail.

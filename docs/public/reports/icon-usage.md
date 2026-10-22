@@ -12,8 +12,8 @@ Generated from the component definitions and the emission by `packages/engine/em
 |  | chevronUpGlyph | `chevron-up` | icon set | drawn | indicator: chevron; expansion: expanded |
 |  | minusGlyph | `minus` | icon set | drawn | indicator: plus-minus; expansion: expanded |
 |  | plusGlyph | `plus` | icon set | drawn | indicator: plus-minus; expansion: collapsed |
-| _breadcrumb-separator | chevron | `chevron-right` | icon set | drawn | type: chevron |
-|  | slash | `slash` | icon set | drawn | type: slash |
+| _breadcrumb-separator | chevronGlyph | `chevron-right` | icon set | drawn | type: chevron |
+|  | slashGlyph | `slash` | icon set | drawn | type: slash |
 | breadcrumbs | backGlyph | `chevron-left` | icon set | drawn | path: parent |
 | checkbox-control | checkGlyph | `check` | icon set | drawn | selection: checked |
 |  | dashGlyph | `minus` | icon set | drawn | selection: indeterminate |

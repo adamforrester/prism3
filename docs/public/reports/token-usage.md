@@ -504,8 +504,8 @@ Type: color. Bound by 4 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
-| _breadcrumb-separator | `icon` | chevron | type: chevron (1 of 2) |
-|  |  | slash | type: slash (1 of 2) |
+| _breadcrumb-separator | `icon` | chevronGlyph | type: chevron (1 of 2) |
+|  |  | slashGlyph | type: slash (1 of 2) |
 | field-message | `default.icon` | (not drawn) | — |
 | icon | `tone.secondary` | (not drawn) | — |
 | textarea | `icon` | gripGlyph | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest (72 of 84) |
@@ -2321,9 +2321,9 @@ Type: dimension. Bound by 14 component(s).
 |  |  | frame | size: small (4 of 12) |
 |  |  | minusGlyph | expansion: expanded · indicator: plus-minus · size: small (1 of 12) |
 |  |  | plusGlyph | expansion: collapsed · indicator: plus-minus · size: small (1 of 12) |
-| _breadcrumb-separator | `glyph-size` | chevron | type: chevron (1 of 2) |
+| _breadcrumb-separator | `glyph-size` | chevronGlyph | type: chevron (1 of 2) |
 |  |  | frame | every member (2 of 2) |
-|  |  | slash | type: slash (1 of 2) |
+|  |  | slashGlyph | type: slash (1 of 2) |
 | breadcrumbs | `back-icon` | backGlyph | path: parent · separator: chevron (2 of 6) |
 | button | `size.small.icon` | leadingVisual | leading: true · size: small · state: disabled, focus-visible, hover, pressed, rest (80 of 576) |
 |  |  | spinner | size: small · state: pending (32 of 576) |

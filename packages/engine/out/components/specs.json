@@ -34701,7 +34701,7 @@
           "members": 2
         },
         {
-          "part": "frame/chevron",
+          "part": "frame/chevronGlyph",
           "kind": "instance",
           "members": 1,
           "when": {
@@ -34711,7 +34711,7 @@
           }
         },
         {
-          "part": "frame/slash",
+          "part": "frame/slashGlyph",
           "kind": "instance",
           "members": 1,
           "when": {
@@ -34738,7 +34738,7 @@
               }
             },
             {
-              "part": "frame/chevron",
+              "part": "frame/chevronGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.xs"
@@ -34749,7 +34749,7 @@
               }
             },
             {
-              "part": "frame/slash",
+              "part": "frame/slashGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.xs"
@@ -34779,7 +34779,7 @@
           },
           "parts": [
             {
-              "part": "frame/chevron",
+              "part": "frame/chevronGlyph",
               "icon": "color.icon.secondary"
             }
           ]
@@ -34790,7 +34790,7 @@
           },
           "parts": [
             {
-              "part": "frame/slash",
+              "part": "frame/slashGlyph",
               "icon": "color.icon.secondary"
             }
           ]
@@ -34798,7 +34798,7 @@
       ],
       "nesting": [
         {
-          "part": "frame/chevron",
+          "part": "frame/chevronGlyph",
           "kind": "instance",
           "component": "icon/chevron-right",
           "variant": {},
@@ -34806,7 +34806,7 @@
           "exposes": []
         },
         {
-          "part": "frame/slash",
+          "part": "frame/slashGlyph",
           "kind": "instance",
           "component": "icon/slash",
           "variant": {},
