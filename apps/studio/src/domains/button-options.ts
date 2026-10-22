@@ -18,13 +18,13 @@
  * while the slider is being dragged, which updates in place.
  */
 import type { ButtonContentSize, ButtonIcons, ButtonLabelWeight, ButtonTextHover } from '@prism3/engine/scale';
-import { brandState, currentMode, getPath, lastError, rebuild, setPage, subscribe } from '../state/store';
+import { brandState, currentMode, getPath, lastError, rebuild, setPage, subscribe, theme } from '../state/store';
 import { isDerived } from '../state/verdict';
-import { setButtonContentSize, setButtonIcons, setButtonLabelWeight, setButtonMinWidth, setButtonTextHover } from '../state/button-input';
+import { contentSizeOf, setButtonContentSize, setButtonIcons, setButtonLabelWeight, setButtonMinWidth, setButtonTextHover, type ContentSizeView } from '../state/button-input';
 import { brandDensity } from '../state/shape-input';
 import { pageOfTab } from '../shell/pages';
 import { glyph, h, hook } from '../shell/dom';
-import { choice, leverBlock, leverOf, slider, sliderReadout, subLine, keepFocus, type LeverBlock } from '../ui/lever-kit';
+import { choice, leverBlock, leverOf, slider, sliderReadout, stateLine, subLine, keepFocus, type LeverBlock } from '../ui/lever-kit';
 
 /** The options' copy (S8.2). DRAFT, pending the owner (the S8.2 PR's "Copy for owner approval" block). */
 export const BUTTON_OPTIONS_COPY = {
@@ -33,6 +33,10 @@ export const BUTTON_OPTIONS_COPY = {
   density: 'Density sets component heights and spacing.',
   densityLink: 'Set it in Shape › Density',
   scope: 'Applies to buttons, not icon buttons.',
+  /** What the chosen Button label & icon gives a medium button, in the brand's sizes (#2918). DRAFT, option A. */
+  contentSize: (c: ContentSizeView): string => c.rung === 'sm'
+    ? `Medium button label: ${c.labelPx}px, the small button's (label/sm). Icon: ${c.iconPx}px.`
+    : `Medium button label: ${c.labelPx}px (label/md). Icon: ${c.iconPx}px.`,
   /** The derived-mode line, as the frame words it (N-3 A, RO1 A). */
   derived: (mode: string): string => `${mode} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.`,
 } as const;
@@ -91,8 +95,14 @@ export const mountButtonOptions = (hostEl: HTMLElement, cleanups: (() => void)[]
     const opts = (L?.options ?? []).map((o) => ({ v: String(o.value), l: o.label }));
     const role = `${key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}-choice`;
     const c = choice(L?.label ?? key, role, opts, (v) => edit(key, () => WRITES[key](v)));
-    c.set(String(getPath(brandState, key) ?? L?.default ?? ''));
+    const v = String(getPath(brandState, key) ?? L?.default ?? '');
+    c.set(v);
     b.ctl.append(c.el);
+    // The readout (#2918): the label and icon sizes the brand's medium button gets under the chosen value.
+    if (key === 'buttonContentSize') {
+      const cs = contentSizeOf(theme, v as ButtonContentSize);
+      b.setState(cs ? hook(stateLine(BUTTON_OPTIONS_COPY.contentSize(cs)), 'button-content-size-readout') : null);
+    }
     blocks.push({ key, block: b });
     return b.el;
   };

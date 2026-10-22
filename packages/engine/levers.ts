@@ -118,9 +118,10 @@ export const leverManifest: Lever[] = [
   { key: 'buttonIcons', group: 'form', label: 'Button icons', control: 'enum', default: 'attached',
     options: enumOpts(['attached', 'Attached to label'], ['edges', 'Locked to edges']),
     description: 'Where button icons sit. Attached to label keeps them beside the label. Locked to edges pins them to the button edges and centers the label in the space between.' },
-  { key: 'buttonContentSize', group: 'form', label: 'Button label & icon', control: 'enum', default: 'match',
-    options: enumOpts(['match', 'Match button size'], ['smaller', 'One step smaller']),
-    description: 'The label and icon size of a medium button. One step smaller gives it the small button’s label and icon at the same height and padding. Small and large buttons are unchanged.' },
+  // #2918 (owner Q527) — label, option labels and description are a DRAFT for the owner (option A); the keys stay.
+  { key: 'buttonContentSize', group: 'form', label: 'Medium button label & icon', control: 'enum', default: 'match',
+    options: enumOpts(['match', 'Medium'], ['smaller', 'Small']),
+    description: 'The label and icon size of a medium button. Medium keeps its own; Small gives it the small button’s label and icon at the medium height and padding. Other button sizes are unchanged.' },
   // #1752 — label and option labels are the owner's exact words (2026-09-28). Buttons only.
   { key: 'buttonLabelWeight', group: 'form', label: 'Button label weight', control: 'enum', default: 'emphasis',
     options: enumOpts(['default', 'Default'], ['emphasis', 'Emphasis']),
