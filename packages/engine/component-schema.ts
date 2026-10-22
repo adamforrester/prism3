@@ -733,8 +733,8 @@ export type PartDef = {
    *  Code reads it as `min-inline-size`, computed from the height. A def projected with no brand in hand has
    *  no floor, as Button has none.
    *
-   *  The base is the bound `height`, or the bound `minHeight` where the box hugs above a floor instead (the underline
-   *  Tag, #2887: its height is a minimum at the same rung, so the floor multiplies the same number).
+   *  The base is the bound `height`, or the bound `minHeight` where the box hugs above a floor instead, or
+   *  `minWidthBase` where it hugs with no floor at all (the underline Tag since #2945).
    *
    *  Refused on a non-`box` kind, on a `box` with no `layout`, without a bound `height`, `minHeight` or `minWidthBase`,
    *  beside `minWidth` or `minWidthKey` (two floors on one axis), and when not a positive number. */
