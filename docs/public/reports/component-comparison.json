@@ -2210,6 +2210,205 @@
       "sizeDefault": "medium"
     },
     {
+      "id": "pagination",
+      "name": "Pagination",
+      "category": "navigation",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "type": [
+          "numbered",
+          "compact",
+          "simple"
+        ],
+        "style": [
+          "border",
+          "underline"
+        ],
+        "size": [
+          "medium",
+          "small",
+          "large"
+        ]
+      },
+      "props": [
+        {
+          "name": "count"
+        },
+        {
+          "name": "page"
+        },
+        {
+          "name": "defaultPage",
+          "default": 1
+        },
+        {
+          "name": "onPageChange"
+        },
+        {
+          "name": "getHref"
+        },
+        {
+          "name": "renderItem"
+        },
+        {
+          "name": "type",
+          "default": "numbered",
+          "values": [
+            "numbered",
+            "compact",
+            "simple"
+          ]
+        },
+        {
+          "name": "style",
+          "default": "border",
+          "values": [
+            "border",
+            "underline"
+          ]
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        {
+          "name": "siblingCount",
+          "default": 1
+        },
+        {
+          "name": "boundaryCount",
+          "default": 1
+        },
+        {
+          "name": "label",
+          "default": "Pagination"
+        },
+        {
+          "name": "getStatusText"
+        }
+      ],
+      "sizes": [
+        "medium",
+        "small",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
+      "id": "pagination-item",
+      "name": "Pagination.Item",
+      "category": "navigation",
+      "states": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled"
+      ],
+      "projectedStates": [
+        "rest",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled"
+      ],
+      "axes": {
+        "type": [
+          "page",
+          "ellipsis",
+          "previous",
+          "next"
+        ],
+        "selection": [
+          "unselected",
+          "selected"
+        ],
+        "style": [
+          "border",
+          "underline"
+        ],
+        "labeled": [
+          "false",
+          "true"
+        ],
+        "size": [
+          "medium",
+          "small",
+          "large"
+        ]
+      },
+      "props": [
+        {
+          "name": "label"
+        },
+        {
+          "name": "page"
+        },
+        {
+          "name": "href"
+        },
+        {
+          "name": "selected",
+          "default": false
+        },
+        {
+          "name": "type",
+          "default": "page",
+          "values": [
+            "page",
+            "ellipsis",
+            "previous",
+            "next"
+          ]
+        },
+        {
+          "name": "labeled",
+          "default": false
+        },
+        {
+          "name": "previousLabel",
+          "default": "Previous"
+        },
+        {
+          "name": "nextLabel",
+          "default": "Next"
+        },
+        {
+          "name": "isInactive",
+          "default": false
+        },
+        {
+          "name": "style",
+          "default": "border",
+          "values": [
+            "border",
+            "underline"
+          ]
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        }
+      ],
+      "sizes": [
+        "medium",
+        "small",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
       "id": "password-field",
       "name": "PasswordField",
       "category": "form",
@@ -3626,6 +3825,7 @@
       "name": "*.Item",
       "members": [
         "list-item",
+        "pagination-item",
         "tab-item"
       ],
       "basis": "components whose name ends in .Item"
@@ -3688,6 +3888,7 @@
       "icon-button",
       "icon-button-destructive",
       "icon-button-neutral",
+      "pagination-item",
       "password-field",
       "radio-control",
       "radio-row",
@@ -3727,6 +3928,7 @@
       "icon-button-destructive",
       "icon-button-neutral",
       "link",
+      "pagination-item",
       "password-field",
       "radio-control",
       "radio-row",
@@ -3758,6 +3960,7 @@
       "icon-button-destructive",
       "icon-button-neutral",
       "link",
+      "pagination-item",
       "password-field",
       "radio-control",
       "radio-row",
@@ -3804,6 +4007,7 @@
       "icon-button-destructive",
       "icon-button-neutral",
       "link",
+      "pagination-item",
       "radio-control",
       "radio-row",
       "segmented-control-segment",
@@ -3838,6 +4042,7 @@
       "icon-button-destructive",
       "icon-button-neutral",
       "link",
+      "pagination-item",
       "password-field",
       "radio-control",
       "radio-row",
@@ -4014,6 +4219,17 @@
         ]
       }
     ],
+    "labeled": [
+      {
+        "values": [
+          "false",
+          "true"
+        ],
+        "components": [
+          "pagination-item"
+        ]
+      }
+    ],
     "layout": [
       {
         "values": [
@@ -4084,6 +4300,7 @@
           "unselected"
         ],
         "components": [
+          "pagination-item",
           "segmented-control-segment",
           "tab-item",
           "tag"
@@ -4170,6 +4387,8 @@
           "link",
           "list",
           "list-item",
+          "pagination",
+          "pagination-item",
           "password-field",
           "radio-control",
           "radio-group",
@@ -4252,6 +4471,16 @@
       },
       {
         "values": [
+          "border",
+          "underline"
+        ],
+        "components": [
+          "pagination",
+          "pagination-item"
+        ]
+      },
+      {
+        "values": [
           "inline",
           "standalone"
         ],
@@ -4322,6 +4551,16 @@
       },
       {
         "values": [
+          "compact",
+          "numbered",
+          "simple"
+        ],
+        "components": [
+          "pagination"
+        ]
+      },
+      {
+        "values": [
           "count",
           "dot",
           "status"
@@ -4337,6 +4576,17 @@
         ],
         "components": [
           "tag"
+        ]
+      },
+      {
+        "values": [
+          "ellipsis",
+          "next",
+          "page",
+          "previous"
+        ],
+        "components": [
+          "pagination-item"
         ]
       }
     ],
@@ -4541,6 +4791,12 @@
         ]
       }
     ],
+    "boundaryCount": [
+      {
+        "id": "pagination",
+        "default": 1
+      }
+    ],
     "checked": [
       {
         "id": "checkbox-control"
@@ -4577,6 +4833,9 @@
     ],
     "count": [
       {
+        "id": "pagination"
+      },
+      {
         "id": "tab-item"
       }
     ],
@@ -4601,6 +4860,12 @@
       {
         "id": "accordion",
         "default": false
+      }
+    ],
+    "defaultPage": [
+      {
+        "id": "pagination",
+        "default": 1
       }
     ],
     "defaultValue": [
@@ -4813,6 +5078,16 @@
         "default": false
       }
     ],
+    "getHref": [
+      {
+        "id": "pagination"
+      }
+    ],
+    "getStatusText": [
+      {
+        "id": "pagination"
+      }
+    ],
     "headingLevel": [
       {
         "id": "accordion",
@@ -4852,6 +5127,9 @@
       },
       {
         "id": "link"
+      },
+      {
+        "id": "pagination-item"
       }
     ],
     "htmlFor": [
@@ -5035,6 +5313,10 @@
       {
         "id": "icon-button-neutral",
         "default": false
+      },
+      {
+        "id": "pagination-item",
+        "default": false
       }
     ],
     "isPending": [
@@ -5135,6 +5417,13 @@
         "id": "link"
       },
       {
+        "id": "pagination",
+        "default": "Pagination"
+      },
+      {
+        "id": "pagination-item"
+      },
+      {
         "id": "password-field"
       },
       {
@@ -5183,6 +5472,12 @@
           "leading",
           "trailing"
         ]
+      }
+    ],
+    "labeled": [
+      {
+        "id": "pagination-item",
+        "default": false
       }
     ],
     "layout": [
@@ -5341,6 +5636,12 @@
         "id": "textarea"
       }
     ],
+    "nextLabel": [
+      {
+        "id": "pagination-item",
+        "default": "Next"
+      }
+    ],
     "offset": [
       {
         "id": "focus-ring",
@@ -5420,6 +5721,11 @@
         "id": "dialog"
       }
     ],
+    "onPageChange": [
+      {
+        "id": "pagination"
+      }
+    ],
     "onRemove": [
       {
         "id": "tag"
@@ -5456,6 +5762,14 @@
         ]
       }
     ],
+    "page": [
+      {
+        "id": "pagination"
+      },
+      {
+        "id": "pagination-item"
+      }
+    ],
     "placeholder": [
       {
         "id": "password-field"
@@ -5485,6 +5799,12 @@
     "prefix": [
       {
         "id": "text-field"
+      }
+    ],
+    "previousLabel": [
+      {
+        "id": "pagination-item",
+        "default": "Previous"
       }
     ],
     "ratio": [
@@ -5534,6 +5854,11 @@
       {
         "id": "textarea",
         "default": false
+      }
+    ],
+    "renderItem": [
+      {
+        "id": "pagination"
       }
     ],
     "required": [
@@ -5600,6 +5925,10 @@
       }
     ],
     "selected": [
+      {
+        "id": "pagination-item",
+        "default": false
+      },
       {
         "id": "segmented-control-segment",
         "default": false
@@ -5717,6 +6046,12 @@
       {
         "id": "badge",
         "default": false
+      }
+    ],
+    "siblingCount": [
+      {
+        "id": "pagination",
+        "default": 1
       }
     ],
     "size": [
@@ -5911,6 +6246,24 @@
         ]
       },
       {
+        "id": "pagination",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "id": "pagination-item",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
         "id": "password-field",
         "default": "medium",
         "values": [
@@ -6081,6 +6434,22 @@
         "values": [
           "standalone",
           "inline"
+        ]
+      },
+      {
+        "id": "pagination",
+        "default": "border",
+        "values": [
+          "border",
+          "underline"
+        ]
+      },
+      {
+        "id": "pagination-item",
+        "default": "border",
+        "values": [
+          "border",
+          "underline"
         ]
       }
     ],
@@ -6323,6 +6692,25 @@
           "unordered",
           "ordered",
           "icon"
+        ]
+      },
+      {
+        "id": "pagination",
+        "default": "numbered",
+        "values": [
+          "numbered",
+          "compact",
+          "simple"
+        ]
+      },
+      {
+        "id": "pagination-item",
+        "default": "page",
+        "values": [
+          "page",
+          "ellipsis",
+          "previous",
+          "next"
         ]
       },
       {
@@ -6572,10 +6960,9 @@
       "kind": "state set",
       "subject": "role peers: *.Item",
       "components": [
-        "list-item",
-        "tab-item"
+        "list-item"
       ],
-      "detail": "no state set is shared by most of the group — list-item []; tab-item [rest, hover, pressed, focus-visible, disabled]"
+      "detail": "list-item differs from the group's common set [disabled, focus-visible, hover, pressed, rest] — lacks disabled, focus-visible, hover, pressed, rest"
     },
     {
       "kind": "state set",
@@ -6740,13 +7127,14 @@
       "subject": "axis selection",
       "components": [
         "checkbox-control",
+        "pagination-item",
         "radio-control",
         "segmented-control-segment",
         "switch-control",
         "tab-item",
         "tag"
       ],
-      "detail": "the selection axis takes 4 value sets — [selected, unselected] in segmented-control-segment, tab-item, tag; [checked, indeterminate, unchecked] in checkbox-control; [checked, unchecked] in radio-control; [off, on] in switch-control"
+      "detail": "the selection axis takes 4 value sets — [selected, unselected] in pagination-item, segmented-control-segment, tab-item, tag; [checked, indeterminate, unchecked] in checkbox-control; [checked, unchecked] in radio-control; [off, on] in switch-control"
     },
     {
       "kind": "axis values",
@@ -6785,6 +7173,8 @@
         "link",
         "list",
         "list-item",
+        "pagination",
+        "pagination-item",
         "password-field",
         "radio-control",
         "radio-group",
@@ -6801,7 +7191,7 @@
         "text-field",
         "textarea"
       ],
-      "detail": "the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab-item, tabs, tag, text-field, textarea; [medium, small] in switch-control, switch-row; [large, medium, small, x-small] in spinner"
+      "detail": "the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab-item, tabs, tag, text-field, textarea; [medium, small] in switch-control, switch-row; [large, medium, small, x-small] in spinner"
     },
     {
       "kind": "axis values",
@@ -6828,11 +7218,13 @@
       "subject": "axis style",
       "components": [
         "link",
+        "pagination",
+        "pagination-item",
         "password-field",
         "text-field",
         "textarea"
       ],
-      "detail": "the style axis takes 2 value sets — [outline] in password-field, text-field, textarea; [inline, standalone] in link"
+      "detail": "the style axis takes 3 value sets — [outline] in password-field, text-field, textarea; [border, underline] in pagination, pagination-item; [inline, standalone] in link"
     },
     {
       "kind": "axis values",
@@ -6850,9 +7242,11 @@
         "badge",
         "list",
         "list-item",
+        "pagination",
+        "pagination-item",
         "tag"
       ],
-      "detail": "the type axis takes 3 value sets — [icon, ordered, unordered] in list, list-item; [count, dot, status] in badge; [dismissible, select] in tag"
+      "detail": "the type axis takes 5 value sets — [icon, ordered, unordered] in list, list-item; [compact, numbered, simple] in pagination; [count, dot, status] in badge; [dismissible, select] in tag; [ellipsis, next, page, previous] in pagination-item"
     },
     {
       "kind": "axis values",
@@ -7017,6 +7411,22 @@
     },
     {
       "kind": "size order",
+      "subject": "pagination",
+      "components": [
+        "pagination"
+      ],
+      "detail": "pagination declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "pagination-item",
+      "components": [
+        "pagination-item"
+      ],
+      "detail": "pagination-item declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
       "subject": "password-field",
       "components": [
         "password-field"
@@ -7133,7 +7543,16 @@
       "components": [
         "field-label"
       ],
-      "detail": "field-label defaults size to small; 34 of 35 sized components default to medium"
+      "detail": "field-label defaults size to small; 36 of 37 sized components default to medium"
+    },
+    {
+      "kind": "prop default",
+      "subject": "prop label",
+      "components": [
+        "pagination",
+        "spinner"
+      ],
+      "detail": "label defaults differ over the same values — Loading in spinner; Pagination in pagination"
     },
     {
       "kind": "prop default",
@@ -7202,6 +7621,14 @@
         "checkbox-row"
       ],
       "detail": "checkbox-row has the variant axis status and no prop of that name"
+    },
+    {
+      "kind": "axis without prop",
+      "subject": "pagination-item",
+      "components": [
+        "pagination-item"
+      ],
+      "detail": "pagination-item has the variant axis selection and no prop of that name"
     },
     {
       "kind": "axis without prop",

@@ -17114,11 +17114,11 @@ arm: {
       button: 1,
       'button-destructive': 2, 'button-neutral': 2, 'icon-button': 2, 'icon-button-neutral': 2, icon: 2,
       'text-field': 2, textarea: 2, 'password-field': 2, select: 2, 'checkbox-row': 2, 'checkbox-group': 2,
-      'radio-row': 2, 'radio-group': 2, 'switch-row': 2, counter: 2, 'button-group': 2, tabs: 2, accordion: 2, list: 2, link: 2, dialog: 2,
+      'radio-row': 2, 'radio-group': 2, 'switch-row': 2, counter: 2, 'button-group': 2, tabs: 2, accordion: 2, list: 2, link: 2, dialog: 2, pagination: 2,
       'icon-button-destructive': 3, 'segmented-control': 3, badge: 3, tag: 3, divider: 3, spinner: 3, veil: 3, 'image-placeholder': 3,
       'flush-icon-button-neutral': 4, 'flush-icon-button': 5, 'flush-icon-button-destructive': 5,
       'checkbox-control': 6, 'radio-control': 6, 'switch-control': 6, 'field-label': 6, 'field-message': 6, 'focus-ring': 6,
-      'tab-item': 9, 'list-item': 9, 'segmented-control-segment': 9, '_accordion-indicator': 9,
+      'tab-item': 9, 'list-item': 9, 'segmented-control-segment': 9, '_accordion-indicator': 9, 'pagination-item': 9,
     };
     const prio = (d: ComponentDef) => d.ai.generationPriority;
     const offScale = componentDefs.filter((d) => !SCALE.includes(prio(d) as number));
@@ -19165,6 +19165,8 @@ arm: {
       // by size alone, and the compact text by size. The ellipsis is an icon (Q404 A), so it binds no type.
       { def: componentDefs.find((d) => d.id === 'pagination-item')!, part: 'label', axes: { selection: 2, size: 3 } },
       { def: componentDefs.find((d) => d.id === 'pagination-item')!, part: 'labelReserve', axes: { size: 3 } },
+      // Q537: the underline's own hidden copy of the number, in the emphasis weight, by size: it sets the bar's width.
+      { def: componentDefs.find((d) => d.id === 'pagination-item')!, part: 'underlineLabel', axes: { size: 3 }, at: { selection: 'selected', style: 'underline' } },
       // Q414 A: a labeled previous or next cell's word, by size, in the page number's regular weight.
       { def: componentDefs.find((d) => d.id === 'pagination-item')!, part: 'previousText', axes: { size: 3 }, at: { type: 'previous', labeled: 'true' } },
       { def: componentDefs.find((d) => d.id === 'pagination-item')!, part: 'nextText', axes: { size: 3 }, at: { type: 'next', labeled: 'true' } },
@@ -28176,7 +28178,9 @@ arm: {
   // both axes per orientation: a hairline thickness and a nominal length, two different variables.
   // List.Item's marker column (#2319) binds its width (the column) and its height (one body line), two different
   // variables: a fixed column one line tall.
-  const WIDTH_EXPECTED = ['text-field', 'textarea', 'switch-control', 'divider', 'list-item', 'password-field'];
+  // Pagination.Item's balance (Q537) binds a zero width under its 2px height: the frame above the underlined number that
+  // must not set the label box's width. Two different variables, so it joins on the rule's own terms.
+  const WIDTH_EXPECTED = ['text-field', 'textarea', 'switch-control', 'divider', 'list-item', 'password-field', 'pagination-item'];
   ok(WIDTH_EXPECTED.every((n) => widthDefs.some((d) => d.id === n)) && widthDefs.length === WIDTH_EXPECTED.length,
     `#990 the width projection rule below covers exactly [${WIDTH_EXPECTED.join(', ')}] — a def gaining a deliberately non-square box must be represented here, and a def losing one is a stale claim (found: ${widthDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of widthDefs) {
@@ -28192,9 +28196,10 @@ arm: {
     };
     for (const [name, part] of Object.entries(def.anatomy!.parts)) {
       if (!part.width || part.aspectRatio) continue;
-      // A STATE-GATED part (the caret, at focus-visible) is read at its own first state, not at rest.
-      const gate = part.presentWhen?.state;
-      const node = find(name, gate ? { ...coord, state: gate[0] } : coord);
+      // A GATED part is read at its own first value on each axis it is gated on: the caret at focus-visible, not at
+      // rest, and Pagination.Item's balance on the current page in the underline style (Q537).
+      const gates = Object.fromEntries(Object.entries(part.presentWhen ?? {}).map(([ax, vs]) => [ax, String((vs as unknown[])[0])]));
+      const node = find(name, { ...coord, ...gates });
       const key = part.width.replace('{size}', String(size)).replace(/\{(\w+)\}/g, (m, a) => coord[a] ?? m);
       const ref = (def.tokens ?? {})[key];
       ok(!!ref, `#990 ${def.id}.${name} binds width '${part.width}' and the def's own tokens map resolves it at '${key}' — a template that resolves to nothing would make the arms below vacuous`);
@@ -33341,7 +33346,7 @@ arm: {
     const size = m.size!;
     const want = PAINT[`${c.type}/${c.selection}/${c.style}/${c.state}`];
     const page = c.type === 'page';
-    const label = findIn(m.root, 'label'), reserve = findIn(m.root, 'labelReserve'), ring = findIn(m.root, 'focusRing'), gap = findIn(m.root, 'gapIcon');
+    const label = findIn(m.root, 'label'), reserve = findIn(m.root, 'labelReserve'), ring = findIn(m.root, 'focusRing'), gap = findIn(m.root, 'gapGlyph');
     const bar = findIn(m.root, 'underline'), balance = findIn(m.root, 'balance');
     const text = page ? label : undefined;
     const texts: string[] = [];
@@ -33350,12 +33355,15 @@ arm: {
     const got = { h: m.root.bound?.height, minW: m.root.bound?.minWidth, r: m.root.bound?.topLeftRadius, px: m.root.bound?.paddingLeft, fill: m.root.paints?.fills, stroke: m.root.paints?.strokes,
       sw: m.root.bound?.strokeWeight ?? m.root.bound?.strokeTopWeight, bar: bar && [bar.paints?.fills, bar.bound?.height], balance: balance?.bound?.height, ink: page ? text?.paints?.fills : gap?.descendantFills,
       type: text?.textStyle, reserve: reserve?.textStyle, ring: !!ring, chars: text?.characters, ref: text?.propertyRef?.prop,
-      icon: gap && [gap.type, gap.nestTarget, gap.bound?.width, gap.bound?.height], texts: texts.join(',') };
+      icon: gap && [gap.type, gap.nestTarget, gap.bound?.width, gap.bound?.height], texts: texts.join(','),
+      under: ((u) => u && [u.textStyle, u.propertyRef?.prop])(findIn(m.root, 'underlineLabel')) };
     const exp = { h: `size/${RUNG[size]}/height`, minW: `size/${RUNG[size]}/height`, r: 'radius/md', px: 'space/100', fill: want?.fill, stroke: want?.stroke,
       sw: 'border-width/hairline', bar: want?.bar && [want.bar, 'border-width/thick'], balance: want?.bar && 'border-width/thick', ink: want?.ink,
       type: page ? `label/${RUNG[size]}/${c.selection === 'selected' ? 'emphasis' : 'default'}` : undefined, reserve: page ? `label/${RUNG[size]}/emphasis` : undefined, ring: c.state === 'focus-visible',
       chars: page ? '1' : undefined, ref: page ? 'label' : undefined,
-      icon: page ? undefined : ['NESTED_INSTANCE', 'icon/more-horizontal-filled', `icon/size/${GLYPH[size]}`, `icon/size/${GLYPH[size]}`], texts: page ? 'labelReserve,label' : '' };
+      icon: page ? undefined : ['NESTED_INSTANCE', 'icon/more-horizontal-filled', `icon/size/${GLYPH[size]}`, `icon/size/${GLYPH[size]}`], texts: page ? (want?.bar ? 'labelReserve,label,underlineLabel' : 'labelReserve,label') : '',
+      // Q537: the underline's hidden copy of the number, in the emphasis weight and on the label property, sets its width.
+      under: want?.bar && [`label/${RUNG[size]}/emphasis`, 'label'] };
     if (JSON.stringify(got) !== JSON.stringify(exp)) cellOff.push(`${planComponentName(m)}: ${JSON.stringify(got)} (want ${JSON.stringify(exp)})`);
   }
   ok(pageCells.length === 27 && cellOff.length === 0,
@@ -33378,7 +33386,7 @@ arm: {
   for (const m of stepCells) {
     const c = m.coord as Record<string, string>;
     const size = m.size!, prev = c.type === 'previous', labeled = c.labeled === 'true';
-    const chev = findIn(m.root, prev ? 'previousIcon' : 'nextIcon'), word = findIn(m.root, prev ? 'previousText' : 'nextText');
+    const chev = findIn(m.root, prev ? 'previousGlyph' : 'nextGlyph'), word = findIn(m.root, prev ? 'previousText' : 'nextText');
     const [icon, ink, stateWash] = STEP_INK[c.state];
     // Q426 A: a labeled cell (simple's) draws no fill at any state; only its inks move.
     const wash = labeled ? undefined : stateWash;
@@ -33387,7 +33395,7 @@ arm: {
       chev: chev && [chev.type, chev.nestTarget, chev.bound?.width, chev.bound?.height, chev.descendantFills],
       word: word && [word.characters, word.propertyRef?.prop, word.textStyle, word.paints?.fills] };
     const exp = { h: `size/${RUNG[size]}/height`, minW: `size/${RUNG[size]}/height`, r: 'radius/md', px: 'space/100', gap: 'space/050',
-      fill: wash, stroke: undefined, kids: prev ? (labeled ? ['previousIcon', 'previousText'] : ['previousIcon']) : (labeled ? ['nextText', 'nextIcon'] : ['nextIcon']), ring: c.state === 'focus-visible',
+      fill: wash, stroke: undefined, kids: prev ? (labeled ? ['previousGlyph', 'previousText'] : ['previousGlyph']) : (labeled ? ['nextText', 'nextGlyph'] : ['nextGlyph']), ring: c.state === 'focus-visible',
       chev: ['NESTED_INSTANCE', `icon/chevron-${prev ? 'left' : 'right'}`, `icon/size/${GLYPH[size]}`, `icon/size/${GLYPH[size]}`, icon],
       word: labeled ? [prev ? 'Previous' : 'Next', prev ? 'previous label' : 'next label', `label/${RUNG[size]}/default`, ink] : undefined };
     if (JSON.stringify(got) !== JSON.stringify(exp)) stepOff.push(`${planComponentName(m)}: ${JSON.stringify(got)} (want ${JSON.stringify(exp)})`);
@@ -33441,16 +33449,16 @@ arm: {
         const m = items.find((x) => (x.coord as Record<string, string>).type === 'previous' && (x.coord as Record<string, string>).labeled === 'true' && x.size === 'medium' && (x.coord as Record<string, string>).state === st)!;
         const w = m.root.paints?.fills ? role(m.root.paints.fills) : undefined;
         return [
-          { what: `previous chevron at ${st}`, ink: role(findIn(m.root, 'previousIcon')?.descendantFills), wash: w, floor: 3 },
+          { what: `previous chevron at ${st}`, ink: role(findIn(m.root, 'previousGlyph')?.descendantFills), wash: w, floor: 3 },
           { what: `previous word at ${st}`, ink: role(findIn(m.root, 'previousText')?.paints?.fills), wash: w, floor: 4.5 },
         ];
       }),
       // Q426 A moved the wash to the unlabeled cells only: their chevron on it at hover and pressed.
       ...['hover', 'pressed'].map((st) => {
         const m = items.find((x) => (x.coord as Record<string, string>).type === 'previous' && (x.coord as Record<string, string>).labeled === 'false' && x.size === 'medium' && (x.coord as Record<string, string>).state === st)!;
-        return { what: `unlabeled previous chevron at ${st}`, ink: role(findIn(m.root, 'previousIcon')?.descendantFills), wash: m.root.paints?.fills ? role(m.root.paints.fills) : undefined, floor: 3 };
+        return { what: `unlabeled previous chevron at ${st}`, ink: role(findIn(m.root, 'previousGlyph')?.descendantFills), wash: m.root.paints?.fills ? role(m.root.paints.fills) : undefined, floor: 3 };
       }),
-      { what: 'gap icon on the page', ink: role(findIn(at('unselected', 'rest', 'ellipsis').root, 'gapIcon')?.descendantFills), floor: 3 },
+      { what: 'gap icon on the page', ink: role(findIn(at('unselected', 'rest', 'ellipsis').root, 'gapGlyph')?.descendantFills), floor: 3 },
       { what: 'compact text', ink: role(findIn(pags.find((p) => (p.coord as Record<string, string>).type === 'compact' && p.size === 'medium')!.root, 'status')?.paints?.fills), floor: 4.5 },
     ];
     for (const p of pairs) {
@@ -33494,28 +33502,40 @@ arm: {
       `#2665 Q427 A the current page's border (border style) is the neutral border rung one lighter than the underline's, a subtle edge below 3:1 by decision, with the emphasis weight as the second cue and the WCAG 1.4.11 reasoning in the notes (bound ${BORDER}, underline ${BAR}; lighter everywhere ${lighter}; below 3:1 in ${below3.length} of ${rows.length}, lowest ${Math.min(...rows.map(({ r }) => lum(BORDER, r))).toFixed(2)}; second cue ${cue}; reasoning recorded ${reasoned})`);
     // Owner QA (2026-10-19): the gap icon in the page numbers' ink. Measured, never read off the def: the gap icon's
     // role resolves to the same color as a page number's at rest in every brand × mode cell.
-    const GAP = role(findIn(at('unselected', 'rest', 'ellipsis').root, 'gapIcon')?.descendantFills), NUM = role(findIn(unsel.root, 'label')?.paints?.fills);
+    const GAP = role(findIn(at('unselected', 'rest', 'ellipsis').root, 'gapGlyph')?.descendantFills), NUM = role(findIn(unsel.root, 'label')?.paints?.fills);
     const inkOff = rows.filter(({ r }) => !r[GAP]?.hex || r[GAP]!.hex !== r[NUM]?.hex || (r[GAP]!.alpha ?? 1) !== (r[NUM]!.alpha ?? 1)).map(({ cell, r }) => `${cell} ${r[GAP]?.hex} vs ${r[NUM]?.hex}`);
     ok(rows.length === CELLS && inkOff.length === 0,
       `#2665 owner QA the gap icon is in the page numbers' ink: ${GAP} resolves to ${NUM}'s color in all ${rows.length} of ${CELLS} brand × mode cells (${inkOff.slice(0, 3).join('; ') || 'none off'})`);
   }
 
-  // Owner QA (2026-10-19): IN THE UNDERLINE STYLE THE UNDERLINE IS AS WIDE AS THE NUMBER, NOT THE CELL. The label box
-  // hugs, and each of its childless frames (the balance above the number and the underline under it) STRETCHES to the
-  // box rather than holding a width of its own: a childless frame that hugs has nothing to hug, so the host keeps a new
-  // frame's default width, the box takes it, and the underline spans it. Only the number's text sets the width.
+  // Owner QA (2026-10-19, Q537 2026-10-22): IN THE UNDERLINE STYLE THE UNDERLINE IS AS WIDE AS THE NUMBER, NOT THE CELL.
+  // The label box hugs, and NOTHING in it fills: the host does not let a frame hug a child that stretches across it,
+  // and freezes the box at the width it had when the stretch was written (a childless frame's 100px). So the balance
+  // above the number is fixed at zero width, and the underline hugs a zero-height copy of the number. The built boxes
+  // are measured in `apps/plugin/test-pagination-underline.ts`; this holds the plan's shape.
   {
     const off: string[] = [];
     const unders = items.filter((m) => (m.coord as Record<string, string>).style === 'underline');
     for (const m of unders) {
       const box = findIn(m.root, 'labelBox')!;
-      const empties = box.children.filter((k) => k.type === 'FRAME' && !k.children.length);
-      const got = { box: [box.primaryAxisSizingMode, box.counterAxisSizingMode], empties: empties.map((k) => [k.name, k.layoutAlign]), sizers: box.children.filter((k) => !empties.includes(k)).map((k) => k.name) };
-      const exp = { box: ['AUTO', 'AUTO'], empties: [['balance', 'STRETCH'], ['underline', 'STRETCH']], sizers: ['reserve', 'label'] };
+      const bar = findIn(m.root, 'underline'), balance = findIn(m.root, 'balance');
+      const stretched: string[] = [];
+      const walkS = (n: typeof box): void => { for (const k of n.children) { if (k.layoutAlign === 'STRETCH' || k.layoutGrow) stretched.push(k.name); walkS(k); } };
+      walkS(box);
+      const got = {
+        box: [box.primaryAxisSizingMode, box.counterAxisSizingMode], stretched,
+        balance: balance && [balance.primaryAxisSizingMode, balance.bound?.width],
+        bar: bar && [bar.layoutMode, bar.counterAxisSizingMode, bar.clipsContent, bar.children.map((k) => [k.name, k.counterAxisSizingMode, k.bound?.height, k.clipsContent, k.children.map((t) => t.type)])],
+      };
+      const exp = {
+        box: ['AUTO', 'AUTO'], stretched: [],
+        balance: ['FIXED', 'space/0'],
+        bar: ['VERTICAL', 'AUTO', true, [['underlineReserve', 'AUTO', 'space/0', true, ['TEXT']]]],
+      };
       if (JSON.stringify(got) !== JSON.stringify(exp)) off.push(`${planComponentName(m)}: ${JSON.stringify(got)}`);
     }
     ok(unders.length === 6 && off.length === 0,
-      `#2665 owner QA underline under the number only: in every underline member the label box hugs, its balance and underline stretch to it, and only the number (its reserve and its text) sets the width (${unders.length} members, ${off.length} off — ${off.slice(0, 2).join('; ') || 'none'})`);
+      `#2665 owner QA / Q537 underline under the number only: in every underline member the label box hugs and nothing in it stretches; the balance is fixed at zero width and the underline hugs a zero-height clipped copy of the number (${unders.length} members, ${off.length} off — ${off.slice(0, 2).join('; ') || 'none'})`);
   }
 
   // (4) THE PAGINATION'S 12 MEMBERS AND WHAT EACH HOLDS (calls 1, 2, 4, 6, 16, Q381 2 A), typed out. The style is

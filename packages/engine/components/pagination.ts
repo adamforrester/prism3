@@ -145,6 +145,8 @@ export const paginationItem: ComponentDef = {
     // THE BOLD RESERVE (call 5, Tab's Q226 A construction): a zero-height, clipping frame holding the label in the
     // current page's weight, so the label box is as wide in both selections.
     'reserve-height': 'space.0',
+    // Q537: the balance frame above the number is zero wide, so it never sets the label box's width.
+    'balance-width': 'space.0',
     // Q381: the current page's border, drawn inside the cell so it does not grow, and the underline's 2px.
     'border-width': 'border-width.hairline',
     'underline-height': 'border-width.thick',
@@ -222,7 +224,7 @@ export const paginationItem: ComponentDef = {
         kind: 'box',
         role: 'target',
         paintSlots: ['overlay', 'border'],
-        children: ['previousIcon', 'previousText', 'labelBox', 'gapIcon', 'nextText', 'nextIcon', 'focusRing'],
+        children: ['previousGlyph', 'previousText', 'labelBox', 'gapGlyph', 'nextText', 'nextGlyph', 'focusRing'],
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'fixed' } },
         gap: 'gap',
         height: 'size.{size}.height',
@@ -232,7 +234,7 @@ export const paginationItem: ComponentDef = {
         strokeWidth: 'border-width',
         note: 'The cell: as tall as an icon button and at least as wide as it is tall, and the whole pointer target. The current page has a light gray border in the border style; another page and an unlabeled previous or next take a light neutral wash at hover and press. A labeled previous or next has no fill.',
       },
-      previousIcon: {
+      previousGlyph: {
         kind: 'vector',
         glyph: 'chevron-left',
         size: 'size.{size}.icon',
@@ -258,12 +260,13 @@ export const paginationItem: ComponentDef = {
         role: 'presentation',
         presentWhen: { selection: ['selected'], style: ['underline'] },
         height: 'underline-height',
-        // Owner QA (2026-10-19): the underline spanned the cell. This frame is childless, so a hug width has nothing to
-        // hug and the host keeps a new frame's default width; the box held it, and the underline stretched to it. It
-        // stretches to the number instead, like the underline, so the number alone sets both widths.
-        crossAxisFill: true,
-        layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'fill', y: 'fixed' } },
-        note: 'An empty 2px frame above the number, as tall as the underline below it and as wide as the number, so the underlined number sits on the same line as its neighbors.',
+        // Owner QA (2026-10-19, again 2026-10-22, Q537): a frame that FILLS the label box's width (`crossAxisFill`) under a
+        // box that hugs is a cycle the host breaks by fixing the box at the width it had when the stretch was written: this
+        // childless frame's new-frame default, 100px. The underline then spanned the 4, 5 and 6 cells. So no child of the
+        // box fills: this one is fixed at zero width, and only the number sets the box's width.
+        width: 'balance-width',
+        layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'fixed', y: 'fixed' } },
+        note: 'An empty 2px frame above the number, as tall as the underline below it and zero wide, so the underlined number sits on the same line as its neighbors.',
       },
       reserve: {
         kind: 'box',
@@ -288,13 +291,31 @@ export const paginationItem: ComponentDef = {
         kind: 'box',
         role: 'presentation',
         presentWhen: { selection: ['selected'], style: ['underline'] },
+        children: ['underlineReserve'],
         paintSlots: ['fill'],
         height: 'underline-height',
-        crossAxisFill: true,
-        layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'fill', y: 'fixed' } },
+        clipsContent: true,
+        // Q537: the bar HUGS a hidden copy of the number rather than stretching to the box, which the host does not
+        // honor under a hugging parent (see `balance`). Its width is the number's in the emphasis weight, the width
+        // `reserve` holds the box at, so the bar is exactly as wide as the number at every size.
+        layout: { direction: 'column', align: 'center', justify: 'start', sizing: { x: 'hug', y: 'fixed' } },
         note: 'The 2px line under the current page\'s number, in the underline style: as wide as the number, not the cell, in a gray that stands out from the page at 3:1.',
       },
-      gapIcon: {
+      underlineReserve: {
+        kind: 'box',
+        role: 'presentation',
+        children: ['underlineLabel'],
+        height: 'reserve-height',
+        clipsContent: true,
+        layout: { direction: 'column', align: 'center', justify: 'start', sizing: { x: 'hug', y: 'fixed' } },
+        note: 'A zero-height frame that clips a copy of the number, so the underline takes the number\'s width and shows only its own color.',
+      },
+      underlineLabel: {
+        kind: 'text',
+        type: 'size.{size}.type.selected',
+        note: 'The number again, in the emphasis weight, never seen: it sets the underline\'s width.',
+      },
+      gapGlyph: {
         kind: 'vector',
         glyph: 'more-horizontal-filled',
         size: 'size.{size}.icon',
@@ -307,7 +328,7 @@ export const paginationItem: ComponentDef = {
         presentWhen: { type: ['next'], labeled: ['true'] },
         note: 'The word "Next" before the chevron, on a labeled cell only (Pagination\'s simple type).',
       },
-      nextIcon: {
+      nextGlyph: {
         kind: 'vector',
         glyph: 'chevron-right',
         size: 'size.{size}.icon',
@@ -331,7 +352,7 @@ export const paginationItem: ComponentDef = {
       'The chevrons in RTL — previous and next swap ends with the row, and each chevron mirrors, so it points the way the row reads.',
       'The accessible name — the number, with a visually hidden "Page " before it, so each cell reads "Page 4"; aria-current adds "current page".',
       'tabular numerals — font-variant-numeric: tabular-nums on the label, so 9, 10 and 100 do not shift the row as the user pages. Figma uses the type style as it is.',
-      'The label weight in code — the current page sets its number in the emphasis weight and every cell reserves that width (a hidden bold copy of the label in a column with it, as Tab does), so the row never moves.',
+      'The label weight in code — the current page sets its number in the emphasis weight and every cell reserves that width (a hidden bold copy of the label in a column with it, aria-hidden="true", as Tab does), so the row never moves. The underline is a 2px border or pseudo-element under the number, as wide as it; the Figma part\'s hidden copy of the number that sizes it has no code element.',
       'The hit-target expansion — a small cell is 36px on comfortable density; code extends its hit area to 44×44 without changing the visible box.',
       'forced-colors — the current page\'s border or underline takes a system color (CanvasText), so it still reads as current, beside aria-current and the weight.',
       'RTL — the row mirrors through logical properties; a cell has nothing of its own to mirror.',
@@ -359,7 +380,7 @@ export const paginationItem: ComponentDef = {
     // caption: a set-level TEXT property holds one default that every bound member shows (#1567).
     // Q414 A: a labeled previous and next each have their own part and property, one caption each (#1567).
     texts: {
-      label: { part: 'label', default: '1', also: ['labelReserve'] },
+      label: { part: 'label', default: '1', also: ['labelReserve', 'underlineLabel'] },
       previousLabel: { part: 'previousText', default: 'Previous', figmaName: 'previous label' },
       nextLabel: { part: 'nextText', default: 'Next', figmaName: 'next label' },
     },
@@ -396,7 +417,7 @@ export const paginationItem: ComponentDef = {
 
   ai: {
     primaryPurpose: 'One page number, the ellipsis, or previous or next, inside a pagination row.',
-    whenToUse: 'Only as an item in Pagination: a page or the ellipsis in the numbered row, previous and next in every type.',
+    whenToUse: 'Only as a child of Pagination. Generate Pagination, which places the pages, the gap marker, previous and next, and sets which page is current.',
     avoidWhen: 'Anywhere outside Pagination: a single action is a Button, and a choice between a few views is a segmented control or tabs.',
     commonPartners: ['pagination'],
     triggerKeywords: ['page number', 'pagination item', 'page cell', 'current page', 'previous page', 'next page'],

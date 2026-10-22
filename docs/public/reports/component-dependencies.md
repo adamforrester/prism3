@@ -20,8 +20,9 @@ Generated from the component definitions and the emission by `packages/engine/em
 | field-label | checkbox-group, counter, password-field, radio-group, segmented-control, select, text-field, textarea | checkbox-group, counter, password-field, radio-group, segmented-control, select, text-field, textarea |
 | field-message | checkbox-group, counter, password-field, radio-group, select, text-field, textarea | checkbox-group, counter, password-field, radio-group, select, text-field, textarea |
 | flush-icon-button-neutral | counter, dialog | counter, dialog |
-| focus-ring | accordion, button, button-destructive, button-neutral, checkbox-control, counter, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, password-field, radio-control, segmented-control-segment, select, switch-control, tab-item, tag, text-field, textarea | accordion, button, button-destructive, button-group, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, switch-control, switch-row, tab-item, tabs, tag, text-field, textarea |
+| focus-ring | accordion, button, button-destructive, button-neutral, checkbox-control, counter, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, pagination-item, password-field, radio-control, segmented-control-segment, select, switch-control, tab-item, tag, text-field, textarea | accordion, button, button-destructive, button-group, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, switch-control, switch-row, tab-item, tabs, tag, text-field, textarea |
 | list-item | list | list |
+| pagination-item | pagination | pagination |
 | radio-control | radio-row | radio-group, radio-row |
 | radio-row | radio-group | radio-group |
 | segmented-control-segment | segmented-control | segmented-control |
@@ -62,6 +63,8 @@ A component not in this table is nested by nothing; a change to it reaches only 
 | link | 1 | focus-ring | focus-ring |
 | list | 1 | list-item | list-item |
 | list-item | 0 | — | — |
+| pagination | 2 | pagination-item | focus-ring, pagination-item |
+| pagination-item | 1 | focus-ring | focus-ring |
 | password-field | 2 | button, field-label, field-message, focus-ring | button, field-label, field-message, focus-ring, spinner |
 | radio-control | 1 | focus-ring | focus-ring |
 | radio-group | 3 | field-label, field-message, radio-row | field-label, field-message, focus-ring, radio-control, radio-row |
@@ -132,6 +135,18 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | list | item1 | nest | list-item | nest-fixed | type=unordered, size=medium | type, size | — |
 | list | item2 | nest | list-item | nest-fixed | type=unordered, size=medium | type, size | — |
 | list | item3 | nest | list-item | nest-fixed | type=unordered, size=medium | type, size | — |
+| pagination | item1 | nest | pagination-item | nest-fixed | type=page, selection=unselected, style=border, labeled=false, size=medium, state=rest | size | — |
+| pagination | item2 | nest | pagination-item | nest-fixed | type=ellipsis, selection=unselected, style=border, labeled=false, size=medium, state=rest | size | — |
+| pagination | item3 | nest | pagination-item | nest-fixed | type=page, selection=unselected, style=border, labeled=false, size=medium, state=rest | size | — |
+| pagination | item4 | nest | pagination-item | nest-fixed | type=page, selection=selected, style=border, labeled=false, size=medium, state=rest | style, size | — |
+| pagination | item5 | nest | pagination-item | nest-fixed | type=page, selection=unselected, style=border, labeled=false, size=medium, state=rest | size | — |
+| pagination | item6 | nest | pagination-item | nest-fixed | type=ellipsis, selection=unselected, style=border, labeled=false, size=medium, state=rest | size | — |
+| pagination | item7 | nest | pagination-item | nest-fixed | type=page, selection=unselected, style=border, labeled=false, size=medium, state=rest | size | — |
+| pagination | next | nest | pagination-item | nest-exposed | type=next, selection=unselected, style=border, labeled=false, size=medium, state=rest | size | state |
+| pagination | nextButton | nest | pagination-item | nest-exposed | type=next, selection=unselected, style=border, labeled=true, size=medium, state=rest | size | state |
+| pagination | previous | nest | pagination-item | nest-exposed | type=previous, selection=unselected, style=border, labeled=false, size=medium, state=rest | size | state |
+| pagination | previousButton | nest | pagination-item | nest-exposed | type=previous, selection=unselected, style=border, labeled=true, size=medium, state=rest | size | state |
+| pagination-item | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | password-field | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | password-field | label | nest | field-label | nest-exposed | size=medium, emphasis=secondary, weight=regular, state=rest | size | emphasis, weight |
 | password-field | message | nest | field-message | nest-fixed | status=default | status | — |

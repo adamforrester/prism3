@@ -135,6 +135,13 @@ the word on from the row). Each word has its own TEXT property ("previous label"
   notes record the reasoning. The exception is scoped to this part.
 - **Q428 A:** the chevrons and the gap icon step down one icon-size rung at every size: `icon.size.xs`, `sm` and `md`
   at small, medium and large. Cell sizes and targets are unchanged.
+- **Q537 (owner QA, 2026-10-22):** in a real file the underline ran under the 4, 5 and 6 cells. Cause: the balance
+  frame and the underline stretched across a label box that hugs, and the host fixes a hugging frame at its width when
+  a child stretches across it, here a childless frame's 100px. Now nothing in the label box stretches: the balance is
+  fixed at zero width, and the underline hugs a zero-height, clipped copy of the number. A new plugin suite,
+  `test-pagination-underline.ts`, builds the set on a shim that models that host rule (`fillFreezesHug`) and measures
+  the underline's edges against the number's at every size and state. The glyph parts are renamed `previousGlyph`,
+  `gapGlyph` and `nextGlyph` (Q350).
 
 ### Held for the owner (also in the PR)
 

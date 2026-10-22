@@ -714,7 +714,7 @@
     },
     "pagination-item": {
       "members": 87,
-      "sha256": "e417af814a01ed30e33341d5ef818a632a40872f13d5f64c7b81d6f034f773ea",
+      "sha256": "5b31f8a4bad1faa75fc8d49a88bdecf90d7183abb6bcb630400ce629d02021d9",
       "properties": [
         "label:TEXT",
         "next label:TEXT",
@@ -723,7 +723,7 @@
     },
     "pagination-item@outline-solid-tint": {
       "members": 87,
-      "sha256": "be8428763b99c86b33c6892cc415868700693a4f8ae7a45eb76047b30bb01d0f",
+      "sha256": "a5f98a0b87fda9df638a4259f1b463bcba4ed26da35714267d31c7376080f2c6",
       "properties": [
         "label:TEXT",
         "next label:TEXT",
@@ -732,7 +732,7 @@
     },
     "pagination-item@outline-none": {
       "members": 87,
-      "sha256": "b071f39e66bc8e6c51d223b2b3d10330eb00d121bdcbfdde5de1abbf6b02333a",
+      "sha256": "f5156ec16cad54cd42287cb895e92de994d8b7e06ad35a173b76dda14d66bad6",
       "properties": [
         "label:TEXT",
         "next label:TEXT",

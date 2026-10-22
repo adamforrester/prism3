@@ -21,7 +21,7 @@ and pressed on an unlabeled cell only (a labeled cell has no fill and changes in
 tall, `radius.md`; a page reads `color.interactive.neutral.text.*` with the neutral overlay wash at hover and pressed;
 the current page (owner decision Q381) has no fill: a `border-width.hairline` border in `color.border.secondary` (owner decision Q427 A: a
 subtle edge below 3:1, the emphasis weight being the second cue under WCAG 1.4.11), or a `border-width.thick` bar
-as wide as its number in `color.border.tertiary` (3:1 against the page in every brand and mode), its number `color.interactive.neutral.text.rest` in `type.label.*.emphasis`, its width held by a bold
+as wide as its number in `color.border.tertiary` (it hugs a hidden copy of the number, so no frame fills a hugging one, owner QA Q537) (3:1 against the page in every brand and mode), its number `color.interactive.neutral.text.rest` in `type.label.*.emphasis`, its width held by a bold
 reserve. The ellipsis is the decorative `more-horizontal-filled` icon (owner decision Q404 A), `aria-hidden` and not
 interactive, at the chevrons' size in `color.icon.primary`, the page numbers' color: it has no text and no TEXT property, so each of the item's
 TEXT properties holds one caption. Sizes lead with medium in both, Figma's first member being the code default.

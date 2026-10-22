@@ -242,7 +242,7 @@
     "pagination-item": {
       "glyphs": [
         {
-          "part": "gapIcon",
+          "part": "gapGlyph",
           "glyph": "more-horizontal-filled",
           "source": "icon set",
           "how": "drawn",
@@ -253,7 +253,7 @@
           }
         },
         {
-          "part": "nextIcon",
+          "part": "nextGlyph",
           "glyph": "chevron-right",
           "source": "icon set",
           "how": "drawn",
@@ -264,7 +264,7 @@
           }
         },
         {
-          "part": "previousIcon",
+          "part": "previousGlyph",
           "glyph": "chevron-left",
           "source": "icon set",
           "how": "drawn",
