@@ -37,7 +37,8 @@
  *
  * NEVER ON TOP OF ANYTHING. The panel goes `PANEL_GAP` right of the set, top-aligned. Labels sit above and left of
  * the set and a backdrop reaches `BACKDROP_PAD` (12) past it, so none of them is in that spot; another set may be. A
- * panel that would overlap any node on the parent is not drawn, and the run says so and what to do. When what is in
+ * panel that would overlap any node on the parent is not drawn, and the run says so and what to do. The set's own
+ * furniture is the exception: Prism3 draws it to fit the set, so it never keeps the set's panel out (#2902). When what is in
  * the way is a Prism3 set later in the set's row (or its labels or panel), Update makes room: each set's box reaches
  * past its panel when the update spaces the sets (`docPanelReach`, `pageSetMoves`), so it moves that set `SET_GAP`
  * past the panel. Anything else is the designer's to move, and the run says that instead. A new set is seated with
@@ -347,9 +348,12 @@ export const ownerSet = (n: PNode, kids: readonly PNode[]): PNode | undefined =>
 };
 const boxOf = (n: PNode): Box => ({ x: n.x ?? 0, y: n.y ?? 0, width: n.width ?? 0, height: n.height ?? 0 });
 /** THE NODES A PANEL AT `spot` WOULD LIE ON, as the draw tests it: every node on the parent but `skip` (the panels
- *  this draw replaces or moves aside). Shared by the draw and the dry run, so the two cannot disagree. */
-const blockersAt = (kids: readonly PNode[], spot: Box, skip: ReadonlySet<PNode>): PNode[] =>
-  kids.filter((c) => !skip.has(c) && !c.removed && overlaps(spot, boxOf(c)));
+ *  this draw replaces or moves aside) and `set`'s own furniture (#2902). Its labels and backdrop are Prism3's, drawn to
+ *  fit the set and redrawn with it, so they never keep its panel out. Only by the furniture tag: an untagged
+ *  `inverse-bg` is the designer's (Q172.5) and still blocks, as does another set's furniture, which stands for that set.
+ *  Shared by the draw and the dry run, so the two cannot disagree. */
+const blockersAt = (kids: readonly PNode[], spot: Box, skip: ReadonlySet<PNode>, set: PNode): PNode[] =>
+  kids.filter((c) => !skip.has(c) && !c.removed && readTag(c as never)?.set !== String(set.id ?? '\u0000') && overlaps(spot, boxOf(c)));
 /** Whether Update makes room past these blockers: each one is, or belongs to, a Prism3 set in the set's row and right of
  *  it, which the re-spacing moves `SET_GAP` past the panel (`respaceSets`). The dry run reads the moves themselves. */
 const updateMakesRoom = (set: PNode, hits: readonly PNode[], kids: readonly PNode[]): boolean => hits.every((h) => {
@@ -382,7 +386,7 @@ export const docPanelBlockers = (api: Pick<PanelApi, 'root'>, set: PNode, plan: 
   if (!rec || rec.plan !== plan.hash) return [];
   const at = panelSpot(set);
   const skip = new Set<PNode>([...earlierPanels(api, set, plan.def), ...(parent.children as readonly PNode[]).filter((c) => readPanelTag(c)?.state === 'kept' && readPanelTag(c)?.def === plan.def)]);
-  return blockersAt(parent.children as readonly PNode[], { x: at.x, y: at.y, width: PANEL_WIDTH, height: rec.h }, skip);
+  return blockersAt(parent.children as readonly PNode[], { x: at.x, y: at.y, width: PANEL_WIDTH, height: rec.h }, skip, set);
 };
 
 /** List.Item's text layer in a Do or Don't row: the part its item text is written into, read from the def (#2902).
@@ -560,7 +564,7 @@ export const drawDocPanel = async (
   const kids = parent.children as readonly PNode[];
   const kept = kids.filter((c) => readPanelTag(c)?.state === 'kept' && readPanelTag(c)?.def === def.id);
   const movers = new Set<PNode>([panel, ...edited.filter((e) => e.parent === parent), ...kept]);
-  const hits = blockersAt(kids, box(panel), movers);
+  const hits = blockersAt(kids, box(panel), movers, set);
   if (hits.length) {
     // Recorded, so the dry run does not list it as due again until the spot is clear (`docPanelBlockers`).
     writeBlocked(parent, String(set.id ?? ''), { h: panel.height ?? 0, plan: plan.hash });

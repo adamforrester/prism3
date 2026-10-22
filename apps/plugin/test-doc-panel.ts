@@ -406,6 +406,34 @@ section('overlap/… — a panel lies on nothing');
   const r = await drawDocPanel(host([q]), set, componentDefs.find((d) => d.id === 'tag')!, { names });
   ok(!r.drawn && panelsOn(q).length === 0 && panelItems(r).join(' ') === 'No usage panel for tag: "Notes" sits right of the set, where the panel goes. Move it, then build or update again',
     `overlap/blocked: no panel drawn, and the run says to move the layer, not to Update, which never moves it: "${panelItems(r).join(' ')}"`);
+  // A backdrop reaching into the panel's spot (#2902): the set's own, tagged as Prism3 draws it, never blocks; one a
+  // designer placed, untagged, blocks as Notes does (Q172.5), and so does another set's.
+  const bg = (on: N, s: N, tag: string | null): N => {
+    const b = mk('RECTANGLE', 'inverse-bg', [], { x: -12, y: -12, _w: 700, _h: 424 });
+    if (tag) b.setSharedPluginData!('prism3', 'furniture', JSON.stringify({ v: 1, def: tag, set: String(s.id), kind: 'backdrop' }));
+    on.insertChild!(0, b);
+    return b;
+  };
+  const tagDef = componentDefs.find((d) => d.id === 'tag')!;
+  const own = page('↳ Own backdrop');
+  const ownSet = fakeSet(own, 'tag', 0, 0, 600, 400);
+  bg(own, ownSet, 'tag');
+  const ro = await drawDocPanel(host([own]), ownSet, tagDef, { names });
+  ok(ro.drawn && panelsOn(own).length === 1, `overlap/own backdrop: the set's own tagged backdrop reaches into the spot and the panel is still drawn`, ro.skipped.join('; '));
+  const hand = page('↳ Hand backdrop');
+  const handSet = fakeSet(hand, 'tag', 0, 0, 600, 400);
+  bg(hand, handSet, null);
+  const rh = await drawDocPanel(host([hand]), handSet, tagDef, { names });
+  ok(!rh.drawn && panelItems(rh).join(' ') === 'No usage panel for tag: "inverse-bg" sits right of the set, where the panel goes. Move it, then build or update again',
+    `overlap/hand backdrop: an untagged inverse-bg still blocks (Q172.5): "${panelItems(rh).join(' ')}"`);
+  const other = page('↳ Other backdrop');
+  const otherSet = fakeSet(other, 'tag', 0, 0, 600, 400);
+  bg(other, fakeSet(other, 'badge', 0, 9000, 600, 400), 'badge');
+  const rx = await drawDocPanel(host([other]), otherSet, tagDef, { names });
+  ok(!rx.drawn && panelItems(rx).join(' ').includes('"inverse-bg" sits right'), `overlap/other backdrop: another set's tagged backdrop still blocks`, rx.skipped.join('; '));
+  const ownPlan = planDocPanel(tagDef, { modes: ['light', 'dark'], names });
+  ok(docPanelDue(host([hand]), handSet, ownPlan) === 0 && docPanelDue(host([own]), ownSet, ownPlan) === 0, 'due/backdrop: the dry run agrees with both draws');
+
   // The dry run's view of it: not due while Notes is there, so Update does not list it on every run; due once it moves.
   const plan = planDocPanel(componentDefs.find((d) => d.id === 'tag')!, { modes: ['light', 'dark'], names });
   ok(docPanelDue(host([q]), set, plan) === 0, 'due/blocked: a panel the draw found blocked is not due while the layer is still there');
