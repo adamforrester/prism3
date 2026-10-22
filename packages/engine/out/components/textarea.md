@@ -114,7 +114,7 @@ Counter reads "240 / 280" or "40 characters remaining"; over-limit reads "12 cha
 | `onChange` | function | — | no | Change handler (also onBlur / onFocus). The same prop as TextField's. |
 | `placeholder` | string | — | no | An example only; vanishes on input; nothing load-bearing lives here. The same prop as TextField's. |
 | `helpText` | string \| node | — | no | Persistent guidance (rendered as FieldMessage, default status); wired via aria-describedby. Show the format and any length limit before failure. The same prop as TextField's. |
-| `showMessage` | boolean | `true` | no | Whether the composed FieldMessage is shown. On, the default, renders the helper or validation message below the field; turning it off hides the message entirely. The same prop as TextField's. Never hides a message the field needs. |
+| `showMessage` | boolean | `false` | no | Whether the composed FieldMessage is shown. Off by default; turn it on to render the helper or validation message below the field. The same prop as TextField's. Never hides a message the field needs. |
 | `rows` | number | `3` | no | Initial and minimum height, in lines not pixels — a line count recomputes against the current line-height when the user raises their font size, where a pixel floor does not. Also a content cue: two rows signals brevity, six signals "write more". cols is dead on the web; width comes from CSS. |
 | `resize` | enum: 'none' \| 'vertical' \| 'auto' | `vertical` | no | The sizing model in one prop, so two props cannot contradict each other. vertical (the drag handle) for standalone form fields; auto (grow within minRows/maxRows) for composers; none where layout stability wins. Never horizontal or both — altering the inline dimension shatters grid and flex layouts for no user gain. |
 | `minRows` | number | — | no | Auto-grow floor, in lines. Only meaningful with resize="auto". |
@@ -489,7 +489,7 @@ Keyed by `status`, `state`.
 | `count` | text | `0 / 200` |
 | `value` | text | `Entered text` |
 | `resize handle` | boolean | `true` |
-| `message` | boolean | `true` |
+| `message` | boolean | `false` |
 | `character count` | boolean | `false` |
 
 ---

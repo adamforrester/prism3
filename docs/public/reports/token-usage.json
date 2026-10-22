@@ -17129,7 +17129,16 @@
           "keys": [
             "size.large.min-height"
           ],
-          "parts": {}
+          "parts": {
+            "row": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
         },
         "counter": {
           "keys": [
@@ -17264,7 +17273,16 @@
           "keys": [
             "size.large.min-height"
           ],
-          "parts": {}
+          "parts": {
+            "row": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            }
+          }
         },
         "segmented-control-segment": {
           "keys": [
@@ -17409,7 +17427,16 @@
           "keys": [
             "size.medium.min-height"
           ],
-          "parts": {}
+          "parts": {
+            "row": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
         },
         "counter": {
           "keys": [
@@ -17559,7 +17586,16 @@
           "keys": [
             "size.medium.min-height"
           ],
-          "parts": {}
+          "parts": {
+            "row": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
         },
         "segmented-control-segment": {
           "keys": [
@@ -17580,7 +17616,16 @@
           "keys": [
             "size.medium.min-height"
           ],
-          "parts": {}
+          "parts": {
+            "row": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
+            }
+          }
         },
         "tab-item": {
           "keys": [
@@ -17753,7 +17798,16 @@
           "keys": [
             "size.small.min-height"
           ],
-          "parts": {}
+          "parts": {
+            "row": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
         },
         "counter": {
           "keys": [
@@ -17873,7 +17927,16 @@
           "keys": [
             "size.small.min-height"
           ],
-          "parts": {}
+          "parts": {
+            "row": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
         },
         "segmented-control-segment": {
           "keys": [
@@ -17894,7 +17957,16 @@
           "keys": [
             "size.small.min-height"
           ],
-          "parts": {}
+          "parts": {
+            "row": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
         },
         "tab-item": {
           "keys": [
@@ -18203,6 +18275,17 @@
             }
           }
         },
+        "switch-row": {
+          "keys": [
+            "pad-x"
+          ],
+          "parts": {
+            "row": {
+              "members": 4,
+              "where": {}
+            }
+          }
+        },
         "tab-item": {
           "keys": [
             "pad-y",
@@ -18381,7 +18464,8 @@
             "size.medium.dismissible.gap",
             "size.medium.dismissible.label-inset",
             "size.small.check-gap",
-            "size.small.dismissible.label-inset"
+            "size.small.dismissible.label-inset",
+            "size.small.underline.inset"
           ],
           "parts": {
             "content": {
@@ -18484,6 +18568,21 @@
             }
           }
         },
+        "checkbox-row": {
+          "keys": [
+            "size.small.pad-y"
+          ],
+          "parts": {
+            "row": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "field-message": {
           "keys": [
             "gap"
@@ -18502,6 +18601,21 @@
           "parts": {
             "control": {
               "members": 28,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
+        "radio-row": {
+          "keys": [
+            "size.small.pad-y"
+          ],
+          "parts": {
+            "row": {
+              "members": 2,
               "where": {
                 "size": [
                   "small"
@@ -18540,6 +18654,21 @@
             }
           }
         },
+        "switch-row": {
+          "keys": [
+            "size.small.pad-y"
+          ],
+          "parts": {
+            "row": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "small"
+                ]
+              }
+            }
+          }
+        },
         "tab-item": {
           "keys": [
             "size.small.gap"
@@ -18558,6 +18687,7 @@
         "tag": {
           "keys": [
             "size.medium.check-gap",
+            "size.medium.underline.inset",
             "size.small.dismissible.visible-gap",
             "size.small.select.gap"
           ],
@@ -18728,15 +18858,24 @@
         "checkbox-row": {
           "keys": [
             "size.medium.gap",
+            "size.medium.pad-y",
             "size.small.gap"
           ],
           "parts": {
-            "row": {
+            "content": {
               "members": 4,
               "where": {
                 "size": [
                   "medium",
                   "small"
+                ]
+              }
+            },
+            "row": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "medium"
                 ]
               }
             }
@@ -18871,15 +19010,24 @@
         "radio-row": {
           "keys": [
             "size.medium.gap",
+            "size.medium.pad-y",
             "size.small.gap"
           ],
           "parts": {
-            "row": {
+            "content": {
               "members": 4,
               "where": {
                 "size": [
                   "medium",
                   "small"
+                ]
+              }
+            },
+            "row": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "medium"
                 ]
               }
             }
@@ -18940,12 +19088,21 @@
         "switch-row": {
           "keys": [
             "size.medium.gap",
+            "size.medium.pad-y",
             "size.small.gap"
           ],
           "parts": {
-            "row": {
+            "content": {
               "members": 4,
               "where": {}
+            },
+            "row": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "medium"
+                ]
+              }
             }
           }
         },
@@ -18971,6 +19128,7 @@
             "group-gap",
             "size.large.check-gap",
             "size.large.dismissible.visible-gap",
+            "size.large.underline.inset",
             "size.medium.dismissible.visible-gap",
             "size.medium.select.gap",
             "size.small.padding-x",
@@ -19183,13 +19341,25 @@
         },
         "checkbox-row": {
           "keys": [
-            "pad-y",
-            "size.large.gap"
+            "size.large.gap",
+            "size.large.pad-y"
           ],
           "parts": {
+            "content": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            },
             "row": {
-              "members": 6,
-              "where": {}
+              "members": 2,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
             }
           }
         },
@@ -19238,13 +19408,25 @@
         },
         "radio-row": {
           "keys": [
-            "pad-y",
-            "size.large.gap"
+            "size.large.gap",
+            "size.large.pad-y"
           ],
           "parts": {
+            "content": {
+              "members": 2,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
+            },
             "row": {
-              "members": 6,
-              "where": {}
+              "members": 2,
+              "where": {
+                "size": [
+                  "large"
+                ]
+              }
             }
           }
         },
@@ -22697,6 +22879,7 @@
         "size.md.height",
         "size.sm.height",
         "space.0",
+        "space.075",
         "space.100",
         "space.150",
         "type.body.lg.default",
@@ -22704,10 +22887,7 @@
         "type.body.sm.default"
       ],
       "declaredNotDrawn": [
-        "color.disabled.text",
-        "size.lg.height",
-        "size.md.height",
-        "size.sm.height"
+        "color.disabled.text"
       ],
       "drawnNotDeclared": []
     },
@@ -23782,6 +23962,7 @@
         "size.md.height",
         "size.sm.height",
         "space.0",
+        "space.075",
         "space.100",
         "space.150",
         "type.body.lg.default",
@@ -23789,10 +23970,7 @@
         "type.body.sm.default"
       ],
       "declaredNotDrawn": [
-        "color.disabled.text",
-        "size.lg.height",
-        "size.md.height",
-        "size.sm.height"
+        "color.disabled.text"
       ],
       "drawnNotDeclared": []
     },
@@ -24028,14 +24206,14 @@
         "control.size.sm.track",
         "size.md.height",
         "size.sm.height",
+        "space.0",
+        "space.075",
         "space.100",
         "type.body.md.default",
         "type.body.sm.default"
       ],
       "declaredNotDrawn": [
-        "color.disabled.text",
-        "size.md.height",
-        "size.sm.height"
+        "color.disabled.text"
       ],
       "drawnNotDeclared": []
     },

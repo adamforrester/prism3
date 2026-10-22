@@ -54,7 +54,7 @@ import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, Readback
 import { tailOf } from './figma-names';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
 import { validateComponentDef, VARIANT_AXES, axisKindOf, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, variantAxisFigmaName, isExcludedCoordinate, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef, type PartDef } from './component-schema';
-import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, settleChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, figmaEffectStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyFieldStyle, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, applyNestOverrides, type AnatomyPlan, type SwapFound } from './anatomy-figma';
+import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, settleChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, figmaEffectStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyFieldStyle, applyTagStyle, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, applyNestOverrides, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
 import { COMPONENT_RENAMES, coordKey, currentDefId, formerDefIds, partRenames, renameCoordinate, renameProperty, isDeclaredDrop, unaccounted as renamesUnaccounted, danglingTargets as renamesDangling, type ComponentRename, type AxesBaseline } from './component-renames';
 // One of the two imports this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
@@ -3782,9 +3782,10 @@ for (const b of brands) {
       'password-field': { keys: ['pad-x', 'pad-y', 'gap'], sizes: ['small', 'medium', 'large'] },
       textarea: { keys: ['pad-x', 'pad-y'], sizes: ['small', 'medium', 'large'] },
       select: { keys: ['pad-x', 'pad-y', 'gap'], sizes: ['small', 'medium', 'large'] },
-      'checkbox-row': { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
-      'radio-row': { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
-      'switch-row': { keys: ['gap'], sizes: ['small', 'medium'] },
+      // #2894 (owner Q539, Q?4 A): the rows' block padding follows density too.
+      'checkbox-row': { keys: ['pad-y', 'gap'], sizes: ['small', 'medium', 'large'] },
+      'radio-row': { keys: ['pad-y', 'gap'], sizes: ['small', 'medium', 'large'] },
+      'switch-row': { keys: ['pad-y', 'gap'], sizes: ['small', 'medium'] },
       tag: { keys: ['padding-x', 'select.gap', 'dismissible.visible-gap', 'check-gap', 'select.padding-end', 'dismissible.padding-end'], sizes: ['small', 'medium', 'large'] },
       'tab-item': { keys: ['padding-x', 'gap'], sizes: ['small', 'medium', 'large'] },
       'segmented-control-segment': { keys: ['padding-x', 'gap'], sizes: ['small', 'medium', 'large'] },
@@ -3796,7 +3797,8 @@ for (const b of brands) {
       toast: { keys: [], sizes: [], bare: ['pad-y', 'pad-x', 'pad-end', 'gap', 'glyph-gap'] },
     };
     const BTN = { compact: 'small 12/8/4/6 · medium 12/8/6/6 · large 20/12/6/8', comfortable: 'small 16/12/6/8 · medium 16/12/8/8 · large 24/16/8/12', spacious: 'small 20/16/8/12 · medium 20/16/12/12 · large 32/20/12/16' };
-    const ROWS = { compact: 'small 6 · medium 6 · large 8', comfortable: 'small 8 · medium 8 · large 12', spacious: 'small 12 · medium 12 · large 16' };
+    // Rows: block padding (the per-size minimum, #2894) / control-to-label gap.
+    const ROWS = { compact: 'small 4/6 · medium 6/6 · large 8/8', comfortable: 'small 6/8 · medium 8/8 · large 12/12', spacious: 'small 8/12 · medium 12/12 · large 16/16' };
     const EXPECTED: Record<string, Record<typeof densities[number], string>> = {
       button: BTN, 'button-destructive': BTN, 'button-neutral': BTN,
       'text-field': { compact: 'small 12/4/6 · medium 12/6/6 · large 20/6/6', comfortable: 'small 16/6/8 · medium 16/8/8 · large 24/8/8', spacious: 'small 20/8/12 · medium 20/12/12 · large 32/12/12' },
@@ -3804,7 +3806,7 @@ for (const b of brands) {
       textarea: { compact: 'small 12/4 · medium 12/6 · large 20/6', comfortable: 'small 16/6 · medium 16/8 · large 24/8', spacious: 'small 20/8 · medium 20/12 · large 32/12' },
       select: { compact: 'small 12/4/6 · medium 12/6/6 · large 20/6/6', comfortable: 'small 16/6/8 · medium 16/8/8 · large 24/8/8', spacious: 'small 20/8/12 · medium 20/12/12 · large 32/12/12' },
       'checkbox-row': ROWS, 'radio-row': ROWS,
-      'switch-row': { compact: 'small 6 · medium 6', comfortable: 'small 8 · medium 8', spacious: 'small 12 · medium 12' },
+      'switch-row': { compact: 'small 4/6 · medium 6/6', comfortable: 'small 6/8 · medium 8/8', spacious: 'small 8/12 · medium 12/12' },
       // Tag: padding-x / select icon→label / dismissible VISIBLE icon→label (owner, 2026-09-29: 6/8/8) /
       // label→check / select trailing inset / dismissible trailing inset. Compact small's visible 6 steps to 4.
       tag: { compact: 'small 6/4/4/4/6/0 · medium 8/6/6/4/8/0 · large 12/8/6/6/12/0', comfortable: 'small 8/6/6/4/8/0 · medium 12/8/8/6/12/0 · large 16/12/8/8/16/0', spacious: 'small 12/8/8/6/12/0 · medium 16/12/12/8/16/0 · large 20/16/12/12/20/0' },
@@ -6835,6 +6837,24 @@ arm: {
         `tag vs badge at rest (${type} ${sel} tag, ${emphasis} ${tone} badge): a pill against a small-radius label, the tag paints only the interactive family and shows an edge, a check mark or the × slot; the badge paints no interactive role, has a tint or bold fill, and no check mark (tag ${t.radius} ${JSON.stringify(t.refs)}, cue ${tagCue}; badge ${b.radius} ${JSON.stringify(b.refs)})`);
     }
   }
+  // #2887: the pill shape above is `tagStyle: pill`'s. Under `underline` the tag is square (`radius/none`), still apart from
+  // the status badge's `radius/sm`, and its cue at rest is the bottom line: a bound bottom weight with the other three
+  // sides at none, which no badge draws. Same badges, same literal table, read off the underline members.
+  {
+    const TAG_UNDERLINE_RADIUS = 'radius/none';
+    const uTag = applyTagStyle(tagDef, 'underline');
+    for (const [type, sel] of TAG_KINDS) {
+      const plan = figmaAnatomyPlan(uTag, 'medium', { type, selection: sel, state: 'rest' } as never);
+      const t = paintsOf(plan);
+      const bb = plan.root.bound ?? {};
+      const lineCue = /^border-width\/(hairline|thick)$/.test(String(bb.strokeBottomWeight)) && [bb.strokeTopWeight, bb.strokeRightWeight, bb.strokeLeftWeight].every((v) => v === 'border-width/none');
+      const tagInteractive = t.refs.length > 0 && t.refs.every((r) => r.startsWith('color/interactive/'));
+      const off = Object.keys(BADGE_REST).map((key) => { const [emphasis, tone] = key.split('.'); return { key, b: badgeAt(emphasis, tone) }; })
+        .filter(({ b }) => !(t.radius !== b.radius && b.radius === BADGE_STATUS_RADIUS && !b.refs.some((r) => r.startsWith('color/interactive/')) && t.fill !== b.fill));
+      ok(t.radius === TAG_UNDERLINE_RADIUS && lineCue && tagInteractive && off.length === 0,
+        `tag vs badge at rest, underline (${type} ${sel}): a square tag (${TAG_UNDERLINE_RADIUS}) against the small-radius badge, its cue the bottom line alone, painting only the interactive family, apart from every status badge (tag ${t.radius}, bottom ${bb.strokeBottomWeight}, sides ${bb.strokeTopWeight}/${bb.strokeRightWeight}/${bb.strokeLeftWeight}${off.length ? `; not apart from ${off.map((o) => o.key).join(', ')}` : ''})`);
+    }
+  }
 
   // CONTRAST, measured on the def's own pairs in every corpus brand and mode against LITERAL floors (owner,
   // 2026-09-28): 5 brands × 4 modes = 20 cells each, a literal, so a brand or mode dropping out fails the count.
@@ -9767,6 +9787,8 @@ arm: {
       ['controlShape', 'boxed'], ['controlShape', 'hairline'], ['controlShape', 'pill'],
       // #2695 (owner Q333 taking Q15 A): "Field style: Underline" adds no token; it moves only the materialized field defs.
       ['fieldStyle', 'underline'],
+      // #2887 (Q513.1 A): "Tag style: Underline" adds no token; it moves only the materialized Tag def.
+      ['tagStyle', 'underline'],
     ];
     const pairName = ([k, v]: [string, unknown]): string => `${k}=${JSON.stringify(v)}`;
     const getIn = (o: any, key: string): unknown => key.split('.').reduce((a, p) => a?.[p], o);
@@ -14991,6 +15013,155 @@ arm: {
         `#2695 contrast: the underline's rest, hover, focus and status lines clear 3:1 on both field grounds, every mode, every example brand (${brands} brands, ${pairs} pairs; ${under3.slice(0, 4).join('; ') || 'none under'})`);
     }
 
+    // (#2887) TAG STYLE — the underline tag, built as the owner decided it (Q513 1–7, Q540: Q9 A, Q10 A). SUBJECT =
+    // `applyTagStyle`; ORACLE = the projected plans, read against var names and px typed here from the decisions, never
+    // off the materializer's own table (docs/34). Each arm below is named for the decision it holds.
+    {
+      const def = (id: string) => componentDefs.find((x) => x.id === id)!;
+      const find = (n: any, name: string): any => (n.name === name ? n : (n.children ?? []).map((c: any) => find(c, name)).find(Boolean));
+      const all = (n: any): any[] => [n, ...(n.children ?? []).flatMap(all)];
+      const tag = def('tag');
+      const notIdentity = componentDefs.filter((d) => applyTagStyle(d, 'pill') !== d || (d.id !== 'tag' && applyTagStyle(d, 'underline') !== d)).map((d) => d.id);
+      ok(notIdentity.length === 0, `#2887 identity: pill returns every def unchanged, and underline every def but Tag (moved: ${notIdentity.join(', ') || 'none'})`);
+      ok(applyTagStyle(tag, 'underline') !== tag, '#2887 reach: underline rewrites the Tag def');
+      ok(validateBrandInput({ ...MINIMAL_BRAND, tagStyle: 'underline' } as any).length === 0 && validateBrandInput({ ...MINIMAL_BRAND, tagStyle: 'outline' } as any).length > 0,
+        '#2887 input: tagStyle accepts underline and rejects a value the lever does not offer (outline is a field style)');
+      const lever = leverManifest.find((l) => l.key === 'tagStyle');
+      const order = leverManifest.filter((l) => l.group === 'form').map((l) => l.key);
+      ok(lever?.label === 'Tag style' && lever.group === 'form' && lever.default === 'pill' && !lever.advanced
+        && JSON.stringify(lever.options?.map((o) => [o.value, o.label])) === JSON.stringify([['pill', 'Pill'], ['underline', 'Underline']])
+        && lever.description === 'The shape of every tag. Pill draws a rounded outline; Underline draws one line under the tag, 2px when selected or under the pointer. Either way the line clears 3:1.'
+        && order.indexOf('tagStyle') === order.indexOf('fieldStyle') + 1,
+        `#2887 lever (Q513.1, Q540 Q8): "Tag style", Pill / Underline, default Pill, not advanced, the owner's description, in Form right after Field style (form order: ${order.join(', ')})`);
+      const uDef = applyTagStyle(tag, 'underline');
+      const errs = (validateComponentDef(uDef) as { errors: string[] }).errors;
+      ok(errs.length === 0, `#2887 schema: the underline Tag validates, its {selection}/{state}-keyed bottom weight and its minHeight-based ratio floor admitted (${errs.slice(0, 2).join('; ') || 'clean'})`);
+
+      // THE PROJECTION. Every member of the 45, read off the plan.
+      const RUNG: Record<string, string> = { small: 'sm', medium: 'md', large: 'lg' };
+      const GLYPH: Record<string, string> = { small: 'xs', medium: 'sm', large: 'md' };
+      const INSET: Record<string, string> = { small: 'space/050', medium: 'space/075', large: 'space/100' };
+      const LINE_COLOR: Record<string, Record<string, string>> = {
+        unselected: { rest: 'color/interactive/neutral/border/rest', hover: 'color/interactive/neutral/border/hover', pressed: 'color/interactive/neutral/border/pressed', 'focus-visible': 'color/interactive/neutral/border/rest', disabled: 'color/disabled/border' },
+        selected: { rest: 'color/interactive/primary/border/rest', hover: 'color/interactive/primary/border/hover', pressed: 'color/interactive/primary/border/pressed', 'focus-visible': 'color/interactive/primary/border/rest', disabled: 'color/disabled/border' },
+      };
+      const pill = figmaAnatomySet(tag, { swapTarget: 'FPO-default-icon' });
+      const under = figmaAnatomySet(uDef, { swapTarget: 'FPO-default-icon' });
+      const bad: Record<string, string[]> = { weight: [], hover: [], focus: [], sides: [], corner: [], color: [], fill: [], height: [], align: [], inset: [], labelRow: [], slot: [], names: [] };
+      const weightAt = new Map<string, string>();
+      for (const p of under) weightAt.set(planComponentName(p), p.root.bound?.strokeBottomWeight);
+      for (const p of under) {
+        const sel = String(p.coord.selection), st = String(p.coord.state), at = planComponentName(p);
+        const r = p.root, b = r.bound ?? {};
+        const w = b.strokeBottomWeight;
+        if (st === 'hover' || st === 'pressed') { if (w !== 'border-width/thick') bad.hover.push(`${at}: ${w}`); }
+        else if (w !== (sel === 'selected' ? 'border-width/thick' : 'border-width/hairline')) bad.weight.push(`${at}: ${w}`);
+        if (st === 'focus-visible' && w !== weightAt.get(at.replace('state=focus-visible', 'state=rest'))) bad.focus.push(`${at}: ${w} (rest ${weightAt.get(at.replace('state=focus-visible', 'state=rest'))})`);
+        if (b.strokeTopWeight !== 'border-width/none' || b.strokeRightWeight !== 'border-width/none' || b.strokeLeftWeight !== 'border-width/none' || 'strokeWeight' in b)
+          bad.sides.push(`${at}: ${b.strokeTopWeight}/${b.strokeRightWeight}/${b.strokeLeftWeight}${'strokeWeight' in b ? ' + a scalar weight' : ''}`);
+        if (!['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'].every((k) => b[k] === 'radius/none')) bad.corner.push(`${at}: ${b.topLeftRadius}`);
+        if (r.paints?.strokes !== LINE_COLOR[sel]?.[st]) bad.color.push(`${at}: ${r.paints?.strokes} (want ${LINE_COLOR[sel]?.[st]})`);
+        const filled = all(r).filter((n) => n.type !== 'TEXT' && n.paints?.fills !== undefined).map((n) => `${n.name} ${n.paints.fills}`);
+        if (filled.length) bad.fill.push(`${at}: ${filled.join(', ')}`);
+        if (b.minHeight !== `size/${RUNG[p.size!]}/height` || 'height' in b || r.counterAxisSizingMode !== 'AUTO') bad.height.push(`${at}: minHeight ${b.minHeight}, height ${b.height}, ${r.counterAxisSizingMode}`);
+        if (r.counterAxisAlignItems !== 'MAX') bad.align.push(`${at}: ${r.counterAxisAlignItems}`);
+        if (find(r, 'content')?.bound?.paddingBottom !== INSET[p.size!] || find(r, 'content')?.bound?.paddingTop !== 'space/0') bad.inset.push(`${at}: ${find(r, 'content')?.bound?.paddingTop}/${find(r, 'content')?.bound?.paddingBottom}`);
+        if (find(r, 'labelCheck')?.bound?.minHeight !== `icon/size/${GLYPH[p.size!]}`) bad.labelRow.push(`${at}: ${find(r, 'labelCheck')?.bound?.minHeight}`);
+        const slot = find(r, 'dismiss');
+        if (p.coord.type === 'dismissible' && (slot?.bound?.width !== `size/${RUNG[p.size!]}/height` || slot?.bound?.height !== `size/${RUNG[p.size!]}/height`
+          || slot?.bound?.paddingBottom !== INSET[p.size!] || slot?.counterAxisAlignItems !== 'MAX'))
+          bad.slot.push(`${at}: ${slot?.bound?.width}×${slot?.bound?.height}, inset ${slot?.bound?.paddingBottom}, ${slot?.counterAxisAlignItems}`);
+      }
+      const namesOf = (ps: AnatomyPlan[]) => JSON.stringify(ps.map((p) => [planComponentName(p), planPartNames(p.root)]));
+      if (namesOf(pill) !== namesOf(under)) bad.names.push('the member names or layer names differ from the pill');
+      ok(under.length === 45 && bad.names.length === 0, `#2887 consumer impact: the underline set keeps the pill's 45 members and every layer name, so Update redraws in place (${under.length} members${bad.names.length ? `; ${bad.names[0]}` : ''})`);
+      ok(bad.weight.length === 0, `tag underline: 1px unselected, 2px selected — the bottom line at rest, focus-visible and disabled (Q513.2) (${bad.weight.slice(0, 3).join('; ') || 'ok'})`);
+      ok(bad.hover.length === 0, `tag underline: hover and pressed are 2px, unselected and selected (Q513.3) (${bad.hover.slice(0, 3).join('; ') || 'ok'})`);
+      ok(bad.focus.length === 0, `tag underline: focus-visible keeps the line weight of its rest member, the ring alone marks focus (Q513.4) (${bad.focus.slice(0, 3).join('; ') || 'ok'})`);
+      ok(bad.sides.length === 0, `tag underline: top, end and start bind border-width/none, and no scalar weight is bound (${bad.sides.slice(0, 3).join('; ') || 'ok'})`);
+      ok(bad.corner.length === 0, `tag underline: every corner is radius/none (${bad.corner.slice(0, 3).join('; ') || 'ok'})`);
+      ok(bad.color.length === 0, `tag underline: the line takes the interactive neutral border unselected and the primary border selected, stepping on hover and pressed (Q513.2, Q513.7) (${bad.color.slice(0, 3).join('; ') || 'ok'})`);
+      ok(bad.fill.length === 0, `tag underline: no interactive state binds a fill — no wash, no tint (Q513.2, Q513.3) (${bad.fill.slice(0, 3).join('; ') || 'ok'})`);
+      ok(bad.height.length === 0, `tag underline: the tag hugs above a minHeight at Button's height rung, never a fixed height (the #2894 route) (${bad.height.slice(0, 3).join('; ') || 'ok'})`);
+      ok(bad.align.length === 0 && bad.inset.length === 0 && bad.labelRow.length === 0,
+        `tag underline: the content row sits at the end on space/050 / 075 / 100 (Q540 Q9), its label row as tall as the glyph (${[...bad.align, ...bad.inset, ...bad.labelRow].slice(0, 3).join('; ') || 'ok'})`);
+      ok(bad.slot.length === 0, `tag underline: the × slot stays a square as tall as the tag and sits its glyph on the same inset (Q513.6) (${bad.slot.slice(0, 3).join('; ') || 'ok'})`);
+      // Q10 A: the inset does not follow density; the height does, through the minimum.
+      const densInset: string[] = [];
+      for (const density of ['compact', 'spacious'] as const) for (const size of ['small', 'medium', 'large']) {
+        const p = figmaAnatomyPlan(applySpacingDensity(applyTagStyle(applyControlShape(tag, 'pill'), 'underline'), density), size, { type: 'select', selection: 'unselected', state: 'rest' } as never);
+        if (find(p.root, 'content')?.bound?.paddingBottom !== INSET[size] || p.root.bound?.topLeftRadius !== 'radius/none') densInset.push(`${density} ${size}: ${find(p.root, 'content')?.bound?.paddingBottom}, ${p.root.bound?.topLeftRadius}`);
+      }
+      ok(densInset.length === 0, `tag underline (Q540 Q10): the inset is space/050 / 075 / 100 at every density, and the corner square under Control shape pill (${densInset.slice(0, 3).join('; ') || 'ok'})`);
+
+      // #2887 THE GAP TO THE LINE, measured in px in every example brand at every size. The layout is walked off the plan
+      // (the frame's end alignment, the content row's block-end padding, the label row's floor and centering); the
+      // expected numbers come from the decision (the inset, typed above as px) and the brand's own emitted glyph size and
+      // label line box (`type.label.{rung}.line-box`), never off the plan.
+      const INSET_PX: Record<string, number> = { small: 4, medium: 6, large: 8 };
+      const gap: string[] = [];
+      let measured = 0;
+      const exampleThemes: [string, Theme][] = [];
+      for (const f of readdirSync(resolve(HERE, './examples')).filter((x) => x.endsWith('.design.md')).sort()) {
+        const text = readFileSync(resolve(HERE, './examples', f), 'utf8');
+        const std = parseStandardDesignMd(text);
+        const input = isStandardDesignMd(std) ? standardToBrandInput(std).input : parseDesignMd(text).input;
+        const theme = exampleTheme(f, () => brandTheme(input));
+        if (theme) exampleThemes.push([f, theme]);
+      }
+      for (const [f, theme] of exampleThemes) {
+        const tr = buildTree(theme).tree as any;
+        const rootKey = Object.keys(tr)[0];
+        const byPath = (dotted: string): any => dotted.split('.').reduce((n: any, k) => n?.[k], tr[rootKey]);
+        const num = (v: any, hops = 0): number => {
+          if (typeof v === 'string' && /^\{.+\}$/.test(v) && hops < 10) {
+            const leaf = v.slice(1, -1).split('.').reduce((n: any, k) => n?.[k], tr);
+            return leaf?.$extensions?.prism3?.px ?? num(leaf?.$value, hops + 1);
+          }
+          return typeof v === 'number' ? v : parseFloat(String(v)) * (String(v).endsWith('rem') ? 16 : 1);
+        };
+        const px = (dotted: string): number => { const leaf = byPath(dotted); return leaf?.$extensions?.prism3?.px ?? num(leaf?.$value); };
+        const pxVar = (name: string | undefined): number => (name ? px(name.replace(/\//g, '.')) : 0);
+        for (const size of ['small', 'medium', 'large']) for (const [type, selection] of [['select', 'selected'], ['select', 'unselected'], ['dismissible', 'unselected']]) {
+          const p = figmaAnatomyPlan(uDef, size, { type, selection, state: 'rest' } as never);
+          const r = p.root, content = find(r, 'content'), lc = find(r, 'labelCheck'), check = find(r, 'checkGlyph'), slot = find(r, 'dismiss');
+          const lineBox = px(`type.label.${RUNG[size]}.line-box`), icon = px(`icon.size.${GLYPH[size]}`), H = px(`size.${RUNG[size]}.height`);
+          // The walk: the label row is max(its floor, the line box, the check); centered inside it; the content row ends
+          // on its block-end padding at the frame's end edge; the frame is max(its floor, each child).
+          const lcH = Math.max(pxVar(lc?.bound?.minHeight), lineBox, check ? pxVar(check.bound?.height) : 0);
+          const inset = r.counterAxisAlignItems === 'MAX' ? pxVar(content?.bound?.paddingBottom) : NaN;
+          const labelBottom = inset + (lcH - lineBox) / 2;
+          const frameH = Math.max(pxVar(r.bound?.minHeight), pxVar(r.bound?.height), lcH + pxVar(content?.bound?.paddingTop) + pxVar(content?.bound?.paddingBottom), slot ? pxVar(slot.bound?.height) : 0);
+          const checkBottom = check ? inset + (lcH - pxVar(check.bound?.height)) / 2 : undefined;
+          const want = INSET_PX[size] + (icon - lineBox) / 2;
+          measured++;
+          if (!(Math.abs(labelBottom - want) <= 0.01)) gap.push(`${f} ${size} ${type} ${selection}: label bottom ${labelBottom} (want ${want})`);
+          if (frameH !== H) gap.push(`${f} ${size} ${type} ${selection}: height ${frameH} (want ${H})`);
+          if (checkBottom !== undefined && !(checkBottom - 2 >= 2)) gap.push(`${f} ${size}: the check sits ${checkBottom - 2}px above a 2px line`);
+        }
+      }
+      ok(exampleThemes.length === 5 && measured === 5 * 9 && gap.length === 0,
+        `#2887 underline label sits on its inset: in every example brand at every size, the label's line box ends inset + (glyph − line box) ÷ 2 above the frame's bottom, the height is size.{size}.height, and the check clears a 2px line by ≥ 2px (${exampleThemes.length} brands, ${measured} members; ${gap.slice(0, 3).join('; ') || 'ok'})`);
+
+      // CONTRAST (SC 1.4.11): the line is the tag's only boundary, so every line that marks a state clears 3:1 against the
+      // page in every mode of every example brand, plus the focus ring. Recomputed from the roles' own colors.
+      const LINE_ROLES = ['interactive.neutral.border.rest', 'interactive.neutral.border.hover', 'interactive.neutral.border.pressed',
+        'interactive.primary.border.rest', 'interactive.primary.border.hover', 'interactive.primary.border.pressed', 'border.focus'];
+      const under3: string[] = [];
+      let pairs = 0;
+      for (const [f, theme] of exampleThemes)
+        for (const m of resolveAllModes(theme))
+          for (const role of LINE_ROLES) {
+            const a = m.roles[role], bg = m.roles['background.primary'];
+            if (!a || !bg) { under3.push(`${f} ${m.mode}: ${role} or background.primary missing`); continue; }
+            pairs++;
+            const cr = contrast(hexToRgb(a.hex), hexToRgb(bg.hex));
+            if (cr < 3) under3.push(`${f} ${m.mode}: ${role} ${cr.toFixed(2)}`);
+          }
+      ok(exampleThemes.length === 5 && pairs > 0 && pairs % LINE_ROLES.length === 0 && under3.length === 0,
+        `#2887 contrast: every underline tag state line (neutral and primary, rest, hover, pressed) and the focus ring clear 3:1 on background.primary, every mode, every example brand (${pairs} pairs; ${under3.slice(0, 4).join('; ') || 'none under'})`);
+    }
+
     // (#2361) HAIRLINE IS 1px EVERYWHERE — buttons, fields and the checkbox (owner, 2026-10-08). SUBJECT =
     // `applyControlShape` (and its `FIELD_CORNER_REFS`); ORACLE = the projected plan's corner bindings, against
     // var names spelled out here, never read off the map (docs/34). One named assertion per family, so a revert
@@ -16858,31 +17029,58 @@ arm: {
       `#1426 MUTATION: reverting control.justify to 'start' projects primaryAxisAlignItems MIN (got ${String(ctrlOf(startJustify as ComponentDef).primaryAxisAlignItems)}), flipping '#1426 select control pins the chevron right' BY NAME`);
 
     // (2) showMessage BOOLEAN (#1412 on a `nest` part — a first). The composed `message` nest is emitted at
-    //     EVERY member, shown by default, its `visible` driven by the `message` boolean — the INVERSE
-    //     direction of the leading glyph (default true, like field-label's `required`).
+    //     EVERY member, hidden by default since #2926 (owner decision), its `visible` driven by the `message`
+    //     boolean — the same direction as the leading glyph.
     const sset = figmaAnatomySet(select, { swapTarget: 'FPO-default-icon' });
     const findMsg = (n: any): any => (n.name === 'message' ? n : (n.children ?? []).map(findMsg).find(Boolean));
     const msgNodes = sset.map((p) => findMsg(p.root));
     ok(msgNodes.length === sset.length && msgNodes.every(Boolean),
       `#1426 the composed message nest is emitted at EVERY projected member (${msgNodes.filter(Boolean).length}/${sset.length})`);
-    ok(msgNodes.length > 0 && msgNodes.every((m) => m?.visibleProp === 'message' && (m?.visible ?? true) === true),
-      '#1426 every message node is shown by default (built visible — `visible` omitted per #1331\'s "carried only when false" rule) with its `visible` driven by the `message` boolean (inverse of the leading glyph, which defaults hidden)');
+    ok(msgNodes.length > 0 && msgNodes.every((m) => m?.visibleProp === 'message' && m?.visible === false),
+      '#2926 every select message node is hidden by default (built `visible:false`) with its `visible` driven by the `message` boolean');
     //   and the built visibility TRACKS the default rather than being a constant (docs/34 shape 4): flipping
-    //   the boolean default to false builds every message node `visible:false`.
-    const hiddenDefault = { ...select, figmaProperties: { ...fp, booleans: { ...fp.booleans, showMessage: { part: 'message', figmaName: 'message', default: false } } } };
-    const hiddenMsgs = figmaAnatomySet(hiddenDefault as never, { swapTarget: 'FPO-default-icon' }).map((p) => findMsg(p.root));
-    ok(hiddenMsgs.length > 0 && hiddenMsgs.every((m) => m?.visible === false),
-      '#1426 the built visibility TRACKS the boolean default — flipping showMessage default→false builds every message node `visible:false`, so the shown-by-default assertion is not measuring a constant');
+    //   the boolean default to true builds every message node visible (`visible` omitted, #1331).
+    const shownDefault = { ...select, figmaProperties: { ...fp, booleans: { ...fp.booleans, showMessage: { part: 'message', figmaName: 'message', default: true } } } };
+    const shownMsgs = figmaAnatomySet(shownDefault as never, { swapTarget: 'FPO-default-icon' }).map((p) => findMsg(p.root));
+    ok(shownMsgs.length > 0 && shownMsgs.every((m) => (m?.visible ?? true) === true),
+      '#1426 the built visibility TRACKS the boolean default — flipping showMessage default→true builds every message node visible, so the hidden-by-default assertion is not measuring a constant');
+
+    // (2b) #2926 (owner decision on #2926, item 1): EVERY field's message defaults OFF. The family is written out
+    //     here rather than read from the defs, and the defs are checked against it both ways: a def that gains a
+    //     `showMessage` boolean (Code input #2789, Search #2912) must join this list, and so take the same
+    //     default. The expected `false` is the owner's answer, not a value read off any def (docs/34).
+    {
+      const MESSAGE_OFF_FAMILY = ['counter', 'password-field', 'select', 'text-field', 'textarea'];
+      const withMsg = componentDefs.filter((d) => d.figmaProperties?.booleans?.showMessage).map((d) => d.id).sort();
+      ok(JSON.stringify(withMsg) === JSON.stringify(MESSAGE_OFF_FAMILY),
+        `#2926 the defs with a showMessage boolean are exactly the message-off family ${JSON.stringify(MESSAGE_OFF_FAMILY)} (got ${JSON.stringify(withMsg)}) — a new one joins the list and takes its default`);
+      const findVis = (n: any, name: string): any[] => [...(n.visibleProp === name ? [n] : []), ...(n.children ?? []).flatMap((c: any) => findVis(c, name))];
+      const msgBad: string[] = [];
+      for (const id of MESSAGE_OFF_FAMILY) {
+        const d = componentDefs.find((x) => x.id === id);
+        const b = d?.figmaProperties?.booleans?.showMessage;
+        const prop = d?.props?.find((x) => x.name === 'showMessage');
+        if (!d || !b) { msgBad.push(`${id}: no showMessage boolean`); continue; }
+        if (b.default !== false) msgBad.push(`${id}: boolean default ${String(b.default)}`);
+        if (prop?.default !== false) msgBad.push(`${id}: prop default ${String(prop?.default)}`);
+        if (/\b(shown|on) by default\b|on — the default|on, the default/i.test(`${prop?.description ?? ''} ${d.anatomy?.parts[b.part]?.note ?? ''} ${d.anatomy?.parts.message?.note ?? ''}`)) msgBad.push(`${id}: prose still says the message is on by default`);
+        const set = figmaAnatomySet(d, { swapTarget: 'FPO-default-icon' });
+        const nodes = set.flatMap((p) => findVis(p.root, b.figmaName ?? 'message'));
+        if (nodes.length < set.length || !nodes.every((n) => n.visible === false)) msgBad.push(`${id}: ${nodes.filter((n) => n.visible !== false).length} of ${nodes.length} message nodes built visible over ${set.length} members`);
+      }
+      ok(msgBad.length === 0,
+        `#2926 every field's message is OFF by default: the boolean, the prop and the built node (visible:false at every member) agree, and no doc says "shown by default"${msgBad.length ? ` — WRONG: ${msgBad.join(' | ')}` : ''}`);
+    }
 
     // (3) the boolean does NOT multiply the set — still status(4) × state(5) = 20 members.
     ok(sset.length === 84,
       `#1426 the showMessage boolean toggles a part in place and does not multiply the set — still 84 members, size(3) × status(4) × state(7) (got ${sset.length})`);
 
-    // (4) planSetProperties declares `message` as a BOOLEAN defaulting to the built (shown) visibility.
+    // (4) planSetProperties declares `message` as a BOOLEAN defaulting to the built (hidden, #2926) visibility.
     const props = planSetProperties(sset);
     const msgProp = props.find((p) => p.name === 'message');
-    ok(!!msgProp && msgProp.type === 'BOOLEAN' && msgProp.default === true,
-      `#1426 planSetProperties declares 'message' as a BOOLEAN defaulting true (the built visibility) — got ${JSON.stringify(msgProp)}`);
+    ok(!!msgProp && msgProp.type === 'BOOLEAN' && msgProp.default === false,
+      `#2926 planSetProperties declares 'message' as a BOOLEAN defaulting false (the built visibility) — got ${JSON.stringify(msgProp)}`);
 
     // (5) BEHAVIOR MUTATION (docs/34) — the boolean is the message nest's SOLE presence mechanism now that it
     //     is optional. Drop only the showMessage boolean (keep leadingIcon) and the message nest is DROPPED at
@@ -29606,8 +29804,13 @@ arm: {
     const box = boxName ? ps[boxName] : undefined;
     ok(!!box && (box.height ?? '').includes('control-box') && box.layout?.align === 'center',
       `#1201 ${def.id}: the control sits in a line-box wrapper — height→'…control-box', cross-axis centred (got '${boxName}' height='${box?.height}' align='${box?.layout?.align}')`);
-    ok(rootRow.layout?.align === 'start',
-      `#1201 ${def.id}: and the row itself stays top-aligned (align='${rootRow.layout?.align}') — the centring lives in the box, never the row`);
+    // The row that PAIRS the control cell with the label stays top-aligned. Since #2894 (owner Q539, Q?3 A) that is
+    // `content`, one level inside the root, and the root centers `content` as its ONE flow child (Accordion's Q276 A
+    // construction), so a single line is centered in the floor and a wrapped label still holds line one.
+    const pairName = Object.keys(ps).find((n) => (ps[n].children ?? []).includes(boxName ?? ''));
+    const pair = pairName ? ps[pairName] : undefined;
+    ok(pair?.layout?.align === 'start' && (pair === rootRow || (rootRow.children ?? []).length === 1 && rootRow.children![0] === pairName),
+      `#1201 ${def.id}: and the row pairing the control with its label stays top-aligned ('${pairName}' align='${pair?.layout?.align}'; root children [${(rootRow.children ?? []).join(', ')}]) — the centring lives in the box, never on the control-and-label row`);
     // #1226 step 2 / #1354 — THE NESTED CONTROL DOES NOT STRETCH TO THE LINE BOX. A nested instance in an
     // auto-layout cell can be made to FILL the counter axis; the decided shape forbids it. The nest pins
     // its OWN height to `control.size.*.height` (16/20/24 on nb), strictly SHORTER than the wrapper's
@@ -29633,6 +29836,113 @@ arm: {
     ok(pxOf(nbCtl[rung]['line-box']) > pxOf(nbCtl[rung].height),
       `#1201 nb: control.size.${rung}.line-box (${pxOf(nbCtl[rung]['line-box'])}px) is taller than the control (${pxOf(nbCtl[rung].height)}px), so centring within it is a real first-line inset`);
   }
+}
+
+// ---- #2894: THE OPTION ROWS LAND ON THE CONTROL-HEIGHT LADDER (owner decision Q539, A on every question) --------
+//
+// Radio.Row, Checkbox.Row and Switch.Row bind their floor `size.{size}.min-height` (the ladder) as the Figma row's
+// `minHeight` as well as in code, center ONE inner box (`content`) in it, and keep the control and label top-aligned
+// inside that box; the block padding is a per-size minimum that follows density. A layout model places a one- and a
+// TWO-line label with the PLAN's own alignments and bound variables (the Figma projection) and, separately, with the
+// def's own token keys and CSS's `min-height` + `align-items` (the code projection), each resolved through a brand's
+// EMITTED tokens. EXPECTED heights are the wireframe's numbers (6320371912), typed here, never read off the ladder:
+//   comfortable 36/44/56 in every corpus brand; compact 29/36/44; spacious 44/56/68 (Switch.Row has no large).
+// Mutations: the row back to align:start → `… centered`; `minHeight` dropped from the row part → `… lands on the
+// ladder` (Figma 40 at medium, not 44); `content` centered → #1009 half-1 and #1201, by name.
+{
+  type PN = { name: string; type?: string; children: PN[]; bound?: Record<string, string>; counterAxisAlignItems?: string };
+  const find = (n: PN, name: string): PN | undefined => (n.name === name ? n : n.children.map((c) => find(c, name)).find(Boolean));
+  const at = (root: any, ref: string): any => ref.replace(/^\{|\}$/g, '').split('.').slice(ref.startsWith('{') ? 1 : 0).reduce((n: any, k) => n?.[k], root);
+  const num = (root: any, v: any): number => { const leaf = typeof v === 'string' && v.startsWith('{') ? at(root, v) : v; if (leaf && typeof leaf === 'object' && '$value' in leaf) return leaf.$extensions?.prism3?.px ?? num(root, leaf.$value); return parseFloat(String(leaf)); };
+  const place = (align: string | undefined, h: number, inH: number) => (align === 'CENTER' ? (inH - h) / 2 : align === 'MAX' ? inH - h : 0);
+  const EXPECT: Record<string, Record<string, number>> = {
+    compact: { small: 29, medium: 36, large: 44 },
+    comfortable: { small: 36, medium: 44, large: 56 },
+    spacious: { small: 44, medium: 56, large: 68 },
+  };
+  // The per-size minimum pad (Q?1 A) at comfortable, as the space step it binds: 6/8/12px.
+  const PAD_STEP: Record<string, string> = { small: 'space.075', medium: 'space.100', large: 'space.150' };
+  const ROW_IDS = ['radio-row', 'checkbox-row', 'switch-row'];
+  const rows = componentDefs.filter((d) => ROW_IDS.includes(d.id));
+  ok(rows.length === 3, `#2894: the three option rows are present to measure (got ${rows.map((d) => d.id).join(', ')})`);
+  // Each world: a brand's emitted tree at one density. Comfortable reads the committed emission of every corpus brand;
+  // compact and spacious BUILD each design.md brand at that density (nb is a measured fixture with no density lever).
+  const treeOf = (t: any) => t[Object.keys(t).find((k) => !k.startsWith('$'))!];
+  const worlds: { brand: string; density: 'compact' | 'comfortable' | 'spacious'; root: any }[] = [];
+  const corpus = readdirSync(resolve(HERE, 'out')).filter((f) => /^[a-z0-9-]+\.tokens\.json$/.test(f)).map((f) => f.replace('.tokens.json', ''));
+  for (const b of corpus) worlds.push({ brand: b, density: 'comfortable', root: treeOf(JSON.parse(readFileSync(resolve(HERE, `out/${b}.tokens.json`), 'utf8'))) });
+  let rebuilt = 0;
+  for (const f of readdirSync(resolve(HERE, 'examples')).filter((x) => x.endsWith('.design.md'))) {
+    const text = readFileSync(resolve(HERE, 'examples', f), 'utf8');
+    const std = parseStandardDesignMd(text);
+    const input = isStandardDesignMd(std) ? standardToBrandInput(std).input : parseDesignMd(text).input;
+    if (!corpus.includes(input.id)) continue;
+    rebuilt++;
+    for (const density of ['compact', 'spacious'] as const) {
+      const theme = brandTheme({ ...input, density });
+      ok(theme.dims.density === density, `#2894: ${input.id} built at ${density} resolves to that density (got ${theme.dims.density})`);
+      worlds.push({ brand: input.id, density, root: treeOf(buildTree(theme).tree) });
+    }
+  }
+  ok(corpus.length >= 5 && rebuilt >= 4, `#2894: the corpus brands are present to measure (${corpus.length} emitted, ${rebuilt} rebuilt at compact and spacious from their design.md)`);
+  const offLadder: string[] = [], offCenter: string[] = [], offLine: string[] = [], offPad: string[] = [], offTarget: string[] = [];
+  let measured = 0;
+  for (const def of rows) {
+    for (const density of ['compact', 'comfortable', 'spacious'] as const) {
+      const m = applySpacingDensity(def, density);
+      const plans = figmaAnatomySet(m, { swapTarget: 'FPO-default-icon' }).filter((p) => (p.coord as Record<string, string>).status !== 'error');
+      for (const p of plans) {
+        const size = p.size ?? (p.coord as Record<string, string>).size;
+        const row = p.root as PN, cell = find(row, 'controlCell'), label = find(row, 'label');
+        const pair = row.children.find((c) => c.children.some((k) => k.name === 'controlCell')) ?? (row.children.some((k) => k.name === 'controlCell') ? row : undefined);
+        for (const w of worlds.filter((x) => x.density === density)) {
+          const v = (name: string | undefined) => (name ? num(w.root, at(w.root, name.replace(/\//g, '.'))) : 0);
+          const type = at(w.root, m.tokens[`size.${size}.text`]).$value;
+          const line = num(w.root, type.fontSize) * num(w.root, type.lineHeight);
+          const cellH = v(cell?.bound?.height);
+          // FIGMA: the plan's bound floor, padding and alignments.
+          const figma = (lines: number) => {
+            const padT = v(row.bound?.paddingTop), padB = v(row.bound?.paddingBottom), floor = v(row.bound?.minHeight);
+            const content = Math.max(cellH, lines * line);
+            const H = Math.max(floor, padT + content + padB);
+            const top = padT + place(row.counterAxisAlignItems, content, H - padT - padB);
+            // Inside `content`: the cell and the label at the pairing row's alignment; line one's middle vs the cell's.
+            const cellMid = place(pair?.counterAxisAlignItems, cellH, content) + cellH / 2;
+            const lineOneMid = place(pair?.counterAxisAlignItems, lines * line, content) + line / 2;
+            return { H, mid: top + content / 2, firstLine: Math.abs(cellMid - lineOneMid), padT, padB };
+          };
+          // CODE: the def's own keys (`min-height`, `pad-y`), CSS's border-box min-height, the row's `align`.
+          const code = (lines: number) => {
+            const pad = num(w.root, at(w.root, m.tokens[`size.${size}.pad-y`])), floor = num(w.root, at(w.root, m.tokens[`size.${size}.min-height`]));
+            return Math.max(floor, pad + Math.max(cellH, lines * line) + pad);
+          };
+          const want = EXPECT[density][size];
+          const one = figma(1), two = figma(2), c1 = code(1);
+          measured++;
+          const at1 = `${def.id} ${w.brand} ${density} ${size}`;
+          if (!(Math.abs(one.H - want) <= 0.5 && Math.abs(c1 - want) <= 0.5)) offLadder.push(`${at1}: Figma ${one.H.toFixed(1)} · code ${c1.toFixed(1)} (want ${want})`);
+          if (Math.abs(one.mid - one.H / 2) > 0.5) offCenter.push(`${at1} (row ${row.counterAxisAlignItems}): content center ${one.mid.toFixed(2)} vs ${(one.H / 2).toFixed(2)}`);
+          if (!(pair && pair !== row && pair.counterAxisAlignItems === 'MIN' && one.firstLine <= 1 && two.firstLine <= 1 && two.H >= one.padT + 2 * line + one.padB - 0.01 && Math.abs(code(2) - two.H) <= 0.5))
+            offLine.push(`${at1} (content ${pair?.name} ${pair?.counterAxisAlignItems}): cell off line one by ${two.firstLine.toFixed(2)} on two lines; two-line Figma ${two.H.toFixed(1)} · code ${code(2).toFixed(1)}`);
+          if (density === 'comfortable' && !(row.bound?.paddingTop === PAD_STEP[size].replace('.', '/') && row.bound?.paddingBottom === PAD_STEP[size].replace('.', '/')))
+            offPad.push(`${at1}: pad ${row.bound?.paddingTop}/${row.bound?.paddingBottom} (want ${PAD_STEP[size]})`);
+          if (!(one.H >= 24 && label)) offTarget.push(`${at1}: ${one.H.toFixed(1)}px`);
+        }
+      }
+    }
+  }
+  // The rows' sizes (3 + 3 + 2) × every world (each emitted brand at comfortable, each rebuilt one at compact and spacious).
+  ok(measured === 8 * worlds.length && measured >= 104, `#2894: every row, size and density measured in every world (${measured} of ${8 * worlds.length})`);
+  ok(offLadder.length === 0,
+    `#2894 option rows land on the ladder: a single-line row measures 36/44/56 at comfortable in every corpus brand, 29/36/44 compact and 44/56/68 spacious, in Figma and in code alike${offLadder.length ? ` — OFF: ${offLadder.slice(0, 6).join('; ')}` : ''}`);
+  ok(offCenter.length === 0,
+    `#2894 option rows: a single-line row's content is centered in its floor, within 0.5px${offCenter.length ? ` — OFF: ${offCenter.slice(0, 6).join('; ')}` : ''}`);
+  ok(offLine.length === 0,
+    `#2894 option rows: inside a top-aligned \`content\` box, the control stays on line one of a one- and a two-line label (within 1px), and a wrapped row grows by its padding, Figma and code agreeing${offLine.length ? ` — OFF: ${offLine.slice(0, 6).join('; ')}` : ''}`);
+  ok(offPad.length === 0,
+    `#2894 option rows: the block padding is the per-size minimum, space.075/100/150, top and bottom at comfortable${offPad.length ? ` — OFF: ${offPad.slice(0, 6).join('; ')}` : ''}`);
+  ok(offTarget.length === 0,
+    `#2894 option rows: every row is a hit target of at least 24px (SC 2.5.8) at every size and density${offTarget.length ? ` — OFF: ${offTarget.slice(0, 6).join('; ')}` : ''}`);
 }
 
 // ---- #1347: THE CHECKBOX GROUP composes via the ALREADY-COLLAPSED Row, not the atom ----------------
