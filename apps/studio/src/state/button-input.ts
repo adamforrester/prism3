@@ -53,7 +53,7 @@ export const buttonLayout = (): ButtonLayoutView => ({
   labelRole: (getPath(brandState, 'buttonLabelWeight') ?? 'emphasis') === 'default' ? 'default' : 'emphasis',
 });
 
-/** What a medium button's label and icon are under one Button label & icon value, in the brand's own sizes (#ISSUE):
+/** What a medium button's label and icon are under one Button label & icon value, in the brand's own sizes (#2918):
  *  the label rung it binds, that rung's px from the brand's type scale, and the icon size and its px. */
 export type ContentSizeView = { rung: 'md' | 'sm'; labelPx: number; icon: 'sm' | 'xs'; iconPx: number };
 /** Read from the theme the preview is drawn from, never restated: `match` binds the medium label and icon (`label.md`,

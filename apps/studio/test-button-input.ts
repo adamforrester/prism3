@@ -164,7 +164,7 @@ ok(seen['aurora|rounded|light|md'] === 8 && seen['aurora|pill|light|md'] === 22 
 ok(seen['aurora with its own Dark|rounded|dark|md'] === 2 && seen['aurora with its own Dark|pill|dark|md'] === 18,
   `literal: with Dark's own softness (0.5) and density (compact), Dark's medium button is 2px rounded and 18px pill (36px high) (${seen['aurora with its own Dark|rounded|dark|md']}, ${seen['aurora with its own Dark|pill|dark|md']})`);
 
-console.log('\n6. The Button label & icon readout is the brand\'s own sizes (#ISSUE, owner Q527)');
+console.log('\n6. The Button label & icon readout is the brand\'s own sizes (#2918, owner Q527)');
 // SUBJECT: `contentSizeOf` (what the readout under Medium button label & icon says a medium button gets) and the
 // readout's words. ORACLE, independent of it: the brand's DTCG emission (`buildTree`), where the label style the build
 // binds (`type.label.<rung>.emphasis`) aliases a `core.font.size.*` primitive whose `$value` is the px, and

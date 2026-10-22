@@ -33,7 +33,7 @@ export const BUTTON_OPTIONS_COPY = {
   density: 'Density sets component heights and spacing.',
   densityLink: 'Set it in Shape › Density',
   scope: 'Applies to buttons, not icon buttons.',
-  /** What the chosen Button label & icon gives a medium button, in the brand's sizes (#ISSUE). DRAFT, option A. */
+  /** What the chosen Button label & icon gives a medium button, in the brand's sizes (#2918). DRAFT, option A. */
   contentSize: (c: ContentSizeView): string => c.rung === 'sm'
     ? `Medium button label: ${c.labelPx}px, the small button's (label/sm). Icon: ${c.iconPx}px.`
     : `Medium button label: ${c.labelPx}px (label/md). Icon: ${c.iconPx}px.`,
@@ -98,7 +98,7 @@ export const mountButtonOptions = (hostEl: HTMLElement, cleanups: (() => void)[]
     const v = String(getPath(brandState, key) ?? L?.default ?? '');
     c.set(v);
     b.ctl.append(c.el);
-    // The readout (#ISSUE): the label and icon sizes the brand's medium button gets under the chosen value.
+    // The readout (#2918): the label and icon sizes the brand's medium button gets under the chosen value.
     if (key === 'buttonContentSize') {
       const cs = contentSizeOf(theme, v as ButtonContentSize);
       b.setState(cs ? hook(stateLine(BUTTON_OPTIONS_COPY.contentSize(cs)), 'button-content-size-readout') : null);
