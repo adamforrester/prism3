@@ -177,6 +177,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | tag | foundations | rest, hover, pressed, focus-visible, disabled, read-only | rest, hover, pressed, focus-visible, disabled |
 | text-field | form | rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled, read-only, empty | rest, hover, filled, focus-visible, focus-visible-filled, disabled, read-only |
 | textarea | form | rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled, read-only, empty | rest, hover, filled, focus-visible, focus-visible-filled, disabled, read-only |
+| toast | feedback | — | — |
 | veil | foundations | — | — |
 
 ### State vocabulary
@@ -213,6 +214,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | inset | default, flush | button, button-destructive, button-neutral |
 |  | inset, middle-inset, none | divider |
 | intensity | medium, strong, subtle | veil |
+| intent | neutral, success | toast |
 | layout | fill, inline, stacked | button-group |
 | offset | control, field | focus-ring |
 | orientation | horizontal, vertical | divider |
@@ -231,7 +233,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 |  | default, error, success, warning | field-message, password-field, select, text-field, textarea |
 | style | outline | password-field, text-field, textarea |
 |  | inline, standalone | link |
-| surface | default, inverse | button, button-destructive, button-neutral, focus-ring, icon-button, icon-button-destructive, icon-button-neutral, link |
+| surface | default, inverse | button, button-destructive, button-neutral, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, focus-ring, icon-button, icon-button-destructive, icon-button-neutral, link |
 | tone | brand, danger, info, inherit, primary, secondary, success, tertiary, warning | icon |
 |  | danger, info, neutral, success, warning | badge |
 | type | icon, ordered, unordered | list, list-item |
@@ -447,6 +449,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | counter | — | — |
 | message | counter | — | — |
 |  | field-message | — | — |
+|  | toast | — | — |
 | name | checkbox-group | — | — |
 |  | counter | — | — |
 |  | icon | — | 45 values |
@@ -550,6 +553,9 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 | surface | button | default | default, inverse |
 |  | button-destructive | default | default, inverse |
 |  | button-neutral | default | default, inverse |
+|  | flush-icon-button | default | default, inverse |
+|  | flush-icon-button-destructive | default | default, inverse |
+|  | flush-icon-button-neutral | default | default, inverse |
 |  | focus-ring | default | default, inverse |
 |  | icon-button | default | default, inverse |
 |  | icon-button-destructive | default | default, inverse |

@@ -13769,7 +13769,7 @@
     "flush-icon-button": {
       "id": "flush-icon-button",
       "name": "FlushIconButton",
-      "members": 30,
+      "members": 60,
       "axes": [
         {
           "name": "shape",
@@ -13777,6 +13777,15 @@
           "values": [
             "flush",
             "round"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "surface",
+          "figmaName": "surface",
+          "values": [
+            "default",
+            "inverse"
           ],
           "kind": "variant"
         },
@@ -13808,17 +13817,17 @@
         {
           "part": "container",
           "kind": "frame",
-          "members": 30
+          "members": 60
         },
         {
           "part": "container/icon",
           "kind": "swap",
-          "members": 30
+          "members": 60
         },
         {
           "part": "container/focusRing",
           "kind": "instance",
-          "members": 6,
+          "members": 12,
           "when": {
             "state": [
               "focus-visible"
@@ -14037,12 +14046,14 @@
       ],
       "colorKey": [
         "shape",
+        "surface",
         "state"
       ],
       "colors": [
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "rest"
           },
           "parts": [
@@ -14055,6 +14066,7 @@
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "hover"
           },
           "parts": [
@@ -14067,6 +14079,7 @@
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "pressed"
           },
           "parts": [
@@ -14079,6 +14092,7 @@
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "focus-visible"
           },
           "parts": [
@@ -14091,6 +14105,7 @@
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "disabled"
           },
           "parts": [
@@ -14102,7 +14117,73 @@
         },
         {
           "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.primary.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.primary.icon.hover"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.primary.icon.pressed"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.primary.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.disabled.icon"
+            }
+          ]
+        },
+        {
+          "where": {
             "shape": "round",
+            "surface": "default",
             "state": "rest"
           },
           "parts": [
@@ -14119,6 +14200,7 @@
         {
           "where": {
             "shape": "round",
+            "surface": "default",
             "state": "hover"
           },
           "parts": [
@@ -14136,6 +14218,7 @@
         {
           "where": {
             "shape": "round",
+            "surface": "default",
             "state": "pressed"
           },
           "parts": [
@@ -14153,6 +14236,7 @@
         {
           "where": {
             "shape": "round",
+            "surface": "default",
             "state": "focus-visible"
           },
           "parts": [
@@ -14169,6 +14253,7 @@
         {
           "where": {
             "shape": "round",
+            "surface": "default",
             "state": "disabled"
           },
           "parts": [
@@ -14179,6 +14264,93 @@
             {
               "part": "container/icon",
               "icon": "color.disabled.icon"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "stroke": "color.inverse.border.secondary"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.primary.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.inverse.interactive.primary.overlay.hover",
+              "stroke": "color.inverse.border.secondary"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.primary.icon.hover"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.inverse.interactive.primary.overlay.pressed",
+              "stroke": "color.inverse.border.secondary"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.primary.icon.pressed"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "stroke": "color.inverse.border.secondary"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.primary.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "stroke": "color.inverse.disabled.border"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.disabled.icon"
             }
           ]
         }
@@ -14196,7 +14368,9 @@
           "variant": {
             "surface": "default"
           },
-          "follows": [],
+          "follows": [
+            "surface"
+          ],
           "exposes": []
         }
       ],
@@ -14210,7 +14384,7 @@
     "flush-icon-button-destructive": {
       "id": "flush-icon-button-destructive",
       "name": "FlushIconButton.Destructive",
-      "members": 30,
+      "members": 60,
       "axes": [
         {
           "name": "shape",
@@ -14218,6 +14392,15 @@
           "values": [
             "flush",
             "round"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "surface",
+          "figmaName": "surface",
+          "values": [
+            "default",
+            "inverse"
           ],
           "kind": "variant"
         },
@@ -14249,17 +14432,17 @@
         {
           "part": "container",
           "kind": "frame",
-          "members": 30
+          "members": 60
         },
         {
           "part": "container/icon",
           "kind": "swap",
-          "members": 30
+          "members": 60
         },
         {
           "part": "container/focusRing",
           "kind": "instance",
-          "members": 6,
+          "members": 12,
           "when": {
             "state": [
               "focus-visible"
@@ -14478,12 +14661,14 @@
       ],
       "colorKey": [
         "shape",
+        "surface",
         "state"
       ],
       "colors": [
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "rest"
           },
           "parts": [
@@ -14496,6 +14681,7 @@
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "hover"
           },
           "parts": [
@@ -14508,6 +14694,7 @@
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "pressed"
           },
           "parts": [
@@ -14520,6 +14707,7 @@
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "focus-visible"
           },
           "parts": [
@@ -14532,6 +14720,7 @@
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "disabled"
           },
           "parts": [
@@ -14543,7 +14732,73 @@
         },
         {
           "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.destructive.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.destructive.icon.hover"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.destructive.icon.pressed"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.destructive.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.disabled.icon"
+            }
+          ]
+        },
+        {
+          "where": {
             "shape": "round",
+            "surface": "default",
             "state": "rest"
           },
           "parts": [
@@ -14560,6 +14815,7 @@
         {
           "where": {
             "shape": "round",
+            "surface": "default",
             "state": "hover"
           },
           "parts": [
@@ -14577,6 +14833,7 @@
         {
           "where": {
             "shape": "round",
+            "surface": "default",
             "state": "pressed"
           },
           "parts": [
@@ -14594,6 +14851,7 @@
         {
           "where": {
             "shape": "round",
+            "surface": "default",
             "state": "focus-visible"
           },
           "parts": [
@@ -14610,6 +14868,7 @@
         {
           "where": {
             "shape": "round",
+            "surface": "default",
             "state": "disabled"
           },
           "parts": [
@@ -14620,6 +14879,93 @@
             {
               "part": "container/icon",
               "icon": "color.disabled.icon"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "stroke": "color.inverse.border.secondary"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.destructive.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.inverse.interactive.destructive.overlay.hover",
+              "stroke": "color.inverse.border.secondary"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.destructive.icon.hover"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.inverse.interactive.destructive.overlay.pressed",
+              "stroke": "color.inverse.border.secondary"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.destructive.icon.pressed"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "stroke": "color.inverse.border.secondary"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.destructive.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "stroke": "color.inverse.disabled.border"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.disabled.icon"
             }
           ]
         }
@@ -14637,7 +14983,9 @@
           "variant": {
             "surface": "default"
           },
-          "follows": [],
+          "follows": [
+            "surface"
+          ],
           "exposes": []
         }
       ],
@@ -14651,7 +14999,7 @@
     "flush-icon-button-neutral": {
       "id": "flush-icon-button-neutral",
       "name": "FlushIconButton.Neutral",
-      "members": 30,
+      "members": 60,
       "axes": [
         {
           "name": "shape",
@@ -14659,6 +15007,15 @@
           "values": [
             "flush",
             "round"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "surface",
+          "figmaName": "surface",
+          "values": [
+            "default",
+            "inverse"
           ],
           "kind": "variant"
         },
@@ -14690,17 +15047,17 @@
         {
           "part": "container",
           "kind": "frame",
-          "members": 30
+          "members": 60
         },
         {
           "part": "container/icon",
           "kind": "swap",
-          "members": 30
+          "members": 60
         },
         {
           "part": "container/focusRing",
           "kind": "instance",
-          "members": 6,
+          "members": 12,
           "when": {
             "state": [
               "focus-visible"
@@ -14919,12 +15276,14 @@
       ],
       "colorKey": [
         "shape",
+        "surface",
         "state"
       ],
       "colors": [
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "rest"
           },
           "parts": [
@@ -14937,6 +15296,7 @@
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "hover"
           },
           "parts": [
@@ -14949,6 +15309,7 @@
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "pressed"
           },
           "parts": [
@@ -14961,6 +15322,7 @@
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "focus-visible"
           },
           "parts": [
@@ -14973,6 +15335,7 @@
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "disabled"
           },
           "parts": [
@@ -14984,7 +15347,73 @@
         },
         {
           "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.neutral.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.neutral.icon.hover"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.neutral.icon.pressed"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.neutral.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.disabled.icon"
+            }
+          ]
+        },
+        {
+          "where": {
             "shape": "round",
+            "surface": "default",
             "state": "rest"
           },
           "parts": [
@@ -15001,6 +15430,7 @@
         {
           "where": {
             "shape": "round",
+            "surface": "default",
             "state": "hover"
           },
           "parts": [
@@ -15018,6 +15448,7 @@
         {
           "where": {
             "shape": "round",
+            "surface": "default",
             "state": "pressed"
           },
           "parts": [
@@ -15035,6 +15466,7 @@
         {
           "where": {
             "shape": "round",
+            "surface": "default",
             "state": "focus-visible"
           },
           "parts": [
@@ -15051,6 +15483,7 @@
         {
           "where": {
             "shape": "round",
+            "surface": "default",
             "state": "disabled"
           },
           "parts": [
@@ -15061,6 +15494,93 @@
             {
               "part": "container/icon",
               "icon": "color.disabled.icon"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "stroke": "color.inverse.border.secondary"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.neutral.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.inverse.interactive.neutral.overlay.hover",
+              "stroke": "color.inverse.border.secondary"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.neutral.icon.hover"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.inverse.interactive.neutral.overlay.pressed",
+              "stroke": "color.inverse.border.secondary"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.neutral.icon.pressed"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "stroke": "color.inverse.border.secondary"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.neutral.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "stroke": "color.inverse.disabled.border"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.disabled.icon"
             }
           ]
         }
@@ -15078,7 +15598,9 @@
           "variant": {
             "surface": "default"
           },
-          "follows": [],
+          "follows": [
+            "surface"
+          ],
           "exposes": []
         }
       ],
@@ -32700,6 +33222,7 @@
           "variant": {
             "shape": "flush",
             "size": "medium",
+            "surface": "default",
             "state": "rest"
           },
           "follows": [],
@@ -34021,6 +34544,231 @@
         }
       ]
     },
+    "toast": {
+      "id": "toast",
+      "name": "Toast",
+      "members": 2,
+      "axes": [
+        {
+          "name": "intent",
+          "figmaName": "intent",
+          "values": [
+            "neutral",
+            "success"
+          ],
+          "kind": "variant"
+        }
+      ],
+      "codeOnlyStates": [],
+      "anatomy": [
+        {
+          "part": "container",
+          "kind": "frame",
+          "members": 2
+        },
+        {
+          "part": "container/content",
+          "kind": "frame",
+          "members": 2
+        },
+        {
+          "part": "container/content/message",
+          "kind": "text",
+          "members": 2
+        },
+        {
+          "part": "container/controls",
+          "kind": "frame",
+          "members": 2
+        },
+        {
+          "part": "container/controls/action",
+          "kind": "instance",
+          "members": 2
+        },
+        {
+          "part": "container/controls/close",
+          "kind": "instance",
+          "members": 2
+        },
+        {
+          "part": "container/content/checkCircleGlyph",
+          "kind": "instance",
+          "members": 1,
+          "when": {
+            "intent": [
+              "success"
+            ]
+          }
+        }
+      ],
+      "redlineKey": [],
+      "redlines": [
+        {
+          "where": {},
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "paddingTop": {
+                  "token": "space.100"
+                },
+                "paddingRight": {
+                  "token": "space.100"
+                },
+                "paddingBottom": {
+                  "token": "space.100"
+                },
+                "paddingLeft": {
+                  "token": "space.200"
+                },
+                "gap": {
+                  "token": "space.100"
+                },
+                "buildWidth": {
+                  "px": 360,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/content",
+              "values": {
+                "gap": {
+                  "token": "space.150"
+                }
+              }
+            },
+            {
+              "part": "container/controls",
+              "values": {
+                "gap": {
+                  "token": "space.050"
+                }
+              }
+            },
+            {
+              "part": "container/content/checkCircleGlyph",
+              "values": {
+                "height": {
+                  "token": "icon.size.sm"
+                },
+                "width": {
+                  "token": "icon.size.sm"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "typeKey": [],
+      "type": [
+        {
+          "where": {},
+          "parts": [
+            {
+              "part": "container/content/message",
+              "textStyle": "type.body.md.default"
+            }
+          ]
+        }
+      ],
+      "colorKey": [
+        "intent"
+      ],
+      "colors": [
+        {
+          "where": {
+            "intent": "neutral"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.inverse.background.primary"
+            },
+            {
+              "part": "container/content/message",
+              "ink": "color.inverse.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "intent": "success"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.inverse.background.primary"
+            },
+            {
+              "part": "container/content/checkCircleGlyph",
+              "icon": "color.inverse.icon.success"
+            },
+            {
+              "part": "container/content/message",
+              "ink": "color.inverse.text.primary"
+            }
+          ]
+        }
+      ],
+      "nesting": [
+        {
+          "part": "container/controls/action",
+          "kind": "instance",
+          "component": "button",
+          "variant": {
+            "appearance": "text",
+            "size": "small",
+            "surface": "inverse",
+            "inset": "default",
+            "state": "rest",
+            "leading icon": "false",
+            "trailing icon": "false"
+          },
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "container/controls/close",
+          "kind": "instance",
+          "component": "flush-icon-button-neutral",
+          "variant": {
+            "shape": "flush",
+            "size": "small",
+            "surface": "inverse",
+            "state": "rest"
+          },
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "container/content/checkCircleGlyph",
+          "kind": "instance",
+          "component": "icon/check-circle",
+          "variant": {},
+          "follows": [],
+          "exposes": []
+        }
+      ],
+      "properties": [
+        {
+          "name": "message",
+          "type": "TEXT",
+          "default": "Status message"
+        },
+        {
+          "name": "action",
+          "type": "BOOLEAN",
+          "default": false
+        },
+        {
+          "name": "close",
+          "type": "BOOLEAN",
+          "default": true
+        }
+      ]
+    },
     "counter": {
       "id": "counter",
       "name": "Counter",
@@ -34620,6 +35368,7 @@
           "variant": {
             "shape": "flush",
             "size": "medium",
+            "surface": "default",
             "state": "rest"
           },
           "when": {
@@ -34651,6 +35400,7 @@
           "variant": {
             "shape": "flush",
             "size": "medium",
+            "surface": "default",
             "state": "rest"
           },
           "when": {
