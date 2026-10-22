@@ -55,13 +55,15 @@
 import { docSections, type DocSection, type DocSectionId } from '@prism3/engine/component-doc-sections';
 import type { ComponentDef } from '@prism3/engine/component-schema';
 import { componentDefs } from '@prism3/engine/components/index';
+import { CANVAS_FURNITURE } from '@prism3/engine/anatomy-figma';
+import { leadOf, leafForDef } from './file-taxonomy';
 import { isTemplateSet } from './file-components';
 import { fingerprintOf, fnv, type SgNode } from './style-guide';
 import { NS } from './persist-figma';
 import { STAMP_KEY } from './write-components';
 import { builtByPrism3, readBaseline } from './member-baseline';
 import { readTag } from './canvas-furniture';
-import { CAPTION, CHIP_SLOTS, DOC_BLOCK_SET, DO_ROWS, SPECIMEN, docBlockVariant, type DocBlockSize, type DocBlockType } from './doc-block';
+import { CAPTION, CHIP_SLOTS, DOC_BLOCK_SET, DO_ROWS, SPECIMEN, docBlockVariant, variantValues, type DocBlockSize, type DocBlockType } from './doc-block';
 
 export const DOC_PANEL_NS = 'prism3';
 export const DOC_PANEL_KEY = 'docPanel';
@@ -86,8 +88,17 @@ export const PANEL_DO_ITEMS = DO_ROWS;
 /** The modes the Theming section shows side by side, when the file's color collection has them (Q406.6 A). */
 export const PANEL_MODES = ['light', 'dark'] as const;
 const SIZE: DocBlockSize = 'sm';
-/** Raise when the panel's layout moves without its plan moving, so every drawn panel reads as due again. */
-const PANEL_FORMAT = 1;
+/** Raise when the panel's layout moves without its plan moving, so every drawn panel reads as due again. 2: one panel
+ *  per family, and the anatomy markers with their leaders (#2927). */
+const PANEL_FORMAT = 2;
+/** THE ANATOMY MARKERS' GEOMETRY (#2916, #2927; HELD FOR THE OWNER): the shortest leader, and its gap from the
+ *  specimen's edge; the space between two markers, or a marker and its bracket; how far a leader or a bracket's tick
+ *  reaches into its part, so it reads as touching it. */
+export const MARK_GAP = 8;
+export const MARK_SEP = 4;
+export const MARK_INSET = 2;
+/** The width of a leader or a bracket line. */
+export const LEADER = 1;
 
 /* ── the pure planner ──────────────────────────────────────────────────────────────────────────────────── */
 
@@ -97,10 +108,34 @@ export type PanelBlock =
   | { type: 'Field'; label: string; text: string }
   | { type: 'Do-Dont'; do: string[]; dont: string[] }
   | { type: 'Chips'; label: string; chips: string[]; note?: string }
-  /** The documented set's default member; `mode` pins one, `markers` numbers the parts on it, in order. */
-  | { type: 'Specimen'; mode?: string; caption?: string; markers?: string[] };
+  /** The documented set's default member; `mode` pins one, `marks` numbers the parts on it (and on the members the
+   *  draw adds for parts the default does not show). */
+  | { type: 'Specimen'; mode?: string; caption?: string; marks?: AnatomyMark[] };
 export interface PanelSection { id: DocSectionId; title: string; blocks: PanelBlock[]; row?: boolean }
-export interface PanelPlan { def: string; title: string; lede: string; sections: PanelSection[]; hash: string }
+/** `family`: the display names of every def on the lead's taxonomy page, the lead included, when it holds more than one
+ *  (#2927): the panel lists them under the lede. */
+export interface PanelPlan { def: string; title: string; lede: string; family?: string[]; sections: PanelSection[]; hash: string }
+/**
+ * ONE NUMBERED ENTRY OF THE ANATOMY (#2916, #2927): its number, the part it marks, and that part's path below the
+ * def's root, by part id (empty for the root itself: the specimen is the root). `bracket` marks a part that holds
+ * another marked part, the root among them (Q551 A on Q5): a bracket along its left edge instead of a leader. `parts`
+ * counts the repeats merged into it (Q4): siblings with the same nest settings are one entry, marked on the first.
+ */
+export interface AnatomyMark { n: number; part: string; path: string[]; bracket: boolean; parts: number }
+
+/** THE FAMILY A DEF'S PANEL COVERS (#2927, owner decision Q551 A on Q1): the defs on its taxonomy page that draw canvas
+ *  furniture, in page order, and the one that leads (`leadOf`). A def on no page is a family of one. Null for a def
+ *  with no furniture, which draws no panel. */
+export interface PanelFamily { page: string; lead: string; members: string[] }
+export const panelFamily = (defId: string): PanelFamily | null => {
+  if (!CANVAS_FURNITURE.has(defId)) return null;
+  const found = leafForDef(defId);
+  if (!found) return { page: defId, lead: defId, members: [defId] };
+  const lead = leadOf(found.leaf) ?? defId;
+  return CANVAS_FURNITURE.has(lead) ? { page: found.leaf.page, lead, members: found.leaf.defs.filter((d) => CANVAS_FURNITURE.has(d)) } : null;
+};
+/** Whether `defId`'s set carries its family's panel: only the lead's does. */
+export const leadsPanel = (defId: string): boolean => panelFamily(defId)?.lead === defId;
 
 /** A variant value or axis as text: hyphens to spaces, first letter capitalized. The labels' rule (`sentenceCase`). */
 const sentence = (s: string): string => { const t = s.replace(/-/g, ' '); return t.charAt(0).toUpperCase() + t.slice(1); };
@@ -108,6 +143,39 @@ const sentence = (s: string): string => { const t = s.replace(/-/g, ' '); return
 export const plain = (s: string): string => s.replace(/`/g, '').replace(/\s+/g, ' ').trim();
 /** The first `n` sentences of `s`, the wireframe's cut: a sentence ends at `.` or `)` before a capital or a quote. */
 export const firstSentences = (s: string, n: number): string => plain(s).split(/(?<=[.)])\s+(?=[A-Z"(])/).slice(0, n).join(' ');
+
+/**
+ * THE ANATOMY'S NUMBERED ENTRIES (#2916, #2927), from the def's part tree: pure, so the merge and the bracket rule are
+ * checked with no host. `listed` is the model's parts, in its order. Repeats (Q551 A on Q4) are numbered siblings of
+ * one name (`item1`, `item2`) that nest the same component with the same settings, variant, follows and presence; their
+ * overrides (an item's own text) are content, not settings. The first of them carries the entry; the numbering runs over the entries.
+ */
+export const anatomyMarks = (def: ComponentDef, listed: readonly string[]): AnatomyMark[] => {
+  const parts = (def.anatomy?.parts ?? {}) as Record<string, { kind?: string; children?: string[]; nests?: string; nesting?: unknown; presentWhen?: unknown }>;
+  const root = def.anatomy?.root;
+  const parentOf = new Map<string, string>();
+  for (const [id, p] of Object.entries(parts)) for (const c of p.children ?? []) parentOf.set(c, id);
+  const pathOf = (id: string): string[] => { const out: string[] = []; for (let q: string | undefined = id; q && q !== root; q = parentOf.get(q)) out.unshift(q); return out; };
+  // A numbered part (`item2`) nesting what its numbered sibling nests, the same way: a repeat. Two parts with different
+  // names (`decrement`, `increment`) nest one component for different jobs, so they stay apart.
+  const key = (id: string): string => {
+    const p = parts[id];
+    return p?.kind === 'nest' && /\d$/.test(id) ? JSON.stringify([id.replace(/\d+$/, ''), parentOf.get(id) ?? '', p.nests, p.nesting ?? null, p.presentWhen ?? null]) : `part:${id}`;
+  };
+  const firsts: { part: string; parts: number }[] = [];
+  const byKey = new Map<string, { part: string; parts: number }>();
+  for (const id of listed) {
+    const k = key(id);
+    const had = byKey.get(k);
+    if (had) { had.parts++; continue; }
+    const e = { part: id, parts: 1 };
+    byKey.set(k, e);
+    firsts.push(e);
+  }
+  const marked = new Set(firsts.map((e) => e.part));
+  const holds = (id: string): boolean => [...marked].some((o) => o !== id && pathOf(o).includes(id));
+  return firsts.map((e, i) => ({ n: i + 1, part: e.part, path: pathOf(e.part), bracket: e.part === root || holds(e.part), parts: e.parts }));
+};
 
 /**
  * The panel for one def, from the doc section model: pure, so the whole content rule is checked with no host
@@ -118,6 +186,10 @@ export const planDocPanel = (def: ComponentDef, ctx: { modes?: readonly string[]
   const name = ctx.names ?? ((id: string) => id);
   const sections: PanelSection[] = [];
   const model = docSections(def, { modes: ctx.modes }).sections;
+  // THE FAMILY (#2927): the lead's own sections, with the other members' Do and Don't items merged in (Q551 A on Q2).
+  const fam = panelFamily(def.id);
+  const others = (fam && fam.lead === def.id ? fam.members.filter((m) => m !== def.id) : [])
+    .flatMap((m) => componentDefs.filter((d) => d.id === m));
   for (const s of model as DocSection[]) {
     if (PANEL_OMITS.includes(s.id)) continue;
     const blocks: PanelBlock[] = [];
@@ -128,10 +200,17 @@ export const planDocPanel = (def: ComponentDef, ctx: { modes?: readonly string[]
         if (s.fields.length) for (const f of s.fields) field(f.label, f.text[0], 2);
         else blocks.push({ type: 'Paragraph', text: firstSentences(s.description, 2), size: SIZE });
         break;
-      case 'anatomy':
-        blocks.push({ type: 'Specimen', caption: `Shown on the default member: ${s.specimen.map((x) => `${x.axis} ${x.value}`).join(', ')}`, markers: s.parts.map((p) => p.id) });
-        s.parts.forEach((p, i) => field(`${i + 1}  ${p.name}${p.optional ? ' (optional)' : ''}`, p.caption ?? '', 1));
+      case 'anatomy': {
+        const marks = anatomyMarks(def, s.parts.map((p) => p.id));
+        blocks.push({ type: 'Specimen', caption: `Shown on the default member: ${s.specimen.map((x) => `${x.axis} ${x.value}`).join(', ')}`, marks });
+        for (const m of marks) {
+          const p = s.parts.find((x) => x.id === m.part)!;
+          // DRAFT wording (Q10): a merged repeat reads as its first part's name without the number, and how many.
+          const label = m.parts > 1 ? `${p.name.replace(/\s*\d+$/, '')} ×${m.parts}` : p.name;
+          field(`${m.n}  ${label}${p.optional ? ' (optional)' : ''}`, p.caption ?? '', 1);
+        }
         break;
+      }
       case 'styles':
         blocks.push({ type: 'Paragraph', text: 'Every member is in the set to the left.', size: SIZE });
         for (const a of s.axes) blocks.push({ type: 'Chips', label: sentence(a.axis), chips: a.values.map(sentence), note: a.kind === 'runtime' ? 'Changes while in use' : 'Chosen once, when placed' });
@@ -139,11 +218,17 @@ export const planDocPanel = (def: ComponentDef, ctx: { modes?: readonly string[]
         break;
       case 'usage': {
         if (s.usage) blocks.push({ type: 'Paragraph', text: firstSentences(s.usage, 2), size: SIZE });
-        const d = s.do.slice(0, PANEL_DO_ITEMS).map(plain);
-        const dn = s.dont.slice(0, PANEL_DO_ITEMS).map(plain);
+        // The family's items, the lead's first, each once (Q551 A on Q2): the counts are of the merged lists.
+        const merged = (pick: (u: { do: string[]; dont: string[] }) => string[]): string[] => [...new Set([s, ...others.map((o) => {
+          const u = docSections(o).sections.find((x) => x.id === 'usage');
+          return u && u.id === 'usage' ? u : { do: [], dont: [] };
+        })].flatMap((u) => pick(u).map(plain)))];
+        const all = merged((u) => u.do), allDont = merged((u) => u.dont);
+        const d = all.slice(0, PANEL_DO_ITEMS);
+        const dn = allDont.slice(0, PANEL_DO_ITEMS);
         if (d.length || dn.length) blocks.push({ type: 'Do-Dont', do: d, dont: dn });
-        if (s.do.length > d.length || s.dont.length > dn.length)
-          blocks.push({ type: 'Paragraph', text: `Showing ${d.length} of ${s.do.length} Do items and ${dn.length} of ${s.dont.length} Don't items.`, size: SIZE });
+        if (all.length > d.length || allDont.length > dn.length)
+          blocks.push({ type: 'Paragraph', text: `Showing ${d.length} of ${all.length} Do items and ${dn.length} of ${allDont.length} Don't items.`, size: SIZE });
         break;
       }
       case 'accessibility':
@@ -167,7 +252,8 @@ export const planDocPanel = (def: ComponentDef, ctx: { modes?: readonly string[]
     }
     sections.push({ id: s.id, title: s.title, blocks, ...(row ? { row } : {}) });
   }
-  const body = { def: def.id, title: def.name, lede: plain(def.summary), sections };
+  const family = others.length ? fam!.members.map(name) : undefined;
+  const body = { def: def.id, title: def.name, lede: plain(def.summary), ...(family ? { family } : {}), sections };
   return { ...body, hash: `${PANEL_FORMAT}:${fnv(JSON.stringify(body), false)}${fnv(JSON.stringify(body), true)}` };
 };
 
@@ -210,6 +296,11 @@ export interface PNode {
   paddingBottom?: unknown;
   paddingLeft?: unknown;
   readonly componentProperties?: Readonly<Record<string, unknown>>;
+  /** The component property a layer's visibility follows (`visible`), by its key: how a hidden part is shown. */
+  readonly componentPropertyReferences?: Readonly<Record<string, string>> | null;
+  /** Where the node sits on the canvas, laid out: the one box a marker is placed from (#2916). */
+  readonly absoluteBoundingBox?: { x: number; y: number; width: number; height: number } | null;
+  clipsContent?: boolean;
   setProperties?(props: Record<string, string | boolean>): void;
   setExplicitVariableModeForCollection?(collection: unknown, modeId: string): void;
   resize?(w: number, h: number): void;
@@ -239,8 +330,10 @@ export interface PanelApi {
   };
 }
 
-/** The tag on a panel. `live` is the panel the plugin keeps drawn; `kept` is one a designer edited, set aside. */
-export interface PanelTag { v: 1; def: string; set: string; state: 'live' | 'kept' }
+/** The tag on a panel. `live` is the panel the plugin keeps drawn; `kept` is one a designer edited, set aside. `def` is
+ *  the family's lead and `set` its set; `family` names the taxonomy page the panel covers (#2927), absent on a panel
+ *  drawn before one panel per family. */
+export interface PanelTag { v: 1; def: string; set: string; state: 'live' | 'kept'; family?: string }
 export const readPanelTag = (n: PNode): PanelTag | null => {
   try {
     const raw = n.getSharedPluginData?.(DOC_PANEL_NS, DOC_PANEL_KEY);
@@ -303,16 +396,49 @@ export const panelModes = async (api: Pick<PanelApi, 'variables'>): Promise<{ mo
 const allPanels = (api: Pick<PanelApi, 'root'>): { node: PNode; tag: PanelTag }[] =>
   (api.root.findAllWithCriteria({ types: ['FRAME'], sharedPluginData: { namespace: DOC_PANEL_NS, keys: [DOC_PANEL_KEY] } }) as readonly PNode[])
     .flatMap((node) => { const tag = readPanelTag(node); return tag && !node.removed ? [{ node, tag }] : []; });
-/** This set's live panels: by its id anywhere in the file, and its def's on its parent whose set is gone. */
+/** This set's live panels: by its id anywhere in the file, its def's on its parent whose set is gone, and, on its
+ *  parent, the panels its family's other members carried before one panel per family (#2927): the family's panel
+ *  replaces them, so they go as an earlier panel of this set does (removed unedited, kept aside edited). */
 const earlierPanels = (api: Pick<PanelApi, 'root'>, set: PNode, defId: string): PNode[] => {
   const setIds = new Set((api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly PNode[]).map((s) => String(s.id ?? '')));
+  const others = new Set((panelFamily(defId)?.members ?? []).filter((m) => m !== defId));
   return allPanels(api).filter(({ node, tag }) => tag.state === 'live'
-    && (tag.set === String(set.id ?? '') || (tag.def === defId && node.parent === set.parent && !setIds.has(tag.set)))).map((p) => p.node);
+    && (tag.set === String(set.id ?? '') || (node.parent === set.parent && ((tag.def === defId && !setIds.has(tag.set)) || others.has(tag.def))))).map((p) => p.node);
 };
-/** Whether a panel still holds what it was drawn with. A panel with no record reads as edited: the safe direction. */
+
+/**
+ * THE PANEL AS ITS PRINT READS IT (#2927 P0, the stacked panels). The print is the style guide's `fingerprintOf`, read
+ * through this view, which leaves out what the panel shows but does not hold:
+ *   - a specimen's content: its layers, its member and its properties are the documented set's, so a set rebuilt or
+ *     updated changes them with no one touching the panel;
+ *   - every width and height, since a specimen's size reaches every frame that hugs it, up to the panel;
+ *   - every instance's main component: rebuilding Badge, Tag or List.Item gives the panel's markers, chips and items a
+ *     new one. Their properties, text and visibility stay in.
+ * Read whole, a panel whose member was rebuilt read as edited by hand: it was kept aside below a fresh one, so the set
+ * showed two panels stacked (Progress, owner QA 2026-10-22). What a designer edits, text, fills, a hidden or deleted
+ * layer, still moves the print.
+ */
+const printView = (n: SgNode): SgNode => new Proxy(n as object, {
+  get(t, k) {
+    const own = t as PNode;
+    if (k === 'width' || k === 'height') return 0;
+    if (k === 'getMainComponentAsync' || k === 'mainComponent') return undefined;
+    const specimen = own.type === 'INSTANCE' && own.name === 'specimen';
+    if (k === 'children') return specimen ? [] : ((own.children ?? []) as unknown as SgNode[]).map(printView);
+    if (specimen && k === 'componentProperties') return undefined;
+    const v = Reflect.get(t, k, t) as unknown;
+    return typeof v === 'function' ? (v as (...a: unknown[]) => unknown).bind(t) : v;
+  },
+}) as SgNode;
+/** A print in this form starts with this, so one recorded before it is still read the old way. */
+const PRINT_V2 = '2:';
+const panelPrint = async (n: PNode): Promise<string> => `${PRINT_V2}${await fingerprintOf(printView(n as unknown as SgNode))}`;
+/** Whether a panel still holds what it was drawn with. A panel with no record reads as edited: the safe direction. A
+ *  print recorded before `printView` is compared whole, as it was taken. */
 export const panelUnedited = async (n: PNode): Promise<boolean> => {
   const print = n.getSharedPluginData?.(DOC_PANEL_NS, DOC_PANEL_PRINT) ?? '';
-  return !!print && (await fingerprintOf(n as unknown as SgNode)) === print;
+  if (!print) return false;
+  return print.startsWith(PRINT_V2) ? (await panelPrint(n)) === print : (await fingerprintOf(n as unknown as SgNode)) === print;
 };
 
 /**
@@ -327,6 +453,9 @@ export const docPanelDue = (api: Pick<PanelApi, 'root'>, set: PNode, plan: Panel
   if (docPanelBlockers(api, set, plan).length) return 0;
   const live = allPanels(api).filter(({ node, tag }) => tag.state === 'live' && tag.set === String(set.id ?? '') && node.parent === set.parent);
   if (live.length !== 1) return 1;
+  // A panel a family member still carries from before one panel per family (#2927): the draw replaces it.
+  const others = new Set((panelFamily(plan.def)?.members ?? []).filter((m) => m !== plan.def));
+  if (allPanels(api).some(({ node, tag }) => tag.state === 'live' && others.has(tag.def) && node.parent === set.parent)) return 1;
   const p = live[0].node;
   const at = panelSpot(set);
   const near = (a: number | undefined, b: number) => Math.abs((a ?? 0) - b) <= 0.5;
@@ -404,9 +533,44 @@ const findText = (n: PNode | undefined, name: string): PNode | undefined =>
 const propKey = (n: PNode, name: string): string | undefined =>
   Object.keys(n.componentProperties ?? {}).find((k) => k === name || k.startsWith(`${name}#`));
 
+/** The node at `path` below `root`, one part at a time, each found depth first below the last: so a part inside a slot
+ *  or a nested instance is reached, and a part's name inside a nested component of another part's is not taken for it
+ *  (#2916). The root itself for an empty path. */
+const locate = (root: PNode, path: readonly string[]): PNode | undefined => {
+  let at: PNode | undefined = root;
+  for (const step of path) at = find(at, step);
+  return at;
+};
+/** `n` and its ancestors up to `root`, `root` included. */
+const chain = (n: PNode, root: PNode): PNode[] => {
+  const out: PNode[] = [];
+  for (let q: PNode | undefined = n; q; q = q === root ? undefined : q.parent as PNode | undefined) out.push(q);
+  return out;
+};
+/** Whether `member` holds the part at `path`, shown or behind a boolean that shows it. */
+const showable = (member: PNode, path: readonly string[]): boolean => {
+  const n = locate(member, path);
+  return !!n && chain(n, member).every((q) => q.visible !== false || !!q.componentPropertyReferences?.visible);
+};
+/** Show the part at `path` in the specimen, turning on each boolean that hides it on the instance that owns the layer.
+ *  True when the part is then shown. */
+const reveal = (specimen: PNode, path: readonly string[]): boolean => {
+  const n = locate(specimen, path);
+  if (!n) return false;
+  const up = chain(n, specimen);
+  up.forEach((q, i) => {
+    const key = q.visible === false ? q.componentPropertyReferences?.visible : undefined;
+    const owner = key ? up.slice(i + 1).find((a) => a.type === 'INSTANCE') : undefined;
+    if (key && owner && key in (owner.componentProperties ?? {})) { try { owner.setProperties?.({ [key]: true }); } catch { /* left hidden: reported below */ } }
+  });
+  return up.every((q) => q.visible !== false);
+};
+
 /**
- * Draw the usage panel for `def`'s set fresh: remove the set's earlier panels that are unedited, keep aside the edited
- * ones, and place a new panel beside the set unless something sits there. Never throws for a missing template.
+ * Draw the usage panel for `def`'s family beside `def`'s set fresh: remove the set's earlier panels that are unedited
+ * (its family's per-def panels among them, #2927), keep aside the edited ones, and place a new panel beside the set
+ * unless something sits there. Only the family's lead draws one (`leadsPanel`): for any other member this returns at
+ * once, having drawn and removed nothing. Never throws for a missing template.
  */
 export const drawDocPanel = async (
   api: PanelApi,
@@ -415,6 +579,8 @@ export const drawDocPanel = async (
   opts: { names?: (id: string) => string } = {},
 ): Promise<PanelOutcome> => {
   const out: PanelOutcome = { def: def.id, drawn: false, sections: [], replaced: 0, kept: [], skipped: [], misses: [] };
+  const fam = panelFamily(def.id);
+  if (fam && fam.lead !== def.id) return out;
   const parent = set.parent as PanelParent | null | undefined;
   if (!parent || typeof parent.insertChild !== 'function') { out.skipped.push(`No usage panel for ${def.id}: the set has no parent to place it on`); return out; }
   const blocks = findDocBlock(api);
@@ -471,7 +637,57 @@ export const drawDocPanel = async (
   panel.resize?.(PANEL_WIDTH, 1);
   panel.layoutSizingHorizontal = 'FIXED';
   panel.layoutSizingVertical = 'HUG';
-  const markers: { id: string; n: number; specimen: PNode }[] = [];
+  // The anatomy's specimens, each with the marks whose parts it shows (#2916).
+  const anatomy: { spec: PNode; stage?: PNode; marks: AnatomyMark[] }[] = [];
+  const showSpecimen = async (i: PNode, m: PNode | undefined, mode?: string, caption?: string): Promise<void> => {
+    const key = propKey(i, SPECIMEN);
+    if (key && m?.id) i.setProperties?.({ [key]: String(m.id) });
+    else out.misses.push(`No specimen for ${def.id}: ${key ? 'the set has no member' : `${DOC_BLOCK_SET} has no ${SPECIMEN} property`}`);
+    if (mode) {
+      const pm = pin.get(mode);
+      if (pm && i.setExplicitVariableModeForCollection) i.setExplicitVariableModeForCollection(pm.collection, pm.modeId);
+      else out.misses.push(`the ${mode} mode could not be pinned`);
+    }
+    if (caption) await write(findText(i, 'caption'), caption, 'caption');
+    else setBool(i, CAPTION, false);
+  };
+  /**
+   * EVERY LISTED NUMBER ON A SPECIMEN (#2916, Q551 A on Q3). The default member shows what it can, a hidden part shown
+   * through the boolean that hides it. A part it cannot show is drawn on one more specimen, of the member that shows
+   * the most of what is left, and so on, numbered across them. A part no member shows is listed and named in the run.
+   */
+  const markSpecimens = async (into: PNode, first: PNode, marks: readonly AnatomyMark[]): Promise<void> => {
+    let left = [...marks];
+    const take = (i: PNode): void => {
+      const spec = find(i, 'specimen');
+      if (!spec) return;
+      const here = left.filter((m) => reveal(spec, m.path));
+      left = left.filter((m) => !here.includes(m));
+      if (here.length) anatomy.push({ spec, stage: find(i, 'stage'), marks: here });
+    };
+    take(first);
+    const used = new Set<PNode | undefined>([member]);
+    const was = variantValues(member?.name);
+    while (left.length) {
+      let best: PNode | undefined, most = 0;
+      for (const m of set.children ?? []) {
+        if (used.has(m)) continue;
+        const c = left.filter((x) => showable(m, x.path)).length;
+        if (c > most) { best = m; most = c; }
+      }
+      if (!best) break;
+      used.add(best);
+      const i = block('Specimen');
+      if (!i) break;
+      into.appendChild?.(i);
+      fill(i);
+      const now = variantValues(best.name);
+      // DRAFT wording (Q10): the axes on which this member differs from the default.
+      await showSpecimen(i, best, undefined, `Shown on ${Object.keys(now).filter((k) => now[k] !== was[k]).map((k) => `${k} ${now[k]}`).join(', ') || best.name}`);
+      take(i);
+    }
+    for (const m of left) out.misses.push(`part ${m.n} (${m.part}) is shown by no member of ${def.id}'s set`);
+  };
 
   const header = frame('header', 'VERTICAL', 8);
   panel.appendChild?.(header);
@@ -481,6 +697,15 @@ export const drawDocPanel = async (
     if (!i) continue;
     header.appendChild?.(i); fill(i);
     await write(findText(i, 'text'), text, 'text');
+  }
+  // THE FAMILY (#2927, Q551 A on Q1): every set the panel covers, by name. DRAFT label (Q10); links are a later phase.
+  if (plan.family) {
+    const i = block('Field');
+    if (i) {
+      header.appendChild?.(i); fill(i);
+      await write(findText(find(i, 'row') ?? i, 'label'), 'In this family', 'label');
+      await write(findText(find(i, 'row') ?? i, 'text'), plan.family.join(', '), 'text');
+    }
   }
 
   const draw = async (into: PNode, b: PanelBlock): Promise<void> => {
@@ -517,22 +742,134 @@ export const drawDocPanel = async (
         else setBool(i, CAPTION, false);
         break;
       }
-      case 'Specimen': {
-        const key = propKey(i, SPECIMEN);
-        if (key && member?.id) i.setProperties?.({ [key]: String(member.id) });
-        else out.misses.push(`No specimen for ${def.id}: ${key ? 'the set has no member' : `${DOC_BLOCK_SET} has no ${SPECIMEN} property`}`);
-        if (b.mode) {
-          const m = pin.get(b.mode);
-          if (m && i.setExplicitVariableModeForCollection) i.setExplicitVariableModeForCollection(m.collection, m.modeId);
-          else out.misses.push(`the ${b.mode} mode could not be pinned`);
-        }
-        if (b.caption) await write(findText(i, 'caption'), b.caption, 'caption');
-        else setBool(i, CAPTION, false);
-        const specimen = find(i, 'specimen');
-        (b.markers ?? []).forEach((id, k) => { if (specimen) markers.push({ id, n: k + 1, specimen }); });
+      case 'Specimen':
+        await showSpecimen(i, member, b.mode, b.caption);
+        if (b.marks?.length) await markSpecimens(into, i, b.marks);
         break;
+    }
+  };
+
+  /**
+   * THE PART MARKERS (#2916, Q551 A on Q3–Q5), once the panel has its layout: a numbered Badge per mark, over the panel,
+   * placed from the boxes the host lays out (`absoluteBoundingBox`), never from summed offsets, which miss a part inside
+   * a slot or a nested instance. A part is marked in the specimen's gutter with a 1px leader to it: above when its
+   * middle is in the specimen's top half, else below, at its middle across. A part that holds another marked part (the
+   * root among them) gets a bracket along its left edge, its marker beside the bracket, the innermost nearest. A marker
+   * that would touch another on the same side moves one tier out, and the stage's padding grows to hold every tier.
+   * Each marker and its lines are one frame, `part <n>`. Returns how many parts were marked.
+   */
+  const drawMarkers = async (): Promise<number> => {
+    const rect = (n: PNode): Box => {
+      const r = n.absoluteBoundingBox;
+      if (r) return { x: r.x, y: r.y, width: r.width, height: r.height };
+      let x = 0, y = 0;
+      for (let q: PNode | undefined = n; q; q = q.parent as PNode | undefined) { x += q.x ?? 0; y += q.y ?? 0; }
+      return { x, y, width: n.width ?? 0, height: n.height ?? 0 };
+    };
+    type Laid = { mark: AnatomyMark; part: PNode; group: PNode; badge: PNode; inner: PNode; side: 'top' | 'bottom' | 'left'; tier: number };
+    const all: { spec: PNode; stage?: PNode; laid: Laid[] }[] = [];
+    for (const a of anatomy) {
+      const laid: Laid[] = [];
+      for (const mark of a.marks) {
+        const part = locate(a.spec, mark.path);
+        const badge = block('Part-marker');
+        if (!part || !badge) continue;
+        const group = api.createFrame();
+        group.name = `part ${mark.n}`;
+        group.fills = [];
+        group.clipsContent = false;
+        panel.appendChild?.(group);
+        group.layoutPositioning = 'ABSOLUTE';
+        group.appendChild?.(badge);
+        try { badge.layoutSizingHorizontal = 'HUG'; } catch { /* the block keeps its width; the Badge inside is what is placed */ }
+        await write(findText(badge, 'count'), String(mark.n), 'marker count');
+        laid.push({ mark, part, group, badge, inner: find(badge, 'marker') ?? badge, side: 'top', tier: 0 });
+      }
+      all.push({ spec: a.spec, stage: a.stage, laid });
+    }
+    const every = all.flatMap((a) => a.laid);
+    if (!every.length) return 0;
+    const mw = Math.max(...every.map((l) => rect(l.inner).width)), mh = Math.max(...every.map((l) => rect(l.inner).height));
+    // THE TIERS, from the boxes as first laid out: padding moves the specimen as a whole, so they hold after it.
+    for (const { spec, stage, laid } of all) {
+      const P = rect(spec);
+      const rows: Record<Laid['side'], [number, number][][]> = { top: [], bottom: [], left: [] };
+      const tier = (side: Laid['side'], lo: number, hi: number): number => {
+        for (let t = 0; ; t++) {
+          const row = (rows[side][t] ??= []);
+          if (!row.some(([a, b]) => lo < b + MARK_SEP && a < hi + MARK_SEP)) { row.push([lo, hi]); return t; }
+        }
+      };
+      // Brackets innermost first, so the deepest part sits nearest its specimen.
+      for (const l of [...laid].filter((x) => x.mark.bracket).sort((a, b) => b.mark.path.length - a.mark.path.length)) {
+        const B = rect(l.part);
+        l.side = 'left';
+        l.tier = tier('left', B.y, B.y + B.height);
+      }
+      for (const l of laid.filter((x) => !x.mark.bracket)) {
+        const B = rect(l.part);
+        const cx = B.x + B.width / 2;
+        l.side = B.y + B.height / 2 <= P.y + P.height / 2 ? 'top' : 'bottom';
+        l.tier = tier(l.side, cx - mw / 2, cx + mw / 2);
+      }
+      if (!stage) continue;
+      const deepest = (side: Laid['side']) => Math.max(-1, ...laid.filter((l) => l.side === side).map((l) => l.tier));
+      const need = (side: Laid['side'], step: number) => (deepest(side) < 0 ? 0 : MARK_GAP + (deepest(side) + 1) * step + (side === 'left' ? LEADER : 0));
+      for (const [k, side, step] of [['paddingTop', 'top', mh + MARK_SEP], ['paddingBottom', 'bottom', mh + MARK_SEP], ['paddingLeft', 'left', mw + 2 * MARK_SEP]] as const) {
+        const n = need(side, step);
+        if (n > Number(stage[k] ?? 0)) { try { stage[k] = Math.ceil(n); } catch { out.misses.push(`the specimen's ${side} gutter could not grow`); } }
       }
     }
+    // THE PLACES, from the boxes as now laid out, each relative to the panel.
+    const at = rect(panel);
+    let marked = 0;
+    for (const { spec, laid } of all) {
+      const P = rect(spec);
+      for (const l of laid) {
+        const B = l.part === spec ? P : rect(l.part);
+        const lines: Box[] = [];
+        let mx: number, my: number;
+        if (l.side === 'left') {
+          const lx = P.x - MARK_GAP - LEADER - l.tier * (mw + 2 * MARK_SEP);
+          const tick = B.x + MARK_INSET - lx;
+          lines.push({ x: lx, y: B.y, width: LEADER, height: B.height }, { x: lx, y: B.y, width: tick, height: LEADER }, { x: lx, y: B.y + B.height - LEADER, width: tick, height: LEADER });
+          mx = lx - MARK_SEP - mw;
+          my = B.y + B.height / 2 - mh / 2;
+        } else {
+          const cx = Math.round(B.x + B.width / 2);
+          mx = cx - mw / 2;
+          if (l.side === 'top') {
+            my = P.y - MARK_GAP - mh - l.tier * (mh + MARK_SEP);
+            lines.push({ x: cx, y: my + mh, width: LEADER, height: B.y + MARK_INSET - (my + mh) });
+          } else {
+            my = P.y + P.height + MARK_GAP + l.tier * (mh + MARK_SEP);
+            const from = B.y + B.height - MARK_INSET;
+            lines.push({ x: cx, y: from, width: LEADER, height: my - from });
+          }
+        }
+        const boxes = [{ x: mx, y: my, width: mw, height: mh }, ...lines];
+        const u = { x: Math.min(...boxes.map((b) => b.x)), y: Math.min(...boxes.map((b) => b.y)) };
+        const w = Math.max(...boxes.map((b) => b.x + b.width)) - u.x, h = Math.max(...boxes.map((b) => b.y + b.height)) - u.y;
+        l.group.x = u.x - at.x;
+        l.group.y = u.y - at.y;
+        l.group.resize?.(w, h);
+        // The Badge's own place inside its block, so the Badge, not the block, lands on the mark.
+        const inner = rect(l.inner), outer = rect(l.badge);
+        l.badge.x = mx - u.x - (inner.x - outer.x);
+        l.badge.y = my - u.y - (inner.y - outer.y);
+        lines.forEach((b, k) => {
+          const f = api.createFrame();
+          f.name = k ? 'tick' : 'leader';
+          f.fills = paint('color/text/secondary');
+          l.group.appendChild?.(f);
+          f.x = b.x - u.x;
+          f.y = b.y - u.y;
+          f.resize?.(Math.max(LEADER, b.width), Math.max(LEADER, b.height));
+        });
+        marked++;
+      }
+    }
+    return marked;
   };
 
   for (const s of plan.sections) {
@@ -557,6 +894,7 @@ export const drawDocPanel = async (
   parent.appendChild(panel);
   panel.x = at.x;
   panel.y = at.y;
+  out.marked = await drawMarkers();
 
   // NOTHING UNDER IT: every other node on the parent, the set and its labels included, but the edited panels this
   // draw is about to move, and the kept ones it moves when they are in the way.
@@ -570,6 +908,7 @@ export const drawDocPanel = async (
     writeBlocked(parent, String(set.id ?? ''), { h: panel.height ?? 0, plan: plan.hash });
     panel.remove?.();
     out.sections = [];
+    delete out.marked;
     const hit = hits[0];
     out.skipped.push(updateMakesRoom(set, hits, kids)
       ? `No usage panel for ${def.id}: "${hit.name ?? 'a layer'}" sits right of the set, where the panel goes. Run Update to make room, then the panel is drawn`
@@ -578,34 +917,10 @@ export const drawDocPanel = async (
   }
   writeBlocked(parent, String(set.id ?? ''), null);
 
-  // THE PART MARKERS, once the panel has its layout: a numbered Badge on each part the specimen names, over the panel.
-  const pos = (n: PNode): { x: number; y: number } => {
-    let x = 0, y = 0;
-    for (let q: PNode | undefined = n; q && q !== panel; q = q.parent as PNode | undefined) { x += q.x ?? 0; y += q.y ?? 0; }
-    return { x, y };
-  };
-  // A part that is the member's root, or hidden in it, has no layer of its own to mark: it is listed, unmarked. Only a
-  // specimen in which no part is found at all is a miss, since then the markers are not working.
-  let marked = 0;
-  if (markers.length && !markers.some((m) => find(m.specimen, m.id))) out.misses.push(`no part of ${def.id}'s specimen could be marked`);
-  for (const m of markers) {
-    const part = find(m.specimen, m.id);
-    if (!part) continue;
-    marked++;
-    const i = block('Part-marker');
-    if (!i) break;
-    panel.appendChild?.(i);
-    i.layoutPositioning = 'ABSOLUTE';
-    await write(findText(i, 'count'), String(m.n), 'marker count');
-    const p = pos(part);
-    i.x = p.x - (i.width ?? 0) / 2;
-    i.y = p.y - (i.height ?? 0) / 2;
-  }
-  out.marked = marked;
-
-  writeTag(panel, { v: 1, def: def.id, set: String(set.id ?? ''), state: 'live' });
+  const family = fam && fam.members.length > 1 ? { family: fam.page } : {};
+  writeTag(panel, { v: 1, def: def.id, set: String(set.id ?? ''), state: 'live', ...family });
   panel.setSharedPluginData?.(DOC_PANEL_NS, DOC_PANEL_PLAN, plan.hash);
-  panel.setSharedPluginData?.(DOC_PANEL_NS, DOC_PANEL_PRINT, await fingerprintOf(panel as unknown as SgNode));
+  panel.setSharedPluginData?.(DOC_PANEL_NS, DOC_PANEL_PRINT, await panelPrint(panel));
   out.drawn = true;
 
   // THE EDITED PANELS, KEPT ASIDE: renamed, retagged, and moved below everything in the panel's column on this parent.
@@ -617,7 +932,7 @@ export const drawDocPanel = async (
   };
   for (const e of edited) {
     if (!String(e.name ?? '').endsWith(' (edited)')) e.name = `${e.name ?? `${def.name} usage`} (edited)`;
-    writeTag(e, { v: 1, def: def.id, set: String(set.id ?? ''), state: 'kept' });
+    writeTag(e, { v: 1, def: def.id, set: String(set.id ?? ''), state: 'kept', ...family });
     if (e.parent === parent) below(e);
     out.kept.push(String(e.name));
   }

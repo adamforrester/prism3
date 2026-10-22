@@ -53,7 +53,7 @@ import type { FurnitureApi, FurnitureOutcome, FurnitureParent, FurnitureTag, XNo
 import { ensureFurnitureTemplates } from './furniture-templates';
 import { ensureDocBlock, docBlockNote, type DocBlockApi } from './doc-block';
 import { coverLine, drawCover, type CoverApi, type CoverOutcome, type CoverRoot } from './cover-frame';
-import { clearOrphanPanels, docPanelReach, drawDocPanel, type PanelApi, type PanelOutcome, type PNode } from './doc-panel';
+import { clearOrphanPanels, docPanelReach, drawDocPanel, leadsPanel, type PanelApi, type PanelOutcome, type PNode } from './doc-panel';
 import type { TemplatesApi } from './furniture-templates';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { chunkLine, summaryLines, measureSettle, verdictBeforeSettle } from './build-telemetry';
@@ -942,7 +942,8 @@ const panelBeside = async (f: FurnitureOutcome, setId: string, defId: string): P
 const seatSet = async (setId: string, defId: string): Promise<void> => {
   try {
     const set = await figma.getNodeByIdAsync(setId);
-    if (set && set.type === 'COMPONENT_SET') seatNewSet(set as unknown as XNode, defId, docPanelReach(figma as unknown as PanelApi));
+    // Only a family's lead carries the family's panel (#2927), so only its set is seated with room for one.
+    if (set && set.type === 'COMPONENT_SET') seatNewSet(set as unknown as XNode, defId, leadsPanel(defId) ? docPanelReach(figma as unknown as PanelApi) : 0);
   } catch { /* the set stays where the executor placed it */ }
 };
 
@@ -955,7 +956,7 @@ const updateTargets = (defId: string | undefined): { targets: UpdateTarget[]; un
   const refused: { def: string; reason: string }[] = [];
   for (const d of defs) {
     // `single` (#2296): an `emitAsComponents` def (the icons, the spinner) is read as single components, not a set.
-    try { targets.push({ def: d.id, plans: figmaAnatomySet(materializeForBrand(d, brandInput), { swapTarget: SWAP_TARGET }), ...(d.figmaProperties?.emitAsComponents ? { single: true } : {}), ...(hasFurniture(d.id) ? { doc: { def: d, names: defName } } : {}) }); }
+    try { targets.push({ def: d.id, plans: figmaAnatomySet(materializeForBrand(d, brandInput), { swapTarget: SWAP_TARGET }), ...(d.figmaProperties?.emitAsComponents ? { single: true } : {}), ...(leadsPanel(d.id) ? { doc: { def: d, names: defName } } : {}) }); }
     catch (e) { refused.push({ def: d.id, reason: `the engine could not plan it (${(e as Error)?.message ?? String(e)})` }); }
   }
   return { targets, unknown: null, refused };

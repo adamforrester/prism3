@@ -579,14 +579,14 @@ export type Furnish = (def: string, set: { id?: unknown }) => Promise<void>;
  * its own furniture (tagged with its id, `canvas-furniture.ts`) moves with it by the same amount, so labels already
  * drawn keep their place against the members. Returns the names of the sets it moved.
  */
-const liveSets = async (host: ApplyHost, targets: readonly UpdateTarget[], preview: UpdatePreview, res: ApplyResult, opts: { ledger?: readonly ComponentRename[] } = {}): Promise<{ name: string; set: LiveSet; blocked: boolean }[]> => {
-  const live: { name: string; set: LiveSet; blocked: boolean }[] = [];
+const liveSets = async (host: ApplyHost, targets: readonly UpdateTarget[], preview: UpdatePreview, res: ApplyResult, opts: { ledger?: readonly ComponentRename[] } = {}): Promise<{ name: string; set: LiveSet; blocked: boolean; lead: boolean }[]> => {
+  const live: { name: string; set: LiveSet; blocked: boolean; lead: boolean }[] = [];
   for (const t of targets) {
     if (t.single) continue;
     const p = preview.sets.find((s) => s.set === (t.plans[0]?.component ?? t.def));
     const set = p ? await liveFor(host, t, p.set, opts.ledger) : undefined;
     if (!p || !set) continue;
-    live.push({ name: p.set, set, blocked: p.blockers.length > 0 || res.outcomes.some((o) => o.set === p.set && !!o.refused) });
+    live.push({ name: p.set, set, blocked: p.blockers.length > 0 || res.outcomes.some((o) => o.set === p.set && !!o.refused), lead: !!t.doc });
   }
   return live;
 };
