@@ -292,7 +292,7 @@ const EXCLUDED: Record<string, string> = {
   'veil': 'a media wash overlay, not an interactive control',
   'segmented-control': 'a segmented control\'s track and label — its tap targets are the nested options, which are gated as segmented-control-segment',
   'divider': 'a 1px rule between groups of content, never interactive and never focusable',
-  'banner': 'a message in the page flow, never itself a pointer target: its actions and dismiss are a Button.Neutral and a FlushIconButton.Neutral, each measured under its own name (#2579)',
+  'banner': 'a message in the page flow, never itself a pointer target: its one text action is a Button (Button.Neutral when the file has it) and its dismiss a FlushIconButton.Neutral, each measured under its own name (#2579, Q533.1)',
   'button-group': 'a layout of one to three Buttons, never itself a pointer target: each Button is measured under its own name (#2661)',
   'dialog': 'a modal panel, never itself a pointer target: its close button and footer buttons are a FlushIconButton.Neutral and Buttons, each measured under its own name (#2609, Q385 A)',
   'list': 'a read list of text items, never interactive and never focusable; a link inside an item is its own control (#2319)',
