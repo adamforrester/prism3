@@ -91,3 +91,5 @@ Built on #2660's items-slot pattern (merged), with current `main` merged in.
   only the surface digest and the docs round-trip, both cleared by a regenerate and a re-accept.
 - Main's #2926 (every field's message off by default, owner decision item 1): Code input's `showMessage` defaults off,
   boolean, prop and built node, and `code-input` joins the test's `MESSAGE_OFF_FAMILY`, as that test's header names it.
+- Main's #2938 (Link current, Breadcrumbs, Search field) and #2940: the registry lists take the union, `EXECUTOR_REVISION` is 36
+  over main's 35, and the artifact count is 210.
