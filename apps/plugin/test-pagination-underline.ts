@@ -128,5 +128,21 @@ for (const m of current) {
 ok(measured === SIZES.length * STATES.length && off.length === 0,
   `#2665 Q537 the current page's underline is under its number only: in the underline style its left and right edges are the number's and it comes after it down their column, inside its own cell, at every size and state; in the border style there is none (${measured} measured, ${off.length} off — ${off.slice(0, 3).join('; ') || 'none'})`);
 
+// The underline must not widen its cell either: the current page is as wide as an unselected page at the same size and
+// state. A bar that matches the number can still sit in a cell grown past it (review N2 on #2796).
+const wider: string[] = [];
+let paired = 0;
+for (const m of current) {
+  const c = coordOf(m);
+  // An unselected page has no underline to vary, so the style may not be one of its axes: match it when it is.
+  const twins = members.filter((t) => { const k = coordOf(t); return k.type === 'page' && k.selection === 'unselected' && k.size === c.size && k.state === c.state; });
+  const twin = twins.find((t) => coordOf(t).style === c.style) ?? twins[0];
+  if (!twin) { wider.push(`${m.name}: no unselected page to compare`); continue; }
+  paired++;
+  if (Math.abs((m.width as number) - (twin.width as number)) > EPS) wider.push(`${m.name}: ${m.width} wide, the unselected page ${twin.width}`);
+}
+ok(paired === current.length && wider.length === 0,
+  `#2665 Q537 the current page's cell is as wide as an unselected page at the same size and state (${paired} paired, ${wider.length} off — ${wider.slice(0, 3).join('; ') || 'none'})`);
+
 if (failed) { console.error(`\n${failed} failed`); process.exit(1); }
 console.log('\nall passed');
