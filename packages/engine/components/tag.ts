@@ -181,7 +181,9 @@ export const tag: ComponentDef = {
     // the glyph and the label type. The glyph rung sits ONE RUNG BELOW the control rung, as Button's does
     // (#1350): small → icon.size.xs (16), medium → sm (20), large → md (24) (owner Q337 A, #2725). It sizes the
     // leading icon, the check and the ×, so the three stay one size (owner Q356 A). `lint-rung-names.ts` records it in
-    // `ICON_OFFSET_DEFS`.
+    // `ICON_OFFSET_DEFS`. The underline inset (#2887, owner Q540: Q9 A, Q10 A) is the block-end gap from the line to
+    // the content row under `tagStyle: underline`, 4 / 6 / 8px, the same at every density (so not in `densitySpacing`);
+    // no part of the pill reads it (`applyTagStyle` binds it).
     'size.small.height': 'size.sm.height',
     'size.small.padding-x': 'space.100',
     'size.small.select.gap': 'space.075',
@@ -192,6 +194,7 @@ export const tag: ComponentDef = {
     'size.small.dismissible.padding-end': 'space.0',
     'size.small.select.label-inset': 'space.0',
     'size.small.dismissible.label-inset': 'space.050',
+    'size.small.underline.inset': 'space.050',
     'size.small.icon': 'icon.size.xs',
     'size.small.type': 'type.label.sm.emphasis',
     'size.medium.height': 'size.md.height',
@@ -204,6 +207,7 @@ export const tag: ComponentDef = {
     'size.medium.dismissible.padding-end': 'space.0',
     'size.medium.select.label-inset': 'space.0',
     'size.medium.dismissible.label-inset': 'space.050',
+    'size.medium.underline.inset': 'space.075',
     'size.medium.icon': 'icon.size.sm',
     'size.medium.type': 'type.label.md.emphasis',
     'size.large.height': 'size.lg.height',
@@ -216,6 +220,7 @@ export const tag: ComponentDef = {
     'size.large.dismissible.padding-end': 'space.0',
     'size.large.select.label-inset': 'space.0',
     'size.large.dismissible.label-inset': 'space.050',
+    'size.large.underline.inset': 'space.100',
     'size.large.icon': 'icon.size.md',
     'size.large.type': 'type.label.lg.emphasis',
 
