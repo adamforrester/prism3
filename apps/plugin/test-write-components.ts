@@ -3972,7 +3972,13 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 // off the def. The mutation arm rebuilds with the def's `minHeight` removed and requires the footprint
 // misses the owner saw, by name.
 {
-  const byDef = (id: string) => componentDefs.find((d) => d.id === id)!;
+  // The field built with its message ON (#2926 builds it hidden by default): the footprint is only measurable on a
+  // row that is drawn, and a designer who turns the message on is the case the floor exists for.
+  const byDef = (id: string): ComponentDef => {
+    const d = componentDefs.find((x) => x.id === id)!;
+    const fp = d.figmaProperties;
+    return fp?.booleans?.showMessage ? { ...d, figmaProperties: { ...fp, booleans: { ...fp.booleans, showMessage: { ...fp.booleans.showMessage, default: true } } } } : d;
+  };
   const GLYPH = varValue('icon/size/xs');                 // what the shim binds `icon.size.xs` to
   const fmPlansShipped = figmaAnatomySet(materializeForBrand(fieldMessage, null), { swapTarget: SWAP });
   const captionStyles = [...new Set(fmPlansShipped.flatMap((p) => planTextStyles(p.root)))];
@@ -4274,9 +4280,9 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   ok(count?.type === 'BOOLEAN' && count.defaultValue === false
     && countLayers.every((l, i) => l && l.visible === false && find(l, 'counter') === counters[i]),
     `textarea counter default: a 'character count' BOOLEAN defaulting to false drives a layer holding the counter, and all 24 members build it hidden (${JSON.stringify(count)}; ${countLayers.filter((l) => l && l.visible === false).length} hidden)`);
-  ok(msg?.type === 'BOOLEAN' && msg.defaultValue === true
-    && msgLayers.every((l, i) => l && l.visible !== false && find(l, 'message') !== undefined && !find(l, 'counter') && !find(countLayers[i], 'message')),
-    `textarea counter independent: the 'message' BOOLEAN (default true) drives a layer holding the message and NOT the counter, and the counter's layer holds no message, on all 28 members (${JSON.stringify(msg)})`);
+  ok(msg?.type === 'BOOLEAN' && msg.defaultValue === false
+    && msgLayers.every((l, i) => l && l.visible === false && find(l, 'message') !== undefined && !find(l, 'counter') && !find(countLayers[i], 'message')),
+    `textarea counter independent: the 'message' BOOLEAN (default false, #2926) drives a layer holding the message and NOT the counter, and the counter's layer holds no message, on all 28 members (${JSON.stringify(msg)})`);
   const rows = b.members.map((m) => find(m, 'messageRow'));
   // #1751: the row FILLS (stretched AND its own width FIXED — the stretch alone hugs) and packs to its END,
   // the message's layer GROWS beside the counter, and the counter's layer HUGS its caption.
