@@ -1124,13 +1124,14 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
 {
   const { page, errors } = await openPanel();
   const aria = (key) => page.locator(`[data-p3="cp-box"][data-key="${key}"]`).getAttribute('aria-checked');
-  // S1: a family box, then one of its sets cleared.
-  await hooks.click(page.locator('[data-p3="cp-box"][data-key="row=components|Buttons"]'));
-  const allOn = [await aria('row=components|Buttons'), await aria('sec=components')];
+  // S1: a section box, then one of its sets cleared. #2905 (Q8 A): the Buttons section's title stands in for the family
+  // row, so its box is the family's; Other components ('sec=components') holds none of its sets and stays clear.
+  await hooks.click(page.locator('[data-p3="cp-box"][data-key="sec=buttons"]'));
+  const allOn = [await aria('sec=buttons'), await aria('sec=components')];
   await hooks.click(page.locator('[data-p3="cp-box"][data-key="set=button-neutral"]'));
-  const mixed = [await aria('row=components|Buttons'), await aria('set=button-neutral'), await aria('sec=components')];
-  ok(allOn[0] === 'true' && allOn[1] === 'mixed' && JSON.stringify(mixed) === '["mixed","false","mixed"]',
-    `#2812 S1 one set cleared from a selected family draws the family's and the section's boxes as mixed — read family ${allOn[0]}, section ${allOn[1]}, then family/set/section ${JSON.stringify(mixed)}`);
+  const mixed = [await aria('sec=buttons'), await aria('set=button-neutral'), await aria('sec=components')];
+  ok(allOn[0] === 'true' && allOn[1] === 'false' && JSON.stringify(mixed) === '["mixed","false","false"]',
+    `#2812 S1 one set cleared from a selected section draws the section's box as mixed, and Other components' stays clear — read Buttons ${allOn[0]}, Other components ${allOn[1]}, then Buttons/set/Other components ${JSON.stringify(mixed)}`);
   // Q392 A, and the counts' line (5): Icon with the three Button family sets left (Button.Group joined it, #2661), at 380.
   await hooks.click(page.locator('[data-p3="cp-box"][data-key="set=icon"]'));
   await page.setViewportSize({ width: 380, height: 640 });
@@ -1148,7 +1149,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.w === 'wide', null, { timeout: 5000 }).catch(() => {});
   // N1: clear, then Tag ticked before Badge; the run posts Badge first.
-  for (const k of ['row=components|Buttons', 'set=icon']) while ((await aria(k)) !== 'false') await hooks.click(page.locator(`[data-p3="cp-box"][data-key="${k}"]`));
+  for (const k of ['sec=buttons', 'set=icon']) while ((await aria(k)) !== 'false') await hooks.click(page.locator(`[data-p3="cp-box"][data-key="${k}"]`));
   for (const id of ['tag', 'badge']) await hooks.click(page.locator(`[data-p3="cp-box"][data-key="set=${id}"]`));
   await hooks.click(page.locator('[data-p3="components-build"]').first(), { timeout: 4000 });
   await page.waitForFunction(() => window.__builds.length >= 1, null, { timeout: 4000 }).catch(() => {});
@@ -1181,8 +1182,9 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     folds: [...document.querySelectorAll('[data-p3="cp-fold"]')].map((f) => `${f.dataset.key.slice(5)}:${f.getAttribute('aria-expanded')}`),
     shown: ['button-neutral', 'icon-button-neutral', 'flush-icon-button-neutral'].filter((id) => !!document.querySelector(`[data-p3="cp-member"][data-set="${id}"]`)),
   }));
-  ok(JSON.stringify(opened.folds) === JSON.stringify(['components|Buttons:true', 'components|Icon button:true', 'subcomponents|Flush Icon Button:true']) && opened.shown.length === 3,
-    `#2812 call 7 a search for "neutral" opens the three families its matches sit in, and shows each match — read ${JSON.stringify(opened)}`);
+  // #2905 (Q8 A): Button.Neutral's family is the Buttons section, which has no fold, so its match is always shown.
+  ok(JSON.stringify(opened.folds) === JSON.stringify(['components|Icon button:true', 'subcomponents|Flush Icon Button:true']) && opened.shown.length === 3,
+    `#2812 call 7 a search for "neutral" opens the two folded families its matches sit in, and shows each of the three matches — read ${JSON.stringify(opened)}`);
   ok(errors.length === 0 && fresh.errors.length === 0, `#2812: no console errors (${[...errors, ...fresh.errors].slice(0, 2).join(' · ')})`);
   await fresh.page.close();
 }
