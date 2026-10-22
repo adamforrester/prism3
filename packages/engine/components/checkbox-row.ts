@@ -85,6 +85,27 @@
  * here because checkbox, radio and switch each meet the question independently and the same
  * three-answers-to-one-question failure applies.
  *
+ * ── THE ROW'S HEIGHT LANDS ON THE CONTROL LADDER (#2894, owner decision Q539: A on every question) ─────────
+ *
+ * The rows used Prism 2's constant 12px block padding at every size, so no row sat on the
+ * control-height ladder, and the floor was code-only. The owner chose one rule for Radio.Row, Checkbox.Row and
+ * Switch.Row (Q?5 A):
+ *
+ *   · **Q?1 A** — the floor `size.{size}.min-height` (the ladder, 36/44/56 at comfortable) sets a single-line
+ *     row's height and the content is centered in it; the pad is a per-size MINIMUM, `space.075`/`100`/`150` (6/8/12px), that only shows
+ *     once a label wraps. Existing `space.*` steps, no new token, so CONTRACT holds.
+ *   · **Q?2 A** — Figma gets the floor too, bound as the row's auto-layout `minHeight` the way Select and
+ *     Accordion bind theirs. The row still hugs a wrapped label.
+ *   · **Q?3 A** — centering the row's own items would float the control to the middle of a wrapped label
+ *     (#1009 half-1), so the row centers ONE inner box, named `content`, and that box keeps the control and
+ *     label top-aligned: Accordion's Q276 A construction.
+ *   · **Q?4 A** — the block padding joins `densitySpacing`, so compact rows compact (29/36/44) and spacious rows grow.
+ *   · **Q?6 A** — the update cost is accepted: inserting `content` moves the label and the nested control under a
+ *     new frame in files that already hold the row, and a per-instance override on the nested control may not
+ *     carry over. A dry run on a copy of a shipped file comes before any master update.
+ *
+ * `test.ts` #2894 measures the result in every corpus brand.
+ *
  * ── THE RUNG OFFSET, WHERE I MET IT (#756, `docs/28` §5.2, `docs/40` §7 step 2) ─────────────────
  *
  * `size.small.min-height → size.sm.height`, with `medium → md` by
@@ -181,8 +202,9 @@ export const checkboxRow: ComponentDef = {
   // `selection` axis — it EXPOSES the control's — so the bare slot is the only key it needs.
   paintKeys: ['{slot}'],
 
-  // The spacing this spec states at comfortable, which density moves one step along the space ladder.
-  densitySpacing: ['size.{size}.gap'],
+  // The spacing this spec states at comfortable, which density moves one step along the space ladder. The
+  // block padding joins it (owner Q539, Q?4 A on #2894), so a compact row compacts with its floor.
+  densitySpacing: ['size.{size}.gap', 'size.{size}.pad-y'],
 
   tokens: {
     // ── THE ROW'S OWN PAINT IS ONE INK: THE LABEL (#1226 step 2). Every color binding for the painted
@@ -200,20 +222,22 @@ export const checkboxRow: ComponentDef = {
     'label': 'color.text.primary',
     'disabled.label': 'color.disabled.text',
 
-    // ── THE ROW'S TOP/BOTTOM PADDING (#1433b). Prism 2's checkbox-row root sits its content in
-    // `padding {top: 12, bottom: 12, start: 0, end: 0}` (`reference/Prism2/component-specs/checkbox-row.json`),
-    // a CONSTANT block inset (the same 12 on the 48-tall checkbox row and the 56-tall radio row — it does
-    // not scale with `size`), so `pad-y` binds `space.150` (= 12px on nb, the nearest existing spacing step
-    // and an EXACT match — no new scale rung minted, CONTRACT holds). The INLINE sides are zero — Prism 2's
-    // `{start: 0, end: 0}` — so `pad-x` binds `space.0` (0px, emitted in every brand tier): `PaddingDef.inlineLabel`
-    // is REQUIRED, so a literal-zero slot rather than an omission, exactly as `checkbox-group` binds its own.
-    'pad-y': 'space.150',
+    // ── THE ROW'S TOP/BOTTOM PADDING, a MINIMUM per size (owner Q539, Q?1 A on #2894). It was Prism 2's constant
+    // 12 at every size (#1433b, `reference/Prism2/component-specs/checkbox-row.json`), which put no row on the
+    // control-height ladder (45/48/51 at comfortable). The floor below now sets a single-line row's height and the
+    // row centers its content in it, so the pad only matters once a label wraps: 6/8/12px (`space.075`/`100`/`150`,
+    // existing steps, no new token, CONTRACT holds), density moving each one step. The INLINE sides are zero —
+    // Prism 2's `{start: 0, end: 0}` — so `pad-x` binds `space.0`: `PaddingDef.inlineLabel` is REQUIRED, so a
+    // literal-zero slot rather than an omission, exactly as `checkbox-group` binds its own.
+    'size.small.pad-y': 'space.075',
+    'size.medium.pad-y': 'space.100',
+    'size.large.pad-y': 'space.150',
     'pad-x': 'space.0',
 
     // ── THE CONTROL-TO-LABEL GAP and the ROW'S FLOOR. The gap is this spec's own `space.*` step at
-    // comfortable (8/8/12px, the spacing model), which density moves one step (`densitySpacing`). `min-height` is the code projection's floor (48
-    // at medium on nb); Figma has no floor, so the row hugs its children and the key stays bound only
-    // for code (see `codeOnly`).
+    // comfortable (8/8/12px, the spacing model), which density moves one step (`densitySpacing`). `min-height`
+    // is the control-height ladder (36/44/56 at comfortable), the row's floor in BOTH projections since #2894
+    // (owner Q539, Q?2 A): Figma binds it as the row's auto-layout `minHeight`, so the row still hugs a wrapped label.
     'size.small.gap': 'space.100',
     'size.medium.gap': 'space.100',
     'size.large.gap': 'space.150',
@@ -266,29 +290,28 @@ export const checkboxRow: ComponentDef = {
   // at its OWN square: the box handles alignment, the nest handles extent. So the small control reads
   // centered on the first line rather than filling the taller box.
   //
-  // THE ROW MUST NOT CENTER. On a wrapping consent label `align: center` floats the control to the
-  // middle of the paragraph (the wrong repair `test.ts` #1009 half-1 forbids by name). The row stays
-  // top-aligned and the centring lives one level down, in `controlCell`. `test.ts` #1201 asserts both.
+  // THE CONTROL AND LABEL MUST NOT CENTER ON EACH OTHER. On a wrapping consent label that floats the control to
+  // the middle of the paragraph (the wrong repair `test.ts` #1009 half-1 forbids by name). Since #2894 (owner
+  // Q539, Q?3 A, Accordion's Q276 A pattern) the ROW centers ONE child, `content`, in its ladder floor; `content`
+  // stays top-aligned and the centring lives one level further down, in `controlCell`. `test.ts` #1201 asserts both.
   anatomy: {
     root: 'row',
     parts: {
       // THE HIT TARGET, and nothing else. No `paintSlots` (#933): this box is structure, and the def
-      // keys no row-level fill, overlay or border for it to name. Its extent comes from its children —
-      // see `min-height` in `codeOnly` for why the row's floor is not bound here.
+      // keys no row-level fill, overlay or border for it to name. Its floor is the control-height ladder
+      // (`minHeight`, #2894), and it centers `content` in it, so a single-line row measures 36/44/56 at
+      // comfortable with the slack split above and below. A wrapped label grows the row past the floor.
       row: {
         kind: 'box',
         role: 'target',
-        // START on the cross axis, and #1201 is what makes that both correct AND enough. The ROW must NOT
-        // center — on a wrapping consent label `align: center` floats the control to the middle of the
-        // paragraph (the measured wrong repair `test.ts` #1009 half-1 forbids by name). Centring the
-        // control against its label is done one level down, INSIDE `controlCell`, which is exactly one
-        // line-box tall; top-aligning that box here lands it on the first line. So a single-line label
-        // reads centered and a wrapping one keeps the control on line one.
-        layout: { direction: 'row', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
-        gap: 'size.{size}.gap',
-        // TOP/BOTTOM PADDING (#1433b) from Prism 2's row (`space.150` = 12px on nb); inline sides zero
-        // (`space.0`). See the `pad-y`/`pad-x` tokens above for the source and why inline is a literal zero.
-        padding: { block: 'pad-y', inlineLabel: 'pad-x' },
+        // CENTER on the cross axis, over ONE child (#2894, owner Q539 Q?3 A). The row centers `content`, which
+        // keeps the control and label top-aligned, so the floor's slack splits evenly and a wrapping consent
+        // label still holds the control on its first line (#1009 half-1, #1201).
+        layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
+        minHeight: 'size.{size}.min-height',
+        // TOP/BOTTOM PADDING, the per-size minimum (#2894); inline sides zero (`space.0`). See the
+        // `pad-y`/`pad-x` tokens above for the values and why inline is a literal zero.
+        padding: { block: 'size.{size}.pad-y', inlineLabel: 'pad-x' },
         // BUILT AT 320, SHRINKS TO ITS COLUMN (#1424, then owner decision Q152.3: Q99 B reaches the rows). The label
         // FILLS the row and WRAPS, so the row's width must be bounded or a `layoutGrow` label has no remaining space
         // to fill. The root is BUILT at Prism 2's checkbox-row `root width 320` (`placementWidth`, the fields' #2292
@@ -297,7 +320,21 @@ export const checkboxRow: ComponentDef = {
         // at 320 and overflowed it. Both are literal projection defaults, not bound tokens, so CONTRACT holds.
         placementWidth: 320,
         minWidth: 120,
+        children: ['content'],
+      },
+      // THE ROW'S ONE FLOW CHILD (#2894, owner Q539 Q?3 A — named `content`). The row centers this box; the box
+      // keeps the control and label TOP-aligned inside it, so a wrapping label holds the control on its first
+      // line. START on the cross axis, and #1201 is what makes that both correct AND enough: centring the
+      // control against its label is done one level down, INSIDE `controlCell`, which is exactly one line-box
+      // tall. Draws nothing. Fills the row's width so the label has a bounded width to wrap in.
+      content: {
+        kind: 'box',
+        role: 'presentation',
+        layout: { direction: 'row', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
+        grow: true,
+        gap: 'size.{size}.gap',
         children: ['controlCell', 'label'],
+        note: 'The control and the label, side by side and top-aligned. The row centers this box in its minimum height, and the control stays beside the label\'s first line.',
       },
       // THE ALIGNMENT BOX (#1201, building the fix #1009 filed). A structural wrapper exactly one line of
       // the label tall (`size.{size}.control-box` → the baked `body.{rung}` line-box), centring the
@@ -359,8 +396,7 @@ export const checkboxRow: ComponentDef = {
       // passing mention inside an entry about something else does not count (#563).
       'read-only — not projected: the Row\'s Figma set carries no state of its own, and read-only has no treatment to project at either level. Since #1330 the Row projects a SIZE-ONLY set (no stateAxis): the control\'s `state` is EXPOSED from the nested `checkbox-control` and the consumer drives it from the Row, so no state — read-only least of all — is enumerated into the Row\'s own matrix. read-only binds NOTHING even in code (see `states`): the brief calls it "the awkward one" and recommends static text over a styled locked control, so there is no treatment to project at either level.',
       'states — the Row\'s per-state LABEL treatment (`disabled.label` dimming the text when the field is disabled) is the CODE projection\'s, not Figma\'s. Since #1330 the Figma set is size-only and `state` is exposed from the nested control, so a disabled Row in Figma shows the disabled CONTROL (the exposed state) beside a full-ink label. `lint-paint` arm 2 reads `def.states` for reachability, so `disabled.label` stays reachable and keyed for code; it is the Figma SET that cannot show it, because the Row no longer multiplies state. The documented cost of collapsing 54 members to 3 (the #761 reversal).',
-      'min-height — `size.*.min-height` is the row\'s FLOOR (48 at medium on nb) and Figma has no floor. `PartDef` carries `height`, which is fixed, so binding it here would state the wrong quantity and clip a wrapping consent label at the one coordinate that matters most. The row hugs its children instead and the keys stay bound for the code projection, where `min-height` is the property they name.',
-      'The whole-row hit target beyond the row\'s own extent. SC 2.5.8 wants 24x24 and Apple/Material want 44/48 on touch; the row reaches that at `medium` and not at `small`, and the padding that would expand it is a per-consumer decision about the surrounding layout rather than a property of this component. `row` is the node it lands on — that is what this block newly makes expressible — but the value is not the def\'s to pick.',
+      'The whole-row hit target beyond the row\'s own extent. SC 2.5.8 wants 24x24 and Apple/Material want 44/48 on touch. Since #2894 the row\'s floor is the control-height ladder in both projections, so every row clears 24 (29px at its smallest, small at compact) and the medium row is 44 at comfortable; growing the target past the row on touch is a per-consumer decision about the surrounding layout, not the def\'s to pick.',
       'The label\'s RICH CONTENT. `label` is typed `node` and its commonest real value is a consent line with a link in it; a Figma text node holds characters, so the projected placeholder is flat text and the link exists only in code.',
       'motion — the nested control\'s glyph micro-motion (brief §8: a stroke-dasharray draw morphing dash to check). It is `checkbox-control`\'s, stated in that def\'s `motion`; the Row carries none of its geometry or motion, and a Figma variant carries no motion at either level.',
       'The `description` prop — helper text beneath the label, describedby-wired. It is a second text part under `label`, and adding it would double the row\'s vertical shape for content that is optional at every one of the three members. Left to the code projection, as on `radio-row`.',
@@ -406,7 +442,7 @@ export const checkboxRow: ComponentDef = {
   accessibility: {
     role: 'checkbox (native <input type="checkbox">), with aria-checked true / false / mixed',
     wcag: [
-      '2.5.8 Target Size — the intent: the whole row is the target, because the 12–24px box fails in isolation. The default (medium) row is held to a 44px minimum height on comfortable and spacious density; small and compact rows are not measured.',
+      '2.5.8 Target Size — the intent: the whole row is the target, because the 12–24px box fails in isolation. The row\'s minimum height is the control-height ladder, so every row is at least 24px tall, and the default (medium) row is 44px on comfortable density.',
       '4.1.2 Name Role Value (role, checked and mixed — aria-checked="mixed" must be set explicitly)',
       '1.3.1 Info and Relationships (group structure)',
       '3.3.2 Labels or Instructions (the visible row label)',
@@ -490,7 +526,7 @@ export const checkboxRow: ComponentDef = {
       'THE CONTROL SQUARE IS NOW BOUND (#951 emitted `control.size.<rung>`, closing #900), and what is unverified moved with it rather than away. The square reads `control.size.<rung>.height` on both axes: 16/20/24 in all four shipped brands at comfortable density, which lands in the brief\'s stated 16-18px range at `md`, and 12/16/20 at COMPACT density (the `minimal-compact` fixture since aurora moved to comfortable, #1215), whose `sm` square is 12px. No compact checkbox has been built on a real host. Two things to check when one is: whether a 12px box reads as a checkbox at all, and — separately, because it is a different failure — that a 12px box does not become a 12px TARGET. SC 2.5.8 wants 24x24, and the row is what has to supply it; the square\'s own edge was never the target. The old form of this note read "the box\'s edge is unexpressible today" and the ladder it warned against is worth keeping: `icon.size.*` resolves, typechecks and passes every gate here, and is 16/20/24 in every shipped brand at every density, so binding to it would hold the control rigid against exactly the brand density `control.size.*` exists to move.',
       'The unchecked box has no `pressed` binding. `color.field.border.*` emits `rest` and `hover` only, so a pressed unchecked box falls through to its rest border. Reaching into `color.interactive.neutral.border.pressed` for that one coordinate would put two families on one ladder, which is the inconsistency `lint-paint.ts` arm 1 exists to see in its axis-led form. The checked and indeterminate coordinates DO paint pressed, so the gap is asymmetric — worth knowing before anyone reads the pressed row as covered.',
       '`read-only` is declared and binds nothing (see `states`). The brief calls it "the awkward one" and recommends static text over a styled locked control, so there is no treatment to bind; a consumer choosing `aria-readonly` plus a prevented toggle has no token telling them what it should look like.',
-      'The whole-row hit target — at least 24x24 (SC 2.5.8), 44 (Apple) / 48 (Material) on touch — is STILL not expressed, and the anatomy block landing is what makes that precise rather than resolving it. The row hugs its content on both axes, so its height is the taller of the square and the label\'s line box; `size.*.min-height` is a floor that `PartDef` has no field to state (it carries `height`, which is fixed, and binding a floor there would clip a consent label that wraps to two lines — the common case). So the keys stay bound for the code projection and the Figma row carries no floor at all. Measured on aurora at `small` while it was compact (before #1215, and before #1433b gave the row 12px of block padding): a 12px square beside `body.sm` at 14px on `line-height-role.normal` (1.5), so the row hugged to 21px — short of 24, and the square is not what closes the gap. `lint-hit-target` holds the default (medium) row\'s `min-height` to 44px on comfortable and spacious density; `small` is not measured, which is why `accessibility.wcag` states 2.5.8 as intent (#1698). Named in `anatomy.codeOnly` as well, where the projection can see it.',
+      'The whole-row hit target — at least 24x24 (SC 2.5.8), 44 (Apple) / 48 (Material) on touch. Since #2894 the row\'s floor, `size.*.min-height`, is bound in Figma as well as code, and every row clears 24 by measurement (`test.ts` #2894: 29px at its smallest, small at compact). History: before #1433b gave the row 12px of block padding, an aurora `small` row at compact hugged to 21px, short of 24. `lint-hit-target` holds only the default (medium) row\'s `min-height` to 44px on comfortable and spacious density, which is why `accessibility.wcag` states 2.5.8 as intent (#1698). The heights are measured from emitted tokens and plans, not yet read back from a real host.',
       'The check-glyph micro-motion (brief §8: an SVG stroke-dasharray draw at roughly 100-150ms, morphing dash to check) is stated in `checkbox-control`\'s `motion`, and nothing checks it: `motion` is prose, and no token binding in either def points at the emitted `motion.duration-ms.*`.',
     ],
     evolution: [

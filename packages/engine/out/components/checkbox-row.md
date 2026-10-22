@@ -20,8 +20,9 @@ A control for an independent binary choice that is staged into a form and submit
 
 Shown on the default member: size `medium`, status `default`.
 
-1. **Control**
-2. **Label**
+1. **Content** — The control and the label, side by side and top-aligned. The row centers this box in its minimum height, and the control stays beside the label's first line.
+2. **Control**
+3. **Label**
 
 ## Styles
 
@@ -65,7 +66,7 @@ Use a single Checkbox.Row for one independent opt-in (a consent line, "Remember 
 
 ### WCAG
 
-- 2.5.8 Target Size — the intent: the whole row is the target, because the 12–24px box fails in isolation. The default (medium) row is held to a 44px minimum height on comfortable and spacious density; small and compact rows are not measured.
+- 2.5.8 Target Size — the intent: the whole row is the target, because the 12–24px box fails in isolation. The row's minimum height is the control-height ladder, so every row is at least 24px tall, and the default (medium) row is 44px on comfortable density.
 - 4.1.2 Name Role Value (role, checked and mixed — aria-checked="mixed" must be set explicitly)
 - 1.3.1 Info and Relationships (group structure)
 - 3.3.2 Labels or Instructions (the visible row label)
@@ -122,9 +123,10 @@ Generated from the plan that builds the design-file component: 6 members. Values
 | Part | Kind | In |
 | --- | --- | --- |
 | `row` | frame | every member |
-| `row/controlCell` | frame | every member |
-| `row/controlCell/control` | instance | every member |
-| `row/label` | text | every member |
+| `row/content` | frame | every member |
+| `row/content/controlCell` | frame | every member |
+| `row/content/controlCell/control` | instance | every member |
+| `row/content/label` | text | every member |
 
 ### Spacing and size
 
@@ -136,25 +138,28 @@ Keyed by `size`.
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `row` | `space.150` / `space.0` / `space.150` / `space.0` | `space.100` | — | — | 120px (literal) | build width 320px (literal) |
-| `row/controlCell` | — | — | `control.size.md.line-box` | — | — | — |
-| `row/controlCell/control` | — | — | `control.size.md.height` | `control.size.md.height` | — | — |
+| `row` | `space.100` / `space.0` / `space.100` / `space.0` | — | — | — | 120px (literal) | min height `size.md.height`; build width 320px (literal) |
+| `row/content` | — | `space.100` | — | — | — | — |
+| `row/content/controlCell` | — | — | `control.size.md.line-box` | — | — | — |
+| `row/content/controlCell/control` | — | — | `control.size.md.height` | `control.size.md.height` | — | — |
 
 **size=small**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `row` | `space.150` / `space.0` / `space.150` / `space.0` | `space.100` | — | — | 120px (literal) | build width 320px (literal) |
-| `row/controlCell` | — | — | `control.size.sm.line-box` | — | — | — |
-| `row/controlCell/control` | — | — | `control.size.sm.height` | `control.size.sm.height` | — | — |
+| `row` | `space.075` / `space.0` / `space.075` / `space.0` | — | — | — | 120px (literal) | min height `size.sm.height`; build width 320px (literal) |
+| `row/content` | — | `space.100` | — | — | — | — |
+| `row/content/controlCell` | — | — | `control.size.sm.line-box` | — | — | — |
+| `row/content/controlCell/control` | — | — | `control.size.sm.height` | `control.size.sm.height` | — | — |
 
 **size=large**
 
 | Part | Padding | Gap | Height | Width | Min width | Other |
 | --- | --- | --- | --- | --- | --- | --- |
-| `row` | `space.150` / `space.0` / `space.150` / `space.0` | `space.150` | — | — | 120px (literal) | build width 320px (literal) |
-| `row/controlCell` | — | — | `control.size.lg.line-box` | — | — | — |
-| `row/controlCell/control` | — | — | `control.size.lg.height` | `control.size.lg.height` | — | — |
+| `row` | `space.150` / `space.0` / `space.150` / `space.0` | — | — | — | 120px (literal) | min height `size.lg.height`; build width 320px (literal) |
+| `row/content` | — | `space.150` | — | — | — | — |
+| `row/content/controlCell` | — | — | `control.size.lg.line-box` | — | — | — |
+| `row/content/controlCell/control` | — | — | `control.size.lg.height` | `control.size.lg.height` | — | — |
 
 ### Type
 
@@ -162,9 +167,9 @@ Keyed by `size`.
 
 | Members | Part | Text style |
 | --- | --- | --- |
-| size=medium | `row/label` | `type.body.md.default` |
-| size=small | `row/label` | `type.body.sm.default` |
-| size=large | `row/label` | `type.body.lg.default` |
+| size=medium | `row/content/label` | `type.body.md.default` |
+| size=small | `row/content/label` | `type.body.sm.default` |
+| size=large | `row/content/label` | `type.body.lg.default` |
 
 ### Color
 
@@ -174,17 +179,17 @@ Keyed by `status`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `row/label` | — | — | `color.text.primary` | — |
+| `row/content/label` | — | — | `color.text.primary` | — |
 
 **status=error**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `row/label` | — | — | `color.text.primary` | — |
+| `row/content/label` | — | — | `color.text.primary` | — |
 
 ### Nesting and properties
 
-- `row/controlCell/control` nests `checkbox-control` at `selection=unchecked, state=rest, status=default`; follows `size`, `status`; exposes `selection`, `state`
+- `row/content/controlCell/control` nests `checkbox-control` at `selection=unchecked, state=rest, status=default`; follows `size`, `status`; exposes `selection`, `state`
 
 | Property | Type | Default |
 | --- | --- | --- |

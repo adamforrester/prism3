@@ -6,7 +6,7 @@
  * never imports the definitions themselves (UI redesign S7, T4; the generator's header says why).
  */
 export const USED_BY = {
-  defs: 45,
+  defs: 48,
   radius: {
     rounded: {
       "radius.2xl": [
@@ -15,13 +15,11 @@ export const USED_BY = {
       "radius.md": [
         "Button",
         "IconButton",
-        "SegmentedControl",
-        "Banner"
+        "SegmentedControl"
       ],
       "radius.none": [
         "FlushIconButton",
-        "Dialog",
-        "Banner"
+        "Dialog"
       ],
       "radius.round": [
         "IconButton",
@@ -39,7 +37,8 @@ export const USED_BY = {
         "Badge",
         "SegmentedControl",
         "PasswordField",
-        "Counter"
+        "Counter",
+        "SearchField"
       ],
       "radius.xl": [
         "Toast"
@@ -54,13 +53,11 @@ export const USED_BY = {
         "IconButton"
       ],
       "radius.md": [
-        "SegmentedControl",
-        "Banner"
+        "SegmentedControl"
       ],
       "radius.none": [
         "FlushIconButton",
-        "Dialog",
-        "Banner"
+        "Dialog"
       ],
       "radius.round": [
         "IconButton",
@@ -78,7 +75,8 @@ export const USED_BY = {
         "Badge",
         "SegmentedControl",
         "PasswordField",
-        "Counter"
+        "Counter",
+        "SearchField"
       ],
       "radius.xl": [
         "Toast"
@@ -89,8 +87,7 @@ export const USED_BY = {
         "Dialog"
       ],
       "radius.md": [
-        "SegmentedControl",
-        "Banner"
+        "SegmentedControl"
       ],
       "radius.none": [
         "Button",
@@ -101,7 +98,7 @@ export const USED_BY = {
         "Checkbox.Control",
         "Select",
         "Dialog",
-        "Banner"
+        "SearchField"
       ],
       "radius.round": [
         "IconButton",
@@ -132,16 +129,15 @@ export const USED_BY = {
         "TextField",
         "Textarea",
         "Checkbox.Control",
-        "Select"
+        "Select",
+        "SearchField"
       ],
       "radius.md": [
-        "SegmentedControl",
-        "Banner"
+        "SegmentedControl"
       ],
       "radius.none": [
         "FlushIconButton",
-        "Dialog",
-        "Banner"
+        "Dialog"
       ],
       "radius.round": [
         "IconButton",
@@ -177,7 +173,8 @@ export const USED_BY = {
       "Accordion",
       "SegmentedControl",
       "PasswordField",
-      "Counter"
+      "Counter",
+      "SearchField"
     ],
     "size.md.height": [
       "FocusRing",

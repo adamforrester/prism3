@@ -8,7 +8,7 @@
     "packages/engine/component-glyphs.ts"
   ],
   "note": "components.<id>.glyphs: each part that draws a fixed glyph (how: drawn) or starts its icon slot at one (how: swap default); source is the icon set, a component-owned glyph, or any glyph chosen through a prop. iconSlots: parts that take any icon. glyphs: the inverse, per glyph. notDrawnByAnyComponent: icon-set glyphs no definition names; each one is still reachable through Icon and every icon slot.",
-  "iconSetSize": 45,
+  "iconSetSize": 46,
   "components": {
     "_accordion-indicator": {
       "glyphs": [
@@ -71,6 +71,33 @@
       ],
       "iconSlots": []
     },
+    "_breadcrumb-separator": {
+      "glyphs": [
+        {
+          "part": "chevronGlyph",
+          "glyph": "chevron-right",
+          "source": "icon set",
+          "how": "drawn",
+          "when": {
+            "type": [
+              "chevron"
+            ]
+          }
+        },
+        {
+          "part": "slashGlyph",
+          "glyph": "slash",
+          "source": "icon set",
+          "how": "drawn",
+          "when": {
+            "type": [
+              "slash"
+            ]
+          }
+        }
+      ],
+      "iconSlots": []
+    },
     "banner": {
       "glyphs": [
         {
@@ -114,6 +141,22 @@
           "when": {
             "tone": [
               "warning"
+            ]
+          }
+        }
+      ],
+      "iconSlots": []
+    },
+    "breadcrumbs": {
+      "glyphs": [
+        {
+          "part": "backGlyph",
+          "glyph": "chevron-left",
+          "source": "icon set",
+          "how": "drawn",
+          "when": {
+            "path": [
+              "parent"
             ]
           }
         }
@@ -294,6 +337,26 @@
         "leadingVisual"
       ]
     },
+    "search-field": {
+      "glyphs": [
+        {
+          "part": "leadingVisual",
+          "glyph": "search",
+          "source": "icon set",
+          "how": "swap default"
+        },
+        {
+          "part": "trailingVisual",
+          "glyph": "close-filled",
+          "source": "icon set",
+          "how": "swap default"
+        }
+      ],
+      "iconSlots": [
+        "leadingVisual",
+        "trailingVisual"
+      ]
+    },
     "segmented-control-segment": {
       "glyphs": [],
       "iconSlots": [
@@ -447,8 +510,12 @@
       "_accordion-indicator",
       "select"
     ],
-    "chevron-left": [],
-    "chevron-right": [],
+    "chevron-left": [
+      "breadcrumbs"
+    ],
+    "chevron-right": [
+      "_breadcrumb-separator"
+    ],
     "chevron-up": [
       "_accordion-indicator"
     ],
@@ -456,7 +523,9 @@
       "switch-control",
       "tag"
     ],
-    "close-filled": [],
+    "close-filled": [
+      "search-field"
+    ],
     "error-circle": [
       "banner",
       "field-message"
@@ -495,7 +564,12 @@
     "resize-grip": [
       "textarea"
     ],
-    "search": [],
+    "search": [
+      "search-field"
+    ],
+    "slash": [
+      "_breadcrumb-separator"
+    ],
     "spinner": [
       "spinner"
     ],
@@ -516,9 +590,6 @@
     "arrow-up-left",
     "arrow-up-right",
     "check-circle-filled",
-    "chevron-left",
-    "chevron-right",
-    "close-filled",
     "error-circle-filled",
     "external-link-filled",
     "eye",
@@ -537,7 +608,6 @@
     "plus-circle",
     "plus-circle-filled",
     "plus-filled",
-    "search",
     "warning-triangle-filled"
   ]
 }

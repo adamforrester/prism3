@@ -94,7 +94,7 @@ Label = noun phrase, sentence case, no trailing colon. Placeholder = example onl
 ## Related components
 
 - **Built from:** `field-label`, `field-message`, `focus-ring`
-- **Instead, consider:** `textarea`, `select`, `checkbox-row`, `switch-row`, `password-field`
+- **Instead, consider:** `textarea`, `select`, `checkbox-row`, `switch-row`, `password-field`, `search-field`
 - **Often used with:** `icon`, `button`, `spinner`
 - **Replaces:**
   - bare input without label wiring
@@ -116,7 +116,7 @@ Label = noun phrase, sentence case, no trailing colon. Placeholder = example onl
 | `helpText` | string \| node | — | no | Persistent guidance (rendered as FieldMessage, default status); wired via aria-describedby. Show the format before failure. |
 | `validation` | enum: 'default' \| 'error' \| 'warning' \| 'success' | `default` | no | The validation state. Each non-default status swaps the input border to its own boundary (border-only — error → danger, warning → warning, success → success) and sets the nested message to the matching status; default is neutral. error also sets aria-invalid. The values align with FieldMessage's status axis, so this drives the nested message directly. |
 | `validationMessage` | string \| node | — | no | The validation text shown at error / warning / success, added to aria-describedby. For error, say what is wrong and how to fix it (SC 3.3.3), never "Invalid". |
-| `showMessage` | boolean | `true` | no | Whether the composed FieldMessage is shown. On — the default — renders the helper / validation message below the input; turning it off hides the message entirely (a field with no helper or validation text). Never hides a message the field needs. |
+| `showMessage` | boolean | `false` | no | Whether the composed FieldMessage is shown. Off by default; turn it on to render the helper or validation message below the input. Never hides a message the field needs: turn it on wherever there is helper or validation text. |
 | `required` | boolean | `false` | no | Sets required / aria-required, and turns on the FieldLabel's required marker. |
 | `disabled` | boolean | `false` | no | Native disabled — removed from tab order, not submitted, silent to assistive tech, contrast-exempt. Reserve for fields irrelevant in the current state. |
 | `readOnly` | boolean | `false` | no | Distinct from disabled: focusable, selectable and copyable, submitted with the form, and passes contrast. Use for a value the user may read/copy but not edit (a generated key). The component's live edge. |
@@ -491,7 +491,7 @@ Keyed by `status`, `state`.
 | `↳ swap leading icon` | instance swap | — |
 | `trailing icon` | boolean | `false` |
 | `↳ swap trailing icon` | instance swap | — |
-| `message` | boolean | `true` |
+| `message` | boolean | `false` |
 
 ---
 
