@@ -95,7 +95,7 @@ Titles are short, specific and in sentence case, with no period. The body states
 ## Related components
 
 - **Built from:** `button`, `flush-icon-button-neutral`
-- **Instead, consider:** `dialog`, `field-message`, `badge`
+- **Instead, consider:** `dialog`, `field-message`, `badge`, `toast`
 - **Often used with:** `link`, `list`, `button-neutral`
 - **Replaces:**
   - a colored div with an icon and role="alert" on a message present at load

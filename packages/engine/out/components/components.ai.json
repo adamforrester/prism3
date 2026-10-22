@@ -8343,13 +8343,12 @@
         ],
         "alternativeTo": [
           "dialog",
-          "field-message"
+          "field-message",
+          "banner"
         ],
         "supersedes": [],
         "supersededBy": [],
-        "planned": [
-          "banner"
-        ],
+        "planned": [],
         "replacesPatterns": [
           "an alert() after a save",
           "a status message that moves focus",
@@ -8784,13 +8783,12 @@
         "alternativeTo": [
           "dialog",
           "field-message",
-          "badge"
+          "badge",
+          "toast"
         ],
         "supersedes": [],
         "supersededBy": [],
-        "planned": [
-          "toast"
-        ],
+        "planned": [],
         "replacesPatterns": [
           "a colored div with an icon and role=\"alert\" on a message present at load",
           "an error shown as a toast that disappears"

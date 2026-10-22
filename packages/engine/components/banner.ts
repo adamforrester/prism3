@@ -293,10 +293,10 @@ export const banner: ComponentDef = {
 
   composition: {
     composesWith: ['button', 'flush-icon-button-neutral'],
-    alternativeTo: ['dialog', 'field-message', 'badge'],
+    alternativeTo: ['dialog', 'field-message', 'badge', 'toast'],
     replacesPatterns: ['a colored div with an icon and role="alert" on a message present at load', 'an error shown as a toast that disappears'],
     supersededBy: [],
-    planned: ['toast'],
+    planned: [],
   },
 
   motion: {

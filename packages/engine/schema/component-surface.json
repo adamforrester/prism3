@@ -723,7 +723,7 @@
     },
     "banner": {
       "members": 8,
-      "sha256": "fe80954c5836bf345c0376ef281a3b9a3d252e012d5397d002d1116053c27527",
+      "sha256": "63bccef6daac23bf4caaf9500d0c618961accaf7d7d5d09521acf6ee13a43e97",
       "properties": [
         "actions:BOOLEAN",
         "body:SLOT",
