@@ -40,10 +40,10 @@ step, chevron by default, both in `color.icon.secondary`. The overflow item and 
   and the slash at `separator=slash` (`presentWhen`). No engine change. The current page and the parent path have no
   separator, so neither has a slash member: the item is 10 members, the trail 6, the separator 2. `separator` is the
   thirtieth axis name, argued in `VARIANT_AXES`' header.
-- **The slash glyph is the set's first that is not Remix's.** Remix 4.9.1 has no plain slash (`code-s-slash`,
-  `slash-commands` and `divide` are the nearest). So `icons/slash-line.svg` is drawn for this project: one
-  parallelogram on the 24px grid, a 2px stroke like `chevron-right`'s (1.995px measured across the stroke), and
-  `icons/NOTICE.md` records it. Held for the owner on the PR.
+- **The slash glyph is not Remix's.** Remix 4.9.1 has no plain slash (`code-s-slash`, `slash-commands` and `divide`
+  are the nearest). So `icons/slash-line.svg` is drawn for this project: one parallelogram on the 24px grid, a 2px
+  stroke like `chevron-right`'s (1.995px measured across the stroke), and `icons/NOTICE.md` records it beside the
+  textarea's grip, the set's other drawn glyph. The owner made it a permanent icon on 2026-10-22 (below).
 - **Naming.** The id is the owner's, `_breadcrumb-separator`. The display name is BreadcrumbSeparator: the
   `component-names` family rule would make `Breadcrumb.Separator` force `Breadcrumb.Item` too, and the item's name
   waits on #2783. It shares the Breadcrumb Item page, first, as the Accordion indicator shares the Accordion's.
@@ -52,6 +52,19 @@ step, chevron by default, both in `color.icon.secondary`. The overflow item and 
 - **The studio catalog missed override swaps as nests.** The item's chevron used to be an icon instance, which hid the
   gap: the overflow's dots come from a #2645 swap override, which the catalog did not walk. Pagination (#2796) fixed
   the same line; the fix is ported as is.
+
+### Shipped (owner QA Q531, 2026-10-22)
+
+- **`slash` is a permanent member of the icon set,** with a standing rule: a glyph a component needs and the library
+  lacks joins the icon set when the component is built. It is in `icon-set.ts`, in the Icon component set (46
+  members), and in `icons/NOTICE.md`. BreadcrumbSeparator's glyph parts are instances of `icon/chevron-right` and
+  `icon/slash`; `lint-glyph-geometry` refuses an inline copy by name.
+- **The separator's glyph layers are `chevronGlyph` and `slashGlyph`** (Q350). The def is new, so no rename entry.
+- **The overflow nest pins `surface: default`.** Toast (#2780) gave the flush icon buttons a `surface` axis; without
+  the pin the overflow's nested button matched no member and built empty (`test:roundtrip`: 4 divergences).
+- **Main's later rules, applied:** BreadcrumbItem and the separator sit at tier 9 and Breadcrumbs at 2 (#2713); the
+  two child-only `whenToUse` lines follow #2714's template; no DRAFT in a shipped field; the Breadcrumbs summary ends
+  with the items size note main gives every def with an items slot and a size.
 
 ### Traps for whoever re-verifies this
 
