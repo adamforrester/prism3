@@ -733,8 +733,11 @@ export type PartDef = {
    *  Code reads it as `min-inline-size`, computed from the height. A def projected with no brand in hand has
    *  no floor, as Button has none.
    *
-   *  Refused on a non-`box` kind, on a `box` with no `layout`, without a bound `height`, beside `minWidth` or
-   *  `minWidthKey` (two floors on one axis), and when not a positive number. */
+   *  The base is the bound `height`, or the bound `minHeight` where the box hugs above a floor instead (the underline
+   *  Tag, #2887: its height is a minimum at the same rung, so the floor multiplies the same number).
+   *
+   *  Refused on a non-`box` kind, on a `box` with no `layout`, without a bound `height` or `minHeight`, beside
+   *  `minWidth` or `minWidthKey` (two floors on one axis), and when not a positive number. */
   minWidthRatio?: number;
   /** For `box` parts: a FLUSH member, chosen by a variant axis (#2350, owner Q143 and Q145 A). At a coordinate
    *  where `axis` is `value`, BOTH of the box's inline paddings bind `key` (a zero step, `space.0`) instead of
@@ -1160,6 +1163,29 @@ export type PartDef = {
    *  it `MAX`/`MAX`, so it stays in the corner when a designer resizes the instance. `lint-absolute-inset.ts`
    *  holds the inset to the parent's stroke weight in every brand, so the artboard never overlaps the edge. */
   corner?: 'bottom-right';
+  /** For a `box`: PIN it across its parent's BOTTOM EDGE, out of the auto-layout flow (#2872, Link's current-page bar,
+   *  owner decisions Q507). The box keeps its own bound `height` and spans the parent's full width, flush with its
+   *  bottom, so it draws a line at the foot of the parent without taking a cell: the parent keeps its size whether
+   *  the box is there or not, which is what lets a `presentWhen`-gated bar sit on some members of a runtime axis and
+   *  not others under the footprint rule.
+   *
+   *  WHY A FILLED BOX AND NOT THE PARENT'S BOTTOM STROKE (`strokeEdges`). A stroke binds a STROKE-scoped role, and a
+   *  stroke never binds an ink role (Q346, `lint-paint.ts` arm 5). Link's bar is in the link ICON role, which is
+   *  scoped to fills, so the bar is a fill, as Tab's bar is. And a stroke would sit on every member, a filled box only
+   *  where `presentWhen` puts it.
+   *
+   *  WHY NOT `absolute`. That kind is an INSTANCE of a shared component sized by its parent on all four sides (a
+   *  focus ring); this is the def's own frame, one bound dimension high and the parent's width across.
+   *
+   *  PROJECTED as `FigmaNodePlan.footPin`. Both executors lift the node (`layoutPositioning: 'ABSOLUTE'`), size it to
+   *  the parent's width at its bound height, place it at `x = 0`, `y = parent height − its height`, and constrain it
+   *  `STRETCH`/`MAX`, so it follows the bottom edge and the width when a designer's longer label resizes the
+   *  instance. `x`/`y`/width take no binding, so they are written from the live parent, after the flow pass. Code
+   *  draws it as a positioned pseudo-element or an inset shadow, never a border that adds height.
+   *
+   *  Refused on a non-`box`, on the root, without a `height`, beside `width`, `size`, `layout` or `children` (a bar
+   *  draws nothing but its fill), and under a parent that is not an auto-layout box. */
+  foot?: true;
   /** For a `vector` sized by `glyphPx`: take the glyph OUT of the auto-layout flow, CENTER it in its parent,
    *  and constrain it `SCALE`/`SCALE`, so it keeps its fraction of the parent when a designer resizes an
    *  instance (#2345). image-placeholder's marker is the case: a fixed 180px marker inside a 64px thumbnail
@@ -1412,7 +1438,7 @@ export type FigmaProperties = {
    *  leading glyph is a boolean `leading icon` (present?) AND a swap `↳ swap leading icon` (which icon),
    *  the #1380 canon. The one-property-per-node rule below is keyed on the FIELD for exactly this reason.
    *
-   *  ONE PROPERTY, SEVERAL PARTS (switch-control's `State icon`). `part` may be a LIST when one toggle
+   *  ONE PROPERTY, SEVERAL PARTS (switch-control's `state icon`). `part` may be a LIST when one toggle
    *  governs two nodes that never coexist — the switch thumb's check (at `selection=on`) and X (at
    *  `selection=off`) are one affordance a designer turns on or off once, not two. Each listed part
    *  carries `visibleProp` on its own node; the set declares the property once (`planSetProperties`
@@ -1747,13 +1773,11 @@ export type ComponentDef = {
    *  decision is filed (#846); this field stays prose and the closed key list is what makes it gateable
    *  in the meantime.
    *
-   *  AND THE FIELD HAS NO READER — measured, and the reason #846 is a decision rather than a cleanup.
-   *  `def.content` appears in exactly two places in this repo: this declaration and a quoted block in
-   *  `docs/39`. No emitter, no projection, no `.ai.json` field, no skill, no gate. Six defs author
-   *  `labelPattern` prose that is gated for voice and US English and delivered to nobody. So closing the
-   *  keys is worth doing on its own terms — an author's typo now fails instead of vanishing twice over —
-   *  but it does not make the field arrive anywhere, and reading this list as though it does is the
-   *  mistake to avoid.
+   *  ITS READERS (#846 finding 1, which corrected this comment). Since #1701 `emit-component-docs.ts`
+   *  projects the field into `out/components/components.ai.json` and, through the doc section model
+   *  (`component-doc-sections.ts`, #846), into the Content guidelines section of `out/components/<id>.md`;
+   *  the Figma panel and the docs-site page will read the same section. Closing the keys still matters on
+   *  its own terms: a misspelled key fails instead of vanishing.
    *
    *  THE INDEX SIGNATURE IS GONE (#821). `[k: string]: string | undefined` made every misspelled key
    *  valid — `lablePattern` typechecked, projected nothing, and no gate could see it, because a field
@@ -1885,6 +1909,12 @@ export type ComponentDef = {
 /** The ceiling on `ComponentDef.summary`. The plugin register is about 90 characters; 100 leaves room
  *  for a precise sentence without admitting a second one. */
 export const SUMMARY_MAX = 100;
+/** An items-slot host with a `size` carries one more sentence in its summary (#2829, owner decision Q438 A): how the
+ *  host's size reaches its items. The cap grows by that sentence, so the host's own line keeps the room every
+ *  other summary has. `lint-component-docs.ts` holds the sentence itself, as its own literal. */
+export const ITEMS_SIZE_NOTE_LENGTH = " Size applies to the items you haven't edited. After editing an item, select the items and set their size.".length;
+export const summaryMaxOf = (def: Pick<ComponentDef, 'props'>): number =>
+  def.props?.some((p) => p.name === 'items' && p.type === 'slot') && def.props.some((p) => p.name === 'size') ? SUMMARY_MAX + ITEMS_SIZE_NOTE_LENGTH : SUMMARY_MAX;
 
 export const statesOf = (def: ComponentDef): readonly string[] => def.states ?? [];
 /** The states a part's `when` names, one or a list (#2318): empty when it names none. */
@@ -1941,7 +1971,7 @@ export const validateComponentDef = (
   req(!!def.description, 'description is required');
   req(typeof def.summary === 'string' && def.summary.length > 0, 'summary is required — the one-line Figma description');
   if (typeof def.summary === 'string' && def.summary.length > 0) {
-    if (def.summary.length > SUMMARY_MAX) errors.push(`summary is ${def.summary.length} characters — at most ${SUMMARY_MAX} (the plugin register is one line of about 90)`);
+    if (def.summary.length > summaryMaxOf(def)) errors.push(`summary is ${def.summary.length} characters — at most ${summaryMaxOf(def)} (the plugin register is one line of about 90)`);
     if (/\n/.test(def.summary)) errors.push('summary must be one line');
     if (!/\.$/.test(def.summary)) errors.push('summary must end with a period');
   }
@@ -2154,7 +2184,7 @@ export const textFigmaName = (prop: string, t: { figmaName?: string }): string =
 
 type BooleanEntry = string | { part: string | readonly string[]; default?: boolean; figmaName?: string; figmaOnly?: boolean; together?: true };
 /** The parts whose `visible` a `booleans` entry drives — bare string, `{ part }`, or `{ part: [...] }`
- *  (#1331; the list form is switch-control's `State icon`, one toggle over two glyphs). Always a list. */
+ *  (#1331; the list form is switch-control's `state icon`, one toggle over two glyphs). Always a list. */
 export const booleanPartsOf = (v: BooleanEntry): readonly string[] =>
   typeof v === 'string' ? [v] : typeof v.part === 'string' ? [v.part] : v.part;
 /** A `booleans` entry's Figma panel name — its `figmaName` decoupling (#1380) or, absent one, the prop KEY. */
@@ -2462,8 +2492,8 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
   // node at all, and at those members the boolean toggles it. A member no targeted part reaches has nothing
   // to toggle, which Figma allows — a component property is declared once on the set, and a variant with no
   // node bound to it ignores it. Two users, one rule (reconciled in the #1743 merge of #1765):
-  //   · Tag's `Check icon` — ONE part, present only at `type=select × selection=selected`, switchable there;
-  //   · switch-control's `State icon` — TWO parts, the check at `selection=on` and the X at `selection=off`.
+  //   · Tag's `check icon` — ONE part, present only at `type=select × selection=selected`, switchable there;
+  //   · switch-control's `state icon` — TWO parts, the check at `selection=on` and the X at `selection=off`.
   // Full coverage of an axis is NOT required: Tag's unselected members carry no check and nothing is wrong.
   //
   // THREE REFUSALS, each a way the composition goes wrong without a sound:
@@ -3354,25 +3384,28 @@ export type State = (typeof STATES)[number];
 /*
  * ── `placement`: THE TWENTY-SIXTH NAME, FOR THE DIALOG (owner decisions Q303.1 and Q303.12, 2026-10-14, #2609) ──
  *
- * `placement` (`center | bottom | full`) is WHERE a layer sits over the page it covers: centered in the viewport, attached
- * to its bottom edge, or filling it. The owner named the axis and its values (one Dialog with a placement axis, no side).
+ * `placement` (`center | bottom | full | end`) is WHERE a layer sits over the page it covers: centered in the viewport,
+ * attached to its bottom edge, filling it, or attached to the edge where the writing direction ends. The owner named the
+ * axis and its first three values (one Dialog with a placement axis, Q303.1), and added `end` as a side sheet (Q483 A,
+ * named by Q488 A, #2877): a value of this axis, not a new component, and `end` rather than `right` so it mirrors in
+ * right-to-left text and leaves room for a `start` with no rename.
  * It clears this list's bar as a distinct kind of distinction with the nearest defeated: `alignment` is where a row of
  * items sits along the bar that holds it, inside the layout; `direction` is where a veil's wash sits across an image, a
  * distribution of paint; `orientation` is which way a rule runs; `width` is how much of its container a control takes.
  * None says which edge of the viewport a layer attaches to, and with it which corners round and how big the panel is.
  * Naming it `alignment` would put a layer's attachment and a row's alignment under one name, the #756 failure. An
  * AUTHORING axis: a product picks the placement where it opens the dialog, per breakpoint in code, and nothing switches
- * it on screen. `lint-axis-values.ts` carries the three values as a `sole` set.
+ * it on screen. `lint-axis-values.ts` carries the four values as a `sole` set.
  *
  * ── `footer`: THE TWENTY-SEVENTH NAME, FOR THE DIALOG'S ACTIONS (owner decision Q303.6 A, #2609) ──
  *
- * `footer` (`inline | stacked | none`) is HOW a panel lays out its closing actions: a row at the end edge, a column of
- * full-width buttons, or no action row at all. The proposal named the axis and the owner chose its three values. It
+ * `footer` (`inline | stacked | fill | none`) is HOW a panel lays out its closing actions: a row at the end edge, a column of
+ * full-width buttons, a row whose buttons share the width (`fill`, Q492 B, #2880), or no action row at all. The proposal named the axis and the owner chose its values. It
  * clears the bar with the nearest defeated: `orientation` is which way a rule runs, a line and not a group of controls;
  * `alignment` places a row along its bar and never stacks it; `width` is a control's own extent. None says whether a
  * part exists and how its children run, which is why the name is the part's own: the axis is the footer's layout, and
  * `none` removes it. Naming it `orientation` would claim a missing footer is a direction. An AUTHORING axis.
- * `lint-axis-values.ts` carries the three values as a `sole` set.
+ * `lint-axis-values.ts` carries the four values as a `sole` set.
  *
  * ── `layout`: THE TWENTY-EIGHTH NAME, FOR THE BUTTON GROUP (owner decisions Q363.9 B and Q363 "all A", #2661) ──
  *
@@ -3386,13 +3419,45 @@ export type State = (typeof STATES)[number];
  * `footer` would tell a Banner its actions are a footer. An AUTHORING axis: a product picks the layout where it
  * places the group. Read by the slot's `directionWhen` (`PartDef.directionWhen`), so the one `items` slot runs as a
  * row or a column per member. `lint-axis-values.ts` carries the three values as a `sole` set.
+ *
+ * ── `kind`: THE TWENTY-NINTH NAME, FOR THE BREADCRUMB ITEM (owner decision on #2666, 2026-10-16, call 1 A) ──
+ *
+ * `kind` (`ancestor | current | overflow`) is WHICH ROLE a step plays in its parent's sequence: a link to a page above,
+ * the page itself, or the stand-in for collapsed steps. The approved proposal named the axis and its values. It clears
+ * this list's bar as a distinct kind of distinction with the nearest defeated: `type` is a content format that keeps
+ * the element (a badge's count or dot, a list's markers); `selection` is a value the user picks; `state` is a
+ * transient interaction. None says "this step renders a different element (a link, text, a button) because of where
+ * it sits in the trail", and naming it `type` would put a marker style and an element's role under one name, the
+ * #756 failure. An AUTHORING axis: Breadcrumbs sets it from the item's place. `lint-axis-values.ts` carries the three
+ * values as a `sole` set.
+ *
+ * ── `path`: THE THIRTIETH NAME, FOR BREADCRUMBS (owner decision on #2666, 2026-10-16, calls 1 A and 11 A; renamed from `layout`, Q424 A) ──
+ *
+ * `path` (`full | parent`) is HOW MUCH OF THE ROUTE a navigation shows: every step down to the current page, or one link
+ * up to the parent for a small screen. The approved proposal named the axis `layout`; the Button group took that name
+ * first (#2661) for how a row of buttons shares its space, and one name for two different questions is the #756
+ * failure, so the owner renamed this one (Q424 A). It clears the bar with the nearest defeated: `footer` lays out one
+ * part's actions; `orientation` is which way a rule runs; `width` is a control's extent; `placement` is where a layer
+ * attaches. None says "how much of the route is drawn", and naming it `width` would claim the parent link is a narrower
+ * trail when it is a different element. An AUTHORING axis: a product picks it per breakpoint in code.
+ * `lint-axis-values.ts` carries the two values as a `sole` set.
+ *
+ * ── `separator`: THE THIRTY-FIRST NAME, FOR BREADCRUMBS (owner decision Q382 A, 2026-10-16) ──
+ *
+ * `separator` (`chevron | slash`) is WHICH MARK stands between the steps of a trail. The owner named it: one setting on
+ * Breadcrumbs that applies to every step. Breadcrumbs passes it to each item (`follow` passes an axis by its own name),
+ * and the item picks the matching look of `_breadcrumb-separator`, whose own axis is `type`, as Q382 names it. It
+ * clears the bar with the nearest defeated: `indicator` is a glyph that shows a state (open or closed); `style` is a
+ * line treatment of the control itself; `type` is a content format. None says "the mark drawn between items", and
+ * naming it `style` would put a link's placement and a trail's divider under one name, the #756 failure. An AUTHORING
+ * axis. `lint-axis-values.ts` carries the two values, shared by Breadcrumbs, its item and the separator.
  */
 export const VARIANT_AXES = [
   'size', 'intent', 'appearance', 'tone',
   'width', 'style', 'indicator', 'offset', 'selection',
   'name', 'surface', 'weight', 'value', 'intensity', 'ratio',
   'status', 'emphasis', 'shape', 'type', 'direction', 'inset', 'orientation', 'alignment', 'expansion', 'iconPosition',
-  'placement', 'footer', 'layout',
+  'placement', 'footer', 'layout', 'kind', 'path', 'separator',
 ] as const;
 
 /** One member of the closed axis-NAME vocabulary. Values are not constrained — see `VARIANT_AXES`. */
@@ -4602,6 +4667,30 @@ const anatomyErrors = (def: ComponentDef): string[] => {
           e.push(`anatomy part '${n}' declares corner '${p.corner}' under '${parent ?? '(none)'}', which is not an auto-layout 'box' — Figma ignores 'layoutPositioning' on a child of a frame with no auto-layout, silently, so the glyph would take a cell in the flow`);
       }
     }
+    // ---- THE FOOT PIN (#2872, Link's current-page bar) ----
+    // The corner pin's four ways to project nothing or into the flow, for a box: the wrong kind, no height to draw,
+    // the root, a parent Figma will not lift a child out of; and a fifth, a box that lays out content of its own,
+    // which a pinned bar has none of.
+    if (p.foot !== undefined) {
+      if (p.foot !== true)
+        e.push(`anatomy part '${n}' declares foot ${String(p.foot)} — the field is a switch that is on or absent`);
+      if (p.kind !== 'box')
+        e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'foot' — only a 'box' is drawn as the def's own filled frame and can be pinned across its parent's bottom edge`);
+      if (!p.height)
+        e.push(`anatomy part '${n}' declares 'foot' but binds no 'height' — the executor places it its own height up from the parent's bottom edge, so without one it has no thickness to draw`);
+      if (p.width !== undefined || p.size !== undefined)
+        e.push(`anatomy part '${n}' declares 'foot' and binds its own width ('width' or 'size') — a foot pin spans the parent's width, so the width is stated twice`);
+      if (p.layout !== undefined || (p.children ?? []).length)
+        e.push(`anatomy part '${n}' declares 'foot' with a 'layout' or 'children' — a foot pin is a bar that draws its fill and nothing else`);
+      if (n === a.root)
+        e.push(`anatomy part '${n}' is the anatomy ROOT and declares 'foot' — a bottom edge belongs to a parent, and the root has none`);
+      else {
+        const parent = Object.keys(parts).find((k) => (parts[k].children ?? []).includes(n));
+        const pp = parent ? parts[parent] : undefined;
+        if (!pp || pp.kind !== 'box' || !pp.layout)
+          e.push(`anatomy part '${n}' declares 'foot' under '${parent ?? '(none)'}', which is not an auto-layout 'box' — Figma ignores 'layoutPositioning' on a child of a frame with no auto-layout, silently, so the bar would take a cell in the flow`);
+      }
+    }
     // `strokeInset` gets the same rule for the same reason: it is a compensation applied to `inset`, so
     // off an absolute part there is nothing for it to compensate and it would project to nothing.
     if (p.kind !== 'absolute' && p.strokeInset !== undefined)
@@ -4994,8 +5083,8 @@ const anatomyErrors = (def: ComponentDef): string[] => {
         e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'minWidthRatio' — only a 'box' becomes an auto-layout frame that can carry a minimum width`);
       else if (!p.layout)
         e.push(`anatomy part '${n}' declares 'minWidthRatio' but binds no 'layout' — Figma applies a minimum width only to an auto-layout frame, so the floor would be silently dropped`);
-      if (p.height === undefined)
-        e.push(`anatomy part '${n}' declares 'minWidthRatio' but binds no 'height' — the floor is a multiple of the box's own height, so there is nothing to multiply`);
+      if (p.height === undefined && p.minHeight === undefined)
+        e.push(`anatomy part '${n}' declares 'minWidthRatio' but binds no 'height' or 'minHeight' — the floor is a multiple of the box's own height, so there is nothing to multiply`);
       if (p.minWidth !== undefined || p.minWidthKey !== undefined)
         e.push(`anatomy part '${n}' declares 'minWidthRatio' beside '${p.minWidth !== undefined ? 'minWidth' : 'minWidthKey'}' — two floors on one axis, so one of them is not the floor`);
       if (!(typeof p.minWidthRatio === 'number' && p.minWidthRatio > 0))

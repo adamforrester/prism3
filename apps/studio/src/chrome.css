@@ -626,6 +626,10 @@
    one wrapping inside the drawer rather than widening it. */
 .p3-op-summary { margin: 0; padding: 0; list-style: none; font-family: var(--p3-font-mono); overflow-wrap: anywhere; }
 .p3-op-line { margin: 0; }
+/* An Update's library publish description and its Copy button (#2858). */
+.p3-op-publish { display: grid; gap: var(--p3-space-050); }
+.p3-op-publish-head { display: flex; align-items: center; justify-content: space-between; gap: var(--p3-space-100); }
+.p3-op-publish-text { margin: 0; padding: var(--p3-space-100); border: var(--p3-bw-hairline) solid var(--p3-edge); border-radius: var(--p3-radius-md); font-family: var(--p3-font-mono); white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; }
 .p3-op-phase { display: grid; gap: var(--p3-space-050); }
 .p3-op-prog { display: block; appearance: none; width: 100%; height: var(--p3-space-050); border: none; border-radius: var(--p3-radius-pill); background: var(--p3-line-1); overflow: hidden; }
 .p3-op-prog::-webkit-progress-bar { background: var(--p3-line-1); }
@@ -741,6 +745,9 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-space-150
    control space-050 after it (its head is a <legend>, so the legend's padding is the whole space). */
 .p3-icol .p3-lever-name { font-weight: var(--p3-fw-emphasis); }
 .p3-icol fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-space-050); }
+/* A lever in a group that is no fieldset (a slider, in Components' Button options): its control space-050 after the head
+   too, under the lever's own space-100 gap. */
+.p3-icol div.p3-lever > .p3-lever-head { padding-block-end: 0; margin-block-end: calc(var(--p3-space-050) - var(--p3-space-100)); }
 /* A lever's own one-line description belongs to its head: space-050 under the name, not space-150. */
 .p3-lever-ctl > .p3-sub:first-child { margin-block-start: calc(-1 * var(--p3-space-100)); }
 .p3-readout { margin-left: auto; color: var(--p3-text-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -892,15 +899,18 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-space-150
 .p3-frame[data-w="narrow"] .p3-preview-stack { padding: var(--p3-space-150); }
 /* The Components page (#2700, the owner's approved wireframe): the list of sets in the levers pane, a row per family or
    set, a box that selects and a name that focuses, families folding as Build style guides' groups do; the action bar at
-   the foot of the pane, sticky as Draw's is (idea 9 A), in the chrome's own ground and edge (no shadow, T5). At the
-   narrow tier the focused family opens inline under its row. */
+   the foot of the pane, sticky as Draw's is (idea 9 A), in the chrome's own ground and edge (no shadow, T5). The shown
+   family's settings open under its row at every width (#2815 step 1). */
 .p3-cp { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--p3-space-200); align-content: start; }
 .p3-cp-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--p3-space-300); min-width: 0; }
-/* TY2 A: an L1 section title has space-300 after it; the head aligns to its foot, so the title's last line is its bottom. */
+/* TY2 A: an L1 section title has space-300 after it, so the title's last line is the head's bottom. */
 .p3-cp-sec { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--p3-space-300); min-width: 0; }
 /* A grid, so the title takes what the box and Build all leave and wraps inside itself at any pane width (#1975: the
    levers pane is 268px at 640). */
-.p3-cp-sec-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: end; gap: var(--p3-space-075) var(--p3-space-100); min-height: var(--p3-ctl-h-xs); }
+.p3-cp-sec-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: var(--p3-space-075) var(--p3-space-100); }
+/* #2825: the box (and Build all) centered on the title's FIRST line, as a row's box is on its name: a cell exactly one
+   line of the title high (its size and line height, `.p3-lsec-title`), the control centered in it and free to overhang. */
+.p3-cp-line1 { display: flex; align-items: center; height: calc(var(--p3-fs-16) * var(--p3-lh-compact)); }
 .p3-cp-sec-head .p3-lsec-title { margin: 0; }
 .p3-cp-title { min-width: 0; overflow-wrap: anywhere; }
 .p3-cp-count { color: var(--p3-text-2); font-size: var(--p3-fs-12); font-weight: var(--p3-fw-default); letter-spacing: normal; }
@@ -922,9 +932,6 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-space-150
 .p3-cp-row[data-off="true"] .p3-cp-name { color: var(--p3-text-2); }
 .p3-cp-reason { color: var(--p3-text-2); }
 .p3-cp-empty { margin: 0; }
-.p3-cp-inline { padding: var(--p3-space-100) 0 var(--p3-space-150) var(--p3-space-400); }
-/* The inline block at 380 holds a specimen sized in px; it scrolls on its own rather than widening the list. */
-.p3-cp-inline > .p3-legacy-card { padding: var(--p3-space-150); overflow-x: auto; }
 .p3-cp-bar {
   position: sticky; bottom: var(--p3-space-300); z-index: 5; display: grid; gap: var(--p3-space-075); padding: var(--p3-space-150) var(--p3-space-200);
   border: var(--p3-bw-hairline) solid var(--p3-edge); border-radius: var(--p3-radius-xl); background: var(--p3-bg-page); font-family: var(--p3-font-ui);
@@ -939,9 +946,13 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-space-150
 .p3-cp-dhead { display: grid; gap: var(--p3-space-025); padding: 0 var(--p3-space-050) var(--p3-space-200); }
 .p3-cp-dtitle { margin: 0; color: var(--p3-text); font-size: var(--p3-fs-20); font-weight: var(--p3-fw-bold); letter-spacing: var(--p3-ls-tightest); line-height: var(--p3-lh-compact); }
 .p3-cp-dhead .p3-sub { margin: 0; }
-/* Button options on the card, in the chrome's inks (not on a specimen ground). */
-.p3-cp-optsec { display: grid; gap: var(--p3-space-150); padding: var(--p3-space-300); margin-block: var(--p3-space-300); border: var(--p3-bw-hairline) solid var(--p3-edge); border-radius: var(--p3-radius-xl); background: var(--p3-levers-bg); font-family: var(--p3-font-ui); }
-.p3-cp-opt-title { margin: 0; color: var(--p3-text); font-size: var(--p3-fs-16); font-weight: var(--p3-fw-strong); letter-spacing: var(--p3-ls-tighter); line-height: var(--p3-lh-compact); }
+/* A family's settings, under its row in the list (#2815 step 1): Button options, in the chrome's inks. A `.p3-icol` group
+   (its L2 title, its L3 lever names, its gaps), drawn as a card on the levers gray rather than with the group's rule. */
+.p3-icol.p3-cp-optsec { padding: var(--p3-space-300); margin-block: var(--p3-space-100) var(--p3-space-200); border: var(--p3-bw-hairline) solid var(--p3-edge); border-radius: var(--p3-radius-xl); background: var(--p3-levers-bg); font-family: var(--p3-font-ui); }
+.p3-frame[data-w="narrow"] .p3-icol.p3-cp-optsec { padding: var(--p3-space-200); }
+/* L2: the description starts space-150 under the title, and the levers space-150 under it (the head's pull-up). */
+.p3-cp-optsec > .p3-icol-head { row-gap: var(--p3-space-150); }
+.p3-cp-opt-desc { flex-basis: 100%; }
 .p3-board-desc { flex-basis: 100%; margin: 0; color: var(--p3-text-2); font-size: var(--p3-fs-14); line-height: var(--p3-lh-cozy); }
 .p3-board-body { display: grid; gap: var(--p3-space-300); }
 .p3-pal { display: grid; gap: var(--p3-space-200); min-width: 0; contain: layout paint; }

@@ -745,7 +745,7 @@ const TYPE_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="face-add-inpu
 /** Shape in the two panes (S7): the controls its levers must render, by hook (Density's chips and the way to
  *  Components, Radius' slider and Control shape chips, Show advanced, the way on to Depth & motion). */
 const SHAPE_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="density-choice-comfortable"]', '[data-p3="shape-see-components"]',
-  '[data-p3="radius-scale-slider"]', '[data-p3="control-shape-choice-rounded"]', '[data-p3="field-style-choice-outline"]', '[data-p3="shape-advanced"]', '[data-p3="shape-continue"]'];
+  '[data-p3="radius-scale-slider"]', '[data-p3="control-shape-choice-rounded"]', '[data-p3="field-style-choice-outline"]', '[data-p3="search-field-style-choice-follow"]', '[data-p3="tag-style-choice-pill"]', '[data-p3="shape-advanced"]', '[data-p3="shape-continue"]'];
 /** Depth & motion in the two panes (S9.2), previewing Light: the softness slider, Elevation's Show advanced, the tempo
  *  chips, an easing picker button per role, the way on to Layout. The rest is section 23's. */
 const DEPTH_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="shadow-softness"]', '[data-p3="depth-tint-advanced"]',
@@ -7707,7 +7707,9 @@ for (const host of ['web', 'figma']) {
 console.log(`\nShape (S7)\n${'='.repeat(78)}`);
 /** The lever keys the owner's D1 A places on Shape, by hook (represented, not counted). `radiusHairline` is retired. */
 // #2695: Field style, right after Control shape (owner Q333, the Form group's order).
-const SHAPE_LEVERS = ['lever-density', 'lever-radius-scale', 'lever-control-shape', 'lever-field-style', 'lever-base-md'];
+// #2888: Search field style, right after Field style (owner Q514 taking Q?2 A).
+// #2887: Tag style after it (Q513.1 A).
+const SHAPE_LEVERS = ['lever-density', 'lever-radius-scale', 'lever-control-shape', 'lever-field-style', 'lever-search-field-style', 'lever-tag-style', 'lever-base-md'];
 /** The preview's sections, in order (D1 A). Literal. */
 const EXPECT_SHAPE_SPECIMENS = ['Density', 'Radius', 'Spacing', 'Building blocks'];
 /** Q23: each lever section, in order, and the preview section it pairs with (Base radius with Radius, D1 A). */
@@ -7851,7 +7853,8 @@ for (const host of ['web', 'figma']) {
       const want = `${size} button · ${HEIGHT_PX(step)}px`;
       ok(r.heights[step] === want, `D6: ${host}: the ${size} button height reads "${want}" (${JSON.stringify(r.heights[step])})`);
     }
-    ok(r.used.find(([s]) => s === 'md')?.[1]?.includes('Button') && r.used.find(([s]) => s === 'xl')?.[1] === SHAPE_COPY.usedByNone,
+    // radius.lg is the unbound size probed: Toast binds radius.xl since #2668.
+    ok(r.used.find(([s]) => s === 'md')?.[1]?.includes('Button') && r.used.find(([s]) => s === 'lg')?.[1] === SHAPE_COPY.usedByNone,
       `${host}: "used by" names Button on radius.md under the default Control shape, and the fallback "${SHAPE_COPY.usedByNone}" where nothing binds a size (${JSON.stringify(r.used.slice(2, 5))})`);
     ok(JSON.stringify(r.shapes) === JSON.stringify([['boxed', null], ['hairline', null], ['rounded', 'true'], ['pill', null]]), `${host}: the four control shapes, Rounded marked current (${JSON.stringify(r.shapes)})`);
     // D16 and E2's plain words: no "ramp", "ladder", "face", "band", "rung", "muted" or "column" in Shape's visible copy,
@@ -7918,6 +7921,17 @@ for (const host of ['web', 'figma']) {
     const pField = await persisted(page);
     ok(pField?.fieldStyle === 'underline', `shape: Underline writes fieldStyle: underline (${pField?.fieldStyle})`);
     await chip('field-style-choice-outline');
+    // #2888: Search field style is brand-wide chips too, and Follow field style writes its own value back.
+    await chip('search-field-style-choice-underline');
+    const pSearch = await persisted(page);
+    ok(pSearch?.searchFieldStyle === 'underline' && pSearch?.fieldStyle !== 'underline', `shape: search Underline writes searchFieldStyle: underline and leaves fieldStyle (${pSearch?.searchFieldStyle}, ${pSearch?.fieldStyle})`);
+    await chip('search-field-style-choice-follow');
+    ok((await persisted(page))?.searchFieldStyle === 'follow', `shape: Follow field style writes searchFieldStyle: follow (${(await persisted(page))?.searchFieldStyle})`);
+    // #2887: Tag style is brand-wide chips, as Field style is.
+    await chip('tag-style-choice-underline');
+    const pTag = await persisted(page);
+    ok(pTag?.tagStyle === 'underline', `shape: Underline writes tagStyle: underline (${pTag?.tagStyle})`);
+    await chip('tag-style-choice-pill');
     await hooks.click(page.locator('[data-p3="base-radius-pick"]'));
     await hooks.click(page.locator('[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="6"]'));
     await page.waitForFunction(() => document.querySelector('[data-p3="base-radius-pick"] .p3-btn-label')?.textContent === '6px', null, { timeout: 5000 }).catch(() => {});
@@ -7952,6 +7966,10 @@ for (const host of ['web', 'figma']) {
     await chip('field-style-choice-underline');
     ok((await persisted(page))?.fieldStyle === 'underline' && JSON.stringify((await persisted(page))?.modeLevers) === JSON.stringify(p2?.modeLevers), '#2695: previewing Dark, Underline writes fieldStyle: underline and no per-mode value');
     await chip('field-style-choice-outline');
+    // #2887: Tag style too, brand-wide from Dark.
+    await chip('tag-style-choice-underline');
+    ok((await persisted(page))?.tagStyle === 'underline' && JSON.stringify((await persisted(page))?.modeLevers) === JSON.stringify(p2?.modeLevers), '#2887: previewing Dark, Underline writes tagStyle: underline and no per-mode value');
+    await chip('tag-style-choice-pill');
     await hooks.click(page.locator('[data-p3="density-reset"]'));
     await hooks.click(page.locator('[data-p3="radius-scale-reset"]'));
     await page.waitForFunction(() => !!document.querySelector('[data-p3="radius-scale-auto"]'), null, { timeout: 5000 }).catch(() => {});
@@ -7999,7 +8017,7 @@ for (const host of ['web', 'figma']) {
       });
       ok(d.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.`, `Q59: previewing ${label}, the panel's derived line shows (N-3 A) on Shape ("${d.line}")`);
       ok(d.n >= 9 && d.enabled.length === 0, `Q59: previewing ${label}, every control on Shape is disabled, Base radius included (${d.n - d.enabled.length}/${d.n})${d.enabled.length ? ` — enabled ${[...new Set(d.enabled)].join(', ')}` : ''}`);
-      for (const hk of ['density-choice-compact', 'radius-scale-slider', 'control-shape-choice-pill', 'field-style-choice-underline', 'base-radius-pick']) ok(d.hooks.includes(hk), `Q59: previewing ${label}, the ${hk} control on Shape is among those held disabled`);
+      for (const hk of ['density-choice-compact', 'radius-scale-slider', 'control-shape-choice-pill', 'field-style-choice-underline', 'search-field-style-choice-outline', 'tag-style-choice-underline', 'base-radius-pick']) ok(d.hooks.includes(hk), `Q59: previewing ${label}, the ${hk} control on Shape is among those held disabled`);
       ok(JSON.stringify(d.preview) === JSON.stringify(EXPECT_SHAPE_SPECIMENS), `Q59: previewing ${label}, the Shape preview is still drawn (${d.preview.join(', ')})`);
       // Every size is drawn at 0px, as the emission draws wireframe; the two pill sizes still read "Pill" (#2078: the
       // label is which size it is, not its px).
@@ -8031,8 +8049,8 @@ for (const host of ['web', 'figma']) {
     await hooks.click(page.locator('[data-p3="shape-see-components"]'));
     await page.waitForFunction(() => !!document.querySelector('[data-p3="components-levers"]'), null, { timeout: 5000 }).catch(() => {});
     const s = await page.evaluate(() => ({ place: document.querySelector('[data-p3="frame"]')?.dataset.place,
-      // #2700: the Button options sit with the Buttons family, in the preview pane.
-      buttons: !!document.querySelector('[data-p3="components-style-guide"] [data-p3="lever-button-icons"]') }));
+      // #2815 step 1: the Button options sit under the Buttons row, in the list (the levers pane).
+      buttons: !!document.querySelector('[data-p3="levers-pane"] [data-p3="lever-button-icons"]') }));
     ok(s.place === 'components' && s.buttons, `${host}: See Components opens the Components tab, where the Button options are (${JSON.stringify(s)})`);
     ok(errors.length === 0, `${host} Shape routes: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
@@ -8195,7 +8213,7 @@ for (const host of ['web', 'figma']) {
         lsec: [...pane.querySelectorAll('[data-p3="cp-section-title"]')].map((x) => x.dataset.name),
         options: [document.querySelector('[data-p3="button-options-title"]')?.textContent ?? null, document.querySelector('[data-p3="button-options-desc"]')?.textContent ?? null],
         psec: [...pv.querySelectorAll('.psec')].map((x) => [x.querySelector('.psec-t')?.textContent ?? null, x.querySelector('.psec-d')?.textContent ?? null]),
-        density: [pv.querySelector('[data-p3="components-density"] .p3-sub')?.textContent ?? null, pv.querySelector('[data-p3="components-density-link"]')?.textContent ?? null],
+        density: [pane.querySelector('[data-p3="components-density"] .p3-sub')?.textContent ?? null, pane.querySelector('[data-p3="components-density-link"]')?.textContent ?? null],
         sets: [...pane.querySelectorAll('[data-p3="cp-row"][data-set], [data-p3="cp-member"][data-set]')].map((n) => n.dataset.set),
         offered: [...pane.querySelectorAll('[data-set][data-off="true"]')].map((n) => n.dataset.set),
         build: [...document.querySelectorAll('[data-p3="components-build"]')].map((n) => [n.querySelector('[data-p3="label-idle"]')?.textContent ?? null, n.querySelector('[data-p3="label-busy"]')?.textContent ?? null, n.disabled]),
@@ -8287,8 +8305,9 @@ for (const host of ['web', 'figma']) {
           link: !document.querySelector('[data-p3="components-density-link"]')?.matches(':disabled'),
           line: document.querySelector('[data-p3="button-options-derived"]')?.textContent ?? null,
           frameLine: !!document.querySelector('[data-p3="levers-derived-note"]'),
-          listHeld: [...(list?.querySelectorAll('button') ?? [])].filter((b) => b.matches(':disabled') || b.getAttribute('aria-disabled') === 'true').length,
-          listN: list?.querySelectorAll('button').length ?? 0,
+          // #2815 step 1: the Button options sit in the list now, and hold themselves (above); the list is the rest.
+          listHeld: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"]') && (b.matches(':disabled') || b.getAttribute('aria-disabled') === 'true')).length,
+          listN: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"]')).length,
           preview: [...document.querySelectorAll('[data-p3="components-style-guide"] .psec-t')].map((t) => t.textContent),
           buttons: document.querySelectorAll('[data-p3="components-style-guide"] .btnl-btn').length };
       });
@@ -8323,7 +8342,7 @@ for (const host of ['web', 'figma']) {
   } finally { await ctx.close(); }
 }
 // Q54, brand-wide: previewing Dark, a chip writes the same key as from Light and no per-mode value. (QA-B9's reveal ended
-// here with #2700: the Button options are drawn in the preview itself, beside the specimen they change.)
+// here with #2700; since #2815 step 1 the Button options sit under the Buttons row, beside the list, the specimen right.)
 {
   const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
   try {
@@ -8341,6 +8360,113 @@ for (const host of ['web', 'figma']) {
     ok(errors.length === 0, `components Q54: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     ok(false, `S8.2 Q54: the case stopped at a step that threw — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
+// #2815 step 1 (the phase-2 wireframe, call 3 A): settings left, preview right. On both hosts, at 1280 and at 380, the
+// Button options are drawn once, in the list (the levers pane), inside the Buttons row's own list item and after its row,
+// and nowhere in the preview pane; the preview pane keeps the family's head, its Preview and its sets. Focusing another
+// family (Badge, which has no settings) takes the options away with the preview's Buttons; focusing Buttons again
+// brings them back under its row. At 380 the list is the Settings pane and the preview the Preview pane, as on every page.
+//
+// Oracle: the hooks and the family names are literals typed here; "under its row" is read off the DOM's own nesting and
+// order, never from the page's `focusedRow`.
+//
+// Mutation this fails by name (focus): the `inSettings` restore dropped from `paintList` → `#2815 step 1: <host> <w>: a
+// focused Button option keeps its focus across the list's redraw at the tier flip (on BODY)`, at both hosts and widths.
+//
+// Mutation this fails by name: the block drawn under the Buttons row whatever the preview shows (`shownKey === row.key`
+// turned into `row.page === PREVIEW_DEFAULT_PAGE` in `domains/components.ts`) → `#2815 step 1: <host> <w>: focusing Badge
+// takes the Button options away …`, at both hosts and both widths.
+for (const host of ['web', 'figma']) {
+  for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 760 }]) {
+    const { ctx, page, errors } = await open({ host, theme: 'light', w, h });
+    try {
+      await goPlace(page, 'components');
+      await hooks.need(page, '[data-p3="components-levers"]');
+      const read = () => page.evaluate(() => {
+        const pane = document.querySelector('[data-p3="levers-pane"]');
+        const opts = [...document.querySelectorAll('[data-p3="button-options-section"]')];
+        const o = opts[0] ?? null;
+        const li = o?.closest('[data-p3="cp-item"]') ?? null;
+        const row = li?.querySelector(':scope > [data-p3="cp-row"]') ?? null;
+        return {
+          n: opts.length, inPane: !!o && pane.contains(o),
+          inPreview: !!document.querySelector('[data-p3="preview-body"] [data-p3="button-options-section"], [data-p3="preview-body"] [data-p3^="lever-button-"]'),
+          rowName: row?.querySelector('[data-p3="cp-name"]')?.textContent ?? null,
+          after: !!row && !!o && !!(row.compareDocumentPosition(o) & Node.DOCUMENT_POSITION_FOLLOWING),
+          levers: o ? o.querySelectorAll('[data-p3^="lever-button-"]').length : 0,
+          family: document.querySelector('[data-p3="components-style-guide"]')?.dataset.family ?? null,
+          title: document.querySelector('[data-p3="components-detail-title"]')?.textContent ?? null,
+        };
+      });
+      const r0 = await read();
+      ok(r0.n === 1 && r0.inPane && !r0.inPreview && r0.rowName === 'Buttons' && r0.after && r0.levers === 5,
+        `#2815 step 1: ${host} ${w}: the Button options sit in the list, under the Buttons row, once, and not in the preview (${JSON.stringify(r0)})`);
+      ok(r0.title === 'Buttons', `#2815 step 1: ${host} ${w}: with nothing focused the preview shows Buttons, the family whose settings are open (${r0.title})`);
+      await hooks.click(page.locator('[data-p3="cp-name"]').filter({ hasText: /^Badge$/ }).first());
+      await page.waitForFunction(() => document.querySelector('[data-p3="components-style-guide"]')?.dataset.family !== undefined
+        && document.querySelector('[data-p3="components-detail-title"]')?.textContent === 'Badge', null, { timeout: 5000 }).catch(() => {});
+      const r1 = await read();
+      ok(r1.n === 0 && r1.title === 'Badge', `#2815 step 1: ${host} ${w}: focusing Badge takes the Button options away with the preview's Buttons (${JSON.stringify(r1)})`);
+      await hooks.click(page.locator('[data-p3="cp-name"]').filter({ hasText: /^Buttons$/ }).first());
+      await page.waitForFunction(() => !!document.querySelector('[data-p3="button-options-section"]'), null, { timeout: 5000 }).catch(() => {});
+      const r2 = await read();
+      ok(r2.n === 1 && r2.inPane && r2.rowName === 'Buttons' && r2.after && r2.title === 'Buttons',
+        `#2815 step 1: ${host} ${w}: focusing Buttons opens its options under its row again (${JSON.stringify(r2)})`);
+      // A choice inside the block keeps its focus after its write.
+      await hooks.click(page.locator('[data-p3="button-icons-choice-edges"]'));
+      await page.waitForTimeout(120);
+      const f = await page.evaluate(() => document.activeElement?.getAttribute('data-p3') ?? null);
+      ok(f === 'button-icons-choice-edges', `#2815 step 1: ${host} ${w}: a Button option keeps its focus after its write (on ${f})`);
+      // A chip's write does not redraw the list, so the check above cannot tell a restored focus from one never lost. A
+      // tier flip does redraw it (the tier observer calls paintList): the chip, focused, keeps its focus across that.
+      await page.evaluate(() => document.querySelector('[data-p3="button-icons-choice-edges"]')?.focus());
+      await page.setViewportSize({ width: w === 1280 ? 380 : 1280, height: h });
+      await page.waitForTimeout(400);
+      const f2 = await page.evaluate(() => document.activeElement?.getAttribute('data-p3') ?? document.activeElement?.tagName ?? null);
+      ok(f2 === 'button-icons-choice-edges', `#2815 step 1: ${host} ${w}: a focused Button option keeps its focus across the list's redraw at the tier flip (on ${f2})`);
+      ok(errors.length === 0, `#2815 step 1 ${host} ${w}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `#2815 step 1 ${host} ${w}: the case stopped at a step that threw — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+}
+// #2825 (owner QA, 2026-10-19): in the plugin, each section head's box is centered on its title's FIRST line, as each
+// row's box is centered on its name, at 1280 and at 380 (where "Components" wraps its count onto a second line), and
+// Subcomponents' Build all on the same line. Measured off the render: the box's center against the center of the glyph
+// box of the title's first text (a DOM Range over the title's own words), held to the row's own offset within 1px.
+//
+// Mutations this fails by name: the head's `.p3-cp-line1` cells dropped (the box back on the grid's `align-items`) →
+// `#2825: figma 380: the Components head's box is centered on its title's first line …`.
+for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 760 }]) {
+  const { ctx, page, errors } = await open({ host: 'figma', theme: 'light', w, h });
+  try {
+    await goPlace(page, 'components');
+    await hooks.need(page, '[data-p3="cp-section-head"] [data-p3="cp-box"]');
+    const m = await page.evaluate(() => {
+      const mid = (r) => (r.top + r.bottom) / 2;
+      const textMid = (node) => { const r = document.createRange(); r.selectNodeContents(node); return mid(r.getClientRects()[0]); };
+      const row = document.querySelector('[data-p3="cp-row"]');
+      const rowOff = mid(row.querySelector('.p3-check-box').getBoundingClientRect()) - textMid(row.querySelector('[data-p3="cp-name"] .p3-btn-label').firstChild);
+      return { rowOff, heads: [...document.querySelectorAll('[data-p3="cp-section-head"]')].map((hd) => {
+        const t = hd.querySelector('[data-p3="cp-section-title"]');
+        const line = textMid(t.firstChild);
+        const all = hd.querySelector('[data-p3="cp-build-all"]');
+        return { name: t.dataset.name, off: mid(hd.querySelector('[data-p3="cp-box"] .p3-check-box').getBoundingClientRect()) - line,
+          lines: Math.round(t.getBoundingClientRect().height / parseFloat(getComputedStyle(t).lineHeight)),
+          allOff: all ? mid(all.getBoundingClientRect()) - line : null };
+      }) };
+    });
+    ok(Math.abs(m.rowOff) <= 1, `#2825: figma ${w}: a row's box is centered on its name, the reference (${m.rowOff.toFixed(2)}px)`);
+    for (const hd of m.heads) {
+      ok(Math.abs(hd.off - m.rowOff) <= 1, `#2825: figma ${w}: the ${hd.name} head's box is centered on its title's first line, as a row's is on its name (${hd.off.toFixed(2)}px off the line, the row's ${m.rowOff.toFixed(2)}px; the title is ${hd.lines} line${hd.lines === 1 ? '' : 's'})`);
+      if (hd.allOff !== null) ok(Math.abs(hd.allOff) <= 1, `#2825: figma ${w}: ${hd.name}' Build all is centered on the title's first line (${hd.allOff.toFixed(2)}px)`);
+    }
+    ok(m.heads.length === 2 && m.heads.some((x) => x.allOff !== null), `#2825: figma ${w}: both heads measured, Build all among them (${m.heads.length})`);
+    if (w === 380) ok(m.heads.some((x) => x.lines >= 2), `#2825: figma 380: a head's title wraps, so the first-line rule is tested where it differs from centering on the head (${JSON.stringify(m.heads.map((x) => x.lines))})`);
+    ok(errors.length === 0, `#2825 figma ${w}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `#2825 figma ${w}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // C3 A (#2086): the build stamp moved from the foot of the Pages menu to the foot of the Inspect menu, in small text, on
@@ -10375,11 +10501,12 @@ const EXPECT_HEADINGS = {
     L1: ['Breakpoints', 'Grid', 'Containers'],
     L2: ['Grid columns', 'Maximum width', 'Content container', 'sm', 'md', 'lg', 'xl', '2xl'],
   },
-  // #2700: the levers pane is the list, in its two sections; the Button options (and their L2 names) moved to the preview
-  // pane, with the Buttons family, which this audit does not sweep.
+  // #2700: the levers pane is the list, in its two sections. #2815 step 1 brought the Button options back into it, under
+  // the Buttons row: a group in the Components section, its title L2 and its levers' names L3, as Interactive's sets are.
   components: {
     L1: ['Components', 'Subcomponents'],
-    L2: [],
+    L2: ['Button options'],
+    L3: ['Button icons', 'Medium button label & icon', 'Button label weight', 'Text button hover', 'Button minimum width'],
   },
   // #2215: the plugin's Build style guides page, with SG_RING_CATALOG posted (every kind selected, so every option group
   // draws). Its page title is not a level (HEADING_EXEMPT).

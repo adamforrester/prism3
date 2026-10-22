@@ -19,7 +19,7 @@
  *   MARKDOWN                  the `.md` page's list lines are not exactly the `.json` items' sentences.
  *   NOTES                     the folded change notes are not exactly the ones that version's fold deleted.
  *   INDEX                     `index.json` and the release files disagree, in either direction, or an index
- *                             entry's counts or highlights (what the plugin shows) are not the release's.
+ *                             entry's counts, highlights or items (what the plugin shows) are not the release's.
  *   REPRESENTED               a version assigned at or after FLOOR has no release.
  *
  * A shallow clone CANNOT RUN rather than reporting its missing history as notes that disagree with git.
@@ -269,7 +269,7 @@ const fail = (arm: string, line: string): void => { fails.push(`${arm} — ${lin
 // ---- SCOPE: the files, the index and the assigned versions agree ----------------------------------
 const files = existsSync(join(repo, DIR)) ? readdirSync(join(repo, DIR)) : [];
 const onDisk = files.filter((f) => /^\d+\.\d+\.\d+\.json$/.test(f)).map((f) => f.slice(0, -'.json'.length));
-const index = existsSync(join(repo, DIR, 'index.json')) ? JSON.parse(readFileSync(join(repo, DIR, 'index.json'), 'utf8')) as { releases: { version: string; from: string; date: string; md: string; json: string; counts: Record<string, number>; highlights: { component: string; class: string; text: string }[] }[] } : { releases: [] };
+const index = existsSync(join(repo, DIR, 'index.json')) ? JSON.parse(readFileSync(join(repo, DIR, 'index.json'), 'utf8')) as { releases: { version: string; from: string; date: string; md: string; json: string; counts: Record<string, number>; highlights: { component: string; class: string; text: string }[]; items?: { class: string; area: string; kind: string; component?: string; text: string }[] }[] } : { releases: [] };
 const indexed = index.releases.map((e) => e.version);
 for (const v of onDisk) if (!indexed.includes(v)) fail('INDEX', `${DIR}/${v}.json is not in index.json`);
 for (const v of indexed) if (!onDisk.includes(v)) fail('INDEX', `index.json lists ${v}, and ${DIR}/${v}.json does not exist`);
@@ -358,6 +358,11 @@ for (const v of onDisk.sort(cmpVersion)) {
     const hl = rel.items.filter((i) => i.area === 'figma' && i.class !== 'fix').map((i) => `${i.class}|${i.component}|${i.text}`);
     const got = (e.highlights ?? []).map((x) => `${x.class}|${x.component}|${x.text}`);
     if (JSON.stringify([...hl].sort()) !== JSON.stringify([...got].sort())) fail('INDEX', `index.json's highlights for ${v} are not its breaking and new Figma items (${got.length} listed, ${hl.length} owed)`);
+    // #2858: the Figma and token items, every class, in the release's order. The plugin bundles these for the About frame,
+    // the publish description and each set's last change, so a dropped fix is a set that reads unchanged.
+    const owed = rel.items.filter((i) => i.area !== 'code').map((i) => `${i.class}|${i.area}|${i.kind}|${i.component ?? ''}|${i.text}`);
+    const listed = (e.items ?? []).map((x) => `${x.class}|${x.area}|${x.kind}|${x.component ?? ''}|${x.text}`);
+    if (JSON.stringify(owed) !== JSON.stringify(listed)) fail('INDEX', `index.json's items for ${v} are not its Figma and token items, in order (${listed.length} listed, ${owed.length} owed)`);
   }
   report.push(`  ${v}: ${expected.length} change(s) in ${base.slice(0, 8)}..${at === null ? 'the working tree' : at.slice(0, 8)} — ${counts.breaking} breaking, ${counts.new} new, ${counts.fix} fix; ${rel.notes.length} change note(s)`);
 }

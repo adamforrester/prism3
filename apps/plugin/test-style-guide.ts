@@ -118,6 +118,10 @@
  *      row, running over the frames below. Inverse colors is its own titled group 320 below, column-aligned (read off the
  *      shim's layout model); the fixed frame grows to fit; the frames below move clear, order and gap kept; a rerun is
  *      stable.
+ *  40. A GROUP YOU MADE THAT WRAPS (#2856): a HORIZONTAL frame with wrap on, header on the first row and the guides
+ *      wrapping below, grows to its widest row (never the one-row sum), its height its rows; one #2827's one-row sum
+ *      widened is put back; a width wider than its rows need that is not that sum is kept; a rerun is stable. Expected
+ *      widths from the layout rule (padding + widest child), typed here; the shim lays wrapped rows out by its own rule.
  *
  * INDEPENDENCE (docs/34): expected values are literals written here. The ratios (19.42, 18.13, 21) and the
  * failing 3.27 (neutral/400 on white, computed by hand from the WCAG formula), 6.44 (foreground.brand on
@@ -304,6 +308,11 @@
  *     colors…"; `fitToContent` returning at once → "39: never clipped: a fixed frame you made grows to fit…"; the
  *     overlap pass given no frame to push from → "39: never overlapping: the frames below move down clear of Inverse
  *     colors…" and "38: Inverse colors goes 320 below the group, and the group that sat there moves down…".
+ *   - (#2856, each on a committed head, the suite run on it) the wrap branch dropped from `fitToContent`'s `need` →
+ *     "40: a wrapped frame you made grows to its widest row…", "40: its height is its two rows…" and "40: a wrapped
+ *     frame the one-row sum widened is put back…"; the repair disabled (`widened` false) → "40: a wrapped frame the
+ *     one-row sum widened is put back…"; `rowsHigh` ignoring `counterAxisSpacing` (`between = gap`) or returning only
+ *     `padV` → "40: a wrapped frame with a fixed height grows to its two rows…".
  *
  * THE SHIM IGNORES A RESIZE THE HOST IGNORES: a FIXED text inside an instance keeps its main component's width under
  * `resize` (live, 2026-09-28). Before the shim modeled it, every width assertion passed over one-word-a-line text.
@@ -416,6 +425,22 @@ const LINE_H = 20;
 const padY = (n: N): number => padOf(n, 'paddingTop') + padOf(n, 'paddingBottom');
 /** Out of an auto-layout frame's flow: an ABSOLUTE child takes no part in what the frame hugs. */
 const inFlow = (k: N): boolean => k.layoutPositioning !== 'ABSOLUTE';
+/**
+ * A ROW THAT WRAPS (`layoutWrap: 'WRAP'`, a HORIZONTAL frame of a fixed width), as the host lays it out: its in-flow
+ * children left to right, `itemSpacing` apart, and a child that would pass the right padding starts the next row at the
+ * left padding (the first in a row always stays, however wide). Each row is as tall as its tallest child; the rows sit
+ * `counterAxisSpacing` apart (the host's `itemSpacing` where it is unset). The shim's own rule, for #2856.
+ */
+const wrapRows = (n: N): { kids: N[]; at: Map<N, number>; h: number }[] => {
+  const inner = n.w - padX(n), gap = Number(n.itemSpacing ?? 0);
+  const rows: { kids: N[]; at: Map<N, number>; h: number; run: number }[] = [];
+  for (const k of n.children.filter((c) => c.visible !== false && inFlow(c))) {
+    const r = rows[rows.length - 1];
+    if (!r || r.run + gap + k.width > inner) rows.push({ kids: [k], at: new Map([[k, 0]]), h: k.height, run: k.width });
+    else { r.at.set(k, r.run + gap); r.kids.push(k); r.h = Math.max(r.h, k.height); r.run += gap + k.width; }
+  }
+  return rows;
+};
 /** THE LAYOUT EPOCH: bumped by every write to every node (each `N` is a proxy that counts its writes), so a grid's
  *  tracks are computed once per state of the file rather than once per read. A 124-row table's fingerprint reads
  *  1,750 cell widths, each a column of 125 cells: uncached, the suite ran ~8× slower. The proxy cannot see a write
@@ -459,6 +484,7 @@ class N {
     const p = this.parent;
     if (p && isAuto(p) && inFlow(this)) {
       if (p.layoutMode === 'VERTICAL') return padOf(p, 'paddingLeft');
+      if (p.layoutWrap === 'WRAP') return padOf(p, 'paddingLeft') + (wrapRows(p).find((r) => r.kids.includes(this))?.at.get(this) ?? 0);
       const before = p.children.slice(0, p.children.indexOf(this)).filter((k) => k.visible !== false && inFlow(k));
       return padOf(p, 'paddingLeft') + before.reduce((sum, k) => sum + k.width + Number(p.itemSpacing ?? 0), 0);
     }
@@ -755,6 +781,10 @@ const contentH = (n: N): number => {
   if (n.type === 'TEXT') return linesOf(n) * LINE_H;
   if (n.layoutMode === 'GRID') return hugGridH(n);
   if (!isAuto(n)) return n.layoutSizingVertical === 'FILL' ? Number(n.minHeight ?? 0) : n.h;
+  if (n.layoutMode === 'HORIZONTAL' && n.layoutWrap === 'WRAP') {
+    const rows = wrapRows(n);
+    return padY(n) + rows.reduce((a, r) => a + r.h, 0) + Number(n.counterAxisSpacing ?? n.itemSpacing ?? 0) * Math.max(0, rows.length - 1);
+  }
   const hs = n.children.filter((k) => k.visible !== false && inFlow(k)).map((k) => k.height);
   return padY(n) + (n.layoutMode === 'VERTICAL' ? hs.reduce((a, b) => a + b, 0) + Number(n.itemSpacing ?? 0) * Math.max(0, hs.length - 1) : Math.max(0, ...hs));
 };
@@ -1020,7 +1050,7 @@ const GROW_DIMENSION = 2 * 44;
 const RAMP_H = 81 * 44 + 40;
 /** The prism3 emission's inverse families, in file order: one table each since #2801 (the owner's change of 2026-10-16),
  *  where they were one Inverse table. */
-const SEM_INVERSE = ['Inverse background', 'Inverse foreground', 'Inverse interactive', 'Inverse disabled', 'Inverse field', 'Inverse text', 'Inverse icon', 'Inverse border'];
+const SEM_INVERSE = ['Inverse background', 'Inverse foreground', 'Inverse text', 'Inverse border', 'Inverse icon', 'Inverse interactive', 'Inverse disabled', 'Inverse field'];
 const PRIM = '↳ Primitive tokens';
 const SEM = '↳ Semantic tokens';
 const FC = '↳ File Components';
@@ -1317,7 +1347,7 @@ const main = async (): Promise<void> => {
   const byTitle = (kind: string, title: string): SgTable | undefined => plan.tables.find((t) => t.kind === kind && t.title === title);
   {
     const sem = plan.tables.filter((t) => t.kind === 'semantic');
-    ok(JSON.stringify(sem.map((t) => t.title)) === JSON.stringify(['Background', 'Foreground', 'Text', 'Icon', 'Interactive', 'Disabled', 'Border', 'Scrim', 'Veil', 'Field', ...SEM_INVERSE]), '3: color groups by family, in file order, each inverse family its own table (#2801)');
+    ok(JSON.stringify(sem.map((t) => t.title)) === JSON.stringify(['Background', 'Foreground', 'Text', 'Border', 'Icon', 'Interactive', 'Disabled', 'Scrim', 'Veil', 'Field', ...SEM_INVERSE]), '3: color groups by family, in file order, each inverse family its own table (#2801)');
     ok(sem.every((t) => t.page === SEM), '3: semantic tables go on ↳ Semantic tokens');
     const prim = plan.tables.filter((t) => t.kind === 'primitive');
     ok(JSON.stringify(prim.map((t) => t.title)) === JSON.stringify(['Core — base', 'Primary', 'Neutral', 'Accent', 'Success', 'Warning', 'Info', 'Danger', 'Black alpha', 'White alpha', 'Legacy']), '3: primitive tables per palette');
@@ -1675,7 +1705,7 @@ const main = async (): Promise<void> => {
   {
     const two = twoRootVariables();
     const p2 = planStyleGuide({ collections: two.cols, variables: two.vars }, contract);
-    const fams = ['Background', 'Foreground', 'Text', 'Icon', 'Interactive', 'Disabled', 'Border', 'Scrim', 'Veil', 'Field', ...SEM_INVERSE];
+    const fams = ['Background', 'Foreground', 'Text', 'Border', 'Icon', 'Interactive', 'Disabled', 'Scrim', 'Veil', 'Field', ...SEM_INVERSE];
     ok(JSON.stringify(p2.tables.filter((t) => t.kind === 'semantic').map((t) => t.title)) === JSON.stringify([...fams.map((x) => `${x} — nbds`), ...fams.map((x) => `${x} — pds3`)]), '9: a two-root color collection groups by family within each root, the root named in the title');
     const pal = ['Primary', 'Neutral', 'Accent', 'Success', 'Warning', 'Info', 'Danger', 'Black alpha', 'White alpha'];
     ok(JSON.stringify(p2.tables.filter((t) => t.kind === 'primitive').map((t) => t.title)) === JSON.stringify(['Core — nbds base', ...pal.map((x) => `${x} — nbds`), 'Core — pds3 base', ...pal.map((x) => `${x} — pds3`), 'Legacy']), '9: the two Primary palettes are told apart by their root; a one-root collection names none');
@@ -1743,8 +1773,8 @@ const main = async (): Promise<void> => {
     // INVERSE COLORS IS ITS OWN GROUP (owner decision, 2026-10-19): the defaults in Semantic colors' one row, the inverse
     // guides in their own titled frame, each in its default counterpart's column. Scrim and Veil have no inverse, so their
     // cells below stay empty; typed out here.
-    const want = { Background: '0,0', Foreground: '0,1', Text: '0,2', Icon: '0,3', Interactive: '0,4', Disabled: '0,5', Border: '0,6', Scrim: '0,7', Veil: '0,8', Field: '0,9',
-      'Inverse background': '0,0', 'Inverse foreground': '0,1', 'Inverse text': '0,2', 'Inverse icon': '0,3', 'Inverse interactive': '0,4', 'Inverse disabled': '0,5', 'Inverse border': '0,6', 'Inverse field': '0,9' };
+    const want = { Background: '0,0', Foreground: '0,1', Text: '0,2', Border: '0,3', Icon: '0,4', Interactive: '0,5', Disabled: '0,6', Scrim: '0,7', Veil: '0,8', Field: '0,9',
+      'Inverse background': '0,0', 'Inverse foreground': '0,1', 'Inverse text': '0,2', 'Inverse border': '0,3', 'Inverse icon': '0,4', 'Inverse interactive': '0,5', 'Inverse disabled': '0,6', 'Inverse field': '0,9' };
     const got = Object.keys(want).map((t) => `${t} ${at(t)}`);
     const inverseTitles = Object.keys(want).filter((t) => t.startsWith('Inverse '));
     ok(!!sc && !!ic && pageFrames(r.sem).length === 2 && JSON.stringify(got) === JSON.stringify(Object.entries(want).map(([t, c]) => `${t} ${c}`))
@@ -2954,7 +2984,7 @@ const main = async (): Promise<void> => {
   {
     // THE TABLES THE PAGE OFFERS, typed here: the prism3 file's 29, in draw order (section 14 counts the same run).
     const PRISM3_TITLES = ['Core — base', 'Primary', 'Neutral', 'Accent', 'Success', 'Warning', 'Info', 'Danger', 'Black alpha', 'White alpha',
-      'Background', 'Foreground', 'Text', 'Icon', 'Interactive', 'Disabled', 'Border', 'Scrim', 'Veil', 'Field', ...SEM_INVERSE, 'Legacy'];
+      'Background', 'Foreground', 'Text', 'Border', 'Icon', 'Interactive', 'Disabled', 'Scrim', 'Veil', 'Field', ...SEM_INVERSE, 'Legacy'];
     const f25 = await fullFile();
     const cat = catalogFor({ collections: f25.cols, variables: f25.vars }, contract, isSetUp(f25.api.root));
     ok(JSON.stringify(cat.tables.map((t) => t.title)) === JSON.stringify(PRISM3_TITLES) && cat.tables.every((t) => t.kind === 'color')
@@ -4400,17 +4430,92 @@ const main = async (): Promise<void> => {
     ok(hAgain === hSnap, `39: with a frame below the growth, a rerun moves and resizes nothing (${hAgain === hSnap ? 'same' : `${hSnap} → ${hAgain}`})`);
   }
 
-  console.log('40. the named version (#2828): saved once, with the table count, before the first table is drawn');
+  console.log('40. a group you made that wraps (#2856): its width is its widest row, never the one-row sum; a frame the one-row sum widened is put back');
+  {
+    // AS THE OWNER'S PAGE IS BUILT (#2856): their "Semantic colors" frame is a HORIZONTAL auto layout with wrap on, FIXED
+    // wide, hugging its height, padding 240, 48 between items and 96 between rows. Their own `_section-header` sits on
+    // the first row and the `Guides` grid wraps below it; the grid is wider than the frame's inside, so it clipped.
+    const PAD = 240, GAP = 48, ROWGAP = 96;
+    const wrapped = async (width: (headerW: number, gridW: number) => number, fixedHeight?: number) => {
+      const f = await fullFile();
+      await draw(f.api, contract);
+      const ours = groupFrame(f.sem, 'Semantic colors')!;
+      const grid = guidesOf(ours)!;
+      const owner = new N('FRAME'); owner.name = 'Semantic colors'; owner.layoutMode = 'HORIZONTAL'; owner.layoutWrap = 'WRAP';
+      owner.primaryAxisSizingMode = 'FIXED'; owner.counterAxisSizingMode = 'AUTO'; owner.clipsContent = true;
+      owner.paddingLeft = PAD; owner.paddingRight = PAD; owner.paddingTop = PAD; owner.paddingBottom = PAD; owner.itemSpacing = GAP; owner.counterAxisSpacing = ROWGAP;
+      f.sem.appendChild(owner); owner.x = 0; owner.y = 0;
+      const header = new N('FRAME'); header.name = '_section-header'; header.w = grid.width - 838; header.h = 300;
+      owner.appendChild(header); owner.appendChild(grid);
+      ours.remove();
+      owner.w = width(header.width, grid.width);
+      if (fixedHeight !== undefined) { owner.counterAxisSizingMode = 'FIXED'; owner.h = fixedHeight; }
+      return { f, owner, header, grid };
+    };
+    // EXPECTED FROM THE LAYOUT RULE, never from `fitToContent`: a wrapped row needs its widest child and its padding;
+    // the header and the grid cannot share a row (header + 48 + grid passes it), so the grid wraps to the left padding.
+    const rule = (m: { header: N; grid: N }): number => PAD + Math.max(m.header.width, m.grid.width) + PAD;
+    const oneRow = (m: { header: N; grid: N }): number => PAD + m.header.width + GAP + m.grid.width + PAD;
+    const shape = (m: { owner: N; header: N; grid: N }): string => `${m.owner.width}×${m.owner.height} header ${m.header.x},row ${m.header.x === PAD ? 1 : '?'} grid x ${m.grid.x}`;
+
+    // 1. The clipping frame, narrower than its grid, grows to its widest row and no further.
+    const a = await wrapped((hw) => PAD + hw + 100 + PAD);
+    const aw0 = a.owner.width;
+    ok(aw0 - 2 * PAD < a.grid.width && a.grid.x === PAD && a.header.x === PAD,
+      `40: the precondition: the grid (${a.grid.width}) is wider than the frame's inside (${aw0 - 2 * PAD}) and wraps below the header`);
+    await draw(a.f.api, contract);
+    const aWant = rule(a);
+    ok(a.owner.width === aWant && a.owner.width < oneRow(a) && a.grid.x === PAD && a.header.x === PAD && a.owner.layoutWrap === 'WRAP' && a.owner.primaryAxisSizingMode === 'FIXED',
+      `40: a wrapped frame you made grows to its widest row, the grid kept on its own row below the header (${a.owner.width} wide, want ${aWant}; the one-row sum would be ${oneRow(a)}; ${shape(a)})`);
+    const aH = PAD + a.header.height + ROWGAP + a.grid.height + PAD;
+    ok(a.owner.height === aH && pageOverlaps(a.f.sem).length === 0,
+      `40: its height is its two rows, ${ROWGAP} apart, and nothing on the page overlaps (${a.owner.height} tall, want ${aH}; ${pageOverlaps(a.f.sem).join('; ') || 'no overlap'})`);
+    const aSnap = pageFrames(a.f.sem).map((n) => `${n.name} ${n.x},${n.y} ${n.width}×${n.height}`).join('; ');
+    await draw(a.f.api, contract);
+    const aAgain = pageFrames(a.f.sem).map((n) => `${n.name} ${n.x},${n.y} ${n.width}×${n.height}`).join('; ');
+    ok(aAgain === aSnap, `40: a wrapped frame: a rerun moves and resizes nothing (${aAgain === aSnap ? 'same' : `${aSnap} → ${aAgain}`})`);
+
+    // 2. A frame #2827's run already widened to the one-row sum is put back to its widest row, the grid wrapping again.
+    const b = await wrapped((hw, gw) => PAD + hw + GAP + gw + PAD);
+    ok(b.grid.x === PAD + b.header.width + GAP, `40: the precondition: widened to the one-row sum, the grid sits beside the header (grid x ${b.grid.x})`);
+    await draw(b.f.api, contract);
+    ok(b.owner.width === rule(b) && b.grid.x === PAD && b.owner.primaryAxisSizingMode === 'FIXED',
+      `40: a wrapped frame the one-row sum widened is put back to its widest row, the grid below the header again (${b.owner.width} wide, want ${rule(b)}; ${shape(b)})`);
+    const bSnap = pageFrames(b.f.sem).map((n) => `${n.name} ${n.x},${n.y} ${n.width}×${n.height}`).join('; ');
+    await draw(b.f.api, contract);
+    const bAgain = pageFrames(b.f.sem).map((n) => `${n.name} ${n.x},${n.y} ${n.width}×${n.height}`).join('; ');
+    ok(bAgain === bSnap, `40: once put back, a rerun moves and resizes nothing (${bAgain === bSnap ? 'same' : `${bSnap} → ${bAgain}`})`);
+
+    // 3. A width of the owner's own, wider than its rows need but not the one-row sum, is kept: never made smaller.
+    const c = await wrapped((hw, gw) => PAD + hw + GAP + gw + PAD + 1000);
+    const cw0 = c.owner.width;
+    await draw(c.f.api, contract);
+    ok(c.owner.width === cw0, `40: a wrapped frame you made wider than its rows need is never made smaller (${cw0} → ${c.owner.width})`);
+
+    // 4. A FIXED height shorter than the two rows clips the second: it grows to the rows' height (the only case the
+    //    wrapped-height arithmetic decides; a hugging frame's height is the shim's own). Typed here, not read off the code.
+    const d = await wrapped((hw) => PAD + hw + 100 + PAD, 500);
+    const dH = PAD + d.header.height + ROWGAP + d.grid.height + PAD;
+    ok(d.owner.height === 500 && d.owner.height < dH, `40: the precondition: a fixed height (${d.owner.height}) shorter than the two rows (${dH})`);
+    await draw(d.f.api, contract);
+    ok(d.owner.height === dH && d.owner.counterAxisSizingMode === 'FIXED',
+      `40: a wrapped frame with a fixed height grows to its two rows, ${ROWGAP} apart, and stays fixed (${d.owner.height} tall, want ${dH})`);
+    const e = await wrapped((hw) => PAD + hw + 100 + PAD, dH + 700);
+    await draw(e.f.api, contract);
+    ok(e.owner.height === dH + 700, `40: a wrapped frame taller than its rows is never made shorter (${dH + 700} → ${e.owner.height})`);
+  }
+
+  console.log('41. the named version (#2828): saved once, with the table count, before the first table is drawn');
   {
     const v = await fullFile();
     const seen: { tables: number; drawn: number }[] = [];
     const r = await draw(v.api, contract, {}, { beforeWrite: async (tables) => { seen.push({ tables, drawn: tablesOn(v.sem).length + tablesOn(v.prim).length }); } });
     ok(seen.length === 1 && seen[0].drawn === 0 && seen[0].tables === r.tables.length && r.tables.length > 0,
-      `40: one call, with the plan's ${r.tables.length} tables, before any is drawn (${JSON.stringify(seen)})`);
+      `41: one call, with the plan's ${r.tables.length} tables, before any is drawn (${JSON.stringify(seen)})`);
     const refused = await fullFile();
     let threw = '';
     try { await draw(refused.api, contract, {}, { beforeWrite: async () => { throw new Error('no version'); } }); } catch (e) { threw = (e as Error).message; }
-    ok(threw === 'no version' && tablesOn(refused.sem).length + tablesOn(refused.prim).length === 0, `40: a version that cannot be saved ends the run with nothing drawn (${threw})`);
+    ok(threw === 'no version' && tablesOn(refused.sem).length + tablesOn(refused.prim).length === 0, `41: a version that cannot be saved ends the run with nothing drawn (${threw})`);
   }
 
   if (failures) { console.error(`\n${failures} style-guide check(s) failed`); process.exit(1); }

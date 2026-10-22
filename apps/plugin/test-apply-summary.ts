@@ -34,7 +34,8 @@
  */
 import { applyHeadline, APPLY_FAILED_HEADLINE, conflictHeadline, componentHeadline, staleNote, refsNote, refsItems, partialWriteHeadline, partialWriteNote, partialWriteItem, fromClauses, motionReplacedItem } from './src/apply-summary';
 import type { PartialWriteFacts } from './src/apply-summary';
-import { fieldStyleNote } from './src/field-style-note';
+import { fieldStyleNote, searchFieldStyleNote } from './src/field-style-note';
+import { tagStyleNote } from './src/tag-style-note';
 import type { BrandInput } from '@prism3/engine/theme';
 import { readFileSync as readSrc } from 'node:fs';
 
@@ -330,9 +331,49 @@ ok(motionReplacedItem(0) === '', `#2412: nothing replaced, no clause (${JSON.str
   // Apply's list, off the brand `runApplyTheme` read BEFORE it persisted the new one.
   const main = readSrc(new URL('./src/main.ts', import.meta.url), 'utf8');
   const apply = readSrc(new URL('./src/apply-theme.ts', import.meta.url), 'utf8');
-  ok(/fieldStyleNote\(before, input\),\n\s*\]\.map/.test(main) && apply.indexOf('before = restoreInput(host.root)') > 0
+  ok(/fieldStyleNote\(before, input\),\n/.test(main) && apply.indexOf('before = restoreInput(host.root)') > 0
     && apply.indexOf('before = restoreInput(host.root)') < apply.indexOf('persistInput(host.root, input)'),
     '#2695 Q16: Apply reads the stored brand before persisting the new one, and its clause list carries the notice');
+}
+
+// ---- #2888: the search field style notice --------------------------------------------------------------------
+// Said only when the lever moved AND the search field draws a different edge. Literals typed here.
+{
+  const b = { brandColors: [] } as unknown as BrandInput;
+  const with_ = (o: Record<string, string>) => ({ ...b, ...o }) as BrandInput;
+  const SAY_UNDER = 'Search field style is now Underline. Update components to redraw the search field.';
+  ok(searchFieldStyleNote(b, with_({ searchFieldStyle: 'underline' })) === SAY_UNDER,
+    `#2888: Follow (unset) over outline fields → Underline says so and points at Update (${searchFieldStyleNote(b, with_({ searchFieldStyle: 'underline' }))})`);
+  ok(searchFieldStyleNote(with_({ fieldStyle: 'underline', searchFieldStyle: 'outline' }), with_({ fieldStyle: 'underline' })) === 'Search field style is now Follow field style. Update components to redraw the search field.',
+    '#2888: Outline → unset over underline fields reads as Follow field style, the default, and the edge moves');
+  ok(searchFieldStyleNote(null, with_({ searchFieldStyle: 'underline' })) === SAY_UNDER,
+    '#2888: a file with no stored brand was built following outline fields, so underline is a change');
+  ok(searchFieldStyleNote(b, with_({ searchFieldStyle: 'outline' })) === '' && searchFieldStyleNote(b, with_({ searchFieldStyle: 'follow' })) === ''
+    && searchFieldStyleNote(with_({ searchFieldStyle: 'underline' }), with_({ searchFieldStyle: 'underline' })) === '',
+    '#2888: no clause when the lever did not move, or moved between two settings that draw the same edge (Follow over outline fields, and Outline)');
+  ok(searchFieldStyleNote(b, with_({ fieldStyle: 'underline' })) === '' && fieldStyleNote(b, with_({ fieldStyle: 'underline' })) !== '',
+    '#2888: a search field that follows a changed Field style is said by the field style notice, not twice');
+  const main = readSrc(new URL('./src/main.ts', import.meta.url), 'utf8');
+  ok(/searchFieldStyleNote\(before, input\),/.test(main), '#2888: Apply\'s clause list carries the search field style notice');
+}
+
+// ---- #2887: the tag style notice, Field style's twin (copy DRAFT for the owner) ---------------------------------
+// A tag style switch reaches the Tag set through Update, so Apply says so. Literals typed here.
+{
+  const b = { brandColors: [] } as unknown as BrandInput;
+  const under = { ...b, tagStyle: 'underline' } as BrandInput;
+  const pill = { ...b, tagStyle: 'pill' } as BrandInput;
+  ok(tagStyleNote(pill, under) === 'Tag style is now Underline. Update components to redraw the tag set.',
+    `#2887: pill → underline says so and points at Update (${tagStyleNote(pill, under)})`);
+  ok(tagStyleNote(under, b) === 'Tag style is now Pill. Update components to redraw the tag set.',
+    `#2887: underline → unset reads as Pill, the default (${tagStyleNote(under, b)})`);
+  ok(tagStyleNote(null, under) === 'Tag style is now Underline. Update components to redraw the tag set.',
+    '#2887: a file with no stored brand was built in pill, so underline is a change');
+  ok(tagStyleNote(under, under) === '' && tagStyleNote(null, b) === '' && tagStyleNote(b, pill) === '' && tagStyleNote({ ...b, fieldStyle: 'underline' } as BrandInput, b) === '',
+    '#2887: no change, no clause (unset and pill are the same style; a field style change is not a tag style change)');
+  const main = readSrc(new URL('./src/main.ts', import.meta.url), 'utf8');
+  ok(/tagStyleNote\(before, input\),\n\s*\]\.map/.test(main),
+    '#2887: Apply\'s clause list carries the tag style notice, off the brand read before the new one persisted');
 }
 
 console.log(`\nplugin apply-result headline: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);

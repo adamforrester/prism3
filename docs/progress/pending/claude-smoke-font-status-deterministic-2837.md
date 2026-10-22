@@ -1,0 +1,8 @@
+## (2026-10-20) — Studio smoke: the "⚠ Not installed" arm no longer depends on the host's fonts (#2837)
+
+`test:smoke`'s font-status sweep (#2091, #2103) requires both labels drawn in every brand × mode. It forced Inter to read as installed (`INTER_INSTALLED`, a `measureText` stub) and left every other family to the host, relying on JetBrains Mono being absent. A container that ships Inter and JetBrains Mono (the cloud image does) drew "✓ Installed" for harbor and no "⚠ Not installed" at all, so the arm failed NOT EXERCISED in four harbor states.
+
+- **Fix.** The same init script now answers the probe for every family: Inter's width widened by the existing 10px, any other family measured as the bare base font, so `fontAvailable` sees no change and the face reads absent. Both states are now forced, not inherited. Test-only; no shipped code, no engine change, no change note.
+- **Reused, not new.** The mechanism is the existing `INTER_INSTALLED` stub (the issue's options 1 and 3 would add a fontconfig pin or a fixture brand); the arm's NOT EXERCISED guard is unchanged, so a state that draws neither label still fails.
+- **Checked.** Passes on a host with Inter and JetBrains Mono installed (12025 assertions; ⚠ drawn in 12 of 12 states, lowest 4.99:1). Mutation: painting the ⚠ label a fixed `#b0b0b0` in `preview/sections/faces.ts` fails the arm by name in all 12 states, harbor included ("clears 4.5:1 on the brand's page color … 1.79:1", "is drawn in the brand's text.warning …"), and the mutation is reverted.
+- **Trap.** The stub matches only the probe's font string (`72px "<family>", <base>`). A change to the probe's string makes the stub inert and the sweep falls back to the host's fonts; the NOT EXERCISED guard is what would then say so.

@@ -15,7 +15,7 @@ import { ComponentDef } from '../component-schema';
 
 const tabNest = (selection: 'selected' | 'unselected') => ({
   kind: 'nest' as const,
-  nests: 'tab',
+  nests: 'tab-item',
   nesting: { kind: 'nest-fixed' as const, variant: { selection, size: 'medium', state: 'rest' }, follow: ['size'] },
 });
 
@@ -25,13 +25,13 @@ export const tabs: ComponentDef = {
   aliases: ['tab-list', 'tab-group', 'tab-bar', 'tab-panel'],
   category: 'navigation',
   status: 'draft',
-  summary: 'A row of tabs that switches between panels of related content in place.',
+  summary: 'A row of tabs that switches between panels of related content in place. Size applies to the items you haven\'t edited. After editing an item, select the items and set their size.',
   description:
     'A row of tabs above a baseline. Each tab names one panel of related content; selecting a tab shows its panel in place and hides the rest, without changing the page or the address. One tab is always selected. Arrow keys move between tabs, and Tab moves on into the panel.',
 
   props: [
     { name: 'value', type: 'string', required: false, description: 'The key of the selected tab. Controlled; pair it with onChange.' },
-    { name: 'items', type: 'slot', anyOf: ['tab'], minItems: 1, maxItems: 6, required: true, description: 'The tabs, each a Tab, in order, one per panel. Three by default with the first selected, six at most.' },
+    { name: 'items', type: 'slot', anyOf: ['tab-item'], minItems: 1, maxItems: 6, required: true, description: 'The tabs, each a Tab, in order, one per panel. Three by default with the first selected, six at most.' },
     { name: 'defaultValue', type: 'string', required: false, description: 'The key of the tab selected first, when the list manages its own state.' },
     { name: 'onChange', type: 'function', required: false, description: 'Called with the new key when the selected tab changes.' },
     { name: 'activation', type: "enum: 'automatic' | 'manual'", values: ['automatic', 'manual'], default: 'automatic', required: false, description: 'automatic: moving focus with the arrow keys selects the tab. manual: arrows move focus only, and Enter or Space selects. Use manual when showing a panel is slow.' },
@@ -77,7 +77,7 @@ export const tabs: ComponentDef = {
         contentSlot: true,
         // Owner decision Q307 A: at least one item, at most 6, and only a tab (#2646's slot constraints).
         slotSettings: { minChildren: 1, maxChildren: 6, allowPreferredValuesOnly: true },
-        preferred: ['tab'],
+        preferred: ['tab-item'],
         children: ['tab1', 'tab2', 'tab3'],
         layout: { direction: 'row', align: 'end', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
         gap: 'gap',
@@ -155,13 +155,13 @@ export const tabs: ComponentDef = {
     primaryPurpose: 'Switch between peer panels of related content in place, one at a time.',
     whenToUse: 'Two to about six peer sections of one subject, viewed one at a time, where switching is quick and the address need not change.',
     avoidWhen: 'The selection changes the page or the address (a navigation of links), filters or re-sorts the current view (SegmentedControl, or Select), is a required sequence (a stepper, not built yet), or has many independent sections (Accordion).',
-    commonPartners: ['tab', 'badge', 'icon'],
+    commonPartners: ['tab-item', 'badge', 'icon'],
     triggerKeywords: ['tabs', 'tab list', 'tab bar', 'tabbed panels', 'tabbed content', 'switch panels'],
     generationPriority: 2,
   },
 
   composition: {
-    composesWith: ['tab'],
+    composesWith: ['tab-item'],
     alternativeTo: ['select', 'accordion', 'segmented-control'],
     replacesPatterns: ['show and hide divs with no tab semantics', 'role="tab" on links that change the route'],
     supersededBy: [],
