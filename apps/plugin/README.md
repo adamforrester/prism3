@@ -304,6 +304,18 @@ missing, drawn from an older plan or out of place as "1 usage panel to draw", bu
 by what is still there, unless the update itself moves it (`docPanelBlockers`). Gated by
 `test-doc-panel.ts`.
 
+**One panel per family, and anatomy markers on their parts (#2927 phase 1, owner decision Q551 A; #2916).** A taxonomy
+page's sets share one panel, drawn beside its lead's set (`lead` in `src/file-taxonomy.ts`: Button, and the Row for
+Checkbox, Radio and Switch); it lists the family's sets under the lede, and merges the members' Do and Don't items into
+the lead's. Only the lead's set makes room for a panel. The members' own panels from before are replaced, or kept aside
+when edited. In Anatomy, repeated parts (`item1`…`item3`) are one entry, and every listed number is on a specimen, on
+its part: found by its path in the def's part tree (so a part in a slot or a nested instance is reached), shown
+through the boolean that hides it, or drawn on one more specimen of the member that holds it. Each marker sits in the
+specimen's gutter with a 1px leader to its part, placed from the host's laid-out boxes (`absoluteBoundingBox`); a part
+that holds another marked part, the root among them, gets a bracket instead. The panel's print leaves out what the set
+puts in it (a specimen's content, sizes, main components), so a rebuilt set no longer reads as a hand edit and leaves
+two panels stacked.
+
 **Interactive components (#2466, owner decision Q238 A).** Every set whose `state` axis holds `rest`, `hover` and
 `pressed` (the button family, icon buttons, tag, tab, and the checkbox, radio and switch controls) gets prototype
 reactions on its members: Rest → Hover on While hovering, and Rest and Hover → Pressed on While pressing, each
