@@ -1493,6 +1493,11 @@
           "$value": "{pds3.core.palette.warning.500}",
           "$description": "Bold warning fill — clears 3:1 on background.secondary"
         },
+        "danger": {
+          "$type": "color",
+          "$value": "{pds3.core.palette.danger.500}",
+          "$description": "Bold danger fill — clears 3:1 on background.secondary"
+        },
         "info": {
           "$type": "color",
           "$value": "{pds3.core.palette.info.500}",
@@ -1522,11 +1527,6 @@
           "$type": "color",
           "$value": "{pds3.core.palette.info.100}",
           "$description": "Subtle info tint surface — banners, badges, selected rows"
-        },
-        "danger": {
-          "$type": "color",
-          "$value": "{pds3.core.palette.danger.500}",
-          "$description": "Bold danger fill — clears 3:1 on background.secondary"
         }
       },
       "text": {
@@ -1645,125 +1645,6 @@
             "$type": "color",
             "$value": "{pds3.core.palette.primary.800}",
             "$description": "Link text — pressed, 4.5:1 on background.secondary"
-          }
-        }
-      },
-      "icon": {
-        "primary": {
-          "$type": "color",
-          "$value": "{pds3.core.palette.neutral.950}",
-          "$description": "Primary icon — strongest neutral"
-        },
-        "secondary": {
-          "$type": "color",
-          "$value": "{pds3.core.palette.neutral.550}",
-          "$description": "Secondary icon — 4.5:1 on background.secondary"
-        },
-        "tertiary": {
-          "$type": "color",
-          "$value": "{pds3.core.palette.neutral.450}",
-          "$description": "Tertiary icon — 3:1 on background.secondary"
-        },
-        "brand": {
-          "$type": "color",
-          "$value": "{pds3.core.palette.primary.600}",
-          "$description": "brand icon — 4.5:1 on background.secondary and on its own tint"
-        },
-        "success": {
-          "$type": "color",
-          "$value": "{pds3.core.palette.success.600}",
-          "$description": "success icon — 4.5:1 on background.secondary and on its own tint"
-        },
-        "warning": {
-          "$type": "color",
-          "$value": "{pds3.core.palette.warning.600}",
-          "$description": "warning icon — 4.5:1 on background.secondary and on its own tint"
-        },
-        "danger": {
-          "$type": "color",
-          "$value": "{pds3.core.palette.danger.600}",
-          "$description": "danger icon — 4.5:1 on background.secondary and on its own tint"
-        },
-        "info": {
-          "$type": "color",
-          "$value": "{pds3.core.palette.info.600}",
-          "$description": "info icon — 4.5:1 on background.secondary and on its own tint"
-        },
-        "brand-subtle": {
-          "$type": "color",
-          "$value": "{pds3.core.palette.primary.450}",
-          "$description": "Muted brand icon — low-emphasis accent, 3:1 on background.primary"
-        },
-        "success-subtle": {
-          "$type": "color",
-          "$value": "{pds3.core.palette.success.450}",
-          "$description": "Muted success icon — low-emphasis accent, 3:1 on background.primary"
-        },
-        "warning-subtle": {
-          "$type": "color",
-          "$value": "{pds3.core.palette.warning.450}",
-          "$description": "Muted warning icon — low-emphasis accent, 3:1 on background.primary"
-        },
-        "danger-subtle": {
-          "$type": "color",
-          "$value": "{pds3.core.palette.danger.450}",
-          "$description": "Muted danger icon — low-emphasis accent, 3:1 on background.primary"
-        },
-        "info-subtle": {
-          "$type": "color",
-          "$value": "{pds3.core.palette.info.450}",
-          "$description": "Muted info icon — low-emphasis accent, 3:1 on background.primary"
-        },
-        "on-brand": {
-          "$type": "color",
-          "$value": "{pds3.core.palette.white}",
-          "$description": "Icon on a solid brand fill — 4.5:1"
-        },
-        "on-success": {
-          "$type": "color",
-          "$value": "{pds3.core.palette.white}",
-          "$description": "Icon on a solid success fill — 4.5:1"
-        },
-        "on-warning": {
-          "$type": "color",
-          "$value": "{pds3.core.palette.white}",
-          "$description": "Icon on a solid warning fill — 4.5:1"
-        },
-        "on-danger": {
-          "$type": "color",
-          "$value": "{pds3.core.palette.white}",
-          "$description": "Icon on a solid danger fill — 4.5:1"
-        },
-        "on-info": {
-          "$type": "color",
-          "$value": "{pds3.core.palette.white}",
-          "$description": "Icon on a solid info fill — 4.5:1"
-        },
-        "link": {
-          "default": {
-            "$type": "color",
-            "$value": "{pds3.core.palette.primary.600}",
-            "$description": "Link icon — default, 4.5:1 on background.secondary"
-          },
-          "hover": {
-            "$type": "color",
-            "$value": "{pds3.core.palette.primary.700}",
-            "$description": "Link icon — hover, 4.5:1 on background.secondary"
-          },
-          "visited": {
-            "$type": "color",
-            "$value": "{pds3.core.palette.primary.900}",
-            "$description": "Link icon — visited, 4.5:1 on background.secondary"
-          },
-          "focused": {
-            "$type": "color",
-            "$value": "{pds3.core.palette.primary.600}",
-            "$description": "Link icon — focused, 4.5:1 on background.secondary"
-          },
-          "pressed": {
-            "$type": "color",
-            "$value": "{pds3.core.palette.primary.800}",
-            "$description": "Link icon — pressed, 4.5:1 on background.secondary"
           }
         }
       },
@@ -2082,33 +1963,6 @@
           }
         }
       },
-      "disabled": {
-        "fill": {
-          "$type": "color",
-          "$value": "{pds3.core.palette.neutral.200}",
-          "$description": "Disabled control fill — one muted neutral, any intent"
-        },
-        "on-fill": {
-          "$type": "color",
-          "$value": "{pds3.core.palette.neutral.550}",
-          "$description": "Label / icon on a disabled fill — muted but clears 3:1"
-        },
-        "text": {
-          "$type": "color",
-          "$value": "{pds3.core.palette.neutral.450}",
-          "$description": "Disabled text — reduced contrast, legible; clears 3:1"
-        },
-        "icon": {
-          "$type": "color",
-          "$value": "{pds3.core.palette.neutral.450}",
-          "$description": "Disabled icon — reduced contrast, legible; clears 3:1"
-        },
-        "border": {
-          "$type": "color",
-          "$value": "{pds3.core.palette.neutral.200}",
-          "$description": "Disabled control border — muted neutral"
-        }
-      },
       "border": {
         "primary": {
           "$type": "color",
@@ -2154,6 +2008,152 @@
           "$type": "color",
           "$value": "{pds3.core.palette.primary.600}",
           "$description": "Focus ring color (keyboard focus) — SC 1.4.11 non-text contrast, 3:1 on background.primary"
+        }
+      },
+      "icon": {
+        "primary": {
+          "$type": "color",
+          "$value": "{pds3.core.palette.neutral.950}",
+          "$description": "Primary icon — strongest neutral"
+        },
+        "secondary": {
+          "$type": "color",
+          "$value": "{pds3.core.palette.neutral.550}",
+          "$description": "Secondary icon — 4.5:1 on background.secondary"
+        },
+        "tertiary": {
+          "$type": "color",
+          "$value": "{pds3.core.palette.neutral.450}",
+          "$description": "Tertiary icon — 3:1 on background.secondary"
+        },
+        "brand": {
+          "$type": "color",
+          "$value": "{pds3.core.palette.primary.600}",
+          "$description": "brand icon — 4.5:1 on background.secondary and on its own tint"
+        },
+        "success": {
+          "$type": "color",
+          "$value": "{pds3.core.palette.success.600}",
+          "$description": "success icon — 4.5:1 on background.secondary and on its own tint"
+        },
+        "warning": {
+          "$type": "color",
+          "$value": "{pds3.core.palette.warning.600}",
+          "$description": "warning icon — 4.5:1 on background.secondary and on its own tint"
+        },
+        "danger": {
+          "$type": "color",
+          "$value": "{pds3.core.palette.danger.600}",
+          "$description": "danger icon — 4.5:1 on background.secondary and on its own tint"
+        },
+        "info": {
+          "$type": "color",
+          "$value": "{pds3.core.palette.info.600}",
+          "$description": "info icon — 4.5:1 on background.secondary and on its own tint"
+        },
+        "brand-subtle": {
+          "$type": "color",
+          "$value": "{pds3.core.palette.primary.450}",
+          "$description": "Muted brand icon — low-emphasis accent, 3:1 on background.primary"
+        },
+        "success-subtle": {
+          "$type": "color",
+          "$value": "{pds3.core.palette.success.450}",
+          "$description": "Muted success icon — low-emphasis accent, 3:1 on background.primary"
+        },
+        "warning-subtle": {
+          "$type": "color",
+          "$value": "{pds3.core.palette.warning.450}",
+          "$description": "Muted warning icon — low-emphasis accent, 3:1 on background.primary"
+        },
+        "danger-subtle": {
+          "$type": "color",
+          "$value": "{pds3.core.palette.danger.450}",
+          "$description": "Muted danger icon — low-emphasis accent, 3:1 on background.primary"
+        },
+        "info-subtle": {
+          "$type": "color",
+          "$value": "{pds3.core.palette.info.450}",
+          "$description": "Muted info icon — low-emphasis accent, 3:1 on background.primary"
+        },
+        "on-brand": {
+          "$type": "color",
+          "$value": "{pds3.core.palette.white}",
+          "$description": "Icon on a solid brand fill — 4.5:1"
+        },
+        "on-success": {
+          "$type": "color",
+          "$value": "{pds3.core.palette.white}",
+          "$description": "Icon on a solid success fill — 4.5:1"
+        },
+        "on-warning": {
+          "$type": "color",
+          "$value": "{pds3.core.palette.white}",
+          "$description": "Icon on a solid warning fill — 4.5:1"
+        },
+        "on-danger": {
+          "$type": "color",
+          "$value": "{pds3.core.palette.white}",
+          "$description": "Icon on a solid danger fill — 4.5:1"
+        },
+        "on-info": {
+          "$type": "color",
+          "$value": "{pds3.core.palette.white}",
+          "$description": "Icon on a solid info fill — 4.5:1"
+        },
+        "link": {
+          "default": {
+            "$type": "color",
+            "$value": "{pds3.core.palette.primary.600}",
+            "$description": "Link icon — default, 4.5:1 on background.secondary"
+          },
+          "hover": {
+            "$type": "color",
+            "$value": "{pds3.core.palette.primary.700}",
+            "$description": "Link icon — hover, 4.5:1 on background.secondary"
+          },
+          "visited": {
+            "$type": "color",
+            "$value": "{pds3.core.palette.primary.900}",
+            "$description": "Link icon — visited, 4.5:1 on background.secondary"
+          },
+          "focused": {
+            "$type": "color",
+            "$value": "{pds3.core.palette.primary.600}",
+            "$description": "Link icon — focused, 4.5:1 on background.secondary"
+          },
+          "pressed": {
+            "$type": "color",
+            "$value": "{pds3.core.palette.primary.800}",
+            "$description": "Link icon — pressed, 4.5:1 on background.secondary"
+          }
+        }
+      },
+      "disabled": {
+        "fill": {
+          "$type": "color",
+          "$value": "{pds3.core.palette.neutral.200}",
+          "$description": "Disabled control fill — one muted neutral, any intent"
+        },
+        "on-fill": {
+          "$type": "color",
+          "$value": "{pds3.core.palette.neutral.550}",
+          "$description": "Label / icon on a disabled fill — muted but clears 3:1"
+        },
+        "text": {
+          "$type": "color",
+          "$value": "{pds3.core.palette.neutral.450}",
+          "$description": "Disabled text — reduced contrast, legible; clears 3:1"
+        },
+        "icon": {
+          "$type": "color",
+          "$value": "{pds3.core.palette.neutral.450}",
+          "$description": "Disabled icon — reduced contrast, legible; clears 3:1"
+        },
+        "border": {
+          "$type": "color",
+          "$value": "{pds3.core.palette.neutral.200}",
+          "$description": "Disabled control border — muted neutral"
         }
       },
       "scrim": {
@@ -2318,365 +2318,6 @@
             "$description": "Subtle info tint surface on an inverse surface — banners, badges and selected rows on the inverse band"
           }
         },
-        "interactive": {
-          "primary": {
-            "text": {
-              "rest": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.primary.450}",
-                "$description": "primary interactive ink on an inverse surface — rest (outline / text on the inverse band)"
-              },
-              "hover": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.primary.350}",
-                "$description": "primary interactive ink on an inverse surface — hover (outline / text on the inverse band)"
-              },
-              "pressed": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.primary.250}",
-                "$description": "primary interactive ink on an inverse surface — pressed (outline / text on the inverse band)"
-              }
-            },
-            "icon": {
-              "rest": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.primary.450}",
-                "$description": "primary interactive icon ink on an inverse surface — rest (the glyph in an outline / ghost / text control on the inverse band)"
-              },
-              "hover": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.primary.350}",
-                "$description": "primary interactive icon ink on an inverse surface — hover (the glyph in an outline / ghost / text control on the inverse band)"
-              },
-              "pressed": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.primary.250}",
-                "$description": "primary interactive icon ink on an inverse surface — pressed (the glyph in an outline / ghost / text control on the inverse band)"
-              }
-            },
-            "fill": {
-              "rest": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.white}",
-                "$description": "primary interactive fill on an inverse surface — rest — the white / black default"
-              },
-              "hover": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.neutral.100}",
-                "$description": "primary interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill."
-              },
-              "pressed": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.neutral.200}",
-                "$description": "primary interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill."
-              },
-              "focused": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.neutral.100}",
-                "$description": "primary interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill."
-              },
-              "selected": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.neutral.200}",
-                "$description": "primary interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill."
-              }
-            },
-            "on-fill": {
-              "$type": "color",
-              "$value": "{pds3.core.palette.primary.650}",
-              "$description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 on every state of the white / black fill, rest through selected, or the max-contrast extreme in the high-contrast modes"
-            },
-            "border": {
-              "rest": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.primary.450}",
-                "$description": "primary interactive border on an inverse surface — rest (the outline edge; follows the ink)"
-              },
-              "hover": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.primary.350}",
-                "$description": "primary interactive border on an inverse surface — hover (the outline edge; follows the ink)"
-              },
-              "pressed": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.primary.250}",
-                "$description": "primary interactive border on an inverse surface — pressed (the outline edge; follows the ink)"
-              }
-            },
-            "overlay": {
-              "hover": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.white-alpha.10}",
-                "$description": "primary interactive overlay on an inverse surface — hover (10% wash, the opposite polarity to the page wash)"
-              },
-              "pressed": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.white-alpha.20}",
-                "$description": "primary interactive overlay on an inverse surface — pressed (20% wash, the opposite polarity to the page wash)"
-              },
-              "selected": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.white-alpha.20}",
-                "$description": "primary interactive overlay on an inverse surface — selected (20% wash, the opposite polarity to the page wash)"
-              }
-            }
-          },
-          "destructive": {
-            "text": {
-              "rest": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.danger.400}",
-                "$description": "destructive interactive ink on an inverse surface — rest (outline / text on the inverse band)"
-              },
-              "hover": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.danger.300}",
-                "$description": "destructive interactive ink on an inverse surface — hover (outline / text on the inverse band)"
-              },
-              "pressed": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.danger.200}",
-                "$description": "destructive interactive ink on an inverse surface — pressed (outline / text on the inverse band)"
-              }
-            },
-            "icon": {
-              "rest": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.danger.400}",
-                "$description": "destructive interactive icon ink on an inverse surface — rest (the glyph in an outline / ghost / text control on the inverse band)"
-              },
-              "hover": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.danger.300}",
-                "$description": "destructive interactive icon ink on an inverse surface — hover (the glyph in an outline / ghost / text control on the inverse band)"
-              },
-              "pressed": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.danger.200}",
-                "$description": "destructive interactive icon ink on an inverse surface — pressed (the glyph in an outline / ghost / text control on the inverse band)"
-              }
-            },
-            "fill": {
-              "rest": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.white}",
-                "$description": "destructive interactive fill on an inverse surface — rest — the white / black default"
-              },
-              "hover": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.neutral.100}",
-                "$description": "destructive interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill."
-              },
-              "pressed": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.neutral.200}",
-                "$description": "destructive interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill."
-              },
-              "focused": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.neutral.100}",
-                "$description": "destructive interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill."
-              },
-              "selected": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.neutral.200}",
-                "$description": "destructive interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill."
-              }
-            },
-            "on-fill": {
-              "$type": "color",
-              "$value": "{pds3.core.palette.danger.650}",
-              "$description": "Ink on the destructive inverse fill — the danger step clearing 4.5:1 on every state of the white / black fill, rest through selected, or the max-contrast extreme in the high-contrast modes"
-            },
-            "border": {
-              "rest": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.danger.400}",
-                "$description": "destructive interactive border on an inverse surface — rest (the outline edge; follows the ink)"
-              },
-              "hover": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.danger.300}",
-                "$description": "destructive interactive border on an inverse surface — hover (the outline edge; follows the ink)"
-              },
-              "pressed": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.danger.200}",
-                "$description": "destructive interactive border on an inverse surface — pressed (the outline edge; follows the ink)"
-              }
-            },
-            "overlay": {
-              "hover": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.white-alpha.10}",
-                "$description": "destructive interactive overlay on an inverse surface — hover (10% wash, the opposite polarity to the page wash)"
-              },
-              "pressed": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.white-alpha.20}",
-                "$description": "destructive interactive overlay on an inverse surface — pressed (20% wash, the opposite polarity to the page wash)"
-              },
-              "selected": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.white-alpha.20}",
-                "$description": "destructive interactive overlay on an inverse surface — selected (20% wash, the opposite polarity to the page wash)"
-              }
-            }
-          },
-          "neutral": {
-            "text": {
-              "rest": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.neutral.025}",
-                "$description": "neutral interactive ink on an inverse surface — rest (outline / text on the inverse band)"
-              },
-              "hover": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.neutral.100}",
-                "$description": "neutral interactive ink on an inverse surface — hover (outline / text on the inverse band)"
-              },
-              "pressed": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.neutral.200}",
-                "$description": "neutral interactive ink on an inverse surface — pressed (outline / text on the inverse band)"
-              }
-            },
-            "icon": {
-              "rest": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.neutral.025}",
-                "$description": "neutral interactive icon ink on an inverse surface — rest (the glyph in an outline / ghost / text control on the inverse band)"
-              },
-              "hover": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.neutral.100}",
-                "$description": "neutral interactive icon ink on an inverse surface — hover (the glyph in an outline / ghost / text control on the inverse band)"
-              },
-              "pressed": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.neutral.200}",
-                "$description": "neutral interactive icon ink on an inverse surface — pressed (the glyph in an outline / ghost / text control on the inverse band)"
-              }
-            },
-            "fill": {
-              "rest": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.white}",
-                "$description": "neutral interactive fill on an inverse surface — rest — the white / black default"
-              },
-              "hover": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.neutral.100}",
-                "$description": "neutral interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill."
-              },
-              "pressed": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.neutral.200}",
-                "$description": "neutral interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill."
-              },
-              "focused": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.neutral.100}",
-                "$description": "neutral interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill."
-              },
-              "selected": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.neutral.200}",
-                "$description": "neutral interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill."
-              }
-            },
-            "on-fill": {
-              "$type": "color",
-              "$value": "{pds3.core.palette.neutral.950}",
-              "$description": "Ink on the neutral inverse fill — a neutral high-contrast label on the white / black rest fill"
-            },
-            "border": {
-              "rest": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.neutral.025}",
-                "$description": "neutral interactive border on an inverse surface — rest (the outline edge; follows the ink)"
-              },
-              "hover": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.neutral.100}",
-                "$description": "neutral interactive border on an inverse surface — hover (the outline edge; follows the ink)"
-              },
-              "pressed": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.neutral.200}",
-                "$description": "neutral interactive border on an inverse surface — pressed (the outline edge; follows the ink)"
-              }
-            },
-            "overlay": {
-              "hover": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.white-alpha.10}",
-                "$description": "neutral interactive overlay on an inverse surface — hover (10% wash, the opposite polarity to the page wash)"
-              },
-              "pressed": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.white-alpha.20}",
-                "$description": "neutral interactive overlay on an inverse surface — pressed (20% wash, the opposite polarity to the page wash)"
-              },
-              "selected": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.white-alpha.20}",
-                "$description": "neutral interactive overlay on an inverse surface — selected (20% wash, the opposite polarity to the page wash)"
-              }
-            }
-          }
-        },
-        "disabled": {
-          "fill": {
-            "$type": "color",
-            "$value": "{pds3.core.palette.neutral.800}",
-            "$description": "Disabled control fill on an inverse surface — one muted neutral, any intent"
-          },
-          "on-fill": {
-            "$type": "color",
-            "$value": "{pds3.core.palette.neutral.500}",
-            "$description": "Label / icon on a disabled fill on an inverse surface — muted but clears 3:1"
-          },
-          "text": {
-            "$type": "color",
-            "$value": "{pds3.core.palette.neutral.550}",
-            "$description": "Disabled text on an inverse surface — reduced contrast, legible; clears 3:1"
-          },
-          "icon": {
-            "$type": "color",
-            "$value": "{pds3.core.palette.neutral.550}",
-            "$description": "Disabled icon on an inverse surface — reduced contrast, legible; clears 3:1"
-          },
-          "border": {
-            "$type": "color",
-            "$value": "{pds3.core.palette.neutral.800}",
-            "$description": "Disabled control border on an inverse surface — muted neutral"
-          }
-        },
-        "field": {
-          "fill": {
-            "$type": "color",
-            "$value": "{pds3.core.palette.transparent}",
-            "$description": "Form field fill on an inverse surface — transparent by default (no paint), the same paint-less field the page takes; the border frames it on the inverse band"
-          },
-          "border": {
-            "rest": {
-              "$type": "color",
-              "$value": "{pds3.core.palette.neutral.550}",
-              "$description": "Form field resting border on an inverse surface — the boundary of a transparent-fill field, a perceivable boundary (SC 1.4.11) at 3:1 against the darkest permissible inverse ground"
-            },
-            "hover": {
-              "$type": "color",
-              "$value": "{pds3.core.palette.neutral.450}",
-              "$description": "Form field hover border on an inverse surface — two ramp steps stronger than rest, gated at 3:1 on the darkest permissible inverse ground (pair it with a second cue; color alone does not carry the state)"
-            }
-          },
-          "placeholder": {
-            "$type": "color",
-            "$value": "{pds3.core.palette.neutral.450}",
-            "$description": "Form field placeholder ink on an inverse surface — a readable hint, 4.5:1 on the darkest permissible inverse ground behind the transparent fill"
-          }
-        },
         "text": {
           "primary": {
             "$type": "color",
@@ -2769,6 +2410,361 @@
               "$value": "{pds3.core.palette.primary.250}",
               "$description": "Link text on an inverse surface — pressed, 4.5:1 on inverse.background.secondary"
             }
+          }
+        },
+        "interactive": {
+          "primary": {
+            "fill": {
+              "rest": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.white}",
+                "$description": "primary interactive fill on an inverse surface — rest — the white / black default"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.neutral.100}",
+                "$description": "primary interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill."
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.neutral.200}",
+                "$description": "primary interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill."
+              },
+              "focused": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.neutral.100}",
+                "$description": "primary interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill."
+              },
+              "selected": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.neutral.200}",
+                "$description": "primary interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill."
+              }
+            },
+            "on-fill": {
+              "$type": "color",
+              "$value": "{pds3.core.palette.primary.650}",
+              "$description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 on every state of the white / black fill, rest through selected, or the max-contrast extreme in the high-contrast modes"
+            },
+            "text": {
+              "rest": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.primary.450}",
+                "$description": "primary interactive ink on an inverse surface — rest (outline / text on the inverse band)"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.primary.350}",
+                "$description": "primary interactive ink on an inverse surface — hover (outline / text on the inverse band)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.primary.250}",
+                "$description": "primary interactive ink on an inverse surface — pressed (outline / text on the inverse band)"
+              }
+            },
+            "icon": {
+              "rest": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.primary.450}",
+                "$description": "primary interactive icon ink on an inverse surface — rest (the glyph in an outline / ghost / text control on the inverse band)"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.primary.350}",
+                "$description": "primary interactive icon ink on an inverse surface — hover (the glyph in an outline / ghost / text control on the inverse band)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.primary.250}",
+                "$description": "primary interactive icon ink on an inverse surface — pressed (the glyph in an outline / ghost / text control on the inverse band)"
+              }
+            },
+            "border": {
+              "rest": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.primary.450}",
+                "$description": "primary interactive border on an inverse surface — rest (the outline edge; follows the ink)"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.primary.350}",
+                "$description": "primary interactive border on an inverse surface — hover (the outline edge; follows the ink)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.primary.250}",
+                "$description": "primary interactive border on an inverse surface — pressed (the outline edge; follows the ink)"
+              }
+            },
+            "overlay": {
+              "hover": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.white-alpha.10}",
+                "$description": "primary interactive overlay on an inverse surface — hover (10% wash, the opposite polarity to the page wash)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.white-alpha.20}",
+                "$description": "primary interactive overlay on an inverse surface — pressed (20% wash, the opposite polarity to the page wash)"
+              },
+              "selected": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.white-alpha.20}",
+                "$description": "primary interactive overlay on an inverse surface — selected (20% wash, the opposite polarity to the page wash)"
+              }
+            }
+          },
+          "destructive": {
+            "fill": {
+              "rest": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.white}",
+                "$description": "destructive interactive fill on an inverse surface — rest — the white / black default"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.neutral.100}",
+                "$description": "destructive interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill."
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.neutral.200}",
+                "$description": "destructive interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill."
+              },
+              "focused": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.neutral.100}",
+                "$description": "destructive interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill."
+              },
+              "selected": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.neutral.200}",
+                "$description": "destructive interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill."
+              }
+            },
+            "on-fill": {
+              "$type": "color",
+              "$value": "{pds3.core.palette.danger.650}",
+              "$description": "Ink on the destructive inverse fill — the danger step clearing 4.5:1 on every state of the white / black fill, rest through selected, or the max-contrast extreme in the high-contrast modes"
+            },
+            "text": {
+              "rest": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.danger.400}",
+                "$description": "destructive interactive ink on an inverse surface — rest (outline / text on the inverse band)"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.danger.300}",
+                "$description": "destructive interactive ink on an inverse surface — hover (outline / text on the inverse band)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.danger.200}",
+                "$description": "destructive interactive ink on an inverse surface — pressed (outline / text on the inverse band)"
+              }
+            },
+            "icon": {
+              "rest": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.danger.400}",
+                "$description": "destructive interactive icon ink on an inverse surface — rest (the glyph in an outline / ghost / text control on the inverse band)"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.danger.300}",
+                "$description": "destructive interactive icon ink on an inverse surface — hover (the glyph in an outline / ghost / text control on the inverse band)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.danger.200}",
+                "$description": "destructive interactive icon ink on an inverse surface — pressed (the glyph in an outline / ghost / text control on the inverse band)"
+              }
+            },
+            "border": {
+              "rest": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.danger.400}",
+                "$description": "destructive interactive border on an inverse surface — rest (the outline edge; follows the ink)"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.danger.300}",
+                "$description": "destructive interactive border on an inverse surface — hover (the outline edge; follows the ink)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.danger.200}",
+                "$description": "destructive interactive border on an inverse surface — pressed (the outline edge; follows the ink)"
+              }
+            },
+            "overlay": {
+              "hover": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.white-alpha.10}",
+                "$description": "destructive interactive overlay on an inverse surface — hover (10% wash, the opposite polarity to the page wash)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.white-alpha.20}",
+                "$description": "destructive interactive overlay on an inverse surface — pressed (20% wash, the opposite polarity to the page wash)"
+              },
+              "selected": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.white-alpha.20}",
+                "$description": "destructive interactive overlay on an inverse surface — selected (20% wash, the opposite polarity to the page wash)"
+              }
+            }
+          },
+          "neutral": {
+            "fill": {
+              "rest": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.white}",
+                "$description": "neutral interactive fill on an inverse surface — rest — the white / black default"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.neutral.100}",
+                "$description": "neutral interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill."
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.neutral.200}",
+                "$description": "neutral interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill."
+              },
+              "focused": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.neutral.100}",
+                "$description": "neutral interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill."
+              },
+              "selected": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.neutral.200}",
+                "$description": "neutral interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill."
+              }
+            },
+            "on-fill": {
+              "$type": "color",
+              "$value": "{pds3.core.palette.neutral.950}",
+              "$description": "Ink on the neutral inverse fill — a neutral high-contrast label on the white / black rest fill"
+            },
+            "text": {
+              "rest": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.neutral.025}",
+                "$description": "neutral interactive ink on an inverse surface — rest (outline / text on the inverse band)"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.neutral.100}",
+                "$description": "neutral interactive ink on an inverse surface — hover (outline / text on the inverse band)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.neutral.200}",
+                "$description": "neutral interactive ink on an inverse surface — pressed (outline / text on the inverse band)"
+              }
+            },
+            "icon": {
+              "rest": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.neutral.025}",
+                "$description": "neutral interactive icon ink on an inverse surface — rest (the glyph in an outline / ghost / text control on the inverse band)"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.neutral.100}",
+                "$description": "neutral interactive icon ink on an inverse surface — hover (the glyph in an outline / ghost / text control on the inverse band)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.neutral.200}",
+                "$description": "neutral interactive icon ink on an inverse surface — pressed (the glyph in an outline / ghost / text control on the inverse band)"
+              }
+            },
+            "border": {
+              "rest": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.neutral.025}",
+                "$description": "neutral interactive border on an inverse surface — rest (the outline edge; follows the ink)"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.neutral.100}",
+                "$description": "neutral interactive border on an inverse surface — hover (the outline edge; follows the ink)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.neutral.200}",
+                "$description": "neutral interactive border on an inverse surface — pressed (the outline edge; follows the ink)"
+              }
+            },
+            "overlay": {
+              "hover": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.white-alpha.10}",
+                "$description": "neutral interactive overlay on an inverse surface — hover (10% wash, the opposite polarity to the page wash)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.white-alpha.20}",
+                "$description": "neutral interactive overlay on an inverse surface — pressed (20% wash, the opposite polarity to the page wash)"
+              },
+              "selected": {
+                "$type": "color",
+                "$value": "{pds3.core.palette.white-alpha.20}",
+                "$description": "neutral interactive overlay on an inverse surface — selected (20% wash, the opposite polarity to the page wash)"
+              }
+            }
+          }
+        },
+        "border": {
+          "primary": {
+            "$type": "color",
+            "$value": "{pds3.core.palette.neutral.800}",
+            "$description": "Default border on an inverse surface — decorative, ~1.4:1"
+          },
+          "secondary": {
+            "$type": "color",
+            "$value": "{pds3.core.palette.neutral.600}",
+            "$description": "Stronger border / divider on an inverse surface"
+          },
+          "tertiary": {
+            "$type": "color",
+            "$value": "{pds3.core.palette.neutral.350}",
+            "$description": "Strongest border / divider on an inverse surface — the third rung of the inverse edge ladder"
+          },
+          "brand": {
+            "$type": "color",
+            "$value": "{pds3.core.palette.primary.500}",
+            "$description": "brand border on an inverse surface — SC 1.4.11 non-text contrast, 3:1"
+          },
+          "success": {
+            "$type": "color",
+            "$value": "{pds3.core.palette.success.500}",
+            "$description": "success border on an inverse surface — SC 1.4.11 non-text contrast, 3:1"
+          },
+          "warning": {
+            "$type": "color",
+            "$value": "{pds3.core.palette.warning.500}",
+            "$description": "warning border on an inverse surface — SC 1.4.11 non-text contrast, 3:1"
+          },
+          "danger": {
+            "$type": "color",
+            "$value": "{pds3.core.palette.danger.500}",
+            "$description": "danger border on an inverse surface — SC 1.4.11 non-text contrast, 3:1"
+          },
+          "info": {
+            "$type": "color",
+            "$value": "{pds3.core.palette.info.500}",
+            "$description": "info border on an inverse surface — SC 1.4.11 non-text contrast, 3:1"
+          },
+          "focus": {
+            "$type": "color",
+            "$value": "{pds3.core.palette.primary.450}",
+            "$description": "Focus ring color on inverse surfaces (keyboard focus) — SC 1.4.11 non-text contrast, 3:1 on inverse.background.primary"
           }
         },
         "icon": {
@@ -2865,51 +2861,55 @@
             }
           }
         },
-        "border": {
-          "primary": {
+        "disabled": {
+          "fill": {
             "$type": "color",
             "$value": "{pds3.core.palette.neutral.800}",
-            "$description": "Default border on an inverse surface — decorative, ~1.4:1"
+            "$description": "Disabled control fill on an inverse surface — one muted neutral, any intent"
           },
-          "secondary": {
+          "on-fill": {
             "$type": "color",
-            "$value": "{pds3.core.palette.neutral.600}",
-            "$description": "Stronger border / divider on an inverse surface"
+            "$value": "{pds3.core.palette.neutral.500}",
+            "$description": "Label / icon on a disabled fill on an inverse surface — muted but clears 3:1"
           },
-          "tertiary": {
+          "text": {
             "$type": "color",
-            "$value": "{pds3.core.palette.neutral.350}",
-            "$description": "Strongest border / divider on an inverse surface — the third rung of the inverse edge ladder"
+            "$value": "{pds3.core.palette.neutral.550}",
+            "$description": "Disabled text on an inverse surface — reduced contrast, legible; clears 3:1"
           },
-          "brand": {
+          "icon": {
             "$type": "color",
-            "$value": "{pds3.core.palette.primary.500}",
-            "$description": "brand border on an inverse surface — SC 1.4.11 non-text contrast, 3:1"
+            "$value": "{pds3.core.palette.neutral.550}",
+            "$description": "Disabled icon on an inverse surface — reduced contrast, legible; clears 3:1"
           },
-          "success": {
+          "border": {
             "$type": "color",
-            "$value": "{pds3.core.palette.success.500}",
-            "$description": "success border on an inverse surface — SC 1.4.11 non-text contrast, 3:1"
+            "$value": "{pds3.core.palette.neutral.800}",
+            "$description": "Disabled control border on an inverse surface — muted neutral"
+          }
+        },
+        "field": {
+          "fill": {
+            "$type": "color",
+            "$value": "{pds3.core.palette.transparent}",
+            "$description": "Form field fill on an inverse surface — transparent by default (no paint), the same paint-less field the page takes; the border frames it on the inverse band"
           },
-          "warning": {
-            "$type": "color",
-            "$value": "{pds3.core.palette.warning.500}",
-            "$description": "warning border on an inverse surface — SC 1.4.11 non-text contrast, 3:1"
+          "border": {
+            "rest": {
+              "$type": "color",
+              "$value": "{pds3.core.palette.neutral.550}",
+              "$description": "Form field resting border on an inverse surface — the boundary of a transparent-fill field, a perceivable boundary (SC 1.4.11) at 3:1 against the darkest permissible inverse ground"
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{pds3.core.palette.neutral.450}",
+              "$description": "Form field hover border on an inverse surface — two ramp steps stronger than rest, gated at 3:1 on the darkest permissible inverse ground (pair it with a second cue; color alone does not carry the state)"
+            }
           },
-          "danger": {
+          "placeholder": {
             "$type": "color",
-            "$value": "{pds3.core.palette.danger.500}",
-            "$description": "danger border on an inverse surface — SC 1.4.11 non-text contrast, 3:1"
-          },
-          "info": {
-            "$type": "color",
-            "$value": "{pds3.core.palette.info.500}",
-            "$description": "info border on an inverse surface — SC 1.4.11 non-text contrast, 3:1"
-          },
-          "focus": {
-            "$type": "color",
-            "$value": "{pds3.core.palette.primary.450}",
-            "$description": "Focus ring color on inverse surfaces (keyboard focus) — SC 1.4.11 non-text contrast, 3:1 on inverse.background.primary"
+            "$value": "{pds3.core.palette.neutral.450}",
+            "$description": "Form field placeholder ink on an inverse surface — a readable hint, 4.5:1 on the darkest permissible inverse ground behind the transparent fill"
           }
         }
       }

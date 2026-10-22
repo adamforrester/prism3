@@ -18,6 +18,7 @@ import { Step } from './ramp';
 import { Theme, ShadowStep, ShadowLayer, ResolvedGradient, FacePin, typefaceSlug, lineHeightStepKey, letterSpacingStepKey, CORE_TIER, SPIN_ROLE, SWEEP_ROLE, BODY_XS_DESCRIPTION } from './theme';
 import { SizeStep, ControlSizeStep, controlRadius, AAA_TARGET_PX } from './scale';
 import { resolveAllModes, ModeResult, OPACITY_STEPS } from './modes';
+import { orderedRoleKeys } from './color-order';
 import { ENGINE_VERSION } from './version';
 
 const WHITE: RGB = { r: 255, g: 255, b: 255 };
@@ -36,54 +37,7 @@ const alphaColorValue = (rgb: RGB, a: number, fmt: 'rgb' | 'hex') =>
 const ALPHA_STEPS = OPACITY_STEPS;
 
 
-/**
- * ---- THE ORDER THE COLOUR ROLE FAMILIES ARE WRITTEN IN (#1150) ----
- *
- * Figma lists a variable collection in CREATION order, not alphabetically, and the engine creates
- * variables in the order `leaves()` walks the DTCG tree — which is object-key insertion order, which
- * is the order this file writes them in. So the order below is the order a designer reads down the
- * variables panel, and this is the only place it is stated.
- *
- * The order is the owner's and reads outward: the ground first (`background`, `foreground`), then
- * what sits on it (`text`, `icon`), then what responds (`interactive`, `disabled`), then the drawn
- * edge (`border`), then the two washes (`scrim`, `veil`), then the one composite family (`field`) —
- * and `inverse` LAST, because since #1140 it re-states every family above for a flipped ground, so
- * anywhere but the end splits each family into two places on screen.
- *
- * A family a brand does not resolve is skipped, not emitted empty. A family a brand DOES resolve but
- * this list does not name is a throw, not a silent append: appending would place a new family
- * wherever the resolver happened to build it, which is the one thing this list exists to prevent,
- * and it would do it without telling anyone.
- *
- * **`appearance` must never be added here.** It is not a role family and never was — it was the
- * middle segment of the two-tier colour split (#1013–#1148), and the materialization rule
- * `color-one-collection-1148` still reads `<root>/color/appearance/*` in a designer's file as that
- * historical tier marker. A live role family of that name would be renamed away by the migration.
- * Leaving it unlisted is what enforces this: the throw below is the enforcement, not a comment.
- */
-const COLOR_FAMILY_ORDER = [
-  'background', 'foreground', 'text', 'icon', 'interactive',
-  'disabled', 'border', 'scrim', 'veil', 'field', 'inverse',
-] as const;
-
-/**
- * Role keys in declared family order, stable WITHIN each family — the family order is this file's
- * decision, everything below the family stays the resolver's (docs/20 §9).
- */
-const orderedRoleKeys = (keys: string[]): string[] => {
-  const rank = new Map<string, number>(COLOR_FAMILY_ORDER.map((f, i) => [f, i]));
-  const unlisted = [...new Set(keys.map((k) => k.split('.')[0]))].filter((f) => !rank.has(f));
-  if (unlisted.length)
-    throw new Error(
-      `tree: color role family/families absent from COLOR_FAMILY_ORDER: ${unlisted.join(', ')} — #1150 makes `
-      + 'the written order the order Figma lists the collection in, so an unranked family would land wherever '
-      + 'the resolver happened to build it. Add it at the position it should read in the variables panel.',
-    );
-  return keys
-    .map((k, i) => ({ k, i }))
-    .sort((a, b) => (rank.get(a.k.split('.')[0])! - rank.get(b.k.split('.')[0])!) || a.i - b.i)
-    .map((e) => e.k);
-};
+// The order colour roles are written in — and so the order Figma lists the collection in — is `color-order.ts` (#1150, #2860).
 
 // Elevation is no longer a colour group: it's expressed as a foreground surface
 // tier + a shadow step, composed at the component layer (see docs/06). The shadow

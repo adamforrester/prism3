@@ -68,14 +68,16 @@
  * not a restructure. A brand that wants the fully-constant-color ring back rebinds those three keys to
  * `field.border.*`; that is the fork now, recorded in `notes.contested`.
  *
- * ── NO PER-OPTION ERROR (#1698, decision 1) ────────────────────────────────────────────────────────
+ * ── ERROR IS THE GROUP'S, SHOWN ON EVERY OPTION (owner Q354, #2751) ───────────────────────────────
  *
- * The brief (§4, §15) says radio error is GROUP-level only, never per-option, and this def's own
- * `errorPattern` said so while its tokens bound a danger ring on every option. #1698 (owner-delegated)
- * drops the per-option error: no `error` state, no `*.border.error` key, and no error column in the set
- * (2 selections × 3 sizes × 5 states = 30 members, was 36). The error shows at the GROUP, which follows
- * the held group-error design. This reverses #1433a's radio half (error on the ring); checkbox keeps its
- * error border, because an isolated checkbox is a valid control and the brief lets it recolor (§4).
+ * The brief (§4, §15) says radio error is GROUP-level only, never per-option. #1698 read that as "no option
+ * draws an error" and dropped the per-option `error` state (36 → 30 members). Q354 keeps the rule and
+ * changes how the error shows: every control that can be invalid takes the fields' `status` axis, and the
+ * Radio group is what sets it. The group passes its status to every row (`follow`), each row to its
+ * control, so an errored group draws the danger ring on all its options at once and shows its message
+ * under them. No option is ever invalid on its own: `status` here is the group's, carried down. The ring is
+ * the one #1433a locked before #1698 (the danger border, the inner dot unchanged). 2 selections × 3 sizes ×
+ * 2 statuses × 5 states = 60 members.
  *
  * ── THE DOT IS A BOX, NOT A GLYPH, AND THAT IS #900's ONE FINDING THAT SURVIVES THE SPLIT ───────────
  *
@@ -123,33 +125,39 @@ export const radioControl: ComponentDef = {
   // The atom's surface, not the field's. No `label`, no `description`, no form wiring — those are the
   // Row's and the Group's. What it exposes is the visual state a host drives through the nest.
   props: [
-    { name: 'checked', type: 'boolean', required: false, description: 'The selected appearance — the inner dot present. Driven by the host row from the group\'s scalar value — a bare Radio.Control is styled by the coordinate, not wired to state here, and never holds a boolean of its own (selection is `group.value === option.value`).' },
-    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Scales the control circle (both axes from one key, round by construction) and the inner dot. Both read `control.size.*`, which moves a rung with brand density; `icon.size.*` would resolve and measure the wrong thing (the glyph artboard ladder). The host row passes its own size through by `follow`, so the nested control tracks the row.' },
+    { name: 'checked', type: 'boolean', required: false, description: 'The selected appearance — the inner dot present. Driven by the host row from the group\'s scalar value — a bare Radio.Control is styled by the coordinate, not wired to state here, and never holds a boolean of its own (selection is group.value === option.value).' },
+    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Scales the control circle (both axes from one key, round by construction) and the inner dot. Both read control.size.*, which moves a rung with brand density; icon.size.* would resolve and measure the wrong thing (the glyph artboard ladder). The host row passes its own size through by follow, so the nested control tracks the row.' },
     { name: 'disabled', type: 'boolean', default: false, required: false, description: 'The disabled skin — a contrast-exempt border/dot treatment. Set on the host, followed here.' },
-    { name: 'aria-label', type: 'string', required: false, description: 'Required only for a genuinely standalone control with no host row to name it — the Row provides the accessible name, so a nested control must NOT double-label.' },
+    // THE FIELDS' VALIDATION API (owner Q354, #2751), projected as the `status` axis, its first two values only.
+    { name: 'validation', type: "enum: 'default' | 'error'", values: ['default', 'error'], default: 'default', required: false, description: 'The validation status, set by the Radio group and never by one radio alone: the group passes it to every option, so error draws the danger ring on all of them at once. default is neutral.' },
+    { name: 'aria-label', type: 'string', required: false, description: 'Required only for a genuinely standalone control with no host row to name it — the Row provides the accessible name, so a nested control must not double-label.' },
   ],
 
   // The five that paint. `read-only` is a field/row-level concern (the Row/Group decide it, and a radio
   // has no working native readonly), so the atom carries no read-only treatment and does not list the
-  // state — exactly as `checkbox-control` drops it. `error` is NOT here either (#1698, decision 1): radio
-  // error is group-level only (brief §4), so an option carries no error ring.
+  // state — exactly as `checkbox-control` drops it. `error` is not a state either: it is the `status` axis
+  // the group sets (owner Q354, #2751; see the header).
   states: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled'],
 
   // `size` and `selection` — the two the disc actually varies by. `[unchecked, checked]` is checkbox's
   // vocabulary minus `indeterminate` (a mutually-exclusive choice has no partial state). No tone/emphasis,
   // no surface/inverse axis (#871).
+  // `status` is the fields' validation axis, its first two values only, set by the group (owner Q354, #2751).
   variants: {
     size: ['medium', 'small', 'large'],
     selection: ['unchecked', 'checked'],
+    status: ['default', 'error'],
   },
   // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
-  // `selection` is the live toggle.
-  axisKinds: { size: 'authoring', selection: 'runtime' },
+  // `selection` is the live toggle; `status` changes as validation runs and only recolors the ring.
+  axisKinds: { size: 'authoring', selection: 'runtime', status: 'runtime' },
 
   // Axis-led, most specific first — checkbox's grammar, which radio and switch inherit. `selection`
   // leads; the bare `{slot}` answers the bindings outside the grammar (`focus-ring`, `disabled.*`,
   // geometry). `lint-paint.ts` arm 1 exempts `selection` in `NON_FAMILY_AXES`.
-  paintKeys: ['{selection}.{slot}.{state}', '{selection}.{slot}', '{slot}'],
+  // The STATUS template leads (owner Q354, #2751), four segments for `checkbox-control`'s reason: the danger
+  // ring wins over the selection's ring at every non-disabled state, and `default` falls through.
+  paintKeys: ['{status}.{selection}.{slot}.{state}', '{selection}.{slot}.{state}', '{selection}.{slot}', '{slot}'],
 
   tokens: {
     // ── THE OUTLINED RING — CONSTANT IN WEIGHT (2px, both selections), but RECOLORED ON SELECT, which is
@@ -170,13 +178,24 @@ export const radioControl: ComponentDef = {
     // #1423 asserts by name that `checked.border.*` EQUALS the interactive role and is NOT `field.border`,
     // and that the recolored ring clears 3:1 across the corpus × every mode.
     //
-    // NO `*.border.error` (#1698, decision 1): radio error is group-level only, so no option draws a
-    // danger ring. `test.ts` #1698 pins the absence by name.
     'unchecked.border': 'color.field.border.rest',
     'unchecked.border.hover': 'color.field.border.hover',
     'checked.border': 'color.interactive.primary.border.rest',
     'checked.border.hover': 'color.interactive.primary.border.hover',
     'checked.border.pressed': 'color.interactive.primary.border.pressed',
+
+    // ── THE ERROR RING (owner Q354, #2751) — `status=error`, set by the group: the danger border on the ring
+    // at both selections, the inner dot unchanged (the look #1433a locked before #1698 dropped it). Bound per
+    // selection and per non-disabled state so it holds under the pointer and with focus. A border role,
+    // never an icon or text role (owner rule Q346).
+    'error.unchecked.border.rest': 'color.border.danger',
+    'error.unchecked.border.hover': 'color.border.danger',
+    'error.unchecked.border.pressed': 'color.border.danger',
+    'error.unchecked.border.focus-visible': 'color.border.danger',
+    'error.checked.border.rest': 'color.border.danger',
+    'error.checked.border.hover': 'color.border.danger',
+    'error.checked.border.pressed': 'color.border.danger',
+    'error.checked.border.focus-visible': 'color.border.danger',
 
     // ── THE INNER DOT — the selection affordance, present only at `checked`, painted the brand fill
     // AGAINST THE PAGE. `interactive.primary.fill.selected` is the token the pre-split filled disc used;
@@ -296,16 +315,16 @@ export const radioControl: ComponentDef = {
       'read-only — deliberately not a state of this atom. A radio has no working native readonly, so there is no treatment to project; the field/row/group decides it. The Row admits it in its own `codeOnly`.',
       'motion — the select micro-motion (a spring/scale-up of the dot at roughly 100-150ms, and — uniquely — a SIBLING\'s dot animating OUT, the only exit animation a radio has, since it can never be deselected on its own). The def states it in `motion`; a Figma variant carries no motion, so the dot is static at every coordinate.',
       'The whole-row hit target. A bare control circle is a 12-24px disc that fails SC 2.5.8 in isolation; the accessible target is the labeled ROW, which is `radio-row` and not this atom. This def is nested, never placed alone, precisely so the target is supplied one level up.',
-      'error — deliberately not a state of this atom (#1698, decision 1). Radio error is GROUP-level only, never per-option (brief §4, §15), so no option draws a danger ring and the set has no error column. The group carries the error; its display is held with the group error design.',
       'RTL — the row mirrors (the control moves to the reading-start side through logical properties), and the disc and dot are symmetrical, so this atom has nothing to mirror (brief §9). Figma members are drawn left to right.',
     ],
   },
 
   figmaProperties: {
     // BOTH axes; `selection` is not optional — `presentWhen` gates the dot on it, so an unprojected
-    // `selection` would make the dot absent from every member. 2 selections × 3 sizes × 5 states = 30
-    // members (36 before #1698 dropped the per-option error column).
-    variantAxes: ['selection', 'size'],
+    // `selection` would make the dot absent from every member. `status` is orthogonal to the states and set
+    // by the group (owner Q354, #2751): 2 selections × 3 sizes × 2 statuses × 5 states = 60 members. The set
+    // had no error members before, so an update adds `status=default` to each existing one in place.
+    variantAxes: ['selection', 'size', 'status'],
     stateAxis: { name: 'state', values: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled'] },
     // No `texts` (no text part), no `swaps` (the dot is geometry this def owns), no `slotAxes` (the dot is
     // gated by a COORDINATE, which is what `presentWhen` draws).
@@ -319,40 +338,40 @@ export const radioControl: ComponentDef = {
       '2.4.13 Focus Appearance (the nested focus ring, offset, at least 3:1 — circular for this round host)',
       '4.1.2 Name Role Value (carried by the host; this atom is presentational when nested)',
     ],
-    keyboard: 'None of its own — the atom is not a tab stop. Focus, Space-to-select and the group\'s roving tabindex / arrow navigation belong to the host input and Radio.Group; the ring here renders the host\'s `:focus-visible` state.',
-    focus: 'The nested focus ring surrounds the circle on `:focus-visible`, offset so an unbroken sliver of background separates the ring from the control\'s own border (WCAG 1.4.11). Circular, because the host is full-round. Keyboard traversal only.',
-    aria: 'When nested in a host row, the host provides the accessible name through `aria-labelledby` — never double-label. The role is `radio`; a lone radio announces "radio button, 1 of N" with no indication of what is being chosen, which is why the group label is mandatory and lives on Radio.Group, not here.',
+    keyboard: 'None of its own — the atom is not a tab stop. Focus, Space-to-select and the group\'s roving tabindex / arrow navigation belong to the host input and Radio.Group; the ring here renders the host\'s :focus-visible state.',
+    focus: 'The nested focus ring surrounds the circle on :focus-visible, offset so an unbroken sliver of background separates the ring from the control\'s own border (WCAG 1.4.11). Circular, because the host is full-round. Keyboard traversal only.',
+    aria: 'When nested in a host row, the host provides the accessible name through aria-labelledby — never double-label. The role is radio; a lone radio announces "radio button, 1 of N" with no indication of what is being chosen, which is why the group label is mandatory and lives on Radio.Group, not here. The danger ring at status=error comes from the group and is never the only signal: aria-invalid and the error message belong to the group, announced once.',
   },
 
   content: {
-    labelPattern: 'None — the atom carries no label. The option label and its rules live on Radio.Row (`radio-row`); the decision it belongs to lives on Radio.Group (`radio-group`).',
-    errorPattern: 'None — radio error is GROUP-level only, never per-option, so this atom has no error state and no error ring. The group carries the message and the error display.',
+    labelPattern: 'None — the atom carries no label. The option label and its rules live on Radio.Row (radio-row); the decision it belongs to lives on Radio.Group (radio-group).',
+    errorPattern: 'None of its own — radio error is group-level only. The Radio group sets status=error on every option, which draws the danger ring, and shows the message under them.',
   },
 
   docs: {
     usage: 'Do not place this on its own. It is the circle Radio.Row nests, so a fix to its border weight or its dot geometry reaches the row without being copied. Build it before the row that nests it (the nest resolves by name against the live file). A standalone use is only for a control with an external label and its own aria wiring.',
     do: [
       'Nest this from Radio.Row rather than redrawing the circle per host',
-      'Let the host row expose `selection` and `state` and `follow` its size, so the nested control tracks the row',
-      'Let the inner circle and the ring recolor carry the selection; the ring border stays constant in WEIGHT across states, going brand-colored (not thicker) on select',
+      'Let the host row expose selection and state and follow its size, so the nested control tracks the row',
+      'Let the inner circle and the ring recolor carry the selection; the ring border stays constant in weight across states, going brand-colored (not thicker) on select',
       'Supply an external aria-label only when using the control genuinely alone',
     ],
     dont: [
       'Place a bare circle as the clickable element — it fails SC 2.5.8 in isolation; the labeled row is the hit target',
       'Double-label a nested control — the host row already provides the accessible name',
       'Fill the disc on select — the ring stays outlined and an inner circle shows the selection',
-      'Thicken the border to signal selection — the border WEIGHT is constant across states; selection recolors the ring to brand and adds the inner dot',
+      'Thicken the border to signal selection — the border weight is constant across states; selection recolors the ring to brand and adds the inner dot',
     ],
     contentGuidelines: 'The atom has no copy of its own; all label, description and error text belongs to the row and the group that compose it.',
   },
 
   ai: {
     primaryPurpose: 'Render the atomic radio control — the outlined circle, its inner selection dot and its focus ring — for a host row to nest.',
-    whenToUse: 'Nested by the labeled Radio.Row (the common case), or standalone only for a control with an external label and its own aria wiring.',
+    whenToUse: 'Inside Radio.Row, the common case. On its own only with an external label and its own ARIA wiring.',
     avoidWhen: 'You want the labeled case (that is Radio.Row), a staged binary opt-in (Checkbox.Row / Checkbox.Control), or an immediate-effect toggle (Switch.Row / Switch.Control). Never place a bare circle as the clickable element — the hit target is the labeled row.',
     commonPartners: ['radio-row', 'focus-ring', 'radio-group'],
     triggerKeywords: ['radio control', 'radio circle', 'radio disc', 'radio dot', 'option control'],
-    generationPriority: 3,
+    generationPriority: 6,
   },
 
   composition: {
@@ -388,7 +407,7 @@ export const radioControl: ComponentDef = {
     ],
     evolution: [
       'THE GROUP IS BUILT. This entry used to say RadioGroup was a separate component with no def (#901). `radio-group` (#1469) now owns the shared `name`, the single scalar value, the roving-tabindex single tab stop and all validation — none of which is expressible from this atom or from the Row. This def is the OPTION\'s painted control only.',
-      'PER-OPTION ERROR DROPPED (#1698, decision 1). The atom carried an `error` state that drew a danger ring on each option (#1433a locked that ring and the unchanged inner dot). The brief says radio error is never per-option, and this def\'s own `errorPattern` agreed, so the state, its two `*.border.error` keys and the error column (36 → 30 members) are gone. The error shows at the group.',
+      'PER-OPTION ERROR DROPPED (#1698, decision 1). The atom carried an `error` state that drew a danger ring on each option (#1433a locked that ring and the unchanged inner dot). The brief says radio error is never per-option, and this def\'s own `errorPattern` agreed, so the state, its two `*.border.error` keys and the error column (36 → 30 members) are gone. The error shows at the group. SUPERSEDED by Q354 (#2751): the group now sets a `status` axis on every option, so the ring is back, driven by the group rather than per option.',
       'Styled native inputs sharing a `name`, for free roving tabindex and exclusivity, won over hand-rolled `role=radio` div groups (brief §13). That is the input this atom paints.',
     ],
   },

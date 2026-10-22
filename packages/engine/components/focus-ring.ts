@@ -108,11 +108,11 @@ export const focusRing: ComponentDef = {
   status: 'draft',
   summary: 'Keyboard-focus ring nested by focusable components. Build first; don\'t place alone.',
   description:
-    'The shared keyboard-focus indicator: a stroke drawn OUTSIDE its host\'s bounds, separated from them by an offset (2px for controls, so an unbroken sliver of background sits between the control\'s own border and the ring; 0 for fields, whose own border supplies the separation). Authored once and nested by every focusable component rather than re-drawn per host — the ring belongs to no single component, which is why its tokens are top-level families.',
+    'The shared keyboard-focus indicator: a stroke drawn outside its host\'s bounds, separated from them by an offset (2px for controls, so an unbroken sliver of background sits between the control\'s own border and the ring; 0 for fields, whose own border supplies the separation). Authored once and nested by every focusable component rather than re-drawn per host — the ring belongs to no single component, which is why its tokens are top-level families.',
 
   props: [
-    { name: 'surface', type: "enum: 'default' | 'inverse'", values: ['default', 'inverse'], default: 'default', required: false, description: 'The ground the ring is drawn against. `default` for a normal surface; `inverse` for a dark or brand-filled one, where the default ring would sit on a similar hue and lose its 3:1 separation. A host that cannot know its ground picks `default`; a host that carries its own `surface` axis passes it through (see Button), so the ring on a dark band is the inverse ring.' },
-    { name: 'offset', type: "enum: 'control' | 'field'", values: ['control', 'field'], default: 'control', required: false, description: 'How far outside the host the ring sits. `control` is the standard ≈2px gap; `field` is 0, because an input\'s own border already supplies the separation and a gap there reads as a double border. Two values because the token tier already emits exactly two (`focus.ring.offset` and `focus.ring.offset-field`).' },
+    { name: 'surface', type: "enum: 'default' | 'inverse'", values: ['default', 'inverse'], default: 'default', required: false, description: 'The ground the ring is drawn against. default for a normal surface; inverse for a dark or brand-filled one, where the default ring would sit on a similar hue and lose its 3:1 separation. A host that cannot know its ground picks default; a host with its own surface option passes it through (see Button), so the ring on a dark band is the inverse ring.' },
+    { name: 'offset', type: "enum: 'control' | 'field'", values: ['control', 'field'], default: 'control', required: false, description: 'How far outside the host the ring sits. control is the standard gap of about 2px; field is 0, because an input\'s own border already supplies the separation and a gap there reads as a double border. Two values, one for each offset token (focus.ring.offset and focus.ring.offset-field).' },
   ],
 
   // `[]`, and this is the same claim `icon` makes for a different reason. A ring is not interactive —
@@ -284,7 +284,7 @@ export const focusRing: ComponentDef = {
       // be admitted by an entry that STARTS with it. `surface` PROJECTS as of #795 and so has no entry
       // here any more; `offset` does not, and its entry is what keeps that a decision rather than a gap.
       // This check now runs for real, because `figmaProperties` is present.
-      'offset — the context parameter (`control` ≈2px / `field` 0), and the one axis this def deliberately does NOT project (#795, decided on #801\'s measurement). Not a projector limit: the enumeration would carry it happily now that it reads `variantAxes`. The reason is that the offset is consumed by the HOST\'s `inset` binding and Figma\'s `x`/`y` accept no variable, so #801 measured the payload resolving it to a NUMBER at paste and writing that — an axis over it would ship two members differing only by a value the platform cannot hold, and a designer switching `offset=field` on an instance would see nothing move. So it stays a paste-time parameter the host supplies: `text-field`\'s field-specific offset comes from the PARENT at paste, not from a coordinate on this set. An already-pasted ring does not re-position when a brand changes `focus.ring.offset`, unlike every bound paint, which re-themes.',
+      'offset — not projected: the offset is consumed by the host\'s `inset` binding, and Figma\'s `x`/`y` accept no variable (#795, decided on #801\'s measurement). It is the context parameter (`control` ≈2px / `field` 0), and this is not a projector limit: the enumeration would carry it happily now that it reads `variantAxes`. The reason is that the offset is consumed by the HOST\'s `inset` binding and Figma\'s `x`/`y` accept no variable, so #801 measured the payload resolving it to a NUMBER at paste and writing that — an axis over it would ship two members differing only by a value the platform cannot hold, and a designer switching `offset=field` on an instance would see nothing move. So it stays a paste-time parameter the host supplies: `text-field`\'s field-specific offset comes from the PARENT at paste, not from a coordinate on this set. An already-pasted ring does not re-position when a brand changes `focus.ring.offset`, unlike every bound paint, which re-themes.',
       'stroke style — `focus.ring.style` resolves against every emitted brand and there is no Figma property to bind it to. In CSS the ring is an `outline` and its style is a keyword (`solid`, `dashed`); Figma has no keyword, only `dashPattern`, an array of pixel runs — so projecting a `dashed` ring means inventing a rhythm the token does not carry, and projecting `solid` means writing nothing, which is what happens already. This entry is the REMAINDER of one that used to read "stroke weight and stroke color", and the narrowing is the record worth keeping: a stroke is three things and this def could express none of them, because `PartDef`\'s vocabulary was gap / height / radius / size / type / inset / padding. COLOR left in #933 (`paintSlots` names the edge and the projector binds the paint) and WIDTH in #1266 (`PartDef.strokeWidth`, bound on the `ring` part above). What is left under #740 is one keyword, not the ring\'s visual substance — and Button\'s own ceiling entry described the whole thing as a deliberate trade, which it never was.',
       'the stroke, restated as the materialization ceiling — the def PROJECTS as of #795 (`figmaProperties` below declares `surface`, and the set builds two members with their ink bound), and what it projects is not yet a ring. Before #795 this entry said the def was deliberately not materializable because a `variantAxes: [\'color\']` block would validate and then throw; that is now false, and the honest replacement is narrower: nesting resolves by NAME against the live file (`compByName.get(n.nestTarget)`), so once the projected set is pasted, Button\'s `nests: \'focus-ring\'` binds to OUR members rather than to a hand-built component — which closes the docs/14 §1 inversion for the NODE. #1266 closed it for the STROKE as well — each member carries `bound.strokeWeight -> focus/ring/width`, so "the members are strokeless" is no longer the right reading and was the reading two other files quoted. #1280 closed the last of it: the members carried no EXTENT, which made the def unbuildable and therefore unpublishable, and therefore un-nestable by the very hosts the nesting resolved for — a deadlock, admitted here for two releases as `figmaProperties.notStandalone`. A nominal square side closes it. What remains under this entry is one keyword and no geometry at all.',
       ':focus-visible condition — the ring appears on exactly one host state, and that state is a POINTER-vs-KEYBOARD distinction the browser makes at runtime. Figma has no state machine, so a projected ring is a variant coordinate a designer selects, never a state an interaction triggers. This is why Button\'s `focusRing` part declares `when: \'focus-visible\'` — the condition has to be stated in the def, because nothing downstream can infer it.',
@@ -347,45 +347,47 @@ export const focusRing: ComponentDef = {
   accessibility: {
     role: 'none — a presentational sibling. The ring has no role of its own; it renders the focus state of the control it surrounds.',
     wcag: [
-      '2.4.7 Focus Visible (a visible indicator on every keyboard-focusable control — so the ring sits outside its host and must not be clipped by an ancestor, hence `clipsContent: false`)',
+      '2.4.7 Focus Visible (a visible indicator on every keyboard-focusable control — so the ring sits outside its host, and no ancestor may clip it)',
       '1.4.11 Non-text Contrast (the ring is gated at 3:1 against the page per mode, 4.5:1 in high contrast; against the control edge it depends on the host — the offset is what makes that achievable)',
       '2.4.11 Focus Not Obscured (Minimum) — the page\'s concern, not the ring\'s: a focused control must not be entirely hidden by author content such as a sticky header or a banner. The ring cannot see the page it is on, so the layout meets this, not this component.',
       '2.4.13 Focus Appearance (AAA) — the intent, not gated: an indicator whose area and change of contrast are large enough to see. The offset and width tokens are the levers, and no gate measures a brand against this criterion.',
     ],
     focus:
-      'This component IS the focus appearance. It is drawn for `:focus-visible` rather than `:focus`, so a pointer click does not raise it while keyboard navigation does — the distinction browsers make and the one a design system must not flatten. Never suppress it without replacing it: removing the indicator is the single most common 2.4.7 failure.',
+      'This component is the focus appearance. It is drawn for :focus-visible rather than :focus, so a pointer click does not raise it while keyboard navigation does — the distinction browsers make and the one a design system must not flatten. Never suppress it without replacing it: removing the indicator is the single most common 2.4.7 failure.',
     aria:
-      'None, and that is a contract rather than an absence. The ring is presentational — the focus state is already conveyed by the platform focus itself, so an `aria-*` attribute here would announce something assistive tech already knows. It must never be given a role that makes it a stop in the tab order: a focusable focus ring is a node the user can land on with nothing to do.',
+      'None, and that is a contract rather than an absence. The ring is presentational — the focus state is already conveyed by the platform focus itself, so an ARIA attribute here would announce something assistive tech already knows. It must never be given a role that makes it a stop in the tab order: a focusable focus ring is a node the user can land on with nothing to do.',
   },
 
   docs: {
     usage:
-      'Build this component first, then leave it to hosts: every focusable component nests it by name. Don\'t place it in a layout. In code it is an `outline` with `outline-offset`, so it survives forced-colors mode.',
+      'Build this component first, then leave it to hosts: every focusable component nests it by name. Don\'t place it in a layout. In code it is an outline with an outline offset, so it survives forced-colors mode.',
     do: [
       'Nest the shared ring rather than re-authoring a focus treatment per component',
-      'Pick `surface: inverse` on a dark or brand-filled surface, where the default ring loses its 3:1 separation',
-      'Pick `offset: field` for inputs, whose own border already supplies the separation',
+      'Pick the inverse surface on a dark or brand-filled ground, where the default ring loses its 3:1 separation',
+      'Pick the field offset for inputs, whose own border already supplies the separation',
       'Keep the ring outside the host\'s bounds and the host un-clipped, so the ring is never cut off (2.4.7)',
     ],
     dont: [
       'Draw the ring on the host\'s own border — an outline appearance then has to give up its border for it, and the two contend for one stroke at different palette steps',
       'Remove the indicator without replacing it (the most common 2.4.7 failure)',
-      'Render it for `:focus` rather than `:focus-visible` — a ring after every mouse click trains users to ignore it',
+      'Render it for :focus rather than :focus-visible — a ring after every mouse click trains users to ignore it',
       'Implement it as a box-shadow: shadows are dropped in forced-colors mode and the indicator vanishes for the users who need it most',
       'Make it focusable or give it an ARIA role — it is presentational',
     ],
+    contentGuidelines:
+      'The ring carries no text of its own. The accessible name and any message shown on focus belong to the control it surrounds.',
   },
 
   ai: {
     primaryPurpose: 'Render the shared keyboard-focus indicator for a focusable control.',
-    whenToUse: 'Nested by any component that can receive keyboard focus, as an absolute sibling — the host declares it and picks the surface and offset.',
+    whenToUse: 'Every component that can receive keyboard focus nests it as an absolute sibling and picks its surface and offset. It is never placed in a layout on its own.',
     avoidWhen:
-      'As a standalone element, as a decorative outline, or as a hover/selected treatment. It is not a border and not an emphasis ring: rendering it outside `:focus-visible` destroys the one signal keyboard users navigate by. Never re-author a per-component focus treatment instead of nesting this — that is how a system ends up with N rings and N contrast bugs. "Standalone" here means placed in a layout: the component IS built on its own, because a host can only nest one that already exists.',
+      'As a standalone element, as a decorative outline, or as a hover/selected treatment. It is not a border and not an emphasis ring: rendering it outside :focus-visible destroys the one signal keyboard users navigate by. Never re-author a per-component focus treatment instead of nesting this — that is how a system ends up with N rings and N contrast bugs. "Standalone" here means placed in a layout: the component is built on its own, because a host can only nest one that already exists.',
     // The defs that NEST the ring, read off their anatomy (#1700). A reverse list, so it lives here and not
     // in `composesWith`, which names what a def nests itself.
     commonPartners: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'text-field', 'textarea', 'select', 'checkbox-control', 'radio-control', 'switch-control', 'link', 'counter'],
     triggerKeywords: ['focus ring', 'focus indicator', 'focus outline', 'focus visible', 'keyboard focus'],
-    generationPriority: 2,
+    generationPriority: 6,
   },
 
   composition: {

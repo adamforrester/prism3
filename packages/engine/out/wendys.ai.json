@@ -912,7 +912,7 @@
       "when_to_use": "The ink for outline and text primary interactive elements (no fill behind it). Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use on a filled primary control (use `interactive.primary.on-fill`).",
       "mode_overrides": {
-        "light": "{wds.core.palette.primary.500}",
+        "light": "{wds.core.palette.primary.550}",
         "dark": "{wds.core.palette.primary.400}",
         "hc-light": "{wds.core.palette.primary.600}",
         "hc-dark": "{wds.core.palette.primary.300}"
@@ -926,7 +926,7 @@
         {
           "token": "background.primary",
           "min": "4.5:1",
-          "ratio": 5.88,
+          "ratio": 6.95,
           "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
         }
       ]
@@ -937,7 +937,7 @@
       "when_to_use": "The icon for outline and text primary interactive elements (no fill behind it). Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use on a filled primary control (use `interactive.primary.on-fill`).",
       "mode_overrides": {
-        "light": "{wds.core.palette.primary.500}",
+        "light": "{wds.core.palette.primary.550}",
         "dark": "{wds.core.palette.primary.400}",
         "hc-light": "{wds.core.palette.primary.600}",
         "hc-dark": "{wds.core.palette.primary.300}"
@@ -951,7 +951,7 @@
         {
           "token": "background.primary",
           "min": "4.5:1",
-          "ratio": 5.88,
+          "ratio": 6.95,
           "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
         }
       ]
@@ -962,7 +962,7 @@
       "when_to_use": "The ink for outline and text primary interactive elements (no fill behind it) on pointer hover. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use on a filled primary control (use `interactive.primary.on-fill`).",
       "mode_overrides": {
-        "light": "{wds.core.palette.primary.600}",
+        "light": "{wds.core.palette.primary.650}",
         "dark": "{wds.core.palette.primary.300}",
         "hc-light": "{wds.core.palette.primary.700}",
         "hc-dark": "{wds.core.palette.primary.200}"
@@ -979,7 +979,7 @@
         {
           "token": "background.primary",
           "min": "4.5:1",
-          "ratio": 8.28,
+          "ratio": 9.77,
           "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
         }
       ]
@@ -990,7 +990,7 @@
       "when_to_use": "The icon for outline and text primary interactive elements (no fill behind it) on pointer hover. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use on a filled primary control (use `interactive.primary.on-fill`).",
       "mode_overrides": {
-        "light": "{wds.core.palette.primary.600}",
+        "light": "{wds.core.palette.primary.650}",
         "dark": "{wds.core.palette.primary.300}",
         "hc-light": "{wds.core.palette.primary.700}",
         "hc-dark": "{wds.core.palette.primary.200}"
@@ -1007,7 +1007,7 @@
         {
           "token": "background.primary",
           "min": "4.5:1",
-          "ratio": 8.28,
+          "ratio": 9.77,
           "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
         }
       ]
@@ -1018,7 +1018,7 @@
       "when_to_use": "The ink for outline and text primary interactive elements (no fill behind it) while pressed. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use on a filled primary control (use `interactive.primary.on-fill`).",
       "mode_overrides": {
-        "light": "{wds.core.palette.primary.700}",
+        "light": "{wds.core.palette.primary.750}",
         "dark": "{wds.core.palette.primary.200}",
         "hc-light": "{wds.core.palette.primary.800}",
         "hc-dark": "{wds.core.palette.primary.100}"
@@ -1035,7 +1035,7 @@
         {
           "token": "background.primary",
           "min": "4.5:1",
-          "ratio": 11.42,
+          "ratio": 13.25,
           "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
         }
       ]
@@ -1046,7 +1046,7 @@
       "when_to_use": "The icon for outline and text primary interactive elements (no fill behind it) while pressed. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use on a filled primary control (use `interactive.primary.on-fill`).",
       "mode_overrides": {
-        "light": "{wds.core.palette.primary.700}",
+        "light": "{wds.core.palette.primary.750}",
         "dark": "{wds.core.palette.primary.200}",
         "hc-light": "{wds.core.palette.primary.800}",
         "hc-dark": "{wds.core.palette.primary.100}"
@@ -1063,7 +1063,7 @@
         {
           "token": "background.primary",
           "min": "4.5:1",
-          "ratio": 11.42,
+          "ratio": 13.25,
           "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
         }
       ]
@@ -1074,7 +1074,7 @@
       "when_to_use": "The border of an outline primary interactive element.",
       "avoid_when": "Do not use as ink (use `interactive.primary.text.*`) or as a page divider (use `border.primary`).",
       "mode_overrides": {
-        "light": "{wds.core.palette.primary.500}",
+        "light": "{wds.core.palette.primary.550}",
         "dark": "{wds.core.palette.primary.400}",
         "hc-light": "{wds.core.palette.primary.600}",
         "hc-dark": "{wds.core.palette.primary.300}"
@@ -1089,7 +1089,7 @@
         {
           "token": "background.primary",
           "min": "3:1",
-          "ratio": 5.88,
+          "ratio": 6.95,
           "requirement": "MUST clear 3:1 against `background.primary` in every mode."
         }
       ]
@@ -1100,7 +1100,7 @@
       "when_to_use": "The border of an outline primary interactive element on pointer hover.",
       "avoid_when": "Do not use as ink (use `interactive.primary.text.*`) or as a page divider (use `border.primary`).",
       "mode_overrides": {
-        "light": "{wds.core.palette.primary.600}",
+        "light": "{wds.core.palette.primary.650}",
         "dark": "{wds.core.palette.primary.300}",
         "hc-light": "{wds.core.palette.primary.700}",
         "hc-dark": "{wds.core.palette.primary.200}"
@@ -1115,7 +1115,7 @@
         {
           "token": "background.primary",
           "min": "3:1",
-          "ratio": 8.28,
+          "ratio": 9.77,
           "requirement": "MUST clear 3:1 against `background.primary` in every mode."
         }
       ]
@@ -1126,7 +1126,7 @@
       "when_to_use": "The border of an outline primary interactive element while pressed.",
       "avoid_when": "Do not use as ink (use `interactive.primary.text.*`) or as a page divider (use `border.primary`).",
       "mode_overrides": {
-        "light": "{wds.core.palette.primary.700}",
+        "light": "{wds.core.palette.primary.750}",
         "dark": "{wds.core.palette.primary.200}",
         "hc-light": "{wds.core.palette.primary.800}",
         "hc-dark": "{wds.core.palette.primary.100}"
@@ -1141,7 +1141,7 @@
         {
           "token": "background.primary",
           "min": "3:1",
-          "ratio": 11.42,
+          "ratio": 13.25,
           "requirement": "MUST clear 3:1 against `background.primary` in every mode."
         }
       ]
@@ -4318,7 +4318,7 @@
       "when_to_use": "Hyperlinks and interactive text. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use for non-interactive text (use `text.primary`).",
       "mode_overrides": {
-        "light": "{wds.core.palette.primary.500}",
+        "light": "{wds.core.palette.primary.550}",
         "dark": "{wds.core.palette.primary.400}",
         "hc-light": "{wds.core.palette.primary.650}",
         "hc-dark": "{wds.core.palette.primary.250}"
@@ -4332,7 +4332,7 @@
         {
           "token": "background.secondary",
           "min": "4.5:1",
-          "ratio": 4.85,
+          "ratio": 5.73,
           "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
         }
       ]
@@ -4343,7 +4343,7 @@
       "when_to_use": "Hyperlinks and interactive text on pointer hover. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use for non-interactive text (use `text.primary`).",
       "mode_overrides": {
-        "light": "{wds.core.palette.primary.600}",
+        "light": "{wds.core.palette.primary.650}",
         "dark": "{wds.core.palette.primary.300}",
         "hc-light": "{wds.core.palette.primary.750}",
         "hc-dark": "{wds.core.palette.primary.150}"
@@ -4360,7 +4360,7 @@
         {
           "token": "background.secondary",
           "min": "4.5:1",
-          "ratio": 6.82,
+          "ratio": 8.05,
           "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
         }
       ]
@@ -4371,7 +4371,7 @@
       "when_to_use": "Hyperlinks and interactive text after it has been visited. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use for non-interactive text (use `text.primary`).",
       "mode_overrides": {
-        "light": "{wds.core.palette.primary.800}",
+        "light": "{wds.core.palette.primary.850}",
         "dark": "{wds.core.palette.primary.100}",
         "hc-light": "{wds.core.palette.primary.950}",
         "hc-dark": "{wds.core.palette.primary.025}"
@@ -4388,7 +4388,7 @@
         {
           "token": "background.secondary",
           "min": "4.5:1",
-          "ratio": 12.43,
+          "ratio": 13.92,
           "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
         }
       ]
@@ -4399,7 +4399,7 @@
       "when_to_use": "Hyperlinks and interactive text when keyboard-focused. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use for non-interactive text (use `text.primary`).",
       "mode_overrides": {
-        "light": "{wds.core.palette.primary.500}",
+        "light": "{wds.core.palette.primary.550}",
         "dark": "{wds.core.palette.primary.400}",
         "hc-light": "{wds.core.palette.primary.650}",
         "hc-dark": "{wds.core.palette.primary.250}"
@@ -4413,7 +4413,7 @@
         {
           "token": "background.secondary",
           "min": "4.5:1",
-          "ratio": 4.85,
+          "ratio": 5.73,
           "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
         }
       ]
@@ -4424,7 +4424,7 @@
       "when_to_use": "Hyperlinks and interactive text while pressed. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use for non-interactive text (use `text.primary`).",
       "mode_overrides": {
-        "light": "{wds.core.palette.primary.700}",
+        "light": "{wds.core.palette.primary.750}",
         "dark": "{wds.core.palette.primary.200}",
         "hc-light": "{wds.core.palette.primary.850}",
         "hc-dark": "{wds.core.palette.primary.050}"
@@ -4441,7 +4441,7 @@
         {
           "token": "background.secondary",
           "min": "4.5:1",
-          "ratio": 9.41,
+          "ratio": 10.91,
           "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
         }
       ]
@@ -4982,7 +4982,7 @@
       "when_to_use": "Hyperlinks and interactive icon. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use for non-interactive icon (use `icon.primary`).",
       "mode_overrides": {
-        "light": "{wds.core.palette.primary.500}",
+        "light": "{wds.core.palette.primary.550}",
         "dark": "{wds.core.palette.primary.400}",
         "hc-light": "{wds.core.palette.primary.650}",
         "hc-dark": "{wds.core.palette.primary.250}"
@@ -4996,7 +4996,7 @@
         {
           "token": "background.secondary",
           "min": "4.5:1",
-          "ratio": 4.85,
+          "ratio": 5.73,
           "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
         }
       ]
@@ -5007,7 +5007,7 @@
       "when_to_use": "Hyperlinks and interactive icon on pointer hover. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use for non-interactive icon (use `icon.primary`).",
       "mode_overrides": {
-        "light": "{wds.core.palette.primary.600}",
+        "light": "{wds.core.palette.primary.650}",
         "dark": "{wds.core.palette.primary.300}",
         "hc-light": "{wds.core.palette.primary.750}",
         "hc-dark": "{wds.core.palette.primary.150}"
@@ -5024,7 +5024,7 @@
         {
           "token": "background.secondary",
           "min": "4.5:1",
-          "ratio": 6.82,
+          "ratio": 8.05,
           "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
         }
       ]
@@ -5035,7 +5035,7 @@
       "when_to_use": "Hyperlinks and interactive icon after it has been visited. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use for non-interactive icon (use `icon.primary`).",
       "mode_overrides": {
-        "light": "{wds.core.palette.primary.800}",
+        "light": "{wds.core.palette.primary.850}",
         "dark": "{wds.core.palette.primary.100}",
         "hc-light": "{wds.core.palette.primary.950}",
         "hc-dark": "{wds.core.palette.primary.025}"
@@ -5052,7 +5052,7 @@
         {
           "token": "background.secondary",
           "min": "4.5:1",
-          "ratio": 12.43,
+          "ratio": 13.92,
           "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
         }
       ]
@@ -5063,7 +5063,7 @@
       "when_to_use": "Hyperlinks and interactive icon when keyboard-focused. Clears 4.5:1 in every mode on `background.primary`, `background.secondary` and `foreground.primary`. Below 4.5:1 on `background.tertiary`, `foreground.secondary` and `foreground.tertiary` in at least one mode.",
       "avoid_when": "Do not use for non-interactive icon (use `icon.primary`).",
       "mode_overrides": {
-        "light": "{wds.core.palette.primary.500}",
+        "light": "{wds.core.palette.primary.550}",
         "dark": "{wds.core.palette.primary.400}",
         "hc-light": "{wds.core.palette.primary.650}",
         "hc-dark": "{wds.core.palette.primary.250}"
@@ -5077,7 +5077,7 @@
         {
           "token": "background.secondary",
           "min": "4.5:1",
-          "ratio": 4.85,
+          "ratio": 5.73,
           "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
         }
       ]
@@ -5088,7 +5088,7 @@
       "when_to_use": "Hyperlinks and interactive icon while pressed. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use for non-interactive icon (use `icon.primary`).",
       "mode_overrides": {
-        "light": "{wds.core.palette.primary.700}",
+        "light": "{wds.core.palette.primary.750}",
         "dark": "{wds.core.palette.primary.200}",
         "hc-light": "{wds.core.palette.primary.850}",
         "hc-dark": "{wds.core.palette.primary.050}"
@@ -5105,7 +5105,7 @@
         {
           "token": "background.secondary",
           "min": "4.5:1",
-          "ratio": 9.41,
+          "ratio": 10.91,
           "requirement": "MUST clear 4.5:1 against `background.secondary` in every mode."
         }
       ]
@@ -8606,14 +8606,9 @@
         "color.border.brand",
         "color.border.focus",
         "color.foreground.brand",
-        "color.icon.link.default",
-        "color.icon.link.focused",
-        "color.interactive.primary.border.rest",
         "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.rest",
         "color.interactive.primary.fill.selected",
-        "color.interactive.primary.icon.rest",
-        "color.interactive.primary.text.rest",
         "color.inverse.border.brand",
         "color.inverse.border.focus",
         "color.inverse.foreground.brand",
@@ -8625,9 +8620,7 @@
         "color.inverse.interactive.primary.text.rest",
         "color.inverse.text.brand-subtle",
         "color.inverse.text.link.default",
-        "color.inverse.text.link.focused",
-        "color.text.link.default",
-        "color.text.link.focused"
+        "color.inverse.text.link.focused"
       ]
     },
     "core.palette.primary.550": {
@@ -8638,9 +8631,16 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.icon.brand",
+        "color.icon.link.default",
+        "color.icon.link.focused",
+        "color.interactive.primary.border.rest",
+        "color.interactive.primary.icon.rest",
+        "color.interactive.primary.text.rest",
         "color.inverse.icon.brand",
         "color.inverse.text.brand",
-        "color.text.brand"
+        "color.text.brand",
+        "color.text.link.default",
+        "color.text.link.focused"
       ]
     },
     "core.palette.primary.600": {
@@ -8650,13 +8650,9 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.icon.link.hover",
-        "color.interactive.primary.border.hover",
         "color.interactive.primary.border.rest",
         "color.interactive.primary.fill.hover",
-        "color.interactive.primary.icon.hover",
         "color.interactive.primary.icon.rest",
-        "color.interactive.primary.text.hover",
         "color.interactive.primary.text.rest",
         "color.inverse.border.focus",
         "color.inverse.foreground.brand",
@@ -8672,8 +8668,7 @@
         "color.inverse.interactive.primary.text.rest",
         "color.inverse.text.link.default",
         "color.inverse.text.link.focused",
-        "color.inverse.text.link.hover",
-        "color.text.link.hover"
+        "color.inverse.text.link.hover"
       ]
     },
     "core.palette.primary.650": {
@@ -8687,13 +8682,18 @@
         "color.foreground.brand",
         "color.icon.link.default",
         "color.icon.link.focused",
+        "color.icon.link.hover",
+        "color.interactive.primary.border.hover",
         "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.rest",
         "color.interactive.primary.fill.selected",
+        "color.interactive.primary.icon.hover",
+        "color.interactive.primary.text.hover",
         "color.inverse.icon.brand-subtle",
         "color.inverse.text.brand-subtle",
         "color.text.link.default",
-        "color.text.link.focused"
+        "color.text.link.focused",
+        "color.text.link.hover"
       ]
     },
     "core.palette.primary.700": {
@@ -8704,14 +8704,10 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.icon.brand",
-        "color.icon.link.pressed",
         "color.interactive.primary.border.hover",
-        "color.interactive.primary.border.pressed",
         "color.interactive.primary.fill.pressed",
         "color.interactive.primary.icon.hover",
-        "color.interactive.primary.icon.pressed",
         "color.interactive.primary.text.hover",
-        "color.interactive.primary.text.pressed",
         "color.inverse.icon.brand",
         "color.inverse.icon.link.hover",
         "color.inverse.icon.link.pressed",
@@ -8724,8 +8720,7 @@
         "color.inverse.text.brand",
         "color.inverse.text.link.hover",
         "color.inverse.text.link.pressed",
-        "color.text.brand",
-        "color.text.link.pressed"
+        "color.text.brand"
       ]
     },
     "core.palette.primary.750": {
@@ -8736,8 +8731,13 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.icon.link.hover",
+        "color.icon.link.pressed",
+        "color.interactive.primary.border.pressed",
         "color.interactive.primary.fill.hover",
-        "color.text.link.hover"
+        "color.interactive.primary.icon.pressed",
+        "color.interactive.primary.text.pressed",
+        "color.text.link.hover",
+        "color.text.link.pressed"
       ]
     },
     "core.palette.primary.800": {
@@ -8747,7 +8747,6 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.icon.link.visited",
         "color.interactive.primary.border.pressed",
         "color.interactive.primary.icon.pressed",
         "color.interactive.primary.text.pressed",
@@ -8757,8 +8756,7 @@
         "color.inverse.interactive.primary.icon.pressed",
         "color.inverse.interactive.primary.text.pressed",
         "color.inverse.text.link.pressed",
-        "color.inverse.text.link.visited",
-        "color.text.link.visited"
+        "color.inverse.text.link.visited"
       ]
     },
     "core.palette.primary.850": {
@@ -8769,8 +8767,10 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.icon.link.pressed",
+        "color.icon.link.visited",
         "color.interactive.primary.fill.pressed",
-        "color.text.link.pressed"
+        "color.text.link.pressed",
+        "color.text.link.visited"
       ]
     },
     "core.palette.primary.900": {

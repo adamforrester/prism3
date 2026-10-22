@@ -73,7 +73,7 @@ The brief's sections follow one locked spine, so each lands in a known place:
 | §1 Framing | `description`, and the one-line `summary` |
 | §2 Anatomy and parts | `anatomy` (§2 below) |
 | §3 Properties / API | `props` |
-| §4 States and variants | `states`, `variants`, `axisKinds`. A brief state or axis the def omits is a `contested` entry in `notes` that says so |
+| §4 States and variants | `states`, `variants`, `axisKinds`. A brief state or axis the def omits is a `contested` entry in `notes` that says so. A component with no interaction states of its own, including a container whose states live on its children, declares `states: []`, never `['rest']` (the validator refuses it) |
 | §5 Usage guidance | `docs` (`usage`, `do`, `dont`) |
 | §6 Accessibility | `accessibility` (`role`, `wcag`, `keyboard`, `focus`, `aria`) |
 | §7 Content guidelines | `content` (`labelPattern`, `errorPattern`, `emptyPattern`, `dialogPattern`, `metaphorRules` — a closed key list) and `docs.contentGuidelines` |
@@ -91,8 +91,25 @@ highest-value field, because an agent otherwise uses whatever it finds.
 **Siblings must be distinguishable.** When one file exports several defs (`makeButton` builds
 `button`, `button-destructive` and `button-neutral`), give each its own `ai.triggerKeywords`, an
 `ai.avoidWhen` that names the better-fitting sibling, and an `ai.generationPriority` for the
-tiebreak. `packages/engine/test.ts` pins that the button families' sibling keyword sets differ. The brief sets no
-priority, so the numbers are a judgment call to flag in the PR.
+tiebreak. `packages/engine/test.ts` pins that the button families' sibling keyword sets differ.
+
+**`ai.generationPriority` is a written scale.** Every def carries one, not only siblings. An agent
+choosing between candidates takes the lower number. The brief sets no priority, so pick the tier
+from what the component is:
+
+| Priority | Tier | For example |
+|---|---|---|
+| 1 | The default pick: the one component an agent reaches for when nothing in the prompt narrows the choice | Button |
+| 2 | A top-level component an agent places on its own | Text field, Select, Counter, Button group, Tabs, Dialog, Icon, Button.Neutral |
+| 3 | A top-level component that supports another (a status, a separator, a wait, a wash), or a sibling that loses the tiebreak to its family's 2 | Badge, Divider, Spinner, IconButton.Destructive, Segmented control |
+| 4–5 | A specialization of a top-level component for a narrower place | the three flush icon buttons |
+| 6 | A part a host nests, placed alone only in the case its `whenToUse` names | the three controls, Field label, Field message, Focus ring |
+| 9 | A part never generated alone: the agent generates its host instead | Tab, List item, the segment, the accordion indicator |
+
+7 and 8 are unused. A def at 6 or 9 must be nested by a registered host. `packages/engine/test.ts`
+(`#2713 generationPriority`) holds every def to its listed tier, so a new def adds itself to that
+list, and a number off the scale or a 6 or 9 with no host fails by name. Flag a new def's tier in
+the PR.
 
 ### What ships, and who reads it
 
@@ -111,8 +128,12 @@ characters, at most 100, one line, ending in a period (validated).
 **Every other field ships, and is written for people.** `packages/engine/regen.ts` projects each
 def's documentation fields — identity, `summary`, `description`, `props`, `states`, `variants`,
 `accessibility`, `content`, `docs`, `motion`, `composition` and `ai` — into
-`out/components/components.ai.json` and a page per component, `out/components/<id>.md`, which leaves
-out only the agent-only `ai.triggerKeywords` and `ai.generationPriority`. Everything but the two
+`out/components/components.ai.json` and a page per component, `out/components/<id>.md`. The page
+draws the sections of the doc section model (`packages/engine/component-doc-sections.ts`) and leaves
+out only the agent-only `ai.triggerKeywords` and `ai.generationPriority` and the planned components
+that are not built yet. A part's `note` is its caption in the page's Anatomy section, unless the note
+cites an issue, a doc path or a section sign, carries a code span, or names a tool: such a note is held
+back and listed in the maintainer record's `docGaps` until it is rewritten. Everything but the two
 maintainer channels, a part's `note` included, is also in the plugin bundle a designer imports. So in a shipped field:
 
 - no "brief §N" and no "per the KB" — state the behavior, not where it came from;
@@ -122,13 +143,22 @@ maintainer channels, a part's `note` included, is also in the plugin bundle a de
 - no Prism 2, and no "follows Prism 2";
 - US English, and `docs/voice-standard.md` — its banned words, and the recessive voice;
 - a WCAG criterion the gates do not check is stated as intent ("targets SC 2.5.5"), never as a
-  guarantee.
+  guarantee;
+- no code spans: write a prop, a value, an attribute or a token path as plain text (inverse,
+  color.text.primary);
+- Button's implementation `do` items are held as they are (owner Q362); the register gate exempts
+  them by name until the owner decides where they belong.
+
+A part that is never generated on its own words `ai.whenToUse` as "Only as a child of Tabs. Generate Tabs,
+which places one tab per panel …", opening with the private-part wording `lint-naming` reads; a part a host nests that may stand alone words it as "Inside Checkbox.Row,
+the common case. On its own only when …". The host named is a registered component that nests the part.
 
 `packages/engine/test.ts` (`component-refs`, `component-names`, `component-prose`), `lint-us-english`
-and `lint-voice` catch Prism 2, dangling names, en-GB spellings and banned words. Nothing yet gates
-"brief §N", "def", all-caps emphasis or issue numbers in a component's shipped fields:
-`lint-figma-descriptions` refuses `#NNNN` in token descriptions only. So those four are yours to hold
-(#1717 is open on the entries that remain).
+and `lint-voice` catch Prism 2, dangling names, en-GB spellings and banned words. The `#2714 component
+register` block in `packages/engine/test.ts` refuses code spans, all-caps words outside its acronym list, "brief §N",
+"def" and issue numbers in the consumer fields (summary, description, prop descriptions, accessibility,
+content, docs and ai's three decision fields), and `#2714 child-only whenToUse` holds the two templates.
+Motion and a part's `note` ship too but are not gated yet (#2773), so hold them to the same rules by hand.
 
 ### Identity and relations — the #1700 rules
 
@@ -196,12 +226,9 @@ Every part declares a `kind` from a closed vocabulary (`packages/engine/componen
 | `nest` | an in-flow instance of another component — takes a cell like a box, content resolved from `nests` |
 | `vector` | a filled outline whose content is geometry — names a `glyph` from the icon vocabulary |
 
-**The root part is named for its role, never `root`.** The corpus names it semantically:
-`container` for button, icon-button, select, text-field, textarea and the two groups; `row` for
-checkbox-row, radio-row and switch-row; `control` for checkbox-control and radio-control; `track`
-for switch-control; `label` for field-label; `message` for field-message; `ring` for focus-ring;
-`glyph` for icon; `frame` for image-placeholder and spinner; `wash` for veil. Pick the existing key
-that fits the shape rather than inventing one.
+**The root part is named for its role, never `root` and never the component's own id.** Pick it
+from the role list in §6's naming table (`container` for most controls, `row` for the Rows, `track`
+for switch-control, `panel` for dialog, and so on) rather than inventing one.
 
 **`anatomy.codeOnly` is required and non-empty** — what will not survive the Figma leg, stated per
 def rather than discovered. It carries two kinds of entry: structure Figma cannot hold, and the
@@ -209,11 +236,12 @@ brief's code-tier rules (§9 i18n, §11 implementation) that have no other field
 maintainer-only.
 
 **The `admits()` trap.** `codeOnly` is also how a def admits an axis or state it does not project:
-an entry that leads with the name (`pending — why Figma cannot carry it`) licenses dropping `pending`
-from the Figma state axis. So an entry that merely opens with an axis or state name — a note about a
+an entry that leads with the name licenses dropping `pending` from the Figma state axis. Every
+admission uses one template, `pending — not projected: <why Figma cannot carry it>. <what the code
+does>`, and `packages/engine/test.ts` (`#2711 codeOnly admissions`) refuses any other phrasing. So an entry that merely opens with an axis or state name — a note about a
 state you do project — silently permits that state to vanish from Figma with every gate green (#867).
 Lead such entries with something else (`the spinner swap —`, `RTL —`). Both #1697 and #1699 retired
-an instance of this.
+an instance of this, and the same test now refuses an entry that leads with a name the set projects.
 
 ## 3. Nesting — how a part points at another component
 
@@ -303,6 +331,23 @@ whose actual value comes from the host, not from the plan.
   (text-field and select, owner-directed in #1517). The status-led paint key leads the grammar
   (`{status}.{slot}.{state}` before `{slot}.{state}`), so the status boundary wins over the
   interactive-state progression and persists at rest, hover and focus.
+- **Error is a `status` axis, never a state.** Every control that can be invalid takes the
+  fields' `status` axis and the fields' `validation` prop (owner Q354, #2751). A choice control
+  carries the first two values, `[default, error]`, because it has no warning or success look;
+  `status` is orthogonal to the interaction states, so an errored box still hovers and focuses.
+  The error look is a danger border on the box, track or ring, bound per selection and per
+  non-disabled state under a status template one segment longer than the selection template
+  (`{status}.{selection}.{slot}.{state}`), so the two grammars cannot read each other's keys.
+  Who sets it depends on whether the choice stands alone:
+  - **A standalone choice sets its own.** A lone Checkbox.Row (a consent line) or a Switch.Row
+    takes `status` itself; the host shows the message.
+  - **A set's group sets it, and passes it down.** Checkbox.Group and Radio.Group carry
+    `status`, `follow` it into every row (each row into its control), and nest a FieldMessage
+    under the options, present only at `error`. A radio is never invalid alone, so Radio.Row and
+    Radio.Control carry the axis only to receive the group's value; their docs say so.
+  A row or group paints nothing by `status` itself: it follows the axis to the part that draws it.
+  Moving an existing `error` state onto the axis is a `move` entry in `COMPONENT_RENAMES`, so an
+  update renames the error member in place and a placed error instance keeps showing it.
 - **A border never binds an icon or text role** (owner decision Q346). An edge binds a border
   role: `border.*`, `interactive.<intent>.border.*`, `field.border.*`, or `color.disabled.border`.
   Every disabled edge binds `color.disabled.border`; a field-specific disabled border is fine only
@@ -356,6 +401,36 @@ whose actual value comes from the host, not from the plan.
 
 ## 6. Naming canon — settled, not yours to re-decide
 
+**Part and layer names (owner decision Q350).** Part keys are the layer names a designer reads in
+Figma, so one job takes one name across every def:
+
+| Job | Name | Examples |
+|---|---|---|
+| Root part | named for its role, from this list: `container`, `row`, `control`, `track`, `message`, `ring`, `glyph`, `frame`, `wash`, `surface`, `panel`. Never the component's own id | Divider's root is `container`, not `divider` |
+| Main text | `label` | Button, Tag and the Rows already use it |
+| Glyph layer (a non-root `vector` part) | `<shape>Glyph` | `checkGlyph`, `chevronGlyph`, `dismissGlyph` |
+| A Row's control cell (the box holding a nested `*-control`) | `controlCell` | Checkbox, Radio and Switch rows |
+
+**The `_` prefix (owner decisions Q349, Q355, Q394).** A component that should not be used outside its
+parent takes the `_` prefix on its id, which Figma reads as a building block and leaves out of a published
+library. Its `ai.whenToUse` opens with one of two wordings: "Only as a child of …" or "Never directly
+…". The prefixed set is `_accordion-indicator`. A native slot's preferred item never takes the prefix
+(Q394): a designer inserts it from the assets panel, which works only for a published set, so it stays
+unprefixed even where its `ai.whenToUse` says "Only as a child of …". The slot items are `tab-item`,
+`list-item` and `segmented-control-segment`. The checkbox and radio controls (`checkbox-control`,
+`radio-control`) stay unprefixed because they may be used on their own.
+
+**Figma property names are lowercase (owner decision Q345).** Every name a designer reads in the
+properties panel is lowercase: each `figmaName` (or the key, when there is none), and each variant axis
+under its display name. So `check icon`, `state icon`, `marker`, `label`, never `Check icon`.
+
+`packages/engine/lint-naming.ts` checks all of this except the main-text row, which is a judgment
+(a dialog has a title and a description). Its rules are literals in the gate, never read off a def,
+and the gate reads this section's root list, prefixed set, slot items and exempt controls back and fails if they
+differ from its literals.
+Until the sweep in #2759 finishes, breaches the gate already knows about are listed as `PENDING` in
+`packages/engine/lint-naming.ts`. Entries leave it as the renames land. Never add one: a new def follows the table.
+
 **Boolean props (#1326 decision 2).** DOM-backed booleans are bare; synthetic-state booleans
 are `is`-prefixed. So switch-row carries `readOnly` and `checked` (DOM-backed) beside `isPending`
 (synthetic); button and icon-button carry `disabled` (DOM-backed) beside `isPending`/`isInactive`
@@ -402,9 +477,9 @@ container's geometry?
   `packages/engine/components/text-field.ts`.
 - **A boolean over variant-gated parts.** A boolean's part may also carry a `presentWhen` gate on variant
   axes: the gate decides which members build the node, and the boolean toggles it there. `part` takes a list
-  when one toggle governs nodes that never coexist — `switch-control`'s `State icon` is `{ part: ['onGlyph',
-  'offGlyph'], default: true, figmaName: 'State icon' }`, the check at `selection=on` and the X at
-  `selection=off`. One part is enough when the node belongs to some members only — Tag's `Check icon` is
+  when one toggle governs nodes that never coexist — `switch-control`'s `state icon` is `{ part: ['onGlyph',
+  'offGlyph'], default: true, figmaName: 'state icon' }`, the check at `selection=on` and the X at
+  `selection=off`. One part is enough when the node belongs to some members only — Tag's `check icon` is
   present only on a selected select tag. `figmaPropertyErrors` refuses three shapes: a `when`-gated part or a
   `presentWhen` on `state` (a boolean composes with a variant gate only); two targeted parts that both build
   at one member, including an ungated part beside a gated one (the gates must be disjoint, so the boolean
@@ -457,6 +532,9 @@ so a new def fails by name until you add it — or, for a floor list, stays unco
 | `packages/engine/test.ts`, field and gap floors | a def whose `densitySpacing` names a gap in `GAP_KEYS`; a def with an error, warning or success status in `SH_DEFS` (or `SH_EXEMPT` with the reason); a def with a read-only member in `RO_PINNED`. A def missing from these fails. |
 | `packages/engine/test.ts` | nothing for the brief: `KB_BRIEF_CATEGORY` is derived from `schema/kb-briefs.json` (refresh it if the brief is new). A def with a `presentWhen` part in `GATED_EXPECTED`, and a def binding a `size.<size>.control`, `dot` or `track` key in `CONTROL_DEFS`: both are exact-equality lists. |
 | `apps/plugin/src/file-taxonomy.ts` | the def on a page in `TAXONOMY` (§3). |
+
+`lint-naming` needs no entry either: its rules (§6) apply to every registered def, so a new def that
+breaks one fails by name.
 
 `lint-component-docs` needs no entry: it reads the registry, so after `packages/engine/regen.ts` a
 new def must appear in `components.ai.json`, in its own `<id>.md` page and in the maintainer record, or
@@ -540,7 +618,7 @@ one until that arc builds it.
 
 1. The def is authored from its KB brief: the header cites it exactly once, `category` is the brief's,
    and every brief section has landed in its field (§0) or is recorded as an omission in `notes`.
-2. Shipped fields are written for people — no brief sections, issue numbers, "def", all-caps or Prism 2 —
+2. Shipped fields are written for people — no brief sections, issue numbers, "def", all-caps, code spans or Prism 2 —
    and `summary` is one line under 100 characters. Provenance lives in `notes`, `codeOnly` and comments.
 3. `composesWith` equals what the anatomy nests; hosts and slot content are in `ai.commonPartners`;
    siblings differ in keywords, `ai.avoidWhen` and priority; `status` is `draft`.
