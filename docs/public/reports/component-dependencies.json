@@ -68,6 +68,131 @@
       ]
     },
     {
+      "from": "breadcrumb-item",
+      "to": "link",
+      "part": "crumb",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "style": "inline",
+        "weight": "default",
+        "size": "medium",
+        "surface": "default",
+        "selection": "unselected",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "state"
+      ]
+    },
+    {
+      "from": "breadcrumb-item",
+      "to": "flush-icon-button-neutral",
+      "part": "overflow",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "shape": "flush",
+        "size": "small",
+        "surface": "default",
+        "state": "rest"
+      },
+      "expose": [
+        "state"
+      ]
+    },
+    {
+      "from": "breadcrumb-item",
+      "to": "_breadcrumb-separator",
+      "part": "separator",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "chevron"
+      }
+    },
+    {
+      "from": "breadcrumb-item",
+      "to": "_breadcrumb-separator",
+      "part": "separatorSlash",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "slash"
+      }
+    },
+    {
+      "from": "breadcrumbs",
+      "to": "breadcrumb-item",
+      "part": "item1",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "kind": "ancestor",
+        "separator": "chevron",
+        "size": "medium"
+      },
+      "follow": [
+        "separator",
+        "size"
+      ]
+    },
+    {
+      "from": "breadcrumbs",
+      "to": "breadcrumb-item",
+      "part": "item2",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "kind": "ancestor",
+        "separator": "chevron",
+        "size": "medium"
+      },
+      "follow": [
+        "separator",
+        "size"
+      ]
+    },
+    {
+      "from": "breadcrumbs",
+      "to": "breadcrumb-item",
+      "part": "item3",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "kind": "current",
+        "separator": "chevron",
+        "size": "medium"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "breadcrumbs",
+      "to": "link",
+      "part": "parentLink",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "style": "inline",
+        "weight": "default",
+        "size": "medium",
+        "surface": "default",
+        "selection": "unselected",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "state"
+      ]
+    },
+    {
       "from": "button",
       "to": "focus-ring",
       "part": "focusRing",
@@ -340,6 +465,7 @@
       "variant": {
         "shape": "flush",
         "size": "medium",
+        "surface": "default",
         "state": "rest"
       },
       "follow": [
@@ -368,6 +494,7 @@
       "variant": {
         "shape": "flush",
         "size": "medium",
+        "surface": "default",
         "state": "rest"
       },
       "follow": [
@@ -446,6 +573,7 @@
       "variant": {
         "shape": "flush",
         "size": "medium",
+        "surface": "default",
         "state": "rest"
       }
     },
@@ -479,7 +607,10 @@
       "relation": "nest-fixed",
       "variant": {
         "surface": "default"
-      }
+      },
+      "follow": [
+        "surface"
+      ]
     },
     {
       "from": "flush-icon-button-destructive",
@@ -489,7 +620,10 @@
       "relation": "nest-fixed",
       "variant": {
         "surface": "default"
-      }
+      },
+      "follow": [
+        "surface"
+      ]
     },
     {
       "from": "flush-icon-button-neutral",
@@ -499,7 +633,10 @@
       "relation": "nest-fixed",
       "variant": {
         "surface": "default"
-      }
+      },
+      "follow": [
+        "surface"
+      ]
     },
     {
       "from": "icon-button",
@@ -807,6 +944,49 @@
       "expose": [
         "selection",
         "state"
+      ]
+    },
+    {
+      "from": "search-field",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      }
+    },
+    {
+      "from": "search-field",
+      "to": "field-label",
+      "part": "label",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "size": "medium",
+        "emphasis": "secondary",
+        "weight": "regular",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "emphasis",
+        "weight"
+      ]
+    },
+    {
+      "from": "search-field",
+      "to": "field-message",
+      "part": "message",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "status": "default"
+      },
+      "follow": [
+        "status"
       ]
     },
     {
@@ -1120,6 +1300,35 @@
       "follow": [
         "status"
       ]
+    },
+    {
+      "from": "toast",
+      "to": "button",
+      "part": "action",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "appearance": "text",
+        "size": "small",
+        "surface": "inverse",
+        "inset": "default",
+        "state": "rest",
+        "leading icon": "false",
+        "trailing icon": "false"
+      }
+    },
+    {
+      "from": "toast",
+      "to": "flush-icon-button-neutral",
+      "part": "close",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "shape": "flush",
+        "size": "small",
+        "surface": "inverse",
+        "state": "rest"
+      }
     }
   ],
   "components": {
@@ -1131,6 +1340,18 @@
       ],
       "affectedByChange": [
         "accordion"
+      ],
+      "inheritedBy": []
+    },
+    "_breadcrumb-separator": {
+      "nests": [],
+      "nestsTransitively": [],
+      "nestedBy": [
+        "breadcrumb-item"
+      ],
+      "affectedByChange": [
+        "breadcrumb-item",
+        "breadcrumbs"
       ],
       "inheritedBy": []
     },
@@ -1161,6 +1382,42 @@
       ],
       "inheritedBy": []
     },
+    "breadcrumb-item": {
+      "nests": [
+        "_breadcrumb-separator",
+        "flush-icon-button-neutral",
+        "link"
+      ],
+      "nestsTransitively": [
+        "_breadcrumb-separator",
+        "flush-icon-button-neutral",
+        "focus-ring",
+        "link"
+      ],
+      "nestedBy": [
+        "breadcrumbs"
+      ],
+      "affectedByChange": [
+        "breadcrumbs"
+      ],
+      "inheritedBy": []
+    },
+    "breadcrumbs": {
+      "nests": [
+        "breadcrumb-item",
+        "link"
+      ],
+      "nestsTransitively": [
+        "_breadcrumb-separator",
+        "breadcrumb-item",
+        "flush-icon-button-neutral",
+        "focus-ring",
+        "link"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
     "button": {
       "nests": [
         "focus-ring",
@@ -1172,12 +1429,14 @@
       ],
       "nestedBy": [
         "button-group",
-        "password-field"
+        "password-field",
+        "toast"
       ],
       "affectedByChange": [
         "button-group",
         "dialog",
-        "password-field"
+        "password-field",
+        "toast"
       ],
       "inheritedBy": [
         "icon-button"
@@ -1339,6 +1598,7 @@
         "counter",
         "password-field",
         "radio-group",
+        "search-field",
         "segmented-control",
         "select",
         "text-field",
@@ -1349,6 +1609,7 @@
         "counter",
         "password-field",
         "radio-group",
+        "search-field",
         "segmented-control",
         "select",
         "text-field",
@@ -1365,6 +1626,7 @@
         "password-field",
         "progress",
         "radio-group",
+        "search-field",
         "select",
         "text-field",
         "textarea"
@@ -1375,6 +1637,7 @@
         "password-field",
         "progress",
         "radio-group",
+        "search-field",
         "select",
         "text-field",
         "textarea"
@@ -1413,12 +1676,17 @@
         "focus-ring"
       ],
       "nestedBy": [
+        "breadcrumb-item",
         "counter",
-        "dialog"
+        "dialog",
+        "toast"
       ],
       "affectedByChange": [
+        "breadcrumb-item",
+        "breadcrumbs",
         "counter",
-        "dialog"
+        "dialog",
+        "toast"
       ],
       "inherits": "icon-button-neutral",
       "inheritedBy": []
@@ -1442,6 +1710,7 @@
         "link",
         "password-field",
         "radio-control",
+        "search-field",
         "segmented-control-segment",
         "select",
         "switch-control",
@@ -1452,6 +1721,8 @@
       ],
       "affectedByChange": [
         "accordion",
+        "breadcrumb-item",
+        "breadcrumbs",
         "button",
         "button-destructive",
         "button-group",
@@ -1472,6 +1743,7 @@
         "radio-control",
         "radio-group",
         "radio-row",
+        "search-field",
         "segmented-control",
         "segmented-control-segment",
         "select",
@@ -1481,7 +1753,8 @@
         "tabs",
         "tag",
         "text-field",
-        "textarea"
+        "textarea",
+        "toast"
       ],
       "inheritedBy": []
     },
@@ -1554,8 +1827,14 @@
       "nestsTransitively": [
         "focus-ring"
       ],
-      "nestedBy": [],
-      "affectedByChange": [],
+      "nestedBy": [
+        "breadcrumb-item",
+        "breadcrumbs"
+      ],
+      "affectedByChange": [
+        "breadcrumb-item",
+        "breadcrumbs"
+      ],
       "inheritedBy": []
     },
     "list": {
@@ -1659,6 +1938,21 @@
       "inherits": "checkbox-row",
       "inheritedBy": []
     },
+    "search-field": {
+      "nests": [
+        "field-label",
+        "field-message",
+        "focus-ring"
+      ],
+      "nestsTransitively": [
+        "field-label",
+        "field-message",
+        "focus-ring"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
     "segmented-control": {
       "nests": [
         "field-label",
@@ -1723,7 +2017,8 @@
         "icon-button",
         "icon-button-destructive",
         "icon-button-neutral",
-        "password-field"
+        "password-field",
+        "toast"
       ],
       "inheritedBy": []
     },
@@ -1830,6 +2125,21 @@
       "inherits": "text-field",
       "inheritedBy": []
     },
+    "toast": {
+      "nests": [
+        "button",
+        "flush-icon-button-neutral"
+      ],
+      "nestsTransitively": [
+        "button",
+        "flush-icon-button-neutral",
+        "focus-ring",
+        "spinner"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
     "veil": {
       "nests": [],
       "nestsTransitively": [],
@@ -1840,8 +2150,11 @@
   },
   "depth": {
     "_accordion-indicator": 0,
+    "_breadcrumb-separator": 0,
     "accordion": 1,
     "badge": 0,
+    "breadcrumb-item": 2,
+    "breadcrumbs": 3,
     "button": 1,
     "button-destructive": 1,
     "button-group": 2,
@@ -1871,6 +2184,7 @@
     "radio-control": 1,
     "radio-group": 3,
     "radio-row": 2,
+    "search-field": 1,
     "segmented-control": 2,
     "segmented-control-segment": 1,
     "select": 1,
@@ -1882,6 +2196,7 @@
     "tag": 1,
     "text-field": 1,
     "textarea": 1,
+    "toast": 2,
     "veil": 0
   }
 }

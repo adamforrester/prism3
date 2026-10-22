@@ -92,6 +92,12 @@
             ]
           },
           {
+            "name": "↳ Search field",
+            "components": [
+              "search-field"
+            ]
+          },
+          {
             "name": "↳ Textarea",
             "components": [
               "textarea"
@@ -162,6 +168,18 @@
             ]
           },
           {
+            "name": "↳ Breadcrumbs",
+            "components": [
+              "breadcrumbs"
+            ]
+          },
+          {
+            "name": "↳ Toast",
+            "components": [
+              "toast"
+            ]
+          },
+          {
             "name": "↳ Counter",
             "components": [
               "counter"
@@ -216,6 +234,13 @@
             "components": [
               "spinner"
             ]
+          },
+          {
+            "name": "↳ Breadcrumb Item",
+            "components": [
+              "_breadcrumb-separator",
+              "breadcrumb-item"
+            ]
           }
         ]
       },
@@ -255,7 +280,7 @@
         "kind": "component set",
         "page": "↳ Icons & assets",
         "section": "Foundations",
-        "members": 45,
+        "members": 46,
         "variantProperties": [
           {
             "name": "name",
@@ -303,6 +328,7 @@
               "plus-filled",
               "resize-grip",
               "search",
+              "slash",
               "warning-triangle",
               "warning-triangle-filled"
             ]
@@ -768,13 +794,20 @@
         "kind": "component set",
         "page": "↳ Flush Icon Button",
         "section": "Subcomponents",
-        "members": 30,
+        "members": 60,
         "variantProperties": [
           {
             "name": "shape",
             "values": [
               "flush",
               "round"
+            ]
+          },
+          {
+            "name": "surface",
+            "values": [
+              "default",
+              "inverse"
             ]
           },
           {
@@ -806,13 +839,20 @@
         "kind": "component set",
         "page": "↳ Flush Icon Button",
         "section": "Subcomponents",
-        "members": 30,
+        "members": 60,
         "variantProperties": [
           {
             "name": "shape",
             "values": [
               "flush",
               "round"
+            ]
+          },
+          {
+            "name": "surface",
+            "values": [
+              "default",
+              "inverse"
             ]
           },
           {
@@ -844,13 +884,20 @@
         "kind": "component set",
         "page": "↳ Flush Icon Button",
         "section": "Subcomponents",
-        "members": 30,
+        "members": 60,
         "variantProperties": [
           {
             "name": "shape",
             "values": [
               "flush",
               "round"
+            ]
+          },
+          {
+            "name": "surface",
+            "values": [
+              "default",
+              "inverse"
             ]
           },
           {
@@ -2037,7 +2084,7 @@
         "kind": "component set",
         "page": "↳ Link",
         "section": "Components",
-        "members": 96,
+        "members": 144,
         "variantProperties": [
           {
             "name": "style",
@@ -2058,6 +2105,13 @@
             "values": [
               "default",
               "inverse"
+            ]
+          },
+          {
+            "name": "selection",
+            "values": [
+              "unselected",
+              "selected"
             ]
           },
           {
@@ -2240,6 +2294,134 @@
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/password-field.md"
       },
       {
+        "id": "toast",
+        "name": "Toast",
+        "figmaName": "toast",
+        "kind": "component set",
+        "page": "↳ Toast",
+        "section": "Components",
+        "members": 2,
+        "variantProperties": [
+          {
+            "name": "intent",
+            "values": [
+              "neutral",
+              "success"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "message",
+            "type": "TEXT"
+          },
+          {
+            "name": "action",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "close",
+            "type": "BOOLEAN"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/toast.md"
+      },
+      {
+        "id": "_breadcrumb-separator",
+        "name": "BreadcrumbSeparator",
+        "figmaName": "_breadcrumb-separator",
+        "kind": "component set",
+        "private": true,
+        "page": "↳ Breadcrumb Item",
+        "section": "Subcomponents",
+        "members": 2,
+        "variantProperties": [
+          {
+            "name": "type",
+            "values": [
+              "chevron",
+              "slash"
+            ]
+          }
+        ],
+        "properties": [],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/_breadcrumb-separator.md"
+      },
+      {
+        "id": "breadcrumb-item",
+        "name": "BreadcrumbItem",
+        "figmaName": "breadcrumb-item",
+        "kind": "component set",
+        "page": "↳ Breadcrumb Item",
+        "section": "Subcomponents",
+        "members": 10,
+        "variantProperties": [
+          {
+            "name": "kind",
+            "values": [
+              "ancestor",
+              "current",
+              "overflow"
+            ]
+          },
+          {
+            "name": "separator",
+            "values": [
+              "chevron",
+              "slash"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "label",
+            "type": "TEXT"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/breadcrumb-item.md"
+      },
+      {
+        "id": "breadcrumbs",
+        "name": "Breadcrumbs",
+        "figmaName": "breadcrumbs",
+        "kind": "component set",
+        "page": "↳ Breadcrumbs",
+        "section": "Components",
+        "members": 6,
+        "variantProperties": [
+          {
+            "name": "path",
+            "values": [
+              "full",
+              "parent"
+            ]
+          },
+          {
+            "name": "separator",
+            "values": [
+              "chevron",
+              "slash"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small"
+            ]
+          }
+        ],
+        "properties": [],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/breadcrumbs.md"
+      },
+      {
         "id": "counter",
         "name": "Counter",
         "figmaName": "counter",
@@ -2354,6 +2536,92 @@
           }
         ],
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/progress.md"
+      },
+      {
+        "id": "search-field",
+        "name": "SearchField",
+        "figmaName": "search-field",
+        "kind": "component set",
+        "page": "↳ Search field",
+        "section": "Components",
+        "members": 84,
+        "variantProperties": [
+          {
+            "name": "status",
+            "values": [
+              "default",
+              "error",
+              "warning",
+              "success"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small",
+              "large"
+            ]
+          },
+          {
+            "name": "state",
+            "values": [
+              "rest",
+              "hover",
+              "filled",
+              "focus-visible",
+              "focus-visible-filled",
+              "disabled",
+              "read-only"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "placeholder",
+            "type": "TEXT"
+          },
+          {
+            "name": "value",
+            "type": "TEXT"
+          },
+          {
+            "name": "label",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "leading icon",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "↳ swap leading icon",
+            "type": "INSTANCE_SWAP",
+            "swapTarget": "icon/search"
+          },
+          {
+            "name": "trailing icon",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "↳ swap trailing icon",
+            "type": "INSTANCE_SWAP",
+            "swapTarget": "icon/close-filled"
+          },
+          {
+            "name": "message",
+            "type": "BOOLEAN"
+          }
+        ],
+        "codeOnly": {
+          "axes": [
+            "style"
+          ],
+          "states": [
+            "pending",
+            "empty"
+          ]
+        },
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/search-field.md"
       }
     ]
   },
@@ -2407,6 +2675,7 @@
       "plus-filled",
       "resize-grip",
       "search",
+      "slash",
       "warning-triangle",
       "warning-triangle-filled"
     ]
@@ -2491,6 +2760,17 @@
       {
         "component": "dialog",
         "property": "body"
+      },
+      {
+        "component": "breadcrumbs",
+        "property": "items",
+        "settings": {
+          "minChildren": 2,
+          "allowPreferredValuesOnly": true
+        },
+        "preferred": [
+          "breadcrumb-item"
+        ]
       }
     ]
   },
@@ -2650,7 +2930,12 @@
       "dialog",
       "password-field",
       "counter",
-      "progress"
+      "progress",
+      "search-field",
+      "toast",
+      "_breadcrumb-separator",
+      "breadcrumb-item",
+      "breadcrumbs"
     ],
     "templates": [
       {

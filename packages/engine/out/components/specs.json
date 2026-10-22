@@ -6,7 +6,7 @@
     "icon": {
       "id": "icon",
       "name": "Icon",
-      "members": 45,
+      "members": 46,
       "axes": [
         {
           "name": "name",
@@ -55,6 +55,7 @@
             "plus-filled",
             "resize-grip",
             "search",
+            "slash",
             "warning-triangle",
             "warning-triangle-filled"
           ],
@@ -66,7 +67,7 @@
         {
           "part": "glyph",
           "kind": "glyph",
-          "members": 45
+          "members": 46
         }
       ],
       "redlineKey": [],
@@ -552,6 +553,17 @@
         {
           "where": {
             "name": "search"
+          },
+          "parts": [
+            {
+              "part": "glyph",
+              "icon": "color.icon.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "name": "slash"
           },
           "parts": [
             {
@@ -13769,7 +13781,7 @@
     "flush-icon-button": {
       "id": "flush-icon-button",
       "name": "FlushIconButton",
-      "members": 30,
+      "members": 60,
       "axes": [
         {
           "name": "shape",
@@ -13777,6 +13789,15 @@
           "values": [
             "flush",
             "round"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "surface",
+          "figmaName": "surface",
+          "values": [
+            "default",
+            "inverse"
           ],
           "kind": "variant"
         },
@@ -13808,17 +13829,17 @@
         {
           "part": "container",
           "kind": "frame",
-          "members": 30
+          "members": 60
         },
         {
           "part": "container/icon",
           "kind": "swap",
-          "members": 30
+          "members": 60
         },
         {
           "part": "container/focusRing",
           "kind": "instance",
-          "members": 6,
+          "members": 12,
           "when": {
             "state": [
               "focus-visible"
@@ -14037,12 +14058,14 @@
       ],
       "colorKey": [
         "shape",
+        "surface",
         "state"
       ],
       "colors": [
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "rest"
           },
           "parts": [
@@ -14055,6 +14078,7 @@
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "hover"
           },
           "parts": [
@@ -14067,6 +14091,7 @@
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "pressed"
           },
           "parts": [
@@ -14079,6 +14104,7 @@
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "focus-visible"
           },
           "parts": [
@@ -14091,6 +14117,7 @@
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "disabled"
           },
           "parts": [
@@ -14102,7 +14129,73 @@
         },
         {
           "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.primary.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.primary.icon.hover"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.primary.icon.pressed"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.primary.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.disabled.icon"
+            }
+          ]
+        },
+        {
+          "where": {
             "shape": "round",
+            "surface": "default",
             "state": "rest"
           },
           "parts": [
@@ -14119,6 +14212,7 @@
         {
           "where": {
             "shape": "round",
+            "surface": "default",
             "state": "hover"
           },
           "parts": [
@@ -14136,6 +14230,7 @@
         {
           "where": {
             "shape": "round",
+            "surface": "default",
             "state": "pressed"
           },
           "parts": [
@@ -14153,6 +14248,7 @@
         {
           "where": {
             "shape": "round",
+            "surface": "default",
             "state": "focus-visible"
           },
           "parts": [
@@ -14169,6 +14265,7 @@
         {
           "where": {
             "shape": "round",
+            "surface": "default",
             "state": "disabled"
           },
           "parts": [
@@ -14179,6 +14276,93 @@
             {
               "part": "container/icon",
               "icon": "color.disabled.icon"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "stroke": "color.inverse.border.secondary"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.primary.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.inverse.interactive.primary.overlay.hover",
+              "stroke": "color.inverse.border.secondary"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.primary.icon.hover"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.inverse.interactive.primary.overlay.pressed",
+              "stroke": "color.inverse.border.secondary"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.primary.icon.pressed"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "stroke": "color.inverse.border.secondary"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.primary.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "stroke": "color.inverse.disabled.border"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.disabled.icon"
             }
           ]
         }
@@ -14196,7 +14380,9 @@
           "variant": {
             "surface": "default"
           },
-          "follows": [],
+          "follows": [
+            "surface"
+          ],
           "exposes": []
         }
       ],
@@ -14210,7 +14396,7 @@
     "flush-icon-button-destructive": {
       "id": "flush-icon-button-destructive",
       "name": "FlushIconButton.Destructive",
-      "members": 30,
+      "members": 60,
       "axes": [
         {
           "name": "shape",
@@ -14218,6 +14404,15 @@
           "values": [
             "flush",
             "round"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "surface",
+          "figmaName": "surface",
+          "values": [
+            "default",
+            "inverse"
           ],
           "kind": "variant"
         },
@@ -14249,17 +14444,17 @@
         {
           "part": "container",
           "kind": "frame",
-          "members": 30
+          "members": 60
         },
         {
           "part": "container/icon",
           "kind": "swap",
-          "members": 30
+          "members": 60
         },
         {
           "part": "container/focusRing",
           "kind": "instance",
-          "members": 6,
+          "members": 12,
           "when": {
             "state": [
               "focus-visible"
@@ -14478,12 +14673,14 @@
       ],
       "colorKey": [
         "shape",
+        "surface",
         "state"
       ],
       "colors": [
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "rest"
           },
           "parts": [
@@ -14496,6 +14693,7 @@
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "hover"
           },
           "parts": [
@@ -14508,6 +14706,7 @@
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "pressed"
           },
           "parts": [
@@ -14520,6 +14719,7 @@
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "focus-visible"
           },
           "parts": [
@@ -14532,6 +14732,7 @@
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "disabled"
           },
           "parts": [
@@ -14543,7 +14744,73 @@
         },
         {
           "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.destructive.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.destructive.icon.hover"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.destructive.icon.pressed"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.destructive.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.disabled.icon"
+            }
+          ]
+        },
+        {
+          "where": {
             "shape": "round",
+            "surface": "default",
             "state": "rest"
           },
           "parts": [
@@ -14560,6 +14827,7 @@
         {
           "where": {
             "shape": "round",
+            "surface": "default",
             "state": "hover"
           },
           "parts": [
@@ -14577,6 +14845,7 @@
         {
           "where": {
             "shape": "round",
+            "surface": "default",
             "state": "pressed"
           },
           "parts": [
@@ -14594,6 +14863,7 @@
         {
           "where": {
             "shape": "round",
+            "surface": "default",
             "state": "focus-visible"
           },
           "parts": [
@@ -14610,6 +14880,7 @@
         {
           "where": {
             "shape": "round",
+            "surface": "default",
             "state": "disabled"
           },
           "parts": [
@@ -14620,6 +14891,93 @@
             {
               "part": "container/icon",
               "icon": "color.disabled.icon"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "stroke": "color.inverse.border.secondary"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.destructive.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.inverse.interactive.destructive.overlay.hover",
+              "stroke": "color.inverse.border.secondary"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.destructive.icon.hover"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.inverse.interactive.destructive.overlay.pressed",
+              "stroke": "color.inverse.border.secondary"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.destructive.icon.pressed"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "stroke": "color.inverse.border.secondary"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.destructive.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "stroke": "color.inverse.disabled.border"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.disabled.icon"
             }
           ]
         }
@@ -14637,7 +14995,9 @@
           "variant": {
             "surface": "default"
           },
-          "follows": [],
+          "follows": [
+            "surface"
+          ],
           "exposes": []
         }
       ],
@@ -14651,7 +15011,7 @@
     "flush-icon-button-neutral": {
       "id": "flush-icon-button-neutral",
       "name": "FlushIconButton.Neutral",
-      "members": 30,
+      "members": 60,
       "axes": [
         {
           "name": "shape",
@@ -14659,6 +15019,15 @@
           "values": [
             "flush",
             "round"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "surface",
+          "figmaName": "surface",
+          "values": [
+            "default",
+            "inverse"
           ],
           "kind": "variant"
         },
@@ -14690,17 +15059,17 @@
         {
           "part": "container",
           "kind": "frame",
-          "members": 30
+          "members": 60
         },
         {
           "part": "container/icon",
           "kind": "swap",
-          "members": 30
+          "members": 60
         },
         {
           "part": "container/focusRing",
           "kind": "instance",
-          "members": 6,
+          "members": 12,
           "when": {
             "state": [
               "focus-visible"
@@ -14919,12 +15288,14 @@
       ],
       "colorKey": [
         "shape",
+        "surface",
         "state"
       ],
       "colors": [
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "rest"
           },
           "parts": [
@@ -14937,6 +15308,7 @@
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "hover"
           },
           "parts": [
@@ -14949,6 +15321,7 @@
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "pressed"
           },
           "parts": [
@@ -14961,6 +15334,7 @@
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "focus-visible"
           },
           "parts": [
@@ -14973,6 +15347,7 @@
         {
           "where": {
             "shape": "flush",
+            "surface": "default",
             "state": "disabled"
           },
           "parts": [
@@ -14984,7 +15359,73 @@
         },
         {
           "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.neutral.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.neutral.icon.hover"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.neutral.icon.pressed"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.neutral.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "flush",
+            "surface": "inverse",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.disabled.icon"
+            }
+          ]
+        },
+        {
+          "where": {
             "shape": "round",
+            "surface": "default",
             "state": "rest"
           },
           "parts": [
@@ -15001,6 +15442,7 @@
         {
           "where": {
             "shape": "round",
+            "surface": "default",
             "state": "hover"
           },
           "parts": [
@@ -15018,6 +15460,7 @@
         {
           "where": {
             "shape": "round",
+            "surface": "default",
             "state": "pressed"
           },
           "parts": [
@@ -15035,6 +15478,7 @@
         {
           "where": {
             "shape": "round",
+            "surface": "default",
             "state": "focus-visible"
           },
           "parts": [
@@ -15051,6 +15495,7 @@
         {
           "where": {
             "shape": "round",
+            "surface": "default",
             "state": "disabled"
           },
           "parts": [
@@ -15061,6 +15506,93 @@
             {
               "part": "container/icon",
               "icon": "color.disabled.icon"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "stroke": "color.inverse.border.secondary"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.neutral.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.inverse.interactive.neutral.overlay.hover",
+              "stroke": "color.inverse.border.secondary"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.neutral.icon.hover"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.inverse.interactive.neutral.overlay.pressed",
+              "stroke": "color.inverse.border.secondary"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.neutral.icon.pressed"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "stroke": "color.inverse.border.secondary"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.interactive.neutral.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "round",
+            "surface": "inverse",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "stroke": "color.inverse.disabled.border"
+            },
+            {
+              "part": "container/icon",
+              "icon": "color.inverse.disabled.icon"
             }
           ]
         }
@@ -15078,7 +15610,9 @@
           "variant": {
             "surface": "default"
           },
-          "follows": [],
+          "follows": [
+            "surface"
+          ],
           "exposes": []
         }
       ],
@@ -17049,7 +17583,7 @@
         {
           "name": "message",
           "type": "BOOLEAN",
-          "default": true
+          "default": false
         }
       ]
     },
@@ -18324,7 +18858,7 @@
         {
           "name": "message",
           "type": "BOOLEAN",
-          "default": true
+          "default": false
         },
         {
           "name": "character count",
@@ -19134,17 +19668,22 @@
           "members": 6
         },
         {
-          "part": "row/controlCell",
+          "part": "row/content",
           "kind": "frame",
           "members": 6
         },
         {
-          "part": "row/controlCell/control",
+          "part": "row/content/controlCell",
+          "kind": "frame",
+          "members": 6
+        },
+        {
+          "part": "row/content/controlCell/control",
           "kind": "instance",
           "members": 6
         },
         {
-          "part": "row/label",
+          "part": "row/content/label",
           "kind": "text",
           "members": 6
         }
@@ -19162,19 +19701,19 @@
               "part": "row",
               "values": {
                 "paddingTop": {
-                  "token": "space.150"
+                  "token": "space.100"
                 },
                 "paddingRight": {
                   "token": "space.0"
                 },
                 "paddingBottom": {
-                  "token": "space.150"
+                  "token": "space.100"
                 },
                 "paddingLeft": {
                   "token": "space.0"
                 },
-                "gap": {
-                  "token": "space.100"
+                "minHeight": {
+                  "token": "size.md.height"
                 },
                 "minWidth": {
                   "px": 120,
@@ -19187,7 +19726,15 @@
               }
             },
             {
-              "part": "row/controlCell",
+              "part": "row/content",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                }
+              }
+            },
+            {
+              "part": "row/content/controlCell",
               "values": {
                 "height": {
                   "token": "control.size.md.line-box"
@@ -19195,7 +19742,7 @@
               }
             },
             {
-              "part": "row/controlCell/control",
+              "part": "row/content/controlCell/control",
               "values": {
                 "height": {
                   "token": "control.size.md.height"
@@ -19216,19 +19763,19 @@
               "part": "row",
               "values": {
                 "paddingTop": {
-                  "token": "space.150"
+                  "token": "space.075"
                 },
                 "paddingRight": {
                   "token": "space.0"
                 },
                 "paddingBottom": {
-                  "token": "space.150"
+                  "token": "space.075"
                 },
                 "paddingLeft": {
                   "token": "space.0"
                 },
-                "gap": {
-                  "token": "space.100"
+                "minHeight": {
+                  "token": "size.sm.height"
                 },
                 "minWidth": {
                   "px": 120,
@@ -19241,7 +19788,15 @@
               }
             },
             {
-              "part": "row/controlCell",
+              "part": "row/content",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                }
+              }
+            },
+            {
+              "part": "row/content/controlCell",
               "values": {
                 "height": {
                   "token": "control.size.sm.line-box"
@@ -19249,7 +19804,7 @@
               }
             },
             {
-              "part": "row/controlCell/control",
+              "part": "row/content/controlCell/control",
               "values": {
                 "height": {
                   "token": "control.size.sm.height"
@@ -19281,8 +19836,8 @@
                 "paddingLeft": {
                   "token": "space.0"
                 },
-                "gap": {
-                  "token": "space.150"
+                "minHeight": {
+                  "token": "size.lg.height"
                 },
                 "minWidth": {
                   "px": 120,
@@ -19295,7 +19850,15 @@
               }
             },
             {
-              "part": "row/controlCell",
+              "part": "row/content",
+              "values": {
+                "gap": {
+                  "token": "space.150"
+                }
+              }
+            },
+            {
+              "part": "row/content/controlCell",
               "values": {
                 "height": {
                   "token": "control.size.lg.line-box"
@@ -19303,7 +19866,7 @@
               }
             },
             {
-              "part": "row/controlCell/control",
+              "part": "row/content/controlCell/control",
               "values": {
                 "height": {
                   "token": "control.size.lg.height"
@@ -19326,7 +19889,7 @@
           },
           "parts": [
             {
-              "part": "row/label",
+              "part": "row/content/label",
               "textStyle": "type.body.md.default"
             }
           ]
@@ -19337,7 +19900,7 @@
           },
           "parts": [
             {
-              "part": "row/label",
+              "part": "row/content/label",
               "textStyle": "type.body.sm.default"
             }
           ]
@@ -19348,7 +19911,7 @@
           },
           "parts": [
             {
-              "part": "row/label",
+              "part": "row/content/label",
               "textStyle": "type.body.lg.default"
             }
           ]
@@ -19364,7 +19927,7 @@
           },
           "parts": [
             {
-              "part": "row/label",
+              "part": "row/content/label",
               "ink": "color.text.primary"
             }
           ]
@@ -19375,7 +19938,7 @@
           },
           "parts": [
             {
-              "part": "row/label",
+              "part": "row/content/label",
               "ink": "color.text.primary"
             }
           ]
@@ -19383,7 +19946,7 @@
       ],
       "nesting": [
         {
-          "part": "row/controlCell/control",
+          "part": "row/content/controlCell/control",
           "kind": "instance",
           "component": "checkbox-control",
           "variant": {
@@ -20282,17 +20845,22 @@
           "members": 6
         },
         {
-          "part": "row/controlCell",
+          "part": "row/content",
           "kind": "frame",
           "members": 6
         },
         {
-          "part": "row/controlCell/control",
+          "part": "row/content/controlCell",
+          "kind": "frame",
+          "members": 6
+        },
+        {
+          "part": "row/content/controlCell/control",
           "kind": "instance",
           "members": 6
         },
         {
-          "part": "row/label",
+          "part": "row/content/label",
           "kind": "text",
           "members": 6
         }
@@ -20310,19 +20878,19 @@
               "part": "row",
               "values": {
                 "paddingTop": {
-                  "token": "space.150"
+                  "token": "space.100"
                 },
                 "paddingRight": {
                   "token": "space.0"
                 },
                 "paddingBottom": {
-                  "token": "space.150"
+                  "token": "space.100"
                 },
                 "paddingLeft": {
                   "token": "space.0"
                 },
-                "gap": {
-                  "token": "space.100"
+                "minHeight": {
+                  "token": "size.md.height"
                 },
                 "minWidth": {
                   "px": 120,
@@ -20335,7 +20903,15 @@
               }
             },
             {
-              "part": "row/controlCell",
+              "part": "row/content",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                }
+              }
+            },
+            {
+              "part": "row/content/controlCell",
               "values": {
                 "height": {
                   "token": "control.size.md.line-box"
@@ -20343,7 +20919,7 @@
               }
             },
             {
-              "part": "row/controlCell/control",
+              "part": "row/content/controlCell/control",
               "values": {
                 "height": {
                   "token": "control.size.md.height"
@@ -20364,19 +20940,19 @@
               "part": "row",
               "values": {
                 "paddingTop": {
-                  "token": "space.150"
+                  "token": "space.075"
                 },
                 "paddingRight": {
                   "token": "space.0"
                 },
                 "paddingBottom": {
-                  "token": "space.150"
+                  "token": "space.075"
                 },
                 "paddingLeft": {
                   "token": "space.0"
                 },
-                "gap": {
-                  "token": "space.100"
+                "minHeight": {
+                  "token": "size.sm.height"
                 },
                 "minWidth": {
                   "px": 120,
@@ -20389,7 +20965,15 @@
               }
             },
             {
-              "part": "row/controlCell",
+              "part": "row/content",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                }
+              }
+            },
+            {
+              "part": "row/content/controlCell",
               "values": {
                 "height": {
                   "token": "control.size.sm.line-box"
@@ -20397,7 +20981,7 @@
               }
             },
             {
-              "part": "row/controlCell/control",
+              "part": "row/content/controlCell/control",
               "values": {
                 "height": {
                   "token": "control.size.sm.height"
@@ -20429,8 +21013,8 @@
                 "paddingLeft": {
                   "token": "space.0"
                 },
-                "gap": {
-                  "token": "space.150"
+                "minHeight": {
+                  "token": "size.lg.height"
                 },
                 "minWidth": {
                   "px": 120,
@@ -20443,7 +21027,15 @@
               }
             },
             {
-              "part": "row/controlCell",
+              "part": "row/content",
+              "values": {
+                "gap": {
+                  "token": "space.150"
+                }
+              }
+            },
+            {
+              "part": "row/content/controlCell",
               "values": {
                 "height": {
                   "token": "control.size.lg.line-box"
@@ -20451,7 +21043,7 @@
               }
             },
             {
-              "part": "row/controlCell/control",
+              "part": "row/content/controlCell/control",
               "values": {
                 "height": {
                   "token": "control.size.lg.height"
@@ -20474,7 +21066,7 @@
           },
           "parts": [
             {
-              "part": "row/label",
+              "part": "row/content/label",
               "textStyle": "type.body.md.default"
             }
           ]
@@ -20485,7 +21077,7 @@
           },
           "parts": [
             {
-              "part": "row/label",
+              "part": "row/content/label",
               "textStyle": "type.body.sm.default"
             }
           ]
@@ -20496,7 +21088,7 @@
           },
           "parts": [
             {
-              "part": "row/label",
+              "part": "row/content/label",
               "textStyle": "type.body.lg.default"
             }
           ]
@@ -20512,7 +21104,7 @@
           },
           "parts": [
             {
-              "part": "row/label",
+              "part": "row/content/label",
               "ink": "color.text.primary"
             }
           ]
@@ -20523,7 +21115,7 @@
           },
           "parts": [
             {
-              "part": "row/label",
+              "part": "row/content/label",
               "ink": "color.text.primary"
             }
           ]
@@ -20531,7 +21123,7 @@
       ],
       "nesting": [
         {
-          "part": "row/controlCell/control",
+          "part": "row/content/controlCell/control",
           "kind": "instance",
           "component": "radio-control",
           "variant": {
@@ -21632,17 +22224,22 @@
           "members": 4
         },
         {
-          "part": "row/label",
-          "kind": "text",
-          "members": 4
-        },
-        {
-          "part": "row/controlCell",
+          "part": "row/content",
           "kind": "frame",
           "members": 4
         },
         {
-          "part": "row/controlCell/control",
+          "part": "row/content/label",
+          "kind": "text",
+          "members": 4
+        },
+        {
+          "part": "row/content/controlCell",
+          "kind": "frame",
+          "members": 4
+        },
+        {
+          "part": "row/content/controlCell/control",
           "kind": "instance",
           "members": 4
         }
@@ -21659,13 +22256,33 @@
             {
               "part": "row",
               "values": {
+                "paddingTop": {
+                  "token": "space.100"
+                },
+                "paddingRight": {
+                  "token": "space.0"
+                },
+                "paddingBottom": {
+                  "token": "space.100"
+                },
+                "paddingLeft": {
+                  "token": "space.0"
+                },
+                "minHeight": {
+                  "token": "size.md.height"
+                }
+              }
+            },
+            {
+              "part": "row/content",
+              "values": {
                 "gap": {
                   "token": "space.100"
                 }
               }
             },
             {
-              "part": "row/controlCell",
+              "part": "row/content/controlCell",
               "values": {
                 "height": {
                   "token": "control.size.md.line-box"
@@ -21673,7 +22290,7 @@
               }
             },
             {
-              "part": "row/controlCell/control",
+              "part": "row/content/controlCell/control",
               "values": {
                 "height": {
                   "token": "control.size.md.track"
@@ -21690,13 +22307,33 @@
             {
               "part": "row",
               "values": {
+                "paddingTop": {
+                  "token": "space.075"
+                },
+                "paddingRight": {
+                  "token": "space.0"
+                },
+                "paddingBottom": {
+                  "token": "space.075"
+                },
+                "paddingLeft": {
+                  "token": "space.0"
+                },
+                "minHeight": {
+                  "token": "size.sm.height"
+                }
+              }
+            },
+            {
+              "part": "row/content",
+              "values": {
                 "gap": {
                   "token": "space.100"
                 }
               }
             },
             {
-              "part": "row/controlCell",
+              "part": "row/content/controlCell",
               "values": {
                 "height": {
                   "token": "control.size.sm.line-box"
@@ -21704,7 +22341,7 @@
               }
             },
             {
-              "part": "row/controlCell/control",
+              "part": "row/content/controlCell/control",
               "values": {
                 "height": {
                   "token": "control.size.sm.track"
@@ -21724,7 +22361,7 @@
           },
           "parts": [
             {
-              "part": "row/label",
+              "part": "row/content/label",
               "textStyle": "type.body.md.default"
             }
           ]
@@ -21735,7 +22372,7 @@
           },
           "parts": [
             {
-              "part": "row/label",
+              "part": "row/content/label",
               "textStyle": "type.body.sm.default"
             }
           ]
@@ -21751,7 +22388,7 @@
           },
           "parts": [
             {
-              "part": "row/label",
+              "part": "row/content/label",
               "ink": "color.text.primary"
             }
           ]
@@ -21762,7 +22399,7 @@
           },
           "parts": [
             {
-              "part": "row/label",
+              "part": "row/content/label",
               "ink": "color.text.primary"
             }
           ]
@@ -21770,7 +22407,7 @@
       ],
       "nesting": [
         {
-          "part": "row/controlCell/control",
+          "part": "row/content/controlCell/control",
           "kind": "instance",
           "component": "switch-control",
           "variant": {
@@ -22990,7 +23627,7 @@
         {
           "name": "message",
           "type": "BOOLEAN",
-          "default": true
+          "default": false
         }
       ]
     },
@@ -29707,7 +30344,7 @@
     "link": {
       "id": "link",
       "name": "Link",
-      "members": 96,
+      "members": 144,
       "axes": [
         {
           "name": "style",
@@ -29733,6 +30370,15 @@
           "values": [
             "default",
             "inverse"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "selection",
+          "figmaName": "selection",
+          "values": [
+            "unselected",
+            "selected"
           ],
           "kind": "variant"
         },
@@ -29763,17 +30409,17 @@
         {
           "part": "container",
           "kind": "frame",
-          "members": 96
+          "members": 144
         },
         {
           "part": "container/label",
           "kind": "text",
-          "members": 96
+          "members": 144
         },
         {
           "part": "container/trailingVisual",
           "kind": "swap",
-          "members": 48,
+          "members": 96,
           "when": {
             "style": [
               "standalone"
@@ -29783,10 +30429,20 @@
         {
           "part": "container/focusRing",
           "kind": "instance",
-          "members": 24,
+          "members": 36,
           "when": {
             "state": [
               "focus-visible"
+            ]
+          }
+        },
+        {
+          "part": "container/bar",
+          "kind": "frame",
+          "members": 48,
+          "when": {
+            "selection": [
+              "selected"
             ]
           }
         }
@@ -29818,6 +30474,14 @@
                   "token": "icon.size.xs"
                 }
               }
+            },
+            {
+              "part": "container/bar",
+              "values": {
+                "height": {
+                  "token": "border-width.thick"
+                }
+              }
             }
           ]
         },
@@ -29842,6 +30506,14 @@
                 },
                 "width": {
                   "token": "icon.size.xs"
+                }
+              }
+            },
+            {
+              "part": "container/bar",
+              "values": {
+                "height": {
+                  "token": "border-width.thick"
                 }
               }
             }
@@ -29870,6 +30542,14 @@
                   "token": "icon.size.sm"
                 }
               }
+            },
+            {
+              "part": "container/bar",
+              "values": {
+                "height": {
+                  "token": "border-width.thick"
+                }
+              }
             }
           ]
         }
@@ -29878,6 +30558,7 @@
         "size",
         "style",
         "weight",
+        "selection",
         "state"
       ],
       "type": [
@@ -29886,6 +30567,7 @@
             "size": "medium",
             "style": "standalone",
             "weight": "emphasis",
+            "selection": "unselected",
             "state": "rest"
           },
           "parts": [
@@ -29900,6 +30582,7 @@
             "size": "medium",
             "style": "standalone",
             "weight": "emphasis",
+            "selection": "unselected",
             "state": "hover"
           },
           "parts": [
@@ -29914,6 +30597,7 @@
             "size": "medium",
             "style": "standalone",
             "weight": "emphasis",
+            "selection": "unselected",
             "state": "pressed"
           },
           "parts": [
@@ -29928,6 +30612,7 @@
             "size": "medium",
             "style": "standalone",
             "weight": "emphasis",
+            "selection": "unselected",
             "state": "focus-visible"
           },
           "parts": [
@@ -29942,6 +30627,7 @@
             "size": "small",
             "style": "standalone",
             "weight": "emphasis",
+            "selection": "unselected",
             "state": "rest"
           },
           "parts": [
@@ -29956,6 +30642,7 @@
             "size": "small",
             "style": "standalone",
             "weight": "emphasis",
+            "selection": "unselected",
             "state": "hover"
           },
           "parts": [
@@ -29970,6 +30657,7 @@
             "size": "small",
             "style": "standalone",
             "weight": "emphasis",
+            "selection": "unselected",
             "state": "pressed"
           },
           "parts": [
@@ -29984,6 +30672,7 @@
             "size": "small",
             "style": "standalone",
             "weight": "emphasis",
+            "selection": "unselected",
             "state": "focus-visible"
           },
           "parts": [
@@ -29998,6 +30687,7 @@
             "size": "large",
             "style": "standalone",
             "weight": "emphasis",
+            "selection": "unselected",
             "state": "rest"
           },
           "parts": [
@@ -30012,6 +30702,7 @@
             "size": "large",
             "style": "standalone",
             "weight": "emphasis",
+            "selection": "unselected",
             "state": "hover"
           },
           "parts": [
@@ -30026,6 +30717,7 @@
             "size": "large",
             "style": "standalone",
             "weight": "emphasis",
+            "selection": "unselected",
             "state": "pressed"
           },
           "parts": [
@@ -30040,6 +30732,7 @@
             "size": "large",
             "style": "standalone",
             "weight": "emphasis",
+            "selection": "unselected",
             "state": "focus-visible"
           },
           "parts": [
@@ -30053,7 +30746,188 @@
           "where": {
             "size": "medium",
             "style": "standalone",
+            "weight": "emphasis",
+            "selection": "selected",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.md.strong"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "medium",
+            "style": "standalone",
+            "weight": "emphasis",
+            "selection": "selected",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.md.strong"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "medium",
+            "style": "standalone",
+            "weight": "emphasis",
+            "selection": "selected",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.md.strong"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "medium",
+            "style": "standalone",
+            "weight": "emphasis",
+            "selection": "selected",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.md.strong"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small",
+            "style": "standalone",
+            "weight": "emphasis",
+            "selection": "selected",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.sm.strong"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small",
+            "style": "standalone",
+            "weight": "emphasis",
+            "selection": "selected",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.sm.strong"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small",
+            "style": "standalone",
+            "weight": "emphasis",
+            "selection": "selected",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.sm.strong"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small",
+            "style": "standalone",
+            "weight": "emphasis",
+            "selection": "selected",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.sm.strong"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large",
+            "style": "standalone",
+            "weight": "emphasis",
+            "selection": "selected",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.lg.strong"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large",
+            "style": "standalone",
+            "weight": "emphasis",
+            "selection": "selected",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.lg.strong"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large",
+            "style": "standalone",
+            "weight": "emphasis",
+            "selection": "selected",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.lg.strong"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large",
+            "style": "standalone",
+            "weight": "emphasis",
+            "selection": "selected",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.lg.strong"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "medium",
+            "style": "standalone",
             "weight": "default",
+            "selection": "unselected",
             "state": "rest"
           },
           "parts": [
@@ -30068,6 +30942,7 @@
             "size": "medium",
             "style": "standalone",
             "weight": "default",
+            "selection": "unselected",
             "state": "hover"
           },
           "parts": [
@@ -30082,6 +30957,7 @@
             "size": "medium",
             "style": "standalone",
             "weight": "default",
+            "selection": "unselected",
             "state": "pressed"
           },
           "parts": [
@@ -30096,6 +30972,7 @@
             "size": "medium",
             "style": "standalone",
             "weight": "default",
+            "selection": "unselected",
             "state": "focus-visible"
           },
           "parts": [
@@ -30110,6 +30987,7 @@
             "size": "small",
             "style": "standalone",
             "weight": "default",
+            "selection": "unselected",
             "state": "rest"
           },
           "parts": [
@@ -30124,6 +31002,7 @@
             "size": "small",
             "style": "standalone",
             "weight": "default",
+            "selection": "unselected",
             "state": "hover"
           },
           "parts": [
@@ -30138,6 +31017,7 @@
             "size": "small",
             "style": "standalone",
             "weight": "default",
+            "selection": "unselected",
             "state": "pressed"
           },
           "parts": [
@@ -30152,6 +31032,7 @@
             "size": "small",
             "style": "standalone",
             "weight": "default",
+            "selection": "unselected",
             "state": "focus-visible"
           },
           "parts": [
@@ -30166,6 +31047,7 @@
             "size": "large",
             "style": "standalone",
             "weight": "default",
+            "selection": "unselected",
             "state": "rest"
           },
           "parts": [
@@ -30180,6 +31062,7 @@
             "size": "large",
             "style": "standalone",
             "weight": "default",
+            "selection": "unselected",
             "state": "hover"
           },
           "parts": [
@@ -30194,6 +31077,7 @@
             "size": "large",
             "style": "standalone",
             "weight": "default",
+            "selection": "unselected",
             "state": "pressed"
           },
           "parts": [
@@ -30208,6 +31092,7 @@
             "size": "large",
             "style": "standalone",
             "weight": "default",
+            "selection": "unselected",
             "state": "focus-visible"
           },
           "parts": [
@@ -30220,8 +31105,189 @@
         {
           "where": {
             "size": "medium",
+            "style": "standalone",
+            "weight": "default",
+            "selection": "selected",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.md.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "medium",
+            "style": "standalone",
+            "weight": "default",
+            "selection": "selected",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.md.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "medium",
+            "style": "standalone",
+            "weight": "default",
+            "selection": "selected",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.md.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "medium",
+            "style": "standalone",
+            "weight": "default",
+            "selection": "selected",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.md.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small",
+            "style": "standalone",
+            "weight": "default",
+            "selection": "selected",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.sm.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small",
+            "style": "standalone",
+            "weight": "default",
+            "selection": "selected",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.sm.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small",
+            "style": "standalone",
+            "weight": "default",
+            "selection": "selected",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.sm.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small",
+            "style": "standalone",
+            "weight": "default",
+            "selection": "selected",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.sm.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large",
+            "style": "standalone",
+            "weight": "default",
+            "selection": "selected",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.lg.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large",
+            "style": "standalone",
+            "weight": "default",
+            "selection": "selected",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.lg.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large",
+            "style": "standalone",
+            "weight": "default",
+            "selection": "selected",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.lg.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large",
+            "style": "standalone",
+            "weight": "default",
+            "selection": "selected",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "textStyle": "type.body.lg.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "medium",
             "style": "inline",
             "weight": "emphasis",
+            "selection": "unselected",
             "state": "rest"
           },
           "parts": [
@@ -30236,6 +31302,7 @@
             "size": "medium",
             "style": "inline",
             "weight": "emphasis",
+            "selection": "unselected",
             "state": "hover"
           },
           "parts": [
@@ -30250,6 +31317,7 @@
             "size": "medium",
             "style": "inline",
             "weight": "emphasis",
+            "selection": "unselected",
             "state": "pressed"
           },
           "parts": [
@@ -30264,6 +31332,7 @@
             "size": "medium",
             "style": "inline",
             "weight": "emphasis",
+            "selection": "unselected",
             "state": "focus-visible"
           },
           "parts": [
@@ -30278,6 +31347,7 @@
             "size": "small",
             "style": "inline",
             "weight": "emphasis",
+            "selection": "unselected",
             "state": "rest"
           },
           "parts": [
@@ -30292,6 +31362,7 @@
             "size": "small",
             "style": "inline",
             "weight": "emphasis",
+            "selection": "unselected",
             "state": "hover"
           },
           "parts": [
@@ -30306,6 +31377,7 @@
             "size": "small",
             "style": "inline",
             "weight": "emphasis",
+            "selection": "unselected",
             "state": "pressed"
           },
           "parts": [
@@ -30320,6 +31392,7 @@
             "size": "small",
             "style": "inline",
             "weight": "emphasis",
+            "selection": "unselected",
             "state": "focus-visible"
           },
           "parts": [
@@ -30334,6 +31407,7 @@
             "size": "large",
             "style": "inline",
             "weight": "emphasis",
+            "selection": "unselected",
             "state": "rest"
           },
           "parts": [
@@ -30348,6 +31422,7 @@
             "size": "large",
             "style": "inline",
             "weight": "emphasis",
+            "selection": "unselected",
             "state": "hover"
           },
           "parts": [
@@ -30362,6 +31437,7 @@
             "size": "large",
             "style": "inline",
             "weight": "emphasis",
+            "selection": "unselected",
             "state": "pressed"
           },
           "parts": [
@@ -30376,6 +31452,7 @@
             "size": "large",
             "style": "inline",
             "weight": "emphasis",
+            "selection": "unselected",
             "state": "focus-visible"
           },
           "parts": [
@@ -30390,6 +31467,7 @@
             "size": "medium",
             "style": "inline",
             "weight": "default",
+            "selection": "unselected",
             "state": "rest"
           },
           "parts": [
@@ -30404,6 +31482,7 @@
             "size": "medium",
             "style": "inline",
             "weight": "default",
+            "selection": "unselected",
             "state": "hover"
           },
           "parts": [
@@ -30418,6 +31497,7 @@
             "size": "medium",
             "style": "inline",
             "weight": "default",
+            "selection": "unselected",
             "state": "pressed"
           },
           "parts": [
@@ -30432,6 +31512,7 @@
             "size": "medium",
             "style": "inline",
             "weight": "default",
+            "selection": "unselected",
             "state": "focus-visible"
           },
           "parts": [
@@ -30446,6 +31527,7 @@
             "size": "small",
             "style": "inline",
             "weight": "default",
+            "selection": "unselected",
             "state": "rest"
           },
           "parts": [
@@ -30460,6 +31542,7 @@
             "size": "small",
             "style": "inline",
             "weight": "default",
+            "selection": "unselected",
             "state": "hover"
           },
           "parts": [
@@ -30474,6 +31557,7 @@
             "size": "small",
             "style": "inline",
             "weight": "default",
+            "selection": "unselected",
             "state": "pressed"
           },
           "parts": [
@@ -30488,6 +31572,7 @@
             "size": "small",
             "style": "inline",
             "weight": "default",
+            "selection": "unselected",
             "state": "focus-visible"
           },
           "parts": [
@@ -30502,6 +31587,7 @@
             "size": "large",
             "style": "inline",
             "weight": "default",
+            "selection": "unselected",
             "state": "rest"
           },
           "parts": [
@@ -30516,6 +31602,7 @@
             "size": "large",
             "style": "inline",
             "weight": "default",
+            "selection": "unselected",
             "state": "hover"
           },
           "parts": [
@@ -30530,6 +31617,7 @@
             "size": "large",
             "style": "inline",
             "weight": "default",
+            "selection": "unselected",
             "state": "pressed"
           },
           "parts": [
@@ -30544,6 +31632,7 @@
             "size": "large",
             "style": "inline",
             "weight": "default",
+            "selection": "unselected",
             "state": "focus-visible"
           },
           "parts": [
@@ -30558,6 +31647,7 @@
         "style",
         "weight",
         "surface",
+        "selection",
         "state"
       ],
       "colors": [
@@ -30566,6 +31656,7 @@
             "style": "standalone",
             "weight": "emphasis",
             "surface": "default",
+            "selection": "unselected",
             "state": "rest"
           },
           "parts": [
@@ -30584,6 +31675,7 @@
             "style": "standalone",
             "weight": "emphasis",
             "surface": "default",
+            "selection": "unselected",
             "state": "hover"
           },
           "parts": [
@@ -30602,6 +31694,7 @@
             "style": "standalone",
             "weight": "emphasis",
             "surface": "default",
+            "selection": "unselected",
             "state": "pressed"
           },
           "parts": [
@@ -30620,6 +31713,7 @@
             "style": "standalone",
             "weight": "emphasis",
             "surface": "default",
+            "selection": "unselected",
             "state": "focus-visible"
           },
           "parts": [
@@ -30637,7 +31731,100 @@
           "where": {
             "style": "standalone",
             "weight": "emphasis",
+            "surface": "default",
+            "selection": "selected",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "ink": "color.text.link.default"
+            },
+            {
+              "part": "container/trailingVisual",
+              "icon": "color.icon.link.default"
+            },
+            {
+              "part": "container/bar",
+              "fill": "color.icon.link.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "style": "standalone",
+            "weight": "emphasis",
+            "surface": "default",
+            "selection": "selected",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "ink": "color.text.link.hover"
+            },
+            {
+              "part": "container/trailingVisual",
+              "icon": "color.icon.link.hover"
+            },
+            {
+              "part": "container/bar",
+              "fill": "color.icon.link.hover"
+            }
+          ]
+        },
+        {
+          "where": {
+            "style": "standalone",
+            "weight": "emphasis",
+            "surface": "default",
+            "selection": "selected",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "ink": "color.text.link.pressed"
+            },
+            {
+              "part": "container/trailingVisual",
+              "icon": "color.icon.link.pressed"
+            },
+            {
+              "part": "container/bar",
+              "fill": "color.icon.link.pressed"
+            }
+          ]
+        },
+        {
+          "where": {
+            "style": "standalone",
+            "weight": "emphasis",
+            "surface": "default",
+            "selection": "selected",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "ink": "color.text.link.focused"
+            },
+            {
+              "part": "container/trailingVisual",
+              "icon": "color.icon.link.focused"
+            },
+            {
+              "part": "container/bar",
+              "fill": "color.icon.link.focused"
+            }
+          ]
+        },
+        {
+          "where": {
+            "style": "standalone",
+            "weight": "emphasis",
             "surface": "inverse",
+            "selection": "unselected",
             "state": "rest"
           },
           "parts": [
@@ -30656,6 +31843,7 @@
             "style": "standalone",
             "weight": "emphasis",
             "surface": "inverse",
+            "selection": "unselected",
             "state": "hover"
           },
           "parts": [
@@ -30674,6 +31862,7 @@
             "style": "standalone",
             "weight": "emphasis",
             "surface": "inverse",
+            "selection": "unselected",
             "state": "pressed"
           },
           "parts": [
@@ -30692,6 +31881,7 @@
             "style": "standalone",
             "weight": "emphasis",
             "surface": "inverse",
+            "selection": "unselected",
             "state": "focus-visible"
           },
           "parts": [
@@ -30708,8 +31898,101 @@
         {
           "where": {
             "style": "standalone",
+            "weight": "emphasis",
+            "surface": "inverse",
+            "selection": "selected",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "ink": "color.inverse.text.link.default"
+            },
+            {
+              "part": "container/trailingVisual",
+              "icon": "color.inverse.icon.link.default"
+            },
+            {
+              "part": "container/bar",
+              "fill": "color.inverse.icon.link.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "style": "standalone",
+            "weight": "emphasis",
+            "surface": "inverse",
+            "selection": "selected",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "ink": "color.inverse.text.link.hover"
+            },
+            {
+              "part": "container/trailingVisual",
+              "icon": "color.inverse.icon.link.hover"
+            },
+            {
+              "part": "container/bar",
+              "fill": "color.inverse.icon.link.hover"
+            }
+          ]
+        },
+        {
+          "where": {
+            "style": "standalone",
+            "weight": "emphasis",
+            "surface": "inverse",
+            "selection": "selected",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "ink": "color.inverse.text.link.pressed"
+            },
+            {
+              "part": "container/trailingVisual",
+              "icon": "color.inverse.icon.link.pressed"
+            },
+            {
+              "part": "container/bar",
+              "fill": "color.inverse.icon.link.pressed"
+            }
+          ]
+        },
+        {
+          "where": {
+            "style": "standalone",
+            "weight": "emphasis",
+            "surface": "inverse",
+            "selection": "selected",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "ink": "color.inverse.text.link.focused"
+            },
+            {
+              "part": "container/trailingVisual",
+              "icon": "color.inverse.icon.link.focused"
+            },
+            {
+              "part": "container/bar",
+              "fill": "color.inverse.icon.link.focused"
+            }
+          ]
+        },
+        {
+          "where": {
+            "style": "standalone",
             "weight": "default",
             "surface": "default",
+            "selection": "unselected",
             "state": "rest"
           },
           "parts": [
@@ -30728,6 +32011,7 @@
             "style": "standalone",
             "weight": "default",
             "surface": "default",
+            "selection": "unselected",
             "state": "hover"
           },
           "parts": [
@@ -30746,6 +32030,7 @@
             "style": "standalone",
             "weight": "default",
             "surface": "default",
+            "selection": "unselected",
             "state": "pressed"
           },
           "parts": [
@@ -30764,6 +32049,7 @@
             "style": "standalone",
             "weight": "default",
             "surface": "default",
+            "selection": "unselected",
             "state": "focus-visible"
           },
           "parts": [
@@ -30781,7 +32067,100 @@
           "where": {
             "style": "standalone",
             "weight": "default",
+            "surface": "default",
+            "selection": "selected",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "ink": "color.text.link.default"
+            },
+            {
+              "part": "container/trailingVisual",
+              "icon": "color.icon.link.default"
+            },
+            {
+              "part": "container/bar",
+              "fill": "color.icon.link.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "style": "standalone",
+            "weight": "default",
+            "surface": "default",
+            "selection": "selected",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "ink": "color.text.link.hover"
+            },
+            {
+              "part": "container/trailingVisual",
+              "icon": "color.icon.link.hover"
+            },
+            {
+              "part": "container/bar",
+              "fill": "color.icon.link.hover"
+            }
+          ]
+        },
+        {
+          "where": {
+            "style": "standalone",
+            "weight": "default",
+            "surface": "default",
+            "selection": "selected",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "ink": "color.text.link.pressed"
+            },
+            {
+              "part": "container/trailingVisual",
+              "icon": "color.icon.link.pressed"
+            },
+            {
+              "part": "container/bar",
+              "fill": "color.icon.link.pressed"
+            }
+          ]
+        },
+        {
+          "where": {
+            "style": "standalone",
+            "weight": "default",
+            "surface": "default",
+            "selection": "selected",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "ink": "color.text.link.focused"
+            },
+            {
+              "part": "container/trailingVisual",
+              "icon": "color.icon.link.focused"
+            },
+            {
+              "part": "container/bar",
+              "fill": "color.icon.link.focused"
+            }
+          ]
+        },
+        {
+          "where": {
+            "style": "standalone",
+            "weight": "default",
             "surface": "inverse",
+            "selection": "unselected",
             "state": "rest"
           },
           "parts": [
@@ -30800,6 +32179,7 @@
             "style": "standalone",
             "weight": "default",
             "surface": "inverse",
+            "selection": "unselected",
             "state": "hover"
           },
           "parts": [
@@ -30818,6 +32198,7 @@
             "style": "standalone",
             "weight": "default",
             "surface": "inverse",
+            "selection": "unselected",
             "state": "pressed"
           },
           "parts": [
@@ -30836,6 +32217,7 @@
             "style": "standalone",
             "weight": "default",
             "surface": "inverse",
+            "selection": "unselected",
             "state": "focus-visible"
           },
           "parts": [
@@ -30851,9 +32233,102 @@
         },
         {
           "where": {
+            "style": "standalone",
+            "weight": "default",
+            "surface": "inverse",
+            "selection": "selected",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "ink": "color.inverse.text.link.default"
+            },
+            {
+              "part": "container/trailingVisual",
+              "icon": "color.inverse.icon.link.default"
+            },
+            {
+              "part": "container/bar",
+              "fill": "color.inverse.icon.link.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "style": "standalone",
+            "weight": "default",
+            "surface": "inverse",
+            "selection": "selected",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "ink": "color.inverse.text.link.hover"
+            },
+            {
+              "part": "container/trailingVisual",
+              "icon": "color.inverse.icon.link.hover"
+            },
+            {
+              "part": "container/bar",
+              "fill": "color.inverse.icon.link.hover"
+            }
+          ]
+        },
+        {
+          "where": {
+            "style": "standalone",
+            "weight": "default",
+            "surface": "inverse",
+            "selection": "selected",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "ink": "color.inverse.text.link.pressed"
+            },
+            {
+              "part": "container/trailingVisual",
+              "icon": "color.inverse.icon.link.pressed"
+            },
+            {
+              "part": "container/bar",
+              "fill": "color.inverse.icon.link.pressed"
+            }
+          ]
+        },
+        {
+          "where": {
+            "style": "standalone",
+            "weight": "default",
+            "surface": "inverse",
+            "selection": "selected",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/label",
+              "ink": "color.inverse.text.link.focused"
+            },
+            {
+              "part": "container/trailingVisual",
+              "icon": "color.inverse.icon.link.focused"
+            },
+            {
+              "part": "container/bar",
+              "fill": "color.inverse.icon.link.focused"
+            }
+          ]
+        },
+        {
+          "where": {
             "style": "inline",
             "weight": "emphasis",
             "surface": "default",
+            "selection": "unselected",
             "state": "rest"
           },
           "parts": [
@@ -30868,6 +32343,7 @@
             "style": "inline",
             "weight": "emphasis",
             "surface": "default",
+            "selection": "unselected",
             "state": "hover"
           },
           "parts": [
@@ -30882,6 +32358,7 @@
             "style": "inline",
             "weight": "emphasis",
             "surface": "default",
+            "selection": "unselected",
             "state": "pressed"
           },
           "parts": [
@@ -30896,6 +32373,7 @@
             "style": "inline",
             "weight": "emphasis",
             "surface": "default",
+            "selection": "unselected",
             "state": "focus-visible"
           },
           "parts": [
@@ -30910,6 +32388,7 @@
             "style": "inline",
             "weight": "emphasis",
             "surface": "inverse",
+            "selection": "unselected",
             "state": "rest"
           },
           "parts": [
@@ -30924,6 +32403,7 @@
             "style": "inline",
             "weight": "emphasis",
             "surface": "inverse",
+            "selection": "unselected",
             "state": "hover"
           },
           "parts": [
@@ -30938,6 +32418,7 @@
             "style": "inline",
             "weight": "emphasis",
             "surface": "inverse",
+            "selection": "unselected",
             "state": "pressed"
           },
           "parts": [
@@ -30952,6 +32433,7 @@
             "style": "inline",
             "weight": "emphasis",
             "surface": "inverse",
+            "selection": "unselected",
             "state": "focus-visible"
           },
           "parts": [
@@ -30966,6 +32448,7 @@
             "style": "inline",
             "weight": "default",
             "surface": "default",
+            "selection": "unselected",
             "state": "rest"
           },
           "parts": [
@@ -30980,6 +32463,7 @@
             "style": "inline",
             "weight": "default",
             "surface": "default",
+            "selection": "unselected",
             "state": "hover"
           },
           "parts": [
@@ -30994,6 +32478,7 @@
             "style": "inline",
             "weight": "default",
             "surface": "default",
+            "selection": "unselected",
             "state": "pressed"
           },
           "parts": [
@@ -31008,6 +32493,7 @@
             "style": "inline",
             "weight": "default",
             "surface": "default",
+            "selection": "unselected",
             "state": "focus-visible"
           },
           "parts": [
@@ -31022,6 +32508,7 @@
             "style": "inline",
             "weight": "default",
             "surface": "inverse",
+            "selection": "unselected",
             "state": "rest"
           },
           "parts": [
@@ -31036,6 +32523,7 @@
             "style": "inline",
             "weight": "default",
             "surface": "inverse",
+            "selection": "unselected",
             "state": "hover"
           },
           "parts": [
@@ -31050,6 +32538,7 @@
             "style": "inline",
             "weight": "default",
             "surface": "inverse",
+            "selection": "unselected",
             "state": "pressed"
           },
           "parts": [
@@ -31064,6 +32553,7 @@
             "style": "inline",
             "weight": "default",
             "surface": "inverse",
+            "selection": "unselected",
             "state": "focus-visible"
           },
           "parts": [
@@ -32597,6 +34087,7 @@
           "variant": {
             "shape": "flush",
             "size": "medium",
+            "surface": "default",
             "state": "rest"
           },
           "follows": [],
@@ -33914,7 +35405,939 @@
         {
           "name": "message",
           "type": "BOOLEAN",
+          "default": false
+        }
+      ]
+    },
+    "toast": {
+      "id": "toast",
+      "name": "Toast",
+      "members": 2,
+      "axes": [
+        {
+          "name": "intent",
+          "figmaName": "intent",
+          "values": [
+            "neutral",
+            "success"
+          ],
+          "kind": "variant"
+        }
+      ],
+      "codeOnlyStates": [],
+      "anatomy": [
+        {
+          "part": "container",
+          "kind": "frame",
+          "members": 2
+        },
+        {
+          "part": "container/content",
+          "kind": "frame",
+          "members": 2
+        },
+        {
+          "part": "container/content/message",
+          "kind": "text",
+          "members": 2
+        },
+        {
+          "part": "container/controls",
+          "kind": "frame",
+          "members": 2
+        },
+        {
+          "part": "container/controls/action",
+          "kind": "instance",
+          "members": 2
+        },
+        {
+          "part": "container/controls/close",
+          "kind": "instance",
+          "members": 2
+        },
+        {
+          "part": "container/content/checkCircleGlyph",
+          "kind": "instance",
+          "members": 1,
+          "when": {
+            "intent": [
+              "success"
+            ]
+          }
+        }
+      ],
+      "redlineKey": [],
+      "redlines": [
+        {
+          "where": {},
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "paddingTop": {
+                  "token": "space.100"
+                },
+                "paddingRight": {
+                  "token": "space.100"
+                },
+                "paddingBottom": {
+                  "token": "space.100"
+                },
+                "paddingLeft": {
+                  "token": "space.200"
+                },
+                "gap": {
+                  "token": "space.100"
+                },
+                "buildWidth": {
+                  "px": 360,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/content",
+              "values": {
+                "gap": {
+                  "token": "space.150"
+                }
+              }
+            },
+            {
+              "part": "container/controls",
+              "values": {
+                "gap": {
+                  "token": "space.050"
+                }
+              }
+            },
+            {
+              "part": "container/content/checkCircleGlyph",
+              "values": {
+                "height": {
+                  "token": "icon.size.sm"
+                },
+                "width": {
+                  "token": "icon.size.sm"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "typeKey": [],
+      "type": [
+        {
+          "where": {},
+          "parts": [
+            {
+              "part": "container/content/message",
+              "textStyle": "type.body.md.default"
+            }
+          ]
+        }
+      ],
+      "colorKey": [
+        "intent"
+      ],
+      "colors": [
+        {
+          "where": {
+            "intent": "neutral"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.inverse.background.primary"
+            },
+            {
+              "part": "container/content/message",
+              "ink": "color.inverse.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "intent": "success"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.inverse.background.primary"
+            },
+            {
+              "part": "container/content/checkCircleGlyph",
+              "icon": "color.inverse.icon.success"
+            },
+            {
+              "part": "container/content/message",
+              "ink": "color.inverse.text.primary"
+            }
+          ]
+        }
+      ],
+      "nesting": [
+        {
+          "part": "container/controls/action",
+          "kind": "instance",
+          "component": "button",
+          "variant": {
+            "appearance": "text",
+            "size": "small",
+            "surface": "inverse",
+            "inset": "default",
+            "state": "rest",
+            "leading icon": "false",
+            "trailing icon": "false"
+          },
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "container/controls/close",
+          "kind": "instance",
+          "component": "flush-icon-button-neutral",
+          "variant": {
+            "shape": "flush",
+            "size": "small",
+            "surface": "inverse",
+            "state": "rest"
+          },
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "container/content/checkCircleGlyph",
+          "kind": "instance",
+          "component": "icon/check-circle",
+          "variant": {},
+          "follows": [],
+          "exposes": []
+        }
+      ],
+      "properties": [
+        {
+          "name": "message",
+          "type": "TEXT",
+          "default": "Status message"
+        },
+        {
+          "name": "action",
+          "type": "BOOLEAN",
+          "default": false
+        },
+        {
+          "name": "close",
+          "type": "BOOLEAN",
           "default": true
+        }
+      ]
+    },
+    "_breadcrumb-separator": {
+      "id": "_breadcrumb-separator",
+      "name": "BreadcrumbSeparator",
+      "members": 2,
+      "axes": [
+        {
+          "name": "type",
+          "figmaName": "type",
+          "values": [
+            "chevron",
+            "slash"
+          ],
+          "kind": "variant"
+        }
+      ],
+      "codeOnlyStates": [],
+      "anatomy": [
+        {
+          "part": "frame",
+          "kind": "frame",
+          "members": 2
+        },
+        {
+          "part": "frame/chevronGlyph",
+          "kind": "instance",
+          "members": 1,
+          "when": {
+            "type": [
+              "chevron"
+            ]
+          }
+        },
+        {
+          "part": "frame/slashGlyph",
+          "kind": "instance",
+          "members": 1,
+          "when": {
+            "type": [
+              "slash"
+            ]
+          }
+        }
+      ],
+      "redlineKey": [],
+      "redlines": [
+        {
+          "where": {},
+          "parts": [
+            {
+              "part": "frame",
+              "values": {
+                "height": {
+                  "token": "icon.size.xs"
+                },
+                "width": {
+                  "token": "icon.size.xs"
+                }
+              }
+            },
+            {
+              "part": "frame/chevronGlyph",
+              "values": {
+                "height": {
+                  "token": "icon.size.xs"
+                },
+                "width": {
+                  "token": "icon.size.xs"
+                }
+              }
+            },
+            {
+              "part": "frame/slashGlyph",
+              "values": {
+                "height": {
+                  "token": "icon.size.xs"
+                },
+                "width": {
+                  "token": "icon.size.xs"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "typeKey": [],
+      "type": [
+        {
+          "where": {},
+          "parts": []
+        }
+      ],
+      "colorKey": [
+        "type"
+      ],
+      "colors": [
+        {
+          "where": {
+            "type": "chevron"
+          },
+          "parts": [
+            {
+              "part": "frame/chevronGlyph",
+              "icon": "color.icon.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "slash"
+          },
+          "parts": [
+            {
+              "part": "frame/slashGlyph",
+              "icon": "color.icon.secondary"
+            }
+          ]
+        }
+      ],
+      "nesting": [
+        {
+          "part": "frame/chevronGlyph",
+          "kind": "instance",
+          "component": "icon/chevron-right",
+          "variant": {},
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "frame/slashGlyph",
+          "kind": "instance",
+          "component": "icon/slash",
+          "variant": {},
+          "follows": [],
+          "exposes": []
+        }
+      ],
+      "properties": []
+    },
+    "breadcrumb-item": {
+      "id": "breadcrumb-item",
+      "name": "BreadcrumbItem",
+      "members": 10,
+      "axes": [
+        {
+          "name": "kind",
+          "figmaName": "kind",
+          "values": [
+            "ancestor",
+            "current",
+            "overflow"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "separator",
+          "figmaName": "separator",
+          "values": [
+            "chevron",
+            "slash"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "size",
+          "figmaName": "size",
+          "values": [
+            "medium",
+            "small"
+          ],
+          "kind": "size"
+        }
+      ],
+      "codeOnlyStates": [],
+      "anatomy": [
+        {
+          "part": "container",
+          "kind": "frame",
+          "members": 10
+        },
+        {
+          "part": "container/crumb",
+          "kind": "instance",
+          "members": 4,
+          "when": {
+            "kind": [
+              "ancestor"
+            ]
+          }
+        },
+        {
+          "part": "container/separator",
+          "kind": "instance",
+          "members": 4
+        },
+        {
+          "part": "container/separatorSlash",
+          "kind": "instance",
+          "members": 4,
+          "when": {
+            "separator": [
+              "slash"
+            ]
+          }
+        },
+        {
+          "part": "container/current",
+          "kind": "text",
+          "members": 2,
+          "when": {
+            "kind": [
+              "current"
+            ]
+          }
+        },
+        {
+          "part": "container/overflow",
+          "kind": "instance",
+          "members": 4,
+          "when": {
+            "kind": [
+              "overflow"
+            ]
+          }
+        }
+      ],
+      "redlineKey": [
+        "size"
+      ],
+      "redlines": [
+        {
+          "where": {
+            "size": "medium"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "gap": {
+                  "token": "space.050"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "typeKey": [
+        "size"
+      ],
+      "type": [
+        {
+          "where": {
+            "size": "medium"
+          },
+          "parts": [
+            {
+              "part": "container/current",
+              "textStyle": "type.body.md.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small"
+          },
+          "parts": [
+            {
+              "part": "container/current",
+              "textStyle": "type.body.sm.default"
+            }
+          ]
+        }
+      ],
+      "colorKey": [
+        "kind",
+        "separator"
+      ],
+      "colors": [
+        {
+          "where": {
+            "kind": "ancestor",
+            "separator": "chevron"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "kind": "ancestor",
+            "separator": "slash"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "kind": "current",
+            "separator": "chevron"
+          },
+          "parts": [
+            {
+              "part": "container/current",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "kind": "overflow",
+            "separator": "chevron"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "kind": "overflow",
+            "separator": "slash"
+          },
+          "parts": []
+        }
+      ],
+      "nesting": [
+        {
+          "part": "container/crumb",
+          "kind": "instance",
+          "component": "link",
+          "variant": {
+            "style": "inline",
+            "weight": "default",
+            "size": "medium",
+            "surface": "default",
+            "selection": "unselected",
+            "state": "rest"
+          },
+          "follows": [
+            "size"
+          ],
+          "exposes": [
+            "state"
+          ]
+        },
+        {
+          "part": "container/separator",
+          "kind": "instance",
+          "component": "_breadcrumb-separator",
+          "variant": {
+            "type": "chevron"
+          },
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "container/separatorSlash",
+          "kind": "instance",
+          "component": "_breadcrumb-separator",
+          "variant": {
+            "type": "slash"
+          },
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "container/overflow",
+          "kind": "instance",
+          "component": "flush-icon-button-neutral",
+          "variant": {
+            "shape": "flush",
+            "size": "small",
+            "surface": "default",
+            "state": "rest"
+          },
+          "follows": [],
+          "exposes": [
+            "state"
+          ]
+        }
+      ],
+      "properties": [
+        {
+          "name": "label",
+          "type": "TEXT",
+          "default": "Current page"
+        }
+      ]
+    },
+    "breadcrumbs": {
+      "id": "breadcrumbs",
+      "name": "Breadcrumbs",
+      "members": 6,
+      "axes": [
+        {
+          "name": "path",
+          "figmaName": "path",
+          "values": [
+            "full",
+            "parent"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "separator",
+          "figmaName": "separator",
+          "values": [
+            "chevron",
+            "slash"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "size",
+          "figmaName": "size",
+          "values": [
+            "medium",
+            "small"
+          ],
+          "kind": "size"
+        }
+      ],
+      "codeOnlyStates": [],
+      "anatomy": [
+        {
+          "part": "container",
+          "kind": "frame",
+          "members": 6
+        },
+        {
+          "part": "container/items",
+          "kind": "slot",
+          "members": 4,
+          "when": {
+            "path": [
+              "full"
+            ]
+          }
+        },
+        {
+          "part": "container/items/item1",
+          "kind": "instance",
+          "members": 4,
+          "when": {
+            "path": [
+              "full"
+            ]
+          }
+        },
+        {
+          "part": "container/items/item2",
+          "kind": "instance",
+          "members": 4,
+          "when": {
+            "path": [
+              "full"
+            ]
+          }
+        },
+        {
+          "part": "container/items/item3",
+          "kind": "instance",
+          "members": 4,
+          "when": {
+            "path": [
+              "full"
+            ]
+          }
+        },
+        {
+          "part": "container/backGlyph",
+          "kind": "instance",
+          "members": 2,
+          "when": {
+            "path": [
+              "parent"
+            ]
+          }
+        },
+        {
+          "part": "container/parentLink",
+          "kind": "instance",
+          "members": 2,
+          "when": {
+            "path": [
+              "parent"
+            ]
+          }
+        }
+      ],
+      "redlineKey": [
+        "size"
+      ],
+      "redlines": [
+        {
+          "where": {
+            "size": "medium"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "gap": {
+                  "token": "space.050"
+                }
+              }
+            },
+            {
+              "part": "container/items",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                }
+              }
+            },
+            {
+              "part": "container/backGlyph",
+              "values": {
+                "height": {
+                  "token": "icon.size.xs"
+                },
+                "width": {
+                  "token": "icon.size.xs"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "gap": {
+                  "token": "space.050"
+                }
+              }
+            },
+            {
+              "part": "container/items",
+              "values": {
+                "gap": {
+                  "token": "space.050"
+                }
+              }
+            },
+            {
+              "part": "container/backGlyph",
+              "values": {
+                "height": {
+                  "token": "icon.size.xs"
+                },
+                "width": {
+                  "token": "icon.size.xs"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "typeKey": [
+        "size"
+      ],
+      "type": [
+        {
+          "where": {
+            "size": "medium"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "size": "small"
+          },
+          "parts": []
+        }
+      ],
+      "colorKey": [
+        "path",
+        "separator"
+      ],
+      "colors": [
+        {
+          "where": {
+            "path": "full",
+            "separator": "chevron"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "path": "full",
+            "separator": "slash"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "path": "parent",
+            "separator": "chevron"
+          },
+          "parts": [
+            {
+              "part": "container/backGlyph",
+              "icon": "color.icon.link.default"
+            }
+          ]
+        }
+      ],
+      "nesting": [
+        {
+          "part": "container/items",
+          "kind": "slot",
+          "preferred": [
+            "breadcrumb-item"
+          ]
+        },
+        {
+          "part": "container/items/item1",
+          "kind": "instance",
+          "component": "breadcrumb-item",
+          "variant": {
+            "kind": "ancestor",
+            "separator": "chevron",
+            "size": "medium"
+          },
+          "follows": [
+            "separator",
+            "size"
+          ],
+          "exposes": []
+        },
+        {
+          "part": "container/items/item2",
+          "kind": "instance",
+          "component": "breadcrumb-item",
+          "variant": {
+            "kind": "ancestor",
+            "separator": "chevron",
+            "size": "medium"
+          },
+          "follows": [
+            "separator",
+            "size"
+          ],
+          "exposes": []
+        },
+        {
+          "part": "container/items/item3",
+          "kind": "instance",
+          "component": "breadcrumb-item",
+          "variant": {
+            "kind": "current",
+            "separator": "chevron",
+            "size": "medium"
+          },
+          "follows": [
+            "size"
+          ],
+          "exposes": []
+        },
+        {
+          "part": "container/backGlyph",
+          "kind": "instance",
+          "component": "icon/chevron-left",
+          "variant": {},
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "container/parentLink",
+          "kind": "instance",
+          "component": "link",
+          "variant": {
+            "style": "inline",
+            "weight": "default",
+            "size": "medium",
+            "surface": "default",
+            "selection": "unselected",
+            "state": "rest"
+          },
+          "follows": [
+            "size"
+          ],
+          "exposes": [
+            "state"
+          ]
+        }
+      ],
+      "properties": [
+        {
+          "name": "items",
+          "type": "SLOT"
         }
       ]
     },
@@ -34517,6 +36940,7 @@
           "variant": {
             "shape": "flush",
             "size": "medium",
+            "surface": "default",
             "state": "rest"
           },
           "when": {
@@ -34548,6 +36972,7 @@
           "variant": {
             "shape": "flush",
             "size": "medium",
+            "surface": "default",
             "state": "rest"
           },
           "when": {
@@ -35291,6 +37716,1340 @@
           "name": "message",
           "type": "BOOLEAN",
           "default": true
+        }
+      ]
+    },
+    "search-field": {
+      "id": "search-field",
+      "name": "SearchField",
+      "members": 84,
+      "axes": [
+        {
+          "name": "status",
+          "figmaName": "status",
+          "values": [
+            "default",
+            "error",
+            "warning",
+            "success"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "size",
+          "figmaName": "size",
+          "values": [
+            "medium",
+            "small",
+            "large"
+          ],
+          "kind": "size"
+        },
+        {
+          "name": "state",
+          "figmaName": "state",
+          "values": [
+            "rest",
+            "hover",
+            "filled",
+            "focus-visible",
+            "focus-visible-filled",
+            "disabled",
+            "read-only"
+          ],
+          "kind": "state"
+        }
+      ],
+      "codeOnlyStates": [
+        "pending",
+        "empty"
+      ],
+      "anatomy": [
+        {
+          "part": "container",
+          "kind": "frame",
+          "members": 84
+        },
+        {
+          "part": "container/label",
+          "kind": "instance",
+          "members": 84
+        },
+        {
+          "part": "container/control",
+          "kind": "frame",
+          "members": 84
+        },
+        {
+          "part": "container/control/content",
+          "kind": "frame",
+          "members": 84
+        },
+        {
+          "part": "container/control/content/leadingVisual",
+          "kind": "swap",
+          "members": 84
+        },
+        {
+          "part": "container/control/content/entry",
+          "kind": "frame",
+          "members": 84
+        },
+        {
+          "part": "container/control/content/entry/placeholder",
+          "kind": "text",
+          "members": 48,
+          "when": {
+            "state": [
+              "rest",
+              "hover",
+              "focus-visible",
+              "disabled"
+            ]
+          }
+        },
+        {
+          "part": "container/control/trailingVisual",
+          "kind": "swap",
+          "members": 84
+        },
+        {
+          "part": "container/message",
+          "kind": "instance",
+          "members": 84
+        },
+        {
+          "part": "container/control/content/entry/value",
+          "kind": "text",
+          "members": 36,
+          "when": {
+            "state": [
+              "filled",
+              "focus-visible-filled",
+              "read-only"
+            ]
+          }
+        },
+        {
+          "part": "container/control/content/entry/caret",
+          "kind": "frame",
+          "members": 12,
+          "when": {
+            "state": [
+              "focus-visible"
+            ]
+          }
+        },
+        {
+          "part": "container/control/focusRing",
+          "kind": "instance",
+          "members": 24,
+          "when": {
+            "state": [
+              "focus-visible",
+              "focus-visible-filled"
+            ]
+          }
+        },
+        {
+          "part": "container/control/content/entry/caretEnd",
+          "kind": "frame",
+          "members": 12,
+          "when": {
+            "state": [
+              "focus-visible-filled"
+            ]
+          }
+        }
+      ],
+      "redlineKey": [
+        "size"
+      ],
+      "redlines": [
+        {
+          "where": {
+            "size": "medium"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                },
+                "buildWidth": {
+                  "px": 320,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/control",
+              "values": {
+                "paddingTop": {
+                  "token": "space.100"
+                },
+                "paddingRight": {
+                  "token": "space.200"
+                },
+                "paddingBottom": {
+                  "token": "space.100"
+                },
+                "paddingLeft": {
+                  "token": "space.200"
+                },
+                "gap": {
+                  "token": "space.100"
+                },
+                "height": {
+                  "token": "size.md.min-height"
+                },
+                "minWidth": {
+                  "px": 120,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/control/content",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                }
+              }
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "values": {
+                "height": {
+                  "token": "icon.size.sm"
+                },
+                "width": {
+                  "token": "icon.size.sm"
+                }
+              }
+            },
+            {
+              "part": "container/control/trailingVisual",
+              "values": {
+                "height": {
+                  "token": "icon.size.sm"
+                },
+                "width": {
+                  "token": "icon.size.sm"
+                }
+              }
+            },
+            {
+              "part": "container/control/content/entry/caret",
+              "values": {
+                "height": {
+                  "token": "control.size.md.line-box"
+                },
+                "width": {
+                  "token": "border-width.hairline"
+                }
+              }
+            },
+            {
+              "part": "container/control/content/entry/caretEnd",
+              "values": {
+                "height": {
+                  "token": "control.size.md.line-box"
+                },
+                "width": {
+                  "token": "border-width.hairline"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                },
+                "buildWidth": {
+                  "px": 320,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/control",
+              "values": {
+                "paddingTop": {
+                  "token": "space.075"
+                },
+                "paddingRight": {
+                  "token": "space.200"
+                },
+                "paddingBottom": {
+                  "token": "space.075"
+                },
+                "paddingLeft": {
+                  "token": "space.200"
+                },
+                "gap": {
+                  "token": "space.100"
+                },
+                "height": {
+                  "token": "size.md.min-height"
+                },
+                "minWidth": {
+                  "px": 120,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/control/content",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                }
+              }
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "values": {
+                "height": {
+                  "token": "icon.size.sm"
+                },
+                "width": {
+                  "token": "icon.size.sm"
+                }
+              }
+            },
+            {
+              "part": "container/control/trailingVisual",
+              "values": {
+                "height": {
+                  "token": "icon.size.sm"
+                },
+                "width": {
+                  "token": "icon.size.sm"
+                }
+              }
+            },
+            {
+              "part": "container/control/content/entry/caret",
+              "values": {
+                "height": {
+                  "token": "control.size.sm.line-box"
+                },
+                "width": {
+                  "token": "border-width.hairline"
+                }
+              }
+            },
+            {
+              "part": "container/control/content/entry/caretEnd",
+              "values": {
+                "height": {
+                  "token": "control.size.sm.line-box"
+                },
+                "width": {
+                  "token": "border-width.hairline"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                },
+                "buildWidth": {
+                  "px": 320,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/control",
+              "values": {
+                "paddingTop": {
+                  "token": "space.100"
+                },
+                "paddingRight": {
+                  "token": "space.300"
+                },
+                "paddingBottom": {
+                  "token": "space.100"
+                },
+                "paddingLeft": {
+                  "token": "space.300"
+                },
+                "gap": {
+                  "token": "space.100"
+                },
+                "height": {
+                  "token": "size.lg.height"
+                },
+                "minWidth": {
+                  "px": 120,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/control/content",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                }
+              }
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "values": {
+                "height": {
+                  "token": "icon.size.sm"
+                },
+                "width": {
+                  "token": "icon.size.sm"
+                }
+              }
+            },
+            {
+              "part": "container/control/trailingVisual",
+              "values": {
+                "height": {
+                  "token": "icon.size.sm"
+                },
+                "width": {
+                  "token": "icon.size.sm"
+                }
+              }
+            },
+            {
+              "part": "container/control/content/entry/caret",
+              "values": {
+                "height": {
+                  "token": "control.size.lg.line-box"
+                },
+                "width": {
+                  "token": "border-width.hairline"
+                }
+              }
+            },
+            {
+              "part": "container/control/content/entry/caretEnd",
+              "values": {
+                "height": {
+                  "token": "control.size.lg.line-box"
+                },
+                "width": {
+                  "token": "border-width.hairline"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "typeKey": [
+        "size"
+      ],
+      "type": [
+        {
+          "where": {
+            "size": "medium"
+          },
+          "parts": [
+            {
+              "part": "container/control/content/entry/placeholder",
+              "textStyle": "type.body.md.default"
+            },
+            {
+              "part": "container/control/content/entry/value",
+              "textStyle": "type.body.md.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small"
+          },
+          "parts": [
+            {
+              "part": "container/control/content/entry/placeholder",
+              "textStyle": "type.body.sm.default"
+            },
+            {
+              "part": "container/control/content/entry/value",
+              "textStyle": "type.body.sm.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large"
+          },
+          "parts": [
+            {
+              "part": "container/control/content/entry/placeholder",
+              "textStyle": "type.body.lg.default"
+            },
+            {
+              "part": "container/control/content/entry/value",
+              "textStyle": "type.body.lg.default"
+            }
+          ]
+        }
+      ],
+      "colorKey": [
+        "status",
+        "state"
+      ],
+      "colors": [
+        {
+          "where": {
+            "status": "default",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.field.fill",
+              "stroke": "color.field.border.rest"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/placeholder",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/control/trailingVisual",
+              "icon": "color.icon.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "default",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.interactive.neutral.overlay.hover",
+              "stroke": "color.field.border.hover"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/placeholder",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/control/trailingVisual",
+              "icon": "color.icon.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "default",
+            "state": "filled"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.field.fill",
+              "stroke": "color.field.border.rest"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/value",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/control/trailingVisual",
+              "icon": "color.icon.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "default",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.field.fill",
+              "stroke": "color.border.focus"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/caret",
+              "fill": "color.text.primary"
+            },
+            {
+              "part": "container/control/content/entry/placeholder",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/control/trailingVisual",
+              "icon": "color.icon.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "default",
+            "state": "focus-visible-filled"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.field.fill",
+              "stroke": "color.border.focus"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/value",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/control/content/entry/caretEnd",
+              "fill": "color.text.primary"
+            },
+            {
+              "part": "container/control/trailingVisual",
+              "icon": "color.icon.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "default",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.disabled.fill",
+              "stroke": "color.disabled.border"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.disabled.on-fill"
+            },
+            {
+              "part": "container/control/content/entry/placeholder",
+              "ink": "color.disabled.on-fill"
+            },
+            {
+              "part": "container/control/trailingVisual",
+              "icon": "color.disabled.on-fill"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "default",
+            "state": "read-only"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.field.fill",
+              "stroke": "color.field.border.rest"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/value",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/control/trailingVisual",
+              "icon": "color.icon.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "error",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.field.fill",
+              "stroke": "color.border.danger"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/placeholder",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/control/trailingVisual",
+              "icon": "color.icon.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "error",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.interactive.neutral.overlay.hover",
+              "stroke": "color.border.danger"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/placeholder",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/control/trailingVisual",
+              "icon": "color.icon.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "error",
+            "state": "filled"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.field.fill",
+              "stroke": "color.border.danger"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/value",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/control/trailingVisual",
+              "icon": "color.icon.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "error",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.field.fill",
+              "stroke": "color.border.danger"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/caret",
+              "fill": "color.text.primary"
+            },
+            {
+              "part": "container/control/content/entry/placeholder",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/control/trailingVisual",
+              "icon": "color.icon.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "error",
+            "state": "focus-visible-filled"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.field.fill",
+              "stroke": "color.border.danger"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/value",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/control/content/entry/caretEnd",
+              "fill": "color.text.primary"
+            },
+            {
+              "part": "container/control/trailingVisual",
+              "icon": "color.icon.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "error",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.disabled.fill",
+              "stroke": "color.disabled.border"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.disabled.on-fill"
+            },
+            {
+              "part": "container/control/content/entry/placeholder",
+              "ink": "color.disabled.on-fill"
+            },
+            {
+              "part": "container/control/trailingVisual",
+              "icon": "color.disabled.on-fill"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "error",
+            "state": "read-only"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.field.fill",
+              "stroke": "color.border.danger"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/value",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/control/trailingVisual",
+              "icon": "color.icon.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "warning",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.field.fill",
+              "stroke": "color.border.warning"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/placeholder",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/control/trailingVisual",
+              "icon": "color.icon.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "warning",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.interactive.neutral.overlay.hover",
+              "stroke": "color.border.warning"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/placeholder",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/control/trailingVisual",
+              "icon": "color.icon.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "warning",
+            "state": "filled"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.field.fill",
+              "stroke": "color.border.warning"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/value",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/control/trailingVisual",
+              "icon": "color.icon.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "warning",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.field.fill",
+              "stroke": "color.border.warning"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/caret",
+              "fill": "color.text.primary"
+            },
+            {
+              "part": "container/control/content/entry/placeholder",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/control/trailingVisual",
+              "icon": "color.icon.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "warning",
+            "state": "focus-visible-filled"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.field.fill",
+              "stroke": "color.border.warning"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/value",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/control/content/entry/caretEnd",
+              "fill": "color.text.primary"
+            },
+            {
+              "part": "container/control/trailingVisual",
+              "icon": "color.icon.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "warning",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.disabled.fill",
+              "stroke": "color.disabled.border"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.disabled.on-fill"
+            },
+            {
+              "part": "container/control/content/entry/placeholder",
+              "ink": "color.disabled.on-fill"
+            },
+            {
+              "part": "container/control/trailingVisual",
+              "icon": "color.disabled.on-fill"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "warning",
+            "state": "read-only"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.field.fill",
+              "stroke": "color.border.warning"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/value",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/control/trailingVisual",
+              "icon": "color.icon.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "success",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.field.fill",
+              "stroke": "color.border.success"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/placeholder",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/control/trailingVisual",
+              "icon": "color.icon.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "success",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.interactive.neutral.overlay.hover",
+              "stroke": "color.border.success"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/placeholder",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/control/trailingVisual",
+              "icon": "color.icon.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "success",
+            "state": "filled"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.field.fill",
+              "stroke": "color.border.success"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/value",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/control/trailingVisual",
+              "icon": "color.icon.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "success",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.field.fill",
+              "stroke": "color.border.success"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/caret",
+              "fill": "color.text.primary"
+            },
+            {
+              "part": "container/control/content/entry/placeholder",
+              "ink": "color.text.secondary"
+            },
+            {
+              "part": "container/control/trailingVisual",
+              "icon": "color.icon.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "success",
+            "state": "focus-visible-filled"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.field.fill",
+              "stroke": "color.border.success"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/value",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/control/content/entry/caretEnd",
+              "fill": "color.text.primary"
+            },
+            {
+              "part": "container/control/trailingVisual",
+              "icon": "color.icon.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "success",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.disabled.fill",
+              "stroke": "color.disabled.border"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.disabled.on-fill"
+            },
+            {
+              "part": "container/control/content/entry/placeholder",
+              "ink": "color.disabled.on-fill"
+            },
+            {
+              "part": "container/control/trailingVisual",
+              "icon": "color.disabled.on-fill"
+            }
+          ]
+        },
+        {
+          "where": {
+            "status": "success",
+            "state": "read-only"
+          },
+          "parts": [
+            {
+              "part": "container/control",
+              "fill": "color.field.fill",
+              "stroke": "color.border.success"
+            },
+            {
+              "part": "container/control/content/leadingVisual",
+              "icon": "color.icon.primary"
+            },
+            {
+              "part": "container/control/content/entry/value",
+              "ink": "color.text.primary"
+            },
+            {
+              "part": "container/control/trailingVisual",
+              "icon": "color.icon.primary"
+            }
+          ]
+        }
+      ],
+      "nesting": [
+        {
+          "part": "container/label",
+          "kind": "instance",
+          "component": "field-label",
+          "variant": {
+            "size": "medium",
+            "emphasis": "secondary",
+            "weight": "regular",
+            "state": "rest"
+          },
+          "when": {
+            "state": {
+              "disabled": {
+                "state": "disabled"
+              }
+            }
+          },
+          "follows": [
+            "size"
+          ],
+          "exposes": [
+            "emphasis",
+            "weight"
+          ]
+        },
+        {
+          "part": "container/control/content/leadingVisual",
+          "kind": "swap",
+          "property": "↳ swap leading icon",
+          "visibility": "leading icon",
+          "default": "search"
+        },
+        {
+          "part": "container/control/trailingVisual",
+          "kind": "swap",
+          "property": "↳ swap trailing icon",
+          "visibility": "trailing icon",
+          "default": "close-filled"
+        },
+        {
+          "part": "container/message",
+          "kind": "instance",
+          "component": "field-message",
+          "variant": {
+            "status": "default"
+          },
+          "follows": [
+            "status"
+          ],
+          "exposes": []
+        },
+        {
+          "part": "container/control/focusRing",
+          "kind": "instance",
+          "component": "focus-ring",
+          "variant": {
+            "surface": "default"
+          },
+          "follows": [],
+          "exposes": []
+        }
+      ],
+      "properties": [
+        {
+          "name": "placeholder",
+          "type": "TEXT",
+          "default": "Placeholder"
+        },
+        {
+          "name": "value",
+          "type": "TEXT",
+          "default": "Entered text"
+        },
+        {
+          "name": "label",
+          "type": "BOOLEAN",
+          "default": true
+        },
+        {
+          "name": "leading icon",
+          "type": "BOOLEAN",
+          "default": true
+        },
+        {
+          "name": "↳ swap leading icon",
+          "type": "INSTANCE_SWAP"
+        },
+        {
+          "name": "trailing icon",
+          "type": "BOOLEAN",
+          "default": false
+        },
+        {
+          "name": "↳ swap trailing icon",
+          "type": "INSTANCE_SWAP"
+        },
+        {
+          "name": "message",
+          "type": "BOOLEAN",
+          "default": false
         }
       ]
     }

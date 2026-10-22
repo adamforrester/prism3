@@ -155,7 +155,7 @@ export const select: ComponentDef = {
     // nor validation text can drop the whole part rather than reserve its space. The message node is
     // emitted at every member and shown by default; turning this off toggles its `visible` in place, the
     // same mechanism as the leading glyph — see `figmaProperties.booleans`.
-    { name: 'showMessage', type: 'boolean', default: true, required: false, description: 'Whether the composed FieldMessage is shown. On — the default — renders the helper / validation message below the control; turning it off hides the message entirely (a select with no helper or validation text). Never hides a message the field needs: an error still sets aria-invalid and the message carries the reason, so hide it only when there is genuinely nothing to say.' },
+    { name: 'showMessage', type: 'boolean', default: false, required: false, description: 'Whether the composed FieldMessage is shown. Off by default; turn it on to render the helper or validation message below the control. Never hides a message the field needs: an error still sets aria-invalid and the message carries the reason, so turn it on wherever there is something to say.' },
     { name: 'leadingIcon', type: 'slot', required: false, description: 'An optional leading glyph before the value (a category or status mark), aria-hidden. Hidden by default; the file nominates the swap target. Signals the field\'s purpose; validation never mutates it.' },
     { name: 'required', type: 'boolean', default: false, required: false, description: 'Sets required / aria-required, and turns on the FieldLabel\'s required marker.' },
     { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Native disabled — removed from tab order, not submitted, contrast-exempt. Reserve for a choice irrelevant in the current state.' },
@@ -546,7 +546,7 @@ export const select: ComponentDef = {
         // FILL), so a long message wraps at the field's width. Coexists with `optional` (the node-visibility
         // boolean toggles `visible`; this sets the child-side stretch) — different fields.
         crossAxisFill: true,
-        note: 'Helper or validation text, composed rather than re-declared. Its status follows select\'s validation by name, so error / warning / success reach the message without a value mapping. Shown by default; the `showMessage` boolean (#1426) hides the whole part where the field has nothing to say. Fills the field\'s width (#1503).',
+        note: 'Helper or validation text, composed rather than re-declared. Its status follows select\'s validation by name, so error / warning / success reach the message without a value mapping. Hidden by default (#2926); the `showMessage` boolean (#1426) shows it where the field has something to say. Fills the field\'s width (#1503).',
       },
     },
     codeOnly: [
@@ -592,14 +592,14 @@ export const select: ComponentDef = {
     //     `leadingIcon`. It shares the `leadingVisual` node with the swap below — `visible` and `mainComponent`
     //     are different Figma fields — so the panel reads `leading icon` (present?) with `↳ swap leading icon`
     //     (which icon) beneath it, the canon nesting.
-    //   · `showMessage` (#1426): the composed `message` nest is emitted at every member with `visible: true`
-    //     (shown by default — the message is part of the field), and this switch hides the whole part. The
-    //     direction is the INVERSE of `leadingIcon` (default true; field-label's `required` defaulted true too until #1699); the
-    //     mechanism is identical. Panel label `message` (a presence toggle, parallel to `leading icon`); the
-    //     code prop stays `showMessage`. FIRST use of the mechanism on a `nest` part.
+    //   · `showMessage` (#1426): the composed `message` nest is emitted at every member with `visible: false`
+    //     (hidden by default since #2926, owner decision: a placed select shows no message line until a designer
+    //     turns it on), and this switch shows the whole part — the same direction as `leadingIcon`. Panel label
+    //     `message` (a presence toggle, parallel to `leading icon`); the code prop stays `showMessage`. FIRST use
+    //     of the mechanism on a `nest` part.
     booleans: {
       leadingIcon: { part: 'leadingVisual', figmaName: 'leading icon', default: false },
-      showMessage: { part: 'message', figmaName: 'message', default: true },
+      showMessage: { part: 'message', figmaName: 'message', default: false },
     },
     // The leading glyph's CONTENT — orthogonal to its presence boolean above. `figmaName` gives it the canon
     // panel label `↳ swap leading icon` (#1380), nested beneath the `leading icon` switch; the code prop

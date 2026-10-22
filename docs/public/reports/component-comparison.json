@@ -64,6 +64,30 @@
       "sizeDefault": "medium"
     },
     {
+      "id": "_breadcrumb-separator",
+      "name": "BreadcrumbSeparator",
+      "category": "navigation",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "type": [
+          "chevron",
+          "slash"
+        ]
+      },
+      "props": [
+        {
+          "name": "type",
+          "default": "chevron",
+          "values": [
+            "chevron",
+            "slash"
+          ]
+        }
+      ],
+      "sizes": []
+    },
+    {
       "id": "accordion",
       "name": "Accordion",
       "category": "navigation",
@@ -225,6 +249,143 @@
         }
       ],
       "sizes": []
+    },
+    {
+      "id": "breadcrumb-item",
+      "name": "BreadcrumbItem",
+      "category": "navigation",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "kind": [
+          "ancestor",
+          "current",
+          "overflow"
+        ],
+        "separator": [
+          "chevron",
+          "slash"
+        ],
+        "size": [
+          "medium",
+          "small"
+        ]
+      },
+      "props": [
+        {
+          "name": "kind",
+          "default": "ancestor",
+          "values": [
+            "ancestor",
+            "current",
+            "overflow"
+          ]
+        },
+        {
+          "name": "label"
+        },
+        {
+          "name": "href"
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium"
+          ]
+        },
+        {
+          "name": "separator",
+          "default": "chevron",
+          "values": [
+            "chevron",
+            "slash"
+          ]
+        }
+      ],
+      "sizes": [
+        "medium",
+        "small"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
+      "id": "breadcrumbs",
+      "name": "Breadcrumbs",
+      "category": "navigation",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "path": [
+          "full",
+          "parent"
+        ],
+        "separator": [
+          "chevron",
+          "slash"
+        ],
+        "size": [
+          "medium",
+          "small"
+        ]
+      },
+      "props": [
+        {
+          "name": "items"
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium"
+          ]
+        },
+        {
+          "name": "separator",
+          "default": "chevron",
+          "values": [
+            "chevron",
+            "slash"
+          ]
+        },
+        {
+          "name": "maxItems",
+          "default": 5
+        },
+        {
+          "name": "itemsBeforeCollapse",
+          "default": 1
+        },
+        {
+          "name": "itemsAfterCollapse",
+          "default": 2
+        },
+        {
+          "name": "collapse",
+          "default": "expand",
+          "values": [
+            "expand"
+          ]
+        },
+        {
+          "name": "responsive",
+          "default": true
+        },
+        {
+          "name": "label",
+          "default": "Breadcrumb"
+        },
+        {
+          "name": "renderLink"
+        }
+      ],
+      "sizes": [
+        "medium",
+        "small"
+      ],
+      "sizeDefault": "medium"
     },
     {
       "id": "button",
@@ -1240,6 +1401,10 @@
           "medium",
           "small",
           "large"
+        ],
+        "surface": [
+          "default",
+          "inverse"
         ]
       },
       "props": [
@@ -1276,6 +1441,14 @@
             "small",
             "medium",
             "large"
+          ]
+        },
+        {
+          "name": "surface",
+          "default": "default",
+          "values": [
+            "default",
+            "inverse"
           ]
         },
         {
@@ -1317,6 +1490,10 @@
           "medium",
           "small",
           "large"
+        ],
+        "surface": [
+          "default",
+          "inverse"
         ]
       },
       "props": [
@@ -1353,6 +1530,14 @@
             "small",
             "medium",
             "large"
+          ]
+        },
+        {
+          "name": "surface",
+          "default": "default",
+          "values": [
+            "default",
+            "inverse"
           ]
         },
         {
@@ -1394,6 +1579,10 @@
           "medium",
           "small",
           "large"
+        ],
+        "surface": [
+          "default",
+          "inverse"
         ]
       },
       "props": [
@@ -1430,6 +1619,14 @@
             "small",
             "medium",
             "large"
+          ]
+        },
+        {
+          "name": "surface",
+          "default": "default",
+          "values": [
+            "default",
+            "inverse"
           ]
         },
         {
@@ -1531,6 +1728,7 @@
           "plus-filled",
           "resize-grip",
           "search",
+          "slash",
           "warning-triangle",
           "warning-triangle-filled"
         ],
@@ -1593,6 +1791,7 @@
             "plus-filled",
             "resize-grip",
             "search",
+            "slash",
             "warning-triangle",
             "warning-triangle-filled"
           ]
@@ -2038,6 +2237,10 @@
         "surface": [
           "default",
           "inverse"
+        ],
+        "selection": [
+          "unselected",
+          "selected"
         ]
       },
       "props": [
@@ -2071,6 +2274,10 @@
             "medium",
             "large"
           ]
+        },
+        {
+          "name": "current",
+          "default": false
         },
         {
           "name": "surface",
@@ -2283,7 +2490,7 @@
         },
         {
           "name": "showMessage",
-          "default": true
+          "default": false
         },
         {
           "name": "required",
@@ -2650,6 +2857,137 @@
       "sizeDefault": "medium"
     },
     {
+      "id": "search-field",
+      "name": "SearchField",
+      "category": "form",
+      "states": [
+        "rest",
+        "hover",
+        "pending",
+        "filled",
+        "focus-visible",
+        "focus-visible-filled",
+        "disabled",
+        "read-only",
+        "empty"
+      ],
+      "projectedStates": [
+        "rest",
+        "hover",
+        "filled",
+        "focus-visible",
+        "focus-visible-filled",
+        "disabled",
+        "read-only"
+      ],
+      "axes": {
+        "size": [
+          "medium",
+          "small",
+          "large"
+        ],
+        "style": [
+          "outline"
+        ],
+        "status": [
+          "default",
+          "error",
+          "warning",
+          "success"
+        ]
+      },
+      "props": [
+        {
+          "name": "label"
+        },
+        {
+          "name": "hideLabel",
+          "default": false
+        },
+        {
+          "name": "value"
+        },
+        {
+          "name": "defaultValue"
+        },
+        {
+          "name": "onChange"
+        },
+        {
+          "name": "placeholder"
+        },
+        {
+          "name": "helpText"
+        },
+        {
+          "name": "validation",
+          "default": "default",
+          "values": [
+            "default",
+            "error",
+            "warning",
+            "success"
+          ]
+        },
+        {
+          "name": "validationMessage"
+        },
+        {
+          "name": "showMessage",
+          "default": false
+        },
+        {
+          "name": "required",
+          "default": false
+        },
+        {
+          "name": "disabled",
+          "default": false
+        },
+        {
+          "name": "readOnly",
+          "default": false
+        },
+        {
+          "name": "autoComplete"
+        },
+        {
+          "name": "leadingIcon"
+        },
+        {
+          "name": "trailingIcon"
+        },
+        {
+          "name": "onClear"
+        },
+        {
+          "name": "isPending",
+          "default": false
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        {
+          "name": "id"
+        },
+        {
+          "name": "name"
+        }
+      ],
+      "sizes": [
+        "medium",
+        "small",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
       "id": "segmented-control",
       "name": "SegmentedControl",
       "category": "form",
@@ -2853,7 +3191,7 @@
         },
         {
           "name": "showMessage",
-          "default": true
+          "default": false
         },
         {
           "name": "leadingIcon"
@@ -3393,7 +3731,7 @@
         },
         {
           "name": "showMessage",
-          "default": true
+          "default": false
         },
         {
           "name": "required",
@@ -3523,7 +3861,7 @@
         },
         {
           "name": "showMessage",
-          "default": true
+          "default": false
         },
         {
           "name": "rows",
@@ -3609,6 +3947,47 @@
         "large"
       ],
       "sizeDefault": "medium"
+    },
+    {
+      "id": "toast",
+      "name": "Toast",
+      "category": "feedback",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "intent": [
+          "neutral",
+          "success"
+        ]
+      },
+      "props": [
+        {
+          "name": "message"
+        },
+        {
+          "name": "intent",
+          "default": "neutral",
+          "values": [
+            "neutral",
+            "success"
+          ]
+        },
+        {
+          "name": "action"
+        },
+        {
+          "name": "duration",
+          "default": 6000
+        },
+        {
+          "name": "dismissible",
+          "default": true
+        },
+        {
+          "name": "onDismiss"
+        }
+      ],
+      "sizes": []
     },
     {
       "id": "veil",
@@ -3798,6 +4177,7 @@
       "password-field",
       "radio-control",
       "radio-row",
+      "search-field",
       "segmented-control-segment",
       "select",
       "switch-control",
@@ -3809,12 +4189,14 @@
     ],
     "empty": [
       "password-field",
+      "search-field",
       "select",
       "text-field",
       "textarea"
     ],
     "filled": [
       "password-field",
+      "search-field",
       "select",
       "text-field",
       "textarea"
@@ -3837,6 +4219,7 @@
       "password-field",
       "radio-control",
       "radio-row",
+      "search-field",
       "segmented-control-segment",
       "select",
       "switch-control",
@@ -3848,6 +4231,7 @@
     ],
     "focus-visible-filled": [
       "password-field",
+      "search-field",
       "select",
       "text-field",
       "textarea"
@@ -3868,6 +4252,7 @@
       "password-field",
       "radio-control",
       "radio-row",
+      "search-field",
       "segmented-control-segment",
       "select",
       "switch-control",
@@ -3893,6 +4278,7 @@
       "icon-button-destructive",
       "icon-button-neutral",
       "password-field",
+      "search-field",
       "select",
       "switch-row",
       "text-field",
@@ -3923,6 +4309,7 @@
       "checkbox-row",
       "password-field",
       "radio-row",
+      "search-field",
       "select",
       "switch-row",
       "tag",
@@ -3948,6 +4335,7 @@
       "password-field",
       "radio-control",
       "radio-row",
+      "search-field",
       "segmented-control-segment",
       "select",
       "switch-control",
@@ -4121,6 +4509,29 @@
         ]
       }
     ],
+    "intent": [
+      {
+        "values": [
+          "neutral",
+          "success"
+        ],
+        "components": [
+          "toast"
+        ]
+      }
+    ],
+    "kind": [
+      {
+        "values": [
+          "ancestor",
+          "current",
+          "overflow"
+        ],
+        "components": [
+          "breadcrumb-item"
+        ]
+      }
+    ],
     "layout": [
       {
         "values": [
@@ -4152,6 +4563,17 @@
         ],
         "components": [
           "divider"
+        ]
+      }
+    ],
+    "path": [
+      {
+        "values": [
+          "full",
+          "parent"
+        ],
+        "components": [
+          "breadcrumbs"
         ]
       }
     ],
@@ -4191,6 +4613,7 @@
           "unselected"
         ],
         "components": [
+          "link",
           "segmented-control-segment",
           "tab-item",
           "tag"
@@ -4222,6 +4645,18 @@
         ],
         "components": [
           "switch-control"
+        ]
+      }
+    ],
+    "separator": [
+      {
+        "values": [
+          "chevron",
+          "slash"
+        ],
+        "components": [
+          "breadcrumb-item",
+          "breadcrumbs"
         ]
       }
     ],
@@ -4290,6 +4725,7 @@
           "radio-control",
           "radio-group",
           "radio-row",
+          "search-field",
           "segmented-control",
           "segmented-control-segment",
           "select",
@@ -4306,6 +4742,8 @@
           "small"
         ],
         "components": [
+          "breadcrumb-item",
+          "breadcrumbs",
           "progress",
           "switch-control",
           "switch-row"
@@ -4350,6 +4788,7 @@
         "components": [
           "field-message",
           "password-field",
+          "search-field",
           "select",
           "text-field",
           "textarea"
@@ -4373,6 +4812,7 @@
         ],
         "components": [
           "password-field",
+          "search-field",
           "text-field",
           "textarea"
         ]
@@ -4397,6 +4837,9 @@
           "button",
           "button-destructive",
           "button-neutral",
+          "flush-icon-button",
+          "flush-icon-button-destructive",
+          "flush-icon-button-neutral",
           "focus-ring",
           "icon-button",
           "icon-button-destructive",
@@ -4445,6 +4888,15 @@
         "components": [
           "list",
           "list-item"
+        ]
+      },
+      {
+        "values": [
+          "chevron",
+          "slash"
+        ],
+        "components": [
+          "_breadcrumb-separator"
         ]
       },
       {
@@ -4522,6 +4974,11 @@
     ]
   },
   "propVocabulary": {
+    "action": [
+      {
+        "id": "toast"
+      }
+    ],
     "actions": [
       {
         "id": "dialog"
@@ -4675,6 +5132,9 @@
         ]
       },
       {
+        "id": "search-field"
+      },
+      {
         "id": "text-field"
       }
     ],
@@ -4722,9 +5182,24 @@
         "default": false
       }
     ],
+    "collapse": [
+      {
+        "id": "breadcrumbs",
+        "default": "expand",
+        "values": [
+          "expand"
+        ]
+      }
+    ],
     "count": [
       {
         "id": "tab-item"
+      }
+    ],
+    "current": [
+      {
+        "id": "link",
+        "default": false
       }
     ],
     "decorative": [
@@ -4762,6 +5237,9 @@
       },
       {
         "id": "radio-group"
+      },
+      {
+        "id": "search-field"
       },
       {
         "id": "segmented-control"
@@ -4876,6 +5354,10 @@
         "default": false
       },
       {
+        "id": "search-field",
+        "default": false
+      },
+      {
         "id": "segmented-control",
         "default": false
       },
@@ -4910,6 +5392,18 @@
       {
         "id": "textarea",
         "default": false
+      }
+    ],
+    "dismissible": [
+      {
+        "id": "toast",
+        "default": true
+      }
+    ],
+    "duration": [
+      {
+        "id": "toast",
+        "default": 6000
       }
     ],
     "emphasis": [
@@ -4984,6 +5478,9 @@
         "id": "password-field"
       },
       {
+        "id": "search-field"
+      },
+      {
         "id": "select"
       },
       {
@@ -4993,7 +5490,16 @@
         "id": "textarea"
       }
     ],
+    "hideLabel": [
+      {
+        "id": "search-field",
+        "default": false
+      }
+    ],
     "href": [
+      {
+        "id": "breadcrumb-item"
+      },
       {
         "id": "button"
       },
@@ -5054,6 +5560,9 @@
       },
       {
         "id": "password-field"
+      },
+      {
+        "id": "search-field"
       },
       {
         "id": "select"
@@ -5158,6 +5667,16 @@
         ]
       }
     ],
+    "intent": [
+      {
+        "id": "toast",
+        "default": "neutral",
+        "values": [
+          "neutral",
+          "success"
+        ]
+      }
+    ],
     "isExternal": [
       {
         "id": "link",
@@ -5220,6 +5739,10 @@
         "default": false
       },
       {
+        "id": "search-field",
+        "default": false
+      },
+      {
         "id": "select",
         "default": false
       },
@@ -5237,6 +5760,9 @@
       }
     ],
     "items": [
+      {
+        "id": "breadcrumbs"
+      },
       {
         "id": "button-group"
       },
@@ -5256,9 +5782,39 @@
         "id": "tabs"
       }
     ],
+    "itemsAfterCollapse": [
+      {
+        "id": "breadcrumbs",
+        "default": 2
+      }
+    ],
+    "itemsBeforeCollapse": [
+      {
+        "id": "breadcrumbs",
+        "default": 1
+      }
+    ],
+    "kind": [
+      {
+        "id": "breadcrumb-item",
+        "default": "ancestor",
+        "values": [
+          "ancestor",
+          "current",
+          "overflow"
+        ]
+      }
+    ],
     "label": [
       {
         "id": "badge"
+      },
+      {
+        "id": "breadcrumb-item"
+      },
+      {
+        "id": "breadcrumbs",
+        "default": "Breadcrumb"
       },
       {
         "id": "button"
@@ -5298,6 +5854,9 @@
       },
       {
         "id": "radio-row"
+      },
+      {
+        "id": "search-field"
       },
       {
         "id": "segmented-control"
@@ -5357,6 +5916,9 @@
         "id": "password-field"
       },
       {
+        "id": "search-field"
+      },
+      {
         "id": "segmented-control-segment"
       },
       {
@@ -5396,6 +5958,12 @@
         "default": 100
       }
     ],
+    "maxItems": [
+      {
+        "id": "breadcrumbs",
+        "default": 5
+      }
+    ],
     "maxLength": [
       {
         "id": "textarea"
@@ -5415,6 +5983,9 @@
       },
       {
         "id": "progress"
+      },
+      {
+        "id": "toast"
       }
     ],
     "min": [
@@ -5491,6 +6062,7 @@
           "plus-filled",
           "resize-grip",
           "search",
+          "slash",
           "warning-triangle",
           "warning-triangle-filled"
         ]
@@ -5500,6 +6072,9 @@
       },
       {
         "id": "radio-group"
+      },
+      {
+        "id": "search-field"
       },
       {
         "id": "segmented-control"
@@ -5541,6 +6116,9 @@
         "id": "radio-group"
       },
       {
+        "id": "search-field"
+      },
+      {
         "id": "segmented-control"
       },
       {
@@ -5554,6 +6132,11 @@
       },
       {
         "id": "textarea"
+      }
+    ],
+    "onClear": [
+      {
+        "id": "search-field"
       }
     ],
     "onClick": [
@@ -5586,6 +6169,11 @@
       },
       {
         "id": "tag"
+      }
+    ],
+    "onDismiss": [
+      {
+        "id": "toast"
       }
     ],
     "onOpenChange": [
@@ -5632,6 +6220,9 @@
     "placeholder": [
       {
         "id": "password-field"
+      },
+      {
+        "id": "search-field"
       },
       {
         "id": "select"
@@ -5689,6 +6280,10 @@
         "default": false
       },
       {
+        "id": "search-field",
+        "default": false
+      },
+      {
         "id": "select",
         "default": false
       },
@@ -5709,6 +6304,11 @@
         "default": false
       }
     ],
+    "renderLink": [
+      {
+        "id": "breadcrumbs"
+      }
+    ],
     "required": [
       {
         "id": "checkbox-group",
@@ -5724,6 +6324,10 @@
       },
       {
         "id": "radio-group",
+        "default": false
+      },
+      {
+        "id": "search-field",
         "default": false
       },
       {
@@ -5748,6 +6352,12 @@
           "vertical",
           "auto"
         ]
+      }
+    ],
+    "responsive": [
+      {
+        "id": "breadcrumbs",
+        "default": true
       }
     ],
     "reversed": [
@@ -5784,6 +6394,24 @@
       {
         "id": "tag",
         "default": false
+      }
+    ],
+    "separator": [
+      {
+        "id": "breadcrumb-item",
+        "default": "chevron",
+        "values": [
+          "chevron",
+          "slash"
+        ]
+      },
+      {
+        "id": "breadcrumbs",
+        "default": "chevron",
+        "values": [
+          "chevron",
+          "slash"
+        ]
       }
     ],
     "shape": [
@@ -5869,19 +6497,23 @@
       },
       {
         "id": "password-field",
-        "default": true
+        "default": false
+      },
+      {
+        "id": "search-field",
+        "default": false
       },
       {
         "id": "select",
-        "default": true
+        "default": false
       },
       {
         "id": "text-field",
-        "default": true
+        "default": false
       },
       {
         "id": "textarea",
-        "default": true
+        "default": false
       }
     ],
     "showStateLabel": [
@@ -5923,6 +6555,22 @@
           "small",
           "medium",
           "large"
+        ]
+      },
+      {
+        "id": "breadcrumb-item",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium"
+        ]
+      },
+      {
+        "id": "breadcrumbs",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium"
         ]
       },
       {
@@ -6142,6 +6790,15 @@
         ]
       },
       {
+        "id": "search-field",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
         "id": "segmented-control",
         "default": "medium",
         "values": [
@@ -6325,6 +6982,30 @@
         ]
       },
       {
+        "id": "flush-icon-button",
+        "default": "default",
+        "values": [
+          "default",
+          "inverse"
+        ]
+      },
+      {
+        "id": "flush-icon-button-destructive",
+        "default": "default",
+        "values": [
+          "default",
+          "inverse"
+        ]
+      },
+      {
+        "id": "flush-icon-button-neutral",
+        "default": "default",
+        "values": [
+          "default",
+          "inverse"
+        ]
+      },
+      {
         "id": "focus-ring",
         "default": "default",
         "values": [
@@ -6406,6 +7087,9 @@
         "id": "link"
       },
       {
+        "id": "search-field"
+      },
+      {
         "id": "text-field"
       }
     ],
@@ -6421,6 +7105,14 @@
       }
     ],
     "type": [
+      {
+        "id": "_breadcrumb-separator",
+        "default": "chevron",
+        "values": [
+          "chevron",
+          "slash"
+        ]
+      },
       {
         "id": "badge",
         "default": "status",
@@ -6618,6 +7310,16 @@
         ]
       },
       {
+        "id": "search-field",
+        "default": "default",
+        "values": [
+          "default",
+          "error",
+          "warning",
+          "success"
+        ]
+      },
+      {
         "id": "select",
         "default": "default",
         "values": [
@@ -6675,6 +7377,9 @@
         "id": "radio-group"
       },
       {
+        "id": "search-field"
+      },
+      {
         "id": "select"
       },
       {
@@ -6714,6 +7419,9 @@
       },
       {
         "id": "radio-row"
+      },
+      {
+        "id": "search-field"
       },
       {
         "id": "segmented-control"
@@ -6891,6 +7599,14 @@
     },
     {
       "kind": "state not drawn",
+      "subject": "search-field",
+      "components": [
+        "search-field"
+      ],
+      "detail": "search-field declares the states pending and empty, which the design-file state axis does not draw"
+    },
+    {
+      "kind": "state not drawn",
       "subject": "select",
       "components": [
         "select"
@@ -6960,13 +7676,14 @@
       "subject": "axis selection",
       "components": [
         "checkbox-control",
+        "link",
         "radio-control",
         "segmented-control-segment",
         "switch-control",
         "tab-item",
         "tag"
       ],
-      "detail": "the selection axis takes 4 value sets — [selected, unselected] in segmented-control-segment, tab-item, tag; [checked, indeterminate, unchecked] in checkbox-control; [checked, unchecked] in radio-control; [off, on] in switch-control"
+      "detail": "the selection axis takes 4 value sets — [selected, unselected] in link, segmented-control-segment, tab-item, tag; [checked, indeterminate, unchecked] in checkbox-control; [checked, unchecked] in radio-control; [off, on] in switch-control"
     },
     {
       "kind": "axis values",
@@ -6988,6 +7705,8 @@
       "components": [
         "_accordion-indicator",
         "accordion",
+        "breadcrumb-item",
+        "breadcrumbs",
         "button",
         "button-destructive",
         "button-neutral",
@@ -7011,6 +7730,7 @@
         "radio-control",
         "radio-group",
         "radio-row",
+        "search-field",
         "segmented-control",
         "segmented-control-segment",
         "select",
@@ -7023,7 +7743,7 @@
         "text-field",
         "textarea"
       ],
-      "detail": "the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab-item, tabs, tag, text-field, textarea; [medium, small] in progress, switch-control, switch-row; [large, medium, small, x-small] in spinner"
+      "detail": "the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, tab-item, tabs, tag, text-field, textarea; [medium, small] in breadcrumb-item, breadcrumbs, progress, switch-control, switch-row; [large, medium, small, x-small] in spinner"
     },
     {
       "kind": "axis values",
@@ -7038,13 +7758,14 @@
         "radio-control",
         "radio-group",
         "radio-row",
+        "search-field",
         "select",
         "switch-control",
         "switch-row",
         "text-field",
         "textarea"
       ],
-      "detail": "the status axis takes 3 value sets — [default, error] in checkbox-control, checkbox-group, checkbox-row, radio-control, radio-group, radio-row, switch-control, switch-row; [default, error, success, warning] in field-message, password-field, select, text-field, textarea; [active, complete, error] in progress"
+      "detail": "the status axis takes 3 value sets — [default, error] in checkbox-control, checkbox-group, checkbox-row, radio-control, radio-group, radio-row, switch-control, switch-row; [default, error, success, warning] in field-message, password-field, search-field, select, text-field, textarea; [active, complete, error] in progress"
     },
     {
       "kind": "axis values",
@@ -7052,10 +7773,11 @@
       "components": [
         "link",
         "password-field",
+        "search-field",
         "text-field",
         "textarea"
       ],
-      "detail": "the style axis takes 2 value sets — [outline] in password-field, text-field, textarea; [inline, standalone] in link"
+      "detail": "the style axis takes 2 value sets — [outline] in password-field, search-field, text-field, textarea; [inline, standalone] in link"
     },
     {
       "kind": "axis values",
@@ -7070,13 +7792,14 @@
       "kind": "axis values",
       "subject": "axis type",
       "components": [
+        "_breadcrumb-separator",
         "badge",
         "list",
         "list-item",
         "progress",
         "tag"
       ],
-      "detail": "the type axis takes 4 value sets — [icon, ordered, unordered] in list, list-item; [count, dot, status] in badge; [determinate, indeterminate] in progress; [dismissible, select] in tag"
+      "detail": "the type axis takes 5 value sets — [icon, ordered, unordered] in list, list-item; [chevron, slash] in _breadcrumb-separator; [count, dot, status] in badge; [determinate, indeterminate] in progress; [dismissible, select] in tag"
     },
     {
       "kind": "axis values",
@@ -7102,6 +7825,22 @@
         "accordion"
       ],
       "detail": "accordion declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "breadcrumb-item",
+      "components": [
+        "breadcrumb-item"
+      ],
+      "detail": "breadcrumb-item declares its sizes as [medium, small], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "breadcrumbs",
+      "components": [
+        "breadcrumbs"
+      ],
+      "detail": "breadcrumbs declares its sizes as [medium, small], not smallest first"
     },
     {
       "kind": "size order",
@@ -7281,6 +8020,14 @@
     },
     {
       "kind": "size order",
+      "subject": "search-field",
+      "components": [
+        "search-field"
+      ],
+      "detail": "search-field declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
       "subject": "segmented-control",
       "components": [
         "segmented-control"
@@ -7365,7 +8112,16 @@
       "components": [
         "field-label"
       ],
-      "detail": "field-label defaults size to small; 35 of 36 sized components default to medium"
+      "detail": "field-label defaults size to small; 38 of 39 sized components default to medium"
+    },
+    {
+      "kind": "prop default",
+      "subject": "prop label",
+      "components": [
+        "breadcrumbs",
+        "spinner"
+      ],
+      "detail": "label defaults differ over the same values — Breadcrumb in breadcrumbs; Loading in spinner"
     },
     {
       "kind": "prop default",
@@ -7377,24 +8133,20 @@
       "detail": "max defaults differ over the same values — 100 in progress; 99 in badge"
     },
     {
-      "kind": "prop default",
-      "subject": "prop showMessage",
-      "components": [
-        "counter",
-        "password-field",
-        "select",
-        "text-field",
-        "textarea"
-      ],
-      "detail": "showMessage defaults differ over the same values — false in counter; true in password-field, select, text-field, textarea"
-    },
-    {
       "kind": "axis without prop",
       "subject": "accordion",
       "components": [
         "accordion"
       ],
       "detail": "accordion has the variant axis expansion and no prop of that name"
+    },
+    {
+      "kind": "axis without prop",
+      "subject": "breadcrumbs",
+      "components": [
+        "breadcrumbs"
+      ],
+      "detail": "breadcrumbs has the variant axis path and no prop of that name"
     },
     {
       "kind": "axis without prop",
@@ -7446,6 +8198,14 @@
     },
     {
       "kind": "axis without prop",
+      "subject": "link",
+      "components": [
+        "link"
+      ],
+      "detail": "link has the variant axis selection and no prop of that name"
+    },
+    {
+      "kind": "axis without prop",
       "subject": "password-field",
       "components": [
         "password-field"
@@ -7475,6 +8235,14 @@
         "radio-row"
       ],
       "detail": "radio-row has the variant axis status and no prop of that name"
+    },
+    {
+      "kind": "axis without prop",
+      "subject": "search-field",
+      "components": [
+        "search-field"
+      ],
+      "detail": "search-field has the variant axes style and status and no props of those names"
     },
     {
       "kind": "axis without prop",

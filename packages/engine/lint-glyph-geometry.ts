@@ -136,6 +136,8 @@ const MUST_COVER = [
   '_accordion-indicator.chevronDownGlyph', '_accordion-indicator.chevronUpGlyph', '_accordion-indicator.plusGlyph', '_accordion-indicator.minusGlyph',
   // Progress's own glyphs (#2670), measured by the RING_GLYPH arm.
   'progress.ringGlyph', 'progress.arcGlyph', 'progress.fullRingGlyph', 'progress.dotGlyph',
+  'toast.checkCircleGlyph',
+  '_breadcrumb-separator.chevronGlyph', '_breadcrumb-separator.slashGlyph', 'breadcrumbs.backGlyph',
 ];
 
 /** The component name prefix an icon-set glyph is an instance of (#2380): `icon/<glyph>`, the component the
@@ -278,6 +280,13 @@ const arcSubpaths = (d: string): ArcSeg[][] => {
  * the def no longer gates on fails as a stale memory rather than as a silent exemption.
  */
 const FIXED_GLYPH: Record<string, { glyph: string; at: Record<string, readonly string[]>; why: string }> = {
+  // #2666 (owner call 6 A, Q382 A) — the breadcrumb separator's two looks, one glyph per `type`. `glyph: '{type}'`
+  // cannot express them: the vocabulary has no `chevron` glyph (the look is `chevron-right`), and a set-wide choice
+  // between two fixed shapes is what Q382 decided.
+  '_breadcrumb-separator.chevronGlyph': { glyph: 'chevron-right', at: { type: ['chevron'] }, why: 'the chevron look, pointing toward the current page; one fixed shape, mirrored in right-to-left in code, never a glyph a designer picks' },
+  '_breadcrumb-separator.slashGlyph': { glyph: 'slash', at: { type: ['slash'] }, why: 'the slash look, a forward slash between steps; one fixed shape, not mirrored in right-to-left' },
+  // #2666 (owner call 11 A) — the small-screen path's chevron, pointing up the trail to the parent page.
+  'breadcrumbs.backGlyph': { glyph: 'chevron-left', at: { path: ['parent'] }, why: 'the up-a-level mark before the parent link, pointing back up the trail; one fixed shape, mirrored in right-to-left in code' },
   // #2417 (owner Q183) — the Accordion indicator's four glyphs, one per (indicator, expansion) pair. `glyph:
   // '{expansion}'` cannot express them: the vocabulary has no `collapsed` or `expanded` glyph, and the pair changes
   // with `indicator` as well.
@@ -383,6 +392,12 @@ const FIXED_GLYPH: Record<string, { glyph: string; at: Record<string, readonly s
     glyph: 'check-circle',
     at: { status: ['success'] },
     why: 'the success mark: a circled check, on the same 20px ring `error-circle` draws. Deliberately the outline form and not `check-circle-filled` — the reference asks for "a stroked outline glyph at the same optical weight as the text", and every glyph in this set is a filled path, so outline here means a ring with a hole rather than a stroke',
+  },
+  // #2668 (owner call 3 A): the Toast's success glyph, the same circled check FieldMessage draws; neutral draws none.
+  'toast.checkCircleGlyph': {
+    glyph: 'check-circle',
+    at: { intent: ['success'] },
+    why: "the success mark, FieldMessage's circled check, so success reads the same in a field and in a toast. `glyph: '{intent}'` cannot express it: the vocabulary has no glyph named `success`, and neutral draws nothing (call 3 A)",
   },
 };
 

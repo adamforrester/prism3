@@ -279,6 +279,9 @@ const CENSUS_PATH = join(repo, 'packages/engine/schema/paint-census.json');
  * asserting something untrue about the def it names.
  */
 const PROVENANCE_EXCEPTIONS: Record<string, string> = {
+  // Toast (#2668, call 9 A): the inverse tier puts `inverse` before the family, so the intent sits one segment later.
+  'toast|success.icon':
+    'the inverse tier inserts `inverse` before the family: `color.inverse.icon.success` is the success glyph ink on the inverse surface, and `success` is its fourth segment, not its third',
   // List.Item (#2319): the key is the `icon` PAINT SLOT (the icon marker's ink), whose spelling matches the `type` value
   // `icon`. It is the slot that leads, not the axis value: the key binds at every type, and only the icon member draws
   // the slot it paints.
@@ -374,6 +377,21 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
   'password-field|error.border.filled':
     "status `error` maps to the `danger` border role — text-field's filled coordinate, through the shared field factory",
   'password-field|error.border.focus-visible-filled':
+    "status `error` maps to the `danger` border role — text-field's focused filled coordinate, through the shared field factory",
+  // `search-field` (#2888) binds text-field's token block exactly too, through the same factory.
+  'search-field|error.border.rest':
+    "status `error` maps to the `danger` border role — text-field's rest coordinate, through the shared field factory",
+  'search-field|error.border.hover':
+    "status `error` maps to the `danger` border role — text-field's hover coordinate, through the shared field factory",
+  'search-field|error.border.focus-visible':
+    "status `error` maps to the `danger` border role — text-field's focus-visible coordinate, through the shared field factory",
+  'search-field|error.border.read-only':
+    "status `error` maps to the `danger` border role — text-field's read-only coordinate, through the shared field factory",
+  'search-field|error.border.empty':
+    "status `error` maps to the `danger` border role — text-field's empty coordinate, through the shared field factory",
+  'search-field|error.border.filled':
+    "status `error` maps to the `danger` border role — text-field's filled coordinate, through the shared field factory",
+  'search-field|error.border.focus-visible-filled':
     "status `error` maps to the `danger` border role — text-field's focused filled coordinate, through the shared field factory",
   // `textarea` took text-field's status axis and its border keys verbatim (#1623 sign-off, C1/TA-4), so it
   // carries the same `error` → `danger` mapping at the same five coordinates, and for the same reason.

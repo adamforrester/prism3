@@ -24,7 +24,7 @@
  */
 import type { AxisKind, ComponentDef, NestVariantWhen, PartDef } from './component-schema';
 import { axisKindOf, densitySizeValues, densitySpacingKeys, visibleGapKeys, fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, STATE_GATE, statesOf, whenStates, variantsOf, slotAxisFigmaName, variantAxisFigmaName, swapPart, swapFigmaName, textFigmaName, booleanPartsOf, booleanFigmaName, booleanDefault, figmaVariantCount, figmaAxisNames, isExcludedCoordinate, WEIGHT_INTENTS } from './component-schema';
-import type { ControlShape, FieldStyle, ButtonIcons, ButtonContentSize, ButtonLabelWeight, ButtonTextHover, Density } from './scale';
+import type { ControlShape, FieldStyle, SearchFieldStyle, TagStyle, ButtonIcons, ButtonContentSize, ButtonLabelWeight, ButtonTextHover, Density } from './scale';
 import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER, densitySpacingStep, ratioMinWidth, spacePx, visibleGapStep } from './scale';
 // #1602 — the weight-role ladder and the default per-category weights, for resolving a component's
 // weight INTENT against a brand's available roles. Value + type imports from `theme.ts`, which imports
@@ -365,6 +365,14 @@ export type FigmaNodePlan = {
    *  the instance is resized). Carried ONLY on a pinned glyph, so every other plan is byte-identical. In
    *  `readVarsOwn`, so the emit gate verifies the name like the ring's. */
   cornerInset?: string;
+  /** For a `FRAME` pinned across its parent's BOTTOM EDGE (`PartDef.foot`, Link's current-page bar, #2872): taken out
+   *  of the auto-layout flow, sized to the parent's width at its own bound height, placed flush with the parent's
+   *  bottom (`x = 0`, `y = parent height − its height`) and constrained `STRETCH`/`MAX`, so it follows the bottom edge
+   *  and the width when the instance resizes. A FOURTH out-of-flow placement beside the ring's inset, the overlay's
+   *  center and the corner pin: the ring is sized from its parent on four sides, this on one. A boolean, for
+   *  `absoluteCenter`'s reason: nothing brand-varying to carry, since the thickness is the node's own bound height.
+   *  Carried ONLY on such a box, so every other plan is byte-identical. */
+  footPin?: boolean;
   /** Rendered at zero opacity — in the flow and in the accessibility tree, but not visible.
    *
    *  The only node property here that exists to preserve GEOMETRY rather than to express a design
@@ -2183,6 +2191,9 @@ export const figmaAnatomyPlan = (
       // THE CORNER PIN (textarea's resize grip): a glyph lifted out of the flow into its parent's corner.
       // Only on a pinned vector, so every other plan is byte-identical; the schema requires the inset.
       ...(p.kind === 'vector' && p.corner && p.inset ? { cornerInset: varOf(p.inset) } : {}),
+      // THE FOOT PIN (#2872, Link's current-page bar): a box lifted out of the flow across its parent's bottom edge.
+      // Only on such a box, so every other plan is byte-identical.
+      ...(p.kind === 'box' && p.foot ? { footPin: true } : {}),
       // A GLYPH THAT SCALES WITH ITS ASPECT-LOCKED PARENT (#2345, `PartDef.scaleWithParent`): lifted and
       // centered by the overlay's own path, then constrained SCALE/SCALE. Only on such a vector, so every
       // other plan is byte-identical.
@@ -2401,6 +2412,8 @@ export const FIELD_CORNER_REFS: Readonly<Record<string, readonly string[]>> = {
   'text-field': ['radius.sm'],
   select: ['radius.sm'],
   textarea: ['radius.sm'],
+  // #2888: the Search field's box is TextField's, from the shared field factory.
+  'search-field': ['radius.sm'],
   'checkbox-control': ['control.size.sm.radius', 'control.size.md.radius', 'control.size.lg.radius'],
 };
 
@@ -2434,6 +2447,23 @@ export const FIELD_FRAME_PARTS: Readonly<Record<string, string>> = {
   'password-field': 'control',
   select: 'control',
   textarea: 'control',
+  // #2888: drawn in the Search field style, which may differ from the other fields' (`fieldStyleFor`).
+  'search-field': 'control',
+};
+
+/**
+ * THE SEARCH FIELD STYLE (#2888, owner decision Q514 taking Q?1 A). The brand's search field may take an edge of its
+ * own: `follow` (the default) draws whatever Field style draws; `outline` or `underline` sets search apart from the
+ * other fields. This resolves WHICH style a def is drawn in; `applyFieldStyle` still draws it, unchanged. Every def but
+ * the ones listed here takes Field style, so a brand that leaves the lever unset, or sets `follow`, builds every def
+ * exactly as before. The defaults live here, once, for every caller (the plugin's `materializeForBrand`, the
+ * lever sweep).
+ */
+export const SEARCH_FIELD_STYLE_DEFS: readonly string[] = ['search-field'];
+export const fieldStyleFor = (defId: string, input: { fieldStyle?: FieldStyle; searchFieldStyle?: SearchFieldStyle } | null | undefined): FieldStyle => {
+  const field = input?.fieldStyle ?? 'outline';
+  const search = input?.searchFieldStyle ?? 'follow';
+  return SEARCH_FIELD_STYLE_DEFS.includes(defId) && search !== 'follow' ? search : field;
 };
 
 /**
@@ -2491,6 +2521,82 @@ export const applyFieldStyle = (def: ComponentDef, style: FieldStyle): Component
       ...(frame.padding.inlineVisual ? { inlineVisual: 'underline.pad-x' } : {}),
       ...(frame.padding.inlineEnd ? { inlineEnd: 'underline.pad-x' } : {}),
     } } : {}),
+  };
+  return { ...def, tokens, anatomy: { ...a, parts } };
+};
+
+// ── TAG STYLE (#2887) ───────────────────────────────────────────────────────────────────────────
+//
+// The brand's tag shape (owner Q513 and Q540): `pill` draws the rounded outline, `underline` one line under the tag.
+// Its own lever (Q513.1 A), materialized before projection for `applyFieldStyle`'s reason: every tag keeps its 45
+// members, axes, properties and layer names, so a brand switch reaches an existing file through Update and instances
+// stay linked. No token is added: every binding is a rung or role the engine already emits.
+
+/** The tag family, each def named with the four parts the underline reaches: the bordered `frame`, the inset content
+ *  `row`, the `labelRow` that holds the label and the check, and the remove `slot`. Keyed by def id, `FIELD_FRAME_PARTS`'s
+ *  way. Tag is the only member (the wireframe's finding: Segmented control and Tab do not take this lever). */
+export const TAG_STYLE_PARTS: Readonly<Record<string, { frame: string; row: string; labelRow: string; slot: string }>> = {
+  tag: { frame: 'container', row: 'content', labelRow: 'labelCheck', slot: 'dismiss' },
+};
+
+/** The def key holding the underline's block-end inset per size (Q9 A: `space.050 / 075 / 100`; Q10 A: the same at
+ *  every density, so it is not in `densitySpacing`). Authored on the def, so the pill and the underline share it. */
+export const TAG_UNDERLINE_INSET = 'size.{size}.underline.inset';
+
+/**
+ * Materialize a def for the brand's `tagStyle` lever (#2887). The IDENTITY under `pill` and for any def not in
+ * `TAG_STYLE_PARTS`: it returns the same object, so every pill plan is byte-identical to before.
+ *
+ * Under `underline`:
+ *   · THE LINE (Q513.2, Q513.3, Q513.4): the four sides bind apart (`strokeEdges`). Top, end and start take
+ *     `border-width.none`. The bottom takes `border-width.hairline` (1px) on an unselected tag at rest, focus-visible,
+ *     disabled and read-only, and `border-width.thick` (2px) on an unselected tag's hover and pressed and on every
+ *     selected state. Focus adds only the ring: the line keeps its weight. The color is the def's own border paint,
+ *     unchanged (Q513.7: `interactive.neutral.border` unselected, `interactive.primary.border` selected).
+ *   · NO FILL IN ANY STATE (Q513.2, Q513.3): every `overlay` key goes, the neutral hover and pressed wash and the
+ *     selected tint alike.
+ *   · THE CORNER: `radius.none`, whatever the pill's round rung.
+ *   · THE GAP TO THE LINE (owner ask on Q513, #2894's route): the frame's fixed `height` becomes a `minHeight` at the
+ *     same rung, so the hit target holds, and the frame aligns its children to the END (the bottom). The content row
+ *     takes a block-end inset (`TAG_UNDERLINE_INSET`), and the label row a `minHeight` at the glyph size, so the label
+ *     sits centered in an icon-tall row and does not move when the check appears. The × slot stays an H × H square
+ *     and puts its glyph on the same inset. The side padding is the pill's (Q513.5), and the line runs under the
+ *     × slot (Q513.6), since the slot is inside the frame.
+ */
+export const applyTagStyle = (def: ComponentDef, style: TagStyle): ComponentDef => {
+  if (style === 'pill') return def;
+  const names = TAG_STYLE_PARTS[def.id];
+  const a = def.anatomy;
+  const frame = names ? a?.parts[names.frame] : undefined;
+  if (!a || !names || !frame) return def;
+  const tokens: Record<string, string> = {};
+  for (const [k, ref] of Object.entries(def.tokens)) if (!k.split('.').includes('overlay')) tokens[k] = ref;
+  if (frame.radius) tokens[frame.radius] = 'radius.none';
+  tokens['underline.side'] = 'border-width.none';
+  tokens['underline.pad-0'] = 'space.0';
+  for (const sel of def.variants?.selection ?? [])
+    for (const st of statesOf(def))
+      tokens[`underline.${sel}.line.${st}`] = sel === 'selected' || st === 'hover' || st === 'pressed' ? 'border-width.thick' : 'border-width.hairline';
+  const parts: Record<string, PartDef> = { ...a.parts };
+  const { strokeWidth: _pill, height, ...rest } = frame;
+  parts[names.frame] = {
+    ...rest,
+    ...(height ? { minHeight: height } : {}),
+    ...(rest.layout ? { layout: { ...rest.layout, align: 'end', sizing: { ...rest.layout.sizing, y: 'hug' } } } : {}),
+    strokeEdges: { top: 'underline.side', right: 'underline.side', bottom: 'underline.{selection}.line.{state}', left: 'underline.side' },
+  };
+  const row = a.parts[names.row];
+  if (row?.padding) parts[names.row] = { ...row, padding: { ...row.padding, blockEnd: TAG_UNDERLINE_INSET } };
+  const labelRow = a.parts[names.labelRow];
+  if (labelRow) {
+    const glyph = Object.values(a.parts).find((p) => p.kind === 'vector' && labelRow.children?.some((c) => a.parts[c] === p))?.size;
+    if (glyph) parts[names.labelRow] = { ...labelRow, minHeight: glyph };
+  }
+  const slot = a.parts[names.slot];
+  if (slot?.layout) parts[names.slot] = {
+    ...slot,
+    layout: { ...slot.layout, align: 'end' },
+    padding: { block: 'underline.pad-0', blockEnd: TAG_UNDERLINE_INSET, inlineLabel: 'underline.pad-0' },
   };
   return { ...def, tokens, anatomy: { ...a, parts } };
 };
@@ -2689,7 +2795,7 @@ export const applyMinWidthRatio = (def: ComponentDef, px: (ref: string) => numbe
   for (const [name, p] of Object.entries(a.parts)) {
     if (p.minWidthRatio === undefined) { parts[name] = p; continue; }
     const minWidth = Object.fromEntries(sizes.map((v) => {
-      const ref = def.tokens[p.height!.replace('{size}', v)];
+      const ref = def.tokens[(p.height ?? p.minHeight)!.replace('{size}', v)];
       const h = ref === undefined ? undefined : px(ref);
       if (h === undefined) throw new Error(`${def.id}: part '${name}' at size '${v}' floors at ${p.minWidthRatio} × its height, and the height ${ref ?? '(unbound)'} does not resolve`);
       return [v, ratioMinWidth(h, p.minWidthRatio!)];
@@ -4057,6 +4163,34 @@ const PAYLOAD_CORNER = `  for(const c of n.children){
 `;
 const hasCorner = (n: FigmaNodePlan): boolean => n.cornerInset !== undefined || n.children.some(hasCorner);
 /**
+ * THE FOOT PIN (#2872, Link's current-page bar), in two splices, ONLY for a payload whose plans carry `footPin`, the
+ * corner pin's budget reason (#1798). LIFTED before the ring's pass, so the ring is sized off a parent that no longer
+ * holds the bar's cell; SIZED and PLACED after it, so the bar is measured off a parent that no longer holds the ring's.
+ * Sized to the parent's width at the bar's height, with the height bound again since `resize` writes both; flush with
+ * the bottom, `STRETCH`/`MAX`. Lockstep with the plugin executor (`write-components.ts`), miss wording included.
+ */
+const FOOT_SLOT = '__FOOT__';
+const PAYLOAD_FOOT = `  const feet=[];
+  for(const c of n.children){
+    if(!c.footPin)continue;
+    const kid=boxes.get(c.name);
+    if(!kid)continue;
+    kid.layoutPositioning='ABSOLUTE';
+    feet.push([c,kid]);
+    if(kid.layoutPositioning!=='ABSOLUTE')misses.push(c.name+'.layoutPositioning -> DISCARDED (set ABSOLUTE, reads '+kid.layoutPositioning+'; the bar would take a cell in the row)');
+  }
+`;
+const FOOT_PLACE_SLOT = '__FOOT_PLACE__';
+const PAYLOAD_FOOT_PLACE = `  for(const [c,kid] of feet){
+    kid.resize(node.width,kid.height);
+    const hv=c.bound&&c.bound.height?byName.get(c.bound.height):undefined;
+    if(hv){try{kid.setBoundVariable('height',hv);}catch(e){misses.push(c.name+'.height -> '+c.bound.height+" REFUSED after the foot pin's resize ("+(e&&e.message?e.message:String(e))+')');}}
+    kid.x=0;kid.y=node.height-kid.height;
+    kid.constraints={horizontal:'STRETCH',vertical:'MAX'};
+  }
+`;
+const hasFoot = (n: FigmaNodePlan): boolean => n.footPin === true || n.children.some(hasFoot);
+/**
  * THE INSET ICON (#2380, #1346): checkbox's check and dash, an instance of `icon/check` / `icon/minus` placed at
  * `glyphInset` of the frame that holds it, centered, with SCALE constraints so a box the brand or a mode
  * resizes scales the icon with it. After the flow pass, on the frame's own bound box. Spliced ONLY for a
@@ -4158,6 +4292,8 @@ const payloadBuildFor = (roots: FigmaNodePlan[]): string =>
     .replace(PIN_LIFT_SLOT, roots.some(hasPin) ? PAYLOAD_PIN_LIFT : '')
     .replace(PIN_SLOT, roots.some(hasPin) ? PAYLOAD_PIN : '')
     .replace(CORNER_SLOT, roots.some(hasCorner) ? PAYLOAD_CORNER : '')
+    .replace(FOOT_SLOT, roots.some(hasFoot) ? PAYLOAD_FOOT : '')
+    .replace(FOOT_PLACE_SLOT, roots.some(hasFoot) ? PAYLOAD_FOOT_PLACE : '')
     .replace(INSET_SLOT, roots.some(hasInset) ? PAYLOAD_INSET : '')
     .replace(PLACEMENT_SLOT, roots.some(hasPlacement) ? PAYLOAD_PLACEMENT : '')
     .replace(MAX_WIDTH_SLOT, roots.some(hasMaxWidth) ? PAYLOAD_MAX_WIDTH : '')
@@ -4558,7 +4694,7 @@ ${PIN_LIFT_SLOT}
     // silently: the button would grow by the spinner's cell exactly as it did before #612.
     if(kid.layoutPositioning!=='ABSOLUTE')misses.push(c.name+'.layoutPositioning -> DISCARDED (set ABSOLUTE, reads '+kid.layoutPositioning+'; the spinner would take a cell and the button would grow on pending)');
   }
-${CORNER_SLOT}  // Applied by the PARENT, because every fact here is about the child's relationship to it:
+${CORNER_SLOT}${FOOT_SLOT}  // Applied by the PARENT, because every fact here is about the child's relationship to it:
   // \`layoutPositioning\` is only meaningful inside an auto-layout parent, and the parent's size is what
   // the inset is measured from.
   for(const [c,kid] of absolutes){
@@ -4622,7 +4758,7 @@ ${CORNER_SLOT}  // Applied by the PARENT, because every fact here is about the c
     // cell to the row — the one thing the ring must not do to its host's geometry.
     if(kid.layoutPositioning!=='ABSOLUTE')misses.push(c.name+'.layoutPositioning -> DISCARDED (set ABSOLUTE, reads '+kid.layoutPositioning+'; the ring would take a cell in the row)');
   }
-  // #1393 — AND IT HAS TO BE LAST: every write above declares something; this declares nothing else was.
+${FOOT_PLACE_SLOT}  // #1393 — AND IT HAS TO BE LAST: every write above declares something; this declares nothing else was.
 ${PIN_SLOT}${INSET_SLOT}
   claimDefaults(node,n,'created');
   // RE-APPLY THE TEXT STYLE, because \`claimDefaults\`' \`paragraphSpacing\`/\`leadingTrim\` just detached it
@@ -4978,7 +5114,7 @@ export const CANVAS_FURNITURE: ReadonlySet<string> = new Set([
   'radio-row', 'radio-group', 'switch-control', 'switch-row', 'select', 'veil', 'image-placeholder', 'badge', 'tag', 'tab-item', 'tabs',
   'divider', '_accordion-indicator', 'accordion', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'list-item',
   'list', 'segmented-control-segment', 'segmented-control', 'link',
-  'button-group', 'dialog', 'password-field', 'counter', 'progress',
+  'button-group', 'dialog', 'password-field', 'counter', 'progress', 'search-field', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs',
 ]);
 
 export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {

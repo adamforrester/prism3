@@ -745,7 +745,7 @@ const TYPE_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="face-add-inpu
 /** Shape in the two panes (S7): the controls its levers must render, by hook (Density's chips and the way to
  *  Components, Radius' slider and Control shape chips, Show advanced, the way on to Depth & motion). */
 const SHAPE_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="density-choice-comfortable"]', '[data-p3="shape-see-components"]',
-  '[data-p3="radius-scale-slider"]', '[data-p3="control-shape-choice-rounded"]', '[data-p3="field-style-choice-outline"]', '[data-p3="shape-advanced"]', '[data-p3="shape-continue"]'];
+  '[data-p3="radius-scale-slider"]', '[data-p3="control-shape-choice-rounded"]', '[data-p3="field-style-choice-outline"]', '[data-p3="search-field-style-choice-follow"]', '[data-p3="tag-style-choice-pill"]', '[data-p3="shape-advanced"]', '[data-p3="shape-continue"]'];
 /** Depth & motion in the two panes (S9.2), previewing Light: the softness slider, Elevation's Show advanced, the tempo
  *  chips, an easing picker button per role, the way on to Layout. The rest is section 23's. */
 const DEPTH_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="shadow-softness"]', '[data-p3="depth-tint-advanced"]',
@@ -7707,7 +7707,9 @@ for (const host of ['web', 'figma']) {
 console.log(`\nShape (S7)\n${'='.repeat(78)}`);
 /** The lever keys the owner's D1 A places on Shape, by hook (represented, not counted). `radiusHairline` is retired. */
 // #2695: Field style, right after Control shape (owner Q333, the Form group's order).
-const SHAPE_LEVERS = ['lever-density', 'lever-radius-scale', 'lever-control-shape', 'lever-field-style', 'lever-base-md'];
+// #2888: Search field style, right after Field style (owner Q514 taking Q?2 A).
+// #2887: Tag style after it (Q513.1 A).
+const SHAPE_LEVERS = ['lever-density', 'lever-radius-scale', 'lever-control-shape', 'lever-field-style', 'lever-search-field-style', 'lever-tag-style', 'lever-base-md'];
 /** The preview's sections, in order (D1 A). Literal. */
 const EXPECT_SHAPE_SPECIMENS = ['Density', 'Radius', 'Spacing', 'Building blocks'];
 /** Q23: each lever section, in order, and the preview section it pairs with (Base radius with Radius, D1 A). */
@@ -7851,7 +7853,8 @@ for (const host of ['web', 'figma']) {
       const want = `${size} button · ${HEIGHT_PX(step)}px`;
       ok(r.heights[step] === want, `D6: ${host}: the ${size} button height reads "${want}" (${JSON.stringify(r.heights[step])})`);
     }
-    ok(r.used.find(([s]) => s === 'md')?.[1]?.includes('Button') && r.used.find(([s]) => s === 'xl')?.[1] === SHAPE_COPY.usedByNone,
+    // radius.lg is the unbound size probed: Toast binds radius.xl since #2668.
+    ok(r.used.find(([s]) => s === 'md')?.[1]?.includes('Button') && r.used.find(([s]) => s === 'lg')?.[1] === SHAPE_COPY.usedByNone,
       `${host}: "used by" names Button on radius.md under the default Control shape, and the fallback "${SHAPE_COPY.usedByNone}" where nothing binds a size (${JSON.stringify(r.used.slice(2, 5))})`);
     ok(JSON.stringify(r.shapes) === JSON.stringify([['boxed', null], ['hairline', null], ['rounded', 'true'], ['pill', null]]), `${host}: the four control shapes, Rounded marked current (${JSON.stringify(r.shapes)})`);
     // D16 and E2's plain words: no "ramp", "ladder", "face", "band", "rung", "muted" or "column" in Shape's visible copy,
@@ -7918,6 +7921,17 @@ for (const host of ['web', 'figma']) {
     const pField = await persisted(page);
     ok(pField?.fieldStyle === 'underline', `shape: Underline writes fieldStyle: underline (${pField?.fieldStyle})`);
     await chip('field-style-choice-outline');
+    // #2888: Search field style is brand-wide chips too, and Follow field style writes its own value back.
+    await chip('search-field-style-choice-underline');
+    const pSearch = await persisted(page);
+    ok(pSearch?.searchFieldStyle === 'underline' && pSearch?.fieldStyle !== 'underline', `shape: search Underline writes searchFieldStyle: underline and leaves fieldStyle (${pSearch?.searchFieldStyle}, ${pSearch?.fieldStyle})`);
+    await chip('search-field-style-choice-follow');
+    ok((await persisted(page))?.searchFieldStyle === 'follow', `shape: Follow field style writes searchFieldStyle: follow (${(await persisted(page))?.searchFieldStyle})`);
+    // #2887: Tag style is brand-wide chips, as Field style is.
+    await chip('tag-style-choice-underline');
+    const pTag = await persisted(page);
+    ok(pTag?.tagStyle === 'underline', `shape: Underline writes tagStyle: underline (${pTag?.tagStyle})`);
+    await chip('tag-style-choice-pill');
     await hooks.click(page.locator('[data-p3="base-radius-pick"]'));
     await hooks.click(page.locator('[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="6"]'));
     await page.waitForFunction(() => document.querySelector('[data-p3="base-radius-pick"] .p3-btn-label')?.textContent === '6px', null, { timeout: 5000 }).catch(() => {});
@@ -7952,6 +7966,10 @@ for (const host of ['web', 'figma']) {
     await chip('field-style-choice-underline');
     ok((await persisted(page))?.fieldStyle === 'underline' && JSON.stringify((await persisted(page))?.modeLevers) === JSON.stringify(p2?.modeLevers), '#2695: previewing Dark, Underline writes fieldStyle: underline and no per-mode value');
     await chip('field-style-choice-outline');
+    // #2887: Tag style too, brand-wide from Dark.
+    await chip('tag-style-choice-underline');
+    ok((await persisted(page))?.tagStyle === 'underline' && JSON.stringify((await persisted(page))?.modeLevers) === JSON.stringify(p2?.modeLevers), '#2887: previewing Dark, Underline writes tagStyle: underline and no per-mode value');
+    await chip('tag-style-choice-pill');
     await hooks.click(page.locator('[data-p3="density-reset"]'));
     await hooks.click(page.locator('[data-p3="radius-scale-reset"]'));
     await page.waitForFunction(() => !!document.querySelector('[data-p3="radius-scale-auto"]'), null, { timeout: 5000 }).catch(() => {});
@@ -7999,7 +8017,7 @@ for (const host of ['web', 'figma']) {
       });
       ok(d.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.`, `Q59: previewing ${label}, the panel's derived line shows (N-3 A) on Shape ("${d.line}")`);
       ok(d.n >= 9 && d.enabled.length === 0, `Q59: previewing ${label}, every control on Shape is disabled, Base radius included (${d.n - d.enabled.length}/${d.n})${d.enabled.length ? ` — enabled ${[...new Set(d.enabled)].join(', ')}` : ''}`);
-      for (const hk of ['density-choice-compact', 'radius-scale-slider', 'control-shape-choice-pill', 'field-style-choice-underline', 'base-radius-pick']) ok(d.hooks.includes(hk), `Q59: previewing ${label}, the ${hk} control on Shape is among those held disabled`);
+      for (const hk of ['density-choice-compact', 'radius-scale-slider', 'control-shape-choice-pill', 'field-style-choice-underline', 'search-field-style-choice-outline', 'tag-style-choice-underline', 'base-radius-pick']) ok(d.hooks.includes(hk), `Q59: previewing ${label}, the ${hk} control on Shape is among those held disabled`);
       ok(JSON.stringify(d.preview) === JSON.stringify(EXPECT_SHAPE_SPECIMENS), `Q59: previewing ${label}, the Shape preview is still drawn (${d.preview.join(', ')})`);
       // Every size is drawn at 0px, as the emission draws wireframe; the two pill sizes still read "Pill" (#2078: the
       // label is which size it is, not its px).
@@ -10488,7 +10506,7 @@ const EXPECT_HEADINGS = {
   components: {
     L1: ['Components', 'Subcomponents'],
     L2: ['Button options'],
-    L3: ['Button icons', 'Button label & icon', 'Button label weight', 'Text button hover', 'Button minimum width'],
+    L3: ['Button icons', 'Medium button label & icon', 'Button label weight', 'Text button hover', 'Button minimum width'],
   },
   // #2215: the plugin's Build style guides page, with SG_RING_CATALOG posted (every kind selected, so every option group
   // draws). Its page title is not a level (HEADING_EXEMPT).

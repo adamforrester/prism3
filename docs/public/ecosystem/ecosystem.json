@@ -316,7 +316,12 @@
           "dialog",
           "password-field",
           "counter",
-          "progress"
+          "progress",
+          "search-field",
+          "toast",
+          "_breadcrumb-separator",
+          "breadcrumb-item",
+          "breadcrumbs"
         ]
       }
     },

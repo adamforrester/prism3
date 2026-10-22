@@ -6,7 +6,7 @@
  * never imports the definitions themselves (UI redesign S7, T4; the generator's header says why).
  */
 export const USED_BY = {
-  defs: 44,
+  defs: 49,
   radius: {
     rounded: {
       "radius.2xl": [
@@ -40,7 +40,11 @@ export const USED_BY = {
         "Badge",
         "SegmentedControl",
         "PasswordField",
-        "Counter"
+        "Counter",
+        "SearchField"
+      ],
+      "radius.xl": [
+        "Toast"
       ]
     },
     pill: {
@@ -75,7 +79,11 @@ export const USED_BY = {
         "Badge",
         "SegmentedControl",
         "PasswordField",
-        "Counter"
+        "Counter",
+        "SearchField"
+      ],
+      "radius.xl": [
+        "Toast"
       ]
     },
     boxed: {
@@ -96,7 +104,8 @@ export const USED_BY = {
         "Textarea",
         "Checkbox.Control",
         "Select",
-        "Dialog"
+        "Dialog",
+        "SearchField"
       ],
       "radius.round": [
         "IconButton",
@@ -112,6 +121,9 @@ export const USED_BY = {
         "SegmentedControl",
         "PasswordField",
         "Counter"
+      ],
+      "radius.xl": [
+        "Toast"
       ]
     },
     hairline: {
@@ -127,7 +139,8 @@ export const USED_BY = {
         "TextField",
         "Textarea",
         "Checkbox.Control",
-        "Select"
+        "Select",
+        "SearchField"
       ],
       "radius.md": [
         "SegmentedControl"
@@ -150,6 +163,9 @@ export const USED_BY = {
         "SegmentedControl",
         "PasswordField",
         "Counter"
+      ],
+      "radius.xl": [
+        "Toast"
       ]
     }
   },
@@ -167,7 +183,8 @@ export const USED_BY = {
       "Accordion",
       "SegmentedControl",
       "PasswordField",
-      "Counter"
+      "Counter",
+      "SearchField"
     ],
     "size.md.height": [
       "FocusRing",

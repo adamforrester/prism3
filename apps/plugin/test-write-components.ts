@@ -3972,7 +3972,13 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 // off the def. The mutation arm rebuilds with the def's `minHeight` removed and requires the footprint
 // misses the owner saw, by name.
 {
-  const byDef = (id: string) => componentDefs.find((d) => d.id === id)!;
+  // The field built with its message ON (#2926 builds it hidden by default): the footprint is only measurable on a
+  // row that is drawn, and a designer who turns the message on is the case the floor exists for.
+  const byDef = (id: string): ComponentDef => {
+    const d = componentDefs.find((x) => x.id === id)!;
+    const fp = d.figmaProperties;
+    return fp?.booleans?.showMessage ? { ...d, figmaProperties: { ...fp, booleans: { ...fp.booleans, showMessage: { ...fp.booleans.showMessage, default: true } } } } : d;
+  };
   const GLYPH = varValue('icon/size/xs');                 // what the shim binds `icon.size.xs` to
   const fmPlansShipped = figmaAnatomySet(materializeForBrand(fieldMessage, null), { swapTarget: SWAP });
   const captionStyles = [...new Set(fmPlansShipped.flatMap((p) => planTextStyles(p.root)))];
@@ -4274,9 +4280,9 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   ok(count?.type === 'BOOLEAN' && count.defaultValue === false
     && countLayers.every((l, i) => l && l.visible === false && find(l, 'counter') === counters[i]),
     `textarea counter default: a 'character count' BOOLEAN defaulting to false drives a layer holding the counter, and all 24 members build it hidden (${JSON.stringify(count)}; ${countLayers.filter((l) => l && l.visible === false).length} hidden)`);
-  ok(msg?.type === 'BOOLEAN' && msg.defaultValue === true
-    && msgLayers.every((l, i) => l && l.visible !== false && find(l, 'message') !== undefined && !find(l, 'counter') && !find(countLayers[i], 'message')),
-    `textarea counter independent: the 'message' BOOLEAN (default true) drives a layer holding the message and NOT the counter, and the counter's layer holds no message, on all 28 members (${JSON.stringify(msg)})`);
+  ok(msg?.type === 'BOOLEAN' && msg.defaultValue === false
+    && msgLayers.every((l, i) => l && l.visible === false && find(l, 'message') !== undefined && !find(l, 'counter') && !find(countLayers[i], 'message')),
+    `textarea counter independent: the 'message' BOOLEAN (default false, #2926) drives a layer holding the message and NOT the counter, and the counter's layer holds no message, on all 28 members (${JSON.stringify(msg)})`);
   const rows = b.members.map((m) => find(m, 'messageRow'));
   // #1751: the row FILLS (stretched AND its own width FIXED — the stretch alone hugs) and packs to its END,
   // the message's layer GROWS beside the counter, and the counter's layer HUGS its caption.
@@ -5145,6 +5151,11 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     ['controlShape', 'boxed'], ['controlShape', 'hairline'], ['controlShape', 'pill'],
     // #2695: Field style moves only the field defs' geometry and paints, never the tree.
     ['fieldStyle', 'underline'],
+    // #2888: so does the Search field style, on the search field alone. Outline differs from Follow only where the
+    // fields are underline, so that pair is checked on the minimal brand with underline fields (`MOVES_ON`).
+    ['searchFieldStyle', 'outline'], ['searchFieldStyle', 'underline'],
+    // #2887 (Q513.1 A): "Tag style: Underline" adds no token; it moves only the materialized Tag def.
+    ['tagStyle', 'underline'],
   ];
   const getIn = (o: any, key: string): unknown => key.split('.').reduce((a, p) => a?.[p], o);
   const setIn = (o: any, key: string, v: unknown): any => {
@@ -5172,7 +5183,12 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   ok(unexercised.length === 0, `#1812 every lever with a manifest default is left unset by at least one base brand${unexercised.length ? ` — NEVER UNSET: ${unexercised.join(', ')}` : ''}`);
   ok(drift.length === 0, `#1812 every lever's manifest default is what materializeForBrand does with the lever unset${drift.length ? ` — DIFFERS: ${drift.join('; ')}` : ''}`);
 
-  const blindUnmoved = TREE_BLIND_PAIRS.filter(([key, v]) => materialized(setIn(minimal, key, v)) === baseOut.get('minimal'))
+  // The base a pair is checked on: the minimal brand, unless the pair moves only over another setting (#2888).
+  const MOVES_ON: Record<string, BrandInput> = { 'searchFieldStyle=outline': { ...minimal, fieldStyle: 'underline' } as BrandInput };
+  const blindUnmoved = TREE_BLIND_PAIRS.filter(([key, v]) => {
+    const on = MOVES_ON[`${key}=${v}`] ?? minimal;
+    return materialized(setIn(on, key, v)) === materialized(on);
+  })
     .map(([key, v]) => `${key}=${JSON.stringify(v)}`);
   ok(blindUnmoved.length === 0, `#1812 each tree-blind (lever, value) pair moves the materialized defs${blindUnmoved.length ? ` — UNMOVED: ${blindUnmoved.join(', ')}` : ''}`);
 }
@@ -5194,7 +5210,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const wrong: string[] = [];
   const misses: string[] = [];
   let read = 0;
-  for (const fid of ['text-field', 'password-field', 'select', 'textarea']) {
+  for (const fid of ['text-field', 'password-field', 'select', 'textarea', 'search-field']) {
     const def = componentDefs.find((d) => d.id === fid)!;
     const page: Page = { children: [] };
     const shim = makeShim({ vars: f.vars, styles: f.styles, effects: f.effects, comps: [], liveRoot: true, page });
@@ -5213,9 +5229,94 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
       if (JSON.stringify(got) !== JSON.stringify(want)) wrong.push(`${fid} ${m.name}: ${got.join(' / ')}`);
     }
   }
-  ok(read === 4 * 84 && wrong.length === 0,
-    `#2695 underline fields read back with their per-side weights bound: none / none / hairline (thick at focus) / none, on all ${read} of 336 members (${wrong.slice(0, 3).join('; ') || 'ok'})`);
+  ok(read === 5 * 84 && wrong.length === 0,
+    `#2695 underline fields read back with their per-side weights bound: none / none / hairline (thick at focus) / none, on all ${read} of 420 members (the search field following, #2888) (${wrong.slice(0, 3).join('; ') || 'ok'})`);
   ok(misses.length === 0, `#2695 underline fields: no stroke binding is reported discarded (${misses.slice(0, 3).join('; ') || 'none'})`);
+}
+
+// =============================================================================================
+// #2888 — THE SEARCH FIELD STYLE, through `materializeForBrand`
+// =============================================================================================
+// The search field takes the Search field style lever (owner decision Q514 taking Q?1 A); every other field takes
+// Field style. SUBJECT = `materializeForBrand`, the function `main.ts` projects through; ORACLE = the projected
+// control's bound stroke keys, against names typed here from #2695's decisions (an underline control binds the four
+// sides apart, an outline control one scalar weight). Mutations: feed the search field `fieldStyle` in `brand-def.ts`
+// and ignore `searchFieldStyle` → `search-field takes its own style under outline fields`; change the lever's unset
+// default from `follow` to `outline` in `fieldStyleFor` → `Follow keeps search identical to fieldStyle`.
+{
+  const nb = parseDesignMd(readFileSync(new URL('../../packages/engine/examples/nb-redesign.design.md', import.meta.url), 'utf8')).input;
+  const find = (n: any, name: string): any => (n.name === name ? n : (n.children ?? []).map((c: any) => find(c, name)).find(Boolean));
+  const def = (id: string) => componentDefs.find((d) => d.id === id)!;
+  /** The edge every member of `id` draws under `input`, read off its control: `underline`, `outline`, or `mixed`. */
+  const edgeOf = (id: string, input: BrandInput): string => {
+    const kinds = new Set(figmaAnatomySet(materializeForBrand(def(id), input), { swapTarget: SWAP }).map((p) => {
+      const b = find(p.root, 'control')?.bound ?? {};
+      if (b.strokeTopWeight === 'border-width/none' && b.strokeLeftWeight === 'border-width/none' && b.strokeRightWeight === 'border-width/none' && /^border-width\/(hairline|thick)$/.test(b.strokeBottomWeight) && !('strokeWeight' in b)) return 'underline';
+      if (b.strokeWeight === 'border-width/hairline' && !('strokeBottomWeight' in b)) return 'outline';
+      return `odd(${JSON.stringify(b)})`;
+    }));
+    return kinds.size === 1 ? [...kinds][0] : `mixed(${[...kinds].join(', ')})`;
+  };
+  const at = (o: Record<string, string>) => ({ ...nb, ...o }) as BrandInput;
+  const OTHERS = ['text-field', 'password-field', 'select', 'textarea'];
+  const ownUnder = { search: edgeOf('search-field', at({ searchFieldStyle: 'underline' })), others: OTHERS.map((id) => edgeOf(id, at({ searchFieldStyle: 'underline' }))) };
+  ok(ownUnder.search === 'underline' && ownUnder.others.every((e) => e === 'outline'),
+    `#2888 search-field takes its own style under outline fields: Search field style Underline draws the search field underline and leaves the other four outline (search ${ownUnder.search}; ${OTHERS.map((id, i) => `${id} ${ownUnder.others[i]}`).join(', ')})`);
+  const ownOutline = { search: edgeOf('search-field', at({ fieldStyle: 'underline', searchFieldStyle: 'outline' })), others: OTHERS.map((id) => edgeOf(id, at({ fieldStyle: 'underline', searchFieldStyle: 'outline' }))) };
+  ok(ownOutline.search === 'outline' && ownOutline.others.every((e) => e === 'underline'),
+    `#2888 search-field takes its own style under underline fields: Search field style Outline keeps the search field a box while the other four are underline (search ${ownOutline.search}; ${OTHERS.map((id, i) => `${id} ${ownOutline.others[i]}`).join(', ')})`);
+  // FOLLOW (the default) is byte-identical to setting the search field the brand's own Field style explicitly, under
+  // both Field styles, with the lever unset and with it set to Follow.
+  const plans = (input: BrandInput) => JSON.stringify(figmaAnatomySet(materializeForBrand(def('search-field'), input), { swapTarget: SWAP }));
+  const followBad = (['outline', 'underline'] as const).filter((fs) => {
+    const explicit = plans(at({ fieldStyle: fs, searchFieldStyle: fs }));
+    return plans(at({ fieldStyle: fs })) !== explicit || plans(at({ fieldStyle: fs, searchFieldStyle: 'follow' })) !== explicit;
+  });
+  ok(followBad.length === 0 && edgeOf('search-field', at({ fieldStyle: 'underline' })) === 'underline',
+    `#2888 Follow keeps search identical to fieldStyle: unset and Follow field style build the search field byte-identical to its brand's own Field style, outline and underline (differs under: ${followBad.join(', ') || 'none'})`);
+}
+
+// =============================================================================================
+// #2887 — THE UNDERLINE TAG, built through `materializeForBrand` and read back from the host shim
+// =============================================================================================
+// A brand on "Tag style: Underline" builds the Tag set with its four stroke sides bound apart (top, end and start to
+// `border-width/none`; the bottom to `border-width/hairline` at an unselected rest, focus-visible or disabled member and
+// `border-width/thick` on hover, pressed and every selected member), a bound `minHeight` in place of the height, the
+// frame aligned to the end, and the content row on its block-end inset. Read back off the host's own nodes. Expected
+// names typed from the decisions (Q513, Q540). The first host-side read-back of `minHeight` plus end alignment on Tag.
+{
+  const input = { ...parseDesignMd(readFileSync(new URL('../../packages/engine/examples/nb-redesign.design.md', import.meta.url), 'utf8')).input, tagStyle: 'underline' } as BrandInput;
+  const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, input), { swapTarget: SWAP });
+  const all = componentDefs.flatMap((d) => { try { return project(d); } catch { return []; } });
+  const f = fullFor(all);
+  const id = (v: unknown): string | null => (v as { id?: string } | undefined)?.id?.replace(/^V:/, '') ?? null;
+  const RUNG: Record<string, string> = { small: 'sm', medium: 'md', large: 'lg' };
+  const INSET: Record<string, string> = { small: 'space/050', medium: 'space/075', large: 'space/100' };
+  const def = componentDefs.find((d) => d.id === 'tag')!;
+  const page: Page = { children: [] };
+  const shim = makeShim({ vars: f.vars, styles: f.styles, effects: f.effects, comps: [], liveRoot: true, page });
+  const build = (d: ComponentDef) => applyComponentPlan(project(d), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents });
+  await prebuildDependencies(def, { defs: componentDefs, project, host: shim as any, build });
+  const run = await build(def);
+  const misses = run.misses.filter((m) => /stroke|minHeight|padding/i.test(m));
+  const set = page.children.find((c) => c.type === 'COMPONENT_SET' && c.name === project(def)[0].component) as Node | undefined;
+  const wrong: string[] = [];
+  let read = 0;
+  for (const m of (set?.children ?? []) as Node[]) {
+    const name = String(m.name);
+    const size = /size=(\w+)/.exec(name)?.[1] ?? '';
+    const thick = /selection=selected/.test(name) || /state=(hover|pressed)/.test(name);
+    const bv = (m.boundVariables ?? {}) as Record<string, unknown>;
+    const content = ((m.children as Node[]) ?? []).find((n) => n.name === 'content');
+    read++;
+    const got = [id(bv.strokeTopWeight), id(bv.strokeRightWeight), id(bv.strokeBottomWeight), id(bv.strokeLeftWeight), id(bv.minHeight), id(bv.height), m.counterAxisAlignItems,
+      id(((content?.boundVariables ?? {}) as Record<string, unknown>).paddingBottom)];
+    const want = ['border-width/none', 'border-width/none', thick ? 'border-width/thick' : 'border-width/hairline', 'border-width/none', `size/${RUNG[size]}/height`, null, 'MAX', INSET[size]];
+    if (JSON.stringify(got) !== JSON.stringify(want)) wrong.push(`${name}: ${got.join(' / ')}`);
+  }
+  ok(read === 45 && wrong.length === 0,
+    `#2887 underline tag reads back: per-side weights none / none / hairline (thick on hover, pressed and selected) / none, minHeight at the height rung and no bound height, the frame at the end and the content on its inset, on all ${read} of 45 members (${wrong.slice(0, 2).join('; ') || 'ok'})`);
+  ok(misses.length === 0, `#2887 underline tag: no stroke, minHeight or padding binding is reported discarded (${misses.slice(0, 3).join('; ') || 'none'})`);
 }
 
 // =============================================================================================
@@ -5335,6 +5436,55 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   }
   ok(members.length === 3 && wrong.length === 0,
     `segmented control equal widths (Q269.6): at every size the items slot grows along the track and its three options grow along it (layoutGrow 1 on the host) and measure the same width, their shares filling the track (${members.length} members${wrong.length ? ` — WRONG: ${wrong.join(' | ')}` : ''})`);
+}
+
+// ── #2872: LINK'S CURRENT-PAGE BAR, PINNED ACROSS THE FOOT (owner decisions Q507) ──────────────────────────────────
+// Driven through the REAL executor with the shim's `layoutModel`. On every current member the `bar` is a frame lifted
+// out of the flow (ABSOLUTE), constrained STRETCH/MAX, as wide as the link box, flush with its bottom, at the 2px of its
+// bound height, which the resize must not unbind. And it moves no box: each current member measures what its
+// unselected twin measures. The 2 is pinned here as the shim's variable value (`varPx`), never read off the def.
+// Mutations, each failing the arm named: the foot pass dropped from the executor (the bar stays in the flow) →
+// `link bar foot` and `link bar footprint`; the bar placed before the ring's lift → `link bar foot` (a focus-visible
+// bar runs past the link). NOT caught here: the shim keeps a bound height across `resize`, so dropping the executor's
+// re-bind after it passes; whether the host unbinds there is unverified (#2872's gaps).
+{
+  const BAR = 2;
+  const defs = componentDefs;
+  const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP });
+  const all = defs.flatMap((d) => { try { return project(d); } catch { return []; } });
+  const f = fullFor(all);
+  const page: Page = { children: [] };
+  // The label's line box per body style (24px, the medium body line), so the link box is as tall as its line and
+  // the bar's foot is measured against a real height. Every style the set binds gets one.
+  const lineBoxes = Object.fromEntries(f.styles.filter((n) => n.startsWith('body/')).map((n) => [n, 24]));
+  const shim = makeShim({ vars: f.vars, styles: f.styles, effects: f.effects, comps: [], liveRoot: true, page, layoutModel: true, textLineBox: lineBoxes, varPx: { 'border-width/thick': BAR } });
+  const link = defs.find((d) => d.id === 'link')!;
+  const build = (d: ComponentDef) => applyComponentPlan(project(d), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents });
+  await prebuildDependencies(link, { defs, project, host: shim as any, build });
+  const r = await build(link);
+  const set = page.children.find((c) => c.name === 'link' && c.type === 'COMPONENT_SET') as Node | undefined;
+  const members = ((set?.children as Node[] | undefined) ?? []);
+  const kid = (n: Node, name: string): Node | undefined => ((n.children as Node[] | undefined) ?? []).find((c) => c.name === name);
+  ok(members.length === 144 && r.misses.length === 0, `link bar build: the set builds 144 members with 0 misses (${members.length}; ${r.misses[0] ?? 'none'})`);
+  const off: string[] = [];
+  const moved: string[] = [];
+  let current = 0;
+  for (const m of members) {
+    const bar = kid(m, 'bar');
+    if (!String(m.name).includes('selection=selected')) { if (bar) off.push(`${String(m.name)}: a bar on a member that is not current`); continue; }
+    current++;
+    const c = bar?.constraints as { horizontal?: string; vertical?: string } | null | undefined;
+    const bv = (bar?.boundVariables ?? {}) as Record<string, unknown>;
+    if (!bar || bar.layoutPositioning !== 'ABSOLUTE' || c?.horizontal !== 'STRETCH' || c?.vertical !== 'MAX' || !bv.height
+      || bar.height !== BAR || Math.abs((bar.width as number) - (m.width as number)) > 1e-6 || bar.x !== 0 || Math.abs((bar.y as number) - ((m.height as number) - BAR)) > 1e-6)
+      off.push(`${String(m.name)}: ${bar ? `${String(bar.layoutPositioning)} ${JSON.stringify(c)} ${bar.width}x${bar.height} at (${bar.x}, ${bar.y}) height ${bv.height ? 'bound' : 'UNBOUND'}; box ${m.width}x${m.height}` : 'no bar'}`);
+    const twin = members.find((x) => String(x.name) === String(m.name).replace('selection=selected', 'selection=unselected'));
+    if (!twin || twin.width !== m.width || twin.height !== m.height) moved.push(`${String(m.name)}: ${m.width}x${m.height} vs ${twin ? `${twin.width}x${twin.height}` : 'no twin'}`);
+  }
+  ok(current === 48 && off.length === 0,
+    `link bar foot: on all 48 current members the bar is ABSOLUTE, STRETCH/MAX, as wide as the link, flush with its bottom and ${BAR}px high with the height still bound, and no other member has one (${current} current, ${off.length} off — ${off[0] ?? 'none'})`);
+  ok(current === 48 && moved.length === 0,
+    `link bar footprint: every current member measures what its unselected twin measures, so the bar moves no box (${moved.length} moved — ${moved[0] ?? 'none'})`);
 }
 
 if (failed) process.exit(1);

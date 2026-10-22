@@ -183,7 +183,7 @@ export const spinner: ComponentDef = {
     // `progress` (#2670): a bar or a ring for a named task, determinate or not (its indeterminate ring since Q545 B).
     alternativeTo: ['progress'],
     // `toast` — brief §12: a background wait that ends in a success or failure toast closes the loop.
-    planned: ['skeleton', 'toast'],
+    planned: ['skeleton'],
     replacesPatterns: ['an animated loading GIF', 'a static loading glyph in the icon set'],
   },
 
