@@ -103,6 +103,11 @@ export type ReadPorts = {
    *  Figma stores as the component's id. `null` when no component carries the id. Optional, like `componentName`:
    *  only a swap override reads it, and a reader without it reports that override as unreadable rather than passing. */
   componentById?: (id: string) => string | null;
+  /** A set the same update renames in place (#2759): its name as the file holds it now → the def id it is renamed to.
+   *  `null` for a set the run does not rename. Supplied by the update's dry run from the sets it found under an earlier
+   *  id, so an instance of a member that is renamed, not swapped, reads as the planned set's. Optional: absent, a set
+   *  under its old name reads as the wrong set. */
+  renamedSet?: (name: string) => string | null;
 };
 
 export type Divergence = {
@@ -649,13 +654,16 @@ export const FIELDS: Record<string, FieldCheck> = {
   nestTarget: {
     // True for both owners the check accepts: the plain component of that name, or a member of the set.
     show: (p) => `an instance of ${String(p)} (the component of that name, or a member of the set of that name)`,
-    check: (p, n, _ports, _root, plan) => {
+    check: (p, n, ports, _root, plan) => {
       if (String(n.type ?? '') !== 'INSTANCE') return `${str(n.type)} — not an instance`;
       const main = n.mainComponent as { name?: unknown; parent?: { name?: unknown; type?: unknown } | null } | null | undefined;
       if (!main || typeof main.name !== 'string') return 'an instance whose main component the host cannot name';
       const inSet = main.parent?.type === 'COMPONENT_SET';
       const owner = inSet ? String(main.parent?.name ?? '') : main.name;
       if (owner === p) return null;
+      // #2759 — the set this update renames into the planned one, in the same run: the instance's main is the member
+      // the rename keeps, so the apply swaps nothing.
+      if (ports.renamedSet?.(owner) === p) return null;
       // #2661 — a FALLBACK-ONLY PREFERENCE (`nestPrefer`): the instance is made from that sibling set when the file has
       // it, so an instance of either set agrees. Which one the file had is the file's fact, not the plan's.
       if (plan?.nestPrefer && owner === plan.nestPrefer) return null;

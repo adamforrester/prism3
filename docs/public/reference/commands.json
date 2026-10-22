@@ -882,9 +882,17 @@
         {
           "text": "npx tsx packages/engine/release-notes.ts --refresh            # a fold PR that merged main: rewrite its notes",
           "source": "packages/engine/release-notes.ts#header"
+        },
+        {
+          "text": "npx tsx packages/engine/release-notes.ts --index              # rewrite index.json and index.md from the release files",
+          "source": "packages/engine/release-notes.ts#header"
         }
       ],
       "flags": [
+        {
+          "flag": "--index",
+          "source": "packages/engine/release-notes.ts#argv"
+        },
         {
           "flag": "--pending",
           "source": "packages/engine/release-notes.ts#argv"

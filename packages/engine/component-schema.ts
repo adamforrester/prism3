@@ -1433,7 +1433,7 @@ export type FigmaProperties = {
    *  leading glyph is a boolean `leading icon` (present?) AND a swap `↳ swap leading icon` (which icon),
    *  the #1380 canon. The one-property-per-node rule below is keyed on the FIELD for exactly this reason.
    *
-   *  ONE PROPERTY, SEVERAL PARTS (switch-control's `State icon`). `part` may be a LIST when one toggle
+   *  ONE PROPERTY, SEVERAL PARTS (switch-control's `state icon`). `part` may be a LIST when one toggle
    *  governs two nodes that never coexist — the switch thumb's check (at `selection=on`) and X (at
    *  `selection=off`) are one affordance a designer turns on or off once, not two. Each listed part
    *  carries `visibleProp` on its own node; the set declares the property once (`planSetProperties`
@@ -1777,13 +1777,11 @@ export type ComponentDef = {
    *  decision is filed (#846); this field stays prose and the closed key list is what makes it gateable
    *  in the meantime.
    *
-   *  AND THE FIELD HAS NO READER — measured, and the reason #846 is a decision rather than a cleanup.
-   *  `def.content` appears in exactly two places in this repo: this declaration and a quoted block in
-   *  `docs/39`. No emitter, no projection, no `.ai.json` field, no skill, no gate. Six defs author
-   *  `labelPattern` prose that is gated for voice and US English and delivered to nobody. So closing the
-   *  keys is worth doing on its own terms — an author's typo now fails instead of vanishing twice over —
-   *  but it does not make the field arrive anywhere, and reading this list as though it does is the
-   *  mistake to avoid.
+   *  ITS READERS (#846 finding 1, which corrected this comment). Since #1701 `emit-component-docs.ts`
+   *  projects the field into `out/components/components.ai.json` and, through the doc section model
+   *  (`component-doc-sections.ts`, #846), into the Content guidelines section of `out/components/<id>.md`;
+   *  the Figma panel and the docs-site page will read the same section. Closing the keys still matters on
+   *  its own terms: a misspelled key fails instead of vanishing.
    *
    *  THE INDEX SIGNATURE IS GONE (#821). `[k: string]: string | undefined` made every misspelled key
    *  valid — `lablePattern` typechecked, projected nothing, and no gate could see it, because a field
@@ -1915,6 +1913,12 @@ export type ComponentDef = {
 /** The ceiling on `ComponentDef.summary`. The plugin register is about 90 characters; 100 leaves room
  *  for a precise sentence without admitting a second one. */
 export const SUMMARY_MAX = 100;
+/** An items-slot host with a `size` carries one more sentence in its summary (#2829, owner decision Q438 A): how the
+ *  host's size reaches its items. The cap grows by that sentence, so the host's own line keeps the room every
+ *  other summary has. `lint-component-docs.ts` holds the sentence itself, as its own literal. */
+export const ITEMS_SIZE_NOTE_LENGTH = " Size applies to the items you haven't edited. After editing an item, select the items and set their size.".length;
+export const summaryMaxOf = (def: Pick<ComponentDef, 'props'>): number =>
+  def.props?.some((p) => p.name === 'items' && p.type === 'slot') && def.props.some((p) => p.name === 'size') ? SUMMARY_MAX + ITEMS_SIZE_NOTE_LENGTH : SUMMARY_MAX;
 
 export const statesOf = (def: ComponentDef): readonly string[] => def.states ?? [];
 /** The states a part's `when` names, one or a list (#2318): empty when it names none. */
@@ -1971,7 +1975,7 @@ export const validateComponentDef = (
   req(!!def.description, 'description is required');
   req(typeof def.summary === 'string' && def.summary.length > 0, 'summary is required — the one-line Figma description');
   if (typeof def.summary === 'string' && def.summary.length > 0) {
-    if (def.summary.length > SUMMARY_MAX) errors.push(`summary is ${def.summary.length} characters — at most ${SUMMARY_MAX} (the plugin register is one line of about 90)`);
+    if (def.summary.length > summaryMaxOf(def)) errors.push(`summary is ${def.summary.length} characters — at most ${summaryMaxOf(def)} (the plugin register is one line of about 90)`);
     if (/\n/.test(def.summary)) errors.push('summary must be one line');
     if (!/\.$/.test(def.summary)) errors.push('summary must end with a period');
   }
@@ -2193,7 +2197,7 @@ export const textFigmaName = (prop: string, t: { figmaName?: string }): string =
 
 type BooleanEntry = string | { part: string | readonly string[]; default?: boolean; figmaName?: string; figmaOnly?: boolean; together?: true };
 /** The parts whose `visible` a `booleans` entry drives — bare string, `{ part }`, or `{ part: [...] }`
- *  (#1331; the list form is switch-control's `State icon`, one toggle over two glyphs). Always a list. */
+ *  (#1331; the list form is switch-control's `state icon`, one toggle over two glyphs). Always a list. */
 export const booleanPartsOf = (v: BooleanEntry): readonly string[] =>
   typeof v === 'string' ? [v] : typeof v.part === 'string' ? [v.part] : v.part;
 /** A `booleans` entry's Figma panel name — its `figmaName` decoupling (#1380) or, absent one, the prop KEY. */
@@ -2510,8 +2514,8 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
   // node at all, and at those members the boolean toggles it. A member no targeted part reaches has nothing
   // to toggle, which Figma allows — a component property is declared once on the set, and a variant with no
   // node bound to it ignores it. Two users, one rule (reconciled in the #1743 merge of #1765):
-  //   · Tag's `Check icon` — ONE part, present only at `type=select × selection=selected`, switchable there;
-  //   · switch-control's `State icon` — TWO parts, the check at `selection=on` and the X at `selection=off`.
+  //   · Tag's `check icon` — ONE part, present only at `type=select × selection=selected`, switchable there;
+  //   · switch-control's `state icon` — TWO parts, the check at `selection=on` and the X at `selection=off`.
   // Full coverage of an axis is NOT required: Tag's unselected members carry no check and nothing is wrong.
   //
   // THREE REFUSALS, each a way the composition goes wrong without a sound:
@@ -3402,25 +3406,28 @@ export type State = (typeof STATES)[number];
 /*
  * ── `placement`: THE TWENTY-SIXTH NAME, FOR THE DIALOG (owner decisions Q303.1 and Q303.12, 2026-10-14, #2609) ──
  *
- * `placement` (`center | bottom | full`) is WHERE a layer sits over the page it covers: centered in the viewport, attached
- * to its bottom edge, or filling it. The owner named the axis and its values (one Dialog with a placement axis, no side).
+ * `placement` (`center | bottom | full | end`) is WHERE a layer sits over the page it covers: centered in the viewport,
+ * attached to its bottom edge, filling it, or attached to the edge where the writing direction ends. The owner named the
+ * axis and its first three values (one Dialog with a placement axis, Q303.1), and added `end` as a side sheet (Q483 A,
+ * named by Q488 A, #2877): a value of this axis, not a new component, and `end` rather than `right` so it mirrors in
+ * right-to-left text and leaves room for a `start` with no rename.
  * It clears this list's bar as a distinct kind of distinction with the nearest defeated: `alignment` is where a row of
  * items sits along the bar that holds it, inside the layout; `direction` is where a veil's wash sits across an image, a
  * distribution of paint; `orientation` is which way a rule runs; `width` is how much of its container a control takes.
  * None says which edge of the viewport a layer attaches to, and with it which corners round and how big the panel is.
  * Naming it `alignment` would put a layer's attachment and a row's alignment under one name, the #756 failure. An
  * AUTHORING axis: a product picks the placement where it opens the dialog, per breakpoint in code, and nothing switches
- * it on screen. `lint-axis-values.ts` carries the three values as a `sole` set.
+ * it on screen. `lint-axis-values.ts` carries the four values as a `sole` set.
  *
  * ── `footer`: THE TWENTY-SEVENTH NAME, FOR THE DIALOG'S ACTIONS (owner decision Q303.6 A, #2609) ──
  *
- * `footer` (`inline | stacked | none`) is HOW a panel lays out its closing actions: a row at the end edge, a column of
- * full-width buttons, or no action row at all. The proposal named the axis and the owner chose its three values. It
+ * `footer` (`inline | stacked | fill | none`) is HOW a panel lays out its closing actions: a row at the end edge, a column of
+ * full-width buttons, a row whose buttons share the width (`fill`, Q492 B, #2880), or no action row at all. The proposal named the axis and the owner chose its values. It
  * clears the bar with the nearest defeated: `orientation` is which way a rule runs, a line and not a group of controls;
  * `alignment` places a row along its bar and never stacks it; `width` is a control's own extent. None says whether a
  * part exists and how its children run, which is why the name is the part's own: the axis is the footer's layout, and
  * `none` removes it. Naming it `orientation` would claim a missing footer is a direction. An AUTHORING axis.
- * `lint-axis-values.ts` carries the three values as a `sole` set.
+ * `lint-axis-values.ts` carries the four values as a `sole` set.
  *
  * ── `layout`: THE TWENTY-EIGHTH NAME, FOR THE BUTTON GROUP (owner decisions Q363.9 B and Q363 "all A", #2661) ──
  *

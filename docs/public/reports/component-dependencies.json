@@ -255,15 +255,30 @@
     },
     {
       "from": "checkbox-group",
+      "to": "field-message",
+      "part": "message",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "status": "error"
+      },
+      "follow": [
+        "status"
+      ]
+    },
+    {
+      "from": "checkbox-group",
       "to": "checkbox-row",
       "part": "row1",
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
-        "size": "medium"
+        "size": "medium",
+        "status": "default"
       },
       "follow": [
-        "size"
+        "size",
+        "status"
       ]
     },
     {
@@ -273,10 +288,12 @@
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
-        "size": "medium"
+        "size": "medium",
+        "status": "default"
       },
       "follow": [
-        "size"
+        "size",
+        "status"
       ]
     },
     {
@@ -286,10 +303,12 @@
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
-        "size": "medium"
+        "size": "medium",
+        "status": "default"
       },
       "follow": [
-        "size"
+        "size",
+        "status"
       ]
     },
     {
@@ -300,10 +319,12 @@
       "relation": "nest-exposed",
       "variant": {
         "selection": "unchecked",
-        "state": "rest"
+        "state": "rest",
+        "status": "default"
       },
       "follow": [
-        "size"
+        "size",
+        "status"
       ],
       "expose": [
         "selection",
@@ -508,6 +529,16 @@
       "relation": "nest-fixed",
       "variant": {
         "status": "default"
+      }
+    },
+    {
+      "from": "dialog",
+      "to": "button-group",
+      "part": "actionsFill",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "layout": "fill"
       }
     },
     {
@@ -806,15 +837,30 @@
     },
     {
       "from": "radio-group",
+      "to": "field-message",
+      "part": "message",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "status": "error"
+      },
+      "follow": [
+        "status"
+      ]
+    },
+    {
+      "from": "radio-group",
       "to": "radio-row",
       "part": "row1",
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
-        "size": "medium"
+        "size": "medium",
+        "status": "default"
       },
       "follow": [
-        "size"
+        "size",
+        "status"
       ]
     },
     {
@@ -824,10 +870,12 @@
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
-        "size": "medium"
+        "size": "medium",
+        "status": "default"
       },
       "follow": [
-        "size"
+        "size",
+        "status"
       ]
     },
     {
@@ -837,10 +885,12 @@
       "partKind": "nest",
       "relation": "nest-fixed",
       "variant": {
-        "size": "medium"
+        "size": "medium",
+        "status": "default"
       },
       "follow": [
-        "size"
+        "size",
+        "status"
       ]
     },
     {
@@ -851,10 +901,12 @@
       "relation": "nest-exposed",
       "variant": {
         "selection": "unchecked",
-        "state": "rest"
+        "state": "rest",
+        "status": "default"
       },
       "follow": [
-        "size"
+        "size",
+        "status"
       ],
       "expose": [
         "selection",
@@ -997,10 +1049,12 @@
       "relation": "nest-exposed",
       "variant": {
         "selection": "off",
-        "state": "rest"
+        "state": "rest",
+        "status": "default"
       },
       "follow": [
-        "size"
+        "size",
+        "status"
       ],
       "expose": [
         "selection",
@@ -1009,7 +1063,7 @@
       ]
     },
     {
-      "from": "tab",
+      "from": "tab-item",
       "to": "badge",
       "part": "count",
       "partKind": "nest",
@@ -1021,7 +1075,7 @@
       }
     },
     {
-      "from": "tab",
+      "from": "tab-item",
       "to": "focus-ring",
       "part": "focusRing",
       "partKind": "absolute",
@@ -1032,7 +1086,7 @@
     },
     {
       "from": "tabs",
-      "to": "tab",
+      "to": "tab-item",
       "part": "tab1",
       "partKind": "nest",
       "relation": "nest-fixed",
@@ -1047,7 +1101,7 @@
     },
     {
       "from": "tabs",
-      "to": "tab",
+      "to": "tab-item",
       "part": "tab2",
       "partKind": "nest",
       "relation": "nest-fixed",
@@ -1062,7 +1116,7 @@
     },
     {
       "from": "tabs",
-      "to": "tab",
+      "to": "tab-item",
       "part": "tab3",
       "partKind": "nest",
       "relation": "nest-fixed",
@@ -1203,10 +1257,10 @@
       "nests": [],
       "nestsTransitively": [],
       "nestedBy": [
-        "tab"
+        "tab-item"
       ],
       "affectedByChange": [
-        "tab",
+        "tab-item",
         "tabs"
       ],
       "inheritedBy": []
@@ -1299,12 +1353,14 @@
     "checkbox-group": {
       "nests": [
         "checkbox-row",
-        "field-label"
+        "field-label",
+        "field-message"
       ],
       "nestsTransitively": [
         "checkbox-control",
         "checkbox-row",
         "field-label",
+        "field-message",
         "focus-ring"
       ],
       "nestedBy": [],
@@ -1441,17 +1497,21 @@
       "nests": [],
       "nestsTransitively": [],
       "nestedBy": [
+        "checkbox-group",
         "code-input",
         "counter",
         "password-field",
+        "radio-group",
         "select",
         "text-field",
         "textarea"
       ],
       "affectedByChange": [
+        "checkbox-group",
         "code-input",
         "counter",
         "password-field",
+        "radio-group",
         "select",
         "text-field",
         "textarea"
@@ -1523,7 +1583,7 @@
         "segmented-control-segment",
         "select",
         "switch-control",
-        "tab",
+        "tab-item",
         "tag",
         "text-field",
         "textarea"
@@ -1557,7 +1617,7 @@
         "select",
         "switch-control",
         "switch-row",
-        "tab",
+        "tab-item",
         "tabs",
         "tag",
         "text-field",
@@ -1697,10 +1757,12 @@
     "radio-group": {
       "nests": [
         "field-label",
+        "field-message",
         "radio-row"
       ],
       "nestsTransitively": [
         "field-label",
+        "field-message",
         "focus-ring",
         "radio-control",
         "radio-row"
@@ -1822,7 +1884,7 @@
       "inherits": "checkbox-row",
       "inheritedBy": []
     },
-    "tab": {
+    "tab-item": {
       "nests": [
         "badge",
         "focus-ring"
@@ -1841,12 +1903,12 @@
     },
     "tabs": {
       "nests": [
-        "tab"
+        "tab-item"
       ],
       "nestsTransitively": [
         "badge",
         "focus-ring",
-        "tab"
+        "tab-item"
       ],
       "nestedBy": [],
       "affectedByChange": [],
@@ -1945,7 +2007,7 @@
     "spinner": 0,
     "switch-control": 1,
     "switch-row": 2,
-    "tab": 1,
+    "tab-item": 1,
     "tabs": 2,
     "tag": 1,
     "text-field": 1,

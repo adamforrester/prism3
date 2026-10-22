@@ -36,7 +36,8 @@
  * (`withFurnitureItems(applyVerdict(r), …)`) → `templates/update verdict`. The warning (Q284.3 A) dropped from the
  * build's post (`main.ts`, `withTemplateWarning({ type: 'component-result', … })`) → `templates/build warns`; from the
  * Update's → `templates/update warns`; a warning with every template present → `templates/build clean`,
- * `templates/update clean`.
+ * `templates/update clean`. `updateTargets` (`main.ts`) giving no target its `doc` → `panel/update due`; the per-def
+ * `furnish` hook without `panelFor` → `panel/update drawn`.
  */
 import { makeShim } from './component-shim';
 import type { Node } from './component-shim';
@@ -93,10 +94,12 @@ Object.assign(root, {
   getPluginData: () => '',
   setPluginData: () => undefined,
 });
-// A search for sets finds the ones on the pages, as Figma's does: the Update reads its targets this way.
+// A search for sets finds the ones on the pages, as Figma's does: the Update reads its targets this way. So does a
+// search for the usage panels (#846): top-level frames on the pages carrying the shared plugin data asked for.
 const shimFind = (root.findAllWithCriteria as (c?: { types?: string[] }) => unknown[]).bind(root);
-root.findAllWithCriteria = (c?: { types?: string[] }) => [...shimFind(c),
-  ...(c?.types?.includes('COMPONENT_SET') ? pages.flatMap((p) => p.children).filter((n) => n.type === 'COMPONENT_SET') : [])];
+root.findAllWithCriteria = (c?: { types?: string[]; sharedPluginData?: { namespace: string; keys: string[] } }) => [...shimFind(c),
+  ...(c?.types?.includes('COMPONENT_SET') ? pages.flatMap((p) => p.children).filter((n) => n.type === 'COMPONENT_SET') : []),
+  ...(c?.types?.includes('FRAME') && c.sharedPluginData ? pages.flatMap((p) => p.children).filter((n) => n.type === 'FRAME' && c.sharedPluginData!.keys.some((k) => (n as any).getSharedPluginData?.(c.sharedPluginData!.namespace, k))) : [])];
 const empty = async () => [];
 Object.assign(shim, {
   showUI: () => undefined,
@@ -152,7 +155,8 @@ ok(first?.completed === true, `C1: a build that made its set posts completed: tr
 // 1b. #2598: a file with no `_Label` is told so, in the verdict the build posts and in the Update's summary. The
 //     expected line is typed here, from the issue; the actual is what `main.ts` posted. This host has no `_Label`
 //     (nothing in it makes one), so the furniture `furnishSet` draws beside Badge finds no template.
-const NO_LABEL = 'No canvas labels drawn: this file has no _Label component. Run Set up file, then build again';
+// #846: the file has no `_Doc-block` either, so the one line names the usage panels with the labels.
+const NO_LABEL = 'No canvas labels or usage panels drawn: this file has no _Label or _Doc-block component. Run Set up file, then build again';
 ok(!!first && (first.lines as string[]).includes(NO_LABEL) && String(first.summary).includes(NO_LABEL),
   `templates/build verdict: the build's component-result carries the missing-template line (${JSON.stringify(first?.lines)})`);
 // The Update, through the same action table the panel and the agent link reach: a check for its hash, then the apply.
@@ -172,7 +176,7 @@ const hash = (check.data.find((d) => (d.update as { mode?: string })?.mode === '
 ok(typeof hash === 'string', `fixture: the Update's check finds Badge and returns its hash (${hash})`);
 const applied = (await runAction((sink) => ACTIONS.updateComponents('badge', hash ?? null, undefined, sink as never))).posts
   .find((m) => m?.type === 'component-update-result');
-const NO_LABEL_UPDATE = 'No canvas labels drawn: this file has no _Label component. Run Set up file, then update again';
+const NO_LABEL_UPDATE = 'No canvas labels or usage panels drawn: this file has no _Label or _Doc-block component. Run Set up file, then update again';
 ok(!!applied && String(applied.summary).includes(NO_LABEL_UPDATE) && (applied.lines as string[]).some((l) => l.startsWith(NO_LABEL_UPDATE)),
   `templates/update verdict: the Update's component-update-result summary carries the missing-template line (${JSON.stringify(applied?.summary)})`);
 
@@ -190,16 +194,36 @@ componentsPage.name = '↳ File Components';
 const templatesApi = { ...shim, createComponent: () => shim.createComponentFromNode(shim.createFrame()) };
 const made = await ensureFurnitureTemplates(templatesApi as never, componentsPage as never);
 ok(made.built.includes('_Label'), `fixture: Set up file's template builder makes _Label in this host (${JSON.stringify(made)})`);
+// And a `_Doc-block` (#846), one Heading variant: this host has no Tag, List.Item or Divider for Set up file to build the
+// whole set from, and what these arms read is only whether a missing template makes the run a warning.
+const block = shim.createComponentFromNode(shim.createFrame());
+block.name = 'Type=Heading, Size=sm';
+componentsPage.appendChild(block);
+shim.combineAsVariants([block], componentsPage).name = '_Doc-block';
 const withTemplates = await build('badge');
 ok(!!withTemplates && withTemplates.ok === true && String(withTemplates.headline).startsWith('✓')
-  && !(withTemplates.lines as string[]).some((l) => l.startsWith('No canvas labels drawn')),
+  && !(withTemplates.lines as string[]).some((l) => l.startsWith('No canvas labels') || l.startsWith('No usage panels')),
   `templates/build clean: with the templates in the file, the same build stays ✓ (ok ${withTemplates?.ok}, "${withTemplates?.headline}", ${JSON.stringify(withTemplates?.lines)})`);
+// #846: the build drew the usage panel beside the set, through `main.ts`'s own wiring.
+const livePanels = (badgePage?.children ?? []).filter((c) => { try { return JSON.parse(String((c as any).getSharedPluginData?.('prism3', 'docPanel') || 'null'))?.state === 'live'; } catch { return false; } });
+ok(livePanels.length === 1 && (livePanels[0] as any).x >= Number(set?.x ?? 0) + Number(set?.width ?? 0),
+  `panel/build: the build drew one usage panel right of the Badge set (${livePanels.length})`);
 const check2 = await runAction((sink) => ACTIONS.updateComponents('badge', null, undefined, sink as never));
 const hash2 = (check2.data.find((d) => (d.update as { mode?: string })?.mode === 'preview')?.update as { previewHash?: string })?.previewHash;
 const applied2 = (await runAction((sink) => ACTIONS.updateComponents('badge', hash2 ?? null, undefined, sink as never))).posts
   .find((m) => m?.type === 'component-update-result');
-ok(!!applied2 && applied2.ok === true && String(applied2.headline).startsWith('✓') && !String(applied2.summary).includes('No canvas labels drawn'),
+ok(!!applied2 && applied2.ok === true && String(applied2.headline).startsWith('✓') && !String(applied2.summary).includes('No canvas labels') && !String(applied2.summary).includes('No usage panels'),
   `templates/update clean: with the templates in the file, the same Update stays ✓ (ok ${applied2?.ok}, "${applied2?.headline}", ${JSON.stringify(applied2?.summary)})`);
+// #846: the real Update's dry run reads the panel (`updateTargets` gives each target its def) and its apply redraws it
+// (the per-def `furnish` hook passes `panelFor`). The panel is nudged off its spot, so it is the set's only work.
+const livePanel = () => (badgePage?.children ?? []).filter((c) => { try { return JSON.parse(String((c as any).getSharedPluginData?.('prism3', 'docPanel') || 'null'))?.state === 'live'; } catch { return false; } });
+const spotX = Number(set?.x ?? 0) + Number(set?.width ?? 0) + 40;
+(livePanel()[0] as any).x = spotX + 50;
+const check3 = await runAction((sink) => ACTIONS.updateComponents('badge', null, undefined, sink as never));
+const pre3 = check3.data.find((d) => (d.update as { mode?: string })?.mode === 'preview')?.update as { previewHash?: string; sets?: { furniture?: { panels?: number } }[] } | undefined;
+ok(pre3?.sets?.[0]?.furniture?.panels === 1, `panel/update due: the Update's dry run lists the moved usage panel as 1 to draw (${JSON.stringify(pre3?.sets?.[0]?.furniture)})`);
+await runAction((sink) => ACTIONS.updateComponents('badge', pre3?.previewHash ?? null, undefined, sink as never));
+ok(livePanel().length === 1 && Number((livePanel()[0] as any).x) === spotX, `panel/update drawn: the Update redraws it on its spot, ${spotX} (${livePanel().map((c) => (c as any).x).join(', ')})`);
 
 // 2. The same set, its members renamed onto a smaller axis list: refused, nothing built.
 const members = (set?.children ?? []) as Node[];

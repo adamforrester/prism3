@@ -88,11 +88,15 @@ const project = (): Baseline => {
       if (key === null) die([`${def.id}: a planned member name is not a coordinate — ${JSON.stringify(planComponentName(p))}`]);
       for (const [a, v] of coordPairs(key!)) (axes[a] ??= new Set()).add(v);
     }
+    // The set's component properties by panel name (#2759): a name that leaves without a ledger entry is a property
+    // an update would delete and re-add, losing every instance's value. `planSetProperties` is the writer's own list.
+    const props = planSetProperties(plans);
     out[def.id] = {
       axes: Object.fromEntries(Object.keys(axes).sort().map((a) => [a, [...axes[a]].sort()])),
       members: plans.length,
-      // The non-variant component properties (#2649), so a removed BOOLEAN, TEXT, swap or slot owes a claim too.
-      properties: Object.fromEntries(planSetProperties(plans).map((p) => [p.name, p.type] as const).sort(([x], [y]) => (x < y ? -1 : x > y ? 1 : 0))),
+      // The non-variant component properties (#2649), so a removed BOOLEAN, TEXT, swap or slot owes a claim too, and a
+      // property renamed in place (#2759) a property-rename entry.
+      properties: Object.fromEntries(props.map((p) => [p.name, p.type] as const).sort(([x], [y]) => (x < y ? -1 : x > y ? 1 : 0))),
     };
   }
   return out;

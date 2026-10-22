@@ -657,16 +657,14 @@
         "hover",
         "pressed",
         "focus-visible",
-        "disabled",
-        "error"
+        "disabled"
       ],
       "projectedStates": [
         "rest",
         "hover",
         "pressed",
         "focus-visible",
-        "disabled",
-        "error"
+        "disabled"
       ],
       "axes": {
         "size": [
@@ -678,6 +676,10 @@
           "unchecked",
           "checked",
           "indeterminate"
+        ],
+        "status": [
+          "default",
+          "error"
         ]
       },
       "props": [
@@ -702,6 +704,14 @@
           "default": false
         },
         {
+          "name": "validation",
+          "default": "default",
+          "values": [
+            "default",
+            "error"
+          ]
+        },
+        {
           "name": "aria-label"
         }
       ],
@@ -723,6 +733,10 @@
           "medium",
           "small",
           "large"
+        ],
+        "status": [
+          "default",
+          "error"
         ]
       },
       "props": [
@@ -758,6 +772,17 @@
           "name": "name"
         },
         {
+          "name": "validation",
+          "default": "default",
+          "values": [
+            "default",
+            "error"
+          ]
+        },
+        {
+          "name": "validationMessage"
+        },
+        {
           "name": "disabled",
           "default": false
         }
@@ -779,8 +804,7 @@
         "pressed",
         "focus-visible",
         "disabled",
-        "read-only",
-        "error"
+        "read-only"
       ],
       "projectedStates": [],
       "axes": {
@@ -788,6 +812,10 @@
           "medium",
           "small",
           "large"
+        ],
+        "status": [
+          "default",
+          "error"
         ]
       },
       "props": [
@@ -821,6 +849,14 @@
         {
           "name": "readOnly",
           "default": false
+        },
+        {
+          "name": "validation",
+          "default": "default",
+          "values": [
+            "default",
+            "error"
+          ]
         },
         {
           "name": "size",
@@ -1136,7 +1172,8 @@
         "placement": [
           "center",
           "bottom",
-          "full"
+          "full",
+          "end"
         ],
         "size": [
           "medium",
@@ -1146,6 +1183,7 @@
         "footer": [
           "inline",
           "stacked",
+          "fill",
           "none"
         ]
       },
@@ -1183,7 +1221,8 @@
           "values": [
             "center",
             "bottom",
-            "full"
+            "full",
+            "end"
           ]
         },
         {
@@ -1201,6 +1240,7 @@
           "values": [
             "inline",
             "stacked",
+            "fill",
             "none"
           ]
         }
@@ -2510,6 +2550,10 @@
         "selection": [
           "unchecked",
           "checked"
+        ],
+        "status": [
+          "default",
+          "error"
         ]
       },
       "props": [
@@ -2528,6 +2572,14 @@
         {
           "name": "disabled",
           "default": false
+        },
+        {
+          "name": "validation",
+          "default": "default",
+          "values": [
+            "default",
+            "error"
+          ]
         },
         {
           "name": "aria-label"
@@ -2551,6 +2603,10 @@
           "medium",
           "small",
           "large"
+        ],
+        "status": [
+          "default",
+          "error"
         ]
       },
       "props": [
@@ -2586,6 +2642,17 @@
           "name": "name"
         },
         {
+          "name": "validation",
+          "default": "default",
+          "values": [
+            "default",
+            "error"
+          ]
+        },
+        {
+          "name": "validationMessage"
+        },
+        {
           "name": "disabled",
           "default": false
         }
@@ -2615,6 +2682,10 @@
           "medium",
           "small",
           "large"
+        ],
+        "status": [
+          "default",
+          "error"
         ]
       },
       "props": [
@@ -2626,6 +2697,14 @@
         },
         {
           "name": "description"
+        },
+        {
+          "name": "validation",
+          "default": "default",
+          "values": [
+            "default",
+            "error"
+          ]
         },
         {
           "name": "disabled",
@@ -2947,16 +3026,14 @@
         "hover",
         "pressed",
         "focus-visible",
-        "disabled",
-        "error"
+        "disabled"
       ],
       "projectedStates": [
         "rest",
         "hover",
         "pressed",
         "focus-visible",
-        "disabled",
-        "error"
+        "disabled"
       ],
       "axes": {
         "size": [
@@ -2966,6 +3043,10 @@
         "selection": [
           "off",
           "on"
+        ],
+        "status": [
+          "default",
+          "error"
         ]
       },
       "props": [
@@ -2989,6 +3070,14 @@
           "default": false
         },
         {
+          "name": "validation",
+          "default": "default",
+          "values": [
+            "default",
+            "error"
+          ]
+        },
+        {
           "name": "aria-label"
         }
       ],
@@ -3009,14 +3098,17 @@
         "pending",
         "focus-visible",
         "disabled",
-        "read-only",
-        "error"
+        "read-only"
       ],
       "projectedStates": [],
       "axes": {
         "size": [
           "medium",
           "small"
+        ],
+        "status": [
+          "default",
+          "error"
         ]
       },
       "props": [
@@ -3054,6 +3146,14 @@
           "default": true
         },
         {
+          "name": "validation",
+          "default": "default",
+          "values": [
+            "default",
+            "error"
+          ]
+        },
+        {
           "name": "size",
           "default": "medium",
           "values": [
@@ -3069,8 +3169,8 @@
       "sizeDefault": "medium"
     },
     {
-      "id": "tab",
-      "name": "Tab",
+      "id": "tab-item",
+      "name": "Tab.Item",
       "category": "navigation",
       "states": [
         "rest",
@@ -3720,6 +3820,15 @@
       "basis": "components whose name ends in .Group"
     },
     {
+      "kind": "role peers",
+      "name": "*.Item",
+      "members": [
+        "list-item",
+        "tab-item"
+      ],
+      "basis": "components whose name ends in .Item"
+    },
+    {
       "kind": "substrate",
       "name": "button",
       "members": [
@@ -3786,7 +3895,7 @@
       "select",
       "switch-control",
       "switch-row",
-      "tab",
+      "tab-item",
       "tag",
       "text-field",
       "textarea"
@@ -3798,11 +3907,7 @@
       "textarea"
     ],
     "error": [
-      "checkbox-control",
-      "checkbox-row",
-      "code-input-cell",
-      "switch-control",
-      "switch-row"
+      "code-input-cell"
     ],
     "filled": [
       "code-input",
@@ -3836,7 +3941,7 @@
       "select",
       "switch-control",
       "switch-row",
-      "tab",
+      "tab-item",
       "tag",
       "text-field",
       "textarea"
@@ -3871,7 +3976,7 @@
       "select",
       "switch-control",
       "switch-row",
-      "tab",
+      "tab-item",
       "tag",
       "text-field",
       "textarea"
@@ -3916,7 +4021,7 @@
       "segmented-control-segment",
       "switch-control",
       "switch-row",
-      "tab",
+      "tab-item",
       "tag"
     ],
     "read-only": [
@@ -3954,7 +4059,7 @@
       "select",
       "switch-control",
       "switch-row",
-      "tab",
+      "tab-item",
       "tag",
       "text-field",
       "textarea"
@@ -4056,6 +4161,7 @@
     "footer": [
       {
         "values": [
+          "fill",
           "inline",
           "none",
           "stacked"
@@ -4161,6 +4267,7 @@
         "values": [
           "bottom",
           "center",
+          "end",
           "full"
         ],
         "components": [
@@ -4192,7 +4299,7 @@
         ],
         "components": [
           "segmented-control-segment",
-          "tab",
+          "tab-item",
           "tag"
         ]
       },
@@ -4284,7 +4391,7 @@
           "segmented-control",
           "segmented-control-segment",
           "select",
-          "tab",
+          "tab-item",
           "tabs",
           "tag",
           "text-field",
@@ -4329,6 +4436,23 @@
       {
         "values": [
           "default",
+          "error"
+        ],
+        "components": [
+          "checkbox-control",
+          "checkbox-group",
+          "checkbox-row",
+          "code-input",
+          "radio-control",
+          "radio-group",
+          "radio-row",
+          "switch-control",
+          "switch-row"
+        ]
+      },
+      {
+        "values": [
+          "default",
           "error",
           "success",
           "warning"
@@ -4339,15 +4463,6 @@
           "select",
           "text-field",
           "textarea"
-        ]
-      },
-      {
-        "values": [
-          "default",
-          "error"
-        ],
-        "components": [
-          "code-input"
         ]
       }
     ],
@@ -4693,7 +4808,7 @@
     ],
     "count": [
       {
-        "id": "tab"
+        "id": "tab-item"
       }
     ],
     "decorative": [
@@ -4875,7 +4990,7 @@
         "default": false
       },
       {
-        "id": "tab",
+        "id": "tab-item",
         "default": false
       },
       {
@@ -4926,6 +5041,7 @@
         "values": [
           "inline",
           "stacked",
+          "fill",
           "none"
         ]
       }
@@ -5324,7 +5440,7 @@
         "id": "switch-row"
       },
       {
-        "id": "tab"
+        "id": "tab-item"
       },
       {
         "id": "tabs"
@@ -5371,7 +5487,7 @@
         "id": "select"
       },
       {
-        "id": "tab"
+        "id": "tab-item"
       },
       {
         "id": "tag"
@@ -5658,7 +5774,8 @@
         "values": [
           "center",
           "bottom",
-          "full"
+          "full",
+          "end"
         ]
       }
     ],
@@ -5785,7 +5902,7 @@
         "default": false
       },
       {
-        "id": "tab",
+        "id": "tab-item",
         "default": false
       },
       {
@@ -6204,7 +6321,7 @@
         ]
       },
       {
-        "id": "tab",
+        "id": "tab-item",
         "default": "medium",
         "values": [
           "small",
@@ -6552,6 +6669,30 @@
     ],
     "validation": [
       {
+        "id": "checkbox-control",
+        "default": "default",
+        "values": [
+          "default",
+          "error"
+        ]
+      },
+      {
+        "id": "checkbox-group",
+        "default": "default",
+        "values": [
+          "default",
+          "error"
+        ]
+      },
+      {
+        "id": "checkbox-row",
+        "default": "default",
+        "values": [
+          "default",
+          "error"
+        ]
+      },
+      {
         "id": "code-input",
         "default": "default",
         "values": [
@@ -6570,6 +6711,30 @@
         ]
       },
       {
+        "id": "radio-control",
+        "default": "default",
+        "values": [
+          "default",
+          "error"
+        ]
+      },
+      {
+        "id": "radio-group",
+        "default": "default",
+        "values": [
+          "default",
+          "error"
+        ]
+      },
+      {
+        "id": "radio-row",
+        "default": "default",
+        "values": [
+          "default",
+          "error"
+        ]
+      },
+      {
         "id": "select",
         "default": "default",
         "values": [
@@ -6577,6 +6742,22 @@
           "error",
           "warning",
           "success"
+        ]
+      },
+      {
+        "id": "switch-control",
+        "default": "default",
+        "values": [
+          "default",
+          "error"
+        ]
+      },
+      {
+        "id": "switch-row",
+        "default": "default",
+        "values": [
+          "default",
+          "error"
         ]
       },
       {
@@ -6602,10 +6783,16 @@
     ],
     "validationMessage": [
       {
+        "id": "checkbox-group"
+      },
+      {
         "id": "code-input"
       },
       {
         "id": "password-field"
+      },
+      {
+        "id": "radio-group"
       },
       {
         "id": "select"
@@ -6658,7 +6845,7 @@
         "id": "select"
       },
       {
-        "id": "tab"
+        "id": "tab-item"
       },
       {
         "id": "tabs"
@@ -6735,21 +6922,20 @@
     },
     {
       "kind": "state set",
-      "subject": "role peers: *.Control",
+      "subject": "role peers: *.Row",
       "components": [
-        "radio-control"
+        "switch-row"
       ],
-      "detail": "radio-control differs from the group's common set [disabled, error, focus-visible, hover, pressed, rest] — lacks error"
+      "detail": "switch-row differs from the group's common set [disabled, focus-visible, hover, pressed, read-only, rest] — adds pending"
     },
     {
       "kind": "state set",
-      "subject": "role peers: *.Row",
+      "subject": "role peers: *.Item",
       "components": [
-        "checkbox-row",
-        "radio-row",
-        "switch-row"
+        "list-item",
+        "tab-item"
       ],
-      "detail": "no state set is shared by most of the group — checkbox-row [rest, hover, pressed, focus-visible, disabled, read-only, error]; radio-row [rest, hover, pressed, focus-visible, disabled, read-only]; switch-row [rest, hover, pressed, pending, focus-visible, disabled, read-only, error]"
+      "detail": "no state set is shared by most of the group — list-item []; tab-item [rest, hover, pressed, focus-visible, disabled]"
     },
     {
       "kind": "state set",
@@ -6785,7 +6971,7 @@
         "text-field",
         "textarea"
       ],
-      "detail": "no state set is shared by most of the group — checkbox-row [rest, hover, pressed, focus-visible, disabled, read-only, error]; radio-row [rest, hover, pressed, focus-visible, disabled, read-only]; switch-row [rest, hover, pressed, pending, focus-visible, disabled, read-only, error]; text-field [rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled, read-only, empty]; textarea [rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled, read-only, empty]"
+      "detail": "no state set is shared by most of the group — checkbox-row [rest, hover, pressed, focus-visible, disabled, read-only]; radio-row [rest, hover, pressed, focus-visible, disabled, read-only]; switch-row [rest, hover, pressed, pending, focus-visible, disabled, read-only]; text-field [rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled, read-only, empty]; textarea [rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled, read-only, empty]"
     },
     {
       "kind": "state not drawn",
@@ -6925,10 +7111,10 @@
         "radio-control",
         "segmented-control-segment",
         "switch-control",
-        "tab",
+        "tab-item",
         "tag"
       ],
-      "detail": "the selection axis takes 4 value sets — [selected, unselected] in segmented-control-segment, tab, tag; [checked, indeterminate, unchecked] in checkbox-control; [checked, unchecked] in radio-control; [off, on] in switch-control"
+      "detail": "the selection axis takes 4 value sets — [selected, unselected] in segmented-control-segment, tab-item, tag; [checked, indeterminate, unchecked] in checkbox-control; [checked, unchecked] in radio-control; [off, on] in switch-control"
     },
     {
       "kind": "axis values",
@@ -6979,26 +7165,34 @@
         "spinner",
         "switch-control",
         "switch-row",
-        "tab",
+        "tab-item",
         "tabs",
         "tag",
         "text-field",
         "textarea"
       ],
-      "detail": "the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab, tabs, tag, text-field, textarea; [large, medium, small, xlarge] in code-input, code-input-cell; [medium, small] in switch-control, switch-row; [large, medium, small, x-small] in spinner"
+      "detail": "the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab-item, tabs, tag, text-field, textarea; [large, medium, small, xlarge] in code-input, code-input-cell; [medium, small] in switch-control, switch-row; [large, medium, small, x-small] in spinner"
     },
     {
       "kind": "axis values",
       "subject": "axis status",
       "components": [
+        "checkbox-control",
+        "checkbox-group",
+        "checkbox-row",
         "code-input",
         "field-message",
         "password-field",
+        "radio-control",
+        "radio-group",
+        "radio-row",
         "select",
+        "switch-control",
+        "switch-row",
         "text-field",
         "textarea"
       ],
-      "detail": "the status axis takes 2 value sets — [default, error, success, warning] in field-message, password-field, select, text-field, textarea; [default, error] in code-input"
+      "detail": "the status axis takes 2 value sets — [default, error] in checkbox-control, checkbox-group, checkbox-row, code-input, radio-control, radio-group, radio-row, switch-control, switch-row; [default, error, success, warning] in field-message, password-field, select, text-field, textarea"
     },
     {
       "kind": "axis values",
@@ -7282,11 +7476,11 @@
     },
     {
       "kind": "size order",
-      "subject": "tab",
+      "subject": "tab-item",
       "components": [
-        "tab"
+        "tab-item"
       ],
-      "detail": "tab declares its sizes as [medium, small, large], not smallest first"
+      "detail": "tab-item declares its sizes as [medium, small, large], not smallest first"
     },
     {
       "kind": "size order",
@@ -7379,7 +7573,23 @@
       "components": [
         "checkbox-control"
       ],
-      "detail": "checkbox-control has the variant axis selection and no prop of that name"
+      "detail": "checkbox-control has the variant axes selection and status and no props of those names"
+    },
+    {
+      "kind": "axis without prop",
+      "subject": "checkbox-group",
+      "components": [
+        "checkbox-group"
+      ],
+      "detail": "checkbox-group has the variant axis status and no prop of that name"
+    },
+    {
+      "kind": "axis without prop",
+      "subject": "checkbox-row",
+      "components": [
+        "checkbox-row"
+      ],
+      "detail": "checkbox-row has the variant axis status and no prop of that name"
     },
     {
       "kind": "axis without prop",
@@ -7403,7 +7613,23 @@
       "components": [
         "radio-control"
       ],
-      "detail": "radio-control has the variant axis selection and no prop of that name"
+      "detail": "radio-control has the variant axes selection and status and no props of those names"
+    },
+    {
+      "kind": "axis without prop",
+      "subject": "radio-group",
+      "components": [
+        "radio-group"
+      ],
+      "detail": "radio-group has the variant axis status and no prop of that name"
+    },
+    {
+      "kind": "axis without prop",
+      "subject": "radio-row",
+      "components": [
+        "radio-row"
+      ],
+      "detail": "radio-row has the variant axis status and no prop of that name"
     },
     {
       "kind": "axis without prop",
@@ -7427,15 +7653,23 @@
       "components": [
         "switch-control"
       ],
-      "detail": "switch-control has the variant axis selection and no prop of that name"
+      "detail": "switch-control has the variant axes selection and status and no props of those names"
     },
     {
       "kind": "axis without prop",
-      "subject": "tab",
+      "subject": "switch-row",
       "components": [
-        "tab"
+        "switch-row"
       ],
-      "detail": "tab has the variant axis selection and no prop of that name"
+      "detail": "switch-row has the variant axis status and no prop of that name"
+    },
+    {
+      "kind": "axis without prop",
+      "subject": "tab-item",
+      "components": [
+        "tab-item"
+      ],
+      "detail": "tab-item has the variant axis selection and no prop of that name"
     },
     {
       "kind": "axis without prop",
