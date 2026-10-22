@@ -1483,6 +1483,15 @@ export const figmaAnatomyPlan = (
     if (!def.paintKeys?.length) return undefined;
     if (state === 'disabled') {
       if (STRUCTURAL.has(slot) && !restKey(slot)) return undefined;
+      // A def's OWN state-qualified disabled key wins over the cross-cutting one (#2939): a radio's ring
+      // takes the disabled border unchecked and the disabled box fill checked, which one selection-blind
+      // `disabled.border` cannot say. Only templates carrying `{state}` are asked, so a rest key never
+      // answers for disabled; a def keying no `….disabled` reaches the branch below exactly as before.
+      for (const template of def.paintKeys) {
+        if (!template.includes('{state}') || !template.includes('{slot}')) continue;
+        const k = fillPaintKey(template, slot, paintCoord);
+        if (k && def.tokens[k]) return k;
+      }
       // `disabled.<slot>.on-fill` is a QUALIFIED form of the same slot, not a slot of its own — the
       // node being painted is still the label or the glyph, and only the ground beneath it changed.
       // Keying it that way is what keeps the vocabulary check honest: the slot segment stays a word the

@@ -30908,10 +30908,14 @@ arm: {
   // silently going grey again. The UNCHECKED ring must STAY neutral (Prism 2 ships its `selected=false` ring
   // grey, #82899D), so this also pins that the two selections DIFFER — a rebind of BOTH selections to
   // interactive would erase Prism 2's neutral unchecked edge and is not what #1423 asks for.
-  ok(rc.tokens['checked.border'] === 'color.interactive.primary.border.rest'
-     && rc.tokens['checked.border.hover'] === 'color.interactive.primary.border.hover'
-     && rc.tokens['checked.border.pressed'] === 'color.interactive.primary.border.pressed',
-    `#1423 radio-control's CHECKED ring binds the INTERACTIVE family per-state (rest=${rc.tokens['checked.border']}, hover=${rc.tokens['checked.border.hover']}, pressed=${rc.tokens['checked.border.pressed']})`);
+  // #2939 (owner Q574 A) rebound the CHECKED ring from `interactive.primary.border.*` to the checked checkbox's box
+  // color, state for state. EXPECTED is typed here from the decision, never read off `checkbox-control` (the def
+  // derives its keys from that def; reading the same source here would make this arm unfailable, docs/34 shape 1).
+  ok(rc.tokens['checked.border'] === 'color.interactive.primary.fill.selected'
+     && rc.tokens['checked.border.hover'] === 'color.interactive.primary.fill.hover'
+     && rc.tokens['checked.border.pressed'] === 'color.interactive.primary.fill.pressed'
+     && rc.tokens['checked.border.disabled'] === 'color.disabled.fill',
+    `#2939 radio-control's CHECKED ring binds the checked checkbox's box color per-state (rest=${rc.tokens['checked.border']}, hover=${rc.tokens['checked.border.hover']}, pressed=${rc.tokens['checked.border.pressed']}, disabled=${rc.tokens['checked.border.disabled']})`);
   ok(rc.tokens['checked.border'] !== 'color.field.border.rest'
      && rc.tokens['checked.border.hover'] !== 'color.field.border.hover'
      && rc.tokens['checked.border'] !== rc.tokens['unchecked.border'],
@@ -30919,6 +30923,47 @@ arm: {
   ok(rc.tokens['unchecked.border'] === 'color.field.border.rest'
      && rc.tokens['unchecked.border.hover'] === 'color.field.border.hover',
     `#1423 radio-control's UNCHECKED ring STAYS the neutral field-border edge (rest=${rc.tokens['unchecked.border']}, hover=${rc.tokens['unchecked.border.hover']}) — Prism 2's grey selected=false ring`);
+  // #2939 READ OFF THE PROJECTED PLANS — the stroke Figma binds, at every size × state of a checked, default-status
+  // radio. EXPECTED per state is literal; any `…/border/…` variable on that ring fails by name (the pre-#2939
+  // binding, or a disabled checked ring falling back to the selection-blind `disabled.border`). Unchecked and
+  // error members are pinned to exactly their pre-#2939 strokes.
+  {
+    const CHECKED_RING: Record<string, string> = {
+      'rest': 'color/interactive/primary/fill/selected', 'hover': 'color/interactive/primary/fill/hover',
+      'pressed': 'color/interactive/primary/fill/pressed', 'focus-visible': 'color/interactive/primary/fill/selected',
+      'disabled': 'color/disabled/fill',
+    };
+    const UNCHANGED: Record<string, string> = {
+      'unchecked.default.rest': 'color/field/border/rest', 'unchecked.default.hover': 'color/field/border/hover',
+      'unchecked.default.pressed': 'color/field/border/rest', 'unchecked.default.focus-visible': 'color/field/border/rest',
+      'unchecked.default.disabled': 'color/disabled/border',
+      'unchecked.error.disabled': 'color/disabled/border', 'checked.error.disabled': 'color/disabled/border',
+      ...Object.fromEntries(['unchecked', 'checked'].flatMap((sel) => ['rest', 'hover', 'pressed', 'focus-visible']
+        .map((st) => [`${sel}.error.${st}`, 'color/border/danger']))),
+    };
+    const ringOf = (pl: AnatomyPlan): string | undefined => {
+      const find = (n: AnatomyPlan['root']): AnatomyPlan['root'] | undefined =>
+        n.name === 'control' ? n : (n.children ?? []).map(find).find(Boolean);
+      return find(pl.root)?.paints?.strokes;
+    };
+    let checkedSeen = 0, unchangedSeen = 0;
+    for (const pl of figmaAnatomySet(rc)) {
+      const { selection, status, state } = pl.coord as Record<string, string>;
+      const got = ringOf(pl);
+      if (selection === 'checked' && status === 'default') {
+        checkedSeen++;
+        ok(got === CHECKED_RING[state] && !/\/border\//.test(got ?? ''),
+          `#2939 a checked radio ring binds no border/* variable — ${planComponentName(pl)} strokes ${got}, expected ${CHECKED_RING[state]}`);
+      } else {
+        unchangedSeen++;
+        const want = UNCHANGED[`${selection}.${status}.${state}`];
+        ok(got === want, `#2939 radio ring outside checked/default is unchanged — ${planComponentName(pl)} strokes ${got}, expected ${want}`);
+      }
+    }
+    // 2 selections × 2 statuses × 3 sizes × 5 states: 15 checked/default members, 45 others — a short set is not a pass.
+    ok(checkedSeen === 15 && unchangedSeen === 45,
+      `#2939 the ring sweep read every radio-control member (checked/default ${checkedSeen} of 15, others ${unchangedSeen} of 45)`);
+  }
   // …and the recolored CHECKED ring keeps a live SC 1.4.11 3:1 contract as a graphical object on the page.
   // The interactive border role is gated against `background.primary` at `nonTextMin` (modes.ts `iBorder`,
   // rated to clear it), so the role's own measured ratio IS the ring-vs-page ratio. Measured live via
