@@ -34,7 +34,13 @@
  *                   `seat/room for the panel`.
  *   template/…      `_Doc-block` as Set up file builds it: nothing without Badge, Tag, List.Item, Divider and a theme,
  *                   naming each; with them, every Type × Size variant, the three booleans and the swap, each type's
- *                   layers, and the Prism3 components it nests.
+ *                   layers, and the Prism3 components it nests. `template/fill` (#2902): the padding spacers, Field's `row`,
+ *                   Do-Dont's `columns` and Chips' `chips` FILL in every variant (the shim throws on FILL outside an
+ *                   auto-layout parent, as the host does), and Field's `label` grows to its text at the label column.
+ *                   `template/repair`: a set built before the fix is brought up to date in place on the next run, the same
+ *                   set and members, and a set already right is left alone. Mutations: `fill(chips)` dropped →
+ *                   `template/fill`; `chips` dropped from the repair's list → `template/repair`; the label's `HEIGHT`
+ *                   dropped → `template/fill`.
  *   line/…          a file without `_Doc-block`: one Set up file line for the run, naming usage panels.
  *
  * INDEPENDENCE (docs/34): the expected sections come from the engine's model (`docSections`), which the panel reads but
@@ -77,6 +83,17 @@ const LAYERS: Record<string, string[]> = {
   Chips: ['label', 'chips', 'chip1', 'chip16', 'note'],
   Divider: ['divider'],
 };
+/** List.Item's item-text layer as the projection builds it (#2902): the one TEXT node of an unordered member. Read
+ *  from the plan the host builds, not from the def's `figmaProperties` mapping the panel reads, so a panel that writes
+ *  any other layer (the `text` PROPERTY's name, say) finds nothing and fails `panel/do-dont`. */
+const LIST_ITEM_TEXT = (() => {
+  const plan = figmaAnatomySet(componentDefs.find((d) => d.id === 'list-item')!, { swapTarget: SWAP_TARGET }).find((pl) => pl.coord.type === 'unordered')!;
+  const all = (n: { type?: string; name: string; children?: readonly unknown[] }): { type?: string; name: string }[] =>
+    [n, ...((n.children ?? []) as typeof n[]).flatMap(all)];
+  const found = all(plan.root as never).filter((n) => n.type === 'TEXT').map((n) => n.name);
+  if (found.length !== 1) throw new Error(`list-item: want one TEXT layer in an unordered member, got [${found.join(', ')}]`);
+  return found[0];
+})();
 const TYPES = ['Heading', 'Paragraph', 'Field', 'Do-Dont', 'Specimen', 'Part-marker', 'Chips', 'Divider'];
 const SIZES = ['sm', 'md', 'lg'];
 
@@ -129,7 +146,7 @@ const blockInstance = (type: string): N => {
   const t = (name: string) => mk('TEXT', name);
   const body: N[] =
     type === 'Field' ? [mk('FRAME', 'row', [t('label'), t('text')], { layoutMode: 'HORIZONTAL' })]
-      : type === 'Do-Dont' ? [mk('FRAME', 'columns', ['do', 'dont'].map((c) => mk('FRAME', c, [mk('FRAME', 'rule'), t('heading'), ...[1, 2, 3, 4].map((k) => { const it = prism3Instance('text'); it.name = `item${k}`; return it; })], { layoutMode: 'VERTICAL', itemSpacing: 8 })), { layoutMode: 'HORIZONTAL' })]
+      : type === 'Do-Dont' ? [mk('FRAME', 'columns', ['do', 'dont'].map((c) => mk('FRAME', c, [mk('FRAME', 'rule'), t('heading'), ...[1, 2, 3, 4].map((k) => { const it = prism3Instance(LIST_ITEM_TEXT); it.name = `item${k}`; return it; })], { layoutMode: 'VERTICAL', itemSpacing: 8 })), { layoutMode: 'HORIZONTAL' })]
         : type === 'Specimen' ? [mk('FRAME', 'stage', [mk('INSTANCE', 'specimen', [], { _h: 40 })], { layoutMode: 'VERTICAL', paddingTop: 24, paddingBottom: 24 }), t('caption')]
           : type === 'Part-marker' ? [(() => { const m = prism3Instance('count'); m.name = 'marker'; m._w = 20; m._h = 20; return m; })()]
             : type === 'Chips' ? [t('label'), mk('FRAME', 'chips', Array.from({ length: 16 }, (_, k) => { const c = prism3Instance('label'); c.name = `chip${k + 1}`; c._h = 32; return c; }), { layoutMode: 'HORIZONTAL' }), t('note')]
@@ -214,6 +231,27 @@ for (const def of withSets) {
   const got = panels[0] ? drawnSections(panels[0]) : [];
   ok(r.drawn && panels.length === 1 && tagOf(panels[0]).def === def.id && tagOf(panels[0]).set === set.id && got.join() === want.join(),
     `present/${def.id}: one panel, sections ${got.join(', ')}`, `want [${want.join(', ')}], got ${panels.length} panel(s) [${got.join(', ')}] ${r.skipped.join('; ')}`);
+}
+
+section('panel/do-dont — each Do and Don\'t item\'s text is written into List.Item\'s text layer');
+{
+  let items = 0;
+  const unwritten: string[] = [];
+  for (const def of withSets) {
+    const p = page(`↳ d ${def.id}`);
+    const r = await drawDocPanel(host([p]), fakeSet(p, def.id), def, { names });
+    const shown = texts(panelsOn(p)[0] ?? mk('FRAME', 'none'));
+    const plan = planDocPanel(def, { modes: ['light', 'dark'], names });
+    for (const b of plan.sections.flatMap((s) => s.blocks)) {
+      if (b.type !== 'Do-Dont') continue;
+      for (const t of [...b.do, ...b.dont]) {
+        items++;
+        if (!shown.includes(t)) unwritten.push(`${def.id}: "${t.slice(0, 40)}"`);
+      }
+    }
+    if (r.misses.some((m) => m.includes('item text'))) unwritten.push(`${def.id}: ${r.misses.join('; ')}`);
+  }
+  ok(items >= 20 && !unwritten.length, `panel/do-dont: all ${items} Do and Don't items are written, into List.Item's "${LIST_ITEM_TEXT}" layer`, unwritten.slice(0, 3).join('; '));
 }
 
 section('present/modes — the file\'s light and dark, side by side, each pinned');
@@ -368,6 +406,34 @@ section('overlap/… — a panel lies on nothing');
   const r = await drawDocPanel(host([q]), set, componentDefs.find((d) => d.id === 'tag')!, { names });
   ok(!r.drawn && panelsOn(q).length === 0 && panelItems(r).join(' ') === 'No usage panel for tag: "Notes" sits right of the set, where the panel goes. Move it, then build or update again',
     `overlap/blocked: no panel drawn, and the run says to move the layer, not to Update, which never moves it: "${panelItems(r).join(' ')}"`);
+  // A backdrop reaching into the panel's spot (#2902): the set's own, tagged as Prism3 draws it, never blocks; one a
+  // designer placed, untagged, blocks as Notes does (Q172.5), and so does another set's.
+  const bg = (on: N, s: N, tag: string | null): N => {
+    const b = mk('RECTANGLE', 'inverse-bg', [], { x: -12, y: -12, _w: 700, _h: 424 });
+    if (tag) b.setSharedPluginData!('prism3', 'furniture', JSON.stringify({ v: 1, def: tag, set: String(s.id), kind: 'backdrop' }));
+    on.insertChild!(0, b);
+    return b;
+  };
+  const tagDef = componentDefs.find((d) => d.id === 'tag')!;
+  const own = page('↳ Own backdrop');
+  const ownSet = fakeSet(own, 'tag', 0, 0, 600, 400);
+  bg(own, ownSet, 'tag');
+  const ro = await drawDocPanel(host([own]), ownSet, tagDef, { names });
+  ok(ro.drawn && panelsOn(own).length === 1, `overlap/own backdrop: the set's own tagged backdrop reaches into the spot and the panel is still drawn`, ro.skipped.join('; '));
+  const hand = page('↳ Hand backdrop');
+  const handSet = fakeSet(hand, 'tag', 0, 0, 600, 400);
+  bg(hand, handSet, null);
+  const rh = await drawDocPanel(host([hand]), handSet, tagDef, { names });
+  ok(!rh.drawn && panelItems(rh).join(' ') === 'No usage panel for tag: "inverse-bg" sits right of the set, where the panel goes. Move it, then build or update again',
+    `overlap/hand backdrop: an untagged inverse-bg still blocks (Q172.5): "${panelItems(rh).join(' ')}"`);
+  const other = page('↳ Other backdrop');
+  const otherSet = fakeSet(other, 'tag', 0, 0, 600, 400);
+  bg(other, fakeSet(other, 'badge', 0, 9000, 600, 400), 'badge');
+  const rx = await drawDocPanel(host([other]), otherSet, tagDef, { names });
+  ok(!rx.drawn && panelItems(rx).join(' ').includes('"inverse-bg" sits right'), `overlap/other backdrop: another set's tagged backdrop still blocks`, rx.skipped.join('; '));
+  const ownPlan = planDocPanel(tagDef, { modes: ['light', 'dark'], names });
+  ok(docPanelDue(host([hand]), handSet, ownPlan) === 0 && docPanelDue(host([own]), ownSet, ownPlan) === 0, 'due/backdrop: the dry run agrees with both draws');
+
   // The dry run's view of it: not due while Notes is there, so Update does not list it on every run; due once it moves.
   const plan = planDocPanel(componentDefs.find((d) => d.id === 'tag')!, { modes: ['light', 'dark'], names });
   ok(docPanelDue(host([q]), set, plan) === 0, 'due/blocked: a panel the draw found blocked is not due while the layer is still there');
@@ -503,13 +569,22 @@ section('template/… — `_Doc-block`');
 {
   const made: N[] = [];
   const memberSet = (name: string, member: string, text: string) => mk('COMPONENT_SET', name, [mk('COMPONENT', member, [], { createInstance: () => { const i = prism3Instance(text); i.main = name; return i; } })]);
-  const libs = [memberSet('badge', 'type=count, emphasis=bold, tone=neutral', 'count'), memberSet('tag', 'type=select, selection=unselected, size=small, state=rest', 'label'), memberSet('list-item', 'type=unordered, size=small', 'text'), memberSet('divider', 'orientation=horizontal, inset=none', 'rule')];
+  const libs = [memberSet('badge', 'type=count, emphasis=bold, tone=neutral', 'count'), memberSet('tag', 'type=select, selection=unselected, size=small, state=rest', 'label'), memberSet('list-item', 'type=unordered, size=small', LIST_ITEM_TEXT), memberSet('divider', 'orientation=horizontal, inset=none', 'rule')];
   const props: { name: string; type: string; value: unknown }[] = [];
+  // The host's rule (#2902): a node is FILL only inside an auto-layout parent, so FILL set before the append throws.
+  const fillRule = (n: N): N => {
+    let v: unknown;
+    Object.defineProperty(n, 'layoutSizingHorizontal', {
+      get: () => v, enumerable: true,
+      set: (x: unknown) => { if (x === 'FILL' && !(n.parent as N | undefined)?.layoutMode) throw new Error(`${String(n.name)}: FILL outside an auto-layout parent`); v = x; },
+    });
+    return n;
+  };
   const api = (sets: N[], themed: boolean) => ({
     root: { findAllWithCriteria: () => sets },
     createComponent: () => { const c = mk('COMPONENT', 'Component'); made.push(c); return c; },
-    createFrame: () => mk('FRAME', 'Frame'),
-    createText: () => { const t = mk('TEXT', 'Text'); t.setTextStyleIdAsync = async (id: string) => { t.textStyleId = id; }; return t; },
+    createFrame: () => fillRule(mk('FRAME', 'Frame')),
+    createText: () => { const t = fillRule(mk('TEXT', 'Text')); t.setTextStyleIdAsync = async (id: string) => { t.textStyleId = id; }; return t; },
     loadFontAsync: async () => {},
     combineAsVariants: (nodes: N[], parent: N) => { const s = mk('COMPONENT_SET', 'Set', nodes); parent.appendChild!(s); s.addComponentProperty = (name: string, type: string, value: unknown) => { props.push({ name, type, value }); return `${name}#${props.length}`; }; return s; },
     getLocalTextStylesAsync: async () => ['title/xs/strong', 'title/sm/strong', 'title/md/strong', 'body/xs/default', 'body/sm/default', 'body/md/default', 'body/lg/default', 'label/sm/emphasis', 'label/md/emphasis', 'label/lg/emphasis'].map((n, i) => ({ id: `S:${i}`, name: n, fontName: { family: 'Inter', style: 'Regular' } })),
@@ -542,8 +617,44 @@ section('template/… — `_Doc-block`');
   ok(ownTexts.length >= 24 && !unbound.length, `template/tokens: each of ${ownTexts.length} texts binds a color variable and takes a text style`, unbound.slice(0, 3).map((c) => String(c.name)).join(', '));
   const rules = own(set!).filter((c) => c.name === 'rule' || c.name === 'stage');
   ok(rules.length && rules.every((c) => (c.fills as { boundVariables?: unknown }[])[0]?.boundVariables), `template/tokens: the Do / Don't rules and the specimen stage bind theirs (${rules.length})`);
+  // The layers that fill the block's width (#2902), written out here, and Field's label, which grows to its text.
+  const FILLS: Record<string, string[]> = { Field: ['row'], 'Do-Dont': ['columns'], Chips: ['chips'] };
+  const notFilled = (): string[] => (set?.children ?? []).flatMap((v) => {
+    const t = String(v.name).replace(/^Type=([^,]+),.*$/, '$1');
+    const bad = ['top-padding', 'bottom-padding', ...(FILLS[t] ?? [])].filter((l) => v.children.find((c) => c.name === l)?.layoutSizingHorizontal !== 'FILL').map((l) => `${String(v.name)} ${l}`);
+    const label = t === 'Field' ? v.children.find((c) => c.name === 'row')?.children.find((c) => c.name === 'label') : undefined;
+    return [...bad, ...(t === 'Field' && (label?.textAutoResize !== 'HEIGHT' || label?.width !== 120) ? [`${String(v.name)} label (${String(label?.textAutoResize)}, ${String(label?.width)})`] : [])];
+  });
+  const built = notFilled();
+  ok(!built.length, 'template/fill: the padding spacers, Field\'s row, Do-Dont\'s columns and Chips\' chips FILL the block in every variant, and Field\'s label grows to its text at the label column', built.slice(0, 4).join('; '));
+  const ids = (set?.children ?? []).map((c) => c.id).join('|');
+  // A set built before #2902: those layers at their old sizing, the label at a fixed 1px.
+  for (const v of set?.children ?? []) for (const c of v.children) {
+    if (['top-padding', 'bottom-padding'].includes(String(c.name))) c.layoutSizingHorizontal = 'FIXED';
+    if (['row', 'columns', 'chips'].includes(String(c.name))) c.layoutSizingHorizontal = 'HUG';
+    const label = c.name === 'row' ? c.children.find((k) => k.name === 'label') : undefined;
+    if (label) label.textAutoResize = 'NONE';
+  }
+  // And hand edits the repair must leave alone: a fill and a vertical sizing on each layer it repairs, and a decoy `row`
+  // and `columns` inside a nested List.Item instance, which is that component's, not the block's.
+  const HAND = [{ type: 'SOLID', hand: true }];
+  const handEdited: N[] = [];
+  for (const v of set?.children ?? []) for (const c of v.children) {
+    if (![...['top-padding', 'bottom-padding'], 'row', 'columns', 'chips'].includes(String(c.name))) continue;
+    c.fills = HAND; c.layoutSizingVertical = 'FIXED'; handEdited.push(c);
+  }
+  const nestedItem = walk(set!).find((c) => c.type === 'INSTANCE' && c.main === 'list-item')!;
+  const decoys = ['row', 'columns'].map((name) => { const d = mk('FRAME', name, [], { layoutSizingHorizontal: 'HUG' }); nestedItem.appendChild!(d); return d; });
   const again = await ensureDocBlock(api(libs, true), fc as never);
   ok(again.status === 'present' && fc.children.filter((c) => c.type === 'COMPONENT_SET').length === 1, 'template/idempotent: a second run builds nothing');
+  const repaired = notFilled();
+  ok(!repaired.length && (again.repaired ?? 0) > 0 && fc.children.find((c) => c.type === 'COMPONENT_SET') === set && (set?.children ?? []).map((c) => c.id).join('|') === ids,
+    `template/repair: a set built before the fix is brought up to date in place, the same set and members (${again.repaired} layers)`, repaired.slice(0, 4).join('; '));
+  const touched = handEdited.filter((c) => c.fills !== HAND || c.layoutSizingVertical !== 'FIXED').map((c) => `${String((c.parent as N).name)} ${String(c.name)}`);
+  ok(handEdited.length >= 48 && !touched.length, `template/repair leaves hand edits: the fill and vertical sizing on all ${handEdited.length} repaired layers survive`, touched.slice(0, 3).join('; '));
+  ok(decoys.every((d) => d.layoutSizingHorizontal === 'HUG'), 'template/repair stays out of nested instances: a "row" and a "columns" inside List.Item are untouched');
+  const third = await ensureDocBlock(api(libs, true), fc as never);
+  ok(third.status === 'present' && third.repaired === 0, `template/repair idempotent: a set already right is left as it is (${third.repaired})`);
 }
 
 /* ── line: the missing template, once ──────────────────────────────────────────────────────────────────── */

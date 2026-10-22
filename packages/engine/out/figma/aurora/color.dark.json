@@ -721,6 +721,605 @@
       }
     },
     {
+      "name": "ads/color/border/primary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Default border — a decorative divider",
+      "value": {
+        "r": 0.21960784494876862,
+        "g": 0.21960784494876862,
+        "b": 0.23137255012989044,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/neutral/750"
+      }
+    },
+    {
+      "name": "ads/color/border/secondary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Stronger border / divider",
+      "value": {
+        "r": 0.30980393290519714,
+        "g": 0.30980393290519714,
+        "b": 0.3294117748737335,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/neutral/650"
+      }
+    },
+    {
+      "name": "ads/color/border/tertiary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Strongest border / divider",
+      "value": {
+        "r": 0.4588235318660736,
+        "g": 0.4627451002597809,
+        "b": 0.47843137383461,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/neutral/500"
+      }
+    },
+    {
+      "name": "ads/color/border/brand",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Brand border — 3:1 on background/primary",
+      "value": {
+        "r": 0.4470588266849518,
+        "g": 0.4117647111415863,
+        "b": 0.7921568751335144,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/primary/500"
+      }
+    },
+    {
+      "name": "ads/color/border/success",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Success border — 3:1 on background/primary",
+      "value": {
+        "r": 0.3019607961177826,
+        "g": 0.5686274766921997,
+        "b": 0.3176470696926117,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/success/450"
+      }
+    },
+    {
+      "name": "ads/color/border/warning",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Warning border — 3:1 on background/primary",
+      "value": {
+        "r": 0.6823529601097107,
+        "g": 0.4627451002597809,
+        "b": 0.05098039284348488,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/warning/450"
+      }
+    },
+    {
+      "name": "ads/color/border/danger",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Danger border — 3:1 on background/primary",
+      "value": {
+        "r": 0.8509804010391235,
+        "g": 0.3333333432674408,
+        "b": 0.2980392277240753,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/danger/450"
+      }
+    },
+    {
+      "name": "ads/color/border/info",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Info border — 3:1 on background/primary",
+      "value": {
+        "r": 0.1921568661928177,
+        "g": 0.48235294222831726,
+        "b": 0.6980392336845398,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/info/500"
+      }
+    },
+    {
+      "name": "ads/color/border/focus",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Focus ring color — 3:1 on background/primary",
+      "value": {
+        "r": 0,
+        "g": 0.5333333611488342,
+        "b": 0.7450980544090271,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/accent/450"
+      }
+    },
+    {
+      "name": "ads/color/icon/primary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Primary icon — strongest neutral",
+      "value": {
+        "r": 0.9686274528503418,
+        "g": 0.9686274528503418,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/neutral/025"
+      }
+    },
+    {
+      "name": "ads/color/icon/secondary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Secondary icon — 3:1 on background/secondary",
+      "value": {
+        "r": 0.40784314274787903,
+        "g": 0.40784314274787903,
+        "b": 0.4274509847164154,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/neutral/550"
+      }
+    },
+    {
+      "name": "ads/color/icon/tertiary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Tertiary icon — 3:1 on background/secondary",
+      "value": {
+        "r": 0.40784314274787903,
+        "g": 0.40784314274787903,
+        "b": 0.4274509847164154,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/neutral/550"
+      }
+    },
+    {
+      "name": "ads/color/icon/brand",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Brand icon — 3:1 on background/secondary and on its own tint",
+      "value": {
+        "r": 0.4470588266849518,
+        "g": 0.4117647111415863,
+        "b": 0.7921568751335144,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/primary/500"
+      }
+    },
+    {
+      "name": "ads/color/icon/success",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Success icon — 3:1 on background/secondary and on its own tint",
+      "value": {
+        "r": 0.26274511218070984,
+        "g": 0.5137255191802979,
+        "b": 0.27843138575553894,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/success/500"
+      }
+    },
+    {
+      "name": "ads/color/icon/warning",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Warning icon — 3:1 on background/secondary and on its own tint",
+      "value": {
+        "r": 0.6235294342041016,
+        "g": 0.41960784792900085,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/warning/500"
+      }
+    },
+    {
+      "name": "ads/color/icon/danger",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Danger icon — 3:1 on background/secondary and on its own tint",
+      "value": {
+        "r": 0.7882353067398071,
+        "g": 0.2980392277240753,
+        "b": 0.2666666805744171,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/danger/500"
+      }
+    },
+    {
+      "name": "ads/color/icon/info",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Info icon — 3:1 on background/secondary and on its own tint",
+      "value": {
+        "r": 0.1921568661928177,
+        "g": 0.48235294222831726,
+        "b": 0.6980392336845398,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/info/500"
+      }
+    },
+    {
+      "name": "ads/color/icon/brand-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Muted brand icon — 3:1 on background/primary",
+      "value": {
+        "r": 0.5882353186607361,
+        "g": 0.5803921818733215,
+        "b": 0.8392156958580017,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/primary/350"
+      }
+    },
+    {
+      "name": "ads/color/icon/success-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Muted success icon — 3:1 on background/primary",
+      "value": {
+        "r": 0.3803921639919281,
+        "g": 0.6784313917160034,
+        "b": 0.3960784375667572,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/success/350"
+      }
+    },
+    {
+      "name": "ads/color/icon/warning-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Muted warning icon — 3:1 on background/primary",
+      "value": {
+        "r": 0.800000011920929,
+        "g": 0.5529412031173706,
+        "b": 0.13333334028720856,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/warning/350"
+      }
+    },
+    {
+      "name": "ads/color/icon/danger-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Muted danger icon — 3:1 on background/primary",
+      "value": {
+        "r": 0.8901960849761963,
+        "g": 0.4901960790157318,
+        "b": 0.4470588266849518,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/danger/350"
+      }
+    },
+    {
+      "name": "ads/color/icon/info-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Muted info icon — 3:1 on background/primary",
+      "value": {
+        "r": 0.29411765933036804,
+        "g": 0.6313725709915161,
+        "b": 0.8941176533699036,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/info/350"
+      }
+    },
+    {
+      "name": "ads/color/icon/on-brand",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Icon on a solid brand fill — 4.5:1 on foreground/brand",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/white"
+      }
+    },
+    {
+      "name": "ads/color/icon/on-success",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Icon on a solid success fill — 4.5:1 on foreground/success",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/white"
+      }
+    },
+    {
+      "name": "ads/color/icon/on-warning",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Icon on a solid warning fill — 4.5:1 on foreground/warning",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/white"
+      }
+    },
+    {
+      "name": "ads/color/icon/on-danger",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Icon on a solid danger fill — 4.5:1 on foreground/danger",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/white"
+      }
+    },
+    {
+      "name": "ads/color/icon/on-info",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Icon on a solid info fill — 4.5:1 on foreground/info",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/white"
+      }
+    },
+    {
+      "name": "ads/color/icon/link/default",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Link icon, default — 3:1 on background/secondary",
+      "value": {
+        "r": 0,
+        "g": 0.48627451062202454,
+        "b": 0.7333333492279053,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/accent/500"
+      }
+    },
+    {
+      "name": "ads/color/icon/link/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Link icon, hover — 3:1 on background/secondary",
+      "value": {
+        "r": 0.2078431397676468,
+        "g": 0.5843137502670288,
+        "b": 0.7764706015586853,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/accent/400"
+      }
+    },
+    {
+      "name": "ads/color/icon/link/visited",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Link icon, visited — 3:1 on background/secondary",
+      "value": {
+        "r": 0.6274510025978088,
+        "g": 0.772549033164978,
+        "b": 0.8627451062202454,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/accent/200"
+      }
+    },
+    {
+      "name": "ads/color/icon/link/focused",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Link icon, focused — 3:1 on background/secondary",
+      "value": {
+        "r": 0,
+        "g": 0.48627451062202454,
+        "b": 0.7333333492279053,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/accent/500"
+      }
+    },
+    {
+      "name": "ads/color/icon/link/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Link icon, pressed — 3:1 on background/secondary",
+      "value": {
+        "r": 0.4431372582912445,
+        "g": 0.6784313917160034,
+        "b": 0.8156862854957581,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/accent/300"
+      }
+    },
+    {
       "name": "ads/color/interactive/primary/fill/rest",
       "resolvedType": "COLOR",
       "scopes": [
@@ -1755,605 +2354,6 @@
       }
     },
     {
-      "name": "ads/color/border/primary",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Default border — a decorative divider",
-      "value": {
-        "r": 0.21960784494876862,
-        "g": 0.21960784494876862,
-        "b": 0.23137255012989044,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/neutral/750"
-      }
-    },
-    {
-      "name": "ads/color/border/secondary",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Stronger border / divider",
-      "value": {
-        "r": 0.30980393290519714,
-        "g": 0.30980393290519714,
-        "b": 0.3294117748737335,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/neutral/650"
-      }
-    },
-    {
-      "name": "ads/color/border/tertiary",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Strongest border / divider",
-      "value": {
-        "r": 0.4588235318660736,
-        "g": 0.4627451002597809,
-        "b": 0.47843137383461,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/neutral/500"
-      }
-    },
-    {
-      "name": "ads/color/border/brand",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Brand border — 3:1 on background/primary",
-      "value": {
-        "r": 0.4470588266849518,
-        "g": 0.4117647111415863,
-        "b": 0.7921568751335144,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/primary/500"
-      }
-    },
-    {
-      "name": "ads/color/border/success",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Success border — 3:1 on background/primary",
-      "value": {
-        "r": 0.3019607961177826,
-        "g": 0.5686274766921997,
-        "b": 0.3176470696926117,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/success/450"
-      }
-    },
-    {
-      "name": "ads/color/border/warning",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Warning border — 3:1 on background/primary",
-      "value": {
-        "r": 0.6823529601097107,
-        "g": 0.4627451002597809,
-        "b": 0.05098039284348488,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/warning/450"
-      }
-    },
-    {
-      "name": "ads/color/border/danger",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Danger border — 3:1 on background/primary",
-      "value": {
-        "r": 0.8509804010391235,
-        "g": 0.3333333432674408,
-        "b": 0.2980392277240753,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/danger/450"
-      }
-    },
-    {
-      "name": "ads/color/border/info",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Info border — 3:1 on background/primary",
-      "value": {
-        "r": 0.1921568661928177,
-        "g": 0.48235294222831726,
-        "b": 0.6980392336845398,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/info/500"
-      }
-    },
-    {
-      "name": "ads/color/border/focus",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Focus ring color — 3:1 on background/primary",
-      "value": {
-        "r": 0,
-        "g": 0.5333333611488342,
-        "b": 0.7450980544090271,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/accent/450"
-      }
-    },
-    {
-      "name": "ads/color/icon/primary",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Primary icon — strongest neutral",
-      "value": {
-        "r": 0.9686274528503418,
-        "g": 0.9686274528503418,
-        "b": 0.9686274528503418,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/neutral/025"
-      }
-    },
-    {
-      "name": "ads/color/icon/secondary",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Secondary icon — 3:1 on background/secondary",
-      "value": {
-        "r": 0.40784314274787903,
-        "g": 0.40784314274787903,
-        "b": 0.4274509847164154,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/neutral/550"
-      }
-    },
-    {
-      "name": "ads/color/icon/tertiary",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Tertiary icon — 3:1 on background/secondary",
-      "value": {
-        "r": 0.40784314274787903,
-        "g": 0.40784314274787903,
-        "b": 0.4274509847164154,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/neutral/550"
-      }
-    },
-    {
-      "name": "ads/color/icon/brand",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Brand icon — 3:1 on background/secondary and on its own tint",
-      "value": {
-        "r": 0.4470588266849518,
-        "g": 0.4117647111415863,
-        "b": 0.7921568751335144,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/primary/500"
-      }
-    },
-    {
-      "name": "ads/color/icon/success",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Success icon — 3:1 on background/secondary and on its own tint",
-      "value": {
-        "r": 0.26274511218070984,
-        "g": 0.5137255191802979,
-        "b": 0.27843138575553894,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/success/500"
-      }
-    },
-    {
-      "name": "ads/color/icon/warning",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Warning icon — 3:1 on background/secondary and on its own tint",
-      "value": {
-        "r": 0.6235294342041016,
-        "g": 0.41960784792900085,
-        "b": 0,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/warning/500"
-      }
-    },
-    {
-      "name": "ads/color/icon/danger",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Danger icon — 3:1 on background/secondary and on its own tint",
-      "value": {
-        "r": 0.7882353067398071,
-        "g": 0.2980392277240753,
-        "b": 0.2666666805744171,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/danger/500"
-      }
-    },
-    {
-      "name": "ads/color/icon/info",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Info icon — 3:1 on background/secondary and on its own tint",
-      "value": {
-        "r": 0.1921568661928177,
-        "g": 0.48235294222831726,
-        "b": 0.6980392336845398,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/info/500"
-      }
-    },
-    {
-      "name": "ads/color/icon/brand-subtle",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Muted brand icon — 3:1 on background/primary",
-      "value": {
-        "r": 0.5882353186607361,
-        "g": 0.5803921818733215,
-        "b": 0.8392156958580017,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/primary/350"
-      }
-    },
-    {
-      "name": "ads/color/icon/success-subtle",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Muted success icon — 3:1 on background/primary",
-      "value": {
-        "r": 0.3803921639919281,
-        "g": 0.6784313917160034,
-        "b": 0.3960784375667572,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/success/350"
-      }
-    },
-    {
-      "name": "ads/color/icon/warning-subtle",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Muted warning icon — 3:1 on background/primary",
-      "value": {
-        "r": 0.800000011920929,
-        "g": 0.5529412031173706,
-        "b": 0.13333334028720856,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/warning/350"
-      }
-    },
-    {
-      "name": "ads/color/icon/danger-subtle",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Muted danger icon — 3:1 on background/primary",
-      "value": {
-        "r": 0.8901960849761963,
-        "g": 0.4901960790157318,
-        "b": 0.4470588266849518,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/danger/350"
-      }
-    },
-    {
-      "name": "ads/color/icon/info-subtle",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Muted info icon — 3:1 on background/primary",
-      "value": {
-        "r": 0.29411765933036804,
-        "g": 0.6313725709915161,
-        "b": 0.8941176533699036,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/info/350"
-      }
-    },
-    {
-      "name": "ads/color/icon/on-brand",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Icon on a solid brand fill — 4.5:1 on foreground/brand",
-      "value": {
-        "r": 1,
-        "g": 1,
-        "b": 1,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/white"
-      }
-    },
-    {
-      "name": "ads/color/icon/on-success",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Icon on a solid success fill — 4.5:1 on foreground/success",
-      "value": {
-        "r": 1,
-        "g": 1,
-        "b": 1,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/white"
-      }
-    },
-    {
-      "name": "ads/color/icon/on-warning",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Icon on a solid warning fill — 4.5:1 on foreground/warning",
-      "value": {
-        "r": 1,
-        "g": 1,
-        "b": 1,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/white"
-      }
-    },
-    {
-      "name": "ads/color/icon/on-danger",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Icon on a solid danger fill — 4.5:1 on foreground/danger",
-      "value": {
-        "r": 1,
-        "g": 1,
-        "b": 1,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/white"
-      }
-    },
-    {
-      "name": "ads/color/icon/on-info",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Icon on a solid info fill — 4.5:1 on foreground/info",
-      "value": {
-        "r": 1,
-        "g": 1,
-        "b": 1,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/white"
-      }
-    },
-    {
-      "name": "ads/color/icon/link/default",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Link icon, default — 3:1 on background/secondary",
-      "value": {
-        "r": 0,
-        "g": 0.48627451062202454,
-        "b": 0.7333333492279053,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/accent/500"
-      }
-    },
-    {
-      "name": "ads/color/icon/link/hover",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Link icon, hover — 3:1 on background/secondary",
-      "value": {
-        "r": 0.2078431397676468,
-        "g": 0.5843137502670288,
-        "b": 0.7764706015586853,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/accent/400"
-      }
-    },
-    {
-      "name": "ads/color/icon/link/visited",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Link icon, visited — 3:1 on background/secondary",
-      "value": {
-        "r": 0.6274510025978088,
-        "g": 0.772549033164978,
-        "b": 0.8627451062202454,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/accent/200"
-      }
-    },
-    {
-      "name": "ads/color/icon/link/focused",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Link icon, focused — 3:1 on background/secondary",
-      "value": {
-        "r": 0,
-        "g": 0.48627451062202454,
-        "b": 0.7333333492279053,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/accent/500"
-      }
-    },
-    {
-      "name": "ads/color/icon/link/pressed",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Link icon, pressed — 3:1 on background/secondary",
-      "value": {
-        "r": 0.4431372582912445,
-        "g": 0.6784313917160034,
-        "b": 0.8156862854957581,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/accent/300"
-      }
-    },
-    {
       "name": "ads/color/disabled/fill",
       "resolvedType": "COLOR",
       "scopes": [
@@ -3317,6 +3317,510 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "ads/core/palette/accent/750"
+      }
+    },
+    {
+      "name": "ads/color/inverse/border/primary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Default border — a decorative divider",
+      "value": {
+        "r": 0.7568627595901489,
+        "g": 0.7568627595901489,
+        "b": 0.7647058963775635,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/neutral/200"
+      }
+    },
+    {
+      "name": "ads/color/inverse/border/secondary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Stronger border / divider",
+      "value": {
+        "r": 0.4588235318660736,
+        "g": 0.4627451002597809,
+        "b": 0.47843137383461,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/neutral/500"
+      }
+    },
+    {
+      "name": "ads/color/inverse/border/tertiary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Strongest border / divider",
+      "value": {
+        "r": 0.26274511218070984,
+        "g": 0.26274511218070984,
+        "b": 0.27843138575553894,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/neutral/700"
+      }
+    },
+    {
+      "name": "ads/color/inverse/border/brand",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Brand border — 3:1 on inverse/background/primary",
+      "value": {
+        "r": 0.4470588266849518,
+        "g": 0.4117647111415863,
+        "b": 0.7921568751335144,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/primary/500"
+      }
+    },
+    {
+      "name": "ads/color/inverse/border/success",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Success border — 3:1 on inverse/background/primary",
+      "value": {
+        "r": 0.26274511218070984,
+        "g": 0.5137255191802979,
+        "b": 0.27843138575553894,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/success/500"
+      }
+    },
+    {
+      "name": "ads/color/inverse/border/warning",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Warning border — 3:1 on inverse/background/primary",
+      "value": {
+        "r": 0.6235294342041016,
+        "g": 0.41960784792900085,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/warning/500"
+      }
+    },
+    {
+      "name": "ads/color/inverse/border/danger",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Danger border — 3:1 on inverse/background/primary",
+      "value": {
+        "r": 0.7882353067398071,
+        "g": 0.2980392277240753,
+        "b": 0.2666666805744171,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/danger/500"
+      }
+    },
+    {
+      "name": "ads/color/inverse/border/info",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Info border — 3:1 on inverse/background/primary",
+      "value": {
+        "r": 0.1921568661928177,
+        "g": 0.48235294222831726,
+        "b": 0.6980392336845398,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/info/500"
+      }
+    },
+    {
+      "name": "ads/color/inverse/border/focus",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Focus ring color — 3:1 on inverse/background/primary",
+      "value": {
+        "r": 0,
+        "g": 0.4313725531101227,
+        "b": 0.6000000238418579,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/accent/550"
+      }
+    },
+    {
+      "name": "ads/color/inverse/icon/primary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Primary icon — strongest neutral",
+      "value": {
+        "r": 0.05098039284348488,
+        "g": 0.05098039284348488,
+        "b": 0.054901961237192154,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/neutral/950"
+      }
+    },
+    {
+      "name": "ads/color/inverse/icon/secondary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Secondary icon — 3:1 on inverse/background/secondary",
+      "value": {
+        "r": 0.5058823823928833,
+        "g": 0.5098039507865906,
+        "b": 0.5254902243614197,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/neutral/450"
+      }
+    },
+    {
+      "name": "ads/color/inverse/icon/tertiary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Tertiary icon — 3:1 on inverse/background/secondary",
+      "value": {
+        "r": 0.5058823823928833,
+        "g": 0.5098039507865906,
+        "b": 0.5254902243614197,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/neutral/450"
+      }
+    },
+    {
+      "name": "ads/color/inverse/icon/brand",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Brand icon — 3:1 on inverse/background/secondary and on its own tint",
+      "value": {
+        "r": 0.3686274588108063,
+        "g": 0.29411765933036804,
+        "b": 0.7647058963775635,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/primary/550"
+      }
+    },
+    {
+      "name": "ads/color/inverse/icon/success",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Success icon — 3:1 on inverse/background/secondary and on its own tint",
+      "value": {
+        "r": 0.26274511218070984,
+        "g": 0.5137255191802979,
+        "b": 0.27843138575553894,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/success/500"
+      }
+    },
+    {
+      "name": "ads/color/inverse/icon/warning",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Warning icon — 3:1 on inverse/background/secondary and on its own tint",
+      "value": {
+        "r": 0.6235294342041016,
+        "g": 0.41960784792900085,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/warning/500"
+      }
+    },
+    {
+      "name": "ads/color/inverse/icon/danger",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Danger icon — 3:1 on inverse/background/secondary and on its own tint",
+      "value": {
+        "r": 0.7882353067398071,
+        "g": 0.2980392277240753,
+        "b": 0.2666666805744171,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/danger/500"
+      }
+    },
+    {
+      "name": "ads/color/inverse/icon/info",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Info icon — 3:1 on inverse/background/secondary and on its own tint",
+      "value": {
+        "r": 0.1921568661928177,
+        "g": 0.48235294222831726,
+        "b": 0.6980392336845398,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/info/500"
+      }
+    },
+    {
+      "name": "ads/color/inverse/icon/brand-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Muted brand icon — 3:1 on inverse/background/primary",
+      "value": {
+        "r": 0.27843138575553894,
+        "g": 0.21568627655506134,
+        "b": 0.6078431606292725,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/primary/650"
+      }
+    },
+    {
+      "name": "ads/color/inverse/icon/success-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Muted success icon — 3:1 on inverse/background/primary",
+      "value": {
+        "r": 0.14509804546833038,
+        "g": 0.35686275362968445,
+        "b": 0.16078431904315948,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/success/650"
+      }
+    },
+    {
+      "name": "ads/color/inverse/icon/warning-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Muted warning icon — 3:1 on inverse/background/primary",
+      "value": {
+        "r": 0.4274509847164154,
+        "g": 0.2823529541492462,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/warning/650"
+      }
+    },
+    {
+      "name": "ads/color/inverse/icon/danger-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Muted danger icon — 3:1 on inverse/background/primary",
+      "value": {
+        "r": 0.5568627715110779,
+        "g": 0.1764705926179886,
+        "b": 0.15294118225574493,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/danger/650"
+      }
+    },
+    {
+      "name": "ads/color/inverse/icon/info-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Muted info icon — 3:1 on inverse/background/primary",
+      "value": {
+        "r": 0.08627451211214066,
+        "g": 0.32549020648002625,
+        "b": 0.49803921580314636,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/info/650"
+      }
+    },
+    {
+      "name": "ads/color/inverse/icon/link/default",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Link icon, default — 3:1 on inverse/background/secondary",
+      "value": {
+        "r": 0,
+        "g": 0.48627451062202454,
+        "b": 0.7333333492279053,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/accent/500"
+      }
+    },
+    {
+      "name": "ads/color/inverse/icon/link/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Link icon, hover — 3:1 on inverse/background/secondary",
+      "value": {
+        "r": 0,
+        "g": 0.3803921639919281,
+        "b": 0.5333333611488342,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/accent/600"
+      }
+    },
+    {
+      "name": "ads/color/inverse/icon/link/visited",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Link icon, visited — 3:1 on inverse/background/secondary",
+      "value": {
+        "r": 0,
+        "g": 0.1882352977991104,
+        "b": 0.2705882489681244,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/accent/800"
+      }
+    },
+    {
+      "name": "ads/color/inverse/icon/link/focused",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Link icon, focused — 3:1 on inverse/background/secondary",
+      "value": {
+        "r": 0,
+        "g": 0.48627451062202454,
+        "b": 0.7333333492279053,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/accent/500"
+      }
+    },
+    {
+      "name": "ads/color/inverse/icon/link/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Link icon, pressed — 3:1 on inverse/background/secondary",
+      "value": {
+        "r": 0,
+        "g": 0.27843138575553894,
+        "b": 0.4000000059604645,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/core/palette/accent/700"
       }
     },
     {
@@ -4328,510 +4832,6 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "ads/core/palette/black-alpha/20"
-      }
-    },
-    {
-      "name": "ads/color/inverse/border/primary",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Default border — a decorative divider",
-      "value": {
-        "r": 0.7568627595901489,
-        "g": 0.7568627595901489,
-        "b": 0.7647058963775635,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/neutral/200"
-      }
-    },
-    {
-      "name": "ads/color/inverse/border/secondary",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Stronger border / divider",
-      "value": {
-        "r": 0.4588235318660736,
-        "g": 0.4627451002597809,
-        "b": 0.47843137383461,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/neutral/500"
-      }
-    },
-    {
-      "name": "ads/color/inverse/border/tertiary",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Strongest border / divider",
-      "value": {
-        "r": 0.26274511218070984,
-        "g": 0.26274511218070984,
-        "b": 0.27843138575553894,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/neutral/700"
-      }
-    },
-    {
-      "name": "ads/color/inverse/border/brand",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Brand border — 3:1 on inverse/background/primary",
-      "value": {
-        "r": 0.4470588266849518,
-        "g": 0.4117647111415863,
-        "b": 0.7921568751335144,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/primary/500"
-      }
-    },
-    {
-      "name": "ads/color/inverse/border/success",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Success border — 3:1 on inverse/background/primary",
-      "value": {
-        "r": 0.26274511218070984,
-        "g": 0.5137255191802979,
-        "b": 0.27843138575553894,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/success/500"
-      }
-    },
-    {
-      "name": "ads/color/inverse/border/warning",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Warning border — 3:1 on inverse/background/primary",
-      "value": {
-        "r": 0.6235294342041016,
-        "g": 0.41960784792900085,
-        "b": 0,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/warning/500"
-      }
-    },
-    {
-      "name": "ads/color/inverse/border/danger",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Danger border — 3:1 on inverse/background/primary",
-      "value": {
-        "r": 0.7882353067398071,
-        "g": 0.2980392277240753,
-        "b": 0.2666666805744171,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/danger/500"
-      }
-    },
-    {
-      "name": "ads/color/inverse/border/info",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Info border — 3:1 on inverse/background/primary",
-      "value": {
-        "r": 0.1921568661928177,
-        "g": 0.48235294222831726,
-        "b": 0.6980392336845398,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/info/500"
-      }
-    },
-    {
-      "name": "ads/color/inverse/border/focus",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "STROKE_COLOR"
-      ],
-      "description": "Focus ring color — 3:1 on inverse/background/primary",
-      "value": {
-        "r": 0,
-        "g": 0.4313725531101227,
-        "b": 0.6000000238418579,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/accent/550"
-      }
-    },
-    {
-      "name": "ads/color/inverse/icon/primary",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Primary icon — strongest neutral",
-      "value": {
-        "r": 0.05098039284348488,
-        "g": 0.05098039284348488,
-        "b": 0.054901961237192154,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/neutral/950"
-      }
-    },
-    {
-      "name": "ads/color/inverse/icon/secondary",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Secondary icon — 3:1 on inverse/background/secondary",
-      "value": {
-        "r": 0.5058823823928833,
-        "g": 0.5098039507865906,
-        "b": 0.5254902243614197,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/neutral/450"
-      }
-    },
-    {
-      "name": "ads/color/inverse/icon/tertiary",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Tertiary icon — 3:1 on inverse/background/secondary",
-      "value": {
-        "r": 0.5058823823928833,
-        "g": 0.5098039507865906,
-        "b": 0.5254902243614197,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/neutral/450"
-      }
-    },
-    {
-      "name": "ads/color/inverse/icon/brand",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Brand icon — 3:1 on inverse/background/secondary and on its own tint",
-      "value": {
-        "r": 0.3686274588108063,
-        "g": 0.29411765933036804,
-        "b": 0.7647058963775635,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/primary/550"
-      }
-    },
-    {
-      "name": "ads/color/inverse/icon/success",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Success icon — 3:1 on inverse/background/secondary and on its own tint",
-      "value": {
-        "r": 0.26274511218070984,
-        "g": 0.5137255191802979,
-        "b": 0.27843138575553894,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/success/500"
-      }
-    },
-    {
-      "name": "ads/color/inverse/icon/warning",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Warning icon — 3:1 on inverse/background/secondary and on its own tint",
-      "value": {
-        "r": 0.6235294342041016,
-        "g": 0.41960784792900085,
-        "b": 0,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/warning/500"
-      }
-    },
-    {
-      "name": "ads/color/inverse/icon/danger",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Danger icon — 3:1 on inverse/background/secondary and on its own tint",
-      "value": {
-        "r": 0.7882353067398071,
-        "g": 0.2980392277240753,
-        "b": 0.2666666805744171,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/danger/500"
-      }
-    },
-    {
-      "name": "ads/color/inverse/icon/info",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Info icon — 3:1 on inverse/background/secondary and on its own tint",
-      "value": {
-        "r": 0.1921568661928177,
-        "g": 0.48235294222831726,
-        "b": 0.6980392336845398,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/info/500"
-      }
-    },
-    {
-      "name": "ads/color/inverse/icon/brand-subtle",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Muted brand icon — 3:1 on inverse/background/primary",
-      "value": {
-        "r": 0.27843138575553894,
-        "g": 0.21568627655506134,
-        "b": 0.6078431606292725,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/primary/650"
-      }
-    },
-    {
-      "name": "ads/color/inverse/icon/success-subtle",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Muted success icon — 3:1 on inverse/background/primary",
-      "value": {
-        "r": 0.14509804546833038,
-        "g": 0.35686275362968445,
-        "b": 0.16078431904315948,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/success/650"
-      }
-    },
-    {
-      "name": "ads/color/inverse/icon/warning-subtle",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Muted warning icon — 3:1 on inverse/background/primary",
-      "value": {
-        "r": 0.4274509847164154,
-        "g": 0.2823529541492462,
-        "b": 0,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/warning/650"
-      }
-    },
-    {
-      "name": "ads/color/inverse/icon/danger-subtle",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Muted danger icon — 3:1 on inverse/background/primary",
-      "value": {
-        "r": 0.5568627715110779,
-        "g": 0.1764705926179886,
-        "b": 0.15294118225574493,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/danger/650"
-      }
-    },
-    {
-      "name": "ads/color/inverse/icon/info-subtle",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Muted info icon — 3:1 on inverse/background/primary",
-      "value": {
-        "r": 0.08627451211214066,
-        "g": 0.32549020648002625,
-        "b": 0.49803921580314636,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/info/650"
-      }
-    },
-    {
-      "name": "ads/color/inverse/icon/link/default",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Link icon, default — 3:1 on inverse/background/secondary",
-      "value": {
-        "r": 0,
-        "g": 0.48627451062202454,
-        "b": 0.7333333492279053,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/accent/500"
-      }
-    },
-    {
-      "name": "ads/color/inverse/icon/link/hover",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Link icon, hover — 3:1 on inverse/background/secondary",
-      "value": {
-        "r": 0,
-        "g": 0.3803921639919281,
-        "b": 0.5333333611488342,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/accent/600"
-      }
-    },
-    {
-      "name": "ads/color/inverse/icon/link/visited",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Link icon, visited — 3:1 on inverse/background/secondary",
-      "value": {
-        "r": 0,
-        "g": 0.1882352977991104,
-        "b": 0.2705882489681244,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/accent/800"
-      }
-    },
-    {
-      "name": "ads/color/inverse/icon/link/focused",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Link icon, focused — 3:1 on inverse/background/secondary",
-      "value": {
-        "r": 0,
-        "g": 0.48627451062202454,
-        "b": 0.7333333492279053,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/accent/500"
-      }
-    },
-    {
-      "name": "ads/color/inverse/icon/link/pressed",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "Link icon, pressed — 3:1 on inverse/background/secondary",
-      "value": {
-        "r": 0,
-        "g": 0.27843138575553894,
-        "b": 0.4000000059604645,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/accent/700"
       }
     },
     {

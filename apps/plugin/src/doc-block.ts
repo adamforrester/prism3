@@ -32,7 +32,8 @@
  * holds both sides to a list of its own.
  *
  * IDEMPOTENT: found on the page by name in any case (`isTemplateSet`) and built only when absent, the
- * `ensureFurnitureTemplates` rule. What a shim cannot verify, as for every template here, is the rendered result.
+ * `ensureFurnitureTemplates` rule. A set already there is repaired in place (`repairDocBlock`, #2902), never rebuilt.
+ * What a shim cannot verify, as for every template here, is the rendered result.
  */
 import { autoLayout, isTemplateSet, stackVariants } from './file-components';
 import type { FNode } from './file-components';
@@ -91,6 +92,7 @@ export interface DNode extends FNode {
   readonly children?: readonly DNode[];
   layoutWrap?: unknown;
   counterAxisSpacing?: unknown;
+  textAutoResize?: unknown;
   setTextStyleIdAsync?(id: string): Promise<void>;
   createInstance?(): DNode;
 }
@@ -106,7 +108,41 @@ export interface DocBlockResult {
   missing: string[];
   /** Text styles or variables the file lacks, by name; the node keeps its default face or no fill. */
   misses: string[];
+  /** On a set already there: how many layers `repairDocBlock` brought up to date. */
+  repaired?: number;
 }
+
+/**
+ * THE BLOCK'S STRETCHED LAYERS (#2902), by the layer names `doc-panel.ts` writes into: each fills the block's width. They
+ * are set to FILL only once appended, because a node is FILL only inside an auto-layout parent, and `layoutAlign` set
+ * before the append did not take in a real file (the horizontal frames kept their own HUG width: Do-Dont's columns at
+ * 100px, Chips at ~986px that never wrapped). Field's `label` is the one text here: fixed at the label column, it grows
+ * to its text (`HEIGHT`), where a resize alone leaves it NONE at 1px, clipped.
+ */
+const FILLED = ['top-padding', 'bottom-padding', 'row', 'columns', 'chips'] as const;
+const fill = (n: DNode): void => { n.layoutSizingHorizontal = 'FILL'; };
+
+/**
+ * Bring a `_Doc-block` built before #2902 up to date in place: each member's `FILLED` layers to FILL and Field's label to
+ * grow to its text. Never deletes or rebuilds the set: instances in usage panels point at it, the `stretchSwatches`
+ * repair's rule (#2268). Only the block's own layers by name, never inside a nested instance. Idempotent: returns how
+ * many layers it changed, 0 on a set already right.
+ */
+export const repairDocBlock = (set: DNode): number => {
+  let changed = 0;
+  const set1 = (n: DNode, key: 'layoutSizingHorizontal' | 'textAutoResize', v: string): void => {
+    if (n[key] === v) return;
+    try { n[key] = v; changed++; } catch { /* a host that refuses it leaves the layer as drawn */ }
+  };
+  for (const member of set.children ?? []) for (const n of member.children ?? []) {
+    if (!(FILLED as readonly unknown[]).includes(n.name)) continue;
+    set1(n, 'layoutSizingHorizontal', 'FILL');
+    if (n.name !== 'row') continue;
+    const label = (n.children ?? []).find((c) => c.name === 'label' && c.type === 'TEXT');
+    if (label) set1(label, 'textAutoResize', 'HEIGHT');
+  }
+  return changed;
+};
 
 /** A member's coordinate values off its variant name (`type=count, tone=neutral` → {type: count, tone: neutral}). */
 export const variantValues = (name: unknown): Record<string, string> =>
@@ -124,11 +160,11 @@ const byTail = <T extends { name: string }>(all: readonly T[], tail: string): T 
  */
 export const ensureDocBlock = async (api: DocBlockApi, page: TemplatesPage): Promise<DocBlockResult> => {
   const out: DocBlockResult = { status: 'skipped', missing: [], misses: [] };
-  const has = !!page.findOne?.((node) => {
+  const has = page.findOne?.((node) => {
     const n = node as { type?: unknown; name?: unknown };
     return n.type === 'COMPONENT_SET' && isTemplateSet(n.name, DOC_BLOCK_SET);
-  });
-  if (has) return { ...out, status: 'present' };
+  }) as DNode | null | undefined;
+  if (has) return { ...out, status: 'present', repaired: repairDocBlock(has) };
   const sets = api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly DNode[];
   const setOf = (name: string) => sets.find((s) => s.type === 'COMPONENT_SET' && s.name === name);
   const parts = Object.fromEntries(Object.entries(BLOCK_PARTS).map(([k, p]) => [k, setOf(p.set)])) as Record<keyof typeof BLOCK_PARTS, DNode | undefined>;
@@ -184,17 +220,17 @@ export const ensureDocBlock = async (api: DocBlockApi, page: TemplatesPage): Pro
     root.layoutSizingHorizontal = 'FIXED';
     root.resize?.(BLOCK_WIDTH, 1);
     root.layoutSizingVertical = 'HUG';
-    const spacer = (name: string): DNode => { const s = api.createFrame() as DNode; s.name = name; s.fills = []; s.resize?.(BLOCK_WIDTH, PADDING_HEIGHT); s.layoutAlign = 'STRETCH'; return s; };
+    const spacer = (name: string): DNode => { const s = api.createFrame() as DNode; s.name = name; s.fills = []; s.resize?.(BLOCK_WIDTH, PADDING_HEIGHT); return s; };
     const top = spacer('top-padding');
     const bottom = spacer('bottom-padding');
     const add = (n: DNode | undefined) => { if (n) root.appendChild?.(n); };
     add(top);
+    fill(top);
     const entry: (typeof roots)[number] = { root, top, bottom };
     if (type === 'Heading') add(await text('text', 'Heading', STYLE.heading[size], BLOCK_COLORS.primary));
     if (type === 'Paragraph') add(await text('text', 'Paragraph', STYLE.body[size], BLOCK_COLORS.secondary));
     if (type === 'Field') {
       const row = frame('row', 'HORIZONTAL', 16);
-      row.layoutAlign = 'STRETCH';
       const label = await text('label', 'Label', STYLE.label[size], BLOCK_COLORS.primary);
       label.layoutAlign = 'INHERIT';
       label.layoutSizingHorizontal = 'FIXED';
@@ -205,10 +241,11 @@ export const ensureDocBlock = async (api: DocBlockApi, page: TemplatesPage): Pro
       row.appendChild?.(label);
       row.appendChild?.(value);
       add(row);
+      fill(row);
+      label.textAutoResize = 'HEIGHT';
     }
     if (type === 'Do-Dont') {
       const cols = frame('columns', 'HORIZONTAL', 16);
-      cols.layoutAlign = 'STRETCH';
       for (const [name, heading, color] of [['do', 'Do', BLOCK_COLORS.doRule], ['dont', "Don't", BLOCK_COLORS.dontRule]] as const) {
         const col = frame(name, 'VERTICAL', 8);
         col.layoutGrow = 1;
@@ -226,6 +263,7 @@ export const ensureDocBlock = async (api: DocBlockApi, page: TemplatesPage): Pro
         cols.appendChild?.(col);
       }
       add(cols);
+      fill(cols);
     }
     if (type === 'Specimen') {
       const stage = frame('stage', 'VERTICAL');
@@ -245,14 +283,15 @@ export const ensureDocBlock = async (api: DocBlockApi, page: TemplatesPage): Pro
       const chips = frame('chips', 'HORIZONTAL', 6);
       chips.layoutWrap = 'WRAP';
       chips.counterAxisSpacing = 6;
-      chips.layoutAlign = 'STRETCH';
       for (let i = 1; i <= CHIP_SLOTS; i++) { const c = instance('chip', `chip${i}`); if (c) chips.appendChild?.(c); }
       add(chips);
+      fill(chips);
       entry.caption = await text('note', 'Note', STYLE.caption[size], BLOCK_COLORS.secondary);
       add(entry.caption);
     }
     if (type === 'Divider') { const d = instance('divider', 'divider'); if (d) { d.layoutAlign = 'STRETCH'; add(d); } }
     add(bottom);
+    fill(bottom);
     page.appendChild(root);
     roots.push(entry);
   }
