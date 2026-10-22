@@ -19,7 +19,8 @@
  *     2.25 to 3 writes 2.5, 2.75 and 3 in turn. `setButtonMinWidth` is called once per step by the caller; it does
  *     not debounce, and a caller that wrote on release only would persist fewer states.
  */
-import { DEFAULT_MIN_WIDTH_MULTIPLIER, type ButtonContentSize, type ButtonIcons, type ButtonLabelWeight, type ButtonTextHover } from '@prism3/engine/scale';
+import { DEFAULT_MIN_WIDTH_MULTIPLIER, ICON_SIZES, type ButtonContentSize, type ButtonIcons, type ButtonLabelWeight, type ButtonTextHover } from '@prism3/engine/scale';
+import type { Theme } from '@prism3/engine/theme';
 import { brandState, getPath, setPath } from './store';
 
 /** Button icons: `attached` (the default, written when chosen) or `edges`. */
@@ -51,3 +52,17 @@ export const buttonLayout = (): ButtonLayoutView => ({
   mult: Number(getPath(brandState, 'buttonMinWidthMultiplier') ?? DEFAULT_MIN_WIDTH_MULTIPLIER),
   labelRole: (getPath(brandState, 'buttonLabelWeight') ?? 'emphasis') === 'default' ? 'default' : 'emphasis',
 });
+
+/** What a medium button's label and icon are under one Button label & icon value, in the brand's own sizes (#ISSUE):
+ *  the label rung it binds, that rung's px from the brand's type scale, and the icon size and its px. */
+export type ContentSizeView = { rung: 'md' | 'sm'; labelPx: number; icon: 'sm' | 'xs'; iconPx: number };
+/** Read from the theme the preview is drawn from, never restated: `match` binds the medium label and icon (`label.md`,
+ *  `icon.size.sm`), `smaller` the small button's (`label.sm`, `icon.size.xs`), as `applyButtonLayout` materializes them.
+ *  A rung the brand does not emit reads `null`, so the readout says nothing rather than a made-up number. */
+export const contentSizeOf = (theme: Theme, v: ButtonContentSize): ContentSizeView | null => {
+  const rung = v === 'smaller' ? 'sm' : 'md';
+  const icon = v === 'smaller' ? 'xs' : 'sm';
+  const labelPx = theme.typography.composites.find((c) => c.group === 'label' && c.variant === rung)?.sizePx;
+  const iconPx = ICON_SIZES.find((i) => i.name === icon)?.px;
+  return labelPx === undefined || iconPx === undefined ? null : { rung, labelPx, icon, iconPx };
+};
