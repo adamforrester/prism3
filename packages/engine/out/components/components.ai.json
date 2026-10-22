@@ -2792,9 +2792,9 @@
         {
           "name": "showMessage",
           "type": "boolean",
-          "default": true,
+          "default": false,
           "required": false,
-          "description": "Whether the composed FieldMessage is shown. On — the default — renders the helper / validation message below the input; turning it off hides the message entirely (a field with no helper or validation text). Never hides a message the field needs."
+          "description": "Whether the composed FieldMessage is shown. Off by default; turn it on to render the helper or validation message below the input. Never hides a message the field needs: turn it on wherever there is helper or validation text."
         },
         {
           "name": "required",
@@ -3079,9 +3079,9 @@
         {
           "name": "showMessage",
           "type": "boolean",
-          "default": true,
+          "default": false,
           "required": false,
-          "description": "Whether the composed FieldMessage is shown. On, the default, renders the helper or validation message below the field; turning it off hides the message entirely. The same prop as TextField's. Never hides a message the field needs."
+          "description": "Whether the composed FieldMessage is shown. Off by default; turn it on to render the helper or validation message below the field. The same prop as TextField's. Never hides a message the field needs."
         },
         {
           "name": "rows",
@@ -4921,9 +4921,9 @@
         {
           "name": "showMessage",
           "type": "boolean",
-          "default": true,
+          "default": false,
           "required": false,
-          "description": "Whether the composed FieldMessage is shown. On — the default — renders the helper / validation message below the control; turning it off hides the message entirely (a select with no helper or validation text). Never hides a message the field needs: an error still sets aria-invalid and the message carries the reason, so hide it only when there is genuinely nothing to say."
+          "description": "Whether the composed FieldMessage is shown. Off by default; turn it on to render the helper or validation message below the control. Never hides a message the field needs: an error still sets aria-invalid and the message carries the reason, so turn it on wherever there is something to say."
         },
         {
           "name": "leadingIcon",
@@ -7964,9 +7964,9 @@
         {
           "name": "showMessage",
           "type": "boolean",
-          "default": true,
+          "default": false,
           "required": false,
-          "description": "Whether the composed FieldMessage is shown. On by default; turning it off hides the message entirely. Never hides a message the field needs."
+          "description": "Whether the composed FieldMessage is shown. Off by default; turn it on to render the helper or validation message. Never hides a message the field needs."
         },
         {
           "name": "required",

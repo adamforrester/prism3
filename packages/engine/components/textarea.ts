@@ -120,7 +120,7 @@ export const textarea: ComponentDef = {
     { name: 'onChange', type: 'function', required: false, description: 'Change handler (also onBlur / onFocus). The same prop as TextField\'s.' },
     { name: 'placeholder', type: 'string', required: false, description: 'An example only; vanishes on input; nothing load-bearing lives here. The same prop as TextField\'s.' },
     { name: 'helpText', type: 'string | node', required: false, description: 'Persistent guidance (rendered as FieldMessage, default status); wired via aria-describedby. Show the format and any length limit before failure. The same prop as TextField\'s.' },
-    { name: 'showMessage', type: 'boolean', default: true, required: false, description: 'Whether the composed FieldMessage is shown. On, the default, renders the helper or validation message below the field; turning it off hides the message entirely. The same prop as TextField\'s. Never hides a message the field needs.' },
+    { name: 'showMessage', type: 'boolean', default: false, required: false, description: 'Whether the composed FieldMessage is shown. Off by default; turn it on to render the helper or validation message below the field. The same prop as TextField\'s. Never hides a message the field needs.' },
     { name: 'rows', type: 'number', default: 3, required: false, description: 'Initial and minimum height, in lines not pixels — a line count recomputes against the current line-height when the user raises their font size, where a pixel floor does not. Also a content cue: two rows signals brevity, six signals "write more". cols is dead on the web; width comes from CSS.' },
     { name: 'resize', type: "enum: 'none' | 'vertical' | 'auto'", values: ['none', 'vertical', 'auto'], default: 'vertical', required: false, description: 'The sizing model in one prop, so two props cannot contradict each other. vertical (the drag handle) for standalone form fields; auto (grow within minRows/maxRows) for composers; none where layout stability wins. Never horizontal or both — altering the inline dimension shatters grid and flex layouts for no user gain.' },
     { name: 'minRows', type: 'number', required: false, description: 'Auto-grow floor, in lines. Only meaningful with resize="auto".' },
@@ -456,7 +456,7 @@ export const textarea: ComponentDef = {
         nests: 'field-message',
         nesting: { kind: 'nest-fixed', variant: { status: 'default' }, follow: ['status'] },
         crossAxisFill: true,
-        note: 'Helper or validation text, composed rather than re-declared. Its status follows the field\'s validation by name. Shown by default; the `message` boolean hides it, with the space above it.',
+        note: 'Helper or validation text, composed rather than re-declared. Its status follows the field\'s validation by name. Hidden by default (#2926); the `message` boolean shows it, with the space above it.',
       },
       // THE COUNTER CELL — the stack gap above the counter, HUGGING the caption at the end of the row, so the
       // counter trails whether or not the message is shown. The `character count` boolean toggles this cell.
@@ -508,8 +508,9 @@ export const textarea: ComponentDef = {
     },
     booleans: {
       // Each switch toggles its own CELL, which carries the space above it — so any of the four combinations
-      // leaves no empty row and no stray gap (the header's last section).
-      showMessage: { part: 'messageCell', figmaName: 'message', default: true },
+      // leaves no empty row and no stray gap (the header's last section). Both are off by default (the message
+      // since #2926, owner decision), so a placed field ends at its control.
+      showMessage: { part: 'messageCell', figmaName: 'message', default: false },
       // Keyed by `resize`, the code prop that decides whether the browser draws a handle (`vertical`, the
       // default, does). A boolean rather than a variant axis: the grip is pinned out of the flow, so its
       // presence moves nothing and a node-visibility toggle carries it (the icon-property canon).

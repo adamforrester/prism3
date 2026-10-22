@@ -16850,31 +16850,58 @@ arm: {
       `#1426 MUTATION: reverting control.justify to 'start' projects primaryAxisAlignItems MIN (got ${String(ctrlOf(startJustify as ComponentDef).primaryAxisAlignItems)}), flipping '#1426 select control pins the chevron right' BY NAME`);
 
     // (2) showMessage BOOLEAN (#1412 on a `nest` part — a first). The composed `message` nest is emitted at
-    //     EVERY member, shown by default, its `visible` driven by the `message` boolean — the INVERSE
-    //     direction of the leading glyph (default true, like field-label's `required`).
+    //     EVERY member, hidden by default since #2926 (owner decision), its `visible` driven by the `message`
+    //     boolean — the same direction as the leading glyph.
     const sset = figmaAnatomySet(select, { swapTarget: 'FPO-default-icon' });
     const findMsg = (n: any): any => (n.name === 'message' ? n : (n.children ?? []).map(findMsg).find(Boolean));
     const msgNodes = sset.map((p) => findMsg(p.root));
     ok(msgNodes.length === sset.length && msgNodes.every(Boolean),
       `#1426 the composed message nest is emitted at EVERY projected member (${msgNodes.filter(Boolean).length}/${sset.length})`);
-    ok(msgNodes.length > 0 && msgNodes.every((m) => m?.visibleProp === 'message' && (m?.visible ?? true) === true),
-      '#1426 every message node is shown by default (built visible — `visible` omitted per #1331\'s "carried only when false" rule) with its `visible` driven by the `message` boolean (inverse of the leading glyph, which defaults hidden)');
+    ok(msgNodes.length > 0 && msgNodes.every((m) => m?.visibleProp === 'message' && m?.visible === false),
+      '#2926 every select message node is hidden by default (built `visible:false`) with its `visible` driven by the `message` boolean');
     //   and the built visibility TRACKS the default rather than being a constant (docs/34 shape 4): flipping
-    //   the boolean default to false builds every message node `visible:false`.
-    const hiddenDefault = { ...select, figmaProperties: { ...fp, booleans: { ...fp.booleans, showMessage: { part: 'message', figmaName: 'message', default: false } } } };
-    const hiddenMsgs = figmaAnatomySet(hiddenDefault as never, { swapTarget: 'FPO-default-icon' }).map((p) => findMsg(p.root));
-    ok(hiddenMsgs.length > 0 && hiddenMsgs.every((m) => m?.visible === false),
-      '#1426 the built visibility TRACKS the boolean default — flipping showMessage default→false builds every message node `visible:false`, so the shown-by-default assertion is not measuring a constant');
+    //   the boolean default to true builds every message node visible (`visible` omitted, #1331).
+    const shownDefault = { ...select, figmaProperties: { ...fp, booleans: { ...fp.booleans, showMessage: { part: 'message', figmaName: 'message', default: true } } } };
+    const shownMsgs = figmaAnatomySet(shownDefault as never, { swapTarget: 'FPO-default-icon' }).map((p) => findMsg(p.root));
+    ok(shownMsgs.length > 0 && shownMsgs.every((m) => (m?.visible ?? true) === true),
+      '#1426 the built visibility TRACKS the boolean default — flipping showMessage default→true builds every message node visible, so the hidden-by-default assertion is not measuring a constant');
+
+    // (2b) #2926 (owner decision on #2926, item 1): EVERY field's message defaults OFF. The family is written out
+    //     here rather than read from the defs, and the defs are checked against it both ways: a def that gains a
+    //     `showMessage` boolean (Code input #2789, Search #2912) must join this list, and so take the same
+    //     default. The expected `false` is the owner's answer, not a value read off any def (docs/34).
+    {
+      const MESSAGE_OFF_FAMILY = ['counter', 'password-field', 'select', 'text-field', 'textarea'];
+      const withMsg = componentDefs.filter((d) => d.figmaProperties?.booleans?.showMessage).map((d) => d.id).sort();
+      ok(JSON.stringify(withMsg) === JSON.stringify(MESSAGE_OFF_FAMILY),
+        `#2926 the defs with a showMessage boolean are exactly the message-off family ${JSON.stringify(MESSAGE_OFF_FAMILY)} (got ${JSON.stringify(withMsg)}) — a new one joins the list and takes its default`);
+      const findVis = (n: any, name: string): any[] => [...(n.visibleProp === name ? [n] : []), ...(n.children ?? []).flatMap((c: any) => findVis(c, name))];
+      const msgBad: string[] = [];
+      for (const id of MESSAGE_OFF_FAMILY) {
+        const d = componentDefs.find((x) => x.id === id);
+        const b = d?.figmaProperties?.booleans?.showMessage;
+        const prop = d?.props?.find((x) => x.name === 'showMessage');
+        if (!d || !b) { msgBad.push(`${id}: no showMessage boolean`); continue; }
+        if (b.default !== false) msgBad.push(`${id}: boolean default ${String(b.default)}`);
+        if (prop?.default !== false) msgBad.push(`${id}: prop default ${String(prop?.default)}`);
+        if (/\b(shown|on) by default\b|on — the default|on, the default/i.test(`${prop?.description ?? ''} ${d.anatomy?.parts[b.part]?.note ?? ''} ${d.anatomy?.parts.message?.note ?? ''}`)) msgBad.push(`${id}: prose still says the message is on by default`);
+        const set = figmaAnatomySet(d, { swapTarget: 'FPO-default-icon' });
+        const nodes = set.flatMap((p) => findVis(p.root, b.figmaName ?? 'message'));
+        if (nodes.length < set.length || !nodes.every((n) => n.visible === false)) msgBad.push(`${id}: ${nodes.filter((n) => n.visible !== false).length} of ${nodes.length} message nodes built visible over ${set.length} members`);
+      }
+      ok(msgBad.length === 0,
+        `#2926 every field's message is OFF by default: the boolean, the prop and the built node (visible:false at every member) agree, and no doc says "shown by default"${msgBad.length ? ` — WRONG: ${msgBad.join(' | ')}` : ''}`);
+    }
 
     // (3) the boolean does NOT multiply the set — still status(4) × state(5) = 20 members.
     ok(sset.length === 84,
       `#1426 the showMessage boolean toggles a part in place and does not multiply the set — still 84 members, size(3) × status(4) × state(7) (got ${sset.length})`);
 
-    // (4) planSetProperties declares `message` as a BOOLEAN defaulting to the built (shown) visibility.
+    // (4) planSetProperties declares `message` as a BOOLEAN defaulting to the built (hidden, #2926) visibility.
     const props = planSetProperties(sset);
     const msgProp = props.find((p) => p.name === 'message');
-    ok(!!msgProp && msgProp.type === 'BOOLEAN' && msgProp.default === true,
-      `#1426 planSetProperties declares 'message' as a BOOLEAN defaulting true (the built visibility) — got ${JSON.stringify(msgProp)}`);
+    ok(!!msgProp && msgProp.type === 'BOOLEAN' && msgProp.default === false,
+      `#2926 planSetProperties declares 'message' as a BOOLEAN defaulting false (the built visibility) — got ${JSON.stringify(msgProp)}`);
 
     // (5) BEHAVIOR MUTATION (docs/34) — the boolean is the message nest's SOLE presence mechanism now that it
     //     is optional. Drop only the showMessage boolean (keep leadingIcon) and the message nest is DROPPED at

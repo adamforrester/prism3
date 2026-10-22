@@ -118,7 +118,7 @@ Label = noun phrase, sentence case, no trailing colon. Button = "Show" / "Hide",
 | `helpText` | string \| node | — | no | Persistent guidance (rendered as FieldMessage, default status), wired via aria-describedby. State the rules for a new password here, before the user types. |
 | `validation` | enum: 'default' \| 'error' \| 'warning' \| 'success' | `default` | no | The validation state, as on TextField: each non-default status swaps the input border and sets the nested message to the matching status; error also sets aria-invalid. The Show/Hide button never takes the status color. |
 | `validationMessage` | string \| node | — | no | The validation text shown at error / warning / success, added to aria-describedby. Say what is wrong and how to fix it (SC 3.3.3). |
-| `showMessage` | boolean | `true` | no | Whether the composed FieldMessage is shown. On by default; turning it off hides the message entirely. Never hides a message the field needs. |
+| `showMessage` | boolean | `false` | no | Whether the composed FieldMessage is shown. Off by default; turn it on to render the helper or validation message. Never hides a message the field needs. |
 | `required` | boolean | `false` | no | Sets required / aria-required, and turns on the FieldLabel's required marker. |
 | `disabled` | boolean | `false` | no | Native disabled. Disables the Show/Hide button with the field. |
 | `readOnly` | boolean | `false` | no | Focusable, copyable and submitted, and passes contrast. The Show/Hide button stays live, so a read-only value can still be shown. |
@@ -460,7 +460,7 @@ Keyed by `status`, `state`.
 | `value` | text | `••••••••` |
 | `leading icon` | boolean | `false` |
 | `↳ swap leading icon` | instance swap | — |
-| `message` | boolean | `true` |
+| `message` | boolean | `false` |
 
 ---
 
