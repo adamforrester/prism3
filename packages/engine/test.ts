@@ -33818,9 +33818,9 @@ arm: {
   // THE PANEL (Q?3 A, Q?4 A): the properties in panel order, each default typed here.
   const props = planSetProperties(sfPlans).map((p: any) => `${p.name}:${p.type}:${p.default ?? p.swapTarget}`);
   const WANT_PROPS = ['placeholder:TEXT:Placeholder', 'value:TEXT:Entered text', 'label:BOOLEAN:true', 'leading icon:BOOLEAN:true',
-    '↳ swap leading icon:INSTANCE_SWAP:icon/search', 'trailing icon:BOOLEAN:false', '↳ swap trailing icon:INSTANCE_SWAP:icon/close-filled', 'message:BOOLEAN:true'];
+    '↳ swap leading icon:INSTANCE_SWAP:icon/search', 'trailing icon:BOOLEAN:false', '↳ swap trailing icon:INSTANCE_SWAP:icon/close-filled', 'message:BOOLEAN:false'];
   ok(JSON.stringify(props) === JSON.stringify(WANT_PROPS),
-    `#2888 search-field panel: the label switch on, the search glyph shown, the clear glyph close-filled and hidden, the message on (got ${JSON.stringify(props)})`);
+    `#2888 search-field panel: the label switch on, the search glyph shown, the clear glyph close-filled and hidden, the message off (#2926) (got ${JSON.stringify(props)})`);
   const showLabel = sf.figmaProperties?.booleans?.showLabel;
   ok(typeof showLabel === 'object' && showLabel.figmaOnly === true && !sf.props.some((p) => p.name === 'showLabel')
     && sf.props.find((p) => p.name === 'hideLabel')?.default === false,
@@ -33863,6 +33863,36 @@ arm: {
     && sf.accessibility.aria.includes('aria-label="Clear search"') && sf.accessibility.aria.includes('"Search cleared"')
     && sf.anatomy!.codeOnly.some((e) => e.startsWith('ONE CLEAR BUTTON ONLY') && e.includes('::-webkit-search-cancel-button')),
     '#2888 Q?3 A: the clear button is named "Clear search", returns focus to the input, announces "Search cleared", and the browser\'s own cancel glyph is hidden');
+  // THE CLEAR BUTTON'S HIT AREA (review Q1 A, WCAG 2.5.8): the button sits inside the input's own target, so the
+  // spacing exception cannot apply and the button must meet 24 CSS px itself. Its 20px glyph alone does not. The def
+  // must STATE a target of at least 24×24 around the glyph, adding no height, in codeOnly and in the trailingIcon
+  // description, and its 2.5.8 line must name both targets. The floor 24 is the WCAG number typed here (docs/34).
+  {
+    const FLOOR = 24;
+    const sized = (t: string | undefined) => [...(t ?? '').matchAll(/at least (\d+)×(\d+)/g)].map((m) => Math.min(Number(m[1]), Number(m[2])));
+    const trailing = sf.props.find((p) => p.name === 'trailingIcon')?.description;
+    const wcag = sf.accessibility.wcag.filter((w) => w.startsWith('2.5.8'));
+    const hitBad: string[] = [];
+    for (const [where, t] of [['codeOnly clear entry', clear[0]], ['trailingIcon description', trailing]] as const) {
+      const n = sized(t);
+      if (!n.length || n.some((x) => x < FLOOR)) hitBad.push(`${where}: target ${n.length ? n.join('/') : 'unstated'}`);
+      if (!/around the 20px glyph/.test(t ?? '') || !/adds no height to the field/.test(t ?? '')) hitBad.push(`${where}: not drawn around the 20px glyph with no added height`);
+    }
+    if (wcag.length !== 1 || !/the field/.test(wcag[0]) || !/the clear button/.test(wcag[0]) || !sized(wcag[0]).length || sized(wcag[0]).some((x) => x < FLOOR))
+      hitBad.push(`2.5.8 line names both targets: ${JSON.stringify(wcag)}`);
+    ok(hitBad.length === 0,
+      `#2912 search-field clear button: a hit area of at least ${FLOOR}×${FLOOR} CSS px around the 20px glyph, adding no height, stated in codeOnly and the trailingIcon description, and the 2.5.8 line names the field and the clear button${hitBad.length ? ` — WRONG: ${hitBad.join('; ')}` : ''}`);
+  }
+  // THE MESSAGE IS OFF BY DEFAULT (owner decision on #2926, item 1): the boolean, the prop and every built message node
+  // agree, and no prose says it is on by default. `false` is the owner's answer, typed here.
+  {
+    const b = sf.figmaProperties?.booleans?.showMessage as { default?: boolean; part?: string } | undefined;
+    const prop = sf.props.find((p) => p.name === 'showMessage');
+    const msgs = sfPlans.map((p) => find(p.root as PN, 'message'));
+    const onProse = /\b(shown|on) by default\b|on — the default/i.test(`${prop?.description ?? ''} ${sf.anatomy?.parts.message?.note ?? ''}`);
+    ok(b?.default === false && prop?.default === false && msgs.every((m) => m?.visibleProp === 'message' && m.visible === false) && !onProse,
+      `#2926 search-field: the message is off by default — boolean ${String(b?.default)}, prop ${String(prop?.default)}, ${msgs.filter((m) => m?.visible !== false).length} of ${msgs.length} message nodes built visible, prose says on: ${onProse}`);
+  }
   const draft: string[] = [];
   const walk = (v: unknown, path: string): void => {
     if (path === 'notes' || path === 'anatomy.codeOnly') return;

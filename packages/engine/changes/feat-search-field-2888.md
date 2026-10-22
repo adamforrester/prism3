@@ -11,4 +11,6 @@ header as a docs example (Q?8 A). Its own page under Components. The factory gai
 right after Field style: `fieldStyleFor` resolves the style the search field is drawn in and `applyFieldStyle` draws it
 unchanged, so a brand that leaves it unset builds every def as before. Control shape's Boxed and Hairline corners reach
 the search field as they reach Text field. `search-field` leaves Text field's `composition.planned` for its
-`alternativeTo`. No token is added or renamed, so CONTRACT is unchanged.
+`alternativeTo`. No token is added or renamed, so CONTRACT is unchanged. The clear button's hit area is stated as at least 24×24 CSS px around its 20px glyph, adding no height to the field
+(WCAG 2.5.8; the review's Q1 A), and the field's message defaults off (owner decision on #2926, item 1), as #2929 sets
+for the other fields.

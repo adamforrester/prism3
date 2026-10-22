@@ -30,3 +30,10 @@ keyed by def id; the search field is added there. Password field is not in that 
 Boxed and Hairline while Text field squares; that is pre-existing and already filed as #2718, not fixed here. The Apply notice
 for a search style change ("Search field style is now …") fires only when the lever moved AND the drawn edge changed; a
 search field that follows a changed Field style is said once, by the field style notice.
+
+**Review fix, and the message default.** The independent review found the clear button's target unstated: its glyph is
+20px and it sits inside the input's own target, so WCAG 2.5.8's spacing exception cannot apply, and a host sizing the
+button to the glyph would fail. `codeOnly`, the `trailingIcon` description and the 2.5.8 line now state a hit area of at
+least 24×24 CSS px around the glyph, adding no height to the field (review Q1 A); `#2912 search-field clear button` holds
+it. The field's message is off by default (owner decision on #2926, item 1). #2929 moves the factory for every field;
+until it lands, `search-field.ts` sets its own boolean and note, which turns into a no-op once #2929 is on main.

@@ -723,7 +723,7 @@
     },
     "search-field": {
       "members": 84,
-      "sha256": "7cac1e8d8a63214510f8861f0e6d21574b3057c103677c59fc338fbe519407e0",
+      "sha256": "fdcf9873c85c47f4cf8b183a06cc385ce376363fae0f354fd8615d2ed7c48885",
       "properties": [
         "label:BOOLEAN",
         "leading icon:BOOLEAN",
@@ -737,7 +737,7 @@
     },
     "search-field@outline-solid-tint": {
       "members": 84,
-      "sha256": "c031a6bff77487edf790774f67ff6bae6640986da0ab4d3151351f4d3816a7aa",
+      "sha256": "55c1da79153294658e54db4d592f27b0e69962d36b74d0822525725f2ce8ab0d",
       "properties": [
         "label:BOOLEAN",
         "leading icon:BOOLEAN",
@@ -751,7 +751,7 @@
     },
     "search-field@outline-none": {
       "members": 84,
-      "sha256": "649ff4493db0dc4169658e778a385449b7484d39645e2fb55babba9470e3a456",
+      "sha256": "5b2a706e4b3e264d4c08d72e12621f657d06897e24429c36f75fd567c0bdfac5",
       "properties": [
         "label:BOOLEAN",
         "leading icon:BOOLEAN",

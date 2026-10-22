@@ -75,7 +75,7 @@ Use for a query that finds or filters: a site search, a search within a section,
 - 4.1.2 Name, Role, Value (the clear button is named "Clear search")
 - 4.1.3 Status Messages ("Search cleared" through a polite live region)
 - 1.4.11 Non-text Contrast (TextField's field boundary, outline or underline)
-- 2.5.8 Target Size
+- 2.5.8 Target Size (the field, and the clear button: a hit area of at least 24×24 px around its glyph)
 - 2.4.13 Focus Appearance (intent)
 
 ### Motion
@@ -117,13 +117,13 @@ Label = noun phrase, sentence case, no trailing colon, naming what is searched. 
 | `helpText` | string \| node | — | no | Persistent guidance (rendered as FieldMessage, default status), wired via aria-describedby. Off by default in most searches. |
 | `validation` | enum: 'default' \| 'error' \| 'warning' \| 'success' | `default` | no | The validation state, as on TextField: each non-default status swaps the input border and sets the nested message to the matching status; error also sets aria-invalid. A search rarely needs one; a query that is too short is one case. |
 | `validationMessage` | string \| node | — | no | The validation text shown at error / warning / success, added to aria-describedby. Say what is wrong and how to fix it (SC 3.3.3). |
-| `showMessage` | boolean | `true` | no | Whether the composed FieldMessage is shown. On by default; turning it off hides the message entirely. Never hides a message the field needs. |
+| `showMessage` | boolean | `false` | no | Whether the composed FieldMessage is shown. Off by default; turn it on to render the helper or validation message below the input. Never hides a message the field needs: turn it on wherever there is helper or validation text. |
 | `required` | boolean | `false` | no | Sets required / aria-required, and turns on the FieldLabel's required marker. |
 | `disabled` | boolean | `false` | no | Native disabled. The clear button is not shown while the field is disabled. |
 | `readOnly` | boolean | `false` | no | Focusable, copyable and submitted, and passes contrast. The clear button is not shown, because the value cannot change. |
 | `autoComplete` | string (WHATWG token) | — | no | Usually off for a site search, so the browser does not offer earlier queries over the page. Pass a token where a saved value helps. |
 | `leadingIcon` | slot | — | no | The search glyph before the value, aria-hidden and never the accessible name. Shown by default; turn it off or swap it where the field's purpose needs a different mark. |
-| `trailingIcon` | slot | — | no | The clear button's glyph, close-filled by default. In code the clear button is a focusable button named "Clear search", shown only while the field holds a value. |
+| `trailingIcon` | slot | — | no | The clear button's glyph, close-filled by default. In code the clear button is a focusable button named "Clear search", shown only while the field holds a value. Its hit area is at least 24×24 px, drawn around the 20px glyph, and adds no height to the field. |
 | `onClear` | function | — | no | Called after the clear button empties the field, with focus back on the input. |
 | `isPending` | boolean | `false` | no | Results are loading; sets aria-busy and does not block typing. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | TextField's three tiers: the input type, the nested label and the padding scale with it. Every size keeps the 44px target. small is for fine pointers only: on a coarse pointer the code sets the small input to 16px, because iOS Safari zooms the page when it focuses an input under 16px. The edge, outline or underline, is the brand's Search field style setting, not a prop. |
@@ -490,7 +490,7 @@ Keyed by `status`, `state`.
 | `↳ swap leading icon` | instance swap | — |
 | `trailing icon` | boolean | `false` |
 | `↳ swap trailing icon` | instance swap | — |
-| `message` | boolean | `true` |
+| `message` | boolean | `false` |
 
 ---
 

@@ -28,7 +28,7 @@
 import { ComponentDef } from '../component-schema';
 import { makeTextField } from './text-field';
 
-export const searchField: ComponentDef = makeTextField({
+const built: ComponentDef = makeTextField({
   id: 'search-field',
   name: 'SearchField',
   aliases: ['search-input', 'search-box', 'search'],
@@ -46,13 +46,13 @@ export const searchField: ComponentDef = makeTextField({
     { name: 'helpText', type: 'string | node', required: false, description: 'Persistent guidance (rendered as FieldMessage, default status), wired via aria-describedby. Off by default in most searches.' },
     { name: 'validation', type: "enum: 'default' | 'error' | 'warning' | 'success'", values: ['default', 'error', 'warning', 'success'], default: 'default', required: false, description: 'The validation state, as on TextField: each non-default status swaps the input border and sets the nested message to the matching status; error also sets aria-invalid. A search rarely needs one; a query that is too short is one case.' },
     { name: 'validationMessage', type: 'string | node', required: false, description: 'The validation text shown at error / warning / success, added to aria-describedby. Say what is wrong and how to fix it (SC 3.3.3).' },
-    { name: 'showMessage', type: 'boolean', default: true, required: false, description: 'Whether the composed FieldMessage is shown. On by default; turning it off hides the message entirely. Never hides a message the field needs.' },
+    { name: 'showMessage', type: 'boolean', default: false, required: false, description: 'Whether the composed FieldMessage is shown. Off by default; turn it on to render the helper or validation message below the input. Never hides a message the field needs: turn it on wherever there is helper or validation text.' },
     { name: 'required', type: 'boolean', default: false, required: false, description: 'Sets required / aria-required, and turns on the FieldLabel\'s required marker.' },
     { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Native disabled. The clear button is not shown while the field is disabled.' },
     { name: 'readOnly', type: 'boolean', default: false, required: false, description: 'Focusable, copyable and submitted, and passes contrast. The clear button is not shown, because the value cannot change.' },
     { name: 'autoComplete', type: 'string (WHATWG token)', required: false, description: 'Usually off for a site search, so the browser does not offer earlier queries over the page. Pass a token where a saved value helps.' },
     { name: 'leadingIcon', type: 'slot', required: false, description: 'The search glyph before the value, aria-hidden and never the accessible name. Shown by default; turn it off or swap it where the field\'s purpose needs a different mark.' },
-    { name: 'trailingIcon', type: 'slot', required: false, description: 'The clear button\'s glyph, close-filled by default. In code the clear button is a focusable button named "Clear search", shown only while the field holds a value.' },
+    { name: 'trailingIcon', type: 'slot', required: false, description: 'The clear button\'s glyph, close-filled by default. In code the clear button is a focusable button named "Clear search", shown only while the field holds a value. Its hit area is at least 24×24 px, drawn around the 20px glyph, and adds no height to the field.' },
     { name: 'onClear', type: 'function', required: false, description: 'Called after the clear button empties the field, with focus back on the input.' },
     { name: 'isPending', type: 'boolean', default: false, required: false, description: 'Results are loading; sets aria-busy and does not block typing.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'TextField\'s three tiers: the input type, the nested label and the padding scale with it. Every size keeps the 44px target. small is for fine pointers only: on a coarse pointer the code sets the small input to 16px, because iOS Safari zooms the page when it focuses an input under 16px. The edge, outline or underline, is the brand\'s Search field style setting, not a prop.' },
@@ -71,7 +71,7 @@ export const searchField: ComponentDef = makeTextField({
     'pending — not projected: its delta is a runtime spinner swap with no distinct static skin a designer picks from a matrix, and the pending member would differ from `rest` only by a node Figma cannot animate. In code a spinner replaces an adornment while async validation or the value resolves, and the field sets aria-busy, so it stays in `states` and is admitted OUT of the projected `stateAxis`.',
     'empty — not projected: in Figma the empty field IS the rest, hover and focus-visible members, which show the `placeholder` layer in `text.secondary`, and `filled` is the member showing the `value` layer in `text.primary`. In code emptiness is a content condition that co-occurs with every interaction, so `empty` stays in `states` (`label.empty` and `error.border.empty` keep the "required field left blank" coordinate) and is held out of the projected `stateAxis` with `pending`, leaving size(3) × status(4) × state(7) = 84 members over rest / hover / filled / focus-visible / focus-visible-filled / disabled / read-only. In code the field holds no value, so it shows the placeholder; the placeholder and the value are one <input>: its `placeholder` attribute and its value, never two elements.',
     'the FOCUS CARET — Figma draws a static bar before the placeholder on the focus-visible member. Code draws the browser\'s native caret, blinking, at the insertion point, with `caret-color` set from `color.text.primary` (the `caret` binding), so it keeps the value ink over the placeholder\'s muted one.',
-    'the CLEAR BUTTON in code (#2888, owner decision Q514 taking Q?3 A) — a `<button type="button" aria-label="Clear search" aria-controls="{input id}">` drawing the trailing glyph, rendered only while the input holds a value and the field is neither disabled nor read-only, so an empty field never offers it. Pressing it empties the input, fires onChange with the empty value and then onClear, RETURNS FOCUS TO THE INPUT, and the app\'s shared polite live region says "Search cleared" once. It is its own Tab stop after the input. Figma builds the glyph hidden on every member (the `trailing icon` switch, off by default); a designer shows it on a filled instance.',
+    'the CLEAR BUTTON in code (#2888, owner decision Q514 taking Q?3 A) — a `<button type="button" aria-label="Clear search" aria-controls="{input id}">` drawing the trailing glyph, rendered only while the input holds a value and the field is neither disabled nor read-only, so an empty field never offers it. Pressing it empties the input, fires onChange with the empty value and then onClear, RETURNS FOCUS TO THE INPUT, and the app\'s shared polite live region says "Search cleared" once. It is its own Tab stop after the input. Its HIT AREA (WCAG 2.5.8) is at least 24×24 CSS px, drawn around the 20px glyph (`icon.size.sm`) and centered on it, inside the field\'s height, so it adds no height to the field. The button must meet 24px on its own: the 2.5.8 spacing exception cannot apply, because the button sits inside the input\'s own target, so a button sized to its glyph fails. Figma builds the glyph hidden on every member (the `trailing icon` switch, off by default); a designer shows it on a filled instance.',
     'ONE CLEAR BUTTON ONLY — the browser\'s own cancel glyph on `type="search"` is hidden (`input[type="search"]::-webkit-search-cancel-button { appearance: none; display: none }`, and the decoration likewise), so the field never shows two.',
     'the HIDDEN LABEL (#2888, owner decision Q514 taking Q?4 A) — `hideLabel` keeps the <label> in the DOM and clips it from view (the visually-hidden technique: a 1px clipped box, never `display: none` or `visibility: hidden`), so the input keeps its accessible name. In Figma the `label` switch removes the nested label from the member, the closest a static member comes; the switch off stands for `hideLabel` in code, never for a field with no label.',
     'the SEARCH LANDMARK and the INPUT\'S ATTRIBUTES — the host wraps a site or section search in `<form role="search">` (or `<search>`), so it is a landmark. The input is `type="search"` with `enterkeyhint="search"`, so a touch keyboard labels its Enter key for searching. There is no submit button (owner decision Q514 taking Q?5 A): Enter submits the host\'s form.',
@@ -89,7 +89,7 @@ export const searchField: ComponentDef = makeTextField({
       '4.1.2 Name, Role, Value (the clear button is named "Clear search")',
       '4.1.3 Status Messages ("Search cleared" through a polite live region)',
       '1.4.11 Non-text Contrast (TextField\'s field boundary, outline or underline)',
-      '2.5.8 Target Size',
+      '2.5.8 Target Size (the field, and the clear button: a hit area of at least 24×24 px around its glyph)',
       '2.4.13 Focus Appearance (intent)',
     ],
     keyboard: 'Tab reaches the input, then the clear button while the field holds a value. Enter submits the host\'s form. Escape empties the field. Enter or Space on the clear button empties the field and returns focus to the input.',
@@ -156,3 +156,24 @@ export const searchField: ComponentDef = makeTextField({
     ],
   },
 });
+
+/** THE MESSAGE IS OFF BY DEFAULT (owner decision on #2926, item 1: every field's message defaults off). #2929 moves
+ *  the factory's `showMessage` boolean and the message note to off for every field; until it lands, this field
+ *  states its own, so it ships consistent either way. Once #2929 is on main this override is a no-op. */
+const message = built.anatomy!.parts.message;
+const booleans = built.figmaProperties!.booleans!;
+const showMessage = booleans.showMessage as Exclude<(typeof booleans)[string], string>;
+export const searchField: ComponentDef = {
+  ...built,
+  anatomy: {
+    ...built.anatomy!,
+    parts: {
+      ...built.anatomy!.parts,
+      message: {
+        ...message,
+        note: 'Helper or validation text, composed rather than re-declared. Its status follows the field\'s validation by name, so error / warning / success reach the message without a value mapping. Hidden by default (#2926); the `showMessage` boolean shows it where the field has something to say. Fills the field\'s width, so a long message wraps.',
+      },
+    },
+  },
+  figmaProperties: { ...built.figmaProperties!, booleans: { ...booleans, showMessage: { ...showMessage, default: false } } },
+};

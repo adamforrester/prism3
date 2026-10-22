@@ -8670,9 +8670,9 @@
         {
           "name": "showMessage",
           "type": "boolean",
-          "default": true,
+          "default": false,
           "required": false,
-          "description": "Whether the composed FieldMessage is shown. On by default; turning it off hides the message entirely. Never hides a message the field needs."
+          "description": "Whether the composed FieldMessage is shown. Off by default; turn it on to render the helper or validation message below the input. Never hides a message the field needs: turn it on wherever there is helper or validation text."
         },
         {
           "name": "required",
@@ -8711,7 +8711,7 @@
           "name": "trailingIcon",
           "type": "slot",
           "required": false,
-          "description": "The clear button's glyph, close-filled by default. In code the clear button is a focusable button named \"Clear search\", shown only while the field holds a value."
+          "description": "The clear button's glyph, close-filled by default. In code the clear button is a focusable button named \"Clear search\", shown only while the field holds a value. Its hit area is at least 24×24 px, drawn around the 20px glyph, and adds no height to the field."
         },
         {
           "name": "onClear",
@@ -8796,7 +8796,7 @@
           "4.1.2 Name, Role, Value (the clear button is named \"Clear search\")",
           "4.1.3 Status Messages (\"Search cleared\" through a polite live region)",
           "1.4.11 Non-text Contrast (TextField's field boundary, outline or underline)",
-          "2.5.8 Target Size",
+          "2.5.8 Target Size (the field, and the clear button: a hit area of at least 24×24 px around its glyph)",
           "2.4.13 Focus Appearance (intent)"
         ],
         "keyboard": "Tab reaches the input, then the clear button while the field holds a value. Enter submits the host's form. Escape empties the field. Enter or Space on the clear button empties the field and returns focus to the input.",

@@ -2656,7 +2656,7 @@
         },
         {
           "name": "showMessage",
-          "default": true
+          "default": false
         },
         {
           "name": "required",
@@ -6015,7 +6015,7 @@
       },
       {
         "id": "search-field",
-        "default": true
+        "default": false
       },
       {
         "id": "select",
@@ -7544,7 +7544,7 @@
         "text-field",
         "textarea"
       ],
-      "detail": "showMessage defaults differ over the same values — false in counter; true in password-field, search-field, select, text-field, textarea"
+      "detail": "showMessage defaults differ over the same values — false in counter, search-field; true in password-field, select, text-field, textarea"
     },
     {
       "kind": "axis without prop",

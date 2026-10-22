@@ -51,7 +51,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 
 ### prop default
 
-- **prop showMessage** — showMessage defaults differ over the same values — false in counter; true in password-field, search-field, select, text-field, textarea
+- **prop showMessage** — showMessage defaults differ over the same values — false in counter, search-field; true in password-field, select, text-field, textarea
 
 ### size default
 
@@ -527,7 +527,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | icon-button-neutral | square | square, circular |
 | showMessage | counter | false | — |
 |  | password-field | true | — |
-|  | search-field | true | — |
+|  | search-field | false | — |
 |  | select | true | — |
 |  | text-field | true | — |
 |  | textarea | true | — |
