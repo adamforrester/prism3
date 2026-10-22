@@ -122,8 +122,9 @@ section('map — the per-def reaction map, literal (owner decision Q238 A, part 
   const want: Record<string, [number, number, number]> = {
     'button': [576, 192, 288], 'button-destructive': [576, 192, 288], 'button-neutral': [576, 192, 288],
     'icon-button': [216, 72, 108], 'icon-button-destructive': [216, 72, 108], 'icon-button-neutral': [216, 72, 108],
-    'checkbox-control': [54, 18, 27], 'radio-control': [30, 12, 18], 'switch-control': [24, 8, 12],
-    'tag': [45, 18, 27], 'tab': [30, 12, 18], 'segmented-control-segment': [30, 12, 18], 'link': [96, 48, 72],
+    // #2751 (owner Q354): `status` doubles the three choice controls; an errored control still hovers and presses.
+    'checkbox-control': [90, 36, 54], 'radio-control': [60, 24, 36], 'switch-control': [40, 16, 24],
+    'tag': [45, 18, 27], 'tab-item': [30, 12, 18], 'segmented-control-segment': [30, 12, 18], 'link': [96, 48, 72],
     // #2457: the flush icon button, 2 shapes × 3 sizes (Q287 A) × (rest → hover, rest → pressed, hover → pressed), in
     // each of its three families (Q295.2 B).
     'flush-icon-button': [60, 24, 36], 'flush-icon-button-destructive': [60, 24, 36], 'flush-icon-button-neutral': [60, 24, 36],
@@ -349,7 +350,7 @@ section('touch — Rest keeps While pressing, and a file built under the hover-o
 // → `all three/hash, set`; the page list dropped from it → `all three/hash, page`.
 section('all three — reactions, set moves and page reorders in one run: one version, all done, all in the hash');
 {
-  const IDS = ['tag', 'tab', 'switch-control'];
+  const IDS = ['tag', 'tab-item', 'switch-control'];
   const plansBy = new Map(IDS.map((id) => [id, plansOf(id)] as const));
   const all = [...plansBy.values()].flat();
   const page: Page = { children: [] };
@@ -364,7 +365,7 @@ section('all three — reactions, set moves and page reorders in one run: one ve
   const sets = page.children.filter((n) => n.type === 'COMPONENT_SET') as Node[];
   for (const set of sets) (set as { parent?: unknown }).parent = page;
   const fresh = sets.map((n) => [Number(n.x), Number(n.y)]);
-  for (let k = 1; k < sets.length; k++) sets[k].x = Number(sets[k - 1].x) + Number(sets[k - 1].width) + 160;
+  for (let k = 1; k < sets.length; k++) sets[k].x = Number(sets[k - 1].x) + Number(sets[k - 1].width) + 100;
   type P = { name: string; isPageDivider?: boolean; appendChild(): void };
   const pg = (name: string, isPageDivider = false): P => ({ name, isPageDivider, appendChild() {} });
   const pages: P[] = [pg('Cover'), pg('---', true), pg('Components'), pg('↳ Tabs'), pg('↳ Badge'), pg('↳ Divider')];
@@ -387,9 +388,9 @@ section('all three — reactions, set moves and page reorders in one run: one ve
   await dangle(null);
   const pre = await previewUpdate(host, targets);
   const stateOf = (set: string, member: string) => pre.sets.find((p) => p.set === set)?.states.find((s) => s.member === member)?.state;
-  ok(JSON.stringify(pre.sets.filter((p) => p.setMove).map((p) => p.set)) === JSON.stringify(['tab', 'switch-control'])
+  ok(JSON.stringify(pre.sets.filter((p) => p.setMove).map((p) => p.set)) === JSON.stringify(['tab-item', 'switch-control'])
     && JSON.stringify(pre.pages) === JSON.stringify(['↳ Tabs'])
-    && pre.sets[0].counts.update === 18 && stateOf('tab', String(TAB_REST.name)) === 'update',
+    && pre.sets[0].counts.update === 18 && stateOf('tab-item', String(TAB_REST.name)) === 'update',
     `all three/dry run: 18 tag members and the dangling tab member to update, the 2 later sets to move, Tabs to reorder (${JSON.stringify(pre.sets.map((p) => [p.set, p.counts.update, !!p.setMove]))}; ${JSON.stringify(pre.pages)})`);
   // THE HASH covers all three: each changed after the check refuses the confirm, and nothing is saved or written.
   const refused = async (label: string, change: () => Promise<void> | void, undo: () => Promise<void> | void): Promise<void> => {
@@ -408,7 +409,7 @@ section('all three — reactions, set moves and page reorders in one run: one ve
   // THE RUN: one named version, then every set's reactions, every set's place, and the page order.
   const go = await previewUpdate(host, targets);
   const res = await applyUpdate(host, api, targets, previewHashOf(go));
-  ok(JSON.stringify(api._versions) === JSON.stringify(['Before Prism3 updated tag, tab, switch-control, the page order']),
+  ok(JSON.stringify(api._versions) === JSON.stringify(['Before Prism3 updated tag, tab-item, switch-control, the page order']),
     `all three/version: one named version, naming the sets and the page order (${JSON.stringify(api._versions)})`);
   const byName = (s: Node, n: Node): string[] => {
     const ids = new Map(kids(s).map((m) => [String(m.id), String(m.name)] as const));

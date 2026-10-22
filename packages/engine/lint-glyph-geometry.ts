@@ -128,12 +128,12 @@ import type { ComponentDef } from './component-schema';
  * set. A count would read that as a pass.
  */
 const MUST_COVER = [
-  'icon.glyph', 'spinner.ring',
+  'icon.glyph', 'spinner.ringGlyph',
   // The icon INSTANCES (#2380): every icon-set glyph inside another component.
-  'checkbox-control.mark', 'checkbox-control.dash', 'textarea.grip', 'tag.check', 'tag.dismissGlyph',
-  'field-message.iconError', 'field-message.iconWarning', 'field-message.iconSuccess',
-  'switch-control.onGlyph', 'switch-control.offGlyph', 'select.chevron', 'image-placeholder.marker',
-  '_accordion-indicator.chevronDown', '_accordion-indicator.chevronUp', '_accordion-indicator.plus', '_accordion-indicator.minus',
+  'checkbox-control.checkGlyph', 'checkbox-control.dashGlyph', 'textarea.gripGlyph', 'tag.checkGlyph', 'tag.dismissGlyph',
+  'field-message.errorGlyph', 'field-message.warningGlyph', 'field-message.successGlyph',
+  'switch-control.onGlyph', 'switch-control.offGlyph', 'select.chevronGlyph', 'image-placeholder.markerGlyph',
+  '_accordion-indicator.chevronDownGlyph', '_accordion-indicator.chevronUpGlyph', '_accordion-indicator.plusGlyph', '_accordion-indicator.minusGlyph',
   'toast.checkCircleGlyph',
 ];
 
@@ -164,7 +164,7 @@ const COMPOSED_GLYPH: Record<string, {
   glyph: string; ringRadius: number; band: number; arc: number; trackOpacity: number;
   strokePx: Record<string, number>; why: string;
 }> = {
-  'spinner.ring': {
+  'spinner.ringGlyph': {
     glyph: 'spinner', ringRadius: 10, band: 2, arc: 0.33, trackOpacity: 0.2,
     strokePx: { 'x-small': 1.33, small: 1.67, medium: 2, large: 2.67 },
     why: 'The indeterminate spinner (#1670): a faint full ring under a round-capped head arc, one static member per size.',
@@ -233,11 +233,11 @@ const FIXED_GLYPH: Record<string, { glyph: string; at: Record<string, readonly s
   // #2417 (owner Q183) — the Accordion indicator's four glyphs, one per (indicator, expansion) pair. `glyph:
   // '{expansion}'` cannot express them: the vocabulary has no `collapsed` or `expanded` glyph, and the pair changes
   // with `indicator` as well.
-  '_accordion-indicator.chevronDown': { glyph: 'chevron-down', at: { indicator: ['chevron'], expansion: ['collapsed'] }, why: 'the closed chevron, pointing down at the content a click will open' },
-  '_accordion-indicator.chevronUp': { glyph: 'chevron-up', at: { indicator: ['chevron'], expansion: ['expanded'] }, why: 'the open chevron, pointing up' },
-  '_accordion-indicator.plus': { glyph: 'plus', at: { indicator: ['plus-minus'], expansion: ['collapsed'] }, why: 'the closed mark of the plus and minus pair' },
-  '_accordion-indicator.minus': { glyph: 'minus', at: { indicator: ['plus-minus'], expansion: ['expanded'] }, why: 'the open mark of the plus and minus pair' },
-  'image-placeholder.marker': {
+  '_accordion-indicator.chevronDownGlyph': { glyph: 'chevron-down', at: { indicator: ['chevron'], expansion: ['collapsed'] }, why: 'the closed chevron, pointing down at the content a click will open' },
+  '_accordion-indicator.chevronUpGlyph': { glyph: 'chevron-up', at: { indicator: ['chevron'], expansion: ['expanded'] }, why: 'the open chevron, pointing up' },
+  '_accordion-indicator.plusGlyph': { glyph: 'plus', at: { indicator: ['plus-minus'], expansion: ['collapsed'] }, why: 'the closed mark of the plus and minus pair' },
+  '_accordion-indicator.minusGlyph': { glyph: 'minus', at: { indicator: ['plus-minus'], expansion: ['expanded'] }, why: 'the open mark of the plus and minus pair' },
+  'image-placeholder.markerGlyph': {
     glyph: 'image',
     // `at: {}` — present at EVERY coordinate, not gated by a variant. The marker is the "no image"
     // placeholder shown on every ratio member (#1316); it is a FIXED glyph because the `ratio` axis
@@ -247,17 +247,17 @@ const FIXED_GLYPH: Record<string, { glyph: string; at: Record<string, readonly s
     at: {},
     why: "the empty-state \"no image\" marker (#1316's `image` glyph — a mountain-and-sun placeholder). One fixed shape on every ratio member, because the ratio axis varies the frame's proportion and not its content; a designer replaces the whole frame's fill with a photograph rather than swapping this marker.",
   },
-  'select.chevron': {
+  'select.chevronGlyph': {
     glyph: 'chevron-down',
     at: {},
     why: "the disclosure affordance — one downward chevron on every member (an `at` of `{}`, present at every coordinate, unlike the gated selection/tone marks below), because a select's control ALWAYS opens a menu downward. It is fixed rather than `{name}`-templated for the same reason a checkbox mark is: the shape is a property of the component, not a coordinate a designer picks. The Prism2 spec draws `arrow-down-s-line`; the engine's vocabulary name for that shape is `chevron-down`",
   },
-  'checkbox-control.mark': {
+  'checkbox-control.checkGlyph': {
     glyph: 'check',
     at: { selection: ['checked'] },
     why: "the checked mark, now on the atomic control (#1226 step 2 — the glyphs moved off the Row into `checkbox-control`). `glyph: '{selection}'` cannot express this set — the vocabulary holds no `unchecked` glyph, because an empty box draws nothing — so the two drawn values are two parts gated by `presentWhen` and the third is the absence of both",
   },
-  'checkbox-control.dash': {
+  'checkbox-control.dashGlyph': {
     glyph: 'minus',
     at: { selection: ['indeterminate'] },
     why: 'the indeterminate dash, the other half of the same split. Deliberately `minus` and not `minus-filled`: the two draw ONE rectangle from a different start vertex (see `DUPLICATE_SHAPES`; this reason said "differ only in the winding" until #917 measured it and found a rotation, not a reversal) and the line form is the one the rest of the corpus draws',
@@ -278,10 +278,10 @@ const FIXED_GLYPH: Record<string, { glyph: string; at: Record<string, readonly s
   // TAG'S SELECTED MARK (2026-09-27) — the checkbox mark's shape on a selectable tag, gated to
   // `selection=selected`. Fixed for checkbox's reason: the vocabulary holds no `unselected` glyph, and the
   // shape is what "selected" looks like, not a coordinate a designer picks.
-  'tag.check': {
+  'tag.checkGlyph': {
     glyph: 'check',
     at: { selection: ['selected'] },
-    why: "the selected indicator AFTER a select tag's label (owner, 2026-09-28: trailing, and switchable by the `Check icon` boolean) — the same check a checked checkbox draws, so selection reads alike across the selection family and never rests on the tint alone. Present only at `selection=selected` (`presentWhen`), which only a select tag reaches — `dismissible × selected` is excluded; there is no glyph for `unselected`",
+    why: "the selected indicator AFTER a select tag's label (owner, 2026-09-28: trailing, and switchable by the `check icon` boolean) — the same check a checked checkbox draws, so selection reads alike across the selection family and never rests on the tint alone. Present only at `selection=selected` (`presentWhen`), which only a select tag reaches — `dismissible × selected` is excluded; there is no glyph for `unselected`",
   },
   // TAG'S × (owner, 2026-09-28) — a plain glyph in the dismissible tag's square trailing slot, replacing the
   // nested IconButton.Neutral that showed the file's placeholder icon (a nest cannot set the nested swap).
@@ -290,7 +290,7 @@ const FIXED_GLYPH: Record<string, { glyph: string; at: Record<string, readonly s
     at: { type: ['dismissible'] },
     why: "the × of a dismissible tag, a plain `close` glyph centered in the square remove slot (owner, 2026-09-28: NOT a nested IconButton). Present only at `type=dismissible` (`presentWhen`, the same gate its slot carries); a select tag has no ×. Fixed rather than templated: the shape is what \"remove\" looks like, not a coordinate a designer picks",
   },
-  'textarea.grip': {
+  'textarea.gripGlyph': {
     glyph: 'resize-grip',
     // `at: {}` — on every member; the `resize handle` BOOLEAN hides it, which is node visibility, not a
     // variant gate, so every member still carries the node.
@@ -321,17 +321,17 @@ const FIXED_GLYPH: Record<string, { glyph: string; at: Record<string, readonly s
   // their BOUNDING BOXES are identical — measured while writing #1010's read-back, where a box-based
   // fingerprint both failed on correct code and could not have caught two tones sharing one glyph. That
   // is a second reason the name belongs in a table: the geometry cannot tell these two apart.
-  'field-message.iconError': {
+  'field-message.errorGlyph': {
     glyph: 'warning-triangle',
     at: { status: ['error'] },
     why: "the error mark: an exclamation in a TRIANGLE, per the Prism2 reference, and the only one of the three whose enclosure is not a circle. `glyph: '{status}'` cannot express this set for `checkbox`'s reason one level up — the vocabulary holds no glyph named `error`/`warning`/`success`, and `default` draws nothing at all — so the three drawn statuses are three `presentWhen`-gated parts and the fourth is the absence of all three. Shape is the channel that survives when a user cannot tell `error`'s ink from `warning`'s, which is the SC 1.4.1 contract this def exists for",
   },
-  'field-message.iconWarning': {
+  'field-message.warningGlyph': {
     glyph: 'error-circle',
     at: { status: ['warning'] },
     why: 'the warning mark: the SAME exclamation as `error`\'s in a CIRCLE rather than a triangle. The name is the enclosure, not the status — do not "correct" this to `warning-triangle`, which would give error and warning one identical shape and leave ink as the only difference between them',
   },
-  'field-message.iconSuccess': {
+  'field-message.successGlyph': {
     glyph: 'check-circle',
     at: { status: ['success'] },
     why: 'the success mark: a circled check, on the same 20px ring `error-circle` draws. Deliberately the outline form and not `check-circle-filled` — the reference asks for "a stroked outline glyph at the same optical weight as the text", and every glyph in this set is a filled path, so outline here means a ring with a hole rather than a stroke',
@@ -414,11 +414,11 @@ const declaredViewBox = (): { minX: number; minY: number; w: number; h: number }
  * stale.
  */
 const SCALED_GLYPH: Record<string, { scale: number; why: string }> = {
-  'checkbox-control.mark': {
+  'checkbox-control.checkGlyph': {
     scale: 0.8,
     why: "the check inset to 0.80 of the box (#1346), matching Prism 2's `checkFill` (16) in its 20px control square. The icon instance is placed at that fraction of a box-bound frame (#2380) rather than bound to a smaller size, because a smaller size would mint a guaranteed `control.size.*.mark` token and bump CONTRACT",
   },
-  'checkbox-control.dash': {
+  'checkbox-control.dashGlyph': {
     scale: 0.8,
     why: "the indeterminate dash, inset identically to the check — Prism 2's `subtractFill` is the same 16 in the 20px box, so the dash takes the same 0.80 ratio",
   },

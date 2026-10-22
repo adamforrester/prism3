@@ -2,14 +2,50 @@
 
 > One section that opens and closes in place under its header. The whole header row is the button.
 
-One expand and collapse section: a header that names the content, and a panel that opens below it. The whole header row is the button, and an indicator beside the title shows whether the section is open. Stack several for a set of sections a user scans and opens on demand, such as FAQs, settings groups or product details, or use one on its own for an optional block of detail. Not one-at-a-time peer panels (tabs), not a multi-level hierarchy (a tree), and not navigation.
-
 - **ID:** `accordion`
 - **Category:** navigation
 - **Status:** draft
 - **Also known as:** disclosure, collapse, expander, details, expansion-panel, collapsible
 
-## Usage
+## Overview
+
+One expand and collapse section: a header that names the content, and a panel that opens below it. The whole header row is the button, and an indicator beside the title shows whether the section is open. Stack several for a set of sections a user scans and opens on demand, such as FAQs, settings groups or product details, or use one on its own for an optional block of detail. Not one-at-a-time peer panels (tabs), not a multi-level hierarchy (a tree), and not navigation.
+
+- **Purpose:** Show a section of content on demand, under a header the user opens and closes in place.
+- **Use when:** A set of independent sections a user scans and opens on demand (FAQs, settings, product details), or one optional block of detail on its own.
+- **Avoid when:** The user needs the content most of the time (show it), the sections are one-at-a-time peer views (tabs), the content nests more than one level (a tree, not built yet), or the header navigates somewhere (a link).
+
+## Anatomy
+
+Shown on the default member: expansion `collapsed`, iconPosition `leading`, size `medium`.
+
+1. **Container** — One section: the header, the panel when open, and the rule under it.
+2. **Header** — The header row and the hit target: the whole row is the button, so a click anywhere on it opens or closes the section.
+3. **Title row** — The indicator and the title, side by side. The header centers this row, and the glyph inside it stays beside the title's first line.
+4. **Leading indicator** — The indicator before the title: as tall as the title row, with the glyph at its top, beside the title's first line.
+5. **Leading glyph** — The open and closed glyph. Choose chevron or plus-minus on the Accordion; it follows the open state and the size.
+6. **Title box** — The title's column. It fills the row, and sits 2px lower than the glyph so the first line centers on it.
+7. **Label** — The section title. It fills the row and wraps onto more lines rather than truncating.
+8. **Trailing indicator** — The indicator after the title: as tall as the title row, with the glyph at its top, beside the title's first line.
+9. **Trailing glyph** — The open and closed glyph, after the title.
+10. **Focus ring** — The shared focus ring, drawn inside the header row's edge while it has keyboard focus (Q257), so it never overlaps the Divider or gets clipped.
+11. **Content** — The panel, present only while the section is open: a slot that holds whatever content the section needs. Its inline inset matches the header.
+12. **Placeholder** — Placeholder content. Replace it with the text or components the section holds.
+13. **Divider** — The rule under the section, separating it from the next. It spans the section's width.
+
+## Styles
+
+| Axis | Values | Changes | Description |
+| --- | --- | --- | --- |
+| `expansion` | `collapsed`, `expanded` | at runtime | — |
+| `iconPosition` | `leading`, `trailing` | once, when authored | Which side of the title the indicator sits on, following text direction. leading keeps it beside the title when the page is zoomed; in right-to-left text, leading is the right edge. |
+| `size` | `medium`, `small`, `large` | once, when authored | The header's type, padding and indicator size. Every size keeps the header at least 44px tall. |
+
+### States
+
+`rest`, `focus-visible`
+
+## Usage guidelines
 
 Use an Accordion to compress a set of independent sections into scannable headers, such as FAQs, settings groups, filter panels or product details, or on its own for one optional block of detail, such as a promo code field. Let several be open at once unless space is very tight.
 
@@ -27,22 +63,49 @@ Use an Accordion to compress a set of independent sections into scannable header
 - Put an accordion inside an accordion. For more than one level, use a tree.
 - Truncate a title with an ellipsis
 
-### Content guidelines
+## Accessibility
+
+- **Keyboard:** Tab moves from header to header, and into an open panel's content. Enter or Space opens and closes the focused header. There is no roving tab index. Up and Down between headers, and Home and End, are optional extras and must not trap focus.
+- **Focus:** A focus ring around the header row on :focus-visible. Opening a section does not move focus.
+- **Screen readers:** A native \<button> with aria-expanded and aria-controls, inside an \<hN>; the panel is role="region" with aria-labelledby pointing at the button. Native \<details> and \<summary> are the alternative where their styling and animation support are enough.
+
+  Hide the indicator glyph from assistive technology (aria-hidden="true"); the button's aria-expanded carries the state. Do not put role="tab" or a tablist on an accordion.
+
+### WCAG
+
+- 4.1.2 Name, Role, Value (a button that exposes aria-expanded)
+- 1.3.1 Info and Relationships (each header is a heading at the level the page outline needs)
+- 2.1.1 Keyboard (Enter and Space open and close; Tab reaches every header)
+- 2.4.3 Focus Order (each header is its own tab stop; when open, the next Tab moves into the panel)
+- 2.4.7 Focus Visible / 2.4.13 Focus Appearance (the shared focus ring around the header)
+- 1.4.1 Use of Color (open and closed differ by glyph, not by color)
+- 1.4.10 Reflow, as intent (a leading indicator stays beside the title when the page is zoomed)
+- 2.5.5 Target Size (Enhanced), as intent (the whole header is the target, at least 44px tall on comfortable and spacious density)
+
+### Motion
+
+- **Enter:** The panel eases open to its content height (motion.transition.enter), and the indicator turns to its open glyph.
+- **Exit:** The panel eases closed (motion.transition.exit), and the indicator turns back.
+- **Reduced motion:** Under prefers-reduced-motion the panel opens and closes at the reduced duration, since the change is the information and the height movement is not.
+
+## Content guidelines
 
 Titles are short, parallel noun phrases or questions, in sentence case, with no trailing colon.
 
-### Copy patterns
-
 - **Labels:** Concise, parallel noun phrases, or questions in an FAQ. The title says what the panel holds. Sentence case, no trailing colon.
 
-## Choosing it
+## Related components
 
-- **Purpose:** Show a section of content on demand, under a header the user opens and closes in place.
-- **Use when:** A set of independent sections a user scans and opens on demand (FAQs, settings, product details), or one optional block of detail on its own.
-- **Avoid when:** The user needs the content most of the time (show it), the sections are one-at-a-time peer views (tabs), the content nests more than one level (a tree, not built yet), or the header navigates somewhere (a link).
-- **Often used with:** `tabs`, `divider`, `icon`, `button`, `text-field`
+- **Built from:** `_accordion-indicator`, `focus-ring`, `divider`
+- **Instead, consider:** `tabs`
+- **Often used with:** `tabs`, `icon`, `button`, `text-field`
+- **Replaces:**
+  - a show/hide div with no aria-expanded or heading
+  - a tablist used for vertical sections that open together
 
-## Props
+## Building it in code
+
+### Props
 
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
@@ -55,48 +118,145 @@ Titles are short, parallel noun phrases or questions, in sentence case, with no 
 | `iconPosition` | enum: 'leading' \| 'trailing' | `leading` | no | Which side of the title the indicator sits on, following text direction. leading keeps it beside the title when the page is zoomed; in right-to-left text, leading is the right edge. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The header's type, padding and indicator size. Every size keeps the header at least 44px tall. |
 
-## States
+## Specs
 
-`rest`, `focus-visible`
+Generated from the plan that builds the design-file component: 24 members. Values are token names; a px value appears only where the build writes a number.
 
-## Variants
+### Anatomy
 
-| Axis | Values | Changes |
+| Part | Kind | In |
 | --- | --- | --- |
-| `expansion` | `collapsed`, `expanded` | at runtime |
-| `iconPosition` | `leading`, `trailing` | once, when authored |
-| `size` | `medium`, `small`, `large` | once, when authored |
+| `container` | frame | every member |
+| `container/header` | frame | every member |
+| `container/header/titleRow` | frame | every member |
+| `container/header/titleRow/leadingIndicator` | frame | iconPosition=leading |
+| `container/header/titleRow/leadingIndicator/leadingGlyph` | instance | iconPosition=leading |
+| `container/header/titleRow/titleBox` | frame | every member |
+| `container/header/titleRow/titleBox/label` | text | every member |
+| `container/divider` | instance | every member |
+| `container/header/focusRing` | instance | state=focus-visible |
+| `container/header/titleRow/trailingIndicator` | frame | iconPosition=trailing |
+| `container/header/titleRow/trailingIndicator/trailingGlyph` | instance | iconPosition=trailing |
+| `container/content` | slot | expansion=expanded |
+| `container/content/placeholder` | text | expansion=expanded |
 
-## Accessibility
+### Spacing and size
 
-- **Role:** A native \<button> with aria-expanded and aria-controls, inside an \<hN>; the panel is role="region" with aria-labelledby pointing at the button. Native \<details> and \<summary> are the alternative where their styling and animation support are enough.
-- **WCAG:**
-  - 4.1.2 Name, Role, Value (a button that exposes aria-expanded)
-  - 1.3.1 Info and Relationships (each header is a heading at the level the page outline needs)
-  - 2.1.1 Keyboard (Enter and Space open and close; Tab reaches every header)
-  - 2.4.3 Focus Order (each header is its own tab stop; when open, the next Tab moves into the panel)
-  - 2.4.7 Focus Visible / 2.4.13 Focus Appearance (the shared focus ring around the header)
-  - 1.4.1 Use of Color (open and closed differ by glyph, not by color)
-  - 1.4.10 Reflow, as intent (a leading indicator stays beside the title when the page is zoomed)
-  - 2.5.5 Target Size (Enhanced), as intent (the whole header is the target, at least 44px tall on comfortable and spacious density)
-- **Keyboard:** Tab moves from header to header, and into an open panel's content. Enter or Space opens and closes the focused header. There is no roving tab index. Up and Down between headers, and Home and End, are optional extras and must not trap focus.
-- **Focus:** A focus ring around the header row on :focus-visible. Opening a section does not move focus.
-- **ARIA:** Hide the indicator glyph from assistive technology (aria-hidden="true"); the button's aria-expanded carries the state. Do not put role="tab" or a tablist on an accordion.
+Padding reads top / right / bottom / left when its sides differ.
 
-## Motion
+Keyed by `size`.
 
-- **Enter:** The panel eases open to its content height (motion.transition.enter), and the indicator turns to its open glyph.
-- **Exit:** The panel eases closed (motion.transition.exit), and the indicator turns back.
-- **Reduced motion:** Under prefers-reduced-motion the panel opens and closes at the reduced duration, since the change is the information and the height movement is not.
+**size=medium**
 
-## Composition
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 120px (literal) | build width 320px (literal) |
+| `container/header` | `space.150` / `space.200` / `space.150` / `space.200` | — | — | — | — | min height `size.md.min-height` |
+| `container/header/titleRow` | — | `space.150` | — | — | — | — |
+| `container/header/titleRow/titleBox` | `space.025` / — / — / — | — | — | — | — | — |
+| `container/content` | `space.0` / `space.200` / `space.200` / `space.200` | — | — | — | — | — |
 
-- **Composes with:** `_accordion-indicator`, `focus-ring`, `divider`
-- **Alternative to:** `tabs`
-- **Planned:** `tree`
-- **Replaces:**
-  - a show/hide div with no aria-expanded or heading
-  - a tablist used for vertical sections that open together
+**size=small**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 120px (literal) | build width 320px (literal) |
+| `container/header` | `space.100` / `space.150` / `space.100` / `space.150` | — | — | — | — | min height `size.md.min-height` |
+| `container/header/titleRow` | — | `space.100` | — | — | — | — |
+| `container/header/titleRow/titleBox` | `space.025` / — / — / — | — | — | — | — | — |
+| `container/content` | `space.0` / `space.150` / `space.150` / `space.150` | — | — | — | — | — |
+
+**size=large**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | — | — | — | 120px (literal) | build width 320px (literal) |
+| `container/header` | `space.200` / `space.250` / `space.200` / `space.250` | — | — | — | — | min height `size.lg.height` |
+| `container/header/titleRow` | — | `space.200` | — | — | — | — |
+| `container/header/titleRow/titleBox` | `space.025` / — / — / — | — | — | — | — | — |
+| `container/content` | `space.0` / `space.250` / `space.300` / `space.250` | — | — | — | — | — |
+
+### Type
+
+Keyed by `size`.
+
+| Members | Part | Text style |
+| --- | --- | --- |
+| size=medium | `container/header/titleRow/titleBox/label` | `type.label.md.emphasis` |
+| size=medium | `container/content/placeholder` | `type.body.md.default` |
+| size=small | `container/header/titleRow/titleBox/label` | `type.label.sm.emphasis` |
+| size=small | `container/content/placeholder` | `type.body.sm.default` |
+| size=large | `container/header/titleRow/titleBox/label` | `type.label.lg.emphasis` |
+| size=large | `container/content/placeholder` | `type.body.lg.default` |
+
+### Color
+
+Keyed by `expansion`, `iconPosition`, `state`.
+
+**expansion=collapsed, iconPosition=leading, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/header/titleRow/titleBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
+
+**expansion=collapsed, iconPosition=leading, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/header/titleRow/titleBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
+
+**expansion=collapsed, iconPosition=trailing, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/header/titleRow/titleBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
+
+**expansion=collapsed, iconPosition=trailing, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/header/titleRow/titleBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
+
+**expansion=expanded, iconPosition=leading, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/header/titleRow/titleBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
+| `container/content/placeholder` | — | — | `color.text.primary` | — |
+
+**expansion=expanded, iconPosition=leading, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/header/titleRow/titleBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
+| `container/content/placeholder` | — | — | `color.text.primary` | — |
+
+**expansion=expanded, iconPosition=trailing, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/header/titleRow/titleBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
+| `container/content/placeholder` | — | — | `color.text.primary` | — |
+
+**expansion=expanded, iconPosition=trailing, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/header/titleRow/titleBox/label` | — | — | `color.interactive.neutral.text.rest` | — |
+| `container/content/placeholder` | — | — | `color.text.primary` | — |
+
+### Nesting and properties
+
+- `container/header/titleRow/leadingIndicator/leadingGlyph` nests `_accordion-indicator` at `indicator=chevron, expansion=collapsed, size=medium`; follows `expansion`, `size`; exposes `indicator`
+- `container/divider` nests `divider` at `orientation=horizontal, inset=none`
+- `container/header/focusRing` nests `focus-ring` at `surface=default`
+- `container/header/titleRow/trailingIndicator/trailingGlyph` nests `_accordion-indicator` at `indicator=chevron, expansion=collapsed, size=medium`; follows `expansion`, `size`; exposes `indicator`
+- `container/content` is a slot
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `title` | text | `Section title` |
+| `content` | slot | — |
 
 ---
 

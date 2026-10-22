@@ -228,14 +228,17 @@
       ],
       "state": [
         "disabled",
-        "error",
         "focus-visible",
         "hover",
         "pressed",
         "rest"
+      ],
+      "status": [
+        "default",
+        "error"
       ]
     },
-    "members": 54,
+    "members": 90,
     "properties": {}
   },
   "checkbox-group": {
@@ -244,9 +247,13 @@
         "large",
         "medium",
         "small"
+      ],
+      "status": [
+        "default",
+        "error"
       ]
     },
-    "members": 3,
+    "members": 6,
     "properties": {
       "items": "SLOT"
     }
@@ -257,9 +264,13 @@
         "large",
         "medium",
         "small"
+      ],
+      "status": [
+        "default",
+        "error"
       ]
     },
-    "members": 3,
+    "members": 6,
     "properties": {
       "label": "TEXT"
     }
@@ -291,6 +302,7 @@
   "dialog": {
     "axes": {
       "footer": [
+        "fill",
         "inline",
         "none",
         "stacked"
@@ -298,6 +310,7 @@
       "placement": [
         "bottom",
         "center",
+        "end",
         "full"
       ],
       "size": [
@@ -306,7 +319,7 @@
         "small"
       ]
     },
-    "members": 15,
+    "members": 24,
     "properties": {
       "body": "SLOT",
       "close": "BOOLEAN",
@@ -635,7 +648,7 @@
     },
     "members": 7,
     "properties": {
-      "Marker": "BOOLEAN"
+      "marker": "BOOLEAN"
     }
   },
   "link": {
@@ -758,9 +771,13 @@
         "hover",
         "pressed",
         "rest"
+      ],
+      "status": [
+        "default",
+        "error"
       ]
     },
-    "members": 30,
+    "members": 60,
     "properties": {}
   },
   "radio-group": {
@@ -769,9 +786,13 @@
         "large",
         "medium",
         "small"
+      ],
+      "status": [
+        "default",
+        "error"
       ]
     },
-    "members": 3,
+    "members": 6,
     "properties": {
       "items": "SLOT"
     }
@@ -782,9 +803,13 @@
         "large",
         "medium",
         "small"
+      ],
+      "status": [
+        "default",
+        "error"
       ]
     },
-    "members": 3,
+    "members": 6,
     "properties": {
       "label": "TEXT"
     }
@@ -799,8 +824,8 @@
     },
     "members": 3,
     "properties": {
-      "Label": "BOOLEAN",
-      "items": "SLOT"
+      "items": "SLOT",
+      "label": "BOOLEAN"
     }
   },
   "segmented-control-segment": {
@@ -885,16 +910,19 @@
       ],
       "state": [
         "disabled",
-        "error",
         "focus-visible",
         "hover",
         "pressed",
         "rest"
+      ],
+      "status": [
+        "default",
+        "error"
       ]
     },
-    "members": 24,
+    "members": 40,
     "properties": {
-      "State icon": "BOOLEAN"
+      "state icon": "BOOLEAN"
     }
   },
   "switch-row": {
@@ -902,14 +930,18 @@
       "size": [
         "medium",
         "small"
+      ],
+      "status": [
+        "default",
+        "error"
       ]
     },
-    "members": 2,
+    "members": 4,
     "properties": {
       "label": "TEXT"
     }
   },
-  "tab": {
+  "tab-item": {
     "axes": {
       "selection": [
         "selected",
@@ -978,7 +1010,7 @@
     },
     "members": 45,
     "properties": {
-      "Check icon": "BOOLEAN",
+      "check icon": "BOOLEAN",
       "label": "TEXT",
       "leading icon": "BOOLEAN",
       "↳ swap leading icon": "INSTANCE_SWAP"

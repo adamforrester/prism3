@@ -4,7 +4,8 @@
     "MAINTAINER RECORD, NOT PAYLOAD. Each definition's `anatomy.codeOnly` and `notes.*`, which #1623 ruled",
     "maintainer-only. Classified `ours` in `payload-manifest.json`, listed in `regen.ts`'s MAINTAINER_ARTIFACTS",
     "rather than SCHEMA_ARTIFACTS, and so outside the shipped-prose gates by construction. Complete: entries",
-    "that cite an external reference system are kept here, because this file does not ship."
+    "that cite an external reference system are kept here, because this file does not ship. `docGaps` (#846) lists",
+    "what each usage doc could not draw: a section's empty source fields, and part notes still written for maintainers."
   ],
   "generated": true,
   "components": {
@@ -33,7 +34,64 @@
           "Multi-tone and variable fill became a state pair (outlined and filled) rather than two unrelated glyphs, and the set-as-versioned-API discipline hardened into alias maps, deprecation entry points and rename codemods. The consensus the practice adopts: the delivery mechanism is secondary to a strict, declarative, correctly labeled accessible API."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.glyph.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "accessibility.keyboard",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.composesWith",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.alternativeTo",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "focus-ring": {
       "codeOnly": [
@@ -53,7 +111,89 @@
           "Offset values — the field ships 2px broadly and 0 for inputs. Both emit, and this def exposes the choice as the `offset` axis rather than picking one."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.ring.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "accessibility.keyboard",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "motion.enter",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "motion.exit",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "motion.reduceMotion",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.labelPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.composesWith",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.alternativeTo",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "button": {
       "codeOnly": [
@@ -91,7 +231,49 @@
           "1.4.13 Content on Hover or Focus is left out of `accessibility.wcag` (#1697): the brief lists it \"only if a tooltip is attached\", and this def attaches none — tooltip is planned, and the criterion belongs to its def."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.trailingVisual.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.spinner.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.focusRing.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "button-destructive": {
       "codeOnly": [
@@ -129,7 +311,49 @@
           "1.4.13 Content on Hover or Focus is left out of `accessibility.wcag` (#1697): the brief lists it \"only if a tooltip is attached\", and this def attaches none — tooltip is planned, and the criterion belongs to its def."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.trailingVisual.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.spinner.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.focusRing.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "button-neutral": {
       "codeOnly": [
@@ -167,7 +391,49 @@
           "1.4.13 Content on Hover or Focus is left out of `accessibility.wcag` (#1697): the brief lists it \"only if a tooltip is attached\", and this def attaches none — tooltip is planned, and the criterion belongs to its def."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.trailingVisual.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.spinner.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.focusRing.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "icon-button": {
       "codeOnly": [
@@ -196,7 +462,59 @@
           "RESOLVED (#1697): the pending member swaps in the real spinner. The disabled edge #1697 also rebound to the disabled icon ink was superseded by Q346 (#2749): a border never binds an icon or text role, so it binds `color.disabled.border`."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.icon.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.spinner.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.focusRing.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "icon-button-destructive": {
       "codeOnly": [
@@ -225,7 +543,59 @@
           "RESOLVED (#1697): the pending member swaps in the real spinner. The disabled edge #1697 also rebound to the disabled icon ink was superseded by Q346 (#2749): a border never binds an icon or text role, so it binds `color.disabled.border`."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.icon.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.spinner.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.focusRing.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "icon-button-neutral": {
       "codeOnly": [
@@ -254,7 +624,59 @@
           "RESOLVED (#1697): the pending member swaps in the real spinner. The disabled edge #1697 also rebound to the disabled icon ink was superseded by Q346 (#2749): a border never binds an icon or text role, so it binds `color.disabled.border`."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.icon.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.spinner.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.focusRing.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "flush-icon-button": {
       "codeOnly": [
@@ -283,7 +705,44 @@
           "Q305.1 A (2026-10-14): the round edge stays the decorative color.border.secondary (color.disabled.border at disabled) on all three families; the glyph carries the family color."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "flush-icon-button-destructive": {
       "codeOnly": [
@@ -312,7 +771,44 @@
           "Q305.1 A (2026-10-14): the round edge stays the decorative color.border.secondary (color.disabled.border at disabled) on all three families; the glyph carries the family color."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "flush-icon-button-neutral": {
       "codeOnly": [
@@ -341,7 +837,44 @@
           "Q305.1 A (2026-10-14): the round edge stays the decorative color.border.secondary (color.disabled.border at disabled) on all three families; the glyph carries the family color."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "field-label": {
       "codeOnly": [
@@ -366,7 +899,74 @@
         "projection": [
           "In Figma the name wraps at a fixed max width — the default field width, 320, less the 4px gap before the marker — so the marker sits right after a one-line name. Three limits follow: a field stretched wider in Figma still wraps its name at that width; on a name long enough to wrap, the marker sits beside the wrapped name, not after its last word; and that required name runs past the field by the marker's width. (Moved from docs.usage, #2411.)"
         ]
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.label.note",
+          "reason": "names a tool"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.indicator.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "accessibility",
+          "field": "accessibility.keyboard",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "accessibility.focus",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.composesWith",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.alternativeTo",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "field-message": {
       "codeOnly": [
@@ -386,7 +986,89 @@
         ],
         "evolution": [],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.errorGlyph.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.warningGlyph.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.successGlyph.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.label.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "accessibility.keyboard",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "accessibility.focus",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.composesWith",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.alternativeTo",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.replacesPatterns",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "text-field": {
       "codeOnly": [
@@ -427,7 +1109,54 @@
         "projection": [
           "The trailingIcon slot: Figma carries the glyph, not the action's behavior. (Moved from props.trailingIcon.description, #2411.)"
         ]
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.caret.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.value.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.focusRing.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.message.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "textarea": {
       "codeOnly": [
@@ -474,7 +1203,59 @@
           "The value and placeholder props restate TextField's because the Figma text property is keyed by them. (Moved from props.value and props.placeholder, #2411.)",
           "The 16px grip drawn in Figma is decorative, not the resize handle's target. (Moved from accessibility.wcag, #2411.)"
         ]
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.caret.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.gripGlyph.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.focusRing.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.message.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.counter.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "checkbox-control": {
       "codeOnly": [
@@ -499,7 +1280,59 @@
           "The `indeterminate` ref callback superseded `useLayoutEffect` for performance in large lists (brief §13) — the mixed state is a DOM property the host sets, which is why this atom only draws the dash."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.control.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.checkGlyph.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.dashGlyph.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.focusRing.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "checkbox-row": {
       "codeOnly": [
@@ -515,7 +1348,7 @@
       ],
       "notes": {
         "contested": [
-          "`alignment` (top/baseline vs center) is in brief §15's variants block and is NOT an axis here. The brief calls top/baseline \"the non-negotiable default, not center\", and a non-negotiable default with one admissible value is not an axis — it has no dimension. It is a layout rule for the anatomy block to encode. The alternative is to declare it and accept an axis of one, which `modifiers` already demonstrates the cost of (#845). #1201 REFINED how that rule is encoded without weakening it: the control+label ROW is still top-aligned (never centered — `test.ts` #1009 half-1 enforces it), but the control now sits in a `controlBox` exactly one label line-box tall and centers WITHIN that box, so a single-line label reads centered and a wrapping one keeps the control on the first line. That is the construction #1009 filed and could not build, unblocked by baking the line-box to a fixed px per rung (`control.size.*.line-box`) — the one thing a Figma variable can hold that `fontSize × ratio` is not.",
+          "`alignment` (top/baseline vs center) is in brief §15's variants block and is NOT an axis here. The brief calls top/baseline \"the non-negotiable default, not center\", and a non-negotiable default with one admissible value is not an axis — it has no dimension. It is a layout rule for the anatomy block to encode. The alternative is to declare it and accept an axis of one, which `modifiers` already demonstrates the cost of (#845). #1201 REFINED how that rule is encoded without weakening it: the control+label ROW is still top-aligned (never centered — `test.ts` #1009 half-1 enforces it), but the control now sits in a `controlCell` exactly one label line-box tall and centers WITHIN that box, so a single-line label reads centered and a wrapping one keeps the control on the first line. That is the construction #1009 filed and could not build, unblocked by baking the line-box to a fixed px per rung (`control.size.*.line-box`) — the one thing a Figma variable can hold that `fontSize × ratio` is not.",
           "The group's `orientation` and `density` are in brief §15's variants block and are not here because they are `CheckboxGroup`'s axes, not this component's. The alternative is folding the group into this def, which is the monolithic decomposition the brief evaluates and rejects (§2).",
           "BORDER AND FILL AT ONE COORDINATE — #1011's third finding, and the answer is NEITHER of the two the issue offered. The defect: a selected box named `fill.selected` for its fill and let its border fall through to `border.rest`, so two bindings that must AGREE about the box's boundary disagreed. Both resolved, both named tokens this def chose, and the box shipped with a visible seam — #802's class again, and the second on this component after #967's `role: 'target'` conflation. The issue asked whether this needs a new EXPRESSION or is PER-DEF CARE. It is a third thing. It needs no new expression: the grammar already says it, because an unbound slot returns `undefined` and paints nothing, so the ABSENCE of `unchecked.fill` IS the binding \"this coordinate has no fill\" — the fix was deleting seven keys, not adding a field. And per-def care is exactly what had already failed: the radio and switch defs of the time carried the identical pairing because they copied this def verbatim, which is per-def care performed correctly three times over one wrong premise. What was missing was neither vocabulary nor diligence but ENFORCEMENT, so the answer is a gate — `lint-paint.ts` arm 4, which measures whether a fill is self-bounding against the page (>= 3:1, SC 1.4.11) and fails a same-family border drawn beside one. It named all three defs in a single run before any of them was fixed. The measured fact underneath, which is why the rule generalizes rather than describing these three: `interactive.<intent>.fill.*` and `interactive.<intent>.border.*` were byte-identical at every rung they SHARE across the brands measured then (5 brands x 4 modes), and the border ladder has NO `selected` rung at all — so `fill.selected` beside `border.rest` was never two shades of one idea, it was a fill that moved and a border that could not follow. The asymmetry to keep in view: switch's OFF track KEEPS its rim, because no brand's neutral fill clears 3:1 (1.21-1.58:1 at rest) and the rim is that track's only edge — which is precisely why arm 4 asks about the FILL's contrast rather than comparing the two bindings to each other."
         ],
@@ -535,12 +1368,54 @@
           "Field POV (brief §13): styling the native input won over the `role=checkbox` div and the hidden-input hacks; the group became a first-class component owning the value array and validation; `role=\"group\"` + `aria-labelledby` replaced `fieldset`/`legend`; the decomposition converged on a labeled row, a distinct group and an exposed atomic primitive — the shape this family is; and the `indeterminate` ref callback superseded `useLayoutEffect` for large lists."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.control.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.label.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "checkbox-group": {
       "codeOnly": [
         "value / onChange — the GROUP owns the checked-value ARRAY and the change callback (`value: string[]`), and each row's checked appearance is DERIVED from it (`checked = value.includes(row.value)`), never wired on a row inside the group. Figma has no data model, so the projected rows show a fixed default selection; the array and its wiring are the code projection's. This is the contract the brief (§2) puts on the group and a single `checkbox-row` structurally cannot express.",
-        "error / validation — GROUP-LEVEL and [HELD]. The brief says the group owns validation and carries the error message (\"Select at least one option\", SC 3.3.3), with the individual rows staying neutral. Prism 2's spec settles no error visual for the group (no error state, no group field-message), so this def deliberately does NOT invent one: whether the group composes a nested `field-message` for the error, and what an errored group looks like, is held for owner decision. `required` IS carried (via the nested FieldLabel and aria-required); error is not.",
+        "validationMessage — the error text is the code projection's; the Figma member at `status=error` shows FieldMessage's own placeholder text, which a designer overrides on the instance. aria-invalid on the group and the message's place in aria-describedby are DOM wiring the host owns, as on the fields.",
         "select-all — [HELD], and absent by design. A select-all is a parent checkbox in the `indeterminate` state broadcasting partial selection, and it is expressible from the existing parts (a `checkbox-row` at `indeterminate` above the set). Prism 2's group has none, so reproducing Prism 2 means not adding one; its absence is confirmed rather than an oversight.",
         "variable row count — in code the rows are `items: CheckboxRow[]`, any number from one up. Figma holds them in the native `items` slot (#2649, owner decision Q307 A), three by default: a designer adds, removes and reorders rows on an instance in place, and only a checkbox-row belongs there. Until #2649 the group carried eight fixed rows behind Figma-only booleans (#2344).",
         "orientation — [HELD]. The brief's §15 names a group `orientation` (vertical / horizontal); Prism 2 is vertical only. Vertical scans better and lets long labels wrap, so it is the built default and horizontal is not invented here — a horizontal axis is held rather than guessed at.",
@@ -554,10 +1429,10 @@
           "THE `size` AXIS IS A GENERALIZATION OF PRISM 2, NOT A REPRODUCTION — Prism 2's group is single-size (a Large label). The family-universal `size` axis is carried so the group is not the one form def frozen at one size, scaling the label and rows together by `follow`. `[HELD]`: the owner may prefer a single-size group; if so, drop the axis and pin the nested label/rows to one rung. Recorded as a fork rather than presented as settled.",
           "THE GROUP PAINTS NOTHING and so declares no `paintKeys` — the first projecting def whose whole color surface is its nested children's. The alternative (inventing a group fill or border) is exactly the surface Prism 2's transparent container does not have; a stack is structure, and its ink lives one level down in `field-label` and `checkbox-row`.",
           "`orientation` AND `density` ARE OMITTED. Brief §3 and §15 give the group `orientation` (vertical default, horizontal for a few short options) and `density` (comfortable, compact). Prism 2's group is vertical and single-density, so neither is an axis here; vertical is the built default and horizontal is held (see `codeOnly`). The alternative is declaring both as axes, which multiplies the set for configurations nobody has designed.",
-          "THE GROUP `description` PROP IS DEFERRED (#1698, decision 3). The brief puts a group-level `description` (helper text, describedby-wired) beside `required` and the error message. It would compose the same part the group error does, and that part is the held field-message decision, so it waits for it rather than inventing a helper slot the error design may reshape."
+          "THE GROUP `description` PROP IS DEFERRED (#1698, decision 3). The brief puts a group-level `description` (helper text, describedby-wired) beside `required` and the error message. It would compose the same part the group error does. Q354 (#2751) built that part as a nested FieldMessage present only at `status=error`, so a valid group looks as it did; showing the same part at `default` as helper text is the remaining decision, and it is the owner's."
         ],
         "unverified": [
-          "GROUP-LEVEL ERROR / VALIDATION DISPLAY IS `[HELD]`. The brief puts validation and the error message on the group; Prism 2 settles no visual for it. This def carries `required` (settled) and no error skin (unsettled). Whether the group nests a `field-message` for the group error, and what an errored group looks like (a recolored label? a message below the stack? a per-row neutral hold?), needs the owner. Building one now would invent the very thing the brief left to design.",
+          "THE GROUP ERROR IS UNVERIFIED ON A REAL HOST (owner Q354, #2751). The group follows `status` two levels down (group → row → control) and gates a nested FieldMessage on it. The shim builds and reads back both; whether a real host keeps a row's followed `status` when a designer has also overridden that row's exposed selection or state is the open question. The symptom: an errored group with one row showing a neutral box.",
           "THE VARIABLE ROW COUNT IS A NATIVE SLOT; SELECT-ALL IS `[HELD]`. The rows sit in the `items` slot, three by default (#2649, owner decision Q307 A), replacing #2344's eight rows behind Figma-only booleans (Prism 2's six-rows-with-booleans, at eight). A select-all parent is expressible (a row at `indeterminate` above the set) and deliberately not added, since Prism 2 has none.",
           "THE NESTING IS UNVERIFIED ON A REAL HOST, the same way `checkbox-row`'s and the other decompositions' are: the group nests `checkbox-row` (which nests `checkbox-control` `nest-exposed`), the deepest chain in the corpus, and whether a doubly-nested instance's inherited sizing and exposed properties cooperate with the group's auto-layout is a real-host question the offline shim cannot answer. `test:roundtrip` builds every projected def and reads it back — the host-truth check #1347 named, and #1503 extends it to assert each row reads back `layoutAlign: STRETCH` — but a three-deep nest is new ground; the symptom to look for is a row instance that does NOT fill the group (the STRETCH dropped on a real host), or an exposed selection that does not surface at the group."
         ],
@@ -570,14 +1445,50 @@
         "projection": [
           "`disabled` is not projected as a Figma state. (Moved from props.disabled.description, #2411.)"
         ]
-      }
+      },
+      "docGaps": [
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "radio-control": {
       "codeOnly": [
         "read-only — deliberately not a state of this atom. A radio has no working native readonly, so there is no treatment to project; the field/row/group decides it. The Row admits it in its own `codeOnly`.",
         "motion — the select micro-motion (a spring/scale-up of the dot at roughly 100-150ms, and — uniquely — a SIBLING's dot animating OUT, the only exit animation a radio has, since it can never be deselected on its own). The def states it in `motion`; a Figma variant carries no motion, so the dot is static at every coordinate.",
         "The whole-row hit target. A bare control circle is a 12-24px disc that fails SC 2.5.8 in isolation; the accessible target is the labeled ROW, which is `radio-row` and not this atom. This def is nested, never placed alone, precisely so the target is supplied one level up.",
-        "error — deliberately not a state of this atom (#1698, decision 1). Radio error is GROUP-level only, never per-option (brief §4, §15), so no option draws a danger ring and the set has no error column. The group carries the error; its display is held with the group error design.",
         "RTL — the row mirrors (the control moves to the reading-start side through logical properties), and the disc and dot are symmetrical, so this atom has nothing to mirror (brief §9). Figma members are drawn left to right."
       ],
       "notes": {
@@ -595,11 +1506,58 @@
         ],
         "evolution": [
           "THE GROUP IS BUILT. This entry used to say RadioGroup was a separate component with no def (#901). `radio-group` (#1469) now owns the shared `name`, the single scalar value, the roving-tabindex single tab stop and all validation — none of which is expressible from this atom or from the Row. This def is the OPTION's painted control only.",
-          "PER-OPTION ERROR DROPPED (#1698, decision 1). The atom carried an `error` state that drew a danger ring on each option (#1433a locked that ring and the unchanged inner dot). The brief says radio error is never per-option, and this def's own `errorPattern` agreed, so the state, its two `*.border.error` keys and the error column (36 → 30 members) are gone. The error shows at the group.",
+          "PER-OPTION ERROR DROPPED (#1698, decision 1). The atom carried an `error` state that drew a danger ring on each option (#1433a locked that ring and the unchanged inner dot). The brief says radio error is never per-option, and this def's own `errorPattern` agreed, so the state, its two `*.border.error` keys and the error column (36 → 30 members) are gone. The error shows at the group. SUPERSEDED by Q354 (#2751): the group now sets a `status` axis on every option, so the ring is back, driven by the group rather than per option.",
           "Styled native inputs sharing a `name`, for free roving tabindex and exclusivity, won over hand-rolled `role=radio` div groups (brief §13). That is the input this atom paints."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.control.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.dot.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.focusRing.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "radio-row": {
       "codeOnly": [
@@ -632,14 +1590,46 @@
           "Field POV (brief §13): the group became the mandatory first-class component and the bare radio an incomplete unit; composition (a group wrapping option children) replaced the options array; styled native inputs sharing a `name` replaced hand-rolled `role=radio` groups, with `role=\"radiogroup\"` + `aria-labelledby` over `fieldset`; the segmented control split out as a compact presentation of the same semantics; and selection-follows-focus was affirmed as the default, with the cheap-`onChange` caveat."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.control.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.label.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "radio-group": {
       "codeOnly": [
         "value / onChange — the GROUP owns the SCALAR selected value and the change callback (`value: string`, exactly one — where CheckboxGroup owns an array), and each row's checked appearance is DERIVED from it (`checked = value === row.value`), never wired on a row inside the group. Figma has no data model, so the projected rows show a fixed default selection; the scalar and its wiring are the code projection's. This is the contract the group owns and a single `radio-row` structurally cannot express — and for radio it is what makes the options mutually exclusive at all.",
         "name — the SHARED control name that enforces browser-level EXCLUSIVITY, owned by the group and load-bearing rather than a submission convenience. An individual option setting its own name breaks exclusivity outright. Figma has no DOM naming, so the shared name is the code projection's; the projected rows cannot show the exclusivity that makes them radios rather than toggles.",
         "roving tabindex / single tab stop — THE OPPOSITE OF CHECKBOX-GROUP, and radio's headline keyboard difference. The whole group is ONE tab stop: Tab moves into it and the next Tab moves out, while arrow keys move between options (wrapping, Home/End to first/last) and Space/selection-follows-focus selects. Implement with roving tabindex (the checked option at tabindex=\"0\", siblings at -1). Making each option its own tab stop is the most common radio a11y failure. Figma has no accessibility tree and no keyboard model, so none of this is projectable — it lives in `accessibility.keyboard` and here.",
-        "error / validation — GROUP-LEVEL and [HELD]. The brief says the group owns validation and carries the error message (\"Select a shipping method\", SC 3.3.3), with the individual rows staying neutral. Prism 2's spec settles no error visual for the group (no error state, no group field-message), so this def deliberately does NOT invent one: whether the group composes a nested `field-message` for the error, and what an errored group looks like, is held for owner decision. `required` IS carried (via the nested FieldLabel and aria-required); error is not. Same [HELD] as `checkbox-group`.",
+        "validationMessage — the error text is the code projection's; the Figma member at `status=error` shows FieldMessage's own placeholder text, which a designer overrides on the instance. aria-invalid on the group and the message's place in aria-describedby are DOM wiring the host owns, as on the fields.",
         "variable row count — in code the rows are `items: RadioRow[]`, any number from one up. Figma holds them in the native `items` slot (#2649, owner decision Q307 A), three by default: a designer adds, removes and reorders rows on an instance in place, and only a radio-row belongs there. Until #2649 the group carried eight fixed rows behind Figma-only booleans (#2344).",
         "orientation — [HELD]. The group `orientation` (vertical / horizontal) is `RadioGroup`'s own axis (`radio-row` records it there); Prism 2 is vertical only. Vertical scans better and lets long option labels wrap, so it is the built default and horizontal is not invented here — a horizontal axis is held rather than guessed at, the same as `checkbox-group`.",
         "the disabled dim — a disabled GROUP dims every row and the label, driven by the group's context (the CSS cascade / a data-attribute), not by a prop on each row. It is [HELD] out of the Figma projection (Prism 2 shows no group disabled treatment), so a designer sees the rest configuration and a code consumer gets the dim from the group.",
@@ -652,11 +1642,11 @@
           "THE `size` AXIS IS A GENERALIZATION OF PRISM 2, NOT A REPRODUCTION — Prism 2's group is single-size (a Large label). The family-universal `size` axis is carried so the group is not the one form def frozen at one size, scaling the label and rows together by `follow`. `[HELD]`: the owner may prefer a single-size group; if so, drop the axis and pin the nested label/rows to one rung. Inherited from `checkbox-group` verbatim — the two groups match by sharing this fork's resolution, not by each deciding it.",
           "THE GROUP PAINTS NOTHING and so declares no `paintKeys` — like `checkbox-group`, its whole color surface is its nested children's. The alternative (inventing a group fill or border) is exactly the surface Prism 2's transparent container does not have; a stack is structure, and its ink lives one level down in `field-label` and `radio-row` (whose control ink is `radio-control`'s).",
           "`orientation` AND `density` ARE OMITTED. Brief §3, §4 and §15 give the group `orientation` (vertical default) and `density` (comfortable, compact; touch targets hold to 44/48 on mobile). Prism 2's group is vertical and single-density, so neither is an axis here; vertical is the built default and horizontal is held (see `codeOnly`). Same as `checkbox-group`.",
-          "THE GROUP `description` PROP IS DEFERRED (#1698, decision 3). The brief puts a group-level `description` beside `isRequired` and the error message. It would compose the same part the group error does, and that part is the held field-message decision, so it waits for it rather than inventing a helper slot the error design may reshape.",
+          "THE GROUP `description` PROP IS DEFERRED (#1698, decision 3). The brief puts a group-level `description` beside `isRequired` and the error message. It would compose the same part the group error does. Q354 (#2751) built that part as a nested FieldMessage present only at `status=error`, so a valid group looks as it did; showing the same part at `default` as helper text is the remaining decision, and it is the owner's.",
           "OPTIONS ARRAY VERSUS COMPOSITION (brief §3, §13). The configuration pattern passes `options={[{label, value}]}` (Atlassian, Fluent v8 `ChoiceGroup`) — terse and layout-safe, but a bottleneck once an option needs a thumbnail, tooltip or rich description. The composition pattern renders option children inside the group (Primer, Spectrum, Base Web, and Fluent v9, which deprecated its array `ChoiceGroup` for this reason). The practice defaults to COMPOSITION, bound through context — the checkbox-group model, scalar instead of array — and this def follows it: the stack is `children: RadioRow[]`."
         ],
         "unverified": [
-          "GROUP-LEVEL ERROR / VALIDATION DISPLAY IS `[HELD]`. The brief puts validation and the error message on the group; Prism 2 settles no visual for it. This def carries `required` (settled) and no error skin (unsettled). Whether the group nests a `field-message` for the group error, and what an errored group looks like, needs the owner — the same open question `checkbox-group` holds.",
+          "THE GROUP ERROR IS UNVERIFIED ON A REAL HOST (owner Q354, #2751), as on `checkbox-group`: the group follows `status` two levels down (group → option → control) and gates a nested FieldMessage on it. The symptom to look for: an errored group with one option showing a neutral ring.",
           "THE VARIABLE ROW COUNT IS A NATIVE SLOT, matching `checkbox-group` (#2649, owner decision Q307 A). The rows sit in the `items` slot, three by default, replacing #2344's eight rows behind Figma-only booleans, three on by default. Prism 2's radio group had six rows with two on by default; the owner set three for both groups, so the two match.",
           "THE NESTING IS UNVERIFIED ON A REAL HOST, the same way `checkbox-group`'s is: the group nests `radio-row` (which nests `radio-control` `nest-exposed`), the deepest chain in the corpus, and whether a doubly-nested instance's inherited sizing and exposed properties cooperate with the group's auto-layout is a real-host question the offline shim cannot answer. `test:roundtrip` builds every projected def and reads it back; the symptom to look for is a row instance stretched or an exposed selection that does not surface at the group."
         ],
@@ -669,7 +1659,44 @@
         "projection": [
           "`disabled` is not projected as a Figma state. (Moved from props.disabled.description, #2411.)"
         ]
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.row1.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "switch-control": {
       "codeOnly": [
@@ -683,7 +1710,7 @@
         "contested": [
           "THE ATOM IS A SEPARATE COMPONENT rather than kept inline in the row, and the #1354 precondition made it earn that: the split was built ONLY after confirming the switch Row nests it (the composition check), which it does — the switch was already a row containing a control subtree, the shape checkbox had before #1226. The rejected alternative (keep the track inline and let the family diverge) is exactly the per-def duplication #1011 found had shipped the identical fill/border pairing across three defs.",
           "THE THUMB IS AN `indicator` BOX THAT PARENTS A GLYPH, which #910's #864 rule refused until this def widened it. The widening is scoped to a `size`+`radius` disc (a deliberately-shaped filled mark), not a blanket permission — the #864 case was an SVG wrapper frame with no radius, where the fill was an incidental square. The rejected alternative was a transparent wrapper box inside the thumb to make the glyph an indirect child: it passes the literal check while reproducing the exact fill-behind-glyph #864 exists to prevent, which is a gate dodge the house discipline forbids (a false positive is narrowed with a reason, not worked around).",
-          "THE STATE GLYPH IS ONE FIGMA BOOLEAN (`State icon`, default on) OVER TWO SELECTION-GATED PARTS, not a variant axis (owner, 2026-09-28). A `showStateLabel` boolean VARIANT axis would add a name to the closed `VARIANT_AXES` family vocabulary for one def AND double the member count (24 → 48). The node-visibility boolean does neither: the check and the X are each built at their own `selection` value and each carries the property, so a designer turns the glyph off once, in the panel, and the set stays at 24. The cost is a narrowing of #1331's refusal — a boolean may now target parts that are `presentWhen`-gated, but only when they share one axis and cover all its values, so every member still has a node to toggle.",
+          "THE STATE GLYPH IS ONE FIGMA BOOLEAN (`state icon`, default on) OVER TWO SELECTION-GATED PARTS, not a variant axis (owner, 2026-09-28). A `showStateLabel` boolean VARIANT axis would add a name to the closed `VARIANT_AXES` family vocabulary for one def AND double the member count (24 → 48). The node-visibility boolean does neither: the check and the X are each built at their own `selection` value and each carries the property, so a designer turns the glyph off once, in the panel, and the set stays at 24. The cost is a narrowing of #1331's refusal — a boolean may now target parts that are `presentWhen`-gated, but only when they share one axis and cover all its values, so every member still has a node to toggle.",
           "THE OFF TRACK IS A LIGHT SURFACE STEP (`background.tertiary`) WITH A DARK THUMB, not the neutral button fill (owner, 2026-09-28). The neutral button fill is the one the `neutralEmphasis` lever darkens, and under `strong` emphasis on a brand-neutral action palette it made the off and on tracks both near-black (NB master theme: #2D2C2C off, #34383D on). A surface step no interactive lever moves keeps off light in every brand; the dark thumb in the border's ink is Material 3's unselected shape and Prism 2's. The cost: hover and pressed do not step the off fill (no darker surface step exists, and the overlay wash replaces a fill rather than layering on it).",
           "OFF HOVER AND PRESSED SHOW NO VISIBLE CHANGE, like checkbox and radio at unchecked (owner-decided, 2026-09-28). The off fill holds its rest value — the tier has no surface step darker than `background.tertiary`, and the interactive overlay wash REPLACES a box's fill (one `fills` array) rather than layering on it, so a 10% wash over the page would read lighter than `tertiary`. The `off.border.hover`/`.pressed` keys stay bound and resolve to the rest border in this tier. The rejected alternative was a new darker surface role, a token mint and a CONTRACT MINOR.",
           "THE DISABLED GLYPH TAKES `disabled.border`, not the thumb's `disabled.on-fill` (#1764, owner-directed 2026-09-28). Both keys bound `disabled.on-fill` before, so the glyph drew in its own thumb's color and could not be seen — and the glyph now defaults on. `disabled.border` equals the disabled track in every corpus mode, so the glyph repeats the rest-state inversion, 3.04–5.49:1 against the thumb. `disabled.text` was measured and rejected at 1.21–1.79:1."
@@ -695,20 +1722,77 @@
           "THE INHERITED FOCUS-RING BINDING is now two layers deep (#1280/#1290), the same as `checkbox-control`: the ring is nested inside the track and the track inside the row, so an inherited dimension binding would have to be cleared twice. The symptom to look for: a nested ring sitting at the md control height instead of hugging the track."
         ],
         "evolution": [
-          "THE ON/OFF AFFORDANCE SIMPLIFIED across the field (KB switch brief §13): Material dropped its in-thumb icon emphasis, and thumb position plus track color now carry the state, with hardcoded On/Off text rejected. This atom keeps the glyph ON by default (the `State icon` boolean; `showStateLabel` in code), matching Prism 2, and treats it as a legibility aid — never the state signal.",
+          "THE ON/OFF AFFORDANCE SIMPLIFIED across the field (KB switch brief §13): Material dropped its in-thumb icon emphasis, and thumb position plus track color now carry the state, with hardcoded On/Off text rejected. This atom keeps the glyph ON by default (the `state icon` boolean; `showStateLabel` in code), matching Prism 2, and treats it as a legibility aid — never the state signal.",
           "`role=\"switch\"` MATURED from a newer role backed by checkbox fallbacks into the standard that distinguishes a switch from a checkbox in assistive tech (KB switch brief §13). The atom is presentational; the host row carries the role."
         ],
         "projection": [
-          "The Figma set carries `showStateLabel` as the `State icon` boolean, default on, so both surfaces start from the same default. (Moved from props.showStateLabel.description, #2411.)"
+          "The Figma set carries `showStateLabel` as the `state icon` boolean, default on, so both surfaces start from the same default. (Moved from props.showStateLabel.description, #2411.)"
         ]
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.track.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.thumb.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.onGlyph.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.offGlyph.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.focusRing.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "switch-row": {
       "codeOnly": [
         "read-only — not projected: the Row's Figma set carries no state of its own, and read-only has no treatment to project at either level. Since #1354 the Row projects a SIZE-ONLY set (no stateAxis): the control's `state` is EXPOSED from the nested `switch-control` and the consumer drives it from the Row, so no state is enumerated into the Row's own matrix. read-only binds NOTHING even in code: the brief recommends a lock affordance over a styled locked control, and the one candidate token resolves to the same step as the rest border in all four brands.",
         "pending — not projected: it is a THUMB SWAP (a spinner replaces the thumb) on the nested control plus an `aria-busy` lock, not a row skin, so no Figma member carries it; `button`'s `overlay` part (#848) is the mechanism, unauthored on the control here. In code it is first-class in `props`. The Row's own per-state LABEL treatment (`disabled.label` dimming the text) is the CODE projection's, not Figma's — `lint-paint` arm 2 reads `def.states` for reachability, so `disabled.label` stays reachable and keyed for code while the Figma SET collapses to size-only.",
         "states — the documented cost of collapsing 24 members to 2 (the #1354 decomposition). A disabled Row in Figma shows the disabled CONTROL (the exposed state) beside a full-ink label, because the Row no longer multiplies state.",
-        "showStateLabel — the X/checkmark affordance is exposed from the nested `switch-control` as a consumer property (React prop, `.ai.json` option, Figma exposed property). In Figma it is the control's own `State icon` boolean (default on), which the exposed nested instance surfaces on the Row, so the Row declares no boolean of its own for it. See `switch-control.ts`.",
+        "showStateLabel — the X/checkmark affordance is exposed from the nested `switch-control` as a consumer property (React prop, `.ai.json` option, Figma exposed property). In Figma it is the control's own `state icon` boolean (default on), which the exposed nested instance surfaces on the Row, so the Row declares no boolean of its own for it. See `switch-control.ts`.",
         "min-height — `size.*.min-height` is the row's FLOOR and Figma has no floor. `PartDef` carries `height`, which is fixed, so binding it on the row would clip a wrapping label at the one coordinate that matters most. The row hugs its children instead and the keys stay bound for the code projection.",
         "THE FULL-WIDTH SETTINGS ROW, this component's actual habitat and layout rather than anatomy. The row HUGS its children here, so `label` and the control sit adjacent with the gap between them; a settings panel stretches the row and pins the control to the trailing edge, and `justify` on a hugging row cannot express that. `labelPosition: trailing` — the control-leading order for a switch among other form controls — is the same kind of fact: a prop that reorders this row, and the reordered form is the code projection's.",
         "The `description` prop — helper text beneath the label, describedby-wired, where the CONSEQUENCE of the setting goes. A second text part under `label` rather than beside it, which would change the row's vertical shape for content that is optional at every member.",
@@ -721,7 +1805,7 @@
           "THE ASYNC MODEL SHIPS BOTH STANCES — optimistic-by-default with revert-and-message, plus a first-class `pending` lock. The field genuinely splits here, and the brief's reconciliation is deliberate: mandating optimism universally puts the whole orchestration burden on every consumer, and mandating the lock kills the immediacy that is the entire component.",
           "READ-ONLY IS SUPPORTED, against the brief author's own first instinct and adopted on the external pass's enterprise argument: users review permission sets and system config they lack authority to change, and disabling those drops them from the tab order while swapping to static text hides the setting from screen readers.",
           "THE LABEL SIDE DEFAULTS TO LEADING, the opposite of every other control in the corpus, because the default follows the dominant habitat (the settings row). It is a prop, not a `variants` axis, because it paints nothing.",
-          "THE ON/OFF AFFORDANCE (the thumb glyph) DEFAULTS ON — `showStateLabel: true` in code and the `State icon` boolean on in Figma (owner, 2026-09-28), matching Prism 2. The contested part is not the default but what the glyph is FOR: a legibility aid, never the 1.4.1 answer, since thumb position already carries the state. Hardcoded adjacent On/Off text is rejected outright. The glyph lives on `switch-control`; why it is a node-visibility boolean rather than a variant axis is argued there."
+          "THE ON/OFF AFFORDANCE (the thumb glyph) DEFAULTS ON — `showStateLabel: true` in code and the `state icon` boolean on in Figma (owner, 2026-09-28), matching Prism 2. The contested part is not the default but what the glyph is FOR: a legibility aid, never the 1.4.1 answer, since thumb position already carries the state. Hardcoded adjacent On/Off text is rejected outright. The glyph lives on `switch-control`; why it is a node-visibility boolean rather than a variant axis is argued there."
         ],
         "unverified": [
           "THE DECOMPOSITION IS UNVERIFIED ON A REAL HOST, the same way `checkbox-control`'s was: the nested control instance must pin its own HEIGHT (the track height) rather than stretch to the `control-box` line box, and whether the instance's inherited sizing mode cooperates with the row's auto-layout is a real-host question the offline shim cannot answer. The symptom to look for: a control instance stretched to the line-box height instead of centered within it. The control is non-square, so the Row pins HEIGHT only and the width is the control's own 2:1 — a narrower pin than checkbox's square.",
@@ -735,13 +1819,55 @@
           "FROM AESTHETIC TO SEMANTIC. Switch-versus-checkbox was once treated as a styling choice; `role=\"switch\"` enforcement and Apple's App Store rejections made the immediate-effect contract the boundary, not a look (KB switch brief §13).",
           "`role=\"switch\"` MATURED from a newer role backed by checkbox fallbacks into the standard that distinguishes switch from checkbox in assistive tech.",
           "ASYNC MOVED INTO THE COMPONENT CONTRACT. Components moved from presenting a boolean toward handling optimistic updates and pending state themselves (Primer's `loading`, Fluent's async triggers) — the reason `isPending` is first-class here.",
-          "THE ON/OFF AFFORDANCE SIMPLIFIED. Material dropped its in-thumb icon emphasis; position and color carry the state, and hardcoded On/Off text is rejected. The thumb glyph (`showStateLabel`, the `State icon` boolean in Figma) stays on by default as a legibility aid, never the state signal.",
+          "THE ON/OFF AFFORDANCE SIMPLIFIED. Material dropped its in-thumb icon emphasis; position and color carry the state, and hardcoded On/Off text is rejected. The thumb glyph (`showStateLabel`, the `state icon` boolean in Figma) stays on by default as a legibility aid, never the state signal.",
           "SWITCH SEPARATED FROM TOGGLE BUTTON (`role=\"switch\"` + aria-checked against `aria-pressed`), where older systems conflated them."
         ],
         "projection": [
-          "`showStateLabel`'s default matches the `State icon` boolean in the Figma set. (Moved from props.showStateLabel.description, #2411.)"
+          "`showStateLabel`'s default matches the `state icon` boolean in the Figma set. (Moved from props.showStateLabel.description, #2411.)"
         ]
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.label.note",
+          "reason": "names a tool"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.control.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "select": {
       "codeOnly": [
@@ -772,7 +1898,64 @@
           "PLATFORM ERA (2025–present): the Popover API, CSS Anchor Positioning and `appearance: base-select` let a native <select> carry custom styling and rich option content, collapsing the native-versus-custom trade. Directional and unverified in the brief — the reason this def stays native-first and models only the closed control."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.label.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.value.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.chevronGlyph.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.focusRing.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.message.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "veil": {
       "codeOnly": [
@@ -792,14 +1975,86 @@
         ],
         "evolution": [],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "accessibility.keyboard",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "motion.enter",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "motion.exit",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "motion.reduceMotion",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.composesWith",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.alternativeTo",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "image-placeholder": {
       "codeOnly": [
         "aspect-lock derive — the frame holds its RATIO while its real size flexes, and Figma expresses that as an aspect-ratio LOCK (`lockAspectRatio()`) that DERIVES the second dimension from the first. The engine binds ONE nominal dimension and locks the ratio; that a variable BINDING on the single axis makes Figma derive the other at PASTE time (as a resize does) is a live-file behavior no offline host can witness, filed for the real-host round-trip arm (`tools/component-roundtrip/`). What the offline gates hold is the lock capturing the right ratio, read back as `targetAspectRatio`.",
         "raster swap — dropping an actual photograph onto the frame is a NATIVE Figma action (an image fill), not a modeled slot or variant. This def models the frame and its empty state; the image the designer supplies is theirs.",
         "scrim/veil and play-circle overlays — DEFERRED to a follow-up (#1316 residue, owner-held). A wash for text over the image nests the `veil` component, and a video affordance nests the `play-circle` glyph; both are compositions this core empty-state frame does not carry. Named here so the absence reads as a deferral rather than a gap.",
-        "marker — in code the \"no image\" marker draws while no image is supplied and goes once one is, so it is derived, not a prop (owner decision Q163.4b A). Figma cannot tell that a fill is a photograph, so the Figma set carries a Figma-only `Marker` toggle, on by default, that a designer turns off once an image is in.",
+        "marker — in code the \"no image\" marker draws while no image is supplied and goes once one is, so it is derived, not a prop (owner decision Q163.4b A). Figma cannot tell that a fill is a photograph, so the Figma set carries a Figma-only `marker` toggle, on by default, that a designer turns off once an image is in.",
         "the ratio is a magnitude of SHAPE, not a state — 2:3 through 16:9 is a proportion a designer selects, carried by Figma as a variant coordinate, never a runtime state. An image placeholder has no interaction states at all (`states: []`)."
       ],
       "notes": {
@@ -817,7 +2072,79 @@
         "projection": [
           "Dropping an image fill onto the frame is a native Figma action, not a modeled slot. (Moved from description and docs.usage, #2411.)"
         ]
-      }
+      },
+      "docGaps": [
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "accessibility.keyboard",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "motion.enter",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "motion.exit",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "motion.reduceMotion",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.composesWith",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.alternativeTo",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "spinner": {
       "codeOnly": [
@@ -865,7 +2192,69 @@
           "FIELD (brief §13.5): the anti-flash discipline, the reduced-motion substitute and `currentColor` theming, carried over from the perceived-performance and motion-accessibility work."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.frame.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "accessibility.keyboard",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.composesWith",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.alternativeTo",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "badge": {
       "codeOnly": [
@@ -898,7 +2287,54 @@
           "A size axis (small, medium, large) for the count and status label, once a host needs more than one."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.composesWith",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "tag": {
       "codeOnly": [
@@ -942,7 +2378,7 @@
           "Owner, 2026-09-29 (\"respect none\"): the selected tint binds `interactive.primary.subtle-fill.selected`, which every brand whose outline interaction is not none now emits — one leaf on overlay-neutral, the family on solid-tint. It replaced `interactive.primary.overlay.selected`, a 20% neutral wash on the default lever rather than a primary tint. On none there is no tint.",
           "Owner, 2026-09-29: a selected tag with the check shown is one glyph and one gap wider than its unselected twin (30px at medium on comfortable density), and the width is not reserved, so a group reflows on toggle. It was held as a contested item against decision E's \"nothing reflows\".",
           "Owner, 2026-09-29: selected hover and pressed keep the tint and step the 2px outline (`interactive.primary.border.hover` / `.pressed`). It was held as a contested item.",
-          "Owner, 2026-09-29: the Figma switch for the Select check is `Check icon` (it was `check mark`); the code prop stays `showCheck`. The Dismissible × has no switch: it is the tag's action and is on every member.",
+          "Owner, 2026-09-29: the Figma switch for the Select check is `check icon` (it was `check mark`); the code prop stays `showCheck`. The Dismissible × has no switch: it is the tag's action and is on every member.",
           "Badge's hook, answered point by point. (1) Tag binds `color.interactive.*` only (plus disabled and the focus ring). (2) Tag has hover, pressed, focus-visible and disabled members, and selection as an axis. (3) Tag is in `lint-hit-target.ts` INTERACTIVE, 44px at medium. (4) Tag is a pill with an outline at rest, a tint and a 2px primary outline when selected; the status badge has a small radius and a tone fill, and binds no interactive role. (5) Tag no longer nests IconButton.Neutral: the × is a glyph in a square slot. `test.ts` holds (1) and (4) against Badge's projected rest paint.",
           "Two types, Select and Dismissible (owner, 2026-09-28), replace the three interactions (clickable | selectable | removable) of 2026-09-27. The plain clickable tag is dropped: an action in place is a Button. `type` is the variant axis name Badge shares (Badge's `genre` was renamed to match), and the code prop of the same name replaces `interaction`.",
           "The dual-action tag (select the body, remove with the ×, brief §2) is gone: Select has no dismiss at all (#1743), which also removed the × on the selected fill that measured 2.09–2.86:1.",
@@ -953,9 +2389,51 @@
           "The glyph rung moved one below the control rung, as Button's did (#1350): 16 / 20 / 24px, where the 1:1 rung was 20 / 24 / 32px (owner Q337 A, #2725). The one rung sizes the leading icon, the check and the ×, so all three step down together; the × keeps its 44px slot at medium (owner Q356 A)."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.label.note",
+          "reason": "names a tool"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
-    "tab": {
+    "tab-item": {
       "codeOnly": [
         "code delivery pending: behavior layer (#2454). The owner built the Figma components first (Q178.3); the entries below are a framework-neutral behavior contract for whichever layer the project's developers choose.",
         "The tab in code — a <button role=\"tab\"> with aria-selected (true or false, on every tab) and aria-controls naming its panel. The tab list owns roving tabindex: the selected tab is tabindex=\"0\", the rest -1.",
@@ -977,7 +2455,49 @@
           "2026-10-09 (#2416): owner decisions Q177 (the nested Tab + Tabs shape, line tabs only, its own page), Q178.1 A (primary label plus a 2px primary bar on a 1px border.primary baseline, one weight), Q178.2 B (no hover wash; a 2px neutral bar previews the selected bar), Q179 A (names Tab and Tabs, S/M/L, the count as a nested Badge, automatic activation). The hover bar's role, border.secondary, was the build PR's technical pick: contracted at 3:1 against the page when picked (#1745), and a decorative ~2:1 rung since #2569 (owner Q259 C), which the bar keeps: a pointer-only preview reads lighter than the selected bar."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.alternativeTo",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "tabs": {
       "codeOnly": [
@@ -1000,7 +2520,49 @@
           "2026-10-09 (#2416): owner decisions Q177 (Tab nested in Tabs, the radio-group pattern for a variable child count; line tabs only; its own page), Q178 (primary label and 2px primary bar on the 1px border.primary baseline; no hover wash) and Q179 A (names, sizes, the count badge, six tabs at most with three shown, automatic activation, vertical and overflow code-only)."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "divider": {
       "codeOnly": [
@@ -1023,7 +2585,79 @@
         ],
         "evolution": [],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "accessibility.keyboard",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "motion.enter",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "motion.exit",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "motion.reduceMotion",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.composesWith",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.alternativeTo",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "_accordion-indicator": {
       "codeOnly": [
@@ -1041,7 +2675,79 @@
         ],
         "evolution": [],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "accessibility.keyboard",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "motion.enter",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "motion.exit",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "motion.reduceMotion",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.composesWith",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.alternativeTo",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "accordion": {
       "codeOnly": [
@@ -1069,7 +2775,44 @@
           "Owner decisions: Q180 (a design proposal), Q182 (one item, no group def; an indicator before or after the title, before the default; no hover; the content a swappable slot; a nested Divider; the expansion axis; the body type; the 44px floor; three sizes; reduced motion through the duration tokens; the two engine fixes), Q183 (the building-block indicator, 24 members, no disabled and no pressed), Q242 (the position values `leading | trailing`, as Button and Switch row name theirs), Q243 (the header's focus ring on its edge, `focus.ring.offset-field`), and the owner's QA of the live build (2026-10-12): the header centered, the glyphs one rung smaller (16/20/24), Q257 A (the ring drawn inside the header's edge), and `position` renamed `iconPosition`; Q262 A and Q266 A (the glyph beside the title's first line, the title padded 2px down); Q276 A (the glyph and the title in a `titleRow` the header centers, so a single line is centered under the 44px floor at every size); Q338 A (the large inline padding 24 → 20, `space.250`, so the side padding steps 12/16/20) and Q339 A (no change: the panel keeps its own padding)."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "list-item": {
       "codeOnly": [
@@ -1090,7 +2833,69 @@
           "2026-10-15 (#2727): owner decision Q340 A — the bullet and number marker column one step tighter, 20/24/32 (`space.250` / `300` / `400`), revising Q280.1 A's 24/32/40 for those two types; the icon column keeps 24/32/40, so the column is fixed per type rather than in every type, and an icon item's text edge sits further in."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.number.note",
+          "reason": "names a tool"
+        },
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "accessibility.keyboard",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.composesWith",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.alternativeTo",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "list": {
       "codeOnly": [
@@ -1113,7 +2918,59 @@
           "2026-10-13 (#2319): owner decisions Q273 — the read list now (Q273.1), two components with every marker bound (Q273.2), the icon marker as a third type (Q273.3), body sm / md / lg (Q273.4), no nested list in Figma (Q273.5), no tone (Q273.6), names, category data and its own page (Q273.7), markers at the text's strength (Q273.8), and native text lists for running text, the component for UI lists (Q273.9). Native list fields verified against the plugin typings (Q273.10): paragraph spacing and indent bind, list spacing and the marker do not."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "accessibility",
+          "field": "accessibility.keyboard",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.alternativeTo",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "segmented-control-segment": {
       "codeOnly": [
@@ -1138,7 +2995,49 @@
           "2026-10-15 (#2724): owner decisions Q336 A and Q342 A supersede Q269.3's tint and 2px outline: the selected option is a flat pill in color.background.primary with no border and no shadow, the emphasis-weight label is the state cue, and the pill holds at hover and press. The hover wash, the shape and the bold reserve are unchanged."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.alternativeTo",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "segmented-control": {
       "codeOnly": [
@@ -1161,7 +3060,49 @@
           "2026-10-15 (#2724): owner decisions Q336 A and Q342 A: the track is filled with color.background.secondary and loses its 1px outline; the selected option is a flat pill in color.background.primary. They supersede the outlined track Q278 kept and Q269.3's tint and outline."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "link": {
       "codeOnly": [
@@ -1191,13 +3132,50 @@
           "2026-10-14 (#2580, owner decisions Q297): the body type tier for both styles, 14 / 16 / 18px, with no 12px link (1); a trailing icon only, on standalone links only, 16px with 14px and 16px text and 20px with 18px text (2); the weight wording, with the values kept as emphasis | default (3)."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "button-group": {
       "codeOnly": [
         "the element — a `<div>` holding the buttons in order, with no role: each button is its own control, and a group of separate actions is not a radio group or a toolbar. Give it `role=\"group\"` and an `aria-label` only when the buttons need a shared name the page does not already give them.",
         "order — the DOM order is the order the buttons are given, which is also the focus order. Inline and fill take the main action last (Cancel, then Save); stacked takes it first (Save, then Cancel), so the visual order and the focus order match in every layout. Never reverse the order with CSS alone: focus would then move against what the eye reads.",
-        "the inline row — `display: flex; justify-content: flex-end; flex-wrap: wrap` with the row gap, so a row too wide for its container wraps instead of overflowing; nothing switches to stacked by itself. Fill gives each button `flex: 1 1 0` so the buttons share the width; stacked is a column with each button at full width.",
+        "the inline row — `display: flex; justify-content: flex-end; flex-wrap: wrap` with the row gap, so a row too wide for its container wraps instead of overflowing; nothing switches to stacked by itself. Fill gives each button `flex: 1 1 0; min-width: 0` so the buttons share the width equally at every width, and a label too long for its share wraps inside its button, with `overflow-wrap: anywhere` on the label so even one long word breaks, the row's buttons stretching to one height; stacked is a column with each button at full width. For long labels, pick stacked.",
         "button count — Figma holds the buttons in the native `items` slot, two by default and three at most; code takes `items` of one to three Button elements.",
         "Cancel — in Figma the group's own default Cancel is an outline Button; a host that nests the group (Dialog) may prefer another, such as Button.Neutral when the file has that set. In code, pass whichever the product uses.",
         "right-to-left — the row mirrors through logical properties: the end edge is the left, and the main action sits leftmost."
@@ -1215,33 +3193,78 @@
         "evolution": [
           "Owner decision Q363 (2026-10-16, #2661): the wireframe approved, all calls A except 8 (Cancel is Button.Neutral) and 9 (a fill layout too); a shared public Button group that Dialog nests now and Banner and Card later; the Button family preferred, preferred-only; stacked with the main action first; one to three buttons, two by default; three inline all at the end edge.",
           "Owner decision (2026-10-16, #2661, amending Q363.8) and Q386 (#2808): Cancel uses Button.Neutral when the file has it and the primary Button otherwise; no component requires the Neutral families.",
-          "Owner decision Q418 (2026-10-18, #2661): the component that nests the group decides its buttons' defaults. Button.Group on its own defaults the secondary to the primary outline Button, with no Neutral preference; Dialog's nest prefers Button.Neutral, falling back to the primary Button; designers can still swap any button in the slot."
+          "Owner decision Q418 (2026-10-18, #2661): the component that nests the group decides its buttons' defaults. Button.Group on its own defaults the secondary to the primary outline Button, with no Neutral preference; Dialog's nest prefers Button.Neutral, falling back to the primary Button; designers can still swap any button in the slot.",
+          "Owner decision Q492 B, Q?3 A (2026-10-21, #2880): at fill the buttons keep equal shares at every width. `min-width: 0` lets a button shrink below its label, which wraps inside it with `overflow-wrap: anywhere` on the label (a single long word breaks too), where `flex: 1 1 0` alone left a long label's button wider than the other and wrapped the row. Nothing switches to stacked by itself."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "dialog": {
       "codeOnly": [
-        "role — `role=\"dialog\"` with `aria-modal=\"true\"`; the native `<dialog>` opened with `showModal()` provides both. `role: \"alertdialog\"` is a code prop with no Figma property: set it for a confirmation that interrupts and needs an answer. An alertdialog hides the close button (the Figma `close` toggle shows the result), keeps a backdrop click from closing it, and must hold at least one focusable control.",
+        "role — `role=\"dialog\"` with `aria-modal=\"true\"` at every placement, an end panel included; the native `<dialog>` opened with `showModal()` provides both. `role: \"alertdialog\"` is a code prop with no Figma property: set it for a confirmation that interrupts and needs an answer. An alertdialog hides the close button (the Figma `close` toggle shows the result), keeps a backdrop click from closing it, and must hold at least one focusable control.",
         "labeling — `aria-labelledby` points at the title, made a heading (`<h2>`); `aria-describedby` points at the description when there is one.",
         "focus in — on open, focus moves into the dialog: to the first control in the body for a short form; to the title (`tabindex=\"-1\"`) when the body is long reading content, so a screen reader starts at the top; for an alertdialog, to the least destructive action (Cancel). Never to a destructive button.",
-        "focus held — Tab and Shift+Tab cycle inside the dialog, and the page behind is inert. A modal `<dialog>` makes the page inert natively.",
+        "focus held — Tab and Shift+Tab cycle inside the dialog at every placement, and the page behind is inert. A modal `<dialog>` makes the page inert natively.",
         "focus returned — on close, focus goes back to the control that opened the dialog. If that control is gone, to the nearest control that still makes sense, never to the page body.",
         "Escape — closes a dialog, and closes an alertdialog as Cancel. The close button is always reachable by keyboard, so the dialog is never a keyboard trap (SC 2.1.2).",
         "backdrop click — closes a dialog, never an alertdialog. Close only when the press started on the backdrop (`mousedown` target is the dialog element itself), so a text selection dragged out of the panel does not close it. A full-screen dialog has no visible backdrop; Escape and the close button still apply.",
         "scroll lock — the page behind does not scroll while the dialog is open (`html:has(dialog[open]) { overflow: hidden }`, with the scrollbar width added back as padding so the page does not shift). The body scrolls with `overscroll-behavior: contain`, so a scroll at its end does not move the page.",
+        "the fill footer — the footer's Button group at `layout=fill`: each button takes an equal share of the width at every width, and a label too long for its share wraps inside its button (`overflow-wrap: anywhere` on the label), so both buttons grow to the same height. Nothing switches to stacked by itself: for long labels, pick `footer: \"stacked\"`.",
         "only the body scrolls — the header and footer stay put and the body scrolls between them, so a focused field in the body is never hidden under the footer (SC 2.4.11). Show the two dividers only while the body overflows; in Figma they are the `dividers` toggle.",
-        "per-breakpoint placement, no automatic switch — `placement` can take a value per breakpoint, but nothing switches on its own: a dialog stays centered on a phone unless the product chooses bottom or full. A centered panel on a small screen is the viewport width less the grid margins. Bottom and full are full width; full is also full height. A bottom sheet is at most 90% of the viewport height, so the page shows above it; a centered panel at most the viewport height less the grid margin top and bottom. Above that, the body scrolls.",
-        "the panel padding below 480px — `space.200` instead of `space.300` on a centered panel when the viewport is narrower than 480px. Figma builds the bottom and full members, which are small-screen placements, with `space.200`.",
-        "motion — opening: a centered panel fades in and scales up a little; a bottom sheet and a full-screen dialog slide up from the bottom edge; the backdrop fades. On `motion.duration.moderate` with `motion.easing-role.enter`, and `motion.easing-role.exit` to close. Under `prefers-reduced-motion`, a fade only, at `motion.duration-reduced.moderate`, with no movement. Figma shows the panel at rest.",
-        "the backdrop — `color.scrim.default` on `::backdrop`. It is not part of the component: the Figma page draws it behind each example as canvas furniture.",
+        "per-breakpoint placement, no automatic switch — `placement` can take a value per breakpoint, but nothing switches on its own: a dialog stays centered on a phone unless the product chooses bottom or full, and an end panel stays at the end edge. A centered panel on a small screen is the viewport width less the grid margins. Bottom and full are full width; full is also full height. An end panel is full height and 480px wide, at most `100vw − 48px`, so the page shows beside it on a phone; below 768px prefer full for a form and bottom for a short list. A bottom sheet is at most 90% of the viewport height, so the page shows above it; a centered panel at most the viewport height less the grid margin top and bottom. Above that, the body scrolls.",
+        "the panel padding below 480px — `space.200` instead of `space.300` on a centered or end panel when the viewport is narrower than 480px. Figma builds the bottom and full members, which are small-screen placements, with `space.200`.",
+        "motion — opening: a centered panel fades in and scales up a little; a bottom sheet and a full-screen dialog slide up from the bottom edge; an end panel slides in from the end edge; the backdrop fades. On `motion.duration.moderate` with `motion.easing-role.enter`, and `motion.easing-role.exit` to close. Under `prefers-reduced-motion`, every placement opens and closes at once, with no movement and no fade: `motion.duration-reduced.moderate` is 0ms. Figma shows the panel at rest.",
+        "the backdrop — `color.scrim.default` on `::backdrop`, at every placement but full, an end panel included. It is not part of the component: the Figma page draws it behind each example as canvas furniture.",
         "stacking — a modal `<dialog>` renders in the top layer, so it needs no z-index. Avoid opening a dialog from a dialog: replace the content or close the first.",
-        "right-to-left — the layout mirrors through logical properties: the close button moves to the start edge and the footer order mirrors.",
+        "right-to-left — the layout mirrors through logical properties: the close button moves to the start edge and the footer order mirrors. An end panel sits at the left edge and slides in from it (`inset-inline-end: 0`).",
         "code delivery pending: behavior layer (#2454) — initial focus placement, backdrop-click dismissal and focus return wait on that decision. The contract above holds under any answer to it."
       ],
       "notes": {
         "contested": [
           "HELD FOR THE OWNER (#2609): the bottom and full members' build size (360 wide, and 640 tall for full), the title-to-description gap (space.100) and the title-to-close gap (space.200), the body placeholder copy, and the description text property's Figma name (\"description text\").",
+          "HELD FOR THE OWNER'S VISUAL QA (#2877): the end member's build size (480 wide, 800 tall), its cap at 100vw − 48px in code, and the 768px width below which the docs recommend full or bottom instead.",
           "The close button sits at the header's top edge, beside the first line of the title, without an offset that centers it on that line: whether the title moves down to center on the 44px button is held for the owner's visual QA."
         ],
         "unverified": [
@@ -1252,10 +3275,49 @@
           "Owner decision (2026-10-16, #2609): the close button is always the X. It shows the close icon on every member, and Dialog has no icon swap property; a product that needs another X changes the close glyph in its icon set or edits the component.",
           "Owner decision Q385 A (2026-10-16, #2806), settling Q377 A on #2609: the close button is a FlushIconButton.Neutral, not an IconButton.Neutral, so a file without the IconButton sets still builds Dialog. It is round at medium, the closest match to the earlier ghost medium IconButton.",
           "Owner QA (2026-10-19): the close button takes the flush shape, not round. The X is the bare glyph with no edge or fill, and its 44×44px hit area is drawn in code.",
-          "Owner decision Q363 (2026-10-16, #2661): the footer is a nested Button group whose native slot holds the buttons, replacing two fixed nested Buttons per layout. Cancel reads \"Cancel\" and Save \"Save\"; Cancel is Button.Neutral when the file has it and the primary Button otherwise (Q363.8 as amended, Q386), and since Q418 that is the Dialog's own preference on its nest of the group, which on its own keeps the primary outline Button; the `actions` prop is a slot of one to three Button elements (Q363.10 A)."
+          "Owner decision Q363 (2026-10-16, #2661): the footer is a nested Button group whose native slot holds the buttons, replacing two fixed nested Buttons per layout. Cancel reads \"Cancel\" and Save \"Save\"; Cancel is Button.Neutral when the file has it and the primary Button otherwise (Q363.8 as amended, Q386), and since Q418 that is the Dialog's own preference on its nest of the group, which on its own keeps the primary outline Button; the `actions` prop is a slot of one to three Button elements (Q363.10 A).",
+          "Owner decision Q483 A (2026-10-20, #2877), amending Q303.1: a side placement, as a value of `placement` and not a new component, for a sign-in or filter panel that slides in from the edge. Q488 A: it is `end`, the writing direction's end edge. Q489 A: one width, 480px, and no size, so 18 members. Q490 A: every corner square. Q491 A: reduced motion stays instant at every placement, and the contract no longer calls it a fade. Q492 A: the existing footers (an equal-width footer is #2880). Q493 A: the aliases side-sheet and drawer. Still a modal dialog with the scrim behind it.",
+          "Owner decision Q492 B (2026-10-20, on #2877), built on #2880 with every recommendation accepted (2026-10-21): a fourth footer, `fill`, in the order inline, stacked, fill, none, that nests the Button group at `layout=fill` on every placement. The halves stay equal at every width and a long label wraps inside its button; nothing switches to stacked by itself, and the docs say to pick stacked for long labels. One to three buttons, as the `actions` slot allows, two being the case it is for. The defaults are Cancel then Save, with Cancel a Button.Neutral where the file has it."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "password-field": {
       "codeOnly": [
@@ -1289,7 +3351,54 @@
           "A later idea (owner, Q301.6): the Show/Hide button as its own subcomponent with a shown and a hidden variant, the field's value still changed by hand. Filed separately; not part of this def."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.caret.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.value.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.focusRing.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.message.note",
+          "reason": "maintainer register"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "toast": {
       "codeOnly": [
@@ -1322,13 +3431,55 @@
           "The brief's severity set (info, success, warning, error, loading), its stacked toaster, its timeout bar and its swipe are not built: errors and warnings go to a banner (call 1 A), one toast shows at a time (call 5 A), and the rest is out of scope (the proposal's §11)."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     },
     "counter": {
       "codeOnly": [
         "the spinbutton — the value is one focusable element with role=\"spinbutton\" and tabindex=\"0\", not an <input>: a counter shows its value and is not typed into (typed entry is the number input). It carries aria-valuenow, aria-valuemin, aria-valuemax only when a max is set, aria-valuetext where the number alone is unclear (\"3 items\"), and the label as its name through aria-labelledby, which works with the label shown or hidden. The message, when shown, is added through aria-describedby.",
-        "the keyboard model — Up Arrow and Down Arrow change the value by one step, Page Up and Page Down by ten steps, and Home and End go to min and to max when a max is set. The value never passes min or max. Tab reaches the counter once, at the value.",
-        "the stepper buttons — each is a <button type=\"button\" tabindex=\"-1\"> (APG), out of the Tab order because the arrow keys do the same job, and still reached by pointer, touch and voice. Each has aria-controls pointing at the value and an accessible name from decrementLabel and incrementLabel. A press does not move focus. At a limit the button takes aria-disabled=\"true\", not native disabled, so it stays in the accessibility tree, and a press does nothing.",
+        "the keyboard model — Up Arrow and Down Arrow change the value by one step, Page Up and Page Down by ten steps, and Home and End go to min and to max when a max is set. The value never passes min or max. The counter is one Tab stop, at the value.",
+        "the stepper buttons — each is a <button type=\"button\" tabindex=\"-1\"> (APG), out of the Tab order because the arrow keys do the same job, and still reached by pointer, touch and voice. They are not aria-hidden: the ARIA Authoring Practices spin button example keeps such buttons in the accessibility tree, so pointer and touch users of assistive technology can still find them by name. Each has aria-controls pointing at the value and an accessible name from decrementLabel and incrementLabel. A press does not move focus. At a limit the button takes aria-disabled=\"true\", not native disabled, so it stays in the accessibility tree, and a press does nothing.",
         "the announcement — a button press writes the new value to the app's one shared polite live region, such as \"Quantity 3\", never a region of the counter's own. An arrow-key change is announced by the spinbutton itself and is not written there again.",
         "touch-target-expansion — each nested button extends its hit area in code to at least 44×44px at every size (the flush icon button's own rule). On outline the medium inset is 12px, so a 20px glyph's 44px area reaches the edge exactly; the value between the two buttons keeps their areas apart, at least 44px center to center.",
         "limits in Figma — min and max are code props. In Figma the designer shows a limit by setting that button's exposed state to disabled; in code the counter sets aria-disabled from min and max.",
@@ -1357,7 +3508,44 @@
           "2026-10-14 Q287 A (on #2457): the flush icon button carries `shape: flush | round`; outline nests flush and ghost nests round."
         ],
         "projection": []
-      }
+      },
+      "docGaps": [
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     }
   }
 }

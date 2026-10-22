@@ -69,13 +69,13 @@ export const accordionIndicator: ComponentDef = {
         role: 'target',
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'fixed', y: 'fixed' } },
         size: 'size.{size}.icon',
-        children: ['chevronDown', 'chevronUp', 'plus', 'minus'],
+        children: ['chevronDownGlyph', 'chevronUpGlyph', 'plusGlyph', 'minusGlyph'],
         note: 'The glyph\'s box, one icon square at the Accordion\'s size. Exactly one glyph shows in it.',
       },
-      chevronDown: { kind: 'vector', glyph: 'chevron-down', size: 'size.{size}.icon', presentWhen: { indicator: ['chevron'], expansion: ['collapsed'] }, note: 'Closed: a chevron pointing down.' },
-      chevronUp: { kind: 'vector', glyph: 'chevron-up', size: 'size.{size}.icon', presentWhen: { indicator: ['chevron'], expansion: ['expanded'] }, note: 'Open: a chevron pointing up.' },
-      plus: { kind: 'vector', glyph: 'plus', size: 'size.{size}.icon', presentWhen: { indicator: ['plus-minus'], expansion: ['collapsed'] }, note: 'Closed, when the pair is plus and minus: a plus.' },
-      minus: { kind: 'vector', glyph: 'minus', size: 'size.{size}.icon', presentWhen: { indicator: ['plus-minus'], expansion: ['expanded'] }, note: 'Open, when the pair is plus and minus: a minus.' },
+      chevronDownGlyph: { kind: 'vector', glyph: 'chevron-down', size: 'size.{size}.icon', presentWhen: { indicator: ['chevron'], expansion: ['collapsed'] }, note: 'Closed: a chevron pointing down.' },
+      chevronUpGlyph: { kind: 'vector', glyph: 'chevron-up', size: 'size.{size}.icon', presentWhen: { indicator: ['chevron'], expansion: ['expanded'] }, note: 'Open: a chevron pointing up.' },
+      plusGlyph: { kind: 'vector', glyph: 'plus', size: 'size.{size}.icon', presentWhen: { indicator: ['plus-minus'], expansion: ['collapsed'] }, note: 'Closed, when the pair is plus and minus: a plus.' },
+      minusGlyph: { kind: 'vector', glyph: 'minus', size: 'size.{size}.icon', presentWhen: { indicator: ['plus-minus'], expansion: ['expanded'] }, note: 'Open, when the pair is plus and minus: a minus.' },
     },
     codeOnly: [
       'the glyph in code — an `aria-hidden="true"` icon inside the Accordion header button. In code it is part of the Accordion, not a component of its own: the button\'s `aria-expanded` carries the state, and the glyph only shows it.',
@@ -117,7 +117,7 @@ export const accordionIndicator: ComponentDef = {
 
   ai: {
     primaryPurpose: 'Show whether an Accordion section is open, with a chevron or a plus and minus inside its header.',
-    whenToUse: 'Never directly: it is part of an Accordion. Generate an Accordion instead.',
+    whenToUse: 'Only as a child of an Accordion. Generate an Accordion, which places the indicator in each header.',
     avoidWhen: 'Always on its own. Use an Accordion; for a plain icon, use an Icon.',
     commonPartners: ['accordion', 'icon'],
     triggerKeywords: ['accordion indicator', 'accordion chevron', 'expand collapse glyph'],

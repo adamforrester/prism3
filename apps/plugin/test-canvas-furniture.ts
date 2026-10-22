@@ -25,19 +25,37 @@
  *                 default member. Mutation: the backdrop not drawn → `backdrop/covers`.
  *   pilot/…       Button, Tag and Text field (the pilot's three): the label texts and counts, literal, and each column label over its
  *                 column as the shim's nodes place it.
+ *   columns/…     radio-control, the narrowest set (#2705): every column label at least as wide as its own text, no two
+ *                 meeting, each centered over its column; the columns 91 wide (the widest label, 7px a character in the
+ *                 fake) with the members centered, worked out by hand; on a set built before the fix, through the
+ *                 update as `main.ts` runs it, in place with every id kept; the next dry run up to date and the next
+ *                 apply keeping the widened grid; a set laid out by hand not moved. On the Radio page, the widening
+ *                 Update, then the one that moves the later sets clear, leave no label on another set. Mutations: the
+ *                 label fixed to its column → `columns/full text`; the columns not widened → `columns/clear`,
+ *                 `columns/grid`; `gridMoves` blind to the record → `columns/converges`; the executor blind to it →
+ *                 `columns/apply keeps`; the off-grid guard dropped → `columns/hand laid`.
  *   rollout/…     every def that builds a set (#2502, Q212 A): the switch covers each one, held to `componentDefs`; on
  *                 an earlier layout its dry run reports the moves worked out by hand here (360 for the three buttons,
  *                 180 for the three icon buttons, none for the rest), the apply moves them, and the next dry run reads
  *                 up to date; its furniture is drawn with nothing skipped, a backdrop only for the six with `surface`
  *                 rows, and no label inside its own set.
- *   clearance/…   every page that holds more than one set, built in page order with each set's furniture drawn after
- *                 it lands: no label enters another set or its labels, and each later set's labels keep 40px from the
- *                 set to their left. Mutation: `SET_GAP` back to 160 → `clearance/Buttons`, `clearance/Icon button`.
+ *   clearance/…   every page that holds more than one set, built in page order as `main.ts` builds (the set lands,
+ *                 its furniture is drawn, a set the run created is placed again, `seatNewSet`): no label enters another
+ *                 set or its labels, and the white space from one set's frame-and-furniture to the next one's is
+ *                 exactly 160 (#2723, owner decision Q335 A), Button included. Mutations: `SET_GAP` back to 400 →
+ *                 every `clearance/<page>`; the new set placed again without its reach → the same.
+ *   respace/…     Buttons and Checkbox in one file, laid out as the #2502 rule built them (400 frame to frame) with
+ *                 their labels drawn: the update's dry run moves every later set, the apply and the labels' redraw
+ *                 leave exactly 160 between each set's labels and its neighbor's, where a fresh build puts them, every id
+ *                 kept, and the next dry run moves nothing (#2723). Mutations: the old rule's spot not recognized →
+ *                 `respace/<page> dry run`; the furniture left out of the visible box → `respace/<page> gap`.
  *   templates/missing…  a file without `_Label` or `_inverse-backdrop` (#2598): one line for the run, naming each
  *                 missing template and Set up file, and the update's summary carries it. Mutations: the line dropped →
  *                 `templates/missing build`; one line per set → the same; the summary left out → `templates/update summary`.
  *   placement/…   sets deleted and rebuilt on Buttons and Icon button with the header and the third set kept (#2598): each
- *                 lands under the header in the first free slot from its left edge. Mutations: the old rule → every
+ *                 lands under the header in the first free slot from its left edge, the first with its labels on that
+ *                 edge and its frame where the first build put it (#2735). Mutations: the frame on the header's edge
+ *                 → `placement/header edge`, `placement/header edge slot`, `placement/<page> first`; the old rule → every
  *                 `placement/<page> …` arm; a gap or the set's width dropped → `placement/slot …`; the width dropped at
  *                 `applyComponentPlan`'s call → `placement/narrow gap`, a kept set moved into the rebuilt one's slot.
  *                 These arms read the helper's output; `test-build-completed.ts` `templates/… verdict` reads the line
@@ -70,7 +88,7 @@ import { captureBaselines, previewUpdate, previewLine, previewVerdict, type Upda
 import { applyUpdate, applyVerdict, previewHashOf } from './src/update-apply';
 import { BASELINE_KEY } from './src/member-baseline';
 import { NS } from './src/persist-figma';
-import { planFurniture, drawFurniture, furnishUpdate, furnitureDue, furnitureLayout, furnitureItems, withFurnitureItems, sentenceCase, pruneFurniture, clearFurniture, hasFurniture, SCRIM_BACKDROPS, type GridMember, type FurnitureApi, type XNode } from './src/canvas-furniture';
+import { planFurniture, drawFurniture, seatNewSet, furnishUpdate, furnitureDue, furnitureLayout, furnitureItems, withFurnitureItems, sentenceCase, pruneFurniture, clearFurniture, hasFurniture, SCRIM_BACKDROPS, type GridMember, type FurnitureApi, type XNode } from './src/canvas-furniture';
 import { ensureFurnitureTemplates } from './src/furniture-templates';
 import { allLeaves } from './src/file-taxonomy';
 import type { TemplatesApi } from './src/furniture-templates';
@@ -105,7 +123,7 @@ const detach = (c: FNode): void => {
 };
 /** A label instance that measures like the owner's: Top is 37 high (12px text, 8 gap, 14 bracket) and as wide as its
  *  text; Left is 7px a character plus 8 + 14 wide and 16 high until its height is fixed. */
-const labelInstance = (placement: 'Top' | 'Left', textNames: readonly string[] = ['text']): FNode => {
+const labelInstance = (placement: 'Top' | 'Left', textNames: readonly string[] = ['text'], topChar = 7): FNode => {
   const data = new Map<string, string>();
   const texts: FNode[] = textNames.map((name) => ({ type: 'TEXT', name, characters: 'Label', fontName: { family: 'Inter', style: 'Medium' } }) as FNode);
   const text: FNode = texts[0] ?? ({ characters: 'Label' } as FNode);
@@ -117,7 +135,7 @@ const labelInstance = (placement: 'Top' | 'Left', textNames: readonly string[] =
     id: `I:${++seq}`, type: 'INSTANCE', name: '_Label', x: 0, y: 0,
     get componentProperties() { return props; },
     setProperties(p: Record<string, boolean>) { for (const [k, v] of Object.entries(p)) { if (!props[k]) throw new Error(`no property ${k}`); props[k].value = v; } },
-    get width() { return w ?? (placement === 'Top' ? 7 * String(text.characters).length : 7 * String(text.characters).length + 22); },
+    get width() { return w ?? (placement === 'Top' ? topChar * String(text.characters).length : 7 * String(text.characters).length + 22); },
     get height() { return h ?? (placement === 'Top' ? 37 : 16); },
     // The text layers, then the bracket: a frame with no text in it.
     children: [...texts, { type: 'FRAME', name: 'bracket', children: [] } as unknown as FNode],
@@ -145,12 +163,14 @@ const backdropInstance = (): FNode => {
   } as unknown as FNode;
   return n;
 };
-const fakeTemplates = (o: { labels?: boolean; backdrop?: boolean; scrim?: boolean; textNames?: readonly string[]; variants?: readonly [string, string] } = {}) => {
+/** `topChar`: a column label's width per character, 7 unless a test draws labels as a plugin before #2705 did, each
+ *  fixed to its column's width (0: the label never measures wider than its column). */
+const fakeTemplates = (o: { labels?: boolean; backdrop?: boolean; scrim?: boolean; textNames?: readonly string[]; variants?: readonly [string, string]; topChar?: number } = {}) => {
   const [topName, leftName] = o.variants ?? ['Text=Top, surface=default', 'Text=Left, surface=default'];
   const labelSet = {
     type: 'COMPONENT_SET', name: '_Label',
     children: [
-      { type: 'COMPONENT', name: topName, createInstance: () => labelInstance('Top', o.textNames) },
+      { type: 'COMPONENT', name: topName, createInstance: () => labelInstance('Top', o.textNames, o.topChar) },
       { type: 'COMPONENT', name: leftName, createInstance: () => labelInstance('Left', o.textNames) },
     ],
   };
@@ -162,6 +182,16 @@ const fakeTemplates = (o: { labels?: boolean; backdrop?: boolean; scrim?: boolea
     loadFontAsync: async () => {},
   };
   return api;
+};
+/** The file as an update reads it, for a page built here: its component sets are the page's, and it holds the furniture
+ *  templates `fakeTemplates` draws from, so the dry run's furniture check (#2803) finds them as the draw does. */
+const fileRoot = (api: Record<string, unknown>, page: { children: FNode[] }) => {
+  const root = api.root as { findAllWithCriteria: (c: unknown) => unknown[] };
+  return {
+    ...(root as object),
+    findAllWithCriteria: (c: { types: string[] }) => (c.types.length === 1 && c.types[0] === 'COMPONENT_SET' ? page.children.filter((n) => n.type === 'COMPONENT_SET')
+      : [...root.findAllWithCriteria(c), ...(c.types.some((t) => t === 'COMPONENT' || t === 'COMPONENT_SET') ? fakeTemplates().root.findAllWithCriteria(c as never) : [])]),
+  };
 };
 const furnitureOn = (page: { children: FNode[] }): FNode[] => page.children.filter((c) => (c.getSharedPluginData as ((a: string, b: string) => string) | undefined)?.('prism3', 'furniture'));
 const tagOf = (n: FNode) => JSON.parse(String((n.getSharedPluginData as (a: string, b: string) => string)('prism3', 'furniture'))) as { def: string; set: string; kind: string };
@@ -626,13 +656,235 @@ section('thin row — Divider: a 1px row draws its label centered, with no brack
     `thin row/others unchanged: a row as tall as its label keeps its bracket and spans its row (${tall.length}: ${tall.map(textOf).join(', ')})`);
 }
 
+/* ── column labels read in full on a narrow set (#2705) ─────────────────────────────────────────────────── */
+section('columns — radio-control: every column label reads in full, the columns widen to the widest, and Update keeps it');
+{
+  // The narrowest set: radio-control's members are at most 32px wide in the shim (every size, every column), so a label
+  // fixed to its column was 32px and "Focus visible" read as "is vis" (the owner's QA, 2026-10-15). The fake `_Label`
+  // measures 7px a character (`labelInstance`), so the widest, "Focus visible", is 91px: each column widens to 91, its
+  // 32px members centered in it, 30px in (59 spare, rounded), and the columns sit 91 + 24 apart from 24 in. All by hand.
+  const STATES = ['Rest', 'Hover', 'Pressed', 'Focus visible', 'Disabled'];
+  const TEXT_W = (t: string) => 7 * t.length;
+  const MEMBER_X = [54, 169, 284, 399, 514];
+  const SET_W = 5 * 91 + 4 * 24 + 2 * 24;
+  const { plans, page, api, set } = await buildOnPage('radio-control');
+  const members = set.children as FNode[];
+  const ids = new Map(members.map((m) => [String(m.name), String(m.id)] as const));
+  const host = {
+    ...api,
+    root: fileRoot(api, page),
+  } as unknown as UpdateHost;
+  const targets = [{ def: 'radio-control', plans }];
+  const colOf = (m: FNode) => STATES.indexOf(sentenceCase(valuesOf(String(m.name)).state));
+  // Its labels as a plugin before the fix drew them: each fixed to its 32px column.
+  await drawFurniture(fakeTemplates({ topChar: 0 }), set, furnitureLayout(plans), 'radio-control');
+  ok(members.every((m) => Number(m.width) <= 32) && members.every((m) => colOf(m) >= 0),
+    `premise: radio-control's members are 32px wide or less, one state column each (${Math.max(...members.map((m) => Number(m.width)))})`);
+  // AN EXISTING FILE: the set as a build before this fix left it, its grid unwidened. The update corrects it in place:
+  // the apply (nothing to write) then the furniture, as `main.ts` runs an update.
+  const pre = (await previewUpdate(host, targets)).sets[0];
+  ok(!!pre && previewLine(pre) === `radio-control: up to date (${members.length} members).`, `premise: a set built before the fix reads up to date (${pre ? previewLine(pre) : 'no set read'})`);
+  await applyUpdate(host as never, api as never, targets, previewHashOf(await previewUpdate(host, targets)));
+  const o = await drawFurniture(fakeTemplates(), set, furnitureLayout(plans), 'radio-control');
+  const cols = furnitureOn(page).filter((n) => Number(n.y) < Number(set.y));
+  ok(JSON.stringify(cols.map(textOf)) === JSON.stringify(STATES) && o.columns === 5, `columns/texts: ${JSON.stringify(cols.map(textOf))}`);
+  // THE ISSUE'S CHECK: each label at least as wide as its own text, measured off the label against the text.
+  ok(cols.every((c) => Number(c.width) >= TEXT_W(textOf(c))),
+    `columns/full text: every column label is at least as wide as its text (${cols.map((c) => `${textOf(c)} ${c.width}/${TEXT_W(textOf(c))}`).join(', ')})`);
+  const sorted = [...cols].sort((a, b) => Number(a.x) - Number(b.x));
+  const gaps = sorted.slice(1).map((c, i) => Number(c.x) - (Number(sorted[i].x) + Number(sorted[i].width)));
+  ok(gaps.every((g) => g >= 24), `columns/clear: no two column labels meet, each 24px or more from the next (${gaps.join(', ')})`);
+  // Each label centered over its own column's members.
+  const centered = cols.every((c) => {
+    const ms = members.filter((m) => STATES[colOf(m)] === textOf(c));
+    const left = Math.min(...ms.map((m) => boxOf(set, m).x));
+    const right = Math.max(...ms.map((m) => boxOf(set, m).x + boxOf(set, m).w));
+    return ms.length > 0 && Number(c.x) + Number(c.width) / 2 === (left + right) / 2;
+  });
+  ok(centered, `columns/centered: each label is centered over its column's members`);
+  ok(members.every((m) => Number(m.x) === MEMBER_X[colOf(m)]) && Number(set.width) === SET_W,
+    `columns/grid: each column 91 wide, its members 30 in, the set ${SET_W} wide (${[...new Set(members.map((m) => Number(m.x)))].join(', ')}; ${set.width})`);
+  ok(members.every((m) => ids.get(String(m.name)) === String(m.id)), `columns/in place: every member keeps its id`);
+  // THE NEXT DRY RUN READS THE WIDENED GRID AS UP TO DATE: no member to move back.
+  const next = (await previewUpdate(host, targets)).sets[0];
+  ok(!!next && previewLine(next) === `radio-control: up to date (${members.length} members).` && !next.counts.move,
+    `columns/converges: the next dry run reads up to date, nothing to move (${next ? previewLine(next) : 'no set read'})`);
+  // AND THE NEXT UPDATE'S LAY OUT PASS KEEPS IT: the executor reads the recorded width, before any furniture redraw.
+  // An update with nothing to write never lays the grid out, so one member is stamped by an earlier executor revision:
+  // the update writes it again, and its lay out pass re-lays the whole set.
+  const stamp = String((members[0].getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY));
+  (members[0].setSharedPluginData as (a: string, b: string, c: string) => void)(NS, STAMP_KEY, `${stamp.split('|').slice(0, 2).join('|')}|1`);
+  const again = (await previewUpdate(host, targets)).sets[0];
+  const res = await applyUpdate(host as never, api as never, targets, previewHashOf(await previewUpdate(host, targets)));
+  ok(again?.counts.update === 1 && res.outcomes[0]?.updated.length === 1 && members.every((m) => Number(m.x) === MEMBER_X[colOf(m)]) && Number(set.width) === SET_W,
+    `columns/apply keeps: an update that writes a member lays the widened grid (${again?.counts.update} to update, ${res.outcomes[0]?.updated.length} updated; ${[...new Set(members.map((m) => Number(m.x)))].join(', ')}; ${set.width})`);
+
+  // A SET LAID OUT BY HAND: one member off the grid, so nothing moves; the labels still read in full.
+  const hand = await buildOnPage('radio-control');
+  const hm = hand.set.children as FNode[];
+  hm[0].x = Number(hm[0].x) + 5;
+  const handX = hm.map((m) => Number(m.x));
+  await drawFurniture(fakeTemplates(), hand.set, furnitureLayout(hand.plans), 'radio-control');
+  const handCols = furnitureOn(hand.page).filter((n) => Number(n.y) < Number(hand.set.y));
+  ok(hm.every((m, i) => Number(m.x) === handX[i]) && handCols.every((c) => Number(c.width) >= TEXT_W(textOf(c))),
+    `columns/hand laid: a member off the grid, so no member moves, and every label still reads in full`);
+}
+
+// The Radio page, its three sets built before the fix, side by side: a fresh page for each arm below.
+const radioPage = async () => {
+  const IDS = ['radio-control', 'radio-row', 'radio-group'];
+  const plansBy = new Map(IDS.map((id) => [id, plansOf(id)] as const));
+  const all = [...plansBy.values()].flat();
+  const page = makePage('↳ Radio');
+  const api = makeShim({
+    vars: [...new Set(all.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]))],
+    styles: [...new Set(all.flatMap((p) => planTextStyles(p.root)))],
+    effects: [...new Set(all.flatMap((p) => planEffectStyles(p.root)))],
+    comps: [...new Set([SWAP_TARGET, 'focus-ring', ...all.flatMap((p) => planComps(p.root))])],
+    page: page as unknown as { children: Node[] },
+    liveRoot: true,
+    identities: true,
+  }) as Record<string, unknown>;
+  // Their labels as a plugin before the fix drew them: each column label fixed to its column. Each set is placed again
+  // once its labels are drawn, as `main.ts` builds (#2723): radio-row and radio-group draw row labels left of their
+  // frames (their status axis, #2751), so a set placed by its frame alone would start short of `SET_GAP`.
+  const sets: FNode[] = [];
+  for (const id of IDS) {
+    const built = await applyComponentPlan(plansBy.get(id)!, api as never, { targetPage: page as never });
+    const set = page.children.find((c) => c.type === 'COMPONENT_SET' && c.name === id) as FNode;
+    await drawFurniture(fakeTemplates({ topChar: 0 }), set, furnitureLayout(plansBy.get(id)!), id);
+    if (built.placed) seatNewSet(set as never, id);
+    sets.push(set);
+  }
+  const host = {
+    ...api,
+    root: fileRoot(api, page),
+  } as unknown as UpdateHost;
+  const targets = IDS.map((id) => ({ def: id, plans: plansBy.get(id)! }));
+  // ONE UPDATE, as `main.ts` runs it: the apply redraws each set's furniture (`furnish`) and re-spaces from it (Q358 A).
+  const furnish = async (def: string, set: { id?: unknown }) => { await drawFurniture(fakeTemplates(), sets.find((x) => x.id === set.id)!, furnitureLayout(plansBy.get(def)!), def); };
+  const box = (n: FNode) => ({ x: Number(n.x), y: Number(n.y), w: Number(n.width), h: Number(n.height) });
+  const meets = (a: ReturnType<typeof box>, b: ReturnType<typeof box>) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  const hitsOf = (): string[] => {
+    const furn = furnitureOn(page);
+    const out: string[] = [];
+    for (const f of furn) {
+      for (const st of sets) if (st.name !== tagOf(f).def && meets(box(f), box(st))) out.push(`"${textOf(f)}" of ${tagOf(f).def} on ${String(st.name)}`);
+      for (const g of furn) if (tagOf(g).def !== tagOf(f).def && meets(box(f), box(g))) out.push(`"${textOf(f)}" of ${tagOf(f).def} on "${textOf(g)}" of ${tagOf(g).def}`);
+    }
+    return out;
+  };
+  // The visible gap between each set (with its furniture) and the next, left to right.
+  const gaps = (): number[] => {
+    const seen = IDS.map((id, i) => {
+      const all2 = [sets[i], ...furnitureOn(page).filter((f) => tagOf(f).def === id)];
+      return { left: Math.min(...all2.map((n) => Number(n.x))), right: Math.max(...all2.map((n) => Number(n.x) + Number(n.width))) };
+    });
+    return seen.slice(1).map((v, i) => Math.round((v.left - seen[i].right) * 100) / 100);
+  };
+  return { page, api, sets, host, targets, furnish, hitsOf, gaps };
+};
+
+section('columns — the Radio page, built before the fix: Update widens each set in place and keeps the page clear');
+{
+  const { page, api, sets, host, targets, furnish, hitsOf, gaps } = await radioPage();
+  const IDS = sets.map((x) => String(x.name));
+  const widthWas = Number(sets[0].width);
+  const res = await applyUpdate(host as never, api as never, targets, previewHashOf(await previewUpdate(host, targets)), { furnish });
+  const between = hitsOf();
+  const settled = res.outcomes.filter((o) => o.setMoved).map((o) => o.set);
+  const next = await previewUpdate(host, targets);
+  // Every set read up to date, so nothing else wrote: the moves save the named version themselves (Q7).
+  ok(res.version === 'Before Prism3 updated radio-row, radio-group',
+    `columns/shared page version: the settling moves are the update's first write, so they save the named version first, naming the sets that move (${res.version})`);
+  ok(Number(sets[0].width) > widthWas && between.length === 0 && JSON.stringify(settled) === JSON.stringify(['radio-row', 'radio-group']) && gaps().every((g) => g >= 160)
+    && next.sets.every((p) => !p.setMove) && previewVerdict(next).headline === '✓ All sets up to date',
+    `columns/shared page: ONE Update widens radio-control (${widthWas} → ${Number(sets[0].width)}) and moves ${JSON.stringify(settled)} clear in the same apply; no label meets another set or its labels (${between.length}: ${between.slice(0, 3).join('; ')}), the gaps read ${JSON.stringify(gaps())}, and the next dry run moves nothing (${previewVerdict(next).headline})`);
+
+  // LABELS THAT SHRINK IN THE UPDATE (#2734). The page as an older plugin left it: radio-row's leftmost label wider than
+  // it draws now, reaching 50px past the set's left edge, and radio-row and radio-group each 160 clear of the set to their left, measured from those wider
+  // labels. The dry run sees exactly 160 and lists nothing. The Update redraws the labels at their width, which leaves
+  // 210; the two sets sat at Prism3's spacing just before, so the same Update puts them back at exactly 160, where they
+  // stood before the stretch. Mutation: the snug sets not passed to the second pass → 210 here.
+  const settledAt = sets.map((x) => Number(x.x));
+  const shift = (i: number, dx: number) => { sets[i].x = Number(sets[i].x) + dx; for (const f of furnitureOn(page).filter((g) => tagOf(g).def === IDS[i])) f.x = Number(f.x) + dx; };
+  const rowFurn = furnitureOn(page).filter((g) => tagOf(g).def === IDS[1]);
+  const leftmost = rowFurn.reduce((a, b) => (Number(b.x) < Number(a.x) ? b : a));
+  // Stretched left until it hangs 50px past radio-row's visible left edge (its frame, or a label already past it).
+  const edge = Math.min(Number(sets[1].x), Number(leftmost.x)) - 50;
+  const grow = Number(leftmost.x) - edge;
+  (leftmost as Record<string, unknown>).layoutSizingHorizontal = 'FIXED';
+  (leftmost as unknown as { resize: (w: number, h: number) => void }).resize(Number(leftmost.width) + grow, Number(leftmost.height));
+  leftmost.x = edge;
+  shift(1, 50);
+  shift(2, 50);
+  const stretched = gaps();
+  const pre = await previewUpdate(host, targets);
+  const res2 = await applyUpdate(host as never, api as never, targets, previewHashOf(pre), { furnish });
+  const after = await previewUpdate(host, targets);
+  ok(JSON.stringify(stretched) === JSON.stringify([160, 160]) && pre.sets.every((p) => !p.setMove)
+    && JSON.stringify(gaps()) === JSON.stringify([160, 160]) && JSON.stringify(sets.map((x) => Number(x.x))) === JSON.stringify(settledAt)
+    && JSON.stringify(res2.outcomes.filter((o) => o.setMoved).map((o) => o.set)) === JSON.stringify(['radio-row', 'radio-group'])
+    && hitsOf().length === 0 && after.sets.every((p) => !p.setMove) && previewVerdict(after).headline === '✓ All sets up to date',
+    `columns/labels shrink: 160 from a label reaching 50px further than it draws (${JSON.stringify(stretched)}, the dry run lists ${pre.sets.filter((p) => p.setMove).length} moves); ONE Update redraws them and puts radio-row and radio-group back at 160 (${JSON.stringify(gaps())}; at ${JSON.stringify(sets.map((x) => Number(x.x)))}, before the stretch ${JSON.stringify(settledAt)}), and the next dry run moves nothing (${previewVerdict(after).headline})`);
+}
+
+section('columns — the Radio page with a stale member: the update writes it, then settles, under ONE named version');
+{
+  // THE NORMAL CASE once the columns widen (Q358 A with Q7): the update rewrites a set, its redrawn labels widen it,
+  // and the sets to its right settle. The apply saved the named version before its first write, so the settling moves
+  // must not save a second. One radio-control member is stamped by an earlier executor revision, so the update
+  // rewrites it. The shim records each version saved; the wrapper also records, at the save, whether anything had
+  // been written yet: that member's stamp and every set's position.
+  const { api, sets, host, targets, furnish, hitsOf } = await radioPage();
+  const m0 = (sets[0].children as FNode[])[0];
+  const stampOf = () => String((m0.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY));
+  const stale = `${stampOf().split('|').slice(0, 2).join('|')}|1`;
+  (m0.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, STAMP_KEY, stale);
+  const xs = () => sets.map((s) => Number(s.x)).join(',');
+  const xsWas = xs();
+  const atSave: string[] = [];
+  const save = api.saveVersionHistoryAsync as (t: string) => Promise<unknown>;
+  (host as unknown as { saveVersionHistoryAsync: (t: string) => Promise<unknown> }).saveVersionHistoryAsync = async (t: string) => {
+    atSave.push(`${stampOf() === stale ? 'unwritten' : 'written'} ${xs() === xsWas ? 'unmoved' : 'moved'}`);
+    return save(t);
+  };
+  const res = await applyUpdate(host as never, api as never, targets, previewHashOf(await previewUpdate(host, targets)), { furnish });
+  const settled = res.outcomes.filter((o) => o.setMoved).map((o) => o.set);
+  const versions = api._versions as string[];
+  ok(res.outcomes.find((o) => o.set === 'radio-control')?.updated.length === 1 && JSON.stringify(settled) === JSON.stringify(['radio-row', 'radio-group']) && hitsOf().length === 0,
+    `columns/stale settle: the update rewrites radio-control's stale member, then moves ${JSON.stringify(settled)} clear of its widened labels (${hitsOf().length} overlaps)`);
+  ok(versions.length === 1 && JSON.stringify(atSave) === JSON.stringify(['unwritten unmoved']) && res.version === 'Before Prism3 updated radio-control' && versions[0] === res.version,
+    `columns/stale settle version: ONE named version, saved before the member's rewrite and before any move, the one the result names (${JSON.stringify(versions)}; at each save ${JSON.stringify(atSave)}; ${res.version})`);
+}
+
+section('columns — the Radio page, an update that stops: no set settles after the stop');
+{
+  // A STOP HOLDS THE PAGE STILL (as `respaceLive` does): the stale member's stamp write is refused once, so the run
+  // stops in radio-control. Its furniture is still redrawn, but no set to its right moves; the next Update finishes it.
+  const { api, sets, host, targets, furnish } = await radioPage();
+  const m0 = (sets[0].children as FNode[])[0];
+  const get = m0.getSharedPluginData as (a: string, b: string) => string;
+  const real = m0.setSharedPluginData as (a: string, b: string, c: string) => void;
+  real.call(m0, NS, STAMP_KEY, `${String(get.call(m0, NS, STAMP_KEY)).split('|').slice(0, 2).join('|')}|1`);
+  let armed = true;
+  m0.setSharedPluginData = (a: string, b: string, c: string) => { if (armed && b === STAMP_KEY) { armed = false; throw new Error('in setSharedPluginData: the host stopped'); } real.call(m0, a, b, c); };
+  const xs = () => sets.slice(1).map((s) => Number(s.x));
+  const xsWas = JSON.stringify(xs());
+  const res = await applyUpdate(host as never, api as never, targets, previewHashOf(await previewUpdate(host, targets)), { furnish });
+  ok(!!res.outcomes.find((o) => o.set === 'radio-control')?.stopped, `premise: the run stopped in radio-control (${res.outcomes.map((o) => `${o.set}: ${o.stopped ?? 'ran'}`).join('; ')})`);
+  ok(!res.outcomes.some((o) => o.setMoved) && JSON.stringify(xs()) === xsWas,
+    `columns/stop holds: after a stop no set settles, radio-row and radio-group stay put (${JSON.stringify(res.outcomes.filter((o) => o.setMoved).map((o) => o.set))}; ${xsWas} → ${JSON.stringify(xs())})`);
+}
+
 /* ── the scrim behind each Dialog example (#2609, owner decisions Q303.2 A and Q303.3 A) ───────────────────── */
-section('scrim — Dialog: the backdrop is furniture behind each center and bottom member, never in the set');
+section('scrim — Dialog: the backdrop is furniture behind each center, bottom and end member, never in the set');
 {
   // THE REACH, literal: 12px all round a centered panel, 12px above a bottom sheet and flush on its other three sides,
-  // and no entry for full screen, which has no visible backdrop (Q303.8). Typed here, never read off the engine.
-  ok(JSON.stringify(SCRIM_BACKDROPS) === JSON.stringify({ dialog: { axis: 'placement', reach: { center: [12, 12, 12, 12], bottom: [12, 0, 0, 0] } } }),
-    `scrim/reach: center 12 all round, bottom 12 above only, full none, and Dialog the only def (${JSON.stringify(SCRIM_BACKDROPS)})`);
+  // 12px on the start side of an end panel (#2877) and flush on its other three, and no entry for full screen, which
+  // has no visible backdrop (Q303.8). Typed here, never read off the engine.
+  ok(JSON.stringify(SCRIM_BACKDROPS) === JSON.stringify({ dialog: { axis: 'placement', reach: { center: [12, 12, 12, 12], bottom: [12, 0, 0, 0], end: [0, 0, 0, 12] } } }),
+    `scrim/reach: center 12 all round, bottom 12 above only, end 12 on its start side only, full none, and Dialog the only def (${JSON.stringify(SCRIM_BACKDROPS)})`);
   // THE PLANNER on a hand-laid three-member grid at (1000, 500): a 560×200 center panel at (24, 24), a 360×180 bottom
   // sheet at (24, 248) and a 360×640 full panel at (408, 248). Expected rectangles worked out by hand.
   const DIALOG_GRID: GridMember[] = [
@@ -655,15 +907,15 @@ section('scrim — Dialog: the backdrop is furniture behind each center and bott
   const spanned = members.filter((m) => valuesOf(String(m.name)).placement !== 'full').every((m) => {
     const b = boxOf(set, m);
     const p = valuesOf(String(m.name)).placement;
-    const want = p === 'center' ? { x: b.x - 12, y: b.y - 12, w: b.w + 24, h: b.h + 24 } : { x: b.x, y: b.y - 12, w: b.w, h: b.h + 12 };
+    const want = p === 'center' ? { x: b.x - 12, y: b.y - 12, w: b.w + 24, h: b.h + 24 } : p === 'end' ? { x: b.x - 12, y: b.y, w: b.w + 12, h: b.h } : { x: b.x, y: b.y - 12, w: b.w, h: b.h + 12 };
     return scrims.some((n) => Number(n.x) === want.x && Number(n.y) === want.y && Number(n.width) === want.w && Number(n.height) === want.h);
   });
-  ok(o.scrims === 12 && scrims.length === 12 && spanned,
-    `scrim/drawn: 12 scrims, one fitted to each of the 9 center and 3 bottom members, none for the 3 full ones (${o.scrims}, ${scrims.length})`);
+  ok(o.scrims === 20 && scrims.length === 20 && spanned,
+    `scrim/drawn: 20 scrims, one fitted to each of the 12 center, 4 bottom and 4 end members, none for the 4 full ones (${o.scrims}, ${scrims.length})`);
   ok(scrims.every((n) => page.children.indexOf(n) < page.children.indexOf(set)) && !members.some((m) => /scrim/.test(String(m.name))),
     'scrim/behind and outside: every scrim is under the set on the page, and no member of the set is a scrim');
   const fullBoxes = members.filter((m) => valuesOf(String(m.name)).placement === 'full').map((m) => boxOf(set, m));
-  ok(fullBoxes.length === 3 && !scrims.some((n) => fullBoxes.some((b) => Number(n.x) < b.x + b.w && Number(n.x) + Number(n.width) > b.x && Number(n.y) < b.y + b.h && Number(n.y) + Number(n.height) > b.y)),
+  ok(fullBoxes.length === 4 && !scrims.some((n) => fullBoxes.some((b) => Number(n.x) < b.x + b.w && Number(n.x) + Number(n.width) > b.x && Number(n.y) < b.y + b.h && Number(n.y) + Number(n.height) > b.y)),
     'scrim/full: no scrim reaches a full-screen member');
   // A FILE WITHOUT THE TEMPLATE: nothing drawn, the template named once in the run's line.
   const { plans: p2, set: s2 } = await buildOnPage('dialog');
@@ -737,8 +989,8 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
     const due = furnitureDue(fakeTemplates(), set, furnitureLayout(plans), id);
     ok(due.labels + due.backdrops === 0 && due.clear === 0, `rollout/${id} due: nothing due right after the draw (${JSON.stringify(due)})`);
     const surfaces = new Set(members.map((m) => valuesOf(String(m.name)).surface).filter(Boolean));
-    // THE SCRIMS (#2609): Dialog alone, one behind each of its 9 center and 3 bottom members; every other def none.
-    ok(o.scrims === (id === 'dialog' ? 12 : 0), `rollout/${id} scrims: ${id === 'dialog' ? '12, behind the center and bottom members' : 'none'} (${o.scrims})`);
+    // THE SCRIMS (#2609, #2877, #2880): Dialog alone, one behind each of its 12 center, 4 bottom and 4 end members; every other def none.
+    ok(o.scrims === (id === 'dialog' ? 20 : 0), `rollout/${id} scrims: ${id === 'dialog' ? '20, behind the center, bottom and end members' : 'none'} (${o.scrims})`);
     ok(o.columns + o.rows > 0 && o.skipped.length === 0 && furn.length === o.columns + o.rows + o.backdrops + o.scrims,
       `rollout/${id} drawn: ${o.columns} column and ${o.rows} row labels, nothing skipped (${JSON.stringify(o.skipped)})`);
     ok(BACKDROP.has(id) ? o.backdrops === 1 && surfaces.has('inverse') : o.backdrops === 0,
@@ -761,7 +1013,7 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
     Checkbox: ['checkbox-control', 'checkbox-row', 'checkbox-group'],
     Radio: ['radio-control', 'radio-row', 'radio-group'],
     Switch: ['switch-control', 'switch-row'],
-    Tabs: ['tab', 'tabs'],
+    Tabs: ['tab-item', 'tabs'],
     'Segmented control': ['segmented-control-segment', 'segmented-control'],
     Accordion: ['_accordion-indicator', 'accordion'],
     List: ['list-item', 'list'],
@@ -786,10 +1038,12 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
         identities: true,
         keyPrefix: id,
       }) as Record<string, unknown>;
-      await applyComponentPlan(plans, api as never, { targetPage: page as never });
+      const built = await applyComponentPlan(plans, api as never, { targetPage: page as never });
       // By name: each def's shim numbers its own node ids, so two sets on this page can share one.
       const set = page.children.find((c) => c.type === 'COMPONENT_SET' && c.name === id) as FNode;
       await drawFurniture(fakeTemplates(), set, furnitureLayout(plans), id);
+      // As `main.ts` builds: a set the run created is placed again once its labels are drawn (#2723).
+      if (built.placed) seatNewSet(set as never, id);
     }
     const sets = page.children.filter((c) => c.type === 'COMPONENT_SET').sort((a, b) => Number(a.x) - Number(b.x));
     const furn = furnitureOn(page);
@@ -798,12 +1052,15 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
       for (const s of sets) if (s.name !== tagOf(f).def && meets(box(f), box(s))) hits.push(`"${textOf(f) || 'backdrop'}" of ${tagOf(f).def} on ${String(s.name)}`);
       for (const g of furn) if (tagOf(g).def !== tagOf(f).def && meets(box(f), box(g))) hits.push(`"${textOf(f) || 'backdrop'}" of ${tagOf(f).def} on "${textOf(g) || 'backdrop'}" of ${tagOf(g).def}`);
     }
-    const clear = sets.slice(1).map((s, i) => {
-      const own = furn.filter((f) => tagOf(f).def === s.name);
-      return Math.min(...own.map((f) => Number(f.x))) - (Number(sets[i].x) + Number(sets[i].width));
-    });
-    ok(sets.length === ids.length && hits.length === 0 && clear.every((c) => c >= 40),
-      `clearance/${name}: ${sets.length} sets, no label on a neighboring set or its labels, and each later set's labels ${clear.join(', ')}px clear of the set to their left (${hits.slice(0, 3).join('; ')})`);
+    // THE VISIBLE GAP (#2723, owner decision Q335 A): from the right edge of one set's frame and furniture together to
+    // the left edge of the next one's, 160 on every page, measured here off the shim's nodes.
+    const seen = (s: FNode) => {
+      const all = [s, ...furn.filter((f) => tagOf(f).def === s.name)];
+      return { left: Math.min(...all.map((n) => Number(n.x))), right: Math.max(...all.map((n) => Number(n.x) + Number(n.width))) };
+    };
+    const gaps = sets.slice(1).map((s, i) => seen(s).left - seen(sets[i]).right);
+    ok(sets.length === ids.length && hits.length === 0 && gaps.every((g) => g === 160),
+      `clearance/${name}: ${sets.length} sets, no label on a neighboring set or its labels, and 160px of white space between each set's labels and the set to their left (${gaps.join(', ')}; ${hits.slice(0, 3).join('; ')})`);
   }
 }
 
@@ -817,17 +1074,35 @@ section('placement — sets deleted and rebuilt on a page that keeps its header 
   // width), the first two sets deleted with their labels left behind (deleting a set does not delete them), then
   // each rebuilt as `main.ts` builds: its own old labels cleared, the set built, its labels drawn.
   // THE SLOT, on literal boxes: a header at 0,-300 (3000 × 220) and a set the designer left at 1000,0 (500 × 200). A
-  // slot is free when the new set, with 400 on each side for its own labels and its neighbor's, meets nothing. A 500-wide
-  // set fits left of it (0 + 500 + 400 = 900, short of 1000); a 700-wide one does not (1100), and goes 400 past it, to
-  // 1500 + 400 = 1900. A 500-wide one with a node at -300..-100 in its row starts 400 past that node, at 300, where
-  // 300 + 500 + 400 = 1200 passes 1000, so it goes to 1900 too.
+  // slot is free when the new set, with 160 on each side (#2723), meets nothing. A 500-wide set fits left of it
+  // (0 + 500 + 160 = 660, short of 1000); a 900-wide one does not (1060), and goes 160 past it, to 1500 + 160 = 1660.
+  // An 800-wide one fits at 0 (960), but with a node at -300..-100 in its row it starts 160 past that node, at 60,
+  // where 60 + 800 + 160 = 1020 passes 1000, so it goes to 1660 too.
   const hdr = { type: 'INSTANCE', x: 0, y: -300, width: 3000, height: 220, header: true };
   const kept = { type: 'COMPONENT_SET', x: 1000, y: 0, width: 500, height: 200 };
   const at = (p: { x: number; y: number } | null) => (p ? `${p.x},${p.y}` : 'null');
   ok(at(placeNewSet([hdr, kept], 200, 500)) === '0,0', `placement/slot fits: a 500-wide set takes the gap left of the kept set, at 0,0 (got ${at(placeNewSet([hdr, kept], 200, 500))})`);
-  ok(at(placeNewSet([hdr, kept], 200, 700)) === '1900,0', `placement/slot too narrow: a 700-wide set leaves 400 for the kept set's labels, so it goes past it, at 1900,0 (got ${at(placeNewSet([hdr, kept], 200, 700))})`);
+  ok(at(placeNewSet([hdr, kept], 200, 900)) === '1660,0', `placement/slot too narrow: a 900-wide set leaves less than 160 before the kept set, so it goes past it, at 1660,0 (got ${at(placeNewSet([hdr, kept], 200, 900))})`);
   const stray = { type: 'FRAME', x: -300, y: 50, width: 200, height: 50 };
-  ok(at(placeNewSet([hdr, kept, stray], 200, 500)) === '1900,0', `placement/slot left gap: a node at -300..-100 pushes the slot to 300, where 500 wide no longer fits before the kept set, so 1900,0 (got ${at(placeNewSet([hdr, kept, stray], 200, 500))})`);
+  ok(at(placeNewSet([hdr, kept], 200, 800)) === '0,0' && at(placeNewSet([hdr, kept, stray], 200, 800)) === '1660,0',
+    `placement/slot left gap: an 800-wide set fits at 0,0, but a node at -300..-100 pushes the slot to 60, where it no longer fits before the kept set, so 1660,0 (got ${at(placeNewSet([hdr, kept], 200, 800))}, then ${at(placeNewSet([hdr, kept, stray], 200, 800))})`);
+  // THE NEW SET'S OWN REACH (#2723): its labels hang `left` past its frame, a backdrop `right`. Under the header, a
+  // 500-wide set reaching 400 right needs 0 + 500 + 400 + 160 = 1060, past the kept set at 1000, so its labels start
+  // 160 past it: 1660, plus a 300 left reach puts the frame at 1960. With no header, the frame goes 160 + its left
+  // reach past the furthest node in the row, here a neighbor's label ending at 500: 500 + 160 + 120 = 780.
+  ok(at(placeNewSet([hdr, kept], 200, 500, { left: 300, right: 400 })) === '1960,0',
+    `placement/reach under a header: a set whose furniture reaches 300 left and 400 right goes past the kept set, its labels 160 clear, frame at 1960,0 (got ${at(placeNewSet([hdr, kept], 200, 500, { left: 300, right: 400 }))})`);
+  // THE FURNITURE EDGE ON THE HEADER'S EDGE (#2735): under a header at x 0, a set whose labels reach 300 left puts its
+  // labels at 0 and its frame at 300. A 400-wide one reaching 100 left still fits before the kept set at 1000
+  // (0 + 100 + 400 + 160 = 660), so its frame goes at 100. With no reach, the frame is the edge, at 0 (above).
+  ok(at(placeNewSet([hdr], 200, 500, { left: 300, right: 0 })) === '300,0',
+    `placement/header edge: under a header at 0, a set whose labels reach 300 left lands with its labels on the header's left edge, frame at 300,0 (got ${at(placeNewSet([hdr], 200, 500, { left: 300, right: 0 }))})`);
+  ok(at(placeNewSet([hdr, kept], 200, 400, { left: 100, right: 0 })) === '100,0',
+    `placement/header edge slot: a 400-wide set reaching 100 left takes the slot before the kept set, labels at 0, frame at 100,0 (got ${at(placeNewSet([hdr, kept], 200, 400, { left: 100, right: 0 }))})`);
+  const nbr = { type: 'COMPONENT_SET', x: 0, y: 0, width: 400, height: 200 };
+  const nbrLabel = { type: 'INSTANCE', x: 320, y: 20, width: 180, height: 40 };
+  ok(at(placeNewSet([nbr, nbrLabel], 200, 300, { left: 120, right: 0 })) === '780,0',
+    `placement/reach in a row: the frame lands 160 + 120 past the neighbor's furthest node, at 780,0 (got ${at(placeNewSet([nbr, nbrLabel], 200, 300, { left: 120, right: 0 }))})`);
 
   const buildOne = async (page: ReturnType<typeof makePage>, id: string): Promise<FNode> => {
     const plans = plansOf(id);
@@ -842,13 +1117,19 @@ section('placement — sets deleted and rebuilt on a page that keeps its header 
       identities: true,
       keyPrefix: id,
     }) as Record<string, unknown>;
-    await applyComponentPlan(plans, api as never, { targetPage: page as never });
+    const built = await applyComponentPlan(plans, api as never, { targetPage: page as never });
     const set = page.children.find((c) => c.type === 'COMPONENT_SET' && c.name === id) as FNode;
     await drawFurniture(fakeTemplates(), set, furnitureLayout(plans), id);
+    if (built.placed) seatNewSet(set as never, id);
     return set;
   };
   const box = (n: FNode) => ({ x: Number(n.x), y: Number(n.y), w: Number(n.width), h: Number(n.height) });
   const meets = (a: ReturnType<typeof box>, b: ReturnType<typeof box>) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  // A set's frame and its own furniture together, as a designer sees them, measured off the page's nodes.
+  const seenOf = (page: { children: FNode[] }, id: string) => {
+    const all = [page.children.find((c) => c.type === 'COMPONENT_SET' && c.name === id)!, ...furnitureOn(page).filter((f) => tagOf(f).def === id)];
+    return { left: Math.min(...all.map((n) => Number(n.x))), right: Math.max(...all.map((n) => Number(n.x) + Number(n.width))) };
+  };
   for (const [name, ids] of [['Buttons', ['button', 'button-destructive', 'button-neutral']], ['Icon button', ['icon-button', 'icon-button-destructive', 'icon-button-neutral']]] as const) {
     const page = makePage(`↳ ${name}`);
     const first: Record<string, ReturnType<typeof box>> = {};
@@ -862,11 +1143,14 @@ section('placement — sets deleted and rebuilt on a page that keeps its header 
     for (const id of ids.slice(0, 2)) detach(page.children.find((c) => c.type === 'COMPONENT_SET' && c.name === id)!);
     const hb = box(header);
     const a = box(await buildOne(page, ids[0]));
-    ok(a.x === hb.x && a.y === first[ids[2]].y && a.x + a.w <= hb.x + hb.w,
-      `placement/${name} first: the rebuilt ${ids[0]} lands under the header on its left edge, top-aligned with ${ids[2]}, at ${hb.x},${first[ids[2]].y} (got ${a.x},${a.y}; the header spans ${hb.x}..${hb.x + hb.w})`);
+    // #2735: its furniture edge, not its frame, on the header's left edge, which puts it back where the first build did.
+    const aSeen = seenOf(page, ids[0]);
+    ok(aSeen.left === hb.x && a.x === first[ids[0]].x && a.x > hb.x && a.y === first[ids[2]].y && aSeen.right <= hb.x + hb.w,
+      `placement/${name} first: the rebuilt ${ids[0]} lands under the header with its labels on the header's left edge, its frame where the first build put it (${first[ids[0]].x}), top-aligned with ${ids[2]}, at ${first[ids[0]].x},${first[ids[2]].y} (got frame ${a.x},${a.y}, labels from ${aSeen.left}; the header spans ${hb.x}..${hb.x + hb.w})`);
     const b = box(await buildOne(page, ids[1]));
-    ok(b.x === a.x + a.w + 400 && b.y === a.y && b.x + b.w <= hb.x + hb.w,
-      `placement/${name} second: the rebuilt ${ids[1]} lands 400 right of ${ids[0]}, top-aligned, still under the header, at ${a.x + a.w + 400},${a.y} (got ${b.x},${b.y})`);
+    const gap = seenOf(page, ids[1]).left - seenOf(page, ids[0]).right;
+    ok(gap === 160 && b.y === a.y && b.x + b.w <= hb.x + hb.w,
+      `placement/${name} second: the rebuilt ${ids[1]} lands with 160 of white space between its labels and ${ids[0]}'s, top-aligned, still under the header (got ${gap}; at ${b.x},${b.y})`);
     // NOTHING MEETS ANYTHING ELSE'S: no set on another set or on another set's labels, the header on nothing.
     const sets = page.children.filter((c) => c.type === 'COMPONENT_SET');
     const furn = furnitureOn(page);
@@ -882,7 +1166,7 @@ section('placement — sets deleted and rebuilt on a page that keeps its header 
   }
   // THE WIDTH AT THE CALL SITE (#2598 review): the replay above always leaves a label column of slack, so a rebuilt set
   // placed as if it had no width lands in the same spot. Here the kept set is moved left, with its labels, until its
-  // leftmost node sits half the rebuilt set's width short of `width + 400` past the header's left edge: a slot
+  // leftmost node sits half the rebuilt set's width short of `width + 160` past the header's left edge: a slot
   // that holds a zero-width set and not the real one. The rebuilt set must go past the kept set, as the slot rule
   // says, not under its labels. Mutation: `applyComponentPlan` passing width 0 → `placement/narrow gap`.
   {
@@ -898,16 +1182,72 @@ section('placement — sets deleted and rebuilt on a page that keeps its header 
     detach(page.children.find((c) => c.type === 'COMPONENT_SET' && c.name === 'button')!);
     const keptSet = page.children.find((c) => c.type === 'COMPONENT_SET' && c.name === 'button-neutral')!;
     const keptNodes = [keptSet, ...furnitureOn(page).filter((f) => tagOf(f).def === 'button-neutral')];
-    const dx = left + 400 + Math.round(w / 2) - Math.min(...keptNodes.map((n) => Number(n.x)));
+    const dx = left + 160 + Math.round(w / 2) - Math.min(...keptNodes.map((n) => Number(n.x)));
     for (const n of keptNodes) n.x = Number(n.x) + dx;
     const keptLeft = Math.min(...keptNodes.map((n) => Number(n.x)));
     const keptRight = Math.max(...keptNodes.map((n) => Number(n.x) + Number(n.width)));
-    const ok1 = keptLeft >= left + 400 && keptLeft < left + w + 800;
+    const ok1 = keptLeft >= left + 160 && keptLeft < left + w + 160;
     const a = box(await buildOne(page, 'button'));
     const hitsKept = keptNodes.filter((n) => meets(a, box(n))).length;
-    ok(ok1 && a.x >= keptRight + 400 && hitsKept === 0,
-      `placement/narrow gap: the kept set's nodes start at ${keptLeft}, ${keptLeft - left} past the header's left edge, short of the rebuilt set's ${w} + 800, so it lands past them, at ${keptRight + 400} or right (got ${a.x}; ${hitsKept} kept node(s) met)`);
+    const aLeft = seenOf(page, 'button').left;
+    ok(ok1 && aLeft === keptRight + 160 && hitsKept === 0,
+      `placement/narrow gap: the kept set's nodes start at ${keptLeft}, ${keptLeft - left} past the header's left edge, short of the rebuilt set's ${w} + 160, so it lands past them, its labels at ${keptRight + 160} (got ${aLeft}; ${hitsKept} kept node(s) met)`);
   }
+}
+
+/* ── respace: Update re-spaces a page laid out under the #2502 rule (#2723) ─────────────────────────────────── */
+section('respace — an update moves sets laid out 400 apart, frame to frame, to 160 of white space between their labels (#2723)');
+for (const [name, ids] of [['Buttons', ['button', 'button-destructive', 'button-neutral']], ['Checkbox', ['checkbox-control', 'checkbox-row', 'checkbox-group']]] as const) {
+  // One file, one shim, the page's sets built in page order as `main.ts` builds them (set, labels, placed again), so
+  // the fresh layout is measured first. Then each later set is put where the #2502 rule built it, 400 right of the one
+  // before frame to frame, and its labels redrawn there, as that build drew them. The update's dry run and apply run
+  // over that page, then the labels are redrawn for every set the apply acted on, as `main.ts` does after an update.
+  // Mutations: the old rule's spot not recognized in `respaceSets` → `respace/<page> dry run`; the furniture left out
+  // of the visible box → `respace/<page> gap`.
+  const page = makePage(`↳ ${name} (respace)`);
+  const plansBy = new Map(ids.map((id) => [id, plansOf(id)] as const));
+  const all = [...plansBy.values()].flat();
+  const api = makeShim({
+    vars: [...new Set(all.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]))],
+    styles: [...new Set(all.flatMap((p) => planTextStyles(p.root)))],
+    effects: [...new Set(all.flatMap((p) => planEffectStyles(p.root)))],
+    comps: [...new Set([SWAP_TARGET, 'focus-ring', ...all.flatMap((p) => planComps(p.root))])],
+    page: page as unknown as { children: Node[] },
+    liveRoot: true,
+    identities: true,
+  }) as Record<string, unknown>;
+  const setOf = (id: string) => page.children.find((c) => c.type === 'COMPONENT_SET' && c.name === id) as FNode;
+  const draw = async (id: string) => drawFurniture(fakeTemplates(), setOf(id), furnitureLayout(plansBy.get(id)!), id);
+  for (const id of ids) {
+    const built = await applyComponentPlan(plansBy.get(id)!, api as never, { targetPage: page as never });
+    await draw(id);
+    if (built.placed) seatNewSet(setOf(id) as never, id);
+  }
+  const seen = (id: string) => {
+    const all2 = [setOf(id), ...furnitureOn(page).filter((f) => tagOf(f).def === id)];
+    return { left: Math.min(...all2.map((n) => Number(n.x))), right: Math.max(...all2.map((n) => Number(n.x) + Number(n.width))) };
+  };
+  const gaps = () => ids.slice(1).map((id, i) => seen(id).left - seen(ids[i]).right);
+  const fresh = ids.map((id) => Number(setOf(id).x));
+  // The #2502 layout.
+  for (let k = 1; k < ids.length; k++) { setOf(ids[k]).x = Number(setOf(ids[k - 1]).x) + Number(setOf(ids[k - 1]).width) + 400; await draw(ids[k]); }
+  const oldGaps = gaps();
+  const host = { ...api, root: fileRoot(api, page) } as unknown as UpdateHost;
+  const targets = ids.map((id) => ({ def: id, plans: plansBy.get(id)! }));
+  const idsOf = () => JSON.stringify(ids.map((id) => [setOf(id).id, ...((setOf(id).children ?? []) as FNode[]).map((m) => m.id)]));
+  const idsWas = idsOf();
+  const pre = await previewUpdate(host, targets);
+  const moving = pre.sets.filter((x) => x.setMove).map((x) => x.set);
+  ok(JSON.stringify(moving) === JSON.stringify(ids.slice(1)) && pre.sets.every((x) => !x.blockers.length),
+    `respace/${name} dry run: with ${oldGaps.join(', ')}px between their labels, the ${ids.length - 1} later sets move (${JSON.stringify(moving)})`);
+  const res = await applyUpdate(host as never, api as never, targets, previewHashOf(pre));
+  for (const o of res.outcomes) await draw(o.def);
+  const after = gaps();
+  ok(after.every((g) => g === 160) && JSON.stringify(ids.map((id) => Number(setOf(id).x))) === JSON.stringify(fresh),
+    `respace/${name} gap: after the apply and the labels' redraw, 160 between each set's labels and the set to their left, every set where a fresh build put it (${after.join(', ')}; at ${JSON.stringify(ids.map((id) => Number(setOf(id).x)))}, fresh ${JSON.stringify(fresh)})`);
+  const next = await previewUpdate(host, targets);
+  ok(idsOf() === idsWas && next.sets.every((x) => !x.setMove) && previewVerdict(next).headline === '✓ All sets up to date',
+    `respace/${name} converges: every set and member id kept, and the next dry run moves nothing (${previewVerdict(next).headline})`);
 }
 
 /* ── update: furniture is invisible to the dry run and the as-built record ──────────────────────────────── */

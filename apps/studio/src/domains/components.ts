@@ -1,8 +1,9 @@
 /**
  * Components, the levers panel (UI redesign S8.2; redesigned by #2700, the owner's approved wireframe, every call A).
  *
- * WHAT IT DRAWS: the list of component sets and the one action bar (call 9 A: the list and the action where the choosing
- * happens; the focused family's preview and options are the preview pane's, `preview/components.ts`).
+ * WHAT IT DRAWS: the list of component sets, the shown family's settings under its row, and the one action bar (call 9 A:
+ * the list and the action where the choosing happens; the focused family's preview is the preview pane's,
+ * `preview/components.ts`).
  *   · Two sections, Components and Subcomponents (note 4, call 11 A), each row a family (several sets on one Figma page,
  *     closed until one of its sets is selected or the row is focused, call 15 A) or a set of its own, alphabetical
  *     (note 2), labeled by page or by component name (call 14 A), with its members and the page it lands on (idea 12).
@@ -15,18 +16,23 @@
  * Nothing is selected when the page opens (call 13 A).
  *
  * A NAME FOCUSES, A BOX SELECTS: focusing does not select, and the preview pane shows the focused family. At the narrow
- * tier (one column) the preview pane has nowhere to sit beside the list, so the focused family opens inline under its
- * row (`familyDetail`), and a row's meta drops to its count.
+ * tier (one column) a row's meta drops to its count, and the preview is the frame's Preview, as on every page.
+ *
+ * SETTINGS LEFT (#2815 step 1, the phase-2 wireframe, call 3 A). A family's own settings open under its row while the
+ * preview shows it: the family in focus, or Buttons when nothing is (the preview's default, `focusedRow`), so a setting
+ * and the specimen it changes always name the same family. Buttons is the one family with settings today (the Button
+ * options, `domains/button-options.ts`). They sit after the family's open sets, at both tiers. The block is mounted
+ * once per family and moved, not rebuilt, when the list redraws, so a selection or a verdict never resets it.
  *
  * SEARCH (the Studio's search, Q3) filters the rows: a family stays while any of its sets matches (#2700's edge state).
  *
  * A DERIVED MODE holds nothing here: the list and the bar edit no brand setting, so building stays available, as it was
  * when the build bar sat in the preview pane, and the frame does not hold this page (#2700). The Button options, which do
- * edit, hold themselves (`domains/button-options.ts`).
+ * edit, hold themselves (`domains/button-options.ts`), and repaint themselves on `brand` and `mode`.
  *
  * HOW IT REPAINTS: by store subscription only (plan §5): `host` and `host:components` for the bar and the last-build
- * lines, `search` for the filter, the page state (`state/components-page.ts`) for selection, open and focus, `brand`
- * and `mode` for the inline block, and the frame's width tier. It never imports `main.ts` (`test-shell-imports.ts`), and
+ * lines, `search` for the filter, the page state (`state/components-page.ts`) for selection, open and focus, and the
+ * frame's width tier. It never imports `main.ts` (`test-shell-imports.ts`), and
  * no component definition: the catalog is `state/component-catalog.ts`'s (`check:ignore` fails by name if a definition
  * reaches the web bundle).
  */
@@ -41,8 +47,11 @@ import { currentOf, positionOf, RUN_COPY } from '../state/build-queue';
 import { glyph, h, hook, pendingLabel, setBusy } from '../shell/dom';
 import { stateLine } from '../ui/lever-kit';
 import { SETS_COPY } from '../preview/sections/component-sets';
-import { familyDetail, focusedRow } from '../preview/components';
+import { focusedRow, PREVIEW_DEFAULT_PAGE } from '../preview/components';
 import type { PageLends } from '../preview/brand';
+import { BUTTON_DESC } from '../shell/pages';
+import { modeLabel } from '../shell/preview';
+import { mountButtonOptions, BUTTON_OPTIONS_COPY } from './button-options';
 
 /** Mount the Components list into `hostEl`. Subscriptions are released through `cleanups`. */
 export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void)[], lend: PageLends): void => {
@@ -53,8 +62,27 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
   root.append(list);
   if (bar) root.append(bar);
   hostEl.replaceChildren(root);
-  /** The block opened under the focused row at the narrow tier, and the subscriptions its controls hold. */
-  let inlineOwn: (() => void)[] = [];
+  /** The shown family's settings (see the header): its row's key, the block, and the subscriptions its controls hold. */
+  let settings: { key: string; el: HTMLElement; own: (() => void)[] } | null = null;
+  const dropSettings = (): void => { if (settings) for (const fn of settings.own) fn(); settings = null; };
+  /** The settings block for `row`, mounted once and kept while the same family is shown; null for a family with none. */
+  const settingsOf = (row: GroupRow): HTMLElement | null => {
+    if (row.page !== PREVIEW_DEFAULT_PAGE) return null;
+    if (settings?.key === row.key) return settings.el;
+    dropSettings();
+    const own: (() => void)[] = [];
+    // A group inside the L1 section, as Color › Interactive's button sets are (`.p3-icol`): its title L2, its levers' names
+    // L3 (TY2 A). No name, so not a landmark: only Inspect and Activity carry landmark names (Q197, #2487).
+    const el = hook(h('section', 'p3-icol p3-cp-optsec'), 'button-options-section');
+    const head = h('div', 'p3-icol-head');
+    const title = hook(h('h3', 'p3-icol-title', BUTTON_OPTIONS_COPY.title), 'button-options-title');
+    head.append(title, hook(h('p', 'p3-lsec-desc p3-cp-opt-desc', BUTTON_DESC), 'button-options-desc'));
+    const opts = h('div', 'p3-cp-opts');
+    mountButtonOptions(opts, own, modeLabel);
+    el.append(head, opts);
+    settings = { key: row.key, el, own };
+    return el;
+  };
   const frame = (): HTMLElement | null => hostEl.closest<HTMLElement>('[data-w]');
   const narrow = (): boolean => frame()?.dataset.w === 'narrow';
 
@@ -153,7 +181,10 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     const ids = sec.rows.flatMap((r) => r.ids);
     // Q391 A on #2812: under a search the section's box acts on the rows shown, and reads over them.
     const shown = rows.flatMap((r) => r.ids);
-    if (plugin) head.append(box(`sec=${sec.kind}`, boxOfSets(catalog, shown, componentsPage().sel), GROUPS_COPY.selectAll(sec.title), () => select(shown)));
+    // #2825: the box and Build all each sit in a cell one title line high, centered on it, so they center on the title's
+    // first line as a row's box centers on its name, however the count wraps.
+    const line1 = (n: HTMLElement): HTMLElement => { const c = h('span', 'p3-cp-line1'); c.append(n); return c; };
+    if (plugin) head.append(line1(box(`sec=${sec.kind}`, boxOfSets(catalog, shown, componentsPage().sel), GROUPS_COPY.selectAll(sec.title), () => select(shown))));
     // The count sits inside the title (TY2 A): at 380 it wraps under the name inside the heading, so the space after the
     // section title stays the level's space-300 rather than the gap to a wrapped count.
     const t = hook(h('h2', 'p3-lsec-title p3-cp-title'), 'cp-section-title');
@@ -174,11 +205,12 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
       b.disabled = all.length === 0;
       setBusy(b, lend.sets.busy());
       b.onclick = () => { if (!lend.sets.busy()) lend.sets.run('subcomponents', all); };
-      head.append(b);
+      head.append(line1(b));
     }
     el.append(head);
     const ul = h('ul', 'p3-cp-rows');
     const s = componentsPage();
+    const shownKey = focusedRow(catalog, s.focus)?.key ?? null;
     for (const row of rows) {
       const li = hook(h('li', 'p3-cp-li'), 'cp-item');
       li.append(row.family ? familyRow(catalog, row) : setRow(catalog, row.ids[0], row, false));
@@ -189,10 +221,9 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
         for (const id of row.ids) { const m = h('li'); m.append(setRow(catalog, id, row, true)); sub.append(m); }
         li.append(sub);
       }
-      if (narrow() && focusedRow(catalog, s.focus)?.key === row.key && s.focus === row.key) {
-        const inl = h('div', 'p3-cp-inline');
-        inl.append(familyDetail(row, { catalog, inline: true, plugin, lend, cleanups: inlineOwn }));
-        li.append(inl);
+      if (shownKey === row.key) {
+        const set = settingsOf(row);
+        if (set) { li.append(set); shownHere = true; }
       }
       ul.append(li);
     }
@@ -200,12 +231,15 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     return el;
   };
 
+  /** Whether this draw placed the settings block (a search can hide the family's row, and the block with it). */
+  let shownHere = false;
   const paintList = (): void => {
     const had = document.activeElement as HTMLElement | null;
     const key = had && root.contains(had) ? had.dataset.key ?? null : null;
+    // A control inside the settings block is the same node after the redraw: it gets its focus back as itself.
+    const inSettings = had && settings?.el.contains(had) ? had : null;
     const scrollTop = hostEl.scrollTop;
-    for (const f of inlineOwn) f();
-    inlineOwn = [];
+    shownHere = false;
     const catalog = componentCatalog();
     const q = searchQuery.trim();
     const parts: HTMLElement[] = [];
@@ -225,7 +259,9 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
       if (!plugin) parts.push(hook(stateLine(SETS_COPY.web), 'components-web-line'));
     }
     list.replaceChildren(...parts);
-    if (key) root.querySelector<HTMLElement>(`[data-key="${CSS.escape(key)}"]`)?.focus({ preventScroll: true });
+    if (!shownHere) dropSettings();
+    if (inSettings?.isConnected) inSettings.focus({ preventScroll: true });
+    else if (key) root.querySelector<HTMLElement>(`[data-key="${CSS.escape(key)}"]`)?.focus({ preventScroll: true });
     if (hostEl.scrollTop !== scrollTop) hostEl.scrollTop = scrollTop;
   };
 
@@ -306,7 +342,7 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     if (add.length) setComponentsPage({ open: new Set([...componentsPage().open, ...add]) });
     else paintList();
   };
-  // The frame's width tier flips without a remount: the list redraws for the narrow rows and the inline block.
+  // The frame's width tier flips without a remount: the list redraws for the narrow rows.
   let tier = narrow();
   const mo = new MutationObserver(() => { const n = narrow(); if (n !== tier) { tier = n; paintList(); } });
   const f = frame();
@@ -315,8 +351,7 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     () => mo.disconnect(),
     watchComponentsPage(paint),
     subscribe('host', paint), subscribe('host:components', paint), subscribe('search', onSearch),
-    subscribe('brand', () => { if (narrow()) paintList(); }), subscribe('mode', () => { if (narrow()) paintList(); }),
-    () => { for (const fn of inlineOwn) fn(); },
+    dropSettings,
     () => { if (searchQuery.trim()) setSearchHits(null); },
   );
   paint();

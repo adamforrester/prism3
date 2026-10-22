@@ -11,6 +11,11 @@
       "type": "string",
       "description": "Brand identifier (e.g. 'aurora'). Host-supplied identity; the emit namespace is set separately by `root`."
     },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "OPTIONAL. The brand's display name, as people read it (e.g. 'Aurora'). Unset, a reader that shows the brand by name uses `id` as written. Identity, not a lever: no token emits from it."
+    },
     "root": {
       "type": "string",
       "pattern": "^[a-z][a-z0-9-]*$",

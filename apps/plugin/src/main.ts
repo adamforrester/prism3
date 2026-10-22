@@ -48,9 +48,12 @@ import { resolveAllModes } from '@prism3/engine/modes';
 import { TAXONOMY } from './file-taxonomy';
 import { ensurePageHeader, pageHeaderCopy, pageHeaderItems } from './page-header';
 import type { PageHeaderOutcome, HeaderPage } from './page-header';
-import { hasFurniture, clearFurniture, drawFurniture, furnishUpdate, furnitureLayout, furnitureItems, withFurnitureItems, withTemplateWarning, readTag, staleFurniture, pruneFurniture, furniturePruneText, FURNITURE_NS, FURNITURE_KEY } from './canvas-furniture';
+import { withPanel, hasFurniture, clearFurniture, drawFurniture, seatNewSet, furnishUpdate, furnitureLayout, furnitureItems, withFurnitureItems, withTemplateWarning, readTag, staleFurniture, pruneFurniture, furniturePruneText, FURNITURE_NS, FURNITURE_KEY } from './canvas-furniture';
 import type { FurnitureApi, FurnitureOutcome, FurnitureParent, FurnitureTag, XNode } from './canvas-furniture';
 import { ensureFurnitureTemplates } from './furniture-templates';
+import { ensureDocBlock, docBlockNote, type DocBlockApi } from './doc-block';
+import { coverLine, drawCover, type CoverApi, type CoverOutcome, type CoverRoot } from './cover-frame';
+import { clearOrphanPanels, docPanelReach, drawDocPanel, type PanelApi, type PanelOutcome, type PNode } from './doc-panel';
 import type { TemplatesApi } from './furniture-templates';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { chunkLine, summaryLines, measureSettle, verdictBeforeSettle } from './build-telemetry';
@@ -685,7 +688,11 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
         targetPage = page as unknown as CompPageTarget;
         // This def's earlier labels and backdrop come off FIRST, so the build's placement of a new set never measures
         // furniture left behind by a set someone deleted. Redrawn below once the set has landed.
-        if (hasFurniture(target.id)) clearFurniture(page as unknown as FurnitureParent, target.id);
+        if (hasFurniture(target.id)) {
+          clearFurniture(page as unknown as FurnitureParent, target.id);
+          // Its usage panel too, when its set is gone and no one edited it (#846); an edited one stays.
+          await clearOrphanPanels(figma as unknown as PanelApi, page, target.id);
+        }
       }
       const built = await applyComponentPlan(project(target), figma, {
         // #1554: the resolved section page, or undefined → `currentPage` (unmapped def / pre-#1554 default).
@@ -719,6 +726,10 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
       // AFTER the set lands and BEFORE the run's headers, so a first build's header measures the labels too.
       const drawn = await furnishSet(target.id, built.id, project(target));
       if (drawn) furniture.push(drawn);
+      // #2723: a set this run created is placed again now its labels are measurable, so the visible gap is the rule's.
+      if (drawn && built.placed) await seatSet(built.id, target.id);
+      // #846: its usage panel LAST, once the set sits where it stays, so the seating never moves the set past its panel.
+      if (drawn) await panelBeside(drawn, built.id, target.id);
       // The real `PageNode` (same #1561 reasoning as `targetPage` above), which satisfies `HeaderPage`.
       if (page) landed(page.name, { page: page as unknown as PageNode, defId: target.id });
       return built;
@@ -906,6 +917,35 @@ const furnishSet = async (defId: string, setId: string, plans: AnatomyPlan[]): P
   }
 };
 
+/** A component's display name by id, for the usage panel's Related chips (#846). */
+const defName = (id: string): string => componentDefs.find((d) => d.id === id)?.name ?? id;
+/**
+ * THE USAGE PANEL FOR ONE SET (#846, `doc-panel.ts`), drawn after its labels on a build or an update. CAUGHT HERE, never
+ * rethrown, as the labels are: the set is already written, and the panel is documentation, not the build.
+ */
+const panelFor = async (set: XNode, defId: string): Promise<PanelOutcome> => {
+  const def = componentDefs.find((d) => d.id === defId);
+  if (!def) return { def: defId, drawn: false, sections: [], replaced: 0, kept: [], skipped: [], misses: [] };
+  try { return await drawDocPanel(figma as unknown as PanelApi, set as unknown as PNode, def, { names: defName }); }
+  catch (e) { return { def: defId, drawn: false, sections: [], replaced: 0, kept: [], skipped: [`No usage panel for ${defId}: Figma refused the write (${(e as Error)?.message ?? String(e)})`], misses: [] }; }
+};
+
+/** `panelFor` on a set by id, folded into the set's furniture outcome (the build's path). */
+const panelBeside = async (f: FurnitureOutcome, setId: string, defId: string): Promise<void> => {
+  let set: BaseNode | null = null;
+  try { set = await figma.getNodeByIdAsync(setId); } catch { /* reported below */ }
+  if (set && set.type === 'COMPONENT_SET') withPanel(f, await panelFor(set as unknown as XNode, defId));
+};
+
+/** `seatNewSet` on a set by id (#2723), with the room its usage panel will take (#846). CAUGHT, as `furnishSet` is:
+ *  the set is built, and this is its placement. */
+const seatSet = async (setId: string, defId: string): Promise<void> => {
+  try {
+    const set = await figma.getNodeByIdAsync(setId);
+    if (set && set.type === 'COMPONENT_SET') seatNewSet(set as unknown as XNode, defId, docPanelReach(figma as unknown as PanelApi));
+  } catch { /* the set stays where the executor placed it */ }
+};
+
 const updateTargets = (defId: string | undefined): { targets: UpdateTarget[]; unknown: string | null; refused: { def: string; reason: string }[] } => {
   let brandInput: BrandInput | null = null;
   try { brandInput = restoreInput(figma.root); } catch { /* untrusted/absent → defaults, as `buildComponents` */ }
@@ -915,7 +955,7 @@ const updateTargets = (defId: string | undefined): { targets: UpdateTarget[]; un
   const refused: { def: string; reason: string }[] = [];
   for (const d of defs) {
     // `single` (#2296): an `emitAsComponents` def (the icons, the spinner) is read as single components, not a set.
-    try { targets.push({ def: d.id, plans: figmaAnatomySet(materializeForBrand(d, brandInput), { swapTarget: SWAP_TARGET }), ...(d.figmaProperties?.emitAsComponents ? { single: true } : {}) }); }
+    try { targets.push({ def: d.id, plans: figmaAnatomySet(materializeForBrand(d, brandInput), { swapTarget: SWAP_TARGET }), ...(d.figmaProperties?.emitAsComponents ? { single: true } : {}), ...(hasFurniture(d.id) ? { doc: { def: d, names: defName } } : {}) }); }
     catch (e) { refused.push({ def: d.id, reason: `the engine could not plan it (${(e as Error)?.message ?? String(e)})` }); }
   }
   return { targets, unknown: null, refused };
@@ -942,14 +982,17 @@ const updateComponents = async (defId: string | undefined, previewHash: string |
     // THE APPLY (#2265 PR 2): the same plans the check laid against the file, applied over it only while it still
     // hashes as the check did. `figma` is both the file the check reads and the executor's port.
     const descriptionOf = (def: string): string | undefined => componentDefs.find((d) => d.id === def)?.summary;
-    const r = await applyUpdate(figma as unknown as ApplyHost, figma as unknown as ComponentsApi, targets, previewHash, { descriptionOf, breathe, ...(choices ? { choices } : {}) });
-    r.refused.push(...refused);
     // THE CANVAS FURNITURE (#2406, #2188), redrawn for every piloted set the apply acted on — from the members as they
-    // now sit, so the labels follow the update. Reported in the data, and in the verdict only where a part was skipped.
-    // A set whose only work was its furniture (#2803) is one of them (`furnishUpdate`).
-    const furniture = await furnishUpdate(figma as unknown as FurnitureApi, r, targets);
+    // now sit, so the labels follow the update — and the page re-spaced from it in the same apply (Q358 A). A set whose
+    // only work was its furniture (#2803) is one of them. Reported in the data, and in the verdict only where a part
+    // was skipped.
+    const furniture: FurnitureOutcome[] = [];
+    const furnish = async (def: string): Promise<void> => { furniture.push(...await furnishUpdate(figma as unknown as FurnitureApi, { outcomes: [{ def }] }, targets, panelFor)); };
+    const r = await applyUpdate(figma as unknown as ApplyHost, figma as unknown as ComponentsApi, targets, previewHash, { descriptionOf, breathe, furnish, ...(choices ? { choices } : {}) });
+    r.refused.push(...refused);
     sink.data({ update: { mode: 'apply', ...r, furniture } });
-    postVerdict({ type: 'component-update-result', ...withTemplateWarning(withFurnitureItems(applyVerdict(r), furnitureItems(furniture, 'update')), furniture) }, sink);
+    // #2858: the library publish description, which the Activity drawer offers with a Copy button.
+    postVerdict({ type: 'component-update-result', ...withTemplateWarning(withFurnitureItems(applyVerdict(r), furnitureItems(furniture, 'update')), furniture), ...(r.publish ? { publish: r.publish } : {}) }, sink);
   } catch (e) {
     const why = (e as Error)?.message ?? String(e);
     postVerdict({ type: 'component-update-result', ok: false, headline: previewHash === null ? '✗ check failed' : '✗ update failed', summary: why, lines: [why] }, sink);
@@ -1008,7 +1051,7 @@ const fileSetup = async (sink: ActionSink): Promise<void> => {
     const scaffold = await scaffoldSkeleton(figma, TAXONOMY);
     const page = scaffold.fileComponentsPage;
     let assetNote = '';
-    let assets: { built?: string[]; fontMisses?: string[]; skipped?: boolean; styleGuideCells?: unknown; furnitureTemplates?: unknown } = {};
+    let assets: { built?: string[]; fontMisses?: string[]; skipped?: boolean; styleGuideCells?: unknown; furnitureTemplates?: unknown; docBlock?: unknown } = {};
     if (page) {
       // IDEMPOTENT ASSET BUILD: skipped when the page already holds either set, in any case (`ensureFileComponents`).
       const res = await ensureFileComponents(figma, page);
@@ -1027,6 +1070,10 @@ const fileSetup = async (sink: ActionSink): Promise<void> => {
         (tpl.backdropBinding === 'no-variable' ? ' (the backdrop binds to the inverse background once the theme is applied)' : '') +
         (tpl.scrimBinding === 'no-variable' ? ' (the scrim binds to the scrim color once the theme is applied)' : '') +
         (tpl.fontMisses.length ? ` (⚠ ${tpl.fontMisses.slice(0, 2).join('; ')})` : '');
+      // THE USAGE PANEL'S BLOCKS (#846), built from the file's own Badge, Tag, List.Item and Divider and its theme.
+      const docBlock = await ensureDocBlock(figma as unknown as DocBlockApi, page);
+      assets = { ...assets, docBlock };
+      assetNote += docBlockNote(docBlock);
       // The style-guide cell sets (#259) beside them — adopted wherever the file already has them, in any case.
       const cells = await ensureStyleGuideCells(figma, page);
       assets = { ...assets, styleGuideCells: cells };
@@ -1035,8 +1082,15 @@ const fileSetup = async (sink: ActionSink): Promise<void> => {
     } else {
       assetNote = ', ⚠ no File Components page — assets not built';
     }
-    const summary = `pages: ${scaffold.created.length} created${scaffold.created.length ? ` (${scaffold.created.slice(0, 4).join(', ')}${scaffold.created.length > 4 ? '…' : ''})` : ' (all present)'}${assetNote}`;
-    sink.data({ fileSetup: { pagesCreated: scaffold.created, fileComponentsPage: page ? true : false, assets } });
+    // THE LIBRARY COVER (#2859, owner decision Q509 A, Q?5 A): drawn on the Cover page the scaffold just made, with the
+    // saved brand's name, and set as the file thumbnail while that is still Figma's default. Every Update keeps it current.
+    // `drawCover` reads the brand the file holds; with none it draws nothing and says so.
+    let cover: CoverOutcome;
+    try { cover = await drawCover(figma as unknown as CoverApi, figma.root as unknown as CoverRoot); }
+    catch (e) { cover = { did: 'none', skipped: `not drawn, Figma refused the write (${(e as Error)?.message ?? String(e)})`, fontMisses: [] }; }
+    const coverNote = coverLine(cover);
+    const summary = `pages: ${scaffold.created.length} created${scaffold.created.length ? ` (${scaffold.created.slice(0, 4).join(', ')}${scaffold.created.length > 4 ? '…' : ''})` : ' (all present)'}${assetNote}${coverNote ? `\n${coverNote}` : ''}`;
+    sink.data({ fileSetup: { pagesCreated: scaffold.created, fileComponentsPage: page ? true : false, assets, cover } });
     sink.post({ type: 'file-setup-result', ok: true, headline: '✓ file set up', summary: appendBuildNote(summary, PRISM3_BUILD) });
   } catch (e) {
     sink.post({ type: 'file-setup-result', ok: false, headline: '✗ setup failed', summary: appendBuildNote(`file setup failed: ${(e as Error).message}`, PRISM3_BUILD) });
