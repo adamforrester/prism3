@@ -68,7 +68,7 @@ export type CatalogEntry = {
 };
 export type Catalog = readonly CatalogEntry[];
 
-type PlanNode = { nestTarget?: string; swapTarget?: string; nestOverrides?: readonly { type: string; value: string }[]; children?: readonly unknown[] };
+type PlanNode = { nestTarget?: string; swapTarget?: string; nestOverrides?: readonly { type: string; value: unknown }[]; children?: readonly unknown[] };
 
 /** The catalog of `defs`, in their order. `project` is the projector (`figmaAnatomySet` with
  *  `CATALOG_SWAP_TARGET`); it throws for a definition it cannot build. */
@@ -100,11 +100,8 @@ export const catalogOf = (defs: readonly ComponentDef[], project: (def: Componen
       const dep = defs.find((x) => x.id === name || (!!x.figmaProperties?.emitAsComponents && name.startsWith(`${x.id}/`)));
       if (dep && dep.id !== d.id && !nests.includes(dep.id)) nests.push(dep.id);
     };
-    const walk = (n: PlanNode): void => {
-      add(n.nestTarget); add(n.swapTarget);
-      for (const o of n.nestOverrides ?? []) if (o.type === 'INSTANCE_SWAP') add(o.value);
-      for (const c of (n.children ?? []) as PlanNode[]) walk(c);
-    };
+    // A nested instance's swap override names a component the build makes first too (#2645), as `planTargets` reads it.
+    const walk = (n: PlanNode): void => { add(n.nestTarget); add(n.swapTarget); for (const o of n.nestOverrides ?? []) if (o.type === 'INSTANCE_SWAP') add(String(o.value)); for (const c of (n.children ?? []) as PlanNode[]) walk(c); };
     for (const p of plans) walk(p.root as unknown as PlanNode);
     return { ...base, buildable: true, reason: null, members: plans.length, nests };
   });

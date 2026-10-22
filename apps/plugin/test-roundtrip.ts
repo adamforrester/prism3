@@ -720,6 +720,8 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     // #2266: the input type scales with the field's size, one body step above its label.
     'text-field':    { parts: fieldLayer, style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
     // #2317: the Password field's value and placeholder are TextField's, from the shared field factory.
+    // #2888: the Search field's value and placeholder are TextField's, from the shared field factory.
+    'search-field': { parts: fieldLayer, style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
     'password-field': { parts: fieldLayer, style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
     textarea:        { parts: fieldLayer, style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
     select:          { parts: fieldLayer, style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
@@ -880,6 +882,8 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     // #2317: the Password field drops TextField's trailing slot, so its panel is TextField's without the trailing
     // icon pair. The nested Button's `label` surfaces through the exposed instance, not as a property of this set.
     'password-field': { componentProps: ['placeholder', 'value', 'leading icon', '↳ swap leading icon', 'message'], switches: [] },
+    // #2888: the Search field adds the Figma-only label switch ahead of TextField's panel (Q?4 A).
+    'search-field': { componentProps: ['placeholder', 'value', 'label', 'leading icon', '↳ swap leading icon', 'trailing icon', '↳ swap trailing icon', 'message'], switches: [] },
     'icon-button': { componentProps: ['swap icon'], switches: [] },
   };
   for (const [id, want] of Object.entries(CANON)) {
@@ -1862,6 +1866,8 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     const msg = find(m, 'message') as (Node & { _main?: Node }) | undefined;
     const text = find(msg?._main ?? msg, 'label');
     if (!ctl || !row || !mc || !cc || !text) { const why = `${m.name}: incomplete (${[ctl, row, mc, cc, text].map((n) => (n ? 1 : 0)).join("")}; message ${msg?.type}, main ${msg?._main?.type}:${JSON.stringify(((msg?._main?.children as Node[] | undefined) ?? []).map((c) => c.name))})`; span.push(why); wrap.push(why); alone.push(why); continue; }
+    // Both switches on, as a designer sets them: the message cell is built hidden since #2926, the counter's always.
+    mc.visible = true;
     cc.visible = true;
     const edge = () => `row ${W(row)} / field ${W(ctl)}; counter ${X(cc)}+${W(cc)}; message ${X(mc)}+${W(mc)}`;
     if (!(near(W(row), W(ctl)) && near(X(cc) + W(cc), W(row)) && X(mc) + W(mc) <= X(cc) + 1e-6)) span.push(`${m.name}: ${edge()}`);

@@ -80,6 +80,28 @@
  * `value` is consequently **required** here, where checkbox's is optional: it is this option's identity
  * within the group, not a string that happens to be submitted.
  *
+ * ── THE ROW'S HEIGHT LANDS ON THE CONTROL LADDER (#2894, owner decision Q539: A on every question) ─────────
+ *
+ * The rows used Prism 2's constant 12px block padding at every size, so no row sat on the control-height ladder
+ * (45/48/51 at comfortable, and the floor was code-only). The owner chose, for Radio.Row, Checkbox.Row and
+ * Switch.Row alike (Q?5 A):
+ *
+ *   · **Q?1 A** — the floor `size.{size}.min-height` (the ladder, 36/44/56 at comfortable) sets a single-line
+ *     row's height and the content is centered in it; the pad is a per-size MINIMUM, `space.075`/`100`/`150`
+ *     (6/8/12px), that only shows once a label wraps. Existing steps, no new token, so CONTRACT holds.
+ *   · **Q?2 A** — Figma gets the floor too, bound as the row's auto-layout `minHeight` the way Select and
+ *     Accordion bind theirs. The row still hugs a wrapped label.
+ *   · **Q?3 A** — centering the row's own items would float the control to the middle of a wrapped label
+ *     (#1009 half-1), so the row centers ONE inner box, named `content`, and that box keeps the control and
+ *     label top-aligned: Accordion's Q276 A construction.
+ *   · **Q?4 A** — `pad-y` joins `densitySpacing`, so compact rows compact (29/36/44) and spacious rows grow.
+ *   · **Q?6 A** — the update cost is accepted: in files that already hold the row, an Update inserts `content` and
+ *     MOVES the label and the control cell (the nested control with it) into it, keeping every node's id (#2595;
+ *     `test-update-apply.ts` "option rows", #2933). Whether a placed instance's override survives the move is a
+ *     host question the shim cannot answer, so a dry run on a copy of a shipped file comes before any master update.
+ *
+ * `test.ts` #2894 measures the result in every corpus brand.
+ *
  * ── WHAT §15 CALLS RADIO-SPECIFIC STATES, TWO OF WHICH ARE NOT STATES ──────────────────────────────
  *
  * Brief §15 lists `radio-specific: [selected, no-deselect, no-indeterminate]`: `selected` is the
@@ -157,8 +179,9 @@ export const radioRow: ComponentDef = {
   // them here with nothing selection-dependent left to resolve would be unreachable keys.
   paintKeys: ['{slot}'],
 
-  // The spacing this spec states at comfortable, which density moves one step along the space ladder.
-  densitySpacing: ['size.{size}.gap'],
+  // The spacing this spec states at comfortable, which density moves one step along the space ladder. The
+  // block padding joins it (owner Q539, Q?4 A on #2894), so a compact row compacts with its floor.
+  densitySpacing: ['size.{size}.gap', 'size.{size}.pad-y'],
 
   tokens: {
     // ── THE ROW'S OWN PAINT IS ONE INK: THE LABEL. Every color binding for the ring, the inner dot, the
@@ -168,19 +191,22 @@ export const radioRow: ComponentDef = {
     'label': 'color.text.primary',
     'disabled.label': 'color.disabled.text',
 
-    // ── THE ROW'S TOP/BOTTOM PADDING (#1433b). Prism 2's radio-button-row root sits its content in
-    // `padding {top: 12, bottom: 12, start: 0, end: 0}` (`reference/Prism2/component-specs/radio-button-row.json`),
-    // a CONSTANT block inset (the same 12 on the 48-tall checkbox row and the 56-tall radio row — it does
-    // not scale with `size`), so `pad-y` binds `space.150` (= 12px on nb, the nearest existing spacing step
-    // and an EXACT match — no new scale rung minted, CONTRACT holds). The INLINE sides are zero — Prism 2's
-    // `{start: 0, end: 0}` — so `pad-x` binds `space.0` (0px, emitted in every brand tier): `PaddingDef.inlineLabel`
-    // is REQUIRED, so a literal-zero slot rather than an omission, exactly as `checkbox-group` binds its own.
-    'pad-y': 'space.150',
+    // ── THE ROW'S TOP/BOTTOM PADDING, a MINIMUM per size (owner Q539, Q?1 A on #2894). It was Prism 2's constant
+    // 12 at every size (#1433b, `reference/Prism2/component-specs/radio-button-row.json`), which put no row on the
+    // control-height ladder (45/48/51 at comfortable). The floor below now sets a single-line row's height and the
+    // row centers its content in it, so the pad only matters once a label wraps: 6/8/12px (`space.075`/`100`/`150`,
+    // existing steps, no new token, CONTRACT holds), density moving each one step. The INLINE sides are zero —
+    // Prism 2's `{start: 0, end: 0}` — so `pad-x` binds `space.0`: `PaddingDef.inlineLabel` is REQUIRED, so a
+    // literal-zero slot rather than an omission, exactly as `checkbox-group` binds its own.
+    'size.small.pad-y': 'space.075',
+    'size.medium.pad-y': 'space.100',
+    'size.large.pad-y': 'space.150',
     'pad-x': 'space.0',
 
     // ── THE CONTROL-TO-LABEL GAP and the ROW'S FLOOR. The gap is this spec's own `space.*` step at
-    // comfortable (8/8/12px, the spacing model), which density moves one step (`densitySpacing`). `min-height` is the code projection's floor; Figma
-    // has no floor, so the row hugs its children and the key stays bound only for code (see `codeOnly`).
+    // comfortable (8/8/12px, the spacing model), which density moves one step (`densitySpacing`). `min-height`
+    // is the control-height ladder (36/44/56 at comfortable), the row's floor in BOTH projections since #2894
+    // (owner Q539, Q?2 A): Figma binds it as the row's auto-layout `minHeight`, so the row still hugs a wrapped label.
     'size.small.gap': 'space.100',
     'size.medium.gap': 'space.100',
     'size.large.gap': 'space.150',
@@ -223,25 +249,27 @@ export const radioRow: ComponentDef = {
   // authored in place. The atom paints itself; the Row paints the label. This is the composition #1226
   // asked for and #1330/#1354 proved twice — a shared control single-sourced, a fix to it propagating here.
   //
-  // THE ROW MUST NOT CENTER. Option labels wrap by design (the guidance is to wrap rather than truncate,
-  // keeping per-option detail in `description`), so `align: center` here would float the disc to the
-  // middle of a two-line option, the wrong repair `test.ts` #1009 half-1 forbids. The row stays
-  // top-aligned (`align: start`) and the centring lives one level down, in `controlCell`, which is one
-  // line-box tall — landing the disc on the first line (#1201).
+  // THE CONTROL AND LABEL MUST NOT CENTER ON EACH OTHER. Option labels wrap by design (the guidance is to wrap
+  // rather than truncate, keeping per-option detail in `description`), so centering them would float the disc to
+  // the middle of a two-line option, the wrong repair `test.ts` #1009 half-1 forbids. Since #2894 (owner Q539,
+  // Q?3 A, Accordion's Q276 A pattern) the ROW centers ONE child, `content`, in its ladder floor, and `content`
+  // keeps the control and label top-aligned, with the centring one level further down in `controlCell`, which
+  // is one line-box tall — landing the disc on the first line (#1201).
   anatomy: {
     root: 'row',
     parts: {
       // THE HIT TARGET, and nothing else. No `paintSlots` (#933): structure, and this def keys no
-      // row-level fill or border for it to name. Its extent comes from its children — `min-height` is in
-      // `codeOnly` for checkbox's reason, that Figma has no floor.
+      // row-level fill or border for it to name. Its floor is the control-height ladder (`minHeight`, #2894),
+      // and it centers `content` in it, so a single-line option measures 36/44/56 at comfortable with the
+      // slack split above and below. A wrapped label grows the row past the floor by its padding.
       row: {
         kind: 'box',
         role: 'target',
-        layout: { direction: 'row', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
-        gap: 'size.{size}.gap',
-        // TOP/BOTTOM PADDING (#1433b) from Prism 2's row (`space.150` = 12px on nb); inline sides zero
-        // (`space.0`). See the `pad-y`/`pad-x` tokens above for the source and why inline is a literal zero.
-        padding: { block: 'pad-y', inlineLabel: 'pad-x' },
+        layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
+        minHeight: 'size.{size}.min-height',
+        // TOP/BOTTOM PADDING, the per-size minimum (#2894); inline sides zero (`space.0`). See the
+        // `pad-y`/`pad-x` tokens above for the values and why inline is a literal zero.
+        padding: { block: 'size.{size}.pad-y', inlineLabel: 'pad-x' },
         // BUILT AT 320, SHRINKS TO ITS COLUMN (#1424, then owner decision Q152.3: Q99 B reaches the rows). The label
         // FILLS the row and WRAPS, so the row's width must be bounded or a `layoutGrow` label has no remaining space
         // to fill. The root is BUILT at Prism 2's radio-button-row `root width 320` (`placementWidth`, the fields' #2292
@@ -250,7 +278,19 @@ export const radioRow: ComponentDef = {
         // at 320 and overflowed it. Both are literal projection defaults, not bound tokens, so CONTRACT holds.
         placementWidth: 320,
         minWidth: 120,
+        children: ['content'],
+      },
+      // THE ROW'S ONE FLOW CHILD (#2894, owner Q539 Q?3 A — named `content`). The row centers this box; the box
+      // keeps the control and label TOP-aligned inside it, so a wrapping label holds the disc on its first line.
+      // Draws nothing. Fills the row's width so the label has a bounded width to wrap in.
+      content: {
+        kind: 'box',
+        role: 'presentation',
+        layout: { direction: 'row', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
+        grow: true,
+        gap: 'size.{size}.gap',
         children: ['controlCell', 'label'],
+        note: 'The control and the label, side by side and top-aligned. The row centers this box in its minimum height, and the control stays beside the label\'s first line.',
       },
       // THE ALIGNMENT BOX (#1201, building the fix #1009 filed). One line of the label tall
       // (`size.{size}.control-box` → the baked `body.{rung}` line-box), centring the disc on its cross
@@ -307,9 +347,8 @@ export const radioRow: ComponentDef = {
       // passing mention inside an entry about something else does not count (#563).
       'read-only — not projected: the Row\'s Figma set carries no state of its own, and read-only has no treatment to project at either level. Since #1348 the Row projects a SIZE-ONLY set (no stateAxis): the control\'s `state` is EXPOSED from the nested `radio-control` and the consumer drives it from the Row, so no state is enumerated into the Row\'s own matrix. read-only binds NOTHING even in code: a radio has no working native readonly, so there is no treatment to project, and six variants byte-identical to `rest` would read as coverage of a state nobody has designed.',
       'states — the documented cost of collapsing 36 members to 3 (the #1348 decomposition). A disabled Row in Figma shows the disabled CONTROL (the exposed state) beside a full-ink label, because the Row no longer multiplies state. The Row\'s own per-state LABEL treatment (`disabled.label` dimming the text) is the CODE projection\'s, not Figma\'s — `lint-paint` arm 2 reads `def.states` for reachability, so `disabled.label` stays reachable and keyed for code while the Figma SET collapses to size-only.',
-      'min-height — `size.*.min-height` is the row\'s FLOOR and Figma has no floor. `PartDef` carries `height`, which is fixed, so binding it here would state the wrong quantity and clip a wrapping option label at the one coordinate that matters most. The row hugs its children instead and the keys stay bound for the code projection, where `min-height` is the property they name.',
       'THE GROUP, which is the unit of use and is not this def — it is `radio-group` (#1469). The shared `name` that enforces exclusivity, the single scalar value selection is derived from, the single tab stop with roving tabindex and arrow navigation, `orientation`, `required` and all validation live there. A Figma set of options can show what an option looks like at every coordinate and cannot show a group at all — so the exclusivity that makes these radios rather than toggles is absent from the projection by construction, not by omission.',
-      'The whole-row hit target beyond the row\'s own extent. SC 2.5.8 wants 24x24 and Apple/Material want 44/48 on touch; the row reaches that at `medium` and not at `small`, and the padding that would expand it is a per-consumer decision about the surrounding layout. `row` is the node it lands on — that is what this block makes expressible — but the value is not the def\'s to pick.',
+      'The whole-row hit target beyond the row\'s own extent. SC 2.5.8 wants 24x24 and Apple/Material want 44/48 on touch. Since #2894 the row\'s floor is the control-height ladder in both projections, so every row clears 24 (29px at its smallest, small at compact) and the medium row is 44 at comfortable; growing the target past the row on touch is a per-consumer decision about the surrounding layout, not the def\'s to pick.',
       'The `description` prop — per-option helper text beneath the label, which is where the detail that distinguishes options goes (a price, a delivery estimate). It is a second text part under `label` rather than beside it, and adding it would double the row\'s vertical shape for content that is optional at every one of the three members. Left to the code projection, where it is describedby-wired.',
       'motion — the select micro-motion and the SIBLING\'s dot animating out, the only exit animation a radio has. The dot is `radio-control`\'s, so its `motion` states it; a Figma variant carries no motion, so the dot is static at every coordinate.',
       'RTL — the row mirrors through logical properties: the control moves to the reading-start side and the label flows from it. The disc is symmetrical, so there is no glyph to hold unmirrored (brief §9). Figma members are drawn left to right.',
@@ -355,7 +394,7 @@ export const radioRow: ComponentDef = {
       '3.3.2 Labels or Instructions (the option label)',
       '3.3.1 Error Identification / 3.3.3 Error Suggestion — the group\'s, announced once and never per option. The group sets status=error on every option (the danger ring) and shows its message under them.',
       '1.4.11 Non-text Contrast / 2.4.13 Focus Appearance (control boundary and focus indicator)',
-      '2.5.8 Target Size — the intent: the whole row is the target, as in Checkbox.Row. The default (medium) row is held to a 44px minimum height on comfortable and spacious density; small and compact rows are not measured.',
+      '2.5.8 Target Size — the intent: the whole row is the target, as in Checkbox.Row. The row\'s minimum height is the control-height ladder, so every row is at least 24px tall, and the default (medium) row is 44px on comfortable density.',
     ],
     keyboard: 'The keyboard model is the opposite of Checkbox.Row\'s. The group is a single tab stop: Tab moves into the group and the next Tab moves out, while arrow keys move between options, wrapping at the ends, with Home/End jumping to first/last. Space selects the focused option. Implement with roving tabindex — one radio at tabindex="0" (the checked one, or the first if none), siblings at -1, with arrow handling moving focus, the 0, and calling .focus() — rather than aria-activedescendant, which is more verbose and prone to synchronization bugs. Making each radio its own tab stop is the most common radio accessibility failure. Native inputs sharing a name give the grouping, the exclusivity and this keyboard model for free.',
     focus: ':focus-visible ring on the control, offset, at least 3:1, keyboard traversal only — and circular, because the control is full-round and the ring is derived concentrically from it. The ring must appear instantly — fading it lags rapid arrow navigation. Selection follows focus by default: arrowing moves focus and selects, which is native <input type="radio"> behavior and the APG default, and the catalog keeps native semantics rather than reimplementing them. The known cost is that a screen-reader user exploring the options fires onChange at every step; the answer is to keep radio onChange cheap — a radio selection must never trigger navigation or expensive work — and to decouple selection from focus only as a deliberate, documented exception. On focus restore into the group (a validation error, a legend click), focus the checked radio rather than blindly the first; if none is checked, the first non-disabled option.',
@@ -433,7 +472,7 @@ export const radioRow: ComponentDef = {
     unverified: [
       'THE DECOMPOSITION IS UNVERIFIED ON A REAL HOST, the same way `checkbox-control`\'s and `switch-control`\'s were: the nested control instance must pin its own SQUARE (the control edge) rather than stretch to the `control-box` line box, and whether the instance\'s inherited sizing mode cooperates with the row\'s auto-layout is a real-host question the offline shim cannot answer. The symptom to look for: a control instance stretched to the line-box height instead of centered within it. Radio\'s control is SQUARE, so the Row pins via `size` (both axes), the same as checkbox.',
       'THE FOCUS RING must appear INSTANTLY (brief §6, §8) — a fade lags rapid arrow navigation through a group, which is a radio-specific constraint that checkbox does not have. It is stated in `motion` and `accessibility.focus`, and nothing checks it: `motion` is prose, and no gate reads a ring\'s transition. The ring\'s SHAPE, by contrast, is handled: F2 (#1388) derives it concentrically, so a full-round control yields a circular ring (`radio-control.ts`).',
-      'The whole-row hit target is expressed as `size.*.min-height`, the row\'s floor, and `anatomy.parts.row` is the node the expanding padding would land on. What is still unstated is the VALUE: the row clears SC 2.5.8\'s 24x24 at `medium` and not at `small`, and how much padding to add is a decision about the surrounding layout rather than a property of this component. Admitted in `anatomy.codeOnly` rather than guessed at — which is why `accessibility.wcag` states 2.5.8 as intent (#1698).',
+      'The whole-row hit target is expressed as `size.*.min-height`, the row\'s floor, which Figma binds too since #2894. Every row clears SC 2.5.8\'s 24x24 by measurement (`test.ts` #2894), but `lint-hit-target` holds only the medium row to 44 on comfortable and spacious density, which is why `accessibility.wcag` states 2.5.8 as intent (#1698). The row heights are measured from emitted tokens and plans, not yet read back from a real host.',
     ],
     evolution: [
       'THE COMPANIONS ARE BUILT. This def used to record Radio.Control and RadioGroup as the two companions, with the group deferred (#901). `radio-control` (#1348) is the atom this Row nests, and `radio-group` (#1469) is the mandatory group that owns the shared `name`, the single scalar value, the roving-tabindex single tab stop, `orientation` and all validation.',

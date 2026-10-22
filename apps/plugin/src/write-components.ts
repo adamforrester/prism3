@@ -2625,6 +2625,23 @@ const writeComponentSet = async (
       if (kid.layoutPositioning !== 'ABSOLUTE')
         misses.push(`${c.name}.layoutPositioning -> DISCARDED (set ABSOLUTE, reads ${kid.layoutPositioning}; the glyph would take a cell in the row)`);
     }
+    // THE FOOT PIN (#2872, Link's current-page bar) — a box lifted out of the flow across this parent's bottom edge. In
+    // two halves, for the ring's reason below: LIFTED here, before the ring's pass, so the ring is sized off a parent
+    // that no longer holds the bar's cell; SIZED and PLACED after it, so the bar is measured off a parent that no
+    // longer holds the ring's (measured: placed before it, a focus-visible member's bar ran 8px past the link).
+    // Lockstep with the paste executor (`planToPluginJs`'s foot slots).
+    const feet: [FigmaNodePlan, Wr][] = [];
+    for (const c of n.children) {
+      if (!c.footPin) continue;
+      const kid = byPart.get(c.name);
+      if (!kid) continue;
+      kid.layoutPositioning = 'ABSOLUTE';
+      feet.push([c, kid]);
+      // READ BACK: a bar left in the flow takes a cell and widens the link by its own width, the one thing the pin
+      // exists to prevent.
+      if (kid.layoutPositioning !== 'ABSOLUTE')
+        misses.push(`${c.name}.layoutPositioning -> DISCARDED (set ABSOLUTE, reads ${kid.layoutPositioning}; the bar would take a cell in the row)`);
+    }
     // Applied by the PARENT, because every fact here is about the child's relationship to it:
     // `layoutPositioning` only means anything inside an auto-layout parent, and the parent's size is
     // what the inset is measured from.
@@ -2699,6 +2716,20 @@ const writeComponentSet = async (
       kid.constraints = { horizontal: 'STRETCH', vertical: 'STRETCH' };
       if (kid.layoutPositioning !== 'ABSOLUTE')
         misses.push(`${c.name}.layoutPositioning -> DISCARDED (set ABSOLUTE, reads ${kid.layoutPositioning}; the ring would take a cell in the row)`);
+    }
+    // THE FOOT PIN's second half: sized to the parent's width at the bar's height, flush with its bottom. `resize`
+    // writes both dimensions, so the bound height is bound again after it. `x`/`y`/width take no binding (the ring's
+    // reason), and `STRETCH`/`MAX` keeps it across the bottom when a designer's longer label resizes the instance.
+    for (const [c, kid] of feet) {
+      kid.resize?.(node.width ?? 0, kid.height ?? 0);
+      const hv = c.bound.height ? byName.get(c.bound.height) : undefined;
+      if (hv) {
+        try { kid.setBoundVariable?.('height', hv); }
+        catch (err) { misses.push(`${c.name}.height -> ${c.bound.height} REFUSED after the foot pin's resize (${(err as Error).message})`); }
+      }
+      kid.x = 0;
+      kid.y = (node.height ?? 0) - (kid.height ?? 0);
+      kid.constraints = { horizontal: 'STRETCH', vertical: 'MAX' };
     }
     // A PINNED child (#1667, "Locked to edges"): out of flow, `inset` from its edge, vertically centered, and
     // constrained to that edge, so a hugging parent that grows with its label — or an instance a designer
