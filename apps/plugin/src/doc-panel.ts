@@ -418,9 +418,10 @@ const earlierPanels = (api: Pick<PanelApi, 'root'>, set: PNode, defId: string): 
  * showed two panels stacked (Progress, owner QA 2026-10-22). What a designer edits, text, fills, a hidden or deleted
  * layer, still moves the print.
  */
-const printView = (n: SgNode): SgNode => new Proxy(n as object, {
-  get(t, k) {
-    const own = t as PNode;
+// The proxy's target is a plain object, never the node: a host node's own fixed properties would bind the trap to them.
+const printView = (n: SgNode): SgNode => new Proxy({}, {
+  get(_, k) {
+    const t = n as object, own = n as unknown as PNode;
     if (k === 'width' || k === 'height') return 0;
     if (k === 'getMainComponentAsync' || k === 'mainComponent') return undefined;
     const specimen = own.type === 'INSTANCE' && own.name === 'specimen';
