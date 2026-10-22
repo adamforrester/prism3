@@ -76,6 +76,10 @@ export type ControlShape = 'rounded' | 'pill' | 'boxed' | 'hairline';
  *  box; `underline` is one line under the value, with no inline padding and square corners. A brand-level choice
  *  applied to a def before projection, like `controlShape`, never a per-instance variant — see `applyFieldStyle`. */
 export type FieldStyle = 'outline' | 'underline';
+/** The `searchFieldStyle` FORM lever (#2888, owner decision Q514 taking Q?1 A): the search field's own edge. `follow`
+ *  (the default) takes `fieldStyle`; `outline` or `underline` sets search apart from the other fields. A brand-level
+ *  choice like `fieldStyle`, never a per-instance variant — see `fieldStyleFor`. */
+export type SearchFieldStyle = 'follow' | FieldStyle;
 /** The button-family FORM levers (#1667, owner-decided 2026-09-25). Brand-level choices applied to a def
  *  before projection — see `applyButtonLayout`. `buttonIcons`: `attached` keeps the icons next to the label
  *  (the default); `edges` pins them to the button's edges, and the label centers in the space between them

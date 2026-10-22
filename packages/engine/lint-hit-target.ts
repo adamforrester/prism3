@@ -154,6 +154,8 @@ const INTERACTIVE: Record<string, Binding> = {
   'text-field': { key: (s) => `size.${s}.height`, why: 'the field control height — size.md.min-height, the interactive floor, at small and medium (#1437, #2266 Q6)' },
   // #2317: the Password field is TextField's box, from the same factory, so it binds the same height rung.
   'password-field': { key: (s) => `size.${s}.height`, why: 'the field control height — TextField\'s, from the shared field factory (#2317)' },
+  // #2888: the Search field is TextField's box too.
+  'search-field': { key: (s) => `size.${s}.height`, why: 'the field control height — TextField\'s, from the shared field factory (#2888)' },
   'select': { key: (s) => `size.${s}.min-height`, why: 'the select control floor — size.md.min-height, the interactive floor, at small and medium (#1437, #2266 Q6)' },
   'switch-row': { key: (s) => `size.${s}.min-height`, why: 'the labelled switch row floor' },
   'checkbox-row': { key: (s) => `size.${s}.min-height`, why: 'the labelled checkbox row floor' },

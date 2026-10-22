@@ -5145,6 +5145,9 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     ['controlShape', 'boxed'], ['controlShape', 'hairline'], ['controlShape', 'pill'],
     // #2695: Field style moves only the field defs' geometry and paints, never the tree.
     ['fieldStyle', 'underline'],
+    // #2888: so does the Search field style, on the search field alone. Outline differs from Follow only where the
+    // fields are underline, so that pair is checked on the minimal brand with underline fields (`MOVES_ON`).
+    ['searchFieldStyle', 'outline'], ['searchFieldStyle', 'underline'],
   ];
   const getIn = (o: any, key: string): unknown => key.split('.').reduce((a, p) => a?.[p], o);
   const setIn = (o: any, key: string, v: unknown): any => {
@@ -5172,7 +5175,12 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   ok(unexercised.length === 0, `#1812 every lever with a manifest default is left unset by at least one base brand${unexercised.length ? ` — NEVER UNSET: ${unexercised.join(', ')}` : ''}`);
   ok(drift.length === 0, `#1812 every lever's manifest default is what materializeForBrand does with the lever unset${drift.length ? ` — DIFFERS: ${drift.join('; ')}` : ''}`);
 
-  const blindUnmoved = TREE_BLIND_PAIRS.filter(([key, v]) => materialized(setIn(minimal, key, v)) === baseOut.get('minimal'))
+  // The base a pair is checked on: the minimal brand, unless the pair moves only over another setting (#2888).
+  const MOVES_ON: Record<string, BrandInput> = { 'searchFieldStyle=outline': { ...minimal, fieldStyle: 'underline' } as BrandInput };
+  const blindUnmoved = TREE_BLIND_PAIRS.filter(([key, v]) => {
+    const on = MOVES_ON[`${key}=${v}`] ?? minimal;
+    return materialized(setIn(on, key, v)) === materialized(on);
+  })
     .map(([key, v]) => `${key}=${JSON.stringify(v)}`);
   ok(blindUnmoved.length === 0, `#1812 each tree-blind (lever, value) pair moves the materialized defs${blindUnmoved.length ? ` — UNMOVED: ${blindUnmoved.join(', ')}` : ''}`);
 }
@@ -5194,7 +5202,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const wrong: string[] = [];
   const misses: string[] = [];
   let read = 0;
-  for (const fid of ['text-field', 'password-field', 'select', 'textarea']) {
+  for (const fid of ['text-field', 'password-field', 'select', 'textarea', 'search-field']) {
     const def = componentDefs.find((d) => d.id === fid)!;
     const page: Page = { children: [] };
     const shim = makeShim({ vars: f.vars, styles: f.styles, effects: f.effects, comps: [], liveRoot: true, page });
@@ -5213,9 +5221,51 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
       if (JSON.stringify(got) !== JSON.stringify(want)) wrong.push(`${fid} ${m.name}: ${got.join(' / ')}`);
     }
   }
-  ok(read === 4 * 84 && wrong.length === 0,
-    `#2695 underline fields read back with their per-side weights bound: none / none / hairline (thick at focus) / none, on all ${read} of 336 members (${wrong.slice(0, 3).join('; ') || 'ok'})`);
+  ok(read === 5 * 84 && wrong.length === 0,
+    `#2695 underline fields read back with their per-side weights bound: none / none / hairline (thick at focus) / none, on all ${read} of 420 members (the search field following, #2888) (${wrong.slice(0, 3).join('; ') || 'ok'})`);
   ok(misses.length === 0, `#2695 underline fields: no stroke binding is reported discarded (${misses.slice(0, 3).join('; ') || 'none'})`);
+}
+
+// =============================================================================================
+// #2888 — THE SEARCH FIELD STYLE, through `materializeForBrand`
+// =============================================================================================
+// The search field takes the Search field style lever (owner decision Q514 taking Q?1 A); every other field takes
+// Field style. SUBJECT = `materializeForBrand`, the function `main.ts` projects through; ORACLE = the projected
+// control's bound stroke keys, against names typed here from #2695's decisions (an underline control binds the four
+// sides apart, an outline control one scalar weight). Mutations: feed the search field `fieldStyle` in `brand-def.ts`
+// and ignore `searchFieldStyle` → `search-field takes its own style under outline fields`; change the lever's unset
+// default from `follow` to `outline` in `fieldStyleFor` → `Follow keeps search identical to fieldStyle`.
+{
+  const nb = parseDesignMd(readFileSync(new URL('../../packages/engine/examples/nb-redesign.design.md', import.meta.url), 'utf8')).input;
+  const find = (n: any, name: string): any => (n.name === name ? n : (n.children ?? []).map((c: any) => find(c, name)).find(Boolean));
+  const def = (id: string) => componentDefs.find((d) => d.id === id)!;
+  /** The edge every member of `id` draws under `input`, read off its control: `underline`, `outline`, or `mixed`. */
+  const edgeOf = (id: string, input: BrandInput): string => {
+    const kinds = new Set(figmaAnatomySet(materializeForBrand(def(id), input), { swapTarget: SWAP }).map((p) => {
+      const b = find(p.root, 'control')?.bound ?? {};
+      if (b.strokeTopWeight === 'border-width/none' && b.strokeLeftWeight === 'border-width/none' && b.strokeRightWeight === 'border-width/none' && /^border-width\/(hairline|thick)$/.test(b.strokeBottomWeight) && !('strokeWeight' in b)) return 'underline';
+      if (b.strokeWeight === 'border-width/hairline' && !('strokeBottomWeight' in b)) return 'outline';
+      return `odd(${JSON.stringify(b)})`;
+    }));
+    return kinds.size === 1 ? [...kinds][0] : `mixed(${[...kinds].join(', ')})`;
+  };
+  const at = (o: Record<string, string>) => ({ ...nb, ...o }) as BrandInput;
+  const OTHERS = ['text-field', 'password-field', 'select', 'textarea'];
+  const ownUnder = { search: edgeOf('search-field', at({ searchFieldStyle: 'underline' })), others: OTHERS.map((id) => edgeOf(id, at({ searchFieldStyle: 'underline' }))) };
+  ok(ownUnder.search === 'underline' && ownUnder.others.every((e) => e === 'outline'),
+    `#2888 search-field takes its own style under outline fields: Search field style Underline draws the search field underline and leaves the other four outline (search ${ownUnder.search}; ${OTHERS.map((id, i) => `${id} ${ownUnder.others[i]}`).join(', ')})`);
+  const ownOutline = { search: edgeOf('search-field', at({ fieldStyle: 'underline', searchFieldStyle: 'outline' })), others: OTHERS.map((id) => edgeOf(id, at({ fieldStyle: 'underline', searchFieldStyle: 'outline' }))) };
+  ok(ownOutline.search === 'outline' && ownOutline.others.every((e) => e === 'underline'),
+    `#2888 search-field takes its own style under underline fields: Search field style Outline keeps the search field a box while the other four are underline (search ${ownOutline.search}; ${OTHERS.map((id, i) => `${id} ${ownOutline.others[i]}`).join(', ')})`);
+  // FOLLOW (the default) is byte-identical to setting the search field the brand's own Field style explicitly, under
+  // both Field styles, with the lever unset and with it set to Follow.
+  const plans = (input: BrandInput) => JSON.stringify(figmaAnatomySet(materializeForBrand(def('search-field'), input), { swapTarget: SWAP }));
+  const followBad = (['outline', 'underline'] as const).filter((fs) => {
+    const explicit = plans(at({ fieldStyle: fs, searchFieldStyle: fs }));
+    return plans(at({ fieldStyle: fs })) !== explicit || plans(at({ fieldStyle: fs, searchFieldStyle: 'follow' })) !== explicit;
+  });
+  ok(followBad.length === 0 && edgeOf('search-field', at({ fieldStyle: 'underline' })) === 'underline',
+    `#2888 Follow keeps search identical to fieldStyle: unset and Follow field style build the search field byte-identical to its brand's own Field style, outline and underline (differs under: ${followBad.join(', ') || 'none'})`);
 }
 
 // =============================================================================================

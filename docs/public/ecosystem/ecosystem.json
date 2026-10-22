@@ -316,6 +316,7 @@
           "dialog",
           "password-field",
           "counter",
+          "search-field",
           "toast",
           "_breadcrumb-separator",
           "breadcrumb-item",

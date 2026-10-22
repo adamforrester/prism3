@@ -418,7 +418,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'size',
     values: ['medium', 'small', 'large'],
-    defs: ['_accordion-indicator', 'accordion', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'tag', 'tab-item', 'tabs', 'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'link', 'text-field', 'select', 'textarea', 'dialog', 'password-field', 'counter'],
+    defs: ['_accordion-indicator', 'accordion', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'tag', 'tab-item', 'tabs', 'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'link', 'text-field', 'select', 'textarea', 'dialog', 'password-field', 'counter', 'search-field'],
     relation: 'canonical',
     reason:
       'The three-rung ladder, led by `medium` (#2752, owner decision Q1 B, 2026-10-16). Canonical on weight of use: '
@@ -507,7 +507,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'style',
     values: ['outline'],
-    defs: ['text-field', 'textarea', 'password-field'],
+    defs: ['text-field', 'textarea', 'password-field', 'search-field'],
     relation: 'canonical',
     reason:
       'An axis of ONE, declared rather than dropped. Underline is a BRAND choice since #2695 (the Field style '
@@ -582,7 +582,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'status',
     values: ['default', 'error', 'warning', 'success'],
-    defs: ['field-message', 'select', 'text-field', 'textarea', 'password-field'],
+    defs: ['field-message', 'select', 'text-field', 'textarea', 'password-field', 'search-field'],
     relation: 'canonical',
     reason:
       'A form field\'s VALIDATION OUTCOME. RENAMED from `tone` to `status` in #1334 (the owner\'s split of '

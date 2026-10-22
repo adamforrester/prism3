@@ -564,6 +564,18 @@
         "assignments": 33,
         "sha256": "6bc23dc4a29e15cda035cf17a5a1a035f7fd5c48bb1b69a6c0d5967f1092d28a"
       }
+    },
+    "search-field": {
+      "set": {
+        "members": 84,
+        "assignments": 444,
+        "sha256": "e3900fecab261c22d3829de7c8e240edd0cff7f1ea505d799bb0336ce726d129"
+      },
+      "grid": {
+        "members": 108,
+        "assignments": 564,
+        "sha256": "04316a98af67d09ef160dfeeb8ada50b0555b00f9ea7091cc5785820f2a59359"
+      }
     }
   }
 }

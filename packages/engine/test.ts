@@ -54,7 +54,7 @@ import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, Readback
 import { tailOf } from './figma-names';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
 import { validateComponentDef, VARIANT_AXES, axisKindOf, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, variantAxisFigmaName, isExcludedCoordinate, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef, type PartDef } from './component-schema';
-import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, settleChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, figmaEffectStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyFieldStyle, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, applyNestOverrides, type AnatomyPlan, type SwapFound } from './anatomy-figma';
+import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, settleChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, figmaEffectStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyFieldStyle, fieldStyleFor, SEARCH_FIELD_STYLE_DEFS, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, applyNestOverrides, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
 import { COMPONENT_RENAMES, coordKey, currentDefId, formerDefIds, partRenames, renameCoordinate, renameProperty, isDeclaredDrop, unaccounted as renamesUnaccounted, danglingTargets as renamesDangling, type ComponentRename, type AxesBaseline } from './component-renames';
 // One of the two imports this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
@@ -75,7 +75,7 @@ import type { AnatomyPlan, ButtonLayout } from './anatomy-figma';
 // ABOUT one component (`button.variants.appearance`, `textField.tokens[...]`), which a find-by-id
 // over the set would only make weaker. Completeness of the set is NOT asserted here — that is
 // `typecheck-components.ts`'s registry arm, whose oracle is git's index.
-import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioGroup, textarea, radioControl, radioRow, switchControl, switchRow, select, spinner, tag, tab, divider, counter } from './components/index';
+import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioGroup, textarea, radioControl, radioRow, switchControl, switchRow, select, spinner, tag, tab, divider, counter, searchField } from './components/index';
 // The glyph vocabulary, for #864's geometry assertions. Imported so EXPECTED comes from the set rather
 // than from the projector that read it — the two halves `docs/34` requires.
 import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-glyphs';
@@ -3780,6 +3780,8 @@ for (const b of brands) {
       'text-field': { keys: ['pad-x', 'pad-y', 'gap'], sizes: ['small', 'medium', 'large'] },
       // #2317: the Password field binds text-field's token block exactly, through the shared field factory.
       'password-field': { keys: ['pad-x', 'pad-y', 'gap'], sizes: ['small', 'medium', 'large'] },
+      // #2888: the Search field too.
+      'search-field': { keys: ['pad-x', 'pad-y', 'gap'], sizes: ['small', 'medium', 'large'] },
       textarea: { keys: ['pad-x', 'pad-y'], sizes: ['small', 'medium', 'large'] },
       select: { keys: ['pad-x', 'pad-y', 'gap'], sizes: ['small', 'medium', 'large'] },
       'checkbox-row': { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
@@ -3803,6 +3805,7 @@ for (const b of brands) {
       button: BTN, 'button-destructive': BTN, 'button-neutral': BTN,
       'text-field': { compact: 'small 12/4/6 · medium 12/6/6 · large 20/6/6', comfortable: 'small 16/6/8 · medium 16/8/8 · large 24/8/8', spacious: 'small 20/8/12 · medium 20/12/12 · large 32/12/12' },
       'password-field': { compact: 'small 12/4/6 · medium 12/6/6 · large 20/6/6', comfortable: 'small 16/6/8 · medium 16/8/8 · large 24/8/8', spacious: 'small 20/8/12 · medium 20/12/12 · large 32/12/12' },
+      'search-field': { compact: 'small 12/4/6 · medium 12/6/6 · large 20/6/6', comfortable: 'small 16/6/8 · medium 16/8/8 · large 24/8/8', spacious: 'small 20/8/12 · medium 20/12/12 · large 32/12/12' },
       textarea: { compact: 'small 12/4 · medium 12/6 · large 20/6', comfortable: 'small 16/6 · medium 16/8 · large 24/8', spacious: 'small 20/8 · medium 20/12 · large 32/12' },
       select: { compact: 'small 12/4/6 · medium 12/6/6 · large 20/6/6', comfortable: 'small 16/6/8 · medium 16/8/8 · large 24/8/8', spacious: 'small 20/8/12 · medium 20/12/12 · large 32/12/12' },
       'checkbox-row': ROWS, 'radio-row': ROWS,
@@ -3872,6 +3875,8 @@ for (const b of brands) {
       toast: ['gap', 'glyph-gap', 'controls-gap'],
       // #2709: the three defs with a density-following gap that joined after this list was written.
       'password-field': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
+      // #2888: the Search field, TextField's gap through the shared field factory.
+      'search-field': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       accordion: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       link: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       // #2666: the label-to-separator gap inside an item, and the same gap between items.
@@ -3918,6 +3923,7 @@ for (const b of brands) {
       button: { prefix: 'sized', lt: P326 }, 'button-destructive': { prefix: 'sized', lt: P326 }, 'button-neutral': { prefix: 'sized', lt: P326 },
       'text-field': { prefix: 'sized', lt: [['gap', 'pad-x']] },
       'password-field': { prefix: 'sized', lt: [['gap', 'pad-x']] },
+      'search-field': { prefix: 'sized', lt: [['gap', 'pad-x']] },
       select: { prefix: 'sized', lt: [['gap', 'pad-x']] },
       // Tag's icon→label is VISIBLE, the content gap plus the label row's leading inset (owner, 2026-09-29), per
       // type: the sum is what must stay under the padding. A `+` key is summed.
@@ -9777,6 +9783,9 @@ arm: {
       ['controlShape', 'boxed'], ['controlShape', 'hairline'], ['controlShape', 'pill'],
       // #2695 (owner Q333 taking Q15 A): "Field style: Underline" adds no token; it moves only the materialized field defs.
       ['fieldStyle', 'underline'],
+      // #2888: "Search field style" adds no token either; Outline and Underline move only the materialized search field
+      // (Outline where the brand's fields are underline: the plugin arm checks it there).
+      ['searchFieldStyle', 'outline'], ['searchFieldStyle', 'underline'],
     ];
     const pairName = ([k, v]: [string, unknown]): string => `${k}=${JSON.stringify(v)}`;
     const getIn = (o: any, key: string): unknown => key.split('.').reduce((a, p) => a?.[p], o);
@@ -14880,8 +14889,9 @@ arm: {
       const def = (id: string) => componentDefs.find((x) => x.id === id)!;
       const find = (n: any, name: string): any => (n.name === name ? n : (n.children ?? []).map((c: any) => find(c, name)).find(Boolean));
       const all = (n: any): any[] => [n, ...(n.children ?? []).flatMap(all)];
-      // The field family on main (Q332: Text field, Textarea, Select, Password field; Number and Code input are not built).
-      const FIELDS = ['password-field', 'select', 'text-field', 'textarea'];
+      // The field family on main (Q332: Text field, Textarea, Select, Password field; Number and Code input are not built),
+      // and the Search field (#2888), drawn here as `applyFieldStyle` draws it; which style it is given is `fieldStyleFor`'s.
+      const FIELDS = ['password-field', 'search-field', 'select', 'text-field', 'textarea'];
       // The field chrome's fill is the field family's own role (the checkbox and radio share the rest border, not this).
       // The Counter's outline borrows the field chrome (#2427, Q283.13 A) but is not a field: the lever leaves it as it is,
       // which the identity arm below holds, until the owner decides whether it follows the field style (asked on #2693).
@@ -15016,7 +15026,7 @@ arm: {
         ok(JSON.stringify(got) === '["radius/hairline"]', `#2361 hairline: button@${size} binds radius/hairline (${got.join(', ') || 'none'})`);
       }
       // Fields: each one by name, and each binds the field rung radius/sm under rounded (the identity).
-      for (const id of ['text-field', 'select', 'textarea']) {
+      for (const id of ['text-field', 'select', 'textarea', 'search-field']) {
         // A field projects one size (no `size` axis), so it may declare none: project it once, at `undefined`.
         const sizes: (string | undefined)[] = def(id).variants?.size ?? [undefined];
         for (const size of sizes) {
@@ -17129,7 +17139,7 @@ arm: {
     const TIER: Record<string, number> = {
       button: 1,
       'button-destructive': 2, 'button-neutral': 2, 'icon-button': 2, 'icon-button-neutral': 2, icon: 2,
-      'text-field': 2, textarea: 2, 'password-field': 2, select: 2, 'checkbox-row': 2, 'checkbox-group': 2,
+      'text-field': 2, textarea: 2, 'password-field': 2, 'search-field': 2, select: 2, 'checkbox-row': 2, 'checkbox-group': 2,
       'radio-row': 2, 'radio-group': 2, 'switch-row': 2, counter: 2, 'button-group': 2, tabs: 2, accordion: 2, list: 2, link: 2, dialog: 2, toast: 2,
       'icon-button-destructive': 3, 'segmented-control': 3, badge: 3, tag: 3, divider: 3, spinner: 3, veil: 3, 'image-placeholder': 3,
       'flush-icon-button-neutral': 4, 'flush-icon-button': 5, 'flush-icon-button-destructive': 5,
@@ -17754,7 +17764,7 @@ arm: {
     const SH_MODES = ['light', 'dark', 'hc-light', 'hc-dark'];
     const SH_GROUNDS = ['background.primary', 'background.secondary'];
     // #2709: Password field joins: the same field factory as Text field, so the same status borders.
-    const SH_DEFS = ['text-field', 'textarea', 'select', 'password-field'];
+    const SH_DEFS = ['text-field', 'textarea', 'select', 'password-field', 'search-field'];
     const CHOICE_ERR = 'a choice control (or the row or group that only follows it): status is [default, error] only (Q354), the danger edge is one flat `color.border.danger` at every state, so there is no status hover step to measure, and a row or group paints nothing by it';
     // Defs with a status axis that are NOT a framed field, with the reason. The converse below reads the axis off
     // every def, so a new status-bearing def fails by name until it is pinned or excused here.
@@ -18003,7 +18013,7 @@ arm: {
     const RO_GROUNDS = ['background.primary', 'background.secondary'];
     // Pinned by name, independent of the discovery below: the three field defs #1710 names (select's
     // read-only member landed with #1699/#1709), and Password field (#2709), which joined after.
-    const RO_PINNED = ['text-field', 'textarea', 'select', 'password-field'];
+    const RO_PINNED = ['text-field', 'textarea', 'select', 'password-field', 'search-field'];
     // The STATES swept. `read-only` is #1710's subject; `rest`, `hover` and `filled` are swept too because the
     // three defs' SC 1.4.11 line claims "the rest, hover and read-only borders are gated on
     // `background.secondary`" — and before this sweep nothing gated a def's HOVER binding at all (the review of
@@ -19010,8 +19020,8 @@ arm: {
     // The flush shape binds none.
     // `segmented-control-segment` joins (#2418, Q269.4): an unselected option's hover and pressed are the neutral wash,
     // and its selected tint is the subtle-fill Tag binds, so a solid-tint or no-hover brand reaches it as it reaches a tag.
-    ok(JSON.stringify(binders) === JSON.stringify(['button', 'button-destructive', 'button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'password-field', 'segmented-control-segment', 'select', 'tag', 'text-field', 'textarea']),
-      `#1608 the wash binders the lever reaches: button ×3, flush-icon-button ×3 (round), icon-button ×3, password-field, segmented-control-segment, select, tag, text-field, textarea (${binders.join(', ')})`);
+    ok(JSON.stringify(binders) === JSON.stringify(['button', 'button-destructive', 'button-neutral', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'password-field', 'search-field', 'segmented-control-segment', 'select', 'tag', 'text-field', 'textarea']),
+      `#1608 the wash binders the lever reaches: button ×3, flush-icon-button ×3 (round), icon-button ×3, password-field, search-field, segmented-control-segment, select, tag, text-field, textarea (${binders.join(', ')})`);
 
     // BY-NAME MUTATION, in-suite: the RAW def (no wrap) under solid-tint misses the page wash — the 96-miss
     // shape the owner saw, outline's 48 and text's 48. Since #2324 the text appearance keys no wash by default, so the
@@ -19377,6 +19387,9 @@ arm: {
       // #2317: the Password field's two text layers are text-field's, through the shared field factory.
       { def: componentDefs.find((d) => d.id === 'password-field')!, part: 'placeholder', axes: { size: 3 } },
       { def: componentDefs.find((d) => d.id === 'password-field')!, part: 'value', axes: { size: 3 }, at: { state: 'filled' } },
+      // #2888: the Search field's are TextField's too.
+      { def: componentDefs.find((d) => d.id === 'search-field')!, part: 'placeholder', axes: { size: 3 } },
+      { def: componentDefs.find((d) => d.id === 'search-field')!, part: 'value', axes: { size: 3 }, at: { state: 'filled' } },
       { def: select, part: 'placeholder', axes: { size: 3 } },
       { def: select, part: 'value', axes: { size: 3 }, at: { state: 'filled' } },
       { def: textarea, part: 'placeholder', axes: { size: 3 } },
@@ -21009,7 +21022,7 @@ arm: {
     {
       const bad: string[] = [];
       let pasted = 0;
-      for (const id of ['text-field', 'password-field', 'select', 'textarea']) {
+      for (const id of ['text-field', 'password-field', 'select', 'textarea', 'search-field']) {
         const d = componentDefs.find((x) => x.id === id)!;
         for (const state of ['rest', 'focus-visible']) {
           const plan = figmaAnatomyPlan(applyFieldStyle(d, 'underline'), 'medium', { state, status: 'default' } as never);
@@ -21026,7 +21039,7 @@ arm: {
           if (!control || got !== want || strokeMisses.length) bad.push(`${id}@${state}: ${control ? got : 'no control'}${strokeMisses.length ? `; ${strokeMisses[0]}` : ''}`);
         }
       }
-      ok(pasted === 8 && bad.length === 0,
+      ok(pasted === 10 && bad.length === 0,
         `#2695 paste: the underline fields' per-side stroke weights read back bound from the paste executor (none / none / hairline, thick at focus / none), nothing discarded (${bad.slice(0, 3).join(' | ') || 'clean'})`);
     }
 
@@ -25075,6 +25088,7 @@ arm: {
       'icon-button:inactive', 'icon-button-destructive:inactive', 'icon-button-neutral:inactive',
       'icon:tone', 'focus-ring:offset', 'tag:read-only',
       'text-field:style', 'text-field:pending', 'text-field:empty', 'password-field:style', 'password-field:pending', 'password-field:empty',
+      'search-field:style', 'search-field:pending', 'search-field:empty',
       'textarea:style', 'textarea:pending', 'textarea:empty', 'select:pending', 'select:empty',
       'checkbox-row:read-only', 'radio-row:read-only', 'switch-row:read-only', 'switch-row:pending',
     ];
@@ -28319,7 +28333,7 @@ arm: {
   // `tag` joins (2026-09-27): its check mark is gated on `selection: ['selected']`, the checkbox mark's shape.
   // `link` joins (#2580, owner Q297.2): its trailing icon is gated on `style: ['standalone']`, so an inline link carries none.
   // `checkbox-group` and `radio-group` since #2751: each gates its nested message on `status=error`.
-  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-group', 'radio-control', 'radio-group', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'button-group', 'dialog', 'password-field', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs'];
+  const GATED_EXPECTED = ['field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-group', 'radio-control', 'radio-group', 'switch-control', 'select', 'badge', 'tag', '_accordion-indicator', 'accordion', 'list-item', 'link', 'button-group', 'dialog', 'password-field', 'search-field', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {
@@ -28449,7 +28463,7 @@ arm: {
   // both axes per orientation: a hairline thickness and a nominal length, two different variables.
   // List.Item's marker column (#2319) binds its width (the column) and its height (one body line), two different
   // variables: a fixed column one line tall.
-  const WIDTH_EXPECTED = ['text-field', 'textarea', 'switch-control', 'divider', 'list-item', 'password-field'];
+  const WIDTH_EXPECTED = ['text-field', 'textarea', 'switch-control', 'divider', 'list-item', 'password-field', 'search-field'];
   ok(WIDTH_EXPECTED.every((n) => widthDefs.some((d) => d.id === n)) && widthDefs.length === WIDTH_EXPECTED.length,
     `#990 the width projection rule below covers exactly [${WIDTH_EXPECTED.join(', ')}] — a def gaining a deliberately non-square box must be represented here, and a def losing one is a stale claim (found: ${widthDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of widthDefs) {
@@ -29765,6 +29779,9 @@ arm: {
     // #2317: the Password field's entry row is TextField's, from the shared field factory — the same design fact.
     'password-field.entry':
       "the Password field's entry row is text-field's, from the shared field factory: the single-line placeholder or masked value does not wrap, so the caret centred against its one line sits where a native caret sits (as text-field.entry).",
+    // #2888: the Search field's entry row is TextField's too.
+    'search-field.entry':
+      "the Search field's entry row is text-field's, from the shared field factory: the single-line placeholder or query does not wrap, so the caret centred against its one line sits where a native caret sits (as text-field.entry).",
     // `badge`'s surface (the type axis, 2026-09-27, first named `genre`) lists a text part and the sized `dot` box as children,
     // but `presentWhen` on `type` puts exactly one of them in any member: no member pairs the dot with a
     // label, so there is no line for the dot to float against. The status label is one or two words and the
@@ -32940,7 +32957,7 @@ arm: {
     'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'checkbox-control', 'checkbox-row',
     'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'switch-control', 'switch-row', 'tag', 'tab-item', 'tabs',
     '_accordion-indicator', 'accordion', 'list-item', 'list', 'segmented-control-segment', 'segmented-control', 'link',
-    'text-field', 'textarea', 'select', 'password-field', 'dialog',
+    'text-field', 'textarea', 'select', 'password-field', 'dialog', 'search-field',
   ];
   // NO SET, NO DEFAULT MEMBER: a def that materializes each value as its own component is never inserted as a set.
   const NO_SET = ['icon', 'spinner'];
@@ -34040,6 +34057,155 @@ arm: {
     `#2317 variantWhen.state: the Password field validates clean; a host state off the state axis, an axis the variant does not name, and a followed axis are each refused by name`);
 }
 
+// ------------------------------------------------------------------- #2888: the Search field
+// Each owner decision held against a literal (Q514, Q?1–Q?8 all A): the 84 members (Q?6 A), the properties (the label
+// switch, Q?4 A; the leading search glyph shown; the clear glyph built hidden at close-filled, Q?3 A), no submit button
+// (Q?5 A), the factory (TextField's token block), its own style lever (Q?1 A, Q?2 A copy verbatim) and its resolution,
+// and the approved code wording. EXPECTED is typed here; ACTUAL is the def, its projected plan and `fieldStyleFor`.
+{
+  const sf = searchField;
+  const sfPlans = figmaAnatomySet(sf, { swapTarget: 'FPO-default-icon' });
+  type PN = { name: string; type: string; children: PN[]; visible?: boolean; visibleProp?: string; swapTarget?: string; strokeEdges?: unknown; bound?: Record<string, string> };
+  const find = (n: PN, name: string): PN | undefined => (n.name === name ? n : (n.children ?? []).map((c) => find(c, name)).find(Boolean));
+  const STATES = ['rest', 'hover', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled', 'read-only'];
+
+  // MEMBERS AND AXES (Q?6 A): size × status × state = 84, TextField's, and no style axis (Q?1 A).
+  ok(sfPlans.length === 84 && new Set(sfPlans.map(planComponentName)).size === 84
+    && JSON.stringify(sf.figmaProperties?.variantAxes) === JSON.stringify(['size', 'status'])
+    && JSON.stringify(sf.variants) === JSON.stringify({ size: ['medium', 'small', 'large'], style: ['outline'], status: ['default', 'error', 'warning', 'success'] })
+    && JSON.stringify(sf.figmaProperties?.stateAxis?.values) === JSON.stringify(STATES)
+    && planComponentName(sfPlans[0]) === 'status=default, size=medium, state=rest',
+    `#2888 search-field: 84 members, size [medium, small, large] × status [default, error, warning, success] × the seven field states, style a code axis of one, no Figma style axis (got ${sfPlans.length}, ${JSON.stringify(sf.variants)})`);
+
+  // THE PANEL (Q?3 A, Q?4 A): the properties in panel order, each default typed here.
+  const props = planSetProperties(sfPlans).map((p: any) => `${p.name}:${p.type}:${p.default ?? p.swapTarget}`);
+  const WANT_PROPS = ['placeholder:TEXT:Placeholder', 'value:TEXT:Entered text', 'label:BOOLEAN:true', 'leading icon:BOOLEAN:true',
+    '↳ swap leading icon:INSTANCE_SWAP:icon/search', 'trailing icon:BOOLEAN:false', '↳ swap trailing icon:INSTANCE_SWAP:icon/close-filled', 'message:BOOLEAN:false'];
+  ok(JSON.stringify(props) === JSON.stringify(WANT_PROPS),
+    `#2888 search-field panel: the label switch on, the search glyph shown, the clear glyph close-filled and hidden, the message off (#2926) (got ${JSON.stringify(props)})`);
+  const showLabel = sf.figmaProperties?.booleans?.showLabel;
+  ok(typeof showLabel === 'object' && showLabel.figmaOnly === true && !sf.props.some((p) => p.name === 'showLabel')
+    && sf.props.find((p) => p.name === 'hideLabel')?.default === false,
+    '#2888 Q?4 A: the Figma `label` switch is Figma-only; the code prop is `hideLabel`, default false (visible)');
+
+  // ON EVERY MEMBER (Q?3 A, Q?5 A): the search glyph built visible, the clear glyph built hidden, the label switchable, and
+  // nothing in the box but the value row, the clear slot and the ring (no submit button).
+  const memberBad = sfPlans.filter((p) => {
+    const r = p.root as PN, lead = find(r, 'leadingVisual'), trail = find(r, 'trailingVisual'), label = find(r, 'label'), ctl = find(r, 'control');
+    const focus = String((p.coord as Record<string, string>).state).startsWith('focus-visible');
+    return lead?.swapTarget !== 'icon/search' || lead.visible === false
+      || trail?.swapTarget !== 'icon/close-filled' || trail.visible !== false
+      || label?.visibleProp !== 'label'
+      || JSON.stringify((ctl?.children ?? []).map((c) => c.name)) !== JSON.stringify(focus ? ['content', 'trailingVisual', 'focusRing'] : ['content', 'trailingVisual']);
+  });
+  ok(memberBad.length === 0,
+    `#2888 search-field members: the search glyph shown, the clear glyph hidden, the label behind the label switch, and no submit button in the box, on all 84${memberBad.length ? ` — WRONG on ${memberBad.length}: ${planComponentName(memberBad[0])}` : ''}`);
+
+  // THE FACTORY: the Search field binds TextField's token block key for key; TextField and the Password field keep
+  // their own glyph and label defaults (the factory's Search switches spread nothing for them).
+  const pwd = componentDefs.find((d) => d.id === 'password-field')!;
+  ok(JSON.stringify(sf.tokens) === JSON.stringify(textField.tokens)
+    && textField.anatomy?.parts.leadingVisual.swapDefault === undefined && textField.anatomy?.parts.trailingVisual.swapDefault === undefined
+    && textField.anatomy?.parts.label.optional === undefined && pwd.anatomy?.parts.label.optional === undefined
+    && textField.figmaProperties?.booleans?.showLabel === undefined && (textField.figmaProperties?.booleans?.leadingIcon as { default?: boolean }).default === false,
+    '#2888 field factory: the Search field binds TextField\'s token block, and TextField and the Password field keep no swap default, a fixed label and a hidden leading glyph');
+  ok(!(textField.composition?.planned ?? []).includes('search-field') && (textField.composition?.alternativeTo ?? []).includes('search-field'),
+    '#2888: search-field left TextField\'s planned for its alternativeTo');
+
+  // THE SHARED CODE-ONLY ENTRIES read the same as TextField's. `style` is not among them: the Search field names its own lever.
+  const SHARED = ['the SMALL field on a COARSE POINTER', 'pending', 'empty', 'the FOCUS CARET', 'the label / describedby WIRING'];
+  const bySubject = (list: readonly string[], subject: string) => list.filter((e) => e.startsWith(`${subject} `) || e.startsWith(`${subject} —`));
+  const sharedBad = SHARED.filter((sub) => { const t = bySubject(textField.anatomy!.codeOnly, sub), x = bySubject(sf.anatomy!.codeOnly, sub); return t.length !== 1 || x.length !== 1 || t[0] !== x[0]; });
+  const style = bySubject(sf.anatomy!.codeOnly, 'style');
+  ok(sharedBad.length === 0 && style.length === 1 && /Search field style/.test(style[0]) && /`follow`/.test(style[0]),
+    `#2888 search-field code-only: the ${SHARED.length} shared entries read as TextField's, and its style entry names the Search field style lever${sharedBad.length ? ` — DIFFER: ${sharedBad.join(', ')}` : ''}`);
+  // THE APPROVED WORDING (Q514 taking Q?3 A), verbatim where the code contract states it.
+  const clear = bySubject(sf.anatomy!.codeOnly, 'the CLEAR BUTTON in code');
+  ok(clear.length === 1 && clear[0].includes('aria-label="Clear search"') && clear[0].includes('"Search cleared"') && /RETURNS FOCUS TO THE INPUT/.test(clear[0])
+    && sf.accessibility.aria.includes('aria-label="Clear search"') && sf.accessibility.aria.includes('"Search cleared"')
+    && sf.anatomy!.codeOnly.some((e) => e.startsWith('ONE CLEAR BUTTON ONLY') && e.includes('::-webkit-search-cancel-button')),
+    '#2888 Q?3 A: the clear button is named "Clear search", returns focus to the input, announces "Search cleared", and the browser\'s own cancel glyph is hidden');
+  // THE CLEAR BUTTON'S HIT AREA (review Q1 A, WCAG 2.5.8): the button sits inside the input's own target, so the
+  // spacing exception cannot apply and the button must meet 24 CSS px itself. Its 20px glyph alone does not. The def
+  // must STATE a target of at least 24×24 around the glyph, adding no height, in codeOnly and in the trailingIcon
+  // description, and its 2.5.8 line must name both targets. The floor 24 is the WCAG number typed here (docs/34).
+  {
+    const FLOOR = 24;
+    const sized = (t: string | undefined) => [...(t ?? '').matchAll(/at least (\d+)×(\d+)/g)].map((m) => Math.min(Number(m[1]), Number(m[2])));
+    const trailing = sf.props.find((p) => p.name === 'trailingIcon')?.description;
+    const wcag = sf.accessibility.wcag.filter((w) => w.startsWith('2.5.8'));
+    const hitBad: string[] = [];
+    for (const [where, t] of [['codeOnly clear entry', clear[0]], ['trailingIcon description', trailing]] as const) {
+      const n = sized(t);
+      if (!n.length || n.some((x) => x < FLOOR)) hitBad.push(`${where}: target ${n.length ? n.join('/') : 'unstated'}`);
+      if (!/around the 20px glyph/.test(t ?? '') || !/adds no height to the field/.test(t ?? '')) hitBad.push(`${where}: not drawn around the 20px glyph with no added height`);
+    }
+    if (wcag.length !== 1 || !/the field/.test(wcag[0]) || !/the clear button/.test(wcag[0]) || !sized(wcag[0]).length || sized(wcag[0]).some((x) => x < FLOOR))
+      hitBad.push(`2.5.8 line names both targets: ${JSON.stringify(wcag)}`);
+    ok(hitBad.length === 0,
+      `#2912 search-field clear button: a hit area of at least ${FLOOR}×${FLOOR} CSS px around the 20px glyph, adding no height, stated in codeOnly and the trailingIcon description, and the 2.5.8 line names the field and the clear button${hitBad.length ? ` — WRONG: ${hitBad.join('; ')}` : ''}`);
+  }
+  // THE MESSAGE IS OFF BY DEFAULT (owner decision on #2926, item 1): the boolean, the prop and every built message node
+  // agree, and no prose says it is on by default. `false` is the owner's answer, typed here.
+  {
+    const b = sf.figmaProperties?.booleans?.showMessage as { default?: boolean; part?: string } | undefined;
+    const prop = sf.props.find((p) => p.name === 'showMessage');
+    const msgs = sfPlans.map((p) => find(p.root as PN, 'message'));
+    const onProse = /\b(shown|on) by default\b|on — the default/i.test(`${prop?.description ?? ''} ${sf.anatomy?.parts.message?.note ?? ''}`);
+    ok(b?.default === false && prop?.default === false && msgs.every((m) => m?.visibleProp === 'message' && m.visible === false) && !onProse,
+      `#2926 search-field: the message is off by default — boolean ${String(b?.default)}, prop ${String(prop?.default)}, ${msgs.filter((m) => m?.visible !== false).length} of ${msgs.length} message nodes built visible, prose says on: ${onProse}`);
+  }
+  const draft: string[] = [];
+  const walk = (v: unknown, path: string): void => {
+    if (path === 'notes' || path === 'anatomy.codeOnly') return;
+    if (typeof v === 'string') { if (/DRAFT/.test(v)) draft.push(path); return; }
+    if (Array.isArray(v)) { v.forEach((x, i) => walk(x, `${path}[${i}]`)); return; }
+    if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) walk(x, path ? `${path}.${k}` : k);
+  };
+  walk(sf, '');
+  ok(draft.length === 0, `#2888 search-field: no shipped string carries "DRAFT"${draft.length ? ` — FOUND at ${draft.join(', ')}` : ''}`);
+
+  // THE LEVER (Q?1 A, Q?2 A): the owner's copy verbatim, in Form right after Field style, default Follow.
+  const lever = leverManifest.find((l) => l.key === 'searchFieldStyle');
+  const order = leverManifest.filter((l) => l.group === 'form').map((l) => l.key);
+  ok(lever?.label === 'Search field style' && lever.group === 'form' && lever.control === 'enum' && lever.default === 'follow' && !lever.advanced
+    && JSON.stringify(lever.options?.map((o) => [o.value, o.label])) === JSON.stringify([['follow', 'Follow field style'], ['outline', 'Outline'], ['underline', 'Underline']])
+    && lever.description === 'The edge of the search field. Follow field style matches every other field; Outline or Underline sets search apart. Either way the line clears 3:1.'
+    && order.indexOf('searchFieldStyle') === order.indexOf('fieldStyle') + 1,
+    `#2888 lever (Q?2 A): "Search field style", Follow field style / Outline / Underline, default Follow, the approved description, in Form right after Field style (form order: ${order.join(', ')})`);
+  ok(['follow', 'outline', 'underline'].every((v) => validateBrandInput({ ...MINIMAL_BRAND, searchFieldStyle: v } as any).length === 0)
+    && validateBrandInput({ ...MINIMAL_BRAND, searchFieldStyle: 'filled' } as any).length > 0,
+    '#2888 input: searchFieldStyle accepts follow, outline and underline, and rejects a value the lever does not offer');
+
+  // THE RESOLUTION (`fieldStyleFor`): the search field takes its own setting unless it is Follow; every other def takes
+  // Field style whatever the search setting. A literal table, (fieldStyle, searchFieldStyle) → (search, text field).
+  const TABLE: [string | undefined, string | undefined, string, string][] = [
+    [undefined, undefined, 'outline', 'outline'], ['underline', undefined, 'underline', 'underline'],
+    [undefined, 'follow', 'outline', 'outline'], ['underline', 'follow', 'underline', 'underline'],
+    [undefined, 'underline', 'underline', 'outline'], ['outline', 'underline', 'underline', 'outline'],
+    ['underline', 'outline', 'outline', 'underline'], ['underline', 'underline', 'underline', 'underline'],
+  ];
+  const tableBad = TABLE.filter(([fs, ss, wantSearch, wantText]) => {
+    const input = { ...(fs ? { fieldStyle: fs } : {}), ...(ss ? { searchFieldStyle: ss } : {}) } as any;
+    return fieldStyleFor('search-field', input) !== wantSearch || fieldStyleFor('text-field', input) !== wantText;
+  }).map(([fs, ss]) => `${fs ?? 'unset'}/${ss ?? 'unset'}`);
+  ok(tableBad.length === 0 && fieldStyleFor('search-field', null) === 'outline' && JSON.stringify(SEARCH_FIELD_STYLE_DEFS) === JSON.stringify(['search-field']),
+    `#2888 fieldStyleFor: the search field takes its own setting unless Follow, every other def Field style, and no brand reads as outline (wrong at: ${tableBad.join(', ') || 'none'})`);
+  const otherBad = componentDefs.filter((d) => d.id !== 'search-field' && fieldStyleFor(d.id, { searchFieldStyle: 'underline' }) !== 'outline').map((d) => d.id);
+  ok(otherBad.length === 0, `#2888 fieldStyleFor: Search field style reaches the search field alone (moved: ${otherBad.join(', ') || 'none'})`);
+
+  // THE UNDERLINE PLAN FOR SEARCH (#2695's drawing, reached through `FIELD_FRAME_PARTS`): every member binds its four
+  // control sides apart, the bottom 1px and 2px at focus, and the leading glyph sits at the line's start with no inset.
+  const underBad = figmaAnatomySet(applyFieldStyle(sf, 'underline'), { swapTarget: 'FPO-default-icon' }).filter((p) => {
+    const b = find(p.root as PN, 'control')?.bound ?? {};
+    const focus = String((p.coord as Record<string, string>).state).startsWith('focus-visible');
+    return b.strokeTopWeight !== 'border-width/none' || b.strokeRightWeight !== 'border-width/none' || b.strokeLeftWeight !== 'border-width/none'
+      || b.strokeBottomWeight !== (focus ? 'border-width/thick' : 'border-width/hairline') || b.paddingLeft !== 'space/0' || 'strokeWeight' in b;
+  });
+  ok(underBad.length === 0,
+    `#2888 search-field underline plan: under Underline every member binds none / none / hairline (thick at focus) / none and no inline padding, so the search glyph sits at the line's start${underBad.length ? ` — WRONG on ${underBad.length}: ${planComponentName(underBad[0])}` : ''}`);
+}
+
 // ------------------------------------------------------------------- #2738: the fields' nested label dims with them
 // Text field, Password field, Select and Textarea each nest FieldLabel. In code a disabled field dims its label (#1339);
 // in Figma the nested label used to read at rest on every member, recorded as a projection limit in `codeOnly`. Each
@@ -34052,7 +34218,7 @@ arm: {
   const sorted = (r: Record<string, string> | undefined) => JSON.stringify(Object.entries(r ?? {}).sort());
   const labelNames = figmaAnatomySet(componentDefs.find((d) => d.id === 'field-label')!, { swapTarget: 'FPO-default-icon' }).map(planComponentName);
   // 84 members each (size 3 × status 4 × state 7); 12 of them disabled.
-  const FIELDS = ['text-field', 'password-field', 'select', 'textarea'];
+  const FIELDS = ['text-field', 'password-field', 'select', 'textarea', 'search-field'];
   for (const id of FIELDS) {
     const def = componentDefs.find((d) => d.id === id)!;
     const plans = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });

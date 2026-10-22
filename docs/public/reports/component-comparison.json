@@ -2750,6 +2750,137 @@
       "sizeDefault": "medium"
     },
     {
+      "id": "search-field",
+      "name": "SearchField",
+      "category": "form",
+      "states": [
+        "rest",
+        "hover",
+        "pending",
+        "filled",
+        "focus-visible",
+        "focus-visible-filled",
+        "disabled",
+        "read-only",
+        "empty"
+      ],
+      "projectedStates": [
+        "rest",
+        "hover",
+        "filled",
+        "focus-visible",
+        "focus-visible-filled",
+        "disabled",
+        "read-only"
+      ],
+      "axes": {
+        "size": [
+          "medium",
+          "small",
+          "large"
+        ],
+        "style": [
+          "outline"
+        ],
+        "status": [
+          "default",
+          "error",
+          "warning",
+          "success"
+        ]
+      },
+      "props": [
+        {
+          "name": "label"
+        },
+        {
+          "name": "hideLabel",
+          "default": false
+        },
+        {
+          "name": "value"
+        },
+        {
+          "name": "defaultValue"
+        },
+        {
+          "name": "onChange"
+        },
+        {
+          "name": "placeholder"
+        },
+        {
+          "name": "helpText"
+        },
+        {
+          "name": "validation",
+          "default": "default",
+          "values": [
+            "default",
+            "error",
+            "warning",
+            "success"
+          ]
+        },
+        {
+          "name": "validationMessage"
+        },
+        {
+          "name": "showMessage",
+          "default": false
+        },
+        {
+          "name": "required",
+          "default": false
+        },
+        {
+          "name": "disabled",
+          "default": false
+        },
+        {
+          "name": "readOnly",
+          "default": false
+        },
+        {
+          "name": "autoComplete"
+        },
+        {
+          "name": "leadingIcon"
+        },
+        {
+          "name": "trailingIcon"
+        },
+        {
+          "name": "onClear"
+        },
+        {
+          "name": "isPending",
+          "default": false
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        {
+          "name": "id"
+        },
+        {
+          "name": "name"
+        }
+      ],
+      "sizes": [
+        "medium",
+        "small",
+        "large"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
       "id": "segmented-control",
       "name": "SegmentedControl",
       "category": "form",
@@ -3939,6 +4070,7 @@
       "password-field",
       "radio-control",
       "radio-row",
+      "search-field",
       "segmented-control-segment",
       "select",
       "switch-control",
@@ -3950,12 +4082,14 @@
     ],
     "empty": [
       "password-field",
+      "search-field",
       "select",
       "text-field",
       "textarea"
     ],
     "filled": [
       "password-field",
+      "search-field",
       "select",
       "text-field",
       "textarea"
@@ -3978,6 +4112,7 @@
       "password-field",
       "radio-control",
       "radio-row",
+      "search-field",
       "segmented-control-segment",
       "select",
       "switch-control",
@@ -3989,6 +4124,7 @@
     ],
     "focus-visible-filled": [
       "password-field",
+      "search-field",
       "select",
       "text-field",
       "textarea"
@@ -4009,6 +4145,7 @@
       "password-field",
       "radio-control",
       "radio-row",
+      "search-field",
       "segmented-control-segment",
       "select",
       "switch-control",
@@ -4034,6 +4171,7 @@
       "icon-button-destructive",
       "icon-button-neutral",
       "password-field",
+      "search-field",
       "select",
       "switch-row",
       "text-field",
@@ -4064,6 +4202,7 @@
       "checkbox-row",
       "password-field",
       "radio-row",
+      "search-field",
       "select",
       "switch-row",
       "tag",
@@ -4089,6 +4228,7 @@
       "password-field",
       "radio-control",
       "radio-row",
+      "search-field",
       "segmented-control-segment",
       "select",
       "switch-control",
@@ -4469,6 +4609,7 @@
           "radio-control",
           "radio-group",
           "radio-row",
+          "search-field",
           "segmented-control",
           "segmented-control-segment",
           "select",
@@ -4530,6 +4671,7 @@
         "components": [
           "field-message",
           "password-field",
+          "search-field",
           "select",
           "text-field",
           "textarea"
@@ -4543,6 +4685,7 @@
         ],
         "components": [
           "password-field",
+          "search-field",
           "text-field",
           "textarea"
         ]
@@ -4842,6 +4985,9 @@
         ]
       },
       {
+        "id": "search-field"
+      },
+      {
         "id": "text-field"
       }
     ],
@@ -4944,6 +5090,9 @@
       },
       {
         "id": "radio-group"
+      },
+      {
+        "id": "search-field"
       },
       {
         "id": "segmented-control"
@@ -5049,6 +5198,10 @@
       },
       {
         "id": "radio-row",
+        "default": false
+      },
+      {
+        "id": "search-field",
         "default": false
       },
       {
@@ -5172,6 +5325,9 @@
         "id": "password-field"
       },
       {
+        "id": "search-field"
+      },
+      {
         "id": "select"
       },
       {
@@ -5179,6 +5335,12 @@
       },
       {
         "id": "textarea"
+      }
+    ],
+    "hideLabel": [
+      {
+        "id": "search-field",
+        "default": false
       }
     ],
     "href": [
@@ -5245,6 +5407,9 @@
       },
       {
         "id": "password-field"
+      },
+      {
+        "id": "search-field"
       },
       {
         "id": "select"
@@ -5421,6 +5586,10 @@
         "default": false
       },
       {
+        "id": "search-field",
+        "default": false
+      },
+      {
         "id": "select",
         "default": false
       },
@@ -5531,6 +5700,9 @@
         "id": "radio-row"
       },
       {
+        "id": "search-field"
+      },
+      {
         "id": "segmented-control"
       },
       {
@@ -5586,6 +5758,9 @@
     "leadingIcon": [
       {
         "id": "password-field"
+      },
+      {
+        "id": "search-field"
       },
       {
         "id": "segmented-control-segment"
@@ -5726,6 +5901,9 @@
         "id": "radio-group"
       },
       {
+        "id": "search-field"
+      },
+      {
         "id": "segmented-control"
       },
       {
@@ -5765,6 +5943,9 @@
         "id": "radio-group"
       },
       {
+        "id": "search-field"
+      },
+      {
         "id": "segmented-control"
       },
       {
@@ -5778,6 +5959,11 @@
       },
       {
         "id": "textarea"
+      }
+    ],
+    "onClear": [
+      {
+        "id": "search-field"
       }
     ],
     "onClick": [
@@ -5863,6 +6049,9 @@
         "id": "password-field"
       },
       {
+        "id": "search-field"
+      },
+      {
         "id": "select"
       },
       {
@@ -5918,6 +6107,10 @@
         "default": false
       },
       {
+        "id": "search-field",
+        "default": false
+      },
+      {
         "id": "select",
         "default": false
       },
@@ -5958,6 +6151,10 @@
       },
       {
         "id": "radio-group",
+        "default": false
+      },
+      {
+        "id": "search-field",
         "default": false
       },
       {
@@ -6120,6 +6317,10 @@
       {
         "id": "password-field",
         "default": true
+      },
+      {
+        "id": "search-field",
+        "default": false
       },
       {
         "id": "select",
@@ -6386,6 +6587,15 @@
       },
       {
         "id": "radio-row",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium",
+          "large"
+        ]
+      },
+      {
+        "id": "search-field",
         "default": "medium",
         "values": [
           "small",
@@ -6673,6 +6883,9 @@
         "id": "link"
       },
       {
+        "id": "search-field"
+      },
+      {
         "id": "text-field"
       }
     ],
@@ -6885,6 +7098,16 @@
         ]
       },
       {
+        "id": "search-field",
+        "default": "default",
+        "values": [
+          "default",
+          "error",
+          "warning",
+          "success"
+        ]
+      },
+      {
         "id": "select",
         "default": "default",
         "values": [
@@ -6942,6 +7165,9 @@
         "id": "radio-group"
       },
       {
+        "id": "search-field"
+      },
+      {
         "id": "select"
       },
       {
@@ -6978,6 +7204,9 @@
       },
       {
         "id": "radio-row"
+      },
+      {
+        "id": "search-field"
       },
       {
         "id": "segmented-control"
@@ -7150,6 +7379,14 @@
     },
     {
       "kind": "state not drawn",
+      "subject": "search-field",
+      "components": [
+        "search-field"
+      ],
+      "detail": "search-field declares the states pending and empty, which the design-file state axis does not draw"
+    },
+    {
+      "kind": "state not drawn",
       "subject": "select",
       "components": [
         "select"
@@ -7271,6 +7508,7 @@
         "radio-control",
         "radio-group",
         "radio-row",
+        "search-field",
         "segmented-control",
         "segmented-control-segment",
         "select",
@@ -7283,7 +7521,7 @@
         "text-field",
         "textarea"
       ],
-      "detail": "the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab-item, tabs, tag, text-field, textarea; [medium, small] in breadcrumb-item, breadcrumbs, switch-control, switch-row; [large, medium, small, x-small] in spinner"
+      "detail": "the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, tab-item, tabs, tag, text-field, textarea; [medium, small] in breadcrumb-item, breadcrumbs, switch-control, switch-row; [large, medium, small, x-small] in spinner"
     },
     {
       "kind": "axis values",
@@ -7297,13 +7535,14 @@
         "radio-control",
         "radio-group",
         "radio-row",
+        "search-field",
         "select",
         "switch-control",
         "switch-row",
         "text-field",
         "textarea"
       ],
-      "detail": "the status axis takes 2 value sets — [default, error] in checkbox-control, checkbox-group, checkbox-row, radio-control, radio-group, radio-row, switch-control, switch-row; [default, error, success, warning] in field-message, password-field, select, text-field, textarea"
+      "detail": "the status axis takes 2 value sets — [default, error] in checkbox-control, checkbox-group, checkbox-row, radio-control, radio-group, radio-row, switch-control, switch-row; [default, error, success, warning] in field-message, password-field, search-field, select, text-field, textarea"
     },
     {
       "kind": "axis values",
@@ -7311,10 +7550,11 @@
       "components": [
         "link",
         "password-field",
+        "search-field",
         "text-field",
         "textarea"
       ],
-      "detail": "the style axis takes 2 value sets — [outline] in password-field, text-field, textarea; [inline, standalone] in link"
+      "detail": "the style axis takes 2 value sets — [outline] in password-field, search-field, text-field, textarea; [inline, standalone] in link"
     },
     {
       "kind": "axis values",
@@ -7548,6 +7788,14 @@
     },
     {
       "kind": "size order",
+      "subject": "search-field",
+      "components": [
+        "search-field"
+      ],
+      "detail": "search-field declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
       "subject": "segmented-control",
       "components": [
         "segmented-control"
@@ -7632,7 +7880,7 @@
       "components": [
         "field-label"
       ],
-      "detail": "field-label defaults size to small; 36 of 37 sized components default to medium"
+      "detail": "field-label defaults size to small; 37 of 38 sized components default to medium"
     },
     {
       "kind": "prop default",
@@ -7649,11 +7897,12 @@
       "components": [
         "counter",
         "password-field",
+        "search-field",
         "select",
         "text-field",
         "textarea"
       ],
-      "detail": "showMessage defaults differ over the same values — false in counter; true in password-field, select, text-field, textarea"
+      "detail": "showMessage defaults differ over the same values — false in counter, search-field; true in password-field, select, text-field, textarea"
     },
     {
       "kind": "axis without prop",
@@ -7758,6 +8007,14 @@
         "radio-row"
       ],
       "detail": "radio-row has the variant axis status and no prop of that name"
+    },
+    {
+      "kind": "axis without prop",
+      "subject": "search-field",
+      "components": [
+        "search-field"
+      ],
+      "detail": "search-field has the variant axes style and status and no props of those names"
     },
     {
       "kind": "axis without prop",

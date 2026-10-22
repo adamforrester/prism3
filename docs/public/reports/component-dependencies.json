@@ -925,6 +925,49 @@
       ]
     },
     {
+      "from": "search-field",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      }
+    },
+    {
+      "from": "search-field",
+      "to": "field-label",
+      "part": "label",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "size": "medium",
+        "emphasis": "secondary",
+        "weight": "regular",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "emphasis",
+        "weight"
+      ]
+    },
+    {
+      "from": "search-field",
+      "to": "field-message",
+      "part": "message",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "status": "default"
+      },
+      "follow": [
+        "status"
+      ]
+    },
+    {
       "from": "segmented-control",
       "to": "field-label",
       "part": "label",
@@ -1533,6 +1576,7 @@
         "counter",
         "password-field",
         "radio-group",
+        "search-field",
         "segmented-control",
         "select",
         "text-field",
@@ -1543,6 +1587,7 @@
         "counter",
         "password-field",
         "radio-group",
+        "search-field",
         "segmented-control",
         "select",
         "text-field",
@@ -1558,6 +1603,7 @@
         "counter",
         "password-field",
         "radio-group",
+        "search-field",
         "select",
         "text-field",
         "textarea"
@@ -1567,6 +1613,7 @@
         "counter",
         "password-field",
         "radio-group",
+        "search-field",
         "select",
         "text-field",
         "textarea"
@@ -1639,6 +1686,7 @@
         "link",
         "password-field",
         "radio-control",
+        "search-field",
         "segmented-control-segment",
         "select",
         "switch-control",
@@ -1671,6 +1719,7 @@
         "radio-control",
         "radio-group",
         "radio-row",
+        "search-field",
         "segmented-control",
         "segmented-control-segment",
         "select",
@@ -1852,6 +1901,21 @@
         "radio-group"
       ],
       "inherits": "checkbox-row",
+      "inheritedBy": []
+    },
+    "search-field": {
+      "nests": [
+        "field-label",
+        "field-message",
+        "focus-ring"
+      ],
+      "nestsTransitively": [
+        "field-label",
+        "field-message",
+        "focus-ring"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
       "inheritedBy": []
     },
     "segmented-control": {
@@ -2084,6 +2148,7 @@
     "radio-control": 1,
     "radio-group": 3,
     "radio-row": 2,
+    "search-field": 1,
     "segmented-control": 2,
     "segmented-control-segment": 1,
     "select": 1,

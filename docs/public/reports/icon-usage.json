@@ -288,6 +288,26 @@
         "leadingVisual"
       ]
     },
+    "search-field": {
+      "glyphs": [
+        {
+          "part": "leadingVisual",
+          "glyph": "search",
+          "source": "icon set",
+          "how": "swap default"
+        },
+        {
+          "part": "trailingVisual",
+          "glyph": "close-filled",
+          "source": "icon set",
+          "how": "swap default"
+        }
+      ],
+      "iconSlots": [
+        "leadingVisual",
+        "trailingVisual"
+      ]
+    },
     "segmented-control-segment": {
       "glyphs": [],
       "iconSlots": [
@@ -453,7 +473,9 @@
       "switch-control",
       "tag"
     ],
-    "close-filled": [],
+    "close-filled": [
+      "search-field"
+    ],
     "error-circle": [
       "field-message"
     ],
@@ -489,7 +511,9 @@
     "resize-grip": [
       "textarea"
     ],
-    "search": [],
+    "search": [
+      "search-field"
+    ],
     "slash": [
       "_breadcrumb-separator"
     ],
@@ -512,7 +536,6 @@
     "arrow-up-left",
     "arrow-up-right",
     "check-circle-filled",
-    "close-filled",
     "error-circle-filled",
     "external-link-filled",
     "eye",
@@ -532,7 +555,6 @@
     "plus-circle",
     "plus-circle-filled",
     "plus-filled",
-    "search",
     "warning-triangle-filled"
   ]
 }
