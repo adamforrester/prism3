@@ -745,7 +745,7 @@ const TYPE_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="face-add-inpu
 /** Shape in the two panes (S7): the controls its levers must render, by hook (Density's chips and the way to
  *  Components, Radius' slider and Control shape chips, Show advanced, the way on to Depth & motion). */
 const SHAPE_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="density-choice-comfortable"]', '[data-p3="shape-see-components"]',
-  '[data-p3="radius-scale-slider"]', '[data-p3="control-shape-choice-rounded"]', '[data-p3="shape-advanced"]', '[data-p3="shape-continue"]'];
+  '[data-p3="radius-scale-slider"]', '[data-p3="control-shape-choice-rounded"]', '[data-p3="search-field-style-choice-follow"]', '[data-p3="shape-advanced"]', '[data-p3="shape-continue"]'];
 /** Depth & motion in the two panes (S9.2), previewing Light: the softness slider, Elevation's Show advanced, the tempo
  *  chips, an easing picker button per role, the way on to Layout. The rest is section 23's. */
 const DEPTH_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="shadow-softness"]', '[data-p3="depth-tint-advanced"]',
@@ -7716,8 +7716,8 @@ console.log(`\nShape (S7)\n${'='.repeat(78)}`);
 /** The lever keys the owner's D1 A places on Shape, by hook (represented, not counted). `radiusHairline` is retired. */
 // #2905 Q578 B: Field style (#2695) and Tag style (#2887) are no longer on Shape: their homes are Components › Field
 // options and › Tag options (#2931 Q579 A), so "every lever renders once" fails by name (`also drawn lever-field-style`,
-// `lever-tag-style`) if either is.
-const SHAPE_LEVERS = ['lever-density', 'lever-radius-scale', 'lever-control-shape', 'lever-base-md'];
+// `lever-tag-style`) if either is. #2888: Search field style, after Control shape, until its Search options ship (Q5 A).
+const SHAPE_LEVERS = ['lever-density', 'lever-radius-scale', 'lever-control-shape', 'lever-search-field-style', 'lever-base-md'];
 /** The preview's sections, in order (D1 A). Literal. */
 const EXPECT_SHAPE_SPECIMENS = ['Density', 'Radius', 'Spacing', 'Building blocks'];
 /** Q23: each lever section, in order, and the preview section it pairs with (Base radius with Radius, D1 A). */
@@ -7925,6 +7925,12 @@ for (const host of ['web', 'figma']) {
     ok(pShape?.controlShape === 'pill', `shape: Pill writes controlShape: pill (${pShape?.controlShape})`);
     await chip('control-shape-choice-rounded');
     // (Field style's and Tag style's writes are the #2905 arm's, on Components: Q578.)
+    // #2888: Search field style is brand-wide chips, and Follow field style writes its own value back.
+    await chip('search-field-style-choice-underline');
+    const pSearch = await persisted(page);
+    ok(pSearch?.searchFieldStyle === 'underline' && pSearch?.fieldStyle !== 'underline', `shape: search Underline writes searchFieldStyle: underline and leaves fieldStyle (${pSearch?.searchFieldStyle}, ${pSearch?.fieldStyle})`);
+    await chip('search-field-style-choice-follow');
+    ok((await persisted(page))?.searchFieldStyle === 'follow', `shape: Follow field style writes searchFieldStyle: follow (${(await persisted(page))?.searchFieldStyle})`);
     await hooks.click(page.locator('[data-p3="base-radius-pick"]'));
     await hooks.click(page.locator('[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="6"]'));
     await page.waitForFunction(() => document.querySelector('[data-p3="base-radius-pick"] .p3-btn-label')?.textContent === '6px', null, { timeout: 5000 }).catch(() => {});
@@ -8002,7 +8008,7 @@ for (const host of ['web', 'figma']) {
       });
       ok(d.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.`, `Q59: previewing ${label}, the panel's derived line shows (N-3 A) on Shape ("${d.line}")`);
       ok(d.n >= 9 && d.enabled.length === 0, `Q59: previewing ${label}, every control on Shape is disabled, Base radius included (${d.n - d.enabled.length}/${d.n})${d.enabled.length ? ` — enabled ${[...new Set(d.enabled)].join(', ')}` : ''}`);
-      for (const hk of ['density-choice-compact', 'radius-scale-slider', 'control-shape-choice-pill', 'base-radius-pick']) ok(d.hooks.includes(hk), `Q59: previewing ${label}, the ${hk} control on Shape is among those held disabled`);
+      for (const hk of ['density-choice-compact', 'radius-scale-slider', 'control-shape-choice-pill', 'search-field-style-choice-outline', 'base-radius-pick']) ok(d.hooks.includes(hk), `Q59: previewing ${label}, the ${hk} control on Shape is among those held disabled`);
       ok(JSON.stringify(d.preview) === JSON.stringify(EXPECT_SHAPE_SPECIMENS), `Q59: previewing ${label}, the Shape preview is still drawn (${d.preview.join(', ')})`);
       // Every size is drawn at 0px, as the emission draws wireframe; the two pill sizes still read "Pill" (#2078: the
       // label is which size it is, not its px).
@@ -8130,7 +8136,7 @@ const COMPONENTS_LEVERS = ['lever-button-icons', 'lever-button-content-size', 'l
  *  default, in three sections. Literal. Q23's heading pairs (a lever section headed as its preview section) ended with
  *  the move: the levers pane no longer has a section per preview section. */
 // #2905 (Q548, Q10 A): the sections with settings first, then every other component, then Subcomponents.
-const COMPONENTS_LIST_SECTIONS = ['Buttons', 'Fields', 'Tags', 'Other components', 'Subcomponents'];
+const COMPONENTS_LIST_SECTIONS = ['Buttons', 'Fields', 'Tag', 'Other components', 'Subcomponents'];
 // The specimen sections, each on the brand's page; Button options sit between them on the card, in the chrome's inks.
 const COMPONENTS_PREVIEW_SECTIONS = ['Preview', 'Sets in this family'];
 /** The page's copy, verbatim: approved by the owner (2026-10-05), or #2700's wireframe draft. */
@@ -8509,7 +8515,7 @@ for (const host of ['web', 'figma']) {
     try {
       await goPlace(page, 'components');
       await hooks.need(page, '[data-p3="components-levers"]');
-      // Tags first (#2931 Q579 A): opening a block focuses its section's first set, and the Fields case reads Password field.
+      // Tag first (#2931 Q579 A): opening a block focuses its section's first set, and the Fields case reads Password field.
       for (const k of ['tags', 'buttons', 'fields']) await hooks.click(page.locator(`[data-p3="cp-opts-toggle"][data-key="opts=${k}"]`));
       await page.waitForFunction(() => ['button-options-section', 'field-options-section', 'tag-options-section'].every((x) => !!document.querySelector(`[data-p3="${x}"]`)?.getClientRects().length), null, { timeout: 5000 });
       const r = await page.evaluate(() => {
@@ -8533,7 +8539,7 @@ for (const host of ['web', 'figma']) {
         const to = document.querySelector('[data-p3="tag-options-section"]');
         return {
           titles: secs.map((s) => s.querySelector('[data-p3="cp-section-title"]')?.dataset.name ?? null),
-          buttons: edges('Buttons', 'button-options-section'), fields: edges('Fields', 'field-options-section'), tags: edges('Tags', 'tag-options-section'),
+          buttons: edges('Buttons', 'button-options-section'), fields: edges('Fields', 'field-options-section'), tags: edges('Tag', 'tag-options-section'),
           other: [...(by('Other components')?.querySelectorAll('[data-p3="cp-name"]') ?? [])].map((n) => n.textContent),
           fo: fo ? {
             title: fo.querySelector('[data-p3="field-options-title"]')?.textContent ?? null, desc: fo.querySelector('[data-p3="field-options-desc"]')?.textContent ?? null,
@@ -8549,20 +8555,20 @@ for (const host of ['web', 'figma']) {
           title: document.querySelector('[data-p3="components-detail-title"]')?.textContent ?? null,
         };
       });
-      ok(JSON.stringify(r.titles) === JSON.stringify(['Buttons', 'Fields', 'Tags', 'Other components', 'Subcomponents']),
-        `#2905 Q548, #2931 Q579 A: ${host} ${w}: the sections are Buttons, Fields, Tags, Other components, Subcomponents (${JSON.stringify(r.titles)})`);
+      ok(JSON.stringify(r.titles) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Other components', 'Subcomponents']),
+        `#2905 Q548, #2931 Q579 A: ${host} ${w}: the sections are Buttons, Fields, Tag, Other components, Subcomponents (${JSON.stringify(r.titles)})`);
       const T = r.tags;
       ok(!!T && JSON.stringify(T.ids) === JSON.stringify(['tag']) && T.folds + T.families === 0,
-        `#2931 Q579 A: ${host} ${w}: Tags lists Tag as a row, with no family row and no fold (${JSON.stringify({ ids: T?.ids, folds: T?.folds, families: T?.families })})`);
-      ok(!!r.to && r.to.title === 'Tag options' && r.to.desc === 'How Tag draws its edge.' && JSON.stringify(r.to.chips) === JSON.stringify(['Pill', 'Underline']),
-        `#2931 Q579 A, Q580 A: ${host} ${w}: Tag options: its drafted title and description, and Tag style's chips (${JSON.stringify(r.to)})`);
+        `#2931 Q579 A: ${host} ${w}: the Tag section lists Tag as a row, with no family row and no fold (${JSON.stringify({ ids: T?.ids, folds: T?.folds, families: T?.families })})`);
+      ok(!!r.to && r.to.title === 'Tag options' && r.to.desc === 'How tags draw their shape.' && JSON.stringify(r.to.chips) === JSON.stringify(['Pill', 'Underline']),
+        `#2931 Q579 A, #2905 Q10 A: ${host} ${w}: Tag options: its drafted title and description, and Tag style's chips (${JSON.stringify(r.to)})`);
       const B = r.buttons, F = r.fields;
       ok(!!B && !!F && JSON.stringify(B.ids) === JSON.stringify(['button', 'button-destructive', 'button-group', 'button-neutral'])
-        && JSON.stringify(F.ids) === JSON.stringify(['password-field', 'select', 'text-field', 'textarea']) && B.folds + B.families + F.folds + F.families === 0,
-        `#2905 Q8 A: ${host} ${w}: Buttons lists its four sets and Fields its four fields, each a row, with no family row and no fold (${JSON.stringify({ b: B?.ids, f: F?.ids, folds: [B?.folds, F?.folds], families: [B?.families, F?.families] })})`);
-      ok(!r.other.some((t) => /^(Buttons|Button|Text field|Password field|Select|Textarea|Tag)$/.test(t)) && r.other.includes('Badge') && r.other.includes('Toast'),
+        && JSON.stringify(F.ids) === JSON.stringify(['password-field', 'search-field', 'select', 'text-field', 'textarea']) && B.folds + B.families + F.folds + F.families === 0,
+        `#2905 Q8 A: ${host} ${w}: Buttons lists its four sets and Fields its five fields, each a row, with no family row and no fold (${JSON.stringify({ b: B?.ids, f: F?.ids, folds: [B?.folds, F?.folds], families: [B?.families, F?.families] })})`);
+      ok(!r.other.some((t) => /^(Buttons|Button|Text field|Password field|Search field|Select|Textarea|Tag)$/.test(t)) && r.other.includes('Badge') && r.other.includes('Toast'),
         `#2905 Q6 A: ${host} ${w}: every other component is in Other components, and none of the grouped ones (${r.other.join(', ')})`);
-      for (const [name, e] of [['Buttons', B], ['Fields', F], ['Tags', T]]) {
+      for (const [name, e] of [['Buttons', B], ['Fields', F], ['Tag', T]]) {
         const xs = e ? [e.head, ...e.rows, e.line, e.block] : [];
         const one = xs.length > 2 && xs.every((v) => v !== null && Math.abs(v - xs[0]) <= 0.5);
         ok(one && e.inBlock && e.after, `#2905 Q1 A: ${host} ${w}: ${name}: rows, line and block start at one edge, the section head's, and the block follows the sets (${JSON.stringify(e)})`);
@@ -8640,7 +8646,7 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 760 }]) {
       ok(Math.abs(hd.off - m.rowOff) <= 1, `#2825: figma ${w}: the ${hd.name} head's box is centered on its title's first line, as a row's is on its name (${hd.off.toFixed(2)}px off the line, the row's ${m.rowOff.toFixed(2)}px; the title is ${hd.lines} line${hd.lines === 1 ? '' : 's'})`);
       if (hd.allOff !== null) ok(Math.abs(hd.allOff) <= 1, `#2825: figma ${w}: ${hd.name}' Build all is centered on the title's first line (${hd.allOff.toFixed(2)}px)`);
     }
-    // #2905: five sections now (Buttons, Fields, Tags, Other components, Subcomponents; #2931 Q579 A), each head measured.
+    // #2905: five sections now (Buttons, Fields, Tag, Other components, Subcomponents; #2931 Q579 A), each head measured.
     ok(m.heads.length === 5 && m.heads.some((x) => x.allOff !== null), `#2825: figma ${w}: every section head measured, Build all among them (${m.heads.length})`);
     if (w === 380) ok(m.heads.some((x) => x.lines >= 2), `#2825: figma 380: a head's title wraps, so the first-line rule is tested where it differs from centering on the head (${JSON.stringify(m.heads.map((x) => x.lines))})`);
     ok(errors.length === 0, `#2825 figma ${w}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
@@ -10685,8 +10691,8 @@ const EXPECT_HEADINGS = {
   components: {
     // #2905: the list's sections are Buttons, Fields, Other components and Subcomponents, each with settings holding one
     // group (L2) after its sets; Field options' one lever, Field style, is L3 as the Button options are.
-    // #2931 Q579 A: Tags, its Tag options (L2) and Tag style (L3), Field options' way.
-    L1: ['Buttons', 'Fields', 'Tags', 'Other components', 'Subcomponents'],
+    // #2931 Q579 A: Tag, its Tag options (L2) and Tag style (L3), Field options' way.
+    L1: ['Buttons', 'Fields', 'Tag', 'Other components', 'Subcomponents'],
     L2: ['Button options', 'Field options', 'Tag options'],
     L3: ['Button icons', 'Medium button label & icon', 'Button label weight', 'Text button hover', 'Button minimum width', 'Field style', 'Tag style'],
   },

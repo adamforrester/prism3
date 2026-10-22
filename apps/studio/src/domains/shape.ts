@@ -30,8 +30,8 @@
  */
 import { brandState, currentMode, getPath, lastError, searchQuery, setPage, setSearchHits, subscribe } from '../state/store';
 import { isDerived } from '../state/verdict';
-import { brandBaseMd, brandControlShape, densityIn, radiusScaleIn, setBaseMd, setControlShape, setDensity, setRadiusScale } from '../state/shape-input';
-import type { ControlShape, Density } from '@prism3/engine/scale';
+import { brandBaseMd, brandControlShape, brandSearchFieldStyle, densityIn, radiusScaleIn, setBaseMd, setControlShape, setDensity, setRadiusScale, setSearchFieldStyle } from '../state/shape-input';
+import type { ControlShape, Density, SearchFieldStyle } from '@prism3/engine/scale';
 import { DOMAINS, pageOfTab, type PageData, type Section } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { glyph, h, hook } from '../shell/dom';
@@ -166,6 +166,19 @@ export const mountShapeLevers = (hostEl: HTMLElement, cleanups: (() => void)[], 
     return { el: b.el, said: `${b.said} ${opts.map((o) => o.l).join(' ')}`.toLowerCase(), key: 'controlShape', block: b };
   };
 
+  // Search field style (#2888, owner decision Q514 taking Q?1 A and Q?2 A): brand-wide chips, after Control shape (Field
+  // style, which it once followed, moved to Components › Field options, Q578). Its label, options and description are
+  // the manifest's, so the block reads them there.
+  const searchFieldStyle = (): Item => {
+    const L = leverOf('searchFieldStyle');
+    const b = leverBlock('searchFieldStyle', { group: true });
+    const opts = (L?.options ?? []).map((o) => ({ v: String(o.value) as SearchFieldStyle, l: o.label }));
+    const c = choice(L?.label ?? 'Search field style', 'search-field-style-choice', opts, (v) => edit('searchFieldStyle', () => setSearchFieldStyle(v)));
+    c.set(brandSearchFieldStyle());
+    b.ctl.append(c.el);
+    return { el: b.el, said: `${b.said} ${opts.map((o) => o.l).join(' ')}`.toLowerCase(), key: 'searchFieldStyle', block: b };
+  };
+
   // ── Base radius (advanced) ──────────────────────────────────────────────────────────────────────
   const baseRadius = (): Item => {
     const b = leverBlock('baseMd', { label: SHAPE_COPY.baseLabel, desc: SHAPE_COPY.baseTip, forId: 'p3-base-radius' });
@@ -207,7 +220,7 @@ export const mountShapeLevers = (hostEl: HTMLElement, cleanups: (() => void)[], 
   };
   /** Each lever key the page data places, drawn by its builder. A key with no builder draws nothing, and
    *  `test:chrome`'s rendered coverage then fails it by name. */
-  const BUILDERS: Record<string, () => Item> = { density, radiusScale: softness, controlShape, baseMd: baseRadius };
+  const BUILDERS: Record<string, () => Item> = { density, radiusScale: softness, controlShape, searchFieldStyle, baseMd: baseRadius };
   const section = (s: Section, i: number): { el: HTMLElement; items: Item[] } => {
     const el = sectionShell(s, i);
     const out: Item[] = [];

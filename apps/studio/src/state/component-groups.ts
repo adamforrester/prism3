@@ -20,7 +20,7 @@
  * Buttons page's sets) and **Fields** (the sets Field style draws). Its rows are FLAT: a family's sets are listed at the
  * section's row edge, each set its own row, so rows and the settings block after them share one edge. Every other
  * component row stays as it was, in **Other components** (Q6 A), and Subcomponents is unchanged. A component moves into
- * a section when it gets a setting, by an entry in `SETTING_SECTIONS`: **Tags** (Tag, the set Tag style draws)
+ * a section when it gets a setting, by an entry in `SETTING_SECTIONS`: **Tag** (the set Tag style draws)
  * joined so, by owner decision Q578 part 2 (A on #2931's wireframe).
  *
  * SELECTION is a set of def ids. A family's and a section's box is three-state over the sets it holds that can be built
@@ -60,19 +60,20 @@ export type GroupSection = {
 /** The sections with settings, in the page's order (#2905, Q548). A row joins the first whose `pages` holds its page or
  *  whose `ids` hold every one of its sets. Fields holds the sets Field style draws (`FIELD_FRAME_PARTS` in the engine's
  *  `anatomy-figma.ts`, typed here so no definition reaches the web bundle; `test-component-groups.ts` holds the two
- *  together). Search field joins Fields, with its own block, in the PR that ships it (Q5 A). Tags holds the sets Tag style
+ *  together). Search field (#2888) is in Fields (Q5 A); its own block is still to come. Tag holds the sets Tag style
  *  draws (`TAG_STYLE_PARTS`, held the same way). */
 export const SETTING_SECTIONS: readonly { readonly kind: 'buttons' | 'fields' | 'tags'; readonly pages: readonly string[]; readonly ids: readonly string[] }[] = [
   { kind: 'buttons', pages: ['Buttons'], ids: [] },
-  { kind: 'fields', pages: [], ids: ['password-field', 'select', 'text-field', 'textarea'] },
+  // #2888 shipped Search field; Q5 A on #2905 puts it inside Fields. Its own Search options block is still to come.
+  { kind: 'fields', pages: [], ids: ['password-field', 'search-field', 'select', 'text-field', 'textarea'] },
   { kind: 'tags', pages: [], ids: ['tag'] },
 ];
 
 /** The page's copy. DRAFT: the approved wireframe's own words (#2700), pending the owner's copy sign-off. */
 export const GROUPS_COPY = {
   intro: (n: number): string => `The ${n} component sets the engine defines, in families. A build places each on its page in this file.`,
-  /** Q10 A on #2905: the section titles as drafted in wireframe v2; Tags as #2931's wireframe drew it (Q579 A). */
-  sections: { buttons: 'Buttons', fields: 'Fields', tags: 'Tags', components: 'Other components', subcomponents: 'Subcomponents' } as Record<SectionKind, string>,
+  /** Q10 A on #2905: the section titles as drafted in wireframe v2, Tag's included (placed by #2931 Q579 A). */
+  sections: { buttons: 'Buttons', fields: 'Fields', tags: 'Tag', components: 'Other components', subcomponents: 'Subcomponents' } as Record<SectionKind, string>,
   sectionCount: (kind: SectionKind, rows: number, sets: number): string =>
     kind !== 'components' && kind !== 'subcomponents' ? plural(sets, 'set')
       : `${rows} ${kind === 'components' ? 'families and sets' : rows === 1 ? 'entry' : 'entries'} · ${plural(sets, 'set')}`,

@@ -34,7 +34,7 @@
  */
 import { applyHeadline, APPLY_FAILED_HEADLINE, conflictHeadline, componentHeadline, staleNote, refsNote, refsItems, partialWriteHeadline, partialWriteNote, partialWriteItem, fromClauses, motionReplacedItem } from './src/apply-summary';
 import type { PartialWriteFacts } from './src/apply-summary';
-import { fieldStyleNote } from './src/field-style-note';
+import { fieldStyleNote, searchFieldStyleNote } from './src/field-style-note';
 import { tagStyleNote } from './src/tag-style-note';
 import type { BrandInput } from '@prism3/engine/theme';
 import { readFileSync as readSrc } from 'node:fs';
@@ -334,6 +334,27 @@ ok(motionReplacedItem(0) === '', `#2412: nothing replaced, no clause (${JSON.str
   ok(/fieldStyleNote\(before, input\),\n/.test(main) && apply.indexOf('before = restoreInput(host.root)') > 0
     && apply.indexOf('before = restoreInput(host.root)') < apply.indexOf('persistInput(host.root, input)'),
     '#2695 Q16: Apply reads the stored brand before persisting the new one, and its clause list carries the notice');
+}
+
+// ---- #2888: the search field style notice --------------------------------------------------------------------
+// Said only when the lever moved AND the search field draws a different edge. Literals typed here.
+{
+  const b = { brandColors: [] } as unknown as BrandInput;
+  const with_ = (o: Record<string, string>) => ({ ...b, ...o }) as BrandInput;
+  const SAY_UNDER = 'Search field style is now Underline. Update components to redraw the search field.';
+  ok(searchFieldStyleNote(b, with_({ searchFieldStyle: 'underline' })) === SAY_UNDER,
+    `#2888: Follow (unset) over outline fields → Underline says so and points at Update (${searchFieldStyleNote(b, with_({ searchFieldStyle: 'underline' }))})`);
+  ok(searchFieldStyleNote(with_({ fieldStyle: 'underline', searchFieldStyle: 'outline' }), with_({ fieldStyle: 'underline' })) === 'Search field style is now Follow field style. Update components to redraw the search field.',
+    '#2888: Outline → unset over underline fields reads as Follow field style, the default, and the edge moves');
+  ok(searchFieldStyleNote(null, with_({ searchFieldStyle: 'underline' })) === SAY_UNDER,
+    '#2888: a file with no stored brand was built following outline fields, so underline is a change');
+  ok(searchFieldStyleNote(b, with_({ searchFieldStyle: 'outline' })) === '' && searchFieldStyleNote(b, with_({ searchFieldStyle: 'follow' })) === ''
+    && searchFieldStyleNote(with_({ searchFieldStyle: 'underline' }), with_({ searchFieldStyle: 'underline' })) === '',
+    '#2888: no clause when the lever did not move, or moved between two settings that draw the same edge (Follow over outline fields, and Outline)');
+  ok(searchFieldStyleNote(b, with_({ fieldStyle: 'underline' })) === '' && fieldStyleNote(b, with_({ fieldStyle: 'underline' })) !== '',
+    '#2888: a search field that follows a changed Field style is said by the field style notice, not twice');
+  const main = readSrc(new URL('./src/main.ts', import.meta.url), 'utf8');
+  ok(/searchFieldStyleNote\(before, input\),/.test(main), '#2888: Apply\'s clause list carries the search field style notice');
 }
 
 // ---- #2887: the tag style notice, Field style's twin (copy DRAFT for the owner) ---------------------------------

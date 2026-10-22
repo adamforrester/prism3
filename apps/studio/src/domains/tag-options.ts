@@ -1,7 +1,7 @@
 /**
  * Tag options (owner decision Q578 part 2, A on #2931's wireframe). Tag style as chips, Tag style's only control.
  *
- * WHERE THEY ARE DRAWN: once, in the Components page's Tags section, after its one set, behind the section's disclosure
+ * WHERE THEY ARE DRAWN: once, in the Components page's Tag section, after its one set, behind the section's disclosure
  * line (`domains/components.ts`). Its home in the page data is Components › Tag (`shell/pages.ts`); Shape no longer
  * draws it. It writes through `state/shape-input.ts`.
  *
@@ -20,7 +20,7 @@ import { glyph, h, hook } from '../shell/dom';
 import { choice, leverBlock, leverOf, keepFocus } from '../ui/lever-kit';
 import { BUTTON_OPTIONS_COPY } from './button-options';
 
-/** The block's copy. Q580 A on #2931 (DRAFT): the wireframe's words, Field options' pattern. */
+/** The block's copy. Q10 A on #2905: as drafted in wireframe v2. */
 export const TAG_OPTIONS_COPY = {
   title: 'Tag options',
   desc: TAG_DESC,

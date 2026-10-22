@@ -1028,7 +1028,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
 // ANOTHER, each when the last one's result lands (`state/build-queue.ts`). Held here through the real UI, with this
 // suite playing the plugin: what is posted, and when; that Activity reads one running build between the sets and ONE
 // result at the end (idea 13 A), with no Earlier results from the sets in between; Stop (call 16 A) letting the set being
-// built finish and posting nothing after it; and Build all (call 10 A) posting the nine subcomponents in the list's
+// built finish and posting nothing after it; and Build all (call 10 A) posting the eleven subcomponents in the list's
 // order without touching the selection. EXPECTED is typed here: the ids, the order and the words.
 //
 // MUTATIONS, each failing here by name:
@@ -1043,7 +1043,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   const history = () => page.evaluate(() => document.querySelectorAll('[data-p3="activity-op"][data-op="components"] [data-p3="op-history-entry"]').length);
   const verdict = () => page.evaluate(() => document.querySelector('[data-p3="activity-op"][data-op="components"] [data-p3="op-verdict"]')?.textContent ?? null);
   const result = (id) => post(page, { type: 'component-result', ok: true, completed: true, headline: '✓ built', summary: `set '${id}'`, lines: [] });
-  // Three sets: Tag, Badge, Divider, in the list's order, so the run posts them so (#2931 Q579 A: Tag is in the Tags
+  // Three sets: Tag, Badge, Divider, in the list's order, so the run posts them so (#2931 Q579 A: Tag is in the Tag
   // section, above Other components).
   await selectOnly(page, 'badge');
   for (const id of ['divider', 'tag']) await hooks.click(page.locator(`[data-p3="cp-box"][data-key="set=${id}"]`));
@@ -1086,16 +1086,16 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   ok(JSON.stringify(afterStop) === '["tag"]' && (await verdict()) === 'Stopped after 1 of 3 sets',
     `#2700 Stop lets the set being built finish and posts nothing after it — posted ${JSON.stringify(afterStop)}, Activity ${JSON.stringify(await verdict())}`);
 
-  // Build all: the nine subcomponents in the list's order, the selection left alone.
+  // Build all: the eleven subcomponents in the list's order, the selection left alone.
   const pre = (await posted()).length;
   await hooks.click(page.locator('[data-p3="cp-build-all"]'));
-  const SUBS = ['field-label', 'field-message', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'focus-ring', 'icon', 'image-placeholder', 'spinner'];
+  const SUBS = ['breadcrumb-item', '_breadcrumb-separator', 'field-label', 'field-message', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'focus-ring', 'icon', 'image-placeholder', 'spinner'];
   for (let i = 0; i < SUBS.length; i++) { await waitPosts(pre + i + 1); await result(SUBS[i]); }
   await idleAgain(page);
   const all = (await posted()).slice(pre);
   const still = await readSurfaces(page);
   ok(JSON.stringify(all) === JSON.stringify(SUBS) && still.picker === 'tag,badge,divider',
-    `#2700 call 10: Build all posts the nine subcomponents in the list's order and leaves the selection alone — posted ${JSON.stringify(all)}, selected ${still.picker}`);
+    `#2700 call 10: Build all posts the eleven subcomponents in the list's order and leaves the selection alone — posted ${JSON.stringify(all)}, selected ${still.picker}`);
 
   // An agent's build: the bar waits, and says so.
   await post(page, { type: 'agent-started', id: 'q1', cmd: 'build-components' });
@@ -1143,13 +1143,13 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
       fits: s ? s.getBoundingClientRect().right <= document.documentElement.clientWidth : false,
       also: document.querySelector('[data-p3="components-also-builds"]')?.textContent ?? null };
   });
-  ok(line.text === '4 sets · 1,155 variants · 45 components' && line.lines === 1 && line.fits,
+  ok(line.text === '4 sets · 1,155 variants · 46 components' && line.lines === 1 && line.fits,
     `#2812 (5) at 380 the bar keeps both counts on one line, inside the panel — read ${JSON.stringify(line.text)}, ${line.lines} line(s), fits ${line.fits}`);
   ok(line.also === 'Also builds, when the file lacks them: Spinner, Focus ring.',
     `#2812 Q392 "Also builds" names the sets as the list does — read ${JSON.stringify(line.also)}`);
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.w === 'wide', null, { timeout: 5000 }).catch(() => {});
-  // N1: clear, then Badge ticked before Tag; the run posts Tag first, as the list reads (Tags is above Other components).
+  // N1: clear, then Badge ticked before Tag; the run posts Tag first, as the list reads (the Tag section is above Other components).
   for (const k of ['sec=buttons', 'set=icon']) while ((await aria(k)) !== 'false') await hooks.click(page.locator(`[data-p3="cp-box"][data-key="${k}"]`));
   for (const id of ['badge', 'tag']) await hooks.click(page.locator(`[data-p3="cp-box"][data-key="set=${id}"]`));
   await hooks.click(page.locator('[data-p3="components-build"]').first(), { timeout: 4000 });
@@ -1164,15 +1164,15 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     `#2812 N1 Badge ticked before Tag still runs in the list's order, Tag first — posted ${firstPost}, then ${JSON.stringify(await builds(page))}`);
   for (const id of ['tag', 'badge']) await hooks.click(page.locator(`[data-p3="cp-box"][data-key="set=${id}"]`));
   // Q391 A: under a search, the section's box acts on the rows shown. "badge" matches Badge, and Tag, whose summary says
-  // "A static label is a badge."; Tag is in the Tags section now (#2931 Q579 A), so Other components shows Badge alone,
-  // and its box reaches neither its other 31 sets nor Tag.
+  // "A static label is a badge."; Tag is in the Tag section now (#2931 Q579 A), so Other components shows Badge alone,
+  // and its box reaches neither its other 26 sets nor Tag.
   await hooks.click(page.locator('[data-p3="search-open"]'));
   await page.locator('[data-p3="search-input"]').fill('badge');
   await page.waitForFunction(() => document.querySelectorAll('[data-p3="cp-section"][data-kind="components"] [data-p3="cp-row"]').length === 1, null, { timeout: 4000 }).catch(() => {});
   await hooks.click(page.locator('[data-p3="cp-box"][data-key="sec=components"]'));
   const scoped = await readSurfaces(page);
   ok(scoped.picker === 'badge' && scoped.button === 'Build 1 set' && (await aria('sec=components')) === 'true',
-    `#2812 Q391 under a search for "badge" the Components box selects the one row shown, not the section's 32 sets nor Tag in Tags, and reads checked over it — selected ${scoped.picker}, read "${scoped.button}", box ${await aria('sec=components')}`);
+    `#2812 Q391 under a search for "badge" the Components box selects the one row shown, not the section's 27 sets nor Tag in its own section, and reads checked over it — selected ${scoped.picker}, read "${scoped.button}", box ${await aria('sec=components')}`);
   await hooks.click(page.locator('[data-p3="cp-box"][data-key="sec=components"]'));
   // Call 7: a search opens the families a match sits in. A fresh page, so every family starts closed.
   await page.close();

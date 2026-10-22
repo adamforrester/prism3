@@ -100,9 +100,10 @@
  *     (#1009 half-1), so the row centers ONE inner box, named `content`, and that box keeps the control and
  *     label top-aligned: Accordion's Q276 A construction.
  *   · **Q?4 A** — the block padding joins `densitySpacing`, so compact rows compact (29/36/44) and spacious rows grow.
- *   · **Q?6 A** — the update cost is accepted: inserting `content` moves the label and the nested control under a
- *     new frame in files that already hold the row, and a per-instance override on the nested control may not
- *     carry over. A dry run on a copy of a shipped file comes before any master update.
+ *   · **Q?6 A** — the update cost is accepted: in files that already hold the row, an Update inserts `content` and
+ *     MOVES the label and the control cell (the nested control with it) into it, keeping every node's id (#2595;
+ *     `test-update-apply.ts` "option rows", #2933). Whether a placed instance's override survives the move is a
+ *     host question the shim cannot answer, so a dry run on a copy of a shipped file comes before any master update.
  *
  * `test.ts` #2894 measures the result in every corpus brand.
  *

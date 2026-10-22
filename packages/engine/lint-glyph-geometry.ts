@@ -135,6 +135,7 @@ const MUST_COVER = [
   'switch-control.onGlyph', 'switch-control.offGlyph', 'select.chevronGlyph', 'image-placeholder.markerGlyph',
   '_accordion-indicator.chevronDownGlyph', '_accordion-indicator.chevronUpGlyph', '_accordion-indicator.plusGlyph', '_accordion-indicator.minusGlyph',
   'toast.checkCircleGlyph',
+  '_breadcrumb-separator.chevronGlyph', '_breadcrumb-separator.slashGlyph', 'breadcrumbs.backGlyph',
 ];
 
 /** The component name prefix an icon-set glyph is an instance of (#2380): `icon/<glyph>`, the component the
@@ -230,6 +231,13 @@ const arcSubpaths = (d: string): ArcSeg[][] => {
  * the def no longer gates on fails as a stale memory rather than as a silent exemption.
  */
 const FIXED_GLYPH: Record<string, { glyph: string; at: Record<string, readonly string[]>; why: string }> = {
+  // #2666 (owner call 6 A, Q382 A) — the breadcrumb separator's two looks, one glyph per `type`. `glyph: '{type}'`
+  // cannot express them: the vocabulary has no `chevron` glyph (the look is `chevron-right`), and a set-wide choice
+  // between two fixed shapes is what Q382 decided.
+  '_breadcrumb-separator.chevronGlyph': { glyph: 'chevron-right', at: { type: ['chevron'] }, why: 'the chevron look, pointing toward the current page; one fixed shape, mirrored in right-to-left in code, never a glyph a designer picks' },
+  '_breadcrumb-separator.slashGlyph': { glyph: 'slash', at: { type: ['slash'] }, why: 'the slash look, a forward slash between steps; one fixed shape, not mirrored in right-to-left' },
+  // #2666 (owner call 11 A) — the small-screen path's chevron, pointing up the trail to the parent page.
+  'breadcrumbs.backGlyph': { glyph: 'chevron-left', at: { path: ['parent'] }, why: 'the up-a-level mark before the parent link, pointing back up the trail; one fixed shape, mirrored in right-to-left in code' },
   // #2417 (owner Q183) — the Accordion indicator's four glyphs, one per (indicator, expansion) pair. `glyph:
   // '{expansion}'` cannot express them: the vocabulary has no `collapsed` or `expanded` glyph, and the pair changes
   // with `indicator` as well.
