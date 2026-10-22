@@ -3,8 +3,9 @@
  *
  * KB brief: `components/link.md`
  *
- * Shape (owner decisions Q289, 2026-10-14): `style` [standalone, inline] × `weight` [emphasis, default] × `size`
- * [small, medium, large] × `surface` [default, inverse] × four states (rest, hover, pressed, focus-visible) = 96 members.
+ * Shape (owner decisions Q289, 2026-10-14; Q507, 2026-10-21): `style` [standalone, inline] × `weight` [emphasis,
+ * default] × `size` [small, medium, large] × `surface` [default, inverse] × `selection` [unselected, selected] × four
+ * states (rest, hover, pressed, focus-visible), less the inline × selected coordinates = 144 members.
  *
  *   - Q289.1 A — the standalone link plus an inline look. A link inside a paragraph stays a text range in Figma with
  *     the existing `-link` text styles: Figma cannot place an instance inside a run of text.
@@ -21,12 +22,29 @@
  *   - Q297.2 — icons are trailing only and standalone only (Carbon's model): no leading icon, and the trailing slot is
  *     absent from every inline member (`presentWhen`). 16px with the 14px and 16px text, 20px with the 18px text, so
  *     the icon fits inside the body line (21 / 24 / 27px at the 1.5 line height).
- *   - Q289.5 A — visited and current are code only (`STATES` has neither).
+ *   - Q289.5 A — visited and current are code only (`STATES` has neither). Reversed for current by Q507 (#2872), below.
  *   - Q289.6 A — Button takes `href` and renders `<a>`; no LinkButton def.
  *
  * THE UNDERLINE MOVES WITH THE STATE, THE BOX DOES NOT. The label's type key names `{state}` (the type-only
  * extension in `component-schema.ts`, #2580), so a standalone member at hover binds the `-link` twin of the style it
  * binds at rest. The two differ only in `textDecoration`, so the width is the same and the footprint rule holds.
+ *
+ * THE CURRENT PAGE (#2872, owner decisions Q507). A navigation row marks the page the user is on. `selection`, the
+ * runtime axis Tab, Tag and the segmented-control option share (Q507.3 A), on standalone links only: inline links stay
+ * out through `excludeCoordinates` (Q507.2 A), so 96 → 144. The code prop is `current`, rendering
+ * `aria-current="page"`. `unselected` comes FIRST: the plugin's Update gives existing members an added axis at the
+ * value the set's first member carries (`update-plan.ts` §2), so a published set's 96 members become
+ * `selection=unselected` in place, with nothing dropped or replaced (#2839's `breakingOf` stays empty, which
+ * `test-update-apply.ts` asserts on a published Link). Selected first, the 48 inline members would land on a
+ * coordinate the set excludes and be dropped.
+ *
+ *   - THE BAR (Q507.1 C): 2px (`border-width.thick`) at the foot of the line box, in `color.icon.link.*` stepped by
+ *     state. A FILLED box, as Tab's selected bar is (Q178.1 A), never a stroke: the icon role is scoped to fills, and
+ *     a stroke never binds an ink role (Q346, `lint-paint.ts` arm 5). It exists on selected members only
+ *     (`presentWhen`), so the 96 unselected members gain no layer, and it sits OUT OF THE FLOW pinned to the row's
+ *     bottom edge across its width (`PartDef.foot`), so the box does not move.
+ *   - HOVER ON THE CURRENT ITEM (Q507.4): color only. The label keeps its plain style at every state, so the 1px
+ *     hover underline never joins the bar; the type key names `{selection}` for that. It stays a real link in code.
  *
  * Ink is the link role, `color.text.link.*` and `color.icon.link.*` (an icon role for glyphs, #1471), stepped by
  * state; `focus-visible` takes the `focused` rung. `surface=inverse` takes the inverse twins through the projector's
@@ -42,13 +60,16 @@ const WEIGHTS = ['emphasis', 'default'] as const;
 const ROLE: Record<(typeof WEIGHTS)[number], string> = { emphasis: 'strong', default: 'default' };
 const STYLES = ['standalone', 'inline'] as const;
 const STATES = ['rest', 'hover', 'pressed', 'focus-visible'] as const;
+const SELECTIONS = ['unselected', 'selected'] as const;
 
-/** The label's text style per (size, weight, style, state): the `-link` twin wherever the link is underlined. */
+/** The label's text style per (size, weight, style, selection, state): the `-link` twin wherever the link is
+ *  underlined. The current page (`selected`) is never underlined: its bar is its line, and hover changes the color
+ *  only (Q507.4). */
 const typeKeys: Record<string, string> = Object.fromEntries(
-  SIZES.flatMap((size) => WEIGHTS.flatMap((weight) => STYLES.flatMap((style) => STATES.map((state) => {
-    const underlined = style === 'inline' || state !== 'rest';
-    return [`size.${size}.type.${weight}.${style}.${state}`, `type.body.${RUNG[size]}.${ROLE[weight]}${underlined ? '-link' : ''}`];
-  })))),
+  SIZES.flatMap((size) => WEIGHTS.flatMap((weight) => STYLES.flatMap((style) => SELECTIONS.flatMap((selection) => STATES.map((state) => {
+    const underlined = style === 'inline' || (selection === 'unselected' && state !== 'rest');
+    return [`size.${size}.type.${weight}.${style}.${selection}.${state}`, `type.body.${RUNG[size]}.${ROLE[weight]}${underlined ? '-link' : ''}`];
+  }))))),
 );
 
 export const link: ComponentDef = {
@@ -59,7 +80,7 @@ export const link: ComponentDef = {
   status: 'draft',
   summary: 'Text that goes to another page, a place on the page or a file. Underlined in running text.',
   description:
-    'Text that goes to another page, a place on the page, a file or another site. A link is always a real anchor with an href; an action in place is a button, however light it looks. The standalone style sits on its own line, below a form, in a footer or beside a control, and shows its underline at hover, pressed and keyboard focus. The inline style is underlined at every state, for a link that sits in body copy, so it is never told apart by color alone. Both come in two weights: emphasis, the starting value, and default, which is lighter. A link inside a paragraph is a text range with that text\'s own link style rather than this component.',
+    'Text that goes to another page, a place on the page, a file or another site. A link is always a real anchor with an href; an action in place is a button, however light it looks. The standalone style sits on its own line, below a form, in a footer or beside a control, and shows its underline at hover, pressed and keyboard focus. The inline style is underlined at every state, for a link that sits in body copy, so it is never told apart by color alone. Both come in two weights: emphasis, the starting value, and default, which is lighter. In a navigation, the standalone link to the page the user is on is current: it shows a 2px bar under the text, and at hover only its color changes. A link inside a paragraph is a text range with that text\'s own link style rather than this component.',
 
   props: [
     { name: 'label', type: 'string', required: true, description: 'The link text. It names the destination and makes sense read on its own, without the sentence around it.' },
@@ -67,6 +88,7 @@ export const link: ComponentDef = {
     { name: 'style', type: "enum: 'standalone' | 'inline'", values: ['standalone', 'inline'], default: 'standalone', required: false, description: 'Standalone shows its underline at hover, pressed and focus; inline is underlined at every state, for a link in body copy.' },
     { name: 'weight', type: "enum: 'emphasis' | 'default'", values: ['emphasis', 'default'], default: 'emphasis', required: false, description: 'Emphasis is the starting value; choose Default for a lighter weight link.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'The body type size: 14, 16 or 18px. The box is one text line tall; the icon (16px at small and medium, 20px at large) sits inside it.' },
+    { name: 'current', type: 'boolean', default: false, required: false, description: 'Marks the link to the page the user is on, in a navigation: a 2px bar under the text and aria-current="page". Standalone links only. It stays a link with its href.' },
     { name: 'surface', type: "enum: 'default' | 'inverse'", values: ['default', 'inverse'], default: 'default', required: false, description: 'The ground the link sits on: the page, or a dark or brand-filled band, which takes the inverse link colors.' },
     { name: 'isExternal', type: 'boolean', default: false, required: false, description: 'Opens in a new tab: adds the trailing external icon, visually hidden "(opens in new tab)" text and rel="noopener noreferrer". Keep it for narrow cases.' },
     { name: 'asChild', type: 'boolean', default: false, required: false, description: 'Merges the link\'s styling and accessibility onto a router\'s link child, so one anchor renders and the component depends on no router.' },
@@ -79,12 +101,15 @@ export const link: ComponentDef = {
     weight: ['emphasis', 'default'],
     size: ['medium', 'small', 'large'],
     surface: ['default', 'inverse'],
+    // `unselected` first: an Update gives existing members an added axis at the set's first value (Q507, #2872).
+    selection: ['unselected', 'selected'],
   },
-  axisKinds: { style: 'authoring', weight: 'authoring', size: 'authoring', surface: 'authoring' },
+  axisKinds: { style: 'authoring', weight: 'authoring', size: 'authoring', surface: 'authoring', selection: 'runtime' },
   // Emphasis resolves to the heaviest body weight the brand ships, default to its reading weight (Q297.1, #1602).
   weightIntent: { axis: 'weight', group: 'body', intents: { emphasis: 'bold', default: 'regular' } },
 
-  paintKeys: ['{slot}.{state}', '{slot}'],
+  // The current-page bar's fill keys name the selection (#2872); three segments, so they never shape-match the label's two.
+  paintKeys: ['{slot}.{selection}.{state}', '{slot}.{state}', '{slot}'],
   densitySpacing: ['size.{size}.gap'],
 
   tokens: {
@@ -99,6 +124,9 @@ export const link: ComponentDef = {
     'size.large.icon': 'icon.size.sm',
     ...typeKeys,
 
+    // THE CURRENT-PAGE BAR (Q507.1 C): 2px, Tab's bar thickness.
+    'bar-height': 'border-width.thick',
+
     // The link ink, stepped by state. `focus-visible` takes the `focused` rung.
     'label': 'color.text.link.default',
     'label.hover': 'color.text.link.hover',
@@ -108,6 +136,12 @@ export const link: ComponentDef = {
     'icon.hover': 'color.icon.link.hover',
     'icon.pressed': 'color.icon.link.pressed',
     'icon.focus-visible': 'color.icon.link.focused',
+    // The bar's fill: the link icon role, stepped with the label (a non-text mark, so the 3:1 icon role). Keyed on
+    // `selected` only; the bar exists on selected members only.
+    'fill.selected.rest': 'color.icon.link.default',
+    'fill.selected.hover': 'color.icon.link.hover',
+    'fill.selected.pressed': 'color.icon.link.pressed',
+    'fill.selected.focus-visible': 'color.icon.link.focused',
   },
 
   anatomy: {
@@ -116,15 +150,15 @@ export const link: ComponentDef = {
       container: {
         kind: 'box',
         role: 'target',
-        children: ['label', 'trailingVisual', 'focusRing'],
+        children: ['label', 'trailingVisual', 'bar', 'focusRing'],
         layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
         gap: 'size.{size}.gap',
         note: 'The link: a row that hugs its label and any icon, with no padding and no fill.',
       },
       label: {
         kind: 'text',
-        type: 'size.{size}.type.{weight}.{style}.{state}',
-        note: 'The link text in the link color. Standalone: plain at rest, underlined at hover, pressed and focus. Inline: underlined at every state.',
+        type: 'size.{size}.type.{weight}.{style}.{selection}.{state}',
+        note: 'The link text in the link color. Standalone: plain at rest, underlined at hover, pressed and focus. Inline: underlined at every state. The current page stays plain at every state: the bar is its line.',
       },
       trailingVisual: {
         kind: 'slot',
@@ -133,6 +167,15 @@ export const link: ComponentDef = {
         size: 'size.{size}.icon',
         nesting: { kind: 'swap' },
         note: 'An optional icon after the label, in the link color, such as an arrow or the external icon for a link that opens a new tab. Standalone links only; an inline link carries none.',
+      },
+      bar: {
+        kind: 'box',
+        role: 'presentation',
+        paintSlots: ['fill'],
+        height: 'bar-height',
+        foot: true,
+        presentWhen: { selection: ['selected'] },
+        note: 'The current page\'s 2px bar in the link color, across the foot of the line box. Out of the flow, so the link keeps its size. Current links only.',
       },
       focusRing: {
         kind: 'absolute',
@@ -150,7 +193,7 @@ export const link: ComponentDef = {
       'Router integration — asChild merges the link\'s classes, ref and handlers onto the router\'s own link child, so one <a href> renders and the design system depends on no router.',
       'The external link — isExternal adds target="_blank", rel="noopener noreferrer", the trailing external icon and visually hidden "(opens in new tab)" text.',
       'The visited color — :visited uses color.text.link.visited for content and docs links, usually omitted in app navigation. Browsers allow only color properties under :visited. Figma carries no visited member.',
-      'The current page — aria-current="page" on the current item in a navigation and on a breadcrumb\'s last item; a visual style alone is not enough. Figma carries no current member.',
+      'The current page — current renders aria-current="page" on the current item in a navigation and on a breadcrumb\'s last item; a visual style alone is not enough. It stays a real <a> with its href, so hover, focus and the focus ring still work. The 2px bar sits at the foot of the line box, inside it (an inset box-shadow or a positioned pseudo-element, not a border that adds height), and hover changes the color only: no underline joins the bar.',
       'The underline — text-decoration-skip-ink: auto and a text-underline-offset, so the line clears descenders. Standalone shows it at :hover, :active and :focus-visible; inline at every state.',
       'The hit-target expansion — the box is one text line tall; where the line is under 24px, a code-side hit area (padding with a matching negative margin, or a pseudo-element) reaches 24px without moving the text around it. An inline link in a sentence is exempt.',
       'The skip link — "Skip to main content", the first focusable element, href="#main", visually hidden by clipping until it has focus. A pattern built from Link, not a separate component.',
@@ -161,7 +204,9 @@ export const link: ComponentDef = {
   },
 
   figmaProperties: {
-    variantAxes: ['style', 'weight', 'size', 'surface'],
+    variantAxes: ['style', 'weight', 'size', 'surface', 'selection'],
+    // The current page is a navigation link's state; an inline link in running text is never one (Q507.2 A).
+    excludeCoordinates: [{ style: ['inline'], selection: ['selected'] }],
     stateAxis: { name: 'state', values: ['rest', 'hover', 'pressed', 'focus-visible'] },
     gridAxis: 'state',
     texts: { label: { part: 'label', default: 'Link text' } },
@@ -180,7 +225,7 @@ export const link: ComponentDef = {
       '2.4.4 Link Purpose (the link text names the destination)',
       '4.1.2 Name, Role, Value (the link role from a real anchor)',
       '1.4.3 Contrast (targets 4.5:1 for the link text against the page)',
-      '1.4.11 Non-text Contrast (targets 3:1 for an icon against the page)',
+      '1.4.11 Non-text Contrast (targets 3:1 for an icon and the current-page bar against the page)',
       '2.4.7 Focus Visible and 2.4.13 Focus Appearance (the shared focus ring)',
       '2.5.8 Target Size (targets 24px through a code-side hit area; an inline link in a sentence is exempt)',
       '3.2.5 Change on Request (a link that opens a new tab says so)',
@@ -188,7 +233,7 @@ export const link: ComponentDef = {
     ],
     keyboard: 'Tab moves to the link; Enter follows it. Space does not activate a link: it scrolls the page.',
     focus: 'The shared focus ring at :focus-visible, so a mouse click leaves no ring behind.',
-    aria: 'Usually none: the anchor and its text carry the role and the name. aria-current="page" marks the current page in a navigation. A link that opens a new tab adds visually hidden "(opens in new tab)" text; the icons are aria-hidden. Where space forces generic text such as "Read more", an aria-label names the destination. The hidden text and any aria-label are translated; in right-to-left text the trailing icon moves to the leading edge and directional icons mirror.',
+    aria: 'Usually none: the anchor and its text carry the role and the name. aria-current="page" marks the current page in a navigation, set by current; the bar shows it. A link that opens a new tab adds visually hidden "(opens in new tab)" text; the icons are aria-hidden. Where space forces generic text such as "Read more", an aria-label names the destination. The hidden text and any aria-label are translated; in right-to-left text the trailing icon moves to the leading edge and directional icons mirror.',
   },
 
   content: {
@@ -202,12 +247,14 @@ export const link: ComponentDef = {
       'State the format and size of a file link',
       'Keep opening in a new tab for narrow cases, and say so',
       'Use the inline style for a link in body copy, so it is underlined at rest',
+      'Mark the page the user is on in a navigation with current, which also sets aria-current="page"',
     ],
     dont: [
       'Use a link for an action that does not change the address; that is a button',
       'Make a disabled link; render plain text instead',
       'Add an icon to an inline link',
       'Tell a link in running text apart by color alone',
+      'Mark the current page with the inline style; it reads as a link in running text',
     ],
     contentGuidelines: 'Descriptive text that stands alone, sentence case. Front-load the words that name the destination. File links state format and size.',
   },
@@ -217,7 +264,7 @@ export const link: ComponentDef = {
     whenToUse: 'The interaction changes the address or the place on the page: a page, an in-page anchor, a document, another site. Standalone for a link on its own line (below a form, in a footer, beside a control); inline for a link that sits in body copy.',
     avoidWhen: 'The interaction acts in place without changing the address: submit, open a dialog, toggle, show a password (use Button, or Button.Neutral for a light look). A navigation that needs a button\'s weight, such as "Continue to checkout", is a Button given an href, which renders an <a>. Switching panels in place is Tabs.',
     commonPartners: ['icon', 'button', 'text-field'],
-    triggerKeywords: ['link', 'text link', 'hyperlink', 'anchor', 'inline link', 'standalone link', 'skip link', 'external link'],
+    triggerKeywords: ['link', 'text link', 'hyperlink', 'anchor', 'inline link', 'standalone link', 'skip link', 'external link', 'current page link', 'navigation link'],
     generationPriority: 2,
   },
 
@@ -244,6 +291,7 @@ export const link: ComponentDef = {
       'The contrast floors (4.94:1 lowest at rest on background.primary, 4.56:1 on background.secondary) were measured for the proposal from the committed emission; no gate holds Link\'s ink to them beyond the shared link roles\' own contracts.',
     ],
     evolution: [
+      '2026-10-21 (#2872, owner decisions Q507): a current state for navigation rows. The runtime selection axis (unselected | selected, as Tab and Tag) on standalone links only, 96 → 144 members (2 A, 3 A); a 2px bar at the foot of the line box in the link icon color (1 C); hover on the current item changes the color only, with no underline (4). The code prop is current, rendering aria-current="page". Reverses Q289.5 A for current; visited stays code only.',
       '2026-10-14 (#2580, owner decisions Q289): a standalone Link plus an inline look (1 A); style standalone | inline, standalone underlined at hover, pressed and focus, inline always (2 A); two weights, emphasis first and the default (3 B); one line tall with a code-side 24px hit area (4 A); visited and current code only (5 A); Button takes href, no LinkButton (6 A); Link / link, navigation, aliases text-link, anchor, hyperlink (7 A); the wording "Link text", "(opens in new tab)" and the summary (8 A).',
       '2026-10-14 (#2580, owner decisions Q297): the body type tier for both styles, 14 / 16 / 18px, with no 12px link (1); a trailing icon only, on standalone links only, 16px with 14px and 16px text and 20px with 18px text (2); the weight wording, with the values kept as emphasis | default (3).',
     ],

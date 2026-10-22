@@ -5337,4 +5337,53 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     `segmented control equal widths (Q269.6): at every size the items slot grows along the track and its three options grow along it (layoutGrow 1 on the host) and measure the same width, their shares filling the track (${members.length} members${wrong.length ? ` — WRONG: ${wrong.join(' | ')}` : ''})`);
 }
 
+// ── #2872: LINK'S CURRENT-PAGE BAR, PINNED ACROSS THE FOOT (owner decisions Q507) ──────────────────────────────────
+// Driven through the REAL executor with the shim's `layoutModel`. On every current member the `bar` is a frame lifted
+// out of the flow (ABSOLUTE), constrained STRETCH/MAX, as wide as the link box, flush with its bottom, at the 2px of its
+// bound height, which the resize must not unbind. And it moves no box: each current member measures what its
+// unselected twin measures. The 2 is pinned here as the shim's variable value (`varPx`), never read off the def.
+// Mutations, each failing the arm named: the foot pass dropped from the executor (the bar stays in the flow) →
+// `link bar foot` and `link bar footprint`; the bar placed before the ring's lift → `link bar foot` (a focus-visible
+// bar runs past the link). NOT caught here: the shim keeps a bound height across `resize`, so dropping the executor's
+// re-bind after it passes; whether the host unbinds there is unverified (#2872's gaps).
+{
+  const BAR = 2;
+  const defs = componentDefs;
+  const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP });
+  const all = defs.flatMap((d) => { try { return project(d); } catch { return []; } });
+  const f = fullFor(all);
+  const page: Page = { children: [] };
+  // The label's line box per body style (24px, the medium body line), so the link box is as tall as its line and
+  // the bar's foot is measured against a real height. Every style the set binds gets one.
+  const lineBoxes = Object.fromEntries(f.styles.filter((n) => n.startsWith('body/')).map((n) => [n, 24]));
+  const shim = makeShim({ vars: f.vars, styles: f.styles, effects: f.effects, comps: [], liveRoot: true, page, layoutModel: true, textLineBox: lineBoxes, varPx: { 'border-width/thick': BAR } });
+  const link = defs.find((d) => d.id === 'link')!;
+  const build = (d: ComponentDef) => applyComponentPlan(project(d), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents });
+  await prebuildDependencies(link, { defs, project, host: shim as any, build });
+  const r = await build(link);
+  const set = page.children.find((c) => c.name === 'link' && c.type === 'COMPONENT_SET') as Node | undefined;
+  const members = ((set?.children as Node[] | undefined) ?? []);
+  const kid = (n: Node, name: string): Node | undefined => ((n.children as Node[] | undefined) ?? []).find((c) => c.name === name);
+  ok(members.length === 144 && r.misses.length === 0, `link bar build: the set builds 144 members with 0 misses (${members.length}; ${r.misses[0] ?? 'none'})`);
+  const off: string[] = [];
+  const moved: string[] = [];
+  let current = 0;
+  for (const m of members) {
+    const bar = kid(m, 'bar');
+    if (!String(m.name).includes('selection=selected')) { if (bar) off.push(`${String(m.name)}: a bar on a member that is not current`); continue; }
+    current++;
+    const c = bar?.constraints as { horizontal?: string; vertical?: string } | null | undefined;
+    const bv = (bar?.boundVariables ?? {}) as Record<string, unknown>;
+    if (!bar || bar.layoutPositioning !== 'ABSOLUTE' || c?.horizontal !== 'STRETCH' || c?.vertical !== 'MAX' || !bv.height
+      || bar.height !== BAR || Math.abs((bar.width as number) - (m.width as number)) > 1e-6 || bar.x !== 0 || Math.abs((bar.y as number) - ((m.height as number) - BAR)) > 1e-6)
+      off.push(`${String(m.name)}: ${bar ? `${String(bar.layoutPositioning)} ${JSON.stringify(c)} ${bar.width}x${bar.height} at (${bar.x}, ${bar.y}) height ${bv.height ? 'bound' : 'UNBOUND'}; box ${m.width}x${m.height}` : 'no bar'}`);
+    const twin = members.find((x) => String(x.name) === String(m.name).replace('selection=selected', 'selection=unselected'));
+    if (!twin || twin.width !== m.width || twin.height !== m.height) moved.push(`${String(m.name)}: ${m.width}x${m.height} vs ${twin ? `${twin.width}x${twin.height}` : 'no twin'}`);
+  }
+  ok(current === 48 && off.length === 0,
+    `link bar foot: on all 48 current members the bar is ABSOLUTE, STRETCH/MAX, as wide as the link, flush with its bottom and ${BAR}px high with the height still bound, and no other member has one (${current} current, ${off.length} off — ${off[0] ?? 'none'})`);
+  ok(current === 48 && moved.length === 0,
+    `link bar footprint: every current member measures what its unselected twin measures, so the bar moves no box (${moved.length} moved — ${moved[0] ?? 'none'})`);
+}
+
 if (failed) process.exit(1);

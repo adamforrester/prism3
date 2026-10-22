@@ -37,7 +37,8 @@
  *                  `published/hash`; the apply's section dropped → `published/confirm`; the blocked-set guard dropped →
  *                  `published/blocked`; the member-itself exclusion dropped → `published/member replaced`;
  *                  `readSingleView` carrying no status → `published/single`; `breakingSection`'s per-set cap dropped →
- *                  `published/cap`.
+ *                  `published/cap`; Link's `selection` axis with `selected` first → `published/link current additive`
+ *                  (#2872).
  *   property/…     a default the plan changed is edited in place, keeping the property's id.
  *   rename/…       a declared value rename and an added axis rename members in place, keeping keys.
  *   skip/…         an unstamped member, one with no record and one with a layer added by hand are untouched.
@@ -3883,6 +3884,44 @@ section('published — on a set in a team library, what breaks consumer files is
     ok(before.length === 18 && next.length === 24, `premise: Dialog was 18 members and is 24 with the fill footer (${before.length} → ${next.length})`);
     ok(p?.publish === 'CURRENT' && JSON.stringify([...p.adds].sort()) === JSON.stringify([...FILL].sort()) && p.drops.length === 0 && (p.breaking ?? []).length === 0,
       `published/dialog fill additive: the six fill members are added and nothing breaks library consumers (adds ${JSON.stringify(p?.adds)}, drops ${p?.drops.length}, breaking ${JSON.stringify((p?.breaking ?? []).slice(0, 3))})`);
+  }
+
+  // LINK GAINS ITS CURRENT PAGE (#2872, owner decisions Q507): a published Link built before the axis existed, its 96
+  // members with no `selection`, updated to the plan with `selection` (unselected first) and the
+  // 48 current-page members. The update gives every existing member `selection=unselected` in place (§2: an added axis
+  // lands on the first plan's value) and adds the 48 selected standalone members; it lists NOTHING as breaking library
+  // consumers (#2839's `breakingOf`): no member dropped or replaced, no property removed or retyped. Applied, each of the
+  // 96 keeps its node id and key, so consumer instances stay linked. With `selected` first, the 48 inline members would
+  // land on a coordinate the set excludes and be dropped, and this arm fails. Counts and segments are typed here.
+  {
+    const next = plansOf('link');
+    // `before` is the pre-#2872 shape, rebuilt from this PR's unselected plans with the `selection` segment taken off. Its
+    // member names are the 96 a published Link carries today; their layers are pinned by test.ts's `#2580 link/…` and
+    // `#2872 link bar` arms (an unselected member carries no bar).
+    const before = next.filter((p) => p.coord.selection === 'unselected').map((p) => {
+      const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
+      delete (q.coord as Record<string, string>).selection;
+      q.gridAxisOrder = q.gridAxisOrder.filter((a) => a !== 'selection');
+      return q;
+    });
+    const w = await world('link', before, { extraVars: [...new Set(next.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]))] });
+    (w.api.publish as (n: Node, s: string) => void)(w.set(), 'CURRENT');
+    const was = identityOf(w.set());
+    ok(before.length === 96 && next.length === 144 && [...was.members.keys()].every((n) => !n.includes('selection=')),
+      `premise: a published Link of 96 members with no selection axis, and a plan of 144 (${was.members.size} → ${next.length})`);
+    const { pre, res } = await confirm(w, [{ def: 'link', plans: next }]);
+    const p = pre.sets[0];
+    const added = p?.adds ?? [];
+    ok(p?.publish === 'CURRENT' && added.length === 48 && added.every((a) => a.includes('style=standalone') && a.includes('selection=selected'))
+      && p.drops.length === 0 && p.replacements.length === 0 && (p.breaking ?? []).length === 0,
+      `published/link current additive: the 48 current-page standalone members are added, nothing is dropped or replaced, and nothing breaks library consumers (adds ${added.length}, drops ${JSON.stringify(p?.drops.slice(0, 2))}, replaced ${p?.replacements.length}, breaking ${JSON.stringify((p?.breaking ?? []).slice(0, 3))})`);
+    // In place: each existing member is renamed to its `selection=unselected` coordinate and keeps its id and key.
+    const after = identityOf(w.set());
+    const unsel = (name: string): string | undefined => [...after.members.keys()].find((n) => n.includes('selection=unselected')
+      && n.split(', ').filter((seg) => seg !== 'selection=unselected').sort().join(', ') === name.split(', ').sort().join(', '));
+    const lost = [...was.members].filter(([name, m]) => { const to = unsel(name); return !to || after.members.get(to)!.id !== m.id || after.members.get(to)!.key !== m.key; }).map(([n]) => n);
+    ok(!res.refusedAll && after.members.size === 144 && lost.length === 0,
+      `published/link current in place: applied, the 96 existing members become selection=unselected with their node id and key kept, so consumer instances stay linked (${after.members.size} members, ${lost.length} not kept — ${lost.slice(0, 2).join('; ') || 'none'})`);
   }
 }
 

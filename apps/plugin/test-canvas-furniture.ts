@@ -942,7 +942,11 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
   // 5u: (filled, square?, default) — a = 0, s = 0, u = 0 — and a = 2, s = 1, u = 1. Six rows stay, 30 rows × 6 = 180
   // move. Link (#2580): 24 rows of 4 states; the earlier row order is style (2) × weight (2) × surface (2) × size (3),
   // the grouped one surface × style × weight × size, so a row stays only where 12s + 6w + 3u = 12u + 6s + 3w, that is
-  // 2s + w = 3u: (standalone, emphasis, default) and (inline, default, inverse). Six rows stay, 18 rows × 4 = 72 move.
+  // 2s + w = 3u: (standalone, emphasis, default) and (inline, default, inverse). Six rows stayed, 18 rows × 4 = 72 moved.
+  // Since #2872 (Q507) `selection` sits between surface and size and the grid is sparse (no inline × selected): 36 rows,
+  // 24 standalone and 12 inline. Enumerated by hand in both orders, a row keeps its place only in the six standalone
+  // emphasis default rows (both selections, three sizes) and the three inline default inverse rows: 9 stay, 27 rows ×
+  // 4 = 108 move.
   // The three flush icon buttons (#2668, Q386): 12 rows of 5 states, shape (2) × surface (2) × size (3). The earlier row
   // order is shape × surface × size, the grouped one surface × shape × size, so a row stays only where 6h + 3u = 6u + 3h,
   // that is h = u: (flush, default) and (round, inverse). Six rows stay, 6 rows × 5 = 30 move.
@@ -950,7 +954,7 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
   const MOVES_BY_DEF: Record<string, number> = {
     button: 360, 'button-destructive': 360, 'button-neutral': 360,
     'icon-button': 180, 'icon-button-destructive': 180, 'icon-button-neutral': 180,
-    link: 72,
+    link: 108,
     'flush-icon-button': 30, 'flush-icon-button-destructive': 30, 'flush-icon-button-neutral': 30,
   };
   // THE DEFS WITH A BACKDROP: the ten above, the only ones whose rows split by `surface`. Focus ring has `surface`

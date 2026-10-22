@@ -285,6 +285,24 @@
             }
           }
         },
+        "link": {
+          "keys": [
+            "bar-height"
+          ],
+          "parts": {
+            "bar": {
+              "members": 48,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "style": [
+                  "standalone"
+                ]
+              }
+            }
+          }
+        },
         "radio-control": {
           "keys": [
             "border-width"
@@ -3472,11 +3490,29 @@
       "components": {
         "link": {
           "keys": [
+            "fill.selected.rest",
             "icon"
           ],
           "parts": {
-            "trailingVisual": {
+            "bar": {
               "members": 6,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "rest"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "surface": [
+                  "default"
+                ]
+              }
+            },
+            "trailingVisual": {
+              "members": 12,
               "where": {
                 "state": [
                   "rest"
@@ -3498,11 +3534,29 @@
       "components": {
         "link": {
           "keys": [
+            "fill.selected.focus-visible",
             "icon.focus-visible"
           ],
           "parts": {
-            "trailingVisual": {
+            "bar": {
               "members": 6,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "focus-visible"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "surface": [
+                  "default"
+                ]
+              }
+            },
+            "trailingVisual": {
+              "members": 12,
               "where": {
                 "state": [
                   "focus-visible"
@@ -3524,11 +3578,29 @@
       "components": {
         "link": {
           "keys": [
+            "fill.selected.hover",
             "icon.hover"
           ],
           "parts": {
-            "trailingVisual": {
+            "bar": {
               "members": 6,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "hover"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "surface": [
+                  "default"
+                ]
+              }
+            },
+            "trailingVisual": {
+              "members": 12,
               "where": {
                 "state": [
                   "hover"
@@ -3550,11 +3622,29 @@
       "components": {
         "link": {
           "keys": [
+            "fill.selected.pressed",
             "icon.pressed"
           ],
           "parts": {
-            "trailingVisual": {
+            "bar": {
               "members": 6,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "pressed"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "surface": [
+                  "default"
+                ]
+              }
+            },
+            "trailingVisual": {
+              "members": 12,
               "where": {
                 "state": [
                   "pressed"
@@ -9057,8 +9147,25 @@
         "link": {
           "keys": [],
           "parts": {
-            "trailingVisual": {
+            "bar": {
               "members": 6,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "rest"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "surface": [
+                  "inverse"
+                ]
+              }
+            },
+            "trailingVisual": {
+              "members": 12,
               "where": {
                 "state": [
                   "rest"
@@ -9081,8 +9188,25 @@
         "link": {
           "keys": [],
           "parts": {
-            "trailingVisual": {
+            "bar": {
               "members": 6,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "focus-visible"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "surface": [
+                  "inverse"
+                ]
+              }
+            },
+            "trailingVisual": {
+              "members": 12,
               "where": {
                 "state": [
                   "focus-visible"
@@ -9105,8 +9229,25 @@
         "link": {
           "keys": [],
           "parts": {
-            "trailingVisual": {
+            "bar": {
               "members": 6,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "hover"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "surface": [
+                  "inverse"
+                ]
+              }
+            },
+            "trailingVisual": {
+              "members": 12,
               "where": {
                 "state": [
                   "hover"
@@ -9129,8 +9270,25 @@
         "link": {
           "keys": [],
           "parts": {
-            "trailingVisual": {
+            "bar": {
               "members": 6,
+              "where": {
+                "selection": [
+                  "selected"
+                ],
+                "state": [
+                  "pressed"
+                ],
+                "style": [
+                  "standalone"
+                ],
+                "surface": [
+                  "inverse"
+                ]
+              }
+            },
+            "trailingVisual": {
+              "members": 12,
               "where": {
                 "state": [
                   "pressed"
@@ -11889,7 +12047,7 @@
           "keys": [],
           "parts": {
             "label": {
-              "members": 12,
+              "members": 18,
               "where": {
                 "state": [
                   "rest"
@@ -11910,7 +12068,7 @@
           "keys": [],
           "parts": {
             "label": {
-              "members": 12,
+              "members": 18,
               "where": {
                 "state": [
                   "focus-visible"
@@ -11931,7 +12089,7 @@
           "keys": [],
           "parts": {
             "label": {
-              "members": 12,
+              "members": 18,
               "where": {
                 "state": [
                   "hover"
@@ -11952,7 +12110,7 @@
           "keys": [],
           "parts": {
             "label": {
-              "members": 12,
+              "members": 18,
               "where": {
                 "state": [
                   "pressed"
@@ -12094,7 +12252,7 @@
           ],
           "parts": {
             "label": {
-              "members": 12,
+              "members": 18,
               "where": {
                 "state": [
                   "rest"
@@ -12117,7 +12275,7 @@
           ],
           "parts": {
             "label": {
-              "members": 12,
+              "members": 18,
               "where": {
                 "state": [
                   "focus-visible"
@@ -12140,7 +12298,7 @@
           ],
           "parts": {
             "label": {
-              "members": 12,
+              "members": 18,
               "where": {
                 "state": [
                   "hover"
@@ -12163,7 +12321,7 @@
           ],
           "parts": {
             "label": {
-              "members": 12,
+              "members": 18,
               "where": {
                 "state": [
                   "pressed"
@@ -14366,7 +14524,7 @@
           ],
           "parts": {
             "focusRing": {
-              "members": 24,
+              "members": 36,
               "where": {
                 "state": [
                   "focus-visible"
@@ -14756,7 +14914,7 @@
           ],
           "parts": {
             "focusRing": {
-              "members": 24,
+              "members": 36,
               "where": {
                 "state": [
                   "focus-visible"
@@ -15993,7 +16151,7 @@
           ],
           "parts": {
             "trailingVisual": {
-              "members": 16,
+              "members": 32,
               "where": {
                 "size": [
                   "large"
@@ -16440,7 +16598,7 @@
           ],
           "parts": {
             "trailingVisual": {
-              "members": 32,
+              "members": 64,
               "where": {
                 "size": [
                   "medium",
@@ -18353,7 +18511,7 @@
           ],
           "parts": {
             "container": {
-              "members": 64,
+              "members": 96,
               "where": {
                 "size": [
                   "medium",
@@ -18797,7 +18955,7 @@
           ],
           "parts": {
             "container": {
-              "members": 32,
+              "members": 48,
               "where": {
                 "size": [
                   "large"
@@ -20021,17 +20179,18 @@
         },
         "link": {
           "keys": [
-            "size.large.type.default.standalone.rest"
+            "size.large.type.default.standalone.selected.focus-visible",
+            "size.large.type.default.standalone.selected.hover",
+            "size.large.type.default.standalone.selected.pressed",
+            "size.large.type.default.standalone.selected.rest",
+            "size.large.type.default.standalone.unselected.rest"
           ],
           "parts": {
             "label": {
-              "members": 2,
+              "members": 10,
               "where": {
                 "size": [
                   "large"
-                ],
-                "state": [
-                  "rest"
                 ],
                 "style": [
                   "standalone"
@@ -20227,18 +20386,25 @@
       "components": {
         "link": {
           "keys": [
-            "size.large.type.default.inline.focus-visible",
-            "size.large.type.default.inline.hover",
-            "size.large.type.default.inline.pressed",
-            "size.large.type.default.inline.rest",
-            "size.large.type.default.standalone.focus-visible",
-            "size.large.type.default.standalone.hover",
-            "size.large.type.default.standalone.pressed"
+            "size.large.type.default.inline.selected.focus-visible",
+            "size.large.type.default.inline.selected.hover",
+            "size.large.type.default.inline.selected.pressed",
+            "size.large.type.default.inline.selected.rest",
+            "size.large.type.default.inline.unselected.focus-visible",
+            "size.large.type.default.inline.unselected.hover",
+            "size.large.type.default.inline.unselected.pressed",
+            "size.large.type.default.inline.unselected.rest",
+            "size.large.type.default.standalone.unselected.focus-visible",
+            "size.large.type.default.standalone.unselected.hover",
+            "size.large.type.default.standalone.unselected.pressed"
           ],
           "parts": {
             "label": {
               "members": 14,
               "where": {
+                "selection": [
+                  "unselected"
+                ],
                 "size": [
                   "large"
                 ],
@@ -20256,17 +20422,18 @@
       "components": {
         "link": {
           "keys": [
-            "size.large.type.emphasis.standalone.rest"
+            "size.large.type.emphasis.standalone.selected.focus-visible",
+            "size.large.type.emphasis.standalone.selected.hover",
+            "size.large.type.emphasis.standalone.selected.pressed",
+            "size.large.type.emphasis.standalone.selected.rest",
+            "size.large.type.emphasis.standalone.unselected.rest"
           ],
           "parts": {
             "label": {
-              "members": 2,
+              "members": 10,
               "where": {
                 "size": [
                   "large"
-                ],
-                "state": [
-                  "rest"
                 ],
                 "style": [
                   "standalone"
@@ -20285,18 +20452,25 @@
       "components": {
         "link": {
           "keys": [
-            "size.large.type.emphasis.inline.focus-visible",
-            "size.large.type.emphasis.inline.hover",
-            "size.large.type.emphasis.inline.pressed",
-            "size.large.type.emphasis.inline.rest",
-            "size.large.type.emphasis.standalone.focus-visible",
-            "size.large.type.emphasis.standalone.hover",
-            "size.large.type.emphasis.standalone.pressed"
+            "size.large.type.emphasis.inline.selected.focus-visible",
+            "size.large.type.emphasis.inline.selected.hover",
+            "size.large.type.emphasis.inline.selected.pressed",
+            "size.large.type.emphasis.inline.selected.rest",
+            "size.large.type.emphasis.inline.unselected.focus-visible",
+            "size.large.type.emphasis.inline.unselected.hover",
+            "size.large.type.emphasis.inline.unselected.pressed",
+            "size.large.type.emphasis.inline.unselected.rest",
+            "size.large.type.emphasis.standalone.unselected.focus-visible",
+            "size.large.type.emphasis.standalone.unselected.hover",
+            "size.large.type.emphasis.standalone.unselected.pressed"
           ],
           "parts": {
             "label": {
               "members": 14,
               "where": {
+                "selection": [
+                  "unselected"
+                ],
                 "size": [
                   "large"
                 ],
@@ -20407,17 +20581,18 @@
         },
         "link": {
           "keys": [
-            "size.medium.type.default.standalone.rest"
+            "size.medium.type.default.standalone.selected.focus-visible",
+            "size.medium.type.default.standalone.selected.hover",
+            "size.medium.type.default.standalone.selected.pressed",
+            "size.medium.type.default.standalone.selected.rest",
+            "size.medium.type.default.standalone.unselected.rest"
           ],
           "parts": {
             "label": {
-              "members": 2,
+              "members": 10,
               "where": {
                 "size": [
                   "medium"
-                ],
-                "state": [
-                  "rest"
                 ],
                 "style": [
                   "standalone"
@@ -20639,18 +20814,25 @@
       "components": {
         "link": {
           "keys": [
-            "size.medium.type.default.inline.focus-visible",
-            "size.medium.type.default.inline.hover",
-            "size.medium.type.default.inline.pressed",
-            "size.medium.type.default.inline.rest",
-            "size.medium.type.default.standalone.focus-visible",
-            "size.medium.type.default.standalone.hover",
-            "size.medium.type.default.standalone.pressed"
+            "size.medium.type.default.inline.selected.focus-visible",
+            "size.medium.type.default.inline.selected.hover",
+            "size.medium.type.default.inline.selected.pressed",
+            "size.medium.type.default.inline.selected.rest",
+            "size.medium.type.default.inline.unselected.focus-visible",
+            "size.medium.type.default.inline.unselected.hover",
+            "size.medium.type.default.inline.unselected.pressed",
+            "size.medium.type.default.inline.unselected.rest",
+            "size.medium.type.default.standalone.unselected.focus-visible",
+            "size.medium.type.default.standalone.unselected.hover",
+            "size.medium.type.default.standalone.unselected.pressed"
           ],
           "parts": {
             "label": {
               "members": 14,
               "where": {
+                "selection": [
+                  "unselected"
+                ],
                 "size": [
                   "medium"
                 ],
@@ -20697,17 +20879,18 @@
         },
         "link": {
           "keys": [
-            "size.medium.type.emphasis.standalone.rest"
+            "size.medium.type.emphasis.standalone.selected.focus-visible",
+            "size.medium.type.emphasis.standalone.selected.hover",
+            "size.medium.type.emphasis.standalone.selected.pressed",
+            "size.medium.type.emphasis.standalone.selected.rest",
+            "size.medium.type.emphasis.standalone.unselected.rest"
           ],
           "parts": {
             "label": {
-              "members": 2,
+              "members": 10,
               "where": {
                 "size": [
                   "medium"
-                ],
-                "state": [
-                  "rest"
                 ],
                 "style": [
                   "standalone"
@@ -20726,18 +20909,25 @@
       "components": {
         "link": {
           "keys": [
-            "size.medium.type.emphasis.inline.focus-visible",
-            "size.medium.type.emphasis.inline.hover",
-            "size.medium.type.emphasis.inline.pressed",
-            "size.medium.type.emphasis.inline.rest",
-            "size.medium.type.emphasis.standalone.focus-visible",
-            "size.medium.type.emphasis.standalone.hover",
-            "size.medium.type.emphasis.standalone.pressed"
+            "size.medium.type.emphasis.inline.selected.focus-visible",
+            "size.medium.type.emphasis.inline.selected.hover",
+            "size.medium.type.emphasis.inline.selected.pressed",
+            "size.medium.type.emphasis.inline.selected.rest",
+            "size.medium.type.emphasis.inline.unselected.focus-visible",
+            "size.medium.type.emphasis.inline.unselected.hover",
+            "size.medium.type.emphasis.inline.unselected.pressed",
+            "size.medium.type.emphasis.inline.unselected.rest",
+            "size.medium.type.emphasis.standalone.unselected.focus-visible",
+            "size.medium.type.emphasis.standalone.unselected.hover",
+            "size.medium.type.emphasis.standalone.unselected.pressed"
           ],
           "parts": {
             "label": {
               "members": 14,
               "where": {
+                "selection": [
+                  "unselected"
+                ],
                 "size": [
                   "medium"
                 ],
@@ -20832,17 +21022,18 @@
         },
         "link": {
           "keys": [
-            "size.small.type.default.standalone.rest"
+            "size.small.type.default.standalone.selected.focus-visible",
+            "size.small.type.default.standalone.selected.hover",
+            "size.small.type.default.standalone.selected.pressed",
+            "size.small.type.default.standalone.selected.rest",
+            "size.small.type.default.standalone.unselected.rest"
           ],
           "parts": {
             "label": {
-              "members": 2,
+              "members": 10,
               "where": {
                 "size": [
                   "small"
-                ],
-                "state": [
-                  "rest"
                 ],
                 "style": [
                   "standalone"
@@ -21053,18 +21244,25 @@
       "components": {
         "link": {
           "keys": [
-            "size.small.type.default.inline.focus-visible",
-            "size.small.type.default.inline.hover",
-            "size.small.type.default.inline.pressed",
-            "size.small.type.default.inline.rest",
-            "size.small.type.default.standalone.focus-visible",
-            "size.small.type.default.standalone.hover",
-            "size.small.type.default.standalone.pressed"
+            "size.small.type.default.inline.selected.focus-visible",
+            "size.small.type.default.inline.selected.hover",
+            "size.small.type.default.inline.selected.pressed",
+            "size.small.type.default.inline.selected.rest",
+            "size.small.type.default.inline.unselected.focus-visible",
+            "size.small.type.default.inline.unselected.hover",
+            "size.small.type.default.inline.unselected.pressed",
+            "size.small.type.default.inline.unselected.rest",
+            "size.small.type.default.standalone.unselected.focus-visible",
+            "size.small.type.default.standalone.unselected.hover",
+            "size.small.type.default.standalone.unselected.pressed"
           ],
           "parts": {
             "label": {
               "members": 14,
               "where": {
+                "selection": [
+                  "unselected"
+                ],
                 "size": [
                   "small"
                 ],
@@ -21111,17 +21309,18 @@
         },
         "link": {
           "keys": [
-            "size.small.type.emphasis.standalone.rest"
+            "size.small.type.emphasis.standalone.selected.focus-visible",
+            "size.small.type.emphasis.standalone.selected.hover",
+            "size.small.type.emphasis.standalone.selected.pressed",
+            "size.small.type.emphasis.standalone.selected.rest",
+            "size.small.type.emphasis.standalone.unselected.rest"
           ],
           "parts": {
             "label": {
-              "members": 2,
+              "members": 10,
               "where": {
                 "size": [
                   "small"
-                ],
-                "state": [
-                  "rest"
                 ],
                 "style": [
                   "standalone"
@@ -21140,18 +21339,25 @@
       "components": {
         "link": {
           "keys": [
-            "size.small.type.emphasis.inline.focus-visible",
-            "size.small.type.emphasis.inline.hover",
-            "size.small.type.emphasis.inline.pressed",
-            "size.small.type.emphasis.inline.rest",
-            "size.small.type.emphasis.standalone.focus-visible",
-            "size.small.type.emphasis.standalone.hover",
-            "size.small.type.emphasis.standalone.pressed"
+            "size.small.type.emphasis.inline.selected.focus-visible",
+            "size.small.type.emphasis.inline.selected.hover",
+            "size.small.type.emphasis.inline.selected.pressed",
+            "size.small.type.emphasis.inline.selected.rest",
+            "size.small.type.emphasis.inline.unselected.focus-visible",
+            "size.small.type.emphasis.inline.unselected.hover",
+            "size.small.type.emphasis.inline.unselected.pressed",
+            "size.small.type.emphasis.inline.unselected.rest",
+            "size.small.type.emphasis.standalone.unselected.focus-visible",
+            "size.small.type.emphasis.standalone.unselected.hover",
+            "size.small.type.emphasis.standalone.unselected.pressed"
           ],
           "parts": {
             "label": {
               "members": 14,
               "where": {
+                "selection": [
+                  "unselected"
+                ],
                 "size": [
                   "small"
                 ],
@@ -23490,8 +23696,12 @@
       "drawnNotDeclared": []
     },
     "link": {
-      "members": 96,
+      "members": 144,
       "axes": {
+        "selection": [
+          "selected",
+          "unselected"
+        ],
         "size": [
           "large",
           "medium",
@@ -23517,6 +23727,7 @@
         ]
       },
       "tokens": [
+        "border-width.thick",
         "color.icon.link.default",
         "color.icon.link.focused",
         "color.icon.link.hover",
