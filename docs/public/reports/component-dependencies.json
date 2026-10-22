@@ -340,6 +340,7 @@
       "variant": {
         "shape": "flush",
         "size": "medium",
+        "surface": "default",
         "state": "rest"
       },
       "follow": [
@@ -368,6 +369,7 @@
       "variant": {
         "shape": "flush",
         "size": "medium",
+        "surface": "default",
         "state": "rest"
       },
       "follow": [
@@ -446,6 +448,7 @@
       "variant": {
         "shape": "flush",
         "size": "medium",
+        "surface": "default",
         "state": "rest"
       }
     },
@@ -479,7 +482,10 @@
       "relation": "nest-fixed",
       "variant": {
         "surface": "default"
-      }
+      },
+      "follow": [
+        "surface"
+      ]
     },
     {
       "from": "flush-icon-button-destructive",
@@ -489,7 +495,10 @@
       "relation": "nest-fixed",
       "variant": {
         "surface": "default"
-      }
+      },
+      "follow": [
+        "surface"
+      ]
     },
     {
       "from": "flush-icon-button-neutral",
@@ -499,7 +508,10 @@
       "relation": "nest-fixed",
       "variant": {
         "surface": "default"
-      }
+      },
+      "follow": [
+        "surface"
+      ]
     },
     {
       "from": "icon-button",
@@ -1143,6 +1155,35 @@
       "follow": [
         "status"
       ]
+    },
+    {
+      "from": "toast",
+      "to": "button",
+      "part": "action",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "appearance": "text",
+        "size": "small",
+        "surface": "inverse",
+        "inset": "default",
+        "state": "rest",
+        "leading icon": "false",
+        "trailing icon": "false"
+      }
+    },
+    {
+      "from": "toast",
+      "to": "flush-icon-button-neutral",
+      "part": "close",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "shape": "flush",
+        "size": "small",
+        "surface": "inverse",
+        "state": "rest"
+      }
     }
   ],
   "components": {
@@ -1195,12 +1236,14 @@
       ],
       "nestedBy": [
         "button-group",
-        "password-field"
+        "password-field",
+        "toast"
       ],
       "affectedByChange": [
         "button-group",
         "dialog",
-        "password-field"
+        "password-field",
+        "toast"
       ],
       "inheritedBy": [
         "icon-button"
@@ -1439,11 +1482,13 @@
       ],
       "nestedBy": [
         "counter",
-        "dialog"
+        "dialog",
+        "toast"
       ],
       "affectedByChange": [
         "counter",
-        "dialog"
+        "dialog",
+        "toast"
       ],
       "inherits": "icon-button-neutral",
       "inheritedBy": []
@@ -1508,7 +1553,8 @@
         "tabs",
         "tag",
         "text-field",
-        "textarea"
+        "textarea",
+        "toast"
       ],
       "inheritedBy": []
     },
@@ -1754,7 +1800,8 @@
         "icon-button",
         "icon-button-destructive",
         "icon-button-neutral",
-        "password-field"
+        "password-field",
+        "toast"
       ],
       "inheritedBy": []
     },
@@ -1861,6 +1908,21 @@
       "inherits": "text-field",
       "inheritedBy": []
     },
+    "toast": {
+      "nests": [
+        "button",
+        "flush-icon-button-neutral"
+      ],
+      "nestsTransitively": [
+        "button",
+        "flush-icon-button-neutral",
+        "focus-ring",
+        "spinner"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
     "veil": {
       "nests": [],
       "nestsTransitively": [],
@@ -1913,6 +1975,7 @@
     "tag": 1,
     "text-field": 1,
     "textarea": 1,
+    "toast": 2,
     "veil": 0
   }
 }

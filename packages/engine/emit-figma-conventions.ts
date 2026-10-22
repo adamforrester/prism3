@@ -239,7 +239,7 @@ const furniture = () => ({
     source: src(ABOUT_SRC, 'export const ABOUT_KEY'),
   },
   coverFrame: {
-    rule: `The Cover page carries one 1920 × 1080 "${COVER_NAME}" frame, the library cover, set as the file thumbnail while the file has none of its own: the brand's name and the engine version it was last updated with. Its fill binds <root>/${GROUND_VARIABLE} and its text binds <root>/${INK_VARIABLE}. It carries shared plugin data under namespace "${COVER_NS}", key "${COVER_KEY}"; its two texts carry key "${COVER_PART_KEY}", "brand" or "version". Every Update sets the version text; a cover a designer edited keeps every other layer as they left it.`,
+    rule: `The Cover page carries one 1920 × 1080 "${COVER_NAME}" frame, the library cover, set as the file thumbnail while the file has none of its own: the brand's name and the engine version it was last updated with. Its fill binds <root>/${GROUND_VARIABLE} and its text binds <root>/${INK_VARIABLE}. It carries shared plugin data under namespace "${COVER_NS}", key "${COVER_KEY}"; its two texts carry key "${COVER_PART_KEY}", "brand" or "version". Every Update sets the version text while it is there; a cover a designer edited keeps every other layer as they left it.`,
     name: COVER_NAME,
     tag: { namespace: COVER_NS, key: COVER_KEY },
     parts: { key: COVER_PART_KEY, values: ['brand', 'version'] },

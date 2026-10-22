@@ -257,6 +257,8 @@ const FLUSH_NESTS: Record<string, { parts: readonly string[]; pair?: readonly [s
   counter: { parts: ['decrement', 'increment'], pair: ['decrement', 'increment'], why: "the Counter's minus and plus, either side of the value" },
   // #2808 (Q385 A): the Dialog's close is one code-side target, so there is no second hit area to space it from.
   dialog: { parts: ['close'], why: "the Dialog's close, the one code-side target in its header" },
+  // #2668 (Q386): the Toast's close is one code-side target beside the action Button, which is a separate target measured under its own name.
+  toast: { parts: ['close'], why: "the Toast's close, the one code-side icon target in its controls" },
 };
 /** The 44px center-to-center spacing, a literal (Q296 A), not FLOOR_PX: a different rule that happens to share the number. */
 const FLUSH_NEST_SPACING_PX = 44;
@@ -294,6 +296,7 @@ const EXCLUDED: Record<string, string> = {
   'divider': 'a 1px rule between groups of content, never interactive and never focusable',
   'button-group': 'a layout of one to three Buttons, never itself a pointer target: each Button is measured under its own name (#2661)',
   'dialog': 'a modal panel, never itself a pointer target: its close button and footer buttons are a FlushIconButton.Neutral and Buttons, each measured under its own name (#2609, Q385 A)',
+  'toast': 'a status message over the page, never itself a pointer target: its action and close button are a Button and a FlushIconButton.Neutral, each measured under its own name; the small close button\'s 44×44 hit area is extended in code, as IconButton records (#2668)',
   'list': 'a read list of text items, never interactive and never focusable; a link inside an item is its own control (#2319)',
   'list-item': 'one item of a read list, never interactive and never focusable; a link inside it is its own control (#2319)',
   '_accordion-indicator': 'a decorative glyph inside an Accordion header; the tap target is the header row, gated as accordion',

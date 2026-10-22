@@ -80,6 +80,7 @@ import { buttonGroup } from './button-group';
 import { dialog } from './dialog';
 import { passwordField } from './password-field';
 import { searchField } from './search-field';
+import { toast } from './toast';
 import { counter } from './counter';
 
 /** Named access, kept ALONGSIDE the set rather than replaced by it. Most of `test.ts`'s component
@@ -216,6 +217,9 @@ export const componentDefs: readonly ComponentDef[] = [
   dialog,
   // `password-field` (#2317) — TextField's first specialization, from the shared field factory. Nests a Button.
   passwordField,
+  // `toast` (#2668, every numbered call A) — a short status over the page after the user's own action, on the inverse
+  // surface. Nests a Button (the action) and the neutral IconButton (the close), both at `surface: inverse`.
+  toast,
   // Counter (#2427) — a quantity between a minus and a plus button. Nests `flush-icon-button-neutral` twice,
   // `field-label`, `field-message` and `focus-ring`, all above.
   counter,

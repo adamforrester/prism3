@@ -168,6 +168,12 @@
             ]
           },
           {
+            "name": "↳ Toast",
+            "components": [
+              "toast"
+            ]
+          },
+          {
             "name": "↳ Counter",
             "components": [
               "counter"
@@ -768,13 +774,20 @@
         "kind": "component set",
         "page": "↳ Flush Icon Button",
         "section": "Subcomponents",
-        "members": 30,
+        "members": 60,
         "variantProperties": [
           {
             "name": "shape",
             "values": [
               "flush",
               "round"
+            ]
+          },
+          {
+            "name": "surface",
+            "values": [
+              "default",
+              "inverse"
             ]
           },
           {
@@ -806,13 +819,20 @@
         "kind": "component set",
         "page": "↳ Flush Icon Button",
         "section": "Subcomponents",
-        "members": 30,
+        "members": 60,
         "variantProperties": [
           {
             "name": "shape",
             "values": [
               "flush",
               "round"
+            ]
+          },
+          {
+            "name": "surface",
+            "values": [
+              "default",
+              "inverse"
             ]
           },
           {
@@ -844,13 +864,20 @@
         "kind": "component set",
         "page": "↳ Flush Icon Button",
         "section": "Subcomponents",
-        "members": 30,
+        "members": 60,
         "variantProperties": [
           {
             "name": "shape",
             "values": [
               "flush",
               "round"
+            ]
+          },
+          {
+            "name": "surface",
+            "values": [
+              "default",
+              "inverse"
             ]
           },
           {
@@ -2240,6 +2267,39 @@
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/password-field.md"
       },
       {
+        "id": "toast",
+        "name": "Toast",
+        "figmaName": "toast",
+        "kind": "component set",
+        "page": "↳ Toast",
+        "section": "Components",
+        "members": 2,
+        "variantProperties": [
+          {
+            "name": "intent",
+            "values": [
+              "neutral",
+              "success"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "message",
+            "type": "TEXT"
+          },
+          {
+            "name": "action",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "close",
+            "type": "BOOLEAN"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/toast.md"
+      },
+      {
         "id": "counter",
         "name": "Counter",
         "figmaName": "counter",
@@ -2669,7 +2729,8 @@
       "dialog",
       "password-field",
       "counter",
-      "search-field"
+      "search-field",
+      "toast"
     ],
     "templates": [
       {
@@ -2721,7 +2782,7 @@
       "source": "apps/plugin/src/about-frame.ts#export const ABOUT_KEY"
     },
     "coverFrame": {
-      "rule": "The Cover page carries one 1920 × 1080 \"Cover\" frame, the library cover, set as the file thumbnail while the file has none of its own: the brand's name and the engine version it was last updated with. Its fill binds <root>/color/foreground/brand and its text binds <root>/color/text/on-brand. It carries shared plugin data under namespace \"prism3\", key \"cover\"; its two texts carry key \"cover-part\", \"brand\" or \"version\". Every Update sets the version text; a cover a designer edited keeps every other layer as they left it.",
+      "rule": "The Cover page carries one 1920 × 1080 \"Cover\" frame, the library cover, set as the file thumbnail while the file has none of its own: the brand's name and the engine version it was last updated with. Its fill binds <root>/color/foreground/brand and its text binds <root>/color/text/on-brand. It carries shared plugin data under namespace \"prism3\", key \"cover\"; its two texts carry key \"cover-part\", \"brand\" or \"version\". Every Update sets the version text while it is there; a cover a designer edited keeps every other layer as they left it.",
       "name": "Cover",
       "tag": {
         "namespace": "prism3",

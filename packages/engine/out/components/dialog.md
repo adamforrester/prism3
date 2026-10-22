@@ -32,7 +32,7 @@ Shown on the default member: placement `center`, size `medium`, footer `inline`.
 11. **Footer** — The footer: the actions, inset to match the header. Absent when there is no footer.
 12. **Actions inline** — The inline footer: a Button group, inline, at the end edge: Cancel, then Save.
 13. **Actions stacked** — The stacked footer: a Button group, stacked: Save on top, Cancel under it, both full width.
-14. **Actions fill** — The fill footer: a Button group at fill: Cancel, then Save, each half the width.
+14. **Actions fill** — The fill footer: a Button group at fill, Cancel then Save, sharing the width equally.
 
 ## Styles
 
@@ -380,7 +380,7 @@ Keyed by `placement`, `footer`.
 
 ### Nesting and properties
 
-- `panel/header/close` nests `flush-icon-button-neutral` at `shape=flush, size=medium, state=rest`
+- `panel/header/close` nests `flush-icon-button-neutral` at `shape=flush, size=medium, surface=default, state=rest`
 - `panel/headerDivider` nests `divider` at `orientation=horizontal, inset=none`
 - `panel/body` is a slot
 - `panel/footerDivider` nests `divider` at `orientation=horizontal, inset=none`

@@ -37,8 +37,10 @@ export const USED_BY = {
         "Badge",
         "SegmentedControl",
         "PasswordField",
-        "Counter",
-        "SearchField"
+        "Counter"
+      ],
+      "radius.xl": [
+        "Toast"
       ]
     },
     pill: {
@@ -72,8 +74,10 @@ export const USED_BY = {
         "Badge",
         "SegmentedControl",
         "PasswordField",
-        "Counter",
-        "SearchField"
+        "Counter"
+      ],
+      "radius.xl": [
+        "Toast"
       ]
     },
     boxed: {
@@ -108,6 +112,9 @@ export const USED_BY = {
         "SegmentedControl",
         "PasswordField",
         "Counter"
+      ],
+      "radius.xl": [
+        "Toast"
       ]
     },
     hairline: {
@@ -144,6 +151,9 @@ export const USED_BY = {
         "SegmentedControl",
         "PasswordField",
         "Counter"
+      ],
+      "radius.xl": [
+        "Toast"
       ]
     }
   },

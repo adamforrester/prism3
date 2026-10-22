@@ -59,7 +59,7 @@ const stepper = {
   nests: 'flush-icon-button-neutral',
   nesting: {
     kind: 'nest-exposed' as const,
-    variant: { shape: 'flush', size: 'medium', state: 'rest' },
+    variant: { shape: 'flush', size: 'medium', surface: 'default', state: 'rest' },
     expose: ['state'],
     follow: ['size'],
     // Q287 A: outline nests flush, ghost nests round. A disabled Counter starts both buttons disabled.
