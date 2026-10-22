@@ -1977,7 +1977,7 @@
             "default",
             "inverse"
           ],
-          "description": "The ground the button sits on, following IconButton. `default` for a normal page; `inverse` for a dark or brand-filled card or band, where the glyph binds its `color.inverse.*` counterpart so it keeps contrast against the flipped surface. Flush has no fill, so the glyph ink is all the axis changes. A host that cannot know its ground picks `default`, and the designer sets `inverse` on the instance, the same answer the nested focus ring gives."
+          "description": "The ground the button sits on, following IconButton. default for a normal page; inverse for a dark or brand-filled card or band, where the glyph binds its color.inverse counterpart so it keeps contrast against the flipped surface. Flush has no fill, so the glyph ink is all the axis changes. A host that cannot know its ground picks default, and the designer sets inverse on the instance, the same answer the nested focus ring gives."
         },
         {
           "name": "disabled",
@@ -2164,7 +2164,7 @@
             "default",
             "inverse"
           ],
-          "description": "The ground the button sits on, following IconButton. `default` for a normal page; `inverse` for a dark or brand-filled card or band, where the glyph binds its `color.inverse.*` counterpart so it keeps contrast against the flipped surface. Flush has no fill, so the glyph ink is all the axis changes. A host that cannot know its ground picks `default`, and the designer sets `inverse` on the instance, the same answer the nested focus ring gives."
+          "description": "The ground the button sits on, following IconButton. default for a normal page; inverse for a dark or brand-filled card or band, where the glyph binds its color.inverse counterpart so it keeps contrast against the flipped surface. Flush has no fill, so the glyph ink is all the axis changes. A host that cannot know its ground picks default, and the designer sets inverse on the instance, the same answer the nested focus ring gives."
         },
         {
           "name": "disabled",
@@ -2352,7 +2352,7 @@
             "default",
             "inverse"
           ],
-          "description": "The ground the button sits on, following IconButton. `default` for a normal page; `inverse` for a dark or brand-filled card or band, where the glyph binds its `color.inverse.*` counterpart so it keeps contrast against the flipped surface. Flush has no fill, so the glyph ink is all the axis changes. A host that cannot know its ground picks `default`, and the designer sets `inverse` on the instance, the same answer the nested focus ring gives."
+          "description": "The ground the button sits on, following IconButton. default for a normal page; inverse for a dark or brand-filled card or band, where the glyph binds its color.inverse counterpart so it keeps contrast against the flipped surface. Flush has no fill, so the glyph ink is all the axis changes. A host that cannot know its ground picks default, and the designer sets inverse on the instance, the same answer the nested focus ring gives."
         },
         {
           "name": "disabled",
