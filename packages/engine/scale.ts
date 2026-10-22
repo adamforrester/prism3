@@ -76,6 +76,10 @@ export type ControlShape = 'rounded' | 'pill' | 'boxed' | 'hairline';
  *  box; `underline` is one line under the value, with no inline padding and square corners. A brand-level choice
  *  applied to a def before projection, like `controlShape`, never a per-instance variant — see `applyFieldStyle`. */
 export type FieldStyle = 'outline' | 'underline';
+/** The `searchFieldStyle` FORM lever (#2888, owner decision Q514 taking Q?1 A): the search field's own edge. `follow`
+ *  (the default) takes `fieldStyle`; `outline` or `underline` sets search apart from the other fields. A brand-level
+ *  choice like `fieldStyle`, never a per-instance variant — see `fieldStyleFor`. */
+export type SearchFieldStyle = 'follow' | FieldStyle;
 /** The `tagStyle` FORM lever (#2887, owner Q513 and Q540): the shape every tag draws. `pill` is the rounded outline;
  *  `underline` is one line under the tag, 2px when selected or under the pointer. Its own lever, not `fieldStyle`'s
  *  (Q513.1 A): a tag is not a field. Applied to a def before projection, like `fieldStyle` — see `applyTagStyle`. */

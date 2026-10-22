@@ -94,6 +94,8 @@ export const TAXONOMY: Taxonomy = {
         // Password field (#2317, owner decision Q301.9 B) — its own page under Components, as Counter's is. It nests
         // Button, whose page is earlier in this list, so the nest resolves when the file is built in order.
         { page: 'Password field', defs: ['password-field'] },
+        // Search field (#2888) — its own page under Components, as the Password field's is.
+        { page: 'Search field', defs: ['search-field'] },
         { page: 'Textarea', defs: ['textarea'] },
         { page: 'Veil', defs: ['veil'] },
         // Badge — under Components, owner-decided 2026-10-04 (S8 scope, O1).
@@ -122,6 +124,9 @@ export const TAXONOMY: Taxonomy = {
         // Dialog (#2609, owner decision Q303.12 A) — its own page under Components, every placement on it. It nests the
         // Neutral IconButton, the Divider and the Button, which the build places first wherever their pages sort.
         { page: 'Dialog', defs: ['dialog'] },
+        // Breadcrumbs (#2666, owner call 15 A) — its own page under Components. It nests BreadcrumbItem in its items slot
+        // and Link, which the build places first wherever their pages sort.
+        { page: 'Breadcrumbs', defs: ['breadcrumbs'] },
         // Toast (#2668, owner call 12 A) — its own page under Components, sorted alphabetically (Q260 A). It nests the
         // Button and the FlushIconButton.Neutral, which the build places first wherever their pages sort.
         { page: 'Toast', defs: ['toast'] },
@@ -147,6 +152,10 @@ export const TAXONOMY: Taxonomy = {
         // #1670 — owner-decided 2026-09-26: the spinner sits under Subcomponents, beside the other parts a
         // host swaps or nests in (the button's pending state swaps it into its icon slot).
         { page: 'Spinner', defs: ['spinner'] },
+        // #2666 (owner call 15 A) — the breadcrumb step, on its own page under Subcomponents: it is placed inside
+        // Breadcrumbs, never on its own. It nests Link, the neutral flush icon button and, since Q382 A, the separator,
+        // which shares its page, first, as the Accordion indicator shares the Accordion's.
+        { page: 'Breadcrumb Item', defs: ['_breadcrumb-separator', 'breadcrumb-item'] },
       ],
     },
     {
