@@ -31711,7 +31711,7 @@ arm: {
 // code that carries it. The list is the owner's, and its reasoning lives with the constant, not here.
 {
   const EXPECTED_FAMILY_ORDER = [
-    'background', 'foreground', 'text', 'interactive', 'border', 'icon',
+    'background', 'foreground', 'text', 'border', 'icon', 'interactive',
     'disabled', 'scrim', 'veil', 'field', 'inverse',
   ];
 

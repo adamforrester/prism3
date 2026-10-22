@@ -265,20 +265,20 @@
     {
       "key": "buttonContentSize",
       "group": "form",
-      "label": "Button label & icon",
+      "label": "Medium button label & icon",
       "control": "enum",
       "default": "match",
       "options": [
         {
           "value": "match",
-          "label": "Match button size"
+          "label": "Medium"
         },
         {
           "value": "smaller",
-          "label": "One step smaller"
+          "label": "Small"
         }
       ],
-      "description": "The label and icon size of a medium button. One step smaller gives it the small button’s label and icon at the same height and padding. Small and large buttons are unchanged."
+      "description": "The label and icon size of a medium button. Medium keeps its own; Small gives it the small button’s label and icon at the medium height and padding. Other button sizes are unchanged."
     },
     {
       "key": "buttonLabelWeight",
