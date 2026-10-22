@@ -6446,6 +6446,12 @@ arm: {
     ];
     ok(JSON.stringify(propNames) === JSON.stringify(['title text', 'title', 'icon', 'actions', 'dismiss']),
       `banner Figma properties: title text, title, icon, actions, dismiss, all lowercase (Q345), and no second action (Q533.1) (got ${propNames.join(', ')})`);
+    // Q533.1 from the other side: the banner's one action is not grouped, so Button group neither pairs with Banner nor
+    // says in its prose that it holds a banner's actions (review on #2786).
+    const bg = componentDefs.find((d) => d.id === 'button-group')!;
+    const bgProse = [bg.description, bg.docs?.usage, bg.ai?.whenToUse].map((s) => String(s ?? ''));
+    ok(!(bg.ai?.commonPartners ?? []).includes('banner') && !bgProse.some((s) => /\bbanner\b/i.test(s)),
+      `banner Q533.1: Button group does not name Banner as a partner or claim a banner's actions (partners ${(bg.ai?.commonPartners ?? []).join(', ')}; prose naming banner: ${bgProse.filter((s) => /\bbanner\b/i.test(s)).length})`);
 
     // CONTRAST, as literals over every example brand × mode (20 cells).
     const themes: [string, any][] = loadedRows([
