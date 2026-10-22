@@ -13,7 +13,7 @@
     "_accordion-indicator": {
       "glyphs": [
         {
-          "part": "chevronDown",
+          "part": "chevronDownGlyph",
           "glyph": "chevron-down",
           "source": "icon set",
           "how": "drawn",
@@ -27,7 +27,7 @@
           }
         },
         {
-          "part": "chevronUp",
+          "part": "chevronUpGlyph",
           "glyph": "chevron-up",
           "source": "icon set",
           "how": "drawn",
@@ -41,7 +41,7 @@
           }
         },
         {
-          "part": "minus",
+          "part": "minusGlyph",
           "glyph": "minus",
           "source": "icon set",
           "how": "drawn",
@@ -55,7 +55,7 @@
           }
         },
         {
-          "part": "plus",
+          "part": "plusGlyph",
           "glyph": "plus",
           "source": "icon set",
           "how": "drawn",
@@ -144,24 +144,24 @@
     "checkbox-control": {
       "glyphs": [
         {
-          "part": "dash",
-          "glyph": "minus",
-          "source": "icon set",
-          "how": "drawn",
-          "when": {
-            "selection": [
-              "indeterminate"
-            ]
-          }
-        },
-        {
-          "part": "mark",
+          "part": "checkGlyph",
           "glyph": "check",
           "source": "icon set",
           "how": "drawn",
           "when": {
             "selection": [
               "checked"
+            ]
+          }
+        },
+        {
+          "part": "dashGlyph",
+          "glyph": "minus",
+          "source": "icon set",
+          "how": "drawn",
+          "when": {
+            "selection": [
+              "indeterminate"
             ]
           }
         }
@@ -171,7 +171,7 @@
     "field-message": {
       "glyphs": [
         {
-          "part": "iconError",
+          "part": "errorGlyph",
           "glyph": "warning-triangle",
           "source": "icon set",
           "how": "drawn",
@@ -182,7 +182,7 @@
           }
         },
         {
-          "part": "iconSuccess",
+          "part": "successGlyph",
           "glyph": "check-circle",
           "source": "icon set",
           "how": "drawn",
@@ -193,7 +193,7 @@
           }
         },
         {
-          "part": "iconWarning",
+          "part": "warningGlyph",
           "glyph": "error-circle",
           "source": "icon set",
           "how": "drawn",
@@ -256,7 +256,7 @@
     "image-placeholder": {
       "glyphs": [
         {
-          "part": "marker",
+          "part": "markerGlyph",
           "glyph": "image",
           "source": "icon set",
           "how": "drawn"
@@ -303,7 +303,7 @@
     "select": {
       "glyphs": [
         {
-          "part": "chevron",
+          "part": "chevronGlyph",
           "glyph": "chevron-down",
           "source": "icon set",
           "how": "drawn"
@@ -316,7 +316,7 @@
     "spinner": {
       "glyphs": [
         {
-          "part": "ring",
+          "part": "ringGlyph",
           "glyph": "spinner",
           "source": "component-owned",
           "how": "drawn"
@@ -351,7 +351,7 @@
       ],
       "iconSlots": []
     },
-    "tab": {
+    "tab-item": {
       "glyphs": [],
       "iconSlots": [
         "leadingVisual"
@@ -360,7 +360,7 @@
     "tag": {
       "glyphs": [
         {
-          "part": "check",
+          "part": "checkGlyph",
           "glyph": "check",
           "source": "icon set",
           "how": "drawn",
@@ -396,7 +396,7 @@
     "textarea": {
       "glyphs": [
         {
-          "part": "grip",
+          "part": "gripGlyph",
           "glyph": "resize-grip",
           "source": "icon set",
           "how": "drawn"

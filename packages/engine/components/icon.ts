@@ -70,13 +70,13 @@ export const icon: ComponentDef = {
   status: 'draft',
   summary: 'Glyph from the icon set at 16/20/24/32px. Decorative unless labeled; never interactive.',
   description:
-    'A small vector glyph standing in for a concept, drawn on a square base-4/base-8 artboard at a fixed set of sizes. Decorative by default and hidden from assistive tech; a `label` is the sole gateway that makes it meaningful and named. Never the interactive element — an icon-only control is a Button that wraps one.',
+    'A small vector glyph standing in for a concept, drawn on a square base-4/base-8 artboard at a fixed set of sizes. Decorative by default and hidden from assistive tech; a label is the one prop that makes it meaningful and named. Never the interactive element — an icon-only control is a Button that wraps one.',
 
   props: [
-    { name: 'name', type: 'enum: IconName', values: [...ICON_NAMES], required: true, description: 'Which glyph, typed to the set\'s literal vocabulary rather than a free string — an unknown name must fail at compile time, because a missing glyph otherwise fails silently as an invisible gap in production. The vocabulary is `IconName`, generated from the icon set and imported rather than restated, so a glyph cannot enter the set and be forgotten in the API. Compile-time refusal is available to any consumer importing that type; a code projection that widens it back to `string` gives the guarantee up, and that projection is the thing to watch rather than this def. Per-glyph components (`<IconSearch/>`) are the equivalent surface for a tree-shaken delivery.' },
-    { name: 'size', type: "enum: 'x-small' | 'small' | 'medium' | 'large'", values: ['x-small', 'small', 'medium', 'large'], default: 'medium', required: false, description: 'Enumerated, snapping to the fixed pixel grid — 16 / 20 / 24 / 32. NOT arbitrary integers: off-grid scaling blurs strokes between hardware pixels and is the first thing an icon system must forbid. The t-shirt words are the vocabulary every other def uses; the rungs they bind are the engine\'s (`icon.size.*`).' },
-    { name: 'tone', type: "enum: 'inherit' | a semantic ink token", values: ['inherit', 'primary', 'secondary', 'tertiary', 'brand', 'success', 'warning', 'danger', 'info'], default: 'inherit', required: false, description: 'Ink. Defaults to `inherit` (`currentColor`), so the glyph tracks its host control\'s hover/disabled/error cascade with no JS reconciliation. A semantic value pins it instead, insulating an error glyph from an inherited color that would make it invisible. Rejects raw hex by construction — an enum has no cell for one — so contrast is enforced centrally rather than per call site.' },
-    { name: 'label', type: 'string', required: false, description: 'The only route to an accessible name. Present makes the glyph meaningful: `role="img"` + `aria-label`. Absent makes it decorative: `aria-hidden="true"`, which is the DEFAULT and the most common correct answer — a named icon beside its own text double-announces ("Email, Email"). Inside an icon-only control the WRAPPER carries the name and this stays absent; never name both.' },
+    { name: 'name', type: 'enum: IconName', values: [...ICON_NAMES], required: true, description: 'Which glyph, from the set\'s own list of names, so an unknown name fails at compile time instead of rendering as an invisible gap. The list (IconName) is generated from the icon set, so a new glyph reaches the API the day it joins the set. A code projection that widens the type back to a plain string loses that check. Per-glyph components, such as IconSearch, are the equivalent for a tree-shaken delivery.' },
+    { name: 'size', type: "enum: 'x-small' | 'small' | 'medium' | 'large'", values: ['x-small', 'small', 'medium', 'large'], default: 'medium', required: false, description: 'Snaps to the pixel grid: 16, 20, 24 or 32px. Arbitrary sizes are refused, because off-grid scaling blurs strokes between hardware pixels. The size words match every other component; the pixel values come from the icon size tokens.' },
+    { name: 'tone', type: "enum: 'inherit' | a semantic ink token", values: ['inherit', 'primary', 'secondary', 'tertiary', 'brand', 'success', 'warning', 'danger', 'info'], default: 'inherit', required: false, description: 'Ink. Defaults to inherit (currentColor), so the glyph follows its host\'s hover, disabled and error colors with no script. A semantic value pins it instead, so an error glyph keeps its color where the inherited one would make it invisible. Raw hex is not accepted, so contrast is enforced centrally rather than at each call site.' },
+    { name: 'label', type: 'string', required: false, description: 'The only route to an accessible name. With a label the glyph is meaningful: role="img" and aria-label. Without one it is decorative: aria-hidden="true". That is the default and usually the correct answer, because a named icon beside its own text announces twice ("Email, Email"). Inside an icon-only control the control carries the name and this stays empty; never name both.' },
   ],
 
   // `[]` — and this is a claim rather than an omission (§4). An icon is not interactive, so hover /
@@ -282,14 +282,14 @@ export const icon: ComponentDef = {
   accessibility: {
     role: 'img when meaningful (with aria-label); none when decorative (aria-hidden="true")',
     wcag: [
-      '1.1.1 Non-text Content (meaningful → text alternative; decorative → hidden from AT)',
+      '1.1.1 Non-text Content (meaningful → text alternative; decorative → hidden from assistive tech)',
       '1.4.1 Use of Color (an icon must never be the sole carrier of meaning color conveys)',
       '1.4.11 Non-text Contrast (a meaningful icon clears 3:1; a decorative one is exempt)',
-      '2.5.8 Target Size (the WRAPPING control\'s concern, never the glyph\'s)',
+      '2.5.8 Target Size (the wrapping control\'s concern, never the glyph\'s)',
     ],
-    focus: 'None of its own. An icon takes no focus; the control wrapping it does, and the focus ring is that control\'s (see `focus-ring`).',
+    focus: 'None of its own. An icon takes no focus; the control wrapping it does, and the focus ring is that control\'s (see Focus ring).',
     aria:
-      'A three-way matrix, and almost every icon bug is picking the wrong cell. DECORATIVE (text beside it, or ornament): omit `label` → `aria-hidden="true"`; this is the default. MEANINGFUL STANDALONE: `label` → `role="img"` + `aria-label`, and `role="img"` is MANDATORY — without it many screen readers ignore an `aria-label` on a raw `<svg>` and leave the user on an unannounced stop. INSIDE AN ICON-ONLY CONTROL: the wrapper carries the name and the glyph stays `aria-hidden`; reversing it causes ghost focus rings and unpredictable AT behavior. Never name both.',
+      'Three cases, and most icon bugs come from picking the wrong one. Decorative (text beside it, or ornament): leave label empty, which sets aria-hidden="true"; this is the default. Meaningful on its own: set label, which sets role="img" and aria-label. The role is required, because many screen readers ignore an aria-label on a bare <svg> and leave the user on an unannounced stop. Inside an icon-only control: the control carries the name and the glyph stays aria-hidden; reversing it causes stray focus rings and unpredictable screen reader behavior. Never name both.',
   },
 
   content: {
@@ -301,25 +301,27 @@ export const icon: ComponentDef = {
 
   docs: {
     usage:
-      'Use to reinforce meaning, speed scanning, or anchor an action alongside text. Few icons are universally understood, so a glyph beside a visible label is a wayfinding anchor for returning users rather than a replacement for the words. Pick a size from the enum, leave `tone` at `inherit` unless the glyph must resist its host\'s cascade, and decide the one question that matters: is this glyph meaningful (give it a `label`) or decorative (do not)? For an icon-only action, reach for Button or IconButton and leave this glyph unnamed inside it.',
+      'Use to reinforce meaning, speed scanning, or mark an action beside text. Few icons are universally understood, so a glyph beside a visible label helps returning users find their way; it does not replace the words. Pick a size, leave tone at inherit unless the glyph must keep its own color, and decide one question: is this glyph meaningful (give it a label) or decorative (leave label empty)? For an icon-only action, use Button or IconButton and leave the glyph inside it unnamed.',
     do: [
-      'Leave `label` off when the icon sits beside its own text — decorative is the default and the most common correct answer',
-      'Give a meaningful standalone icon a `label`, which supplies both `role="img"` and the name',
-      'Pick a size from the enum so the glyph lands on the pixel grid',
-      'Let `tone` inherit unless an inherited color would make the glyph illegible',
+      'Leave label empty when the icon sits beside its own text — decorative is the default and usually the correct answer',
+      'Give a meaningful standalone icon a label, which supplies both role="img" and the name',
+      'Pick one of the four sizes, so the glyph lands on the pixel grid',
+      'Let tone inherit unless an inherited color would make the glyph illegible',
     ],
     dont: [
-      'Make the icon the interactive element — an icon-only control is a Button, and the name and the hit target (at least 24×24; 44×44 on touch) live on the wrapper',
-      'Name both the wrapper and the glyph (it double-announces, and causes ghost focus rings)',
+      'Make the icon the interactive element — an icon-only control is a Button, and the name and the hit target (at least 24×24; 44×44 on touch) live on the control',
+      'Name both the control and the glyph (it announces twice, and causes stray focus rings)',
       'Scale a glyph to an arbitrary size — off-grid scaling blurs strokes between hardware pixels',
       'Pass a raw hex color — that moves contrast enforcement out to the call site',
-      'Invent a one-off glyph outside the set; the set is the discipline and an ad-hoc glyph is debt',
+      'Draw a one-off glyph outside the set; it misses the set\'s grid, sizes and names',
     ],
+    contentGuidelines:
+      'Name a meaningful icon for the concept or the action it fires, in a word or two, matching what the glyph shows ("Search", "Delete") rather than the asset\'s file name. A decorative icon takes no name. Choose a glyph whose metaphor is widely understood, and keep a visible label beside one your users may not know.',
   },
 
   ai: {
     primaryPurpose: 'Render a set glyph at a grid size, routed correctly into or out of the accessibility tree.',
-    whenToUse: 'Beside a label to reinforce meaning, or standalone with a `label` when the glyph itself carries the meaning.',
+    whenToUse: 'Beside a label to reinforce meaning, or on its own with a label when the glyph itself carries the meaning.',
     avoidWhen:
       'As an interactive element. An icon-only action is a Button (or IconButton) with an accessible name and a hit target of at least 24×24 (44×44 on touch), containing an unnamed glyph — reaching for Icon there puts the affordance on a node with no focus management, no keyboard listeners and no touch target. Also avoid it as an illustration (larger, narrative, its own component), a logo, or a thumbnail; and avoid naming a glyph that sits beside its own text.',
     // The hosts whose slots usually carry an icon, plus `field-message`, whose `icon` prop overrides its

@@ -27,7 +27,9 @@ import type { HostTopic } from './store';
 
 /** A terminal verdict on a host action: the pill's headline and the detail behind it. `lines` is the detail's items, one
  *  per line in the Activity drawer (#2177), when the host sent them; absent, the summary is one line. */
-export type Verdict = { ok: boolean; headline: string; summary: string; lines?: readonly string[] | null };
+export type Verdict = { ok: boolean; headline: string; summary: string; lines?: readonly string[] | null;
+  /** #2858: an Update's library publish description, which the Activity drawer offers to copy. */
+  publish?: string | null };
 /** An action's slot: `null` = never run this session, `pending` = posted and not answered yet, else the
  *  host's verdict. */
 export type ActionState = Verdict | 'pending' | null;
@@ -314,7 +316,7 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
     }
     case 'component-update-result':
       // The build's slot, its progress and its set record are left alone: a check is not a build.
-      return { ...s, componentUpdate: { ok: m.ok, headline: m.headline, summary: m.summary, lines: m.lines }, componentLatest: 'update' };
+      return { ...s, componentUpdate: { ok: m.ok, headline: m.headline, summary: m.summary, lines: m.lines, publish: m.publish }, componentLatest: 'update' };
     case 'file-setup-result':
       return { ...s, fileSetupState: { ok: m.ok, headline: m.headline, summary: m.summary }, openDetail: m.ok ? null : 'filesetup' };
     case 'style-guide-result': {

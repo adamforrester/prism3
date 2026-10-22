@@ -52,9 +52,14 @@ accepts('component-result that completed with misses', { type: 'component-result
   { kind: 'component-result', ok: false, headline: '⚠ 48, 2 missed', summary: 's', completed: true , lines: null });
 // #2265: the update check's verdict, its own kind, so it can never be read as a build's.
 accepts('component-update-result', { type: 'component-update-result', ok: true, headline: 'Would change 1 of 26', summary: 's', lines: ['a: 1 to update.', 'b: up to date.'] },
-  { kind: 'component-update-result', ok: true, headline: 'Would change 1 of 26', summary: 's', lines: ['a: 1 to update.', 'b: up to date.'] });
+  { kind: 'component-update-result', ok: true, headline: 'Would change 1 of 26', summary: 's', lines: ['a: 1 to update.', 'b: up to date.'], publish: null });
 accepts('component-update-result without a headline', { type: 'component-update-result', ok: false, summary: 's' },
-  { kind: 'component-update-result', ok: false, headline: '✗ check failed', summary: 's', lines: null });
+  { kind: 'component-update-result', ok: false, headline: '✗ check failed', summary: 's', lines: null, publish: null });
+// #2858: an Update's publish description is carried; anything but a non-empty string is dropped.
+accepts('component-update-result with a publish description', { type: 'component-update-result', ok: true, headline: '✓ updated 3 in place', summary: 's', lines: ['a'], publish: 'Before Prism3 updated tag. Engine 0.237.0.' },
+  { kind: 'component-update-result', ok: true, headline: '✓ updated 3 in place', summary: 's', lines: ['a'], publish: 'Before Prism3 updated tag. Engine 0.237.0.' });
+accepts('component-update-result with a malformed publish description', { type: 'component-update-result', ok: true, headline: 'h', summary: 's', publish: 42 },
+  { kind: 'component-update-result', ok: true, headline: 'h', summary: 's', lines: null, publish: null });
 accepts('component-result that stopped before the set', { type: 'component-result', ok: false, completed: false, headline: '✗ unknown def', summary: 's' },
   { kind: 'component-result', ok: false, headline: '✗ unknown def', summary: 's', completed: false , lines: null });
 accepts('component-result with a malformed completed', { type: 'component-result', ok: false, completed: 'yes', headline: '✗ x', summary: 's' },

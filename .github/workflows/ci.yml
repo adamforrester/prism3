@@ -26,7 +26,25 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  gates:
+  # Q503 A — THE GATES AS PARALLEL JOBS. Until this, one job ran every step in series, ~48 minutes, and the
+  # chrome suite alone was ~23 of them. Now five jobs run side by side and `gates`, last in this file, waits
+  # for all five. Each gate step still runs, and runs in exactly one job; only setup and the two builds a
+  # job needs repeat. A build takes seconds (median 2-3 s each over five runs), so a job builds what it
+  # drives rather than downloading another job's `dist/`: an artifact round trip costs more than the
+  # build, adds a serial build job in front of every browser job, and gives the bundle a download-time
+  # mtime that `assertBundleFresh` (#2037, #2067) was never measured against.
+  #
+  # WHY THESE FIVE. The ordering `verify.ts` declares (`after:`) decides the floor: a gate sits in a job
+  # that also runs what it is after. The rest is wall time: `chrome` is alone because it is the long
+  # pole, and every other job is sized to finish well inside it.
+  #   engine    the engine and doc gates, no build and no browser.
+  #   studio    the web workspace: typecheck, unit tests, build, then the smoke suite.
+  #   plugin    the plugin workspace: shim tests, both builds, the bundle lints and its three browser suites.
+  #   chrome    the chrome suite, which drives both bundles.
+  #   surfaces  what reads both bundles or TokenPress: export parity, the two exporters, and the two
+  #             prose gates that scan both built bundles, so they run after both builds (CLAUDE.md, principle 4).
+
+  engine:
     runs-on: ubuntu-latest
     steps:
       # `fetch-depth: 0` — FULL history, and the depth is load-bearing rather than cautious (#1039).
@@ -177,240 +195,6 @@ jobs:
       - name: The Figma conventions file matches the code (#2647)
         run: npx --yes tsx@4 packages/engine/emit-figma-conventions.ts --check
 
-      # esbuild (and therefore the Vercel build) does not typecheck. These do.
-      - name: Typecheck web
-        run: npm run -w @prism3/studio typecheck
-
-      # apps/studio's FIRST test step, and the reason it can exist is that #722 put the provenance
-      # model in its own pure module: `src/main.ts` touches `document` at import time and cannot be
-      # loaded under tsx, so anything inside it is assertable only by hand in a browser. Note what
-      # `typecheck` above does NOT cover — `apps/studio/tsconfig.json` includes `src` only, so the
-      # test file itself is never compiled and this step is the only thing that runs it.
-      #
-      # Two suites now: the provenance model (#722) and the export-settings model (#723). The second is
-      # also what enforces #720's "a setting with no declaration fails the build" — half at typecheck
-      # (`sources` is a required field), half here (`sources: []` type-checks and means "visible
-      # nowhere"). Neither half subsumes the other, and its section 8 mutates each check to confirm it
-      # goes red on the defect it exists for.
-      - name: Studio unit tests
-        run: npm run -w @prism3/studio test
-
-      - name: Build web
-        run: npm run -w @prism3/studio build
-
-      # The Vercel Ignored Build Step (apps/studio/vercel-ignore.sh) skips a deploy when a commit touches
-      # nothing the bundle depends on. Its exclusion list is the part that can rot: an engine file
-      # that later gets imported into apps/studio/src would still be on the skip list, so its changes would
-      # ship nothing and the site would go stale with every gate green. This checks the list against
-      # esbuild's real metafile.
-      - name: Vercel ignore list matches the real bundle
-        run: npm run -w @prism3/studio check:ignore
-
-      # The studio enforces contrast on every brand it GENERATES; this holds it to the same bar for
-      # the chrome it renders those contracts in. #355 fixed a real failure there by hand and parked
-      # the ink tiers ON the AA floor, which is a correct decision with no memory. STATIC — it reads
-      # the token VALUES out of the stylesheet, which is where the budget lives. It used to say a
-      # runtime check "could not run here at all" because the repo had no Playwright; #767 took that
-      # dependency and the smoke suite below now measures what RENDERS. The two are complements, not
-      # duplicates, and neither subsumes the other: this one catches a token lightened past AA
-      # anywhere it is used, including in states no sweep happens to visit; the smoke suite catches
-      # a legal token faded through `opacity` or inked onto a fixed ground (#555), which no value
-      # check can see.
-      - name: Studio chrome clears its own contrast floors
-        run: npm run -w @prism3/studio lint:contrast
-
-      # Two contexts, checked separately: the main thread (figma.*, no DOM) and the UI iframe (DOM,
-      # no figma.*). CONTRIBUTING §3 documents both as a plugin gate; missing from this workflow's
-      # initial cut (#298) — only Build plugin ran.
-      - name: Typecheck plugin
-        run: npm run -w @prism3/plugin typecheck
-
-      # write / readback / persist / float / styles shims against an in-memory Figma API shim.
-      - name: Plugin shim tests
-        run: npm run -w @prism3/plugin test
-
-      - name: Build plugin
-        run: npm run -w @prism3/plugin build
-
-      # THE RELEASE BUILD (#2530, owner Q239 A): `release/`, with `PRISM3_DEV` false, so every dev-only branch (the
-      # agent link's desktop bridge relay, any dev command) is dropped, and a manifest with no devAllowedDomains.
-      # `lint-release-bundle.ts` below checks it carries none of the dev-only code; `lint-sandbox-reject.ts` scans its
-      # main.js too.
-      - name: Build plugin (release)
-        run: npm run -w @prism3/plugin build:release
-
-      # dist/main.js runs in Figma's sandboxed main thread, which has no node: builtins. A regression
-      # here breaks the plugin at load in Figma, not at typecheck or build time.
-      - name: "Plugin main.js has 0 node: builtins"
-        run: |
-          set -euo pipefail
-          if grep -q "node:" apps/plugin/dist/main.js; then
-            echo "::error::apps/plugin/dist/main.js references a node: builtin — the main thread must stay sandbox-safe."
-            grep -n "node:" apps/plugin/dist/main.js
-            exit 1
-          fi
-
-      # #2323 — CHROMIUM, INSTALLED ONCE PER JOB, AHEAD OF EVERY BROWSER GATE. Four gates drive a real
-      # browser (the plugin verdict and start-screen suites, the studio chrome and smoke suites), and the
-      # install used to sit inside two of them with no time limit. #2299's run hung 75 minutes twice in
-      # `apt-get` fetching Chromium's system packages from Ubuntu's mirror, and it read as a test hang.
-      #
-      # So: the browser is CACHED, keyed on the Playwright version the lockfile resolves, and the
-      # install runs once, here, with its own time limit. Each attempt is bounded (`timeout 240`) and
-      # retried twice, because a mirror stall is transient far more often than it is persistent; three
-      # failures fail the JOB, named, because the install is SETUP FOR A GATE and a gate that silently
-      # does not run is the failure this whole file exists to prevent. Never `continue-on-error`.
-      # `--with-deps` stays: a cache restores the browser, not the system libraries it loads.
-      #
-      # #2348: a stalled attempt's root `apt-get` survived `timeout` and kept the dpkg lock, so every retry
-      # died on "Could not get lock". The loop now lives in `.github/scripts/install-chromium.sh`, which
-      # bounds apt itself (fetch timeouts and retries, a lock wait) and clears a leftover `apt-get` and runs
-      # `dpkg --configure -a` before each retry. Its test, with a stand-in that leaves a lock-holding child,
-      # is `.github/scripts/test-install-chromium.sh`. 15 minutes: three 4-minute attempts, and up to 90 s
-      # of clearing before each retry, so the step's own limit never cuts off the named error.
-      - name: Resolve the Playwright version (#2323)
-        id: playwright
-        run: echo "version=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_OUTPUT"
-      - name: Cache the Playwright browser (#2323)
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
-      - name: "Install Chromium for the browser gates (#2323)"
-        timeout-minutes: 15
-        run: bash .github/scripts/install-chromium.sh
-
-      # The panel's own browser suite (#870) — the SECOND step in this workflow that runs a browser,
-      # and it has to be separate from the studio one below. A component build's verdict line is the
-      # only place its misses are reported, and a build that ends on a permanent "⋯ Building…" turns a
-      # reporting build into a silent one: #866's four DISCARDED refs were visible solely because that
-      # summary rendered. This asserts every terminating condition — clean, with misses, errored,
-      # already-built, unknown-def — reaches a verdict a designer can read.
-      #
-      # WHY IT CANNOT LIVE IN THE STUDIO SMOKE SUITE, which is the only other browser step here. The
-      # Components page is `figmaOnly`: `railNav()` omits it from the web rail, so the studio bundle
-      # (`PRISM3_HOST='web'`) has no route to this control at any effort. The subject is the PANEL —
-      # `apps/plugin/dist/ui.html`, loaded top-level so `parent === window` and the harness can stand
-      # in for the main thread. Hence a plugin-workspace suite and this step's dependence on the
-      # "Build plugin" step above rather than on "Build web".
-      #
-      # The browser comes from the install step just above, which fails the job when it cannot install
-      # (#2323); it used to be installed inside this step, for the same "setup for a gate" reason.
-      # QUOTED, following the two steps here that already are: the parenthesis makes `(#870)` safe as a
-      # plain scalar by YAML's own rule, but the studio suite below records the issue reference being
-      # silently truncated on a first CI run, so the convention here is to quote any name carrying one
-      # rather than to re-derive the rule per step.
-      - name: "Component-build verdict suite (#870)"
-        run: npm run -w @prism3/plugin test:verdict
-
-      # #874: build every projected def, READ THE RESULT BACK OUT OF THE HOST, and diff it against the
-      # plan that built it. docs/14 §4 specified this on 2026-07-03 and nothing built it.
-      #
-      # The argument is not the two defects the issue cites — both are now caught by read-backs the
-      # executor grew afterwards. It is that FOUR writes in write-components.ts could be deleted with
-      # every gate green, because each of the executor's nine retention read-backs was written by the
-      # same author immediately below the write it checks: a field the writer forgets to WRITE is a
-      # field the writer forgets to READ BACK. Those are a ledger of past defects; this is the rule.
-      # It iterates the PLAN's fields, not the writer's branches.
-      #
-      # ORACLE = figmaAnatomySet(def); SUBJECT = what the host holds. Plan-driven and one-directional
-      # on FIELDS (the host holds vastly more than any def declares — #865 is a separate, allowlist-
-      # shaped check), two-directional on MEMBERS (an extra member is #869's class). Children matched
-      # BY NAME, never in build order, or it would read the writer's own traversal back.
-      #
-      # It caught #1202 on its first clean run. Stated limit in its header: accept-and-discard is
-      # real-host-only, and one predicate (effectStyle) compares 0 nodes because no def declares one.
-      # QUOTED because the name contains ": ", which a plain YAML scalar reads as a mapping entry —
-      # unquoted, the file did not parse and the workflow never DISPATCHED (run 1238: failure, 0 jobs,
-      # 0s). An ABSENT run, not a pending one, which is why no `gates` check appeared on the PR at all.
-      # `npm run verify` cannot see this: it runs each gate directly, never through ci.yml (#1213).
-      - name: "Component round-trip: the file holds what the plan declared (#874)"
-        run: npm run -w @prism3/plugin test:roundtrip
-
-      # #1197: the plugin's start moment. A separate suite from the verdict one because the subject is a
-      # plugin-only TRIGGER — the web knows at boot that nothing is stored (localStorage is synchronous),
-      # while the plugin learns it from a host message that arrives after boot, so the behaviour does not
-      # exist in the web bundle. Its load-bearing assertion is the NEGATIVE one: a file that already holds
-      # a brand must still hydrate (#1184), because every other case here makes the start screen appear
-      # more often and that is the one a too-eager trigger breaks.
-      - name: Plugin start-moment suite (#1197)
-        run: npm run -w @prism3/plugin test:start
-
-      # UI redesign S1.2: the new shell's chrome, measured as rendered, in both hosts — text at 4.5:1,
-      # edges and indicators at 3:1, focus rings, 24px targets, the fonts actually drawn (CDP), no
-      # shadows, no runtime inline values, no horizontal scroll at 640, controls represented by hook,
-      # the IA-2 layer order, the Q2 header line, and the legacy frame map. A separate suite from smoke
-      # because its axes are host × theme × width, not page × mode × brand. AFTER BOTH BUILDS: it drives
-      # the studio's dist/main.js and the plugin's dist/ui.html. The browser comes from the verdict step.
-      - name: New shell chrome suite (UI redesign S1.2)
-        run: npm run -w @prism3/studio test:chrome
-
-      # #2351 gap 1: the web studio's token export and the plugin's token export of the same brand are
-      # BYTE-IDENTICAL, and both are the committed out/<id>.tokens.json byte for byte. Drives both built
-      # bundles in Chromium through the person's own path (start screen → Export → Download, default
-      # settings) over every committed brand a UI can load, discovered from out/*.tokens.json and placed
-      # in both directions (nb, the regression fixture, is excluded with its reason). The expected file
-      # is the engine's Node CLI emission, which runs no studio code, so a defect shared by both bundles
-      # still fails. AFTER BOTH BUILDS. The browser comes from the verdict step.
-      - name: "The web and plugin token exports agree, byte for byte (#2351)"
-        run: npm run -w @prism3/studio test:export-parity
-
-      # #2201: deleting a LIVE rule from apps/studio/src/styles.css left every suite green (the review of
-      # #2116 deleted `.sg-g3`, whose class kit.ts builds at run time, and the style guide's three-column
-      # grid fell to one column under a green verify). EXPECTED is apps/studio/live-css.json — the rules
-      # that matched an element the four browser suites' pages drew, recorded by a sweep riding those
-      # suites, so liveness is decided by the DOM and never by the stylesheet. ACTUAL is the current
-      # styles.css, parsed by Chromium. Keyed per rule (context, selector, ordinal), not per selector:
-      # `.sg-g3` also appears in a 760px @media rule, so selector text alone passes the reviewer's own
-      # mutation. The baseline is rewritten only by `npm run -w @prism3/studio lint:live-css -- --accept`,
-      # which re-sweeps and refuses to forget a rule the DOM still draws unless it is named with --allow.
-      # The browser comes from the verdict step.
-      - name: "A live styles.css rule is not removed without an accept (#2201)"
-        run: npm run -w @prism3/studio lint:live-css
-
-      # TokenPress's own 263 assertions, ported from vitest onto tsx (the suite it arrived with). It
-      # runs the exporter end to end against Figma-shaped fixtures, so it is the only thing here that
-      # can catch a regression in the OUT direction (Figma -> DTCG). Its runner asserts a per-file
-      # census against the pre-port vitest baseline, so a test quietly vanishing fails too.
-      - name: TokenPress tests
-        run: npm run -w @prism3/tokenpress test
-
-      # The exporter writes __PLUGIN_VERSION__ into every tree's $extensions.generator.version, and
-      # it is a bare identifier with no runtime declaration — an absent bundler define ships a plugin
-      # that throws on first export. build.mjs asserts that (plus the iife wrapper, the es2018 target
-      # and jszip's setImmediate shim) against what it actually wrote. dist/ is gitignored, so a
-      # regression here is invisible to typecheck, to lint and to every source grep.
-      - name: Build TokenPress
-        run: npm run -w @prism3/tokenpress build
-
-      # The two DTCG exporters — prism3's emitter and TokenPress's, separate codebases sharing no code
-      # — run over the same brand and compared. `tools/exporter-comparison/compare.ts` is a MEASUREMENT
-      # and always exits 0, because most of what it reports is a difference that is right for its host
-      # (#697); this is the assertable SUBSET, and it imports that measurement rather than restating it.
-      # Four arms, on every brand with a Figma emission (discovered by scanning out/figma/, count
-      # asserted at >= 3): a `$type` disagreement on a shared path, a path TokenPress emits that prism3
-      # does not, TokenPress's float32 cleanup rewriting a value instead of restoring it (#703's
-      # prediction), and #709's opacity 100× at the integration level. The prism3-only direction is a
-      # memory of specific paths WITH CAUSES (aurora's 2 gradients, #731) and fails in both directions,
-      # so a third unreachable path fails AND a gradient becoming reachable fails. Categories 3-5 stay
-      # reporting-only until #697's byte-for-byte question is answered. Runs after the TokenPress build
-      # because it executes TokenPress's real `TokenExporter` in memory. Known limit, stated in the
-      # file and TRACKED as #747 (under #697, which must close it): the types arm only sees paths that
-      # PAIR, which is 71-73 paths per brand — ~14% of the paired surface — that it cannot type-check.
-      - name: The two DTCG exporters agree where a difference would be a defect
-        run: npx --yes tsx@4 tools/exporter-comparison/gate.ts
-
-      # #2351 gap 2 (offline): after the plugin's Apply Theme writes a brand into the file shim
-      # (apps/plugin/file-shim.ts, shared with test-mcp-paste.ts), TokenPress's real exporter over that
-      # file gives the same DTCG as over the engine's committed Figma emission. Every difference is printed
-      # by path as ADDED / REMOVED / RETYPED / VALUE / DESCRIPTION and each count is asserted at 0; the one
-      # tolerance is half an 8-bit step inside a color. Grid and gradient styles, which no exporter reads,
-      # are compared as written. The tinted wash (alias with opacity), which TokenPress cannot read, is
-      # carved out as a bijection and checked as written (#2365). After the exporter gate, which holds the
-      # emission's export to the engine's DTCG.
-      - name: "The plugin's applied file exports what the engine emits (#2351)"
-        run: npm run -w @prism3/plugin test:readback-parity
-
       # Can a STRANGER consume what the engine emits? This runs Style Dictionary with a deliberately
       # naive config — no preprocessors, no custom transforms — because that is the only configuration
       # that answers the question. It is a CHARACTERIZATION gate: it pins the known #609 defect (three
@@ -428,26 +212,6 @@ jobs:
       # which an agent would emit as references resolving to nothing.
       - name: Skills gate (shipped skills make true claims)
         run: npx --yes tsx@4 packages/engine/lint-skills.ts
-
-      # US English in shipped text. Runs AFTER BOTH BUILDS on purpose: `engine/levers.ts` prose is
-      # inlined into `apps/studio/dist/main.js`, and a source-only grep calls that bundle clean — the trap
-      # that got #302 and #310. As of #937 it also scans `apps/plugin/dist` (main.js + ui.html), which
-      # carries the component defs' `description`/`note`/`aria` prose and reaches no other gated
-      # surface; "Build plugin" above is therefore load-bearing for this step, not just for the
-      # node:-builtin check. Gates out/, the emitted schema + reports, and both built bundles — there is
-      # no reported-but-not-fatal surface left, the two CLAUDE.md once held open having been converted.
-      - name: US-English gate (shipped text)
-        run: npx --yes tsx@4 packages/engine/lint-us-english.ts
-
-      # Voice-standard §2 banned-phrase list ("simply", "just" outside its exactly/barely sense,
-      # "easy", "obviously", "please note"/"note that", "Oops"/"Sorry", exclamation marks in prose)
-      # in shipped text (#617). Sibling to the US-English gate above, not merged into it — different
-      # exemption sets (an allow-set for "just", a context rule for "!"), different failure messages
-      # — but wired in the SAME position for the SAME reason: its scope includes the built
-      # `apps/studio/dist/*.js` bundle, so it has to run after the web build too. Its client-name arm
-      # (#1824) also reads `apps/plugin/dist` raw, so "Build plugin" is load-bearing for it as well.
-      - name: Voice lint gate (shipped text)
-        run: npx --yes tsx@4 packages/engine/lint-voice.ts
 
       # A gate that silently stops running is worse than no gate, because green starts meaning
       # "nothing ran". If any emitter, report or schema artifact ever leaves the compared set, this
@@ -472,7 +236,7 @@ jobs:
       # the pre-#789 gate exiting 0.
       #
       # `--list` deliberately, NOT a full `npm run verify`: running the runner here would execute every
-      # gate a SECOND time inside a job that already runs them all, doubling the job for no new
+      # gate a SECOND time inside a workflow that already runs them all, doubling the work for no new
       # information. What this step covers is everything `verify.ts` asserts about ITSELF before running
       # anything — its self-checks (each derived gate can actually fail, the ordering check catches a
       # real inversion, the orphan scan catches an unnamed file) and `orderViolations` over the real
@@ -955,55 +719,6 @@ jobs:
       - name: The consumer set carries no build metadata (#2552)
         run: npx --yes tsx@4 packages/engine/lint-consumer-build.ts
 
-      # THE SECOND DIRECTION (#865). Every write the component executor makes is verified by a read-back
-      # — set the value, read it, report a miss if the host did not keep it. Nothing verified what it did
-      # NOT write, and a Figma node is never silent: a property no def mentioned kept Figma's own default
-      # wearing our name. `createFrame()` returns an opaque white box, `combineAsVariants()` returns a set
-      # with a 5px radius and a purple dashed border, and a text node starts top-left. Measured on the
-      # corpus before the fix: 523 of 973 member root frames carried the unclaimed white fill, and it was
-      # found BY EYE on four separate components before anyone looked for the class.
-      #
-      # A read-back cannot see this, structurally: an unset property has no write to verify. So this asks
-      # the converse question — does every visually-significant property a built node carries trace to a
-      # decision? ACTUAL is recorded, not read: the real `applyComponentPlan` runs against a Proxy host
-      # whose `set` trap records property names, so a mechanism that merely LOOKS like it supplies a
-      # property cannot be credited with it (three drafts of the expected table were wrong in exactly that
-      # way — `setTextStyleIdAsync()` carries no alignment field on either axis). EXPECTED is authored in
-      # the gate from `@figma/plugin-typings`, and `claimDefaults` carries a comment forbidding an import
-      # of its table: a gate reading the subject's own list asserts `table === table` (docs/34 shape 2).
-      #
-      # Every arm reports its own name, and the three exemptions are ASSERTED rather than assumed — an
-      # INSTANCE is exempt only if some plan node nominated the component it came from (A6), auto-layout
-      # properties only where a `layoutMode` exists (A4), imported glyph ink only below Figma's importer
-      # (A5) — plus corpus reach (A0), node-type representation (A2) and row exercise (A3), because a
-      # sweep that builds no VECTOR reports its VECTOR rows as passing.
-      - name: Every visually-significant property on a built node traces to a decision
-        run: npx --yes tsx@4 apps/plugin/lint-unclaimed-defaults.ts
-
-      # THE FIGMA MAIN-THREAD SANDBOX REJECT SCAN (#1461). Figma's plugin sandbox
-      # (rejectImportExpressions) scans the built main.js source text — string literals included — for
-      # `import` followed by `(` and refuses to load the WHOLE plugin. A shipped $description carrying
-      # "the Figma import (2026-09-15)" bricked the plugin with 58 gates + CI green (PR #1460), because
-      # no gate reads main.js the way Figma does: plugin-no-node-builtins scans it for `node:` builtins,
-      # the verdict/start suites drive the UI, us-english/voice read it as prose. Runs after the plugin
-      # build; scoped to main.js (ui.html is a browser iframe where import() is valid syntax). It scans both builds'
-      # main.js (#2530): the release build's is rewritten by minifySyntax.
-      - name: The built main.js carries no Figma-sandbox-rejected token sequence (#1461)
-        run: npx --yes tsx@4 apps/plugin/lint-sandbox-reject.ts
-
-      # WHAT THE BUILT PLUGIN SHIPS OF A COMPONENT DEF (#1623 sign-off). A def's `notes` and
-      # `anatomy.codeOnly` are maintainer-only and are stripped on the way into dist/; shipped component
-      # text cites no Prism 2; every def's one-line summary (the Figma description) is present. Reads
-      # both built bundles against the real defs, so it runs after the plugin build.
-      - name: The built plugin ships no maintainer notes and no Prism 2 in component text (#1623)
-        run: npx --yes tsx@4 apps/plugin/lint-bundle-prose.ts
-
-      # THE RELEASE BUILD CARRIES NO DEV-ONLY CODE (#2530). Each dev-only marker, authored in the gate, must be found
-      # in dist/ (so it names real code) and absent from release/, and release/manifest.json must be manifest.json
-      # less devAllowedDomains with its bundle paths beside it. Runs after both plugin builds.
-      - name: The release build carries no dev-only code (#2530)
-        run: npx --yes tsx@4 apps/plugin/lint-release-bundle.ts
-
       # A stated advisory window, once it closes, fails the build. The step below this one is
       # advisory with a date on it, and that date is written in six places — this workflow twice,
       # verify.ts, test-smoke.mjs twice, and the three contributor documents. On the stated morning
@@ -1081,6 +796,91 @@ jobs:
       - name: The CLAUDE.md-freshness detector still flags a stale checkout
         run: sh tools/claude-md-freshness/mutations.sh
 
+  studio:
+    runs-on: ubuntu-latest
+    steps:
+      # Full history, as in the `engine` job (whose comment says why, #1039): nothing here is known to
+      # read history, and a depth that differs per job is a difference nothing would report.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install workspace deps
+        run: npm ci
+
+      # esbuild (and therefore the Vercel build) does not typecheck. These do.
+      - name: Typecheck web
+        run: npm run -w @prism3/studio typecheck
+
+      # apps/studio's FIRST test step, and the reason it can exist is that #722 put the provenance
+      # model in its own pure module: `src/main.ts` touches `document` at import time and cannot be
+      # loaded under tsx, so anything inside it is assertable only by hand in a browser. Note what
+      # `typecheck` above does NOT cover — `apps/studio/tsconfig.json` includes `src` only, so the
+      # test file itself is never compiled and this step is the only thing that runs it.
+      #
+      # Two suites now: the provenance model (#722) and the export-settings model (#723). The second is
+      # also what enforces #720's "a setting with no declaration fails the build" — half at typecheck
+      # (`sources` is a required field), half here (`sources: []` type-checks and means "visible
+      # nowhere"). Neither half subsumes the other, and its section 8 mutates each check to confirm it
+      # goes red on the defect it exists for.
+      - name: Studio unit tests
+        run: npm run -w @prism3/studio test
+
+      - name: Build web
+        run: npm run -w @prism3/studio build
+
+      # The Vercel Ignored Build Step (apps/studio/vercel-ignore.sh) skips a deploy when a commit touches
+      # nothing the bundle depends on. Its exclusion list is the part that can rot: an engine file
+      # that later gets imported into apps/studio/src would still be on the skip list, so its changes would
+      # ship nothing and the site would go stale with every gate green. This checks the list against
+      # esbuild's real metafile.
+      - name: Vercel ignore list matches the real bundle
+        run: npm run -w @prism3/studio check:ignore
+
+      # The studio enforces contrast on every brand it GENERATES; this holds it to the same bar for
+      # the chrome it renders those contracts in. #355 fixed a real failure there by hand and parked
+      # the ink tiers ON the AA floor, which is a correct decision with no memory. STATIC — it reads
+      # the token VALUES out of the stylesheet, which is where the budget lives. It used to say a
+      # runtime check "could not run here at all" because the repo had no Playwright; #767 took that
+      # dependency and the smoke suite below now measures what RENDERS. The two are complements, not
+      # duplicates, and neither subsumes the other: this one catches a token lightened past AA
+      # anywhere it is used, including in states no sweep happens to visit; the smoke suite catches
+      # a legal token faded through `opacity` or inked onto a fixed ground (#555), which no value
+      # check can see.
+      - name: Studio chrome clears its own contrast floors
+        run: npm run -w @prism3/studio lint:contrast
+
+      # Chromium, as in the `plugin` job, whose comment holds the reasons (#2323, #2348).
+      - name: Resolve the Playwright version (#2323)
+        id: playwright
+        run: echo "version=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Cache the Playwright browser (#2323)
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - name: "Install Chromium for the browser gates (#2323)"
+        timeout-minutes: 15
+        run: bash .github/scripts/install-chromium.sh
+
+      # #2201: deleting a LIVE rule from apps/studio/src/styles.css left every suite green (the review of
+      # #2116 deleted `.sg-g3`, whose class kit.ts builds at run time, and the style guide's three-column
+      # grid fell to one column under a green verify). EXPECTED is apps/studio/live-css.json — the rules
+      # that matched an element the four browser suites' pages drew, recorded by a sweep riding those
+      # suites, so liveness is decided by the DOM and never by the stylesheet. ACTUAL is the current
+      # styles.css, parsed by Chromium. Keyed per rule (context, selector, ordinal), not per selector:
+      # `.sg-g3` also appears in a 760px @media rule, so selector text alone passes the reviewer's own
+      # mutation. The baseline is rewritten only by `npm run -w @prism3/studio lint:live-css -- --accept`,
+      # which re-sweeps and refuses to forget a rule the DOM still draws unless it is named with --allow.
+      # The browser comes from the verdict step.
+      - name: "A live styles.css rule is not removed without an accept (#2201)"
+        run: npm run -w @prism3/studio lint:live-css
+
       # The studio's DOM/interaction coverage (#767, deciding #333) — and the ONLY step in this
       # workflow that runs a browser. It loads every page in every mode across both corpus brands
       # (72 states), drives the mode switch, an override picker and an export, and asserts zero
@@ -1130,3 +930,360 @@ jobs:
       # is quoted, one character class along.
       - name: "Studio headless smoke suite (#775)"
         run: npm run -w @prism3/studio test:smoke
+
+  plugin:
+    runs-on: ubuntu-latest
+    steps:
+      # Full history, as in the `engine` job (whose comment says why, #1039): nothing here is known to
+      # read history, and a depth that differs per job is a difference nothing would report.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install workspace deps
+        run: npm ci
+
+      # Two contexts, checked separately: the main thread (figma.*, no DOM) and the UI iframe (DOM,
+      # no figma.*). CONTRIBUTING §3 documents both as a plugin gate; missing from this workflow's
+      # initial cut (#298) — only Build plugin ran.
+      - name: Typecheck plugin
+        run: npm run -w @prism3/plugin typecheck
+
+      # write / readback / persist / float / styles shims against an in-memory Figma API shim.
+      - name: Plugin shim tests
+        run: npm run -w @prism3/plugin test
+
+      - name: Build plugin
+        run: npm run -w @prism3/plugin build
+
+      # THE RELEASE BUILD (#2530, owner Q239 A): `release/`, with `PRISM3_DEV` false, so every dev-only branch (the
+      # agent link's desktop bridge relay, any dev command) is dropped, and a manifest with no devAllowedDomains.
+      # `lint-release-bundle.ts` below checks it carries none of the dev-only code; `lint-sandbox-reject.ts` scans its
+      # main.js too.
+      - name: Build plugin (release)
+        run: npm run -w @prism3/plugin build:release
+
+      # dist/main.js runs in Figma's sandboxed main thread, which has no node: builtins. A regression
+      # here breaks the plugin at load in Figma, not at typecheck or build time.
+      - name: "Plugin main.js has 0 node: builtins"
+        run: |
+          set -euo pipefail
+          if grep -q "node:" apps/plugin/dist/main.js; then
+            echo "::error::apps/plugin/dist/main.js references a node: builtin — the main thread must stay sandbox-safe."
+            grep -n "node:" apps/plugin/dist/main.js
+            exit 1
+          fi
+
+      # #2323 — CHROMIUM, INSTALLED ONCE PER JOB, AHEAD OF EVERY BROWSER GATE. Four gates drive a real
+      # browser (the plugin verdict and start-screen suites, the studio chrome and smoke suites), and the
+      # install used to sit inside two of them with no time limit. #2299's run hung 75 minutes twice in
+      # `apt-get` fetching Chromium's system packages from Ubuntu's mirror, and it read as a test hang.
+      #
+      # So: the browser is CACHED, keyed on the Playwright version the lockfile resolves, and the
+      # install runs once, here, with its own time limit. Each attempt is bounded (`timeout 240`) and
+      # retried twice, because a mirror stall is transient far more often than it is persistent; three
+      # failures fail the JOB, named, because the install is SETUP FOR A GATE and a gate that silently
+      # does not run is the failure this whole file exists to prevent. Never `continue-on-error`.
+      # `--with-deps` stays: a cache restores the browser, not the system libraries it loads.
+      #
+      # #2348: a stalled attempt's root `apt-get` survived `timeout` and kept the dpkg lock, so every retry
+      # died on "Could not get lock". The loop now lives in `.github/scripts/install-chromium.sh`, which
+      # bounds apt itself (fetch timeouts and retries, a lock wait) and clears a leftover `apt-get` and runs
+      # `dpkg --configure -a` before each retry. Its test, with a stand-in that leaves a lock-holding child,
+      # is `.github/scripts/test-install-chromium.sh`. 15 minutes: three 4-minute attempts, and up to 90 s
+      # of clearing before each retry, so the step's own limit never cuts off the named error.
+      - name: Resolve the Playwright version (#2323)
+        id: playwright
+        run: echo "version=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Cache the Playwright browser (#2323)
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - name: "Install Chromium for the browser gates (#2323)"
+        timeout-minutes: 15
+        run: bash .github/scripts/install-chromium.sh
+
+      # The panel's own browser suite (#870) — the SECOND step in this workflow that runs a browser,
+      # and it has to be separate from the studio one below. A component build's verdict line is the
+      # only place its misses are reported, and a build that ends on a permanent "⋯ Building…" turns a
+      # reporting build into a silent one: #866's four DISCARDED refs were visible solely because that
+      # summary rendered. This asserts every terminating condition — clean, with misses, errored,
+      # already-built, unknown-def — reaches a verdict a designer can read.
+      #
+      # WHY IT CANNOT LIVE IN THE STUDIO SMOKE SUITE, which is the only other browser step here. The
+      # Components page is `figmaOnly`: `railNav()` omits it from the web rail, so the studio bundle
+      # (`PRISM3_HOST='web'`) has no route to this control at any effort. The subject is the PANEL —
+      # `apps/plugin/dist/ui.html`, loaded top-level so `parent === window` and the harness can stand
+      # in for the main thread. Hence a plugin-workspace suite and this step's dependence on the
+      # "Build plugin" step above rather than on "Build web".
+      #
+      # The browser comes from the install step just above, which fails the job when it cannot install
+      # (#2323); it used to be installed inside this step, for the same "setup for a gate" reason.
+      # QUOTED, following the two steps here that already are: the parenthesis makes `(#870)` safe as a
+      # plain scalar by YAML's own rule, but the studio suite below records the issue reference being
+      # silently truncated on a first CI run, so the convention here is to quote any name carrying one
+      # rather than to re-derive the rule per step.
+      - name: "Component-build verdict suite (#870)"
+        run: npm run -w @prism3/plugin test:verdict
+
+      # #874: build every projected def, READ THE RESULT BACK OUT OF THE HOST, and diff it against the
+      # plan that built it. docs/14 §4 specified this on 2026-07-03 and nothing built it.
+      #
+      # The argument is not the two defects the issue cites — both are now caught by read-backs the
+      # executor grew afterwards. It is that FOUR writes in write-components.ts could be deleted with
+      # every gate green, because each of the executor's nine retention read-backs was written by the
+      # same author immediately below the write it checks: a field the writer forgets to WRITE is a
+      # field the writer forgets to READ BACK. Those are a ledger of past defects; this is the rule.
+      # It iterates the PLAN's fields, not the writer's branches.
+      #
+      # ORACLE = figmaAnatomySet(def); SUBJECT = what the host holds. Plan-driven and one-directional
+      # on FIELDS (the host holds vastly more than any def declares — #865 is a separate, allowlist-
+      # shaped check), two-directional on MEMBERS (an extra member is #869's class). Children matched
+      # BY NAME, never in build order, or it would read the writer's own traversal back.
+      #
+      # It caught #1202 on its first clean run. Stated limit in its header: accept-and-discard is
+      # real-host-only, and one predicate (effectStyle) compares 0 nodes because no def declares one.
+      # QUOTED because the name contains ": ", which a plain YAML scalar reads as a mapping entry —
+      # unquoted, the file did not parse and the workflow never DISPATCHED (run 1238: failure, 0 jobs,
+      # 0s). An ABSENT run, not a pending one, which is why no `gates` check appeared on the PR at all.
+      # `npm run verify` cannot see this: it runs each gate directly, never through ci.yml (#1213).
+      - name: "Component round-trip: the file holds what the plan declared (#874)"
+        run: npm run -w @prism3/plugin test:roundtrip
+
+      # #1197: the plugin's start moment. A separate suite from the verdict one because the subject is a
+      # plugin-only TRIGGER — the web knows at boot that nothing is stored (localStorage is synchronous),
+      # while the plugin learns it from a host message that arrives after boot, so the behaviour does not
+      # exist in the web bundle. Its load-bearing assertion is the NEGATIVE one: a file that already holds
+      # a brand must still hydrate (#1184), because every other case here makes the start screen appear
+      # more often and that is the one a too-eager trigger breaks.
+      - name: Plugin start-moment suite (#1197)
+        run: npm run -w @prism3/plugin test:start
+
+      # THE SECOND DIRECTION (#865). Every write the component executor makes is verified by a read-back
+      # — set the value, read it, report a miss if the host did not keep it. Nothing verified what it did
+      # NOT write, and a Figma node is never silent: a property no def mentioned kept Figma's own default
+      # wearing our name. `createFrame()` returns an opaque white box, `combineAsVariants()` returns a set
+      # with a 5px radius and a purple dashed border, and a text node starts top-left. Measured on the
+      # corpus before the fix: 523 of 973 member root frames carried the unclaimed white fill, and it was
+      # found BY EYE on four separate components before anyone looked for the class.
+      #
+      # A read-back cannot see this, structurally: an unset property has no write to verify. So this asks
+      # the converse question — does every visually-significant property a built node carries trace to a
+      # decision? ACTUAL is recorded, not read: the real `applyComponentPlan` runs against a Proxy host
+      # whose `set` trap records property names, so a mechanism that merely LOOKS like it supplies a
+      # property cannot be credited with it (three drafts of the expected table were wrong in exactly that
+      # way — `setTextStyleIdAsync()` carries no alignment field on either axis). EXPECTED is authored in
+      # the gate from `@figma/plugin-typings`, and `claimDefaults` carries a comment forbidding an import
+      # of its table: a gate reading the subject's own list asserts `table === table` (docs/34 shape 2).
+      #
+      # Every arm reports its own name, and the three exemptions are ASSERTED rather than assumed — an
+      # INSTANCE is exempt only if some plan node nominated the component it came from (A6), auto-layout
+      # properties only where a `layoutMode` exists (A4), imported glyph ink only below Figma's importer
+      # (A5) — plus corpus reach (A0), node-type representation (A2) and row exercise (A3), because a
+      # sweep that builds no VECTOR reports its VECTOR rows as passing.
+      - name: Every visually-significant property on a built node traces to a decision
+        run: npx --yes tsx@4 apps/plugin/lint-unclaimed-defaults.ts
+
+      # THE FIGMA MAIN-THREAD SANDBOX REJECT SCAN (#1461). Figma's plugin sandbox
+      # (rejectImportExpressions) scans the built main.js source text — string literals included — for
+      # `import` followed by `(` and refuses to load the WHOLE plugin. A shipped $description carrying
+      # "the Figma import (2026-09-15)" bricked the plugin with 58 gates + CI green (PR #1460), because
+      # no gate reads main.js the way Figma does: plugin-no-node-builtins scans it for `node:` builtins,
+      # the verdict/start suites drive the UI, us-english/voice read it as prose. Runs after the plugin
+      # build; scoped to main.js (ui.html is a browser iframe where import() is valid syntax). It scans both builds'
+      # main.js (#2530): the release build's is rewritten by minifySyntax.
+      - name: The built main.js carries no Figma-sandbox-rejected token sequence (#1461)
+        run: npx --yes tsx@4 apps/plugin/lint-sandbox-reject.ts
+
+      # WHAT THE BUILT PLUGIN SHIPS OF A COMPONENT DEF (#1623 sign-off). A def's `notes` and
+      # `anatomy.codeOnly` are maintainer-only and are stripped on the way into dist/; shipped component
+      # text cites no Prism 2; every def's one-line summary (the Figma description) is present. Reads
+      # both built bundles against the real defs, so it runs after the plugin build.
+      - name: The built plugin ships no maintainer notes and no Prism 2 in component text (#1623)
+        run: npx --yes tsx@4 apps/plugin/lint-bundle-prose.ts
+
+      # THE RELEASE BUILD CARRIES NO DEV-ONLY CODE (#2530). Each dev-only marker, authored in the gate, must be found
+      # in dist/ (so it names real code) and absent from release/, and release/manifest.json must be manifest.json
+      # less devAllowedDomains with its bundle paths beside it. Runs after both plugin builds.
+      - name: The release build carries no dev-only code (#2530)
+        run: npx --yes tsx@4 apps/plugin/lint-release-bundle.ts
+
+  chrome:
+    runs-on: ubuntu-latest
+    steps:
+      # Full history, as in the `engine` job (whose comment says why, #1039): nothing here is known to
+      # read history, and a depth that differs per job is a difference nothing would report.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install workspace deps
+        run: npm ci
+
+      # The two bundles this suite drives, built here: a build takes seconds (see the comment on `jobs:`).
+      - name: Build web
+        run: npm run -w @prism3/studio build
+      - name: Build plugin
+        run: npm run -w @prism3/plugin build
+
+      # Chromium, as in the `plugin` job, whose comment holds the reasons (#2323, #2348).
+      - name: Resolve the Playwright version (#2323)
+        id: playwright
+        run: echo "version=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Cache the Playwright browser (#2323)
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - name: "Install Chromium for the browser gates (#2323)"
+        timeout-minutes: 15
+        run: bash .github/scripts/install-chromium.sh
+
+      # UI redesign S1.2: the new shell's chrome, measured as rendered, in both hosts — text at 4.5:1,
+      # edges and indicators at 3:1, focus rings, 24px targets, the fonts actually drawn (CDP), no
+      # shadows, no runtime inline values, no horizontal scroll at 640, controls represented by hook,
+      # the IA-2 layer order, the Q2 header line, and the legacy frame map. A separate suite from smoke
+      # because its axes are host × theme × width, not page × mode × brand. AFTER BOTH BUILDS: it drives
+      # the studio's dist/main.js and the plugin's dist/ui.html. The browser comes from the verdict step.
+      - name: New shell chrome suite (UI redesign S1.2)
+        run: npm run -w @prism3/studio test:chrome
+
+  surfaces:
+    runs-on: ubuntu-latest
+    steps:
+      # Full history, as in the `engine` job (whose comment says why, #1039): nothing here is known to
+      # read history, and a depth that differs per job is a difference nothing would report.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install workspace deps
+        run: npm ci
+
+      # Both bundles, built here: the gates below read both (see the comment on `jobs:`).
+      - name: Build web
+        run: npm run -w @prism3/studio build
+      - name: Build plugin
+        run: npm run -w @prism3/plugin build
+
+      # Chromium, as in the `plugin` job, whose comment holds the reasons (#2323, #2348).
+      - name: Resolve the Playwright version (#2323)
+        id: playwright
+        run: echo "version=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Cache the Playwright browser (#2323)
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - name: "Install Chromium for the browser gates (#2323)"
+        timeout-minutes: 15
+        run: bash .github/scripts/install-chromium.sh
+
+      # #2351 gap 1: the web studio's token export and the plugin's token export of the same brand are
+      # BYTE-IDENTICAL, and both are the committed out/<id>.tokens.json byte for byte. Drives both built
+      # bundles in Chromium through the person's own path (start screen → Export → Download, default
+      # settings) over every committed brand a UI can load, discovered from out/*.tokens.json and placed
+      # in both directions (nb, the regression fixture, is excluded with its reason). The expected file
+      # is the engine's Node CLI emission, which runs no studio code, so a defect shared by both bundles
+      # still fails. AFTER BOTH BUILDS. The browser comes from the verdict step.
+      - name: "The web and plugin token exports agree, byte for byte (#2351)"
+        run: npm run -w @prism3/studio test:export-parity
+
+      # TokenPress's own 263 assertions, ported from vitest onto tsx (the suite it arrived with). It
+      # runs the exporter end to end against Figma-shaped fixtures, so it is the only thing here that
+      # can catch a regression in the OUT direction (Figma -> DTCG). Its runner asserts a per-file
+      # census against the pre-port vitest baseline, so a test quietly vanishing fails too.
+      - name: TokenPress tests
+        run: npm run -w @prism3/tokenpress test
+
+      # The exporter writes __PLUGIN_VERSION__ into every tree's $extensions.generator.version, and
+      # it is a bare identifier with no runtime declaration — an absent bundler define ships a plugin
+      # that throws on first export. build.mjs asserts that (plus the iife wrapper, the es2018 target
+      # and jszip's setImmediate shim) against what it actually wrote. dist/ is gitignored, so a
+      # regression here is invisible to typecheck, to lint and to every source grep.
+      - name: Build TokenPress
+        run: npm run -w @prism3/tokenpress build
+
+      # The two DTCG exporters — prism3's emitter and TokenPress's, separate codebases sharing no code
+      # — run over the same brand and compared. `tools/exporter-comparison/compare.ts` is a MEASUREMENT
+      # and always exits 0, because most of what it reports is a difference that is right for its host
+      # (#697); this is the assertable SUBSET, and it imports that measurement rather than restating it.
+      # Four arms, on every brand with a Figma emission (discovered by scanning out/figma/, count
+      # asserted at >= 3): a `$type` disagreement on a shared path, a path TokenPress emits that prism3
+      # does not, TokenPress's float32 cleanup rewriting a value instead of restoring it (#703's
+      # prediction), and #709's opacity 100× at the integration level. The prism3-only direction is a
+      # memory of specific paths WITH CAUSES (aurora's 2 gradients, #731) and fails in both directions,
+      # so a third unreachable path fails AND a gradient becoming reachable fails. Categories 3-5 stay
+      # reporting-only until #697's byte-for-byte question is answered. Runs after the TokenPress build
+      # because it executes TokenPress's real `TokenExporter` in memory. Known limit, stated in the
+      # file and TRACKED as #747 (under #697, which must close it): the types arm only sees paths that
+      # PAIR, which is 71-73 paths per brand — ~14% of the paired surface — that it cannot type-check.
+      - name: The two DTCG exporters agree where a difference would be a defect
+        run: npx --yes tsx@4 tools/exporter-comparison/gate.ts
+
+      # #2351 gap 2 (offline): after the plugin's Apply Theme writes a brand into the file shim
+      # (apps/plugin/file-shim.ts, shared with test-mcp-paste.ts), TokenPress's real exporter over that
+      # file gives the same DTCG as over the engine's committed Figma emission. Every difference is printed
+      # by path as ADDED / REMOVED / RETYPED / VALUE / DESCRIPTION and each count is asserted at 0; the one
+      # tolerance is half an 8-bit step inside a color. Grid and gradient styles, which no exporter reads,
+      # are compared as written. The tinted wash (alias with opacity), which TokenPress cannot read, is
+      # carved out as a bijection and checked as written (#2365). After the exporter gate, which holds the
+      # emission's export to the engine's DTCG.
+      - name: "The plugin's applied file exports what the engine emits (#2351)"
+        run: npm run -w @prism3/plugin test:readback-parity
+
+      # US English in shipped text. Runs AFTER BOTH BUILDS on purpose: `engine/levers.ts` prose is
+      # inlined into `apps/studio/dist/main.js`, and a source-only grep calls that bundle clean — the trap
+      # that got #302 and #310. As of #937 it also scans `apps/plugin/dist` (main.js + ui.html), which
+      # carries the component defs' `description`/`note`/`aria` prose and reaches no other gated
+      # surface; "Build plugin" above is therefore load-bearing for this step, not just for the
+      # node:-builtin check. Gates out/, the emitted schema + reports, and both built bundles — there is
+      # no reported-but-not-fatal surface left, the two CLAUDE.md once held open having been converted.
+      - name: US-English gate (shipped text)
+        run: npx --yes tsx@4 packages/engine/lint-us-english.ts
+
+      # Voice-standard §2 banned-phrase list ("simply", "just" outside its exactly/barely sense,
+      # "easy", "obviously", "please note"/"note that", "Oops"/"Sorry", exclamation marks in prose)
+      # in shipped text (#617). Sibling to the US-English gate above, not merged into it — different
+      # exemption sets (an allow-set for "just", a context rule for "!"), different failure messages
+      # — but wired in the SAME position for the SAME reason: its scope includes the built
+      # `apps/studio/dist/*.js` bundle, so it has to run after the web build too. Its client-name arm
+      # (#1824) also reads `apps/plugin/dist` raw, so "Build plugin" is load-bearing for it as well.
+      - name: Voice lint gate (shipped text)
+        run: npx --yes tsx@4 packages/engine/lint-voice.ts
+
+  # THE ONE CHECK THE MERGE RULE READS, under the name it has always had. Before Q503 A the whole run was
+  # one job with the id `gates`, so its check run was named `gates`; this job keeps that id, so branch
+  # protection and anything reading the check run named `gates` read this one, and the five jobs above
+  # report beside it as `engine`, `studio`, `plugin`, `chrome` and `surfaces`.
+  #
+  # `if: always()`, because a job whose `needs` failed is SKIPPED, and a required check reading `skipped`
+  # lets the PR merge. The step decides instead: anything but `success` from any job fails it, by name
+  # (`.github/scripts/all-gates.sh`, tested by `test-all-gates.sh` beside it). `needs` must list every
+  # other job in this file; `lint-doc-gates.ts` fails when one is missing.
+  gates:
+    needs: [engine, studio, plugin, chrome, surfaces]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Every gate job succeeded
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: bash .github/scripts/all-gates.sh

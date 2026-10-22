@@ -284,6 +284,10 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
   // the slot it paints.
   'list-item|icon':
     "the key is the `icon` paint slot, not the `type` value `icon`; the two share a spelling. It binds the icon role, `color.icon.primary`, for the icon marker, which only the icon type draws",
+  // Dialog (#2880): the key is the panel's `fill` PAINT SLOT (its surface), whose spelling matches the `footer` value
+  // `fill` (Q492 B). It is the slot that leads, not the axis value: the key binds at every footer.
+  'dialog|fill':
+    "the key is the panel's `fill` paint slot, not the `footer` value `fill`; the two share a spelling. It binds the surface role, `color.foreground.primary`, at every footer",
   'field-message|default.label':
     "status `default` maps to the MUTED body role, not to a role named 'default' — the token tier has no `text.default`, and `secondary` is what a non-status message's ink is",
   'field-message|default.icon':
@@ -373,6 +377,65 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
     'status `error` maps to the `danger` border role — the filled coordinate (owner decision, 2026-09-25), bound so a field holding an invalid value keeps the danger boundary',
   'textarea|error.border.focus-visible-filled':
     'status `error` maps to the `danger` border role — the focused coordinate that holds a value (#2318, owner Q157), bound so an invalid value keeps the danger boundary while the field is focused (the ring carries the focus signal on top)',
+  // #2751 (owner Q354): the choice controls took the fields' `status` axis, so they carry the same `error` → `danger`
+  // border mapping, one key per selection and per non-disabled state (the status template is 4-segment so it cannot
+  // read the 3-segment selection keys). ONLY `error` exists on their axis; `default` binds none.
+  'checkbox-control|error.unchecked.border.rest':
+    'status `error` maps to the `danger` border role — the unchecked rest coordinate, so the error edge persists through the interaction states',
+  'checkbox-control|error.unchecked.border.hover':
+    'status `error` maps to the `danger` border role — the unchecked hover coordinate, so the error edge persists through the interaction states',
+  'checkbox-control|error.unchecked.border.pressed':
+    'status `error` maps to the `danger` border role — the unchecked pressed coordinate, so the error edge persists through the interaction states',
+  'checkbox-control|error.unchecked.border.focus-visible':
+    'status `error` maps to the `danger` border role — the unchecked focus-visible coordinate, so the error edge persists through the interaction states',
+  'checkbox-control|error.checked.border.rest':
+    'status `error` maps to the `danger` border role — the checked rest coordinate, so the error edge persists through the interaction states',
+  'checkbox-control|error.checked.border.hover':
+    'status `error` maps to the `danger` border role — the checked hover coordinate, so the error edge persists through the interaction states',
+  'checkbox-control|error.checked.border.pressed':
+    'status `error` maps to the `danger` border role — the checked pressed coordinate, so the error edge persists through the interaction states',
+  'checkbox-control|error.checked.border.focus-visible':
+    'status `error` maps to the `danger` border role — the checked focus-visible coordinate, so the error edge persists through the interaction states',
+  'checkbox-control|error.indeterminate.border.rest':
+    'status `error` maps to the `danger` border role — the indeterminate rest coordinate, so the error edge persists through the interaction states',
+  'checkbox-control|error.indeterminate.border.hover':
+    'status `error` maps to the `danger` border role — the indeterminate hover coordinate, so the error edge persists through the interaction states',
+  'checkbox-control|error.indeterminate.border.pressed':
+    'status `error` maps to the `danger` border role — the indeterminate pressed coordinate, so the error edge persists through the interaction states',
+  'checkbox-control|error.indeterminate.border.focus-visible':
+    'status `error` maps to the `danger` border role — the indeterminate focus-visible coordinate, so the error edge persists through the interaction states',
+  'radio-control|error.unchecked.border.rest':
+    'status `error` maps to the `danger` border role — the unchecked rest coordinate, so the error edge persists through the interaction states',
+  'radio-control|error.unchecked.border.hover':
+    'status `error` maps to the `danger` border role — the unchecked hover coordinate, so the error edge persists through the interaction states',
+  'radio-control|error.unchecked.border.pressed':
+    'status `error` maps to the `danger` border role — the unchecked pressed coordinate, so the error edge persists through the interaction states',
+  'radio-control|error.unchecked.border.focus-visible':
+    'status `error` maps to the `danger` border role — the unchecked focus-visible coordinate, so the error edge persists through the interaction states',
+  'radio-control|error.checked.border.rest':
+    'status `error` maps to the `danger` border role — the checked rest coordinate, so the error edge persists through the interaction states',
+  'radio-control|error.checked.border.hover':
+    'status `error` maps to the `danger` border role — the checked hover coordinate, so the error edge persists through the interaction states',
+  'radio-control|error.checked.border.pressed':
+    'status `error` maps to the `danger` border role — the checked pressed coordinate, so the error edge persists through the interaction states',
+  'radio-control|error.checked.border.focus-visible':
+    'status `error` maps to the `danger` border role — the checked focus-visible coordinate, so the error edge persists through the interaction states',
+  'switch-control|error.off.border.rest':
+    'status `error` maps to the `danger` border role — the off rest coordinate, so the error edge persists through the interaction states',
+  'switch-control|error.off.border.hover':
+    'status `error` maps to the `danger` border role — the off hover coordinate, so the error edge persists through the interaction states',
+  'switch-control|error.off.border.pressed':
+    'status `error` maps to the `danger` border role — the off pressed coordinate, so the error edge persists through the interaction states',
+  'switch-control|error.off.border.focus-visible':
+    'status `error` maps to the `danger` border role — the off focus-visible coordinate, so the error edge persists through the interaction states',
+  'switch-control|error.on.border.rest':
+    'status `error` maps to the `danger` border role — the on rest coordinate, so the error edge persists through the interaction states',
+  'switch-control|error.on.border.hover':
+    'status `error` maps to the `danger` border role — the on hover coordinate, so the error edge persists through the interaction states',
+  'switch-control|error.on.border.pressed':
+    'status `error` maps to the `danger` border role — the on pressed coordinate, so the error edge persists through the interaction states',
+  'switch-control|error.on.border.focus-visible':
+    'status `error` maps to the `danger` border role — the on focus-visible coordinate, so the error edge persists through the interaction states',
   // `badge` keys its paint `{tone}.{type}.{emphasis}.{slot}`, so the TONE leads and arm 1 reads it. Three
   // shapes need an exception, and every other badge key satisfies the rule on its own: the bold fills
   // (`foreground.<tone>`), the subtle labels (`text.<tone>`) and the subtle edges (`border.<tone>`) carry the
@@ -795,10 +858,10 @@ const UNREACHED_EXPLAINED: Record<string, string> = {
     'the fifth instance, and since #1354 it is on the ATOMIC control rather than the row — the switch split, and the ring moved with the painted track into `switch-control`, which nests it inside its own `track` box (exactly as #1226 moved checkbox\'s ring into `checkbox-control`). Still a nomination: it names the colour the nested `focus-ring` draws, and no node of this def can carry a ring stroke (#740). The shape is now confirmed rather than suspected — five defs, one reason, one open issue (#740). The reason this stays a per-def entry rather than becoming a rule keyed off `nests`: the rule would then be derived from the same field the projection reads, so a def that nested a ring and legitimately DID paint one would be exempted by the mechanism instead of caught by it.',
   'tag|focus-ring':
     'the sixth ring nomination, and the same shape as `button|focus-ring`: it names the colour the nested `focus-ring` draws around the tag at focus-visible, and no node of this def can carry a ring stroke (#740). A nomination, not a paint.',
-  'tab|focus-ring':
+  'tab-item|focus-ring':
     'the seventh ring nomination, the same shape as `tag|focus-ring`: it names the colour the nested `focus-ring` draws around the tab at focus-visible, and no node of this def can carry a ring stroke (#740). A nomination, not a paint.',
   'segmented-control-segment|focus-ring':
-    'the eighth ring nomination, the same shape as `tab|focus-ring`: it names the colour the nested `focus-ring` draws around a segmented control option\'s indicator at focus-visible, and no node of this def can carry a ring stroke (#740). A nomination, not a paint.',
+    'the eighth ring nomination, the same shape as `tab-item|focus-ring`: it names the colour the nested `focus-ring` draws around a segmented control option\'s indicator at focus-visible, and no node of this def can carry a ring stroke (#740). A nomination, not a paint.',
   'field-message|default.icon':
     'CATEGORY (b), and the first entry here that is not a ring nomination — see the header for why the two are kept apart. This key paints the status glyph on the DEFAULT status, and that status deliberately projects no glyph: the Prism2 reference row its grey ink matches is `standard` (no icon), so the three validation statuses carry gated `vector` parts and the default member is caption-only (#1010). Unreachable for a reason the five above do not share: nothing is missing from the projector. Every node the default member has IS asked for its paint, and the node this colour is for does not exist there — `props.icon` may supply one in code, per instance, which is a distinction Figma has no member for (see the def\'s `anatomy.codeOnly`). So there is no engine field to add and no issue to close, and the fix if this entry ever goes red is to DELETE it, not to widen anything: it goes red exactly when the default status gains a glyph, which is a def decision. The three validation-status glyph inks are reached normally and are not listed.',
   'divider|separator.fill':

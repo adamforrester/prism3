@@ -161,7 +161,7 @@ export const USED_BY = {
       "Radio.Row",
       "Select",
       "Tag",
-      "Tab",
+      "Tab.Item",
       "Accordion",
       "SegmentedControl",
       "PasswordField",
@@ -176,7 +176,7 @@ export const USED_BY = {
       "Radio.Row",
       "Switch.Row",
       "Tag",
-      "Tab",
+      "Tab.Item",
       "Divider",
       "SegmentedControl",
       "Counter"
@@ -189,7 +189,7 @@ export const USED_BY = {
       "Radio.Row",
       "Switch.Row",
       "Tag",
-      "Tab",
+      "Tab.Item",
       "SegmentedControl",
       "Counter"
     ]
