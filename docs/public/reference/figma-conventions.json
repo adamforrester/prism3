@@ -244,7 +244,8 @@
             "components": [
               "_breadcrumb-separator",
               "breadcrumb-item"
-            ]
+            ],
+            "usagePanelLead": "breadcrumb-item"
           }
         ]
       },

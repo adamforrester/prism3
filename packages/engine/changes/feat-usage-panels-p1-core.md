@@ -1,5 +1,5 @@
 ---
-engine: patch
+engine: minor
 ---
 Plugin: usage panels, phase 1 of #2927 (owner decision Q551 A). One panel per taxonomy page, beside the set of the
 page's lead (`lead` in `file-taxonomy.ts`: Button, and the Row for Checkbox, Radio and Switch), listing the family's

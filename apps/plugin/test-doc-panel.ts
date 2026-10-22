@@ -533,6 +533,15 @@ section('family/… — one panel per taxonomy page, beside its lead; the member
   const shown = texts(live[0]);
   ok(!!dd && dd.type === 'Do-Dont' && dd.do.join('|') === want.slice(0, 4).join('|') && (want.length <= 4 || shown.some((t) => t.includes(`of ${want.length} Do items`))),
     `family/do: the first 4 of the family's ${want.length} Do items, the Row's first`);
+  // Each item once, over families whose defs repeat lines (Buttons repeats 28 Do and 10 Don't lines across its four
+  // defs; Icon button repeats 6). EXPECTED is typed here, read off the defs, not derived through the panel's own merge.
+  const famBlocks = (id: string) => planDocPanel(componentDefs.find((d) => d.id === id)!, { modes: ['light', 'dark'], names }).sections.flatMap((x) => x.blocks);
+  const countLine = (id: string) => famBlocks(id).flatMap((b) => b.type === 'Paragraph' && b.text.startsWith('Showing') ? [b.text] : []);
+  ok(countLine('button').join('|') === "Showing 4 of 19 Do items and 4 of 9 Don't items.",
+    `family/once: Buttons counts each repeated item once (${JSON.stringify(countLine('button'))})`);
+  const ib = famBlocks('icon-button').find((b) => b.type === 'Do-Dont');
+  ok(!countLine('icon-button').length && !!ib && ib.type === 'Do-Dont' && ib.do.length === 4 && ib.dont.length === 3 && new Set([...ib.do, ...ib.dont]).size === 7,
+    `family/once: Icon button's family fits the panel once its repeats are merged (${JSON.stringify(countLine('icon-button'))})`);
 }
 
 /* ── print: what the panel shows of its set is not a hand edit ─────────────────────────────────────────── */
