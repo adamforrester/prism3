@@ -745,7 +745,7 @@ const TYPE_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="face-add-inpu
 /** Shape in the two panes (S7): the controls its levers must render, by hook (Density's chips and the way to
  *  Components, Radius' slider and Control shape chips, Show advanced, the way on to Depth & motion). */
 const SHAPE_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="density-choice-comfortable"]', '[data-p3="shape-see-components"]',
-  '[data-p3="radius-scale-slider"]', '[data-p3="control-shape-choice-rounded"]', '[data-p3="field-style-choice-outline"]', '[data-p3="tag-style-choice-pill"]', '[data-p3="shape-advanced"]', '[data-p3="shape-continue"]'];
+  '[data-p3="radius-scale-slider"]', '[data-p3="control-shape-choice-rounded"]', '[data-p3="tag-style-choice-pill"]', '[data-p3="shape-advanced"]', '[data-p3="shape-continue"]'];
 /** Depth & motion in the two panes (S9.2), previewing Light: the softness slider, Elevation's Show advanced, the tempo
  *  chips, an easing picker button per role, the way on to Layout. The rest is section 23's. */
 const DEPTH_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="shadow-softness"]', '[data-p3="depth-tint-advanced"]',
@@ -7714,8 +7714,9 @@ for (const host of ['web', 'figma']) {
 // =============================================================================================
 console.log(`\nShape (S7)\n${'='.repeat(78)}`);
 /** The lever keys the owner's D1 A places on Shape, by hook (represented, not counted). `radiusHairline` is retired. */
-// #2695: Field style, right after Control shape (owner Q333, the Form group's order). #2887: Tag style after it (Q513.1 A).
-const SHAPE_LEVERS = ['lever-density', 'lever-radius-scale', 'lever-control-shape', 'lever-field-style', 'lever-tag-style', 'lever-base-md'];
+// #2887: Tag style after Control shape (Q513.1 A). #2905 Q578 B: Field style (#2695) is no longer on Shape: its one home
+// is Components › Field options, so "every lever renders once" fails by name (`also drawn lever-field-style`) if it is.
+const SHAPE_LEVERS = ['lever-density', 'lever-radius-scale', 'lever-control-shape', 'lever-tag-style', 'lever-base-md'];
 /** The preview's sections, in order (D1 A). Literal. */
 const EXPECT_SHAPE_SPECIMENS = ['Density', 'Radius', 'Spacing', 'Building blocks'];
 /** Q23: each lever section, in order, and the preview section it pairs with (Base radius with Radius, D1 A). */
@@ -7922,12 +7923,7 @@ for (const host of ['web', 'figma']) {
     const pShape = await persisted(page);
     ok(pShape?.controlShape === 'pill', `shape: Pill writes controlShape: pill (${pShape?.controlShape})`);
     await chip('control-shape-choice-rounded');
-    // #2695: Field style is brand-wide chips, as Control shape is.
-    await chip('field-style-choice-underline');
-    const pField = await persisted(page);
-    ok(pField?.fieldStyle === 'underline', `shape: Underline writes fieldStyle: underline (${pField?.fieldStyle})`);
-    await chip('field-style-choice-outline');
-    // #2887: Tag style is brand-wide chips, as Field style is.
+    // #2887: Tag style is brand-wide chips, as Control shape is. (Field style's write is the #2905 arm's, on Components.)
     await chip('tag-style-choice-underline');
     const pTag = await persisted(page);
     ok(pTag?.tagStyle === 'underline', `shape: Underline writes tagStyle: underline (${pTag?.tagStyle})`);
@@ -7962,10 +7958,6 @@ for (const host of ['web', 'figma']) {
     await chip('control-shape-choice-pill');
     ok((await persisted(page))?.controlShape === 'pill' && JSON.stringify((await persisted(page))?.modeLevers) === JSON.stringify(p2?.modeLevers), 'Q54: previewing Dark, Pill writes controlShape: pill and no per-mode value');
     await chip('control-shape-choice-rounded');
-    // #2695: Field style too, brand-wide from Dark.
-    await chip('field-style-choice-underline');
-    ok((await persisted(page))?.fieldStyle === 'underline' && JSON.stringify((await persisted(page))?.modeLevers) === JSON.stringify(p2?.modeLevers), '#2695: previewing Dark, Underline writes fieldStyle: underline and no per-mode value');
-    await chip('field-style-choice-outline');
     // #2887: Tag style too, brand-wide from Dark.
     await chip('tag-style-choice-underline');
     ok((await persisted(page))?.tagStyle === 'underline' && JSON.stringify((await persisted(page))?.modeLevers) === JSON.stringify(p2?.modeLevers), '#2887: previewing Dark, Underline writes tagStyle: underline and no per-mode value');
@@ -8017,7 +8009,7 @@ for (const host of ['web', 'figma']) {
       });
       ok(d.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.`, `Q59: previewing ${label}, the panel's derived line shows (N-3 A) on Shape ("${d.line}")`);
       ok(d.n >= 9 && d.enabled.length === 0, `Q59: previewing ${label}, every control on Shape is disabled, Base radius included (${d.n - d.enabled.length}/${d.n})${d.enabled.length ? ` — enabled ${[...new Set(d.enabled)].join(', ')}` : ''}`);
-      for (const hk of ['density-choice-compact', 'radius-scale-slider', 'control-shape-choice-pill', 'field-style-choice-underline', 'tag-style-choice-underline', 'base-radius-pick']) ok(d.hooks.includes(hk), `Q59: previewing ${label}, the ${hk} control on Shape is among those held disabled`);
+      for (const hk of ['density-choice-compact', 'radius-scale-slider', 'control-shape-choice-pill', 'tag-style-choice-underline', 'base-radius-pick']) ok(d.hooks.includes(hk), `Q59: previewing ${label}, the ${hk} control on Shape is among those held disabled`);
       ok(JSON.stringify(d.preview) === JSON.stringify(EXPECT_SHAPE_SPECIMENS), `Q59: previewing ${label}, the Shape preview is still drawn (${d.preview.join(', ')})`);
       // Every size is drawn at 0px, as the emission draws wireframe; the two pill sizes still read "Pill" (#2078: the
       // label is which size it is, not its px).
@@ -8138,7 +8130,7 @@ for (const { w, h } of WIDTHS) {
 console.log(`\nComponents (S8.2)\n${'='.repeat(78)}`);
 /** The lever keys pages.ts places on Components (G6 A), by hook. Literal. */
 const COMPONENTS_LEVERS = ['lever-button-icons', 'lever-button-content-size', 'lever-button-label-weight', 'lever-button-text-hover', 'lever-button-min-width-multiplier',
-  // #2905 (Q3 B): Field options draws Field style, whose home stays Shape › Radius; the Fields section draws it once more.
+  // #2905 (Q3 B, Q578 B): Field options draws Field style, its one control; its home is Components › Field.
   'lever-field-style'];
 /** #2700 (call 9 A): the levers pane holds the list, in its two sections; the preview pane the focused family, Buttons by
  *  default, in three sections. Literal. Q23's heading pairs (a lever section headed as its preview section) ended with
@@ -8580,6 +8572,16 @@ for (const host of ['web', 'figma']) {
       await page.waitForTimeout(150);
       const t2 = await page.evaluate(() => document.querySelector('[data-p3="components-detail-title"]')?.textContent ?? null);
       ok(t2 === 'Select', `#2905: ${host} ${w}: with Select in focus, opening Field options keeps Select in the preview (${t2})`);
+      // #2695's Q54 write, moved here with the control (Q578 B): from Dark, Field style writes the brand value, no per-mode one.
+      if (host === 'web' && w === 1280) {
+        const before = await persisted(page);
+        await chooseMode(page, 'dark');
+        await hooks.click(page.locator('[data-p3="field-options"] [data-p3="field-style-choice-outline"]'));
+        await page.waitForFunction(() => document.querySelector('[data-p3="components-control-shape-readout"]')?.textContent === 'Rounded', null, { timeout: 5000 }).catch(() => {});
+        const after = await persisted(page);
+        ok(after?.fieldStyle === 'outline' && JSON.stringify(after?.modeLevers) === JSON.stringify(before?.modeLevers),
+          `#2695 Q54: previewing Dark, Field options' Outline writes fieldStyle: outline and no per-mode value (${after?.fieldStyle}, ${JSON.stringify(after?.modeLevers)})`);
+      }
       ok(errors.length === 0, `#2905 ${host} ${w}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
       ok(false, `#2905 ${host} ${w}: the case stopped at a step that threw — ${stopped(e)}`);

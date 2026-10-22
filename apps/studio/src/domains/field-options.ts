@@ -4,8 +4,8 @@
  *
  * WHERE THEY ARE DRAWN: once, in the Components page's Fields section, after its sets, behind the section's disclosure
  * line (`domains/components.ts`). Field style is one brand-wide lever, so the one block changes every field in the
- * section. Its home in the page data stays Shape › Radius (`shell/pages.ts`), where the same chips are drawn: both write
- * through `state/shape-input.ts`, so the two cannot disagree.
+ * section. This is Field style's only control (owner decision Q578 B): its home in the page data is Components › Field
+ * (`shell/pages.ts`), and Shape no longer draws it. It writes through `state/shape-input.ts`.
  *
  * THE CONTROL SHAPE LINE reads the brand's Control shape, which sets field corners too. Under Underline it says the field
  * has no corners instead, since an underline field draws none (the engine's `applyFieldStyle` binds `radius.none`).
@@ -20,7 +20,7 @@ import type { FieldStyle } from '@prism3/engine/scale';
 import { currentMode, lastError, rebuild, setPage, subscribe } from '../state/store';
 import { isDerived } from '../state/verdict';
 import { brandControlShape, brandFieldStyle, setFieldStyle } from '../state/shape-input';
-import { pageOfTab } from '../shell/pages';
+import { FIELD_DESC, pageOfTab } from '../shell/pages';
 import { glyph, h, hook } from '../shell/dom';
 import { choice, leverBlock, leverOf, keepFocus } from '../ui/lever-kit';
 import { BUTTON_OPTIONS_COPY } from './button-options';
@@ -28,7 +28,7 @@ import { BUTTON_OPTIONS_COPY } from './button-options';
 /** The block's copy. Q10 A on #2905: as drafted in wireframe v2. */
 export const FIELD_OPTIONS_COPY = {
   title: 'Field options',
-  desc: 'How Text field, Password field, Select and Textarea draw their edge.',
+  desc: FIELD_DESC,
   shapeLabel: 'Control shape',
   shapeLink: 'Set it in Shape › Control shape',
   noCorners: 'No corners on an underline field.',
