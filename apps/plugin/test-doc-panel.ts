@@ -456,6 +456,9 @@ section('markers/… — every listed number on a specimen, on its part, by a le
       if (!hit) { wrong.push(`${num} ${part.id}: its marker and leader reach no ${part.id} (${targets.length} in the specimens)`); continue; }
       const spec = specs.find((sp) => walk(sp).includes(hit))!;
       if (overlapsBox(marker, spec.absoluteBoundingBox!)) wrong.push(`${num} ${part.id}: the marker sits on the specimen, not in its gutter`);
+      const stage = (spec.parent as N).absoluteBoundingBox!;
+      if (marker.x < stage.x || marker.y < stage.y || marker.x + marker.width > stage.x + stage.width || marker.y + marker.height > stage.y + stage.height)
+        wrong.push(`${num} ${part.id}: the marker is outside its specimen's stage`);
       if (texts(badge)[0] !== num) wrong.push(`${num}: the marker reads ${texts(badge)[0]}`);
     }
     const badges = panel.children.filter((c) => c.name.startsWith('part ')).map((g) => walk(g).find((c) => c.name === 'marker')!.absoluteBoundingBox!);

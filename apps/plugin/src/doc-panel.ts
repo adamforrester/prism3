@@ -658,12 +658,13 @@ export const drawDocPanel = async (
    */
   const markSpecimens = async (into: PNode, first: PNode, marks: readonly AnatomyMark[]): Promise<void> => {
     let left = [...marks];
-    const take = (i: PNode): void => {
+    const take = (i: PNode): number => {
       const spec = find(i, 'specimen');
-      if (!spec) return;
+      if (!spec) return 0;
       const here = left.filter((m) => reveal(spec, m.path));
       left = left.filter((m) => !here.includes(m));
       if (here.length) anatomy.push({ spec, stage: find(i, 'stage'), marks: here });
+      return here.length;
     };
     take(first);
     const used = new Set<PNode | undefined>([member]);
@@ -684,7 +685,8 @@ export const drawDocPanel = async (
       const now = variantValues(best.name);
       // DRAFT wording (Q10): the axes on which this member differs from the default.
       await showSpecimen(i, best, undefined, `Shown on ${Object.keys(now).filter((k) => now[k] !== was[k]).map((k) => `${k} ${now[k]}`).join(', ') || best.name}`);
-      take(i);
+      // A member that held the parts but could not show them (a boolean the host refused): no specimen, and no more.
+      if (!take(i)) { i.remove?.(); break; }
     }
     for (const m of left) out.misses.push(`part ${m.n} (${m.part}) is shown by no member of ${def.id}'s set`);
   };
