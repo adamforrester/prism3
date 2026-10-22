@@ -8291,8 +8291,9 @@ for (const host of ['web', 'figma']) {
     await hooks.click(page.locator('[data-p3="mode-on-wireframe"]'));
     await page.waitForFunction(() => !!document.querySelector('[data-p3="mode-option"][data-mode="wireframe"], [data-p3="mode-select"] option[value="wireframe"]'));
     await goPlace(page, 'components');
-    await openButtonOptions(page);
+    // #2905: Fields first, since opening a block focuses its section's first set; Buttons last, so the preview shows Buttons.
     await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=fields"]'));
+    await openButtonOptions(page);
     for (const [mode, label] of [['hc-light', 'HC light'], ['hc-dark', 'HC dark'], ['wireframe', 'Wireframe']]) {
       await chooseAnyMode(page, mode);
       await page.waitForFunction((l) => document.querySelector('[data-p3="button-options-derived"]')?.textContent?.startsWith(l), label, { timeout: 5000 }).catch(() => {});
