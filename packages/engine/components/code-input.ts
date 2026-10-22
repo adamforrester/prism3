@@ -311,7 +311,7 @@ export const codeInput: ComponentDef = {
     { name: 'helpText', type: 'string | node', required: false, description: 'Persistent guidance (rendered as FieldMessage): how many characters and where the code was sent.' },
     { name: 'validation', type: "enum: 'default' | 'error'", values: ['default', 'error'], default: 'default', required: false, description: 'error swaps every cell to the danger border, sets the message to the error status and sets aria-invalid.' },
     { name: 'validationMessage', type: 'string | node', required: false, description: 'The error text: too few characters, a wrong code or an expired code, each said plainly.' },
-    { name: 'showMessage', type: 'boolean', default: true, required: false, description: 'Whether the composed FieldMessage is shown. On by default.' },
+    { name: 'showMessage', type: 'boolean', default: false, required: false, description: 'Whether the composed FieldMessage is shown. Off by default; turn it on to show the helper or validation message below the cells. Never hides a message the field needs: turn it on wherever there is helper or validation text.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large' | 'xlarge'", values: ['small', 'medium', 'large', 'xlarge'], default: 'medium', required: false, description: 'The cell size: small 44×44 with a 16px character, medium 48×56 with 20px, large 56×64 with 24px, xlarge 68×72 with 40px, meant for four-character codes.' },
     { name: 'width', type: "enum: 'auto' | 'full'", values: ['auto', 'full'], default: 'auto', required: false, description: 'auto: each cell at its size. full: the row spans its container and the cells share it, shrinking to 32px wide when they must.' },
     { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Native disabled.' },
@@ -378,7 +378,7 @@ export const codeInput: ComponentDef = {
         nesting: { kind: 'nest-fixed', variant: { status: 'default' }, follow: ['status'] },
         optional: true,
         crossAxisFill: true,
-        note: 'Helper or error text, composed. Its status follows the field\'s. Shown by default.',
+        note: 'Helper or error text, composed. Its status follows the field\'s. Hidden by default (#2926); the `showMessage` boolean shows it where the field has something to say.',
       },
     },
     codeOnly: [
@@ -403,7 +403,8 @@ export const codeInput: ComponentDef = {
     stateAxis: { name: 'state', values: ['rest', 'hover', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled'] },
     gridAxis: 'state',
     booleans: {
-      showMessage: { part: 'message', figmaName: 'message', default: true },
+      // Off by default, as every field's message (owner decision on #2926, item 1).
+      showMessage: { part: 'message', figmaName: 'message', default: false },
     },
   },
 

@@ -28,7 +28,7 @@ Shown on the default member: size `medium`, status `default`.
 7. **Cell4** — Cell 4 of the default six.
 8. **Cell5** — Cell 5 of the default six.
 9. **Cell6** — Cell 6 of the default six.
-10. **Message** (optional) — Helper or error text, composed. Its status follows the field's. Shown by default.
+10. **Message** (optional)
 
 ## Styles
 
@@ -118,7 +118,7 @@ Label = noun phrase, sentence case. Helper = the length and where the code went.
 | `helpText` | string \| node | — | no | Persistent guidance (rendered as FieldMessage): how many characters and where the code was sent. |
 | `validation` | enum: 'default' \| 'error' | `default` | no | error swaps every cell to the danger border, sets the message to the error status and sets aria-invalid. |
 | `validationMessage` | string \| node | — | no | The error text: too few characters, a wrong code or an expired code, each said plainly. |
-| `showMessage` | boolean | `true` | no | Whether the composed FieldMessage is shown. On by default. |
+| `showMessage` | boolean | `false` | no | Whether the composed FieldMessage is shown. Off by default; turn it on to show the helper or validation message below the cells. Never hides a message the field needs: turn it on wherever there is helper or validation text. |
 | `size` | enum: 'small' \| 'medium' \| 'large' \| 'xlarge' | `medium` | no | The cell size: small 44×44 with a 16px character, medium 48×56 with 20px, large 56×64 with 24px, xlarge 68×72 with 40px, meant for four-character codes. |
 | `width` | enum: 'auto' \| 'full' | `auto` | no | auto: each cell at its size. full: the row spans its container and the cells share it, shrinking to 32px wide when they must. |
 | `disabled` | boolean | `false` | no | Native disabled. |
@@ -199,7 +199,7 @@ Keyed by `status`, `state`.
 
 | Property | Type | Default |
 | --- | --- | --- |
-| `message` | boolean | `true` |
+| `message` | boolean | `false` |
 | `items` | slot | — |
 
 ---

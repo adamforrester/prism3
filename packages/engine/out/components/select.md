@@ -108,7 +108,7 @@ Label = noun phrase, sentence case, no trailing colon. Placeholder = the plain n
 | `helpText` | string \| node | — | no | Persistent guidance, rendered as the nested FieldMessage in its default status; wired via aria-describedby. Show the constraint before failure. |
 | `validation` | enum: 'default' \| 'error' \| 'warning' \| 'success' | `default` | no | The validation state. Each non-default status swaps the control border to its own boundary (border-only — error → danger, warning → warning, success → success) and sets the nested message to the matching status; default is neutral. The values align with FieldMessage's status axis, so this drives the nested message directly. |
 | `validationMessage` | string \| node | — | no | The validation text shown at error / warning / success. For error, say what is wrong and how to fix it (SC 3.3.3), never "Invalid". |
-| `showMessage` | boolean | `true` | no | Whether the composed FieldMessage is shown. On — the default — renders the helper / validation message below the control; turning it off hides the message entirely (a select with no helper or validation text). Never hides a message the field needs: an error still sets aria-invalid and the message carries the reason, so hide it only when there is genuinely nothing to say. |
+| `showMessage` | boolean | `false` | no | Whether the composed FieldMessage is shown. Off by default; turn it on to render the helper or validation message below the control. Never hides a message the field needs: an error still sets aria-invalid and the message carries the reason, so turn it on wherever there is something to say. |
 | `leadingIcon` | slot | — | no | An optional leading glyph before the value (a category or status mark), aria-hidden. Hidden by default; the file nominates the swap target. Signals the field's purpose; validation never mutates it. |
 | `required` | boolean | `false` | no | Sets required / aria-required, and turns on the FieldLabel's required marker. |
 | `disabled` | boolean | `false` | no | Native disabled — removed from tab order, not submitted, contrast-exempt. Reserve for a choice irrelevant in the current state. |
@@ -458,7 +458,7 @@ Keyed by `status`, `state`.
 | `value` | text | `Selected option` |
 | `leading icon` | boolean | `false` |
 | `↳ swap leading icon` | instance swap | — |
-| `message` | boolean | `true` |
+| `message` | boolean | `false` |
 
 ---
 

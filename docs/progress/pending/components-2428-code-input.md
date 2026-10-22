@@ -89,3 +89,5 @@ Built on #2660's items-slot pattern (merged), with current `main` merged in.
   `inputMode` prop's default, one Tab stop, no `aria-label` over the value, the cells `aria-hidden` with no role and no
   focus, six cell nests in the slot, and the FieldLabel wired to the input. Before it, a change to the contract failed
   only the surface digest and the docs round-trip, both cleared by a regenerate and a re-accept.
+- Main's #2926 (every field's message off by default, owner decision item 1): Code input's `showMessage` defaults off,
+  boolean, prop and built node, and `code-input` joins the test's `MESSAGE_OFF_FAMILY`, as that test's header names it.

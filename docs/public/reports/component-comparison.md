@@ -10,7 +10,7 @@ Peers come from three groupings, each derived from the definitions:
 
 Generated from the component definitions and the emission by `packages/engine/emit-analysis-reports.ts`; `regen.ts --check` fails when this page is stale. The same data for agents: [component-comparison.json](component-comparison.json). All reports: [index](index.md).
 
-## Findings (88)
+## Findings (87)
 
 ### axis values
 
@@ -48,10 +48,6 @@ Generated from the component definitions and the emission by `packages/engine/em
 - **tag** — tag has the variant axis selection and no prop of that name
 - **text-field** — text-field has the variant axes style and status and no props of those names
 - **textarea** — textarea has the variant axes style and status and no props of those names
-
-### prop default
-
-- **prop showMessage** — showMessage defaults differ over the same values — false in counter; true in code-input, password-field, select, text-field, textarea
 
 ### size default
 
@@ -535,12 +531,12 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | icon-button | square | square, circular |
 |  | icon-button-destructive | square | square, circular |
 |  | icon-button-neutral | square | square, circular |
-| showMessage | code-input | true | — |
+| showMessage | code-input | false | — |
 |  | counter | false | — |
-|  | password-field | true | — |
-|  | select | true | — |
-|  | text-field | true | — |
-|  | textarea | true | — |
+|  | password-field | false | — |
+|  | select | false | — |
+|  | text-field | false | — |
+|  | textarea | false | — |
 | showStateLabel | switch-control | true | — |
 |  | switch-row | true | — |
 | size | _accordion-indicator | medium | small, medium, large |

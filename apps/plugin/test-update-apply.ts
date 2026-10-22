@@ -2821,11 +2821,11 @@ section('swap — an instance the plan points elsewhere is swapped in place, and
   const before = identityOf(w.set());
   const next = w.plans.map((p) => {
     const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
-    (planChild(planChild(q.root, 'controlCell'), 'control') as unknown as Record<string, unknown>).nestTarget = 'radio-control';
+    (planChild(planChild(planChild(q.root, 'content'), 'controlCell'), 'control') as unknown as Record<string, unknown>).nestTarget = 'radio-control';
     return q;
   });
   const { res } = await confirm(w, [{ def: ROW, plans: next }]);
-  const ctrls = membersOf(w.set()).map((m) => childNamed(childNamed(m, 'controlCell'), 'control'));
+  const ctrls = membersOf(w.set()).map((m) => childNamed(childNamed(childNamed(m, 'content'), 'controlCell'), 'control'));
   ok(ctrls.every((n) => (n.mainComponent as { name?: string } | undefined)?.name === 'radio-control'), `nest/pointed: every row's control now instances radio-control (${[...new Set(ctrls.map((n) => (n.mainComponent as { name?: string }).name))]}; ${applyVerdict(res).headline})`);
   const after = identityOf(w.set());
   ok([...before.members].every(([name, b]) => [...b.kids].every(([p, id]) => after.members.get(name)?.kids.get(p) === id)), 'nest/ids: every nested instance keeps its id');
@@ -2960,6 +2960,42 @@ section('field style — a field set built in one Field style is redrawn in plac
       const post = (await previewUpdate(w.host, [{ def: id, plans: [...to] }])).sets[0];
       ok(post.counts.current === n, `field style/${tag} converges: the next dry run reads all ${n} current (${JSON.stringify(post.counts)})`);
     }
+  }
+}
+
+section('tag style — a Tag set built in one Tag style is redrawn in place in the other, both ways, in one Update (#2887)');
+{
+  // The Tag set is built from `materializeForBrand` under one style, then updated with the plans of the other: a brand
+  // switching its Tag style on a file that already holds the set. The build plan promises additive consumer impact:
+  // the same 45 members and layers, so Update rewrites strokes, the corner, the height floor and paint in place and
+  // instances stay linked. Read off the shim's nodes, never off the plans' own claims.
+  const def = componentDefs.find((d) => d.id === 'tag')!;
+  const pill = figmaAnatomySet(materializeForBrand(def, { tagStyle: 'pill' } as never), { swapTarget: SWAP_TARGET });
+  const underline = figmaAnatomySet(materializeForBrand(def, { tagStyle: 'underline' } as never), { swapTarget: SWAP_TARGET });
+  const extra = (ps: AnatomyPlan[]) => ({ extraVars: ps.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), extraStyles: ps.flatMap((p) => planTextStyles(p.root)), extraComps: ps.flatMap((p) => planComps(p.root)) });
+  for (const [from, to, fromName, toName] of [[pill, underline, 'pill', 'underline'], [underline, pill, 'underline', 'pill']] as const) {
+    const tag = `tag ${fromName}→${toName}`;
+    const w = await world('tag', [...from], extra([...to]));
+    const n = membersOf(w.set()).length;
+    const before = identityOf(w.set());
+    const { pre, res } = await confirm(w, [{ def: 'tag', plans: [...to] }]);
+    const v = applyVerdict(res);
+    ok(n === 45 && pre.sets[0].counts.update === n && v.ok, `tag style/${tag}: all ${n} of 45 members read to update, and one apply succeeds (${JSON.stringify(pre.sets[0].counts)}; ${v.headline}${v.ok ? '' : ` — ${v.lines.slice(0, 2).join(' | ').slice(0, 240)}`})`);
+    const after = identityOf(w.set());
+    const lost = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || [...b.kids].some(([path, kid]) => after.members.get(name)?.kids.get(path) !== kid)).map(([x]) => x);
+    ok(lost.length === 0 && JSON.stringify(after.set) === JSON.stringify(before.set), `tag style/${tag} in place: the set, every member and every node under it keep their keys and ids (${lost.slice(0, 2).join('; ') || 'all kept'})`);
+    // The drawn result, off the stored nodes: under underline no member keeps a fill and the bottom side carries the
+    // line; under pill the four sides are one weight again (no side at none).
+    const vars = new Map<string, string>((await w.api.variables.getLocalVariablesAsync()).map((x: { id: string; name: string }) => [x.id, x.name.slice(x.name.indexOf('/') + 1)] as [string, string]));
+    const off = membersOf(w.set()).filter((m) => {
+      const bv = (m.boundVariables ?? {}) as Record<string, { id?: string } | undefined>;
+      const top = vars.get(String(bv.strokeTopWeight?.id)), bottom = vars.get(String(bv.strokeBottomWeight?.id));
+      const fills = (m.fills as unknown[] | undefined) ?? [];
+      return toName === 'underline' ? !(top === 'border-width/none' && /^border-width\/(hairline|thick)$/.test(String(bottom)) && fills.length === 0) : top === 'border-width/none';
+    }).map((m) => String(m.name));
+    ok(off.length === 0, `tag style/${tag} drawn: ${toName === 'underline' ? 'every member draws the bottom line alone and no fill' : 'no member keeps a side at none'} (${off.slice(0, 2).join('; ') || 'ok'})`);
+    const post = (await previewUpdate(w.host, [{ def: 'tag', plans: [...to] }])).sets[0];
+    ok(post.counts.current === n, `tag style/${tag} converges: the next dry run reads all ${n} current (${JSON.stringify(post.counts)})`);
   }
 }
 
@@ -3883,6 +3919,54 @@ section('published — on a set in a team library, what breaks consumer files is
     ok(before.length === 18 && next.length === 24, `premise: Dialog was 18 members and is 24 with the fill footer (${before.length} → ${next.length})`);
     ok(p?.publish === 'CURRENT' && JSON.stringify([...p.adds].sort()) === JSON.stringify([...FILL].sort()) && p.drops.length === 0 && (p.breaking ?? []).length === 0,
       `published/dialog fill additive: the six fill members are added and nothing breaks library consumers (adds ${JSON.stringify(p?.adds)}, drops ${p?.drops.length}, breaking ${JSON.stringify((p?.breaking ?? []).slice(0, 3))})`);
+  }
+}
+
+/* ── message default off (#2926) ─────────────────────────────────────────────────────────────────────── */
+section('message default off — Update flips the set\'s `message` default to off in place, and a designer\'s own value on an instance is kept (#2926)');
+{
+  // A file built before #2926 by the real executor: each field's def with the message switch ON by default. `true` is
+  // typed here as the old file's value, never read off the def, which now says false.
+  const LABEL_MEMBERS = ['medium', 'small', 'large'].flatMap((size) => ['primary', 'secondary'].flatMap((emphasis) => ['regular', 'bold'].flatMap((weight) =>
+    ['rest', 'disabled'].map((state) => `size=${size}, emphasis=${emphasis}, weight=${weight}, state=${state}`))));
+  for (const id of ['text-field', 'password-field', 'select', 'textarea']) {
+    const d = componentDefs.find((x) => x.id === id)!;
+    const fp = d.figmaProperties!;
+    const oldDef = { ...d, figmaProperties: { ...fp, booleans: { ...fp.booleans, showMessage: { ...fp.booleans!.showMessage, default: true } } } };
+    const old = figmaAnatomySet(oldDef, { swapTarget: SWAP_TARGET });
+    const planned = plansOf(id);
+    const componentProps = id === 'password-field' ? { button: { 'label#7:1': { type: 'TEXT', defaultValue: 'Button' } } } : undefined;
+    const w = await world(id, old, { fileSets: [{ name: 'field-label', variants: LABEL_MEMBERS }], componentProps });
+    const defs0 = w.set().componentPropertyDefinitions as Record<string, { type: string; defaultValue?: unknown }>;
+    const key = Object.keys(defs0).find((k) => k.split('#')[0] === 'message')!;
+    ok(!!key && defs0[key].type === 'BOOLEAN' && defs0[key].defaultValue === true, `premise: the ${id} file's set declares 'message', on by default (${key}: ${String(defs0[key]?.defaultValue)})`);
+    const msgNodes = (): Node[] => {
+      const walk = (n: Node): Node[] => [...((n.componentPropertyReferences as Record<string, string> | null)?.visible === key ? [n] : []), ...(n.type === 'INSTANCE' ? [] : ((n.children as Node[] | undefined) ?? []).flatMap(walk))];
+      return membersOf(w.set()).flatMap(walk);
+    };
+    ok(msgNodes().length >= 84 && msgNodes().every((n) => n.visible !== false), `premise: ${id}: every member's message node is shown (${msgNodes().filter((n) => n.visible === false).length} of ${msgNodes().length} hidden)`);
+    // Three placed instances: one untouched, one a designer turned off, one a designer turned on.
+    const comps = w.api.root.findAllWithCriteria({ types: ['COMPONENT'] }) as unknown as { name: string; createInstance: () => Node }[];
+    const main = comps.find((c) => c.name === String(membersOf(w.set())[0].name))!;
+    const [untouched, turnedOff, turnedOn] = [main.createInstance(), main.createInstance(), main.createInstance()];
+    (turnedOff.setProperties as (p: Record<string, boolean>) => void)({ [key]: false });
+    (turnedOn.setProperties as (p: Record<string, boolean>) => void)({ [key]: true });
+    const valueOf = (inst: Node): unknown => (inst.componentProperties as Record<string, { value: unknown }>)[key]?.value;
+    const before = identityOf(w.set());
+    const { pre, res } = await confirm(w, [{ def: id, plans: planned }]);
+    const props = pre.sets[0].properties;
+    ok(props.edit.length === 1 && props.edit[0].name === 'message' && props.edit[0].from === 'true' && props.edit[0].to === 'false' && !props.add.length && !props.remove.length && !props.rename.length && !props.retype.length,
+      `${id} message/dry run: one property edit, 'message' true → false, nothing added, removed, renamed or retyped (${JSON.stringify(props)})`);
+    ok(applyVerdict(res).ok, `${id} message/verdict: ${applyVerdict(res).headline} (${applyVerdict(res).lines.slice(0, 2).join(' | ').slice(0, 240)})`);
+    const defs1 = w.set().componentPropertyDefinitions as Record<string, { type: string; defaultValue?: unknown }>;
+    ok(defs1[key]?.defaultValue === false, `${id} message/set default: the same property (${key}) now defaults to off (${String(defs1[key]?.defaultValue)})`);
+    ok(msgNodes().length >= 84 && msgNodes().every((n) => n.visible === false), `${id} message/members: every member's message node is now hidden (${msgNodes().filter((n) => n.visible !== false).length} of ${msgNodes().length} still shown)`);
+    ok(valueOf(untouched) === false && valueOf(turnedOff) === false && valueOf(turnedOn) === true,
+      `${id} message/instances: the untouched instance follows the new default (off), and each designer's own value is kept (off stays off, on stays on) (${String(valueOf(untouched))}, ${String(valueOf(turnedOff))}, ${String(valueOf(turnedOn))})`);
+    const after = identityOf(w.set());
+    ok(after.set.join() === before.set.join() && [...before.members].every(([name, b]) => after.members.get(name)?.key === b.key && after.members.get(name)?.id === b.id), `${id} message/keys: the set and every member keep their keys and ids`);
+    const post = (await previewUpdate(w.host, [{ def: id, plans: planned }])).sets[0];
+    ok(post.counts.current === post.counts.members && !post.properties.edit.length, `${id} message/settled: a second dry run reads every member current and lists no property edit (${JSON.stringify(post.counts)}; ${JSON.stringify(post.properties.edit)})`);
   }
 }
 

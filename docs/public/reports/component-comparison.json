@@ -956,7 +956,7 @@
         },
         {
           "name": "showMessage",
-          "default": true
+          "default": false
         },
         {
           "name": "size",
@@ -2508,7 +2508,7 @@
         },
         {
           "name": "showMessage",
-          "default": true
+          "default": false
         },
         {
           "name": "required",
@@ -2971,7 +2971,7 @@
         },
         {
           "name": "showMessage",
-          "default": true
+          "default": false
         },
         {
           "name": "leadingIcon"
@@ -3511,7 +3511,7 @@
         },
         {
           "name": "showMessage",
-          "default": true
+          "default": false
         },
         {
           "name": "required",
@@ -3641,7 +3641,7 @@
         },
         {
           "name": "showMessage",
-          "default": true
+          "default": false
         },
         {
           "name": "rows",
@@ -6107,7 +6107,7 @@
     "showMessage": [
       {
         "id": "code-input",
-        "default": true
+        "default": false
       },
       {
         "id": "counter",
@@ -6115,19 +6115,19 @@
       },
       {
         "id": "password-field",
-        "default": true
+        "default": false
       },
       {
         "id": "select",
-        "default": true
+        "default": false
       },
       {
         "id": "text-field",
-        "default": true
+        "default": false
       },
       {
         "id": "textarea",
-        "default": true
+        "default": false
       }
     ],
     "showStateLabel": [
@@ -7671,19 +7671,6 @@
         "field-label"
       ],
       "detail": "field-label defaults size to small; 36 of 37 sized components default to medium"
-    },
-    {
-      "kind": "prop default",
-      "subject": "prop showMessage",
-      "components": [
-        "code-input",
-        "counter",
-        "password-field",
-        "select",
-        "text-field",
-        "textarea"
-      ],
-      "detail": "showMessage defaults differ over the same values — false in counter; true in code-input, password-field, select, text-field, textarea"
     },
     {
       "kind": "axis without prop",
