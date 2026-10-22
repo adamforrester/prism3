@@ -46,7 +46,7 @@ import { ABOUT_KEY } from './src/about-frame';
 import { scaffoldSkeleton, type PagesApi, type PageLike } from './src/file-setup';
 import { TAXONOMY } from './src/file-taxonomy';
 import {
-  COVER_KEY, COVER_NS, GROUND_VARIABLE, INK_VARIABLE, brandNameOf, coverDue, coverDueLine, coverIsWork, coverLine, drawCover, type CoverApi,
+  COVER_KEY, COVER_NS, GROUND_VARIABLE, INK_VARIABLE, brandNameOf, coverDue, coverDueLine, coverIsWork, coverLine, coverPrint, drawCover, type CoverApi,
 } from './src/cover-frame';
 
 let failed = 0;
@@ -211,6 +211,12 @@ section('thumb — the thumbnail rule');
   const h = host({ vars: themeVars(), thumbApi: false });
   const r3 = await drawCover(h.api, h.root, { brand: 'Aurora', engine: '0.237.0' });
   ok(r3.thumbnail === 'unavailable' && coverLine(r3) === 'Cover: drawn.', `thumb/no thumbnail API: drawn, nothing claimed (${coverLine(r3)})`);
+  // A read that throws cannot tell a designer's thumbnail from the default, so nothing is written.
+  const t = host({ vars: themeVars() });
+  t.api.getFileThumbnailNodeAsync = async () => { throw new Error('read refused'); };
+  const r4 = await drawCover(t.api, t.root, { brand: 'Aurora', engine: '0.237.0' });
+  ok(r4.did === 'drawn' && t.api._thumbSets === 0 && r4.thumbnail === 'unavailable' && coverLine(r4) === 'Cover: drawn.',
+    `thumb/a thumbnail read that throws: never set (${t.api._thumbSets} sets, ${JSON.stringify(r4.thumbnail)})`);
 }
 
 /* ── due ─────────────────────────────────────────────────────────────────────────────────────────────── */
@@ -293,6 +299,20 @@ section('edited — a hand-edited cover keeps the edit; only the version text mo
   await drawCover(f.api, f.root, { brand: 'Aurora Labs', engine: '0.237.0' });
   ok(part(fr, 'brand')!.characters === 'Aurora Design' && part(fr, 'version')!.characters === 'Prism3 0.237.0',
     `edited/a retyped wordmark is kept (${JSON.stringify(texts(fr).map((t) => t.characters))})`);
+}
+
+{
+  // An unedited cover whose version text is gone (a fingerprint recorded after the deletion; no draw leaves one) is
+  // not drawn again: one cover stays on the page, and nothing is written.
+  const f = host({ vars: themeVars() });
+  await drawCover(f.api, f.root, { brand: 'Aurora', engine: '0.236.0' });
+  const fr = tagged(f.cover)[0];
+  part(fr, 'version')!.remove();
+  fr.setSharedPluginData(COVER_NS, COVER_KEY, JSON.stringify({ engine: '0.236.0', name: 'Aurora', print: coverPrint(fr) }));
+  const d = await coverDue(f.root, { brand: 'Aurora', engine: '0.237.0', api: f.api });
+  ok(eq(d, { state: 'no-version', edited: true }) && !coverIsWork(d), `edited/no version text, unedited print: not work (${JSON.stringify(d)})`);
+  const r = await drawCover(f.api, f.root, { brand: 'Aurora', engine: '0.237.0' });
+  ok(r.did === 'none' && f.cover.children.length === 1 && tagged(f.cover).length === 1, `edited/no version text, unedited print: no second cover (${f.cover.children.length} on the page)`);
 }
 
 /* ── page ────────────────────────────────────────────────────────────────────────────────────────────── */
