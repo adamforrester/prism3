@@ -6457,7 +6457,7 @@ arm: {
       ['interactive.neutral.icon.pressed', `foreground.${t}-subtle`, 3, `the dismiss glyph at press on the ${t} fill`],
       ['border.focus', `foreground.${t}-subtle`, 3, `the dismiss focus ring on the ${t} fill`],
     ] as [string, string, number, string][]);
-    ok(PAIRS.length === 32, `banner contrast covers 32 pairs, 8 per tone (got ${PAIRS.length})`);
+    ok(PAIRS.length === 36, `banner contrast covers 36 pairs, 9 per tone (got ${PAIRS.length})`);
     for (const [a, b, floor, what] of PAIRS) {
       const { measured, low, min } = measure(a, b, floor);
       ok(measured === CELLS && low.length === 0,

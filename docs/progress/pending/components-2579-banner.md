@@ -39,7 +39,7 @@ the four fills are admitted by name in `PROVENANCE_EXCEPTIONS`, as Badge's subtl
 ordering scope learned the bare `pad` tail, so a def whose one padding is named `pad` is now required to state its
 orderings. Banner's own block in `test.ts` holds the 8 member names, each member's fill, edge, corner, glyph and inks,
 the nested actions and dismiss, the defaults, the lowercase Figma property names (Q345), the first member being the code
-default (Q347), the built widths and per-side edges, and 32 contrast pairs as literals over 5 brands × 4 modes: text
+default (Q347), the built widths and per-side edges, and 36 contrast pairs as literals over 5 brands × 4 modes: text
 4.5:1 (lowest 13.92), the edge against the page 3:1 (lowest 3.75), the glyph on the fill 3:1 (lowest 3.31), the neutral
 and primary action labels, and the dismiss glyph at rest, hover and press and its focus ring on each fill (Q533.5).
 The studio's set list shows Banner's `pad` beside `gap` (the owner's C2 A: padding and gap only) and hides
