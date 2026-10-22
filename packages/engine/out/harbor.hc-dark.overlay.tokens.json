@@ -49,6 +49,11 @@
           "$value": "{hds.core.palette.warning.300}",
           "$description": "Bold warning fill — clears 7:1 on background.secondary"
         },
+        "danger": {
+          "$type": "color",
+          "$value": "{hds.core.palette.danger.300}",
+          "$description": "Bold danger fill — clears 7:1 on background.secondary"
+        },
         "info": {
           "$type": "color",
           "$value": "{hds.core.palette.info.300}",
@@ -78,11 +83,6 @@
           "$type": "color",
           "$value": "{hds.core.palette.info.900}",
           "$description": "Subtle info tint surface — banners, badges, selected rows"
-        },
-        "danger": {
-          "$type": "color",
-          "$value": "{hds.core.palette.danger.300}",
-          "$description": "Bold danger fill — clears 7:1 on background.secondary"
         }
       },
       "text": {
@@ -202,6 +202,53 @@
             "$value": "{hds.core.palette.primary.100}",
             "$description": "Link text — pressed, 7:1 on background.secondary"
           }
+        }
+      },
+      "border": {
+        "primary": {
+          "$type": "color",
+          "$value": "{hds.core.palette.neutral.500}",
+          "$description": "Default border — decorative, ~4.5:1"
+        },
+        "secondary": {
+          "$type": "color",
+          "$value": "{hds.core.palette.neutral.250}",
+          "$description": "Stronger border / divider — ~9.9:1"
+        },
+        "tertiary": {
+          "$type": "color",
+          "$value": "{hds.core.palette.neutral.025}",
+          "$description": "Accessible border — the first edge that clears 4.5:1 (SC 1.4.11) on every page and surface tier"
+        },
+        "brand": {
+          "$type": "color",
+          "$value": "{hds.core.palette.primary.500}",
+          "$description": "brand border — SC 1.4.11 non-text contrast, 4.5:1"
+        },
+        "success": {
+          "$type": "color",
+          "$value": "{hds.core.palette.success.450}",
+          "$description": "success border — SC 1.4.11 non-text contrast, 4.5:1"
+        },
+        "warning": {
+          "$type": "color",
+          "$value": "{hds.core.palette.warning.400}",
+          "$description": "warning border — SC 1.4.11 non-text contrast, 4.5:1"
+        },
+        "danger": {
+          "$type": "color",
+          "$value": "{hds.core.palette.danger.400}",
+          "$description": "danger border — SC 1.4.11 non-text contrast, 4.5:1"
+        },
+        "info": {
+          "$type": "color",
+          "$value": "{hds.core.palette.info.500}",
+          "$description": "info border — SC 1.4.11 non-text contrast, 4.5:1"
+        },
+        "focus": {
+          "$type": "color",
+          "$value": "{hds.core.palette.primary.300}",
+          "$description": "Focus ring color (keyboard focus) — SC 1.4.11 non-text contrast, 4.5:1 on background.primary"
         }
       },
       "icon": {
@@ -665,53 +712,6 @@
           "$description": "Disabled control border — muted neutral"
         }
       },
-      "border": {
-        "primary": {
-          "$type": "color",
-          "$value": "{hds.core.palette.neutral.500}",
-          "$description": "Default border — decorative, ~4.5:1"
-        },
-        "secondary": {
-          "$type": "color",
-          "$value": "{hds.core.palette.neutral.250}",
-          "$description": "Stronger border / divider — ~9.9:1"
-        },
-        "tertiary": {
-          "$type": "color",
-          "$value": "{hds.core.palette.neutral.025}",
-          "$description": "Accessible border — the first edge that clears 4.5:1 (SC 1.4.11) on every page and surface tier"
-        },
-        "brand": {
-          "$type": "color",
-          "$value": "{hds.core.palette.primary.500}",
-          "$description": "brand border — SC 1.4.11 non-text contrast, 4.5:1"
-        },
-        "success": {
-          "$type": "color",
-          "$value": "{hds.core.palette.success.450}",
-          "$description": "success border — SC 1.4.11 non-text contrast, 4.5:1"
-        },
-        "warning": {
-          "$type": "color",
-          "$value": "{hds.core.palette.warning.400}",
-          "$description": "warning border — SC 1.4.11 non-text contrast, 4.5:1"
-        },
-        "danger": {
-          "$type": "color",
-          "$value": "{hds.core.palette.danger.400}",
-          "$description": "danger border — SC 1.4.11 non-text contrast, 4.5:1"
-        },
-        "info": {
-          "$type": "color",
-          "$value": "{hds.core.palette.info.500}",
-          "$description": "info border — SC 1.4.11 non-text contrast, 4.5:1"
-        },
-        "focus": {
-          "$type": "color",
-          "$value": "{hds.core.palette.primary.300}",
-          "$description": "Focus ring color (keyboard focus) — SC 1.4.11 non-text contrast, 4.5:1 on background.primary"
-        }
-      },
       "scrim": {
         "default": {
           "$type": "color",
@@ -823,360 +823,6 @@
             "$description": "Subtle info tint surface on an inverse surface — banners, badges and selected rows on the inverse band"
           }
         },
-        "interactive": {
-          "primary": {
-            "text": {
-              "rest": {
-                "$type": "color",
-                "$value": "{hds.core.palette.primary.650}",
-                "$description": "primary interactive ink on an inverse surface — rest (outline / text on the inverse band)"
-              },
-              "hover": {
-                "$type": "color",
-                "$value": "{hds.core.palette.primary.750}",
-                "$description": "primary interactive ink on an inverse surface — hover (outline / text on the inverse band)"
-              },
-              "pressed": {
-                "$type": "color",
-                "$value": "{hds.core.palette.primary.850}",
-                "$description": "primary interactive ink on an inverse surface — pressed (outline / text on the inverse band)"
-              }
-            },
-            "icon": {
-              "rest": {
-                "$type": "color",
-                "$value": "{hds.core.palette.primary.650}",
-                "$description": "primary interactive icon ink on an inverse surface — rest (the glyph in an outline / ghost / text control on the inverse band)"
-              },
-              "hover": {
-                "$type": "color",
-                "$value": "{hds.core.palette.primary.750}",
-                "$description": "primary interactive icon ink on an inverse surface — hover (the glyph in an outline / ghost / text control on the inverse band)"
-              },
-              "pressed": {
-                "$type": "color",
-                "$value": "{hds.core.palette.primary.850}",
-                "$description": "primary interactive icon ink on an inverse surface — pressed (the glyph in an outline / ghost / text control on the inverse band)"
-              }
-            },
-            "fill": {
-              "rest": {
-                "$type": "color",
-                "$value": "{hds.core.palette.black}",
-                "$description": "primary interactive fill on an inverse surface — rest — the white / black default"
-              },
-              "hover": {
-                "$type": "color",
-                "$value": "{hds.core.palette.neutral.900}",
-                "$description": "primary interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill."
-              },
-              "pressed": {
-                "$type": "color",
-                "$value": "{hds.core.palette.neutral.800}",
-                "$description": "primary interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill."
-              },
-              "focused": {
-                "$type": "color",
-                "$value": "{hds.core.palette.neutral.900}",
-                "$description": "primary interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill."
-              },
-              "selected": {
-                "$type": "color",
-                "$value": "{hds.core.palette.neutral.800}",
-                "$description": "primary interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill."
-              }
-            },
-            "on-fill": {
-              "$type": "color",
-              "$value": "{hds.core.palette.white}",
-              "$description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 on every state of the white / black fill, rest through selected, or the max-contrast extreme in the high-contrast modes"
-            },
-            "border": {
-              "rest": {
-                "$type": "color",
-                "$value": "{hds.core.palette.primary.650}",
-                "$description": "primary interactive border on an inverse surface — rest (the outline edge; follows the ink)"
-              },
-              "hover": {
-                "$type": "color",
-                "$value": "{hds.core.palette.primary.750}",
-                "$description": "primary interactive border on an inverse surface — hover (the outline edge; follows the ink)"
-              },
-              "pressed": {
-                "$type": "color",
-                "$value": "{hds.core.palette.primary.850}",
-                "$description": "primary interactive border on an inverse surface — pressed (the outline edge; follows the ink)"
-              }
-            },
-            "overlay": {
-              "hover": {
-                "$type": "color",
-                "$value": "{hds.core.palette.black-alpha.10}",
-                "$description": "primary interactive overlay on an inverse surface — hover (10% wash, the opposite polarity to the page wash)"
-              },
-              "pressed": {
-                "$type": "color",
-                "$value": "{hds.core.palette.black-alpha.20}",
-                "$description": "primary interactive overlay on an inverse surface — pressed (20% wash, the opposite polarity to the page wash)"
-              },
-              "selected": {
-                "$type": "color",
-                "$value": "{hds.core.palette.black-alpha.20}",
-                "$description": "primary interactive overlay on an inverse surface — selected (20% wash, the opposite polarity to the page wash)"
-              }
-            }
-          },
-          "destructive": {
-            "text": {
-              "rest": {
-                "$type": "color",
-                "$value": "{hds.core.palette.danger.650}",
-                "$description": "destructive interactive ink on an inverse surface — rest (outline / text on the inverse band)"
-              },
-              "hover": {
-                "$type": "color",
-                "$value": "{hds.core.palette.danger.750}",
-                "$description": "destructive interactive ink on an inverse surface — hover (outline / text on the inverse band)"
-              },
-              "pressed": {
-                "$type": "color",
-                "$value": "{hds.core.palette.danger.850}",
-                "$description": "destructive interactive ink on an inverse surface — pressed (outline / text on the inverse band)"
-              }
-            },
-            "icon": {
-              "rest": {
-                "$type": "color",
-                "$value": "{hds.core.palette.danger.650}",
-                "$description": "destructive interactive icon ink on an inverse surface — rest (the glyph in an outline / ghost / text control on the inverse band)"
-              },
-              "hover": {
-                "$type": "color",
-                "$value": "{hds.core.palette.danger.750}",
-                "$description": "destructive interactive icon ink on an inverse surface — hover (the glyph in an outline / ghost / text control on the inverse band)"
-              },
-              "pressed": {
-                "$type": "color",
-                "$value": "{hds.core.palette.danger.850}",
-                "$description": "destructive interactive icon ink on an inverse surface — pressed (the glyph in an outline / ghost / text control on the inverse band)"
-              }
-            },
-            "fill": {
-              "rest": {
-                "$type": "color",
-                "$value": "{hds.core.palette.black}",
-                "$description": "destructive interactive fill on an inverse surface — rest — the white / black default"
-              },
-              "hover": {
-                "$type": "color",
-                "$value": "{hds.core.palette.neutral.900}",
-                "$description": "destructive interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill."
-              },
-              "pressed": {
-                "$type": "color",
-                "$value": "{hds.core.palette.neutral.800}",
-                "$description": "destructive interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill."
-              },
-              "focused": {
-                "$type": "color",
-                "$value": "{hds.core.palette.neutral.900}",
-                "$description": "destructive interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill."
-              },
-              "selected": {
-                "$type": "color",
-                "$value": "{hds.core.palette.neutral.800}",
-                "$description": "destructive interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill."
-              }
-            },
-            "on-fill": {
-              "$type": "color",
-              "$value": "{hds.core.palette.white}",
-              "$description": "Ink on the destructive inverse fill — the danger step clearing 4.5:1 on every state of the white / black fill, rest through selected, or the max-contrast extreme in the high-contrast modes"
-            },
-            "border": {
-              "rest": {
-                "$type": "color",
-                "$value": "{hds.core.palette.danger.650}",
-                "$description": "destructive interactive border on an inverse surface — rest (the outline edge; follows the ink)"
-              },
-              "hover": {
-                "$type": "color",
-                "$value": "{hds.core.palette.danger.750}",
-                "$description": "destructive interactive border on an inverse surface — hover (the outline edge; follows the ink)"
-              },
-              "pressed": {
-                "$type": "color",
-                "$value": "{hds.core.palette.danger.850}",
-                "$description": "destructive interactive border on an inverse surface — pressed (the outline edge; follows the ink)"
-              }
-            },
-            "overlay": {
-              "hover": {
-                "$type": "color",
-                "$value": "{hds.core.palette.black-alpha.10}",
-                "$description": "destructive interactive overlay on an inverse surface — hover (10% wash, the opposite polarity to the page wash)"
-              },
-              "pressed": {
-                "$type": "color",
-                "$value": "{hds.core.palette.black-alpha.20}",
-                "$description": "destructive interactive overlay on an inverse surface — pressed (20% wash, the opposite polarity to the page wash)"
-              },
-              "selected": {
-                "$type": "color",
-                "$value": "{hds.core.palette.black-alpha.20}",
-                "$description": "destructive interactive overlay on an inverse surface — selected (20% wash, the opposite polarity to the page wash)"
-              }
-            }
-          },
-          "neutral": {
-            "text": {
-              "rest": {
-                "$type": "color",
-                "$value": "{hds.core.palette.black}",
-                "$description": "neutral interactive ink on an inverse surface — rest (outline / text on the inverse band)"
-              },
-              "hover": {
-                "$type": "color",
-                "$value": "{hds.core.palette.neutral.850}",
-                "$description": "neutral interactive ink on an inverse surface — hover (outline / text on the inverse band)"
-              },
-              "pressed": {
-                "$type": "color",
-                "$value": "{hds.core.palette.neutral.750}",
-                "$description": "neutral interactive ink on an inverse surface — pressed (outline / text on the inverse band)"
-              }
-            },
-            "icon": {
-              "rest": {
-                "$type": "color",
-                "$value": "{hds.core.palette.black}",
-                "$description": "neutral interactive icon ink on an inverse surface — rest (the glyph in an outline / ghost / text control on the inverse band)"
-              },
-              "hover": {
-                "$type": "color",
-                "$value": "{hds.core.palette.neutral.850}",
-                "$description": "neutral interactive icon ink on an inverse surface — hover (the glyph in an outline / ghost / text control on the inverse band)"
-              },
-              "pressed": {
-                "$type": "color",
-                "$value": "{hds.core.palette.neutral.750}",
-                "$description": "neutral interactive icon ink on an inverse surface — pressed (the glyph in an outline / ghost / text control on the inverse band)"
-              }
-            },
-            "fill": {
-              "rest": {
-                "$type": "color",
-                "$value": "{hds.core.palette.black}",
-                "$description": "neutral interactive fill on an inverse surface — rest — the white / black default"
-              },
-              "hover": {
-                "$type": "color",
-                "$value": "{hds.core.palette.neutral.900}",
-                "$description": "neutral interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill."
-              },
-              "pressed": {
-                "$type": "color",
-                "$value": "{hds.core.palette.neutral.800}",
-                "$description": "neutral interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill."
-              },
-              "focused": {
-                "$type": "color",
-                "$value": "{hds.core.palette.neutral.900}",
-                "$description": "neutral interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill."
-              },
-              "selected": {
-                "$type": "color",
-                "$value": "{hds.core.palette.neutral.800}",
-                "$description": "neutral interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill."
-              }
-            },
-            "on-fill": {
-              "$type": "color",
-              "$value": "{hds.core.palette.white}",
-              "$description": "Ink on the neutral inverse fill — a neutral high-contrast label on the white / black rest fill"
-            },
-            "border": {
-              "rest": {
-                "$type": "color",
-                "$value": "{hds.core.palette.black}",
-                "$description": "neutral interactive border on an inverse surface — rest (the outline edge; follows the ink)"
-              },
-              "hover": {
-                "$type": "color",
-                "$value": "{hds.core.palette.neutral.850}",
-                "$description": "neutral interactive border on an inverse surface — hover (the outline edge; follows the ink)"
-              },
-              "pressed": {
-                "$type": "color",
-                "$value": "{hds.core.palette.neutral.750}",
-                "$description": "neutral interactive border on an inverse surface — pressed (the outline edge; follows the ink)"
-              }
-            },
-            "overlay": {
-              "hover": {
-                "$type": "color",
-                "$value": "{hds.core.palette.black-alpha.10}",
-                "$description": "neutral interactive overlay on an inverse surface — hover (10% wash, the opposite polarity to the page wash)"
-              },
-              "pressed": {
-                "$type": "color",
-                "$value": "{hds.core.palette.black-alpha.20}",
-                "$description": "neutral interactive overlay on an inverse surface — pressed (20% wash, the opposite polarity to the page wash)"
-              },
-              "selected": {
-                "$type": "color",
-                "$value": "{hds.core.palette.black-alpha.20}",
-                "$description": "neutral interactive overlay on an inverse surface — selected (20% wash, the opposite polarity to the page wash)"
-              }
-            }
-          }
-        },
-        "disabled": {
-          "fill": {
-            "$type": "color",
-            "$value": "{hds.core.palette.neutral.250}",
-            "$description": "Disabled control fill on an inverse surface — one muted neutral, any intent"
-          },
-          "on-fill": {
-            "$type": "color",
-            "$value": "{hds.core.palette.neutral.700}",
-            "$description": "Label / icon on a disabled fill on an inverse surface — muted but clears 4.5:1"
-          },
-          "text": {
-            "$type": "color",
-            "$value": "{hds.core.palette.neutral.500}",
-            "$description": "Disabled text on an inverse surface — reduced contrast, legible; clears 4.5:1"
-          },
-          "icon": {
-            "$type": "color",
-            "$value": "{hds.core.palette.neutral.500}",
-            "$description": "Disabled icon on an inverse surface — reduced contrast, legible; clears 4.5:1"
-          },
-          "border": {
-            "$type": "color",
-            "$value": "{hds.core.palette.neutral.250}",
-            "$description": "Disabled control border on an inverse surface — muted neutral"
-          }
-        },
-        "field": {
-          "border": {
-            "rest": {
-              "$type": "color",
-              "$value": "{hds.core.palette.neutral.500}",
-              "$description": "Form field resting border on an inverse surface — the boundary of a transparent-fill field, a perceivable boundary (SC 1.4.11) at 4.5:1 against the darkest permissible inverse ground"
-            },
-            "hover": {
-              "$type": "color",
-              "$value": "{hds.core.palette.neutral.600}",
-              "$description": "Form field hover border on an inverse surface — two ramp steps stronger than rest, gated at 4.5:1 on the darkest permissible inverse ground (pair it with a second cue; color alone does not carry the state)"
-            }
-          },
-          "placeholder": {
-            "$type": "color",
-            "$value": "{hds.core.palette.neutral.650}",
-            "$description": "Form field placeholder ink on an inverse surface — a readable hint, 7:1 on the darkest permissible inverse ground behind the transparent fill"
-          }
-        },
         "text": {
           "primary": {
             "$type": "color",
@@ -1269,6 +915,53 @@
               "$value": "{hds.core.palette.primary.850}",
               "$description": "Link text on an inverse surface — pressed, 7:1 on inverse.background.secondary"
             }
+          }
+        },
+        "border": {
+          "primary": {
+            "$type": "color",
+            "$value": "{hds.core.palette.neutral.500}",
+            "$description": "Default border on an inverse surface — decorative, ~4.5:1"
+          },
+          "secondary": {
+            "$type": "color",
+            "$value": "{hds.core.palette.neutral.700}",
+            "$description": "Stronger border / divider on an inverse surface"
+          },
+          "tertiary": {
+            "$type": "color",
+            "$value": "{hds.core.palette.neutral.950}",
+            "$description": "Strongest border / divider on an inverse surface — the third rung of the inverse edge ladder"
+          },
+          "brand": {
+            "$type": "color",
+            "$value": "{hds.core.palette.primary.500}",
+            "$description": "brand border on an inverse surface — SC 1.4.11 non-text contrast, 4.5:1"
+          },
+          "success": {
+            "$type": "color",
+            "$value": "{hds.core.palette.success.500}",
+            "$description": "success border on an inverse surface — SC 1.4.11 non-text contrast, 4.5:1"
+          },
+          "warning": {
+            "$type": "color",
+            "$value": "{hds.core.palette.warning.500}",
+            "$description": "warning border on an inverse surface — SC 1.4.11 non-text contrast, 4.5:1"
+          },
+          "danger": {
+            "$type": "color",
+            "$value": "{hds.core.palette.danger.500}",
+            "$description": "danger border on an inverse surface — SC 1.4.11 non-text contrast, 4.5:1"
+          },
+          "info": {
+            "$type": "color",
+            "$value": "{hds.core.palette.info.500}",
+            "$description": "info border on an inverse surface — SC 1.4.11 non-text contrast, 4.5:1"
+          },
+          "focus": {
+            "$type": "color",
+            "$value": "{hds.core.palette.primary.650}",
+            "$description": "Focus ring color on inverse surfaces (keyboard focus) — SC 1.4.11 non-text contrast, 4.5:1 on inverse.background.primary"
           }
         },
         "icon": {
@@ -1365,51 +1058,358 @@
             }
           }
         },
-        "border": {
+        "interactive": {
           "primary": {
-            "$type": "color",
-            "$value": "{hds.core.palette.neutral.500}",
-            "$description": "Default border on an inverse surface — decorative, ~4.5:1"
+            "fill": {
+              "rest": {
+                "$type": "color",
+                "$value": "{hds.core.palette.black}",
+                "$description": "primary interactive fill on an inverse surface — rest — the white / black default"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{hds.core.palette.neutral.900}",
+                "$description": "primary interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill."
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{hds.core.palette.neutral.800}",
+                "$description": "primary interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill."
+              },
+              "focused": {
+                "$type": "color",
+                "$value": "{hds.core.palette.neutral.900}",
+                "$description": "primary interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill."
+              },
+              "selected": {
+                "$type": "color",
+                "$value": "{hds.core.palette.neutral.800}",
+                "$description": "primary interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill."
+              }
+            },
+            "on-fill": {
+              "$type": "color",
+              "$value": "{hds.core.palette.white}",
+              "$description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 on every state of the white / black fill, rest through selected, or the max-contrast extreme in the high-contrast modes"
+            },
+            "text": {
+              "rest": {
+                "$type": "color",
+                "$value": "{hds.core.palette.primary.650}",
+                "$description": "primary interactive ink on an inverse surface — rest (outline / text on the inverse band)"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{hds.core.palette.primary.750}",
+                "$description": "primary interactive ink on an inverse surface — hover (outline / text on the inverse band)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{hds.core.palette.primary.850}",
+                "$description": "primary interactive ink on an inverse surface — pressed (outline / text on the inverse band)"
+              }
+            },
+            "icon": {
+              "rest": {
+                "$type": "color",
+                "$value": "{hds.core.palette.primary.650}",
+                "$description": "primary interactive icon ink on an inverse surface — rest (the glyph in an outline / ghost / text control on the inverse band)"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{hds.core.palette.primary.750}",
+                "$description": "primary interactive icon ink on an inverse surface — hover (the glyph in an outline / ghost / text control on the inverse band)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{hds.core.palette.primary.850}",
+                "$description": "primary interactive icon ink on an inverse surface — pressed (the glyph in an outline / ghost / text control on the inverse band)"
+              }
+            },
+            "border": {
+              "rest": {
+                "$type": "color",
+                "$value": "{hds.core.palette.primary.650}",
+                "$description": "primary interactive border on an inverse surface — rest (the outline edge; follows the ink)"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{hds.core.palette.primary.750}",
+                "$description": "primary interactive border on an inverse surface — hover (the outline edge; follows the ink)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{hds.core.palette.primary.850}",
+                "$description": "primary interactive border on an inverse surface — pressed (the outline edge; follows the ink)"
+              }
+            },
+            "overlay": {
+              "hover": {
+                "$type": "color",
+                "$value": "{hds.core.palette.black-alpha.10}",
+                "$description": "primary interactive overlay on an inverse surface — hover (10% wash, the opposite polarity to the page wash)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{hds.core.palette.black-alpha.20}",
+                "$description": "primary interactive overlay on an inverse surface — pressed (20% wash, the opposite polarity to the page wash)"
+              },
+              "selected": {
+                "$type": "color",
+                "$value": "{hds.core.palette.black-alpha.20}",
+                "$description": "primary interactive overlay on an inverse surface — selected (20% wash, the opposite polarity to the page wash)"
+              }
+            }
           },
-          "secondary": {
+          "destructive": {
+            "fill": {
+              "rest": {
+                "$type": "color",
+                "$value": "{hds.core.palette.black}",
+                "$description": "destructive interactive fill on an inverse surface — rest — the white / black default"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{hds.core.palette.neutral.900}",
+                "$description": "destructive interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill."
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{hds.core.palette.neutral.800}",
+                "$description": "destructive interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill."
+              },
+              "focused": {
+                "$type": "color",
+                "$value": "{hds.core.palette.neutral.900}",
+                "$description": "destructive interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill."
+              },
+              "selected": {
+                "$type": "color",
+                "$value": "{hds.core.palette.neutral.800}",
+                "$description": "destructive interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill."
+              }
+            },
+            "on-fill": {
+              "$type": "color",
+              "$value": "{hds.core.palette.white}",
+              "$description": "Ink on the destructive inverse fill — the danger step clearing 4.5:1 on every state of the white / black fill, rest through selected, or the max-contrast extreme in the high-contrast modes"
+            },
+            "text": {
+              "rest": {
+                "$type": "color",
+                "$value": "{hds.core.palette.danger.650}",
+                "$description": "destructive interactive ink on an inverse surface — rest (outline / text on the inverse band)"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{hds.core.palette.danger.750}",
+                "$description": "destructive interactive ink on an inverse surface — hover (outline / text on the inverse band)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{hds.core.palette.danger.850}",
+                "$description": "destructive interactive ink on an inverse surface — pressed (outline / text on the inverse band)"
+              }
+            },
+            "icon": {
+              "rest": {
+                "$type": "color",
+                "$value": "{hds.core.palette.danger.650}",
+                "$description": "destructive interactive icon ink on an inverse surface — rest (the glyph in an outline / ghost / text control on the inverse band)"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{hds.core.palette.danger.750}",
+                "$description": "destructive interactive icon ink on an inverse surface — hover (the glyph in an outline / ghost / text control on the inverse band)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{hds.core.palette.danger.850}",
+                "$description": "destructive interactive icon ink on an inverse surface — pressed (the glyph in an outline / ghost / text control on the inverse band)"
+              }
+            },
+            "border": {
+              "rest": {
+                "$type": "color",
+                "$value": "{hds.core.palette.danger.650}",
+                "$description": "destructive interactive border on an inverse surface — rest (the outline edge; follows the ink)"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{hds.core.palette.danger.750}",
+                "$description": "destructive interactive border on an inverse surface — hover (the outline edge; follows the ink)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{hds.core.palette.danger.850}",
+                "$description": "destructive interactive border on an inverse surface — pressed (the outline edge; follows the ink)"
+              }
+            },
+            "overlay": {
+              "hover": {
+                "$type": "color",
+                "$value": "{hds.core.palette.black-alpha.10}",
+                "$description": "destructive interactive overlay on an inverse surface — hover (10% wash, the opposite polarity to the page wash)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{hds.core.palette.black-alpha.20}",
+                "$description": "destructive interactive overlay on an inverse surface — pressed (20% wash, the opposite polarity to the page wash)"
+              },
+              "selected": {
+                "$type": "color",
+                "$value": "{hds.core.palette.black-alpha.20}",
+                "$description": "destructive interactive overlay on an inverse surface — selected (20% wash, the opposite polarity to the page wash)"
+              }
+            }
+          },
+          "neutral": {
+            "fill": {
+              "rest": {
+                "$type": "color",
+                "$value": "{hds.core.palette.black}",
+                "$description": "neutral interactive fill on an inverse surface — rest — the white / black default"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{hds.core.palette.neutral.900}",
+                "$description": "neutral interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill."
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{hds.core.palette.neutral.800}",
+                "$description": "neutral interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill."
+              },
+              "focused": {
+                "$type": "color",
+                "$value": "{hds.core.palette.neutral.900}",
+                "$description": "neutral interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill."
+              },
+              "selected": {
+                "$type": "color",
+                "$value": "{hds.core.palette.neutral.800}",
+                "$description": "neutral interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill."
+              }
+            },
+            "on-fill": {
+              "$type": "color",
+              "$value": "{hds.core.palette.white}",
+              "$description": "Ink on the neutral inverse fill — a neutral high-contrast label on the white / black rest fill"
+            },
+            "text": {
+              "rest": {
+                "$type": "color",
+                "$value": "{hds.core.palette.black}",
+                "$description": "neutral interactive ink on an inverse surface — rest (outline / text on the inverse band)"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{hds.core.palette.neutral.850}",
+                "$description": "neutral interactive ink on an inverse surface — hover (outline / text on the inverse band)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{hds.core.palette.neutral.750}",
+                "$description": "neutral interactive ink on an inverse surface — pressed (outline / text on the inverse band)"
+              }
+            },
+            "icon": {
+              "rest": {
+                "$type": "color",
+                "$value": "{hds.core.palette.black}",
+                "$description": "neutral interactive icon ink on an inverse surface — rest (the glyph in an outline / ghost / text control on the inverse band)"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{hds.core.palette.neutral.850}",
+                "$description": "neutral interactive icon ink on an inverse surface — hover (the glyph in an outline / ghost / text control on the inverse band)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{hds.core.palette.neutral.750}",
+                "$description": "neutral interactive icon ink on an inverse surface — pressed (the glyph in an outline / ghost / text control on the inverse band)"
+              }
+            },
+            "border": {
+              "rest": {
+                "$type": "color",
+                "$value": "{hds.core.palette.black}",
+                "$description": "neutral interactive border on an inverse surface — rest (the outline edge; follows the ink)"
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{hds.core.palette.neutral.850}",
+                "$description": "neutral interactive border on an inverse surface — hover (the outline edge; follows the ink)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{hds.core.palette.neutral.750}",
+                "$description": "neutral interactive border on an inverse surface — pressed (the outline edge; follows the ink)"
+              }
+            },
+            "overlay": {
+              "hover": {
+                "$type": "color",
+                "$value": "{hds.core.palette.black-alpha.10}",
+                "$description": "neutral interactive overlay on an inverse surface — hover (10% wash, the opposite polarity to the page wash)"
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{hds.core.palette.black-alpha.20}",
+                "$description": "neutral interactive overlay on an inverse surface — pressed (20% wash, the opposite polarity to the page wash)"
+              },
+              "selected": {
+                "$type": "color",
+                "$value": "{hds.core.palette.black-alpha.20}",
+                "$description": "neutral interactive overlay on an inverse surface — selected (20% wash, the opposite polarity to the page wash)"
+              }
+            }
+          }
+        },
+        "disabled": {
+          "fill": {
+            "$type": "color",
+            "$value": "{hds.core.palette.neutral.250}",
+            "$description": "Disabled control fill on an inverse surface — one muted neutral, any intent"
+          },
+          "on-fill": {
             "$type": "color",
             "$value": "{hds.core.palette.neutral.700}",
-            "$description": "Stronger border / divider on an inverse surface"
+            "$description": "Label / icon on a disabled fill on an inverse surface — muted but clears 4.5:1"
           },
-          "tertiary": {
+          "text": {
             "$type": "color",
-            "$value": "{hds.core.palette.neutral.950}",
-            "$description": "Strongest border / divider on an inverse surface — the third rung of the inverse edge ladder"
+            "$value": "{hds.core.palette.neutral.500}",
+            "$description": "Disabled text on an inverse surface — reduced contrast, legible; clears 4.5:1"
           },
-          "brand": {
+          "icon": {
             "$type": "color",
-            "$value": "{hds.core.palette.primary.500}",
-            "$description": "brand border on an inverse surface — SC 1.4.11 non-text contrast, 4.5:1"
+            "$value": "{hds.core.palette.neutral.500}",
+            "$description": "Disabled icon on an inverse surface — reduced contrast, legible; clears 4.5:1"
           },
-          "success": {
+          "border": {
             "$type": "color",
-            "$value": "{hds.core.palette.success.500}",
-            "$description": "success border on an inverse surface — SC 1.4.11 non-text contrast, 4.5:1"
+            "$value": "{hds.core.palette.neutral.250}",
+            "$description": "Disabled control border on an inverse surface — muted neutral"
+          }
+        },
+        "field": {
+          "border": {
+            "rest": {
+              "$type": "color",
+              "$value": "{hds.core.palette.neutral.500}",
+              "$description": "Form field resting border on an inverse surface — the boundary of a transparent-fill field, a perceivable boundary (SC 1.4.11) at 4.5:1 against the darkest permissible inverse ground"
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{hds.core.palette.neutral.600}",
+              "$description": "Form field hover border on an inverse surface — two ramp steps stronger than rest, gated at 4.5:1 on the darkest permissible inverse ground (pair it with a second cue; color alone does not carry the state)"
+            }
           },
-          "warning": {
+          "placeholder": {
             "$type": "color",
-            "$value": "{hds.core.palette.warning.500}",
-            "$description": "warning border on an inverse surface — SC 1.4.11 non-text contrast, 4.5:1"
-          },
-          "danger": {
-            "$type": "color",
-            "$value": "{hds.core.palette.danger.500}",
-            "$description": "danger border on an inverse surface — SC 1.4.11 non-text contrast, 4.5:1"
-          },
-          "info": {
-            "$type": "color",
-            "$value": "{hds.core.palette.info.500}",
-            "$description": "info border on an inverse surface — SC 1.4.11 non-text contrast, 4.5:1"
-          },
-          "focus": {
-            "$type": "color",
-            "$value": "{hds.core.palette.primary.650}",
-            "$description": "Focus ring color on inverse surfaces (keyboard focus) — SC 1.4.11 non-text contrast, 4.5:1 on inverse.background.primary"
+            "$value": "{hds.core.palette.neutral.650}",
+            "$description": "Form field placeholder ink on an inverse surface — a readable hint, 7:1 on the darkest permissible inverse ground behind the transparent fill"
           }
         }
       }

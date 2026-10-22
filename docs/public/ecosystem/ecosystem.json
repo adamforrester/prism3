@@ -302,7 +302,7 @@
           "spinner",
           "badge",
           "tag",
-          "tab",
+          "tab-item",
           "tabs",
           "divider",
           "_accordion-indicator",
@@ -315,7 +315,12 @@
           "button-group",
           "dialog",
           "password-field",
-          "counter"
+          "counter",
+          "search-field",
+          "toast",
+          "_breadcrumb-separator",
+          "breadcrumb-item",
+          "breadcrumbs"
         ]
       }
     },

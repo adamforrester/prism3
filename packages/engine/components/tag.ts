@@ -28,7 +28,7 @@
  *      argued in the list's header — and the code prop of the same name replaces `interaction`. It is an
  *      AUTHORING axis: a tag's type is chosen when it is placed and never changes on screen.
  *   B. SELECT: an optional leading icon (the `leading icon` boolean), and the selected status as a CHECK MARK
- *      on the TRAILING side. The check is optional — the `Check icon` boolean, on by default — and exists
+ *      on the TRAILING side. The check is optional — the `check icon` boolean, on by default — and exists
  *      only at `selection=selected`. It never sits beside the leading icon. No dismiss on Select at all, which
  *      removes #1743's dual hit target and its 2.09–2.86:1 × on the selected fill.
  *   C. DISMISSIBLE: the ×, and no selection state. `figmaProperties.excludeCoordinates` removes
@@ -49,7 +49,7 @@
  *
  *   G. THE CHECK WIDENS THE TAG. A selected tag with the check shown is one glyph and one gap wider than its
  *      unselected twin (26px at medium since #2725: a 20px glyph and the 6px label→check gap; 30px with the 24px glyph before it); the width is not reserved. `test.ts` `tag selected width` pins it.
- *   H. THE FIGMA SWITCH IS `Check icon` (it was `check mark`). It toggles only the Select check; the code prop
+ *   H. THE FIGMA SWITCH IS `check icon` (it was `check mark`). It toggles only the Select check; the code prop
  *      stays `showCheck`. The Dismissible × has no switch: it is the tag's action, present on every member.
  *   I. SELECTED HOVER AND PRESSED: the tint holds and the 2px outline steps darker
  *      (`interactive.primary.border.hover` / `.pressed`).
@@ -84,6 +84,22 @@
  *      (`size.{size}.dismissible.visible-gap`, density-following, and the one the 4px gap floor holds) and the
  *      layer gap is derived from it, visible − 4, never below 0 (`visibleGaps`, `visibleGapStep`): a 2px layer
  *      gap is intended. A select tag does not change.
+ *
+ * ── THE OWNER'S DECISIONS (2026-10-21/22, #2887 Q513 and Q540): THE TAG STYLE LEVER ──────────────────────
+ *
+ * A brand lever, `tagStyle: pill | underline` (Form, after Field style, default `pill`), materialized before projection
+ * by `applyTagStyle`, never a variant: the def above IS the pill, and under `pill` the lever returns it unchanged.
+ * Under `underline`, every tag draws one line under itself:
+ *   Q513.2 SELECTED: a 2px primary line plus the check, and no tint.
+ *   Q513.3 HOVER AND PRESSED (unselected): the neutral line steps its color AND goes to 2px. No state has a fill.
+ *   Q513.4 FOCUS: the ring only; the line keeps its weight.
+ *   Q513.5 SIDE PADDING: the pill's, 8/12/16, so lines in a group stay 8px apart.
+ *   Q513.6 DISMISSIBLE: the line runs under the × slot.
+ *   Q513.7 THE UNSELECTED LINE: `interactive.neutral.border`, the pill's own (decision 3 holds).
+ *   THE GAP TO THE LINE (owner ask on Q513, #2894's route): the height becomes a minimum at the same rung, so the hit
+ *     target holds, and the content row sits at the bottom on `size.{size}.underline.inset`, `space.050 / 075 / 100`
+ *     (Q540 Q9 A), the same at every density (Q10 A). The label row is held at the glyph's height, so the label does
+ *     not move when the check appears.
  *
  * The selected label and check keep the unselected NEUTRAL ink. The primary ink fails on the tint:
  * `interactive.primary.text.rest` measures 3.02:1 (aurora/light) against 4.5:1. The neutral ink clears 10.19:1.
@@ -181,7 +197,9 @@ export const tag: ComponentDef = {
     // the glyph and the label type. The glyph rung sits ONE RUNG BELOW the control rung, as Button's does
     // (#1350): small → icon.size.xs (16), medium → sm (20), large → md (24) (owner Q337 A, #2725). It sizes the
     // leading icon, the check and the ×, so the three stay one size (owner Q356 A). `lint-rung-names.ts` records it in
-    // `ICON_OFFSET_DEFS`.
+    // `ICON_OFFSET_DEFS`. The underline inset (#2887, owner Q540: Q9 A, Q10 A) is the block-end gap from the line to
+    // the content row under `tagStyle: underline`, 4 / 6 / 8px, the same at every density (so not in `densitySpacing`);
+    // no part of the pill reads it (`applyTagStyle` binds it).
     'size.small.height': 'size.sm.height',
     'size.small.padding-x': 'space.100',
     'size.small.select.gap': 'space.075',
@@ -192,6 +210,7 @@ export const tag: ComponentDef = {
     'size.small.dismissible.padding-end': 'space.0',
     'size.small.select.label-inset': 'space.0',
     'size.small.dismissible.label-inset': 'space.050',
+    'size.small.underline.inset': 'space.050',
     'size.small.icon': 'icon.size.xs',
     'size.small.type': 'type.label.sm.emphasis',
     'size.medium.height': 'size.md.height',
@@ -204,6 +223,7 @@ export const tag: ComponentDef = {
     'size.medium.dismissible.padding-end': 'space.0',
     'size.medium.select.label-inset': 'space.0',
     'size.medium.dismissible.label-inset': 'space.050',
+    'size.medium.underline.inset': 'space.075',
     'size.medium.icon': 'icon.size.sm',
     'size.medium.type': 'type.label.md.emphasis',
     'size.large.height': 'size.lg.height',
@@ -216,6 +236,7 @@ export const tag: ComponentDef = {
     'size.large.dismissible.padding-end': 'space.0',
     'size.large.select.label-inset': 'space.0',
     'size.large.dismissible.label-inset': 'space.050',
+    'size.large.underline.inset': 'space.100',
     'size.large.icon': 'icon.size.md',
     'size.large.type': 'type.label.lg.emphasis',
 
@@ -301,7 +322,7 @@ export const tag: ComponentDef = {
         // The second gap (decision K): label→check is tighter than icon→label, so the two sit in their own row
         // with their own gap, the owner mockup's nesting. With no check shown it holds the label alone. Its
         // leading inset is 0 on a select tag and a fixed 4px on a dismissible one (decision N).
-        children: ['label', 'check'],
+        children: ['label', 'checkGlyph'],
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'hug' } },
         padding: { block: 'pad-y', inlineLabel: 'size.{size}.{type}.label-inset', inlineEnd: 'label-row.padding-end' },
         gap: 'size.{size}.check-gap',
@@ -319,7 +340,7 @@ export const tag: ComponentDef = {
         type: 'size.{size}.type',
         note: 'The tag text, at the same weight whether or not the tag is selected, so the label keeps its width when the tag is selected; the check mark, when shown, adds a cell after it. In code a long label wraps; Figma holds one line.',
       },
-      check: {
+      checkGlyph: {
         kind: 'vector',
         glyph: 'check',
         size: 'size.{size}.icon',
@@ -328,7 +349,7 @@ export const tag: ComponentDef = {
         // gate on `selection` is the whole rule and no second gate on `type` is needed.
         presentWhen: { selection: ['selected'] },
         optional: true,
-        note: 'The selected indicator, a check mark after the label. It exists only on a selected select tag and is on by default; the Check icon switch hides it, leaving the tint and the 2px outline.',
+        note: 'The selected indicator, a check mark after the label. It exists only on a selected select tag and is on by default; the check icon switch hides it, leaving the tint and the 2px outline.',
       },
       dismiss: {
         kind: 'box',
@@ -364,7 +385,7 @@ export const tag: ComponentDef = {
       },
     },
     codeOnly: [
-      'read-only — a real state (readOnly), deliberately NOT a Figma variant: a read-only tag keeps the rest paint at full weight and only refuses interaction, so a member would be byte-identical to rest. It is not dimmed and is not disabled; it keeps its place in the tab order so its label stays reachable.',
+      'read-only — not projected: a read-only tag keeps the rest paint at full weight and only refuses interaction, so a member would be byte-identical to rest. In code (readOnly) it is not dimmed and is not disabled; it keeps its place in the tab order so its label stays reachable.',
       'The Tag prop named type — the component\'s own prop (select | dismissible), the same values as the Figma type axis. It is NOT the HTML type attribute and is never forwarded to the element: a select tag rendered as a <button> sets type="button" itself, so a tag inside a form never submits it. In React, destructure type out of the props before spreading the rest onto the element.',
       'The select tag in code — a <button> with aria-pressed, or a role="checkbox" or listbox option when a group owns the selection (a radiogroup for single choice). The label weight is the same selected and unselected. The check mark follows showCheck; with it off, the tint and the 2px outline carry the state.',
       'The dismissible tag\'s hit target is not decided yet, and both options build from the same Figma structure. (1) The whole tag is one <button> named "Remove" followed by the label, and pressing anywhere on it removes the tag. (2) Only the × slot is the button, named the same, and the body is not interactive; the tag is then a row in a role="grid" group, the label one gridcell and the × slot a second. Either way the × slot is a square as tall as the tag, 44px at medium on comfortable density, and its click does not reach any handler on the tag body.',
@@ -377,6 +398,7 @@ export const tag: ComponentDef = {
       'text expansion — the tag has no fixed width and never truncates: a long label WRAPS onto more lines and the tag grows taller, and the full text stays visible at 200% zoom. Truncation would need the full text reachable by keyboard, touch and screen reader, and a title attribute is none of those. Translations run 30–50% longer. Figma holds one line of placeholder text.',
       'Minimum width — min-inline-size is 1.5 times the tag\'s height, rounded to the nearest 8px: 56px small, 64px medium and 88px large on comfortable density, following the height at compact and spacious. A short label centers inside it (justify-content: center). Figma holds the same floor as a number per size, written when the component is built, so a brand change reaches it on a rebuild.',
       'Spacing — the row is padding-inline, then the leading icon, a gap, and the label and check mark in their own inline group with a smaller gap: at medium on comfortable density, 12px padding, 8px from icon to label and 6px from label to check mark. A dismissible tag has no inline-end padding on that row, so the label runs straight to the × slot. Its label group takes padding-inline-start: 4px at every density, and the gap before it is 4px less than the icon-to-label distance (6px small, 8px medium, 8px large on comfortable density), never below 0; with no leading icon the label sits the padding plus 4px from the edge. Every value is a space token. A compact or spacious brand moves the padding, the label-to-check gap, a select tag\'s icon-to-label gap and a dismissible tag\'s icon-to-label distance one step along the space scale, and never takes a gap or that distance under 4px. The dismissible gap is not stepped: it is recomputed as that distance less 4px, so at spacious density it goes from 4px to 8px on a medium or large tag.',
+      'Tag style (the brand\'s tagStyle setting) — Pill, the default, is everything above: a rounded outline, 1px unselected and 2px selected, with the selected tint. Underline draws one line under the tag and no other edge: square corners, no fill in any state, the line 1px at rest and 2px when selected or on hover and pressed, in interactive.neutral.border unselected and interactive.primary.border selected; focus adds the ring and keeps the line weight. In CSS draw the line as an inset bottom box-shadow (box-shadow: inset 0 -1px 0, or -2px), so the box does not grow; set min-block-size to the tag\'s height in place of a fixed block size, align-items: end, and padding-block-end to the underline inset (4px small, 6px medium, 8px large, at every density), keeping the side padding. The × slot stays a square as tall as the tag with its glyph on the same inset, and the line runs under it. The setting is brand-wide, never a prop.',
       'The hit-target expansion — a small tag is 36px tall on comfortable density and 28px at compact, and a medium tag is 36px at compact. Reaching 44px there is a code-side hit area larger than the visible box, which Figma cannot hold.',
     ],
   },
@@ -395,8 +417,8 @@ export const tag: ComponentDef = {
     texts: { label: { part: 'label', default: 'Tag' } },
     booleans: {
       leadingIcon: { part: 'leadingVisual', figmaName: 'leading icon', default: false },
-      // Owner, 2026-09-29: `Check icon`. It toggles the Select check only; the Dismissible × has no switch.
-      showCheck: { part: 'check', figmaName: 'Check icon', default: true },
+      // Owner, 2026-09-29: `check icon`. It toggles the Select check only; the Dismissible × has no switch.
+      showCheck: { part: 'checkGlyph', figmaName: 'check icon', default: true },
     },
     swaps: { leadingIcon: { part: 'leadingVisual', figmaName: '↳ swap leading icon' } },
   },
@@ -492,7 +514,7 @@ export const tag: ComponentDef = {
       'Owner, 2026-09-29 ("respect none"): the selected tint binds `interactive.primary.subtle-fill.selected`, which every brand whose outline interaction is not none now emits — one leaf on overlay-neutral, the family on solid-tint. It replaced `interactive.primary.overlay.selected`, a 20% neutral wash on the default lever rather than a primary tint. On none there is no tint.',
       'Owner, 2026-09-29: a selected tag with the check shown is one glyph and one gap wider than its unselected twin (30px at medium on comfortable density), and the width is not reserved, so a group reflows on toggle. It was held as a contested item against decision E\'s "nothing reflows".',
       'Owner, 2026-09-29: selected hover and pressed keep the tint and step the 2px outline (`interactive.primary.border.hover` / `.pressed`). It was held as a contested item.',
-      'Owner, 2026-09-29: the Figma switch for the Select check is `Check icon` (it was `check mark`); the code prop stays `showCheck`. The Dismissible × has no switch: it is the tag\'s action and is on every member.',
+      'Owner, 2026-09-29: the Figma switch for the Select check is `check icon` (it was `check mark`); the code prop stays `showCheck`. The Dismissible × has no switch: it is the tag\'s action and is on every member.',
       'Badge\'s hook, answered point by point. (1) Tag binds `color.interactive.*` only (plus disabled and the focus ring). (2) Tag has hover, pressed, focus-visible and disabled members, and selection as an axis. (3) Tag is in `lint-hit-target.ts` INTERACTIVE, 44px at medium. (4) Tag is a pill with an outline at rest, a tint and a 2px primary outline when selected; the status badge has a small radius and a tone fill, and binds no interactive role. (5) Tag no longer nests IconButton.Neutral: the × is a glyph in a square slot. `test.ts` holds (1) and (4) against Badge\'s projected rest paint.',
       'Two types, Select and Dismissible (owner, 2026-09-28), replace the three interactions (clickable | selectable | removable) of 2026-09-27. The plain clickable tag is dropped: an action in place is a Button. `type` is the variant axis name Badge shares (Badge\'s `genre` was renamed to match), and the code prop of the same name replaces `interaction`.',
       'The dual-action tag (select the body, remove with the ×, brief §2) is gone: Select has no dismiss at all (#1743), which also removed the × on the selected fill that measured 2.09–2.86:1.',

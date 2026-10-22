@@ -292,21 +292,27 @@ const EXPECT_ANATOMY = [
   'icon', 'focus-ring', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive',
   'icon-button-neutral', 'field-label', 'field-message', 'text-field', 'textarea', 'checkbox-control', 'checkbox-row',
   'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'switch-control', 'switch-row', 'select', 'veil',
-  'image-placeholder', 'spinner', 'badge', 'tag', 'tab', 'tabs', 'divider', '_accordion-indicator', 'accordion',
+  'image-placeholder', 'spinner', 'badge', 'tag', 'tab-item', 'tabs', 'divider', '_accordion-indicator', 'accordion',
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'list-item', 'list',
-  'segmented-control-segment', 'segmented-control', 'link', 'button-group', 'dialog', 'password-field', 'counter',
+  'segmented-control-segment', 'segmented-control', 'link', 'button-group', 'dialog', 'password-field', 'counter', 'search-field', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs',
 ];
 const EXPECT_PAINTERS = [
   'focus-ring', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive',
   'icon-button-neutral', 'text-field', 'textarea', 'checkbox-control', 'radio-control', 'switch-control', 'select', 'veil',
-  'image-placeholder', 'badge', 'tag', 'tab', 'tabs', 'divider', 'list-item', 'segmented-control-segment', 'segmented-control', 'dialog',
+  'image-placeholder', 'badge', 'tag', 'tab-item', 'tabs', 'divider', 'list-item', 'segmented-control-segment', 'segmented-control', 'dialog',
   // #2457 Q287 A: the round shape's edge and wash. The flush shape's box resolves none of them.
   // Q295.2 B: three families, as IconButton's three.
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral',
   // #2317: the Password field paints as TextField does.
   'password-field',
+  // #2668: the inverse card.
+  'toast',
   // #2427: the outline Counter's fill and edge. A ghost member's box resolves none of them.
   'counter',
+  // #2872 (Q507.1 C): the current-page bar's fill. An unselected member has no bar, so it paints nothing.
+  'link',
+  // #2888: the Search field paints as TextField does.
+  'search-field',
 ];
 const closedSet = (what: string, expected: string[], live: string[], remedy: string): void => {
   for (const id of expected.filter((x) => !live.includes(x))) {

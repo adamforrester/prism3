@@ -134,7 +134,7 @@ export const select: ComponentDef = {
   status: 'draft',
   summary: 'Closed control for picking one value from a known set. The menu is the platform\'s.',
   description:
-    'A control for choosing ONE value from a known, bounded set — the closed, native-first field: label, a bordered control showing the current value or a placeholder with a trailing chevron, and a helper/validation message below. Composes the shared FieldLabel and FieldMessage. The open menu is the platform\'s (native or a separate listbox), not modeled here. Single-choice only: a choice of several values is a Checkbox.Group, or a multi-select, not built yet. Not free-form text (TextField), not a small always-visible set (Radio.Group, or SegmentedControl), not a set the user filters by typing (a combobox, not built yet).',
+    'A control for choosing one value from a known, bounded set — the closed, native-first field: label, a bordered control showing the current value or a placeholder with a trailing chevron, and a helper/validation message below. Composes the shared FieldLabel and FieldMessage. The open menu is the platform\'s (native or a separate listbox), not modeled here. Single-choice only: a choice of several values is a Checkbox.Group, or a multi-select, not built yet. Not free-form text (TextField), not a small always-visible set (Radio.Group, or SegmentedControl), not a set the user filters by typing (a combobox, not built yet).',
 
   props: [
     { name: 'label', type: 'string | node', required: true, description: 'The visible, persistent label, rendered as the nested FieldLabel. Required — a select always carries a programmatic name. Never the placeholder.' },
@@ -148,14 +148,14 @@ export const select: ComponentDef = {
     { name: 'helpText', type: 'string | node', required: false, description: 'Persistent guidance, rendered as the nested FieldMessage in its default status; wired via aria-describedby. Show the constraint before failure.' },
     // The UI reads "Validation"; the Figma variant axis is `status` so it drives the nested message's own
     // `status` by name (see the header). Values match field-message's status values exactly.
-    { name: 'validation', type: "enum: 'default' | 'error' | 'warning' | 'success'", values: ['default', 'error', 'warning', 'success'], default: 'default', required: false, description: 'The validation state. Each non-default status swaps the control border to its own boundary (border-only — `error` → danger, `warning` → warning, `success` → success) AND sets the nested message to the matching status; `default` is neutral. The values align with FieldMessage\'s status axis, so this drives the nested message directly.' },
-    { name: 'validationMessage', type: 'string | node', required: false, description: 'The validation text shown at error / warning / success. For error, say what is wrong AND how to fix it (SC 3.3.3), never "Invalid".' },
+    { name: 'validation', type: "enum: 'default' | 'error' | 'warning' | 'success'", values: ['default', 'error', 'warning', 'success'], default: 'default', required: false, description: 'The validation state. Each non-default status swaps the control border to its own boundary (border-only — error → danger, warning → warning, success → success) and sets the nested message to the matching status; default is neutral. The values align with FieldMessage\'s status axis, so this drives the nested message directly.' },
+    { name: 'validationMessage', type: 'string | node', required: false, description: 'The validation text shown at error / warning / success. For error, say what is wrong and how to fix it (SC 3.3.3), never "Invalid".' },
     // #1426 — a node-visibility boolean (the #1412 mechanism) that hides the composed FieldMessage
     // entirely. Default ON (the message is part of the field), so a select that carries neither helper
     // nor validation text can drop the whole part rather than reserve its space. The message node is
     // emitted at every member and shown by default; turning this off toggles its `visible` in place, the
     // same mechanism as the leading glyph — see `figmaProperties.booleans`.
-    { name: 'showMessage', type: 'boolean', default: true, required: false, description: 'Whether the composed FieldMessage is shown. ON — the default — renders the helper / validation message below the control; turning it off hides the message entirely (a select with no helper or validation text). Never hides a message the field needs: an error still sets aria-invalid and the message carries the reason, so hide it only when there is genuinely nothing to say.' },
+    { name: 'showMessage', type: 'boolean', default: false, required: false, description: 'Whether the composed FieldMessage is shown. Off by default; turn it on to render the helper or validation message below the control. Never hides a message the field needs: an error still sets aria-invalid and the message carries the reason, so turn it on wherever there is something to say.' },
     { name: 'leadingIcon', type: 'slot', required: false, description: 'An optional leading glyph before the value (a category or status mark), aria-hidden. Hidden by default; the file nominates the swap target. Signals the field\'s purpose; validation never mutates it.' },
     { name: 'required', type: 'boolean', default: false, required: false, description: 'Sets required / aria-required, and turns on the FieldLabel\'s required marker.' },
     { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Native disabled — removed from tab order, not submitted, contrast-exempt. Reserve for a choice irrelevant in the current state.' },
@@ -166,7 +166,7 @@ export const select: ComponentDef = {
     { name: 'id', type: 'string', required: false, description: 'Wiring + form submission; auto-generated with useId if omitted, tying the label to the control and stitching the aria-describedby chain to the message.' },
     { name: 'name', type: 'string', required: false, description: 'A real control name so the field works uncontrolled, in a native form, and with Server Actions.' },
     // #2266 — the field sizing system, shared with TextField and Textarea (lifting #1699 decision 2's deferral).
-    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Three tiers that scale the value type with the field (small 14px, medium 16px, large 18px, `type.body.{sm,md,lg}`), the nested label one step below it (12 / 14 / 16), and the padding. Every size keeps the 44px target: small is smaller type and padding, not a smaller target; large is taller. `small` is for fine pointers only: on a coarse pointer (`@media (pointer: coarse)`) the code sets the small control to 16px, because iOS Safari zooms the page when it focuses a control under 16px. The same prop, with the same values, as TextField and Textarea.' },
+    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Three tiers that scale the value type with the field (small 14px, medium 16px, large 18px, from type.body.sm, md and lg), the nested label one step below it (12 / 14 / 16), and the padding. Every size keeps the 44px target: small is smaller type and padding, not a smaller target; large is taller. small is for fine pointers only: on a coarse pointer (@media (pointer: coarse)) the code sets the small control to 16px, because iOS Safari zooms the page when it focuses a control under 16px. The same prop, with the same values, as TextField and Textarea.' },
   ],
 
   // The CLOSED control's states. `empty` is the coordinate at which the displayed text is the
@@ -457,7 +457,7 @@ export const select: ComponentDef = {
         // fall back to the label inset.
         padding: { block: 'size.{size}.pad-y', inlineLabel: 'size.{size}.pad-x' },
         gap: 'size.{size}.gap',
-        children: ['content', 'chevron', 'focusRing'],
+        children: ['content', 'chevronGlyph', 'focusRing'],
       },
       // THE VALUE ROW — leading glyph + value text. Grows across the control on both surfaces (#1751): FIXED
       // and `layoutGrow` in Figma, `flex: 1` in code. The value and placeholder wrap inside it (#1758), and
@@ -504,7 +504,7 @@ export const select: ComponentDef = {
       },
       // THE TRAILING CHEVRON — a fixed `vector`, glyph `chevron-down` (the engine name; the Prism2 spec's
       // `arrow-down-s-line` is the source file's name, not ours). Its ink is the `icon` slot.
-      chevron: {
+      chevronGlyph: {
         kind: 'vector',
         glyph: 'chevron-down',
         size: 'icon-size',
@@ -546,15 +546,15 @@ export const select: ComponentDef = {
         // FILL), so a long message wraps at the field's width. Coexists with `optional` (the node-visibility
         // boolean toggles `visible`; this sets the child-side stretch) — different fields.
         crossAxisFill: true,
-        note: 'Helper or validation text, composed rather than re-declared. Its status follows select\'s validation by name, so error / warning / success reach the message without a value mapping. Shown by default; the `showMessage` boolean (#1426) hides the whole part where the field has nothing to say. Fills the field\'s width (#1503).',
+        note: 'Helper or validation text, composed rather than re-declared. Its status follows select\'s validation by name, so error / warning / success reach the message without a value mapping. Hidden by default (#2926); the `showMessage` boolean (#1426) shows it where the field has something to say. Fills the field\'s width (#1503).',
       },
     },
     codeOnly: [
       'the SMALL select on a COARSE POINTER (#2266, owner decision Q7 A) — iOS Safari zooms the page when it focuses a control whose text is under 16px, and the small select\'s value is 14px. So `small` is for fine pointers: under `@media (pointer: coarse)` the code sets the small control\'s font size to 16px. The token (`type.body.sm`) and the Figma member stay at 14, because Figma has no focus zoom. Never `maximum-scale=1` in the viewport meta: it blocks pinch zoom as well (WCAG 1.4.4).',
       'the OPEN MENU / listbox — the whole option list is the platform\'s (a native `<select>`\'s popup is OS-drawn; a custom one is a separate listbox/popover surface). This def models the CLOSED control only, so there is no `expanded` state and no option-list anatomy. A designer building the open menu reaches for a menu/listbox component, not a variant of this one.',
       'the label / describedby WIRING — the host generates ids (useId), ties the FieldLabel to the control, stitches the FieldMessage into aria-describedby, and sets aria-invalid on error. Figma has no accessibility tree and no node-to-node reference, so the nested label and message sit near the control and are associated by proximity alone (the same ceiling `field-label` and `field-message` each hit). aria-expanded / aria-haspopup describe the popup this def does not model.',
-      'empty — a real STATE in code (nothing is chosen, so the control shows the placeholder), NOT a Figma variant (#1344): in Figma the empty control IS the rest, hover and focus-visible members, showing the `placeholder` layer in `text.secondary`, and `filled` is the member showing the `value` layer in `text.primary`. In code emptiness is a content condition that co-occurs with every interaction, so `empty` stays in `states` (`label.empty` and `error.border.empty` keep the "required field left unchosen" coordinate) and is held out of the projected `stateAxis`, leaving size(3) × status(4) × state(7) = 84 members with read-only. In code the prompt and the chosen label are one control\'s content, never two elements.',
-      'pending — a real STATE (async options are loading: a spinner replaces the chevron and the control sets aria-busy), deliberately NOT a Figma variant, text-field\'s posture. Its delta is a runtime spinner swap with no distinct static skin a designer picks from a matrix, so it stays in `states` and is held out of the projected `stateAxis`, leaving size(3) × status(4) × state(7) = 84 members.',
+      'empty — not projected: in Figma the empty control IS the rest, hover and focus-visible members, showing the `placeholder` layer in `text.secondary`, and `filled` is the member showing the `value` layer in `text.primary`. In code nothing is chosen, so the control shows the placeholder (#1344); emptiness is a content condition that co-occurs with every interaction, so `empty` stays in `states` (`label.empty` and `error.border.empty` keep the "required field left unchosen" coordinate) and is held out of the projected `stateAxis`, leaving size(3) × status(4) × state(7) = 84 members with read-only. In code the prompt and the chosen label are one control\'s content, never two elements.',
+      'pending — not projected: its delta is a runtime spinner swap with no distinct static skin a designer picks from a matrix, text-field\'s posture. In code async options are loading: a spinner replaces the chevron and the control sets aria-busy. It stays in `states` and is held out of the projected `stateAxis`, leaving size(3) × status(4) × state(7) = 84 members.',
       'the NATIVE <select> has no readonly attribute, only disabled (KB select brief §4, §11). The projected read-only member shows the value at full contrast behind the editable field\'s boundary (`field.border.rest`, #1710); in code that member is the custom control with aria-readonly, or a hidden input mirroring the value for form submission.',
       'the KEYBOARD MODEL — typeahead to a matching option, arrow keys to move within the open list, Enter/Space to open and commit, Escape to close. All of it belongs to the interaction the closed control opens INTO, which is not modeled here.',
     ],
@@ -592,14 +592,14 @@ export const select: ComponentDef = {
     //     `leadingIcon`. It shares the `leadingVisual` node with the swap below — `visible` and `mainComponent`
     //     are different Figma fields — so the panel reads `leading icon` (present?) with `↳ swap leading icon`
     //     (which icon) beneath it, the canon nesting.
-    //   · `showMessage` (#1426): the composed `message` nest is emitted at every member with `visible: true`
-    //     (shown by default — the message is part of the field), and this switch hides the whole part. The
-    //     direction is the INVERSE of `leadingIcon` (default true; field-label's `required` defaulted true too until #1699); the
-    //     mechanism is identical. Panel label `message` (a presence toggle, parallel to `leading icon`); the
-    //     code prop stays `showMessage`. FIRST use of the mechanism on a `nest` part.
+    //   · `showMessage` (#1426): the composed `message` nest is emitted at every member with `visible: false`
+    //     (hidden by default since #2926, owner decision: a placed select shows no message line until a designer
+    //     turns it on), and this switch shows the whole part — the same direction as `leadingIcon`. Panel label
+    //     `message` (a presence toggle, parallel to `leading icon`); the code prop stays `showMessage`. FIRST use
+    //     of the mechanism on a `nest` part.
     booleans: {
       leadingIcon: { part: 'leadingVisual', figmaName: 'leading icon', default: false },
-      showMessage: { part: 'message', figmaName: 'message', default: true },
+      showMessage: { part: 'message', figmaName: 'message', default: false },
     },
     // The leading glyph's CONTENT — orthogonal to its presence boolean above. `figmaName` gives it the canon
     // panel label `↳ swap leading icon` (#1380), nested beneath the `leading icon` switch; the code prop
@@ -617,21 +617,21 @@ export const select: ComponentDef = {
       '1.3.5 Identify Input Purpose (autocomplete on a select collecting user information, such as a country)',
       '1.3.1 Info and Relationships (label + describedby association)',
       '3.3.1 Error Identification / 3.3.2 Labels or Instructions / 3.3.3 Error Suggestion',
-      '1.4.3 Contrast (value + placeholder) / 1.4.11 Non-text Contrast (control boundary ≥3:1 — the rest, hover and read-only borders are gated on `background.secondary`, the darkest permissible ground) / 2.4.13 Focus Appearance',
+      '1.4.3 Contrast (value + placeholder) / 1.4.11 Non-text Contrast (control boundary ≥3:1 — the rest, hover and read-only borders are gated on background.secondary, the darkest permissible ground) / 2.4.13 Focus Appearance',
       '4.1.2 Name/Role/Value (role, and the expanded state of the popup) / 2.5.8 Target Size',
     ],
     keyboard: 'The closed control is one Tab stop; Space / Enter / Down open it. Inside the open list (not modeled here) arrows move, typeahead jumps, Enter commits, Escape closes and returns focus to the control. SC 1.4.13 (the list stays open while hovered and Escape dismisses it) and SC 2.1.1 (every option, including scrolled ones, is reachable without a pointer) apply to that open list, which the platform or a listbox component owns, so this closed control does not claim them.',
     focus: ':focus-visible ring on the control, boundary ≥3:1 (1.4.11 / 2.4.13). The control is the focus target; forwardRef reaches it so a form can focus the first invalid field on submit.',
-    aria: 'The host generates ids, ties the label to the control and the message into aria-describedby, and sets aria-invalid on error. The placeholder is NOT the accessible name. A custom control mirrors the native listbox contract (aria-expanded, aria-activedescendant); prefer the native <select> where its OS menu is acceptable, because it is correct for free.',
+    aria: 'The host generates ids, ties the label to the control and the message into aria-describedby, and sets aria-invalid on error. The placeholder is not the accessible name. A custom control mirrors the native listbox contract (aria-expanded, aria-activedescendant); prefer the native <select> where its OS menu is acceptable, because it is correct for free.',
   },
 
   content: {
     labelPattern: 'Noun phrase, sentence case, ≤3 words, no trailing colon; never the placeholder (see field-label).',
-    errorPattern: 'What is wrong AND how to fix it (SC 3.3.3); icon + text, not color-only (carried by the nested field-message).',
+    errorPattern: 'What is wrong and how to fix it (SC 3.3.3); icon + text, not color-only (carried by the nested field-message).',
   },
 
   docs: {
-    usage: 'Use to choose ONE value from a known, bounded set where the options are not worth showing all at once. Always render a visible label (the nested FieldLabel); show the constraint in helper text before failure; drive the nested FieldMessage\'s status from the validation state. The open menu is the platform\'s — prefer a native <select> where its OS menu is acceptable. The select band is roughly 5–15 familiar options: at 4–5 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better. One value only; for several, use a Checkbox.Group. Pick the size with the form: medium is the default, large for a roomy form, small for a dense one on fine pointers only — on a touch screen the small control renders at 16px, because a smaller control makes iOS zoom the page on focus.',
+    usage: 'Use to choose one value from a known, bounded set where the options are not worth showing all at once. Always render a visible label (the nested FieldLabel); show the constraint in helper text before failure; drive the nested FieldMessage\'s status from the validation state. The open menu is the platform\'s — prefer a native <select> where its OS menu is acceptable. The select band is roughly 5–15 familiar options: at 4–5 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better. One value only; for several, use a Checkbox.Group. Pick the size with the form: medium is the default, large for a roomy form, small for a dense one on fine pointers only — on a touch screen the small control renders at 16px, because a smaller control makes iOS zoom the page on focus.',
     do: [
       'Render a visible, associated label (FieldLabel) above the control',
       'Show a muted placeholder as a prompt, never as the label or a real option',

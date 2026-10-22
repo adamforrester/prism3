@@ -245,6 +245,46 @@
       "description": "The edge of every form field. Outline draws a box; Underline draws one line under the value, with no side padding. Either way the line clears 3:1."
     },
     {
+      "key": "searchFieldStyle",
+      "group": "form",
+      "label": "Search field style",
+      "control": "enum",
+      "default": "follow",
+      "options": [
+        {
+          "value": "follow",
+          "label": "Follow field style"
+        },
+        {
+          "value": "outline",
+          "label": "Outline"
+        },
+        {
+          "value": "underline",
+          "label": "Underline"
+        }
+      ],
+      "description": "The edge of the search field. Follow field style matches every other field; Outline or Underline sets search apart. Either way the line clears 3:1."
+    },
+    {
+      "key": "tagStyle",
+      "group": "form",
+      "label": "Tag style",
+      "control": "enum",
+      "default": "pill",
+      "options": [
+        {
+          "value": "pill",
+          "label": "Pill"
+        },
+        {
+          "value": "underline",
+          "label": "Underline"
+        }
+      ],
+      "description": "The shape of every tag. Pill draws a rounded outline; Underline draws one line under the tag, 2px when selected or under the pointer. Either way the line clears 3:1."
+    },
+    {
       "key": "buttonIcons",
       "group": "form",
       "label": "Button icons",
@@ -265,20 +305,20 @@
     {
       "key": "buttonContentSize",
       "group": "form",
-      "label": "Button label & icon",
+      "label": "Medium button label & icon",
       "control": "enum",
       "default": "match",
       "options": [
         {
           "value": "match",
-          "label": "Match button size"
+          "label": "Medium"
         },
         {
           "value": "smaller",
-          "label": "One step smaller"
+          "label": "Small"
         }
       ],
-      "description": "The label and icon size of a medium button. One step smaller gives it the small button’s label and icon at the same height and padding. Small and large buttons are unchanged."
+      "description": "The label and icon size of a medium button. Medium keeps its own; Small gives it the small button’s label and icon at the medium height and padding. Other button sizes are unchanged."
     },
     {
       "key": "buttonLabelWeight",

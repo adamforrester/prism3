@@ -45,7 +45,7 @@
  * wash, the focus ring 3:1 against the track and the page (`test.ts`, #2724).
  *
  * ── THE CONTROL ────────────────────────────────────────────────────────────────────────────────────────
- * `size` only = 3 members. An optional nested FieldLabel above a filled TRACK with no outline, holding a native `items`
+ * `size` only = 3 members. An optional nested FieldLabel (emphasis and weight exposed, bold by default; Q348 A) above a filled TRACK with no outline, holding a native `items`
  * slot (#2649, owner decision Q307 A) of nested segments following `size`: three by default, five at most, segment 1
  * selected. Until #2649 the track held five segments, `nest-exposed` (`selection`, `state`), 3 to 5 behind Figma-only
  * booleans (#2344); in the slot they are `nest-fixed`, and a designer sets each one's selection on the segment itself.
@@ -60,7 +60,7 @@ export const segmentedControlSegment: ComponentDef = {
   aliases: ['segment', 'segmented-control-option'],
   category: 'form',
   status: 'draft',
-  summary: 'One option of a segmented control. Selected, it shows a flat pill and a bold label.',
+  summary: 'One option of a segmented control. Selected, it shows a flat pill and an emphasis-weight label.',
   description:
     'One option in a segmented control: a cell as tall as a button, holding the option label and an optional leading icon. A selected option shows a flat pill in the page surface color inside the cell, and its label is set in the emphasis weight. Every option keeps the width of its bold label, so selecting one never moves the others. At hover, an unselected option shows a light neutral wash on the track. SegmentedControl places the options and owns the selection.',
 
@@ -261,14 +261,14 @@ export const segmentedControlSegment: ComponentDef = {
 
   docs: {
     usage: 'Use inside SegmentedControl only. An option names one value; selecting it changes the current view or the form value in place.',
-    do: ['Give every option in a control the same kind of content: all labels, or all labels with icons', 'Let the control set selected from its value'],
-    dont: ['Place an option outside a segmented control', 'Set selected on an option inside a control by hand'],
+    do: ['Give every option in a control the same kind of content: all labels, or all labels with icons', 'Keep labels to short nouns ("Daily", "Weekly")', 'Let the control set selected from its value'],
+    dont: ['Place an option outside a segmented control', 'Set selected on an option inside a control by hand', 'Wrap a label onto a second line; it breaks the shared track and makes the options uneven'],
     contentGuidelines: 'One or two words, a noun, sentence case.',
   },
 
   ai: {
     primaryPurpose: 'One option inside a segmented control.',
-    whenToUse: 'Only as a child of SegmentedControl.',
+    whenToUse: 'Only as a child of a SegmentedControl. Generate the SegmentedControl, which places its options and sets which one is selected.',
     avoidWhen: 'Anywhere outside a segmented control: a single toggle is a switch or a select tag, and a lone action is a button.',
     commonPartners: ['segmented-control', 'icon'],
     triggerKeywords: ['segment', 'segmented option', 'segmented control option'],
@@ -319,7 +319,7 @@ export const segmentedControl: ComponentDef = {
   aliases: ['segmented-button', 'segmented-buttons', 'toggle-button-group', 'content-switcher', 'connected-button-group'],
   category: 'form',
   status: 'draft',
-  summary: 'A row of two to five options in one track, where exactly one is selected and all stay visible.',
+  summary: 'A row of two to five options in one track, where exactly one is selected and all stay visible. Size applies to the items you haven\'t edited. After editing an item, select the items and set their size.',
   description:
     'A compact row of two to five short options in one neutral track, where exactly one is always selected and every option stays visible. Selecting an option changes a value in place: a parameter of the current view, such as list or grid, or a form value. The options share the track equally. A visible label, or an accessible name, says what is being chosen.',
 
@@ -336,7 +336,7 @@ export const segmentedControl: ComponentDef = {
     { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Disables every option and takes the control out of the Tab order.' },
   ],
 
-  states: ['rest'],
+  states: [],
   variants: { size: ['medium', 'small', 'large'] },
   axisKinds: { size: 'authoring' },
 
@@ -368,10 +368,10 @@ export const segmentedControl: ComponentDef = {
       label: {
         kind: 'nest',
         nests: 'field-label',
-        nesting: { kind: 'nest-fixed', variant: { size: 'medium', emphasis: 'secondary', weight: 'bold', state: 'rest' }, follow: ['size'] },
+        nesting: { kind: 'nest-exposed', variant: { size: 'medium', emphasis: 'secondary', weight: 'bold', state: 'rest' }, expose: ['emphasis', 'weight'], follow: ['size'] },
         crossAxisFill: true,
         optional: true,
-        note: 'The visible label, naming what is being chosen. Shown by default.',
+        note: 'The visible label, naming what is being chosen. Shown by default. Starts secondary and bold; its label text, required marker, emphasis and weight surface on the control (Q348 A).',
       },
       track: {
         kind: 'box',
@@ -422,7 +422,7 @@ export const segmentedControl: ComponentDef = {
     variantAxes: ['size'],
     // The options are the `items` slot (#2649); the label stays outside it, behind its own Figma-only toggle, on.
     booleans: {
-      showLabel: { part: 'label', default: true, figmaName: 'Label', figmaOnly: true },
+      showLabel: { part: 'label', default: true, figmaName: 'label', figmaOnly: true },
     },
   },
 
@@ -471,7 +471,7 @@ export const segmentedControl: ComponentDef = {
     avoidWhen: 'The options switch panels of content (use tabs), there are more than five or the labels are long (use a select or a radio group), options need descriptions (use a radio group), it is one on/off setting (use a switch), or selecting goes to another page (a navigation of links).',
     commonPartners: ['segmented-control-segment', 'field-label', 'icon'],
     triggerKeywords: ['segmented control', 'segmented button', 'view switcher', 'content switcher', 'toggle group', 'list grid toggle'],
-    generationPriority: 4,
+    generationPriority: 3,
   },
 
   composition: {

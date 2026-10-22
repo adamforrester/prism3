@@ -1,17 +1,21 @@
 /**
- * Dialog — a panel over the page that holds a short task or a decision, centered, attached to the bottom edge, or
- * filling a small screen (KB brief: `components/dialog.md`).
+ * Dialog — a panel over the page that holds a short task or a decision, centered, attached to the bottom edge, filling
+ * a small screen, or attached to the end edge as a side sheet (KB brief: `components/dialog.md`).
  *
  * ── THE OWNER'S SHAPE (the proposal on #2609, decided by Q303, 2026-10-14) ──────────────────────────────────
  *
- * ONE component with a `placement` axis, `center | bottom | full`, and no side or drawer placement at all (Q303.1, which
- * amends the proposal's `side`). Center is the desktop placement and the phone default; bottom (a bottom sheet) and full
- * (a full-screen dialog) are small-viewport placements a product opts into per use. In code the placement can be set per
- * breakpoint, but NOTHING SWITCHES AUTOMATICALLY: a dialog stays centered on a phone unless the product chooses otherwise
- * (Q303.7). `size` (`medium | small | large`, the default first as the proposal's table lists it) sets the center panel's
- * width, 400 / 560 / 720px, as def-level literals with no new token (Q303.5 A). Bottom and full are full width, and full
- * is full height too, so they take no size: `excludeCoordinates` removes their small and large members, and the set is
- * 9 center members + 3 bottom + 3 full = 15. `footer` (`inline | stacked | none`, Q303.6 A) lays out the actions. No
+ * ONE component with a `placement` axis, `center | bottom | full | end`. Q303.1 shipped it with no side placement; Q483 A
+ * (#2877) added one, as a value of this axis and not a new component, and Q488 A named it `end`: the edge where the
+ * writing direction ends, the right in left-to-right text and the left in right-to-left, so a `start` can join it later
+ * with no rename. Center is the desktop placement and the phone default; bottom (a bottom sheet) and full (a full-screen
+ * dialog) are small-viewport placements a product opts into per use; end (a side sheet) is a wide-screen placement for a
+ * panel such as sign-in or filters. In code the placement can be set per breakpoint, but NOTHING SWITCHES
+ * AUTOMATICALLY: a dialog stays centered on a phone unless the product chooses otherwise (Q303.7), and an end panel
+ * stays an end panel. `size` (`medium | small | large`, the default first as the proposal's table lists it) sets the
+ * center panel's width, 400 / 560 / 720px, as def-level literals with no new token (Q303.5 A). Bottom and full are full
+ * width, full is full height too, and end is one width at full height (Q489 A), so none of the three takes a size:
+ * `excludeCoordinates` removes their small and large members, and the set is 12 center members + 4 bottom + 4 full +
+ * 4 end = 24. `footer` (`inline | stacked | fill | none`, Q303.6 A; `fill` by Q492 B, #2880) lays out the actions. No
  * state axis: a dialog has no hover, press or disabled of its own; its close button and footer buttons carry theirs.
  *
  * ── THE BACKDROP IS NOT IN THE COMPONENT (Q303.2 A and Q303.3 A) ─────────────────────────────────────────────────
@@ -19,17 +23,19 @@
  * The panel is the component. The backdrop is `color.scrim.default`, a mode-varying fill the token tier names as the
  * modal backdrop, and in code it is the native `::backdrop`. A full-viewport fill inside the component would fix the
  * component to one screen size, so on the canvas the scrim is FURNITURE: an `_scrim-backdrop` instance the plugin draws
- * behind each center and bottom member (`apps/plugin/src/canvas-furniture.ts`), never a node of the set. A full-screen
- * dialog covers the page, so it has no visible backdrop (Q303.8). This is NOT `veil`: veil is a wash a designer chooses
+ * behind each center, bottom and end member (`apps/plugin/src/canvas-furniture.ts`), never a node of the set. A
+ * full-screen dialog covers the page, so it has no visible backdrop (Q303.8). This is NOT `veil`: veil is a wash a designer chooses
  * over media, and the design-rebuild test's backdrop built from it is the correction the proposal opens with.
  *
  * ── CORNERS AND SIZE PER PLACEMENT (Q303.5 A, Q303.11 A as adjusted) ─────────────────────────────────────────────
  *
- * Center rounds all four corners, bottom its top two, full none, each on `radius.2xl` or `radius.none`, bound top and
- * bottom apart (`radiusEdges`). The member's size comes from `builtSize`: a center member is built at its size's width;
- * a bottom or full member at 360, a small phone's width and the narrowest common one above the 320px reflow floor; a
- * full member at 640 tall too, with the body growing to take the height so the footer sits at the bottom. The two
- * phone numbers are this build's and are held for the owner on #2609.
+ * Center rounds all four corners, bottom its top two, full and end none (Q490 A: an end panel meets the top and bottom
+ * of the screen, as full does), each on `radius.2xl` or `radius.none`, bound top and bottom apart (`radiusEdges`). The
+ * member's size comes from `builtSize`: a center member is built at its size's width; a bottom or full member at 360, a
+ * small phone's width and the narrowest common one above the 320px reflow floor; a full member at 640 tall too; an end
+ * member at 480 wide (Q489 A) and 800 tall. Full and end grow the body to take the height, so the footer sits at the
+ * bottom. The phone numbers are this build's and are held for the owner on #2609; the end member's 800 height, its cap
+ * at `100vw − 48px` and the 768px recommendation below are held for the owner's visual QA on #2877.
  *
  * ── PARTS ─────────────────────────────────────────────────────────────────────────────────────────────────
  *
@@ -51,33 +57,33 @@ import { ComponentDef } from '../component-schema';
 export const dialog: ComponentDef = {
   id: 'dialog',
   name: 'Dialog',
-  aliases: ['modal', 'sheet', 'bottom-sheet', 'full-screen-dialog'],
+  aliases: ['modal', 'sheet', 'bottom-sheet', 'full-screen-dialog', 'side-sheet', 'drawer'],
   category: 'overlay',
   status: 'draft',
-  summary: 'A panel over the page for a short task or a decision. Centered, a bottom sheet, or full screen.',
+  summary: 'A panel over the page for a short task or a decision. Centered, full screen, a bottom or side sheet.',
   description:
-    'A modal panel over the page for a short task or a decision the user makes before going on: a confirmation, a short form, or a choice that needs the page behind it for context. The page behind is inert until the dialog closes. Centered by default, at a small, medium or large width; on a small screen a product can open it as a bottom sheet or full screen instead. A header names the task and holds the close button, the body holds the content, and the footer holds the actions. Not a toast or a banner (they do not interrupt), not a popover or a menu (they sit beside a control and do not trap focus), and not a page of its own for a long form.',
+    'A modal panel over the page for a short task or a decision the user makes before going on: a confirmation, a short form, or a choice that needs the page behind it for context. The page behind is inert until the dialog closes. Centered by default, at a small, medium or large width; on a small screen a product can open it as a bottom sheet or full screen instead, and on a wide screen as a side sheet at the end edge. A header names the task and holds the close button, the body holds the content, and the footer holds the actions. Not a toast or a banner (they do not interrupt), not a popover or a menu (they sit beside a control and do not trap focus), and not a page of its own for a long form.',
 
   props: [
     { name: 'open', type: 'boolean', default: false, required: false, description: 'Whether the dialog is showing. Opening it moves focus into it and makes the page behind it inert.' },
-    { name: 'onOpenChange', type: 'function', required: false, description: 'Called with false on every attempt to close: the close button, Escape, a backdrop click on a standard dialog, or an action that closes it. Keep `open` in step with it.' },
+    { name: 'onOpenChange', type: 'function', required: false, description: 'Called with false on every attempt to close: the close button, Escape, a backdrop click on a standard dialog, or an action that closes it. Keep open in step with it.' },
     { name: 'title', type: 'node', required: true, description: 'The heading that names the task. It is the dialog\'s accessible name, so make it specific: "Delete this address?", not "Are you sure?". It wraps rather than truncating.' },
     { name: 'description', type: 'node', required: false, description: 'One or two sentences under the title that say what the dialog is for or what an action will do. Linked as the dialog\'s accessible description.' },
     { name: 'children', type: 'node', required: true, description: 'The body content. The body is the only part that scrolls; the header and footer stay in place.' },
-    { name: 'actions', type: 'slot', anyOf: ['button', 'button-destructive', 'button-neutral'], minItems: 1, maxItems: 3, required: false, description: 'The footer buttons, one to three Button elements, laid out by a Button group. Inline, the main action last (Cancel, then Save); stacked, the main action first. Name each by what it does.' },
+    { name: 'actions', type: 'slot', anyOf: ['button', 'button-destructive', 'button-neutral'], minItems: 1, maxItems: 3, required: false, description: 'The footer buttons, one to three Button elements, laid out by a Button group. Inline and fill, the main action last (Cancel, then Save); stacked, the main action first. Fill suits two. Name each by what it does.' },
     { name: 'role', type: "enum: 'dialog' | 'alertdialog'", values: ['dialog', 'alertdialog'], default: 'dialog', required: false, description: 'dialog for a task or form. alertdialog for a confirmation that interrupts and needs an answer: it hides the close button, a backdrop click does not close it, and focus starts on the least destructive action.' },
-    { name: 'placement', type: "enum: 'center' | 'bottom' | 'full'", values: ['center', 'bottom', 'full'], default: 'center', required: false, description: 'Where the panel sits. center on every screen by default; bottom (a bottom sheet) and full (full screen) are for small screens. Set per breakpoint; nothing switches automatically.' },
-    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'The width of a centered panel: 400, 560 or 720px. On a small screen a centered panel is as wide as the screen less its margins. Bottom and full panels are full width and ignore it.' },
-    { name: 'footer', type: "enum: 'inline' | 'stacked' | 'none'", values: ['inline', 'stacked', 'none'], default: 'inline', required: false, description: 'How the actions are laid out. inline is a row at the end edge; stacked is full-width buttons, the main action on top; none is for a dialog whose body holds its own actions.' },
+    { name: 'placement', type: "enum: 'center' | 'bottom' | 'full' | 'end'", values: ['center', 'bottom', 'full', 'end'], default: 'center', required: false, description: 'Where the panel sits. center on every screen by default; bottom (a bottom sheet) and full (full screen) are for small screens; end (a side sheet) runs the full height of the screen at the end edge, the right in left-to-right text. Set per breakpoint; nothing switches automatically.' },
+    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'The width of a centered panel: 400, 560 or 720px. On a small screen a centered panel is as wide as the screen less its margins. Bottom and full panels are full width, and an end panel is 480px wide, so all three ignore it.' },
+    { name: 'footer', type: "enum: 'inline' | 'stacked' | 'fill' | 'none'", values: ['inline', 'stacked', 'fill', 'none'], default: 'inline', required: false, description: 'How the actions are laid out. inline is a row at the end edge; stacked is full-width buttons, the main action on top; fill is a row whose buttons share the width equally, the main action last; none is for a dialog whose body holds its own actions.' },
   ],
 
   states: [],
   variants: {
-    placement: ['center', 'bottom', 'full'],
+    placement: ['center', 'bottom', 'full', 'end'],
     // Medium first, so Figma's default member is the default size (the proposal's table, approved by Q303); the code
     // enum above keeps the ladder's order, as the fields' do (`lint-rung-names.ts` DEFAULT_FIRST).
     size: ['medium', 'small', 'large'],
-    footer: ['inline', 'stacked', 'none'],
+    footer: ['inline', 'stacked', 'fill', 'none'],
   },
   axisKinds: { placement: 'authoring', size: 'authoring', footer: 'authoring' },
 
@@ -106,17 +112,21 @@ export const dialog: ComponentDef = {
     'title-gap': 'space.100',
     'pad-none': 'space.0',
     // The panel padding: space.300 on a centered panel, space.200 below 480px (the proposal's §7). A bottom or full panel
-    // is a small-screen placement, built at a phone's width, so it carries the small-screen padding.
+    // is a small-screen placement, built at a phone's width, so it carries the small-screen padding. An end panel is a
+    // wide-screen placement, 480px wide, so it carries the centered panel's.
     'placement.center.pad': 'space.300',
     'placement.bottom.pad': 'space.200',
     'placement.full.pad': 'space.200',
-    // ── CORNERS (Q303.11 A as adjusted): center all four, bottom the top two, full none.
+    'placement.end.pad': 'space.300',
+    // ── CORNERS (Q303.11 A as adjusted; Q490 A): center all four, bottom the top two, full and end none.
     'placement.center.radius-top': 'radius.2xl',
     'placement.center.radius-bottom': 'radius.2xl',
     'placement.bottom.radius-top': 'radius.2xl',
     'placement.bottom.radius-bottom': 'radius.none',
     'placement.full.radius-top': 'radius.none',
     'placement.full.radius-bottom': 'radius.none',
+    'placement.end.radius-top': 'radius.none',
+    'placement.end.radius-bottom': 'radius.none',
   },
 
   anatomy: {
@@ -129,12 +139,13 @@ export const dialog: ComponentDef = {
         elevation: 'shadow',
         radiusEdges: { top: 'placement.{placement}.radius-top', bottom: 'placement.{placement}.radius-bottom' },
         layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
-        // The member's size per placement (Q303.5 A): a centered panel's width per size, a phone's width for bottom and
-        // full, and a phone's height for full, where the body takes the height the header and footer do not.
+        // The member's size per placement (Q303.5 A, Q489 A): a centered panel's width per size, a phone's width for
+        // bottom and full, a phone's height for full, and the side sheet's one width at a desktop height for end; at full
+        // and end the body takes the height the header and footer do not.
         builtSize: {
           axis: 'placement',
-          widths: { center: { medium: 560, small: 400, large: 720 }, bottom: 360, full: 360 },
-          heights: { full: 640 },
+          widths: { center: { medium: 560, small: 400, large: 720 }, bottom: 360, full: 360, end: 480 },
+          heights: { full: 640, end: 800 },
           grow: 'body',
         },
         padding: { block: 'placement.{placement}.pad', inlineLabel: 'pad-none' },
@@ -185,7 +196,7 @@ export const dialog: ComponentDef = {
         // build's shape, drew a circle and an edge around the X.
         nests: 'flush-icon-button-neutral',
         optional: true,
-        nesting: { kind: 'nest-fixed', variant: { shape: 'flush', size: 'medium', state: 'rest' } },
+        nesting: { kind: 'nest-fixed', variant: { shape: 'flush', size: 'medium', surface: 'default', state: 'rest' } },
         // Always the X (owner decision, 2026-10-16, #2609): the nested button's own `swap icon` is set to `close` on every
         // member (#2645), and Dialog exposes no swap of its own. A product that wants another X changes the icon set's
         // `close` glyph, or edits the component.
@@ -223,7 +234,7 @@ export const dialog: ComponentDef = {
         kind: 'nest',
         nests: 'divider',
         optional: true,
-        presentWhen: { footer: ['inline', 'stacked'] },
+        presentWhen: { footer: ['inline', 'stacked', 'fill'] },
         nesting: { kind: 'nest-fixed', variant: { orientation: 'horizontal', inset: 'none' } },
         crossAxisFill: true,
         note: 'The rule above the footer, edge to edge. Off by default, and absent when there is no footer.',
@@ -231,18 +242,19 @@ export const dialog: ComponentDef = {
       footer: {
         kind: 'box',
         role: 'presentation',
-        presentWhen: { footer: ['inline', 'stacked'] },
+        presentWhen: { footer: ['inline', 'stacked', 'fill'] },
         layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
         crossAxisFill: true,
         padding: { block: 'pad-none', inlineLabel: 'placement.{placement}.pad' },
-        children: ['actionsInline', 'actionsStacked'],
+        children: ['actionsInline', 'actionsStacked', 'actionsFill'],
         note: 'The footer: the actions, inset to match the header. Absent when there is no footer.',
       },
       // THE ACTIONS ARE A BUTTON GROUP (owner decision Q363, #2661): one nested Button group whose native `items` slot
       // holds the buttons, Cancel then Save inline and Save then Cancel stacked, with Cancel a Button.Neutral when the
       // file has it and the primary Button otherwise (the DIALOG's preference, `nestItemPrefers`, owner decision Q418: the
-      // group on its own keeps the primary outline Button). Two parts, one per footer layout, because a nested instance takes
-      // one coordinate and Dialog's `footer` axis is not the group's `layout` axis.
+      // group on its own keeps the primary outline Button). One part per footer layout, because a nested instance takes
+      // one coordinate and Dialog's `footer` axis is not the group's `layout` axis. Fill (Q492 B, #2880) is the group's
+      // own `layout=fill`: the buttons share the footer's width equally.
       actionsInline: {
         kind: 'nest',
         nests: 'button-group',
@@ -261,31 +273,42 @@ export const dialog: ComponentDef = {
         nestItemPrefers: { cancelStacked: 'button-neutral' },
         note: 'The stacked footer: a Button group, stacked: Save on top, Cancel under it, both full width.',
       },
+      actionsFill: {
+        kind: 'nest',
+        nests: 'button-group',
+        presentWhen: { footer: ['fill'] },
+        crossAxisFill: true,
+        nesting: { kind: 'nest-fixed', variant: { layout: 'fill' } },
+        nestItemPrefers: { cancelFill: 'button-neutral' },
+        note: 'The fill footer: a Button group at fill, Cancel then Save, sharing the width equally.',
+      },
     },
     codeOnly: [
-      'role — `role="dialog"` with `aria-modal="true"`; the native `<dialog>` opened with `showModal()` provides both. `role: "alertdialog"` is a code prop with no Figma property: set it for a confirmation that interrupts and needs an answer. An alertdialog hides the close button (the Figma `close` toggle shows the result), keeps a backdrop click from closing it, and must hold at least one focusable control.',
+      'role — `role="dialog"` with `aria-modal="true"` at every placement, an end panel included; the native `<dialog>` opened with `showModal()` provides both. `role: "alertdialog"` is a code prop with no Figma property: set it for a confirmation that interrupts and needs an answer. An alertdialog hides the close button (the Figma `close` toggle shows the result), keeps a backdrop click from closing it, and must hold at least one focusable control.',
       'labeling — `aria-labelledby` points at the title, made a heading (`<h2>`); `aria-describedby` points at the description when there is one.',
       'focus in — on open, focus moves into the dialog: to the first control in the body for a short form; to the title (`tabindex="-1"`) when the body is long reading content, so a screen reader starts at the top; for an alertdialog, to the least destructive action (Cancel). Never to a destructive button.',
-      'focus held — Tab and Shift+Tab cycle inside the dialog, and the page behind is inert. A modal `<dialog>` makes the page inert natively.',
+      'focus held — Tab and Shift+Tab cycle inside the dialog at every placement, and the page behind is inert. A modal `<dialog>` makes the page inert natively.',
       'focus returned — on close, focus goes back to the control that opened the dialog. If that control is gone, to the nearest control that still makes sense, never to the page body.',
       'Escape — closes a dialog, and closes an alertdialog as Cancel. The close button is always reachable by keyboard, so the dialog is never a keyboard trap (SC 2.1.2).',
       'backdrop click — closes a dialog, never an alertdialog. Close only when the press started on the backdrop (`mousedown` target is the dialog element itself), so a text selection dragged out of the panel does not close it. A full-screen dialog has no visible backdrop; Escape and the close button still apply.',
       'scroll lock — the page behind does not scroll while the dialog is open (`html:has(dialog[open]) { overflow: hidden }`, with the scrollbar width added back as padding so the page does not shift). The body scrolls with `overscroll-behavior: contain`, so a scroll at its end does not move the page.',
+      'the fill footer — the footer\'s Button group at `layout=fill`: each button takes an equal share of the width at every width, and a label too long for its share wraps inside its button (`overflow-wrap: anywhere` on the label), so both buttons grow to the same height. Nothing switches to stacked by itself: for long labels, pick `footer: "stacked"`.',
       'only the body scrolls — the header and footer stay put and the body scrolls between them, so a focused field in the body is never hidden under the footer (SC 2.4.11). Show the two dividers only while the body overflows; in Figma they are the `dividers` toggle.',
-      'placement per breakpoint, no automatic switch — `placement` can take a value per breakpoint, but nothing switches on its own: a dialog stays centered on a phone unless the product chooses bottom or full. A centered panel on a small screen is the viewport width less the grid margins. Bottom and full are full width; full is also full height. A bottom sheet is at most 90% of the viewport height, so the page shows above it; a centered panel at most the viewport height less the grid margin top and bottom. Above that, the body scrolls.',
-      'the panel padding below 480px — `space.200` instead of `space.300` on a centered panel when the viewport is narrower than 480px. Figma builds the bottom and full members, which are small-screen placements, with `space.200`.',
-      'motion — opening: a centered panel fades in and scales up a little; a bottom sheet and a full-screen dialog slide up from the bottom edge; the backdrop fades. On `motion.duration.moderate` with `motion.easing-role.enter`, and `motion.easing-role.exit` to close. Under `prefers-reduced-motion`, a fade only, at `motion.duration-reduced.moderate`, with no movement. Figma shows the panel at rest.',
-      'the backdrop — `color.scrim.default` on `::backdrop`. It is not part of the component: the Figma page draws it behind each example as canvas furniture.',
+      'per-breakpoint placement, no automatic switch — `placement` can take a value per breakpoint, but nothing switches on its own: a dialog stays centered on a phone unless the product chooses bottom or full, and an end panel stays at the end edge. A centered panel on a small screen is the viewport width less the grid margins. Bottom and full are full width; full is also full height. An end panel is full height and 480px wide, at most `100vw − 48px`, so the page shows beside it on a phone; below 768px prefer full for a form and bottom for a short list. A bottom sheet is at most 90% of the viewport height, so the page shows above it; a centered panel at most the viewport height less the grid margin top and bottom. Above that, the body scrolls.',
+      'the panel padding below 480px — `space.200` instead of `space.300` on a centered or end panel when the viewport is narrower than 480px. Figma builds the bottom and full members, which are small-screen placements, with `space.200`.',
+      'motion — opening: a centered panel fades in and scales up a little; a bottom sheet and a full-screen dialog slide up from the bottom edge; an end panel slides in from the end edge; the backdrop fades. On `motion.duration.moderate` with `motion.easing-role.enter`, and `motion.easing-role.exit` to close. Under `prefers-reduced-motion`, every placement opens and closes at once, with no movement and no fade: `motion.duration-reduced.moderate` is 0ms. Figma shows the panel at rest.',
+      'the backdrop — `color.scrim.default` on `::backdrop`, at every placement but full, an end panel included. It is not part of the component: the Figma page draws it behind each example as canvas furniture.',
       'stacking — a modal `<dialog>` renders in the top layer, so it needs no z-index. Avoid opening a dialog from a dialog: replace the content or close the first.',
-      'right-to-left — the layout mirrors through logical properties: the close button moves to the start edge and the footer order mirrors.',
+      'right-to-left — the layout mirrors through logical properties: the close button moves to the start edge and the footer order mirrors. An end panel sits at the left edge and slides in from it (`inset-inline-end: 0`).',
       'code delivery pending: behavior layer (#2454) — initial focus placement, backdrop-click dismissal and focus return wait on that decision. The contract above holds under any answer to it.',
     ],
   },
 
   figmaProperties: {
     variantAxes: ['placement', 'size', 'footer'],
-    // Size is the center panel's alone (Q303.5 A): bottom and full are full width, so they keep only the default size.
-    excludeCoordinates: [{ placement: ['bottom', 'full'], size: ['small', 'large'] }],
+    // Size is the center panel's alone (Q303.5 A, Q489 A): bottom and full are full width and end is one width, so they
+    // keep only the default size.
+    excludeCoordinates: [{ placement: ['bottom', 'full', 'end'], size: ['small', 'large'] }],
     gridAxis: 'footer',
     texts: {
       title: { part: 'title', default: 'Dialog title' },
@@ -308,7 +331,7 @@ export const dialog: ComponentDef = {
       '2.4.6 Headings and Labels (the title names the task)',
       '2.4.7 Focus Visible (every control inside shows the shared focus ring)',
       '2.4.11 Focus Not Obscured (only the body scrolls, so the footer never covers a focused field)',
-      '1.4.10 Reflow (a bottom sheet or full-screen dialog keeps a 320px screen usable)',
+      '1.4.10 Reflow (a bottom sheet or full-screen dialog keeps a 320px screen usable; an end panel is at most the viewport width less 48px)',
       '2.5.8 Target Size (Minimum) (the close button is a medium flush icon button, a 20px glyph with a 44×44px hit area in code)',
       '4.1.2 Name, Role, Value (role, aria-modal and the accessible name are set)',
     ],
@@ -319,14 +342,16 @@ export const dialog: ComponentDef = {
 
   content: {
     labelPattern: 'The title names the task or asks the question ("Delete this address?"), never "Warning" or "Are you sure?". The main action echoes the title\'s verb ("Delete address"), not "OK" or "Yes". Sentence case.',
+    dialogPattern: 'A confirmation asks about the action in its title ("Delete this address?"). The body states what is lost and whether it can be undone. The destructive button repeats the verb ("Delete address") beside Cancel or a named way out ("Keep address"), and focus starts on that way out. Leave the close button off an alertdialog, so the user answers it.',
   },
 
   docs: {
-    usage: 'Use a Dialog when the user must make a decision or finish a short task before going on, and needs the page behind for context: a confirmation, a short form, a choice. Center it on every screen by default; on a small screen, open it as a bottom sheet for a short choice within thumb reach, or full screen for a form that needs the whole screen. Use role alertdialog for a confirmation that interrupts, such as deleting something.',
+    usage: 'Use a Dialog when the user must make a decision or finish a short task before going on, and needs the page behind for context: a confirmation, a short form, a choice. Center it on every screen by default; on a small screen, open it as a bottom sheet for a short choice within thumb reach, or full screen for a form that needs the whole screen. On a wide screen, open a panel the user works in beside the page, such as sign-in or filters, at the end edge; below 768px, switch it to full for a form or bottom for a short list. Use role alertdialog for a confirmation that interrupts, such as deleting something.',
     do: [
       'Name the task in the title, and the action in the main button',
       'Keep the close button on a standard dialog',
-      'Put the main action last in an inline footer (Cancel, then Save), and on top when stacked',
+      'Put the main action last in an inline or fill footer (Cancel, then Save), and on top when stacked',
+      'Use the fill footer for two buttons that share the width, such as Clear all and Apply, and stacked for long labels',
       'Let only the body scroll, and keep the footer in view',
       'Return focus to the control that opened the dialog',
     ],
@@ -336,6 +361,8 @@ export const dialog: ComponentDef = {
       'Put a long, multi-step form in a dialog. Give it a page.',
       'Focus a destructive button when the dialog opens',
       'Build the backdrop into the panel. It is the page\'s scrim, behind the dialog.',
+      'Use an end panel for navigation that stays open beside the page. It is a modal dialog and makes the page inert.',
+      'Make an end panel an alertdialog. A confirmation belongs in the center.',
     ],
     contentGuidelines: 'Titles are specific and in sentence case. Body text is short and states the consequence of an action, especially one that cannot be undone. Buttons are named by what they do.',
   },
@@ -345,7 +372,7 @@ export const dialog: ComponentDef = {
     whenToUse: 'A confirmation, a short form or a choice that needs the page behind it for context, and that the user must finish or dismiss before going on.',
     avoidWhen: 'The message is passing and needs no answer (a toast or a banner), the content belongs beside a control (a popover or a menu), the task is long or has many steps (a page of its own), or the content can sit in the page (an accordion).',
     commonPartners: ['button', 'button-neutral', 'button-destructive', 'flush-icon-button-neutral', 'divider', 'text-field', 'select', 'checkbox-group', 'radio-group'],
-    triggerKeywords: ['dialog', 'modal', 'bottom sheet', 'full-screen dialog', 'confirmation', 'alert dialog', 'popup'],
+    triggerKeywords: ['dialog', 'modal', 'bottom sheet', 'full-screen dialog', 'side sheet', 'drawer', 'confirmation', 'alert dialog', 'popup'],
     generationPriority: 2,
   },
 
@@ -354,18 +381,19 @@ export const dialog: ComponentDef = {
     alternativeTo: ['accordion'],
     replacesPatterns: ['a div overlay with a z-index and a hand-written focus trap', 'a backdrop built from a veil'],
     supersededBy: [],
-    planned: ['toast', 'popover', 'menu'],
+    planned: ['popover', 'menu'],
   },
 
   motion: {
-    enter: 'A centered panel fades in and scales up a little; a bottom sheet and a full-screen dialog slide up from the bottom edge (motion.duration.moderate, motion.easing-role.enter). The backdrop fades in.',
+    enter: 'A centered panel fades in and scales up a little; a bottom sheet and a full-screen dialog slide up from the bottom edge; an end panel slides in from the end edge (motion.duration.moderate, motion.easing-role.enter). The backdrop fades in.',
     exit: 'The reverse, on motion.easing-role.exit.',
-    reduceMotion: 'Under prefers-reduced-motion every placement fades only, at motion.duration-reduced.moderate, with no movement.',
+    reduceMotion: 'Under prefers-reduced-motion every placement opens and closes at once, with no movement and no fade: motion.duration-reduced.moderate is 0ms.',
   },
 
   notes: {
     contested: [
       'HELD FOR THE OWNER (#2609): the bottom and full members\' build size (360 wide, and 640 tall for full), the title-to-description gap (space.100) and the title-to-close gap (space.200), the body placeholder copy, and the description text property\'s Figma name ("description text").',
+      'HELD FOR THE OWNER\'S VISUAL QA (#2877): the end member\'s build size (480 wide, 800 tall), its cap at 100vw − 48px in code, and the 768px width below which the docs recommend full or bottom instead.',
       'The close button sits at the header\'s top edge, beside the first line of the title, without an offset that centers it on that line: whether the title moves down to center on the 44px button is held for the owner\'s visual QA.',
     ],
     unverified: [
@@ -377,6 +405,8 @@ export const dialog: ComponentDef = {
       'Owner decision Q385 A (2026-10-16, #2806), settling Q377 A on #2609: the close button is a FlushIconButton.Neutral, not an IconButton.Neutral, so a file without the IconButton sets still builds Dialog. It is round at medium, the closest match to the earlier ghost medium IconButton.',
       'Owner QA (2026-10-19): the close button takes the flush shape, not round. The X is the bare glyph with no edge or fill, and its 44×44px hit area is drawn in code.',
       'Owner decision Q363 (2026-10-16, #2661): the footer is a nested Button group whose native slot holds the buttons, replacing two fixed nested Buttons per layout. Cancel reads "Cancel" and Save "Save"; Cancel is Button.Neutral when the file has it and the primary Button otherwise (Q363.8 as amended, Q386), and since Q418 that is the Dialog\'s own preference on its nest of the group, which on its own keeps the primary outline Button; the `actions` prop is a slot of one to three Button elements (Q363.10 A).',
+      'Owner decision Q483 A (2026-10-20, #2877), amending Q303.1: a side placement, as a value of `placement` and not a new component, for a sign-in or filter panel that slides in from the edge. Q488 A: it is `end`, the writing direction\'s end edge. Q489 A: one width, 480px, and no size, so 18 members. Q490 A: every corner square. Q491 A: reduced motion stays instant at every placement, and the contract no longer calls it a fade. Q492 A: the existing footers (an equal-width footer is #2880). Q493 A: the aliases side-sheet and drawer. Still a modal dialog with the scrim behind it.',
+      'Owner decision Q492 B (2026-10-20, on #2877), built on #2880 with every recommendation accepted (2026-10-21): a fourth footer, `fill`, in the order inline, stacked, fill, none, that nests the Button group at `layout=fill` on every placement. The halves stay equal at every width and a long label wraps inside its button; nothing switches to stacked by itself, and the docs say to pick stacked for long labels. One to three buttons, as the `actions` slot allows, two being the case it is for. The defaults are Cancel then Save, with Cancel a Button.Neutral where the file has it.',
     ],
   },
 };

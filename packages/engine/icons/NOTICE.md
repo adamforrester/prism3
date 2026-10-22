@@ -62,6 +62,12 @@ A few dozen glyphs of Remix Icon's several thousand, one SVG per name in `icon-s
 portions of it"* threshold §5 attaches its licence-inclusion requirement to. The licence is committed
 anyway: it costs nothing, and it removes the judgment call for whoever reads this next.
 
-One glyph is not from Remix Icon: `resize-grip.svg` (the textarea's corner grip, two diagonal bars) was
-drawn for this project, because the source set has no resize-handle glyph. It is covered by this
-repository's own license, not by `LICENSE` beside this file.
+Two glyphs are not from Remix Icon. Both were drawn for this project, because the source set has no glyph
+for the need, and both are covered by this repository's own license, not by `LICENSE` beside this file:
+
+- `resize-grip.svg`, the textarea's corner grip: two diagonal bars.
+- `slash-line.svg`, the `slash` icon, first drawn as the breadcrumb separator (#2666, owner decision Q382 A).
+  Remix 4.9.1 has no plain slash, only `code-s-slash`, `slash-commands` and `divide`. It is one parallelogram on
+  the same 24px grid, a 2px stroke like the chevrons, with no Remix artwork in it. The owner made it a permanent
+  member of the icon set on 2026-10-22, with a standing rule: a glyph a component needs and the library lacks is
+  added to the icon set when the component is built.

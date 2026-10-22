@@ -119,7 +119,7 @@ export const listItem: ComponentDef = {
         gap: 'gap',
         placementWidth: 320,
         minWidth: 120,
-        children: ['markerBox', 'text'],
+        children: ['markerBox', 'label'],
         note: 'The item: the marker column, then the text. Top-aligned, so a wrapping item keeps its marker on the first line.',
       },
       markerBox: {
@@ -157,7 +157,7 @@ export const listItem: ComponentDef = {
         presentWhen: { type: ['icon'] },
         note: 'The icon marker, a check by default and swappable, in the icon color. Decorative: the text carries the meaning.',
       },
-      text: {
+      label: {
         kind: 'text',
         type: 'size.{size}.text',
         // Fills the row and wraps under itself (the hanging indent): the row's floor bounds it.
@@ -179,7 +179,7 @@ export const listItem: ComponentDef = {
     variantAxes: ['type', 'size'],
     // The text first, at the top of the panel; the number only on ordered members, the icon swap only on icon members.
     texts: {
-      children: { part: 'text', default: 'List item', figmaName: 'text' },
+      children: { part: 'label', default: 'List item', figmaName: 'text' },
       value: { part: 'number', default: '1.', figmaName: 'number' },
     },
     // A required single icon, with no presence toggle: `swap icon`, with no ↳ (the icon-property canon).
@@ -204,18 +204,18 @@ export const listItem: ComponentDef = {
 
   docs: {
     usage: 'Use inside a List only. Each item is one short phrase or sentence after its marker. For several sentences, write a paragraph instead.',
-    do: ['Keep items short and parallel', 'Let the List set every item\'s type and size'],
-    dont: ['Mix types within one list', 'Put the meaning of an item in its icon alone'],
+    do: ['Keep items short and parallel', 'Put the words a reader scans for at the start of each item', 'Let the List set every item\'s type and size'],
+    dont: ['Mix types within one list', 'Put the meaning of an item in its icon alone', 'Make an item a link or a button; a list of links is a navigation, and a list of commands is a menu'],
     contentGuidelines: 'One phrase or sentence per item, sentence case, parallel with the items around it.',
   },
 
   ai: {
     primaryPurpose: 'One item inside a List: a marker in a fixed column, then text that wraps under itself.',
-    whenToUse: 'Only as a child of List.',
+    whenToUse: 'Only as a child of a List. Generate a List, which places its items and sets their marker type and size.',
     avoidWhen: 'Content a writer edits as normal copy (use a native text list in the text itself), a choice the user makes (a listbox), a command (a menu), or a navigation link (a navigation, not built yet).',
     commonPartners: ['list', 'icon'],
     triggerKeywords: ['list item', 'bullet point', 'list entry'],
-    generationPriority: 3,
+    generationPriority: 9,
   },
 
   composition: {
