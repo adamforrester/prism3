@@ -249,7 +249,7 @@ export const toast: ComponentDef = {
 
   notes: {
     contested: [
-      'Decided: Q436 (a) (#2668): the close nests FlushIconButton.Neutral (Q386, as Dialog), not the proposal\'s IconButton.Neutral; FlushIconButton gains a `surface` axis (`default | inverse`, appended last, following IconButton\'s) so the glyph reads on the inverse card, with Counter and Dialog naming `surface: default` on their nests. Decided: Q367 (c): the action label stays the nested Button\'s text, as Dialog\'s footer, not a toast text property. Still held for the owner: the 8px gap between the message and the controls (the proposal leaves it open; the wireframe uses 8px).',
+      'Decided: Q436 (a) (#2668): the close nests FlushIconButton.Neutral (Q386, as Dialog), not the proposal\'s IconButton.Neutral; FlushIconButton gains a `surface` axis (`default | inverse`, appended last, following IconButton\'s) so the glyph reads on the inverse card, with Counter and Dialog naming `surface: default` on their nests. Decided: Q367 (c): the action label stays the nested Button\'s text, as Dialog\'s footer, not a toast text property. Decided: Q532.1 A: the 8px gap between the message and the controls stays as built (the proposal leaves it open; the wireframe uses 8px).',
     ],
     unverified: [
       'That the nested Button and FlushIconButton.Neutral carry their prototype reactions into the toast\'s instances on the canvas, as they do inside Dialog.',

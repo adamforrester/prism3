@@ -25,7 +25,7 @@ for this build.
   one at a time with the newest replacing, the timer (6000ms default, 5000ms floor, pausing on hover, focus and a
   hidden window; no timer with an action), F6 in and Escape or Shift+F6 out, `scroll-padding-bottom`, motion.
 
-### The close follows Q386 (held for the owner)
+### The close follows Q386 (owner decision Q436 (a))
 
 The build brief named "Button / Flush icon button" for the nests and the approved proposal named IconButton.Neutral,
 because FlushIconButton had no inverse surface. Q386 (#2808) forbids a component to require a Neutral button family, and
@@ -33,9 +33,9 @@ main's gate fails the IconButton.Neutral close, so the close is now FlushIconBut
 close is (Q385 A). A flush glyph on the dark card would have been 1.00:1, so FlushIconButton gains a `surface` axis
 (`default | inverse`), appended last and following IconButton's: no fill, so the axis changes the glyph ink only, through
 the projector's existing `color.inverse.*` rewrite. Counter and Dialog name `surface: default` on their nests. The axis
-is the owner's call (Owner question on the PR). Also held: the 8px gap between the message and the
-controls (the proposal leaves it open; the wireframe draws 8px), and the action label living on the nested Button
-rather than as a Toast text property (a host text property can only drive the host's own text parts).
+is Q436 (a). Also decided: the 8px gap between the message and the controls stays as built, Q532.1 A (the proposal
+leaves it open; the wireframe draws 8px), and the action label lives on the nested Button rather than as a Toast text
+property, Q367 (c) (a host text property can only drive the host's own text parts).
 
 ### Gates
 

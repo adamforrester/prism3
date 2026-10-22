@@ -17299,6 +17299,13 @@ arm: {
         `#2457 ${id}'s focus ring follows surface: each focus-visible member nests the ring on its own ground (Q436 (a))${ringBad.length ? ` — WRONG: ${ringBad.slice(0, 3).join(', ')}` : ''} (${ringPlans.length} of 12 members)`);
       ok(JSON.stringify(def.variants?.shape) === JSON.stringify(SHAPES),
         `#2457 ${id}'s shape axis is [flush, round], flush first (Q287 A) — got ${JSON.stringify(def.variants?.shape)}`);
+      // THE surface AXIS IS APPENDED LAST (Q436 (a), as IconButton's was, #1427): declared after shape and size in the
+      // def's variants and in its Figma variant axes, default first. EXPECTED is typed here from the decision; a reorder
+      // otherwise fails only the component-surface pin, which an `--accept` rewrites.
+      const AXES = ['shape', 'size', 'surface'];
+      ok(JSON.stringify(Object.keys(def.variants ?? {})) === JSON.stringify(AXES) && JSON.stringify(def.figmaProperties?.variantAxes) === JSON.stringify(AXES)
+        && JSON.stringify(def.variants?.surface) === JSON.stringify(['default', 'inverse']),
+        `#2457 ${id}'s surface axis is appended last, [default, inverse] (Q436 (a)) — got variants [${Object.keys(def.variants ?? {}).join(', ')}], Figma axes [${(def.figmaProperties?.variantAxes ?? []).join(', ')}], surface ${JSON.stringify(def.variants?.surface)}`);
       const paddingBound: string[] = [], wrongSide: string[] = [], painted: string[] = [], wrongInk: string[] = [];
       const roundSide: string[] = [], roundEdge: string[] = [], roundWash: string[] = [];
       for (const p of plans) {
