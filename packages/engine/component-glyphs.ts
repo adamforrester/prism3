@@ -90,20 +90,24 @@ export const spinnerLayers = (g: { viewBox: number; radius: number; stroke: numb
 /** PROGRESS'S RING (#2670, owner call 5 A): two glyphs on one square, the full ring (the pale track, and the whole
  *  ring at complete) and the value arc drawn over it. Separate glyphs, not two layers of one as the Spinner's are: a
  *  glyph takes one ink, and the track is a different role from the arc. Both bands share one geometry: the outer edge
- *  on the artboard's edge and the width in artboard units, 2px at the 24px ring (2 units) and 4px at the 40px ring
- *  (2.4 units). The still member shows half the ring (`value`), from twelve o'clock clockwise with round caps. */
+ *  on the artboard's edge and the width in artboard units, 3px at the 24px ring (3 units, owner Q544 A) and 4px at the
+ *  40px ring (2.4 units). The determinate still member shows half the ring (`value`), from twelve o'clock clockwise with
+ *  round caps; the indeterminate one (owner Q545 B) shows one rest position of the turning arc (`sweep`), the Spinner's
+ *  third of the circle, from twelve o'clock. */
 export const PROGRESS_GEOMETRY = {
   viewBox: 24,
   /** The band in artboard units, per ring size: the stroke's px × 24 / the ring's px. */
-  band: { small: 2, medium: 2.4 },
-  /** The arc the still member draws, as a fraction of the circle. */
+  band: { small: 3, medium: 2.4 },
+  /** The arc the determinate still member draws, as a fraction of the circle. */
   value: 0.5,
+  /** The arc the indeterminate still member draws: the turning arc at rest, as long as the Spinner's. */
+  sweep: SPINNER_GEOMETRY.arc,
 } as const;
 
 /** One progress glyph: the arc at `value` of the circle, or the full ring. Built from `spinnerLayers`' geometry, so
  *  the two rings share one drawing method; the full ring is the spinner's annulus at full strength. */
-export const progressLayers = (band: number, full: boolean, g: { viewBox: number; value: number } = PROGRESS_GEOMETRY): GlyphLayer[] => {
-  const [track, arc] = spinnerLayers({ viewBox: g.viewBox, radius: g.viewBox / 2 - band / 2, stroke: band, arc: g.value, track: 1 });
+export const progressLayers = (band: number, full: boolean, g: { viewBox: number; value: number } = PROGRESS_GEOMETRY, value: number = g.value): GlyphLayer[] => {
+  const [track, arc] = spinnerLayers({ viewBox: g.viewBox, radius: g.viewBox / 2 - band / 2, stroke: band, arc: value, track: 1 });
   return full ? [{ id: 'track', d: track.d, fillRule: 'evenodd' }] : [arc];
 };
 
@@ -116,8 +120,10 @@ export const progressStopLayers = (viewBox: number = PROGRESS_GEOMETRY.viewBox):
 /** The registry `anatomy-figma.ts` resolves a `vector` part's `glyph` against before the icon set. */
 export const COMPONENT_GLYPHS: Record<string, readonly GlyphLayer[]> = {
   spinner: spinnerLayers(),
-  'progress-arc-small': progressLayers(PROGRESS_GEOMETRY.band.small, false),
-  'progress-arc-medium': progressLayers(PROGRESS_GEOMETRY.band.medium, false),
+  'progress-arc-determinate-small': progressLayers(PROGRESS_GEOMETRY.band.small, false),
+  'progress-arc-determinate-medium': progressLayers(PROGRESS_GEOMETRY.band.medium, false),
+  'progress-arc-indeterminate-small': progressLayers(PROGRESS_GEOMETRY.band.small, false, PROGRESS_GEOMETRY, PROGRESS_GEOMETRY.sweep),
+  'progress-arc-indeterminate-medium': progressLayers(PROGRESS_GEOMETRY.band.medium, false, PROGRESS_GEOMETRY, PROGRESS_GEOMETRY.sweep),
   'progress-ring-small': progressLayers(PROGRESS_GEOMETRY.band.small, true),
   'progress-ring-medium': progressLayers(PROGRESS_GEOMETRY.band.medium, true),
   'progress-stop': progressStopLayers(),

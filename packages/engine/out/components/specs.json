@@ -34614,7 +34614,7 @@
     "progress": {
       "id": "progress",
       "name": "Progress",
-      "members": 10,
+      "members": 12,
       "axes": [
         {
           "name": "shape",
@@ -34659,7 +34659,7 @@
         {
           "part": "container",
           "kind": "frame",
-          "members": 10
+          "members": 12
         },
         {
           "part": "container/header",
@@ -34712,7 +34712,7 @@
           "members": 3
         },
         {
-          "part": "container/track/stop",
+          "part": "container/track/dotGlyph",
           "kind": "glyph",
           "members": 3
         },
@@ -34744,17 +34744,12 @@
         {
           "part": "container/track/lead",
           "kind": "frame",
-          "members": 1,
-          "when": {
-            "type": [
-              "indeterminate"
-            ]
-          }
+          "members": 1
         },
         {
           "part": "container/ringRow",
           "kind": "frame",
-          "members": 6,
+          "members": 8,
           "when": {
             "shape": [
               "circular"
@@ -34764,7 +34759,7 @@
         {
           "part": "container/ringRow/ring",
           "kind": "frame",
-          "members": 6,
+          "members": 8,
           "when": {
             "shape": [
               "circular"
@@ -34772,9 +34767,9 @@
           }
         },
         {
-          "part": "container/ringRow/ring/ringTrack",
+          "part": "container/ringRow/ring/ringGlyph",
           "kind": "glyph",
-          "members": 6,
+          "members": 8,
           "when": {
             "shape": [
               "circular"
@@ -34782,9 +34777,9 @@
           }
         },
         {
-          "part": "container/ringRow/ring/arc",
+          "part": "container/ringRow/ring/arcGlyph",
           "kind": "glyph",
-          "members": 4
+          "members": 6
         },
         {
           "part": "container/ringRow/ringValue",
@@ -34792,7 +34787,7 @@
           "members": 4
         },
         {
-          "part": "container/ringRow/ring/arcFull",
+          "part": "container/ringRow/ring/fullRingGlyph",
           "kind": "glyph",
           "members": 2
         },
@@ -34845,7 +34840,7 @@
               }
             },
             {
-              "part": "container/track/stop",
+              "part": "container/track/dotGlyph",
               "values": {
                 "height": {
                   "token": "border-width.heavy"
@@ -34895,7 +34890,7 @@
               }
             },
             {
-              "part": "container/ringRow/ring/ringTrack",
+              "part": "container/ringRow/ring/ringGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.xl"
@@ -34906,7 +34901,7 @@
               }
             },
             {
-              "part": "container/ringRow/ring/arc",
+              "part": "container/ringRow/ring/arcGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.xl"
@@ -34917,7 +34912,7 @@
               }
             },
             {
-              "part": "container/ringRow/ring/arcFull",
+              "part": "container/ringRow/ring/fullRingGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.xl"
@@ -34967,7 +34962,7 @@
               }
             },
             {
-              "part": "container/ringRow/ring/ringTrack",
+              "part": "container/ringRow/ring/ringGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.md"
@@ -34978,7 +34973,7 @@
               }
             },
             {
-              "part": "container/ringRow/ring/arc",
+              "part": "container/ringRow/ring/arcGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.md"
@@ -34989,7 +34984,7 @@
               }
             },
             {
-              "part": "container/ringRow/ring/arcFull",
+              "part": "container/ringRow/ring/fullRingGlyph",
               "values": {
                 "height": {
                   "token": "icon.size.md"
@@ -35079,7 +35074,7 @@
               "fill": "color.icon.brand"
             },
             {
-              "part": "container/track/stop",
+              "part": "container/track/dotGlyph",
               "icon": "color.icon.brand"
             }
           ]
@@ -35108,7 +35103,7 @@
               "fill": "color.icon.success"
             },
             {
-              "part": "container/track/stop",
+              "part": "container/track/dotGlyph",
               "icon": "color.icon.success"
             }
           ]
@@ -35137,7 +35132,7 @@
               "fill": "color.icon.danger"
             },
             {
-              "part": "container/track/stop",
+              "part": "container/track/dotGlyph",
               "icon": "color.icon.danger"
             }
           ]
@@ -35171,11 +35166,11 @@
           },
           "parts": [
             {
-              "part": "container/ringRow/ring/ringTrack",
+              "part": "container/ringRow/ring/ringGlyph",
               "icon": "color.background.tertiary"
             },
             {
-              "part": "container/ringRow/ring/arc",
+              "part": "container/ringRow/ring/arcGlyph",
               "icon": "color.icon.brand"
             },
             {
@@ -35192,11 +35187,11 @@
           },
           "parts": [
             {
-              "part": "container/ringRow/ring/ringTrack",
+              "part": "container/ringRow/ring/ringGlyph",
               "icon": "color.background.tertiary"
             },
             {
-              "part": "container/ringRow/ring/arcFull",
+              "part": "container/ringRow/ring/fullRingGlyph",
               "icon": "color.icon.success"
             },
             {
@@ -35213,16 +35208,33 @@
           },
           "parts": [
             {
-              "part": "container/ringRow/ring/ringTrack",
+              "part": "container/ringRow/ring/ringGlyph",
               "icon": "color.background.tertiary"
             },
             {
-              "part": "container/ringRow/ring/arc",
+              "part": "container/ringRow/ring/arcGlyph",
               "icon": "color.icon.danger"
             },
             {
               "part": "container/ringRow/ringValue",
               "ink": "color.text.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "shape": "circular",
+            "type": "indeterminate",
+            "status": "active"
+          },
+          "parts": [
+            {
+              "part": "container/ringRow/ring/ringGlyph",
+              "icon": "color.background.tertiary"
+            },
+            {
+              "part": "container/ringRow/ring/arcGlyph",
+              "icon": "color.icon.brand"
             }
           ]
         }

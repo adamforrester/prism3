@@ -17113,7 +17113,7 @@ arm: {
       'button-destructive': 2, 'button-neutral': 2, 'icon-button': 2, 'icon-button-neutral': 2, icon: 2,
       'text-field': 2, textarea: 2, 'password-field': 2, select: 2, 'checkbox-row': 2, 'checkbox-group': 2,
       'radio-row': 2, 'radio-group': 2, 'switch-row': 2, counter: 2, 'button-group': 2, tabs: 2, accordion: 2, list: 2, link: 2, dialog: 2,
-      'icon-button-destructive': 3, 'segmented-control': 3, badge: 3, tag: 3, divider: 3, spinner: 3, veil: 3, 'image-placeholder': 3,
+      'icon-button-destructive': 3, 'segmented-control': 3, badge: 3, tag: 3, divider: 3, spinner: 3, progress: 3, veil: 3, 'image-placeholder': 3,
       'flush-icon-button-neutral': 4, 'flush-icon-button': 5, 'flush-icon-button-destructive': 5,
       'checkbox-control': 6, 'radio-control': 6, 'switch-control': 6, 'field-label': 6, 'field-message': 6, 'focus-ring': 6,
       'tab-item': 9, 'list-item': 9, 'segmented-control-segment': 9, '_accordion-indicator': 9,
@@ -32570,7 +32570,8 @@ arm: {
   const part = (name: string, p: string): PNode | undefined => member(name).find((n) => n.name === p);
 
   // Calls 1, 2 and 9: linear determinate, linear indeterminate and circular determinate, one linear thickness, two
-  // ring sizes; no indeterminate ring (that is the Spinner) and no end state on an indeterminate bar. Ten members.
+  // ring sizes, and no end state on indeterminate work. Call 2 left the indeterminate ring to the Spinner; owner Q545 B
+  // (2026-10-22) adds it to Progress at both sizes, active only. Twelve members.
   const MEMBERS = [
     'shape=linear, type=determinate, status=active, size=medium',
     'shape=linear, type=determinate, status=complete, size=medium',
@@ -32582,9 +32583,11 @@ arm: {
     'shape=circular, type=determinate, status=complete, size=small',
     'shape=circular, type=determinate, status=error, size=medium',
     'shape=circular, type=determinate, status=error, size=small',
+    'shape=circular, type=indeterminate, status=active, size=medium',
+    'shape=circular, type=indeterminate, status=active, size=small',
   ];
   ok(JSON.stringify(names) === JSON.stringify(MEMBERS),
-    `#2670 call 1/2/9 progress: the set is the ten approved members, default first — linear determinate × 3 statuses, linear indeterminate active, circular determinate × 3 statuses × 2 sizes (got ${names.length}: ${names.filter((n) => !MEMBERS.includes(n)).join(' | ') || names.join(' | ')})`);
+    `#2670 call 1/2/9 + Q545 B progress: the set is the twelve approved members, default first — linear determinate × 3 statuses, linear indeterminate active, circular determinate × 3 statuses × 2 sizes, circular indeterminate active × 2 sizes (got ${names.length}: ${names.filter((n) => !MEMBERS.includes(n)).join(' | ') || names.join(' | ')})`);
 
   // #2791 owner item 7 (the default `type`): Figma inserts the set's top-left member, so its `type` is what a designer
   // gets, and code must default to the same one. Determinate, typed here (the owner's QA fix leads with it), never read
@@ -32595,15 +32598,16 @@ arm: {
     `#2791 progress type default: Figma inserts type=${insertedType} and the code default is '${typeProp?.default}'; both are 'determinate', and \`value\` is a plain number that no longer decides the type`);
 
   // #2791: the two linear types measure the same height. The indeterminate bar shows no value, so its header holds the
-  // label alone; the header's token-bound floor and its centered row keep it as tall as the determinate header, whose
-  // value text is the taller line. Typed per member: the floor, the alignment and the track must agree across types.
+  // label alone; the header's token-bound floor keeps it as tall as the determinate header, whose value text is the
+  // taller line. The row aligns the label and the value on their baseline (owner Q535.1 A, 2026-10-22; it was CENTER).
+  // Typed per member: the floor, the alignment and the track must agree across types.
   {
     const header = (m: string) => part(m, 'header') as (PNode & { counterAxisAlignItems?: string; bound?: Record<string, string> }) | undefined;
     const sig = (m: string) => { const h = header(m); return `${h?.counterAxisAlignItems}|${h?.bound?.minHeight}`; };
     const linear = MEMBERS.filter((m) => m.startsWith('shape=linear'));
     const sigs = new Set(linear.filter((m) => /status=active/.test(m)).map(sig));
-    ok(sigs.size === 1 && sig(MEMBERS[0]) === 'CENTER|icon/size/md',
-      `#2791 progress footprint: the linear determinate and indeterminate headers share one floor (icon/size/md) and one alignment (CENTER), so the two types measure the same height at size=medium (got ${[...sigs].join(' / ')})`);
+    ok(sigs.size === 1 && sig(MEMBERS[0]) === 'BASELINE|icon/size/md',
+      `#2791 progress footprint + Q535.1 A: the linear determinate and indeterminate headers share one floor (icon/size/md) and one alignment, the label and value on one baseline (BASELINE), so the two types measure the same height at size=medium (got ${[...sigs].join(' / ')})`);
   }
 
   // Call 3: the ring's value text sits beside the ring, on by default.
@@ -32621,14 +32625,14 @@ arm: {
   const VALUE: Record<string, string[]> = {
     [MEMBERS[0]]: ['50%<value text>'], [MEMBERS[1]]: ['100%<complete value text>'], [MEMBERS[2]]: ['50%<value text>'], [MEMBERS[3]]: [],
     [MEMBERS[4]]: ['50%<value text>'], [MEMBERS[5]]: ['50%<value text>'], [MEMBERS[6]]: ['100%<complete value text>'], [MEMBERS[7]]: ['100%<complete value text>'],
-    [MEMBERS[8]]: ['50%<value text>'], [MEMBERS[9]]: ['50%<value text>'],
+    [MEMBERS[8]]: ['50%<value text>'], [MEMBERS[9]]: ['50%<value text>'], [MEMBERS[10]]: [], [MEMBERS[11]]: [],
   };
   const valueOff = MEMBERS.filter((m) => JSON.stringify(shown(m)) !== JSON.stringify(VALUE[m])).map((m) => `${m}: ${JSON.stringify(shown(m))}`);
   const spread = new Map<string, Set<string>>();
   for (const m of MEMBERS) for (const n of member(m) as RNode[]) if (n.propertyRef?.field === 'characters') spread.set(n.propertyRef.prop, (spread.get(n.propertyRef.prop) ?? new Set()).add(String(n.characters)));
   const twoCaptions = [...spread].filter(([, c]) => c.size > 1).map(([pr, c]) => `${pr}: ${[...c].join(' / ')}`);
   ok(valueOff.length === 0 && twoCaptions.length === 0 && progress.figmaProperties?.texts?.completeValueText?.figmaOnly === true && !progress.props.some((pr) => pr.name === 'completeValueText'),
-    `#2670 owner QA progress: active and error read "50%" (value text), complete reads "100%" through its own Figma-only "complete value text", an indeterminate bar reads none, and no TEXT property is behind two captions, which the host would collapse to one${valueOff.length ? ` — OFF: ${valueOff.join(' | ')}` : ''}${twoCaptions.length ? ` — TWO CAPTIONS: ${twoCaptions.join(' | ')}` : ''}`);
+    `#2670 owner QA progress: active and error read "50%" (value text), complete reads "100%" through its own Figma-only "complete value text", an indeterminate bar or ring reads none, and no TEXT property is behind two captions, which the host would collapse to one${valueOff.length ? ` — OFF: ${valueOff.join(' | ')}` : ''}${twoCaptions.length ? ` — TWO CAPTIONS: ${twoCaptions.join(' | ')}` : ''}`);
 
   // #2670: a Figma-only TEXT property is held to the Figma-only boolean's rules (#2344): it names no prop, and states
   // its panel name.
@@ -32661,15 +32665,41 @@ arm: {
   const FILL: Record<string, string> = { active: 'color/icon/brand', complete: 'color/icon/success', error: 'color/icon/danger' };
   const fillWrong = MEMBERS.flatMap((name) => {
     const status = /status=(\w+)/.exec(name)![1];
-    const f = part(name, 'fill'), arc = part(name, 'arc') ?? part(name, 'arcFull'), stop = part(name, 'stop');
+    const f = part(name, 'fill'), arc = part(name, 'arcGlyph') ?? part(name, 'fullRingGlyph'), stop = part(name, 'dotGlyph');
     const got = [f?.paints?.fills, arc && (arc as unknown as { descendantFills?: string }).descendantFills, stop && (stop as unknown as { descendantFills?: string }).descendantFills].filter(Boolean);
     return got.length && got.every((g) => g === FILL[status]) ? [] : [`${name}: ${got.join('/') || 'nothing'}`];
   });
-  ok(track?.paints?.fills === 'color/background/tertiary' && track?.bound?.height === 'border-width/heavy' && kids[kids.length - 1] === 'stop'
-    && (part(MEMBERS[4], 'ringTrack') as unknown as { descendantFills?: string } | undefined)?.descendantFills === 'color/background/tertiary' && part(MEMBERS[4], 'ring')?.paints?.strokes === undefined && fillWrong.length === 0,
+  ok(track?.paints?.fills === 'color/background/tertiary' && track?.bound?.height === 'border-width/heavy' && kids[kids.length - 1] === 'dotGlyph'
+    && (part(MEMBERS[4], 'ringGlyph') as unknown as { descendantFills?: string } | undefined)?.descendantFills === 'color/background/tertiary' && part(MEMBERS[4], 'ring')?.paints?.strokes === undefined && fillWrong.length === 0,
     `#2670 call 5 progress: the track is background.tertiary at 4px (border-width.heavy), the ring's track the same role, the stop dot ends the track, and the fill, arc and stop take icon.brand / success / danger by status (track ${track?.paints?.fills} @ ${track?.bound?.height}, children ${kids.join(', ')}${fillWrong.length ? `; WRONG: ${fillWrong.join(' | ')}` : ''})`);
-  ok(!part(MEMBERS[3], 'stop') && part(MEMBERS[3], 'lead') !== undefined && part(MEMBERS[1], 'rest') === undefined,
+  ok(!part(MEMBERS[3], 'dotGlyph') && part(MEMBERS[3], 'lead') !== undefined && part(MEMBERS[1], 'rest') === undefined,
     '#2670 call 5 progress: an indeterminate bar has no stop dot and shows its segment between a lead and a rest; a complete bar has no rest, its fill the whole track');
+
+  // OWNER Q545 B (2026-10-22): the indeterminate ring, a still frame of its turn. Typed here: at both sizes it shows the
+  // track and the indeterminate arc (the Spinner's third, measured by lint-glyph-geometry), no value and no message;
+  // the code rules turn the arc on the sweep pair under prefers-reduced-motion and no longer refuse the ring; and the
+  // docs say when to use the ring and when the Spinner. OWNER Q544 A: the code note's small band is 3 units, the
+  // outline lint-glyph-geometry measures at 3px.
+  {
+    const ringOff = [MEMBERS[10], MEMBERS[11]].flatMap((m) => {
+      const size = /size=(\w+)/.exec(m)![1];
+      const got = member(m).map((n) => n.name);
+      // The arc is not the determinate ring's value arc at the same size: a still frame of the turn, not a 50% value.
+      const arcSvg = part(m, 'arcGlyph')?.glyphSvg;
+      const want = arcSvg !== undefined && arcSvg !== part(MEMBERS[size === 'medium' ? 4 : 5], 'arcGlyph')?.glyphSvg;
+      const bad = ['ringValue', 'ringValueComplete', 'messageComplete', 'messageError', 'fullRingGlyph'].filter((p) => got.includes(p));
+      return want && got.includes('ringGlyph') && bad.length === 0 ? [] : [`${m} (${size}): ${bad.join(', ') || 'no ring or arc'}`];
+    });
+    const code = progress.anatomy!.codeOnly.join('\n');
+    const ringNote = progress.anatomy!.codeOnly.find((c) => c.startsWith('the indeterminate ring')) ?? '';
+    const usage = progress.docs?.usage ?? '';
+    ok(ringOff.length === 0
+      && /rotate\(1turn\)/.test(ringNote) && /var\(--motion-duration-sweep\) linear infinite/.test(ringNote) && /prefers-reduced-motion: reduce/.test(ringNote) && /var\(--motion-duration-reduced-sweep\)/.test(ringNote) && /never stopped/.test(ringNote)
+      && !/refused in development, pointing to Spinner/.test(code)
+      && /\(3 at small, 2\.4 at medium/.test(code)
+      && /ring/.test(usage) && /Spinner for a short wait inside a control/.test(usage) && /indeterminate when it is not/.test(usage),
+      `#2791 Q545 B / Q544 A progress: the indeterminate ring shows its track and turning arc at both sizes with no value or message, its code note turns the arc on the sweep pair under prefers-reduced-motion, nothing refuses it, the docs say when to use it and when the Spinner, and the small band reads 3 units${ringOff.length ? ` — WRONG: ${ringOff.join(' | ')}` : ''}`);
+  }
 
   // Calls 6 and 7: the sweep's own pair, 1600ms and 2600ms under reduced motion (slower, not removed), fixed at every
   // tempo, in every committed brand.
@@ -32749,7 +32779,7 @@ arm: {
       }
   }
   ok(committedBrands.length >= 5 && cells >= committedBrands.length * 4 * PAIRS.length && misses.length === 0,
-    `#2670 progress contrast: the fill clears 3:1 against the track and the stop dot 3:1 against the page, and the label and value 4.5:1, in every committed brand × mode (${cells} pairs over ${committedBrands.join(', ')})${misses.length ? ` — MISSES: ${misses.join(' | ')}` : ''}`);
+    `#2670 progress contrast: the fill and the ring's arc clear 3:1 against the track and the stop dot 3:1 against the page, and the label and value 4.5:1, in every committed brand × mode (${cells} pairs over ${committedBrands.join(', ')})${misses.length ? ` — MISSES: ${misses.join(' | ')}` : ''}`);
 }
 
 // ---- one axis value order in every def (#2501, owner decision Q213) ----

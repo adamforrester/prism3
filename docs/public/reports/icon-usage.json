@@ -248,8 +248,8 @@
     "progress": {
       "glyphs": [
         {
-          "part": "arc",
-          "glyph": "progress-arc-{size}",
+          "part": "arcGlyph",
+          "glyph": "progress-arc-{type}-{size}",
           "source": "component-owned",
           "how": "drawn",
           "when": {
@@ -263,7 +263,21 @@
           }
         },
         {
-          "part": "arcFull",
+          "part": "dotGlyph",
+          "glyph": "progress-stop",
+          "source": "component-owned",
+          "how": "drawn",
+          "when": {
+            "shape": [
+              "linear"
+            ],
+            "type": [
+              "determinate"
+            ]
+          }
+        },
+        {
+          "part": "fullRingGlyph",
           "glyph": "progress-ring-{size}",
           "source": "component-owned",
           "how": "drawn",
@@ -277,27 +291,13 @@
           }
         },
         {
-          "part": "ringTrack",
+          "part": "ringGlyph",
           "glyph": "progress-ring-{size}",
           "source": "component-owned",
           "how": "drawn",
           "when": {
             "shape": [
               "circular"
-            ]
-          }
-        },
-        {
-          "part": "stop",
-          "glyph": "progress-stop",
-          "source": "component-owned",
-          "how": "drawn",
-          "when": {
-            "shape": [
-              "linear"
-            ],
-            "type": [
-              "determinate"
             ]
           }
         }
@@ -481,8 +481,10 @@
     "plus-circle": [],
     "plus-circle-filled": [],
     "plus-filled": [],
-    "progress-arc-medium": [],
-    "progress-arc-small": [],
+    "progress-arc-determinate-medium": [],
+    "progress-arc-determinate-small": [],
+    "progress-arc-indeterminate-medium": [],
+    "progress-arc-indeterminate-small": [],
     "progress-ring-medium": [],
     "progress-ring-small": [],
     "progress-stop": [

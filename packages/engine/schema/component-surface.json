@@ -713,8 +713,8 @@
       ]
     },
     "progress": {
-      "members": 10,
-      "sha256": "d3db9a17e06a4f3a108eaac649dabfd66696786bdf8139781f1d0ea8c90b4e7b",
+      "members": 12,
+      "sha256": "868c163ffa5e3799c951c79a9a33312f8345ecdfb844fde3dbf76897d6599745",
       "properties": [
         "complete value text:TEXT",
         "label text:TEXT",

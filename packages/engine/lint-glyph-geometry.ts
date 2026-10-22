@@ -135,7 +135,7 @@ const MUST_COVER = [
   'switch-control.onGlyph', 'switch-control.offGlyph', 'select.chevronGlyph', 'image-placeholder.markerGlyph',
   '_accordion-indicator.chevronDownGlyph', '_accordion-indicator.chevronUpGlyph', '_accordion-indicator.plusGlyph', '_accordion-indicator.minusGlyph',
   // Progress's own glyphs (#2670), measured by the RING_GLYPH arm.
-  'progress.ringTrack', 'progress.arc', 'progress.arcFull', 'progress.stop',
+  'progress.ringGlyph', 'progress.arcGlyph', 'progress.fullRingGlyph', 'progress.dotGlyph',
 ];
 
 /** The component name prefix an icon-set glyph is an instance of (#2380): `icon/<glyph>`, the component the
@@ -176,41 +176,43 @@ const COMPOSED_GLYPH: Record<string, {
  * approved proposal's numbers (owner calls 5 and 9, 2026-10-16), typed in this file and not read from
  * `component-glyphs.ts`, which is the subject:
  *
- *   · the ring is 24px with a 2px band at `small` and 40px with a 4px band at `medium` (`RING_SIZE_PX`,
- *     `RING_BAND_PX`): every ring glyph binds the ring frame's own square, and its band's outer edge is the
- *     artboard's edge;
- *   · `ringTrack` — the pale track, a closed annulus on that band, IN the flow (it is what the arc covers);
- *   · `arc` — the still member's value arc, half the circle (`RING_ARC`), from twelve o'clock clockwise, with
- *     round caps, at `status` active and error, lifted and centered OVER the track (`stacked`);
- *   · `arcFull` — the full ring at complete, the annulus again, stacked over the track;
- *   · `stop` — the stop dot, a disc filling its artboard, built 4px square, on determinate linear members.
+ *   · the ring is 24px with a 3px band at `small` (owner Q544 A; 2px until then) and 40px with a 4px band at
+ *     `medium` (`RING_SIZE_PX`, `RING_BAND_PX`): every ring glyph binds the ring frame's own square, and its band's
+ *     outer edge is the artboard's edge;
+ *   · `ringGlyph` — the pale track, a closed annulus on that band, IN the flow (it is what the arc covers);
+ *   · `arcGlyph` — the still member's arc, from twelve o'clock clockwise, with round caps, at `status` active and
+ *     error, lifted and centered OVER the track (`stacked`): half the circle on a determinate ring, and on an
+ *     indeterminate one (owner Q545 B) the turning arc at rest, the Spinner's third (`RING_ARC`, by `type`);
+ *   · `fullRingGlyph` — the full ring at complete, the annulus again, stacked over the track;
+ *   · `dotGlyph` — the stop dot, a disc filling its artboard, built 4px square, on determinate linear members.
  *
  * Each record carries its gate (`at`), compared with the def's `presentWhen` by value as `FIXED_GLYPH` does, and
  * the member count is read off the projected set against that gate.
  */
 const RING_GLYPH: Record<string, { glyph: string; shape: 'arc' | 'full' | 'disc'; at: Record<string, readonly string[]>; stacked?: true; why: string }> = {
-  'progress.ringTrack': {
+  'progress.ringGlyph': {
     glyph: 'progress-ring-{size}', shape: 'full', at: { shape: ['circular'] },
     why: 'the ring\'s pale track, in the flow under the arc, the linear track\'s role',
   },
-  'progress.arc': {
-    glyph: 'progress-arc-{size}', shape: 'arc', at: { shape: ['circular'], status: ['active', 'error'] }, stacked: true,
-    why: 'the value arc of a determinate ring, half the circle in the still member, brand color while active and danger at error',
+  'progress.arcGlyph': {
+    glyph: 'progress-arc-{type}-{size}', shape: 'arc', at: { shape: ['circular'], status: ['active', 'error'] }, stacked: true,
+    why: 'the arc over the ring: the value arc of a determinate ring (half the circle in the still member), or the turning arc of an indeterminate one at rest; brand color while active and danger at error',
   },
-  'progress.arcFull': {
+  'progress.fullRingGlyph': {
     glyph: 'progress-ring-{size}', shape: 'full', at: { shape: ['circular'], status: ['complete'] }, stacked: true,
     why: 'the whole ring at complete, in the success color, over the track',
   },
-  'progress.stop': {
+  'progress.dotGlyph': {
     glyph: 'progress-stop', shape: 'disc', at: { shape: ['linear'], type: ['determinate'] },
     why: 'the stop dot at the end of a determinate track, marking where the work finishes (owner call 5)',
   },
 };
-/** The still arc's length, as a fraction of the circle. */
-const RING_ARC = 0.5;
+/** The still arc's length, as a fraction of the circle, by `type`: half the ring for a determinate member, and the
+ *  Spinner's third (its owner-picked 33%) for the indeterminate member's rest position (owner Q545 B). */
+const RING_ARC: Record<string, number> = { determinate: 0.5, indeterminate: 0.33 };
 /** The ring's square and band in px, per size (owner calls 5 and 9). */
 const RING_SIZE_PX: Record<string, number> = { small: 24, medium: 40 };
-const RING_BAND_PX: Record<string, number> = { small: 2, medium: 4 };
+const RING_BAND_PX: Record<string, number> = { small: 3, medium: 4 };
 /** The variables the ring's frame and the stop dot bind, in px, typed from the token tier. */
 const RING_VAR_PX: Record<string, number> = { 'icon/size/md': 24, 'icon/size/xl': 40, 'border-width/heavy': 4 };
 /** The stop dot's square in px (owner call 5: a 4px dot). */
@@ -673,8 +675,9 @@ for (const def of componentDefs as ComponentDef[]) {
         let sweepDeg = ((ang(outer.to) - ang(outer.from)) % 360 + 360) % 360;
         if (outer.large === 1 && sweepDeg < 180) sweepDeg = 360 - sweepDeg;
         if (sweepDeg === 0 && outer.large === 0) sweepDeg = 360;
-        if (!near(sweepDeg / 360, RING_ARC, 0.0005) || outer.sweep !== 1)
-          failures.push(`${def.id}.${partName} @ ${at}: the arc covers ${((sweepDeg / 360) * 100).toFixed(2)}% of the circle${outer.sweep !== 1 ? ' counter-clockwise' : ''}, expected ${RING_ARC * 100}% clockwise from twelve o'clock.`);
+        const arcWant = RING_ARC[coord.type ?? ''];
+        if (arcWant === undefined || !near(sweepDeg / 360, arcWant, 0.0005) || outer.sweep !== 1)
+          failures.push(`${def.id}.${partName} @ ${at}: the arc covers ${((sweepDeg / 360) * 100).toFixed(2)}% of the circle${outer.sweep !== 1 ? ' counter-clockwise' : ''}, expected ${arcWant === undefined ? `a type from ${Object.keys(RING_ARC).join(' / ')}` : `${arcWant * 100}%`} clockwise from twelve o'clock.`);
         glyphChecks++;
       }
       if (!seen) failures.push(`${def.id}.${partName}: appeared at none of the set's ${set.length} members, so nothing was measured.`);

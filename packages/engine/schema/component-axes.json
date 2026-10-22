@@ -762,7 +762,7 @@
         "indeterminate"
       ]
     },
-    "members": 10,
+    "members": 12,
     "properties": {
       "complete value text": "TEXT",
       "label": "BOOLEAN",

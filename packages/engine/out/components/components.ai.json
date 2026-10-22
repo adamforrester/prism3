@@ -5449,7 +5449,7 @@
       "ai": {
         "primaryPurpose": "Show that work is in progress with no known end, inside the control or region that is waiting.",
         "whenToUse": "A short indeterminate wait of about 200ms to 5s (Material 3's bands) inside a host: a pending Button, a field validating its value, a region reloading. Size it to the host's icon slot.",
-        "avoidWhen": "The wait is under 200ms (show nothing — a spinner shown that briefly only flashes), runs past about 5s or has a known length (a Progress bar, or a Progress ring when it has a value), the page is loading its layout (a skeleton, not built yet), or you want a static icon — the spinner is behavior, not a glyph.",
+        "avoidWhen": "The wait is under 200ms (show nothing — a spinner shown that briefly only flashes), runs past about 5s or has a known length (Progress: a bar, or a ring in a small space), or is a task that ends in complete or error (a Progress ring, indeterminate until the amount is known), the page is loading its layout (a skeleton, not built yet), or you want a static icon — the spinner is behavior, not a glyph.",
         "commonPartners": [
           "button",
           "icon-button",
@@ -8455,7 +8455,7 @@
             "linear",
             "circular"
           ],
-          "description": "linear = a bar that fills its container. circular = a ring for a small space, determinate only. A ring that cannot show a value is a Spinner."
+          "description": "linear = a bar that fills its container. circular = a ring for a small space, determinate or indeterminate. An indeterminate ring shows no value."
         },
         {
           "name": "size",
@@ -8466,7 +8466,7 @@
             "small",
             "medium"
           ],
-          "description": "The ring's size: medium is 40px with a 4px band, small is 24px with a 2px band. A linear bar has one thickness, 4px, and ignores this."
+          "description": "The ring's size: medium is 40px with a 4px band, small is 24px with a 3px band. A linear bar has one thickness, 4px, and ignores this."
         },
         {
           "name": "status",
@@ -8553,7 +8553,7 @@
         }
       },
       "accessibility": {
-        "role": "`progressbar`, named by the label. A polite live region beside it carries the milestone and end announcements.",
+        "role": "progressbar, named by the label. A polite live region beside it carries the milestone and end announcements.",
         "wcag": [
           "4.1.2 Name, Role, Value (role progressbar named by its label; with a value, aria-valuenow, aria-valuemin, aria-valuemax and aria-valuetext)",
           "4.1.3 Status Messages (the milestones, the end and an error reach a screen reader through a polite live region)",
@@ -8571,7 +8571,7 @@
         "errorPattern": "Name what failed and the next step: \"Upload failed. The connection dropped. Try again.\" Not a bare \"Error\"."
       },
       "docs": {
-        "usage": "Use Progress for system work that takes more than a few seconds: a determinate bar when the work can be measured (bytes, items, a known length), an indeterminate bar when it cannot. Use a ring when the space is small, such as a row in a list. For a short wait inside a control, use a Spinner; for a first load of content, a placeholder in the layout's shape. Use the bar for work the user waits on; for long background work, show a status line, or let the user hide the bar.",
+        "usage": "Use Progress for system work that takes more than a few seconds: a determinate bar when the work can be measured (bytes, items, a known length), an indeterminate bar when it cannot. Use a ring when the space is small, such as a row in a list: determinate when the amount is known, indeterminate when it is not. Choose a ring over a Spinner when the work is a task with an outcome: the ring is named by its label, ends in complete or error with a message, and turns determinate once the amount is known. Use a Spinner for a short wait inside a control, such as a button's pending state, where there is no outcome to report. For a first load of content, use a placeholder in the layout's shape. Use the bar for work the user waits on; for long background work, show a status line, or let the user hide the bar.",
         "do": [
           "Name the work in the label with an active verb",
           "Show a concrete amount when there is one (\"45 MB of 100 MB\")",
@@ -8582,7 +8582,7 @@
         "dont": [
           "Fake a value. A bar that creeps toward the end and stops there breaks the contract; use an indeterminate bar",
           "Put the label or the value inside the track",
-          "Use an indeterminate ring. That is a Spinner",
+          "Use a ring for a short wait inside a control. That is a Spinner",
           "Use Progress for a static measurement such as storage used. That is a meter",
           "Use Progress for a user's place in a multi-step form. That is a stepper",
           "Show the outcome by color alone"
@@ -8591,8 +8591,8 @@
       },
       "ai": {
         "primaryPurpose": "Show that system work is under way and, when it can be measured, how far along it is.",
-        "whenToUse": "An upload, export or batch job that takes more than a few seconds: determinate when the amount is known, indeterminate when it is not. A ring when the space is small.",
-        "avoidWhen": "The wait is short and inside a control (use a spinner), the content is loading for the first time (a placeholder in the layout's shape), the value is a static measurement such as storage used (a meter), it marks a user's place in a multi-step flow (a stepper), or the work cannot be measured and you want a ring (use a spinner).",
+        "whenToUse": "An upload, export or batch job that takes more than a few seconds: determinate when the amount is known, indeterminate when it is not. A ring when the space is small, measured or not, for a task that ends in complete or error.",
+        "avoidWhen": "The wait is short and inside a control (use a spinner), the content is loading for the first time (a placeholder in the layout's shape), the value is a static measurement such as storage used (a meter), it marks a user's place in a multi-step flow (a stepper).",
         "commonPartners": [
           "button",
           "spinner",

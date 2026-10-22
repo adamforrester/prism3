@@ -5,9 +5,10 @@ recommendation. One `Progress` (category `feedback`, aliases `progress-bar`, `pr
 `circular-progress`; `loader` stays with Spinner), on its own `↳ Progress` page under Components. Cites the knowledge
 base's `components/progress.md`, read for this build.
 
-**10 members.** `shape` [linear, circular] × `type` [determinate, indeterminate] × `status` [active, complete, error] ×
-`size` [medium, small]. Three `excludeCoordinates` rows make the sparse grid: a linear bar has one thickness (no small),
-a ring always has a value (no indeterminate ring; that is the Spinner), and an indeterminate bar has no end state.
+**12 members.** `shape` [linear, circular] × `type` [determinate, indeterminate] × `status` [active, complete, error] ×
+`size` [medium, small]. Two `excludeCoordinates` rows make the sparse grid: a linear bar has one thickness (no small),
+and indeterminate work, bar or ring, has no end state. The first build had a third row, no indeterminate ring (a ring
+always had a value; call 2 left that to the Spinner). Owner Q545 B (2026-10-22) removed it; see below.
 Each axis lists its code default first (owner Q347), so the first member is the default bar: the code `type` default is determinate.
 
 ### How the still members show an amount
@@ -94,6 +95,22 @@ The two linear types measured different heights at the same size because the hea
 indeterminate, and the label and value together (baseline-aligned, the value on a taller line) when determinate. The
 header now centers its row and carries a token-bound floor, `icon.size.md`, which the value line fits under, so both
 types measure the same. Two named arms in `test.ts` hold both.
+
+### Owner QA, 2026-10-22 (Q535, Q544, Q545)
+
+- **Baseline header (Q535.1 A).** The header aligns the label and the value on their baseline instead of centering
+  them. Its floor still holds the two linear types at one height.
+- **The small ring's band, 2px → 3px (Q544 A).** The band is drawn in the glyph's outline (3 units on the 24-unit
+  artboard), so it binds no variable. No token is 3px: `border-width` runs 0 / 1 / 2 / 4. The code note's `viewBox`
+  stroke width is 3 at small, matching the outline. `lint-glyph-geometry.ts` measures it at 3px.
+- **An indeterminate ring (Q545 B).** `shape=circular, type=indeterminate` at both sizes, active only, with no value:
+  a still frame of the turning arc, a third of the circle from twelve o'clock (the Spinner's arc length), over the
+  pale track. Its glyph is `progress-arc-indeterminate-{size}`, picked by templating the arc's glyph on `type`. The
+  code note turns the arc with `transform: rotate` on `--motion-duration-sweep`, linear, and slows it to
+  `--motion-duration-reduced-sweep` under `prefers-reduced-motion`. The docs say when to use the ring and when the
+  Spinner: a ring for a named task that ends in complete or error, the Spinner for a short wait inside a control.
+- **Glyph names (Q350).** `stop`, `ringTrack`, `arc` and `arcFull` are now `dotGlyph`, `ringGlyph`, `arcGlyph` and
+  `fullRingGlyph`, which `lint-naming.ts` asks for. These are Figma layer names.
 
 ### Trap
 

@@ -2295,7 +2295,7 @@
         "kind": "component set",
         "page": "↳ Progress",
         "section": "Components",
-        "members": 10,
+        "members": 12,
         "variantProperties": [
           {
             "name": "shape",

@@ -280,7 +280,7 @@
             "track-height"
           ],
           "parts": {
-            "stop": {
+            "dotGlyph": {
               "members": 3,
               "where": {
                 "shape": [
@@ -432,14 +432,11 @@
             "fill"
           ],
           "parts": {
-            "ringTrack": {
-              "members": 6,
+            "ringGlyph": {
+              "members": 8,
               "where": {
                 "shape": [
                   "circular"
-                ],
-                "type": [
-                  "determinate"
                 ]
               }
             },
@@ -3474,11 +3471,25 @@
             "active.indicator"
           ],
           "parts": {
-            "arc": {
-              "members": 2,
+            "arcGlyph": {
+              "members": 4,
               "where": {
                 "shape": [
                   "circular"
+                ],
+                "status": [
+                  "active"
+                ]
+              }
+            },
+            "dotGlyph": {
+              "members": 1,
+              "where": {
+                "shape": [
+                  "linear"
+                ],
+                "size": [
+                  "medium"
                 ],
                 "status": [
                   "active"
@@ -3499,23 +3510,6 @@
                 ],
                 "status": [
                   "active"
-                ]
-              }
-            },
-            "stop": {
-              "members": 1,
-              "where": {
-                "shape": [
-                  "linear"
-                ],
-                "size": [
-                  "medium"
-                ],
-                "status": [
-                  "active"
-                ],
-                "type": [
-                  "determinate"
                 ]
               }
             }
@@ -3553,7 +3547,7 @@
             "error.indicator"
           ],
           "parts": {
-            "arc": {
+            "arcGlyph": {
               "members": 2,
               "where": {
                 "shape": [
@@ -3567,7 +3561,7 @@
                 ]
               }
             },
-            "fill": {
+            "dotGlyph": {
               "members": 1,
               "where": {
                 "shape": [
@@ -3584,7 +3578,7 @@
                 ]
               }
             },
-            "stop": {
+            "fill": {
               "members": 1,
               "where": {
                 "shape": [
@@ -3925,11 +3919,14 @@
             "complete.indicator"
           ],
           "parts": {
-            "arcFull": {
-              "members": 2,
+            "dotGlyph": {
+              "members": 1,
               "where": {
                 "shape": [
-                  "circular"
+                  "linear"
+                ],
+                "size": [
+                  "medium"
                 ],
                 "status": [
                   "complete"
@@ -3956,14 +3953,11 @@
                 ]
               }
             },
-            "stop": {
-              "members": 1,
+            "fullRingGlyph": {
+              "members": 2,
               "where": {
                 "shape": [
-                  "linear"
-                ],
-                "size": [
-                  "medium"
+                  "circular"
                 ],
                 "status": [
                   "complete"
@@ -15247,8 +15241,8 @@
             "size.small"
           ],
           "parts": {
-            "arc": {
-              "members": 2,
+            "arcGlyph": {
+              "members": 3,
               "where": {
                 "shape": [
                   "circular"
@@ -15259,13 +15253,10 @@
                 "status": [
                   "active",
                   "error"
-                ],
-                "type": [
-                  "determinate"
                 ]
               }
             },
-            "arcFull": {
+            "fullRingGlyph": {
               "members": 1,
               "where": {
                 "shape": [
@@ -15294,30 +15285,24 @@
               }
             },
             "ring": {
-              "members": 3,
+              "members": 4,
               "where": {
                 "shape": [
                   "circular"
                 ],
                 "size": [
                   "small"
-                ],
-                "type": [
-                  "determinate"
                 ]
               }
             },
-            "ringTrack": {
-              "members": 3,
+            "ringGlyph": {
+              "members": 4,
               "where": {
                 "shape": [
                   "circular"
                 ],
                 "size": [
                   "small"
-                ],
-                "type": [
-                  "determinate"
                 ]
               }
             }
@@ -16017,8 +16002,8 @@
             "size.medium"
           ],
           "parts": {
-            "arc": {
-              "members": 2,
+            "arcGlyph": {
+              "members": 3,
               "where": {
                 "shape": [
                   "circular"
@@ -16029,13 +16014,10 @@
                 "status": [
                   "active",
                   "error"
-                ],
-                "type": [
-                  "determinate"
                 ]
               }
             },
-            "arcFull": {
+            "fullRingGlyph": {
               "members": 1,
               "where": {
                 "shape": [
@@ -16053,30 +16035,24 @@
               }
             },
             "ring": {
-              "members": 3,
+              "members": 4,
               "where": {
                 "shape": [
                   "circular"
                 ],
                 "size": [
                   "medium"
-                ],
-                "type": [
-                  "determinate"
                 ]
               }
             },
-            "ringTrack": {
-              "members": 3,
+            "ringGlyph": {
+              "members": 4,
               "where": {
                 "shape": [
                   "circular"
                 ],
                 "size": [
                   "medium"
-                ],
-                "type": [
-                  "determinate"
                 ]
               }
             }
@@ -18414,7 +18390,7 @@
           ],
           "parts": {
             "container": {
-              "members": 10,
+              "members": 12,
               "where": {}
             }
           }
@@ -18784,13 +18760,10 @@
               }
             },
             "ringRow": {
-              "members": 6,
+              "members": 8,
               "where": {
                 "shape": [
                   "circular"
-                ],
-                "type": [
-                  "determinate"
                 ]
               }
             }
@@ -23605,7 +23578,7 @@
       "drawnNotDeclared": []
     },
     "progress": {
-      "members": 10,
+      "members": 12,
       "axes": {
         "shape": [
           "circular",

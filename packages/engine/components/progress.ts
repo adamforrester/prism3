@@ -4,7 +4,8 @@
  * #2670, approved by the owner on 2026-10-16 with every numbered call at its recommendation (A):
  *
  *   1. one Progress: linear determinate, linear indeterminate, circular determinate;
- *   2. circular only when determinate — a ring that spins with no value stays the Spinner;
+ *   2. circular only when determinate — superseded by owner Q545 B (2026-10-22): the ring is indeterminate too, a
+ *      still frame of its turning arc with no value, and the Spinner stays for a short wait inside a control;
  *   3. the ring's value text sits beside it, on by default;
  *   4. status active, complete, error — a glyph and a message, never color alone;
  *   5. a pale 4px track (`color.background.tertiary`) with a stop dot at its end, the fill on `color.icon.<role>`;
@@ -36,8 +37,12 @@
  * present at active and error only.
  *
  * THE RING is two component-owned glyphs on one square (`component-glyphs.ts`, `progress-*`): the pale track, a full
- * annulus in the track role, in the flow, and the value arc over it (`stackCentered`), the band 2px at the small
- * 24px ring and 4px at the medium 40px one. Both are filled outlines on the 24-unit artboard, so the band scales with
+ * annulus in the track role, in the flow, and the arc over it (`stackCentered`), the band 3px at the small 24px ring
+ * (owner Q544 A; it was 2px) and 4px at the medium 40px one. A determinate ring's arc is its value, half the ring in
+ * the still member; an indeterminate ring's is the turning arc at rest, the Spinner's third of the circle (Q545 B).
+ *
+ * THE HEADER aligns the label and the value on their baseline (owner Q535.1 A), so the two type sizes share one
+ * line of text; its floor still holds one height whether or not the value shows. Both are filled outlines on the 24-unit artboard, so the band scales with
  * the size the way the Spinner's does. Not a stroke on the ring box: a stroke binds a border role (Q346), and no
  * border role clears 3:1 against the fill. Not one glyph with two layers, as the Spinner's is: a glyph takes one ink,
  * and the track is a different role from the arc (call 5).
@@ -64,8 +69,8 @@ export const progress: ComponentDef = {
     { name: 'max', type: 'number', default: 100, required: false, description: 'The end of the range: 100 for a percentage, or the total, such as a byte count.' },
     { name: 'label', type: 'string', required: true, description: 'What is in progress, with an active verb ("Uploading photo.jpg"). It is the accessible name. A linear bar shows it above the track; a ring is named by it without showing it.' },
     { name: 'valueText', type: 'string | (value: number) => string', required: false, description: 'The visible value, and the same string as aria-valuetext. A percentage by default, through Intl.NumberFormat, so "45%" localizes. Prefer a concrete amount when there is one ("45 MB of 100 MB").' },
-    { name: 'shape', type: "enum: 'linear' | 'circular'", values: ['linear', 'circular'], default: 'linear', required: false, description: 'linear = a bar that fills its container. circular = a ring for a small space, determinate only. A ring that cannot show a value is a Spinner.' },
-    { name: 'size', type: "enum: 'small' | 'medium'", values: ['small', 'medium'], default: 'medium', required: false, description: 'The ring\'s size: medium is 40px with a 4px band, small is 24px with a 2px band. A linear bar has one thickness, 4px, and ignores this.' },
+    { name: 'shape', type: "enum: 'linear' | 'circular'", values: ['linear', 'circular'], default: 'linear', required: false, description: 'linear = a bar that fills its container. circular = a ring for a small space, determinate or indeterminate. An indeterminate ring shows no value.' },
+    { name: 'size', type: "enum: 'small' | 'medium'", values: ['small', 'medium'], default: 'medium', required: false, description: 'The ring\'s size: medium is 40px with a 4px band, small is 24px with a 3px band. A linear bar has one thickness, 4px, and ignores this.' },
     { name: 'status', type: "enum: 'active' | 'complete' | 'error'", values: ['active', 'complete', 'error'], default: 'active', required: false, description: 'active = the work is running. complete = it finished: the fill turns to the success color and the message names the result. error = it failed: the fill stops where it failed, turns to the danger color, and the message names the problem and the next step.' },
     { name: 'message', type: 'string', required: false, description: 'The outcome, shown below the bar at complete and error with a glyph: past tense when done ("Upload complete"), the problem and the next step when it fails ("Upload failed. The connection dropped. Try again.").' },
     { name: 'showValue', type: 'boolean', default: true, required: false, description: 'Whether the value text shows. On by default. A ring keeps it on: it has no end to mark, so the value is how the amount reads.' },
@@ -141,13 +146,13 @@ export const progress: ComponentDef = {
       },
       header: {
         kind: 'box',
-        layout: { direction: 'row', align: 'center', justify: 'space-between', sizing: { x: 'fill', y: 'hug' } },
+        layout: { direction: 'row', align: 'baseline', justify: 'space-between', sizing: { x: 'fill', y: 'hug' } },
         gap: 'header-gap',
         minHeight: 'header-min',
         crossAxisFill: true,
         presentWhen: { shape: ['linear'] },
         children: ['label', 'value', 'valueComplete'],
-        note: 'The label at the start and the value at the end, above the track and never inside it. A floor holds it one height whether or not a value shows, so a determinate and an indeterminate bar measure the same.',
+        note: 'The label at the start and the value at the end, on one baseline, above the track and never inside it. A floor holds it one height whether or not a value shows, so a determinate and an indeterminate bar measure the same.',
       },
       label: {
         kind: 'text',
@@ -180,7 +185,7 @@ export const progress: ComponentDef = {
         clipsContent: true,
         crossAxisFill: true,
         presentWhen: { shape: ['linear'] },
-        children: ['lead', 'fill', 'rest', 'stop'],
+        children: ['lead', 'fill', 'rest', 'dotGlyph'],
         note: 'The pale 4px track, the full length of the work. It is close to the page color, so the stop dot at its end marks where the work finishes.',
       },
       lead: {
@@ -210,7 +215,7 @@ export const progress: ComponentDef = {
       },
       // A DISC GLYPH, not a box: the fill box already claims `indicator`, and two boxes cannot share a slot. As a
       // glyph it takes the arc's `{status}.icon`, which is the fill's color in every status.
-      stop: {
+      dotGlyph: {
         kind: 'vector',
         glyph: 'progress-stop',
         size: 'stop-size',
@@ -229,26 +234,26 @@ export const progress: ComponentDef = {
         kind: 'box',
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'fixed', y: 'fixed' } },
         size: 'size.{size}',
-        children: ['ringTrack', 'arc', 'arcFull'],
+        children: ['ringGlyph', 'arcGlyph', 'fullRingGlyph'],
         note: 'The ring\'s square: 24px at small, 40px at medium. It paints nothing; the track and the arc are drawn inside it.',
       },
-      ringTrack: {
+      ringGlyph: {
         kind: 'vector',
         glyph: 'progress-ring-{size}',
         size: 'size.{size}',
         paintSlot: 'fill',
         presentWhen: { shape: ['circular'] },
-        note: 'The ring\'s pale track, the same color as the linear track: a full circle 2px wide at 24px and 4px wide at 40px.',
+        note: 'The ring\'s pale track, the same color as the linear track: a full circle 3px wide at 24px and 4px wide at 40px.',
       },
-      arc: {
+      arcGlyph: {
         kind: 'vector',
-        glyph: 'progress-arc-{size}',
+        glyph: 'progress-arc-{type}-{size}',
         size: 'size.{size}',
         stackCentered: true,
         presentWhen: { shape: ['circular'], status: ['active', 'error'] },
-        note: 'The value arc over the track, from twelve o\'clock clockwise, with round ends: half the ring in the still member. Brand color while active, danger at error.',
+        note: 'The arc over the track, from twelve o\'clock clockwise, with round ends. On a determinate ring it is the value, half the ring in the still member; on an indeterminate ring it is a third of the ring, one still frame of its turn. Brand color while active, danger at error.',
       },
-      arcFull: {
+      fullRingGlyph: {
         kind: 'vector',
         glyph: 'progress-ring-{size}',
         size: 'size.{size}',
@@ -261,8 +266,8 @@ export const progress: ComponentDef = {
         type: 'value-type',
         paintSlot: 'body',
         optional: true,
-        presentWhen: { shape: ['circular'], status: ['active', 'error'] },
-        note: 'The ring\'s value, beside it. On by default: a ring has no end to mark, so the value is how its amount reads.',
+        presentWhen: { shape: ['circular'], type: ['determinate'], status: ['active', 'error'] },
+        note: 'The ring\'s value, beside it. On by default: a ring has no end to mark, so the value is how its amount reads. An indeterminate ring has none.',
       },
       ringValueComplete: {
         kind: 'text',
@@ -298,25 +303,25 @@ export const progress: ComponentDef = {
       'the fill\'s length — in code the fill is the track\'s inline size times (value − min) / (max − min), clamped, with a warning in development for a value out of range. Figma has no percentage width, so each still member splits the track by layout: half at active and error, the whole track at complete. A designer showing another amount sets the fill\'s width on the instance.',
       'the sweep — an indeterminate bar moves a segment 30% of the track long from before the start edge to past the end, one pass every `var(--motion-duration-sweep)` (1600ms), on `var(--motion-easing-calm)`, repeating, with the track clipping it. Under `@media (prefers-reduced-motion: reduce)` the same pass runs every `var(--motion-duration-reduced-sweep)` (2600ms): slower, never stopped, because the moving segment is the only sign the work is continuing. Figma holds one still frame of it.',
       'the fill transition — the fill moves to each new value over `var(--motion-duration-moderate)` on `var(--motion-easing-role-default)`, so bursty data reads as steady progress. Under reduced motion it runs `var(--motion-duration-reduced-moderate)`, which is 0ms, so it snaps. At complete and error the color crossfades over `var(--motion-duration-fast)`.',
-      'the ring in code — one `<svg viewBox="0 0 24 24">`: the track circle in the track color and the value arc with `stroke-dasharray` set from the value, `stroke-linecap: round`, rotated -90deg so it starts at twelve o\'clock. The stroke width is the band in viewBox units (2 at small, 2.4 at medium), its outer edge on the viewBox\'s edge, so it matches the Figma outlines.',
+      'the ring in code — one `<svg viewBox="0 0 24 24">`: the track circle in the track color and the value arc with `stroke-dasharray` set from the value, `stroke-linecap: round`, rotated -90deg so it starts at twelve o\'clock. The stroke width is the band in viewBox units (3 at small, 2.4 at medium: the band\'s px × 24 / the ring\'s px), the circle\'s radius 12 minus half of it, so the outer edge lies on the viewBox\'s edge and it matches the Figma outlines.',
+      'the indeterminate ring — the same `<svg>` with the arc\'s `stroke-dasharray` fixed at a third of the circle and no value text. The arc turns continuously: `animation: progress-turn var(--motion-duration-sweep) linear infinite`, a `@keyframes progress-turn { to { transform: rotate(1turn) } }` on the arc alone, so the track holds still (1600ms per turn, Progress\'s own sweep period). Only `transform` animates, never `stroke-dasharray` or `stroke-dashoffset`, so it keeps moving under heavy main-thread load. Under `@media (prefers-reduced-motion: reduce)` it turns every `var(--motion-duration-reduced-sweep)` (2600ms): slower, never stopped, because the turn is the only sign the work is continuing. Figma holds one still frame, the arc at rest from twelve o\'clock. In right-to-left the arc turns counterclockwise.',
       'right-to-left — the linear fill grows from the inline-start edge (the right) through logical properties, and the label and value swap sides. The ring runs counterclockwise from twelve o\'clock. The sweep moves from right to left.',
       'number formatting — the value text defaults to a percentage through Intl.NumberFormat ("45%", "%45", "45 %"), and a concrete amount ("45 MB of 100 MB", "Step 3 of 5") is localized with its word order. The value text is never truncated; the label wraps instead.',
       'text expansion — the label wraps rather than truncating, and the value keeps its full text at the end of the header.',
       'the value contract — `role="progressbar"` named by the label (`aria-labelledby`, or `aria-label` on a ring, whose label does not show). Determinate: `aria-valuenow`, `aria-valuemin`, `aria-valuemax`, and `aria-valuetext` whenever the visible value is not a bare percentage. Indeterminate: none of the three, never a fixed `aria-valuenow="0"` (it reads as stuck at 0%), and `aria-busy="true"` on the region the work updates.',
       'the milestone announcements — a visually hidden `aria-live="polite"` region, in the DOM and empty from mount. The last milestone spoken is kept in a ref; when the value passes 25, 50 or 75% for the first time, the region\'s text is set to the value text; at max it is set to the message ("Upload complete"). An error message is set when the error happens. `aria-valuenow` never triggers speech. `announce="end"` skips the milestones; `announce="none"` leaves the region empty.',
       'the anti-flash timers — the component waits `delay` (400ms) before it shows, and shows nothing if the work finishes first; once shown it stays at least `minDisplay` (500ms). Both timers are cleared on unmount.',
-      'an indeterminate ring — `shape="circular"` with `type="indeterminate"` is refused in development, pointing to Spinner: a spinning ring is the Spinner\'s job.',
       'the end-state message — a nested FieldMessage, success at complete and error at error. Its glyph is aria-hidden; the caption carries the meaning. A "Try again" action after an error belongs to the host, placed beside the bar, not inside it.',
     ],
   },
 
   figmaProperties: {
     variantAxes: ['shape', 'type', 'status', 'size'],
-    // The sparse grid: a linear bar has one thickness (no small), a ring always has a value (no indeterminate ring),
-    // and an indeterminate bar has no end state. Ten members.
+    // The sparse grid: a linear bar has one thickness (no small), and indeterminate work has no end state, on either
+    // shape. An indeterminate ring is built at both sizes (owner Q545 B; until then a ring always had a value). Twelve
+    // members.
     excludeCoordinates: [
       { shape: ['linear'], size: ['small'] },
-      { shape: ['circular'], type: ['indeterminate'] },
       { type: ['indeterminate'], status: ['complete', 'error'] },
     ],
     // The message row comes and goes with the status.
@@ -337,7 +342,7 @@ export const progress: ComponentDef = {
   },
 
   accessibility: {
-    role: '`progressbar`, named by the label. A polite live region beside it carries the milestone and end announcements.',
+    role: 'progressbar, named by the label. A polite live region beside it carries the milestone and end announcements.',
     wcag: [
       '4.1.2 Name, Role, Value (role progressbar named by its label; with a value, aria-valuenow, aria-valuemin, aria-valuemax and aria-valuetext)',
       '4.1.3 Status Messages (the milestones, the end and an error reach a screen reader through a polite live region)',
@@ -357,7 +362,7 @@ export const progress: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use Progress for system work that takes more than a few seconds: a determinate bar when the work can be measured (bytes, items, a known length), an indeterminate bar when it cannot. Use a ring when the space is small, such as a row in a list. For a short wait inside a control, use a Spinner; for a first load of content, a placeholder in the layout\'s shape. Use the bar for work the user waits on; for long background work, show a status line, or let the user hide the bar.',
+    usage: 'Use Progress for system work that takes more than a few seconds: a determinate bar when the work can be measured (bytes, items, a known length), an indeterminate bar when it cannot. Use a ring when the space is small, such as a row in a list: determinate when the amount is known, indeterminate when it is not. Choose a ring over a Spinner when the work is a task with an outcome: the ring is named by its label, ends in complete or error with a message, and turns determinate once the amount is known. Use a Spinner for a short wait inside a control, such as a button\'s pending state, where there is no outcome to report. For a first load of content, use a placeholder in the layout\'s shape. Use the bar for work the user waits on; for long background work, show a status line, or let the user hide the bar.',
     do: [
       'Name the work in the label with an active verb',
       'Show a concrete amount when there is one ("45 MB of 100 MB")',
@@ -368,7 +373,7 @@ export const progress: ComponentDef = {
     dont: [
       'Fake a value. A bar that creeps toward the end and stops there breaks the contract; use an indeterminate bar',
       'Put the label or the value inside the track',
-      'Use an indeterminate ring. That is a Spinner',
+      'Use a ring for a short wait inside a control. That is a Spinner',
       'Use Progress for a static measurement such as storage used. That is a meter',
       'Use Progress for a user\'s place in a multi-step form. That is a stepper',
       'Show the outcome by color alone',
@@ -378,8 +383,8 @@ export const progress: ComponentDef = {
 
   ai: {
     primaryPurpose: 'Show that system work is under way and, when it can be measured, how far along it is.',
-    whenToUse: 'An upload, export or batch job that takes more than a few seconds: determinate when the amount is known, indeterminate when it is not. A ring when the space is small.',
-    avoidWhen: 'The wait is short and inside a control (use a spinner), the content is loading for the first time (a placeholder in the layout\'s shape), the value is a static measurement such as storage used (a meter), it marks a user\'s place in a multi-step flow (a stepper), or the work cannot be measured and you want a ring (use a spinner).',
+    whenToUse: 'An upload, export or batch job that takes more than a few seconds: determinate when the amount is known, indeterminate when it is not. A ring when the space is small, measured or not, for a task that ends in complete or error.',
+    avoidWhen: 'The wait is short and inside a control (use a spinner), the content is loading for the first time (a placeholder in the layout\'s shape), the value is a static measurement such as storage used (a meter), it marks a user\'s place in a multi-step flow (a stepper).',
     commonPartners: ['button', 'spinner', 'field-message'],
     triggerKeywords: ['progress', 'progress bar', 'progress indicator', 'linear progress', 'circular progress', 'progress ring', 'upload progress', 'determinate', 'indeterminate'],
     generationPriority: 3,
@@ -407,6 +412,7 @@ export const progress: ComponentDef = {
       'THE GLOBAL ROUTE-CHANGE BAR (brief §4, §11) is out of scope: a product-shell placement whose visual eases while the value stays indeterminate. It can follow as a placement once a shell exists.',
       'NO BUFFER, no segmented bar, no dashboard gauge (brief §4). A buffer fill is a media-player need not on the table; a gauge is a meter.',
       'THE STILL MEMBERS SHOW 50%, not the proposal wireframe\'s 45% and 62%: Figma has no percentage width, and two growing boxes split the track evenly, so the value text reads 50% to match. A literal width would freeze the fill when an instance is stretched.',
+      'AN INDETERMINATE RING, beside the Spinner (owner Q545 B, 2026-10-22). The approved proposal (call 2) left a ring that spins with no value to the Spinner. The owner added it to Progress so a ring can stand for an unmeasured task and turn determinate in place. The two differ in what the work is: Progress names a task that ends in complete or error; a Spinner is a short wait inside a control, unnamed on screen. Figma holds one still frame of the turn, the Spinner\'s third of the circle at rest; the track is the pale track role at full strength, not the Spinner\'s 20% of its own ink.',
       'THE CIRCULAR MEMBERS CARRY THE MESSAGE TOO. The proposal\'s circular anatomy lists the ring and its value only; call 4 (never color alone) needs the glyph and message at complete and error on a ring as well, so the message is built on both shapes. The ring members are as wide as the message where it shows.',
       'HELD FOR THE OWNER (QA on the build, 2026-10-16): "100%" at complete is its own text on a Figma-only TEXT property, "complete value text", beside "value text". One property could not show 50% and 100% (#1567). The alternative is a code prop for the complete text, which code does not need.',
     ],
@@ -422,6 +428,7 @@ export const progress: ComponentDef = {
       'FIELD (brief §13.4): reduced motion reduces the indeterminate animation and never removes it.',
       'FIELD (brief §13.5): Material 3\'s stop indicator (December 2023), the 4dp end dot for SC 1.4.11, which this def\'s stop dot follows.',
       '2026-10-16 (owner QA on the build): the complete members read "100%" through their own text and a Figma-only "complete value text" property, after one property showed "50%" on every member.',
+      '2026-10-22 (owner QA, Q535 / Q544 / Q545): the header\'s label and value align on their baseline; the small ring\'s band goes from 2px to 3px; an indeterminate ring joins at both sizes, with no value.',
     ],
   },
 };
