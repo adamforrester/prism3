@@ -20624,7 +20624,7 @@
           "parts": [
             {
               "part": "control",
-              "stroke": "color.interactive.primary.border.rest"
+              "stroke": "color.interactive.primary.fill.selected"
             },
             {
               "part": "control/dot",
@@ -20641,7 +20641,7 @@
           "parts": [
             {
               "part": "control",
-              "stroke": "color.interactive.primary.border.hover"
+              "stroke": "color.interactive.primary.fill.hover"
             },
             {
               "part": "control/dot",
@@ -20658,7 +20658,7 @@
           "parts": [
             {
               "part": "control",
-              "stroke": "color.interactive.primary.border.pressed"
+              "stroke": "color.interactive.primary.fill.pressed"
             },
             {
               "part": "control/dot",
@@ -20675,7 +20675,7 @@
           "parts": [
             {
               "part": "control",
-              "stroke": "color.interactive.primary.border.rest"
+              "stroke": "color.interactive.primary.fill.selected"
             },
             {
               "part": "control/dot",
@@ -20692,7 +20692,7 @@
           "parts": [
             {
               "part": "control",
-              "stroke": "color.disabled.border"
+              "stroke": "color.disabled.fill"
             },
             {
               "part": "control/dot",

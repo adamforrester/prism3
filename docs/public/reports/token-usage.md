@@ -201,7 +201,7 @@ Type: color. Bound by 19 component(s).
 | icon-button-destructive | `disabled.border` | container | appearance: outline · state: disabled · surface: default (6 of 216) |
 | icon-button-neutral | `disabled.border` | container | appearance: outline · state: disabled · surface: default (6 of 216) |
 | password-field | `disabled.border` | control | state: disabled (12 of 84) |
-| radio-control | `disabled.border` | control | state: disabled (12 of 60) |
+| radio-control | `disabled.border`, `error.checked.border.disabled` | control | state: disabled (9 of 60) |
 | select | `disabled.border` | control | state: disabled (12 of 84) |
 | switch-control | `disabled.border`, `disabled.icon.on-fill` | offGlyph | selection: off · state: disabled (4 of 40) |
 |  |  | onGlyph | selection: on · state: disabled (4 of 40) |
@@ -225,7 +225,8 @@ Type: color. Bound by 13 component(s).
 | icon-button-destructive | `disabled.fill` | container | appearance: filled · state: disabled · surface: default (6 of 216) |
 | icon-button-neutral | `disabled.fill` | container | appearance: filled · state: disabled · surface: default (6 of 216) |
 | password-field | `disabled.fill` | control | state: disabled (12 of 84) |
-| radio-control | `disabled.indicator` | dot | selection: checked · state: disabled (6 of 60) |
+| radio-control | `checked.border.disabled`, `disabled.indicator` | control | selection: checked · state: disabled · status: default (3 of 60) |
+|  |  | dot | selection: checked · state: disabled (6 of 60) |
 | select | `disabled.fill` | control | state: disabled (12 of 84) |
 | switch-control | `disabled.fill` | track | state: disabled (8 of 40) |
 | text-field | `disabled.fill` | control | state: disabled (12 of 84) |
@@ -878,60 +879,59 @@ Type: color. Bound by 5 component(s).
 
 ### `color.interactive.primary.border.hover`
 
-Type: color. Bound by 5 component(s).
+Type: color. Bound by 4 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | button | `outline.border.hover` | container | appearance: outline · inset: default · state: hover · surface: default (12 of 576) |
 | icon-button | `outline.border.hover` | container | appearance: outline · state: hover · surface: default (6 of 216) |
-| radio-control | `checked.border.hover` | control | selection: checked · state: hover · status: default (3 of 60) |
 | tab-item | `selected.fill.hover` | indicator | selection: selected · state: hover (3 of 30) |
 | tag | `selected.border.hover` | container | selection: selected · state: hover · type: select (3 of 45) |
 
 ### `color.interactive.primary.border.pressed`
 
-Type: color. Bound by 5 component(s).
+Type: color. Bound by 4 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | button | `outline.border.pressed` | container | appearance: outline · inset: default · state: pressed · surface: default (12 of 576) |
 | icon-button | `outline.border.pressed` | container | appearance: outline · state: pressed · surface: default (6 of 216) |
-| radio-control | `checked.border.pressed` | control | selection: checked · state: pressed · status: default (3 of 60) |
 | tab-item | `selected.fill.pressed` | indicator | selection: selected · state: pressed (3 of 30) |
 | tag | `selected.border.pressed` | container | selection: selected · state: pressed · type: select (3 of 45) |
 
 ### `color.interactive.primary.border.rest`
 
-Type: color. Bound by 5 component(s).
+Type: color. Bound by 4 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | button | `outline.border` | container | appearance: outline · inset: default · state: focus-visible, pending, rest · surface: default (36 of 576) |
 | icon-button | `outline.border` | container | appearance: outline · state: focus-visible, pending, rest · surface: default (18 of 216) |
-| radio-control | `checked.border` | control | selection: checked · state: focus-visible, rest · status: default (6 of 60) |
 | tab-item | `selected.fill` | indicator | selection: selected · state: focus-visible, rest (6 of 30) |
 | tag | `selected.border` | container | selection: selected · state: focus-visible, rest · type: select (6 of 45) |
 
 ### `color.interactive.primary.fill.hover`
 
-Type: color. Bound by 4 component(s).
+Type: color. Bound by 5 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | button | `filled.fill.hover` | container | appearance: filled · inset: default · state: hover · surface: default (12 of 576) |
 | checkbox-control | `checked.fill.hover`, `indeterminate.fill.hover` | control | selection: checked, indeterminate · state: hover (12 of 90) |
 | icon-button | `filled.fill.hover` | container | appearance: filled · state: hover · surface: default (6 of 216) |
+| radio-control | `checked.border.hover` | control | selection: checked · state: hover · status: default (3 of 60) |
 | switch-control | `on.fill.hover` | track | selection: on · state: hover (4 of 40) |
 
 ### `color.interactive.primary.fill.pressed`
 
-Type: color. Bound by 4 component(s).
+Type: color. Bound by 5 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | button | `filled.fill.pressed` | container | appearance: filled · inset: default · state: pressed · surface: default (12 of 576) |
 | checkbox-control | `checked.fill.pressed`, `indeterminate.fill.pressed` | control | selection: checked, indeterminate · state: pressed (12 of 90) |
 | icon-button | `filled.fill.pressed` | container | appearance: filled · state: pressed · surface: default (6 of 216) |
+| radio-control | `checked.border.pressed` | control | selection: checked · state: pressed · status: default (3 of 60) |
 | switch-control | `on.fill.pressed` | track | selection: on · state: pressed (4 of 40) |
 
 ### `color.interactive.primary.fill.rest`
@@ -950,7 +950,8 @@ Type: color. Bound by 3 component(s).
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | checkbox-control | `checked.fill`, `indeterminate.fill` | control | selection: checked, indeterminate · state: focus-visible, rest (24 of 90) |
-| radio-control | `checked.indicator` | dot | selection: checked · state: focus-visible, hover, pressed, rest (24 of 60) |
+| radio-control | `checked.border`, `checked.indicator` | control | selection: checked · state: focus-visible, rest · status: default (6 of 60) |
+|  |  | dot | selection: checked · state: focus-visible, hover, pressed, rest (24 of 60) |
 | switch-control | `on.fill`, `on.icon` | onGlyph | selection: on · state: focus-visible, hover, pressed, rest (16 of 40) |
 |  |  | track | selection: on · state: focus-visible, rest (8 of 40) |
 
@@ -3263,9 +3264,9 @@ Drawn, not declared: `color.inverse.icon.link.default`, `color.inverse.icon.link
 
 ### radio-control
 
-20 token(s); 60 design-file member(s).
+19 token(s); 60 design-file member(s).
 
-`border-width.thick`, `color.border.danger`, `color.border.focus`, `color.disabled.border`, `color.disabled.fill`, `color.field.border.hover`, `color.field.border.rest`, `color.interactive.primary.border.hover`, `color.interactive.primary.border.pressed`, `color.interactive.primary.border.rest`, `color.interactive.primary.fill.selected`, `control.size.lg.dot`, `control.size.lg.height`, `control.size.md.dot`, `control.size.md.height`, `control.size.sm.dot`, `control.size.sm.height`, `focus.ring.offset`, `focus.ring.width`, `radius.round`
+`border-width.thick`, `color.border.danger`, `color.border.focus`, `color.disabled.border`, `color.disabled.fill`, `color.field.border.hover`, `color.field.border.rest`, `color.interactive.primary.fill.hover`, `color.interactive.primary.fill.pressed`, `color.interactive.primary.fill.selected`, `control.size.lg.dot`, `control.size.lg.height`, `control.size.md.dot`, `control.size.md.height`, `control.size.sm.dot`, `control.size.sm.height`, `focus.ring.offset`, `focus.ring.width`, `radius.round`
 
 Declared, not drawn: `color.border.focus`
 

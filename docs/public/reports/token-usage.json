@@ -1549,11 +1549,12 @@
         },
         "radio-control": {
           "keys": [
-            "disabled.border"
+            "disabled.border",
+            "error.checked.border.disabled"
           ],
           "parts": {
             "control": {
-              "members": 12,
+              "members": 9,
               "where": {
                 "state": [
                   "disabled"
@@ -1857,9 +1858,24 @@
         },
         "radio-control": {
           "keys": [
+            "checked.border.disabled",
             "disabled.indicator"
           ],
           "parts": {
+            "control": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "checked"
+                ],
+                "state": [
+                  "disabled"
+                ],
+                "status": [
+                  "default"
+                ]
+              }
+            },
             "dot": {
               "members": 6,
               "where": {
@@ -6635,27 +6651,6 @@
             }
           }
         },
-        "radio-control": {
-          "keys": [
-            "checked.border.hover"
-          ],
-          "parts": {
-            "control": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "checked"
-                ],
-                "state": [
-                  "hover"
-                ],
-                "status": [
-                  "default"
-                ]
-              }
-            }
-          }
-        },
         "tab-item": {
           "keys": [
             "selected.fill.hover"
@@ -6739,27 +6734,6 @@
                   "pressed"
                 ],
                 "surface": [
-                  "default"
-                ]
-              }
-            }
-          }
-        },
-        "radio-control": {
-          "keys": [
-            "checked.border.pressed"
-          ],
-          "parts": {
-            "control": {
-              "members": 3,
-              "where": {
-                "selection": [
-                  "checked"
-                ],
-                "state": [
-                  "pressed"
-                ],
-                "status": [
                   "default"
                 ]
               }
@@ -6853,28 +6827,6 @@
                   "rest"
                 ],
                 "surface": [
-                  "default"
-                ]
-              }
-            }
-          }
-        },
-        "radio-control": {
-          "keys": [
-            "checked.border"
-          ],
-          "parts": {
-            "control": {
-              "members": 6,
-              "where": {
-                "selection": [
-                  "checked"
-                ],
-                "state": [
-                  "focus-visible",
-                  "rest"
-                ],
-                "status": [
                   "default"
                 ]
               }
@@ -6992,6 +6944,27 @@
             }
           }
         },
+        "radio-control": {
+          "keys": [
+            "checked.border.hover"
+          ],
+          "parts": {
+            "control": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "checked"
+                ],
+                "state": [
+                  "hover"
+                ],
+                "status": [
+                  "default"
+                ]
+              }
+            }
+          }
+        },
         "switch-control": {
           "keys": [
             "on.fill.hover"
@@ -7074,6 +7047,27 @@
                   "pressed"
                 ],
                 "surface": [
+                  "default"
+                ]
+              }
+            }
+          }
+        },
+        "radio-control": {
+          "keys": [
+            "checked.border.pressed"
+          ],
+          "parts": {
+            "control": {
+              "members": 3,
+              "where": {
+                "selection": [
+                  "checked"
+                ],
+                "state": [
+                  "pressed"
+                ],
+                "status": [
                   "default"
                 ]
               }
@@ -7180,9 +7174,25 @@
         },
         "radio-control": {
           "keys": [
+            "checked.border",
             "checked.indicator"
           ],
           "parts": {
+            "control": {
+              "members": 6,
+              "where": {
+                "selection": [
+                  "checked"
+                ],
+                "state": [
+                  "focus-visible",
+                  "rest"
+                ],
+                "status": [
+                  "default"
+                ]
+              }
+            },
             "dot": {
               "members": 24,
               "where": {
@@ -23897,9 +23907,8 @@
         "color.disabled.fill",
         "color.field.border.hover",
         "color.field.border.rest",
-        "color.interactive.primary.border.hover",
-        "color.interactive.primary.border.pressed",
-        "color.interactive.primary.border.rest",
+        "color.interactive.primary.fill.hover",
+        "color.interactive.primary.fill.pressed",
         "color.interactive.primary.fill.selected",
         "control.size.lg.dot",
         "control.size.lg.height",

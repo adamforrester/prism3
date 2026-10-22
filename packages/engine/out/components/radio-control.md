@@ -208,35 +208,35 @@ Keyed by `selection`, `status`, `state`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `control` | — | `color.interactive.primary.border.rest` | — | — |
+| `control` | — | `color.interactive.primary.fill.selected` | — | — |
 | `control/dot` | `color.interactive.primary.fill.selected` | — | — | — |
 
 **selection=checked, status=default, state=hover**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `control` | — | `color.interactive.primary.border.hover` | — | — |
+| `control` | — | `color.interactive.primary.fill.hover` | — | — |
 | `control/dot` | `color.interactive.primary.fill.selected` | — | — | — |
 
 **selection=checked, status=default, state=pressed**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `control` | — | `color.interactive.primary.border.pressed` | — | — |
+| `control` | — | `color.interactive.primary.fill.pressed` | — | — |
 | `control/dot` | `color.interactive.primary.fill.selected` | — | — | — |
 
 **selection=checked, status=default, state=focus-visible**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `control` | — | `color.interactive.primary.border.rest` | — | — |
+| `control` | — | `color.interactive.primary.fill.selected` | — | — |
 | `control/dot` | `color.interactive.primary.fill.selected` | — | — | — |
 
 **selection=checked, status=default, state=disabled**
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `control` | — | `color.disabled.border` | — | — |
+| `control` | — | `color.disabled.fill` | — | — |
 | `control/dot` | `color.disabled.fill` | — | — | — |
 
 **selection=checked, status=error, state=rest**
