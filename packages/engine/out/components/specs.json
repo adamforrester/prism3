@@ -6,7 +6,7 @@
     "icon": {
       "id": "icon",
       "name": "Icon",
-      "members": 45,
+      "members": 46,
       "axes": [
         {
           "name": "name",
@@ -55,6 +55,7 @@
             "plus-filled",
             "resize-grip",
             "search",
+            "slash",
             "warning-triangle",
             "warning-triangle-filled"
           ],
@@ -66,7 +67,7 @@
         {
           "part": "glyph",
           "kind": "glyph",
-          "members": 45
+          "members": 46
         }
       ],
       "redlineKey": [],
@@ -552,6 +553,17 @@
         {
           "where": {
             "name": "search"
+          },
+          "parts": [
+            {
+              "part": "glyph",
+              "icon": "color.icon.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "name": "slash"
           },
           "parts": [
             {
@@ -34663,6 +34675,711 @@
           "name": "close",
           "type": "BOOLEAN",
           "default": true
+        }
+      ]
+    },
+    "_breadcrumb-separator": {
+      "id": "_breadcrumb-separator",
+      "name": "BreadcrumbSeparator",
+      "members": 2,
+      "axes": [
+        {
+          "name": "type",
+          "figmaName": "type",
+          "values": [
+            "chevron",
+            "slash"
+          ],
+          "kind": "variant"
+        }
+      ],
+      "codeOnlyStates": [],
+      "anatomy": [
+        {
+          "part": "frame",
+          "kind": "frame",
+          "members": 2
+        },
+        {
+          "part": "frame/chevron",
+          "kind": "instance",
+          "members": 1,
+          "when": {
+            "type": [
+              "chevron"
+            ]
+          }
+        },
+        {
+          "part": "frame/slash",
+          "kind": "instance",
+          "members": 1,
+          "when": {
+            "type": [
+              "slash"
+            ]
+          }
+        }
+      ],
+      "redlineKey": [],
+      "redlines": [
+        {
+          "where": {},
+          "parts": [
+            {
+              "part": "frame",
+              "values": {
+                "height": {
+                  "token": "icon.size.xs"
+                },
+                "width": {
+                  "token": "icon.size.xs"
+                }
+              }
+            },
+            {
+              "part": "frame/chevron",
+              "values": {
+                "height": {
+                  "token": "icon.size.xs"
+                },
+                "width": {
+                  "token": "icon.size.xs"
+                }
+              }
+            },
+            {
+              "part": "frame/slash",
+              "values": {
+                "height": {
+                  "token": "icon.size.xs"
+                },
+                "width": {
+                  "token": "icon.size.xs"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "typeKey": [],
+      "type": [
+        {
+          "where": {},
+          "parts": []
+        }
+      ],
+      "colorKey": [
+        "type"
+      ],
+      "colors": [
+        {
+          "where": {
+            "type": "chevron"
+          },
+          "parts": [
+            {
+              "part": "frame/chevron",
+              "icon": "color.icon.secondary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "slash"
+          },
+          "parts": [
+            {
+              "part": "frame/slash",
+              "icon": "color.icon.secondary"
+            }
+          ]
+        }
+      ],
+      "nesting": [
+        {
+          "part": "frame/chevron",
+          "kind": "instance",
+          "component": "icon/chevron-right",
+          "variant": {},
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "frame/slash",
+          "kind": "instance",
+          "component": "icon/slash",
+          "variant": {},
+          "follows": [],
+          "exposes": []
+        }
+      ],
+      "properties": []
+    },
+    "breadcrumb-item": {
+      "id": "breadcrumb-item",
+      "name": "BreadcrumbItem",
+      "members": 10,
+      "axes": [
+        {
+          "name": "kind",
+          "figmaName": "kind",
+          "values": [
+            "ancestor",
+            "current",
+            "overflow"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "separator",
+          "figmaName": "separator",
+          "values": [
+            "chevron",
+            "slash"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "size",
+          "figmaName": "size",
+          "values": [
+            "medium",
+            "small"
+          ],
+          "kind": "size"
+        }
+      ],
+      "codeOnlyStates": [],
+      "anatomy": [
+        {
+          "part": "container",
+          "kind": "frame",
+          "members": 10
+        },
+        {
+          "part": "container/crumb",
+          "kind": "instance",
+          "members": 4,
+          "when": {
+            "kind": [
+              "ancestor"
+            ]
+          }
+        },
+        {
+          "part": "container/separator",
+          "kind": "instance",
+          "members": 4
+        },
+        {
+          "part": "container/separatorSlash",
+          "kind": "instance",
+          "members": 4,
+          "when": {
+            "separator": [
+              "slash"
+            ]
+          }
+        },
+        {
+          "part": "container/current",
+          "kind": "text",
+          "members": 2,
+          "when": {
+            "kind": [
+              "current"
+            ]
+          }
+        },
+        {
+          "part": "container/overflow",
+          "kind": "instance",
+          "members": 4,
+          "when": {
+            "kind": [
+              "overflow"
+            ]
+          }
+        }
+      ],
+      "redlineKey": [
+        "size"
+      ],
+      "redlines": [
+        {
+          "where": {
+            "size": "medium"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "gap": {
+                  "token": "space.050"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "typeKey": [
+        "size"
+      ],
+      "type": [
+        {
+          "where": {
+            "size": "medium"
+          },
+          "parts": [
+            {
+              "part": "container/current",
+              "textStyle": "type.body.md.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small"
+          },
+          "parts": [
+            {
+              "part": "container/current",
+              "textStyle": "type.body.sm.default"
+            }
+          ]
+        }
+      ],
+      "colorKey": [
+        "kind",
+        "separator"
+      ],
+      "colors": [
+        {
+          "where": {
+            "kind": "ancestor",
+            "separator": "chevron"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "kind": "ancestor",
+            "separator": "slash"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "kind": "current",
+            "separator": "chevron"
+          },
+          "parts": [
+            {
+              "part": "container/current",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "kind": "overflow",
+            "separator": "chevron"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "kind": "overflow",
+            "separator": "slash"
+          },
+          "parts": []
+        }
+      ],
+      "nesting": [
+        {
+          "part": "container/crumb",
+          "kind": "instance",
+          "component": "link",
+          "variant": {
+            "style": "inline",
+            "weight": "default",
+            "size": "medium",
+            "surface": "default",
+            "state": "rest"
+          },
+          "follows": [
+            "size"
+          ],
+          "exposes": [
+            "state"
+          ]
+        },
+        {
+          "part": "container/separator",
+          "kind": "instance",
+          "component": "_breadcrumb-separator",
+          "variant": {
+            "type": "chevron"
+          },
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "container/separatorSlash",
+          "kind": "instance",
+          "component": "_breadcrumb-separator",
+          "variant": {
+            "type": "slash"
+          },
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "container/overflow",
+          "kind": "instance",
+          "component": "flush-icon-button-neutral",
+          "variant": {
+            "shape": "flush",
+            "size": "small",
+            "surface": "default",
+            "state": "rest"
+          },
+          "follows": [],
+          "exposes": [
+            "state"
+          ]
+        }
+      ],
+      "properties": [
+        {
+          "name": "label",
+          "type": "TEXT",
+          "default": "Current page"
+        }
+      ]
+    },
+    "breadcrumbs": {
+      "id": "breadcrumbs",
+      "name": "Breadcrumbs",
+      "members": 6,
+      "axes": [
+        {
+          "name": "path",
+          "figmaName": "path",
+          "values": [
+            "full",
+            "parent"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "separator",
+          "figmaName": "separator",
+          "values": [
+            "chevron",
+            "slash"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "size",
+          "figmaName": "size",
+          "values": [
+            "medium",
+            "small"
+          ],
+          "kind": "size"
+        }
+      ],
+      "codeOnlyStates": [],
+      "anatomy": [
+        {
+          "part": "container",
+          "kind": "frame",
+          "members": 6
+        },
+        {
+          "part": "container/items",
+          "kind": "slot",
+          "members": 4,
+          "when": {
+            "path": [
+              "full"
+            ]
+          }
+        },
+        {
+          "part": "container/items/item1",
+          "kind": "instance",
+          "members": 4,
+          "when": {
+            "path": [
+              "full"
+            ]
+          }
+        },
+        {
+          "part": "container/items/item2",
+          "kind": "instance",
+          "members": 4,
+          "when": {
+            "path": [
+              "full"
+            ]
+          }
+        },
+        {
+          "part": "container/items/item3",
+          "kind": "instance",
+          "members": 4,
+          "when": {
+            "path": [
+              "full"
+            ]
+          }
+        },
+        {
+          "part": "container/backGlyph",
+          "kind": "instance",
+          "members": 2,
+          "when": {
+            "path": [
+              "parent"
+            ]
+          }
+        },
+        {
+          "part": "container/parentLink",
+          "kind": "instance",
+          "members": 2,
+          "when": {
+            "path": [
+              "parent"
+            ]
+          }
+        }
+      ],
+      "redlineKey": [
+        "size"
+      ],
+      "redlines": [
+        {
+          "where": {
+            "size": "medium"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "gap": {
+                  "token": "space.050"
+                }
+              }
+            },
+            {
+              "part": "container/items",
+              "values": {
+                "gap": {
+                  "token": "space.100"
+                }
+              }
+            },
+            {
+              "part": "container/backGlyph",
+              "values": {
+                "height": {
+                  "token": "icon.size.xs"
+                },
+                "width": {
+                  "token": "icon.size.xs"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "gap": {
+                  "token": "space.050"
+                }
+              }
+            },
+            {
+              "part": "container/items",
+              "values": {
+                "gap": {
+                  "token": "space.050"
+                }
+              }
+            },
+            {
+              "part": "container/backGlyph",
+              "values": {
+                "height": {
+                  "token": "icon.size.xs"
+                },
+                "width": {
+                  "token": "icon.size.xs"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "typeKey": [
+        "size"
+      ],
+      "type": [
+        {
+          "where": {
+            "size": "medium"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "size": "small"
+          },
+          "parts": []
+        }
+      ],
+      "colorKey": [
+        "path",
+        "separator"
+      ],
+      "colors": [
+        {
+          "where": {
+            "path": "full",
+            "separator": "chevron"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "path": "full",
+            "separator": "slash"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "path": "parent",
+            "separator": "chevron"
+          },
+          "parts": [
+            {
+              "part": "container/backGlyph",
+              "icon": "color.icon.link.default"
+            }
+          ]
+        }
+      ],
+      "nesting": [
+        {
+          "part": "container/items",
+          "kind": "slot",
+          "preferred": [
+            "breadcrumb-item"
+          ]
+        },
+        {
+          "part": "container/items/item1",
+          "kind": "instance",
+          "component": "breadcrumb-item",
+          "variant": {
+            "kind": "ancestor",
+            "separator": "chevron",
+            "size": "medium"
+          },
+          "follows": [
+            "separator",
+            "size"
+          ],
+          "exposes": []
+        },
+        {
+          "part": "container/items/item2",
+          "kind": "instance",
+          "component": "breadcrumb-item",
+          "variant": {
+            "kind": "ancestor",
+            "separator": "chevron",
+            "size": "medium"
+          },
+          "follows": [
+            "separator",
+            "size"
+          ],
+          "exposes": []
+        },
+        {
+          "part": "container/items/item3",
+          "kind": "instance",
+          "component": "breadcrumb-item",
+          "variant": {
+            "kind": "current",
+            "separator": "chevron",
+            "size": "medium"
+          },
+          "follows": [
+            "size"
+          ],
+          "exposes": []
+        },
+        {
+          "part": "container/backGlyph",
+          "kind": "instance",
+          "component": "icon/chevron-left",
+          "variant": {},
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "container/parentLink",
+          "kind": "instance",
+          "component": "link",
+          "variant": {
+            "style": "inline",
+            "weight": "default",
+            "size": "medium",
+            "surface": "default",
+            "state": "rest"
+          },
+          "follows": [
+            "size"
+          ],
+          "exposes": [
+            "state"
+          ]
+        }
+      ],
+      "properties": [
+        {
+          "name": "items",
+          "type": "SLOT"
         }
       ]
     },

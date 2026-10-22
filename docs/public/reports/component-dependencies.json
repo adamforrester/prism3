@@ -96,6 +96,7 @@
       "variant": {
         "shape": "flush",
         "size": "small",
+        "surface": "default",
         "state": "rest"
       },
       "expose": [

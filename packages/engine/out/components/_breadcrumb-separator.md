@@ -2,14 +2,34 @@
 
 > The mark between two breadcrumb steps: a chevron or a slash, in the secondary icon color.
 
-The mark between two steps of a Breadcrumbs trail, after every step but the current page. A chevron that points toward the current page, or a slash. Breadcrumbs chooses one for the whole trail. It is 16px at both breadcrumb sizes, in the secondary icon color, and decorative: it is never read aloud or focused.
-
 - **ID:** `_breadcrumb-separator`
 - **Category:** navigation
 - **Status:** draft
 - **Also known as:** breadcrumb-divider, crumb-separator
 
-## Usage
+## Overview
+
+The mark between two steps of a Breadcrumbs trail, after every step but the current page. A chevron that points toward the current page, or a slash. Breadcrumbs chooses one for the whole trail. It is 16px at both breadcrumb sizes, in the secondary icon color, and decorative: it is never read aloud or focused.
+
+- **Purpose:** The mark between two steps of a Breadcrumbs trail, a chevron or a slash.
+- **Use when:** Only as a child of BreadcrumbItem. Generate Breadcrumbs instead.
+- **Avoid when:** Always on its own. Use Breadcrumbs; for a plain icon, use an Icon.
+
+## Anatomy
+
+Shown on the default member: type `chevron`.
+
+1. **Frame** — The mark's box, one 16px icon square. Exactly one glyph shows in it.
+2. **Chevron** — A chevron pointing toward the current page.
+3. **Slash** — A forward slash.
+
+## Styles
+
+| Axis | Values | Changes | Description |
+| --- | --- | --- | --- |
+| `type` | `chevron`, `slash` | once, when authored | chevron: a chevron pointing toward the current page. slash: a forward slash. Set by the Breadcrumbs it sits in, for every step at once. |
+
+## Usage guidelines
 
 Part of a BreadcrumbItem. Choose chevron or slash once, on Breadcrumbs; every step shows the same mark.
 
@@ -22,55 +42,89 @@ Part of a BreadcrumbItem. Choose chevron or slash once, on Breadcrumbs; every st
 - Place a separator on its own, or type one as text between links
 - Mix chevrons and slashes in one trail
 
-### Content guidelines
-
-The separator holds no copy.
-
-### Copy patterns
-
-- **Labels:** The mark carries no text.
-
-## Choosing it
-
-- **Purpose:** The mark between two steps of a Breadcrumbs trail, a chevron or a slash.
-- **Use when:** Only as a child of BreadcrumbItem. Generate Breadcrumbs instead.
-- **Avoid when:** Always on its own. Use Breadcrumbs; for a plain icon, use an Icon.
-- **Often used with:** `breadcrumb-item`, `breadcrumbs`
-
-## Props
-
-| Name | Type | Default | Required | Description |
-| --- | --- | --- | --- | --- |
-| `type` | enum: 'chevron' \| 'slash' | `chevron` | no | chevron: a chevron pointing toward the current page. slash: a forward slash. Set by the Breadcrumbs it sits in, for every step at once. |
-
-## States
-
-None — not interactive.
-
-## Variants
-
-| Axis | Values | Changes |
-| --- | --- | --- |
-| `type` | `chevron`, `slash` | once, when authored |
-
 ## Accessibility
 
-- **Role:** none: decorative, drawn by CSS and never in the accessibility tree
-- **WCAG:**
-  - 1.3.1 Info and Relationships (the trail's order is the list's, not the separator's)
 - **Focus:** None. The mark takes no focus.
-- **ARIA:** None. The mark is CSS generated content, never announced.
+- **Screen readers:** none: decorative, drawn by CSS and never in the accessibility tree
 
-## Motion
+  None. The mark is CSS generated content, never announced.
+
+### WCAG
+
+- 1.3.1 Info and Relationships (the trail's order is the list's, not the separator's)
+
+### Motion
 
 - **Enter:** None.
 - **Exit:** None.
 - **Reduced motion:** No motion to reduce.
 
-## Composition
+## Content guidelines
 
+The separator holds no copy.
+
+- **Labels:** The mark carries no text.
+
+## Related components
+
+- **Often used with:** `breadcrumb-item`, `breadcrumbs`
 - **Replaces:**
   - a "/" or ">" typed as text between breadcrumb links
+
+## Building it in code
+
+### Props
+
+| Name | Type | Default | Required | Description |
+| --- | --- | --- | --- | --- |
+| `type` | enum: 'chevron' \| 'slash' | `chevron` | no | chevron: a chevron pointing toward the current page. slash: a forward slash. Set by the Breadcrumbs it sits in, for every step at once. |
+
+## Specs
+
+Generated from the plan that builds the design-file component: 2 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `frame` | frame | every member |
+| `frame/chevron` | instance | type=chevron |
+| `frame/slash` | instance | type=slash |
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by nothing: one row covers every member.
+
+**every member**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `frame` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `frame/chevron` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `frame/slash` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+
+### Color
+
+Keyed by `type`.
+
+**type=chevron**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `frame/chevron` | — | — | — | `color.icon.secondary` |
+
+**type=slash**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `frame/slash` | — | — | — | `color.icon.secondary` |
+
+### Nesting and properties
+
+- `frame/chevron` nests `icon/chevron-right`
+- `frame/slash` nests `icon/slash`
 
 ---
 
