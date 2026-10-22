@@ -17,9 +17,11 @@ path moves.
   the def's own `{state}`-carrying templates at `state=disabled`, so `checked.border.disabled` wins where it is keyed.
   No def keyed a `….disabled` paint before (they would have been unreachable), so every other plan is byte-identical;
   `lint-component-surface` moved for `radio-control` only.
-- **Error members held exactly as they were.** The status template leads, so `checked.border.disabled` would also
-  have reached `status=error, selection=checked, state=disabled`. `error.checked.border.disabled` pins that member to
-  `color.disabled.border`, as it was. Whether it should follow the default member is an open owner question on the PR.
+- **The disabled checked ring ignores status**, as the checkbox's disabled box does: `checked.border.disabled` also
+  reaches `status=error, selection=checked, state=disabled` (3 members, `disabled/border` → `disabled/fill`). Holding
+  that member at `disabled/border` with an `error.checked.border.disabled` key was tried and refused by `lint-paint`'s
+  provenance arm: an error-status key must bind a status-colored role. The danger rings at the other four states
+  are unchanged.
 
 ### Diagnosis
 
@@ -31,7 +33,7 @@ box's fill variables, which is what the def now does.
 
 `test.ts` `#2939 radio-control's CHECKED ring binds the checked checkbox's box color per-state` (literal names, not
 read off `checkbox-control`) and `#2939 a checked radio ring binds no border/* variable — <member>` over every
-projected checked/default member (15), plus `#2939 radio ring outside checked/default is unchanged — <member>` over
-the other 45. The existing 3:1 ring sweep now measures the three fill rungs and clears across every brand×mode.
+projected checked member at the default status or disabled (18), plus `#2939 radio ring outside checked/default is
+unchanged — <member>` over the other 42. The existing 3:1 ring sweep now measures the three fill rungs and clears across every brand×mode.
 Mutation: `checked.border.disabled` removed → the disabled checked members fall back to `color/disabled/border` and
 `#2939 a checked radio ring binds no border/* variable` fails by name.

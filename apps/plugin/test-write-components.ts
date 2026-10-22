@@ -3035,15 +3035,14 @@ for (const st of ['rest', 'hover', 'pressed', 'focus-visible']) {
      && u !== c,
     `#2939 radio's ring RECOLORS across selection at \`${st}\` — unchecked resolves the field-border edge and checked the checked checkbox's box color ${CHECKED_RING[st]} (unchecked ${u ?? 'none'}, checked ${c ?? 'none'})`);
 }
-// At `disabled` the ring follows the checkbox too (#2939): the checked ring at the default status takes the disabled
-// box fill, every other disabled ring keeps the disabled border (the error member is held as it was; open question
-// on #2939's PR).
+// At `disabled` the ring follows the checkbox too (#2939): a checked ring takes the disabled box fill at both
+// statuses (the disabled skin ignores status, as the checkbox's does), an unchecked one keeps the disabled border.
 const disRows = rb.rows.filter((r) => r.state === 'disabled');
-const disWant = (r: { selection?: string; status?: string }): string =>
-  r.selection === 'checked' && r.status === 'default' ? 'color/disabled/fill' : 'color/disabled/border';
+const disWant = (r: { selection?: string }): string =>
+  r.selection === 'checked' ? 'color/disabled/fill' : 'color/disabled/border';
 const disWrong = disRows.filter((r) => r.stroke !== disWant(r));
 ok(disRows.length === 12 && disWrong.length === 0,
-  `#2939 radio's disabled ring: checked/default binds color/disabled/fill, the rest color/disabled/border (${disRows.length} of 12 members; wrong: ${disWrong.map((r) => `${r.member} -> ${r.stroke}`).slice(0, 3).join('; ') || 'none'})`);
+  `#2939 radio's disabled ring: checked binds color/disabled/fill, unchecked color/disabled/border (${disRows.length} of 12 members; wrong: ${disWrong.map((r) => `${r.member} -> ${r.stroke}`).slice(0, 3).join('; ') || 'none'})`);
 // #1698 made radio error GROUP-level only; owner Q354 (#2751) keeps that and shows it on every option through the
 // `status` axis the Radio group sets. So the danger ring is drawn exactly at status=error and a non-disabled state,
 // at both selections (the inner dot unchanged), and never at status=default.

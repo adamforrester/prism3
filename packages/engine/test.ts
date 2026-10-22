@@ -30937,7 +30937,7 @@ arm: {
       'unchecked.default.rest': 'color/field/border/rest', 'unchecked.default.hover': 'color/field/border/hover',
       'unchecked.default.pressed': 'color/field/border/rest', 'unchecked.default.focus-visible': 'color/field/border/rest',
       'unchecked.default.disabled': 'color/disabled/border',
-      'unchecked.error.disabled': 'color/disabled/border', 'checked.error.disabled': 'color/disabled/border',
+      'unchecked.error.disabled': 'color/disabled/border',
       ...Object.fromEntries(['unchecked', 'checked'].flatMap((sel) => ['rest', 'hover', 'pressed', 'focus-visible']
         .map((st) => [`${sel}.error.${st}`, 'color/border/danger']))),
     };
@@ -30950,7 +30950,9 @@ arm: {
     for (const pl of figmaAnatomySet(rc)) {
       const { selection, status, state } = pl.coord as Record<string, string>;
       const got = ringOf(pl);
-      if (selection === 'checked' && status === 'default') {
+      // A disabled ring takes the disabled skin whatever its status (lint-paint's provenance arm refuses an
+      // error-status key binding a non-danger role), so checked/error/disabled follows the default member.
+      if (selection === 'checked' && (status === 'default' || state === 'disabled')) {
         checkedSeen++;
         ok(got === CHECKED_RING[state] && !/\/border\//.test(got ?? ''),
           `#2939 a checked radio ring binds no border/* variable — ${planComponentName(pl)} strokes ${got}, expected ${CHECKED_RING[state]}`);
@@ -30960,9 +30962,9 @@ arm: {
         ok(got === want, `#2939 radio ring outside checked/default is unchanged — ${planComponentName(pl)} strokes ${got}, expected ${want}`);
       }
     }
-    // 2 selections × 2 statuses × 3 sizes × 5 states: 15 checked/default members, 45 others — a short set is not a pass.
-    ok(checkedSeen === 15 && unchangedSeen === 45,
-      `#2939 the ring sweep read every radio-control member (checked/default ${checkedSeen} of 15, others ${unchangedSeen} of 45)`);
+    // 2 selections × 2 statuses × 3 sizes × 5 states: 15 checked/default + 3 checked/error/disabled, 42 others.
+    ok(checkedSeen === 18 && unchangedSeen === 42,
+      `#2939 the ring sweep read every radio-control member (checked ${checkedSeen} of 18, others ${unchangedSeen} of 42)`);
   }
   // …and the recolored CHECKED ring keeps a live SC 1.4.11 3:1 contract as a graphical object on the page.
   // Since #2939 the ring binds the interactive FILL rungs, each rated against the page floor (modes.ts), so the

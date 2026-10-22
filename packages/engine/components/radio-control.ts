@@ -204,10 +204,6 @@ export const radioControl: ComponentDef = {
     'error.checked.border.hover': 'color.border.danger',
     'error.checked.border.pressed': 'color.border.danger',
     'error.checked.border.focus-visible': 'color.border.danger',
-    // Held at the disabled BORDER (#2939): the checked ring's disabled-fill rebind above is scoped to the
-    // default status, so the error members keep exactly the ring they had. Whether a disabled error radio
-    // should follow the default one is the owner's open question on #2939's PR.
-    'error.checked.border.disabled': 'color.disabled.border',
 
     // ── THE INNER DOT — the selection affordance, present only at `checked`, painted the brand fill
     // AGAINST THE PAGE. `interactive.primary.fill.selected` is the token the pre-split filled disc used;
