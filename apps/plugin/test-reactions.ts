@@ -124,7 +124,8 @@ section('map — the per-def reaction map, literal (owner decision Q238 A, part 
     'icon-button': [216, 72, 108], 'icon-button-destructive': [216, 72, 108], 'icon-button-neutral': [216, 72, 108],
     // #2751 (owner Q354): `status` doubles the three choice controls; an errored control still hovers and presses.
     'checkbox-control': [90, 36, 54], 'radio-control': [60, 24, 36], 'switch-control': [40, 16, 24],
-    'tag': [45, 18, 27], 'tab-item': [30, 12, 18], 'segmented-control-segment': [30, 12, 18], 'link': [96, 48, 72],
+    // #2872 (Q507.2 A): the current page doubles Link's standalone members; a current link still hovers and presses.
+    'tag': [45, 18, 27], 'tab-item': [30, 12, 18], 'segmented-control-segment': [30, 12, 18], 'link': [144, 72, 108],
     // #2457: the flush icon button, 2 shapes × 3 sizes (Q287 A) × (rest → hover, rest → pressed, hover → pressed), in
     // each of its three families (Q295.2 B).
     'flush-icon-button': [60, 24, 36], 'flush-icon-button-destructive': [60, 24, 36], 'flush-icon-button-neutral': [60, 24, 36],

@@ -37,7 +37,8 @@
  *                  `published/hash`; the apply's section dropped → `published/confirm`; the blocked-set guard dropped →
  *                  `published/blocked`; the member-itself exclusion dropped → `published/member replaced`;
  *                  `readSingleView` carrying no status → `published/single`; `breakingSection`'s per-set cap dropped →
- *                  `published/cap`.
+ *                  `published/cap`; Link's `selection` axis with `selected` first → `published/link current additive`
+ *                  (#2872).
  *   property/…     a default the plan changed is edited in place, keeping the property's id.
  *   rename/…       a declared value rename and an added axis rename members in place, keeping keys.
  *   skip/…         an unstamped member, one with no record and one with a layer added by hand are untouched.
@@ -216,8 +217,8 @@ const plansOf = (id: string): AnatomyPlan[] => {
   if (!d) throw new Error(`no def ${id}`);
   return figmaAnatomySet(d, { swapTarget: SWAP_TARGET });
 };
-// A swap override's component is one the file holds too (#2645): the build pre-builds it (`build-deps.ts`), so the
-// world lists it, or Dialog's close (`icon/close`, #2609) reads as a blocker the file never has.
+// #2666 — and the glyph a nested instance's swap override names (#2645): a real file holds the whole icon set, so the
+// component an override swaps to is there, as the nested one is. Breadcrumbs' overflow step is the first such override.
 const planComps = (n: { swapTarget?: string; nestTarget?: string; nestOverrides?: readonly { type: string; value: string }[]; children?: unknown[] }): string[] => [
   ...(n.swapTarget ? [n.swapTarget] : []),
   ...(n.nestTarget ? [n.nestTarget] : []),
@@ -836,25 +837,25 @@ const singleWorld = async (plans: AnatomyPlan[], extraVars: string[] = [], o: { 
   const next = plans.map((p) => { const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan; (q.root as unknown as Record<string, unknown>).descendantFills = 'color/icon/secondary'; return q; });
   const t = { def: 'icon', plans: next, single: true };
   const pre = await previewUpdate(w.host, [t]);
-  ok(pre.sets[0]?.counts.update === 45, `premise: the dry run reads all 45 icons out of date (${JSON.stringify(pre.sets[0]?.counts)})`);
+  ok(pre.sets[0]?.counts.update === 46, `premise: the dry run reads all 46 icons out of date (${JSON.stringify(pre.sets[0]?.counts)})`);
   const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre));
   const v = applyVerdict(res);
-  ok(v.ok && v.headline === '✓ updated 45 in place', `single/update: ${v.headline} (${v.lines.slice(0, 2).join(' | ').slice(0, 220)})`);
+  ok(v.ok && v.headline === '✓ updated 46 in place', `single/update: ${v.headline} (${v.lines.slice(0, 2).join(' | ').slice(0, 220)})`);
   const after = new Map(w.comps().map((c) => [String(c.name), { key: String(c.key), id: String(c.id) }] as const));
-  ok(after.size === 45 && [...before].every(([n, b]) => after.get(n)?.key === b.key && after.get(n)?.id === b.id), 'single/keys: every icon keeps its key and id');
+  ok(after.size === 46 && [...before].every(([n, b]) => after.get(n)?.key === b.key && after.get(n)?.id === b.id), 'single/keys: every icon keeps its key and id');
   const sec = (await w.api.variables.getLocalVariablesAsync()).find((x: { name: string }) => x.name.endsWith('/color/icon/secondary')).id;
   const inked = w.comps().filter((c) => ((c.children as Node[]) ?? []).filter((k) => k.type === 'VECTOR').every((k) => (k.fills as { boundVariables?: { color?: { id: string } } }[])[0]?.boundVariables?.color?.id === sec)).length;
-  ok(inked === 45, `single/written: every icon's ink is the plan's new color (${inked})`);
+  ok(inked === 46, `single/written: every icon's ink is the plan's new color (${inked})`);
   const post = (await previewUpdate(w.host, [t])).sets[0];
   const markers = w.comps().filter((c) => (c.getSharedPluginData as (a: string, b: string) => string)(NS, 'memberUpdating') !== '').length;
-  ok(post.counts.current === 45 && markers === 0, `single/finished: each icon is finished as a set member is, current with its marker off (${JSON.stringify(post.counts)}, ${markers} markers left)`);
+  ok(post.counts.current === 46 && markers === 0, `single/finished: each icon is finished as a set member is, current with its marker off (${JSON.stringify(post.counts)}, ${markers} markers left)`);
 }
 {
   const plans = plansOf('icon');
   const w = await singleWorld(plans.filter((_, i) => i !== 5));
   const res = await applyUpdate(w.host, w.api as any, [{ def: 'icon', plans, single: true }], previewHashOf(await previewUpdate(w.host, [{ def: 'icon', plans, single: true }])));
   const at = w.comps().map((c) => `${c.x},${c.y}`);
-  ok(res.outcomes[0]?.added === 1 && w.comps().length === 45 && new Set(at).size === at.length,
+  ok(res.outcomes[0]?.added === 1 && w.comps().length === 46 && new Set(at).size === at.length,
     `single/add: the glyph the plan gained is built, in a slot no other icon holds (${res.outcomes[0]?.added}, ${w.comps().length} icons, ${new Set(at).size} distinct places)`);
 }
 {
@@ -904,12 +905,12 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
   const named = res.outcomes[0]?.misses.filter((x) => x.startsWith(`name=${String(hit.name).split('/').pop()}.asBuilt -> NOT RECORDED`)) ?? [];
   ok(named.length === 1, `recordfail/named: the outcome names the icon as not recorded (${JSON.stringify(named)}; ${v.headline})`);
   const post = (await previewUpdate(w.host, [t])).sets[0];
-  ok(post.counts.current === 44 && post.counts.current + (post.counts.update ?? 0) + (post.counts.noBaseline ?? 0) === 45 && !post.handEdits.some((h) => h.member.endsWith(String(hit.name).split('/').pop()!)),
-    `recordfail/out of date: the next dry run reads it out of date, never current, the other 44 current (${JSON.stringify(post.counts)})`);
+  ok(post.counts.current === 45 && post.counts.current + (post.counts.update ?? 0) + (post.counts.noBaseline ?? 0) === 46 && !post.handEdits.some((h) => h.member.endsWith(String(hit.name).split('/').pop()!)),
+    `recordfail/out of date: the next dry run reads it out of date, never current, the other 45 current (${JSON.stringify(post.counts)})`);
   const glyph = String(hit.name).split('/').pop();
-  ok(!v.ok && v.headline === '⚠ 1 set not verified' && v.lines[0] === 'icon: 44 updated in place.'
+  ok(!v.ok && v.headline === '⚠ 1 set not verified' && v.lines[0] === 'icon: 45 updated in place.'
     && v.lines.includes(`icon: 1 member not finished — name=${glyph} (its as-built record could not be written). It still reads as out of date; run the update again to finish it.`),
-    `recordfail/verdict: the verdict is not a ✓, counts 44 updated and names the icon not finished (${JSON.stringify(v)})`);
+    `recordfail/verdict: the verdict is not a ✓, counts 45 updated and names the icon not finished (${JSON.stringify(v)})`);
 }
 {
   // THE SAME FAILURE ON A SET MEMBER: `finishUpdated` is the set path's finish too, called from its own loop.
@@ -959,7 +960,7 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
   const o = res.outcomes[0];
   const v = applyVerdict(res);
   ok(o?.skipped.some((x) => x.member === 'name=check') && o.misses.some((x) => x.startsWith('name=check-circle.asBuilt -> NOT RECORDED'))
-    && !v.ok && v.headline === '⚠ 1 set not verified' && v.lines[0] === 'icon: 43 updated in place, 1 left as they are.'
+    && !v.ok && v.headline === '⚠ 1 set not verified' && v.lines[0] === 'icon: 44 updated in place, 1 left as they are.'
     && v.lines.includes('icon: 1 member not finished — name=check-circle (its as-built record could not be written). It still reads as out of date; run the update again to finish it.'),
     `recordfail/prefix: a skip on name=check leaves the refused record on name=check-circle in the misses and the verdict (skipped ${JSON.stringify(o?.skipped)}; misses ${JSON.stringify(o?.misses)}; ${JSON.stringify(v)})`);
 }
@@ -1013,16 +1014,16 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
   for (const c of w.comps()) putPd(c, BASELINE_KEY, '');
   const t = { def: 'icon', plans: reinked(plans), single: true };
   const pre = await previewUpdate(w.host, [t]);
-  ok(pre.sets[0]?.counts.noBaseline === 45, `premise: the dry run reads all 45 icons with no record (${JSON.stringify(pre.sets[0]?.counts)})`);
+  ok(pre.sets[0]?.counts.noBaseline === 46, `premise: the dry run reads all 46 icons with no record (${JSON.stringify(pre.sets[0]?.counts)})`);
   const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre));
   const o = res.outcomes[0];
   const v = applyVerdict(res);
-  ok(v.ok && o?.updated.length === 45 && o.unrecorded.length === 45,
+  ok(v.ok && o?.updated.length === 46 && o.unrecorded.length === 46,
     `unrecorded single/updated: by default every record-less icon is updated and named as updated without a record (${v.headline}; ${o?.updated.length} updated, ${o?.unrecorded.length} unrecorded)`);
   const sec = await varIdOf(w as unknown as World, 'color/icon/secondary');
   const inked = w.comps().filter((c) => ((c.children as Node[]) ?? []).filter((k) => k.type === 'VECTOR').every((k) => (k.fills as { boundVariables?: { color?: { id: string } } }[])[0]?.boundVariables?.color?.id === sec)).length;
   const post = (await previewUpdate(w.host, [t])).sets[0];
-  ok(inked === 45 && post.counts.current === 45 && w.comps().every((c) => !!pdOf(c, BASELINE_KEY)),
+  ok(inked === 46 && post.counts.current === 46 && w.comps().every((c) => !!pdOf(c, BASELINE_KEY)),
     `unrecorded single/recorded: each takes the plan's ink and a record, and reads current after (${inked} inked; ${JSON.stringify(post.counts)})`);
 }
 {
@@ -1037,8 +1038,8 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
   const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre), { choices: { noBaseline: 'skip' } });
   const o = res.outcomes[0];
   const post = (await previewUpdate(w.host, [t])).sets[0];
-  ok(o?.updated.length === 44 && dump() === before && JSON.stringify(o.skipped.map((x) => x.reason)) === JSON.stringify(['no as-built record']) && post.counts.noBaseline === 1,
-    `unrecorded single/skip: under noBaseline 'skip' the record-less icon is left exactly as it is and named, the other 44 updated (${o?.updated.length}, ${JSON.stringify(o?.skipped)}, ${dump() === before ? 'untouched' : 'written'}; ${JSON.stringify(post.counts)})`);
+  ok(o?.updated.length === 45 && dump() === before && JSON.stringify(o.skipped.map((x) => x.reason)) === JSON.stringify(['no as-built record']) && post.counts.noBaseline === 1,
+    `unrecorded single/skip: under noBaseline 'skip' the record-less icon is left exactly as it is and named, the other 45 updated (${o?.updated.length}, ${JSON.stringify(o?.skipped)}, ${dump() === before ? 'untouched' : 'written'}; ${JSON.stringify(post.counts)})`);
 }
 {
   // A DUPLICATE OF THE FILE, FOR THE SINGLE COMPONENTS (#2436): `format/duplicate` for the icons and the spinner. The
@@ -2458,14 +2459,14 @@ section('mixed — in a set the build updates, a member from an earlier plugin s
   }
   const t = { def: 'icon', plans, single: true };
   const pre = await previewUpdate(w.host, [t]);
-  ok(pre.sets[0]?.counts.revisionUnknown === 45 && previewVerdict(pre).headline === '✓ No changes found',
-    `premise: all 45 icons read "built by an earlier plugin", and nothing changes (${JSON.stringify(pre.sets[0]?.counts)}; ${previewVerdict(pre).headline})`);
+  ok(pre.sets[0]?.counts.revisionUnknown === 46 && previewVerdict(pre).headline === '✓ No changes found',
+    `premise: all 46 icons read "built by an earlier plugin", and nothing changes (${JSON.stringify(pre.sets[0]?.counts)}; ${previewVerdict(pre).headline})`);
   const logs = w.comps().map((c) => watchWrites(c));
   const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre));
   const other = logs.flat().filter((x) => !new RegExp(`setSharedPluginData\\(${NS}, (${STAMP_KEY}|${BASELINE_KEY})\\)$`).test(x));
   const again = (await previewUpdate(w.host, [t])).sets[0];
-  ok(res.outcomes[0]?.restamped?.length === 45 && other.length === 0 && again.counts.current === 45,
-    `single/stamped: each icon takes its stamp and nothing else, and all 45 read current (${res.outcomes[0]?.restamped?.length} stamped; ${other.length} other writes; ${JSON.stringify(again.counts)}; ${applyVerdict(res).headline})`);
+  ok(res.outcomes[0]?.restamped?.length === 46 && other.length === 0 && again.counts.current === 46,
+    `single/stamped: each icon takes its stamp and nothing else, and all 46 read current (${res.outcomes[0]?.restamped?.length} stamped; ${other.length} other writes; ${JSON.stringify(again.counts)}; ${applyVerdict(res).headline})`);
 }
 
 {
@@ -2486,14 +2487,14 @@ section('mixed — in a set the build updates, a member from an earlier plugin s
   const pre = await previewUpdate(w.host, [t]);
   const st = pre.sets[0];
   const stateOf = st?.states.find((x) => x.member === `name=${String(hit.name).replace(/^icon\//, '')}`)?.state;
-  ok(stateOf === 'update' && st?.counts.revisionUnknown === 44 && st.changes.some((c) => c.field === 'fills' && /stored #000000/.test(c.from)),
+  ok(stateOf === 'update' && st?.counts.revisionUnknown === 45 && st.changes.some((c) => c.field === 'fills' && /stored #000000/.test(c.from)),
     `single/damage: the icon drawn black under its binding reads "to update", named, though its record matches and its stamp is an earlier plugin's (${stateOf}; ${st?.counts.revisionUnknown} from an earlier plugin; ${st?.changes.map((c) => `${c.field}: ${c.from}`).join(' | ')})`);
   const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre));
   const vars = await varsById(w.api as any);
   const left = w.comps().flatMap((c) => drawnFaults(c, vars));
   const again = (await previewUpdate(w.host, [t])).sets[0];
-  ok(applyVerdict(res).ok && res.outcomes[0]?.updated.length === 1 && res.outcomes[0]?.restamped?.length === 44 && left.length === 0 && again.counts.current === 45,
-    `single/damage repaired: the update re-applies that icon, which then draws its variable's color; the other 44 take their stamps; all 45 read current (${applyVerdict(res).headline}; ${res.outcomes[0]?.updated.length} updated, ${res.outcomes[0]?.restamped?.length} stamped; ${left.length} faults; ${again.counts.current} current)`);
+  ok(applyVerdict(res).ok && res.outcomes[0]?.updated.length === 1 && res.outcomes[0]?.restamped?.length === 45 && left.length === 0 && again.counts.current === 46,
+    `single/damage repaired: the update re-applies that icon, which then draws its variable's color; the other 45 take their stamps; all 46 read current (${applyVerdict(res).headline}; ${res.outcomes[0]?.updated.length} updated, ${res.outcomes[0]?.restamped?.length} stamped; ${left.length} faults; ${again.counts.current} current)`);
 }
 
 {
@@ -2821,11 +2822,11 @@ section('swap — an instance the plan points elsewhere is swapped in place, and
   const before = identityOf(w.set());
   const next = w.plans.map((p) => {
     const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
-    (planChild(planChild(q.root, 'controlCell'), 'control') as unknown as Record<string, unknown>).nestTarget = 'radio-control';
+    (planChild(planChild(planChild(q.root, 'content'), 'controlCell'), 'control') as unknown as Record<string, unknown>).nestTarget = 'radio-control';
     return q;
   });
   const { res } = await confirm(w, [{ def: ROW, plans: next }]);
-  const ctrls = membersOf(w.set()).map((m) => childNamed(childNamed(m, 'controlCell'), 'control'));
+  const ctrls = membersOf(w.set()).map((m) => childNamed(childNamed(childNamed(m, 'content'), 'controlCell'), 'control'));
   ok(ctrls.every((n) => (n.mainComponent as { name?: string } | undefined)?.name === 'radio-control'), `nest/pointed: every row's control now instances radio-control (${[...new Set(ctrls.map((n) => (n.mainComponent as { name?: string }).name))]}; ${applyVerdict(res).headline})`);
   const after = identityOf(w.set());
   ok([...before.members].every(([name, b]) => [...b.kids].every(([p, id]) => after.members.get(name)?.kids.get(p) === id)), 'nest/ids: every nested instance keeps its id');
@@ -2960,6 +2961,42 @@ section('field style — a field set built in one Field style is redrawn in plac
       const post = (await previewUpdate(w.host, [{ def: id, plans: [...to] }])).sets[0];
       ok(post.counts.current === n, `field style/${tag} converges: the next dry run reads all ${n} current (${JSON.stringify(post.counts)})`);
     }
+  }
+}
+
+section('tag style — a Tag set built in one Tag style is redrawn in place in the other, both ways, in one Update (#2887)');
+{
+  // The Tag set is built from `materializeForBrand` under one style, then updated with the plans of the other: a brand
+  // switching its Tag style on a file that already holds the set. The build plan promises additive consumer impact:
+  // the same 45 members and layers, so Update rewrites strokes, the corner, the height floor and paint in place and
+  // instances stay linked. Read off the shim's nodes, never off the plans' own claims.
+  const def = componentDefs.find((d) => d.id === 'tag')!;
+  const pill = figmaAnatomySet(materializeForBrand(def, { tagStyle: 'pill' } as never), { swapTarget: SWAP_TARGET });
+  const underline = figmaAnatomySet(materializeForBrand(def, { tagStyle: 'underline' } as never), { swapTarget: SWAP_TARGET });
+  const extra = (ps: AnatomyPlan[]) => ({ extraVars: ps.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), extraStyles: ps.flatMap((p) => planTextStyles(p.root)), extraComps: ps.flatMap((p) => planComps(p.root)) });
+  for (const [from, to, fromName, toName] of [[pill, underline, 'pill', 'underline'], [underline, pill, 'underline', 'pill']] as const) {
+    const tag = `tag ${fromName}→${toName}`;
+    const w = await world('tag', [...from], extra([...to]));
+    const n = membersOf(w.set()).length;
+    const before = identityOf(w.set());
+    const { pre, res } = await confirm(w, [{ def: 'tag', plans: [...to] }]);
+    const v = applyVerdict(res);
+    ok(n === 45 && pre.sets[0].counts.update === n && v.ok, `tag style/${tag}: all ${n} of 45 members read to update, and one apply succeeds (${JSON.stringify(pre.sets[0].counts)}; ${v.headline}${v.ok ? '' : ` — ${v.lines.slice(0, 2).join(' | ').slice(0, 240)}`})`);
+    const after = identityOf(w.set());
+    const lost = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || [...b.kids].some(([path, kid]) => after.members.get(name)?.kids.get(path) !== kid)).map(([x]) => x);
+    ok(lost.length === 0 && JSON.stringify(after.set) === JSON.stringify(before.set), `tag style/${tag} in place: the set, every member and every node under it keep their keys and ids (${lost.slice(0, 2).join('; ') || 'all kept'})`);
+    // The drawn result, off the stored nodes: under underline no member keeps a fill and the bottom side carries the
+    // line; under pill the four sides are one weight again (no side at none).
+    const vars = new Map<string, string>((await w.api.variables.getLocalVariablesAsync()).map((x: { id: string; name: string }) => [x.id, x.name.slice(x.name.indexOf('/') + 1)] as [string, string]));
+    const off = membersOf(w.set()).filter((m) => {
+      const bv = (m.boundVariables ?? {}) as Record<string, { id?: string } | undefined>;
+      const top = vars.get(String(bv.strokeTopWeight?.id)), bottom = vars.get(String(bv.strokeBottomWeight?.id));
+      const fills = (m.fills as unknown[] | undefined) ?? [];
+      return toName === 'underline' ? !(top === 'border-width/none' && /^border-width\/(hairline|thick)$/.test(String(bottom)) && fills.length === 0) : top === 'border-width/none';
+    }).map((m) => String(m.name));
+    ok(off.length === 0, `tag style/${tag} drawn: ${toName === 'underline' ? 'every member draws the bottom line alone and no fill' : 'no member keeps a side at none'} (${off.slice(0, 2).join('; ') || 'ok'})`);
+    const post = (await previewUpdate(w.host, [{ def: 'tag', plans: [...to] }])).sets[0];
+    ok(post.counts.current === n, `tag style/${tag} converges: the next dry run reads all ${n} current (${JSON.stringify(post.counts)})`);
   }
 }
 
@@ -3168,6 +3205,67 @@ section('icons — a set built with inline glyphs updates to icon instances, as 
     await applyUpdate(w.host, w.api as any, [{ def: 'field-message', plans }], previewHashOf(pre));
     ok(membersOf(w.set()).map((m) => (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY)).join() === stamps, 'icons/absent: nothing is written — every stamp is as it was');
   }
+}
+
+/* ── option rows' content box (#2894, #2933) ─────────────────────────────────────────────────────────── */
+section('option rows — a set built before the content box (#2894, owner Q539) takes the box in place, every member and node kept');
+// THE FILE AS A BUILD AT MAIN BEFORE #2894 LEFT IT: the row top-aligned with no floor, holding the control cell and the
+// label directly with the gap on itself, a constant 12px block pad (`space.150`) on Radio.Row and Checkbox.Row and none
+// on Switch.Row, and no `content`. Reconstructed from today's def by putting those facts back, so the subject is the
+// real def's projection on both sides (Accordion's #2594 section above). EXPECTED is typed here: each row's member count
+// and its two flow children, which the dry run lists as moving into `content`, kept. Mutations: the executor offering the
+// new frame no children → `rows/moved children`, `rows/agree`; the dry run listing no moves → `rows/dry run moves`.
+for (const [ROW, MEMBERS, FLOW] of [['radio-row', 6, ['controlCell', 'label']], ['checkbox-row', 6, ['controlCell', 'label']], ['switch-row', 4, ['label', 'controlCell']]] as const) {
+  const now = componentDefs.find((x) => x.id === ROW)!;
+  const { content, ...restParts } = now.anatomy.parts;
+  const padded = ROW !== 'switch-row';
+  const { padding: _p, minHeight: _m, ...rowRest } = now.anatomy.parts.row;
+  const before2894 = {
+    ...now,
+    tokens: padded ? { ...now.tokens, 'pad-y': 'space.150' } : now.tokens,
+    anatomy: { ...now.anatomy, parts: { ...restParts, row: { ...rowRest, layout: { ...now.anatomy.parts.row.layout!, align: 'start' }, gap: content.gap, children: [...content.children!], ...(padded ? { padding: { block: 'pad-y', inlineLabel: 'pad-x' } } : {}) } } },
+  } as typeof now;
+  const kids = (n: Node | undefined): string[] => ((n?.children as Node[] | undefined) ?? []).map((c) => String(c.name));
+  // The file's variables are today's (an Update follows a token sync), so it holds the ones the new plans bind.
+  const newPlans = plansOf(ROW);
+  const w = await world(ROW, figmaAnatomySet(before2894, { swapTarget: SWAP_TARGET }), { extraVars: newPlans.flatMap((q) => [...planBoundVars(q.root), ...planPaintVars(q.root)]) });
+  ok(membersOf(w.set()).length === MEMBERS && membersOf(w.set()).every((m) => JSON.stringify(kids(m)) === JSON.stringify(FLOW) && m.counterAxisAlignItems === 'MIN'),
+    `${ROW} premise: the file holds ${MEMBERS} members built before #2894, each top-aligned and holding [${FLOW.join(', ')}] directly (${kids(membersOf(w.set())[0]).join(', ')}; ${String(membersOf(w.set())[0].counterAxisAlignItems)})`);
+  const before = identityOf(w.set());
+  const { pre, res } = await confirm(w, [{ def: ROW, plans: newPlans }]);
+  const p = pre.sets[0];
+  ok(p.counts.update === MEMBERS && p.counts.add === 0 && p.counts.drop === 0 && p.renames.length === 0 && !p.blockers.length && !p.replacements.length,
+    `${ROW} rows/dry run: all ${MEMBERS} members read update, none added, dropped, renamed or replaced, and nothing refused (${JSON.stringify(p.counts)}, ${p.blockers.join('; ') || 'no blockers'}, ${p.replacements.length} replacements)`);
+  const lines = previewVerdict(pre).lines;
+  const moves = FLOW.map((part) => p.changes.find((c) => c.part === part && c.field === 'moves into'));
+  ok(moves.every((c) => c?.to === 'content' && c.members === MEMBERS)
+    && FLOW.every((part) => lines.includes(`${ROW} · ${part} · moves into content, kept (${MEMBERS} members).`))
+    && !p.changes.some((c) => /removed/.test(c.to)),
+    `${ROW} rows/dry run moves: [${FLOW.join(', ')}] are listed as moving into content, kept, and nothing as removed (${JSON.stringify(p.changes.map((c) => [c.part, c.field, c.to, c.members])).slice(0, 300)})`);
+  ok(applyVerdict(res).ok, `${ROW} rows/verdict: ${applyVerdict(res).headline} (${applyVerdict(res).lines.slice(0, 2).join(' | ').slice(0, 240)})`);
+  const after = identityOf(w.set());
+  const movedMembers = [...before.members].filter(([name, b]) => after.members.get(name)?.key !== b.key || after.members.get(name)?.id !== b.id).map(([n]) => n);
+  ok(JSON.stringify(after.set) === JSON.stringify(before.set) && movedMembers.length === 0 && after.members.size === MEMBERS,
+    `${ROW} rows/members kept: the set and all ${MEMBERS} members keep their keys and ids (${movedMembers.join('; ') || 'none moved'})`);
+  // MOVED, NOT REBUILT (#2595): every node that sat under the control cell or the label, the nested control instance
+  // included, keeps its id, now under `content`. Read off the shim's nodes by id.
+  const was = new RegExp(`^(${FLOW.join('|')})#`);
+  const lost: string[] = [];
+  for (const [name, b] of before.members) {
+    const old = [...b.kids].filter(([path]) => was.test(path));
+    const under = new Set([...(after.members.get(name)?.kids ?? [])].filter(([path]) => /^content#\d+\//.test(path)).map(([, id]) => id));
+    if (!old.length || !old.every(([, id]) => under.has(id))) lost.push(`${name}: ${old.filter(([, id]) => !under.has(id)).map(([path]) => path).slice(0, 2).join(', ') || 'nothing to move'}`);
+  }
+  ok(lost.length === 0, `${ROW} rows/moved children: the control cell, the nested control and the label keep their ids under content (${lost.slice(0, 2).join('; ') || `all ${MEMBERS}`})`);
+  const movedIds = new Set([...before.members.values()].flatMap((b) => [...b.kids].filter(([path]) => was.test(path)).map(([, id]) => id)));
+  const gone = (w.api._removed as Node[]).filter((x) => movedIds.has(String(x.id)));
+  ok(movedIds.size > 0 && gone.length === 0, `${ROW} rows/agree: the apply removed none of the ${movedIds.size} nodes the dry run listed as moving (${gone.slice(0, 3).map((x) => `${String(x.name)} ${String(x.id)}`).join(', ') || 'none removed'})`);
+  // The new structure, read off the shim's nodes: the row centers one `content` box, which holds the flow children
+  // top-aligned (Q539, Q?3 A).
+  const shape = membersOf(w.set()).filter((m) => !(m.counterAxisAlignItems === 'CENTER' && JSON.stringify(kids(m)) === '["content"]' && childNamed(m, 'content').counterAxisAlignItems === 'MIN' && JSON.stringify(kids(childNamed(m, 'content'))) === JSON.stringify(FLOW)));
+  ok(shape.length === 0, `${ROW} rows/structure: every member centers content, which holds [${FLOW.join(', ')}] top-aligned (${shape.slice(0, 2).map((m) => `${String(m.name)}: ${String(m.counterAxisAlignItems)} [${kids(m).join(', ')}]`).join('; ') || `all ${MEMBERS}`})`);
+  const post = (await previewUpdate(w.host, [{ def: ROW, plans: newPlans }])).sets[0];
+  ok(post.counts.current === MEMBERS && post.handEdits.length === 0, `${ROW} rows/current: the next dry run reads all ${MEMBERS} current (${JSON.stringify(post.counts)})`);
 }
 
 /* ── accordion header row (#2594) ────────────────────────────────────────────────────────────────────── */
@@ -3883,6 +3981,92 @@ section('published — on a set in a team library, what breaks consumer files is
     ok(before.length === 18 && next.length === 24, `premise: Dialog was 18 members and is 24 with the fill footer (${before.length} → ${next.length})`);
     ok(p?.publish === 'CURRENT' && JSON.stringify([...p.adds].sort()) === JSON.stringify([...FILL].sort()) && p.drops.length === 0 && (p.breaking ?? []).length === 0,
       `published/dialog fill additive: the six fill members are added and nothing breaks library consumers (adds ${JSON.stringify(p?.adds)}, drops ${p?.drops.length}, breaking ${JSON.stringify((p?.breaking ?? []).slice(0, 3))})`);
+  }
+
+  // LINK GAINS ITS CURRENT PAGE (#2872, owner decisions Q507): a published Link built before the axis existed, its 96
+  // members with no `selection`, updated to the plan with `selection` (unselected first) and the
+  // 48 current-page members. The update gives every existing member `selection=unselected` in place (§2: an added axis
+  // lands on the first plan's value) and adds the 48 selected standalone members; it lists NOTHING as breaking library
+  // consumers (#2839's `breakingOf`): no member dropped or replaced, no property removed or retyped. Applied, each of the
+  // 96 keeps its node id and key, so consumer instances stay linked. With `selected` first, the 48 inline members would
+  // land on a coordinate the set excludes and be dropped, and this arm fails. Counts and segments are typed here.
+  {
+    const next = plansOf('link');
+    // `before` is the pre-#2872 shape, rebuilt from this PR's unselected plans with the `selection` segment taken off. Its
+    // member names are the 96 a published Link carries today; their layers are pinned by test.ts's `#2580 link/…` and
+    // `#2872 link bar` arms (an unselected member carries no bar).
+    const before = next.filter((p) => p.coord.selection === 'unselected').map((p) => {
+      const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
+      delete (q.coord as Record<string, string>).selection;
+      q.gridAxisOrder = q.gridAxisOrder.filter((a) => a !== 'selection');
+      return q;
+    });
+    const w = await world('link', before, { extraVars: [...new Set(next.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]))] });
+    (w.api.publish as (n: Node, s: string) => void)(w.set(), 'CURRENT');
+    const was = identityOf(w.set());
+    ok(before.length === 96 && next.length === 144 && [...was.members.keys()].every((n) => !n.includes('selection=')),
+      `premise: a published Link of 96 members with no selection axis, and a plan of 144 (${was.members.size} → ${next.length})`);
+    const { pre, res } = await confirm(w, [{ def: 'link', plans: next }]);
+    const p = pre.sets[0];
+    const added = p?.adds ?? [];
+    ok(p?.publish === 'CURRENT' && added.length === 48 && added.every((a) => a.includes('style=standalone') && a.includes('selection=selected'))
+      && p.drops.length === 0 && p.replacements.length === 0 && (p.breaking ?? []).length === 0,
+      `published/link current additive: the 48 current-page standalone members are added, nothing is dropped or replaced, and nothing breaks library consumers (adds ${added.length}, drops ${JSON.stringify(p?.drops.slice(0, 2))}, replaced ${p?.replacements.length}, breaking ${JSON.stringify((p?.breaking ?? []).slice(0, 3))})`);
+    // In place: each existing member is renamed to its `selection=unselected` coordinate and keeps its id and key.
+    const after = identityOf(w.set());
+    const unsel = (name: string): string | undefined => [...after.members.keys()].find((n) => n.includes('selection=unselected')
+      && n.split(', ').filter((seg) => seg !== 'selection=unselected').sort().join(', ') === name.split(', ').sort().join(', '));
+    const lost = [...was.members].filter(([name, m]) => { const to = unsel(name); return !to || after.members.get(to)!.id !== m.id || after.members.get(to)!.key !== m.key; }).map(([n]) => n);
+    ok(!res.refusedAll && after.members.size === 144 && lost.length === 0,
+      `published/link current in place: applied, the 96 existing members become selection=unselected with their node id and key kept, so consumer instances stay linked (${after.members.size} members, ${lost.length} not kept — ${lost.slice(0, 2).join('; ') || 'none'})`);
+  }
+}
+
+/* ── message default off (#2926) ─────────────────────────────────────────────────────────────────────── */
+section('message default off — Update flips the set\'s `message` default to off in place, and a designer\'s own value on an instance is kept (#2926)');
+{
+  // A file built before #2926 by the real executor: each field's def with the message switch ON by default. `true` is
+  // typed here as the old file's value, never read off the def, which now says false.
+  const LABEL_MEMBERS = ['medium', 'small', 'large'].flatMap((size) => ['primary', 'secondary'].flatMap((emphasis) => ['regular', 'bold'].flatMap((weight) =>
+    ['rest', 'disabled'].map((state) => `size=${size}, emphasis=${emphasis}, weight=${weight}, state=${state}`))));
+  for (const id of ['text-field', 'password-field', 'select', 'textarea']) {
+    const d = componentDefs.find((x) => x.id === id)!;
+    const fp = d.figmaProperties!;
+    const oldDef = { ...d, figmaProperties: { ...fp, booleans: { ...fp.booleans, showMessage: { ...fp.booleans!.showMessage, default: true } } } };
+    const old = figmaAnatomySet(oldDef, { swapTarget: SWAP_TARGET });
+    const planned = plansOf(id);
+    const componentProps = id === 'password-field' ? { button: { 'label#7:1': { type: 'TEXT', defaultValue: 'Button' } } } : undefined;
+    const w = await world(id, old, { fileSets: [{ name: 'field-label', variants: LABEL_MEMBERS }], componentProps });
+    const defs0 = w.set().componentPropertyDefinitions as Record<string, { type: string; defaultValue?: unknown }>;
+    const key = Object.keys(defs0).find((k) => k.split('#')[0] === 'message')!;
+    ok(!!key && defs0[key].type === 'BOOLEAN' && defs0[key].defaultValue === true, `premise: the ${id} file's set declares 'message', on by default (${key}: ${String(defs0[key]?.defaultValue)})`);
+    const msgNodes = (): Node[] => {
+      const walk = (n: Node): Node[] => [...((n.componentPropertyReferences as Record<string, string> | null)?.visible === key ? [n] : []), ...(n.type === 'INSTANCE' ? [] : ((n.children as Node[] | undefined) ?? []).flatMap(walk))];
+      return membersOf(w.set()).flatMap(walk);
+    };
+    ok(msgNodes().length >= 84 && msgNodes().every((n) => n.visible !== false), `premise: ${id}: every member's message node is shown (${msgNodes().filter((n) => n.visible === false).length} of ${msgNodes().length} hidden)`);
+    // Three placed instances: one untouched, one a designer turned off, one a designer turned on.
+    const comps = w.api.root.findAllWithCriteria({ types: ['COMPONENT'] }) as unknown as { name: string; createInstance: () => Node }[];
+    const main = comps.find((c) => c.name === String(membersOf(w.set())[0].name))!;
+    const [untouched, turnedOff, turnedOn] = [main.createInstance(), main.createInstance(), main.createInstance()];
+    (turnedOff.setProperties as (p: Record<string, boolean>) => void)({ [key]: false });
+    (turnedOn.setProperties as (p: Record<string, boolean>) => void)({ [key]: true });
+    const valueOf = (inst: Node): unknown => (inst.componentProperties as Record<string, { value: unknown }>)[key]?.value;
+    const before = identityOf(w.set());
+    const { pre, res } = await confirm(w, [{ def: id, plans: planned }]);
+    const props = pre.sets[0].properties;
+    ok(props.edit.length === 1 && props.edit[0].name === 'message' && props.edit[0].from === 'true' && props.edit[0].to === 'false' && !props.add.length && !props.remove.length && !props.rename.length && !props.retype.length,
+      `${id} message/dry run: one property edit, 'message' true → false, nothing added, removed, renamed or retyped (${JSON.stringify(props)})`);
+    ok(applyVerdict(res).ok, `${id} message/verdict: ${applyVerdict(res).headline} (${applyVerdict(res).lines.slice(0, 2).join(' | ').slice(0, 240)})`);
+    const defs1 = w.set().componentPropertyDefinitions as Record<string, { type: string; defaultValue?: unknown }>;
+    ok(defs1[key]?.defaultValue === false, `${id} message/set default: the same property (${key}) now defaults to off (${String(defs1[key]?.defaultValue)})`);
+    ok(msgNodes().length >= 84 && msgNodes().every((n) => n.visible === false), `${id} message/members: every member's message node is now hidden (${msgNodes().filter((n) => n.visible !== false).length} of ${msgNodes().length} still shown)`);
+    ok(valueOf(untouched) === false && valueOf(turnedOff) === false && valueOf(turnedOn) === true,
+      `${id} message/instances: the untouched instance follows the new default (off), and each designer's own value is kept (off stays off, on stays on) (${String(valueOf(untouched))}, ${String(valueOf(turnedOff))}, ${String(valueOf(turnedOn))})`);
+    const after = identityOf(w.set());
+    ok(after.set.join() === before.set.join() && [...before.members].every(([name, b]) => after.members.get(name)?.key === b.key && after.members.get(name)?.id === b.id), `${id} message/keys: the set and every member keep their keys and ids`);
+    const post = (await previewUpdate(w.host, [{ def: id, plans: planned }])).sets[0];
+    ok(post.counts.current === post.counts.members && !post.properties.edit.length, `${id} message/settled: a second dry run reads every member current and lists no property edit (${JSON.stringify(post.counts)}; ${JSON.stringify(post.properties.edit)})`);
   }
 }
 

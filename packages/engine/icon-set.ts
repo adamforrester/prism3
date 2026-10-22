@@ -155,6 +155,12 @@ export const ICON_SOURCES: Record<string, string> = {
   // The hamburger (owner decision Q253 A, 2026-10-12): Remix's `menu-line`, three 2px bars. `menu`, the plain noun,
   // like `home` and `search`; the owner's file was titled `menu-fill`, which in Remix is the same glyph.
   menu: 'menu-line',
+  // The breadcrumb slash (owner decision Q382 A, 2026-10-16: a separator in two looks, chevron and slash). The one
+  // glyph in the set NOT from Remix: Remix 4.9.1 has no plain slash (only `code-s-slash`, `slash-commands` and
+  // `divide`), so this file is project-authored on Remix's 24px grid, a 2px stroke like `chevron-right`'s, leaning as a
+  // typeset "/". A permanent member of the set (owner decision, 2026-10-22, on #2666): a glyph a component needs and
+  // the library lacks joins the icon set when the component is built. `icons/NOTICE.md` records the provenance.
+  slash: 'slash-line',
 
   // Landed in #841 concurrently with this file's authoring; mapped here rather than left
   // unreachable. `link-m` keeps its source filename rather than renaming to `link-line` — #841's own

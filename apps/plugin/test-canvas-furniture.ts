@@ -348,7 +348,7 @@ section('label text — the text layer a value goes into, whatever the file\'s _
 
 /* ── the pilot defs, built by the real executor ─────────────────────────────────────────────────────────── */
 const plansOf = (id: string): AnatomyPlan[] => figmaAnatomySet(componentDefs.find((d) => d.id === id)!, { swapTarget: SWAP_TARGET });
-// A swap override's component (#2645) is in the file too: the build pre-builds it, so Dialog's `icon/close` (#2609) is listed.
+// #2666 — and the glyph a nested instance's swap override names (#2645): a real file holds the whole icon set.
 const planComps = (n: { swapTarget?: string; nestTarget?: string; nestOverrides?: readonly { type: string; value: string }[]; children?: unknown[] }): string[] => [
   ...(n.swapTarget ? [n.swapTarget] : []), ...(n.nestTarget ? [n.nestTarget] : []),
   ...(n.nestOverrides ?? []).filter((o) => o.type === 'INSTANCE_SWAP').map((o) => o.value), ...((n.children ?? []) as (typeof n)[]).flatMap(planComps),
@@ -594,6 +594,9 @@ for (const [id, wantCols, wantRows] of [
     ['Default', 'Error', 'Warning', 'Success', ...Array.from({ length: 4 }, () => ['Medium', 'Small', 'Large']).flat()]],
   // #2317: the Password field is TextField's grid, from the shared field factory.
   ['password-field', ['Rest', 'Hover', 'Filled', 'Focus visible', 'Focus visible filled', 'Disabled', 'Read only'],
+    ['Default', 'Error', 'Warning', 'Success', ...Array.from({ length: 4 }, () => ['Medium', 'Small', 'Large']).flat()]],
+  // #2888: the Search field is TextField's grid too.
+  ['search-field', ['Rest', 'Hover', 'Filled', 'Focus visible', 'Focus visible filled', 'Disabled', 'Read only'],
     ['Default', 'Error', 'Warning', 'Success', ...Array.from({ length: 4 }, () => ['Medium', 'Small', 'Large']).flat()]],
 ] as const) {
   const { plans, page, set } = await buildOnPage(id);
@@ -932,8 +935,8 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
   // properties builds a set, except the two that build single components (`emitAsComponents`), which have no grid.
   const withSet = componentDefs.filter((d) => d.figmaProperties && !d.figmaProperties.emitAsComponents).map((d) => d.id);
   const single = componentDefs.filter((d) => d.figmaProperties?.emitAsComponents).map((d) => d.id);
-  ok(withSet.length === 44 && withSet.every(hasFurniture) && JSON.stringify(single) === JSON.stringify(['icon', 'spinner']) && !single.some(hasFurniture),
-    `rollout/switch: all 44 defs that build a set have furniture; Icon and Spinner, single components, do not (off: ${JSON.stringify(withSet.filter((id) => !hasFurniture(id)))})`);
+  ok(withSet.length === 48 && withSet.every(hasFurniture) && JSON.stringify(single) === JSON.stringify(['icon', 'spinner']) && !single.some(hasFurniture),
+    `rollout/switch: all 48 defs that build a set have furniture; Icon and Spinner, single components, do not (off: ${JSON.stringify(withSet.filter((id) => !hasFurniture(id)))})`);
 
   // THE MEMBERS AN EARLIER LAYOUT HOLDS OFF THEIR GROUPED ROW, per def, worked out by hand. Only a def with a `surface`
   // ROW axis regroups. Button and its two siblings: 360, as `MOVES` above. The three icon buttons: 36 rows of 6
@@ -942,7 +945,11 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
   // 5u: (filled, square?, default) — a = 0, s = 0, u = 0 — and a = 2, s = 1, u = 1. Six rows stay, 30 rows × 6 = 180
   // move. Link (#2580): 24 rows of 4 states; the earlier row order is style (2) × weight (2) × surface (2) × size (3),
   // the grouped one surface × style × weight × size, so a row stays only where 12s + 6w + 3u = 12u + 6s + 3w, that is
-  // 2s + w = 3u: (standalone, emphasis, default) and (inline, default, inverse). Six rows stay, 18 rows × 4 = 72 move.
+  // 2s + w = 3u: (standalone, emphasis, default) and (inline, default, inverse). Six rows stayed, 18 rows × 4 = 72 moved.
+  // Since #2872 (Q507) `selection` sits between surface and size and the grid is sparse (no inline × selected): 36 rows,
+  // 24 standalone and 12 inline. Enumerated by hand in both orders, a row keeps its place only in the six standalone
+  // emphasis default rows (both selections, three sizes) and the three inline default inverse rows: 9 stay, 27 rows ×
+  // 4 = 108 move.
   // The three flush icon buttons (#2668, Q386): 12 rows of 5 states, shape (2) × surface (2) × size (3). The earlier row
   // order is shape × surface × size, the grouped one surface × shape × size, so a row stays only where 6h + 3u = 6u + 3h,
   // that is h = u: (flush, default) and (round, inverse). Six rows stay, 6 rows × 5 = 30 move.
@@ -950,7 +957,7 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
   const MOVES_BY_DEF: Record<string, number> = {
     button: 360, 'button-destructive': 360, 'button-neutral': 360,
     'icon-button': 180, 'icon-button-destructive': 180, 'icon-button-neutral': 180,
-    link: 72,
+    link: 108,
     'flush-icon-button': 30, 'flush-icon-button-destructive': 30, 'flush-icon-button-neutral': 30,
   };
   // THE DEFS WITH A BACKDROP: the ten above, the only ones whose rows split by `surface`. Focus ring has `surface`
@@ -1021,6 +1028,8 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
     Slider: ['_slider-thumb', 'slider'],
     // #2457 Q295.2 B: the flush icon button's three families share one page, as IconButton's do.
     'Flush Icon Button': ['flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral'],
+    // #2666 Q382 A: the breadcrumb separator shares the item's page, first, as the Accordion indicator does.
+    'Breadcrumb Item': ['_breadcrumb-separator', 'breadcrumb-item'],
   };
   const fromTaxonomy = Object.fromEntries(allLeaves().filter(({ leaf }) => leaf.defs.length > 1).map(({ leaf }) => [leaf.page, [...leaf.defs]]));
   ok(JSON.stringify(fromTaxonomy) === JSON.stringify(SHARED), `clearance/pages: the eleven pages that hold more than one set (${JSON.stringify(Object.keys(fromTaxonomy))})`);
