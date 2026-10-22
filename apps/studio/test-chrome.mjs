@@ -10655,7 +10655,7 @@ const EXPECT_HEADINGS = {
     // group (L2) after its sets; Field options' one lever, Field style, is L3 as the Button options are.
     L1: ['Buttons', 'Fields', 'Other components', 'Subcomponents'],
     L2: ['Button options', 'Field options'],
-    L3: ['Button icons', 'Button label & icon', 'Button label weight', 'Text button hover', 'Button minimum width', 'Field style'],
+    L3: ['Button icons', 'Medium button label & icon', 'Button label weight', 'Text button hover', 'Button minimum width', 'Field style'],
   },
   // #2215: the plugin's Build style guides page, with SG_RING_CATALOG posted (every kind selected, so every option group
   // draws). Its page title is not a level (HEADING_EXEMPT).
