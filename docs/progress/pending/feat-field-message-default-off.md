@@ -17,5 +17,9 @@ the hidden default, with the tracking mutation flipped to show the built visibil
 
 ### Existing files
 
-A boolean property's default is a set-level value: Update rewrites the component property definition on the set, and
-Figma keeps an instance's explicit override of that property. The roundtrip shim's evidence is in the PR.
+A boolean property's default is a set-level value. `test-update-apply.ts` builds each of the four sets as a pre-#2926
+file (message on, the `true` typed as the old file's value), places three instances (untouched, turned off, turned on)
+and runs Update: the dry run lists one edit, `message` true → false, and nothing else; the property keeps its id; every
+member's message node is hidden; the untouched instance follows the new default while both explicit values are kept; and
+a second dry run is settled. The trap: the shim records an explicit value even when it equals the old default, and
+whether Figma does the same for a designer who turned the message "on" while it was already on is not measured here.

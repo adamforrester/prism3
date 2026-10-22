@@ -3878,6 +3878,54 @@ section('published — on a set in a team library, what breaks consumer files is
   }
 }
 
+/* ── message default off (#2926) ─────────────────────────────────────────────────────────────────────── */
+section('message default off — Update flips the set\'s `message` default to off in place, and a designer\'s own value on an instance is kept (#2926)');
+{
+  // A file built before #2926 by the real executor: each field's def with the message switch ON by default. `true` is
+  // typed here as the old file's value, never read off the def, which now says false.
+  const LABEL_MEMBERS = ['medium', 'small', 'large'].flatMap((size) => ['primary', 'secondary'].flatMap((emphasis) => ['regular', 'bold'].flatMap((weight) =>
+    ['rest', 'disabled'].map((state) => `size=${size}, emphasis=${emphasis}, weight=${weight}, state=${state}`))));
+  for (const id of ['text-field', 'password-field', 'select', 'textarea']) {
+    const d = componentDefs.find((x) => x.id === id)!;
+    const fp = d.figmaProperties!;
+    const oldDef = { ...d, figmaProperties: { ...fp, booleans: { ...fp.booleans, showMessage: { ...fp.booleans!.showMessage, default: true } } } };
+    const old = figmaAnatomySet(oldDef, { swapTarget: SWAP_TARGET });
+    const planned = plansOf(id);
+    const componentProps = id === 'password-field' ? { button: { 'label#7:1': { type: 'TEXT', defaultValue: 'Button' } } } : undefined;
+    const w = await world(id, old, { fileSets: [{ name: 'field-label', variants: LABEL_MEMBERS }], componentProps });
+    const defs0 = w.set().componentPropertyDefinitions as Record<string, { type: string; defaultValue?: unknown }>;
+    const key = Object.keys(defs0).find((k) => k.split('#')[0] === 'message')!;
+    ok(!!key && defs0[key].type === 'BOOLEAN' && defs0[key].defaultValue === true, `premise: the ${id} file's set declares 'message', on by default (${key}: ${String(defs0[key]?.defaultValue)})`);
+    const msgNodes = (): Node[] => {
+      const walk = (n: Node): Node[] => [...((n.componentPropertyReferences as Record<string, string> | null)?.visible === key ? [n] : []), ...(n.type === 'INSTANCE' ? [] : ((n.children as Node[] | undefined) ?? []).flatMap(walk))];
+      return membersOf(w.set()).flatMap(walk);
+    };
+    ok(msgNodes().length >= 84 && msgNodes().every((n) => n.visible !== false), `premise: ${id}: every member's message node is shown (${msgNodes().filter((n) => n.visible === false).length} of ${msgNodes().length} hidden)`);
+    // Three placed instances: one untouched, one a designer turned off, one a designer turned on.
+    const comps = w.api.root.findAllWithCriteria({ types: ['COMPONENT'] }) as unknown as { name: string; createInstance: () => Node }[];
+    const main = comps.find((c) => c.name === String(membersOf(w.set())[0].name))!;
+    const [untouched, turnedOff, turnedOn] = [main.createInstance(), main.createInstance(), main.createInstance()];
+    (turnedOff.setProperties as (p: Record<string, boolean>) => void)({ [key]: false });
+    (turnedOn.setProperties as (p: Record<string, boolean>) => void)({ [key]: true });
+    const valueOf = (inst: Node): unknown => (inst.componentProperties as Record<string, { value: unknown }>)[key]?.value;
+    const before = identityOf(w.set());
+    const { pre, res } = await confirm(w, [{ def: id, plans: planned }]);
+    const props = pre.sets[0].properties;
+    ok(props.edit.length === 1 && props.edit[0].name === 'message' && props.edit[0].from === 'true' && props.edit[0].to === 'false' && !props.add.length && !props.remove.length && !props.rename.length && !props.retype.length,
+      `${id} message/dry run: one property edit, 'message' true → false, nothing added, removed, renamed or retyped (${JSON.stringify(props)})`);
+    ok(applyVerdict(res).ok, `${id} message/verdict: ${applyVerdict(res).headline} (${applyVerdict(res).lines.slice(0, 2).join(' | ').slice(0, 240)})`);
+    const defs1 = w.set().componentPropertyDefinitions as Record<string, { type: string; defaultValue?: unknown }>;
+    ok(defs1[key]?.defaultValue === false, `${id} message/set default: the same property (${key}) now defaults to off (${String(defs1[key]?.defaultValue)})`);
+    ok(msgNodes().length >= 84 && msgNodes().every((n) => n.visible === false), `${id} message/members: every member's message node is now hidden (${msgNodes().filter((n) => n.visible !== false).length} of ${msgNodes().length} still shown)`);
+    ok(valueOf(untouched) === false && valueOf(turnedOff) === false && valueOf(turnedOn) === true,
+      `${id} message/instances: the untouched instance follows the new default (off), and each designer's own value is kept (off stays off, on stays on) (${String(valueOf(untouched))}, ${String(valueOf(turnedOff))}, ${String(valueOf(turnedOn))})`);
+    const after = identityOf(w.set());
+    ok(after.set.join() === before.set.join() && [...before.members].every(([name, b]) => after.members.get(name)?.key === b.key && after.members.get(name)?.id === b.id), `${id} message/keys: the set and every member keep their keys and ids`);
+    const post = (await previewUpdate(w.host, [{ def: id, plans: planned }])).sets[0];
+    ok(post.counts.current === post.counts.members && !post.properties.edit.length, `${id} message/settled: a second dry run reads every member current and lists no property edit (${JSON.stringify(post.counts)}; ${JSON.stringify(post.properties.edit)})`);
+  }
+}
+
 void STYLE_FONT; void BASELINE_KEY;
 console.log(`\n${failed ? `❌ ${failed} FAILED` : '✓ all passed'} — ${executed} assertions executed`);
 if (failed) process.exit(1);
