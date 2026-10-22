@@ -7,17 +7,22 @@
  * WHAT OPENS ON ITS OWN (call 15 A): every family starts closed; a family opens when one of its sets is selected or
  * when the row is focused, and stays open until it is closed by hand.
  *
+ * A FAMILY'S SETTINGS START COLLAPSED (#2844, Q439 A): the disclosure under its sets is closed on open, and stays as the
+ * person leaves it for the session, as an open family does.
+ *
  * NOTHING IS SELECTED ON OPEN (call 13 A): the three Button families are 1,728 variants, and shouldn't be one click
  * away. Nothing is focused either, so the preview pane opens on the first row.
  */
 export type ComponentsPageState = {
   readonly sel: ReadonlySet<string>;
   readonly open: ReadonlySet<string>;
+  /** The families whose settings disclosure is open (#2844, Q439 A). Closed on open, remembered for the session. */
+  readonly optsOpen: ReadonlySet<string>;
   /** The focused row's key (`GroupRow.key`), or null. */
   readonly focus: string | null;
 };
 
-let state: ComponentsPageState = { sel: new Set(), open: new Set(), focus: null };
+let state: ComponentsPageState = { sel: new Set(), open: new Set(), optsOpen: new Set(), focus: null };
 const watchers = new Set<() => void>();
 
 export const componentsPage = (): ComponentsPageState => state;
@@ -32,4 +37,4 @@ export const setComponentsPage = (patch: Partial<ComponentsPageState>): void => 
 export const watchComponentsPage = (f: () => void): (() => void) => { watchers.add(f); return () => watchers.delete(f); };
 
 /** Back to the page's opening state (tests). */
-export const resetComponentsPage = (): void => { state = { sel: new Set(), open: new Set(), focus: null }; };
+export const resetComponentsPage = (): void => { state = { sel: new Set(), open: new Set(), optsOpen: new Set(), focus: null }; };
