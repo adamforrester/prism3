@@ -201,7 +201,7 @@ Type: color. Bound by 19 component(s).
 | icon-button-destructive | `disabled.border` | container | appearance: outline · state: disabled · surface: default (6 of 216) |
 | icon-button-neutral | `disabled.border` | container | appearance: outline · state: disabled · surface: default (6 of 216) |
 | password-field | `disabled.border` | control | state: disabled (12 of 84) |
-| radio-control | `disabled.border`, `error.checked.border.disabled` | control | state: disabled (9 of 60) |
+| radio-control | `disabled.border` | control | selection: unchecked · state: disabled (6 of 60) |
 | select | `disabled.border` | control | state: disabled (12 of 84) |
 | switch-control | `disabled.border`, `disabled.icon.on-fill` | offGlyph | selection: off · state: disabled (4 of 40) |
 |  |  | onGlyph | selection: on · state: disabled (4 of 40) |
@@ -225,7 +225,7 @@ Type: color. Bound by 13 component(s).
 | icon-button-destructive | `disabled.fill` | container | appearance: filled · state: disabled · surface: default (6 of 216) |
 | icon-button-neutral | `disabled.fill` | container | appearance: filled · state: disabled · surface: default (6 of 216) |
 | password-field | `disabled.fill` | control | state: disabled (12 of 84) |
-| radio-control | `checked.border.disabled`, `disabled.indicator` | control | selection: checked · state: disabled · status: default (3 of 60) |
+| radio-control | `checked.border.disabled`, `disabled.indicator` | control | selection: checked · state: disabled (6 of 60) |
 |  |  | dot | selection: checked · state: disabled (6 of 60) |
 | select | `disabled.fill` | control | state: disabled (12 of 84) |
 | switch-control | `disabled.fill` | track | state: disabled (8 of 40) |

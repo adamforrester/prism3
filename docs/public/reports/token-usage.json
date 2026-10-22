@@ -1549,13 +1549,15 @@
         },
         "radio-control": {
           "keys": [
-            "disabled.border",
-            "error.checked.border.disabled"
+            "disabled.border"
           ],
           "parts": {
             "control": {
-              "members": 9,
+              "members": 6,
               "where": {
+                "selection": [
+                  "unchecked"
+                ],
                 "state": [
                   "disabled"
                 ]
@@ -1863,16 +1865,13 @@
           ],
           "parts": {
             "control": {
-              "members": 3,
+              "members": 6,
               "where": {
                 "selection": [
                   "checked"
                 ],
                 "state": [
                   "disabled"
-                ],
-                "status": [
-                  "default"
                 ]
               }
             },

@@ -20777,7 +20777,7 @@
           "parts": [
             {
               "part": "control",
-              "stroke": "color.disabled.border"
+              "stroke": "color.disabled.fill"
             },
             {
               "part": "control/dot",

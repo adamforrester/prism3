@@ -271,7 +271,7 @@ Keyed by `selection`, `status`, `state`.
 
 | Part | Fill | Stroke | Ink | Icon |
 | --- | --- | --- | --- | --- |
-| `control` | — | `color.disabled.border` | — | — |
+| `control` | — | `color.disabled.fill` | — | — |
 | `control/dot` | `color.disabled.fill` | — | — | — |
 
 ### Nesting and properties
