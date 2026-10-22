@@ -8393,6 +8393,7 @@ for (const host of ['web', 'figma']) {
 //   · the block open on arrival (`optsOpen: new Set(['pages…'])`, or `set.hidden = false`) → `#2844: <host> <w>: the settings
 //     are closed when the page opens …`.
 //   · `aria-controls` dropped → `… is a disclosure: aria-expanded flips and aria-controls names the block …`.
+//   · `focus: row.key` dropped from the line's onclick → `… opening the line with Badge in the preview focuses Buttons …`.
 //   · the `inSettings` restore dropped from `paintList` → `… a focused Button option keeps its focus across the list's redraw
 //     at the tier flip (on BODY)`.
 for (const host of ['web', 'figma']) {
@@ -8463,6 +8464,15 @@ for (const host of ['web', 'figma']) {
       const r3 = await read();
       ok(r3.toggles === 1 && r3.expanded === 'true' && r3.title === 'Badge' && r3.shown,
         `#2844: ${host} ${w}: focusing Badge leaves the Buttons settings line and its open state where they were (${JSON.stringify(r3)})`);
+      // Opening the line focuses its family: with Badge in the preview, close and reopen it, and the preview shows Buttons.
+      // (Buttons is the preview's default, so the check above, from a fresh page, cannot tell a focus from the default.)
+      await hooks.click(page.locator('[data-p3="cp-opts-toggle"]'));
+      await page.waitForTimeout(80);
+      await hooks.click(page.locator('[data-p3="cp-opts-toggle"]'));
+      await page.waitForFunction(() => document.querySelector('[data-p3="components-detail-title"]')?.textContent === 'Buttons', null, { timeout: 5000 }).catch(() => {});
+      const r3b = await read();
+      ok(r3b.expanded === 'true' && r3b.shown && r3b.title === 'Buttons',
+        `#2844: ${host} ${w}: opening the line with Badge in the preview focuses Buttons (${JSON.stringify([r3b.expanded, r3b.title])})`);
       await goPlace(page, 'brand');
       await goPlace(page, 'components');
       const r4 = await read();
