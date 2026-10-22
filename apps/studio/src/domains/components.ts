@@ -4,7 +4,8 @@
  * WHAT IT DRAWS: the list of component sets, the shown family's settings under its row, and the one action bar (call 9 A:
  * the list and the action where the choosing happens; the focused family's preview is the preview pane's,
  * `preview/components.ts`).
- *   · Two sections, Components and Subcomponents (note 4, call 11 A), each row a family (several sets on one Figma page,
+ *   · Its sections (see SECTIONS WITH SETTINGS below for the first two): Buttons, Fields, Other components and
+ *     Subcomponents (note 4, call 11 A; #2905). Outside the sections with settings, each row is a family (several sets on one Figma page,
  *     closed until one of its sets is selected or the row is focused, call 15 A) or a set of its own, alphabetical
  *     (note 2), labeled by page or by component name (call 14 A), with its members and the page it lands on (idea 12).
  *   · In the plugin, a box on every set, family and section (note 5, call 8 A: three-state, as Build style guides'), and

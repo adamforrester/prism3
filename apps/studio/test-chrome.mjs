@@ -918,9 +918,9 @@ const goPlace = async (page, place) => {
 };
 
 /** #2844: a family's settings are closed when the Components page opens, behind a disclosure line under its sets: open the
- *  Buttons line, as a designer would, and wait for the Button options to render. */
+ *  Buttons line, as a designer would, and wait for the Button options to render. #2905: the line is the Buttons section's. */
 const openButtonOptions = async (page) => {
-  const t = page.locator('[data-p3="cp-opts-toggle"]');
+  const t = page.locator('[data-p3="cp-opts-toggle"][data-key="opts=buttons"]');
   if ((await t.getAttribute('aria-expanded')) !== 'true') await hooks.click(t);
   await page.waitForFunction(() => !!document.querySelector('[data-p3="button-options-section"]')?.getClientRects().length, null, { timeout: 5000 });
 };
@@ -8128,16 +8128,20 @@ for (const { w, h } of WIDTHS) {
 // =============================================================================================
 console.log(`\nComponents (S8.2)\n${'='.repeat(78)}`);
 /** The lever keys pages.ts places on Components (G6 A), by hook. Literal. */
-const COMPONENTS_LEVERS = ['lever-button-icons', 'lever-button-content-size', 'lever-button-label-weight', 'lever-button-text-hover', 'lever-button-min-width-multiplier'];
+const COMPONENTS_LEVERS = ['lever-button-icons', 'lever-button-content-size', 'lever-button-label-weight', 'lever-button-text-hover', 'lever-button-min-width-multiplier',
+  // #2905 (Q3 B): Field options draws Field style, whose home stays Shape › Radius; the Fields section draws it once more.
+  'lever-field-style'];
 /** #2700 (call 9 A): the levers pane holds the list, in its two sections; the preview pane the focused family, Buttons by
  *  default, in three sections. Literal. Q23's heading pairs (a lever section headed as its preview section) ended with
  *  the move: the levers pane no longer has a section per preview section. */
-const COMPONENTS_LIST_SECTIONS = ['Components', 'Subcomponents'];
+// #2905 (Q548, Q10 A): the sections with settings first, then every other component, then Subcomponents.
+const COMPONENTS_LIST_SECTIONS = ['Buttons', 'Fields', 'Other components', 'Subcomponents'];
 // The specimen sections, each on the brand's page; Button options sit between them on the card, in the chrome's inks.
 const COMPONENTS_PREVIEW_SECTIONS = ['Preview', 'Sets in this family'];
 /** The page's copy, verbatim: approved by the owner (2026-10-05), or #2700's wireframe draft. */
 const COMPONENTS_COPY = {
-  options: 'How buttons place their icons, size their label and set their minimum width. Applies to buttons, not icon buttons.',
+  // #2905 Q10 A: wireframe v2's words.
+  options: 'How buttons place their icons, size and weight their label, and set their minimum width. Icon buttons are not affected.',
   density: ['Density sets component heights and spacing.', 'Set it in Shape › Density'],
   web: 'Building sets needs the Figma plugin.',
   intro: (n) => `The ${n} component sets the engine defines, in families. A build places each on its page in this file.`,
@@ -8357,24 +8361,24 @@ for (const host of ['web', 'figma']) {
     ok(false, `S8.2 Q54: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
-// #2844 (Q439 A, over #2815 step 1's call 3 A): a family's settings sit OUTSIDE its drawer, under its set checkboxes,
-// COLLAPSED behind one disclosure line. On both hosts, at 1280 and at 380: the Button options are in the list (the levers
-// pane) and nowhere in the preview; they are closed when the page opens (the line says aria-expanded=false, the block is
-// not rendered); the line sits AFTER the family's set checkboxes and the block after the line, never above them,
-// measured off the render with the family open; the line is a standard disclosure (aria-controls names the block); a
-// click opens it, keeps the focus on the line, and focuses the family (the preview shows Buttons); Enter and Space work
-// and Tab goes from the line to the first option; the line shows with another family in focus, and the open state
-// outlasts a visit to another page (the session). A Button option keeps its focus after its write and across the list's
-// redraw at the tier flip.
+// #2844 (Q439 A, over #2815 step 1's call 3 A), as #2905 regrouped it (Q7 A, Q9 A): a section's settings sit AFTER its
+// set rows, COLLAPSED behind one disclosure line. On both hosts, at 1280 and at 380: the Button options are in the list
+// (the levers pane) and nowhere in the preview; they are closed when the page opens (the line says aria-expanded=false,
+// the block is not rendered); the line sits AFTER the section's set rows and the block after the line, never above them,
+// measured off the render; the line is a standard disclosure (aria-controls names the block); a click opens it, keeps the
+// focus on the line, and focuses the section's first set (the preview shows Buttons); Enter and Space work and Tab goes
+// from the line to the first option; the line shows with another family in focus, and the open state outlasts a visit to
+// another page (the session). A Button option keeps its focus after its write and across the list's redraw at the tier
+// flip.
 //
 // Oracle: the hooks and the family names are literals typed here; "above" and "below" are read off bounding boxes, and
 // "open" off what the render shows (a box with height), never off the page's own state.
 //
 // Mutations this fails by name:
-//   · the line drawn before the family's sets (`li.append(optsToggle…)` moved above `sub` in `sectionEl`) → `#2844: <host> <w>:
-//     the settings line sits below the family's set checkboxes …`, at both hosts and widths.
-//   · the block open on arrival (`optsOpen: new Set(['pages…'])`, or `set.hidden = false`) → `#2844: <host> <w>: the settings
-//     are closed when the page opens …`.
+//   · the line drawn before the section's rows (`el.append(optsToggle…)` moved above `ul` in `sectionEl`) → `#2844: <host>
+//     <w>: the settings line sits below the section's set rows …`, at both hosts and widths.
+//   · the block open on arrival (`optsOpen: new Set(['buttons'])`, or `set.hidden = false`) → `#2844: <host> <w>: the
+//     settings are closed when the page opens …`.
 //   · `aria-controls` dropped → `… is a disclosure: aria-expanded flips and aria-controls names the block …`.
 //   · the `inSettings` restore dropped from `paintList` → `… a focused Button option keeps its focus across the list's redraw
 //     at the tier flip (on BODY)`.
@@ -8387,21 +8391,21 @@ for (const host of ['web', 'figma']) {
       const read = () => page.evaluate(() => {
         const pane = document.querySelector('[data-p3="levers-pane"]');
         const o = document.querySelector('[data-p3="button-options-section"]');
-        const li = document.querySelector('[data-p3="cp-opts-toggle"]')?.closest('[data-p3="cp-item"]') ?? null;
-        const toggle = li?.querySelector('[data-p3="cp-opts-toggle"]') ?? null;
-        const members = [...(li?.querySelectorAll('[data-p3="cp-member"]') ?? [])];
+        const toggle = document.querySelector('[data-p3="cp-opts-toggle"][data-key="opts=buttons"]');
+        const sec = toggle?.closest('[data-p3="cp-section"]') ?? null;
+        const rows = [...(sec?.querySelectorAll('[data-p3="cp-member"], [data-p3="cp-row"]') ?? [])];
         const bottom = (n) => n.getBoundingClientRect().bottom;
         const shown = (n) => !!n && n.getClientRects().length > 0 && n.getBoundingClientRect().height > 0;
         return {
           n: document.querySelectorAll('[data-p3="button-options-section"]').length, inPane: !!o && pane.contains(o), shown: shown(o),
           inPreview: !!document.querySelector('[data-p3="preview-body"] [data-p3="button-options-section"], [data-p3="preview-body"] [data-p3^="lever-button-"]'),
-          toggles: document.querySelectorAll('[data-p3="cp-opts-toggle"]').length,
-          rowName: li?.querySelector('[data-p3="cp-name"]')?.textContent ?? null, label: toggle?.textContent?.trim() ?? null,
+          toggles: [...document.querySelectorAll('[data-p3="cp-opts-toggle"]')].map((t) => t.textContent.trim()),
+          section: sec?.querySelector('[data-p3="cp-section-title"]')?.dataset.name ?? null, label: toggle?.textContent?.trim() ?? null,
           expanded: toggle?.getAttribute('aria-expanded') ?? null,
           controls: !!toggle && !!toggle.getAttribute('aria-controls') && toggle.getAttribute('aria-controls') === o?.id,
-          members: members.length,
+          rows: rows.length,
           // The sets first, then the line, then the block: read off the rendered edges.
-          lineBelowSets: !!toggle && members.length > 0 && members.every((m) => bottom(m) <= toggle.getBoundingClientRect().top + 1),
+          lineBelowSets: !!toggle && rows.length > 0 && rows.every((m) => bottom(m) <= toggle.getBoundingClientRect().top + 1),
           blockBelowLine: !!toggle && !!o && shown(o) && o.getBoundingClientRect().top >= bottom(toggle) - 1,
           levers: o ? o.querySelectorAll('[data-p3^="lever-button-"]').length : 0,
           title: document.querySelector('[data-p3="components-detail-title"]')?.textContent ?? null,
@@ -8409,17 +8413,13 @@ for (const host of ['web', 'figma']) {
         };
       });
       const r0 = await read();
-      ok(r0.toggles === 1 && r0.rowName === 'Buttons' && r0.label === 'Button options' && r0.inPane && !r0.inPreview,
-        `#2844: ${host} ${w}: one "Button options" line under the Buttons row, in the list, and not in the preview (${JSON.stringify(r0)})`);
+      ok(JSON.stringify(r0.toggles) === JSON.stringify(['Button options', 'Field options']) && r0.section === 'Buttons' && r0.label === 'Button options' && r0.inPane && !r0.inPreview,
+        `#2844: ${host} ${w}: one "Button options" line in the Buttons section and one "Field options" line, in the list, and not in the preview (${JSON.stringify(r0)})`);
       ok(r0.expanded === 'false' && !r0.shown,
         `#2844: ${host} ${w}: the settings are closed when the page opens (aria-expanded=${r0.expanded}, block shown=${r0.shown})`);
-      // The family's sets open by hand (the chevron), independent of the settings line.
-      await hooks.click(page.locator('[data-p3="cp-fold"][data-key="fold=components|Buttons"]'));
-      await page.waitForFunction(() => document.querySelectorAll('[data-p3="cp-opts-toggle"]')[0]?.closest('[data-p3="cp-item"]')?.querySelectorAll('[data-p3="cp-member"]').length > 0, null, { timeout: 5000 }).catch(() => {});
-      const r1 = await read();
-      ok(r1.members > 0 && r1.expanded === 'false' && !r1.shown && r1.lineBelowSets,
-        `#2844: ${host} ${w}: the settings line sits below the family's set checkboxes, and opening the sets leaves the settings closed (${JSON.stringify(r1)})`);
-      await hooks.click(page.locator('[data-p3="cp-opts-toggle"]'));
+      ok(r0.rows === 4 && r0.lineBelowSets,
+        `#2844: ${host} ${w}: the settings line sits below the section's set rows, with the settings closed (${JSON.stringify(r0)})`);
+      await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=buttons"]'));
       await page.waitForFunction(() => !!document.querySelector('[data-p3="button-options-section"]')?.getClientRects().length, null, { timeout: 5000 }).catch(() => {});
       const r2 = await read();
       ok(r2.expanded === 'true' && r2.controls && r2.n === 1 && r2.shown,
@@ -8444,7 +8444,7 @@ for (const host of ['web', 'figma']) {
       await hooks.click(page.locator('[data-p3="cp-name"]').filter({ hasText: /^Badge$/ }).first());
       await page.waitForFunction(() => document.querySelector('[data-p3="components-detail-title"]')?.textContent === 'Badge', null, { timeout: 5000 }).catch(() => {});
       const r3 = await read();
-      ok(r3.toggles === 1 && r3.expanded === 'true' && r3.title === 'Badge' && r3.shown,
+      ok(r3.toggles.length === 2 && r3.expanded === 'true' && r3.title === 'Badge' && r3.shown,
         `#2844: ${host} ${w}: focusing Badge leaves the Buttons settings line and its open state where they were (${JSON.stringify(r3)})`);
       await goPlace(page, 'brand');
       await goPlace(page, 'components');
@@ -8465,6 +8465,104 @@ for (const host of ['web', 'figma']) {
       ok(errors.length === 0, `#2844 ${host} ${w}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
       ok(false, `#2844 ${host} ${w}: the case stopped at a step that threw — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+}
+// #2905 phase 1 (owner decisions Q538 and Q548 on wireframe v2, every call A): the Components page in sections. On both
+// hosts, at 1280 and at 380:
+//   · the sections, in order: Buttons, Fields, Other components, Subcomponents (Q548, Q6 A, Q10 A);
+//   · Buttons lists the Buttons family's four sets and Fields the four fields, each set a row at the section's edge, with
+//     no family row and no fold inside either (Q8 A); every other component row is in Other components;
+//   · ONE EDGE (Q1 A, Q8 A): in each section with settings, every set row's first cell, the disclosure line and the open
+//     block start at one x, within 0.5px, which is the section head's own start; and the block sits after the sets (Q9 A);
+//   · Fields' one block, Field options (Q3 B): its title and description as drafted (Q10 A), the way to Shape › Control
+//     shape reading the brand's shape, then "No corners on an underline field." under Underline, Field style's chips, and
+//     no way to Density; Underline writes `fieldStyle: underline`;
+//   · opening Field options focuses the section's first set (the preview shows Password field), and with Select already
+//     in focus, keeps Select.
+//
+// Oracle: the section titles, the set ids, the copy and the expected values are literals typed here (the wireframe's);
+// the edges are read off bounding boxes; the write is read off the persisted brand input, never the page's state.
+//
+// Mutations this fails by name:
+//   · the block indented to the child-row edge (`.p3-icol.p3-cp-optsec { margin-left: var(--p3-space-400) }`) → `#2905 Q1 A:
+//     <host> <w>: Buttons: rows, line and block start at one edge …`, at both hosts and widths.
+//   · Buttons drawn with its family row again (`flat` false for `buttons` in `groupsOf`) → `#2905 Q8 A: <host> <w>: …
+//     no family row …`.
+//   · the Control shape line keeping the shape under Underline (`readout` always `label` in `field-options.ts`) → `#2905 Q3
+//     B: <host> <w>: under Underline the Control shape line reads "No corners on an underline field." …`.
+for (const host of ['web', 'figma']) {
+  for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 760 }]) {
+    const { ctx, page, errors } = await open({ host, theme: 'light', w, h });
+    try {
+      await goPlace(page, 'components');
+      await hooks.need(page, '[data-p3="components-levers"]');
+      for (const k of ['buttons', 'fields']) await hooks.click(page.locator(`[data-p3="cp-opts-toggle"][data-key="opts=${k}"]`));
+      await page.waitForFunction(() => ['button-options-section', 'field-options-section'].every((x) => !!document.querySelector(`[data-p3="${x}"]`)?.getClientRects().length), null, { timeout: 5000 });
+      const r = await page.evaluate(() => {
+        const secs = [...document.querySelectorAll('[data-p3="cp-section"]')];
+        const by = (name) => secs.find((s) => s.querySelector('[data-p3="cp-section-title"]')?.dataset.name === name);
+        const x = (n) => (n ? n.getBoundingClientRect().left : null);
+        const edges = (name, block) => {
+          const s = by(name);
+          if (!s) return null;
+          const rows = [...s.querySelectorAll('[data-p3="cp-member"], [data-p3="cp-row"]')];
+          const b = document.querySelector(`[data-p3="${block}"]`);
+          return {
+            head: x(s.querySelector('[data-p3="cp-section-head"]')),
+            rows: rows.map((n) => x(n.firstElementChild)), line: x(s.querySelector('[data-p3="cp-opts-toggle"]')), block: x(b),
+            after: !!b && rows.every((n) => n.getBoundingClientRect().bottom <= b.getBoundingClientRect().top + 1),
+            ids: rows.map((n) => n.dataset.set), folds: s.querySelectorAll('[data-p3="cp-fold"]').length,
+            families: s.querySelectorAll('.p3-cp-family').length, inBlock: !!b && s.contains(b),
+          };
+        };
+        const fo = document.querySelector('[data-p3="field-options-section"]');
+        return {
+          titles: secs.map((s) => s.querySelector('[data-p3="cp-section-title"]')?.dataset.name ?? null),
+          buttons: edges('Buttons', 'button-options-section'), fields: edges('Fields', 'field-options-section'),
+          other: [...(by('Other components')?.querySelectorAll('[data-p3="cp-name"]') ?? [])].map((n) => n.textContent),
+          fo: fo ? {
+            title: fo.querySelector('[data-p3="field-options-title"]')?.textContent ?? null, desc: fo.querySelector('[data-p3="field-options-desc"]')?.textContent ?? null,
+            shape: fo.querySelector('[data-p3="components-control-shape-readout"]')?.textContent ?? null,
+            link: fo.querySelector('[data-p3="components-control-shape-link"]')?.textContent ?? null,
+            density: !!fo.querySelector('[data-p3="components-density"]'),
+            chips: [...fo.querySelectorAll('[data-p3^="field-style-choice-"]')].map((n) => n.textContent),
+          } : null,
+          title: document.querySelector('[data-p3="components-detail-title"]')?.textContent ?? null,
+        };
+      });
+      ok(JSON.stringify(r.titles) === JSON.stringify(['Buttons', 'Fields', 'Other components', 'Subcomponents']),
+        `#2905 Q548: ${host} ${w}: the sections are Buttons, Fields, Other components, Subcomponents (${JSON.stringify(r.titles)})`);
+      const B = r.buttons, F = r.fields;
+      ok(!!B && !!F && JSON.stringify(B.ids) === JSON.stringify(['button', 'button-destructive', 'button-group', 'button-neutral'])
+        && JSON.stringify(F.ids) === JSON.stringify(['password-field', 'select', 'text-field', 'textarea']) && B.folds + B.families + F.folds + F.families === 0,
+        `#2905 Q8 A: ${host} ${w}: Buttons lists its four sets and Fields its four fields, each a row, with no family row and no fold (${JSON.stringify({ b: B?.ids, f: F?.ids, folds: [B?.folds, F?.folds], families: [B?.families, F?.families] })})`);
+      ok(!r.other.some((t) => /^(Buttons|Button|Text field|Password field|Select|Textarea)$/.test(t)) && r.other.includes('Badge') && r.other.includes('Tag'),
+        `#2905 Q6 A: ${host} ${w}: every other component is in Other components, and none of the grouped ones (${r.other.join(', ')})`);
+      for (const [name, e] of [['Buttons', B], ['Fields', F]]) {
+        const xs = e ? [e.head, ...e.rows, e.line, e.block] : [];
+        const one = xs.length > 2 && xs.every((v) => v !== null && Math.abs(v - xs[0]) <= 0.5);
+        ok(one && e.inBlock && e.after, `#2905 Q1 A: ${host} ${w}: ${name}: rows, line and block start at one edge, the section head's, and the block follows the sets (${JSON.stringify(e)})`);
+      }
+      ok(!!r.fo && r.fo.title === 'Field options' && r.fo.desc === 'How Text field, Password field, Select and Textarea draw their edge.'
+        && r.fo.shape === 'Rounded' && r.fo.link === 'Set it in Shape › Control shape' && !r.fo.density && JSON.stringify(r.fo.chips) === JSON.stringify(['Outline', 'Underline']),
+        `#2905 Q3 B, Q10 A: ${host} ${w}: Field options: its drafted title and description, the way to Control shape reading Rounded, Field style's chips, and no way to Density (${JSON.stringify(r.fo)})`);
+      ok(r.title === 'Password field', `#2905: ${host} ${w}: opening Field options focuses the Fields section's first set, so the preview shows Password field (${r.title})`);
+      await hooks.click(page.locator('[data-p3="field-style-choice-underline"]'));
+      await page.waitForFunction(() => document.querySelector('[data-p3="components-control-shape-readout"]')?.textContent !== 'Rounded', null, { timeout: 5000 }).catch(() => {});
+      const u = await page.evaluate(() => document.querySelector('[data-p3="components-control-shape-readout"]')?.textContent ?? null);
+      ok((await persisted(page))?.fieldStyle === 'underline' && u === 'No corners on an underline field.',
+        `#2905 Q3 B: ${host} ${w}: Underline writes fieldStyle: underline, and under Underline the Control shape line reads "No corners on an underline field." (${(await persisted(page))?.fieldStyle}, ${JSON.stringify(u)})`);
+      // With a set of the section in focus, opening its block keeps that focus.
+      await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=fields"]'));
+      await hooks.click(page.locator('[data-p3="cp-name"]').filter({ hasText: /^Select$/ }).first());
+      await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=fields"]'));
+      await page.waitForTimeout(150);
+      const t2 = await page.evaluate(() => document.querySelector('[data-p3="components-detail-title"]')?.textContent ?? null);
+      ok(t2 === 'Select', `#2905: ${host} ${w}: with Select in focus, opening Field options keeps Select in the preview (${t2})`);
+      ok(errors.length === 0, `#2905 ${host} ${w}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `#2905 ${host} ${w}: the case stopped at a step that threw — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
 }
@@ -10541,9 +10639,11 @@ const EXPECT_HEADINGS = {
   // #2700: the levers pane is the list, in its two sections. #2815 step 1 brought the Button options back into it, under
   // the Buttons row: a group in the Components section, its title L2 and its levers' names L3, as Interactive's sets are.
   components: {
-    L1: ['Components', 'Subcomponents'],
-    L2: ['Button options'],
-    L3: ['Button icons', 'Button label & icon', 'Button label weight', 'Text button hover', 'Button minimum width'],
+    // #2905: the list's sections are Buttons, Fields, Other components and Subcomponents, each with settings holding one
+    // group (L2) after its sets; Field options' one lever, Field style, is L3 as the Button options are.
+    L1: ['Buttons', 'Fields', 'Other components', 'Subcomponents'],
+    L2: ['Button options', 'Field options'],
+    L3: ['Button icons', 'Button label & icon', 'Button label weight', 'Text button hover', 'Button minimum width', 'Field style'],
   },
   // #2215: the plugin's Build style guides page, with SG_RING_CATALOG posted (every kind selected, so every option group
   // draws). Its page title is not a level (HEADING_EXEMPT).
@@ -10560,7 +10660,7 @@ const HEADING_ADVANCED = {
   'color-palettes': ['[data-p3="palettes-advanced"]'], type: ['[data-p3="scale-advanced"]', '[data-p3="type-sections-advanced"]'],
   shape: ['[data-p3="shape-advanced"]'], depth: ['[data-p3="depth-tint-advanced"]'],
   // #2844: a family's settings are closed behind their line; the audit reads them open.
-  components: ['[data-p3="cp-opts-toggle"]'],
+  components: ['[data-p3="cp-opts-toggle"][data-key="opts=buttons"]', '[data-p3="cp-opts-toggle"][data-key="opts=fields"]'],
 };
 /** Literal floors, under the counts measured when this landed (per host and theme, all nine pages): headings found, the
  *  ⓘ buttons measured, the token labels (`.p3-fill-label`) typed, and the hint lines read in Light and High contrast light. */
