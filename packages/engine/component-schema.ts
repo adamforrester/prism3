@@ -733,8 +733,11 @@ export type PartDef = {
    *  Code reads it as `min-inline-size`, computed from the height. A def projected with no brand in hand has
    *  no floor, as Button has none.
    *
-   *  Refused on a non-`box` kind, on a `box` with no `layout`, without a bound `height`, beside `minWidth` or
-   *  `minWidthKey` (two floors on one axis), and when not a positive number. */
+   *  The base is the bound `height`, or the bound `minHeight` where the box hugs above a floor instead (the underline
+   *  Tag, #2887: its height is a minimum at the same rung, so the floor multiplies the same number).
+   *
+   *  Refused on a non-`box` kind, on a `box` with no `layout`, without a bound `height` or `minHeight`, beside
+   *  `minWidth` or `minWidthKey` (two floors on one axis), and when not a positive number. */
   minWidthRatio?: number;
   /** For `box` parts: a FLUSH member, chosen by a variant axis (#2350, owner Q143 and Q145 A). At a coordinate
    *  where `axis` is `value`, BOTH of the box's inline paddings bind `key` (a zero step, `space.0`) instead of
@@ -5001,8 +5004,8 @@ const anatomyErrors = (def: ComponentDef): string[] => {
         e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'minWidthRatio' — only a 'box' becomes an auto-layout frame that can carry a minimum width`);
       else if (!p.layout)
         e.push(`anatomy part '${n}' declares 'minWidthRatio' but binds no 'layout' — Figma applies a minimum width only to an auto-layout frame, so the floor would be silently dropped`);
-      if (p.height === undefined)
-        e.push(`anatomy part '${n}' declares 'minWidthRatio' but binds no 'height' — the floor is a multiple of the box's own height, so there is nothing to multiply`);
+      if (p.height === undefined && p.minHeight === undefined)
+        e.push(`anatomy part '${n}' declares 'minWidthRatio' but binds no 'height' or 'minHeight' — the floor is a multiple of the box's own height, so there is nothing to multiply`);
       if (p.minWidth !== undefined || p.minWidthKey !== undefined)
         e.push(`anatomy part '${n}' declares 'minWidthRatio' beside '${p.minWidth !== undefined ? 'minWidth' : 'minWidthKey'}' — two floors on one axis, so one of them is not the floor`);
       if (!(typeof p.minWidthRatio === 'number' && p.minWidthRatio > 0))

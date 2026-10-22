@@ -24,7 +24,7 @@
  */
 import type { AxisKind, ComponentDef, NestVariantWhen, PartDef } from './component-schema';
 import { axisKindOf, densitySizeValues, densitySpacingKeys, visibleGapKeys, fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, STATE_GATE, statesOf, whenStates, variantsOf, slotAxisFigmaName, variantAxisFigmaName, swapPart, swapFigmaName, textFigmaName, booleanPartsOf, booleanFigmaName, booleanDefault, figmaVariantCount, figmaAxisNames, isExcludedCoordinate, WEIGHT_INTENTS } from './component-schema';
-import type { ControlShape, FieldStyle, ButtonIcons, ButtonContentSize, ButtonLabelWeight, ButtonTextHover, Density } from './scale';
+import type { ControlShape, FieldStyle, TagStyle, ButtonIcons, ButtonContentSize, ButtonLabelWeight, ButtonTextHover, Density } from './scale';
 import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER, densitySpacingStep, ratioMinWidth, spacePx, visibleGapStep } from './scale';
 // #1602 — the weight-role ladder and the default per-category weights, for resolving a component's
 // weight INTENT against a brand's available roles. Value + type imports from `theme.ts`, which imports
@@ -2491,6 +2491,82 @@ export const applyFieldStyle = (def: ComponentDef, style: FieldStyle): Component
   return { ...def, tokens, anatomy: { ...a, parts } };
 };
 
+// ── TAG STYLE (#2887) ───────────────────────────────────────────────────────────────────────────
+//
+// The brand's tag shape (owner Q513 and Q540): `pill` draws the rounded outline, `underline` one line under the tag.
+// Its own lever (Q513.1 A), materialized before projection for `applyFieldStyle`'s reason: every tag keeps its 45
+// members, axes, properties and layer names, so a brand switch reaches an existing file through Update and instances
+// stay linked. No token is added: every binding is a rung or role the engine already emits.
+
+/** The tag family, each def named with the four parts the underline reaches: the bordered `frame`, the inset content
+ *  `row`, the `labelRow` that holds the label and the check, and the remove `slot`. Keyed by def id, `FIELD_FRAME_PARTS`'s
+ *  way. Tag is the only member (the wireframe's finding: Segmented control and Tab do not take this lever). */
+export const TAG_STYLE_PARTS: Readonly<Record<string, { frame: string; row: string; labelRow: string; slot: string }>> = {
+  tag: { frame: 'container', row: 'content', labelRow: 'labelCheck', slot: 'dismiss' },
+};
+
+/** The def key holding the underline's block-end inset per size (Q9 A: `space.050 / 075 / 100`; Q10 A: the same at
+ *  every density, so it is not in `densitySpacing`). Authored on the def, so the pill and the underline share it. */
+export const TAG_UNDERLINE_INSET = 'size.{size}.underline.inset';
+
+/**
+ * Materialize a def for the brand's `tagStyle` lever (#2887). The IDENTITY under `pill` and for any def not in
+ * `TAG_STYLE_PARTS`: it returns the same object, so every pill plan is byte-identical to before.
+ *
+ * Under `underline`:
+ *   · THE LINE (Q513.2, Q513.3, Q513.4): the four sides bind apart (`strokeEdges`). Top, end and start take
+ *     `border-width.none`. The bottom takes `border-width.hairline` (1px) on an unselected tag at rest, focus-visible,
+ *     disabled and read-only, and `border-width.thick` (2px) on an unselected tag's hover and pressed and on every
+ *     selected state. Focus adds only the ring: the line keeps its weight. The color is the def's own border paint,
+ *     unchanged (Q513.7: `interactive.neutral.border` unselected, `interactive.primary.border` selected).
+ *   · NO FILL IN ANY STATE (Q513.2, Q513.3): every `overlay` key goes, the neutral hover and pressed wash and the
+ *     selected tint alike.
+ *   · THE CORNER: `radius.none`, whatever the pill's round rung.
+ *   · THE GAP TO THE LINE (owner ask on Q513, #2894's route): the frame's fixed `height` becomes a `minHeight` at the
+ *     same rung, so the hit target holds, and the frame aligns its children to the END (the bottom). The content row
+ *     takes a block-end inset (`TAG_UNDERLINE_INSET`), and the label row a `minHeight` at the glyph size, so the label
+ *     sits centered in an icon-tall row and does not move when the check appears. The × slot stays an H × H square
+ *     and puts its glyph on the same inset. The side padding is the pill's (Q513.5), and the line runs under the
+ *     × slot (Q513.6), since the slot is inside the frame.
+ */
+export const applyTagStyle = (def: ComponentDef, style: TagStyle): ComponentDef => {
+  if (style === 'pill') return def;
+  const names = TAG_STYLE_PARTS[def.id];
+  const a = def.anatomy;
+  const frame = names ? a?.parts[names.frame] : undefined;
+  if (!a || !names || !frame) return def;
+  const tokens: Record<string, string> = {};
+  for (const [k, ref] of Object.entries(def.tokens)) if (!k.split('.').includes('overlay')) tokens[k] = ref;
+  if (frame.radius) tokens[frame.radius] = 'radius.none';
+  tokens['underline.side'] = 'border-width.none';
+  tokens['underline.pad-0'] = 'space.0';
+  for (const sel of def.variants?.selection ?? [])
+    for (const st of statesOf(def))
+      tokens[`underline.${sel}.line.${st}`] = sel === 'selected' || st === 'hover' || st === 'pressed' ? 'border-width.thick' : 'border-width.hairline';
+  const parts: Record<string, PartDef> = { ...a.parts };
+  const { strokeWidth: _pill, height, ...rest } = frame;
+  parts[names.frame] = {
+    ...rest,
+    ...(height ? { minHeight: height } : {}),
+    ...(rest.layout ? { layout: { ...rest.layout, align: 'end', sizing: { ...rest.layout.sizing, y: 'hug' } } } : {}),
+    strokeEdges: { top: 'underline.side', right: 'underline.side', bottom: 'underline.{selection}.line.{state}', left: 'underline.side' },
+  };
+  const row = a.parts[names.row];
+  if (row?.padding) parts[names.row] = { ...row, padding: { ...row.padding, blockEnd: TAG_UNDERLINE_INSET } };
+  const labelRow = a.parts[names.labelRow];
+  if (labelRow) {
+    const glyph = Object.values(a.parts).find((p) => p.kind === 'vector' && labelRow.children?.some((c) => a.parts[c] === p))?.size;
+    if (glyph) parts[names.labelRow] = { ...labelRow, minHeight: glyph };
+  }
+  const slot = a.parts[names.slot];
+  if (slot?.layout) parts[names.slot] = {
+    ...slot,
+    layout: { ...slot.layout, align: 'end' },
+    padding: { block: 'underline.pad-0', blockEnd: TAG_UNDERLINE_INSET, inlineLabel: 'underline.pad-0' },
+  };
+  return { ...def, tokens, anatomy: { ...a, parts } };
+};
+
 // ── BUTTON LAYOUT (#1667) ───────────────────────────────────────────────────────────────────────
 //
 // Three brand choices for the text-bearing button family, owner-decided 2026-09-25 (issue #1667). All
@@ -2685,7 +2761,7 @@ export const applyMinWidthRatio = (def: ComponentDef, px: (ref: string) => numbe
   for (const [name, p] of Object.entries(a.parts)) {
     if (p.minWidthRatio === undefined) { parts[name] = p; continue; }
     const minWidth = Object.fromEntries(sizes.map((v) => {
-      const ref = def.tokens[p.height!.replace('{size}', v)];
+      const ref = def.tokens[(p.height ?? p.minHeight)!.replace('{size}', v)];
       const h = ref === undefined ? undefined : px(ref);
       if (h === undefined) throw new Error(`${def.id}: part '${name}' at size '${v}' floors at ${p.minWidthRatio} × its height, and the height ${ref ?? '(unbound)'} does not resolve`);
       return [v, ratioMinWidth(h, p.minWidthRatio!)];

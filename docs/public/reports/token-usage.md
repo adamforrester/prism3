@@ -2442,7 +2442,7 @@ Type: dimension. Bound by 19 component(s).
 | button | `size.large.height` | container | size: large (192 of 576) |
 | button-destructive | `size.large.height` | container | size: large (192 of 576) |
 | button-neutral | `size.large.height` | container | size: large (192 of 576) |
-| checkbox-row | `size.large.min-height` | (not drawn) | — |
+| checkbox-row | `size.large.min-height` | row | size: large (2 of 6) |
 | counter | `size.large.height` | control | size: large (6 of 18) |
 | flush-icon-button | `size.large.round` | container | shape: round · size: large (10 of 60) |
 | flush-icon-button-destructive | `size.large.round` | container | shape: round · size: large (10 of 60) |
@@ -2451,7 +2451,7 @@ Type: dimension. Bound by 19 component(s).
 | icon-button-destructive | `size.large.side` | container | size: large (72 of 216) |
 | icon-button-neutral | `size.large.side` | container | size: large (72 of 216) |
 | password-field | `size.large.height` | control | size: large (28 of 84) |
-| radio-row | `size.large.min-height` | (not drawn) | — |
+| radio-row | `size.large.min-height` | row | size: large (2 of 6) |
 | segmented-control-segment | `size.large.height` | container | size: large (10 of 30) |
 | select | `size.large.min-height` | control | size: large (28 of 84) |
 | tab-item | `size.large.height` | container | size: large (10 of 30) |
@@ -2468,7 +2468,7 @@ Type: dimension. Bound by 18 component(s).
 | button | `size.medium.height` | container | size: medium (192 of 576) |
 | button-destructive | `size.medium.height` | container | size: medium (192 of 576) |
 | button-neutral | `size.medium.height` | container | size: medium (192 of 576) |
-| checkbox-row | `size.medium.min-height` | (not drawn) | — |
+| checkbox-row | `size.medium.min-height` | row | size: medium (2 of 6) |
 | counter | `size.medium.height` | control | size: medium (6 of 18) |
 | divider | `vertical.height` | container | inset: middle-inset, none · orientation: vertical (2 of 5) |
 | flush-icon-button | `size.medium.round` | container | shape: round · size: medium (10 of 60) |
@@ -2478,9 +2478,9 @@ Type: dimension. Bound by 18 component(s).
 | icon-button | `size.medium.side` | container | size: medium (72 of 216) |
 | icon-button-destructive | `size.medium.side` | container | size: medium (72 of 216) |
 | icon-button-neutral | `size.medium.side` | container | size: medium (72 of 216) |
-| radio-row | `size.medium.min-height` | (not drawn) | — |
+| radio-row | `size.medium.min-height` | row | size: medium (2 of 6) |
 | segmented-control-segment | `size.medium.height` | container | size: medium (10 of 30) |
-| switch-row | `size.medium.min-height` | (not drawn) | — |
+| switch-row | `size.medium.min-height` | row | size: medium (2 of 4) |
 | tab-item | `size.medium.height` | container | size: medium (10 of 30) |
 | tag | `size.medium.height` | container | size: medium (15 of 45) |
 |  |  | dismiss | selection: unselected · size: medium · type: dismissible (5 of 45) |
@@ -2505,7 +2505,7 @@ Type: dimension. Bound by 16 component(s).
 | button | `size.small.height` | container | size: small (192 of 576) |
 | button-destructive | `size.small.height` | container | size: small (192 of 576) |
 | button-neutral | `size.small.height` | container | size: small (192 of 576) |
-| checkbox-row | `size.small.min-height` | (not drawn) | — |
+| checkbox-row | `size.small.min-height` | row | size: small (2 of 6) |
 | counter | `size.small.height` | control | size: small (6 of 18) |
 | flush-icon-button | `size.small.round` | container | shape: round · size: small (10 of 60) |
 | flush-icon-button-destructive | `size.small.round` | container | shape: round · size: small (10 of 60) |
@@ -2513,16 +2513,16 @@ Type: dimension. Bound by 16 component(s).
 | icon-button | `size.small.side` | container | size: small (72 of 216) |
 | icon-button-destructive | `size.small.side` | container | size: small (72 of 216) |
 | icon-button-neutral | `size.small.side` | container | size: small (72 of 216) |
-| radio-row | `size.small.min-height` | (not drawn) | — |
+| radio-row | `size.small.min-height` | row | size: small (2 of 6) |
 | segmented-control-segment | `size.small.height` | container | size: small (10 of 30) |
-| switch-row | `size.small.min-height` | (not drawn) | — |
+| switch-row | `size.small.min-height` | row | size: small (2 of 4) |
 | tab-item | `size.small.height` | container | size: small (10 of 30) |
 | tag | `size.small.height` | container | size: small (15 of 45) |
 |  |  | dismiss | selection: unselected · size: small · type: dismissible (5 of 45) |
 
 ### `space.0`
 
-Type: dimension. Bound by 18 component(s).
+Type: dimension. Bound by 19 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2549,6 +2549,7 @@ Type: dimension. Bound by 18 component(s).
 |  |  | track | every member (3 of 3) |
 | segmented-control-segment | `pad-y`, `reserve-height` | content | every member (30 of 30) |
 |  |  | reserve | every member (30 of 30) |
+| switch-row | `pad-x` | row | every member (4 of 4) |
 | tab-item | `pad-y`, `reserve-height` | content | every member (30 of 30) |
 |  |  | reserve | every member (30 of 30) |
 | tabs | `gap` | container | every member (6 of 6) |
@@ -2576,13 +2577,13 @@ Type: dimension. Bound by 6 component(s).
 | field-label | `gap` | container | every member (24 of 24) |
 | link | `size.medium.gap`, `size.small.gap` | container | size: medium, small (64 of 96) |
 | segmented-control-segment | `inset` | container | every member (30 of 30) |
-| tag | `size.large.dismissible.gap`, `size.large.dismissible.label-inset`, `size.medium.dismissible.gap`, `size.medium.dismissible.label-inset`, `size.small.check-gap`, `size.small.dismissible.label-inset` | content | selection: unselected · size: large, medium · type: dismissible (10 of 45) |
+| tag | `size.large.dismissible.gap`, `size.large.dismissible.label-inset`, `size.medium.dismissible.gap`, `size.medium.dismissible.label-inset`, `size.small.check-gap`, `size.small.dismissible.label-inset`, `size.small.underline.inset` | content | selection: unselected · size: large, medium · type: dismissible (10 of 45) |
 |  |  | labelCheck | every member (25 of 45) |
 | toast | `controls-gap` | controls | every member (2 of 2) |
 
 ### `space.075`
 
-Type: dimension. Bound by 12 component(s).
+Type: dimension. Bound by 15 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2590,12 +2591,15 @@ Type: dimension. Bound by 12 component(s).
 | button | `size.small.padding-y` | container | size: small (192 of 576) |
 | button-destructive | `size.small.padding-y` | container | size: small (192 of 576) |
 | button-neutral | `size.small.padding-y` | container | size: small (192 of 576) |
+| checkbox-row | `size.small.pad-y` | row | size: small (2 of 6) |
 | field-message | `gap` | message | every member (4 of 4) |
 | password-field | `size.small.pad-y` | control | size: small (28 of 84) |
+| radio-row | `size.small.pad-y` | row | size: small (2 of 6) |
 | segmented-control-segment | `size.small.gap` | content | size: small (10 of 30) |
 | select | `size.small.pad-y` | control | size: small (28 of 84) |
+| switch-row | `size.small.pad-y` | row | size: small (2 of 4) |
 | tab-item | `size.small.gap` | content | size: small (10 of 30) |
-| tag | `size.medium.check-gap`, `size.small.dismissible.visible-gap`, `size.small.select.gap` | content | size: small · type: select (10 of 45) |
+| tag | `size.medium.check-gap`, `size.medium.underline.inset`, `size.small.dismissible.visible-gap`, `size.small.select.gap` | content | size: small · type: select (10 of 45) |
 |  |  | labelCheck | size: medium (15 of 45) |
 | text-field | `size.small.pad-y` | control | size: small (28 of 84) |
 | textarea | `size.small.pad-y` | control | size: small (28 of 84) |
@@ -2614,7 +2618,8 @@ Type: dimension. Bound by 25 component(s).
 | button-group | `layout.stacked.gap` | items | layout: stacked (1 of 3) |
 | button-neutral | `size.large.padding-y`, `size.medium.gap`, `size.medium.padding-y`, `size.small.gap` | container | every member (576 of 576) |
 | checkbox-group | `pad-y` | container | every member (6 of 6) |
-| checkbox-row | `size.medium.gap`, `size.small.gap` | row | size: medium, small (4 of 6) |
+| checkbox-row | `size.medium.gap`, `size.medium.pad-y`, `size.small.gap` | content | size: medium, small (4 of 6) |
+|  |  | row | size: medium (2 of 6) |
 | counter | `root-gap`, `size.large.value-pad` | container | every member (18 of 18) |
 |  |  | entry | size: large (6 of 18) |
 | dialog | `title-gap` | titleBox | every member (24 of 24) |
@@ -2627,15 +2632,17 @@ Type: dimension. Bound by 25 component(s).
 |  |  | control | every member (84 of 84) |
 |  |  | labelRow | every member (84 of 84) |
 | radio-group | `pad-y` | container | every member (6 of 6) |
-| radio-row | `size.medium.gap`, `size.small.gap` | row | size: medium, small (4 of 6) |
+| radio-row | `size.medium.gap`, `size.medium.pad-y`, `size.small.gap` | content | size: medium, small (4 of 6) |
+|  |  | row | size: medium (2 of 6) |
 | segmented-control | `gap` | container | every member (3 of 3) |
 | segmented-control-segment | `size.large.gap`, `size.medium.gap` | content | size: large, medium (20 of 30) |
 | select | `root-gap`, `size.large.gap`, `size.large.pad-y`, `size.medium.gap`, `size.medium.pad-y`, `size.small.gap` | container | every member (84 of 84) |
 |  |  | content | every member (84 of 84) |
 |  |  | control | every member (84 of 84) |
-| switch-row | `size.medium.gap`, `size.small.gap` | row | every member (4 of 4) |
+| switch-row | `size.medium.gap`, `size.medium.pad-y`, `size.small.gap` | content | every member (4 of 4) |
+|  |  | row | size: medium (2 of 4) |
 | tab-item | `size.large.gap`, `size.medium.gap` | content | size: large, medium (20 of 30) |
-| tag | `group-gap`, `size.large.check-gap`, `size.large.dismissible.visible-gap`, `size.medium.dismissible.visible-gap`, `size.medium.select.gap`, `size.small.padding-x`, `size.small.select.padding-end` | content | size: medium, small (25 of 45) |
+| tag | `group-gap`, `size.large.check-gap`, `size.large.dismissible.visible-gap`, `size.large.underline.inset`, `size.medium.dismissible.visible-gap`, `size.medium.select.gap`, `size.small.padding-x`, `size.small.select.padding-end` | content | size: medium, small (25 of 45) |
 |  |  | labelCheck | size: large (15 of 45) |
 | text-field | `root-gap`, `size.large.gap`, `size.large.pad-y`, `size.medium.gap`, `size.medium.pad-y`, `size.small.gap` | container | every member (84 of 84) |
 |  |  | content | every member (84 of 84) |
@@ -2661,11 +2668,13 @@ Type: dimension. Bound by 14 component(s).
 | button-destructive | `size.large.gap`, `size.medium.padding-x-visual`, `size.small.padding-x-visual` | container | every member (408 of 576) |
 | button-group | `layout.fill.gap`, `layout.inline.gap` | items | layout: fill, inline (2 of 3) |
 | button-neutral | `size.large.gap`, `size.medium.padding-x-visual`, `size.small.padding-x-visual` | container | every member (408 of 576) |
-| checkbox-row | `pad-y`, `size.large.gap` | row | every member (6 of 6) |
+| checkbox-row | `size.large.gap`, `size.large.pad-y` | content | size: large (2 of 6) |
+|  |  | row | size: large (2 of 6) |
 | counter | `outline.size.medium.pad-x`, `outline.size.small.pad-x` | control | appearance: outline · size: medium, small (6 of 18) |
 | list | `size.medium.gap` | container | size: medium (3 of 9) |
 |  |  | items | size: medium (3 of 9) |
-| radio-row | `pad-y`, `size.large.gap` | row | every member (6 of 6) |
+| radio-row | `size.large.gap`, `size.large.pad-y` | content | size: large (2 of 6) |
+|  |  | row | size: large (2 of 6) |
 | segmented-control-segment | `size.small.padding-x` | content | size: small (10 of 30) |
 | tab-item | `size.small.padding-x` | content | size: small (10 of 30) |
 | tag | `size.large.select.gap`, `size.medium.padding-x`, `size.medium.select.padding-end` | content | size: large, medium (25 of 45) |
@@ -3108,11 +3117,11 @@ Declared, not drawn: `color.border.focus`
 
 ### checkbox-row
 
-17 token(s); 6 design-file member(s).
+18 token(s); 6 design-file member(s).
 
-`color.disabled.text`, `color.text.primary`, `control.size.lg.height`, `control.size.lg.line-box`, `control.size.md.height`, `control.size.md.line-box`, `control.size.sm.height`, `control.size.sm.line-box`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.0`, `space.100`, `space.150`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
+`color.disabled.text`, `color.text.primary`, `control.size.lg.height`, `control.size.lg.line-box`, `control.size.md.height`, `control.size.md.line-box`, `control.size.sm.height`, `control.size.sm.line-box`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.0`, `space.075`, `space.100`, `space.150`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
 
-Declared, not drawn: `color.disabled.text`, `size.lg.height`, `size.md.height`, `size.sm.height`
+Declared, not drawn: `color.disabled.text`
 
 ### counter
 
@@ -3268,11 +3277,11 @@ Declared, not drawn: `color.border.focus`
 
 ### radio-row
 
-17 token(s); 6 design-file member(s).
+18 token(s); 6 design-file member(s).
 
-`color.disabled.text`, `color.text.primary`, `control.size.lg.height`, `control.size.lg.line-box`, `control.size.md.height`, `control.size.md.line-box`, `control.size.sm.height`, `control.size.sm.line-box`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.0`, `space.100`, `space.150`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
+`color.disabled.text`, `color.text.primary`, `control.size.lg.height`, `control.size.lg.line-box`, `control.size.md.height`, `control.size.md.line-box`, `control.size.sm.height`, `control.size.sm.line-box`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.0`, `space.075`, `space.100`, `space.150`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
 
-Declared, not drawn: `color.disabled.text`, `size.lg.height`, `size.md.height`, `size.sm.height`
+Declared, not drawn: `color.disabled.text`
 
 ### segmented-control
 
@@ -3310,11 +3319,11 @@ Declared, not drawn: `color.border.focus`
 
 ### switch-row
 
-11 token(s); 4 design-file member(s).
+13 token(s); 4 design-file member(s).
 
-`color.disabled.text`, `color.text.primary`, `control.size.md.line-box`, `control.size.md.track`, `control.size.sm.line-box`, `control.size.sm.track`, `size.md.height`, `size.sm.height`, `space.100`, `type.body.md.default`, `type.body.sm.default`
+`color.disabled.text`, `color.text.primary`, `control.size.md.line-box`, `control.size.md.track`, `control.size.sm.line-box`, `control.size.sm.track`, `size.md.height`, `size.sm.height`, `space.0`, `space.075`, `space.100`, `type.body.md.default`, `type.body.sm.default`
 
-Declared, not drawn: `color.disabled.text`, `size.md.height`, `size.sm.height`
+Declared, not drawn: `color.disabled.text`
 
 ### tab-item
 
