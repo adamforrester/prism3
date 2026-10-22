@@ -141,8 +141,18 @@
  * both must name the same steps in the same order. A missing check-run can have other causes that no
  * tree property shows — #1222's was an unmergeable PR, for which GitHub computes no merge ref and so
  * starts no run — so an absent `gates` check still means: read `mergeable_state` before the workflow.
- * The file's structure (one job, one flat `steps:` list, no nesting inside a step beyond `run:`/`with:`)
- * is simple enough that this is low-risk.
+ * The file's structure (a few jobs, each one flat `steps:` list, no nesting inside a step beyond
+ * `run:`/`with:`/`env:`) is simple enough that this is low-risk. The scrape reads every job's steps in file
+ * order, so a step two jobs share (a build, the Chromium install) is read once per job.
+ *
+ * ── THE AGGREGATOR: `gates` WAITS FOR EVERY JOB (Q503 A) ────────────────────────────────────────────
+ *
+ * Since Q503 A the gates run as parallel jobs, and the merge rule reads ONE check, `gates`, the job that
+ * waits for the rest. A job left out of its `needs` still runs, still shows red, and blocks nothing: every
+ * arm above stays green, because the step is in ci.yml either way. So `aggregatorGaps` reads the parsed
+ * tree and fails unless `gates` needs exactly every other job, runs `if: always()` (a job whose `needs`
+ * failed is otherwise SKIPPED, and a required check reading `skipped` passes), and runs the script that
+ * turns any result but `success` into a failure.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -269,6 +279,9 @@ const NOT_A_RUNNABLE_GATE = new Set<string>([
   'Resolve the Playwright version (#2323)',
   'Install Chromium for the browser gates (#2323)',
   "The gate runner's list and order are sound",
+  // Q503 A: the `gates` job's one step. It reads the other jobs' results, asserts nothing about the tree,
+  // and has no meaning outside CI — `verify.ts` runs every gate itself and reports each one.
+  'Every gate job succeeded',
 ]);
 
 /** `ci.yml` steps arm 3 requires `verify.ts` to carry: everything with a `run:`, minus the named
@@ -429,6 +442,32 @@ export const runnerArgvDiff = (
     findings.push({ step: g.ciStep, problem: `ci.yml runs \`${ci.join(' ')}\`, verify.ts runs \`${local.join(' ')}\` (${delta})` });
   }
   return { findings, checked };
+};
+
+/** The job the merge rule reads (Q503 A), and the script its one step runs. */
+export const AGGREGATOR_JOB = 'gates';
+export const AGGREGATOR_SCRIPT = '.github/scripts/all-gates.sh';
+
+/** Q503 A — what is wrong with the aggregator in a parsed workflow: `gates` must exist, need exactly every
+ *  other job, run `if: always()`, and run `AGGREGATOR_SCRIPT`. Empty when it is sound. Reads the TREE from
+ *  `parseYamlSubset`, never the scrape, so a job is a job by YAML's reading and not by a regex's. */
+export const aggregatorGaps = (tree: YamlValue): string[] => {
+  const jobs = (tree as { jobs?: Record<string, { needs?: YamlValue; if?: YamlValue; steps?: { run?: YamlValue }[] }> }).jobs ?? {};
+  const agg = jobs[AGGREGATOR_JOB];
+  if (!agg) return [`no \`${AGGREGATOR_JOB}\` job — the merge rule reads the check named \`${AGGREGATOR_JOB}\`, so nothing would gate the merge`];
+  const problems: string[] = [];
+  const others = Object.keys(jobs).filter((j) => j !== AGGREGATOR_JOB);
+  const needs = Array.isArray(agg.needs) ? agg.needs : typeof agg.needs === 'string' ? [agg.needs] : [];
+  for (const j of others) if (!needs.includes(j)) problems.push(`\`${AGGREGATOR_JOB}\` does not need \`${j}\` — that job can fail and the merge rule still reads green`);
+  for (const n of needs) if (typeof n !== 'string' || !others.includes(n)) problems.push(`\`${AGGREGATOR_JOB}\` needs \`${String(n)}\`, which is not a job in this file`);
+  if (!others.length) problems.push(`\`${AGGREGATOR_JOB}\` is the only job — there is nothing for it to wait on`);
+  if (typeof agg.if !== 'string' || !/^\$\{\{\s*always\(\)\s*\}\}$/.test(agg.if.trim())) {
+    problems.push(`\`${AGGREGATOR_JOB}\` does not run \`if: \${{ always() }}\` — when a job it needs fails it is SKIPPED, and a required check reading \`skipped\` passes`);
+  }
+  if (!(agg.steps ?? []).some((st) => typeof st.run === 'string' && st.run.trim() === `bash ${AGGREGATOR_SCRIPT}`)) {
+    problems.push(`\`${AGGREGATOR_JOB}\` does not run \`bash ${AGGREGATOR_SCRIPT}\`, the step that fails on any result but \`success\``);
+  }
+  return problems;
 };
 
 /** Parse ci.yml's flat step list: `- name: <name>` (quoted or bare — a bare name containing a colon,
@@ -1010,6 +1049,35 @@ if (!/unexpected indentation/.test(refusal(SAMPLE_YAML.replace('        run: npm
 if (!/duplicate key/.test(refusal(SAMPLE_YAML.replace('        run: npm ci', '        run: npm ci\n        run: npm ci')))) selfFails.push('the strict YAML parse accepts a duplicate key');
 if (!/unclosed double-quoted/.test(refusal(SAMPLE_YAML.replace('"Sample gate: has a colon"', '"Sample gate: has a colon')))) selfFails.push('the strict YAML parse accepts an unclosed quote');
 
+// 6b. THE AGGREGATOR (Q503 A), driven through the shipped `aggregatorGaps` over a hand-made workflow: silent
+//     when sound, and each way of letting a failed job through named.
+{
+  const AGG = `jobs:
+  a:
+    runs-on: ubuntu-latest
+    steps:
+      - run: true
+  b:
+    runs-on: ubuntu-latest
+    steps:
+      - run: true
+  gates:
+    needs: [a, b]
+    if: \${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every gate job succeeded
+        run: bash ${AGGREGATOR_SCRIPT}
+`;
+  const gaps = (yaml: string): string[] => aggregatorGaps(parseYamlSubset(yaml));
+  if (gaps(AGG).length) selfFails.push(`the aggregator check flags a sound workflow: ${gaps(AGG).join('; ')}`);
+  if (!gaps(AGG.replace('needs: [a, b]', 'needs: [a]')).some((p) => p.includes('does not need `b`'))) selfFails.push('the aggregator check misses a job left out of `needs`');
+  if (!gaps(AGG.replace('needs: [a, b]', 'needs: [a, b, c]')).some((p) => p.includes('needs `c`'))) selfFails.push('the aggregator check misses a `needs` entry that is no job');
+  if (!gaps(AGG.replace(/ {4}if: .*\n/, '')).some((p) => p.includes('always()'))) selfFails.push('the aggregator check misses a missing `if: always()`');
+  if (!gaps(AGG.replace(`bash ${AGGREGATOR_SCRIPT}`, 'true')).some((p) => p.includes(AGGREGATOR_SCRIPT))) selfFails.push('the aggregator check misses a `gates` job that does not run the script');
+  if (!gaps(AGG.replace('  gates:', '  other:')).some((p) => p.startsWith(`no \`${AGGREGATOR_JOB}\` job`))) selfFails.push('the aggregator check misses a workflow with no `gates` job');
+}
+
 // 7. ARM 6 — a retired gate's token is found in a place, and a place without it is clean.
 {
   const R = [{ token: 'audit:Sample', retired: 'the sample audit' }];
@@ -1069,6 +1137,17 @@ const realSteps = parseSteps(readFileSync(CI_PATH, 'utf8'));
     if (onlyTree.length) console.error(`    parsed but not scraped: ${onlyTree.join(' | ')}`);
     if (onlyScrape.length) console.error(`    scraped but not a step: ${onlyScrape.join(' | ')}`);
     if (!onlyTree.length && !onlyScrape.length) console.error('    same names, different order');
+    process.exit(1);
+  }
+}
+// THE AGGREGATOR (Q503 A): the one check the merge rule reads must wait for every job and fail on any of them.
+{
+  const problems = aggregatorGaps(ciTree);
+  if (problems.length) {
+    console.error(`\n❌ the \`${AGGREGATOR_JOB}\` job would let a failed gate job through (Q503 A):\n`);
+    for (const p of problems) console.error(`    ${p}`);
+    console.error(`\n  The merge rule reads ONE check, \`${AGGREGATOR_JOB}\`. A job it does not wait on, or waits on without`);
+    console.error('  `if: always()`, can go red while that check reads green. Fix the `gates` job in ci.yml.');
     process.exit(1);
   }
 }

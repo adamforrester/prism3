@@ -26,6 +26,7 @@ import { componentDefs } from '@prism3/engine/components/index';
 import { applyControlShape } from '@prism3/engine/anatomy-figma';
 import type { ControlShape } from '@prism3/engine/scale';
 import { buttonCornerPx } from './src/preview/sections/button-layout';
+import { BUTTON_OPTIONS_COPY } from './src/domains/button-options';
 
 let executed = 0, failed = 0;
 const ok = (cond: boolean, label: string): void => {
@@ -162,6 +163,51 @@ ok(seen['aurora|rounded|light|md'] === 8 && seen['aurora|pill|light|md'] === 22 
   `literal: aurora's medium button in Light is 8px rounded, 22px pill (44px high), 0px boxed, 1px hairline (${['rounded', 'pill', 'boxed', 'hairline'].map((x) => seen[`aurora|${x}|light|md`]).join(', ')})`);
 ok(seen['aurora with its own Dark|rounded|dark|md'] === 2 && seen['aurora with its own Dark|pill|dark|md'] === 18,
   `literal: with Dark's own softness (0.5) and density (compact), Dark's medium button is 2px rounded and 18px pill (36px high) (${seen['aurora with its own Dark|rounded|dark|md']}, ${seen['aurora with its own Dark|pill|dark|md']})`);
+
+console.log('\n6. The Button label & icon readout is the brand\'s own sizes (#2918, owner Q527)');
+// SUBJECT: `contentSizeOf` (what the readout under Medium button label & icon says a medium button gets) and the
+// readout's words. ORACLE, independent of it: the brand's DTCG emission (`buildTree`), where the label style the build
+// binds (`type.label.<rung>.emphasis`) aliases a `core.font.size.*` primitive whose `$value` is the px, and
+// `icon.size.<step>` is the icon's px. The rung each value binds is a literal here (match → md + icon sm, smaller →
+// sm + icon xs, the #1667 decision), not read from the engine. Every corpus brand gets 14/12 today: the label ladder
+// is brand-invariant, so a second brand with different label sizes is PLANTED (its label rungs moved to 16 and 14, sizes the font-size primitives carry, on
+// the theme, then emitted), which is the case that proves the readout is read, not hard-coded.
+//
+// Mutation this fails by name: the readout's px hard-coded to 14/12 → `planted 16/14 / match: the readout says
+// 14px; the emission's type.label.md.emphasis is 16px`.
+const pxOf = (tree: Record<string, any>, path: string): number | undefined => {
+  const root = tree[Object.keys(tree)[0]];
+  const at = (p: string): any => p.split('.').reduce((a, k) => (a == null ? undefined : a[k]), root);
+  let v = at(path)?.$value;
+  if (v && typeof v === 'object' && 'fontSize' in v) v = v.fontSize;
+  for (let i = 0; typeof v === 'string' && v.startsWith('{') && i < 8; i++) v = at(v.slice(1, -1).split('.').slice(1).join('.'))?.$value;
+  return typeof v === 'string' ? parseFloat(v) * (v.endsWith('rem') ? 16 : 1) : typeof v === 'number' ? v : undefined;
+};
+const RUNGS = { match: { rung: 'md', icon: 'sm' }, smaller: { rung: 'sm', icon: 'xs' } } as const;
+const planted = brandTheme(structuredClone(brands.prism3));
+for (const c of planted.typography.composites) if (c.group === 'label' && (c.variant === 'md' || c.variant === 'sm')) c.sizePx = c.sizeMinPx = c.variant === 'md' ? 16 : 14;
+const readoutThemes: [string, ReturnType<typeof brandTheme>][] = [
+  ...(['prism3', 'aurora', 'harbor'] as const).map((id) => [id, brandTheme(structuredClone(brands[id]))] as [string, ReturnType<typeof brandTheme>]),
+  ['planted 16/14', planted],
+];
+const said: Record<string, string> = {};
+for (const [name, t] of readoutThemes) {
+  const { tree } = buildTree(t);
+  for (const v of ['match', 'smaller'] as const) {
+    const got = B.contentSizeOf(t, v);
+    const want = { label: pxOf(tree, `type.label.${RUNGS[v].rung}.emphasis`), icon: pxOf(tree, `icon.size.${RUNGS[v].icon}`) };
+    ok(!!got && got.rung === RUNGS[v].rung && got.icon === RUNGS[v].icon && got.labelPx === want.label && got.iconPx === want.icon,
+      `${name} / ${v}: the readout says ${got?.labelPx}px (label/${got?.rung}), icon ${got?.iconPx}px; the emission's type.label.${RUNGS[v].rung}.emphasis is ${want.label}px, icon.size.${RUNGS[v].icon} ${want.icon}px`);
+    if (got) said[`${name}|${v}`] = BUTTON_OPTIONS_COPY.contentSize(got);
+  }
+}
+ok(said['prism3|match'] === 'Medium button label: 14px (label/md). Icon: 20px.' && said['prism3|smaller'] === "Medium button label: 12px, the small button's (label/sm). Icon: 16px.",
+  `literal: prism3 reads "${said['prism3|match']}" and "${said['prism3|smaller']}"`);
+ok(said['planted 16/14|match'] === 'Medium button label: 16px (label/md). Icon: 20px.' && said['planted 16/14|smaller'] === "Medium button label: 14px, the small button's (label/sm). Icon: 16px.",
+  `literal: two brands with different label sizes show different numbers — the planted brand reads "${said['planted 16/14|match']}" and "${said['planted 16/14|smaller']}"`);
+const unemitted = brandTheme(structuredClone(brands.prism3));
+unemitted.typography.composites = unemitted.typography.composites.filter((c) => !(c.group === 'label' && c.variant === 'sm'));
+ok(B.contentSizeOf(unemitted, 'smaller') === null, 'a brand that emits no label/sm reads null for Small, so the readout draws nothing rather than a made-up size');
 
 console.log(`\n${executed - failed}/${executed} Button option write assertions passed.`);
 if (failed) process.exit(1);

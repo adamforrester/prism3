@@ -20,7 +20,7 @@ A small, static marker of one of three types. A status label is short text in th
 Shown on the default member: type `status`, emphasis `subtle`, tone `neutral`.
 
 1. **Surface** — The badge body, sized by what it holds: a small-radius label around a status text, a circle around one digit that grows into a pill, or the round dot itself. A subtle status label is the tone's tint with a 1px edge in the tone's border color, drawn inside the edge so it adds no size. A bold badge is the solid tone fill with no edge. Neither paints an interactive color.
-2. **Text** — The status text in the tone's text role. It carries the meaning, so the tone is never the only signal.
+2. **Label** — The status text in the tone's text role. It carries the meaning, so the tone is never the only signal.
 3. **Count** — The number, in the ink paired with the bold tone fill. Capped as the maximum followed by a plus sign, as in "99+".
 4. **Dot** — The dot's fixed square, about 8px. It paints nothing itself: the badge around it has no padding for this type, so the pill's round fill is the dot.
 
@@ -81,7 +81,7 @@ Name the state, not the color: "Failed", not "Red". Use the same word for the sa
 ## Related components
 
 - **Instead, consider:** `tag`
-- **Often used with:** `icon-button`, `button`, `tab`
+- **Often used with:** `icon-button`, `button`, `tab-item`
 - **Replaces:**
   - a hand-drawn colored pill
   - a red circle with a number drawn over an icon
@@ -100,6 +100,199 @@ Name the state, not the color: "Failed", not "Red". Use the same word for the sa
 | `max` | number | `99` | no | The largest count shown in full, for type count. A larger value shows as "99+". |
 | `showZero` | boolean | `false` | no | Whether a count of zero still shows, for type count. Hidden by default, since zero is usually nothing to act on. |
 | `overlap` | enum: 'rectangular' \| 'circular' | `rectangular` | no | The host shape a count or dot sits over. circular pulls the badge in toward the curve so it stays on the host's edge, such as an avatar. |
+
+## Specs
+
+Generated from the plan that builds the design-file component: 20 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `surface` | frame | every member |
+| `surface/label` | text | type=status |
+| `surface/count` | text | type=count |
+| `surface/dot` | frame | type=dot |
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by `type`.
+
+**type=status**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `surface` | `space.100` / `space.150` / `space.100` / `space.150` | — | — | — | — | — |
+
+**type=count**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `surface` | `space.025` / `space.075` / `space.025` / `space.075` | — | — | — | — | — |
+
+**type=dot**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `surface` | `space.0` | — | — | — | — | — |
+| `surface/dot` | — | — | `control.size.sm.dot` | `control.size.sm.dot` | — | — |
+
+### Type
+
+Keyed by nothing: one row covers every member.
+
+| Members | Part | Text style |
+| --- | --- | --- |
+| every member | `surface/label` | `type.label.sm.emphasis` |
+| every member | `surface/count` | `type.label.sm.emphasis` |
+
+### Color
+
+Keyed by `type`, `emphasis`, `tone`.
+
+**type=status, emphasis=subtle, tone=neutral**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.foreground.secondary` | `color.border.tertiary` | — | — |
+| `surface/label` | — | — | `color.text.primary` | — |
+
+**type=status, emphasis=subtle, tone=info**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.foreground.info-subtle` | `color.border.info` | — | — |
+| `surface/label` | — | — | `color.text.info` | — |
+
+**type=status, emphasis=subtle, tone=success**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.foreground.success-subtle` | `color.border.success` | — | — |
+| `surface/label` | — | — | `color.text.success` | — |
+
+**type=status, emphasis=subtle, tone=warning**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.foreground.warning-subtle` | `color.border.warning` | — | — |
+| `surface/label` | — | — | `color.text.warning` | — |
+
+**type=status, emphasis=subtle, tone=danger**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.foreground.danger-subtle` | `color.border.danger` | — | — |
+| `surface/label` | — | — | `color.text.danger` | — |
+
+**type=status, emphasis=bold, tone=neutral**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.inverse.foreground.tertiary` | — | — | — |
+| `surface/label` | — | — | `color.inverse.text.primary` | — |
+
+**type=status, emphasis=bold, tone=info**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.foreground.info` | — | — | — |
+| `surface/label` | — | — | `color.text.on-info` | — |
+
+**type=status, emphasis=bold, tone=success**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.foreground.success` | — | — | — |
+| `surface/label` | — | — | `color.text.on-success` | — |
+
+**type=status, emphasis=bold, tone=warning**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.foreground.warning` | — | — | — |
+| `surface/label` | — | — | `color.text.on-warning` | — |
+
+**type=status, emphasis=bold, tone=danger**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.foreground.danger` | — | — | — |
+| `surface/label` | — | — | `color.text.on-danger` | — |
+
+**type=count, emphasis=bold, tone=neutral**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.inverse.foreground.tertiary` | — | — | — |
+| `surface/count` | — | — | `color.inverse.text.primary` | — |
+
+**type=count, emphasis=bold, tone=info**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.foreground.info` | — | — | — |
+| `surface/count` | — | — | `color.text.on-info` | — |
+
+**type=count, emphasis=bold, tone=success**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.foreground.success` | — | — | — |
+| `surface/count` | — | — | `color.text.on-success` | — |
+
+**type=count, emphasis=bold, tone=warning**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.foreground.warning` | — | — | — |
+| `surface/count` | — | — | `color.text.on-warning` | — |
+
+**type=count, emphasis=bold, tone=danger**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.foreground.danger` | — | — | — |
+| `surface/count` | — | — | `color.text.on-danger` | — |
+
+**type=dot, emphasis=bold, tone=neutral**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.inverse.foreground.tertiary` | — | — | — |
+
+**type=dot, emphasis=bold, tone=info**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.foreground.info` | — | — | — |
+
+**type=dot, emphasis=bold, tone=success**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.foreground.success` | — | — | — |
+
+**type=dot, emphasis=bold, tone=warning**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.foreground.warning` | — | — | — |
+
+**type=dot, emphasis=bold, tone=danger**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `surface` | `color.foreground.danger` | — | — | — |
+
+### Nesting and properties
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `label` | text | `Status` |
+| `value` | text | `3` |
 
 ---
 

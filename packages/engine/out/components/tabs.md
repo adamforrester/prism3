@@ -82,7 +82,7 @@ One or two words per tab, nouns, sentence case.
 
 ## Related components
 
-- **Built from:** `tab`
+- **Built from:** `tab-item`
 - **Instead, consider:** `select`, `accordion`, `segmented-control`
 - **Often used with:** `badge`, `icon`
 - **Replaces:**
@@ -96,13 +96,109 @@ One or two words per tab, nouns, sentence case.
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
 | `value` | string | — | no | The key of the selected tab. Controlled; pair it with onChange. |
-| `items` | slot of `tab`, 1 to 6 | — | yes | The tabs, each a Tab, in order, one per panel. Three by default with the first selected, six at most. |
+| `items` | slot of `tab-item`, 1 to 6 | — | yes | The tabs, each a Tab, in order, one per panel. Three by default with the first selected, six at most. |
 | `defaultValue` | string | — | no | The key of the tab selected first, when the list manages its own state. |
 | `onChange` | function | — | no | Called with the new key when the selected tab changes. |
 | `activation` | enum: 'automatic' \| 'manual' | `automatic` | no | automatic: moving focus with the arrow keys selects the tab. manual: arrows move focus only, and Enter or Space selects. Use manual when showing a panel is slow. |
 | `label` | string | — | no | The accessible name of the tab list, when nothing on the page already names it. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | Passed to every tab. |
 | `alignment` | enum: 'start' \| 'center' | `start` | no | start: the tabs sit at the start of the bar. center: the tabs sit centered in the bar, which spans its container; the baseline spans the full width either way. |
+
+## Specs
+
+Generated from the plan that builds the design-file component: 6 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `container` | frame | every member |
+| `container/items` | slot | every member |
+| `container/items/tab1` | instance | every member |
+| `container/items/tab2` | instance | every member |
+| `container/items/tab3` | instance | every member |
+| `container/baseline` | frame | every member |
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by `size`, `alignment`.
+
+**size=medium, alignment=start**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.0` | — | — | — | — |
+| `container/items` | — | `space.0` | — | — | — | — |
+| `container/baseline` | — | — | `border-width.hairline` | — | — | — |
+
+**size=small, alignment=start**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.0` | — | — | — | — |
+| `container/items` | — | `space.0` | — | — | — | — |
+| `container/baseline` | — | — | `border-width.hairline` | — | — | — |
+
+**size=large, alignment=start**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.0` | — | — | — | — |
+| `container/items` | — | `space.0` | — | — | — | — |
+| `container/baseline` | — | — | `border-width.hairline` | — | — | — |
+
+**size=medium, alignment=center**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.0` | — | — | — | build width 480px (literal) |
+| `container/items` | — | `space.0` | — | — | — | — |
+| `container/baseline` | — | — | `border-width.hairline` | — | — | — |
+
+**size=small, alignment=center**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.0` | — | — | — | build width 480px (literal) |
+| `container/items` | — | `space.0` | — | — | — | — |
+| `container/baseline` | — | — | `border-width.hairline` | — | — | — |
+
+**size=large, alignment=center**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.0` | — | — | — | build width 480px (literal) |
+| `container/items` | — | `space.0` | — | — | — | — |
+| `container/baseline` | — | — | `border-width.hairline` | — | — | — |
+
+### Color
+
+Keyed by `alignment`.
+
+**alignment=start**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/baseline` | `color.border.primary` | — | — | — |
+
+**alignment=center**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/baseline` | `color.border.primary` | — | — | — |
+
+### Nesting and properties
+
+- `container/items` is a slot, preferring `tab-item`
+- `container/items/tab1` nests `tab-item` at `selection=selected, size=medium, state=rest`; follows `size`
+- `container/items/tab2` nests `tab-item` at `selection=unselected, size=medium, state=rest`; follows `size`
+- `container/items/tab3` nests `tab-item` at `selection=unselected, size=medium, state=rest`; follows `size`
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `items` | slot | — |
 
 ---
 

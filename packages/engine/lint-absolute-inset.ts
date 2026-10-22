@@ -218,6 +218,8 @@ const ZERO_OK: Record<string, string> = {
   'textarea.focusRing': FIELD_RING,
   // #2317: the Password field's box and ring are TextField's, from the shared field factory.
   'password-field.focusRing': FIELD_RING,
+  // #2888: the Search field's too.
+  'search-field.focusRing': FIELD_RING,
   // #2427: the Counter's OUTLINE members take the field offset for the same reason (their edge is the field's); its
   // GHOST members take the control offset, 2px (owner Q283.10 A), so they never reach this admission at gap 0.
   // `test.ts` holds the ghost offset against a literal, since a ghost member rebound to the field offset would be
@@ -235,9 +237,9 @@ const MUST_COVER = [
   'button.focusRing', 'button-destructive.focusRing', 'button-neutral.focusRing',
   'icon-button.focusRing', 'icon-button-destructive.focusRing', 'icon-button-neutral.focusRing',
   'flush-icon-button.focusRing', 'flush-icon-button-destructive.focusRing', 'flush-icon-button-neutral.focusRing',
-  'text-field.focusRing', 'textarea.focusRing', 'select.focusRing', 'password-field.focusRing',
+  'text-field.focusRing', 'textarea.focusRing', 'select.focusRing', 'password-field.focusRing', 'search-field.focusRing',
   'checkbox-control.focusRing', 'radio-control.focusRing', 'switch-control.focusRing',
-  'tag.focusRing', 'tab.focusRing', 'accordion.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing',
+  'tag.focusRing', 'tab-item.focusRing', 'accordion.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing',
   'counter.focusRing',
 ];
 
@@ -253,9 +255,9 @@ const MUST_CLEAR_STROKE = [
   'button.focusRing', 'button-destructive.focusRing', 'button-neutral.focusRing',
   'icon-button.focusRing', 'icon-button-destructive.focusRing', 'icon-button-neutral.focusRing',
   'flush-icon-button.focusRing', 'flush-icon-button-destructive.focusRing', 'flush-icon-button-neutral.focusRing',
-  'text-field.focusRing', 'textarea.focusRing', 'select.focusRing', 'password-field.focusRing',
+  'text-field.focusRing', 'textarea.focusRing', 'select.focusRing', 'password-field.focusRing', 'search-field.focusRing',
   'checkbox-control.focusRing', 'radio-control.focusRing', 'switch-control.focusRing',
-  'tag.focusRing', 'tab.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing',
+  'tag.focusRing', 'tab-item.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing',
   'counter.focusRing',
 ];
 
@@ -587,7 +589,7 @@ for (const def of componentDefs) {
 // neither walk reads the other. Every member plan is walked (`figmaAnatomySet`), since a corner-pinned def
 // need not carry a size axis, and both directions of D apply: every declared pin is represented, and no plan
 // node carries a pin its def does not declare.
-const MUST_COVER_CORNER = ['textarea.grip'];
+const MUST_COVER_CORNER = ['textarea.gripGlyph'];
 const cornerCovered = new Set<string>();
 let cornerChecks = 0;
 for (const def of componentDefs) {

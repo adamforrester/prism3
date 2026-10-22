@@ -258,7 +258,7 @@ section('carry — a Checkbox group instance with five visible rows becomes five
 {
   const target: UpdateTarget = { def: 'checkbox-group', plans: figmaAnatomySet(defOf('checkbox-group'), { swapTarget: SWAP_TARGET }) };
   const w = await world(LEGACY['checkbox-group'](), target.plans);
-  const medium = memberNamed(w.set(), 'size=medium');
+  const medium = memberNamed(w.set(), 'status=default, size=medium');
   // Rows 1-6 on through booleans, row 3 hidden by hand: rows 1, 2, 4, 5 and 6 are visible, five in all.
   const five = w.put(place('Shipping filters', medium, w.set(), { 'Option 4': true, 'Option 5': true, 'Option 6': true }, {
     row1: { props: { 'Label#1:0': 'Email' }, control: 'checked' },

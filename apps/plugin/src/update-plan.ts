@@ -48,18 +48,24 @@ import { tailOf } from '@prism3/engine/figma-names';
 import { planTargets } from './build-deps';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { diffAnatomy, type HostNode, type ReadPorts } from '@prism3/engine/anatomy-readback';
-import { COMPONENT_RENAMES, coordKey, coordPairs, renameCoordinate, slotMigrationOf, type ComponentRename } from '@prism3/engine/component-renames';
+import { COMPONENT_RENAMES, coordKey, coordPairs, formerDefIds, partRenames, renameCoordinate, renameProperty, slotMigrationOf, type ComponentRename } from '@prism3/engine/component-renames';
 import { captureSlotMigration, migrationLines, type MigNode, type SlotMigration } from './slot-migration';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { EXECUTOR_REVISION } from './executor-revision';
-import { adoptions, memberStamp, planHalf, revHalf, respaceSets, STAMP_KEY, type RespaceBox } from './write-components';
+import { adoptions, memberStamp, planHalf, revHalf, respaceSets, snugSets, STAMP_KEY, type RespaceBox } from './write-components';
 import { furnitureDue, furnitureDueCount, furnitureLayout, hasFurniture, readTag, type FurnitureApi, type FurnitureDue, type XNode } from './canvas-furniture';
+import { labelColumns, readLabelColumn } from './label-columns';
 import { NS } from './persist-figma';
+import { PANEL_WIDTH, docPanelBlockers, docPanelDue, docPanelReach, ownerSet, isLivePanel, panelModes, planDocPanel, readPanelTag, type PanelApi, type PNode } from './doc-panel';
+import type { ComponentDef } from '@prism3/engine/component-schema';
 import { BASELINE_V, UPDATING_KEY, baselineDiff, baselineOf, builtByPrism3, readBaseline, recordFormat, snapshotMember, writeBaseline, type Baseline, type OwnershipRead, type SnapNode } from './member-baseline';
 import { drawnFaults, faultLine, type DrawnFault, type DrawVar } from './drawn';
 import { REACTIONS_PATH, plannedRead, reactionMap, reactionVerdict, reactionsText, type PlannedReaction, type ReadReaction } from './reactions';
 import { pagesOutOfOrder, stripNestPrefix, type PageLike } from './file-setup';
 import { whatChangedLines } from './release-summary';
+import { ABOUT_NAME, aboutDue, aboutDueLine, aboutIsWork, type AboutDue } from './about-frame';
+import { COVER_NAME, coverDue, coverDueLine, coverIsWork, coverPageOnlyLine, type CoverDue } from './cover-frame';
+import { colorVariablesOutOfOrder } from '@prism3/engine/color-order';
 
 /** One member of a set as the dry run reads it. */
 export type HostMember = {
@@ -91,6 +97,8 @@ export type HostSetView = {
   /** #2296 — a def built as single components (`emitAsComponents`): no set node, no property definitions, and each
    *  member a top-level component found anywhere in the file. */
   single?: boolean;
+  /** #2705 — the set's recorded label column width (`label-columns.ts`), absent when it has none. */
+  labelColumn?: number;
   /** #2831 — whether the set is in a published team library, as `getPublishStatusAsync` answers (`publishOf`). A
    *  single-component def reads as its most published component. Absent when the host would not say. */
   publish?: PublishStatus;
@@ -177,7 +185,7 @@ export type SetPreview = {
   /** #2188 Q173 — the members an update moves to their place in the grid, by name (`gridMoves`). Absent when none. */
   positions?: string[];
   /** #2542 (owner decision Q245.2 A) — the WHOLE SET moves on its page, to where a fresh build would place it
-   *  (`respaceSets`), so sets sit `SET_GAP` apart. Absent when it stays. */
+   *  (`respaceSets`), so the visible gap between sets, furniture included, is `SET_GAP` (#2723). Absent when it stays. */
   setMove?: { from: { x: number; y: number }; to: { x: number; y: number } };
   /** #2803 (owner decision Q379 A) — the set's canvas furniture the page lacks or holds out of place (`furnitureDue`),
    *  which the apply draws, touching no member. Absent when the furniture is current, or the def has none. */
@@ -315,7 +323,7 @@ export const ownedView = (host: HostSetView): HostSetView => {
  * update's apply re-lays the grid and keeps every id. A member not built by Prism3 is never one of them (#2325,
  * #2464), adoptable or not; it still counts toward its row's height and its column's width, as the executor counts it.
  */
-export const gridMoves = (plans: AnatomyPlan[], members: readonly HostMember[]): string[] => {
+export const gridMoves = (plans: AnatomyPlan[], members: readonly HostMember[], labelColumn = 0): string[] => {
   if (!plans.length) return [];
   let cells: { name: string; row: number; col: number }[];
   try { cells = planSetLayout(plans, 'gridMoves').cells; } catch { return []; }
@@ -330,12 +338,14 @@ export const gridMoves = (plans: AnatomyPlan[], members: readonly HostMember[]):
     colW[c.col] = Math.max(colW[c.col] ?? 0, m.snap.width as number);
     rowH[c.row] = Math.max(rowH[c.row] ?? 0, m.snap.height as number);
   }
+  // Columns at least the set's recorded label width, members centered in the extra (#2705), as the executor lays them.
+  const cols = labelColumns(colW, labelColumn);
   // Sparse arrays, reduced as the executor reduces them: a row or column with no member adds nothing.
   const at = (arr: number[], n: number): number => PAD + arr.slice(0, n).reduce((a, b) => a + (b || 0) + GAP, 0);
   return placed.filter((m) => {
     if (!m.stamp) return false;
     const c = cellOf.get(m.name)!;
-    return Math.abs((m.snap.x as number) - at(colW, c.col)) > 0.5 || Math.abs((m.snap.y as number) - at(rowH, c.row)) > 0.5;
+    return Math.abs((m.snap.x as number) - at(cols.width, c.col) - (cols.inset[c.col] ?? 0)) > 0.5 || Math.abs((m.snap.y as number) - at(rowH, c.row)) > 0.5;
   }).map((m) => m.name);
 };
 
@@ -371,6 +381,9 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
   // Copies and malformed stamps read as not built by Prism3 (#2300). The hash below still reads the file as it is.
   const host = ownedView(read);
   const blockers: string[] = [];
+  // The layers the ledger renames in this def's members (#2759): read under their new names below, renamed by the apply.
+  let layerMap = new Map<string, string>();
+  try { layerMap = partRenames(defId, ledger); } catch (err) { blockers.push((err as Error).message); }
   const planned = new Map<string, AnatomyPlan>();
   for (const p of plans) {
     const k = coordKey(planComponentName(p));
@@ -517,11 +530,12 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
     const rootName = plan.root.name;
     const rel = (p: string): string => (p === rootName ? '.' : p.startsWith(`${rootName}/`) ? p.slice(rootName.length + 1) : p);
     const touched = new Set<string>();
+    const snap = renamedSnap(m.snap, layerMap);
     // #2595 — the children the update moves into a frame the plan inserts: each is compared to its plan where it
     // lands, and listed as a move rather than as removed. `edited` is what the apply passes the executor.
     const moves: { from: string; to: string; plan: AnatomyPlan['root']; host: SnapNode }[] = [];
-    movesOf(plan.root, m.snap, '.', new Set([...(edit?.changed ?? []), ...(edit?.added ?? []), ...(edit?.removed ?? [])].map((p) => p.replace(/#\d+$/, ''))), moves);
-    const divs = diffAnatomy([plan], [m.snap as unknown as HostNode], () => m.name, ports).filter((d) => d.field !== 'member');
+    movesOf(plan.root, snap, '.', new Set([...(edit?.changed ?? []), ...(edit?.added ?? []), ...(edit?.removed ?? [])].map((p) => p.replace(/#\d+$/, ''))), moves);
+    const divs = diffAnatomy([plan], [snap as unknown as HostNode], () => m.name, ports).filter((d) => d.field !== 'member');
     const placed = [
       ...divs.map((d) => ({ d, part: rel(d.path) })),
       ...moves.flatMap((mv) => diffAnatomy([{ ...plan, root: mv.plan }], [mv.host as unknown as HostNode], () => mv.host.name, ports)
@@ -555,7 +569,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
     }
     const movedFrom = new Set(moves.map((mv) => mv.from));
     const extras: string[] = [];
-    extraChildren(plan.root, m.snap, '.', extras);
+    extraChildren(plan.root, snap, '.', extras);
     for (const mv of moves) extraChildren(mv.plan, mv.host, mv.to, extras);
     for (const part of extras.filter((x) => !movedFrom.has(x))) {
       const parent = part.includes('/') ? part.slice(0, part.lastIndexOf('/')) : '.';
@@ -567,7 +581,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
       changes.set(k, c);
     }
     const dropped: { part: string; file: string }[] = [];
-    droppedFills(plan.root, m.snap, '.', ports, dropped);
+    droppedFills(plan.root, snap, '.', ports, dropped);
     for (const mv of moves) droppedFills(mv.plan, mv.host, mv.to, ports, dropped);
     for (const { part, file } of dropped) {
       touched.add(part);
@@ -631,6 +645,16 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
       if (d.type === 'VARIANT') continue;
       have.set(k.replace(/#[^#]*$/, ''), { type: String(d.type ?? ''), defaultValue: d.defaultValue });
     }
+    // A PROPERTY RENAMED IN THE LEDGER (#2759): the set's property under its old name, where the plan wants the new
+    // name and the set has none, is renamed in place, so every instance keeps the value a designer gave it. Its old
+    // name is then read as the new one, so it is neither removed nor added below.
+    for (const [name, h] of [...have]) {
+      const to = renameProperty(defId, name, ledger);
+      if (to === null || have.has(to) || !wanted.some((w) => w.name === to)) continue;
+      properties.rename.push({ name: to, type: h.type, from: name, to });
+      have.delete(name);
+      have.set(to, h);
+    }
     for (const w of wanted) {
       const h = have.get(w.name);
       if (!h) { properties.add.push({ name: w.name, type: w.type }); continue; }
@@ -655,7 +679,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
   const adoptClears = refused?.adoptClears ? [refused.reason] : [];
 
   // A set with members refused or to collapse is refused by the update, so it reports no moves either.
-  const positions = blockers.length || host.single ? [] : gridMoves(plans, host.members);
+  const positions = blockers.length || host.single ? [] : gridMoves(plans, host.members, host.labelColumn);
   if (positions.length) counts.move = positions.length;
 
   const truncated: Record<string, number> = {};
@@ -757,8 +781,9 @@ export const readSetView = async (set: LiveSet, breathe?: () => Promise<void>, d
   try { definitions = (set.componentPropertyDefinitions ?? {}) as HostSetView['definitions']; } catch { definitions = null; }
   let key = '';
   try { key = typeof set.key === 'string' ? set.key : ''; } catch { key = ''; }
+  const labelColumn = readLabelColumn(set);
   const publish = await publishOf(set);
-  return { name: String(set.name ?? ''), id: String(set.id ?? ''), key, page: pageOf(set), members, others, definitions, ...(publish ? { publish } : {}) };
+  return { name: String(set.name ?? ''), id: String(set.id ?? ''), key, page: pageOf(set), members, others, definitions, ...(labelColumn ? { labelColumn } : {}), ...(publish ? { publish } : {}) };
 };
 
 /** The reason a member is left out when its node moved between the read and the write (#2301). DRAFT. */
@@ -897,6 +922,9 @@ export type UpdateTarget = {
   def: string; plans: AnatomyPlan[];
   /** #2296 — built as single top-level components (`emitAsComponents`: the icons, the spinner), not as a set. */
   single?: boolean;
+  /** #846 — the def itself, for its usage panel (`docPanelDue`), and each component's display name for its chips.
+   *  Absent, the dry run reads no panel. */
+  doc?: { def: ComponentDef; names?: (id: string) => string };
 };
 
 /** The ports, from the FILE's catalogues. A resolver built from the plan would map every id to the name
@@ -923,15 +951,45 @@ export const hostPorts = async (host: UpdateHost): Promise<UpdatePorts> => {
   return { varName: (id) => v.get(id) ?? null, styleName: (id) => st.get(id) ?? null, componentName: (k) => comps.get(k) ?? null, componentById, drawVars };
 };
 
+/**
+ * A MEMBER'S SNAPSHOT AS ITS LAYERS WILL BE NAMED (#2759): each layer the ledger renames, under its new name. The apply
+ * renames those layers in place before anything else is written, so the plan is laid against the member as the build
+ * will meet it, and a renamed layer reads as the same node rather than one removed and one added. The member itself
+ * (the root) and an instance's contents (its main's) are never renamed. The record is left as it is: it was written
+ * under the old names and is compared with the snapshot as read.
+ */
+export const renamedSnap = <T extends { name?: unknown; type?: unknown; children?: T[] }>(snap: T, map: ReadonlyMap<string, string>): T => {
+  if (!map.size) return snap;
+  const walk = (n: T, root: boolean): T => {
+    const name = String(n.name ?? '');
+    const out = { ...n, ...(root || !map.has(name) ? {} : { name: map.get(name) }) } as T;
+    // The snapshot's `parent` (its parent's size) is not enumerable, so a spread drops it; the diff reads it.
+    const parent = Object.getOwnPropertyDescriptor(n, 'parent');
+    if (parent) Object.defineProperty(out, 'parent', parent);
+    if (n.type !== 'INSTANCE' && n.children) out.children = n.children.map((c) => walk(c, false));
+    return out;
+  };
+  return walk(snap, true);
+};
+
 /** The ports with the set's own SLOT properties (#2649): a member read as a snapshot has no set above its slots. */
 export const withSetSlots = <P extends ReadPorts>(ports: P, definitions: Record<string, unknown> | null | undefined): P =>
   ({ ...ports, slotProperty: (k: string) => ((definitions ?? {}) as Record<string, Record<string, unknown>>)[k] ?? null });
 
-type Located = { found: LiveSet[]; name: string };
-const locate = (host: UpdateHost, t: UpdateTarget): Located => {
+type Located = { found: LiveSet[]; name: string; from?: string };
+/** A target's set, by the def's id. A file built before a def rename (#2759) holds the set under an earlier id: when
+ *  no set has the current one, each id the ledger renames into it is tried, nearest first, and `from` names the one
+ *  found. The apply renames that set in place. */
+export const locateSets = (host: { root: { findAllWithCriteria(c: { types: string[] }): readonly unknown[] } }, t: UpdateTarget, ledger: readonly ComponentRename[] = COMPONENT_RENAMES): Located => {
   const name = t.plans[0]?.component ?? t.def;
-  const found = host.root.findAllWithCriteria({ types: ['COMPONENT_SET'] })
-    .filter((n) => (n as { name?: unknown }).name === name) as LiveSet[];
+  const sets = host.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as LiveSet[];
+  const named = (n: string): LiveSet[] => sets.filter((s) => (s as { name?: unknown }).name === n);
+  const found = named(name);
+  if (found.length) return { found, name };
+  for (const from of formerDefIds(name, ledger)) {
+    const old = named(from);
+    if (old.length) return { found: old, name, from };
+  }
   return { found, name };
 };
 
@@ -982,16 +1040,16 @@ export const readSingleView = async (host: UpdateHost, t: UpdateTarget, breathe?
 };
 
 /** A target's view, set or single, or why there is none to read. */
-type Viewed = { kind: 'missing' } | { kind: 'refused'; reason: string } | { kind: 'found'; name: string; set: LiveSet; view: HostSetView };
-const locateView = async (host: UpdateHost, t: UpdateTarget, breathe?: () => Promise<void>, drawVars?: ReadonlyMap<string, DrawVar>): Promise<Viewed> => {
+type Viewed = { kind: 'missing' } | { kind: 'refused'; reason: string } | { kind: 'found'; name: string; set: LiveSet; view: HostSetView; from?: string };
+const locateView = async (host: UpdateHost, t: UpdateTarget, breathe?: () => Promise<void>, drawVars?: ReadonlyMap<string, DrawVar>, ledger: readonly ComponentRename[] = COMPONENT_RENAMES): Promise<Viewed> => {
   if (t.single) {
     const { view, set } = await readSingleView(host, t, breathe, drawVars);
     return view.members.length + view.others.length ? { kind: 'found', name: view.name, set, view } : { kind: 'missing' };
   }
-  const { found, name } = locate(host, t);
+  const { found, name, from } = locateSets(host, t, ledger);
   if (found.length === 0) return { kind: 'missing' };
-  if (found.length > 1) return { kind: 'refused', reason: `${found.length} sets are named ${name}` };
-  return { kind: 'found', name, set: found[0], view: await readSetView(found[0], breathe, drawVars) };
+  if (found.length > 1) return { kind: 'refused', reason: `${found.length} sets are named ${from ?? name}` };
+  return { kind: 'found', name, set: found[0], view: await readSetView(found[0], breathe, drawVars), ...(from ? { from } : {}) };
 };
 
 export type UpdatePreview = {
@@ -999,6 +1057,16 @@ export type UpdatePreview = {
   /** #2568, owner decision Q260 A — the component pages not in alphabetical order, by full page name, which the apply
    *  moves into place (`pagesOutOfOrder`). Absent when none. */
   pages?: string[];
+  /** #2858 — what the Update owes the Cover page's "About this library" frame (`about-frame.ts`). Absent for a host
+   *  with no page list. */
+  about?: AboutDue;
+  /** #2859 — what the Update owes the library cover (`cover-frame.ts`), read for the brand the file holds. Absent for a
+   *  host with no page list. */
+  cover?: CoverDue;
+  /** #2860 — the colour variables not in the canonical order (`colorVariablesOutOfOrder`), by full variable name, in the
+   *  file's order. A report: the Plugin API has no way to move a variable, so nothing applies it and it is not in the
+   *  hash. Absent when none. */
+  variables?: string[];
 };
 
 /** How many sets a dry run moves on their pages (#2542). */
@@ -1020,32 +1088,67 @@ const setBuiltByPrism3 = (n: { children?: readonly unknown[] }): boolean => {
  * wasn't asked about. Read from the page's top-level nodes as they sit (`respaceSets`), so the dry run lists the moves
  * the file shows now, and the apply, called again after its sets land, moves them by their new sizes.
  */
-export const pageSetMoves = (found: readonly { name: string; set: LiveSet; blocked: boolean }[]): Map<string, { from: { x: number; y: number }; to: { x: number; y: number } }> => {
+export const pageSetMoves = (found: readonly { name: string; set: LiveSet; blocked: boolean }[], snug: ReadonlySet<string> = new Set(), reach = 0): Map<string, { from: { x: number; y: number }; to: { x: number; y: number } }> => {
   const out = new Map<string, { from: { x: number; y: number }; to: { x: number; y: number } }>();
+  for (const { here, kids, boxes } of pageViews(found, reach)) {
+    const ids = new Set(here.filter((f) => snug.has(f.name)).map((f) => String(kids.indexOf(f.set as never))));
+    for (const m of respaceSets(boxes, ids)) {
+      const f = here.find((x) => x.set === (kids[Number(m.id)] as LiveSet));
+      if (f) out.set(f.name, { from: m.from, to: m.to });
+    }
+  }
+  return out;
+};
+
+/** The sets, by name, that sit at exactly `SET_GAP` from their left neighbor on their pages (`snugSets`, #2734), on the
+ *  pages `pageSetMoves` would re-space. Read by the apply just before it redraws the furniture. */
+export const pageSnugSets = (found: readonly { name: string; set: LiveSet; blocked: boolean }[], reach = 0): Set<string> => {
+  const out = new Set<string>();
+  for (const { here, kids, boxes } of pageViews(found, reach)) {
+    const ids = snugSets(boxes);
+    for (const f of here) if (ids.has(String(kids.indexOf(f.set as never)))) out.add(f.name);
+  }
+  return out;
+};
+
+/** Each page that takes part in the re-spacing, with its top-level nodes read as `respaceSets` reads them. A page takes
+ *  part only when every set Prism3 built on it is one this update reads and none is blocked. `reach` is how far a
+ *  set's usage panel reaches right of it (`docPanelReach`, #846): 0 when the file cannot draw one. */
+const pageViews = (found: readonly { name: string; set: LiveSet; blocked: boolean }[], reach = 0) => {
   const pages = new Map<unknown, typeof found[number][]>();
   for (const f of found) {
     const page = f.set.parent as { children?: readonly unknown[] } | null | undefined;
     if (!page || !Array.isArray(page.children)) continue;
     pages.set(page, [...(pages.get(page) ?? []), f]);
   }
+  const views: { here: typeof found[number][]; kids: { id?: unknown; type?: unknown; name?: unknown; x?: unknown; y?: unknown; width?: unknown; height?: unknown; children?: readonly unknown[] }[]; boxes: RespaceBox[] }[] = [];
   for (const [page, here] of pages) {
     const kids = (page as { children: readonly unknown[] }).children as { id?: unknown; type?: unknown; name?: unknown; x?: unknown; y?: unknown; width?: unknown; height?: unknown; children?: readonly unknown[] }[];
     const read = new Set(here.map((f) => f.set));
     const ours = kids.filter((k) => k.type === 'COMPONENT_SET' && setBuiltByPrism3(k));
     if (here.some((f) => f.blocked) || !ours.every((k) => read.has(k as LiveSet))) continue;
     // Keyed by the node's place on the page, never by its id: what maps a move back to its set is the node itself.
+    // Furniture names its set by node id (#2723): mapped to that set's place on the page, its `id` here.
+    const at = new Map(kids.map((k, i) => [String(k.id ?? ''), String(i)] as const));
     const boxes: RespaceBox[] = kids.map((k, i) => ({
       id: String(i), type: String(k.type ?? ''), x: Number(k.x ?? 0), y: Number(k.y ?? 0), width: Number(k.width ?? 0), height: Number(k.height ?? 0),
       header: (k.type === 'INSTANCE' || k.type === 'FRAME') && String(k.name ?? '').toLowerCase() === '_section-header',
       prism3: k.type === 'COMPONENT_SET' && setBuiltByPrism3(k),
-      furniture: !!readTag(k as never),
+      furniture: !!readTag(k as never) || isLivePanel(k as PNode),
+      of: at.get(readTag(k as never)?.set ?? readPanelTag(k as PNode)?.set ?? ''),
     }));
-    for (const m of respaceSets(boxes)) {
-      const f = here.find((x) => x.set === (kids[Number(m.id)] as LiveSet));
-      if (f) out.set(f.name, { from: m.from, to: m.to });
+    // A SET'S USAGE PANEL IS PART OF ITS VISIBLE BOX (#846), as its labels are: a live panel is furniture of its set,
+    // so the next set is spaced from the panel's edge and the panel moves with its set (`respaceLive`). A Prism3 set
+    // with no live panel yet, in a file that can draw one, reaches as far as the panel will: that is the room the
+    // update makes for it. A panel kept aside after a hand edit is the designer's, and stays put like any other node.
+    if (reach > 0) {
+      const drawn = new Set(boxes.filter((b) => b.of !== undefined && isLivePanel(kids[Number(b.id)] as PNode)).map((b) => b.of));
+      for (const b of boxes.filter((x) => x.prism3 && !drawn.has(x.id)))
+        boxes.push({ id: `panel:${b.id}`, type: 'FRAME', x: b.x + b.width + reach - PANEL_WIDTH, y: b.y, width: PANEL_WIDTH, height: b.height, furniture: true, of: b.id });
     }
+    views.push({ here, kids, boxes });
   }
-  return out;
+  return views;
 };
 
 /** `update-components` in its dry-run mode: every target's set read and laid against its plans. Writes
@@ -1055,22 +1158,45 @@ export const previewUpdate = async (host: UpdateHost, targets: readonly UpdateTa
   const ports = await hostPorts(host);
   const out: UpdatePreview = { sets: [], missing: [], refused: [] };
   const found: { preview: SetPreview; set: LiveSet }[] = [];
-  for (const t of targets) {
-    const v = await locateView(host, t, breathe, ports.drawVars);
+  // The file's modes for the panels' Theming, read once, and only when a target has a panel to check.
+  let modesRead: ReturnType<typeof panelModes> | undefined;
+  const modes = () => (modesRead ??= panelModes(host as unknown as Pick<PanelApi, 'variables'>));
+  const blockedPanels: { preview: SetPreview; set: LiveSet; due: FurnitureDue; by: PNode[] }[] = [];
+  // Every set first, so a set this update renames (#2759) counts as present for the sets that nest it.
+  const viewed: { t: UpdateTarget; v: Viewed }[] = [];
+  for (const t of targets) viewed.push({ t, v: await locateView(host, t, breathe, ports.drawVars, ledger) });
+  const renamedInto = new Set(viewed.flatMap(({ v }) => (v.kind === 'found' && v.from ? [v.name] : [])));
+  // Its old name → its new one, so a set nesting it reads an instance of it as the planned set's, not the wrong one.
+  const renames = new Map(viewed.flatMap(({ v }) => (v.kind === 'found' && v.from ? [[v.from, v.name] as const] : [])));
+  const runPorts: UpdatePorts = renames.size ? { ...ports, renamedSet: (name) => renames.get(name) ?? null } : ports;
+  for (const { t, v } of viewed) {
     if (v.kind === 'missing') { out.missing.push(t.def); continue; }
     if (v.kind === 'refused') { out.refused.push({ def: t.def, reason: v.reason }); continue; }
-    const preview = dryRunSet(t.def, t.plans, v.view, ports, ledger);
+    const preview = dryRunSet(t.def, t.plans, v.view, runPorts, ledger);
+    // The set is named for the current id from here on: the apply finds its preview by that name, and renames the node.
+    if (v.from) { preview.setRename = { from: v.from, to: v.name }; preview.set = v.name; }
     // WHAT THE FILE LACKS (#2601), the apply's checks made here, so the confirm lists every set the apply refuses.
     // A NESTED COMPONENT THE FILE DOES NOT HAVE (#2380) is one: since every icon-set glyph is an instance of
     // `icon/<glyph>`, an update can need a component the file was built without — an older field-message
     // drew its glyphs inline. The executor would report a miss for each and leave the old glyph where it
     // was, so the set is refused here instead, naming what to build first. The build path pre-builds these
     // (`prebuildDependencies`); an update does not build other components.
-    preview.blockers.push(...await fileBlockers(host, t.plans, v.set));
+    preview.blockers.push(...await fileBlockers(host, t.plans, v.set, renamedInto));
     // THE CANVAS FURNITURE (#2803): what the page lacks of the set's labels and backdrops is a change, so "update again"
     // after Set up file adds a template draws it, and "No changes found" means the furniture is current too.
     if (!t.single && !preview.blockers.length && hasFurniture(t.def)) {
       const due = furnitureDue(host as unknown as Pick<FurnitureApi, 'root'>, v.set as unknown as XNode, furnitureLayout(t.plans), t.def);
+      // THE USAGE PANEL (#846): due when missing, drawn from another plan, or not where the set puts it, unless its last
+      // draw was blocked by what still sits there. Then it is due only if this update moves every blocker (below).
+      if (t.doc) {
+        const plan = planDocPanel(t.doc.def, { modes: (await modes()).modes, names: t.doc.names });
+        const panels = docPanelDue(host as unknown as Pick<PanelApi, 'root'>, v.set as unknown as PNode, plan);
+        if (panels) due.panels = panels;
+        else {
+          const by = docPanelBlockers(host as unknown as Pick<PanelApi, 'root'>, v.set as unknown as PNode, plan);
+          if (by.length) blockedPanels.push({ preview, set: v.set, due, by });
+        }
+      }
       if (furnitureDueCount(due)) preview.furniture = due;
     }
     // REPEATING ROWS INTO A SLOT (#2649): a set still holding them the old way lists every placed instance it carries.
@@ -1084,11 +1210,28 @@ export const previewUpdate = async (host: UpdateHost, targets: readonly UpdateTa
   // #2831: what each published set's update breaks for library consumers, once everything above has named its changes.
   for (const p of out.sets) { const b = breakingOf(p); if (b.length) p.breaking = b; }
   // #2542: the sets that move on their pages, read once every set has been.
-  const moves = pageSetMoves(found.map((f) => ({ name: f.preview.set, set: f.set, blocked: f.preview.blockers.length > 0 })));
+  const moves = pageSetMoves(found.map((f) => ({ name: f.preview.set, set: f.set, blocked: f.preview.blockers.length > 0 })), undefined, docPanelReach(host as unknown as Pick<PanelApi, 'root'>));
   for (const f of found) { const m = moves.get(f.preview.set); if (m) f.preview.setMove = m; }
+  // A BLOCKED PANEL THIS UPDATE CLEARS (#846): every node in its way is, or belongs to, a set this update moves, and the
+  // move spaces that set past the panel. Then it is due, and the apply draws it once the sets have moved.
+  for (const b of blockedPanels) {
+    const kids = ((b.set.parent as { children?: readonly unknown[] } | null)?.children ?? []) as PNode[];
+    if (!b.by.every((n) => { const o = ownerSet(n, kids); return !!o && found.some((f) => f.set === (o as unknown) && f.preview.setMove); })) continue;
+    b.due.panels = 1;
+    b.preview.furniture = b.due;
+  }
   // THE PAGE ORDER (#2568): read once for the file, whichever sets the targets name, since the pages are the file's.
   const pages = host.root.children ? pagesOutOfOrder(host.root.children) : [];
   if (pages.length) out.pages = pages;
+  // THE ABOUT FRAME (#2858): read once for the file, like the page order.
+  const about = await aboutDue(host.root);
+  if (about) out.about = about;
+  // THE LIBRARY COVER (#2859): read once for the file, before the About frame is drawn beside it.
+  const cover = await coverDue(host.root, { api: host });
+  if (cover) out.cover = cover;
+  // THE VARIABLE ORDER (#2860): read once for the file. Nothing here can move a variable, so this only names them.
+  const variables = colorVariablesOutOfOrder((await host.variables.getLocalVariablesAsync()).map((v) => v.name));
+  if (variables.length) out.variables = variables;
   return out;
 };
 
@@ -1135,9 +1278,9 @@ const absentNests = (have: ReadonlySet<string>, plans: readonly AnatomyPlan[]): 
  * the rest and report each as a miss; an update would leave a published set half-changed, which is worse (§7).
  * A host with no `loadFontAsync` checks no font: the plugin's host is `figma`, which always has it.
  */
-const fileBlockers = async (host: UpdateHost, plans: readonly AnatomyPlan[], set: LiveSet): Promise<string[]> => {
+const fileBlockers = async (host: UpdateHost, plans: readonly AnatomyPlan[], set: LiveSet, renamedInto: ReadonlySet<string> = new Set()): Promise<string[]> => {
   const out: string[] = [];
-  const have = new Set(host.root.findAllWithCriteria({ types: ['COMPONENT', 'COMPONENT_SET'] }).map((n) => String((n as { name?: unknown }).name ?? '')));
+  const have = new Set([...host.root.findAllWithCriteria({ types: ['COMPONENT', 'COMPONENT_SET'] }).map((n) => String((n as { name?: unknown }).name ?? '')), ...renamedInto]);
   const absent = absentNests(have, plans);
   if (absent.length) out.push(`Not in this file: ${absent.join(', ')}. Build ${[...new Set(absent.map((a) => a.split('/')[0]))].join(', ')} first, then run the update again`);
   const roots = plans.map((x) => x.root);
@@ -1206,7 +1349,8 @@ export const adoptMembers = async (host: UpdateHost, targets: readonly UpdateTar
   const out: AdoptResult = { sets: [], missing: [], refused: [] };
   for (const t of targets) {
     if (t.single) { (out.notOffered ??= []).push(t.def); continue; }
-    const { found, name } = locate(host, t);
+    // By the current id only: Adopt claims members, and a set under an earlier id (#2759) is the update's to rename.
+    const { found, name } = locateSets(host, t, []);
     if (found.length === 0) { out.missing.push(t.def); continue; }
     if (found.length > 1) { out.refused.push({ def: t.def, reason: `${found.length} sets are named ${name}` }); continue; }
     const r = await adoptSet(t.def, found[0], t.plans, ports, breathe, ledger);
@@ -1229,7 +1373,7 @@ const propChanges = (p: SetPreview): number => Object.values(p.properties).reduc
  *  (the owner's own icons, #2325), so a set whose only other members are those reads as having no changes, and the
  *  set's line still counts them. Counted as a change, a file holding them could never read up to date. A member to
  *  rename is a change (#2592): it reads current, and the apply renames it, so a set of renames is never up to date. */
-const noChanges = (p: SetPreview): boolean => p.counts.current + p.counts.revisionUnknown + p.counts.unstamped === p.counts.members && !p.counts.add && !p.counts.rename && !p.counts.move && !p.setMove && !furnitureDueCount(p.furniture) && !propChanges(p);
+const noChanges = (p: SetPreview): boolean => p.counts.current + p.counts.revisionUnknown + p.counts.unstamped === p.counts.members && !p.counts.add && !p.counts.rename && !p.counts.move && !p.setMove && !p.setRename && !furnitureDueCount(p.furniture) && !propChanges(p);
 /** No changes, and every member current. A member not built by Prism3 that sits on a PLANNED coordinate is one Adopt
  *  could claim (`adoptable`, #2283), so a set holding one reads "no changes", never up to date (owner decision Q191
  *  2B). Off the plan (the owner's own icons, #2464), it doesn't stop a set reading up to date. */
@@ -1255,7 +1399,7 @@ const namedLines = (where: string, list: { part: string; field: string; plan: st
  *  What is left over to clear is named only when nothing is drawn: a redraw clears the old instances anyway. */
 export const furnitureParts = (d: FurnitureDue | undefined, draw: string, clear: string): string[] => {
   if (!d) return [];
-  const parts = [d.labels ? `${n(d.labels, 'canvas label')} ${draw}` : '', d.backdrops ? `${n(d.backdrops, 'backdrop')} ${draw}` : ''].filter(Boolean);
+  const parts = [d.labels ? `${n(d.labels, 'canvas label')} ${draw}` : '', d.backdrops ? `${n(d.backdrops, 'backdrop')} ${draw}` : '', d.panels ? `${n(d.panels, 'usage panel')} ${draw}` : ''].filter(Boolean);
   return parts.length ? parts : d.clear ? [`${n(d.clear, 'canvas label or backdrop', 'canvas labels or backdrops')} ${clear}`] : [];
 };
 
@@ -1287,7 +1431,9 @@ export const previewLine = (p: SetPreview): string => {
   if (noChanges(p)) return `${p.set}: no changes (${n(c.members, 'member')}).${own}${adopt}`;
   // Wording approved, Q246 A (#2542, Q245.2 A): the whole set moves on its page.
   const setMove = p.setMove ? ' The set moves to its place on the page.' : '';
-  return parts.length ? `${p.set}: ${n(c.members, 'member')}. ${parts.join(', ')}.${setMove}` : `${p.set}: ${n(c.members, 'member')}.${setMove}`;
+  // DRAFT wording for the owner (#2759): the set is renamed in place from its earlier name.
+  const setRename = p.setRename ? ` Renamed from ${p.setRename.from}.` : '';
+  return parts.length ? `${p.set}: ${n(c.members, 'member')}. ${parts.join(', ')}.${setMove}${setRename}` : `${p.set}: ${n(c.members, 'member')}.${setMove}${setRename}`;
 };
 
 /** #2831 — what a set's update breaks for library consumers, from what its dry run lists. Empty for a set that is not
@@ -1340,6 +1486,24 @@ export const breakingClause = (sets: readonly { breaking?: Breaking[] }[]): stri
 export const pagesLine = (pages: readonly string[] | undefined): string =>
   pages?.length ? `Component pages: ${pages.length} to reorder (${pages.map(stripNestPrefix).join(', ')}).` : '';
 
+/** The colour variables out of canonical order (#2860), named as the variables panel shows them: the name under its
+ *  `<root>/color/`. A report only; the plugin cannot move a variable, so it says what to drag. Empty when none.
+ *  DRAFT wording, not owner-approved. */
+const VARIABLES_NAMED = 5;
+export const variablesLine = (variables: readonly string[] | undefined): string => {
+  if (!variables?.length) return '';
+  const shown = variables.slice(0, VARIABLES_NAMED).map((v) => v.replace(/^[^/]+\/color\//, ''));
+  const more = variables.length > VARIABLES_NAMED ? `, and ${variables.length - VARIABLES_NAMED} more` : '';
+  return `Color variables: ${variables.length} out of order (${shown.join(', ')}${more}). Figma lets a plugin add variables but not move them, so drag these into place in the variables panel.`;
+};
+
+/** Whether the Cover page's furniture, the About frame (#2858) and the library cover (#2859), is the check's only work
+ *  (owner decision Q498 B), read as the apply reads it: no set a confirm would write (a stamp-only set is a write), no
+ *  set to move and no page to reorder. A set that can't be checked is refused by the confirm, so it adds no work. The
+ *  apply then saves no named version, and the dry run says so. */
+export const aboutOnly = (r: UpdatePreview): boolean =>
+  (aboutIsWork(r.about) || coverIsWork(r.cover)) && !r.pages?.length && r.sets.every((p) => p.blockers.length > 0 || (noChanges(p) && !p.counts.revisionUnknown));
+
 /** The verdict for a dry run. `ok` is false only where a set could not be checked. `lines` is the Activity drawer's
  *  copy (#2177): one per set, then the closing lines, the same list `summary` is joined from. */
 export const previewVerdict = (r: UpdatePreview, whatChanged: (sets: string[]) => string[] = whatChangedLines): { ok: boolean; headline: string; summary: string; lines: string[] } => {
@@ -1351,9 +1515,13 @@ export const previewVerdict = (r: UpdatePreview, whatChanged: (sets: string[]) =
   const blocked = r.sets.filter((p) => p.blockers.length).length + r.refused.length;
   const reorder = r.pages?.length ?? 0;
   // Owner-approved wording (#2568, Q264 A): pages to reorder and nothing else is its own headline.
-  const headline = r.sets.length + r.refused.length === 0 ? (reorder ? `Would reorder ${n(reorder, 'page')}` : 'No sets to check')
+  // DRAFT wording for the owner (#2858): the About frame as the only work reads as work, as the page order does.
+  // DRAFT wording for the owner (#2859): the cover the same way, when the About frame is not also due.
+  const about = aboutIsWork(r.about) ? `Would ${r.about!.state === 'stale' ? 'redraw' : 'draw'} ${ABOUT_NAME}`
+    : coverIsWork(r.cover) ? `Would ${r.cover!.state === 'stale' ? 'update' : 'draw'} the ${COVER_NAME.toLowerCase()}` : '';
+  const headline = r.sets.length + r.refused.length === 0 ? (reorder ? `Would reorder ${n(reorder, 'page')}` : about || 'No sets to check')
     : blocked ? `✗ ${n(blocked, 'set')} can't be checked`
-      : changing ? `Would change ${changing} of ${r.sets.length}` : reorder ? `Would reorder ${n(reorder, 'page')}`
+      : changing ? `Would change ${changing} of ${r.sets.length}` : reorder ? `Would reorder ${n(reorder, 'page')}` : about ? about
         : earlier || claimable ? '✓ No changes found' : '✓ All sets up to date';
   const lines = [
     // Each set's line, then each field it differs from its plan in, NAMED (#2295): where, what, the plan's value and
@@ -1366,6 +1534,10 @@ export const previewVerdict = (r: UpdatePreview, whatChanged: (sets: string[]) =
     ...breakingSection(r.sets, false),
     ...r.refused.map((x) => `${x.def}: can't be checked. ${x.reason}.`),
     pagesLine(r.pages),
+    coverDueLine(r.cover),
+    aboutDueLine(r.about),
+    aboutOnly(r) ? coverPageOnlyLine({ about: aboutIsWork(r.about), cover: coverIsWork(r.cover) }, false) : '',
+    variablesLine(r.variables),
     r.missing.length ? `Not in this file: ${r.missing.join(', ')}.` : '',
     earlier ? `${earlier} built by an earlier plugin. Update ${earlier === 1 ? 'it to bring it' : 'them to bring them'} current.` : '',
     // Wording approved, Q246 A (#2542, Q245.2 A).

@@ -29,8 +29,8 @@
 import { ComponentDef } from '../component-schema';
 
 export const tab: ComponentDef = {
-  id: 'tab',
-  name: 'Tab',
+  id: 'tab-item',
+  name: 'Tab.Item',
   aliases: ['tab-trigger', 'tab-item'],
   category: 'navigation',
   status: 'draft',
@@ -244,14 +244,14 @@ export const tab: ComponentDef = {
 
   docs: {
     usage: 'Use inside Tabs only. A tab names one panel of related content; selecting it shows that panel in place.',
-    do: ['Keep labels short, parallel nouns', 'Let the tab list set selected from its value'],
-    dont: ['Use a tab to go to another page; that is a link in a navigation', 'Set selected on a tab inside a list by hand'],
+    do: ['Keep labels short, parallel nouns', 'Use nouns, not verbs ("Activity", not "View activity")', 'Let the tab list set selected from its value'],
+    dont: ['Use a tab to go to another page; that is a link in a navigation', 'Set selected on a tab inside a list by hand', 'Wrap a label onto a second line; shorten it, or reconsider how many tabs the list needs'],
     contentGuidelines: 'One or two words, a noun, sentence case.',
   },
 
   ai: {
     primaryPurpose: 'One trigger inside Tabs that shows its panel in place when selected.',
-    whenToUse: 'Only as a child of Tabs.',
+    whenToUse: 'Only as a child of Tabs. Generate Tabs, which places one tab per panel and sets which one is selected.',
     avoidWhen: 'Changing the page or the address (a navigation of links), or switching a value within the current view (SegmentedControl).',
     commonPartners: ['tabs', 'icon', 'badge'],
     triggerKeywords: ['tab', 'tab trigger', 'tab item'],

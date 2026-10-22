@@ -1028,7 +1028,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
 // ANOTHER, each when the last one's result lands (`state/build-queue.ts`). Held here through the real UI, with this
 // suite playing the plugin: what is posted, and when; that Activity reads one running build between the sets and ONE
 // result at the end (idea 13 A), with no Earlier results from the sets in between; Stop (call 16 A) letting the set being
-// built finish and posting nothing after it; and Build all (call 10 A) posting the nine subcomponents in the list's
+// built finish and posting nothing after it; and Build all (call 10 A) posting the eleven subcomponents in the list's
 // order without touching the selection. EXPECTED is typed here: the ids, the order and the words.
 //
 // MUTATIONS, each failing here by name:
@@ -1085,16 +1085,16 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   ok(JSON.stringify(afterStop) === '["badge"]' && (await verdict()) === 'Stopped after 1 of 3 sets',
     `#2700 Stop lets the set being built finish and posts nothing after it — posted ${JSON.stringify(afterStop)}, Activity ${JSON.stringify(await verdict())}`);
 
-  // Build all: the nine subcomponents in the list's order, the selection left alone.
+  // Build all: the eleven subcomponents in the list's order, the selection left alone.
   const pre = (await posted()).length;
   await hooks.click(page.locator('[data-p3="cp-build-all"]'));
-  const SUBS = ['field-label', 'field-message', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'focus-ring', 'icon', 'image-placeholder', 'spinner'];
+  const SUBS = ['breadcrumb-item', '_breadcrumb-separator', 'field-label', 'field-message', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'focus-ring', 'icon', 'image-placeholder', 'spinner'];
   for (let i = 0; i < SUBS.length; i++) { await waitPosts(pre + i + 1); await result(SUBS[i]); }
   await idleAgain(page);
   const all = (await posted()).slice(pre);
   const still = await readSurfaces(page);
   ok(JSON.stringify(all) === JSON.stringify(SUBS) && still.picker === 'badge,divider,tag',
-    `#2700 call 10: Build all posts the nine subcomponents in the list's order and leaves the selection alone — posted ${JSON.stringify(all)}, selected ${still.picker}`);
+    `#2700 call 10: Build all posts the eleven subcomponents in the list's order and leaves the selection alone — posted ${JSON.stringify(all)}, selected ${still.picker}`);
 
   // An agent's build: the bar waits, and says so.
   await post(page, { type: 'agent-started', id: 'q1', cmd: 'build-components' });
@@ -1141,7 +1141,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
       fits: s ? s.getBoundingClientRect().right <= document.documentElement.clientWidth : false,
       also: document.querySelector('[data-p3="components-also-builds"]')?.textContent ?? null };
   });
-  ok(line.text === '4 sets · 1,155 variants · 45 components' && line.lines === 1 && line.fits,
+  ok(line.text === '4 sets · 1,155 variants · 46 components' && line.lines === 1 && line.fits,
     `#2812 (5) at 380 the bar keeps both counts on one line, inside the panel — read ${JSON.stringify(line.text)}, ${line.lines} line(s), fits ${line.fits}`);
   ok(line.also === 'Also builds, when the file lacks them: Spinner, Focus ring.',
     `#2812 Q392 "Also builds" names the sets as the list does — read ${JSON.stringify(line.also)}`);
@@ -2317,6 +2317,41 @@ for (const how of ['pointer', 'focus']) {
     ok(errors.length === 0, `#2281 no items: no console errors (${errors.slice(0, 2).join(' · ')})`);
     await page.close();
   }
+}
+
+// #2858 (owner decision Q479): after an Update, the drawer's components row offers the library publish description with a
+// Copy button, under the run's lines. The text is the host's, shown as sent; a copy either lands on the clipboard or, where
+// the iframe refuses it, selects the text and says so.
+{
+  const { page, errors } = await openPanel();
+  const publish = 'Before Prism3 updated tag. Engine 0.237.0. Token contract 14.7.0.\nNo breaking changes.';
+  await post(page, { type: 'component-update-result', ok: true, headline: '✓ updated 3 in place', summary: 'tag: 3 updated in place.', lines: ['tag: 3 updated in place.'], publish });
+  await page.waitForFunction(() => !!document.querySelector('[data-p3="activity-op"][data-op="components"] [data-p3="op-head"]'), null, { timeout: 5000 }).catch(() => {});
+  // An ok result with no run before it leaves the drawer closed: open it, then the row.
+  if (await page.evaluate(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open !== 'true')) await hooks.click(page.locator('[data-p3="activity-toggle"]'));
+  const open = () => page.evaluate(() => document.querySelector('[data-p3="activity-op"][data-op="components"] [data-p3="op-head"]')?.getAttribute('aria-expanded') === 'true');
+  if (!(await open())) await hooks.click(page.locator('[data-p3="activity-op"][data-op="components"] [data-p3="op-head"]'));
+  await page.waitForFunction(() => !!document.querySelector('[data-p3="op-publish-text"]')?.checkVisibility(), null, { timeout: 5000 }).catch(() => {});
+  const seen = await page.evaluate(() => ({
+    text: document.querySelector('[data-p3="activity-op"][data-op="components"] [data-p3="op-publish-text"]')?.textContent ?? null,
+    copy: document.querySelector('[data-p3="op-publish-copy"]')?.textContent ?? null,
+    state: document.querySelector('[data-p3="op-publish-state"]')?.textContent ?? null,
+    live: document.querySelector('[data-p3="op-publish-state"]')?.getAttribute('aria-live') ?? null,
+  }));
+  ok(seen.text === publish && seen.copy === 'Copy' && seen.state === "Paste it into Publish library in Figma's Assets panel." && seen.live === 'polite',
+    `#2858 an Update's publish description is shown as sent, with a Copy button — read ${JSON.stringify(seen)}`);
+  await hooks.click(page.locator('[data-p3="op-publish-copy"]'));
+  await page.waitForFunction(() => (document.querySelector('[data-p3="op-publish-state"]')?.textContent ?? '').startsWith('Copied') || (document.querySelector('[data-p3="op-publish-state"]')?.textContent ?? '').startsWith('Selected'), null, { timeout: 5000 }).catch(() => {});
+  const after = await page.evaluate(() => ({ state: document.querySelector('[data-p3="op-publish-state"]')?.textContent ?? null, selected: String(getSelection() ?? '') }));
+  ok(after.state === 'Copied.' || (after.state === 'Selected. Copy it with your keyboard.' && after.selected === publish),
+    `#2858 Copy copies the description, or selects it and says so — read ${JSON.stringify(after)}`);
+  // A check (no publish description) shows no block.
+  await post(page, { type: 'component-update-result', ok: true, headline: 'Would change 1 of 1', summary: 'tag: 3 to update.', lines: ['tag: 3 to update.'] });
+  await page.waitForFunction(() => (document.querySelector('[data-p3="activity-op"][data-op="components"] [data-p3="op-verdict"]')?.textContent ?? '') === 'Would change 1 of 1', null, { timeout: 5000 }).catch(() => {});
+  const check = await page.evaluate(() => document.querySelectorAll('[data-p3="activity-op"][data-op="components"] [data-p3="op-publish"]').length);
+  ok(check === 0, `#2858 a check offers no publish description — found ${check}`);
+  ok(errors.length === 0, `#2858 publish description: no console errors (${errors.slice(0, 2).join(' · ')})`);
+  await page.close();
 }
 
 await browser.close();

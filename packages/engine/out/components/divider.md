@@ -19,7 +19,7 @@ A 1px rule that separates groups of content when spacing alone leaves the groupi
 
 Shown on the default member: orientation `horizontal`, inset `none`.
 
-1. **Divider** — The divider's footprint: the thickness one way and the length the other, with the inset as its padding. It paints nothing.
+1. **Container** — The divider's footprint: the thickness one way and the length the other, with the inset as its padding. It paints nothing.
 2. **Rule** — The rule itself: one box, one fill, no children. Its thickness is the hairline border width; its length fills the container it sits in, less the inset, so the standalone length is a placeholder a host stretches.
 
 ## Styles
@@ -80,6 +80,87 @@ A divider holds no copy.
 | `orientation` | enum: 'horizontal' \| 'vertical' | `horizontal` | no | Which way the rule runs. horizontal spans the width of its container and separates content stacked above and below it; vertical spans the height of its container and separates items side by side. A vertical rule sets aria-orientation="vertical"; horizontal is the default and needs no attribute. |
 | `inset` | enum: 'none' \| 'inset' \| 'middle-inset' | `none` | no | How far the rule sits in from its container's edges. none runs edge to edge; inset starts the rule 16px in from the start edge, so it lines up with indented content such as list text after an avatar; middle-inset indents both ends. The start edge follows text direction. A vertical rule takes none or middle-inset only. |
 | `decorative` | boolean | `true` | no | Whether the rule is only visual. true (the default) hides it from assistive technology with aria-hidden="true". Set false when the rule marks a real break in the content: it becomes a separator, an \<hr> for a horizontal rule, drawn in border.tertiary so it reaches 3:1 on every background. |
+
+## Specs
+
+Generated from the plan that builds the design-file component: 5 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `container` | frame | every member |
+| `container/rule` | frame | every member |
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by `orientation`, `inset`.
+
+**orientation=horizontal, inset=none**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | `space.0` | — | `border-width.hairline` | `container.narrow` | — | — |
+
+**orientation=horizontal, inset=inset**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | `space.0` / `space.0` / `space.0` / `space.200` | — | `border-width.hairline` | `container.narrow` | — | — |
+
+**orientation=horizontal, inset=middle-inset**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | `space.0` / `space.200` / `space.0` / `space.200` | — | `border-width.hairline` | `container.narrow` | — | — |
+
+**orientation=vertical, inset=none**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | `space.0` | — | `size.md.height` | `border-width.hairline` | — | — |
+
+**orientation=vertical, inset=middle-inset**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | `space.100` / `space.0` / `space.100` / `space.0` | — | `size.md.height` | `border-width.hairline` | — | — |
+
+### Color
+
+Keyed by `orientation`, `inset`.
+
+**orientation=horizontal, inset=none**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/rule` | `color.border.secondary` | — | — | — |
+
+**orientation=horizontal, inset=inset**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/rule` | `color.border.secondary` | — | — | — |
+
+**orientation=horizontal, inset=middle-inset**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/rule` | `color.border.secondary` | — | — | — |
+
+**orientation=vertical, inset=none**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/rule` | `color.border.secondary` | — | — | — |
+
+**orientation=vertical, inset=middle-inset**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/rule` | `color.border.secondary` | — | — | — |
 
 ---
 

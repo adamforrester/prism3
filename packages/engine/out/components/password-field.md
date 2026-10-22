@@ -45,7 +45,7 @@ Shown on the default member: size `medium`, style `outline`, status `default`.
 
 ## Usage guidelines
 
-Use for a password, a PIN typed as text, or any other secret a user types. The field nests FieldLabel and a Show/Hide button on the label row, the input box below, and FieldMessage under it. Set `autoComplete` to `current-password` on a sign-in form and `new-password` where the user sets one. Put the rules for a new password in helper text or a list under the field.
+Use for a password, a PIN typed as text, or any other secret a user types. The field nests FieldLabel and a Show/Hide button on the label row, the input box below, and FieldMessage under it. Set autoComplete to current-password on a sign-in form and new-password where the user sets one. Put the rules for a new password in helper text or a list under the field.
 
 ### Do
 
@@ -116,18 +116,351 @@ Label = noun phrase, sentence case, no trailing colon. Button = "Show" / "Hide",
 | `onChange` | function | — | no | Change handler (also onBlur / onFocus). |
 | `placeholder` | string | — | no | An example only; vanishes on input. The password rules belong in helper text or a list under the field, never here. |
 | `helpText` | string \| node | — | no | Persistent guidance (rendered as FieldMessage, default status), wired via aria-describedby. State the rules for a new password here, before the user types. |
-| `validation` | enum: 'default' \| 'error' \| 'warning' \| 'success' | `default` | no | The validation state, as on TextField: each non-default status swaps the input border and sets the nested message to the matching status; `error` also sets aria-invalid. The Show/Hide button never takes the status color. |
+| `validation` | enum: 'default' \| 'error' \| 'warning' \| 'success' | `default` | no | The validation state, as on TextField: each non-default status swaps the input border and sets the nested message to the matching status; error also sets aria-invalid. The Show/Hide button never takes the status color. |
 | `validationMessage` | string \| node | — | no | The validation text shown at error / warning / success, added to aria-describedby. Say what is wrong and how to fix it (SC 3.3.3). |
-| `showMessage` | boolean | `true` | no | Whether the composed FieldMessage is shown. ON by default; turning it off hides the message entirely. Never hides a message the field needs. |
+| `showMessage` | boolean | `false` | no | Whether the composed FieldMessage is shown. Off by default; turn it on to render the helper or validation message. Never hides a message the field needs. |
 | `required` | boolean | `false` | no | Sets required / aria-required, and turns on the FieldLabel's required marker. |
 | `disabled` | boolean | `false` | no | Native disabled. Disables the Show/Hide button with the field. |
 | `readOnly` | boolean | `false` | no | Focusable, copyable and submitted, and passes contrast. The Show/Hide button stays live, so a read-only value can still be shown. |
-| `autoComplete` | enum: 'current-password' \| 'new-password' | — | yes | Required (SC 1.3.5): `current-password` on a sign-in form, `new-password` where the user sets one, so a password manager fills or offers to generate it. Never `off`. |
+| `autoComplete` | enum: 'current-password' \| 'new-password' | — | yes | Required (SC 1.3.5): current-password on a sign-in form, new-password where the user sets one, so a password manager fills or offers to generate it. Never off. |
 | `leadingIcon` | slot | — | no | An optional leading glyph before the value, aria-hidden and never the accessible name. Hidden by default; the file nominates the swap target. |
 | `isPending` | boolean | `false` | no | Async validation in progress; sets aria-busy; does not block typing. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | TextField's three tiers: the input type and the nested label scale with it. The Show/Hide button is small at every size, so the label row stays one label line tall. Every size keeps the input's 44px target; the button's hit area is 44×44 at medium and large and 24×24 at small, in code. |
 | `id` | string | — | no | Wiring + form submission; auto-generated with useId if omitted. The Show/Hide button's aria-controls names it. |
 | `name` | string | — | no | A real \<input name>, so the field works in a native \<form> and a password manager recognizes it. |
+
+## Specs
+
+Generated from the plan that builds the design-file component: 84 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `container` | frame | every member |
+| `container/labelRow` | frame | every member |
+| `container/labelRow/labelCell` | frame | every member |
+| `container/labelRow/labelCell/label` | instance | every member |
+| `container/labelRow/toggle` | instance | every member |
+| `container/control` | frame | every member |
+| `container/control/content` | frame | every member |
+| `container/control/content/leadingVisual` | swap | every member |
+| `container/control/content/entry` | frame | every member |
+| `container/control/content/entry/placeholder` | text | state=rest or hover or focus-visible or disabled |
+| `container/message` | instance | every member |
+| `container/control/content/entry/value` | text | state=filled or focus-visible-filled or read-only |
+| `container/control/content/entry/caret` | frame | state=focus-visible |
+| `container/control/focusRing` | instance | state=focus-visible or focus-visible-filled |
+| `container/control/content/entry/caretEnd` | frame | state=focus-visible-filled |
+
+Code-only states, with no design-file member: `pending`, `empty`.
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by `size`.
+
+**size=medium**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/labelRow` | — | `space.100` | — | — | — | — |
+| `container/control` | `space.100` / `space.200` / `space.100` / `space.200` | `space.100` | `size.md.min-height` | — | 120px (literal) | — |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/content/entry/caret` | — | — | `control.size.md.line-box` | `border-width.hairline` | — | — |
+| `container/control/content/entry/caretEnd` | — | — | `control.size.md.line-box` | `border-width.hairline` | — | — |
+
+**size=small**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/labelRow` | — | `space.100` | — | — | — | — |
+| `container/control` | `space.075` / `space.200` / `space.075` / `space.200` | `space.100` | `size.md.min-height` | — | 120px (literal) | — |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/content/entry/caret` | — | — | `control.size.sm.line-box` | `border-width.hairline` | — | — |
+| `container/control/content/entry/caretEnd` | — | — | `control.size.sm.line-box` | `border-width.hairline` | — | — |
+
+**size=large**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `container` | — | `space.100` | — | — | — | build width 320px (literal) |
+| `container/labelRow` | — | `space.100` | — | — | — | — |
+| `container/control` | `space.100` / `space.300` / `space.100` / `space.300` | `space.100` | `size.lg.height` | — | 120px (literal) | — |
+| `container/control/content` | — | `space.100` | — | — | — | — |
+| `container/control/content/leadingVisual` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `container/control/content/entry/caret` | — | — | `control.size.lg.line-box` | `border-width.hairline` | — | — |
+| `container/control/content/entry/caretEnd` | — | — | `control.size.lg.line-box` | `border-width.hairline` | — | — |
+
+### Type
+
+Keyed by `size`.
+
+| Members | Part | Text style |
+| --- | --- | --- |
+| size=medium | `container/control/content/entry/placeholder` | `type.body.md.default` |
+| size=medium | `container/control/content/entry/value` | `type.body.md.default` |
+| size=small | `container/control/content/entry/placeholder` | `type.body.sm.default` |
+| size=small | `container/control/content/entry/value` | `type.body.sm.default` |
+| size=large | `container/control/content/entry/placeholder` | `type.body.lg.default` |
+| size=large | `container/control/content/entry/value` | `type.body.lg.default` |
+
+### Color
+
+Keyed by `status`, `state`.
+
+**status=default, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.field.border.rest` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/placeholder` | — | — | `color.text.secondary` | — |
+
+**status=default, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.interactive.neutral.overlay.hover` | `color.field.border.hover` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/placeholder` | — | — | `color.text.secondary` | — |
+
+**status=default, state=filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.field.border.rest` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/value` | — | — | `color.text.primary` | — |
+
+**status=default, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.focus` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/caret` | `color.text.primary` | — | — | — |
+| `container/control/content/entry/placeholder` | — | — | `color.text.secondary` | — |
+
+**status=default, state=focus-visible-filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.focus` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/value` | — | — | `color.text.primary` | — |
+| `container/control/content/entry/caretEnd` | `color.text.primary` | — | — | — |
+
+**status=default, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.disabled.fill` | `color.disabled.border` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.disabled.on-fill` |
+| `container/control/content/entry/placeholder` | — | — | `color.disabled.on-fill` | — |
+
+**status=default, state=read-only**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.field.border.rest` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/value` | — | — | `color.text.primary` | — |
+
+**status=error, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.danger` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/placeholder` | — | — | `color.text.secondary` | — |
+
+**status=error, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.interactive.neutral.overlay.hover` | `color.border.danger` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/placeholder` | — | — | `color.text.secondary` | — |
+
+**status=error, state=filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.danger` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/value` | — | — | `color.text.primary` | — |
+
+**status=error, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.danger` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/caret` | `color.text.primary` | — | — | — |
+| `container/control/content/entry/placeholder` | — | — | `color.text.secondary` | — |
+
+**status=error, state=focus-visible-filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.danger` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/value` | — | — | `color.text.primary` | — |
+| `container/control/content/entry/caretEnd` | `color.text.primary` | — | — | — |
+
+**status=error, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.disabled.fill` | `color.disabled.border` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.disabled.on-fill` |
+| `container/control/content/entry/placeholder` | — | — | `color.disabled.on-fill` | — |
+
+**status=error, state=read-only**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.danger` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/value` | — | — | `color.text.primary` | — |
+
+**status=warning, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.warning` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/placeholder` | — | — | `color.text.secondary` | — |
+
+**status=warning, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.interactive.neutral.overlay.hover` | `color.border.warning` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/placeholder` | — | — | `color.text.secondary` | — |
+
+**status=warning, state=filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.warning` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/value` | — | — | `color.text.primary` | — |
+
+**status=warning, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.warning` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/caret` | `color.text.primary` | — | — | — |
+| `container/control/content/entry/placeholder` | — | — | `color.text.secondary` | — |
+
+**status=warning, state=focus-visible-filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.warning` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/value` | — | — | `color.text.primary` | — |
+| `container/control/content/entry/caretEnd` | `color.text.primary` | — | — | — |
+
+**status=warning, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.disabled.fill` | `color.disabled.border` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.disabled.on-fill` |
+| `container/control/content/entry/placeholder` | — | — | `color.disabled.on-fill` | — |
+
+**status=warning, state=read-only**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.warning` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/value` | — | — | `color.text.primary` | — |
+
+**status=success, state=rest**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.success` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/placeholder` | — | — | `color.text.secondary` | — |
+
+**status=success, state=hover**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.interactive.neutral.overlay.hover` | `color.border.success` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/placeholder` | — | — | `color.text.secondary` | — |
+
+**status=success, state=filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.success` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/value` | — | — | `color.text.primary` | — |
+
+**status=success, state=focus-visible**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.success` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/caret` | `color.text.primary` | — | — | — |
+| `container/control/content/entry/placeholder` | — | — | `color.text.secondary` | — |
+
+**status=success, state=focus-visible-filled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.success` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/value` | — | — | `color.text.primary` | — |
+| `container/control/content/entry/caretEnd` | `color.text.primary` | — | — | — |
+
+**status=success, state=disabled**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.disabled.fill` | `color.disabled.border` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.disabled.on-fill` |
+| `container/control/content/entry/placeholder` | — | — | `color.disabled.on-fill` | — |
+
+**status=success, state=read-only**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `container/control` | `color.field.fill` | `color.border.success` | — | — |
+| `container/control/content/leadingVisual` | — | — | — | `color.icon.primary` |
+| `container/control/content/entry/value` | — | — | `color.text.primary` | — |
+
+### Nesting and properties
+
+- `container/labelRow/labelCell/label` nests `field-label` at `size=medium, emphasis=secondary, weight=regular, state=rest`; `state=disabled` takes `state=disabled`; follows `size`; exposes `emphasis`, `weight`
+- `container/labelRow/toggle` nests `button` at `appearance=text, size=small, surface=default, inset=flush, state=rest, leading icon=false, trailing icon=false`; `state=disabled` takes `state=disabled`; exposes `label`
+- `container/control/content/leadingVisual` is a swap slot, property `↳ swap leading icon`, shown by `leading icon`
+- `container/message` nests `field-message` at `status=default`; follows `status`
+- `container/control/focusRing` nests `focus-ring` at `surface=default`
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `placeholder` | text | `Placeholder` |
+| `value` | text | `••••••••` |
+| `leading icon` | boolean | `false` |
+| `↳ swap leading icon` | instance swap | — |
+| `message` | boolean | `false` |
 
 ---
 

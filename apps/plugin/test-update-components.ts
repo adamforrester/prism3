@@ -112,7 +112,7 @@ import { makeShim, type Node, type Page } from './component-shim';
 import {
   readSetView, dryRunSet, hostPorts, previewUpdate, captureBaselines, previewVerdict, captureVerdictText,
   adoptMembers, adoptVerdictText, ADOPTED,
-  previewLine,
+  previewLine, variablesLine,
   type HostSetView, type HostMember, type UpdateHost, type SetPreview, type UpdatePreview,
 } from './src/update-plan';
 
@@ -940,14 +940,14 @@ const buildSingle = async (id: string) => {
 {
   const ic = await buildSingle('icon');
   const pd = (n: Node, k: string): string => (n.getSharedPluginData as (a: string, b: string) => string)(NS, k);
-  ok(ic.comps().length === 45 && ic.comps().every((c) => String(c.name).startsWith('icon/')), `premise: 45 icons built as single components (${ic.comps().length})`);
+  ok(ic.comps().length === 46 && ic.comps().every((c) => String(c.name).startsWith('icon/')), `premise: 46 icons built as single components (${ic.comps().length})`);
   const r = await previewUpdate(ic.host, [ic.target]);
-  ok(r.missing.length === 0 && r.sets.length === 1 && r.sets[0].counts.current === 45 && r.sets[0].counts.members === 45,
-    `single/found: the icons are read as one set of 45, all current, not "Not in this file" (${JSON.stringify(r.missing)}, ${JSON.stringify(r.sets[0]?.counts)})`);
+  ok(r.missing.length === 0 && r.sets.length === 1 && r.sets[0].counts.current === 46 && r.sets[0].counts.members === 46,
+    `single/found: the icons are read as one set of 46, all current, not "Not in this file" (${JSON.stringify(r.missing)}, ${JSON.stringify(r.sets[0]?.counts)})`);
   // The capture of a file built before records existed.
   for (const c of ic.comps()) (c.setSharedPluginData as (a: string, b: string, v: string) => void)(NS, BASELINE_KEY, '');
   const cap = await captureBaselines(ic.host, [ic.target]);
-  ok(cap.sets[0]?.recorded === 45 && ic.comps().every((c) => pd(c, BASELINE_KEY) !== ''), `single/capture: all 45 recorded (${cap.sets[0]?.recorded}, ${JSON.stringify(cap.sets[0]?.skipped.slice(0, 1))})`);
+  ok(cap.sets[0]?.recorded === 46 && ic.comps().every((c) => pd(c, BASELINE_KEY) !== ''), `single/capture: all 46 recorded (${cap.sets[0]?.recorded}, ${JSON.stringify(cap.sets[0]?.skipped.slice(0, 1))})`);
   // One icon edited by hand.
   const check = ic.named('icon/check');
   check.opacity = 0.5;
@@ -987,7 +987,7 @@ const buildSingle = async (id: string) => {
   const src = ic.named('icon/check');
   for (const k of [STAMP_KEY, BASELINE_KEY]) (dup.setSharedPluginData as (a: string, b: string, v: string) => void)(NS, k, (src.getSharedPluginData as (a: string, b: string) => string)(NS, k));
   const p = (await previewUpdate(ic.host, [ic.target])).sets[0];
-  ok(p.counts.current === 45 && !p.adds.length, `single/moved: the icon moved into a frame is found and current, not re-added (${p.counts.current}, adds ${JSON.stringify(p.adds)})`);
+  ok(p.counts.current === 46 && !p.adds.length, `single/moved: the icon moved into a frame is found and current, not re-added (${p.counts.current}, adds ${JSON.stringify(p.adds)})`);
   ok(!p.drops.includes('name=zz-copy') && p.unstamped.includes('name=zz-copy'), `single/copy: a duplicated icon is not Prism3's, so not a drop (#2300) (${JSON.stringify(p.drops)})`);
 }
 {
@@ -1053,8 +1053,11 @@ section('file — a def with no set is missing; the verdict says nothing changed
   const v = previewVerdict(r);
   ok(v.ok && /Nothing in the file changed\.$/.test(v.summary) && /Not in this file: badge\./.test(v.summary), `file/words: the summary names the missing set and says this was a check only`);
   // #2177: the Activity drawer draws one line per item. Three here, authored: the set, the missing def, the closing line.
-  ok(v.lines.length === 3 && v.lines[0].startsWith(`${r.sets[0].set}: `) && v.lines[1] === 'Not in this file: badge.'
-    && v.lines[2] === 'This was a check only. Nothing in the file changed.', `file/lines: one line per set, then each closing line (${JSON.stringify(v.lines)})`);
+  // The fixture shim makes its variables in the order the components bind them, not the emission's, so it reads as out of
+  // canonical order (#2860). That report has its own block below; here it is set aside.
+  const lines = v.lines.filter((l) => !l.startsWith('Color variables: '));
+  ok(lines.length === 3 && lines[0].startsWith(`${r.sets[0].set}: `) && lines[1] === 'Not in this file: badge.'
+    && lines[2] === 'This was a check only. Nothing in the file changed.', `file/lines: one line per set, then each closing line (${JSON.stringify(lines)})`);
   const c = captureVerdictText({ sets: [{ def: TAG, set: 'Tag', recorded: 2, skipped: [] }], missing: ['badge'], refused: [{ def: 'x', reason: 'two sets' }] });
   ok(JSON.stringify(c.lines) === JSON.stringify(['Tag: 2 members recorded.', 'x: not recorded. two sets.', 'Not in this file: badge.']),
     `file/capture lines: one line per set, refusal and missing list (${JSON.stringify(c.lines)})`);
@@ -1076,6 +1079,37 @@ section('file — a def with no set is missing; the verdict says nothing changed
   ok(m.length === WHAT_CHANGED_LINES + 3 && m[WHAT_CHANGED_LINES + 1] === '2 more in the full notes.', `release/cap: ${WHAT_CHANGED_LINES} named, the rest counted (${JSON.stringify(m)})`);
   // The bundled index carries the version this plugin builds at: the fold writes it with the version (lint-release-notes REPRESENTED).
   ok(releaseIndex.releases.some((r) => r.version === ENGINE_VERSION), `release/bundled: docs/public/releases/index.json has an entry for ${ENGINE_VERSION}`);
+}
+
+// ---- #2860 THE VARIABLE ORDER: the dry run LISTS colour variables out of canonical order, and moves nothing ----
+//
+// The Plugin API has no way to move a variable (only styles), so the check can only name what a person would drag.
+// The names and the file's order are literals typed here, never read from `color-order.ts`, so a change to the
+// canonical order fails here by name. The host is a bare shim: no sets, no pages, a variable list.
+{
+  const names = ['background/primary', 'foreground/primary', 'foreground/brand', 'foreground/success', 'foreground/warning', 'foreground/danger', 'foreground/info',
+    'text/primary', 'text/success', 'text/danger', 'interactive/primary/fill/rest', 'interactive/primary/fill/hover', 'interactive/primary/fill/focused', 'interactive/primary/fill/pressed'];
+  const withVars = (list: string[]): UpdateHost => {
+    const vars = list.map((name, id) => ({ id: String(id), name }));
+    return { root: { findAllWithCriteria: () => [], children: [] }, variables: { getLocalVariablesAsync: async () => vars },
+      getLocalTextStylesAsync: async () => [], getLocalEffectStylesAsync: async () => [] } as unknown as UpdateHost;
+  };
+  const inOrder = names.slice(0, 11).map((n) => `acme/color/${n}`);
+  const clean = await previewUpdate(withVars(inOrder), []);
+  ok(clean.variables === undefined && variablesLine(clean.variables) === '', 'variables/in order: a file in canonical order lists nothing');
+  const displaced = [...inOrder.filter((n) => !n.endsWith('/foreground/warning')), 'acme/core/palette/x', 'acme/color/mine/custom', 'acme/color/foreground/warning'];
+  const before = JSON.stringify(displaced);
+  const r = await previewUpdate(withVars(displaced), []);
+  ok(JSON.stringify(r.variables) === JSON.stringify(['acme/color/foreground/warning']),
+    `variables/out of order: warning, moved to the end, is the one variable to drag (got ${JSON.stringify(r.variables)})`);
+  ok(variablesLine(r.variables).startsWith('Color variables: 1 out of order (foreground/warning).'), `variables/line: names it under its group (${variablesLine(r.variables)})`);
+  ok(previewVerdict(r).summary.includes('Color variables: 1 out of order'), 'variables/verdict: the line is in the dry run summary');
+  ok(JSON.stringify(displaced) === before, 'variables/read-only: the list the host returned is untouched');
+  const stateSwap = await previewUpdate(withVars(['acme/color/interactive/primary/fill/rest', 'acme/color/interactive/primary/fill/focused', 'acme/color/interactive/primary/fill/pressed']), []);
+  ok(JSON.stringify(stateSwap.variables) === JSON.stringify(['acme/color/interactive/primary/fill/focused']),
+    `variables/states: pressed before focused lists focused, not an alphabetical read (got ${JSON.stringify(stateSwap.variables)})`);
+  const many = await previewUpdate(withVars(['acme/color/foreground/info', ...Array.from({ length: 8 }, (_, i) => `acme/color/text/${['primary', 'secondary', 'tertiary', 'brand', 'success', 'warning', 'danger', 'info'][i]}`).reverse()]), []);
+  ok(variablesLine(many.variables).includes(', and 2 more)'), `variables/cap: five named, the rest counted (${variablesLine(many.variables)})`);
 }
 
 console.log(`\n${failed ? `❌ ${failed} FAILED` : '✓ all passed'} — ${executed} assertions executed`);

@@ -68,7 +68,7 @@ export const fieldMessage: ComponentDef = {
   status: 'draft',
   summary: 'Helper or validation caption below a field; status sets its icon and ink.',
   description:
-    'The small icon + caption below a form field. In its default status it is persistent helper guidance (the format shown BEFORE failure); its error / warning / success statuses carry a validation result. A shared field part — the same component under every field control, not re-authored per host. Icon + text together, never color alone.',
+    'The small icon + caption below a form field. In its default status it is persistent helper guidance (the format shown before failure); its error / warning / success statuses carry a validation result. A shared field part — the same component under every field control, not re-authored per host. Icon + text together, never color alone.',
 
   props: [
     { name: 'status', type: "enum: 'default' | 'error' | 'warning' | 'success'", values: ['default', 'error', 'warning', 'success'], default: 'default', required: false, description: 'default = helper guidance (neutral); error / warning / success = a validation result. The status re-points both the caption ink and the icon at the matching semantic role.' },
@@ -76,7 +76,7 @@ export const fieldMessage: ComponentDef = {
     // (`figmaProperties.texts` keys against `props`), and this component's text is a MESSAGE, not a
     // label — so the sweep off the React-ism lands here on the meaningful name this def's own comment
     // below always wanted (see `figmaProperties.texts`), not on Button's `label`. LOWERCASE per #1333.
-    { name: 'message', type: 'string | node', required: true, description: 'The message text. For error status, say what is wrong AND how to fix it (SC 3.3.3) — "Enter a valid email, e.g. name@example.com", not "Invalid input".' },
+    { name: 'message', type: 'string | node', required: true, description: 'The message text. For error status, say what is wrong and how to fix it (SC 3.3.3) — "Enter a valid email, e.g. name@example.com", not "Invalid input".' },
     { name: 'icon', type: 'slot', required: false, description: 'Overrides the leading status glyph, aria-hidden (the text carries the meaning). Rarely needed: each validation status already picks its own mark — an exclamation in a triangle for error, in a circle for warning, a circled check for success — so this is for a host with a domain-specific status mark, not for supplying the one the status implies. On the default status there is no glyph unless one is supplied here, which is what makes it the only status where this prop adds a node rather than replacing one.' },
     { name: 'id', type: 'string', required: false, description: 'Set by the host so it can reference this node from the field\'s aria-describedby chain. Auto-generated with useId when composed inside TextField.' },
   ],
@@ -180,7 +180,7 @@ export const fieldMessage: ComponentDef = {
         // max(glyph, caption line box) in every member and a wrapping message still grows. Bound to the
         // glyph's own key, so the floor is whatever the glyph is in every brand. Code: `min-block-size`.
         minHeight: 'glyph-size',
-        children: ['iconError', 'iconWarning', 'iconSuccess', 'text'],
+        children: ['errorGlyph', 'warningGlyph', 'successGlyph', 'label'],
       },
       // ── THE STATUS GLYPH: THREE VECTOR PARTS, ONE PER VALIDATION TONE (#1010) ─────────────────────
       //
@@ -232,28 +232,28 @@ export const fieldMessage: ComponentDef = {
       // and `check-circle-filled` are two entries. The three statuses still differ in SHAPE — triangle,
       // circled exclamation, circled check — so the SC 1.4.1 contract this def exists for holds on a
       // non-color channel, where before all three members drew one identical placeholder.
-      iconError: {
+      errorGlyph: {
         kind: 'vector',
         glyph: 'warning-triangle',
         size: 'glyph-size',
         presentWhen: { status: ['error'] },
         note: 'The error glyph, aria-hidden — the caption carries the meaning. An exclamation in a triangle, and the only status whose enclosure is not a circle: shape is the channel that survives when the ink cannot be told from `warning`\'s. Its ink is `error.icon`, applied as `descendantFills` (never a fill on the artboard — #864), so the icon+text pairing that satisfies SC 1.4.1 is one token decision rather than two.',
       },
-      iconWarning: {
+      warningGlyph: {
         kind: 'vector',
         glyph: 'error-circle',
         size: 'glyph-size',
         presentWhen: { status: ['warning'] },
         note: 'The warning glyph, aria-hidden. An exclamation in a CIRCLE — the same mark as `error`\'s in a different enclosure, which is what the reference asks for. Its ink is `warning.icon`.',
       },
-      iconSuccess: {
+      successGlyph: {
         kind: 'vector',
         glyph: 'check-circle',
         size: 'glyph-size',
         presentWhen: { status: ['success'] },
         note: 'The success glyph, aria-hidden — a circled check. Its ink is `success.icon`.',
       },
-      text: {
+      label: {
         kind: 'text',
         // The caption scale, and NOT `{size}`-templated — this def has one scale and no size axis, which
         // since #795 means its member names carry no `size=` (see the header). A `{size}` placeholder here would need a size axis
@@ -332,7 +332,7 @@ export const fieldMessage: ComponentDef = {
     texts: {
       // `message` lowercase per #1333 — validated against `props` above, so it renames with the prop.
       message: {
-        part: 'text',
+        part: 'label',
         default: 'This is a status message.',
       },
     },
@@ -356,24 +356,24 @@ export const fieldMessage: ComponentDef = {
       '1.3.1 Info and Relationships / 4.1.2 Name, Role, Value (the host associates the message through aria-describedby and sets aria-invalid on error)',
       '4.1.3 Status Messages (a message that arrives without focus moving to its field must still reach assistive tech — the host decides how)',
     ],
-    aria: 'The status icon is aria-hidden — the caption text carries the meaning, so a non-default status starts with a visually hidden prefix that names it ("Error:"), announced even where the glyph is not. The prefix is translatable, like the message after it — a hard-coded English prefix before a localized message is a broken reading. The message does NOT self-announce; the host field references its id in aria-describedby (and sets aria-invalid on error). If the message appears/changes dynamically, the host wraps it in a polite live region so it is announced without stealing focus.',
+    aria: 'The status icon is aria-hidden — the caption text carries the meaning, so a non-default status starts with a visually hidden prefix that names it ("Error:"), announced even where the glyph is not. The prefix is translatable, like the message after it — a hard-coded English prefix before a localized message is a broken reading. The message does not announce itself; the host field references its id in aria-describedby (and sets aria-invalid on error). If the message appears/changes dynamically, the host wraps it in a polite live region so it is announced without stealing focus.',
   },
 
   content: {
-    errorPattern: 'Say what is wrong AND how to fix it (SC 3.3.3): "Enter a valid email address, e.g. name@example.com" — specific, human, not "Invalid input", not blaming the user.',
+    errorPattern: 'Say what is wrong and how to fix it (SC 3.3.3): "Enter a valid email address, e.g. name@example.com" — specific, human, not "Invalid input", not blaming the user.',
     labelPattern: 'Default status carries the format up front ("Use 8+ characters") so the guidance is seen before failure, not only in the error.',
   },
 
   docs: {
     usage: 'Place directly below a field to carry persistent helper guidance (default status) or a validation result (error / warning / success). Reuse the same component under every field control so the icon-plus-text, gated-contrast contract holds everywhere. The field wires it into aria-describedby.',
     do: [
-      'Show the format/constraint in the default status BEFORE the user can fail',
+      'Show the format/constraint in the default status before the user can fail',
       'Pair the status with an icon so it is never color-only',
       'Let the host own aria-describedby + aria-invalid; keep this node presentational',
     ],
     dont: [
       'Signal error with color alone (fails SC 1.4.1)',
-      'Duplicate the error into a self-announcing live region here AND on the host — the host owns announcement',
+      'Duplicate the error into a self-announcing live region here and on the host — the host owns announcement',
       'Use warning as a hard blocker — it is a soft, non-blocking caution (many systems fold it into helper/error)',
     ],
     // Brief §7.

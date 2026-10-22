@@ -18,7 +18,7 @@
  * split as `theme.ts` vs `nb-fixture.ts`, docs/07 §3). The emit step lives in the
  * shell `emit-levers.ts` (`npx tsx packages/engine/emit-levers.ts` → `schema/lever-manifest.json`).
  *
- * `id` and `root` are intentionally NOT levers (see `identityFields`): they are brand
+ * `id`, `root` and `name` are intentionally NOT levers (see `identityFields`): they are brand
  * *identity* / namespace the host supplies (CLI derives `id` from the file/name, the
  * plugin from the Figma file, an MCP call passes them as arguments; `root` is the
  * per-engagement token namespace, default 'prism') — not design knobs a surface
@@ -114,13 +114,22 @@ export const leverManifest: Lever[] = [
   { key: 'fieldStyle', group: 'form', label: 'Field style', control: 'enum', default: 'outline',
     options: enumOpts(['outline', 'Outline'], ['underline', 'Underline']),
     description: 'The edge of every form field. Outline draws a box; Underline draws one line under the value, with no side padding. Either way the line clears 3:1.' },
+  // #2888 — label, option labels and description are the owner's (Q514 taking Q?2 A, approved as drafted).
+  { key: 'searchFieldStyle', group: 'form', label: 'Search field style', control: 'enum', default: 'follow',
+    options: enumOpts(['follow', 'Follow field style'], ['outline', 'Outline'], ['underline', 'Underline']),
+    description: 'The edge of the search field. Follow field style matches every other field; Outline or Underline sets search apart. Either way the line clears 3:1.' },
+  // #2887 — label, option labels and description are the owner's (Q513.1 A, Q540 taking Q8 A as revised for the 2px hover).
+  { key: 'tagStyle', group: 'form', label: 'Tag style', control: 'enum', default: 'pill',
+    options: enumOpts(['pill', 'Pill'], ['underline', 'Underline']),
+    description: 'The shape of every tag. Pill draws a rounded outline; Underline draws one line under the tag, 2px when selected or under the pointer. Either way the line clears 3:1.' },
   // The button levers (#1667). Labels and option labels are the owner's exact words.
   { key: 'buttonIcons', group: 'form', label: 'Button icons', control: 'enum', default: 'attached',
     options: enumOpts(['attached', 'Attached to label'], ['edges', 'Locked to edges']),
     description: 'Where button icons sit. Attached to label keeps them beside the label. Locked to edges pins them to the button edges and centers the label in the space between.' },
-  { key: 'buttonContentSize', group: 'form', label: 'Button label & icon', control: 'enum', default: 'match',
-    options: enumOpts(['match', 'Match button size'], ['smaller', 'One step smaller']),
-    description: 'The label and icon size of a medium button. One step smaller gives it the small button’s label and icon at the same height and padding. Small and large buttons are unchanged.' },
+  // #2918 (owner Q527) — label, option labels and description are a DRAFT for the owner (option A); the keys stay.
+  { key: 'buttonContentSize', group: 'form', label: 'Medium button label & icon', control: 'enum', default: 'match',
+    options: enumOpts(['match', 'Medium'], ['smaller', 'Small']),
+    description: 'The label and icon size of a medium button. Medium keeps its own; Small gives it the small button’s label and icon at the medium height and padding. Other button sizes are unchanged.' },
   // #1752 — label and option labels are the owner's exact words (2026-09-28). Buttons only.
   { key: 'buttonLabelWeight', group: 'form', label: 'Button label weight', control: 'enum', default: 'emphasis',
     options: enumOpts(['default', 'Default'], ['emphasis', 'Emphasis']),
@@ -236,7 +245,7 @@ export const leverGroups: { group: LeverGroup; label: string }[] = [
  *  gate subtracts these before asserting every required field is a lever, so the
  *  omission is explicit and a *new* required field (or a dropped `primary`/`neutral`)
  *  is still caught. */
-export const identityFields = ['id', 'root'] as const;
+export const identityFields = ['id', 'root', 'name'] as const;
 
 export const buildLeverManifest = () => ({
   $schema: 'https://prism3.dev/schema/lever-manifest.json',

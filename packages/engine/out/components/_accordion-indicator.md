@@ -12,7 +12,7 @@
 The glyph an Accordion header shows to say whether its section is open: a chevron that points down when closed and up when open, or a plus that becomes a minus. It lives inside the Accordion and is never placed on its own. Choose chevron or plus-minus on the Accordion; the open or closed glyph follows the Accordion's state. The glyph is decorative: the header button's expanded state carries the meaning.
 
 - **Purpose:** Show whether an Accordion section is open, with a chevron or a plus and minus inside its header.
-- **Use when:** Never directly: it is part of an Accordion. Generate an Accordion instead.
+- **Use when:** Only as a child of an Accordion. Generate an Accordion, which places the indicator in each header.
 - **Avoid when:** Always on its own. Use an Accordion; for a plain icon, use an Icon.
 
 ## Anatomy
@@ -20,10 +20,10 @@ The glyph an Accordion header shows to say whether its section is open: a chevro
 Shown on the default member: indicator `chevron`, expansion `collapsed`, size `medium`.
 
 1. **Frame** — The glyph's box, one icon square at the Accordion's size. Exactly one glyph shows in it.
-2. **Chevron down** — Closed: a chevron pointing down.
-3. **Chevron up** — Open: a chevron pointing up.
-4. **Plus** — Closed, when the pair is plus and minus: a plus.
-5. **Minus** — Open, when the pair is plus and minus: a minus.
+2. **Chevron down glyph** — Closed: a chevron pointing down.
+3. **Chevron up glyph** — Open: a chevron pointing up.
+4. **Plus glyph** — Closed, when the pair is plus and minus: a plus.
+5. **Minus glyph** — Open, when the pair is plus and minus: a minus.
 
 ## Styles
 
@@ -79,6 +79,91 @@ The indicator holds no copy.
 | `indicator` | enum: 'chevron' \| 'plus-minus' | `chevron` | no | Which pair of glyphs shows: a chevron (down closed, up open) or a plus and minus (plus closed, minus open). |
 | `expansion` | enum: 'collapsed' \| 'expanded' | `collapsed` | no | Whether the section the glyph belongs to is open. Set by the Accordion it sits in. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | The glyph size. Set by the Accordion it sits in. |
+
+## Specs
+
+Generated from the plan that builds the design-file component: 12 members. Values are token names; a px value appears only where the build writes a number.
+
+### Anatomy
+
+| Part | Kind | In |
+| --- | --- | --- |
+| `frame` | frame | every member |
+| `frame/chevronDownGlyph` | instance | 3 of 12 members |
+| `frame/chevronUpGlyph` | instance | 3 of 12 members |
+| `frame/plusGlyph` | instance | 3 of 12 members |
+| `frame/minusGlyph` | instance | 3 of 12 members |
+
+### Spacing and size
+
+Padding reads top / right / bottom / left when its sides differ.
+
+Keyed by `size`.
+
+**size=medium**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `frame` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `frame/chevronDownGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `frame/chevronUpGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `frame/plusGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+| `frame/minusGlyph` | — | — | `icon.size.sm` | `icon.size.sm` | — | — |
+
+**size=small**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `frame` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `frame/chevronDownGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `frame/chevronUpGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `frame/plusGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+| `frame/minusGlyph` | — | — | `icon.size.xs` | `icon.size.xs` | — | — |
+
+**size=large**
+
+| Part | Padding | Gap | Height | Width | Min width | Other |
+| --- | --- | --- | --- | --- | --- | --- |
+| `frame` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+| `frame/chevronDownGlyph` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+| `frame/chevronUpGlyph` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+| `frame/plusGlyph` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+| `frame/minusGlyph` | — | — | `icon.size.md` | `icon.size.md` | — | — |
+
+### Color
+
+Keyed by `indicator`, `expansion`.
+
+**indicator=chevron, expansion=collapsed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `frame/chevronDownGlyph` | — | — | — | `color.interactive.neutral.icon.rest` |
+
+**indicator=chevron, expansion=expanded**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `frame/chevronUpGlyph` | — | — | — | `color.interactive.neutral.icon.rest` |
+
+**indicator=plus-minus, expansion=collapsed**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `frame/plusGlyph` | — | — | — | `color.interactive.neutral.icon.rest` |
+
+**indicator=plus-minus, expansion=expanded**
+
+| Part | Fill | Stroke | Ink | Icon |
+| --- | --- | --- | --- | --- |
+| `frame/minusGlyph` | — | — | — | `color.interactive.neutral.icon.rest` |
+
+### Nesting and properties
+
+- `frame/chevronDownGlyph` nests `icon/chevron-down`
+- `frame/chevronUpGlyph` nests `icon/chevron-up`
+- `frame/plusGlyph` nests `icon/plus`
+- `frame/minusGlyph` nests `icon/minus`
 
 ---
 

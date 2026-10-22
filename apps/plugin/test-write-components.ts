@@ -2594,18 +2594,18 @@ ok(fmRun.properties.filter((p) => p.indexOf('TEXT') >= 0).length === 1,
 {
   type IconRow = { def: string; part: string; icon: string; size?: string; px?: number; inset?: number };
   const ICON_ROWS: IconRow[] = [
-    { def: 'field-message', part: 'iconError', icon: 'icon/warning-triangle', size: 'icon/size/xs' },
-    { def: 'field-message', part: 'iconWarning', icon: 'icon/error-circle', size: 'icon/size/xs' },
-    { def: 'field-message', part: 'iconSuccess', icon: 'icon/check-circle', size: 'icon/size/xs' },
-    { def: 'checkbox-control', part: 'mark', icon: 'icon/check', size: 'control/size/{size}/height', inset: 0.8 },
-    { def: 'checkbox-control', part: 'dash', icon: 'icon/minus', size: 'control/size/{size}/height', inset: 0.8 },
+    { def: 'field-message', part: 'errorGlyph', icon: 'icon/warning-triangle', size: 'icon/size/xs' },
+    { def: 'field-message', part: 'warningGlyph', icon: 'icon/error-circle', size: 'icon/size/xs' },
+    { def: 'field-message', part: 'successGlyph', icon: 'icon/check-circle', size: 'icon/size/xs' },
+    { def: 'checkbox-control', part: 'checkGlyph', icon: 'icon/check', size: 'control/size/{size}/height', inset: 0.8 },
+    { def: 'checkbox-control', part: 'dashGlyph', icon: 'icon/minus', size: 'control/size/{size}/height', inset: 0.8 },
     { def: 'switch-control', part: 'onGlyph', icon: 'icon/check', size: 'control/size/{size}/thumb' },
     { def: 'switch-control', part: 'offGlyph', icon: 'icon/close', size: 'control/size/{size}/thumb' },
-    { def: 'tag', part: 'check', icon: 'icon/check', size: 'icon/size/{size-1}' },
+    { def: 'tag', part: 'checkGlyph', icon: 'icon/check', size: 'icon/size/{size-1}' },
     { def: 'tag', part: 'dismissGlyph', icon: 'icon/close', size: 'icon/size/{size-1}' },
-    { def: 'select', part: 'chevron', icon: 'icon/chevron-down', size: 'icon/size/sm' },
-    { def: 'textarea', part: 'grip', icon: 'icon/resize-grip', size: 'icon/size/xs' },
-    { def: 'image-placeholder', part: 'marker', icon: 'icon/image', px: 180 },
+    { def: 'select', part: 'chevronGlyph', icon: 'icon/chevron-down', size: 'icon/size/sm' },
+    { def: 'textarea', part: 'gripGlyph', icon: 'icon/resize-grip', size: 'icon/size/xs' },
+    { def: 'image-placeholder', part: 'markerGlyph', icon: 'icon/image', px: 180 },
   ];
   const RUNG: Record<string, string> = { small: 'sm', medium: 'md', large: 'lg' };
   const RUNG_BELOW: Record<string, string> = { small: 'xs', medium: 'sm', large: 'md' };
@@ -2922,6 +2922,8 @@ const readBoxes = async (def: ComponentDef, boxName: string): Promise<{ rows: Bo
       member: member!.name as string,
       selection: coord.selection,
       state: coord.state ?? 'rest',
+      // #2751 (owner Q354): error is the `status` axis now, not a state.
+      status: coord.status ?? 'default',
       // The SIZE rung, carried since #1015 — the corner is now per-rung, so a claim about it that could
       // not tell `small` from `large` would pass on one variable bound at all three.
       //
@@ -2958,9 +2960,10 @@ const cb = await readBoxes(byId('checkbox-control')!, 'control');
 const rb = await readBoxes(byId('radio-control')!, 'control');
 const sw = await readBoxes(byId('switch-control')!, 'track');
 // PIN THE INPUT, same discipline as the Button block: every claim below is vacuously true over zero rows.
-// Radio is 30 since #1698 dropped its per-option error column (2 selections × 3 sizes × 5 states).
-ok(cb.rows.length === 54 && rb.rows.length === 30 && sw.rows.length === 24,
-  `#1011 reachable: the built boxes were found on every member (checkbox ${cb.rows.length}/54, radio ${rb.rows.length}/30, switch ${sw.rows.length}/24)`);
+// #2751 (owner Q354): each set doubles along `status` [default, error], orthogonal to five states: checkbox
+// 3 × 3 × 2 × 5 = 90, radio 2 × 3 × 2 × 5 = 60, switch 2 × 2 × 2 × 5 = 40.
+ok(cb.rows.length === 90 && rb.rows.length === 60 && sw.rows.length === 40,
+  `#1011 reachable: the built boxes were found on every member (checkbox ${cb.rows.length}/90, radio ${rb.rows.length}/60, switch ${sw.rows.length}/40)`);
 ok(cb.misses.length === 0 && rb.misses.length === 0 && sw.misses.length === 0,
   `#1011 ...and all three sets built with no misses (${[...cb.misses, ...rb.misses, ...sw.misses].join('; ') || 'none'})`);
 
@@ -2969,9 +2972,8 @@ ok(cb.misses.length === 0 && rb.misses.length === 0 && sw.misses.length === 0,
 // binding it painted a box invisible against its own ground that nonetheless occluded whatever the
 // control sits on. The reference ships this transparent.
 const empty = [...cb.rows, ...rb.rows].filter((r) => r.selection === 'unchecked');
-// 18 + 15: checkbox has 3 sizes × 6 states at its one unselected coordinate, radio 3 sizes × 5 states
-// (no `error` since #1698).
-ok(empty.length === 18 + 15, `#1011 reachable: there are unselected members to inspect (${empty.length})`);
+// 30 + 30: checkbox and radio each have 3 sizes × 2 statuses × 5 states at their one unselected coordinate (#2751).
+ok(empty.length === 30 + 30, `#1011 reachable: there are unselected members to inspect (${empty.length})`);
 ok(empty.every((r) => r.fill === null),
   `#1011 the unselected box binds NO fill on any member (${empty.filter((r) => r.fill !== null).map((r) => `${r.def} ${r.member} -> ${r.fill}`).join('; ') || 'none does'})`);
 ok(empty.every((r) => r.stroke !== null),
@@ -2984,17 +2986,19 @@ ok(empty.every((r) => r.stroke !== null),
 // select per #1423 but never fills), so it is NOT a filled selected box and is asserted separately below. This finding is checkbox's checked/
 // indeterminate + switch's ON, the two controls that fill on select.
 const filled = [...cb.rows, ...sw.rows].filter((r) => !['unchecked', 'off'].includes(r.selection));
-// 36 (checkbox: `checked` + `indeterminate`, 3 sizes × 6 states) + 12 (switch `on`, which has a two-rung
-// size ladder rather than three). Radio left this set at #1348 — its selected ring is not filled.
-ok(filled.length === 36 + 12, `#1011 reachable: there are selected (filled) members to inspect (${filled.length})`);
+// 60 (checkbox: `checked` + `indeterminate`, 3 sizes × 2 statuses × 5 states) + 20 (switch `on`, which has a
+// two-rung size ladder rather than three). Radio left this set at #1348 — its selected ring is not filled.
+ok(filled.length === 60 + 20, `#1011 reachable: there are selected (filled) members to inspect (${filled.length})`);
 ok(filled.every((r) => r.fill !== null), '#1011 every selected box (checkbox, switch) binds a fill');
-const strokedNotError = filled.filter((r) => r.state !== 'error' && r.stroke !== null);
+const strokedNotError = filled.filter((r) => r.status !== 'error' && r.stroke !== null);
 ok(strokedNotError.length === 0,
   `#1011 no selected box binds BOTH a fill and a stroke outside \`error\` (${strokedNotError.map((r) => `${r.def} ${r.member} -> ${r.fill} + ${r.stroke}`).slice(0, 3).join('; ') || 'none does'})`);
 // The error rim SURVIVES, and it has to be asserted in the same breath: the fix removes a border and the
 // cheapest way to overshoot it is to remove this one too, which would drop a validation signal.
-const errored = filled.filter((r) => r.state === 'error');
-ok(errored.length > 0 && errored.every((r) => r.stroke === 'color/border/danger' && r.fill !== null),
+// At status=error and every non-disabled state (#2751): the rim holds under hover, press and focus. Disabled takes the
+// disabled skin whatever the status, as a disabled field does. 24 (checkbox: 2 selections × 3 sizes × 4 states) + 8 (switch on).
+const errored = filled.filter((r) => r.status === 'error' && r.state !== 'disabled');
+ok(errored.length === 24 + 8 && errored.every((r) => r.stroke === 'color/border/danger' && r.fill !== null),
   `#1011 ...and every selected box at \`error\` still binds the danger rim over its fill (${errored.length} member(s))`);
 
 // ---- #1348/#1423: RADIO'S RING — outlined, constant WEIGHT, RECOLORS on select, read off the BUILT node --
@@ -3007,11 +3011,11 @@ ok(errored.length > 0 && errored.every((r) => r.stroke === 'color/border/danger'
 // Prism 2 literally); the recolor is pinned in the selection loop just below. Reverting to the pre-split
 // filled disc (a `checked.fill`, no `checked.border`) fails these by name: a filled checked ring trips the
 // no-fill arm, and a checked ring with no border trips the constant-weight arm.
-ok(rb.rows.length === 30, `#1348 reachable: radio-control built every member (${rb.rows.length}/30)`);
+ok(rb.rows.length === 60, `#1348 reachable: radio-control built every member (${rb.rows.length}/60)`);
 ok(rb.rows.every((r) => r.fill === null),
   `#1348 radio's ring binds NO fill at any member — the Prism 2 outlined model, not a filled disc (${rb.rows.filter((r) => r.fill !== null).map((r) => `${r.member} -> ${r.fill}`).slice(0, 3).join('; ') || 'none does'})`);
 ok(rb.rows.every((r) => r.stroke !== null && r.weight === 'border-width/thick'),
-  `#1348 radio's ring binds a CONSTANT 2px border (\`border-width/thick\`) at every member (radio has no error member since #1698), unchecked and checked alike — the border weight does not change on select (${rb.rows.filter((r) => r.weight !== 'border-width/thick').map((r) => `${r.member} -> ${r.weight}`).slice(0, 3).join('; ') || 'all thick'})`);
+  `#1348 radio's ring binds a CONSTANT 2px border (\`border-width/thick\`) at every member, error members included (#2751), unchecked and checked alike — the border weight does not change on select (${rb.rows.filter((r) => r.weight !== 'border-width/thick').map((r) => `${r.member} -> ${r.weight}`).slice(0, 3).join('; ') || 'all thick'})`);
 // RECOLORS ACROSS SELECTION (#1423), read off the BUILT node — the sharpest form of the rebind: at each
 // interactive non-error state the UNCHECKED ring resolves the neutral field-border edge and the CHECKED
 // ring the interactive brand edge, so the two DIFFER. Only the stroke COLOR moves; the WEIGHT is constant
@@ -3019,8 +3023,8 @@ ok(rb.rows.every((r) => r.stroke !== null && r.weight === 'border-width/thick'),
 // to `color.field.border.*` (the pre-#1423 constant-colour ring, now the fork the atom documents) collapses
 // the two families back to one and fails these by name — the host-truth mirror of the engine suite's #1423 arm.
 for (const st of ['rest', 'hover', 'pressed', 'focus-visible']) {
-  const uStrokes = new Set(rb.rows.filter((r) => r.state === st && r.selection === 'unchecked').map((r) => r.stroke));
-  const cStrokes = new Set(rb.rows.filter((r) => r.state === st && r.selection === 'checked').map((r) => r.stroke));
+  const uStrokes = new Set(rb.rows.filter((r) => r.state === st && r.status === 'default' && r.selection === 'unchecked').map((r) => r.stroke));
+  const cStrokes = new Set(rb.rows.filter((r) => r.state === st && r.status === 'default' && r.selection === 'checked').map((r) => r.stroke));
   const u = [...uStrokes][0], c = [...cStrokes][0];
   ok(uStrokes.size === 1 && cStrokes.size === 1
      && !!u && u.startsWith('color/field/border')
@@ -3035,12 +3039,13 @@ const disRows = rb.rows.filter((r) => r.state === 'disabled');
 const disStrokes = new Set(disRows.map((r) => r.stroke));
 ok(disRows.length > 0 && disStrokes.size === 1,
   `#1348 radio's ring is CONSTANT across selection at \`disabled\` — the shared disabled skin (${[...disStrokes].join(', ') || 'none'})`);
-// #1698 (decision 1): radio error is GROUP-level only, so the built set has NO error member and no option
-// draws a danger ring — the reverse of the #1348/#1433a arm that stood here. Checkbox keeps its rim
-// (asserted in FINDING 3 above), so a sweep that dropped both would fail there.
-const rErrored = rb.rows.filter((r) => r.state === 'error' || r.stroke === 'color/border/danger');
-ok(rErrored.length === 0,
-  `#1698 radio-control builds no per-option error — no \`error\` member and no danger ring on any option (${rErrored.map((r) => r.member).slice(0, 3).join('; ') || 'none'})`);
+// #1698 made radio error GROUP-level only; owner Q354 (#2751) keeps that and shows it on every option through the
+// `status` axis the Radio group sets. So the danger ring is drawn exactly at status=error and a non-disabled state,
+// at both selections (the inner dot unchanged), and never at status=default.
+const rDanger = rb.rows.filter((r) => r.stroke === 'color/border/danger');
+const rWant = rb.rows.filter((r) => r.status === 'error' && r.state !== 'disabled');
+ok(rWant.length === 24 && rDanger.length === rWant.length && rWant.every((r) => r.stroke === 'color/border/danger'),
+  `#2751 radio-control draws the danger ring at status=error on every non-disabled member and nowhere else (${rDanger.length} danger rings, ${rWant.length} error members; stray: ${rDanger.filter((r) => r.status !== 'error').map((r) => r.member).slice(0, 3).join('; ') || 'none'})`);
 
 // THE ONE PLACE A SAME-FAMILY FILL AND BORDER LEGITIMATELY CO-OCCUR, asserted in BOTH directions so the
 // exception is exercised rather than merely tolerated. Switch's OFF track keeps its rim because no
@@ -3051,7 +3056,7 @@ const sameFamily = [...cb.rows, ...rb.rows, ...sw.rows]
 ok(sameFamily.length > 0, `#1011 reachable: some built box does bind a same-family fill and stroke (${sameFamily.length})`);
 ok(sameFamily.every((r) => r.def === 'switch-control' && r.selection === 'off'),
   `#1011 ...and switch-control's OFF track is the ONLY one (${[...new Set(sameFamily.map((r) => `${r.def}/${r.selection}`))].join(', ')})`);
-ok(sw.rows.filter((r) => r.selection === 'off' && r.state !== 'error').every((r) => r.fill !== null && r.stroke !== null),
+ok(sw.rows.filter((r) => r.selection === 'off' && r.status !== 'error').every((r) => r.fill !== null && r.stroke !== null),
   '#1011 ...and it binds both on every non-error member, so the exception above is a fact about this build and not a hole');
 
 // ---- FINDING 1: the radius — the clamped control corner (#1011 → #1015) ------------------------
@@ -3670,11 +3675,11 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     `#1633 existing focus-ring: never rebuilt — only icon and spinner are built (${held.order.join(', ') || 'nothing'})`);
 
   // (d) A CHAIN — checkbox-group → checkbox-row → checkbox-control → focus-ring and icon (#2380: the check and
-  // dash are instances of `icon/check` / `icon/minus`), plus the group's label.
+  // dash are instances of `icon/check` / `icon/minus`), plus the group's label and, since #2751, its error message.
   const chain = fileWith();
   await prebuildDependencies(byDef('checkbox-group'), chain.ctx);
-  ok(JSON.stringify(chain.order) === JSON.stringify(['field-label', 'focus-ring', 'icon', 'checkbox-control', 'checkbox-row']),
-    `#1633 #2380 chain: checkbox-group's nests build deepest first — field-label, focus-ring, icon, checkbox-control, checkbox-row (${chain.order.join(', ')})`);
+  ok(JSON.stringify(chain.order) === JSON.stringify(['field-label', 'focus-ring', 'icon', 'checkbox-control', 'checkbox-row', 'field-message']),
+    `#1633 #2380 chain: checkbox-group's nests build deepest first — field-label, focus-ring, icon, checkbox-control, checkbox-row, field-message (${chain.order.join(', ')})`);
   const groupRun = await chain.build(byDef('checkbox-group'));
   const nestMiss = groupRun.misses.filter((m) => m.indexOf('.nestTarget ->') >= 0 || m.indexOf('.nestVariant ->') >= 0);
   ok(nestMiss.length === 0, `#1633 chain: checkbox-group then builds with 0 nest misses (${nestMiss.length}${nestMiss.length ? ` — ${nestMiss[0]}` : ''})`);
@@ -3919,7 +3924,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
       parts: {
         ...la.parts,
         [la.root]: { ...la.parts[la.root], layout: { ...la.parts[la.root].layout!, sizing: { ...la.parts[la.root].layout!.sizing, x: 'hug' } }, placementWidth: undefined },
-        text: { ...la.parts.text, wrap: undefined },
+        label: { ...la.parts.label, wrap: undefined },
       },
     },
   };
@@ -3967,7 +3972,13 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 // off the def. The mutation arm rebuilds with the def's `minHeight` removed and requires the footprint
 // misses the owner saw, by name.
 {
-  const byDef = (id: string) => componentDefs.find((d) => d.id === id)!;
+  // The field built with its message ON (#2926 builds it hidden by default): the footprint is only measurable on a
+  // row that is drawn, and a designer who turns the message on is the case the floor exists for.
+  const byDef = (id: string): ComponentDef => {
+    const d = componentDefs.find((x) => x.id === id)!;
+    const fp = d.figmaProperties;
+    return fp?.booleans?.showMessage ? { ...d, figmaProperties: { ...fp, booleans: { ...fp.booleans, showMessage: { ...fp.booleans.showMessage, default: true } } } } : d;
+  };
   const GLYPH = varValue('icon/size/xs');                 // what the shim binds `icon.size.xs` to
   const fmPlansShipped = figmaAnatomySet(materializeForBrand(fieldMessage, null), { swapTarget: SWAP });
   const captionStyles = [...new Set(fmPlansShipped.flatMap((p) => planTextStyles(p.root)))];
@@ -4202,7 +4213,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 
   // ---- the grip: a `resize handle` boolean, ON by default, on every member ----
   const handle = boolProp(b.set, 'resize handle');
-  const grips = b.members.map((m) => find(m, 'grip'));
+  const grips = b.members.map((m) => find(m, 'gripGlyph'));
   ok(handle?.type === 'BOOLEAN' && handle.defaultValue === true
     && grips.every((g) => g && g.visible !== false && (g.componentPropertyReferences as Record<string, string> | null)?.visible === handle.key),
     `textarea grip default: a 'resize handle' BOOLEAN defaulting to true drives the grip's visibility, and all 24 members build it shown (${JSON.stringify(handle)}; ${grips.filter((g) => g && g.visible !== false).length} shown)`);
@@ -4210,7 +4221,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   // ---- the grip sits IN THE CORNER, out of the flow ----
   const cornerMiss: string[] = [];
   for (const m of b.members) {
-    const g = find(m, 'grip');
+    const g = find(m, 'gripGlyph');
     const ctl = find(m, 'control');
     if (!g || !ctl) { cornerMiss.push(`${m.name}: ${g ? '' : 'no grip '}${ctl ? '' : 'no control'}`); continue; }
     const wantX = (ctl.width as number) - GRIP - INSET;
@@ -4230,7 +4241,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const gripFoot: string[] = [];
   let contentDriven = 0;
   for (const m of b.members) {
-    const g = find(m, 'grip');
+    const g = find(m, 'gripGlyph');
     const ctl = find(m, 'control');
     const text = find(ctl, 'placeholder') ?? find(ctl, 'value');   // the layer this member's state shows (Option C)
     if (!g || !ctl || !text) { gripFoot.push(`${m.name}: incomplete`); continue; }
@@ -4269,9 +4280,9 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   ok(count?.type === 'BOOLEAN' && count.defaultValue === false
     && countLayers.every((l, i) => l && l.visible === false && find(l, 'counter') === counters[i]),
     `textarea counter default: a 'character count' BOOLEAN defaulting to false drives a layer holding the counter, and all 24 members build it hidden (${JSON.stringify(count)}; ${countLayers.filter((l) => l && l.visible === false).length} hidden)`);
-  ok(msg?.type === 'BOOLEAN' && msg.defaultValue === true
-    && msgLayers.every((l, i) => l && l.visible !== false && find(l, 'message') !== undefined && !find(l, 'counter') && !find(countLayers[i], 'message')),
-    `textarea counter independent: the 'message' BOOLEAN (default true) drives a layer holding the message and NOT the counter, and the counter's layer holds no message, on all 28 members (${JSON.stringify(msg)})`);
+  ok(msg?.type === 'BOOLEAN' && msg.defaultValue === false
+    && msgLayers.every((l, i) => l && l.visible === false && find(l, 'message') !== undefined && !find(l, 'counter') && !find(countLayers[i], 'message')),
+    `textarea counter independent: the 'message' BOOLEAN (default false, #2926) drives a layer holding the message and NOT the counter, and the counter's layer holds no message, on all 28 members (${JSON.stringify(msg)})`);
   const rows = b.members.map((m) => find(m, 'messageRow'));
   // #1751: the row FILLS (stretched AND its own width FIXED — the stretch alone hugs) and packs to its END,
   // the message's layer GROWS beside the counter, and the counter's layer HUGS its caption.
@@ -4840,7 +4851,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 // Mutations by name (recorded in the PR): restore `compByName.get(hit)` as the member lookup, or let the set
 // match on a prefix (`__old__`), and `#1781 nests resolve to their own set` fails.
 {
-  const SET_IDS = ['checkbox-control', 'radio-control', 'switch-control', 'field-label', 'checkbox-row', 'radio-row', 'switch-row', 'checkbox-group', 'radio-group'];
+  // `field-message` since #2751: an errored group nests its message under the rows.
+  const SET_IDS = ['checkbox-control', 'radio-control', 'switch-control', 'field-label', 'field-message', 'checkbox-row', 'radio-row', 'switch-row', 'checkbox-group', 'radio-group'];
   const defOf = (id: string): ComponentDef => componentDefs.find((d) => d.id === id)!;
   const project = (id: string): AnatomyPlan[] => figmaAnatomySet(defOf(id), { swapTarget: SWAP });
   const membersOf = (id: string): string[] => project(id).map(planComponentName);
@@ -4851,13 +4863,14 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   ];
 
   // REACHABILITY FIRST — every assertion below is vacuous if the names do not actually collide.
-  const ctlName = 'selection=unchecked, size=small, state=rest';
+  const ctlName = 'selection=unchecked, status=default, size=small, state=rest';
   ok(membersOf('checkbox-control').includes(ctlName) && membersOf('radio-control').includes(ctlName),
     `#1781 reachable: checkbox-control and radio-control share the member name ${ctlName}`);
   const rowSets = ['checkbox-row', 'radio-row', 'switch-row', 'radio-group', 'checkbox-group'];
-  ok(['size=small', 'size=medium'].every((n) => rowSets.every((id) => membersOf(id).includes(n)))
-    && ['checkbox-row', 'radio-row', 'radio-group', '__old__radio-group'].every((id) => baseFile.find((f) => f.name === id)?.type === 'COMPONENT_SET' && (baseFile.find((f) => f.name === id) as { variants: string[] }).variants.includes('size=large')),
-    `#1781 reachable: ${rowSets.join(', ')} all carry size=small | size=medium, and size=large is in checkbox-row, radio-row, radio-group and __old__radio-group (switch-row has no large)`);
+  // Since #2751 every row and group set carries `status` as well, so the shared names are `status=default, size=*`.
+  ok(['status=default, size=small', 'status=default, size=medium'].every((n) => rowSets.every((id) => membersOf(id).includes(n)))
+    && ['checkbox-row', 'radio-row', 'radio-group', '__old__radio-group'].every((id) => baseFile.find((f) => f.name === id)?.type === 'COMPONENT_SET' && (baseFile.find((f) => f.name === id) as { variants: string[] }).variants.includes('status=default, size=large')),
+    `#1781 reachable: ${rowSets.join(', ')} all carry status=default, size=small | size=medium, and size=large is in checkbox-row, radio-row, radio-group and __old__radio-group (switch-row has no large)`);
 
   type Inst = { part: string; member: string; set: string; main: string; parentType: string };
   // Keyed MEMBER then PART: a nest `follow`s its parent's axes, so `control` wants `size=small` in one member
@@ -4957,24 +4970,24 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     `#1750 the first set on an empty page stays at 0,0; its box is pinned here as the input to the arms below (${at(first)}, ${box(first)})`);
 
   // (b) TWO DEFS ON ONE PAGE, in the taxonomy's order (`↳ Buttons`: button, then button-destructive): the
-  // second lands 400 right of the first (780 + 400 = 1180), top-aligned. 400 since #2502 (160 before), so the
-  // second set's canvas labels fit between the two.
+  // second lands 160 right of the first (780 + 160 = 940), top-aligned: #2723's visible gap, frame to frame here
+  // because the executor draws no labels (`main.ts` places the set again once they are drawn, `seatNewSet`).
   const rDestructive = await run(destructive, { ...fullFor(destructive), page: pg });
   const second = pg.children[1];
-  ok(rDestructive.set === 'button-destructive' && second.name === 'button-destructive' && at(second) === '1180,0',
-    `#1750 the second set on a page lands beside the first, 400px clear and top-aligned, at 1180,0 (got ${String(second?.name)} at ${second ? at(second) : '—'})`);
+  ok(rDestructive.set === 'button-destructive' && second.name === 'button-destructive' && at(second) === '940,0',
+    `#1750 the second set on a page lands beside the first, 160px clear and top-aligned, at 940,0 (got ${String(second?.name)} at ${second ? at(second) : '—'})`);
 
   // (c) WHAT SHARES THE ROW PUSHES IT RIGHT; WHAT SITS ABOVE DOES NOT. A header-wide frame above the sets
   // (bottom edge at -80, where `page-header.ts` puts it) and a designer's note in the row at 900..1300.
-  // Expected x: the note's right edge, 1300, + 400 = 1700 — not the header's 5000 + 400.
+  // Expected x: the note's right edge, 1300, + 160 = 1460 — not the header's 5000 + 160.
   const pg2: Page = { children: [] };
   await run(grid, { ...full(), page: pg2 });
   pg2.children.push({ type: 'FRAME', name: 'header-like', x: 0, y: -400, width: 5000, height: 320 } as Node);
   pg2.children.push({ type: 'FRAME', name: 'note', x: 900, y: 60, width: 400, height: 100 } as Node);
   await run(destructive, { ...fullFor(destructive), page: pg2 });
   const placed = pg2.children.find((n) => n.name === 'button-destructive')!;
-  ok(at(placed) === '1700,0',
-    `#1750 a node in the set's row pushes it right (1300 + 400), a node wholly above it does not (got ${at(placed)})`);
+  ok(at(placed) === '1460,0',
+    `#1750 a node in the set's row pushes it right (1300 + 160), a node wholly above it does not (got ${at(placed)})`);
   // NO TWO TOP-LEVEL NODES OVERLAP — the property a designer sees, checked over every pair on the page.
   const rect = (n: Node) => ({ x: Number(n.x), y: Number(n.y), r: Number(n.x) + Number(n.width), b: Number(n.y) + Number(n.height) });
   const overlaps: string[] = [];
@@ -4987,27 +5000,27 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 
   // (c') A NODE THAT STARTS ABOVE THE ROW AND REACHES INTO IT still shares the row. A frame at x 1000..2900,
   // y -500..500: its top edge is above the sets' top (0), its bottom is inside the new set's row. Expected
-  // x: 2900 + 400 = 3300. A check that counted only nodes whose TOP edge falls inside the row would miss it
-  // and land the set at 1180,0, over the frame.
+  // x: 2900 + 160 = 3060. A check that counted only nodes whose TOP edge falls inside the row would miss it
+  // and land the set at 940,0, over the frame.
   const pgTall: Page = { children: [] };
   await run(grid, { ...full(), page: pgTall });
   pgTall.children.push({ type: 'FRAME', name: 'tall', x: 1000, y: -500, width: 1900, height: 1000 } as Node);
   await run(destructive, { ...fullFor(destructive), page: pgTall });
   const pastTall = pgTall.children.find((n) => n.name === 'button-destructive')!;
-  ok(at(pastTall) === '3300,0',
-    `#1750 a node that starts above the row and extends into it still pushes the set right (2900 + 400 = 3300), at 3300,0 (got ${at(pastTall)})`);
+  ok(at(pastTall) === '3060,0',
+    `#1750 a node that starts above the row and extends into it still pushes the set right (2900 + 160 = 3060), at 3060,0 (got ${at(pastTall)})`);
 
-  // (d) CONTENT BUT NO SET YET: top-aligned with the content, right of it. Frame at 100..600, y 40 → 1000,40.
+  // (d) CONTENT BUT NO SET YET: top-aligned with the content, right of it. Frame at 100..600, y 40 → 760,40.
   const pg3: Page = { children: [{ type: 'FRAME', name: 'intro', x: 100, y: 40, width: 500, height: 300 } as Node] };
   await run(grid, { ...full(), page: pg3 });
   const onContent = pg3.children.find((n) => n.name === 'button')!;
-  ok(at(onContent) === '1000,40', `#1750 on a page with content and no set, the set lands right of it, top-aligned, at 1000,40 (got ${at(onContent)})`);
+  ok(at(onContent) === '760,40', `#1750 on a page with content and no set, the set lands right of it, top-aligned, at 760,40 (got ${at(onContent)})`);
 
   // (e) A REBUILD NEVER MOVES A SET: the designer's placement wins, as it does for the page header.
   first.x = 5000;
   first.y = 7000;
   const rAgain = await run(grid, { ...full(), page: pg });
-  ok(rAgain.set === 'button' && rAgain.added === 0 && at(first) === '5000,7000' && at(second) === '1180,0',
+  ok(rAgain.set === 'button' && rAgain.added === 0 && at(first) === '5000,7000' && at(second) === '940,0',
     `#1750 a rebuild leaves a set the designer moved where they put it, and its sibling where it was (button at ${at(first)}, button-destructive at ${at(second)})`);
 
   // (f) #2405 — A PAGE THAT HOLDS ONLY ITS SECTION HEADER. Live: the sets on a component page were deleted and
@@ -5021,14 +5034,14 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const underHeader = pgH.children.find((n) => n.name === 'button')!;
   ok(at(underHeader) === '100,0',
     `#2405 on a page holding only its section header, a rebuilt set lands under it on its left edge, 80 below, at 100,0, never beside it (got ${at(underHeader)})`);
-  // ...and its sibling then top-aligns with it, beside it, as on a fresh page: 100 + 780 + 400 = 1280.
+  // ...and its sibling then top-aligns with it, beside it, as on a fresh page: 100 + 780 + 160 = 1040.
   await run(destructive, { ...fullFor(destructive), page: pgH });
   const besideRebuilt = pgH.children.find((n) => n.name === 'button-destructive')!;
-  ok(at(besideRebuilt) === '1280,0',
-    `#2405 the rebuilt set's sibling lands beside it under the header at 1280,0 (got ${at(besideRebuilt)})`);
+  ok(at(besideRebuilt) === '1040,0',
+    `#2405 the rebuilt set's sibling lands beside it under the header at 1040,0 (got ${at(besideRebuilt)})`);
 
   // (g) #2405 — A HEADER AND AN EXISTING SET THE DESIGNER PLACED. The existing set stays where it is (300,500),
-  // and the new one top-aligns with it, beside it: 300 + 780 + 400 = 1480, y 500 — not under the header.
+  // and the new one top-aligns with it, beside it: 300 + 780 + 160 = 1240, y 500 — not under the header.
   const pgHS: Page = { children: [header()] };
   await run(grid, { ...full(), page: pgHS });
   const kept = pgHS.children.find((n) => n.name === 'button')!;
@@ -5037,11 +5050,11 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   await run(grid, { ...full(), page: pgHS });
   await run(destructive, { ...fullFor(destructive), page: pgHS });
   const nextToKept = pgHS.children.find((n) => n.name === 'button-destructive')!;
-  ok(at(kept) === '300,500' && at(nextToKept) === '1480,500',
-    `#2405 with a header and an existing set, the existing set stays at 300,500 and the new one lands beside it at 1480,500 (got ${at(kept)} and ${at(nextToKept)})`);
+  ok(at(kept) === '300,500' && at(nextToKept) === '1240,500',
+    `#2405 with a header and an existing set, the existing set stays at 300,500 and the new one lands beside it at 1240,500 (got ${at(kept)} and ${at(nextToKept)})`);
 
   // (h) #2405 — A DETACHED HEADER. A designer who detaches the header instance leaves a FRAME of the same name;
-  // it is still the header, so the set goes under it at 100,0 as in (f), not beside it at 1500,-300 (1100 + 400).
+  // it is still the header, so the set goes under it at 100,0 as in (f), not beside it at 1260,-300 (1100 + 160).
   const pgF: Page = { children: [header('FRAME')] };
   await run(grid, { ...full(), page: pgF });
   const underDetached = pgF.children.find((n) => n.name === 'button')!;
@@ -5050,7 +5063,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 
   // (i) #2405 — A HEADER, A STRAY NODE AND NO SET. A note frame left beside the header at 1300,-300 (200x100)
   // is not a set to top-align with: the set still goes under the header at 100,0. Top-aligned with the stray
-  // it would land at -300, right of both: 1500 + 400 = 1900.
+  // it would land at -300, right of both: 1500 + 160 = 1660.
   const stray = (x: number, y: number): Node => ({ type: 'FRAME', name: 'note', x, y, width: 200, height: 100 } as Node);
   const pgHN: Page = { children: [header(), stray(1300, -300)] };
   await run(grid, { ...full(), page: pgHN });
@@ -5058,12 +5071,12 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   ok(at(underWithStray) === '100,0',
     `#2405 on a page with a section header, a stray non-set node beside it and no set, the set lands under the header at 100,0, never beside it (got ${at(underWithStray)})`);
   // ...and a stray node in the row under the header (100,0, 200x100) pushes the set right, still under the
-  // header: 100 + 200 + 400 = 700, y 0.
+  // header: 100 + 200 + 160 = 460, y 0.
   const pgHB: Page = { children: [header(), stray(100, 0)] };
   await run(grid, { ...full(), page: pgHB });
   const pastStray = pgHB.children.find((n) => n.name === 'button')!;
-  ok(at(pastStray) === '700,0',
-    `#2405 a stray node in the row under the header pushes the set right of it, still under the header, at 700,0 (got ${at(pastStray)})`);
+  ok(at(pastStray) === '460,0',
+    `#2405 a stray node in the row under the header pushes the set right of it, still under the header, at 460,0 (got ${at(pastStray)})`);
 }
 
 // ---- #1750: page headers are placed after ALL of a run's builds, once per page ------------------------
@@ -5138,6 +5151,11 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     ['controlShape', 'boxed'], ['controlShape', 'hairline'], ['controlShape', 'pill'],
     // #2695: Field style moves only the field defs' geometry and paints, never the tree.
     ['fieldStyle', 'underline'],
+    // #2888: so does the Search field style, on the search field alone. Outline differs from Follow only where the
+    // fields are underline, so that pair is checked on the minimal brand with underline fields (`MOVES_ON`).
+    ['searchFieldStyle', 'outline'], ['searchFieldStyle', 'underline'],
+    // #2887 (Q513.1 A): "Tag style: Underline" adds no token; it moves only the materialized Tag def.
+    ['tagStyle', 'underline'],
   ];
   const getIn = (o: any, key: string): unknown => key.split('.').reduce((a, p) => a?.[p], o);
   const setIn = (o: any, key: string, v: unknown): any => {
@@ -5165,7 +5183,12 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   ok(unexercised.length === 0, `#1812 every lever with a manifest default is left unset by at least one base brand${unexercised.length ? ` — NEVER UNSET: ${unexercised.join(', ')}` : ''}`);
   ok(drift.length === 0, `#1812 every lever's manifest default is what materializeForBrand does with the lever unset${drift.length ? ` — DIFFERS: ${drift.join('; ')}` : ''}`);
 
-  const blindUnmoved = TREE_BLIND_PAIRS.filter(([key, v]) => materialized(setIn(minimal, key, v)) === baseOut.get('minimal'))
+  // The base a pair is checked on: the minimal brand, unless the pair moves only over another setting (#2888).
+  const MOVES_ON: Record<string, BrandInput> = { 'searchFieldStyle=outline': { ...minimal, fieldStyle: 'underline' } as BrandInput };
+  const blindUnmoved = TREE_BLIND_PAIRS.filter(([key, v]) => {
+    const on = MOVES_ON[`${key}=${v}`] ?? minimal;
+    return materialized(setIn(on, key, v)) === materialized(on);
+  })
     .map(([key, v]) => `${key}=${JSON.stringify(v)}`);
   ok(blindUnmoved.length === 0, `#1812 each tree-blind (lever, value) pair moves the materialized defs${blindUnmoved.length ? ` — UNMOVED: ${blindUnmoved.join(', ')}` : ''}`);
 }
@@ -5187,7 +5210,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const wrong: string[] = [];
   const misses: string[] = [];
   let read = 0;
-  for (const fid of ['text-field', 'password-field', 'select', 'textarea']) {
+  for (const fid of ['text-field', 'password-field', 'select', 'textarea', 'search-field']) {
     const def = componentDefs.find((d) => d.id === fid)!;
     const page: Page = { children: [] };
     const shim = makeShim({ vars: f.vars, styles: f.styles, effects: f.effects, comps: [], liveRoot: true, page });
@@ -5206,9 +5229,94 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
       if (JSON.stringify(got) !== JSON.stringify(want)) wrong.push(`${fid} ${m.name}: ${got.join(' / ')}`);
     }
   }
-  ok(read === 4 * 84 && wrong.length === 0,
-    `#2695 underline fields read back with their per-side weights bound: none / none / hairline (thick at focus) / none, on all ${read} of 336 members (${wrong.slice(0, 3).join('; ') || 'ok'})`);
+  ok(read === 5 * 84 && wrong.length === 0,
+    `#2695 underline fields read back with their per-side weights bound: none / none / hairline (thick at focus) / none, on all ${read} of 420 members (the search field following, #2888) (${wrong.slice(0, 3).join('; ') || 'ok'})`);
   ok(misses.length === 0, `#2695 underline fields: no stroke binding is reported discarded (${misses.slice(0, 3).join('; ') || 'none'})`);
+}
+
+// =============================================================================================
+// #2888 — THE SEARCH FIELD STYLE, through `materializeForBrand`
+// =============================================================================================
+// The search field takes the Search field style lever (owner decision Q514 taking Q?1 A); every other field takes
+// Field style. SUBJECT = `materializeForBrand`, the function `main.ts` projects through; ORACLE = the projected
+// control's bound stroke keys, against names typed here from #2695's decisions (an underline control binds the four
+// sides apart, an outline control one scalar weight). Mutations: feed the search field `fieldStyle` in `brand-def.ts`
+// and ignore `searchFieldStyle` → `search-field takes its own style under outline fields`; change the lever's unset
+// default from `follow` to `outline` in `fieldStyleFor` → `Follow keeps search identical to fieldStyle`.
+{
+  const nb = parseDesignMd(readFileSync(new URL('../../packages/engine/examples/nb-redesign.design.md', import.meta.url), 'utf8')).input;
+  const find = (n: any, name: string): any => (n.name === name ? n : (n.children ?? []).map((c: any) => find(c, name)).find(Boolean));
+  const def = (id: string) => componentDefs.find((d) => d.id === id)!;
+  /** The edge every member of `id` draws under `input`, read off its control: `underline`, `outline`, or `mixed`. */
+  const edgeOf = (id: string, input: BrandInput): string => {
+    const kinds = new Set(figmaAnatomySet(materializeForBrand(def(id), input), { swapTarget: SWAP }).map((p) => {
+      const b = find(p.root, 'control')?.bound ?? {};
+      if (b.strokeTopWeight === 'border-width/none' && b.strokeLeftWeight === 'border-width/none' && b.strokeRightWeight === 'border-width/none' && /^border-width\/(hairline|thick)$/.test(b.strokeBottomWeight) && !('strokeWeight' in b)) return 'underline';
+      if (b.strokeWeight === 'border-width/hairline' && !('strokeBottomWeight' in b)) return 'outline';
+      return `odd(${JSON.stringify(b)})`;
+    }));
+    return kinds.size === 1 ? [...kinds][0] : `mixed(${[...kinds].join(', ')})`;
+  };
+  const at = (o: Record<string, string>) => ({ ...nb, ...o }) as BrandInput;
+  const OTHERS = ['text-field', 'password-field', 'select', 'textarea'];
+  const ownUnder = { search: edgeOf('search-field', at({ searchFieldStyle: 'underline' })), others: OTHERS.map((id) => edgeOf(id, at({ searchFieldStyle: 'underline' }))) };
+  ok(ownUnder.search === 'underline' && ownUnder.others.every((e) => e === 'outline'),
+    `#2888 search-field takes its own style under outline fields: Search field style Underline draws the search field underline and leaves the other four outline (search ${ownUnder.search}; ${OTHERS.map((id, i) => `${id} ${ownUnder.others[i]}`).join(', ')})`);
+  const ownOutline = { search: edgeOf('search-field', at({ fieldStyle: 'underline', searchFieldStyle: 'outline' })), others: OTHERS.map((id) => edgeOf(id, at({ fieldStyle: 'underline', searchFieldStyle: 'outline' }))) };
+  ok(ownOutline.search === 'outline' && ownOutline.others.every((e) => e === 'underline'),
+    `#2888 search-field takes its own style under underline fields: Search field style Outline keeps the search field a box while the other four are underline (search ${ownOutline.search}; ${OTHERS.map((id, i) => `${id} ${ownOutline.others[i]}`).join(', ')})`);
+  // FOLLOW (the default) is byte-identical to setting the search field the brand's own Field style explicitly, under
+  // both Field styles, with the lever unset and with it set to Follow.
+  const plans = (input: BrandInput) => JSON.stringify(figmaAnatomySet(materializeForBrand(def('search-field'), input), { swapTarget: SWAP }));
+  const followBad = (['outline', 'underline'] as const).filter((fs) => {
+    const explicit = plans(at({ fieldStyle: fs, searchFieldStyle: fs }));
+    return plans(at({ fieldStyle: fs })) !== explicit || plans(at({ fieldStyle: fs, searchFieldStyle: 'follow' })) !== explicit;
+  });
+  ok(followBad.length === 0 && edgeOf('search-field', at({ fieldStyle: 'underline' })) === 'underline',
+    `#2888 Follow keeps search identical to fieldStyle: unset and Follow field style build the search field byte-identical to its brand's own Field style, outline and underline (differs under: ${followBad.join(', ') || 'none'})`);
+}
+
+// =============================================================================================
+// #2887 — THE UNDERLINE TAG, built through `materializeForBrand` and read back from the host shim
+// =============================================================================================
+// A brand on "Tag style: Underline" builds the Tag set with its four stroke sides bound apart (top, end and start to
+// `border-width/none`; the bottom to `border-width/hairline` at an unselected rest, focus-visible or disabled member and
+// `border-width/thick` on hover, pressed and every selected member), a bound `minHeight` in place of the height, the
+// frame aligned to the end, and the content row on its block-end inset. Read back off the host's own nodes. Expected
+// names typed from the decisions (Q513, Q540). The first host-side read-back of `minHeight` plus end alignment on Tag.
+{
+  const input = { ...parseDesignMd(readFileSync(new URL('../../packages/engine/examples/nb-redesign.design.md', import.meta.url), 'utf8')).input, tagStyle: 'underline' } as BrandInput;
+  const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, input), { swapTarget: SWAP });
+  const all = componentDefs.flatMap((d) => { try { return project(d); } catch { return []; } });
+  const f = fullFor(all);
+  const id = (v: unknown): string | null => (v as { id?: string } | undefined)?.id?.replace(/^V:/, '') ?? null;
+  const RUNG: Record<string, string> = { small: 'sm', medium: 'md', large: 'lg' };
+  const INSET: Record<string, string> = { small: 'space/050', medium: 'space/075', large: 'space/100' };
+  const def = componentDefs.find((d) => d.id === 'tag')!;
+  const page: Page = { children: [] };
+  const shim = makeShim({ vars: f.vars, styles: f.styles, effects: f.effects, comps: [], liveRoot: true, page });
+  const build = (d: ComponentDef) => applyComponentPlan(project(d), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents });
+  await prebuildDependencies(def, { defs: componentDefs, project, host: shim as any, build });
+  const run = await build(def);
+  const misses = run.misses.filter((m) => /stroke|minHeight|padding/i.test(m));
+  const set = page.children.find((c) => c.type === 'COMPONENT_SET' && c.name === project(def)[0].component) as Node | undefined;
+  const wrong: string[] = [];
+  let read = 0;
+  for (const m of (set?.children ?? []) as Node[]) {
+    const name = String(m.name);
+    const size = /size=(\w+)/.exec(name)?.[1] ?? '';
+    const thick = /selection=selected/.test(name) || /state=(hover|pressed)/.test(name);
+    const bv = (m.boundVariables ?? {}) as Record<string, unknown>;
+    const content = ((m.children as Node[]) ?? []).find((n) => n.name === 'content');
+    read++;
+    const got = [id(bv.strokeTopWeight), id(bv.strokeRightWeight), id(bv.strokeBottomWeight), id(bv.strokeLeftWeight), id(bv.minHeight), id(bv.height), m.counterAxisAlignItems,
+      id(((content?.boundVariables ?? {}) as Record<string, unknown>).paddingBottom)];
+    const want = ['border-width/none', 'border-width/none', thick ? 'border-width/thick' : 'border-width/hairline', 'border-width/none', `size/${RUNG[size]}/height`, null, 'MAX', INSET[size]];
+    if (JSON.stringify(got) !== JSON.stringify(want)) wrong.push(`${name}: ${got.join(' / ')}`);
+  }
+  ok(read === 45 && wrong.length === 0,
+    `#2887 underline tag reads back: per-side weights none / none / hairline (thick on hover, pressed and selected) / none, minHeight at the height rung and no bound height, the frame at the end and the content on its inset, on all ${read} of 45 members (${wrong.slice(0, 2).join('; ') || 'ok'})`);
+  ok(misses.length === 0, `#2887 underline tag: no stroke, minHeight or padding binding is reported discarded (${misses.slice(0, 3).join('; ') || 'none'})`);
 }
 
 // =============================================================================================
@@ -5268,12 +5376,12 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 // unselected member at the same size and state must then measure the same width, and the build reports no footprint
 // miss. Mutation: the bold reserve dropped from `labelBox` → `tab width held (Q226 A)`.
 {
-  const tabDef = componentDefs.find((d) => d.id === 'tab')!;
+  const tabDef = componentDefs.find((d) => d.id === 'tab-item')!;
   const plans = figmaAnatomySet(materializeForBrand(tabDef, null), { swapTarget: SWAP });
   const BOLD_WIDER = { 'label/sm/emphasis': 8, 'label/md/emphasis': 8, 'label/lg/emphasis': 8 };
   const page: Page = { children: [] };
   const r = await run(plans, { ...fullFor(plans), page, liveRoot: true, layoutModel: true, textAdvance: BOLD_WIDER });
-  const set = page.children.find((c) => c.name === 'tab' && c.type === 'COMPONENT_SET') as Node | undefined;
+  const set = page.children.find((c) => c.name === 'tab-item' && c.type === 'COMPONENT_SET') as Node | undefined;
   const members = (set?.children ?? []) as Node[];
   const key = (m: Node) => String(m.name).split(', ').filter((seg) => !seg.startsWith('selection=')).sort().join(', ');
   const by = new Map<string, Record<string, number>>();
@@ -5328,6 +5436,55 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   }
   ok(members.length === 3 && wrong.length === 0,
     `segmented control equal widths (Q269.6): at every size the items slot grows along the track and its three options grow along it (layoutGrow 1 on the host) and measure the same width, their shares filling the track (${members.length} members${wrong.length ? ` — WRONG: ${wrong.join(' | ')}` : ''})`);
+}
+
+// ── #2872: LINK'S CURRENT-PAGE BAR, PINNED ACROSS THE FOOT (owner decisions Q507) ──────────────────────────────────
+// Driven through the REAL executor with the shim's `layoutModel`. On every current member the `bar` is a frame lifted
+// out of the flow (ABSOLUTE), constrained STRETCH/MAX, as wide as the link box, flush with its bottom, at the 2px of its
+// bound height, which the resize must not unbind. And it moves no box: each current member measures what its
+// unselected twin measures. The 2 is pinned here as the shim's variable value (`varPx`), never read off the def.
+// Mutations, each failing the arm named: the foot pass dropped from the executor (the bar stays in the flow) →
+// `link bar foot` and `link bar footprint`; the bar placed before the ring's lift → `link bar foot` (a focus-visible
+// bar runs past the link). NOT caught here: the shim keeps a bound height across `resize`, so dropping the executor's
+// re-bind after it passes; whether the host unbinds there is unverified (#2872's gaps).
+{
+  const BAR = 2;
+  const defs = componentDefs;
+  const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP });
+  const all = defs.flatMap((d) => { try { return project(d); } catch { return []; } });
+  const f = fullFor(all);
+  const page: Page = { children: [] };
+  // The label's line box per body style (24px, the medium body line), so the link box is as tall as its line and
+  // the bar's foot is measured against a real height. Every style the set binds gets one.
+  const lineBoxes = Object.fromEntries(f.styles.filter((n) => n.startsWith('body/')).map((n) => [n, 24]));
+  const shim = makeShim({ vars: f.vars, styles: f.styles, effects: f.effects, comps: [], liveRoot: true, page, layoutModel: true, textLineBox: lineBoxes, varPx: { 'border-width/thick': BAR } });
+  const link = defs.find((d) => d.id === 'link')!;
+  const build = (d: ComponentDef) => applyComponentPlan(project(d), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents });
+  await prebuildDependencies(link, { defs, project, host: shim as any, build });
+  const r = await build(link);
+  const set = page.children.find((c) => c.name === 'link' && c.type === 'COMPONENT_SET') as Node | undefined;
+  const members = ((set?.children as Node[] | undefined) ?? []);
+  const kid = (n: Node, name: string): Node | undefined => ((n.children as Node[] | undefined) ?? []).find((c) => c.name === name);
+  ok(members.length === 144 && r.misses.length === 0, `link bar build: the set builds 144 members with 0 misses (${members.length}; ${r.misses[0] ?? 'none'})`);
+  const off: string[] = [];
+  const moved: string[] = [];
+  let current = 0;
+  for (const m of members) {
+    const bar = kid(m, 'bar');
+    if (!String(m.name).includes('selection=selected')) { if (bar) off.push(`${String(m.name)}: a bar on a member that is not current`); continue; }
+    current++;
+    const c = bar?.constraints as { horizontal?: string; vertical?: string } | null | undefined;
+    const bv = (bar?.boundVariables ?? {}) as Record<string, unknown>;
+    if (!bar || bar.layoutPositioning !== 'ABSOLUTE' || c?.horizontal !== 'STRETCH' || c?.vertical !== 'MAX' || !bv.height
+      || bar.height !== BAR || Math.abs((bar.width as number) - (m.width as number)) > 1e-6 || bar.x !== 0 || Math.abs((bar.y as number) - ((m.height as number) - BAR)) > 1e-6)
+      off.push(`${String(m.name)}: ${bar ? `${String(bar.layoutPositioning)} ${JSON.stringify(c)} ${bar.width}x${bar.height} at (${bar.x}, ${bar.y}) height ${bv.height ? 'bound' : 'UNBOUND'}; box ${m.width}x${m.height}` : 'no bar'}`);
+    const twin = members.find((x) => String(x.name) === String(m.name).replace('selection=selected', 'selection=unselected'));
+    if (!twin || twin.width !== m.width || twin.height !== m.height) moved.push(`${String(m.name)}: ${m.width}x${m.height} vs ${twin ? `${twin.width}x${twin.height}` : 'no twin'}`);
+  }
+  ok(current === 48 && off.length === 0,
+    `link bar foot: on all 48 current members the bar is ABSOLUTE, STRETCH/MAX, as wide as the link, flush with its bottom and ${BAR}px high with the height still bound, and no other member has one (${current} current, ${off.length} off — ${off[0] ?? 'none'})`);
+  ok(current === 48 && moved.length === 0,
+    `link bar footprint: every current member measures what its unselected twin measures, so the bar moves no box (${moved.length} moved — ${moved[0] ?? 'none'})`);
 }
 
 if (failed) process.exit(1);
