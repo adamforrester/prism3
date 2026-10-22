@@ -68,6 +68,129 @@
       ]
     },
     {
+      "from": "breadcrumb-item",
+      "to": "link",
+      "part": "crumb",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "style": "inline",
+        "weight": "default",
+        "size": "medium",
+        "surface": "default",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "state"
+      ]
+    },
+    {
+      "from": "breadcrumb-item",
+      "to": "flush-icon-button-neutral",
+      "part": "overflow",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "shape": "flush",
+        "size": "small",
+        "surface": "default",
+        "state": "rest"
+      },
+      "expose": [
+        "state"
+      ]
+    },
+    {
+      "from": "breadcrumb-item",
+      "to": "_breadcrumb-separator",
+      "part": "separator",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "chevron"
+      }
+    },
+    {
+      "from": "breadcrumb-item",
+      "to": "_breadcrumb-separator",
+      "part": "separatorSlash",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "type": "slash"
+      }
+    },
+    {
+      "from": "breadcrumbs",
+      "to": "breadcrumb-item",
+      "part": "item1",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "kind": "ancestor",
+        "separator": "chevron",
+        "size": "medium"
+      },
+      "follow": [
+        "separator",
+        "size"
+      ]
+    },
+    {
+      "from": "breadcrumbs",
+      "to": "breadcrumb-item",
+      "part": "item2",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "kind": "ancestor",
+        "separator": "chevron",
+        "size": "medium"
+      },
+      "follow": [
+        "separator",
+        "size"
+      ]
+    },
+    {
+      "from": "breadcrumbs",
+      "to": "breadcrumb-item",
+      "part": "item3",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "kind": "current",
+        "separator": "chevron",
+        "size": "medium"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "breadcrumbs",
+      "to": "link",
+      "part": "parentLink",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "style": "inline",
+        "weight": "default",
+        "size": "medium",
+        "surface": "default",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ],
+      "expose": [
+        "state"
+      ]
+    },
+    {
       "from": "button",
       "to": "focus-ring",
       "part": "focusRing",
@@ -1155,6 +1278,18 @@
       ],
       "inheritedBy": []
     },
+    "_breadcrumb-separator": {
+      "nests": [],
+      "nestsTransitively": [],
+      "nestedBy": [
+        "breadcrumb-item"
+      ],
+      "affectedByChange": [
+        "breadcrumb-item",
+        "breadcrumbs"
+      ],
+      "inheritedBy": []
+    },
     "accordion": {
       "nests": [
         "_accordion-indicator",
@@ -1180,6 +1315,42 @@
         "tab-item",
         "tabs"
       ],
+      "inheritedBy": []
+    },
+    "breadcrumb-item": {
+      "nests": [
+        "_breadcrumb-separator",
+        "flush-icon-button-neutral",
+        "link"
+      ],
+      "nestsTransitively": [
+        "_breadcrumb-separator",
+        "flush-icon-button-neutral",
+        "focus-ring",
+        "link"
+      ],
+      "nestedBy": [
+        "breadcrumbs"
+      ],
+      "affectedByChange": [
+        "breadcrumbs"
+      ],
+      "inheritedBy": []
+    },
+    "breadcrumbs": {
+      "nests": [
+        "breadcrumb-item",
+        "link"
+      ],
+      "nestsTransitively": [
+        "_breadcrumb-separator",
+        "breadcrumb-item",
+        "flush-icon-button-neutral",
+        "focus-ring",
+        "link"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
       "inheritedBy": []
     },
     "button": {
@@ -1434,11 +1605,14 @@
         "focus-ring"
       ],
       "nestedBy": [
+        "breadcrumb-item",
         "counter",
         "dialog",
         "toast"
       ],
       "affectedByChange": [
+        "breadcrumb-item",
+        "breadcrumbs",
         "counter",
         "dialog",
         "toast"
@@ -1475,6 +1649,8 @@
       ],
       "affectedByChange": [
         "accordion",
+        "breadcrumb-item",
+        "breadcrumbs",
         "button",
         "button-destructive",
         "button-group",
@@ -1578,8 +1754,14 @@
       "nestsTransitively": [
         "focus-ring"
       ],
-      "nestedBy": [],
-      "affectedByChange": [],
+      "nestedBy": [
+        "breadcrumb-item",
+        "breadcrumbs"
+      ],
+      "affectedByChange": [
+        "breadcrumb-item",
+        "breadcrumbs"
+      ],
       "inheritedBy": []
     },
     "list": {
@@ -1869,8 +2051,11 @@
   },
   "depth": {
     "_accordion-indicator": 0,
+    "_breadcrumb-separator": 0,
     "accordion": 1,
     "badge": 0,
+    "breadcrumb-item": 2,
+    "breadcrumbs": 3,
     "button": 1,
     "button-destructive": 1,
     "button-group": 2,

@@ -217,8 +217,8 @@ const plansOf = (id: string): AnatomyPlan[] => {
   if (!d) throw new Error(`no def ${id}`);
   return figmaAnatomySet(d, { swapTarget: SWAP_TARGET });
 };
-// A swap override's component is one the file holds too (#2645): the build pre-builds it (`build-deps.ts`), so the
-// world lists it, or Dialog's close (`icon/close`, #2609) reads as a blocker the file never has.
+// #2666 — and the glyph a nested instance's swap override names (#2645): a real file holds the whole icon set, so the
+// component an override swaps to is there, as the nested one is. Breadcrumbs' overflow step is the first such override.
 const planComps = (n: { swapTarget?: string; nestTarget?: string; nestOverrides?: readonly { type: string; value: string }[]; children?: unknown[] }): string[] => [
   ...(n.swapTarget ? [n.swapTarget] : []),
   ...(n.nestTarget ? [n.nestTarget] : []),
@@ -837,25 +837,25 @@ const singleWorld = async (plans: AnatomyPlan[], extraVars: string[] = [], o: { 
   const next = plans.map((p) => { const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan; (q.root as unknown as Record<string, unknown>).descendantFills = 'color/icon/secondary'; return q; });
   const t = { def: 'icon', plans: next, single: true };
   const pre = await previewUpdate(w.host, [t]);
-  ok(pre.sets[0]?.counts.update === 45, `premise: the dry run reads all 45 icons out of date (${JSON.stringify(pre.sets[0]?.counts)})`);
+  ok(pre.sets[0]?.counts.update === 46, `premise: the dry run reads all 46 icons out of date (${JSON.stringify(pre.sets[0]?.counts)})`);
   const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre));
   const v = applyVerdict(res);
-  ok(v.ok && v.headline === '✓ updated 45 in place', `single/update: ${v.headline} (${v.lines.slice(0, 2).join(' | ').slice(0, 220)})`);
+  ok(v.ok && v.headline === '✓ updated 46 in place', `single/update: ${v.headline} (${v.lines.slice(0, 2).join(' | ').slice(0, 220)})`);
   const after = new Map(w.comps().map((c) => [String(c.name), { key: String(c.key), id: String(c.id) }] as const));
-  ok(after.size === 45 && [...before].every(([n, b]) => after.get(n)?.key === b.key && after.get(n)?.id === b.id), 'single/keys: every icon keeps its key and id');
+  ok(after.size === 46 && [...before].every(([n, b]) => after.get(n)?.key === b.key && after.get(n)?.id === b.id), 'single/keys: every icon keeps its key and id');
   const sec = (await w.api.variables.getLocalVariablesAsync()).find((x: { name: string }) => x.name.endsWith('/color/icon/secondary')).id;
   const inked = w.comps().filter((c) => ((c.children as Node[]) ?? []).filter((k) => k.type === 'VECTOR').every((k) => (k.fills as { boundVariables?: { color?: { id: string } } }[])[0]?.boundVariables?.color?.id === sec)).length;
-  ok(inked === 45, `single/written: every icon's ink is the plan's new color (${inked})`);
+  ok(inked === 46, `single/written: every icon's ink is the plan's new color (${inked})`);
   const post = (await previewUpdate(w.host, [t])).sets[0];
   const markers = w.comps().filter((c) => (c.getSharedPluginData as (a: string, b: string) => string)(NS, 'memberUpdating') !== '').length;
-  ok(post.counts.current === 45 && markers === 0, `single/finished: each icon is finished as a set member is, current with its marker off (${JSON.stringify(post.counts)}, ${markers} markers left)`);
+  ok(post.counts.current === 46 && markers === 0, `single/finished: each icon is finished as a set member is, current with its marker off (${JSON.stringify(post.counts)}, ${markers} markers left)`);
 }
 {
   const plans = plansOf('icon');
   const w = await singleWorld(plans.filter((_, i) => i !== 5));
   const res = await applyUpdate(w.host, w.api as any, [{ def: 'icon', plans, single: true }], previewHashOf(await previewUpdate(w.host, [{ def: 'icon', plans, single: true }])));
   const at = w.comps().map((c) => `${c.x},${c.y}`);
-  ok(res.outcomes[0]?.added === 1 && w.comps().length === 45 && new Set(at).size === at.length,
+  ok(res.outcomes[0]?.added === 1 && w.comps().length === 46 && new Set(at).size === at.length,
     `single/add: the glyph the plan gained is built, in a slot no other icon holds (${res.outcomes[0]?.added}, ${w.comps().length} icons, ${new Set(at).size} distinct places)`);
 }
 {
@@ -905,12 +905,12 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
   const named = res.outcomes[0]?.misses.filter((x) => x.startsWith(`name=${String(hit.name).split('/').pop()}.asBuilt -> NOT RECORDED`)) ?? [];
   ok(named.length === 1, `recordfail/named: the outcome names the icon as not recorded (${JSON.stringify(named)}; ${v.headline})`);
   const post = (await previewUpdate(w.host, [t])).sets[0];
-  ok(post.counts.current === 44 && post.counts.current + (post.counts.update ?? 0) + (post.counts.noBaseline ?? 0) === 45 && !post.handEdits.some((h) => h.member.endsWith(String(hit.name).split('/').pop()!)),
-    `recordfail/out of date: the next dry run reads it out of date, never current, the other 44 current (${JSON.stringify(post.counts)})`);
+  ok(post.counts.current === 45 && post.counts.current + (post.counts.update ?? 0) + (post.counts.noBaseline ?? 0) === 46 && !post.handEdits.some((h) => h.member.endsWith(String(hit.name).split('/').pop()!)),
+    `recordfail/out of date: the next dry run reads it out of date, never current, the other 45 current (${JSON.stringify(post.counts)})`);
   const glyph = String(hit.name).split('/').pop();
-  ok(!v.ok && v.headline === '⚠ 1 set not verified' && v.lines[0] === 'icon: 44 updated in place.'
+  ok(!v.ok && v.headline === '⚠ 1 set not verified' && v.lines[0] === 'icon: 45 updated in place.'
     && v.lines.includes(`icon: 1 member not finished — name=${glyph} (its as-built record could not be written). It still reads as out of date; run the update again to finish it.`),
-    `recordfail/verdict: the verdict is not a ✓, counts 44 updated and names the icon not finished (${JSON.stringify(v)})`);
+    `recordfail/verdict: the verdict is not a ✓, counts 45 updated and names the icon not finished (${JSON.stringify(v)})`);
 }
 {
   // THE SAME FAILURE ON A SET MEMBER: `finishUpdated` is the set path's finish too, called from its own loop.
@@ -960,7 +960,7 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
   const o = res.outcomes[0];
   const v = applyVerdict(res);
   ok(o?.skipped.some((x) => x.member === 'name=check') && o.misses.some((x) => x.startsWith('name=check-circle.asBuilt -> NOT RECORDED'))
-    && !v.ok && v.headline === '⚠ 1 set not verified' && v.lines[0] === 'icon: 43 updated in place, 1 left as they are.'
+    && !v.ok && v.headline === '⚠ 1 set not verified' && v.lines[0] === 'icon: 44 updated in place, 1 left as they are.'
     && v.lines.includes('icon: 1 member not finished — name=check-circle (its as-built record could not be written). It still reads as out of date; run the update again to finish it.'),
     `recordfail/prefix: a skip on name=check leaves the refused record on name=check-circle in the misses and the verdict (skipped ${JSON.stringify(o?.skipped)}; misses ${JSON.stringify(o?.misses)}; ${JSON.stringify(v)})`);
 }
@@ -1014,16 +1014,16 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
   for (const c of w.comps()) putPd(c, BASELINE_KEY, '');
   const t = { def: 'icon', plans: reinked(plans), single: true };
   const pre = await previewUpdate(w.host, [t]);
-  ok(pre.sets[0]?.counts.noBaseline === 45, `premise: the dry run reads all 45 icons with no record (${JSON.stringify(pre.sets[0]?.counts)})`);
+  ok(pre.sets[0]?.counts.noBaseline === 46, `premise: the dry run reads all 46 icons with no record (${JSON.stringify(pre.sets[0]?.counts)})`);
   const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre));
   const o = res.outcomes[0];
   const v = applyVerdict(res);
-  ok(v.ok && o?.updated.length === 45 && o.unrecorded.length === 45,
+  ok(v.ok && o?.updated.length === 46 && o.unrecorded.length === 46,
     `unrecorded single/updated: by default every record-less icon is updated and named as updated without a record (${v.headline}; ${o?.updated.length} updated, ${o?.unrecorded.length} unrecorded)`);
   const sec = await varIdOf(w as unknown as World, 'color/icon/secondary');
   const inked = w.comps().filter((c) => ((c.children as Node[]) ?? []).filter((k) => k.type === 'VECTOR').every((k) => (k.fills as { boundVariables?: { color?: { id: string } } }[])[0]?.boundVariables?.color?.id === sec)).length;
   const post = (await previewUpdate(w.host, [t])).sets[0];
-  ok(inked === 45 && post.counts.current === 45 && w.comps().every((c) => !!pdOf(c, BASELINE_KEY)),
+  ok(inked === 46 && post.counts.current === 46 && w.comps().every((c) => !!pdOf(c, BASELINE_KEY)),
     `unrecorded single/recorded: each takes the plan's ink and a record, and reads current after (${inked} inked; ${JSON.stringify(post.counts)})`);
 }
 {
@@ -1038,8 +1038,8 @@ const reinked = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => { cons
   const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre), { choices: { noBaseline: 'skip' } });
   const o = res.outcomes[0];
   const post = (await previewUpdate(w.host, [t])).sets[0];
-  ok(o?.updated.length === 44 && dump() === before && JSON.stringify(o.skipped.map((x) => x.reason)) === JSON.stringify(['no as-built record']) && post.counts.noBaseline === 1,
-    `unrecorded single/skip: under noBaseline 'skip' the record-less icon is left exactly as it is and named, the other 44 updated (${o?.updated.length}, ${JSON.stringify(o?.skipped)}, ${dump() === before ? 'untouched' : 'written'}; ${JSON.stringify(post.counts)})`);
+  ok(o?.updated.length === 45 && dump() === before && JSON.stringify(o.skipped.map((x) => x.reason)) === JSON.stringify(['no as-built record']) && post.counts.noBaseline === 1,
+    `unrecorded single/skip: under noBaseline 'skip' the record-less icon is left exactly as it is and named, the other 45 updated (${o?.updated.length}, ${JSON.stringify(o?.skipped)}, ${dump() === before ? 'untouched' : 'written'}; ${JSON.stringify(post.counts)})`);
 }
 {
   // A DUPLICATE OF THE FILE, FOR THE SINGLE COMPONENTS (#2436): `format/duplicate` for the icons and the spinner. The
@@ -2459,14 +2459,14 @@ section('mixed — in a set the build updates, a member from an earlier plugin s
   }
   const t = { def: 'icon', plans, single: true };
   const pre = await previewUpdate(w.host, [t]);
-  ok(pre.sets[0]?.counts.revisionUnknown === 45 && previewVerdict(pre).headline === '✓ No changes found',
-    `premise: all 45 icons read "built by an earlier plugin", and nothing changes (${JSON.stringify(pre.sets[0]?.counts)}; ${previewVerdict(pre).headline})`);
+  ok(pre.sets[0]?.counts.revisionUnknown === 46 && previewVerdict(pre).headline === '✓ No changes found',
+    `premise: all 46 icons read "built by an earlier plugin", and nothing changes (${JSON.stringify(pre.sets[0]?.counts)}; ${previewVerdict(pre).headline})`);
   const logs = w.comps().map((c) => watchWrites(c));
   const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre));
   const other = logs.flat().filter((x) => !new RegExp(`setSharedPluginData\\(${NS}, (${STAMP_KEY}|${BASELINE_KEY})\\)$`).test(x));
   const again = (await previewUpdate(w.host, [t])).sets[0];
-  ok(res.outcomes[0]?.restamped?.length === 45 && other.length === 0 && again.counts.current === 45,
-    `single/stamped: each icon takes its stamp and nothing else, and all 45 read current (${res.outcomes[0]?.restamped?.length} stamped; ${other.length} other writes; ${JSON.stringify(again.counts)}; ${applyVerdict(res).headline})`);
+  ok(res.outcomes[0]?.restamped?.length === 46 && other.length === 0 && again.counts.current === 46,
+    `single/stamped: each icon takes its stamp and nothing else, and all 46 read current (${res.outcomes[0]?.restamped?.length} stamped; ${other.length} other writes; ${JSON.stringify(again.counts)}; ${applyVerdict(res).headline})`);
 }
 
 {
@@ -2487,14 +2487,14 @@ section('mixed — in a set the build updates, a member from an earlier plugin s
   const pre = await previewUpdate(w.host, [t]);
   const st = pre.sets[0];
   const stateOf = st?.states.find((x) => x.member === `name=${String(hit.name).replace(/^icon\//, '')}`)?.state;
-  ok(stateOf === 'update' && st?.counts.revisionUnknown === 44 && st.changes.some((c) => c.field === 'fills' && /stored #000000/.test(c.from)),
+  ok(stateOf === 'update' && st?.counts.revisionUnknown === 45 && st.changes.some((c) => c.field === 'fills' && /stored #000000/.test(c.from)),
     `single/damage: the icon drawn black under its binding reads "to update", named, though its record matches and its stamp is an earlier plugin's (${stateOf}; ${st?.counts.revisionUnknown} from an earlier plugin; ${st?.changes.map((c) => `${c.field}: ${c.from}`).join(' | ')})`);
   const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre));
   const vars = await varsById(w.api as any);
   const left = w.comps().flatMap((c) => drawnFaults(c, vars));
   const again = (await previewUpdate(w.host, [t])).sets[0];
-  ok(applyVerdict(res).ok && res.outcomes[0]?.updated.length === 1 && res.outcomes[0]?.restamped?.length === 44 && left.length === 0 && again.counts.current === 45,
-    `single/damage repaired: the update re-applies that icon, which then draws its variable's color; the other 44 take their stamps; all 45 read current (${applyVerdict(res).headline}; ${res.outcomes[0]?.updated.length} updated, ${res.outcomes[0]?.restamped?.length} stamped; ${left.length} faults; ${again.counts.current} current)`);
+  ok(applyVerdict(res).ok && res.outcomes[0]?.updated.length === 1 && res.outcomes[0]?.restamped?.length === 45 && left.length === 0 && again.counts.current === 46,
+    `single/damage repaired: the update re-applies that icon, which then draws its variable's color; the other 45 take their stamps; all 46 read current (${applyVerdict(res).headline}; ${res.outcomes[0]?.updated.length} updated, ${res.outcomes[0]?.restamped?.length} stamped; ${left.length} faults; ${again.counts.current} current)`);
 }
 
 {

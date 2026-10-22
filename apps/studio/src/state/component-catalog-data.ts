@@ -20,7 +20,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "section": "Foundations",
     "buildable": true,
     "reason": null,
-    "members": 45,
+    "members": 46,
     "nests": []
   },
   {
@@ -1253,6 +1253,81 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
       "button",
       "flush-icon-button-neutral",
       "icon"
+    ]
+  },
+  {
+    "id": "_breadcrumb-separator",
+    "name": "BreadcrumbSeparator",
+    "category": "navigation",
+    "summary": "The mark between two breadcrumb steps: a chevron or a slash, in the secondary icon color.",
+    "unit": "variants",
+    "spacing": [],
+    "page": "Breadcrumb Item",
+    "section": "Subcomponents",
+    "buildable": true,
+    "reason": null,
+    "members": 2,
+    "nests": [
+      "icon"
+    ]
+  },
+  {
+    "id": "breadcrumb-item",
+    "name": "BreadcrumbItem",
+    "category": "navigation",
+    "summary": "One step in a breadcrumb trail: a link, the current page, or the collapsed steps.",
+    "unit": "variants",
+    "spacing": [
+      {
+        "key": "size.medium.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.small.gap",
+        "ref": "space.050"
+      }
+    ],
+    "page": "Breadcrumb Item",
+    "section": "Subcomponents",
+    "buildable": true,
+    "reason": null,
+    "members": 10,
+    "nests": [
+      "link",
+      "_breadcrumb-separator",
+      "flush-icon-button-neutral",
+      "icon"
+    ]
+  },
+  {
+    "id": "breadcrumbs",
+    "name": "Breadcrumbs",
+    "category": "navigation",
+    "summary": "The path to the current page as links, with the current page last and not a link. Size applies to the items you haven't edited. After editing an item, select the items and set their size.",
+    "unit": "variants",
+    "spacing": [
+      {
+        "key": "size.medium.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.small.gap",
+        "ref": "space.050"
+      },
+      {
+        "key": "back-gap",
+        "ref": "space.050"
+      }
+    ],
+    "page": "Breadcrumbs",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 6,
+    "nests": [
+      "breadcrumb-item",
+      "icon",
+      "link"
     ]
   },
   {

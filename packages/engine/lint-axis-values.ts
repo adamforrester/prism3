@@ -297,6 +297,18 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'on both defs, so none is shared. Shared by List and List.Item because the List passes its type to every item '
       + '(`follow`), so the two must hold one set; one entry records both, and a drift between them fails here.',
   },
+  {
+    axis: 'type',
+    values: ['chevron', 'slash'],
+    defs: ['_breadcrumb-separator'],
+    relation: 'disjoint',
+    reason:
+      'Which LOOK the mark between breadcrumb steps takes (owner decision Q382 A, which names the axis `type`): a chevron '
+      + 'pointing toward the current page, or a slash. `chevron` LEADS because it is the code default and Figma\'s default '
+      + 'member. DISJOINT from Badge\'s canonical set, the loud kind of divergence: a badge type is a content kind and a '
+      + 'separator type a glyph, and no value would mean the same thing on both defs. The item picks it by its own '
+      + '`separator` axis, which holds the same two values.',
+  },
   // `indicator` IS GONE FROM THE REGISTER (#1338), and its absence is the point rather than an omission —
   // the same shape the `intent` note below records. field-label carried a three-way
   // `[none/required/optional]` axis whose most important value was ABSENCE, which is exactly why it never
@@ -323,7 +335,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       'error-circle', 'error-circle-filled', 'external-link-filled', 'eye', 'eye-filled', 'eye-off',
       'eye-off-filled', 'FPO-default-icon', 'home', 'image', 'info-circle', 'info-circle-filled', 'link', 'menu', 'minus', 'minus-filled',
       'more-horizontal-filled', 'more-vertical-filled', 'pause-circle', 'play-circle', 'plus', 'plus-circle', 'plus-circle-filled',
-      'plus-filled', 'resize-grip', 'search', 'warning-triangle', 'warning-triangle-filled',
+      'plus-filled', 'resize-grip', 'search', 'slash', 'warning-triangle', 'warning-triangle-filled',
     ],
     defs: ['icon'],
     relation: 'sole',
@@ -447,7 +459,9 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
     values: ['medium', 'small'],
     // The `switch-row` ROW keeps `size` (it scales the label ramp, gap and row height) and passes it through
     // to the nested `switch-control` by `follow`; the atom declares the same two-rung ladder (#1354).
-    defs: ['switch-row', 'switch-control'],
+    // Breadcrumbs and its item join it (#2666, owner call 7 A): one line of 14 or 16px body text, and an 18px trail
+    // stops reading as secondary wayfinding.
+    defs: ['switch-row', 'switch-control', 'breadcrumbs', 'breadcrumb-item'],
     relation: 'subset',
     reason:
       'The ladder minus its top rung, for a def with no large form, led by medium as canonical is (#2752 Q1 B): a switch above medium stops reading '
@@ -729,6 +743,39 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'the writing direction\'s end, so it mirrors in right-to-left text and a `start` can join it with no rename). `center` LEADS because it is the code '
       + 'default on every screen and Figma\'s default member. One def carries it, so there is no other to stand in a '
       + 'relation with. Distinct from `alignment` and `direction`, argued in `VARIANT_AXES`.',
+  },
+  {
+    axis: 'kind',
+    values: ['ancestor', 'current', 'overflow'],
+    defs: ['breadcrumb-item'],
+    relation: 'sole',
+    reason:
+      'Which role a step plays in its trail (#2666, owner call 1 A): a link to a page above, the current page as text, '
+      + 'or the button standing for collapsed steps. `ancestor` LEADS because it is the code default and Figma\'s '
+      + 'default member, the commonest step. One def carries it. Distinct from `type`, argued in `VARIANT_AXES`.',
+  },
+  {
+    axis: 'separator',
+    values: ['chevron', 'slash'],
+    defs: ['breadcrumbs', 'breadcrumb-item'],
+    relation: 'sole',
+    reason:
+      'Which mark stands between the steps of a trail (owner decision Q382 A): a chevron or a slash, one setting for the '
+      + 'whole trail. `chevron` LEADS because it is the code default and Figma\'s default member. Shared by Breadcrumbs and '
+      + 'BreadcrumbItem because the trail passes it to every ancestor (`follow`), so the two must hold one set. The same '
+      + 'two values as `_breadcrumb-separator`\'s `type`, which the item picks by them. Distinct from `indicator` and '
+      + '`style`, argued in `VARIANT_AXES`.',
+  },
+  {
+    axis: 'path',
+    values: ['full', 'parent'],
+    defs: ['breadcrumbs'],
+    relation: 'sole',
+    reason:
+      'How much of the route the navigation shows (#2666, owner calls 1 A and 11 A; named `layout` first and renamed by '
+      + 'Q424 A, because the Button group holds `layout`): the full trail, or one link up to the parent for a small '
+      + 'screen. `full` LEADS because it is the code default and Figma\'s default member. One def carries it. Distinct '
+      + 'from `width` and `footer`, argued in `VARIANT_AXES`.',
   },
   {
     axis: 'intent',

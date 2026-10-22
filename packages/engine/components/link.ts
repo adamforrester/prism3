@@ -263,7 +263,7 @@ export const link: ComponentDef = {
     primaryPurpose: 'Text that navigates to a URL, a fragment or a file, rendered as a real <a href>.',
     whenToUse: 'The interaction changes the address or the place on the page: a page, an in-page anchor, a document, another site. Standalone for a link on its own line (below a form, in a footer, beside a control); inline for a link that sits in body copy.',
     avoidWhen: 'The interaction acts in place without changing the address: submit, open a dialog, toggle, show a password (use Button, or Button.Neutral for a light look). A navigation that needs a button\'s weight, such as "Continue to checkout", is a Button given an href, which renders an <a>. Switching panels in place is Tabs.',
-    commonPartners: ['icon', 'button', 'text-field'],
+    commonPartners: ['icon', 'button', 'text-field', 'breadcrumbs'],
     triggerKeywords: ['link', 'text link', 'hyperlink', 'anchor', 'inline link', 'standalone link', 'skip link', 'external link', 'current page link', 'navigation link'],
     generationPriority: 2,
   },
@@ -273,7 +273,7 @@ export const link: ComponentDef = {
     alternativeTo: ['button'],
     replacesPatterns: ['a click handler on a div or span styled as a link', 'an <a> with no href, href="#" or javascript:void(0)', 'a[role=button] used for navigation'],
     supersededBy: [],
-    planned: ['breadcrumbs', 'menu'],
+    planned: ['menu'],
   },
 
   motion: {

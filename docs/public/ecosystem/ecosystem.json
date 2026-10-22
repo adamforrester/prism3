@@ -316,7 +316,10 @@
           "dialog",
           "password-field",
           "counter",
-          "toast"
+          "toast",
+          "_breadcrumb-separator",
+          "breadcrumb-item",
+          "breadcrumbs"
         ]
       }
     },

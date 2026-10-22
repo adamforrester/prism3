@@ -64,6 +64,30 @@
       "sizeDefault": "medium"
     },
     {
+      "id": "_breadcrumb-separator",
+      "name": "BreadcrumbSeparator",
+      "category": "navigation",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "type": [
+          "chevron",
+          "slash"
+        ]
+      },
+      "props": [
+        {
+          "name": "type",
+          "default": "chevron",
+          "values": [
+            "chevron",
+            "slash"
+          ]
+        }
+      ],
+      "sizes": []
+    },
+    {
       "id": "accordion",
       "name": "Accordion",
       "category": "navigation",
@@ -225,6 +249,143 @@
         }
       ],
       "sizes": []
+    },
+    {
+      "id": "breadcrumb-item",
+      "name": "BreadcrumbItem",
+      "category": "navigation",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "kind": [
+          "ancestor",
+          "current",
+          "overflow"
+        ],
+        "separator": [
+          "chevron",
+          "slash"
+        ],
+        "size": [
+          "medium",
+          "small"
+        ]
+      },
+      "props": [
+        {
+          "name": "kind",
+          "default": "ancestor",
+          "values": [
+            "ancestor",
+            "current",
+            "overflow"
+          ]
+        },
+        {
+          "name": "label"
+        },
+        {
+          "name": "href"
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium"
+          ]
+        },
+        {
+          "name": "separator",
+          "default": "chevron",
+          "values": [
+            "chevron",
+            "slash"
+          ]
+        }
+      ],
+      "sizes": [
+        "medium",
+        "small"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
+      "id": "breadcrumbs",
+      "name": "Breadcrumbs",
+      "category": "navigation",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "path": [
+          "full",
+          "parent"
+        ],
+        "separator": [
+          "chevron",
+          "slash"
+        ],
+        "size": [
+          "medium",
+          "small"
+        ]
+      },
+      "props": [
+        {
+          "name": "items"
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium"
+          ]
+        },
+        {
+          "name": "separator",
+          "default": "chevron",
+          "values": [
+            "chevron",
+            "slash"
+          ]
+        },
+        {
+          "name": "maxItems",
+          "default": 5
+        },
+        {
+          "name": "itemsBeforeCollapse",
+          "default": 1
+        },
+        {
+          "name": "itemsAfterCollapse",
+          "default": 2
+        },
+        {
+          "name": "collapse",
+          "default": "expand",
+          "values": [
+            "expand"
+          ]
+        },
+        {
+          "name": "responsive",
+          "default": true
+        },
+        {
+          "name": "label",
+          "default": "Breadcrumb"
+        },
+        {
+          "name": "renderLink"
+        }
+      ],
+      "sizes": [
+        "medium",
+        "small"
+      ],
+      "sizeDefault": "medium"
     },
     {
       "id": "button",
@@ -1567,6 +1728,7 @@
           "plus-filled",
           "resize-grip",
           "search",
+          "slash",
           "warning-triangle",
           "warning-triangle-filled"
         ],
@@ -1629,6 +1791,7 @@
             "plus-filled",
             "resize-grip",
             "search",
+            "slash",
             "warning-triangle",
             "warning-triangle-filled"
           ]
@@ -4110,6 +4273,18 @@
         ]
       }
     ],
+    "kind": [
+      {
+        "values": [
+          "ancestor",
+          "current",
+          "overflow"
+        ],
+        "components": [
+          "breadcrumb-item"
+        ]
+      }
+    ],
     "layout": [
       {
         "values": [
@@ -4141,6 +4316,17 @@
         ],
         "components": [
           "divider"
+        ]
+      }
+    ],
+    "path": [
+      {
+        "values": [
+          "full",
+          "parent"
+        ],
+        "components": [
+          "breadcrumbs"
         ]
       }
     ],
@@ -4212,6 +4398,18 @@
         ],
         "components": [
           "switch-control"
+        ]
+      }
+    ],
+    "separator": [
+      {
+        "values": [
+          "chevron",
+          "slash"
+        ],
+        "components": [
+          "breadcrumb-item",
+          "breadcrumbs"
         ]
       }
     ],
@@ -4287,6 +4485,8 @@
           "small"
         ],
         "components": [
+          "breadcrumb-item",
+          "breadcrumbs",
           "switch-control",
           "switch-row"
         ]
@@ -4418,6 +4618,15 @@
         "components": [
           "list",
           "list-item"
+        ]
+      },
+      {
+        "values": [
+          "chevron",
+          "slash"
+        ],
+        "components": [
+          "_breadcrumb-separator"
         ]
       },
       {
@@ -4678,6 +4887,15 @@
       {
         "id": "text-field",
         "default": false
+      }
+    ],
+    "collapse": [
+      {
+        "id": "breadcrumbs",
+        "default": "expand",
+        "values": [
+          "expand"
+        ]
       }
     ],
     "count": [
@@ -4965,6 +5183,9 @@
     ],
     "href": [
       {
+        "id": "breadcrumb-item"
+      },
+      {
         "id": "button"
       },
       {
@@ -5218,6 +5439,9 @@
     ],
     "items": [
       {
+        "id": "breadcrumbs"
+      },
+      {
         "id": "button-group"
       },
       {
@@ -5236,9 +5460,39 @@
         "id": "tabs"
       }
     ],
+    "itemsAfterCollapse": [
+      {
+        "id": "breadcrumbs",
+        "default": 2
+      }
+    ],
+    "itemsBeforeCollapse": [
+      {
+        "id": "breadcrumbs",
+        "default": 1
+      }
+    ],
+    "kind": [
+      {
+        "id": "breadcrumb-item",
+        "default": "ancestor",
+        "values": [
+          "ancestor",
+          "current",
+          "overflow"
+        ]
+      }
+    ],
     "label": [
       {
         "id": "badge"
+      },
+      {
+        "id": "breadcrumb-item"
+      },
+      {
+        "id": "breadcrumbs",
+        "default": "Breadcrumb"
       },
       {
         "id": "button"
@@ -5369,6 +5623,12 @@
         "id": "counter"
       }
     ],
+    "maxItems": [
+      {
+        "id": "breadcrumbs",
+        "default": 5
+      }
+    ],
     "maxLength": [
       {
         "id": "textarea"
@@ -5454,6 +5714,7 @@
           "plus-filled",
           "resize-grip",
           "search",
+          "slash",
           "warning-triangle",
           "warning-triangle-filled"
         ]
@@ -5677,6 +5938,11 @@
         "default": false
       }
     ],
+    "renderLink": [
+      {
+        "id": "breadcrumbs"
+      }
+    ],
     "required": [
       {
         "id": "checkbox-group",
@@ -5718,6 +5984,12 @@
         ]
       }
     ],
+    "responsive": [
+      {
+        "id": "breadcrumbs",
+        "default": true
+      }
+    ],
     "reversed": [
       {
         "id": "list",
@@ -5752,6 +6024,24 @@
       {
         "id": "tag",
         "default": false
+      }
+    ],
+    "separator": [
+      {
+        "id": "breadcrumb-item",
+        "default": "chevron",
+        "values": [
+          "chevron",
+          "slash"
+        ]
+      },
+      {
+        "id": "breadcrumbs",
+        "default": "chevron",
+        "values": [
+          "chevron",
+          "slash"
+        ]
       }
     ],
     "shape": [
@@ -5877,6 +6167,22 @@
           "small",
           "medium",
           "large"
+        ]
+      },
+      {
+        "id": "breadcrumb-item",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium"
+        ]
+      },
+      {
+        "id": "breadcrumbs",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium"
         ]
       },
       {
@@ -6382,6 +6688,14 @@
       }
     ],
     "type": [
+      {
+        "id": "_breadcrumb-separator",
+        "default": "chevron",
+        "values": [
+          "chevron",
+          "slash"
+        ]
+      },
       {
         "id": "badge",
         "default": "status",
@@ -6933,6 +7247,8 @@
       "components": [
         "_accordion-indicator",
         "accordion",
+        "breadcrumb-item",
+        "breadcrumbs",
         "button",
         "button-destructive",
         "button-neutral",
@@ -6967,7 +7283,7 @@
         "text-field",
         "textarea"
       ],
-      "detail": "the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab-item, tabs, tag, text-field, textarea; [medium, small] in switch-control, switch-row; [large, medium, small, x-small] in spinner"
+      "detail": "the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, password-field, radio-control, radio-group, radio-row, segmented-control, segmented-control-segment, select, tab-item, tabs, tag, text-field, textarea; [medium, small] in breadcrumb-item, breadcrumbs, switch-control, switch-row; [large, medium, small, x-small] in spinner"
     },
     {
       "kind": "axis values",
@@ -7013,12 +7329,13 @@
       "kind": "axis values",
       "subject": "axis type",
       "components": [
+        "_breadcrumb-separator",
         "badge",
         "list",
         "list-item",
         "tag"
       ],
-      "detail": "the type axis takes 3 value sets — [icon, ordered, unordered] in list, list-item; [count, dot, status] in badge; [dismissible, select] in tag"
+      "detail": "the type axis takes 4 value sets — [icon, ordered, unordered] in list, list-item; [chevron, slash] in _breadcrumb-separator; [count, dot, status] in badge; [dismissible, select] in tag"
     },
     {
       "kind": "axis values",
@@ -7044,6 +7361,22 @@
         "accordion"
       ],
       "detail": "accordion declares its sizes as [medium, small, large], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "breadcrumb-item",
+      "components": [
+        "breadcrumb-item"
+      ],
+      "detail": "breadcrumb-item declares its sizes as [medium, small], not smallest first"
+    },
+    {
+      "kind": "size order",
+      "subject": "breadcrumbs",
+      "components": [
+        "breadcrumbs"
+      ],
+      "detail": "breadcrumbs declares its sizes as [medium, small], not smallest first"
     },
     {
       "kind": "size order",
@@ -7299,7 +7632,16 @@
       "components": [
         "field-label"
       ],
-      "detail": "field-label defaults size to small; 34 of 35 sized components default to medium"
+      "detail": "field-label defaults size to small; 36 of 37 sized components default to medium"
+    },
+    {
+      "kind": "prop default",
+      "subject": "prop label",
+      "components": [
+        "breadcrumbs",
+        "spinner"
+      ],
+      "detail": "label defaults differ over the same values — Breadcrumb in breadcrumbs; Loading in spinner"
     },
     {
       "kind": "prop default",
@@ -7320,6 +7662,14 @@
         "accordion"
       ],
       "detail": "accordion has the variant axis expansion and no prop of that name"
+    },
+    {
+      "kind": "axis without prop",
+      "subject": "breadcrumbs",
+      "components": [
+        "breadcrumbs"
+      ],
+      "detail": "breadcrumbs has the variant axis path and no prop of that name"
     },
     {
       "kind": "axis without prop",

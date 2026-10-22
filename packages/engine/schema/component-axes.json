@@ -18,6 +18,16 @@
     "members": 12,
     "properties": {}
   },
+  "_breadcrumb-separator": {
+    "axes": {
+      "type": [
+        "chevron",
+        "slash"
+      ]
+    },
+    "members": 2,
+    "properties": {}
+  },
   "accordion": {
     "axes": {
       "expansion": [
@@ -67,6 +77,47 @@
     "properties": {
       "label": "TEXT",
       "value": "TEXT"
+    }
+  },
+  "breadcrumb-item": {
+    "axes": {
+      "kind": [
+        "ancestor",
+        "current",
+        "overflow"
+      ],
+      "separator": [
+        "chevron",
+        "slash"
+      ],
+      "size": [
+        "medium",
+        "small"
+      ]
+    },
+    "members": 10,
+    "properties": {
+      "label": "TEXT"
+    }
+  },
+  "breadcrumbs": {
+    "axes": {
+      "path": [
+        "full",
+        "parent"
+      ],
+      "separator": [
+        "chevron",
+        "slash"
+      ],
+      "size": [
+        "medium",
+        "small"
+      ]
+    },
+    "members": 6,
+    "properties": {
+      "items": "SLOT"
     }
   },
   "button": {
@@ -525,11 +576,12 @@
         "plus-filled",
         "resize-grip",
         "search",
+        "slash",
         "warning-triangle",
         "warning-triangle-filled"
       ]
     },
-    "members": 45,
+    "members": 46,
     "properties": {}
   },
   "icon-button": {

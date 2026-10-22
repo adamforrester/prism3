@@ -283,6 +283,7 @@ const NO_SIZE_AXIS: Record<string, string> = {
   'field-message': 'validation copy takes one type role; its axis is `status`, and size follows the field it belongs to',
   'veil': 'a media wash is full-bleed and has no size RUNG — its axes are `value` × `intensity`, and its only dimension binding is a NOMINAL standalone square (`container.narrow`), overwritten by the designer resizing it over the image; there is no size ladder to compare against the tier',
   'image-placeholder': 'a media frame has no size RUNG — its axis is `ratio` (an aspect PROPORTION, not a scale ladder), its one dimension binding is a NOMINAL width (`container.narrow`) the designer resizes, and its glyph size is a def-local literal (`glyphPx`, #1340), not a rung; there is no size ladder to compare against the tier (#1316)',
+  '_breadcrumb-separator': 'one 16px mark (`icon.size.xs`) at both breadcrumb sizes (#2666, owner call 6 A, kept by Q382 A), bound under a non-`size.*` key; its axis is `type`, chevron or slash, so there is no ladder to compare. The item it sits in carries the size',
   'toast': 'one size: the brief names none and the owner approved one (#2668 call 11 A). It is built 360 wide as a literal (`placementWidth`), its type is one role (`type.body.md.default`), its glyph one rung (`icon.size.sm`), and its nested Button and IconButton.Neutral are fixed at small; there is no size ladder to compare against the tier',
   'button-group': 'a layout of Buttons has no size RUNG of its own — its axis is `layout`, its gaps are `space.*` steps, and each nested Button is medium and measured under its own name; a size axis for smaller actions is held for the owner (#2661)',
   'divider': 'a rule has no size RUNG — its axis is `orientation`, its thickness is one border-width role (`border-width.hairline`), and its length is a NOMINAL standalone placeholder (`container.narrow` across, `size.md.height` tall) a host stretches; there is no size ladder to compare against the tier (#2455)',
@@ -331,6 +332,9 @@ const SPACING_ONLY_LADDER: Record<string, string> = {
   // #2319: List's own size binding is its item gap, a space step per size; its type and marker scale through the
   // nested List.Item, which this gate checks on its own rungs.
   list: 'its only size-keyed binding is the item gap (`space.100` / `150` / `200`); the text and markers are sized by the nested List.Item, checked under its own name',
+  // #2666: as List — the trail's gap between items is its own size binding; the text, links and separators are sized by
+  // the nested BreadcrumbItem and Link, each checked under its own name.
+  breadcrumbs: 'its only size-keyed binding is the gap between items (`space.050` / `100`); the steps are sized by the nested BreadcrumbItem and Link, checked under their own names',
 };
 
 /**
@@ -380,6 +384,8 @@ const DEFAULT_FIRST: Record<string, string> = {
   link: Q1B,
   // #2427: owner Q283.6 B ("medium first") agrees with Q1 B; the Counter takes the same reason.
   counter: Q1B,
+  breadcrumbs: Q1B,
+  'breadcrumb-item': Q1B,
 };
 
 const SIZE_BY_FOLLOW_ONLY: Record<string, string> = {
@@ -425,6 +431,7 @@ const MUST_COVER = [
   'list-item', 'list',
   'segmented-control-segment', 'segmented-control', 'link',
   'dialog', 'password-field',
+  'breadcrumb-item', 'breadcrumbs',
 ];
 
 /** Every token path in a brand's canonical tree, below the root — `icon.size.md`, `size.lg.height`. */
