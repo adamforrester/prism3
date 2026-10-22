@@ -1,4 +1,4 @@
-## (2026-10-16, rebuilt 2026-10-22) — Slider: one control for a value or a range in three sizes, its thumb a nested component (#2669)
+## (2026-10-22) — Slider: one control for a value or a range in three sizes, its thumb a nested component (#2669)
 
 Built to the proposal on #2669 as the owner approved it on 2026-10-16, every numbered call at its recommendation (A):
 one `Slider`, range from a two-value `value`; `type` [single, range] × five states = 10 members; one size; the value

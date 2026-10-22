@@ -316,7 +316,9 @@
           "dialog",
           "password-field",
           "counter",
-          "toast"
+          "toast",
+          "_slider-thumb",
+          "slider"
         ]
       }
     },
