@@ -138,7 +138,7 @@ console.log('\nnested instances in a slot keep their own properties and reaction
   // instance of it takes them from its main, so the build must point each item at the right member and write nothing
   // on the item that would stand in for its main's. Expected values are literals (the selection of each item, the
   // two triggers), never read off the plans.
-  const tabDef = componentDefs.find((d) => d.id === 'tab')!, tabsDef = componentDefs.find((d) => d.id === 'tabs')!;
+  const tabDef = componentDefs.find((d) => d.id === 'tab-item')!, tabsDef = componentDefs.find((d) => d.id === 'tabs')!;
   const tabPlans = figmaAnatomySet(tabDef, { swapTarget: SWAP_TARGET }), tabsPlans = figmaAnatomySet(tabsDef, { swapTarget: SWAP_TARGET });
   const both = [...tabPlans, ...tabsPlans];
   const page: Page = { children: [] };
@@ -146,14 +146,14 @@ console.log('\nnested instances in a slot keep their own properties and reaction
     vars: [...new Set(both.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]))],
     styles: [...new Set(both.flatMap((p) => planTextStyles(p.root)))],
     effects: [...new Set(both.flatMap((p) => planEffectStyles(p.root)))],
-    comps: [...new Set(both.flatMap((p) => planComps(p.root)))].filter((c) => c !== 'tab'),
+    comps: [...new Set(both.flatMap((p) => planComps(p.root)))].filter((c) => c !== 'tab-item'),
     page, liveRoot: true, identities: true,
   }) as any;
   const r1 = await applyComponentPlan(tabPlans, api, {});
   const r2 = await applyComponentPlan(tabsPlans, api, {});
   ok(r1.misses.length === 0 && r2.misses.length === 0, `nested/clean: Tab and Tabs build with no miss (${[...r1.misses, ...r2.misses].slice(0, 2).join(' | ')})`);
   const sets = page.children.filter((n) => n.type === 'COMPONENT_SET');
-  const tabSet = sets.find((n) => n.name === 'tab')!, tabsSet = sets.find((n) => n.name === 'tabs')!;
+  const tabSet = sets.find((n) => n.name === 'tab-item')!, tabsSet = sets.find((n) => n.name === 'tabs')!;
   const tabMember = (name: string) => (tabSet.children as Node[]).find((m) => m.name === name);
   const bad: string[] = [];
   for (const m of tabsSet.children as Node[]) {
@@ -163,7 +163,7 @@ console.log('\nnested instances in a slot keep their own properties and reaction
     kids.forEach((k, i) => {
       const main = (k as { mainComponent?: { name: string; parent?: { name: string } } }).mainComponent;
       const want = i === 0 ? 'selected' : 'unselected';
-      if (k.type !== 'INSTANCE' || main?.parent?.name !== 'tab' || !new RegExp(`(^|, )selection=${want}(,|$)`).test(String(main?.name))) bad.push(`${m.name}/${k.name}: ${String(main?.parent?.name)} ${String(main?.name)}`);
+      if (k.type !== 'INSTANCE' || main?.parent?.name !== 'tab-item' || !new RegExp(`(^|, )selection=${want}(,|$)`).test(String(main?.name))) bad.push(`${m.name}/${k.name}: ${String(main?.parent?.name)} ${String(main?.name)}`);
       const rx = (k as { reactions?: unknown[] }).reactions ?? [];
       if (rx.length) bad.push(`${m.name}/${k.name}: ${rx.length} reaction(s) written on the item itself`);
       const target = main ? tabMember(main.name) : undefined;

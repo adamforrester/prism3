@@ -116,25 +116,31 @@ export const checkboxRow: ComponentDef = {
   inherits: 'text-field',
   summary: 'Labeled checkbox for a staged on/off choice. The whole row is the hit target.',
   description:
-    'A control for an independent binary choice that is staged into a form and submitted — on/off, included/excluded, agreed/not — optionally one of many in a set. The labeled ROW: control and rich-content label, with the whole row as the hit target. Carries the indeterminate (mixed) visual state for select-all hierarchy, which no sibling control has. Not an immediate-effect toggle (Switch.Row), not a mutually-exclusive one-of-many (Radio.Group), not an action with a pressed state (a toggle button, not built yet).',
+    'A control for an independent binary choice that is staged into a form and submitted — on/off, included/excluded, agreed/not — optionally one of many in a set. The labeled row: control and rich-content label, with the whole row as the hit target. Carries the indeterminate (mixed) visual state for select-all hierarchy, which no sibling control has. Not an immediate-effect toggle (Switch.Row), not a mutually-exclusive one-of-many (Radio.Group), not an action with a pressed state (a toggle button, not built yet).',
 
   // THE DELTA ONLY (brief §3, §15). The form-field substrate — `description`/helper, `error`, the
   // aria-describedby wiring, `name`, `id`, `required`, `disabled`, `readOnly`, `onFocus`/`onBlur` — is
-  // `text-field`'s and is not restated. Five exceptions, each because the substrate's version is
+  // `text-field`'s and is not restated. Six exceptions, each because the substrate's version is
   // genuinely a different prop here: `label` (three differences, see the header), `description` (the
   // brief restates it for the row, and `radio-row` carries it — #1698 made the family agree), `onChange`
   // (yields a boolean, not a string), `size` (the gate reads the ladder — see below), and `readOnly`,
-  // restated only to carry the caveat that it has no native support on this element.
+  // restated only to carry the caveat that it has no native support on this element. And `disabled`
+  // (owner decision Q351 A on #2706): a consumer disables a labeled checkbox, not its box, so the Row
+  // restates it in Text field's shape rather than leaving it to the nested control.
   props: [
-    { name: 'checked', type: 'boolean', required: false, description: 'The controlled binary. Pair with `onChange`; use `defaultChecked` for the uncontrolled form. Named for the DOM attribute rather than the framework idiom — `checked`, not `isChecked`/`isSelected`. Inside a Checkbox.Group this is derived from the group\'s value array and a consumer should not also wire it here.' },
-    { name: 'defaultChecked', type: 'boolean', default: false, required: false, description: 'Uncontrolled initial value. Never `true` for a consent checkbox — pre-checked consent is a dark pattern and, for marketing consent, often unlawful.' },
-    { name: 'indeterminate', type: 'boolean', default: false, required: false, description: 'The mixed visual state — dash glyph, `aria-checked="mixed"`. PRESENTATIONAL: the underlying value is still true/false, and this is for parent/child select-all hierarchy only, never a third state a user can click to. There is no `indeterminate` HTML attribute — it is a DOM PROPERTY (`node.indeterminate = true`), which is the single most common checkbox bug; in React apply it through a synchronous ref callback rather than a JSX prop.' },
-    { name: 'label', type: 'node', required: false, description: 'Rich content: a node, not a string. The substrate\'s label is a string above the field; this one sits inline-end, doubles as the hit target, and must be able to hold a link, because the single most common real checkbox label is a consent line with one in it ("I agree to the Terms of Service"). A standalone control with no label is `checkbox-control`, which then requires an external `aria-label`/`aria-labelledby`.' },
+    { name: 'checked', type: 'boolean', required: false, description: 'The controlled binary. Pair with onChange; use defaultChecked for the uncontrolled form. Named for the DOM attribute rather than the framework idiom — checked, not isChecked/isSelected. Inside a Checkbox.Group this is derived from the group\'s value array and a consumer should not also wire it here.' },
+    { name: 'defaultChecked', type: 'boolean', default: false, required: false, description: 'Uncontrolled initial value. Never true for a consent checkbox — pre-checked consent is a dark pattern and, for marketing consent, often unlawful.' },
+    { name: 'indeterminate', type: 'boolean', default: false, required: false, description: 'The mixed visual state — dash glyph, aria-checked="mixed". Presentational: the underlying value is still true/false, and this is for parent/child select-all hierarchy only, never a third state a user can click to. There is no indeterminate HTML attribute — it is a DOM property (node.indeterminate = true), which is the single most common checkbox bug; in React apply it through a synchronous ref callback rather than a JSX prop.' },
+    { name: 'label', type: 'node', required: false, description: 'Rich content: a node, not a string. The substrate\'s label is a string above the field; this one sits inline-end, doubles as the hit target, and must be able to hold a link, because the single most common real checkbox label is a consent line with one in it ("I agree to the Terms of Service"). A standalone control with no label is checkbox-control, which then requires an external aria-label/aria-labelledby.' },
     { name: 'description', type: 'node', required: false, description: 'Optional helper beneath the label, describedby-wired — the detail that qualifies the choice without lengthening the label.' },
-    { name: 'onChange', type: '(checked: boolean, event) => void', required: false, description: 'Restated rather than inherited: the substrate\'s change yields a string, this one yields the resulting BOOLEAN alongside the event.' },
-    { name: 'value', type: 'string', required: false, description: 'The string submitted when checked (the platform default is `"on"`), and the element this row contributes to a Checkbox.Group\'s array. An unchecked box submits nothing at all rather than a false value — the missing-key trap.' },
-    { name: 'readOnly', type: 'boolean', default: false, required: false, description: 'Restated only for the caveat: `<input type="checkbox">` has NO working `readonly` — only `disabled` — so a genuinely read-only checkbox needs `aria-readonly` plus a prevented toggle, or is better rendered as static text. Decide which explicitly; the default of doing neither is a control that looks interactive and silently is not.' },
-    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Scales the control square, the label\'s type ramp, the box↔label gap and the row\'s minimum height. The square reads `control.size.<rung>.height` on BOTH axes — square by construction rather than by two tokens agreeing — and not `icon.size.*`, which is 16/20/24 in every brand the engine ships and so would hold a control rigid that should move with brand density.' },
+    { name: 'onChange', type: '(checked: boolean, event) => void', required: false, description: 'Restated rather than inherited: the substrate\'s change yields a string, this one yields the resulting boolean alongside the event.' },
+    { name: 'value', type: 'string', required: false, description: 'The string submitted when checked (the platform default is "on"), and the element this row contributes to a Checkbox.Group\'s array. An unchecked box submits nothing at all rather than a false value — the missing-key trap.' },
+    { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Native disabled: removed from the tab order, not submitted, contrast-exempt. Disables the whole row: the nested control takes its disabled skin and the label dims. Reserve for an option that does not apply in the current state.' },
+    { name: 'readOnly', type: 'boolean', default: false, required: false, description: 'Restated only for the caveat: <input type="checkbox"> has no working readonly — only disabled — so a genuinely read-only checkbox needs aria-readonly plus a prevented toggle, or is better rendered as static text. Decide which explicitly; the default of doing neither is a control that looks interactive and silently is not.' },
+    // RESTATED from the substrate (owner Q354, #2751): a checkbox takes the fields' `validation` prop over its
+    // first two values only — it has no warning or success look — so the inherited four-value prop is narrowed.
+    { name: 'validation', type: "enum: 'default' | 'error'", values: ['default', 'error'], default: 'default', required: false, description: 'The validation status of a standalone checkbox — a consent line that must be checked. error draws the danger border on the box and sets aria-invalid; pair it with an error message the host shows. Inside a Checkbox.Group the group sets this on every row; never set it on one row of a group.' },
+    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Scales the control square, the label\'s type ramp, the box↔label gap and the row\'s minimum height. The square reads control.size.<rung>.height on both axes — square by construction rather than by two tokens agreeing — and not icon.size.*, which is 16/20/24 in every brand the engine ships and so would hold a control rigid that should move with brand density.' },
   ],
 
   // Brief §4's runtime list MINUS the three that moved to the `selection` axis (checked, unchecked,
@@ -145,7 +151,9 @@ export const checkboxRow: ComponentDef = {
   // its own recommendation is to render static text rather than to style a locked control, so a paint
   // treatment invented here would be this def making a design decision the brief declines to make.
   // `focus-visible` also binds no per-slot key: the indicator is the nested ring, as on `button`.
-  states: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled', 'read-only', 'error'],
+  //
+  // `error` is NOT a state (owner Q354, #2751): validation is the `status` axis below, as on the fields.
+  states: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled', 'read-only'],
 
   // `size` ONLY since #1330 (the #761 reversal). `selection` LEFT the Row's variant matrix — it is now
   // EXPOSED from the nested `checkbox-control` (the consumer drives it from the parent), not re-enumerated
@@ -154,11 +162,17 @@ export const checkboxRow: ComponentDef = {
   // No tone/emphasis axis (brief §4: "a checkbox is neutral"); no surface/inverse axis (#871). `alignment`
   // and the group's `orientation`/`density` are in brief §15's variants block and are NOT axes here —
   // `notes.contested` carries both, with reasons.
+  //
+  // `status` (owner Q354, #2751) is the fields' validation axis, its first two values only. The Row does not
+  // paint it — its label keeps one ink — it FOLLOWS it into the nested control, which draws the danger
+  // border. It is the Row's own axis rather than exposed from the control so a Checkbox.Group can pass its
+  // status to every row by `follow`, the way a field passes its status to its message.
   variants: {
     size: ['medium', 'small', 'large'],
+    status: ['default', 'error'],
   },
   // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
-  axisKinds: { size: 'authoring' },
+  axisKinds: { size: 'authoring', status: 'runtime' },
 
   // ONE KEY since #1226 step 2: the painted box moved to `checkbox-control`, so the Row's whole color
   // surface is the label ink (`label`, `disabled.label` — the bare slot). The `{selection}`-led
@@ -240,13 +254,13 @@ export const checkboxRow: ComponentDef = {
 
   // ── ANATOMY — THE LABELED ROW THAT NESTS THE CONTROL (#910, #1226 step 2) ──────────────────────
   //
-  // Three parts now, not seven: the whole ROW is the hit target, the `controlBox` is the #1201 line-box
+  // Three parts now, not seven: the whole ROW is the hit target, the `controlCell` is the #1201 line-box
   // wrapper, and its CHILD is a `nest` of `checkbox-control` where the painted box, the two glyphs and
   // the focus ring used to be authored in place. The atom paints itself; the Row paints the label. This
   // is the composition #1226 asked for — a shared box single-sourced, a fix to it propagating here.
   //
   // WHY THE WRAPPER STAYS A BOX AND ITS CHILD IS THE NEST (owner-decided). The obvious reading — make
-  // `controlBox` itself the nest — would need the nest to carry the LINE-BOX height, and a nested
+  // `controlCell` itself the nest — would need the nest to carry the LINE-BOX height, and a nested
   // instance stretched to the line box is a control floating in a tall cell. Instead the centring box
   // (a real `box`) keeps the line-box height and the `align: center`, and the nest is the inner control
   // at its OWN square: the box handles alignment, the nest handles extent. So the small control reads
@@ -254,7 +268,7 @@ export const checkboxRow: ComponentDef = {
   //
   // THE ROW MUST NOT CENTER. On a wrapping consent label `align: center` floats the control to the
   // middle of the paragraph (the wrong repair `test.ts` #1009 half-1 forbids by name). The row stays
-  // top-aligned and the centring lives one level down, in `controlBox`. `test.ts` #1201 asserts both.
+  // top-aligned and the centring lives one level down, in `controlCell`. `test.ts` #1201 asserts both.
   anatomy: {
     root: 'row',
     parts: {
@@ -267,7 +281,7 @@ export const checkboxRow: ComponentDef = {
         // START on the cross axis, and #1201 is what makes that both correct AND enough. The ROW must NOT
         // center — on a wrapping consent label `align: center` floats the control to the middle of the
         // paragraph (the measured wrong repair `test.ts` #1009 half-1 forbids by name). Centring the
-        // control against its label is done one level down, INSIDE `controlBox`, which is exactly one
+        // control against its label is done one level down, INSIDE `controlCell`, which is exactly one
         // line-box tall; top-aligning that box here lands it on the first line. So a single-line label
         // reads centered and a wrapping one keeps the control on line one.
         layout: { direction: 'row', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
@@ -283,14 +297,14 @@ export const checkboxRow: ComponentDef = {
         // at 320 and overflowed it. Both are literal projection defaults, not bound tokens, so CONTRACT holds.
         placementWidth: 320,
         minWidth: 120,
-        children: ['controlBox', 'label'],
+        children: ['controlCell', 'label'],
       },
       // THE ALIGNMENT BOX (#1201, building the fix #1009 filed). A structural wrapper exactly one line of
       // the label tall (`size.{size}.control-box` → the baked `body.{rung}` line-box), centring the
       // control on its cross axis. No `paintSlots` — it draws nothing; it exists only to give the control
       // a line-tall box to center within, so the top-aligned row lands it on the FIRST line rather than
       // mid-paragraph. Height FIXED to the line-box; width HUGs the control so the row's gap is unchanged.
-      controlBox: {
+      controlCell: {
         kind: 'box',
         role: 'presentation',
         height: 'size.{size}.control-box',
@@ -322,8 +336,9 @@ export const checkboxRow: ComponentDef = {
         kind: 'nest',
         nests: 'checkbox-control',
         size: 'size.{size}.control',
-        nesting: { kind: 'nest-exposed', variant: { selection: 'unchecked', state: 'rest' }, expose: ['selection', 'state'], follow: ['size'] },
-        note: 'An in-flow instance of `checkbox-control` taking the control cell inside the line-box wrapper. It EXPOSES the control\'s selection and state (the consumer drives them from the Row), follows the Row\'s size, and binds its own square so it is centered within the taller wrapper rather than stretched to fill it.',
+        // `status` FOLLOWS (owner Q354, #2751): the Row's `status` member nests the control at the same status.
+        nesting: { kind: 'nest-exposed', variant: { selection: 'unchecked', state: 'rest', status: 'default' }, expose: ['selection', 'state'], follow: ['size', 'status'] },
+        note: 'An in-flow instance of `checkbox-control` taking the control cell inside the line-box wrapper. It EXPOSES the control\'s selection and state (the consumer drives them from the Row), follows the Row\'s size and status, and binds its own square so it is centered within the taller wrapper rather than stretched to fill it.',
       },
       // No `paintSlot` — the default is `label`, and at `disabled` the projector reaches `disabled.label`
       // (page ink) rather than `disabled.label.on-fill`, because this text sits beside the fill and not
@@ -342,7 +357,7 @@ export const checkboxRow: ComponentDef = {
     codeOnly: [
       // MUST LEAD with the term — `figmaPropertyErrors` matches an admission by its first word, so a
       // passing mention inside an entry about something else does not count (#563).
-      'read-only — a `states` value the Figma set does not carry. Since #1330 the Row projects a SIZE-ONLY set (no stateAxis): the control\'s `state` is EXPOSED from the nested `checkbox-control` and the consumer drives it from the Row, so no state — read-only least of all — is enumerated into the Row\'s own matrix. read-only binds NOTHING even in code (see `states`): the brief calls it "the awkward one" and recommends static text over a styled locked control, so there is no treatment to project at either level.',
+      'read-only — not projected: the Row\'s Figma set carries no state of its own, and read-only has no treatment to project at either level. Since #1330 the Row projects a SIZE-ONLY set (no stateAxis): the control\'s `state` is EXPOSED from the nested `checkbox-control` and the consumer drives it from the Row, so no state — read-only least of all — is enumerated into the Row\'s own matrix. read-only binds NOTHING even in code (see `states`): the brief calls it "the awkward one" and recommends static text over a styled locked control, so there is no treatment to project at either level.',
       'states — the Row\'s per-state LABEL treatment (`disabled.label` dimming the text when the field is disabled) is the CODE projection\'s, not Figma\'s. Since #1330 the Figma set is size-only and `state` is exposed from the nested control, so a disabled Row in Figma shows the disabled CONTROL (the exposed state) beside a full-ink label. `lint-paint` arm 2 reads `def.states` for reachability, so `disabled.label` stays reachable and keyed for code; it is the Figma SET that cannot show it, because the Row no longer multiplies state. The documented cost of collapsing 54 members to 3 (the #761 reversal).',
       'min-height — `size.*.min-height` is the row\'s FLOOR (48 at medium on nb) and Figma has no floor. `PartDef` carries `height`, which is fixed, so binding it here would state the wrong quantity and clip a wrapping consent label at the one coordinate that matters most. The row hugs its children instead and the keys stay bound for the code projection, where `min-height` is the property they name.',
       'The whole-row hit target beyond the row\'s own extent. SC 2.5.8 wants 24x24 and Apple/Material want 44/48 on touch; the row reaches that at `medium` and not at `small`, and the padding that would expand it is a per-consumer decision about the surrounding layout rather than a property of this component. `row` is the node it lands on — that is what this block newly makes expressible — but the value is not the def\'s to pick.',
@@ -361,7 +376,11 @@ export const checkboxRow: ComponentDef = {
     // atom. The `control` nest `follow`s `size` (the one axis this def still projects) and exposes the
     // other two; `#1298`'s reachability check confirms `size` is projectable, and the exposed axes are the
     // child's — checked against the atom at projection (`nestVariantMatch`) and round-trip, not here.
-    variantAxes: ['size'],
+    // `status` (owner Q354, #2751) joins it: 3 sizes × 2 statuses = 6 members. The Row had no error members to
+    // move (its error was the exposed control's `state=error`), so an update adds `status=default` to each
+    // existing member in place, and a placed Row whose control showed error keeps it: that control member is
+    // renamed onto `status=error` in place, keeping its id.
+    variantAxes: ['size', 'status'],
     // NO `stateAxis` (#1330). The control's `state` is exposed, not multiplied into the Row's set — the
     // Row's own `states` list (above) still drives the CODE projection (a disabled Row dims its label),
     // and `lint-paint` arm 2 reads `def.states` for reachability so `disabled.label` stays reachable; it
@@ -387,22 +406,22 @@ export const checkboxRow: ComponentDef = {
   accessibility: {
     role: 'checkbox (native <input type="checkbox">), with aria-checked true / false / mixed',
     wcag: [
-      '2.5.8 Target Size — the intent: the whole ROW is the target, because the 12–24px box fails in isolation. The default (medium) row is held to a 44px minimum height on comfortable and spacious density; small and compact rows are not measured.',
-      '4.1.2 Name Role Value (role, checked AND mixed — `aria-checked="mixed"` must be set explicitly)',
+      '2.5.8 Target Size — the intent: the whole row is the target, because the 12–24px box fails in isolation. The default (medium) row is held to a 44px minimum height on comfortable and spacious density; small and compact rows are not measured.',
+      '4.1.2 Name Role Value (role, checked and mixed — aria-checked="mixed" must be set explicitly)',
       '1.3.1 Info and Relationships (group structure)',
       '3.3.2 Labels or Instructions (the visible row label)',
-      '3.3.1 Error Identification / 3.3.3 Error Suggestion — the intent, not met today. In a set, the group carries the message and announces it once, and the group error display is not designed yet. An isolated row recolors its own boundary but nests no message part, so the text that names the error is its host\'s.',
+      '3.3.1 Error Identification / 3.3.3 Error Suggestion — in a set, the group sets status=error on every row and shows its message under them, announced once. A standalone row draws the danger border at status=error but nests no message part, so the text that names the error is its host\'s.',
       '1.4.11 Non-text Contrast / 2.4.13 Focus Appearance (control boundary and focus indicator)',
       '3.3.7 Redundant Entry (repeated consents)',
     ],
-    keyboard: 'Each checkbox is its OWN Tab stop and Space toggles — the key cross-control difference from Radio.Group, which is one Tab stop for the group with arrows moving within it. NEVER override Enter: Enter submits the enclosing form, and hijacking it breaks universal web behavior.',
-    focus: ':focus-visible ring on the CONTROL, offset, at least 3:1 — keyboard traversal only, not mouse or touch. The visual box stays tight while the interactive footprint is generous: the hit target is expanded by padding on the row WRAPPER (the icon-button parallel), so clicking the label or the surrounding space toggles. The target aims for at least 24x24, scaling to 44 (Apple) / 48 (Material) on touch. The label sits inline-end of the control, not above it.',
-    aria: 'Prefer the styled native input — `appearance: none` plus a pseudo-element or SVG keeps role, checked state and Space-to-toggle for free; a `role="checkbox"` div is a last resort and must reproduce aria-checked (true/false/mixed) exactly. Relying on the visual dash glyph alone to convey indeterminate is an accessibility failure. For a set, `role="group"` plus `aria-labelledby` is the default over `fieldset`/`legend` — both are valid, but fieldset has flexbox and grid quirks that make it hard to style predictably, and role=group on a div keeps the layout freedom while preserving the shared-label announcement. Group error and required associate to the GROUP and announce once; an individual row never owns its own required or error. When the control is nested in a host row, the host provides the accessible name through aria-labelledby — never double-label.',
+    keyboard: 'Each checkbox is its own Tab stop and Space toggles — the key cross-control difference from Radio.Group, which is one Tab stop for the group with arrows moving within it. Never override Enter: Enter submits the enclosing form, and hijacking it breaks universal web behavior.',
+    focus: ':focus-visible ring on the control, offset, at least 3:1 — keyboard traversal only, not mouse or touch. The visual box stays tight while the interactive footprint is generous: the hit target is expanded by padding on the row wrapper (the icon-button parallel), so clicking the label or the surrounding space toggles. The target aims for at least 24x24, scaling to 44 (Apple) / 48 (Material) on touch. The label sits inline-end of the control, not above it.',
+    aria: 'Prefer the styled native input — appearance: none plus a pseudo-element or SVG keeps role, checked state and Space-to-toggle for free; a role="checkbox" div is a last resort and must reproduce aria-checked (true/false/mixed) exactly. Relying on the visual dash glyph alone to convey indeterminate is an accessibility failure. For a set, role="group" plus aria-labelledby is the default over fieldset/legend — both are valid, but fieldset has flexbox and grid quirks that make it hard to style predictably, and role=group on a div keeps the layout freedom while preserving the shared-label announcement. Group error and required associate to the group and announce once; a row inside a group never owns its own required or error — the group sets its status. A standalone row (a consent line) is the one that sets its own: status=error with aria-invalid on the input and the host\'s message in its aria-describedby. When the control is nested in a host row, the host provides the accessible name through aria-labelledby — never double-label.',
   },
 
   content: {
-    labelPattern: 'A POSITIVE statement of what becomes true when checked — "Subscribe to newsletter", never "Do not send me emails", which a user has to mentally invert in order to uncheck. Sentence case, no terminal period for a terse single-sentence label; apply punctuation only for multi-sentence or legal labels. Abstract shared words up into the group label, so "Notification preferences" lets its rows read "Email", "SMS", "Push".',
-    errorPattern: 'Group-level for a set — "Select at least one option" — stating what is wrong and how to fix it (SC 3.3.3). An isolated row recolors its own boundary; inside a group the rows stay neutral and the group carries the message.',
+    labelPattern: 'A positive statement of what becomes true when checked — "Subscribe to newsletter", never "Do not send me emails", which a user has to mentally invert in order to uncheck. Sentence case, no terminal period for a terse single-sentence label; apply punctuation only for multi-sentence or legal labels. Abstract shared words up into the group label, so "Notification preferences" lets its rows read "Email", "SMS", "Push".',
+    errorPattern: 'Group-level for a set — "Select at least one option" — stating what is wrong and how to fix it (SC 3.3.3). Inside a group the group sets status=error on every row and carries the message. A standalone row sets its own status=error ("Accept the terms to continue"), and its host shows the message.',
   },
 
   docs: {
@@ -410,14 +429,14 @@ export const checkboxRow: ComponentDef = {
     do: [
       'Make the whole row the hit target with padding on the wrapper — the visual box stays tight while the interactive footprint aims for 24x24 and beyond',
       'Set aria-checked="mixed" explicitly for indeterminate — the dash glyph alone conveys nothing to assistive tech',
-      'Let the GROUP own required, validation and the value array; a row inside a group never manages its own error',
+      'Let the group own required, validation and the value array; a row inside a group never manages its own error',
       'Accept rich content in the label, so a consent line can carry the link it needs',
       'Phrase the label positively, and state exactly what is being agreed to on a consent checkbox',
     ],
     dont: [
       'Pre-check a consent checkbox — a dark pattern, and for marketing consent often unlawful',
       'Offer indeterminate as a third state a user can click to — it is hierarchy only, set programmatically',
-      'Pass `indeterminate` as a JSX prop and expect it to work — there is no such HTML attribute; set the DOM property through a ref',
+      'Pass indeterminate as a JSX prop and expect it to work — there is no such HTML attribute; set the DOM property through a ref',
       'Override Enter to toggle — Enter submits the form, and that expectation is universal',
       'Center-align the whole control+label row — on a wrapping label it floats the control to the middle of the paragraph; center the control within a single line-box instead, so it holds the first line',
       'Reach for a checkbox where the change takes effect instantly — that is Switch.Row, and the difference is staged versus immediate',
@@ -463,7 +482,7 @@ export const checkboxRow: ComponentDef = {
 
   notes: {
     contested: [
-      '`alignment` (top/baseline vs center) is in brief §15\'s variants block and is NOT an axis here. The brief calls top/baseline "the non-negotiable default, not center", and a non-negotiable default with one admissible value is not an axis — it has no dimension. It is a layout rule for the anatomy block to encode. The alternative is to declare it and accept an axis of one, which `modifiers` already demonstrates the cost of (#845). #1201 REFINED how that rule is encoded without weakening it: the control+label ROW is still top-aligned (never centered — `test.ts` #1009 half-1 enforces it), but the control now sits in a `controlBox` exactly one label line-box tall and centers WITHIN that box, so a single-line label reads centered and a wrapping one keeps the control on the first line. That is the construction #1009 filed and could not build, unblocked by baking the line-box to a fixed px per rung (`control.size.*.line-box`) — the one thing a Figma variable can hold that `fontSize × ratio` is not.',
+      '`alignment` (top/baseline vs center) is in brief §15\'s variants block and is NOT an axis here. The brief calls top/baseline "the non-negotiable default, not center", and a non-negotiable default with one admissible value is not an axis — it has no dimension. It is a layout rule for the anatomy block to encode. The alternative is to declare it and accept an axis of one, which `modifiers` already demonstrates the cost of (#845). #1201 REFINED how that rule is encoded without weakening it: the control+label ROW is still top-aligned (never centered — `test.ts` #1009 half-1 enforces it), but the control now sits in a `controlCell` exactly one label line-box tall and centers WITHIN that box, so a single-line label reads centered and a wrapping one keeps the control on the first line. That is the construction #1009 filed and could not build, unblocked by baking the line-box to a fixed px per rung (`control.size.*.line-box`) — the one thing a Figma variable can hold that `fontSize × ratio` is not.',
       'The group\'s `orientation` and `density` are in brief §15\'s variants block and are not here because they are `CheckboxGroup`\'s axes, not this component\'s. The alternative is folding the group into this def, which is the monolithic decomposition the brief evaluates and rejects (§2).',
       'BORDER AND FILL AT ONE COORDINATE — #1011\'s third finding, and the answer is NEITHER of the two the issue offered. The defect: a selected box named `fill.selected` for its fill and let its border fall through to `border.rest`, so two bindings that must AGREE about the box\'s boundary disagreed. Both resolved, both named tokens this def chose, and the box shipped with a visible seam — #802\'s class again, and the second on this component after #967\'s `role: \'target\'` conflation. The issue asked whether this needs a new EXPRESSION or is PER-DEF CARE. It is a third thing. It needs no new expression: the grammar already says it, because an unbound slot returns `undefined` and paints nothing, so the ABSENCE of `unchecked.fill` IS the binding "this coordinate has no fill" — the fix was deleting seven keys, not adding a field. And per-def care is exactly what had already failed: the radio and switch defs of the time carried the identical pairing because they copied this def verbatim, which is per-def care performed correctly three times over one wrong premise. What was missing was neither vocabulary nor diligence but ENFORCEMENT, so the answer is a gate — `lint-paint.ts` arm 4, which measures whether a fill is self-bounding against the page (>= 3:1, SC 1.4.11) and fails a same-family border drawn beside one. It named all three defs in a single run before any of them was fixed. The measured fact underneath, which is why the rule generalizes rather than describing these three: `interactive.<intent>.fill.*` and `interactive.<intent>.border.*` were byte-identical at every rung they SHARE across the brands measured then (5 brands x 4 modes), and the border ladder has NO `selected` rung at all — so `fill.selected` beside `border.rest` was never two shades of one idea, it was a fill that moved and a border that could not follow. The asymmetry to keep in view: switch\'s OFF track KEEPS its rim, because no brand\'s neutral fill clears 3:1 (1.21-1.58:1 at rest) and the rim is that track\'s only edge — which is precisely why arm 4 asks about the FILL\'s contrast rather than comparing the two bindings to each other.',
     ],

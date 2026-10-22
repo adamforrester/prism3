@@ -118,7 +118,7 @@
           {
             "name": "↳ Tabs",
             "components": [
-              "tab",
+              "tab-item",
               "tabs"
             ]
           },
@@ -159,6 +159,12 @@
             "name": "↳ Dialog",
             "components": [
               "dialog"
+            ]
+          },
+          {
+            "name": "↳ Toast",
+            "components": [
+              "toast"
             ]
           },
           {
@@ -769,13 +775,20 @@
         "kind": "component set",
         "page": "↳ Flush Icon Button",
         "section": "Subcomponents",
-        "members": 30,
+        "members": 60,
         "variantProperties": [
           {
             "name": "shape",
             "values": [
               "flush",
               "round"
+            ]
+          },
+          {
+            "name": "surface",
+            "values": [
+              "default",
+              "inverse"
             ]
           },
           {
@@ -807,13 +820,20 @@
         "kind": "component set",
         "page": "↳ Flush Icon Button",
         "section": "Subcomponents",
-        "members": 30,
+        "members": 60,
         "variantProperties": [
           {
             "name": "shape",
             "values": [
               "flush",
               "round"
+            ]
+          },
+          {
+            "name": "surface",
+            "values": [
+              "default",
+              "inverse"
             ]
           },
           {
@@ -845,13 +865,20 @@
         "kind": "component set",
         "page": "↳ Flush Icon Button",
         "section": "Subcomponents",
-        "members": 30,
+        "members": 60,
         "variantProperties": [
           {
             "name": "shape",
             "values": [
               "flush",
               "round"
+            ]
+          },
+          {
+            "name": "surface",
+            "values": [
+              "default",
+              "inverse"
             ]
           },
           {
@@ -1113,7 +1140,7 @@
         "kind": "component set",
         "page": "↳ Checkbox",
         "section": "Components",
-        "members": 54,
+        "members": 90,
         "variantProperties": [
           {
             "name": "selection",
@@ -1121,6 +1148,13 @@
               "unchecked",
               "checked",
               "indeterminate"
+            ]
+          },
+          {
+            "name": "status",
+            "values": [
+              "default",
+              "error"
             ]
           },
           {
@@ -1138,8 +1172,7 @@
               "hover",
               "pressed",
               "focus-visible",
-              "disabled",
-              "error"
+              "disabled"
             ]
           }
         ],
@@ -1153,8 +1186,15 @@
         "kind": "component set",
         "page": "↳ Checkbox",
         "section": "Components",
-        "members": 3,
+        "members": 6,
         "variantProperties": [
+          {
+            "name": "status",
+            "values": [
+              "default",
+              "error"
+            ]
+          },
           {
             "name": "size",
             "values": [
@@ -1177,8 +1217,7 @@
             "pressed",
             "focus-visible",
             "disabled",
-            "read-only",
-            "error"
+            "read-only"
           ]
         },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/checkbox-row.md"
@@ -1190,8 +1229,15 @@
         "kind": "component set",
         "page": "↳ Checkbox",
         "section": "Components",
-        "members": 3,
+        "members": 6,
         "variantProperties": [
+          {
+            "name": "status",
+            "values": [
+              "default",
+              "error"
+            ]
+          },
           {
             "name": "size",
             "values": [
@@ -1202,11 +1248,6 @@
           }
         ],
         "properties": [],
-        "codeOnly": {
-          "states": [
-            "rest"
-          ]
-        },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/checkbox-group.md"
       },
       {
@@ -1216,13 +1257,20 @@
         "kind": "component set",
         "page": "↳ Radio",
         "section": "Components",
-        "members": 30,
+        "members": 60,
         "variantProperties": [
           {
             "name": "selection",
             "values": [
               "unchecked",
               "checked"
+            ]
+          },
+          {
+            "name": "status",
+            "values": [
+              "default",
+              "error"
             ]
           },
           {
@@ -1254,8 +1302,15 @@
         "kind": "component set",
         "page": "↳ Radio",
         "section": "Components",
-        "members": 3,
+        "members": 6,
         "variantProperties": [
+          {
+            "name": "status",
+            "values": [
+              "default",
+              "error"
+            ]
+          },
           {
             "name": "size",
             "values": [
@@ -1290,8 +1345,15 @@
         "kind": "component set",
         "page": "↳ Radio",
         "section": "Components",
-        "members": 3,
+        "members": 6,
         "variantProperties": [
+          {
+            "name": "status",
+            "values": [
+              "default",
+              "error"
+            ]
+          },
           {
             "name": "size",
             "values": [
@@ -1302,11 +1364,6 @@
           }
         ],
         "properties": [],
-        "codeOnly": {
-          "states": [
-            "rest"
-          ]
-        },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/radio-group.md"
       },
       {
@@ -1316,13 +1373,20 @@
         "kind": "component set",
         "page": "↳ Switch",
         "section": "Components",
-        "members": 24,
+        "members": 40,
         "variantProperties": [
           {
             "name": "selection",
             "values": [
               "off",
               "on"
+            ]
+          },
+          {
+            "name": "status",
+            "values": [
+              "default",
+              "error"
             ]
           },
           {
@@ -1339,14 +1403,13 @@
               "hover",
               "pressed",
               "focus-visible",
-              "disabled",
-              "error"
+              "disabled"
             ]
           }
         ],
         "properties": [
           {
-            "name": "State icon",
+            "name": "state icon",
             "type": "BOOLEAN"
           }
         ],
@@ -1359,8 +1422,15 @@
         "kind": "component set",
         "page": "↳ Switch",
         "section": "Components",
-        "members": 2,
+        "members": 4,
         "variantProperties": [
+          {
+            "name": "status",
+            "values": [
+              "default",
+              "error"
+            ]
+          },
           {
             "name": "size",
             "values": [
@@ -1383,8 +1453,7 @@
             "pending",
             "focus-visible",
             "disabled",
-            "read-only",
-            "error"
+            "read-only"
           ]
         },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/switch-row.md"
@@ -1516,7 +1585,7 @@
         ],
         "properties": [
           {
-            "name": "Marker",
+            "name": "marker",
             "type": "BOOLEAN"
           }
         ],
@@ -1643,7 +1712,7 @@
             "type": "BOOLEAN"
           },
           {
-            "name": "Check icon",
+            "name": "check icon",
             "type": "BOOLEAN"
           }
         ],
@@ -1655,9 +1724,9 @@
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/tag.md"
       },
       {
-        "id": "tab",
-        "name": "Tab",
-        "figmaName": "tab",
+        "id": "tab-item",
+        "name": "Tab.Item",
+        "figmaName": "tab-item",
         "kind": "component set",
         "page": "↳ Tabs",
         "section": "Components",
@@ -1703,7 +1772,7 @@
             "type": "BOOLEAN"
           }
         ],
-        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/tab.md"
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/tab-item.md"
       },
       {
         "id": "tabs",
@@ -1731,11 +1800,6 @@
           }
         ],
         "properties": [],
-        "codeOnly": {
-          "states": [
-            "rest"
-          ]
-        },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/tabs.md"
       },
       {
@@ -1988,15 +2052,10 @@
         ],
         "properties": [
           {
-            "name": "Label",
+            "name": "label",
             "type": "BOOLEAN"
           }
         ],
-        "codeOnly": {
-          "states": [
-            "rest"
-          ]
-        },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/segmented-control.md"
       },
       {
@@ -2087,14 +2146,15 @@
         "kind": "component set",
         "page": "↳ Dialog",
         "section": "Components",
-        "members": 15,
+        "members": 24,
         "variantProperties": [
           {
             "name": "placement",
             "values": [
               "center",
               "bottom",
-              "full"
+              "full",
+              "end"
             ]
           },
           {
@@ -2102,6 +2162,7 @@
             "values": [
               "inline",
               "stacked",
+              "fill",
               "none"
             ]
           },
@@ -2205,6 +2266,39 @@
           ]
         },
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/password-field.md"
+      },
+      {
+        "id": "toast",
+        "name": "Toast",
+        "figmaName": "toast",
+        "kind": "component set",
+        "page": "↳ Toast",
+        "section": "Components",
+        "members": 2,
+        "variantProperties": [
+          {
+            "name": "intent",
+            "values": [
+              "neutral",
+              "success"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "message",
+            "type": "TEXT"
+          },
+          {
+            "name": "action",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "close",
+            "type": "BOOLEAN"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/toast.md"
       },
       {
         "id": "counter",
@@ -2437,7 +2531,7 @@
           "allowPreferredValuesOnly": true
         },
         "preferred": [
-          "tab"
+          "tab-item"
         ]
       },
       {
@@ -2624,7 +2718,7 @@
       "image-placeholder",
       "badge",
       "tag",
-      "tab",
+      "tab-item",
       "tabs",
       "divider",
       "_accordion-indicator",
@@ -2641,6 +2735,7 @@
       "dialog",
       "password-field",
       "counter",
+      "toast",
       "_slider-thumb",
       "slider"
     ],
@@ -2684,6 +2779,88 @@
         "source": "apps/plugin/src/furniture-templates.ts#export const SCRIM_COMPONENT"
       }
     ],
+    "aboutFrame": {
+      "rule": "The Cover page carries one \"About this library\" frame beside the file's thumbnail: the engine and token contract versions, the date of the last Update, and what changed in the latest release. Every Update that writes redraws it. It carries shared plugin data under namespace \"prism3\", key \"about\", so a reader can skip it; a copy a designer edited is renamed \"About this library (edited)\" and loses the tag.",
+      "name": "About this library",
+      "tag": {
+        "namespace": "prism3",
+        "key": "about"
+      },
+      "source": "apps/plugin/src/about-frame.ts#export const ABOUT_KEY"
+    },
+    "coverFrame": {
+      "rule": "The Cover page carries one 1920 × 1080 \"Cover\" frame, the library cover, set as the file thumbnail while the file has none of its own: the brand's name and the engine version it was last updated with. Its fill binds <root>/color/foreground/brand and its text binds <root>/color/text/on-brand. It carries shared plugin data under namespace \"prism3\", key \"cover\"; its two texts carry key \"cover-part\", \"brand\" or \"version\". Every Update sets the version text while it is there; a cover a designer edited keeps every other layer as they left it.",
+      "name": "Cover",
+      "tag": {
+        "namespace": "prism3",
+        "key": "cover"
+      },
+      "parts": {
+        "key": "cover-part",
+        "values": [
+          "brand",
+          "version"
+        ]
+      },
+      "binds": {
+        "ground": "<root>/color/foreground/brand",
+        "ink": "<root>/color/text/on-brand"
+      },
+      "source": "apps/plugin/src/cover-frame.ts#export const COVER_KEY"
+    },
+    "usagePanel": {
+      "rule": "A usage panel is a frame drawn beside each component set, right of it, from the component's usage docs, and is never part of the set. It carries shared plugin data under namespace \"prism3\", key \"docPanel\": state \"live\" for the panel the plugin redraws, \"kept\" for one a designer edited, which the plugin keeps aside and never removes.",
+      "source": "apps/plugin/src/doc-panel.ts#export const DOC_PANEL_KEY",
+      "tag": {
+        "namespace": "prism3",
+        "key": "docPanel"
+      },
+      "template": {
+        "name": "_Doc-block",
+        "variantProperties": [
+          {
+            "name": "Type",
+            "values": [
+              "Heading",
+              "Paragraph",
+              "Field",
+              "Do-Dont",
+              "Specimen",
+              "Part-marker",
+              "Chips",
+              "Divider"
+            ]
+          },
+          {
+            "name": "Size",
+            "values": [
+              "sm",
+              "md",
+              "lg"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "Top padding",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "Bottom padding",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "Caption",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "Specimen",
+            "type": "INSTANCE_SWAP"
+          }
+        ],
+        "source": "apps/plugin/src/doc-block.ts#export const DOC_BLOCK_SET"
+      }
+    },
     "fileTemplates": {
       "rule": "Page headers are instances of these sets. They live on the Sandbox section's file components page with the furniture templates, and their names start with \"_\" so a library leaves them out.",
       "names": [

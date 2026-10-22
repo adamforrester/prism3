@@ -237,7 +237,7 @@ const MUST_COVER = [
   'flush-icon-button.focusRing', 'flush-icon-button-destructive.focusRing', 'flush-icon-button-neutral.focusRing',
   'text-field.focusRing', 'textarea.focusRing', 'select.focusRing', 'password-field.focusRing',
   'checkbox-control.focusRing', 'radio-control.focusRing', 'switch-control.focusRing',
-  'tag.focusRing', 'tab.focusRing', 'accordion.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing',
+  'tag.focusRing', 'tab-item.focusRing', 'accordion.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing',
   'counter.focusRing', '_slider-thumb.focusRing',
 ];
 
@@ -255,7 +255,7 @@ const MUST_CLEAR_STROKE = [
   'flush-icon-button.focusRing', 'flush-icon-button-destructive.focusRing', 'flush-icon-button-neutral.focusRing',
   'text-field.focusRing', 'textarea.focusRing', 'select.focusRing', 'password-field.focusRing',
   'checkbox-control.focusRing', 'radio-control.focusRing', 'switch-control.focusRing',
-  'tag.focusRing', 'tab.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing',
+  'tag.focusRing', 'tab-item.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing',
   'counter.focusRing', '_slider-thumb.focusRing',
 ];
 
@@ -589,7 +589,7 @@ for (const def of componentDefs) {
 // neither walk reads the other. Every member plan is walked (`figmaAnatomySet`), since a corner-pinned def
 // need not carry a size axis, and both directions of D apply: every declared pin is represented, and no plan
 // node carries a pin its def does not declare.
-const MUST_COVER_CORNER = ['textarea.grip'];
+const MUST_COVER_CORNER = ['textarea.gripGlyph'];
 const cornerCovered = new Set<string>();
 let cornerChecks = 0;
 for (const def of componentDefs) {
