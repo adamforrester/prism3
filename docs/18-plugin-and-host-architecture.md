@@ -61,7 +61,10 @@ Key fields (developers.figma.com/docs/plugins/manifest):
   dev-only branch (the bridge relay, the dev-only agent-link command), and writes a `manifest.json` beside
   the bundles with `devAllowedDomains` removed (`apps/plugin/build.mjs`, `writeReleaseManifest`).
   `apps/plugin/lint-release-bundle.ts` checks that each dev-only marker is in `dist/` and absent from `release/`.
-- **`permissions`** — `currentuser` / `activeusers` / `fileusers` / `payments` / `teamlibrary`.
+- **`permissions`** — `currentuser` / `activeusers` / `fileusers` / `payments` / `teamlibrary`. The plugin asks for
+  `teamlibrary` alone (#2879, the owner's Q613 1 A): read-only, the one way to read an enabled library's name, which the
+  library home shows (`apps/plugin/src/file-kind.ts`). The Community listing shows it. `test-manifest.ts` and
+  `lint-release-bundle.ts` hold the list, in `manifest.json` and in `release/manifest.json`.
 - **`capabilities`** — `textreview` / `codegen` / `inspect` / `vscode` (codegen/inspect = Dev-Mode surfaces).
 
 ## 3. What the plugin API can write — and what it can't
