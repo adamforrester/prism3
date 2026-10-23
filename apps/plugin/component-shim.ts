@@ -1509,9 +1509,11 @@ export const makeShim = (opts: ShimOpts = {}) => {
     _removed: removedNodes,
     /** #2831 — publish a COMPONENT or COMPONENT_SET, as its team library would: what `getPublishStatusAsync` answers next. */
     publish: (n: Node, status: 'UNPUBLISHED' | 'CURRENT' | 'CHANGED'): void => { publishStatus.set(n, status); },
-    saveVersionHistoryAsync: async (title: string) => {
+    _versionNotes: [] as string[],
+    saveVersionHistoryAsync: async (title: string, description?: string) => {
       if (opts.refuseVersion) throw new Error('in saveVersionHistoryAsync: this plugin may not save versions');
       (shim._versions as string[]).push(title);
+      (shim._versionNotes as string[]).push(description ?? '');
       return { id: `VER:${(shim._versions as string[]).length}` };
     },
     // WHAT A CRITERIA SEARCH ACTUALLY RETURNS (#681). `types: ['COMPONENT']` matches `ComponentNode`

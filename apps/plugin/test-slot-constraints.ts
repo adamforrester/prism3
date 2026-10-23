@@ -56,6 +56,8 @@ const EXPECTED: Record<string, { slotSettings?: Record<string, unknown>; preferr
   // Open (#2609, as built): the body holds whatever the dialog needs — text or any components — so no limit and no
   // preferred component. The footer's actions are the nested Button group's slot (#2661), its row below.
   'dialog.body': {},
+  // Open (#2579, as built): the body holds the message, a link or a short list, so no limit and no preferred component.
+  'banner.body': {},
   // Constrained (#2666, the approved proposal's properties table): at least two steps, an ancestor and the current page,
   // and BreadcrumbItem the only component the slot offers.
   'breadcrumbs.items': { slotSettings: { minChildren: 2, allowPreferredValuesOnly: true }, preferred: ['breadcrumb-item'] },

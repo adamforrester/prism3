@@ -651,7 +651,8 @@ export type PartDef = {
    *  `CONTRACT_VERSION` does not move. Any other value of the axis, and a structure-only plan, is the root as
    *  authored.
    *
-   *  Refused off the root, on a non-`box` or a `column`-less box, on a root that already sizes its width
+   *  Refused off the root, on a non-`box` or a `layout`-less box, with `heights` on a box that is not a `column` (a width alone
+   *  fits a row: Banner's full member, #2786), on a root that already sizes its width
    *  (`placementWidth`, a fixed width) or uses `center`, with an `axis` that is not a projected variant axis, with a
    *  `widths` key that is not a value of it or a per-size map whose keys are not exactly the `size` values, with a
    *  `heights` key that is not a `widths` key, with a non-positive number, and with a `grow` that is not a child of
@@ -4538,8 +4539,10 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       const sizes = (variantsOf(def).size ?? []).map(String);
       const positive = (x: unknown): boolean => typeof x === 'number' && x > 0;
       if (n !== a.root) e.push(`anatomy part '${n}' declares 'builtSize' but is not the anatomy ROOT — the built size is the member's own`);
-      if (p.kind !== 'box' || !p.layout || p.layout.direction !== 'column')
-        e.push(`anatomy part '${n}' declares 'builtSize' but is not a 'box' with a 'column' layout — the size is written to the root's auto-layout frame, and a height grows its part down a column`);
+      // A WIDTH alone needs only an auto-layout box (#2786: Banner's row root is built wider at full); a HEIGHT grows its
+      // `grow` part down a column, so heights need the column.
+      if (p.kind !== 'box' || !p.layout || (b.heights !== undefined && p.layout.direction !== 'column'))
+        e.push(`anatomy part '${n}' declares 'builtSize' but is not a 'box' with a layout${b.heights !== undefined ? ", and a 'column' one for its heights" : ''} — the size is written to the root's auto-layout frame, and a height grows its part down a column`);
       else if (p.layout.sizing.x === 'fixed' || p.placementWidth !== undefined || p.center !== undefined)
         e.push(`anatomy part '${n}' declares 'builtSize' but already sizes its width (sizing.x '${p.layout.sizing.x}'${p.placementWidth !== undefined ? ', a placementWidth' : ''}${p.center !== undefined ? ', center' : ''}) — the field supplies the width at every coordinate it names`);
       if (!(def.figmaProperties?.variantAxes ?? []).includes(b.axis) || !axisValues.length)

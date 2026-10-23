@@ -93,3 +93,10 @@ Built on #2660's items-slot pattern (merged), with current `main` merged in.
   boolean, prop and built node, and `code-input` joins the test's `MESSAGE_OFF_FAMILY`, as that test's header names it.
 - Main's #2938 (Link current, Breadcrumbs, Search field) and #2940: the registry lists take the union, `EXECUTOR_REVISION` is 36
   over main's 35, and the artifact count is 210.
+- Main's Banner (#2786) and #2932, #2931 and #2851: the registry lists take the union, `EXECUTOR_REVISION` stays 36 over
+  main's 35, and the artifact count is 211. The Code Cell page sits beside the Breadcrumb Item page's new `lead`.
+- `test-doc-panel`'s marker oracle read a merged repeat (×N) as one part, so Code input's second run of cells (entry 7,
+  cell5–6) was checked against cell3. It now takes every part a ×N entry stands for; the drawing was right.
+- **Owner decision Q-2789.3 A (2026-10-23):** Code input joins the studio's Fields section (`SETTING_SECTIONS`), and
+  `test-component-groups`' rule is now "each `FIELD_FRAME_PARTS` def, or for a subcomponent the component that nests
+  it, is a Fields row", the nester read from the catalog's `nests`.

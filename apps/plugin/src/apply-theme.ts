@@ -54,9 +54,10 @@ export type ThemePlans = ReturnType<typeof themePlans>;
 
 /**
  * Preload fonts, pre-flight, then the guarded write — exactly `main.ts`'s sequence before #111 moved it.
- * Returns the plans alongside so the caller's report reads the same objects that were written.
+ * Returns the plans alongside so the caller's report reads the same objects that were written. `beforeWrite` runs once
+ * between the two, which is where the plugin saves its named version.
  */
-export const runApplyTheme = async (input: BrandInput, host: ThemeHost) => {
+export const runApplyTheme = async (input: BrandInput, host: ThemeHost, beforeWrite?: () => Promise<void>) => {
   const plans = themePlans(input);
   const { textPlan, colorPlan, floatPlan, fontPlan, motionPlan, stylesPlan, gridPlan } = plans;
   // FONTS FIRST (#680), before ANY variable write. Writing a `font/family/*` variable makes Figma
@@ -78,6 +79,9 @@ export const runApplyTheme = async (input: BrandInput, host: ThemeHost) => {
     preflightPlanOf({ color: colorPlan, float: floatPlan, font: fontPlan, motion: motionPlan, styles: stylesPlan, grid: gridPlan, text: textPlan }),
     preflightApiOf(host),
     async () => {
+      // THE NAMED VERSION (#2828), after the pre-flight passed and before the first write, so a refused apply saves none.
+      // The rename pass below is a write too. A host that refuses throws here and nothing is written.
+      await beforeWrite?.();
       // ONE rename pass across all four variable executors (#1013). Built here rather than inside each
       // one because the static validation must happen once, before any write, and because a designer
       // reads a single list of what moved — not four. Since #1035 constructing it also RENAMES THE

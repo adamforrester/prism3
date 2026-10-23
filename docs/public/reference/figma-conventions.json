@@ -40,7 +40,8 @@
               "button-destructive",
               "button-neutral",
               "button-group"
-            ]
+            ],
+            "usagePanelLead": "button"
           },
           {
             "name": "↳ Icon button",
@@ -48,7 +49,8 @@
               "icon-button",
               "icon-button-destructive",
               "icon-button-neutral"
-            ]
+            ],
+            "usagePanelLead": "icon-button"
           },
           {
             "name": "↳ Checkbox",
@@ -56,7 +58,8 @@
               "checkbox-control",
               "checkbox-row",
               "checkbox-group"
-            ]
+            ],
+            "usagePanelLead": "checkbox-row"
           },
           {
             "name": "↳ Radio",
@@ -64,14 +67,16 @@
               "radio-control",
               "radio-row",
               "radio-group"
-            ]
+            ],
+            "usagePanelLead": "radio-row"
           },
           {
             "name": "↳ Switch",
             "components": [
               "switch-control",
               "switch-row"
-            ]
+            ],
+            "usagePanelLead": "switch-row"
           },
           {
             "name": "↳ Select",
@@ -132,14 +137,16 @@
             "components": [
               "tab-item",
               "tabs"
-            ]
+            ],
+            "usagePanelLead": "tabs"
           },
           {
             "name": "↳ Segmented control",
             "components": [
               "segmented-control-segment",
               "segmented-control"
-            ]
+            ],
+            "usagePanelLead": "segmented-control"
           },
           {
             "name": "↳ Divider",
@@ -152,14 +159,16 @@
             "components": [
               "_accordion-indicator",
               "accordion"
-            ]
+            ],
+            "usagePanelLead": "accordion"
           },
           {
             "name": "↳ List",
             "components": [
               "list-item",
               "list"
-            ]
+            ],
+            "usagePanelLead": "list"
           },
           {
             "name": "↳ Link",
@@ -171,6 +180,12 @@
             "name": "↳ Dialog",
             "components": [
               "dialog"
+            ]
+          },
+          {
+            "name": "↳ Banner",
+            "components": [
+              "banner"
             ]
           },
           {
@@ -227,7 +242,8 @@
               "flush-icon-button",
               "flush-icon-button-destructive",
               "flush-icon-button-neutral"
-            ]
+            ],
+            "usagePanelLead": "flush-icon-button"
           },
           {
             "name": "↳ Spinner",
@@ -240,7 +256,8 @@
             "components": [
               "_breadcrumb-separator",
               "breadcrumb-item"
-            ]
+            ],
+            "usagePanelLead": "breadcrumb-item"
           },
           {
             "name": "↳ Code Cell",
@@ -2563,6 +2580,56 @@
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/search-field.md"
       },
       {
+        "id": "banner",
+        "name": "Banner",
+        "figmaName": "banner",
+        "kind": "component set",
+        "page": "↳ Banner",
+        "section": "Components",
+        "members": 8,
+        "variantProperties": [
+          {
+            "name": "tone",
+            "values": [
+              "info",
+              "success",
+              "warning",
+              "danger"
+            ]
+          },
+          {
+            "name": "width",
+            "values": [
+              "contained",
+              "full"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "title text",
+            "type": "TEXT"
+          },
+          {
+            "name": "icon",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "title",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "actions",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "dismiss",
+            "type": "BOOLEAN"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/banner.md"
+      },
+      {
         "id": "code-input-cell",
         "name": "CodeInput.Cell",
         "figmaName": "code-input-cell",
@@ -2801,6 +2868,10 @@
         ]
       },
       {
+        "component": "banner",
+        "property": "body"
+      },
+      {
         "component": "code-input",
         "property": "items",
         "settings": {
@@ -2971,6 +3042,7 @@
       "password-field",
       "counter",
       "search-field",
+      "banner",
       "toast",
       "_breadcrumb-separator",
       "breadcrumb-item",
@@ -3048,7 +3120,7 @@
       "source": "apps/plugin/src/cover-frame.ts#export const COVER_KEY"
     },
     "usagePanel": {
-      "rule": "A usage panel is a frame drawn beside each component set, right of it, from the component's usage docs, and is never part of the set. It carries shared plugin data under namespace \"prism3\", key \"docPanel\": state \"live\" for the panel the plugin redraws, \"kept\" for one a designer edited, which the plugin keeps aside and never removes.",
+      "rule": "A usage panel is a frame drawn beside a component set, right of it, from the component's usage docs, and is never part of the set. Each component page has one, beside the set of the page's lead component (the page's \"usagePanelLead\", or its one component), covering every set on the page. It carries shared plugin data under namespace \"prism3\", key \"docPanel\": state \"live\" for the panel the plugin redraws, \"kept\" for one a designer edited, which the plugin keeps aside and never removes.",
       "source": "apps/plugin/src/doc-panel.ts#export const DOC_PANEL_KEY",
       "tag": {
         "namespace": "prism3",

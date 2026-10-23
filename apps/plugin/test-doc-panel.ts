@@ -56,7 +56,9 @@ import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffe
 import { applyComponentPlan } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
 import { makeShim, type Node } from './component-shim';
-import { clearOrphanPanels, drawDocPanel, docPanelDue, planDocPanel, panelItems, type PanelApi, type PNode } from './src/doc-panel';
+import { anatomyMarks, clearOrphanPanels, drawDocPanel, docPanelDue, leadsPanel, planDocPanel, panelItems, type PanelApi, type PNode } from './src/doc-panel';
+import { TAXONOMY } from './src/file-taxonomy';
+import { fingerprintOf } from './src/style-guide';
 import { ensureDocBlock, type DocBlockApi } from './src/doc-block';
 import { drawFurniture, furnishUpdate, furnitureLayout, seatNewSet, templatesLine, withPanel, type FurnitureApi, type XNode } from './src/canvas-furniture';
 import { pageSetMoves, previewUpdate, type UpdateHost, type UpdateTarget } from './src/update-plan';
@@ -104,17 +106,46 @@ const TEXT_LINE = 16;
 const mk = (type: string, name: string, children: N[] = [], extra: Record<string, unknown> = {}): N => {
   const data = new Map<string, string>();
   const n = {
-    id: `${type[0]}:${++seq}`, type, name, x: 0, y: 0, visible: true, children: [] as N[], fills: [], strokes: [],
+    id: `${type[0]}:${++seq}`, type, name, x: 0, y: 0, visible: true, children: [] as N[], fills: [], strokes: [], _mk: true,
     _w: type === 'TEXT' ? 200 : 100, _h: type === 'TEXT' ? TEXT_LINE : 0,
-    get width(): number { return (this as N)._w as number; },
+    get width(): number {
+      const self = this as unknown as N;
+      const p = self.parent as N | undefined;
+      // FILL across a vertical parent: its width less its padding. A `_hug` frame hugs its children, as a specimen does.
+      if (self.layoutSizingHorizontal === 'FILL' && p?._mk && p.layoutMode === 'VERTICAL') return p.width! - Number(p.paddingLeft ?? 0) - Number(p.paddingRight ?? 0);
+      const kids = flow(self);
+      if (!self._hug || !self.layoutMode || !kids.length) return self._w as number;
+      const pad = Number(self.paddingLeft ?? 0) + Number(self.paddingRight ?? 0);
+      return pad + (self.layoutMode === 'HORIZONTAL' ? kids.reduce((a, c) => a + c.width!, 0) + Number(self.itemSpacing ?? 0) * (kids.length - 1) : Math.max(...kids.map((c) => c.width!)));
+    },
     get height(): number {
       const self = this as unknown as N;
       if (self.type === 'TEXT') return Math.max(1, Math.ceil(String(self.characters ?? '').length / 60)) * TEXT_LINE;
-      const kids = self.children.filter((c) => c.visible !== false && c.layoutPositioning !== 'ABSOLUTE');
+      const kids = flow(self);
       if (!self.layoutMode || !kids.length) return self._h as number;
       const pad = Number(self.paddingTop ?? 0) + Number(self.paddingBottom ?? 0);
       const gap = Number(self.itemSpacing ?? 0);
       return pad + (self.layoutMode === 'VERTICAL' ? kids.reduce((a, c) => a + (c.height ?? 0), 0) + gap * (kids.length - 1) : Math.max(...kids.map((c) => c.height ?? 0)));
+    },
+    /** THE HOST'S OWN LAYOUT (#2916): a child of an auto-layout frame sits after the shown children before it, centered
+     *  across when the frame centers, and any other node at its x and y. Written here, never read off the panel. */
+    get absoluteBoundingBox(): { x: number; y: number; width: number; height: number } {
+      const self = this as unknown as N;
+      const p = self.parent as N | undefined;
+      if (!p || p.type === 'PAGE') return { x: Number(self.x ?? 0), y: Number(self.y ?? 0), width: self.width!, height: self.height! };
+      // A parent this host did not make (the component shim's page) is the canvas origin.
+      const at = p.absoluteBoundingBox ?? { x: 0, y: 0 };
+      let x = Number(self.x ?? 0), y = Number(self.y ?? 0);
+      if (p.layoutMode && self.layoutPositioning !== 'ABSOLUTE') {
+        const kids = flow(p), i = kids.indexOf(self), gap = Number(p.itemSpacing ?? 0);
+        const v = p.layoutMode === 'VERTICAL';
+        const along = kids.slice(0, i).reduce((a, c) => a + (v ? c.height! : c.width!) + gap, 0);
+        const inner = v ? p.width! - Number(p.paddingLeft ?? 0) - Number(p.paddingRight ?? 0) : p.height! - Number(p.paddingTop ?? 0) - Number(p.paddingBottom ?? 0);
+        const across = p.counterAxisAlignItems === 'CENTER' ? (inner - (v ? self.width! : self.height!)) / 2 : 0;
+        x = Number(p.paddingLeft ?? 0) + (v ? across : along);
+        y = Number(p.paddingTop ?? 0) + (v ? along : across);
+      }
+      return { x: at.x + x, y: at.y + y, width: self.width!, height: self.height! };
     },
     resize(w: number, h: number) { (n as N)._w = w; (n as N)._h = h; },
     appendChild(c: N) { detach(c); c.parent = n; n.children.push(c); },
@@ -128,6 +159,8 @@ const mk = (type: string, name: string, children: N[] = [], extra: Record<string
   if (type === 'TEXT') { n.fontName = { family: 'Inter', style: 'Regular' }; n.characters = n.characters ?? name; }
   return n;
 };
+/** The children an auto-layout frame lays out: shown and not absolute. */
+const flow = (n: N): N[] => n.children.filter((c) => c.visible !== false && c.layoutPositioning !== 'ABSOLUTE');
 const detach = (c: N): void => {
   const p = c.parent as N | undefined;
   if (p?.children) { const i = p.children.indexOf(c); if (i >= 0) p.children.splice(i, 1); }
@@ -147,7 +180,7 @@ const blockInstance = (type: string): N => {
   const body: N[] =
     type === 'Field' ? [mk('FRAME', 'row', [t('label'), t('text')], { layoutMode: 'HORIZONTAL' })]
       : type === 'Do-Dont' ? [mk('FRAME', 'columns', ['do', 'dont'].map((c) => mk('FRAME', c, [mk('FRAME', 'rule'), t('heading'), ...[1, 2, 3, 4].map((k) => { const it = prism3Instance(LIST_ITEM_TEXT); it.name = `item${k}`; return it; })], { layoutMode: 'VERTICAL', itemSpacing: 8 })), { layoutMode: 'HORIZONTAL' })]
-        : type === 'Specimen' ? [mk('FRAME', 'stage', [mk('INSTANCE', 'specimen', [], { _h: 40 })], { layoutMode: 'VERTICAL', paddingTop: 24, paddingBottom: 24 }), t('caption')]
+        : type === 'Specimen' ? [mk('FRAME', 'stage', [mk('INSTANCE', 'specimen', [], { _h: 40 })], { layoutMode: 'VERTICAL', paddingTop: 24, paddingBottom: 24, paddingLeft: 24, paddingRight: 24, counterAxisAlignItems: 'CENTER', layoutSizingHorizontal: 'FILL' }), t('caption')]
           : type === 'Part-marker' ? [(() => { const m = prism3Instance('count'); m.name = 'marker'; m._w = 20; m._h = 20; return m; })()]
             : type === 'Chips' ? [t('label'), mk('FRAME', 'chips', Array.from({ length: 16 }, (_, k) => { const c = prism3Instance('label'); c.name = `chip${k + 1}`; c._h = 32; return c; }), { layoutMode: 'HORIZONTAL' }), t('note')]
               : type === 'Divider' ? [mk('INSTANCE', 'divider', [], { _h: 1 })]
@@ -163,13 +196,11 @@ const blockInstance = (type: string): N => {
       props[k].value = v;
       if (k.startsWith('Caption')) { const cap = walk(i).find((c) => c.name === 'caption' || c.name === 'note'); if (cap) cap.visible = !!v; }
       if (k.startsWith('Specimen')) {
-        // The swap: the specimen becomes an instance of the member, with the member's layers.
+        // The swap: the specimen becomes an instance of the member, holding a copy of the member's layers.
         const sp = walk(i).find((c) => c.name === 'specimen')!;
-        // A member built by the component shim: its own layers, by name, as an instance of it holds them.
-        const built = livePages.flatMap((pg) => pg.children.flatMap(walk)).find((c) => c.id === v);
-        const member = members.get(String(v)) ?? (built ? { layers: walk(built).slice(1).map((c) => String(c.name)) } : undefined);
+        const member = members.get(String(v)) ?? livePages.flatMap((pg) => pg.children.flatMap(walk)).find((c) => c.id === v);
         sp.children.splice(0);
-        if (member) for (const c of member.layers) sp.appendChild!(mk('FRAME', c, [], { x: 10, y: 10, _h: 0 }));
+        if (member) instanceOf(sp, member);
         sp.swapped = v;
       }
     }
@@ -177,8 +208,51 @@ const blockInstance = (type: string): N => {
   i.setExplicitVariableModeForCollection = (_c: unknown, modeId: string) => { i.pinned = modeId; };
   return i;
 };
-/** The members a specimen can be swapped to, by id: the layer names the member holds. */
-const members = new Map<string, { layers: string[] }>();
+/** The members a specimen can be swapped to, by id. */
+const members = new Map<string, N>();
+/** A layer of a member as the host builds it, from a plan node or a component the shim built: its type, name, whether
+ *  shown, the boolean its visibility follows, and its layout. A layer with no children is a fixed box: text 48 × 16,
+ *  anything else 24 × 24. */
+const copyLayer = (src: Record<string, unknown>): N => {
+  const t = String(src.type ?? 'FRAME');
+  const type = t === 'NESTED_INSTANCE' || t === 'INSTANCE_SWAP' ? 'INSTANCE' : t === 'CONTENT_SLOT' ? 'SLOT' : t === 'COMPONENT' ? 'FRAME' : t;
+  const refs = src.componentPropertyReferences as Record<string, string> | undefined;
+  const vis = refs?.visible ?? (src.visibleProp ? `${String(src.visibleProp)}#v` : undefined);
+  const kids = ((src.children ?? []) as Record<string, unknown>[]).map(copyLayer);
+  const n = mk(type, String(src.name), kids, {
+    visible: src.visible !== false, _w: type === 'TEXT' ? 48 : 24, _h: type === 'TEXT' ? 16 : 24, _hug: true,
+    layoutMode: kids.length ? (src.layoutMode === 'HORIZONTAL' ? 'HORIZONTAL' : 'VERTICAL') : undefined, itemSpacing: 4,
+    ...(vis ? { componentPropertyReferences: { visible: vis } } : {}),
+  });
+  if (type === 'TEXT') { n._w = 48; n._h = 16; }
+  return n;
+};
+/** `sp` as an instance of `member`: its layers copied, and its booleans as the instance's properties, each showing or
+ *  hiding the layers that follow it. */
+const instanceOf = (sp: N, member: N): void => {
+  for (const c of member.children) sp.appendChild!(copyLayer(c as never));
+  sp._hug = true;
+  sp.layoutMode = member.layoutMode ?? 'VERTICAL';
+  sp.itemSpacing = 4;
+  const props: Record<string, { type: string; value: unknown }> = {};
+  for (const c of walk(sp)) { const k = c.componentPropertyReferences?.visible; if (k) props[k] = { type: 'BOOLEAN', value: c.visible !== false }; }
+  sp.componentProperties = props;
+  sp.setProperties = (p: Record<string, unknown>) => {
+    for (const [k, v] of Object.entries(p)) {
+      if (!props[k]) throw new Error(`in setProperties: no property ${k}`);
+      props[k].value = v;
+      for (const c of walk(sp)) if (c.componentPropertyReferences?.visible === k) c.visible = !!v;
+    }
+  };
+};
+/** A member of a fake set, from one of the def's plans: named by its variant values, holding the plan's layers. */
+const planMember = (plan: { coord: Record<string, string>; root: Record<string, unknown> }): N => {
+  const m = copyLayer(plan.root);
+  m.type = 'COMPONENT';
+  m.name = Object.entries(plan.coord).map(([k, v]) => `${k}=${v}`).join(', ');
+  members.set(String(m.id), m);
+  return m;
+};
 const docBlockSet = (): N => mk('COMPONENT_SET', '_Doc-block', TYPES.flatMap((t) => SIZES.map((s) => mk('COMPONENT', `Type=${t}, Size=${s}`, [], { createInstance: () => blockInstance(t) }))));
 
 const VARS = ['color/background/primary', 'color/border/secondary', 'color/text/primary', 'color/text/secondary', 'color/background/secondary', 'color/border/success', 'color/border/danger'].map((name, i) => ({ id: `V:${i}`, name: `zz/${name}`, variableCollectionId: 'VC:color' }));
@@ -203,41 +277,60 @@ const host = (pages: N[], o: { template?: boolean; modes?: boolean } = {}): Pane
 };
 const livePages: N[] = [];
 const page = (name: string): N => { const p = mk('PAGE', name); livePages.push(p); p.findOne = (pred: (n: unknown) => boolean) => p.children.find(pred) ?? null; return p; };
-/** A set on `p` at (x, y), w × h, whose default member holds `layers`. */
-const fakeSet = (p: N, def: string, x = 0, y = 0, w = 600, h = 400, layers: string[] = Object.keys(componentDefs.find((d) => d.id === def)?.anatomy?.parts ?? {})): N => {
-  const m = mk('COMPONENT', 'default');
-  members.set(String(m.id), { layers });
-  const s = mk('COMPONENT_SET', def, [m], { x, y, _w: w, _h: h });
+/** A set on `p` at (x, y), w × h, whose members are the def's plans, as the engine projects them, the default first. */
+const fakeSet = (p: N, def: string, x = 0, y = 0, w = 600, h = 400): N => {
+  const plans = planCache.get(def) ?? figmaAnatomySet(componentDefs.find((d) => d.id === def)!, { swapTarget: SWAP_TARGET });
+  planCache.set(def, plans);
+  const s = mk('COMPONENT_SET', def, plans.map((pl) => planMember(pl as never)), { x, y, _w: w, _h: h });
   p.appendChild!(s);
   return s;
 };
+const planCache = new Map<string, ReturnType<typeof figmaAnatomySet>>();
 const panelsOn = (p: N): N[] => p.children.filter((c) => c.getSharedPluginData!('prism3', 'docPanel'));
 const tagOf = (n: N) => JSON.parse(n.getSharedPluginData!('prism3', 'docPanel')) as { def: string; set: string; state: string };
 const drawnSections = (panel: N): string[] => walk(panel).map((c) => c.getSharedPluginData!('prism3', 'docSection')).filter(Boolean);
 const boxOf = (n: N) => ({ x: Number(n.x), y: Number(n.y), w: Number(n.width), h: Number(n.height) });
+const overlapsBox = (p: { x: number; y: number; width: number; height: number }, q: { x: number; y: number; width: number; height: number }): boolean =>
+  p.x < q.x + q.width && q.x < p.x + p.width && p.y < q.y + q.height && q.y < p.y + p.height;
 const overlap = (a: N, b: N): boolean => { const p = boxOf(a), q = boxOf(b); return p.x < q.x + q.w && q.x < p.x + p.w && p.y < q.y + q.h && q.y < p.y + p.h; };
 const names = (id: string) => componentDefs.find((d) => d.id === id)?.name ?? id;
 const withSets = componentDefs.filter((d) => CANVAS_FURNITURE.has(d.id));
+/** THE FAMILIES, as the oracle reads them (#2927): each taxonomy page's defs that build a set, and its lead, the page's
+ *  `lead` or its one def. Read off the taxonomy data, not through `panelFamily`. */
+const FAMILIES = TAXONOMY.sections.flatMap((s) => s.leaves).map((l) => ({ page: l.page, lead: l.lead ?? (l.defs.length === 1 ? l.defs[0] : ''), members: l.defs.filter((d) => CANVAS_FURNITURE.has(d)) })).filter((f) => f.members.length);
+const familyOf = (id: string) => FAMILIES.find((f) => f.members.includes(id))!;
+const leads = withSets.filter((d) => familyOf(d.id).lead === d.id);
 
 /* ── present: a panel per set, and its sections are the model's ────────────────────────────────────────── */
-section('present/… — every def that builds a set gets one panel, with the model\'s sections');
-ok(withSets.length >= 40, `present/coverage: ${withSets.length} defs build a set`);
+section('present/… — every family\'s lead gets one panel, with the model\'s sections; any other member none (#2927)');
+ok(withSets.length >= 40 && leads.length >= 25 && leads.length < withSets.length, `present/coverage: ${withSets.length} defs build a set, ${leads.length} lead a family`);
 for (const def of withSets) {
   const p = page(`↳ ${def.id}`);
   const set = fakeSet(p, def.id);
   const r = await drawDocPanel(host([p]), set, def, { names });
   const panels = panelsOn(p);
+  if (familyOf(def.id).lead !== def.id) {
+    ok(!r.drawn && !panels.length && !r.skipped.length && !r.misses.length, `present/${def.id}: no panel of its own, its family's is beside ${familyOf(def.id).lead}`);
+    continue;
+  }
   const want = docSections(def, { modes: ['light', 'dark'] }).sections.map((s) => s.id).filter((id) => !SITE_ONLY.includes(id));
   const got = panels[0] ? drawnSections(panels[0]) : [];
   ok(r.drawn && panels.length === 1 && tagOf(panels[0]).def === def.id && tagOf(panels[0]).set === set.id && got.join() === want.join(),
     `present/${def.id}: one panel, sections ${got.join(', ')}`, `want [${want.join(', ')}], got ${panels.length} panel(s) [${got.join(', ')}] ${r.skipped.join('; ')}`);
+  // The family's sets by name, under the lede, when the page holds more than one.
+  const fam = familyOf(def.id);
+  if (fam.members.length > 1) {
+    const all = texts(panels[0]);
+    const listed = fam.members.map((m) => componentDefs.find((d) => d.id === m)!.name);
+    ok(all.includes('In this family') && all.includes(listed.join(', ')) && tagOf(panels[0]).family === fam.page, `present/${def.id} family: lists ${listed.join(', ')}`);
+  }
 }
 
 section('panel/do-dont — each Do and Don\'t item\'s text is written into List.Item\'s text layer');
 {
   let items = 0;
   const unwritten: string[] = [];
-  for (const def of withSets) {
+  for (const def of leads) {
     const p = page(`↳ d ${def.id}`);
     const r = await drawDocPanel(host([p]), fakeSet(p, def.id), def, { names });
     const shown = texts(panelsOn(p)[0] ?? mk('FRAME', 'none'));
@@ -263,8 +356,9 @@ section('present/modes — the file\'s light and dark, side by side, each pinned
   const theming = walk(panelsOn(p)[0]).find((c) => c.getSharedPluginData!('prism3', 'docSection') === 'theming')!;
   const pinned = walk(theming).filter((c) => c.pinned).map((c) => c.pinned);
   ok(pinned.join() === 'M:light,M:dark', `present/modes: Theming pins ${pinned.join(', ')}`, 'want M:light, M:dark');
-  const swapped = walk(panelsOn(p)[0]).filter((c) => c.name === 'specimen' && c.swapped);
-  ok(swapped.length === 3 && swapped.every((c) => c.swapped === set.children[0].id), `present/specimen: the Anatomy and both Theming specimens show the set's default member (${swapped.length})`);
+  const spec = (id: string) => walk(walk(panelsOn(p)[0]).find((c) => c.getSharedPluginData!('prism3', 'docSection') === id)!).filter((c) => c.name === 'specimen' && c.swapped);
+  ok(spec('theming').length === 2 && spec('theming').every((c) => c.swapped === set.children[0].id) && spec('anatomy')[0]?.swapped === set.children[0].id,
+    `present/specimen: the first Anatomy specimen and both Theming specimens show the set's default member`);
   const p2 = page('↳ Buttons 2');
   const set2 = fakeSet(p2, 'button');
   await drawDocPanel(host([p2], { modes: false }), set2, def, { names });
@@ -287,19 +381,204 @@ section('anatomy/… — held-back part notes never reach a panel');
 {
   let heldBack = 0, shown = 0;
   const leaks: string[] = [];
-  for (const def of withSets) {
+  for (const def of leads) {
     const p = page(`↳ a ${def.id}`);
     await drawDocPanel(host([p]), fakeSet(p, def.id), def, { names });
     const all = texts(panelsOn(p)[0]).join('\n');
+    const seen = new Set<string>();
     for (const [id, part] of Object.entries(def.anatomy?.parts ?? {})) {
       if (!part.note?.trim()) continue;
+      // A repeat (Q4) lists only its first part: `item2` after `item1`, nesting the same component the same way.
+      const rp = part as { nests?: string; nesting?: unknown; presentWhen?: unknown };
+      const same = `${id.replace(/\d+$/, '')}|${rp.nests}|${JSON.stringify(rp.nesting)}|${JSON.stringify(rp.presentWhen)}`;
+      if (/\d$/.test(id) && rp.nests && seen.has(same)) continue;
+      seen.add(same);
       const first = part.note.replace(/`/g, '').replace(/\s+/g, ' ').trim().split(/(?<=[.)])\s+(?=[A-Z"(])/)[0];
       if (MAINTAINER_REGISTER.test(part.note) || NAMES_A_TOOL.test(part.note)) { heldBack++; if (all.includes(first)) leaks.push(`${def.id}.${id}`); }
       else { shown++; if (!all.includes(first)) leaks.push(`${def.id}.${id} (missing)`); }
     }
   }
-  ok(heldBack >= 60 && !leaks.some((l) => !l.endsWith('(missing)')), `anatomy/held back: none of ${heldBack} held-back notes is in a panel`, leaks.filter((l) => !l.endsWith('(missing)')).slice(0, 5).join(', '));
+  ok(heldBack >= 30 && !leaks.some((l) => !l.endsWith('(missing)')), `anatomy/held back: none of ${heldBack} held-back notes is in a panel`, leaks.filter((l) => !l.endsWith('(missing)')).slice(0, 5).join(', '));
   ok(shown >= 100 && !leaks.some((l) => l.endsWith('(missing)')), `anatomy/captions: all ${shown} reader-ready captions are`, leaks.filter((l) => l.endsWith('(missing)')).slice(0, 5).join(', '));
+}
+
+/** The numbers the drawn Anatomy lists: each Field label there that starts with one. */
+const listedNumbers = (panel: N): string[] => {
+  const sec = walk(panel).find((c) => c.getSharedPluginData!('prism3', 'docSection') === 'anatomy');
+  return sec ? walk(sec).filter((c) => c.type === 'TEXT' && c.name === 'label').map((c) => /^(\d+)\s/.exec(String(c.characters))?.[1]).filter((x): x is string => !!x) : [];
+};
+
+/* ── marks: the numbered entries, from the part tree ───────────────────────────────────────────────────── */
+section('marks/… — repeats merged, the root and the parts that hold others bracketed (#2927 Q4, Q5)');
+{
+  // Written out from the defs' part trees as read by hand (list: container > items > item1..3; tabs: container >
+  // items > tab1..3 and the baseline; button: container and its parts, none holding another).
+  const of = (id: string) => { const def = componentDefs.find((d) => d.id === id)!; const a = docSections(def).sections.find((x) => x.id === 'anatomy'); return anatomyMarks(def, a && a.id === 'anatomy' ? a.parts.map((pt) => pt.id) : []); };
+  const show = (ms: ReturnType<typeof anatomyMarks>) => ms.map((m) => `${m.n}:${m.part}${m.parts > 1 ? `x${m.parts}` : ''}${m.bracket ? '[' : ''}@${m.path.join('/')}`).join(' ');
+  ok(show(of('list')) === '1:container[@ 2:items[@items 3:item1x3@items/item1', `marks/list: ${show(of('list'))}`, 'want 1:container[@ 2:items[@items 3:item1x3@items/item1');
+  ok(show(of('tabs')) === '1:container[@ 2:items[@items 3:tab1@items/tab1 4:tab2x2@items/tab2 5:baseline@baseline', `marks/tabs: the selected tab apart from the two unselected (${show(of('tabs'))})`);
+  ok(show(of('counter')).includes('decrement') && show(of('counter')).includes('increment'), `marks/counter: two parts that nest one component with different jobs stay apart (${show(of('counter'))})`);
+  ok(of('button').every((m) => !m.bracket && m.parts === 1), 'marks/button: nothing merged, nothing bracketed');
+}
+
+/* ── markers: on their parts, by the host's own layout ─────────────────────────────────────────────────── */
+section('markers/… — every listed number on a specimen, on its part, by a leader or a bracket (#2916)');
+{
+  /** The part a number stands for, found by the oracle's own means: the drawn list's name for it, matched to the
+   *  def's listed parts, then the first shown layer of that id in a specimen of the Anatomy (the specimen itself for
+   *  the root). */
+  const check = async (def: ComponentDef, set: N, p: N, label: string): Promise<void> => {
+    const r = await drawDocPanel(host([p]), set, def, { names });
+    const panel = panelsOn(p)[0];
+    const sec = walk(panel).find((c) => c.getSharedPluginData!('prism3', 'docSection') === 'anatomy')!;
+    const specs = walk(sec).filter((c) => c.name === 'specimen');
+    const a = docSections(def).sections.find((x) => x.id === 'anatomy');
+    const parts = a && a.id === 'anatomy' ? a.parts : [];
+    const shown = (n: N, top: N): boolean => { for (let q: N | undefined = n; q; q = q === top ? undefined : q.parent as N) if (q.visible === false) return false; return true; };
+    const wrong: string[] = [];
+    const nums = listedNumbers(panel);
+    const taken = new Set<string>();
+    const labelOf = (num: string): string => String(walk(sec).find((c) => c.name === 'label' && String(c.characters).startsWith(`${num}  `))!.characters).slice(`${num}  `.length).replace(/ \(optional\)$/, '');
+    // The names listed as themselves: a merged repeat never stands for one of them.
+    const ownNamed = new Set(nums.map(labelOf).filter((l) => !/ ×\d+$/.test(l)));
+    for (const num of nums) {
+      const label = labelOf(num);
+      const runOf = Number(/ ×(\d+)$/.exec(label)?.[1] ?? 1);
+      const nm = label.replace(/ ×\d+$/, '');
+      // By its name, else (a merged repeat, ×N) the next N parts of that name not listed by their own name: a ×N entry
+      // stands for every part in its run, so a later run is not read as an earlier run's second part (#2428).
+      const run = parts.find((pt) => pt.name === nm && runOf === 1) ? [parts.find((pt) => pt.name === nm)!]
+        : parts.filter((pt) => !taken.has(pt.id) && !ownNamed.has(pt.name) && pt.name.replace(/\s*\d+$/, '') === nm).slice(0, runOf);
+      const part = run[0]!;
+      for (const pt of run) taken.add(pt.id);
+      const isRoot = part.id === def.anatomy?.root;
+      const targets = specs.flatMap((sp) => (isRoot ? [sp] : walk(sp).filter((c) => run.some((pt) => c.name === pt.id) && shown(c, sp))));
+      const group = panel.children.find((c) => c.name === `part ${num}`);
+      if (!group) { wrong.push(`${num} ${part.id}: no marker`); continue; }
+      const box = group.absoluteBoundingBox!;
+      const lines = group.children.filter((c) => c.name === 'leader' || c.name === 'tick').map((c) => c.absoluteBoundingBox!);
+      const badge = group.children.find((c) => c.name === '_Doc-block')!;
+      const marker = walk(badge).find((c) => c.name === 'marker')!.absoluteBoundingBox!;
+      const hit = targets.find((t) => { const b = t.absoluteBoundingBox!; return overlapsBox(box, b) && lines.some((l) => overlapsBox(l, b)); });
+      if (!hit) { wrong.push(`${num} ${part.id}: its marker and leader reach no ${part.id} (${targets.length} in the specimens)`); continue; }
+      const spec = specs.find((sp) => walk(sp).includes(hit))!;
+      if (overlapsBox(marker, spec.absoluteBoundingBox!)) wrong.push(`${num} ${part.id}: the marker sits on the specimen, not in its gutter`);
+      const stage = (spec.parent as N).absoluteBoundingBox!;
+      if (marker.x < stage.x || marker.y < stage.y || marker.x + marker.width > stage.x + stage.width || marker.y + marker.height > stage.y + stage.height)
+        wrong.push(`${num} ${part.id}: the marker is outside its specimen's stage`);
+      if (texts(badge)[0] !== num) wrong.push(`${num}: the marker reads ${texts(badge)[0]}`);
+    }
+    const badges = panel.children.filter((c) => c.name.startsWith('part ')).map((g) => walk(g).find((c) => c.name === 'marker')!.absoluteBoundingBox!);
+    const touching = badges.flatMap((b, i) => badges.slice(i + 1).filter((o) => overlapsBox(b, o)).map(() => i + 1));
+    const inside = badges.every((b) => { const pb = panel.absoluteBoundingBox!; return b.x >= pb.x && b.y >= pb.y && b.x + b.width <= pb.x + pb.width && b.y + b.height <= pb.y + pb.height; });
+    ok(nums.length > 0 && !wrong.length && !touching.length && inside && r.marked === nums.length && !r.misses.some((m) => m.startsWith('part ')),
+      `markers/${label}: ${nums.length} numbers on ${specs.length} specimen(s), each on its part, no two markers touching, all inside the panel`,
+      [...wrong, ...(touching.length ? [`markers ${touching.join(', ')} touch another`] : []), ...(inside ? [] : ['a marker outside the panel']), ...r.misses].slice(0, 4).join('; '));
+  };
+  for (const def of leads) {
+    const p = page(`↳ m ${def.id}`);
+    await check(def, fakeSet(p, def.id), p, def.id);
+  }
+  // A part in a slot inside a nested instance: list's items slot moved into an instance, as a shell component holds it.
+  {
+    const def = componentDefs.find((d) => d.id === 'list')!;
+    const p = page('↳ m nested');
+    const set = fakeSet(p, 'list');
+    for (const m of set.children) {
+      const slot = m.children.find((c) => c.name === 'items')!;
+      const shell = mk('INSTANCE', 'shell', [], { _hug: true, layoutMode: 'VERTICAL', itemSpacing: 4, _w: 24, _h: 24 });
+      m.appendChild!(shell);
+      shell.appendChild!(slot);
+    }
+    await check(def, set, p, 'slot in a nested instance');
+  }
+  // More than one specimen: a part the default member does not show is marked on the member that does (Q3 A).
+  {
+    const q = page('↳ m tag');
+    await check(componentDefs.find((d) => d.id === 'tag')!, fakeSet(q, 'tag'), q, 'tag across members');
+    const specs = walk(panelsOn(q)[0]).filter((c) => c.name === 'specimen');
+    ok(specs.length >= 3, `markers/extra specimens: Tag's parts take ${specs.length} specimens in its Anatomy and Theming`);
+  }
+}
+
+/* ── family: one panel per page, the members' earlier panels replaced ──────────────────────────────────── */
+section('family/… — one panel per taxonomy page, beside its lead; the members\' own panels go (#2927)');
+{
+  const p = page('↳ Checkbox');
+  const control = fakeSet(p, 'checkbox-control', 0, 0, 300, 200);
+  const row = fakeSet(p, 'checkbox-row', 1000, 0, 300, 200);
+  const group = fakeSet(p, 'checkbox-group', 4000, 0, 300, 200);
+  // Panels the members carried before one panel per family: tagged live, each with the print it was drawn with. The
+  // control's is as drawn; the group's was edited by hand since.
+  const legacy = (set: N, def: string, x: number, edited: boolean): N => {
+    const f = mk('FRAME', `${def} usage`, [mk('TEXT', 'text')], { x, y: 0, _w: 560, _h: 300 });
+    p.appendChild!(f);
+    f.setSharedPluginData!('prism3', 'docPanel', JSON.stringify({ v: 1, def, set: set.id, state: 'live' }));
+    return f;
+  };
+  const oldControl = legacy(control, 'checkbox-control', 340, false);
+  const oldGroup = legacy(group, 'checkbox-group', 4340, true);
+  oldControl.setSharedPluginData!('prism3', 'docPanelPrint', await fingerprintOf(oldControl as never));
+  oldGroup.setSharedPluginData!('prism3', 'docPanelPrint', 'printed before a hand edit');
+  const api = host([p]);
+  const rowDef = componentDefs.find((d) => d.id === 'checkbox-row')!;
+  const plan = planDocPanel(rowDef, { modes: ['light', 'dark'], names });
+  const rc = await drawDocPanel(api, control, componentDefs.find((d) => d.id === 'checkbox-control')!, { names });
+  ok(!rc.drawn && panelsOn(p).length === 2 && !oldControl.removed, 'family/member: drawing a member that does not lead draws nothing and removes nothing');
+  ok(docPanelDue(api, row, plan) === 1, 'family/due: the lead\'s panel is due while a member\'s own panel is there');
+  const r = await drawDocPanel(api, row, rowDef, { names });
+  const live = panelsOn(p).filter((n) => tagOf(n).state === 'live');
+  ok(r.drawn && live.length === 1 && tagOf(live[0]).def === 'checkbox-row' && tagOf(live[0]).set === row.id && tagOf(live[0]).family === 'Checkbox',
+    `family/one panel: one live panel on the page, beside the Row, for the Checkbox page (${live.length})`);
+  ok(oldControl.removed === true && r.replaced === 1, `family/replaced: the control's unedited panel is gone (replaced ${r.replaced})`);
+  ok(!oldGroup.removed && tagOf(oldGroup).state === 'kept' && String(oldGroup.name).endsWith(' (edited)') && r.kept.length === 1, `family/kept: the group's edited panel is kept aside as "${oldGroup.name}"`);
+  ok(docPanelDue(api, row, plan) === 0, 'family/current: not due once drawn');
+  // Do and Don't merged over the family (Q2 A): the lead's first, each once; the count line counts the merged lists.
+  const usage = (id: string) => { const u = docSections(componentDefs.find((d) => d.id === id)!).sections.find((x) => x.id === 'usage'); return u && u.id === 'usage' ? u : { do: [] as string[], dont: [] as string[] }; };
+  const want = [...new Set(['checkbox-row', 'checkbox-control', 'checkbox-group'].flatMap((id) => usage(id).do.map((t) => t.replace(/`/g, '').replace(/\s+/g, ' ').trim())))];
+  const dd = plan.sections.flatMap((x) => x.blocks).find((b) => b.type === 'Do-Dont');
+  const shown = texts(live[0]);
+  ok(!!dd && dd.type === 'Do-Dont' && dd.do.join('|') === want.slice(0, 4).join('|') && (want.length <= 4 || shown.some((t) => t.includes(`of ${want.length} Do items`))),
+    `family/do: the first 4 of the family's ${want.length} Do items, the Row's first`);
+  // Each item once, over families whose defs repeat lines (Buttons repeats 28 Do and 10 Don't lines across its four
+  // defs; Icon button repeats 6). EXPECTED is typed here, read off the defs, not derived through the panel's own merge.
+  const famBlocks = (id: string) => planDocPanel(componentDefs.find((d) => d.id === id)!, { modes: ['light', 'dark'], names }).sections.flatMap((x) => x.blocks);
+  const countLine = (id: string) => famBlocks(id).flatMap((b) => b.type === 'Paragraph' && b.text.startsWith('Showing') ? [b.text] : []);
+  ok(countLine('button').join('|') === "Showing 4 of 19 Do items and 4 of 9 Don't items.",
+    `family/once: Buttons counts each repeated item once (${JSON.stringify(countLine('button'))})`);
+  const ib = famBlocks('icon-button').find((b) => b.type === 'Do-Dont');
+  ok(!countLine('icon-button').length && !!ib && ib.type === 'Do-Dont' && ib.do.length === 4 && ib.dont.length === 3 && new Set([...ib.do, ...ib.dont]).size === 7,
+    `family/once: Icon button's family fits the panel once its repeats are merged (${JSON.stringify(countLine('icon-button'))})`);
+}
+
+/* ── print: what the panel shows of its set is not a hand edit ─────────────────────────────────────────── */
+section('print/… — a set rebuilt under its panel does not make the panel read as edited (#2927 P0)');
+{
+  const def = componentDefs.find((d) => d.id === 'tag')!;
+  const p = page('↳ Tag rebuilt');
+  const set = fakeSet(p, 'tag');
+  const api = host([p]);
+  await drawDocPanel(api, set, def, { names });
+  // The set rebuilt: every specimen now shows a new member, laid out differently, as Build and Update leave it.
+  const rebuilt = planMember(planCache.get('tag')![0] as never);
+  rebuilt.children[0].children.push(mk('FRAME', 'added in the rebuild', [], { _w: 40, _h: 40 }));
+  for (const sp of walk(panelsOn(p)[0]).filter((c) => c.name === 'specimen')) { sp.children.splice(0); instanceOf(sp, rebuilt); sp.swapped = rebuilt.id; }
+  const r = await drawDocPanel(api, set, def, { names });
+  ok(r.replaced === 1 && !r.kept.length && panelsOn(p).length === 1, `print/rebuilt member: one panel, the earlier replaced, none kept aside (replaced ${r.replaced}, kept ${r.kept.length})`);
+  // A designer's edit still reads as one.
+  const line = walk(panelsOn(p)[0]).find((c) => c.type === 'TEXT' && c.name === 'text' && String(c.characters).length > 20)!;
+  line.characters = 'Edited.';
+  const r2 = await drawDocPanel(api, set, def, { names });
+  ok(r2.kept.length === 1 && panelsOn(p).length === 2, 'print/edited: a changed line still keeps the panel aside');
+  // A print recorded before this form is read the old way: a panel unchanged since is still replaced.
+  const q = page('↳ Tag legacy');
+  const qs = fakeSet(q, 'tag');
+  const qa = host([q]);
+  await drawDocPanel(qa, qs, def, { names });
+  const old = panelsOn(q)[0];
+  old.setSharedPluginData!('prism3', 'docPanelPrint', await fingerprintOf(old as never));
+  const r3 = await drawDocPanel(qa, qs, def, { names });
+  ok(r3.replaced === 1 && !r3.kept.length, 'print/legacy: a panel with a print in the old form, unchanged, is replaced');
 }
 
 /* ── replace and hand edit ─────────────────────────────────────────────────────────────────────────────── */
@@ -388,13 +667,11 @@ section('overlap/… — a panel lies on nothing');
     const r = await drawDocPanel(api, set, componentDefs.find((d) => d.id === id)!, { names });
     withPanel(f, r);
     ok(r.drawn && f.panel === r, `overlap/${id} drawn beside its set (${r.sections.length} sections)`, r.skipped.join('; '));
-    // Each part the built member names as a layer gets its number, over the panel and outside its layout.
-    const marks = panelsOn(p).slice(-1)[0].children.filter((c) => c.layoutPositioning === 'ABSOLUTE');
-    const parts = docSections(componentDefs.find((d) => d.id === id)!).sections.find((s) => s.id === 'anatomy');
-    // Each marker carries its part's number in the list: the part's place among all the listed parts, not among the marked.
-    const want = parts && parts.id === 'anatomy' ? parts.parts.map((pt, k) => (walk(set.children[0]).slice(1).some((c) => c.name === pt.id) ? String(k + 1) : '')).filter(Boolean) : [];
-    const got = marks.map((m) => texts(m)[0]);
-    ok(want.length > 0 && got.join() === want.join(), `anatomy/markers ${id}: markers ${got.join(', ')} on the parts its member names as layers`, `want ${want.join(', ')}`);
+    // Every listed number is drawn once, over the panel and outside its layout (#2916), on a set the shim built.
+    const panel = panelsOn(p).slice(-1)[0];
+    const got = panel.children.filter((c) => c.layoutPositioning === 'ABSOLUTE').map((m) => texts(m)[0]).sort((a, b) => Number(a) - Number(b));
+    const want = listedNumbers(panel);
+    ok(want.length > 0 && got.join() === want.join() && !r.misses.length, `anatomy/markers ${id}: markers ${got.join(', ')}, one per listed part`, `want ${want.join(', ')}; ${r.misses.join('; ')}`);
   }
   const panels = panelsOn(p);
   const clashes = panels.flatMap((pa) => p.children.filter((c) => c !== pa && overlap(pa, c)).map((c) => `${pa.name} on ${c.name}`));
@@ -474,6 +751,10 @@ section('room/… — the update makes room for the panel, and a panel follows i
   ok(withRoom?.to.x === Number(a.set.width) + 40 + 560 + 160, `room/with template: Divider moves to ${withRoom?.to.x}, 160 past Badge's panel`, `want ${Number(a.set.width) + 760}`);
   ok(pageSetMoves(found, undefined, 0).get('divider')?.to.x === Number(a.set.width) + 160,
     'room/without template: the old spacing closes to 160 from the frame, with no panel to clear');
+  // #2927: a set that leads no family carries no panel, so the next set is spaced from its frame.
+  const notLead = [{ name: 'badge', set: a.set, blocked: false, lead: false }, { name: 'divider', set: b.set, blocked: false }] as never;
+  ok(pageSetMoves(notLead, undefined, 600).get('divider')?.to.x === Number(a.set.width) + 160,
+    'room/not a lead: no room is made past a set that carries no panel');
 }
 
 /** Two sets on one page, Badge then Divider at the #2502 spacing (400 frame to frame), as a file built before the

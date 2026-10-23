@@ -288,19 +288,20 @@ section('update — through a real Update in the component shim');
   const pre3 = await previewUpdate(host, t2);
   const res3 = await applyUpdate(host, api as never, t2, previewHashOf(pre3), { today: '2026-10-23' });
   const fr3 = tagged(cover);
-  ok(eq(api._versions, ['Before Prism3 updated tag']) && res3.version === 'Before Prism3 updated tag', `update/a run that changes a set still saves a version (${JSON.stringify(api._versions)})`);
+  ok(eq(api._versions, ['Saved before Prism3 updated tag']) && res3.version === 'Saved before Prism3 updated tag', `update/a run that changes a set still saves a version (${JSON.stringify(api._versions)})`);
   ok(!res3.aboutOnly && !applyVerdict(res3).lines.some((l) => l.startsWith('No version saved')), 'update/a run that changes a set: no "no version" line');
   ok(res3.about?.drawn && res3.about.replaced && fr3.length === 1 && textsOf(fr3[0]).includes('2026-10-23'),
     `update/redrawn by a run that changed a set, with its date (${JSON.stringify(api._versions)}; ${fr3.length})`);
-  ok(typeof res3.publish === 'string' && res3.publish.startsWith('Before Prism3 updated tag. Engine ') && res3.publish.includes('Token contract '), `update/publish names the set's run (${JSON.stringify(res3.publish)})`);
-  // Q498 B's other side: a set change while the frame is also due still saves one version, naming both (Q7).
+  ok(typeof res3.publish === 'string' && res3.publish.startsWith('Saved before Prism3 updated tag. Engine ') && res3.publish.includes('Token contract '), `update/publish names the set's run (${JSON.stringify(res3.publish)})`);
+  // Q498 B's other side: a set change while the frame is also due still saves one version (Q7): the set in the title,
+  // the frame in the description (#2828).
   for (const n of tagged(cover)) (n.remove as () => void)();
   const t4 = [{ def: id, plans }];
   const pre4 = await previewUpdate(host, t4);
   ok(!previewVerdict(pre4).lines.some((l) => l.startsWith('No version is saved')), `update/set change and frame due: the dry run promises a version (${previewVerdict(pre4).lines.join(' | ')})`);
   const res4 = await applyUpdate(host, api as never, t4, previewHashOf(pre4), { today: '2026-10-24' });
-  ok(eq(api._versions.slice(1), ['Before Prism3 updated tag, About this library']) && res4.about?.drawn && !res4.aboutOnly,
-    `update/set change and frame due: still saves a version, naming both (${JSON.stringify(api._versions)})`);
+  ok(eq(api._versions.slice(1), ['Saved before Prism3 updated tag']) && / About frame\.$/.test(api._versionNotes[1]) && res4.about?.drawn && !res4.aboutOnly,
+    `update/set change and frame due: still saves a version, naming both (${JSON.stringify(api._versions)}; ${JSON.stringify(api._versionNotes)})`);
 }
 
 /* ── the index the plugin bundles ────────────────────────────────────────────────────────────────────── */

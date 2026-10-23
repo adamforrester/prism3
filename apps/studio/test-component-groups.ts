@@ -19,10 +19,23 @@
  *   · "Also builds" by component name again (`displayNameOf` bypassed) → `idea 7: the sets a build makes first…`.
  *   · the selection run in click order (`inListOrder` returning its input) → `review N1 on #2812: a selection runs in the list's order…`.
  *   · a search opening every family (`familiesToOpen` dropping its match) → `call 7 on #2812: a search opens the families…`.
+ *   · Textarea dropped from Fields' `SETTING_SECTIONS` ids → `#2905 Q548: Fields holds the sets Field style draws …` and
+ *     `#2905 Q6 A: … Other components …` (Textarea back in Other components).
+ *   · Tag dropped from Tag's `SETTING_SECTIONS` ids → `#2931 Q579 A: Tag holds the sets Tag style draws …` (and the
+ *     five-section and Other components checks).
+ *   · a set focus key resolving to no row (`rowOfFocus` keying on row keys only) → `#2905 Q8 A: a set in a flat section
+ *     focuses as itself …`.
+ *
+ * #2905 (owner decisions Q538, Q548 on wireframe v2): the sections with settings, typed from the wireframe: Buttons (the
+ * Buttons page's four sets) and Fields (Code input, Password field, Select, Text field, Textarea), then Other components and
+ * Subcomponents. Fields is also held to the engine's `FIELD_FRAME_PARTS`, the defs `applyFieldStyle` draws, so a field
+ * gaining Field style without joining the section (or the other way round) fails by name. A subcomponent Field style
+ * draws (the Code cell, #2428) is held as the component that nests it (owner decision Q-2789.3 A).
  */
 import { COMPONENT_CATALOG_DATA as catalog } from './src/state/component-catalog-data';
 import type { Catalog, CatalogEntry } from './src/state/component-catalog';
-import { alsoBuilds, boxOfSets, costOf, displayNameOf, familiesToOpen, groupsOf, inListOrder, rowMatches, sentenceCase, toggleSets, GROUPS_COPY } from './src/state/component-groups';
+import { alsoBuilds, boxOfSets, costOf, displayNameOf, familiesToOpen, groupsOf, inListOrder, rowMatches, rowOfFocus, sentenceCase, setFocusKey, toggleSets, GROUPS_COPY } from './src/state/component-groups';
+import { FIELD_FRAME_PARTS, TAG_STYLE_PARTS } from '@prism3/engine/anatomy-figma';
 import { currentOf, positionOf, record, runVerdict, startRun, stopRun, RUN_COPY } from './src/state/build-queue';
 
 let failed = 0;
@@ -34,15 +47,21 @@ const ok = (cond: unknown, msg: string): void => {
 };
 const name = (id: string): string => catalog.find((e) => e.id === id)?.name ?? id;
 
-console.log('\n1. The two sections and their rows (notes 2–4, calls 11, 12 and 14)');
-// The wireframe's list, typed: [label, the family's sets by component name] (a single set has one).
+console.log('\n1. The sections and their rows (notes 2–4, calls 11, 12 and 14; #2905 Q548)');
+// The wireframes' lists, typed: [label, the family's sets by component name] (a single set has one).
+const WIRE_BUTTONS: [string, string[]][] = [['Buttons', ['Button', 'Button.Destructive', 'Button.Group', 'Button.Neutral']]];
+// #2888 shipped Search field; Q5 A on #2905 puts it inside Fields (FIELD_FRAME_PARTS holds it).
+// #2428: Q-2789.3 A puts Code input inside Fields, as the component that nests the cell Field style draws.
+const WIRE_FIELDS: [string, string[]][] = [['Code input', ['CodeInput']], ['Password field', ['PasswordField']], ['Search field', ['SearchField']], ['Select', ['Select']], ['Text field', ['TextField']], ['Textarea', ['Textarea']]];
+// Q578 part 2 (A on #2931's wireframe): Tag leaves Other components for its own Tag section.
+const WIRE_TAGS: [string, string[]][] = [['Tag', ['Tag']]];
 const WIRE_COMPONENTS: [string, string[]][] = [
-  ['Accordion', ['Accordion', 'Accordion.Indicator']], ['Badge', ['Badge']], ['Breadcrumbs', ['Breadcrumbs']], ['Buttons', ['Button', 'Button.Destructive', 'Button.Group', 'Button.Neutral']],
-  ['Checkbox', ['Checkbox.Control', 'Checkbox.Group', 'Checkbox.Row']], ['Code input', ['CodeInput']], ['Counter', ['Counter']], ['Dialog', ['Dialog']], ['Divider', ['Divider']],
+  ['Accordion', ['Accordion', 'Accordion.Indicator']], ['Badge', ['Badge']], ['Banner', ['Banner']], ['Breadcrumbs', ['Breadcrumbs']],
+  ['Checkbox', ['Checkbox.Control', 'Checkbox.Group', 'Checkbox.Row']], ['Counter', ['Counter']], ['Dialog', ['Dialog']], ['Divider', ['Divider']],
   ['Icon button', ['IconButton', 'IconButton.Destructive', 'IconButton.Neutral']], ['Link', ['Link']], ['List', ['List', 'List.Item']],
-  ['Password field', ['PasswordField']], ['Radio', ['Radio.Control', 'Radio.Group', 'Radio.Row']], ['Search field', ['SearchField']],
-  ['Segmented control', ['SegmentedControl', 'SegmentedControl.Segment']], ['Select', ['Select']], ['Switch', ['Switch.Control', 'Switch.Row']],
-  ['Tabs', ['Tab.Item', 'Tabs']], ['Tag', ['Tag']], ['Text field', ['TextField']], ['Textarea', ['Textarea']], ['Toast', ['Toast']], ['Veil', ['Veil']],
+  ['Radio', ['Radio.Control', 'Radio.Group', 'Radio.Row']],
+  ['Segmented control', ['SegmentedControl', 'SegmentedControl.Segment']], ['Switch', ['Switch.Control', 'Switch.Row']],
+  ['Tabs', ['Tab.Item', 'Tabs']], ['Toast', ['Toast']], ['Veil', ['Veil']],
 ];
 const WIRE_SUBS: [string, string[]][] = [
   ['Breadcrumb item', ['BreadcrumbItem', 'BreadcrumbSeparator']], ['Code cell', ['CodeInput.Cell']], ['Field label', ['FieldLabel']], ['Field message', ['FieldMessage']], ['Flush icon button', ['FlushIconButton', 'FlushIconButton.Destructive', 'FlushIconButton.Neutral']],
@@ -50,21 +69,41 @@ const WIRE_SUBS: [string, string[]][] = [
 ];
 const groups = groupsOf(catalog);
 const drawn = (kind: string) => (groups.find((g) => g.kind === kind)?.rows ?? []).map((r) => [r.label, r.ids.map(name)] as [string, string[]]);
-ok(JSON.stringify(groups.map((g) => g.title)) === JSON.stringify(['Components', 'Subcomponents']), `two sections, Components then Subcomponents (${groups.map((g) => g.title).join(', ')})`);
+ok(JSON.stringify(groups.map((g) => g.title)) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Other components', 'Subcomponents']),
+  `#2905 Q548, Q10 A, #2931 Q579 A: five sections, Buttons, Fields, Tag, Other components, Subcomponents (${groups.map((g) => g.title).join(', ')})`);
+ok(JSON.stringify(groups.map((g) => g.flat)) === JSON.stringify([true, true, true, false, false]),
+  `#2905 Q8 A: the sections with settings list their sets flat; Other components and Subcomponents keep their family rows (${JSON.stringify(groups.map((g) => g.flat))})`);
+ok(JSON.stringify(drawn('buttons')) === JSON.stringify(WIRE_BUTTONS), `#2905 Q548: Buttons holds the Buttons family's four sets (${JSON.stringify(drawn('buttons'))})`);
+const fieldIds = (groups.find((g) => g.kind === 'fields')?.rows ?? []).flatMap((r) => r.ids).sort();
+// Q-2789.3 A: each FIELD_FRAME_PARTS def is a Fields row, or, for a subcomponent (the Code cell), the component that
+// nests it is, read from the catalog's own section and `nests` rather than from SETTING_SECTIONS.
+const fieldRowIds = [...new Set(Object.keys(FIELD_FRAME_PARTS).flatMap((id) =>
+  catalog.find((e) => e.id === id)?.section === 'Components' ? [id]
+    : catalog.filter((e) => e.section === 'Components' && e.nests.includes(id)).map((e) => e.id)))].sort();
+ok(JSON.stringify(drawn('fields')) === JSON.stringify(WIRE_FIELDS) && JSON.stringify(fieldIds) === JSON.stringify(fieldRowIds)
+  && Object.keys(FIELD_FRAME_PARTS).every((id) => fieldRowIds.includes(id) || catalog.some((e) => e.section === 'Components' && e.nests.includes(id))),
+  `#2905 Q548, Q-2789.3 A: Fields holds the sets Field style draws, the engine's FIELD_FRAME_PARTS (${Object.keys(FIELD_FRAME_PARTS).sort().join(', ')}), each as itself or, for a subcomponent, as the component that nests it (${fieldRowIds.join(', ')}), as the wireframe lists them (${JSON.stringify(drawn('fields'))})`);
+const tagIds = (groups.find((g) => g.kind === 'tags')?.rows ?? []).flatMap((r) => r.ids).sort();
+ok(JSON.stringify(drawn('tags')) === JSON.stringify(WIRE_TAGS) && JSON.stringify(tagIds) === JSON.stringify(Object.keys(TAG_STYLE_PARTS).sort()),
+  `#2931 Q579 A: Tag holds the sets Tag style draws, the engine's TAG_STYLE_PARTS (${Object.keys(TAG_STYLE_PARTS).sort().join(', ')}), as the wireframe lists them (${JSON.stringify(drawn('tags'))})`);
 ok(JSON.stringify(drawn('components').map((r) => r[0])) === JSON.stringify(WIRE_COMPONENTS.map((r) => r[0])),
-  `notes 2, 3: the Components rows are the wireframe's 19, Counter (#2427), Code input (#2428), Search field (#2888), Toast (#2668) and Breadcrumbs (#2666), alphabetical, families grouped by page (${drawn('components').map((r) => r[0]).join(', ')})`);
+  `notes 2, 3, #2905 Q6 A: Other components holds every other component row, Banner (#2579) and Breadcrumbs (#2666) among them, alphabetical, families grouped by page (${drawn('components').map((r) => r[0]).join(', ')})`);
 ok(JSON.stringify(drawn('subcomponents').map((r) => r[0])) === JSON.stringify(WIRE_SUBS.map((r) => r[0])),
   `note 4: the Subcomponents rows are the wireframe's 7, Breadcrumb item (#2666) and Code cell (#2428), alphabetical (${drawn('subcomponents').map((r) => r[0]).join(', ')})`);
 ok(JSON.stringify(drawn('components')) === JSON.stringify(WIRE_COMPONENTS) && JSON.stringify(drawn('subcomponents')) === JSON.stringify(WIRE_SUBS),
   `note 2: a family's sets are alphabetical by component name, and call 12: a part set stays in its family (${JSON.stringify(drawn('components').filter((r) => r[1].length > 1).map((r) => r[1].join('/')))})`);
 ok(groups.find((g) => g.kind === 'subcomponents')?.rows.some((r) => r.label === 'Icon' && r.page === 'Icons & assets') === true,
   'call 11: Icon lists under Subcomponents, and still lands on ↳ Icons & assets');
-ok(groups.flatMap((g) => g.rows).flatMap((r) => r.ids).length === catalog.length && catalog.length === 50,
-  `every set is listed once: ${groups.flatMap((g) => g.rows).flatMap((r) => r.ids).length} rows' sets over ${catalog.length} in the catalog (the wireframe's 41, Button.Group since #2661, Counter since #2427, Code input and its cell since #2428, Search field since #2888, Toast since #2668, and the three Breadcrumbs sets since #2666)`);
+ok(groups.flatMap((g) => g.rows).flatMap((r) => r.ids).length === catalog.length && catalog.length === 51,
+  `every set is listed once: ${groups.flatMap((g) => g.rows).flatMap((r) => r.ids).length} rows' sets over ${catalog.length} in the catalog (the wireframe's 41, Button.Group since #2661, Counter since #2427, Code input and its cell since #2428, Search field since #2888, Toast since #2668, Banner since #2579, and the three Breadcrumbs sets since #2666)`);
 ok(sentenceCase('Field Label') === 'Field label' && sentenceCase('Text field') === 'Text field' && sentenceCase('Icons & assets') === 'Icons & assets',
   'call 14: a page name reads in sentence case ("Field Label" → "Field label")');
-ok(GROUPS_COPY.sectionCount('components', 19, 32) === '19 families and sets · 32 sets' && GROUPS_COPY.sectionCount('subcomponents', 7, 9) === '7 entries · 9 sets',
-  `the section counts, in the wireframe's words (${GROUPS_COPY.sectionCount('components', 19, 32)}; ${GROUPS_COPY.sectionCount('subcomponents', 7, 9)})`);
+ok(GROUPS_COPY.sectionCount('components', 19, 32) === '19 families and sets · 32 sets' && GROUPS_COPY.sectionCount('subcomponents', 7, 9) === '7 entries · 9 sets'
+  && GROUPS_COPY.sectionCount('buttons', 1, 4) === '4 sets' && GROUPS_COPY.sectionCount('fields', 4, 4) === '4 sets' && GROUPS_COPY.sectionCount('tags', 1, 1) === '1 set',
+  `the section counts, in the wireframes' words (${GROUPS_COPY.sectionCount('components', 19, 32)}; ${GROUPS_COPY.sectionCount('subcomponents', 7, 9)}; ${GROUPS_COPY.sectionCount('buttons', 1, 4)})`);
+const btnRow = groups.find((g) => g.kind === 'buttons')?.rows[0];
+ok(!!btnRow && rowOfFocus(catalog, setFocusKey('button-neutral'))?.key === btnRow.key && rowOfFocus(catalog, btnRow.key)?.key === btnRow.key && rowOfFocus(catalog, 'set=nothing') === undefined,
+  `#2905 Q8 A: a set in a flat section focuses as itself, and its focus names its family's row, so the preview shows the family (${rowOfFocus(catalog, setFocusKey('button-neutral'))?.label})`);
 
 console.log('\n2. Boxes and selection (note 5, call 8)');
 const buttons = ['button', 'button-destructive', 'button-neutral'];
@@ -101,7 +140,7 @@ ok(JSON.stringify(alsoBuilds(catalog, four)) === JSON.stringify(['Icon', 'Spinne
   `idea 7: the sets a build makes first, transitively, minus the selection, named as the list names them (Q392 on #2812) (${alsoBuilds(catalog, four).join(', ')})`);
 ok(displayNameOf(catalog, 'button-destructive') === 'Button Destructive' && displayNameOf(catalog, 'tab-item') === 'Tab Item' && displayNameOf(catalog, 'image-placeholder') === 'Image placeholder',
   `a part set reads as its base and its part, a set alone on its row as the row (${displayNameOf(catalog, 'button-destructive')}, ${displayNameOf(catalog, 'tab-item')}, ${displayNameOf(catalog, 'image-placeholder')})`);
-ok(JSON.stringify(inListOrder(catalog, ['tag', 'badge', 'spinner', 'button-neutral', 'button'])) === JSON.stringify(['badge', 'button', 'button-neutral', 'tag', 'spinner']),
+ok(JSON.stringify(inListOrder(catalog, ['tag', 'badge', 'spinner', 'button-neutral', 'button'])) === JSON.stringify(['button', 'button-neutral', 'tag', 'badge', 'spinner']),
   `review N1 on #2812: a selection runs in the list's order, not the order it was ticked in (${JSON.stringify(inListOrder(catalog, ['tag', 'badge', 'spinner', 'button-neutral', 'button']))})`);
 ok(alsoBuilds(catalog, ['focus-ring']).length === 0, 'a set that nests nothing builds nothing first');
 ok(RUN_COPY.runLabel(4) === 'Build 4 sets' && RUN_COPY.runLabel(1) === 'Build 1 set' && RUN_COPY.runLabel(0) === 'Build',

@@ -22,3 +22,6 @@ Code input joins the Field style lever (#2719, owner decisions Q332 A and Q12 A 
 draws one bottom line, 2px with the ring at the 2px offset on the active cells and `border.danger` in error, square,
 with no hover wash and no disabled plate. `applyFieldStyle` squares a per-size corner key. Every paste payload also
 drops its leading indentation (about 1 KB per chunk), so the indivisible paste unit stays under #1798's ceiling.
+
+On the studio's Components page, Code input lists under Fields, beside the Field style setting that draws its cells
+(owner decision Q-2789.3 A on #2789).

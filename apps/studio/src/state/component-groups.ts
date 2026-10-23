@@ -15,6 +15,14 @@
  * its component name ("Button.Destructive"). A row whose page is not a component page (Icon, on "Icons & assets") takes
  * its set's own name, so the list never names a page that holds other things.
  *
+ * SECTIONS WITH SETTINGS (#2905 phase 1, owner decisions Q538 and Q548 on wireframe v2, every call A). A group of
+ * components that shares settings is one section, its title standing in for the family row (Q8 A): **Buttons** (the
+ * Buttons page's sets) and **Fields** (the sets Field style draws). Its rows are FLAT: a family's sets are listed at the
+ * section's row edge, each set its own row, so rows and the settings block after them share one edge. Every other
+ * component row stays as it was, in **Other components** (Q6 A), and Subcomponents is unchanged. A component moves into
+ * a section when it gets a setting, by an entry in `SETTING_SECTIONS`: **Tag** (the set Tag style draws)
+ * joined so, by owner decision Q578 part 2 (A on #2931's wireframe).
+ *
  * SELECTION is a set of def ids. A family's and a section's box is three-state over the sets it holds that can be built
  * (call 8 A); a set that can't be built is listed with its reason and never selected (G4).
  *
@@ -38,14 +46,39 @@ export type GroupRow = {
   readonly family: boolean;
 };
 
-export type GroupSection = { readonly kind: GroupKind; readonly title: string; readonly rows: readonly GroupRow[] };
+/** A section: one with settings (`SETTING_SECTIONS`), or Other components, or Subcomponents. */
+export type SectionKind = 'buttons' | 'fields' | 'tags' | GroupKind;
+
+export type GroupSection = {
+  readonly kind: SectionKind;
+  readonly title: string;
+  readonly rows: readonly GroupRow[];
+  /** A section with settings lists each set as its own row at the section's edge, with no family row (Q8 A). */
+  readonly flat: boolean;
+};
+
+/** The sections with settings, in the page's order (#2905, Q548). A row joins the first whose `pages` holds its page or
+ *  whose `ids` hold every one of its sets. Fields holds the sets Field style draws (`FIELD_FRAME_PARTS` in the engine's
+ *  `anatomy-figma.ts`, typed here so no definition reaches the web bundle; `test-component-groups.ts` holds the two
+ *  together). Search field (#2888) is in Fields (Q5 A); its own block is still to come. Code input (#2428) is in Fields
+ *  because Field style draws its cell, a subcomponent the field nests (owner decision Q-2789.3 A). Tag holds the sets Tag style
+ *  draws (`TAG_STYLE_PARTS`, held the same way). */
+export const SETTING_SECTIONS: readonly { readonly kind: 'buttons' | 'fields' | 'tags'; readonly pages: readonly string[]; readonly ids: readonly string[] }[] = [
+  { kind: 'buttons', pages: ['Buttons'], ids: [] },
+  // #2888 shipped Search field; Q5 A on #2905 puts it inside Fields. Its own Search options block is still to come.
+  // #2428: Code input joins Fields, as the component that nests the cell Field style draws (Q-2789.3 A).
+  { kind: 'fields', pages: [], ids: ['code-input', 'password-field', 'search-field', 'select', 'text-field', 'textarea'] },
+  { kind: 'tags', pages: [], ids: ['tag'] },
+];
 
 /** The page's copy. DRAFT: the approved wireframe's own words (#2700), pending the owner's copy sign-off. */
 export const GROUPS_COPY = {
   intro: (n: number): string => `The ${n} component sets the engine defines, in families. A build places each on its page in this file.`,
-  sections: { components: 'Components', subcomponents: 'Subcomponents' } as Record<GroupKind, string>,
-  sectionCount: (kind: GroupKind, rows: number, sets: number): string =>
-    `${rows} ${kind === 'components' ? 'families and sets' : rows === 1 ? 'entry' : 'entries'} · ${plural(sets, 'set')}`,
+  /** Q10 A on #2905: the section titles as drafted in wireframe v2, Tag's included (placed by #2931 Q579 A). */
+  sections: { buttons: 'Buttons', fields: 'Fields', tags: 'Tag', components: 'Other components', subcomponents: 'Subcomponents' } as Record<SectionKind, string>,
+  sectionCount: (kind: SectionKind, rows: number, sets: number): string =>
+    kind !== 'components' && kind !== 'subcomponents' ? plural(sets, 'set')
+      : `${rows} ${kind === 'components' ? 'families and sets' : rows === 1 ? 'entry' : 'entries'} · ${plural(sets, 'set')}`,
   sets: (n: number): string => plural(n, 'set'),
   page: (page: string): string => `↳ ${page}`,
   members: (n: number, unit: CatalogEntry['unit']): string => `${fmt(n)} ${unit === 'components' ? (n === 1 ? 'component' : 'components') : (n === 1 ? 'variant' : 'variants')}`,
@@ -74,7 +107,8 @@ export const sentenceCase = (s: string): string =>
 /** A component name as words: "ImagePlaceholder" → "Image placeholder", "Icon" → "Icon". */
 const words = (name: string): string => sentenceCase(name.replace(/\./g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2'));
 
-/** The two sections, rows alphabetical, sets alphabetical in each family. */
+/** The sections, in order: those with settings (`SETTING_SECTIONS`), Other components, Subcomponents. Rows alphabetical
+ *  in each, sets alphabetical in each family. A section with no rows is dropped. */
 export const groupsOf = (catalog: Catalog): GroupSection[] => {
   const byKey = new Map<string, { kind: GroupKind; page: string | null; section: string | null; ids: string[] }>();
   for (const e of catalog) {
@@ -91,10 +125,23 @@ export const groupsOf = (catalog: Catalog): GroupSection[] => {
     const label = g.page && (pageIsComponents || ids.length > 1) ? sentenceCase(g.page) : words(nameOf(ids[0]));
     return { key, label, page: g.page, kind: g.kind, ids, family: ids.length > 1 };
   });
-  const sorted = (k: GroupKind) => rows.filter((r) => r.kind === k).sort((a, b) => a.label.localeCompare(b.label, 'en'));
-  return (['components', 'subcomponents'] as const)
-    .map((kind) => ({ kind, title: GROUPS_COPY.sections[kind], rows: sorted(kind) }))
+  const sectionOf = (r: GroupRow): SectionKind =>
+    (r.kind === 'components' && SETTING_SECTIONS.find((s) => (r.page !== null && s.pages.includes(r.page)) || (s.ids.length > 0 && r.ids.every((id) => s.ids.includes(id))))?.kind) || r.kind;
+  const sorted = (k: SectionKind) => rows.filter((r) => sectionOf(r) === k).sort((a, b) => a.label.localeCompare(b.label, 'en'));
+  return ([...SETTING_SECTIONS.map((s) => s.kind), 'components', 'subcomponents'] as const)
+    .map((kind) => ({ kind, title: GROUPS_COPY.sections[kind], rows: sorted(kind), flat: kind !== 'components' && kind !== 'subcomponents' }))
     .filter((s) => s.rows.length > 0);
+};
+
+/** A focus key for one set in a flat section, where the set's family has no row of its own to focus (Q8 A). */
+export const setFocusKey = (id: string): string => `set=${id}`;
+
+/** The row a focus key names: a row by its key, or the row holding the set a `setFocusKey` names. */
+export const rowOfFocus = (catalog: Catalog, focus: string | null): GroupRow | undefined => {
+  if (!focus) return undefined;
+  const rows = groupsOf(catalog).flatMap((s) => s.rows);
+  const set = focus.startsWith('set=') ? focus.slice(4) : null;
+  return rows.find((r) => r.key === focus) ?? (set ? rows.find((r) => r.ids.includes(set)) : undefined);
 };
 
 /** The entry for an id. */

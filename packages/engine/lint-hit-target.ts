@@ -257,6 +257,8 @@ const FLUSH_NESTS: Record<string, { parts: readonly string[]; pair?: readonly [s
   counter: { parts: ['decrement', 'increment'], pair: ['decrement', 'increment'], why: "the Counter's minus and plus, either side of the value" },
   // #2808 (Q385 A): the Dialog's close is one code-side target, so there is no second hit area to space it from.
   dialog: { parts: ['close'], why: "the Dialog's close, the one code-side target in its header" },
+  // Owner QA 2026-10-19: the Banner's dismiss is a flush FlushIconButton.Neutral, the one code-side target in the row.
+  banner: { parts: ['dismiss'], why: "the Banner's dismiss, the one code-side target in its row" },
   // #2666: the overflow step's flush icon button is the one code-side target in a breadcrumb item, so there is no second hit area to space it from.
   'breadcrumb-item': { parts: ['overflow'], why: "the collapsed-steps button, the one code-side target in a breadcrumb step" },
   // #2668 (Q386): the Toast's close is one code-side target beside the action Button, which is a separate target measured under its own name.
@@ -296,6 +298,7 @@ const EXCLUDED: Record<string, string> = {
   'veil': 'a media wash overlay, not an interactive control',
   'segmented-control': 'a segmented control\'s track and label — its tap targets are the nested options, which are gated as segmented-control-segment',
   'divider': 'a 1px rule between groups of content, never interactive and never focusable',
+  'banner': 'a message in the page flow, never itself a pointer target: its one text action is a Button (Button.Neutral when the file has it) and its dismiss a FlushIconButton.Neutral, each measured under its own name (#2579, Q533.1)',
   'button-group': 'a layout of one to three Buttons, never itself a pointer target: each Button is measured under its own name (#2661)',
   'dialog': 'a modal panel, never itself a pointer target: its close button and footer buttons are a FlushIconButton.Neutral and Buttons, each measured under its own name (#2609, Q385 A)',
   'toast': 'a status message over the page, never itself a pointer target: its action and close button are a Button and a FlushIconButton.Neutral, each measured under its own name; the small close button\'s 44×44 hit area is extended in code, as IconButton records (#2668)',
