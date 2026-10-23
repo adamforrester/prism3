@@ -14,7 +14,7 @@ no def, gate or artifact moves, so there is no change note.
 - **Root names** (S1): "named for its role, never `root` or the component's id", picked from §6's closed
   list; a new role needs an owner decision (Q365).
 - **Nesting:** every host nests FieldLabel `nest-exposed` with emphasis and weight exposed; fields default to
-  regular, groups to bold (Q348). `atState` is documented.
+  regular, groups to bold (Q348). `variantWhen` is documented, host states included (main folded `atState` into it).
 - **Borders** (Q346): a border never binds an icon or text role, and every disabled edge binds
   `color.disabled.border`. This is the same text #2753 adds.
 - **Errors** (Q354): main's §5 bullet (#2755), plus one sentence: radio's group-only validation is the one

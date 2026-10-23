@@ -293,10 +293,15 @@ fact about the design (the def declares it). Three kinds:
   members. A host's label is the other common case: every host that nests FieldLabel nests it
   `nest-exposed`, exposing `emphasis` and `weight`, so a designer adjusts it from the host's panel.
   Only the default differs: a field's label is regular, a group's heading bold (owner decision Q348).
-- **`atState`** (on either nested kind) moves the nested coordinate at a host state, for when the two
-  state vocabularies differ and `follow` cannot pass the axis by name. The Password field's
-  `{ disabled: { state: 'disabled' } }` shows the nested Button's disabled member at the field's
-  disabled member, and its `variant` everywhere else.
+- **`variantWhen`** (on either nested kind) maps a host axis value to a nested coordinate, for when
+  the two axes use different words and `follow` cannot pass the value by name:
+  `{ appearance: { ghost: { shape: 'round' } } }` (the schema's own illustration). A host value with
+  no entry keeps `variant`'s coordinate. A host *state* uses the same field: the Password field's
+  `{ state: { disabled: { state: 'disabled' } } }` shows the nested Button's disabled member at the
+  field's disabled member, and its `variant` everywhere else. That mapping first shipped as a
+  separate `atState` field (#2317); one field now does both jobs, so never write `atState`. The rules,
+  including what it may map on a `nest-exposed` part, are on `NestingRelation` in
+  `packages/engine/component-schema.ts`.
 
 `absolute`, `nest` and `overlay` name their component in `nests`. An `absolute` sits beside the flow and
 a `nest` takes a cell; both materialize as an instance, so both are `nest-fixed` or `nest-exposed` and
@@ -594,7 +599,7 @@ below is yours, and read the field's comment in `packages/engine/component-schem
 | a `texts` entry's `also` | further text parts that must spell the same string (the selected-weight reserve, §5) |
 | a `texts` entry's `byVariant` | the placeholder copy changes with an axis (FieldMessage's error copy) |
 
-`atState` is not a `figmaProperties` field: it sits on a nesting relation (§3).
+`variantWhen` is not a `figmaProperties` field: it sits on a nesting relation (§3).
 
 ## 7. Verification — the gate lists, the whole run, and the mutation that names your gate
 
