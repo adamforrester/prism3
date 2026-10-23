@@ -39,7 +39,8 @@ import { errorStrip, type ErrorStrip } from './shell/notices';
 import { firstBreakpointFix } from './domains/layout';
 // The start window (UI redesign S12) and what it shares with the brand menu's import: one check for every paste and
 // every file, with the error naming its line (owner decision S7).
-import { openStart, type StartChoice, type StartWindow } from './shell/start';
+import { openStart, type StartChoice, type StartMode, type StartWindow } from './shell/start';
+import { HOME_COPY, libraryTitle, type HomeView } from './shell/home';
 import {
   IMPORT_ACCEPT, guardText, importErrorText, readDesignMdFile, validateDesignMd, validatePaste,
 } from './state/start-input';
@@ -359,6 +360,8 @@ const setHost = (patch: Partial<HostSession>): void => { host = { ...host, ...pa
 export const handleHostMessage: Parameters<HostCommit['onHostMessage']>[0] = (m) => {
   const prev = host;
   host = reduce(prev, m);
+  // #2879: any answer to the restore ends "Reading this file"; the library answer opens its home below.
+  if (home?.kind === 'reading' && (m.kind === 'restore-input' || m.kind === 'restore-input-error' || m.kind === 'restore-input-empty' || m.kind === 'restore-input-library')) home = null;
   // #2700: a set's result while a multi-set run is out posts the next set, before this message's topics fire.
   if (m.kind === 'component-result' && prev.componentState === 'pending') runAfterResult(m, prev.componentDef);
   const effect = brandEffectFor(m, prev, host);
@@ -405,6 +408,14 @@ export const handleHostMessage: Parameters<HostCommit['onHostMessage']>[0] = (m)
   // just picked. Caught by the scenario in `test-start-screen.mjs` that posts the message after a
   // chip click, which is the only reason it is not still in here.
   else if (effect === 'startFresh' && provenance === bootProvenance) { clearOrigin(); build(); }
+  // #2879 (Q485 C): the same start moment, under the same guard, for a file that uses a Prism3 library and holds no tokens
+  // of its own: the library home opens in place of the start window. And while the host reads the page to decide,
+  // "Reading this file" stands in for the studio's placeholder brand. Neither loads or writes a brand.
+  else if (effect === 'libraryHome' && provenance === bootProvenance && m.kind === 'restore-input-library') {
+    home = { kind: 'library', library: m.library };
+    clearOrigin();
+    build();
+  } else if (effect === 'readFile' && provenance === bootProvenance) { home = { kind: 'reading' }; build(); }
   for (const t of topicsFor(m, prev, host)) invalidate(t);
 };
 
@@ -1119,6 +1130,8 @@ const mountView = (view: RootView): void => {
         bar: { read: barRead, exportView, act: barActions, importAccept: IMPORT_ACCEPT },
         // S11.2: the Build style guides page's reads and writes, plugin only.
         styleGuides: commit.isFigma ? styleGuidesLend : null,
+        // #2879: a home's start button opens the start window over it.
+        startBrand: () => { homeStart = true; syncStart(); },
       });
     }
     chromeHost = frame.head;
@@ -1401,6 +1414,7 @@ const barRead = (): BarView => ({
     ? { at: pendingLoad.origin.kind, text: overwriteText(pendingLoad) } : null,
   importOpen, importText, importErr,
   exportOpen: exportMenuOpen,
+  home: homeBar(homeShown()),
   prune: host.prunePreview ? {
     summary: host.prunePreview.summary,
     deleteLabel: `Delete ${host.prunePreview.count} item${host.prunePreview.count === 1 ? '' : 's'}`,
@@ -1839,34 +1853,71 @@ const figmaActions = (): FigmaAction[] => [
   { id: 'style-guide', label: 'Build style guides…', busy: null, disabled: false, run: openStyleGuides },
 ];
 
+// ---- the homes (#2879) ---------------------------------------------------------------------------------
+// The plugin, in a file with no brand: the library home when the file uses a Prism3 library (the host's
+// `restore-input-library`), the minimal home after the start window's X on a first run, and "Reading this file" while
+// the host decides. Each shows only while no brand has been chosen, so any load ends it with nothing to undo here.
+/** The home the session holds, or null. */
+let home: HomeView | null = null;
+/** A home's "Start a brand…" opened the start window over it; its X comes back to the home (Q613 6 A). */
+let homeStart = false;
+/** The home the frame shows now, or null for the studio. Reading shows until a choice or an answer; a home shows while
+ *  the start moment holds (`firstRun`). */
+const homeShown = (): HomeView | null => {
+  if (!home) return null;
+  if (home.kind === 'reading') return provenance === bootProvenance ? home : null;
+  return firstRun() ? home : null;
+};
+/** The bar's name for the home it shows: the library's with its badge, "No brand", or nothing while reading. */
+const homeBar = (v: HomeView | null): BarView['home'] => {
+  if (!v) return null;
+  if (v.kind === 'library') return { name: libraryTitle(v.library), badge: HOME_COPY.libraryBadge };
+  return { name: v.kind === 'none' ? HOME_COPY.noneBar : '', badge: null };
+};
+/** Back to the home after the X, focus on its start button (the control that opened the window, or its successor). */
+const toHome = (): void => {
+  homeStart = false;
+  syncStart();
+  frame?.layer.parentElement?.querySelector<HTMLElement>('[data-p3="home-start"]')?.focus();
+};
+let shownHomeKey = 'null';
+
 // ---- the start window (UI redesign S12) --------------------------------------------------------------
 // It opens over the studio on the first run (no origin yet) and when "+ New brand" reopens it; any load closes it.
-/** "+ New brand" opened it, so it offers Close (owner decisions G15 A, S9). */
+/** "+ New brand" opened it (owner decisions G15 A, S9). */
 let startReopened = false;
 let startWindow: StartWindow | null = null;
-/** Open, keep or close the start window to match the session. Kept while it stays the same window, so a hex being
- *  typed or a paste survives a render behind it. */
+/** Open, keep or close the start window to match the session, and show the home it sits over (#2879). Kept while it
+ *  stays the same window, so a hex being typed or a paste survives a render behind it. */
 const syncStart = (): void => {
-  const want: 'first' | 'reopen' | null = firstRun() ? 'first' : startReopened ? 'reopen' : null;
-  if (startWindow && want && startWindow.first === (want === 'first')) return;
+  const shown = homeShown();
+  const key = JSON.stringify(shown);
+  if (key !== shownHomeKey) { shownHomeKey = key; frame?.setHome(shown); barChanged(); }
+  // A home holds the first run, so the start window opens over one only from its button (`homeStart`).
+  const want: StartMode | null = firstRun() ? (shown ? (homeStart ? 'home' : null) : 'first') : startReopened ? 'reopen' : null;
+  if (startWindow && want && startWindow.mode === want) return;
   startWindow?.dismiss(null);
   startWindow = null;
   if (!want || !frame) return;
+  // The X (Q613 6 A, 7 A): a reopen returns to the brand, a window over a home returns to it, and the plugin's first run
+  // goes to the minimal home. The web's first run has no X: the web has no home to close to.
+  const close = want === 'reopen' ? () => {
+    startReopened = false;
+    syncStart();
+    // Back to the control that opened it.
+    (frame?.barMain.querySelector<HTMLElement>('[data-p3="brand-switcher"]') ?? null)?.focus();
+  } : want === 'home' ? toHome : commit.isFigma ? () => { home = { kind: 'none' }; toHome(); } : null;
   startWindow = openStart(frame.layer, {
     host: commit.isFigma ? 'figma' : 'web',
-    first: want === 'first',
+    mode: want,
+    close,
+    closeHint: want === 'reopen' ? `Close — back to ${String(brandState.id)}, unchanged` : 'Close — opens the file without a brand',
     // THE ONE DECISION for whether a replacement asks first (#1033's `stageLoad` rule): only with edits to lose. The
     // count it names is the settings that differ from the origin (`editCount`).
     guardFor: (c: StartChoice) => (needsOverwriteConfirm(brandState, provenance)
       ? guardText(String(brandState.id), originLabel(c.origin, 'arriving'), editCount(brandState, provenance.baseline))
       : null),
-    load: (c: StartChoice) => loadBrand(c.input, c.origin),
-    close: () => {
-      startReopened = false;
-      syncStart();
-      // Back to the control that opened it.
-      (frame?.barMain.querySelector<HTMLElement>('[data-p3="brand-switcher"]') ?? null)?.focus();
-    },
+    load: (c: StartChoice) => { home = null; homeStart = false; loadBrand(c.input, c.origin); },
   });
 };
 

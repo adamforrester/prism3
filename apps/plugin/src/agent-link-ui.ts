@@ -26,6 +26,11 @@
  * (`main.ts`). Everything else stays mounted under it, only not drawn, so Restore returns to the same page and state. The
  * strip is built once and appended to `<body>`, like the live region, since the frame comes and goes with the app view.
  *
+ * THE LIBRARY HOME'S SWITCH (#2879; the owner's Q613 3 A, 2026-10-23). The library home (`apps/studio/src/shell/home.ts`)
+ * holds a card with an empty slot, `home-agent`. This fills it with "Agent link", the link's full status line, and the
+ * chrome's switch (`switchEl`). It is a second control on the ONE state: a click posts `agent-link` exactly as the tile
+ * does, and both render from the same published `agent-link-state`, so they cannot disagree.
+ *
  * It does these things and owns no state of its own:
  *   · a click posts `agent-link` with the opposite of the state the main thread last published — the
  *     main thread is the authority on whether the link is on;
@@ -40,11 +45,13 @@ import type { UiToMain } from './messages';
 import type { AgentLinkState } from './agent-protocol';
 import { createBridgeRelay } from './agent-bridge-relay';
 import type { WsLike } from './agent-bridge-relay';
-import { glyph, h, hook, tile } from '../../studio/src/shell/dom';
+import { glyph, h, hook, switchEl, tile } from '../../studio/src/shell/dom';
 import { setAgentLinkOn, setAgentLinkStatus } from '../../studio/src/shell/activity';
 
 /** The frame's stable slot for the tile, by its hook. */
 const SLOT = '[data-p3="bar-agent"]';
+/** The library home's slot for its switch (#2879), by its hook. */
+const HOME_SLOT = '[data-p3="home-agent"]';
 
 /** The link's full status line, from the published state (the old popover's words; since #2213, the open Activity drawer's first line). */
 export const agentLinkStatusText = (s: AgentLinkState | null): string => {
@@ -146,6 +153,17 @@ export const mountAgentLink = (): void => {
   minBtn.addEventListener('click', () => post({ type: 'minimize-ui', minimized: true }));
   wrap.append(chip, minBtn);
 
+  // #2879 (Q613 3 A): the library home's row: its title, the link's full status line, and the switch. The same request as
+  // the tile's click; the switch shows only what the main thread publishes.
+  const homeRow = hook(h('div', 'p3-home-agentrow'), 'home-agent-row');
+  const homeText = h('div', 'p3-home-agenttext');
+  const homeStatus = hook(h('span', 'p3-home-agentstatus'), 'home-agent-status');
+  homeStatus.id = 'p3-home-agent-status';
+  homeText.append(h('span', 'p3-home-agenttitle', 'Agent link'), homeStatus);
+  const homeSwitch = switchEl('home-agent-switch', 'Agent link', () => post({ type: 'agent-link', on: !state?.on }));
+  homeSwitch.el.setAttribute('aria-describedby', homeStatus.id);
+  homeRow.append(homeText, homeSwitch.el);
+
   // The strip (#2949): the link's dot, its line, Restore and Turn off. Drawn only while the main thread says minimized.
   const strip = hook(h('div', 'p3-strip'), 'agent-strip');
   strip.hidden = true;
@@ -190,6 +208,8 @@ export const mountAgentLink = (): void => {
     const on = !!state?.on;
     chip.setAttribute('aria-pressed', String(on));
     chip.dataset.on = String(on);
+    homeSwitch.set(on);
+    homeStatus.textContent = agentLinkStatusText(state);
     minBtn.hidden = !on;
     renderStrip();
     // Activity's name and tooltip say "agent link on" while it is (the owner's top-bar decision, 2026-10-05).
@@ -243,6 +263,9 @@ export const mountAgentLink = (): void => {
   const place = (): void => {
     const slot = document.querySelector(SLOT);
     if (slot && wrap.parentElement !== slot) slot.append(wrap);
+    // The library home's slot is mounted with the frame (`frame.ts`), so it arrives with the same frame.
+    const homeSlot = document.querySelector(HOME_SLOT);
+    if (homeSlot && homeRow.parentElement !== homeSlot) homeSlot.append(homeRow);
   };
   const root = document.getElementById('app');
   new MutationObserver(place).observe(root ?? document.body, root ? { childList: true } : { childList: true, subtree: true });

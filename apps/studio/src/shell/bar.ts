@@ -50,6 +50,10 @@ export type BarView = {
   readonly exportOpen: boolean;
   /** The prune review (#1521, plugin only), while a preview with something to remove has landed. */
   readonly prune: { readonly summary: string; readonly deleteLabel: string; readonly off: string | null } | null;
+  /** #2879: a home shows in place of the studio (`shell/home.ts`). The bar then names it, the library's name with its
+   *  "Library file" badge or "No brand", and carries no brand control: no brand switcher, Contrast, Export, Figma menu or
+   *  Apply Theme, since there is no brand in the file to switch, check, export or apply. Null for the studio. */
+  readonly home: { readonly name: string; readonly badge: string | null } | null;
 };
 
 /** One block of the export dialog's right column, in order. */
@@ -178,6 +182,12 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
   docsTile.btn.setAttribute('aria-label', 'Docs');
   if (placed.openDocs) docsTile.btn.onclick = () => placed.openDocs!();
 
+  // #2879: a home's name, and its badge, in place of the brand switcher. Text, not a control.
+  const homeName = hook(h('div', 'p3-homename'), 'home-name');
+  const homeNameText = h('span', 'p3-homename-text');
+  const homeBadge = hook(h('span', 'p3-homename-badge'), 'home-badge');
+  homeName.append(homeNameText, homeBadge);
+
   // The dialogs sit in a layer of their own after the controls, outside every wrap, so a scrim click is never read
   // as a click inside a menu's wrap (#723).
   const layer = h('div', 'p3-bardlg-layer');
@@ -219,9 +229,17 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
     // is the page content's. At the narrow tier the plugin's file actions take a second row (`rowBreak`), Apply Theme
     // on its right (`spacer2`); above it both draw nothing. The shell's nodes are placed, never re-minted, so one that
     // holds focus keeps it.
-    const fileRow = !!(placed.figma || applyBtn);
-    const order: (HTMLElement | null)[] = [placed.mark, brandWrap, placed.verdict, spacer, placed.theme, placed.agent, placed.activity, docsTile.btn, exportWrap,
-      fileRow ? rowBreak : null, placed.figma, fileRow ? spacer2 : null, applyBtn, layer];
+    const fileRow = !v.home && !!(placed.figma || applyBtn);
+    if (v.home) {
+      if (homeNameText.textContent !== v.home.name) homeNameText.textContent = v.home.name;
+      homeBadge.textContent = v.home.badge ?? '';
+      homeBadge.hidden = !v.home.badge;
+    }
+    // #2879: a home keeps the mark, Theme, the Agent tile's slot, Activity and Docs, none of which needs a brand.
+    const order: (HTMLElement | null)[] = v.home
+      ? [placed.mark, homeName, spacer, placed.theme, placed.agent, placed.activity, docsTile.btn, layer]
+      : [placed.mark, brandWrap, placed.verdict, spacer, placed.theme, placed.agent, placed.activity, docsTile.btn, exportWrap,
+        fileRow ? rowBreak : null, placed.figma, fileRow ? spacer2 : null, applyBtn, layer];
     const want = order.filter((n): n is HTMLElement => !!n);
     if (want.length !== root.children.length || want.some((n, i) => root.children[i] !== n)) root.replaceChildren(...want);
 
