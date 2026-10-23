@@ -21,4 +21,7 @@ is unstyled there. This supersedes the transparent group of Q7 A.
 
 Tests: `test-style-guide.ts` §42, with the role names typed as literals. Mutations: dropping the `paintGroup` call fails
 "42: a first run paints all 3 group frames" (and two more); dropping the bare check fails "42: a second run leaves a
-designer's fill, a designer's stroke and its own paints byte-identical".
+designer's fill, a designer's stroke and its own paints byte-identical"; setting the radius unconditionally fails "42: a
+bare group with a designer's radius of 8 is painted, its radius kept at 8".
+
+Not in this PR: Q596 A (Scrim and Veil in their own section after Inverse colors), filed as #2964.
