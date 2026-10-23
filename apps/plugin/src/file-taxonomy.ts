@@ -36,6 +36,10 @@ export interface TaxonomyLeaf {
    *  pre-creates as an empty placeholder (or the File Components sandbox page); non-empty marks a page
    *  the page-aware build creates on demand. */
   readonly defs: readonly string[];
+  /** The def that leads the page's one usage panel (#2927, owner decision Q551 A on Q1 and Q2): the panel opens with
+   *  its overview and anatomy and sits beside its set. Named on every page with more than one def (`assertCoverage`);
+   *  a page with one def is led by it. */
+  readonly lead?: string;
   /** True for the one leaf that holds the plugin-only template assets (`_Section-header`, `_Headings`),
    *  which are built by a targeted constructor rather than projected from a def. */
   readonly fileComponents?: boolean;
@@ -84,11 +88,13 @@ export const TAXONOMY: Taxonomy = {
       alphabetical: true,
       leaves: [
         // Button.Group (#2661, owner decision Q363) joins the Button family's page: it nests the Button, built first.
-        { page: 'Buttons', defs: ['button', 'button-destructive', 'button-neutral', 'button-group'] },
-        { page: 'Icon button', defs: ['icon-button', 'icon-button-destructive', 'icon-button-neutral'] },
-        { page: 'Checkbox', defs: ['checkbox-control', 'checkbox-row', 'checkbox-group'] },
-        { page: 'Radio', defs: ['radio-control', 'radio-row', 'radio-group'] },
-        { page: 'Switch', defs: ['switch-control', 'switch-row'] },
+        // LEADS (#2927, Q551 A): the owner named Button, and the Row for Checkbox, Radio and Switch. The other pages'
+        // leads (the plain variant, or the composite over its building block) are DRAFT, held for the owner in the PR.
+        { page: 'Buttons', defs: ['button', 'button-destructive', 'button-neutral', 'button-group'], lead: 'button' },
+        { page: 'Icon button', defs: ['icon-button', 'icon-button-destructive', 'icon-button-neutral'], lead: 'icon-button' },
+        { page: 'Checkbox', defs: ['checkbox-control', 'checkbox-row', 'checkbox-group'], lead: 'checkbox-row' },
+        { page: 'Radio', defs: ['radio-control', 'radio-row', 'radio-group'], lead: 'radio-row' },
+        { page: 'Switch', defs: ['switch-control', 'switch-row'], lead: 'switch-row' },
         { page: 'Select', defs: ['select'] },
         { page: 'Text field', defs: ['text-field'] },
         // Password field (#2317, owner decision Q301.9 B) — its own page under Components, as Counter's is. It nests
@@ -105,19 +111,19 @@ export const TAXONOMY: Taxonomy = {
         { page: 'Tag', defs: ['tag'] },
         // Tabs — its own page under Components, owner-decided 2026-10-09 (#2416 Q177.14: no navigation grouping,
         // no new section). Tab builds first, so the list's nested tabs resolve against it on the same page.
-        { page: 'Tabs', defs: ['tab-item', 'tabs'] },
+        { page: 'Tabs', defs: ['tab-item', 'tabs'], lead: 'tabs' },
         // Segmented control (#2418, owner Q269.7) — its own page under Components, after Tabs. The option builds
         // first, so the control's nested options resolve against it on the same page, as Tabs' do.
-        { page: 'Segmented control', defs: ['segmented-control-segment', 'segmented-control'] },
+        { page: 'Segmented control', defs: ['segmented-control-segment', 'segmented-control'], lead: 'segmented-control' },
         // Divider (#2455) — its own page, as the issue asks. Under Components beside the components that nest
         // it next (Accordion, #2417); the section is the owner's call and held as DRAFT in the PR.
         { page: 'Divider', defs: ['divider'] },
         // Accordion (#2417) — its own page under Components after Divider, which it nests (DRAFT, owner item). Its
         // building-block indicator builds first on the same page, so the header's nests resolve as Tabs' do.
-        { page: 'Accordion', defs: ['_accordion-indicator', 'accordion'] },
+        { page: 'Accordion', defs: ['_accordion-indicator', 'accordion'], lead: 'accordion' },
         // List (#2319, owner decision Q273.7) — its own page under Components, List.Item beside it. The item builds first,
         // so the list's nested items resolve against it on the same page.
-        { page: 'List', defs: ['list-item', 'list'] },
+        { page: 'List', defs: ['list-item', 'list'], lead: 'list' },
         // Link (#2580) — its own page under Components. The proposal named a navigation section; none exists (Tabs
         // went under Components, Q177.14), so the section is held as an owner item in the PR.
         { page: 'Link', defs: ['link'] },
@@ -155,14 +161,15 @@ export const TAXONOMY: Taxonomy = {
         // #2457 — the flush icon button, under Subcomponents (owner decision Q283.14 A on #2427): it is made to be nested,
         // in a counter first. Placed alphabetically in the file by the section's own rule. Three families on one page, as
         // the Icon button page carries IconButton's three (Q295.2 B).
-        { page: 'Flush Icon Button', defs: ['flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral'] },
+        { page: 'Flush Icon Button', defs: ['flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral'], lead: 'flush-icon-button' },
         // #1670 — owner-decided 2026-09-26: the spinner sits under Subcomponents, beside the other parts a
         // host swaps or nests in (the button's pending state swaps it into its icon slot).
         { page: 'Spinner', defs: ['spinner'] },
         // #2666 (owner call 15 A) — the breadcrumb step, on its own page under Subcomponents: it is placed inside
         // Breadcrumbs, never on its own. It nests Link, the neutral flush icon button and, since Q382 A, the separator,
-        // which shares its page, first, as the Accordion indicator shares the Accordion's.
-        { page: 'Breadcrumb Item', defs: ['_breadcrumb-separator', 'breadcrumb-item'] },
+        // which shares its page, first, as the Accordion indicator shares the Accordion's. The public step leads the
+        // page's usage panel over its private building block, as the Accordion does (#2932; owner Q pending).
+        { page: 'Breadcrumb Item', defs: ['_breadcrumb-separator', 'breadcrumb-item'], lead: 'breadcrumb-item' },
       ],
     },
     {
@@ -178,6 +185,9 @@ export const TAXONOMY: Taxonomy = {
  *  A control that is only ever nested and never built standalone would be listed here with a reason,
  *  rather than silently dropped (`assertCoverage` treats an unmapped, unexcluded id as a failure). */
 export const EXCLUDED_DEFS: readonly string[] = [];
+
+/** The def that leads a leaf's usage panel: its `lead`, or its one def. Undefined for a leaf with no def. */
+export const leadOf = (leaf: TaxonomyLeaf): string | undefined => leaf.lead ?? (leaf.defs.length === 1 ? leaf.defs[0] : undefined);
 
 /** The full `↳ ` page name for a leaf. */
 export const leafPageName = (leaf: TaxonomyLeaf): string => NEST_PREFIX + leaf.page;
@@ -198,7 +208,7 @@ export const leafForDef = (
  * `componentDefs` — the registry is the oracle, this config is the subject. Returns the problems as
  * strings (empty = clean) so the caller decides how to fail; `test-file-setup.ts` fails by name on any.
  *
- * Catches three defects: a registered id no leaf places and no exclusion names (the silent-drop case
+ * Catches four defects (the fourth, #2927: a page of several defs that names no lead, or a lead not on it): a registered id no leaf places and no exclusion names (the silent-drop case
  * #1554 warns about); an id placed on more than one leaf (an ambiguous build target); and a mapped or
  * excluded id that no longer exists in the registry (a stale mapping left behind by a def deletion).
  */
@@ -220,6 +230,13 @@ export const assertCoverage = (registeredIds: readonly string[], t: Taxonomy = T
       problems.push(`def '${id}' is mapped to more than one page (${pages.join(', ')}) — a component family builds onto exactly one page`);
     if (pages && excluded.has(id))
       problems.push(`def '${id}' is both mapped to a page and listed in EXCLUDED_DEFS — pick one`);
+  }
+  // #2927: a page of several defs names which one leads its usage panel, and that one is on the page.
+  for (const { leaf } of allLeaves(t)) {
+    if (leaf.defs.length > 1 && !leaf.lead)
+      problems.push(`page '${leaf.page}' holds ${leaf.defs.length} defs and names no lead — its usage panel needs one`);
+    if (leaf.lead && !leaf.defs.includes(leaf.lead))
+      problems.push(`page '${leaf.page}' names lead '${leaf.lead}', which is not one of its defs`);
   }
   for (const id of placement.keys())
     if (!registered.has(id))

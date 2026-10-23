@@ -37,6 +37,8 @@
  *   · `veil` dropped from Surfaces & fills' roles → `color roles in no Color sub-page's Roles matrix: veil…`;
  *   · `field` put back on Interactive (S4c, owner decision Q29) → `every emitted field.* role (4) belongs to
  *     Surfaces & fills — on another page: field.border.hover → Interactive, …`;
+ *   · `fieldStyle`'s row put back on Shape › Radius (#2905 Q578) → `manifest keys with more than one home: fieldStyle →
+ *     Shape › Radius + Components › Field` and `#2905 Q578: fieldStyle's one home is Components › Field, not Shape …`;
  *   · `strictInteractiveContrast` put behind Show advanced →
  *     `strictInteractiveContrast: … placed advanced in Color › Interactive › … (every lever on this page is shown)`.
  */
@@ -109,6 +111,13 @@ ok(placedRetired.length === 0, `a retired lever has no home${placedRetired.lengt
 ok(missing.length === 0, `every manifest lever has a home${missing.length ? ` — manifest keys with no home: ${missing.join(', ')}` : ` (${manifestKeys.length} placed)`}`);
 ok(dup.length === 0, `no manifest lever has two homes${dup.length ? ` — manifest keys with more than one home: ${dup.map(([k, w]) => `${k} → ${w.join(' + ')}`).join('; ')}` : ''}`);
 ok(unknown.length === 0, `no row names a key the manifest lacks${unknown.length ? ` — homes naming keys the manifest does not have: ${unknown.join(', ')}` : ''}`);
+// #2905 Q578 B (owner, 2026-10-22): Field style is a component setting. Its one home is Components › Field, and Shape
+// draws it no more. A literal, so moving it anywhere else (back to Shape included) fails here by name.
+const fieldHome = seen.get('fieldStyle') ?? [];
+ok(JSON.stringify(fieldHome) === JSON.stringify(['Components › Field']), `#2905 Q578: fieldStyle's one home is Components › Field, not Shape (${fieldHome.join(' + ') || 'none'})`);
+// Q578 part 2 (A on #2931's wireframe): Tag style the same way, to Components › Tag.
+const tagHome = seen.get('tagStyle') ?? [];
+ok(JSON.stringify(tagHome) === JSON.stringify(['Components › Tag']), `#2931 Q579: tagStyle's one home is Components › Tag, not Shape (${tagHome.join(' + ') || 'none'})`);
 ok(tierWrong.length === 0, `each lever's tier follows the manifest flag, outside ${FIRST_CLASS.join(', ')}${tierWrong.length ? ` — advanced tier disagrees with the manifest flag: ${tierWrong.join('; ')}` : ''}`);
 for (const k of FIRST_CLASS) ok(PAGES.some((p) => p.key === k), `FIRST_CLASS names a page the data has: ${k}`);
 

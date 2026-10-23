@@ -7,7 +7,7 @@
  * WHAT OPENS ON ITS OWN (call 15 A): every family starts closed; a family opens when one of its sets is selected or
  * when the row is focused, and stays open until it is closed by hand.
  *
- * A FAMILY'S SETTINGS START COLLAPSED (#2844, Q439 A): the disclosure under its sets is closed on open, and stays as the
+ * A SECTION'S SETTINGS START COLLAPSED (#2844, Q439 A; #2905): the disclosure after its sets is closed on open, and stays as the
  * person leaves it for the session, as an open family does.
  *
  * NOTHING IS SELECTED ON OPEN (call 13 A): the three Button families are 1,728 variants, and shouldn't be one click
@@ -16,7 +16,8 @@
 export type ComponentsPageState = {
   readonly sel: ReadonlySet<string>;
   readonly open: ReadonlySet<string>;
-  /** The families whose settings disclosure is open (#2844, Q439 A). Closed on open, remembered for the session. */
+  /** The sections whose settings disclosure is open (#2844, Q439 A; by section kind since #2905). Closed on open,
+   *  remembered for the session. */
   readonly optsOpen: ReadonlySet<string>;
   /** The focused row's key (`GroupRow.key`), or null. */
   readonly focus: string | null;
