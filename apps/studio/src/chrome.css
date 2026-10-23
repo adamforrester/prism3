@@ -656,7 +656,7 @@
    space-500 wide (the owner's change from the mock's 32px). The pill takes the secondary glyph ink, a declared 3:1 pair
    on the page. The drawer is the handle's containing block; it makes no stacking context, so nothing that hangs over
    it from the preview header moves under it. */
-.p3-frame:is([data-layout="panes"], [data-layout="page"]) .p3-drawer { position: relative; z-index: auto; }
+.p3-frame:is([data-layout="panes"], [data-layout="page"], [data-layout="home"]) .p3-drawer { position: relative; z-index: auto; }
 .p3-drawer-grip {
   position: absolute; top: 0; left: 0; right: 0; margin: 0 auto; box-sizing: border-box; display: flex; justify-content: center;
   align-items: flex-start; width: calc(var(--p3-space-500) + 2 * var(--p3-space-200)); height: var(--p3-hit-min);
@@ -1270,11 +1270,13 @@ h1.p3-sr { margin: 0; font-family: var(--p3-font-ui); font-size: var(--p3-fs-14)
 
 /* ── the start window and its guard (UI redesign S12) ──────────────────────────────────────────────── */
 /* A window over the studio (G10 A): the scrim covers the frame, the window sits centered on it, and at 380 the start
-   takes the whole pane. Its head stays put while its body scrolls. */
+   takes the whole pane. Its head stays put while its body scrolls. The scrim is Stance's modal scrim, `scrim.default`
+   (#2560, the owner's Q486 A and Q613 8 A): the one the export and prune dialogs sit on, so every chrome dialog shares
+   it. Until then it was the pressed hover wash, white 20% in dark, which lightened the studio behind the window. */
 .p3-layer:empty { display: none; }
 .p3-scrim {
   position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
-  padding: var(--p3-space-300); background: var(--p3-overlay-pressed);
+  padding: var(--p3-space-300); background: var(--p3-scrim);
 }
 .p3-dialog {
   display: flex; flex-direction: column; width: min(100%, calc(var(--p3-dlg-unit) * 5)); max-height: 100%; min-height: 0;
@@ -1348,6 +1350,50 @@ h1.p3-sr { margin: 0; font-family: var(--p3-font-ui); font-size: var(--p3-fs-14)
 .p3-frame[data-layout="page"] .p3-drawer { position: static; flex: none; }
 /* At 380 the head's rows are the frame's own flex items (the head is `display: contents` there): none of them shrinks. */
 .p3-frame[data-layout="page"] :is(.p3-head, .p3-bar, .p3-nav, .p3-subnav, .p3-notices) { flex: none; }
+
+/* ── the homes (#2879, plugin only): the library home, the minimal home, "Reading this file" ──────── */
+/* Their own layout (`data-layout="home"`), shaped as the Build style guides page's: the bar, the home scrolling under
+   it, the drawer at the foot. No tab row and no panes: there is no brand in the file to edit. */
+.p3-home { display: none; }
+.p3-home [hidden] { display: none; }
+.p3-frame[data-layout="home"] { position: fixed; inset: 0; display: flex; flex-direction: column; }
+.p3-frame[data-layout="home"] :is(.p3-panes, .p3-nav, .p3-subnav, .p3-sgpage, .p3-inspect) { display: none; }
+.p3-frame[data-layout="home"] .p3-home { display: block; flex: 1 1 auto; min-height: 0; overflow: auto; background: var(--p3-bg-page); }
+.p3-frame[data-layout="home"] .p3-drawer { position: static; flex: none; }
+.p3-frame[data-layout="home"] :is(.p3-head, .p3-bar, .p3-notices) { flex: none; }
+.p3-home:focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: calc(-1 * var(--p3-focus-width)); }
+.p3-home-col { display: grid; gap: var(--p3-space-200); align-content: start; max-width: calc(var(--p3-dlg-unit) * 5); padding: var(--p3-space-300); }
+.p3-frame[data-w="narrow"] .p3-home-col { padding: var(--p3-space-200); }
+.p3-home-head { display: grid; gap: var(--p3-space-050); }
+.p3-home-title {
+  margin: 0; color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-20); font-weight: var(--p3-fw-bold);
+  letter-spacing: var(--p3-ls-tightest); line-height: var(--p3-lh-compact);
+}
+.p3-home-meta { margin: 0; color: var(--p3-text-2); font-family: var(--p3-font-ui); font-size: var(--p3-fs-14); line-height: var(--p3-lh-normal); }
+.p3-home-reading { display: flex; align-items: center; gap: var(--p3-space-100); margin: 0; color: var(--p3-text-2); font-family: var(--p3-font-ui); font-size: var(--p3-fs-14); }
+/* The agent link's card: a hairline container (the start cards' edge), its row drawn by the plugin's entry. */
+.p3-home-card {
+  display: grid; gap: var(--p3-space-100); min-width: 0; padding: var(--p3-space-250);
+  border: var(--p3-bw-hairline) solid var(--p3-line-1); border-radius: var(--p3-radius-xl); background: var(--p3-bg-page);
+}
+.p3-home-row { display: flex; flex-wrap: wrap; gap: var(--p3-space-100); }
+/* The agent link's row (the plugin's `agent-link-ui.ts` fills the card): its title and status, then the switch. */
+.p3-home-agentrow { display: flex; align-items: center; justify-content: space-between; gap: var(--p3-space-200); min-width: 0; }
+.p3-home-agenttext { display: grid; gap: var(--p3-space-025); min-width: 0; }
+.p3-home-agenttitle { color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-14); font-weight: var(--p3-fw-strong); }
+.p3-home-agentstatus { color: var(--p3-text-2); font-family: var(--p3-font-ui); font-size: var(--p3-fs-12); line-height: var(--p3-lh-cozy); overflow-wrap: anywhere; }
+/* The bar's name for a home, in place of the brand switcher: text, then the "Library file" badge. The badge inks in the
+   primary text color: the secondary one measured 4.16:1 on the dark bar, under the 4.5:1 floor (`test:chrome` §28b). */
+.p3-homename { display: flex; align-items: center; gap: var(--p3-space-100); min-width: 0; flex: 0 1 auto; }
+.p3-homename-text {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; color: var(--p3-text);
+  font-family: var(--p3-font-ui); font-size: var(--p3-fs-14); font-weight: var(--p3-fw-strong);
+}
+.p3-homename-badge {
+  flex: none; padding: 0 var(--p3-space-100); border: var(--p3-bw-hairline) solid var(--p3-line-2); border-radius: var(--p3-radius-pill);
+  color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-12); line-height: var(--p3-lh-cozy); white-space: nowrap;
+}
+.p3-homename-badge[hidden] { display: none; }
 .p3-frame[data-w="narrow"]:has(> .p3-drawer[data-open="true"]) .p3-sgpage { display: none; }
 .p3-sg {
   display: grid; gap: var(--p3-space-300); align-content: start; max-width: calc(29 * var(--p3-ctl-h)); margin: 0 auto;

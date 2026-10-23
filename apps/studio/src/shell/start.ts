@@ -13,8 +13,11 @@
  * starts at the working brand's primary (G14) and its button reads "Start from this color" (S1); a hex that is not
  * #rrggbb is refused in words (S3). The import card has "↑ Upload…" on its heading row and a paste box below, whose
  * Import button is disabled until the box holds text (S2, the owner's review of #2142),
- * and its errors name the line (S7). Close shows whenever the window was reopened (S9), never on the first run, and
- * Escape does what Close does. With unsaved edits a choice asks first, in a second window on top of this one (S4):
+ * and its errors name the line (S7). ONE X closes it (#2879, the owner's Q613 6 A), in place of S9's "Close" text button:
+ * on every open in the plugin, the first run included, and on a reopen on the web; the web's first run has none (Q613 7
+ * A), since the web has no home to close to. Escape does what the X does, and nothing where there is no X. What the X
+ * returns to is lent (`close`): the brand, unchanged, on a reopen; a home on the plugin's first run, where no brand is
+ * loaded or created. With unsaved edits a choice asks first, in a second window on top of this one (S4):
  * Cancel returns to the start, focus starts on Cancel, and Discard wears Prism3's destructive button (S5).
  */
 import { hex, oklchToRgb } from '@prism3/engine/color';
@@ -25,26 +28,31 @@ import {
   BLANK_BRAND, HEX_ERROR, IMPORT_ACCEPT, importErrorText, readDesignMdFile, readHex, seedFromColor, validateDesignMd, validatePaste,
   type GuardText,
 } from '../state/start-input';
-import { focusables, h, hook, trapTab } from './dom';
+import { focusables, glyph, h, hook, trapTab } from './dom';
 import type { Host } from './pages';
 
 /** A start choice: the brand it loads and where that brand came from. */
 export type StartChoice = { readonly input: BrandInput; readonly origin: Origin };
 
+/** Why the window is open: the first run, from a home (#2879), or "+ New brand" over a brand. */
+export type StartMode = 'first' | 'home' | 'reopen';
+
 export type StartLend = {
   readonly host: Host;
-  /** The first run: no Close, and Escape does nothing. */
-  readonly first: boolean;
+  readonly mode: StartMode;
   /** The guard's words when the choice would discard edits, or null to load at once. */
   readonly guardFor: (c: StartChoice) => GuardText | null;
   /** Load the choice. The window closes as the brand loads. */
   readonly load: (c: StartChoice) => void;
-  /** Close (reopened only): back to the brand, unchanged. */
-  readonly close: () => void;
+  /** The X and Escape (#2879, Q613 6 A): back to what is behind the window, loading nothing. Null draws no X and makes
+   *  Escape do nothing: the web's first run (Q613 7 A). */
+  readonly close: (() => void) | null;
+  /** The X's tooltip: what closing returns to. */
+  readonly closeHint: string;
 };
 
 export type StartWindow = {
-  readonly first: boolean;
+  readonly mode: StartMode;
   /** Remove the window (and its guard), and focus `to` when given. */
   readonly dismiss: (to: HTMLElement | null) => void;
 };
@@ -100,9 +108,14 @@ export const openStart = (layer: HTMLElement, lend: StartLend): StartWindow => {
   const title = hook(h('h2', 'p3-dialog-title', lend.host === 'figma' ? 'Start a brand in this file' : 'Start a brand'), 'start-heading');
   title.id = 'p3-start-title';
   head.append(title);
-  if (!lend.first) {
-    const close = button('p3-btn p3-btn-ghost', 'start-close', 'Close');
-    close.onclick = () => lend.close();
+  if (lend.close) {
+    // The X (#2879): the export dialog's close (`bar.ts`), named "Close", its tooltip saying what it returns to.
+    const close = button('p3-btn p3-btn-ghost p3-btn-icon', 'start-close', '');
+    close.setAttribute('aria-label', 'Close');
+    close.title = lend.closeHint;
+    close.append(glyph('x'));
+    const done = lend.close;
+    close.onclick = () => done();
     head.append(close);
   }
   const body = hook(h('div', 'p3-dialog-body'), 'start-column');
@@ -255,7 +268,7 @@ export const openStart = (layer: HTMLElement, lend: StartLend): StartWindow => {
   dlg.append(head, body);
   scrim.addEventListener('keydown', (e) => {
     if (guard) return;
-    if (e.key === 'Escape') { e.preventDefault(); if (!lend.first) lend.close(); return; }
+    if (e.key === 'Escape') { e.preventDefault(); lend.close?.(); return; }
     trapTab(dlg, e);
   });
   layer.append(scrim);
@@ -263,7 +276,7 @@ export const openStart = (layer: HTMLElement, lend: StartLend): StartWindow => {
   focusables(dlg)[0]?.focus();
 
   return {
-    first: lend.first,
+    mode: lend.mode,
     dismiss: (to) => {
       readGen++;   // a read still in flight loads nothing into a closed window
       closeGuard(false);

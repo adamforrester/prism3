@@ -60,6 +60,7 @@ import { mountActivity, type ActivityLend } from './activity';
 import { figmaMenu, type FigmaAction, type FigmaSource } from './figma';
 import { mountBar, type BarLend } from './bar';
 import { mountStyleGuides, type StyleGuidesLend } from './style-guides';
+import { mountHome, type HomeView } from './home';
 import { THEME_CHOICES, onThemeChange, setThemePref, themeChoice } from './theme';
 import { mountPalettesLevers } from '../domains/color-palettes';
 import { PALETTES_LIGHT_NOTE_ID, mountPalettesPreview } from '../preview/palettes';
@@ -157,6 +158,9 @@ export type Frame = {
   /** The layer a window opens in, over everything the frame draws (S12: the start window and its guard). Empty, and
    *  drawn as nothing, while no window is open. */
   readonly layer: HTMLElement;
+  /** Show a home in place of the tab row and the two panes (#2879: the library home, the minimal home, reading), or
+   *  `null` for the studio. `main.ts` decides which, and the bar is told through its own view. */
+  readonly setHome: (v: HomeView | null) => void;
 };
 
 /** The levers pane, the panel the tabs control. */
@@ -212,6 +216,8 @@ export const mountFrame = (app: HTMLElement, opts: {
   readonly bar: BarLend;
   /** The Build style guides page's reads and writes (S11.2), or null where there is no Figma file. */
   readonly styleGuides: StyleGuidesLend | null;
+  /** #2879: a home's "Start a brand…" or "Set up a brand in this file…": open the start window over it. */
+  readonly startBrand: () => void;
 }): Frame => {
   const { host } = opts;
   const cleanups: (() => void)[] = [];
@@ -440,9 +446,13 @@ export const mountFrame = (app: HTMLElement, opts: {
   const menuPage = hook(h('main', 'p3-sgpage'), 'menu-page');
   menuPage.id = 'p3-menu-page';
   menuPage.tabIndex = -1;
+  // #2879: the homes, in the `home` layout in place of the tab row and the two panes. Mounted once, so the plugin's agent
+  // link finds its slot as the frame mounts, and painted from the view `main.ts` lends.
+  const home = mountHome(opts.startBrand);
+  let homeView: HomeView | null = null;
   // S12: the window layer, last, so a window is drawn over the drawer too.
   const layer = hook(h('div', 'p3-layer'), 'layer');
-  root.append(head, panes, menuPage, inspect, activity.drawer, layer);
+  root.append(head, panes, menuPage, home.node, inspect, activity.drawer, layer);
   app.append(root);
 
   // The verdict, on the bar, after the brand switcher; then the bar's controls (S13.1), which place the shell's nodes.
@@ -618,9 +628,10 @@ export const mountFrame = (app: HTMLElement, opts: {
   // The menu page, mounted while it is the page and released, subscriptions included, when it is not.
   let menuCleanups: (() => void)[] | null = null;
   const render = (): void => {
-    const onMenu = isMenuPage(page) && !!opts.styleGuides;
-    // Written only when the layout a place calls for changes, never on every render.
-    const layout = onMenu ? 'page' : 'panes';
+    const onMenu = !homeView && isMenuPage(page) && !!opts.styleGuides;
+    // Written only when the layout a place calls for changes, never on every render. A home (#2879) takes the place of
+    // whatever page is current, which stays mounted under it.
+    const layout = homeView ? 'home' : onMenu ? 'page' : 'panes';
     if (onMenu && !menuCleanups) {
       menuCleanups = [];
       mountStyleGuides(menuPage, opts.styleGuides!, () => root.dataset.w === 'narrow', menuCleanups);
@@ -679,7 +690,7 @@ export const mountFrame = (app: HTMLElement, opts: {
     const tabOf = place ? TABS.find((t) => t.id === place!.tab) : undefined;
     const pageName = (place?.sub ? tabOf?.subs?.find((x) => x.id === place!.sub)?.label : tabOf?.label) ?? '';
     pageHeading.textContent = pageName;
-    if (onMenu || !pageName) pageHeading.remove();
+    if (onMenu || homeView || !pageName) pageHeading.remove();
     else if (!pageHeading.isConnected) head.insertBefore(pageHeading, nav);
     if (home) previewBody.dataset.view = home; else delete previewBody.dataset.view;
 
@@ -811,9 +822,19 @@ export const mountFrame = (app: HTMLElement, opts: {
 
   render();
 
+  /** #2879: show a home, or the studio again. Inspect closes as a home opens: it reads a brand the home does not show. */
+  const setHome = (v: HomeView | null): void => {
+    const same = JSON.stringify(v) === JSON.stringify(homeView);
+    if (same) return;
+    if (v && inspecting) closeInspect(false);
+    homeView = v;
+    if (v) home.paint(v);
+    render();
+  };
+
   return {
     head, bar: barSlot, barMain, notices, verdict, syncSticky, layer,
-    activity: activity.button, figma, agent,
+    activity: activity.button, figma, agent, setHome,
   };
 };
 

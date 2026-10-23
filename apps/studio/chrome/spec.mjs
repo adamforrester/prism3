@@ -133,7 +133,7 @@ export const PRODUCT_VARS = [
   // S13.1: the layout column the brand menu (four, concept's 288px popover) and the export dialog (twelve, 864px,
   // the legacy dialog's width) are measured in, from the dimension grid; and the dialogs' scrim, the engine's role.
   ['l-col', 'core.dimension.72', 'core.dimension.72', D, 'the brand menu\'s and the export dialog\'s column'],
-  ['scrim', 'color.scrim.default', 'color.scrim.default', C, 'the scrim behind the export and prune dialogs'],
+  ['scrim', 'color.scrim.default', 'color.scrim.default', C, 'the scrim behind every chrome dialog: export, prune, the start window and its guard'],
   // F1 A (owner, 2026-10-05): a disabled text field takes Prism3's own disabled text field skin, the three roles the
   // engine's text field definition binds (`packages/engine/components/text-field.ts`: `disabled.fill`, `disabled.border`
   // and the ON-FILL ink, since the field always has a fill). It sits on no surface, so no `inverse.*` set. Same role in
@@ -213,9 +213,9 @@ export const SHELL_VARS = [
   'disabled-fill', 'disabled-edge', 'disabled-ink',
   // X4 A: a disabled button in Prism3's disabled button skin.
   'disabled-text', 'disabled-icon',
-  // S12: the start window and its guard: the scrim, the window's width unit and its card padding, and the guard's
-  // destructive Discard (S5).
-  'overlay-pressed', 'dlg-unit', 'space-250', 'danger-fill', 'danger-on', 'danger-edge-hover',
+  // S12: the start window and its guard: the window's width unit and its card padding, and the guard's destructive
+  // Discard (S5). Their scrim is S13.1's `scrim` since #2560 (Q486 A).
+  'dlg-unit', 'space-250', 'danger-fill', 'danger-on', 'danger-edge-hover',
   // S11.2: the Build style guides page's switch, concept v6's track and knob.
   'track-w', 'track-h', 'thumb', 'thumb-inset',
 ];
@@ -228,10 +228,10 @@ export const SHELL_VARS = [
 // brand swatch. It is never a control's boundary; every control edge is a declared pair at 3:1. S1.2 maps
 // no hover wash: a hover shows an edge (a declared pair) or the inset fill (`fill-1`, paired with text).
 // S13.1 adds the scrim: a translucent wash over the page behind a modal dialog. Nothing is read on it; the dialog
-// draws its own opaque ground (`bg-page`), and every pair inside the dialog is declared on that ground. S12 lists a
-// third: the start window's scrim (`overlay-pressed`, concept v6's), a wash over the studio behind the window. Nothing
-// is read on it; the window it holds is opaque.
-export const DECORATIVE = ['line-1', 'overlay-pressed', 'scrim'];
+// draws its own opaque ground (`bg-page`), and every pair inside the dialog is declared on that ground. The start window
+// and its guard (S12) sit on the same scrim since #2560 (the owner's Q486 A); until then they had a third entry here,
+// `overlay-pressed`, the pressed hover wash, which is no longer mapped.
+export const DECORATIVE = ['line-1', 'scrim'];
 
 // Mapped color variables that paint only an INACTIVE control (owner decisions F1 A and X4 A, 2026-10-05). WCAG 2.2 exempts a
 // user interface component that is not available for user interaction from SC 1.4.3 (text) and SC 1.4.11 (non-text),
