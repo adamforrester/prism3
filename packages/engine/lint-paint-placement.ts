@@ -295,7 +295,7 @@ const EXPECT_ANATOMY = [
   'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'switch-control', 'switch-row', 'select', 'veil',
   'image-placeholder', 'spinner', 'badge', 'tag', 'tab-item', 'tabs', 'divider', '_accordion-indicator', 'accordion',
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'list-item', 'list',
-  'segmented-control-segment', 'segmented-control', 'link', 'button-group', 'dialog', 'password-field', 'counter', 'pagination-item', 'pagination', 'search-field', 'banner', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs',
+  'segmented-control-segment', 'segmented-control', 'link', 'button-group', 'dialog', 'password-field', 'counter', 'pagination-item', 'pagination', 'progress', 'search-field', 'banner', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs',
 ];
 const EXPECT_PAINTERS = [
   'focus-ring', 'button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive',
@@ -312,6 +312,8 @@ const EXPECT_PAINTERS = [
   'toast',
   // #2427: the outline Counter's fill and edge. A ghost member's box resolves none of them.
   'counter',
+  // #2670: the track's pale fill, the progress fill, and the ring's track stroke.
+  'progress',
   // #2872 (Q507.1 C): the current-page bar's fill. An unselected member has no bar, so it paints nothing.
   'link',
   // #2888: the Search field paints as TextField does.

@@ -146,6 +146,9 @@ export const TAXONOMY: Taxonomy = {
         // first, so the row's slot items resolve against it on the same page; IconButton and Button build wherever their
         // pages sort, before it.
         { page: 'Pagination', defs: ['pagination-item', 'pagination'], lead: 'pagination' },
+        // Progress (#2670, owner call 10 A) — its own page under Components. It nests the Field Message, which the build
+        // places first wherever its page sorts. The Spinner stays under Subcomponents (#1670).
+        { page: 'Progress', defs: ['progress'] },
       ],
     },
     {

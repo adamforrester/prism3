@@ -268,11 +268,25 @@ const ICON_OFFSET_TWO_DEFS: Record<string, string> = {
   link: 'icon.size.*',
 };
 
+/**
+ * THE OWNER-SANCTIONED TWO-RUNG RING OFFSET, UPWARD (#2670, the Progress proposal's sizes, approved 2026-10-16 with every
+ * call at A). The progress ring is 40px at its default `medium` (`icon.size.xl`) and 24px at `small` (`icon.size.md`):
+ * a ring standing beside its value needs more room than a glyph does, and 24px is the Spinner's own medium. So its
+ * medium default is `xl`, two rungs ABOVE `md`, in the icon family only. Same guarantees as ICON_OFFSET_TWO_DEFS: the
+ * expectation is the RULE (`md` plus two), so a revert to `md` and a slip to `lg` both fail BY NAME, and the admission
+ * is checked both directions below.
+ */
+const RING_OFFSET_UP_TWO_DEFS: Record<string, string> = {
+  progress: 'icon.size.*',
+};
+const RING_DEFAULT_RUNG = RUNG_ORDER[RUNG_ORDER.indexOf(DEFAULT_RUNG) + 2];
+
 /** The default rung EXPECTED for one (def, tier family): the sanctioned offset where listed, else `md`. */
 const expectedDefaultRung = (defId: string, family: string): string =>
   defId in HOST_DEFAULT_DEFS ? LABEL_DEFAULT_RUNG
     : ICON_OFFSET_DEFS[defId] === family ? OFFSET_DEFAULT_RUNG
     : ICON_OFFSET_TWO_DEFS[defId] === family ? LABEL_DEFAULT_RUNG
+    : RING_OFFSET_UP_TWO_DEFS[defId] === family ? RING_DEFAULT_RUNG
     : DEFAULT_RUNG;
 
 /**
@@ -391,6 +405,7 @@ const DEFAULT_FIRST: Record<string, string> = {
   counter: Q1B,
   'pagination-item': Q1B,
   pagination: Q1B,
+  progress: 'the Figma default is the 40px medium ring, the proposal\'s axis table approved with every call at A, and the code default `type` is determinate to match (#2791)',
   breadcrumbs: Q1B,
   'breadcrumb-item': Q1B,
 };
@@ -425,7 +440,7 @@ const SIZE_BY_BUILT_WIDTH: Record<string, string> = {
  * this list whole — the forward half alone let nine size-axis defs sit unlisted, each droppable in silence.
  */
 const MUST_COVER = [
-  'icon', 'spinner',
+  'icon', 'spinner', 'progress',
   'button', 'button-destructive', 'button-neutral',
   'icon-button', 'icon-button-destructive', 'icon-button-neutral',
   'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral',
@@ -700,7 +715,10 @@ for (const def of componentDefs) {
       const sanctioned = ICON_OFFSET_DEFS[def.id] === family;
       const hostAligned = def.id in HOST_DEFAULT_DEFS;
       const sanctionedTwo = ICON_OFFSET_TWO_DEFS[def.id] === family;
-      failures.push(sanctionedTwo
+      const ringUp = RING_OFFSET_UP_TWO_DEFS[def.id] === family;
+      failures.push(ringUp
+        ? `${def.id}: size defaults to '${dflt}', whose OWNER-SANCTIONED ring family '${family}' reaches tier rung(s) ${wrong.map((r) => `'${r}'`).join(', ')} — the approved proposal (#2670) sets the ring at '${want}', exactly two rungs above '${DEFAULT_RUNG}' (40px). A revert to '${DEFAULT_RUNG}' or any other rung breaks it.`
+        : sanctionedTwo
         ? `${def.id}: size defaults to '${dflt}', whose OWNER-SANCTIONED icon family '${family}' reaches tier rung(s) ${wrong.map((r) => `'${r}'`).join(', ')} — Q297.2 sets the icon at '${want}', exactly two rungs below '${DEFAULT_RUNG}' (16px with 16px text). A revert to '${DEFAULT_RUNG}' or any other rung breaks it.`
         : hostAligned
         ? `${def.id}: size defaults to '${dflt}', whose family '${family}' reaches tier rung(s) ${wrong.map((r) => `'${r}'`).join(', ')} — the #1699/#2266 default is '${want}', two rungs below '${DEFAULT_RUNG}' (${HOST_DEFAULT_DEFS[def.id]}). A revert to the old 14/16/18 ladder lands on '${OFFSET_DEFAULT_RUNG}' and breaks the one-step pairing with every field's input.`
@@ -761,6 +779,18 @@ for (const [id, family] of Object.entries(ICON_OFFSET_TWO_DEFS)) {
   const seen = defaultFamiliesByDef.get(id);
   if (!seen || !seen.has(family))
     failures.push(`STALE ADMISSION: ICON_OFFSET_TWO_DEFS sanctions '${id}' offsetting family '${family}' at its default, but that family is not bound at the default size '${enumOf(def).default}'. Remove the admission or restore the binding.`);
+}
+
+// The #2670 ring admission, both directions (docs/34).
+for (const [id, family] of Object.entries(RING_OFFSET_UP_TWO_DEFS)) {
+  const def = componentDefs.find((d) => d.id === id);
+  if (!def) {
+    failures.push(`STALE ADMISSION: RING_OFFSET_UP_TWO_DEFS names '${id}', which is not a def any more. Remove it.`);
+    continue;
+  }
+  const seen = defaultFamiliesByDef.get(id);
+  if (!seen || !seen.has(family))
+    failures.push(`STALE ADMISSION: RING_OFFSET_UP_TWO_DEFS sanctions '${id}' offsetting family '${family}' at its default, but that family is not bound at the default size '${enumOf(def).default}'. Remove the admission or restore the binding.`);
 }
 
 // The #1699 host-aligned admission, both directions (docs/34): a listed def must exist and must bind at

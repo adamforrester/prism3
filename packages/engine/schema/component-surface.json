@@ -775,6 +775,18 @@
         "status text:TEXT"
       ]
     },
+    "progress": {
+      "members": 12,
+      "sha256": "868c163ffa5e3799c951c79a9a33312f8345ecdfb844fde3dbf76897d6599745",
+      "properties": [
+        "complete value text:TEXT",
+        "label text:TEXT",
+        "label:BOOLEAN",
+        "message:BOOLEAN",
+        "value text:TEXT",
+        "value:BOOLEAN"
+      ]
+    },
     "search-field": {
       "members": 84,
       "sha256": "fdcf9873c85c47f4cf8b183a06cc385ce376363fae0f354fd8615d2ed7c48885",

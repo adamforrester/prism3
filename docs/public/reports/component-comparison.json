@@ -2819,6 +2819,113 @@
       "sizeDefault": "medium"
     },
     {
+      "id": "progress",
+      "name": "Progress",
+      "category": "feedback",
+      "states": [],
+      "projectedStates": [],
+      "axes": {
+        "shape": [
+          "linear",
+          "circular"
+        ],
+        "type": [
+          "determinate",
+          "indeterminate"
+        ],
+        "status": [
+          "active",
+          "complete",
+          "error"
+        ],
+        "size": [
+          "medium",
+          "small"
+        ]
+      },
+      "props": [
+        {
+          "name": "type",
+          "default": "determinate",
+          "values": [
+            "determinate",
+            "indeterminate"
+          ]
+        },
+        {
+          "name": "value"
+        },
+        {
+          "name": "min",
+          "default": 0
+        },
+        {
+          "name": "max",
+          "default": 100
+        },
+        {
+          "name": "label"
+        },
+        {
+          "name": "valueText"
+        },
+        {
+          "name": "shape",
+          "default": "linear",
+          "values": [
+            "linear",
+            "circular"
+          ]
+        },
+        {
+          "name": "size",
+          "default": "medium",
+          "values": [
+            "small",
+            "medium"
+          ]
+        },
+        {
+          "name": "status",
+          "default": "active",
+          "values": [
+            "active",
+            "complete",
+            "error"
+          ]
+        },
+        {
+          "name": "message"
+        },
+        {
+          "name": "showValue",
+          "default": true
+        },
+        {
+          "name": "announce",
+          "default": "milestones",
+          "values": [
+            "milestones",
+            "end",
+            "none"
+          ]
+        },
+        {
+          "name": "delay",
+          "default": 400
+        },
+        {
+          "name": "minDisplay",
+          "default": 500
+        }
+      ],
+      "sizes": [
+        "medium",
+        "small"
+      ],
+      "sizeDefault": "medium"
+    },
+    {
       "id": "radio-control",
       "name": "Radio.Control",
       "category": "form",
@@ -4870,6 +4977,15 @@
           "flush-icon-button-destructive",
           "flush-icon-button-neutral"
         ]
+      },
+      {
+        "values": [
+          "circular",
+          "linear"
+        ],
+        "components": [
+          "progress"
+        ]
       }
     ],
     "size": [
@@ -4925,6 +5041,7 @@
         "components": [
           "breadcrumb-item",
           "breadcrumbs",
+          "progress",
           "switch-control",
           "switch-row"
         ]
@@ -4972,6 +5089,16 @@
           "select",
           "text-field",
           "textarea"
+        ]
+      },
+      {
+        "values": [
+          "active",
+          "complete",
+          "error"
+        ],
+        "components": [
+          "progress"
         ]
       }
     ],
@@ -5112,6 +5239,15 @@
       },
       {
         "values": [
+          "determinate",
+          "indeterminate"
+        ],
+        "components": [
+          "progress"
+        ]
+      },
+      {
+        "values": [
           "dismissible",
           "select"
         ],
@@ -5225,6 +5361,15 @@
         "default": "auto",
         "values": [
           "auto",
+          "none"
+        ]
+      },
+      {
+        "id": "progress",
+        "default": "milestones",
+        "values": [
+          "milestones",
+          "end",
           "none"
         ]
       }
@@ -5481,6 +5626,12 @@
       },
       {
         "id": "text-field"
+      }
+    ],
+    "delay": [
+      {
+        "id": "progress",
+        "default": 400
       }
     ],
     "description": [
@@ -6115,6 +6266,9 @@
         "id": "password-field"
       },
       {
+        "id": "progress"
+      },
+      {
         "id": "radio-group"
       },
       {
@@ -6223,6 +6377,10 @@
       },
       {
         "id": "counter"
+      },
+      {
+        "id": "progress",
+        "default": 100
       }
     ],
     "maxItems": [
@@ -6249,6 +6407,9 @@
         "id": "field-message"
       },
       {
+        "id": "progress"
+      },
+      {
         "id": "toast"
       }
     ],
@@ -6256,6 +6417,16 @@
       {
         "id": "counter",
         "default": 0
+      },
+      {
+        "id": "progress",
+        "default": 0
+      }
+    ],
+    "minDisplay": [
+      {
+        "id": "progress",
+        "default": 500
       }
     ],
     "minRows": [
@@ -6753,6 +6924,14 @@
           "square",
           "circular"
         ]
+      },
+      {
+        "id": "progress",
+        "default": "linear",
+        "values": [
+          "linear",
+          "circular"
+        ]
       }
     ],
     "showCheck": [
@@ -6806,6 +6985,12 @@
       },
       {
         "id": "switch-row",
+        "default": true
+      }
+    ],
+    "showValue": [
+      {
+        "id": "progress",
         "default": true
       }
     ],
@@ -7056,6 +7241,14 @@
         ]
       },
       {
+        "id": "progress",
+        "default": "medium",
+        "values": [
+          "small",
+          "medium"
+        ]
+      },
+      {
         "id": "radio-control",
         "default": "medium",
         "values": [
@@ -7210,6 +7403,15 @@
           "error",
           "warning",
           "success"
+        ]
+      },
+      {
+        "id": "progress",
+        "default": "active",
+        "values": [
+          "active",
+          "complete",
+          "error"
         ]
       }
     ],
@@ -7554,6 +7756,14 @@
         ]
       },
       {
+        "id": "progress",
+        "default": "determinate",
+        "values": [
+          "determinate",
+          "indeterminate"
+        ]
+      },
+      {
         "id": "tag",
         "default": "select",
         "values": [
@@ -7736,6 +7946,9 @@
         "id": "password-field"
       },
       {
+        "id": "progress"
+      },
+      {
         "id": "radio-group"
       },
       {
@@ -7772,6 +7985,11 @@
           "dark",
           "light"
         ]
+      }
+    ],
+    "valueText": [
+      {
+        "id": "progress"
       }
     ],
     "weight": [
@@ -8018,9 +8236,10 @@
         "flush-icon-button-neutral",
         "icon-button",
         "icon-button-destructive",
-        "icon-button-neutral"
+        "icon-button-neutral",
+        "progress"
       ],
-      "detail": "the shape axis takes 2 value sets — [circular, square] in icon-button, icon-button-destructive, icon-button-neutral; [flush, round] in flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral"
+      "detail": "the shape axis takes 3 value sets — [circular, square] in icon-button, icon-button-destructive, icon-button-neutral; [flush, round] in flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral; [circular, linear] in progress"
     },
     {
       "kind": "axis values",
@@ -8051,6 +8270,7 @@
         "pagination",
         "pagination-item",
         "password-field",
+        "progress",
         "radio-control",
         "radio-group",
         "radio-row",
@@ -8067,7 +8287,7 @@
         "text-field",
         "textarea"
       ],
-      "detail": "the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, tab-item, tabs, tag, text-field, textarea; [medium, small] in breadcrumb-item, breadcrumbs, switch-control, switch-row; [large, medium, small, x-small] in spinner"
+      "detail": "the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, tab-item, tabs, tag, text-field, textarea; [medium, small] in breadcrumb-item, breadcrumbs, progress, switch-control, switch-row; [large, medium, small, x-small] in spinner"
     },
     {
       "kind": "axis values",
@@ -8078,6 +8298,7 @@
         "checkbox-row",
         "field-message",
         "password-field",
+        "progress",
         "radio-control",
         "radio-group",
         "radio-row",
@@ -8088,7 +8309,7 @@
         "text-field",
         "textarea"
       ],
-      "detail": "the status axis takes 2 value sets — [default, error] in checkbox-control, checkbox-group, checkbox-row, radio-control, radio-group, radio-row, switch-control, switch-row; [default, error, success, warning] in field-message, password-field, search-field, select, text-field, textarea"
+      "detail": "the status axis takes 3 value sets — [default, error] in checkbox-control, checkbox-group, checkbox-row, radio-control, radio-group, radio-row, switch-control, switch-row; [default, error, success, warning] in field-message, password-field, search-field, select, text-field, textarea; [active, complete, error] in progress"
     },
     {
       "kind": "axis values",
@@ -8124,9 +8345,10 @@
         "list-item",
         "pagination",
         "pagination-item",
+        "progress",
         "tag"
       ],
-      "detail": "the type axis takes 6 value sets — [icon, ordered, unordered] in list, list-item; [chevron, slash] in _breadcrumb-separator; [compact, numbered, simple] in pagination; [count, dot, status] in badge; [dismissible, select] in tag; [ellipsis, next, page, previous] in pagination-item"
+      "detail": "the type axis takes 7 value sets — [icon, ordered, unordered] in list, list-item; [chevron, slash] in _breadcrumb-separator; [compact, numbered, simple] in pagination; [count, dot, status] in badge; [determinate, indeterminate] in progress; [dismissible, select] in tag; [ellipsis, next, page, previous] in pagination-item"
     },
     {
       "kind": "axis values",
@@ -8342,6 +8564,14 @@
     },
     {
       "kind": "size order",
+      "subject": "progress",
+      "components": [
+        "progress"
+      ],
+      "detail": "progress declares its sizes as [medium, small], not smallest first"
+    },
+    {
+      "kind": "size order",
       "subject": "radio-control",
       "components": [
         "radio-control"
@@ -8458,7 +8688,7 @@
       "components": [
         "field-label"
       ],
-      "detail": "field-label defaults size to small; 39 of 40 sized components default to medium"
+      "detail": "field-label defaults size to small; 40 of 41 sized components default to medium"
     },
     {
       "kind": "prop default",
@@ -8487,6 +8717,15 @@
         "spinner"
       ],
       "detail": "label defaults differ over the same values — Breadcrumb in breadcrumbs; Loading in spinner; Pagination in pagination"
+    },
+    {
+      "kind": "prop default",
+      "subject": "prop max",
+      "components": [
+        "badge",
+        "progress"
+      ],
+      "detail": "max defaults differ over the same values — 100 in progress; 99 in badge"
     },
     {
       "kind": "axis without prop",

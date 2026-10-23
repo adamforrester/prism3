@@ -10,7 +10,7 @@ Peers come from three groupings, each derived from the definitions:
 
 Generated from the component definitions and the emission by `packages/engine/emit-analysis-reports.ts`; `regen.ts --check` fails when this page is stale. The same data for agents: [component-comparison.json](component-comparison.json). All reports: [index](index.md).
 
-## Findings (95)
+## Findings (97)
 
 ### axis values
 
@@ -18,12 +18,12 @@ Generated from the component definitions and the emission by `packages/engine/em
 - **axis emphasis** — the emphasis axis takes 2 value sets — [bold, subtle] in badge; [primary, secondary] in field-label
 - **axis inset** — the inset axis takes 2 value sets — [default, flush] in button, button-destructive, button-neutral; [inset, middle-inset, none] in divider
 - **axis selection** — the selection axis takes 4 value sets — [selected, unselected] in link, pagination-item, segmented-control-segment, tab-item, tag; [checked, indeterminate, unchecked] in checkbox-control; [checked, unchecked] in radio-control; [off, on] in switch-control
-- **axis shape** — the shape axis takes 2 value sets — [circular, square] in icon-button, icon-button-destructive, icon-button-neutral; [flush, round] in flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral
-- **axis size** — the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, tab-item, tabs, tag, text-field, textarea; [medium, small] in breadcrumb-item, breadcrumbs, switch-control, switch-row; [large, medium, small, x-small] in spinner
-- **axis status** — the status axis takes 2 value sets — [default, error] in checkbox-control, checkbox-group, checkbox-row, radio-control, radio-group, radio-row, switch-control, switch-row; [default, error, success, warning] in field-message, password-field, search-field, select, text-field, textarea
+- **axis shape** — the shape axis takes 3 value sets — [circular, square] in icon-button, icon-button-destructive, icon-button-neutral; [flush, round] in flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral; [circular, linear] in progress
+- **axis size** — the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, tab-item, tabs, tag, text-field, textarea; [medium, small] in breadcrumb-item, breadcrumbs, progress, switch-control, switch-row; [large, medium, small, x-small] in spinner
+- **axis status** — the status axis takes 3 value sets — [default, error] in checkbox-control, checkbox-group, checkbox-row, radio-control, radio-group, radio-row, switch-control, switch-row; [default, error, success, warning] in field-message, password-field, search-field, select, text-field, textarea; [active, complete, error] in progress
 - **axis style** — the style axis takes 3 value sets — [outline] in password-field, search-field, text-field, textarea; [border, underline] in pagination, pagination-item; [inline, standalone] in link
 - **axis tone** — the tone axis takes 3 value sets — [brand, danger, info, inherit, primary, secondary, success, tertiary, warning] in icon; [danger, info, neutral, success, warning] in badge; [danger, info, success, warning] in banner
-- **axis type** — the type axis takes 6 value sets — [icon, ordered, unordered] in list, list-item; [chevron, slash] in _breadcrumb-separator; [compact, numbered, simple] in pagination; [count, dot, status] in badge; [dismissible, select] in tag; [ellipsis, next, page, previous] in pagination-item
+- **axis type** — the type axis takes 7 value sets — [icon, ordered, unordered] in list, list-item; [chevron, slash] in _breadcrumb-separator; [compact, numbered, simple] in pagination; [count, dot, status] in badge; [determinate, indeterminate] in progress; [dismissible, select] in tag; [ellipsis, next, page, previous] in pagination-item
 - **axis weight** — the weight axis takes 2 value sets — [bold, regular] in field-label; [default, emphasis] in link
 - **axis width** — the width axis takes 2 value sets — [auto, full] in button, button-destructive, button-neutral; [contained, full] in banner
 
@@ -58,10 +58,11 @@ Generated from the component definitions and the emission by `packages/engine/em
 - **prop dismissible** — dismissible defaults differ over the same values — false in banner; true in toast
 - **prop headingLevel** — headingLevel defaults differ over the same values — 2 in banner; 3 in accordion
 - **prop label** — label defaults differ over the same values — Breadcrumb in breadcrumbs; Loading in spinner; Pagination in pagination
+- **prop max** — max defaults differ over the same values — 100 in progress; 99 in badge
 
 ### size default
 
-- **field-label** — field-label defaults size to small; 39 of 40 sized components default to medium
+- **field-label** — field-label defaults size to small; 40 of 41 sized components default to medium
 
 ### size order
 
@@ -89,6 +90,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 - **pagination** — pagination declares its sizes as [medium, small, large], not smallest first
 - **pagination-item** — pagination-item declares its sizes as [medium, small, large], not smallest first
 - **password-field** — password-field declares its sizes as [medium, small, large], not smallest first
+- **progress** — progress declares its sizes as [medium, small], not smallest first
 - **radio-control** — radio-control declares its sizes as [medium, small, large], not smallest first
 - **radio-group** — radio-group declares its sizes as [medium, small, large], not smallest first
 - **radio-row** — radio-row declares its sizes as [medium, small, large], not smallest first
@@ -182,6 +184,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | pagination | navigation | — | — |
 | pagination-item | navigation | rest, hover, pressed, focus-visible, disabled | rest, hover, pressed, focus-visible, disabled |
 | password-field | form | rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled, read-only, empty | rest, hover, filled, focus-visible, focus-visible-filled, disabled, read-only |
+| progress | feedback | — | — |
 | radio-control | form | rest, hover, pressed, focus-visible, disabled | rest, hover, pressed, focus-visible, disabled |
 | radio-group | form | — | — |
 | radio-row | form | rest, hover, pressed, focus-visible, disabled, read-only | — |
@@ -250,11 +253,13 @@ Generated from the component definitions and the emission by `packages/engine/em
 | separator | chevron, slash | breadcrumb-item, breadcrumbs |
 | shape | circular, square | icon-button, icon-button-destructive, icon-button-neutral |
 |  | flush, round | flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral |
+|  | circular, linear | progress |
 | size | large, medium, small | _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, pagination, pagination-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, tab-item, tabs, tag, text-field, textarea |
-|  | medium, small | breadcrumb-item, breadcrumbs, switch-control, switch-row |
+|  | medium, small | breadcrumb-item, breadcrumbs, progress, switch-control, switch-row |
 |  | large, medium, small, x-small | spinner |
 | status | default, error | checkbox-control, checkbox-group, checkbox-row, radio-control, radio-group, radio-row, switch-control, switch-row |
 |  | default, error, success, warning | field-message, password-field, search-field, select, text-field, textarea |
+|  | active, complete, error | progress |
 | style | outline | password-field, search-field, text-field, textarea |
 |  | border, underline | pagination, pagination-item |
 |  | inline, standalone | link |
@@ -266,6 +271,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 |  | chevron, slash | _breadcrumb-separator |
 |  | compact, numbered, simple | pagination |
 |  | count, dot, status | badge |
+|  | determinate, indeterminate | progress |
 |  | dismissible, select | tag |
 |  | ellipsis, next, page, previous | pagination-item |
 | value | dark, light | veil |
@@ -305,6 +311,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 | pagination | medium, small, large | medium |
 | pagination-item | medium, small, large | medium |
 | password-field | medium, small, large | medium |
+| progress | medium, small | medium |
 | radio-control | medium, small, large | medium |
 | radio-group | medium, small, large | medium |
 | radio-row | medium, small, large | medium |
@@ -327,6 +334,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |---|---|---|---|
 | actions | banner | — | — |
 |  | dialog | — | — |
+| announce | banner | auto | auto, none |
+|  | progress | milestones | milestones, end, none |
 | appearance | button | filled | filled, outline, text |
 |  | button-destructive | filled | filled, outline, text |
 |  | button-neutral | filled | filled, outline, text |
@@ -483,6 +492,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | pagination | Pagination | — |
 |  | pagination-item | — | — |
 |  | password-field | — | — |
+|  | progress | — | — |
 |  | radio-group | — | — |
 |  | radio-row | — | — |
 |  | search-field | — | — |
@@ -508,9 +518,13 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | button-neutral | — | — |
 | max | badge | 99 | — |
 |  | counter | — | — |
+|  | progress | 100 | — |
 | message | counter | — | — |
 |  | field-message | — | — |
+|  | progress | — | — |
 |  | toast | — | — |
+| min | counter | 0 | — |
+|  | progress | 0 | — |
 | name | checkbox-group | — | — |
 |  | counter | — | — |
 |  | icon | — | 46 values |
@@ -580,6 +594,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | icon-button | square | square, circular |
 |  | icon-button-destructive | square | square, circular |
 |  | icon-button-neutral | square | square, circular |
+|  | progress | linear | linear, circular |
 | showMessage | counter | false | — |
 |  | password-field | false | — |
 |  | search-field | false | — |
@@ -614,6 +629,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | pagination | medium | small, medium, large |
 |  | pagination-item | medium | small, medium, large |
 |  | password-field | medium | small, medium, large |
+|  | progress | medium | small, medium |
 |  | radio-control | medium | small, medium, large |
 |  | radio-group | medium | small, medium, large |
 |  | radio-row | medium | small, medium, large |
@@ -629,6 +645,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | tag | medium | small, medium, large |
 |  | text-field | medium | small, medium, large |
 |  | textarea | medium | small, medium, large |
+| status | field-message | default | default, error, warning, success |
+|  | progress | active | active, complete, error |
 | style | link | standalone | standalone, inline |
 |  | pagination | border | border, underline |
 |  | pagination-item | border | border, underline |
@@ -670,6 +688,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | list-item | unordered | unordered, ordered, icon |
 |  | pagination | numbered | numbered, compact, simple |
 |  | pagination-item | page | page, ellipsis, previous, next |
+|  | progress | determinate | determinate, indeterminate |
 |  | tag | select | select, dismissible |
 |  | text-field | text | text, email, url, tel, search, password |
 | validation | checkbox-control | default | default, error |
@@ -699,6 +718,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | counter | — | — |
 |  | list-item | — | — |
 |  | password-field | — | — |
+|  | progress | — | — |
 |  | radio-group | — | — |
 |  | radio-row | — | — |
 |  | search-field | — | — |

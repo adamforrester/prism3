@@ -87,6 +87,7 @@ import { breadcrumbSeparator } from './breadcrumb-separator';
 import { breadcrumbItem } from './breadcrumb-item';
 import { breadcrumbs } from './breadcrumbs';
 import { counter } from './counter';
+import { progress } from './progress';
 
 /** Named access, kept ALONGSIDE the set rather than replaced by it. Most of `test.ts`'s component
  *  assertions are about one def's specific fields (`button.variants.appearance`,
@@ -94,7 +95,7 @@ import { counter } from './counter';
  *  be a worse call site, not a better one — a lookup that can return `undefined` standing in for a
  *  binding that cannot. The set is for iteration; these are for the assertions that are ABOUT one
  *  component. */
-export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tab, tabs, divider, accordionIndicator, accordion, listItem, list, segmentedControlSegment, segmentedControl, link, buttonGroup, dialog, passwordField, counter, searchField, breadcrumbSeparator, breadcrumbItem, breadcrumbs, banner, paginationItem, pagination };
+export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tab, tabs, divider, accordionIndicator, accordion, listItem, list, segmentedControlSegment, segmentedControl, link, buttonGroup, dialog, passwordField, counter, searchField, breadcrumbSeparator, breadcrumbItem, breadcrumbs, progress, banner, paginationItem, pagination };
 
 /** Every component def the engine defines. The one thing a projection should iterate. */
 export const componentDefs: readonly ComponentDef[] = [
@@ -238,6 +239,8 @@ export const componentDefs: readonly ComponentDef[] = [
   // slot, the neutral icon button (previous and next) and the neutral button (simple), so it comes after all three.
   paginationItem,
   pagination,
+  // `progress` (#2670) — the progress bar and ring. Nests `field-message` (its end-state message), above.
+  progress,
   // `search-field` (#2888) — TextField's second specialization, from the shared field factory. Nests `field-label`,
   // `field-message` and `focus-ring`, all above, and starts its glyph slots at `search` and `close-filled`.
   searchField,

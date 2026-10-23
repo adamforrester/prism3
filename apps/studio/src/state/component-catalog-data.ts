@@ -1416,6 +1416,22 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     ]
   },
   {
+    "id": "progress",
+    "name": "Progress",
+    "category": "feedback",
+    "summary": "Shows how far a task has got, or that it is still running. Linear or circular.",
+    "unit": "variants",
+    "spacing": [],
+    "page": "Progress",
+    "section": "Components",
+    "buildable": true,
+    "reason": null,
+    "members": 12,
+    "nests": [
+      "field-message"
+    ]
+  },
+  {
     "id": "search-field",
     "name": "SearchField",
     "category": "form",
