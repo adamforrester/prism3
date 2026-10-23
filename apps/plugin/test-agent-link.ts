@@ -61,7 +61,9 @@
  *     poll stays armed and a command sent while minimized is run; the strip skips the 380×420 floor, is never kept as
  *     the window size, ignores a late drag, and Restore returns to the size from before; Turn off (the link switched
  *     off) restores too; and nothing minimizes while the link is off. EXPECTED sizes are literals here. (mutation:
- *     `setMinimized` calling `agentLink.setOn(false)` → strip/link and strip/poll fail, by name)
+ *     `setMinimized` calling `agentLink.setOn(false)` → strip/link and strip/poll fail, by name). From Minimize to
+ *     Restore the link's `since` holds and no `on: false` reaches the panel or the record, so a bounce (off, then on)
+ *     shows too (mutation: `setOn(false); setOn(true)` in `setMinimized` → strip/since-min, strip/since-restore and strip/no-bounce fail)
  *   · strip-text: the strip's line for each state, against literals (Q2 A, Q3 A)
  *   · switch-off: with the link off again, nothing new is run
  *   · state: the panel receives the link state and the last command's headline
@@ -933,12 +935,24 @@ section('strip — minimizing resizes the window and never touches the link or i
   cs.setAsync = async (k, v) => { kept.push([k, v]); };
   const minimizedPosts = () => posted.filter((m) => m.type === 'ui-minimized').map((m) => m.minimized);
   const isOn = () => (JSON.parse(root.getSharedPluginData(MAILBOX.ns, MAILBOX.link)) as AgentLinkState).on;
+  const since = () => [main.agentLink.state().since, (JSON.parse(root.getSharedPluginData(MAILBOX.ns, MAILBOX.link)) as AgentLinkState).since];
+  // Every `on` the link published, to the panel and to the link record, from Minimize to Restore: a minimize that
+  // bounced the link (off, then on) ends where it began, so only the trail between shows it (review of #2961).
+  const linkWrites: boolean[] = [];
+  const origLinkSet = root.setSharedPluginData;
+  root.setSharedPluginData = (ns, key, v) => { if (ns === MAILBOX.ns && key === MAILBOX.link && v) linkWrites.push((JSON.parse(v) as AgentLinkState).on); origLinkSet(ns, key, v); };
+  const offTrail = () => [...posted.filter((m) => m.type === 'agent-link-state').map((m) => (m.state as AgentLinkState).on), ...linkWrites].filter((on) => on !== true).length;
   posted.length = 0;
   ok(main.agentLink.state().on === true && timers.size === 1, 'strip/start: the link is on and its poll armed');
   await toUi({ type: 'resize-ui', width: 900, height: 700, commit: true });
   ok(JSON.stringify(sizes) === '[[900,700]]' && kept.length === 1 && kept[0][0] === 'prism3:ui-size', `strip/drag: a committed drag resizes to 900×700 and keeps it (${JSON.stringify({ sizes, kept })})`);
 
+  const since0 = since();
+  ok(typeof since0[0] === 'string' && since0[0] === since0[1], `strip/since-start: the link's since is set, the same in the state and the record (${JSON.stringify(since0)})`);
+  posted.length = 0;
+  linkWrites.length = 0;
   await toUi({ type: 'minimize-ui', minimized: true });
+  ok(JSON.stringify(since()) === JSON.stringify(since0), `strip/since-min: minimizing keeps the link's since, in the state and the record (${JSON.stringify({ was: since0, now: since() })})`);
   ok(JSON.stringify(sizes.at(-1)) === '[480,40]', `strip/size: Minimize resizes to the strip, 480×40, under the 380×420 floor (${JSON.stringify(sizes.at(-1))})`);
   ok(JSON.stringify(minimizedPosts()) === '[true]', `strip/answer: the main thread answers ui-minimized true (${JSON.stringify(minimizedPosts())})`);
   ok(main.agentLink.state().on === true && isOn() === true, 'strip/link: minimizing leaves the link on, in the state and in the link record');
@@ -959,6 +973,9 @@ section('strip — minimizing resizes the window and never touches the link or i
   await toUi({ type: 'minimize-ui', minimized: false });
   ok(JSON.stringify(sizes.at(-1)) === '[900,700]' && JSON.stringify(minimizedPosts()) === '[true,false]', `strip/restore: Restore returns to 900×700, the size from before, and answers ui-minimized false (${JSON.stringify({ last: sizes.at(-1), posts: minimizedPosts() })})`);
   ok(main.agentLink.state().on === true && timers.size === 1, 'strip/restore-link: after Restore the link is still on and its poll armed');
+  ok(JSON.stringify(since()) === JSON.stringify(since0), `strip/since-restore: Restore keeps the link's since, in the state and the record (${JSON.stringify({ was: since0, now: since() })})`);
+  ok(offTrail() === 0, `strip/no-bounce: from Minimize to Restore the link never published off, to the panel or the record (${offTrail()} off)`);
+  root.setSharedPluginData = origLinkSet;
 
   await toUi({ type: 'minimize-ui', minimized: true });
   await toUi({ type: 'agent-link', on: false });
