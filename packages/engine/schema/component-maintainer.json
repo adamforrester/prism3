@@ -3258,6 +3258,7 @@
         "the backdrop — `color.scrim.default` on `::backdrop`, at every placement but full, an end panel included. It is not part of the component: the Figma page draws it behind each example as canvas furniture.",
         "stacking — a modal `<dialog>` renders in the top layer, so it needs no z-index. Avoid opening a dialog from a dialog: replace the content or close the first.",
         "right-to-left — the layout mirrors through logical properties: the close button moves to the start edge and the footer order mirrors. An end panel sits at the left edge and slides in from it (`inset-inline-end: 0`).",
+        "Dialog title size (the brand's dialogTitleSize setting) — the title binds `type.label.lg.emphasis` at Large, the default; `type.label.md.emphasis` at Medium; `type.label.sm.emphasis` at Small. One value for every dialog the brand ships, at every placement: emit the one title style, never a prop. A single dialog that needs another size is a hand override.",
         "code delivery pending: behavior layer (#2454) — initial focus placement, backdrop-click dismissal and focus return wait on that decision. The contract above holds under any answer to it."
       ],
       "notes": {
