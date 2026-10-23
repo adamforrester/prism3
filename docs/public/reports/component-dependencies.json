@@ -496,6 +496,130 @@
       ]
     },
     {
+      "from": "code-input",
+      "to": "code-input-cell",
+      "part": "cell1",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "code-input",
+      "to": "code-input-cell",
+      "part": "cell2",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "code-input",
+      "to": "code-input-cell",
+      "part": "cell3",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "code-input",
+      "to": "code-input-cell",
+      "part": "cell4",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "code-input",
+      "to": "code-input-cell",
+      "part": "cell5",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "code-input",
+      "to": "code-input-cell",
+      "part": "cell6",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "size": "medium",
+        "state": "rest"
+      },
+      "follow": [
+        "size"
+      ]
+    },
+    {
+      "from": "code-input",
+      "to": "field-label",
+      "part": "label",
+      "partKind": "nest",
+      "relation": "nest-exposed",
+      "variant": {
+        "size": "medium",
+        "emphasis": "secondary",
+        "weight": "regular",
+        "state": "rest"
+      },
+      "expose": [
+        "emphasis",
+        "weight"
+      ]
+    },
+    {
+      "from": "code-input",
+      "to": "field-message",
+      "part": "message",
+      "partKind": "nest",
+      "relation": "nest-fixed",
+      "variant": {
+        "status": "default"
+      },
+      "follow": [
+        "status"
+      ]
+    },
+    {
+      "from": "code-input-cell",
+      "to": "focus-ring",
+      "part": "focusRing",
+      "partKind": "absolute",
+      "relation": "nest-fixed",
+      "variant": {
+        "surface": "default"
+      }
+    },
+    {
       "from": "counter",
       "to": "flush-icon-button-neutral",
       "part": "decrement",
@@ -1700,6 +1824,37 @@
         "switch-row"
       ]
     },
+    "code-input": {
+      "nests": [
+        "code-input-cell",
+        "field-label",
+        "field-message"
+      ],
+      "nestsTransitively": [
+        "code-input-cell",
+        "field-label",
+        "field-message",
+        "focus-ring"
+      ],
+      "nestedBy": [],
+      "affectedByChange": [],
+      "inheritedBy": []
+    },
+    "code-input-cell": {
+      "nests": [
+        "focus-ring"
+      ],
+      "nestsTransitively": [
+        "focus-ring"
+      ],
+      "nestedBy": [
+        "code-input"
+      ],
+      "affectedByChange": [
+        "code-input"
+      ],
+      "inheritedBy": []
+    },
     "counter": {
       "nests": [
         "field-label",
@@ -1753,6 +1908,7 @@
       "nestsTransitively": [],
       "nestedBy": [
         "checkbox-group",
+        "code-input",
         "counter",
         "password-field",
         "radio-group",
@@ -1765,6 +1921,7 @@
       ],
       "affectedByChange": [
         "checkbox-group",
+        "code-input",
         "counter",
         "password-field",
         "radio-group",
@@ -1782,6 +1939,7 @@
       "nestsTransitively": [],
       "nestedBy": [
         "checkbox-group",
+        "code-input",
         "counter",
         "password-field",
         "progress",
@@ -1794,6 +1952,7 @@
       ],
       "affectedByChange": [
         "checkbox-group",
+        "code-input",
         "counter",
         "password-field",
         "progress",
@@ -1865,6 +2024,7 @@
         "button-destructive",
         "button-neutral",
         "checkbox-control",
+        "code-input-cell",
         "counter",
         "flush-icon-button",
         "flush-icon-button-destructive",
@@ -1897,6 +2057,8 @@
         "checkbox-control",
         "checkbox-group",
         "checkbox-row",
+        "code-input",
+        "code-input-cell",
         "counter",
         "dialog",
         "flush-icon-button",
@@ -2355,6 +2517,8 @@
     "checkbox-control": 1,
     "checkbox-group": 3,
     "checkbox-row": 2,
+    "code-input": 2,
+    "code-input-cell": 1,
     "counter": 2,
     "dialog": 3,
     "divider": 0,

@@ -100,6 +100,8 @@ export const TAXONOMY: Taxonomy = {
         // Password field (#2317, owner decision Q301.9 B) — its own page under Components, as Counter's is. It nests
         // Button, whose page is earlier in this list, so the nest resolves when the file is built in order.
         { page: 'Password field', defs: ['password-field'] },
+        // Code input (#2428, owner decision Q321.14 A) — its own page under Components, as Password field's is.
+        { page: 'Code input', defs: ['code-input'] },
         // Search field (#2888) — its own page under Components, as the Password field's is.
         { page: 'Search field', defs: ['search-field'] },
         { page: 'Textarea', defs: ['textarea'] },
@@ -172,6 +174,9 @@ export const TAXONOMY: Taxonomy = {
         // which shares its page, first, as the Accordion indicator shares the Accordion's. The public step leads the
         // page's usage panel over its private building block, as the Accordion does (#2932; owner Q pending).
         { page: 'Breadcrumb Item', defs: ['_breadcrumb-separator', 'breadcrumb-item'], lead: 'breadcrumb-item' },
+        // #2428 (owner decision Q329 A) — the Code cell on its own Subcomponents page: a part used only inside Code input,
+        // nested in the field's `items` slot.
+        { page: 'Code Cell', defs: ['code-input-cell'] },
       ],
     },
     {

@@ -9,10 +9,10 @@
   "note": "tokens: every token a definition declares or the design-file projection binds, keyed by path below the root. components.<id>.keys are the definition binding keys that name it; parts.<part>.where lists, per axis, the values the part is bound at — an axis bound at every value is left out, so an empty where means every member. byComponent is the inverse. unused lists emitted tokens nothing binds.",
   "summary": {
     "emitted": 791,
-    "used": 258,
-    "unusedSemantic": 253,
+    "used": 262,
+    "unusedSemantic": 249,
     "unusedPrimitive": 280,
-    "components": 52
+    "components": 54
   },
   "tokens": {
     "border-width.hairline": {
@@ -70,6 +70,26 @@
           "parts": {
             "container": {
               "members": 576,
+              "where": {}
+            }
+          }
+        },
+        "code-input-cell": {
+          "keys": [
+            "border-width",
+            "caret-width"
+          ],
+          "parts": {
+            "caret": {
+              "members": 4,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            },
+            "container": {
+              "members": 28,
               "where": {}
             }
           }
@@ -782,6 +802,21 @@
             }
           }
         },
+        "code-input-cell": {
+          "keys": [
+            "border.error"
+          ],
+          "parts": {
+            "container": {
+              "members": 4,
+              "where": {
+                "state": [
+                  "error"
+                ]
+              }
+            }
+          }
+        },
         "password-field": {
           "keys": [
             "error.border.empty",
@@ -1017,6 +1052,23 @@
             "focus-ring"
           ],
           "parts": {}
+        },
+        "code-input-cell": {
+          "keys": [
+            "border.focus-visible",
+            "border.focus-visible-filled"
+          ],
+          "parts": {
+            "container": {
+              "members": 8,
+              "where": {
+                "state": [
+                  "focus-visible",
+                  "focus-visible-filled"
+                ]
+              }
+            }
+          }
         },
         "focus-ring": {
           "keys": [
@@ -1871,6 +1923,21 @@
             }
           }
         },
+        "code-input-cell": {
+          "keys": [
+            "disabled.border"
+          ],
+          "parts": {
+            "container": {
+              "members": 4,
+              "where": {
+                "state": [
+                  "disabled"
+                ]
+              }
+            }
+          }
+        },
         "counter": {
           "keys": [
             "disabled.border"
@@ -2268,6 +2335,21 @@
                   "checked",
                   "indeterminate"
                 ],
+                "state": [
+                  "disabled"
+                ]
+              }
+            }
+          }
+        },
+        "code-input-cell": {
+          "keys": [
+            "disabled.fill"
+          ],
+          "parts": {
+            "container": {
+              "members": 4,
+              "where": {
                 "state": [
                   "disabled"
                 ]
@@ -3468,6 +3550,21 @@
             }
           }
         },
+        "code-input-cell": {
+          "keys": [
+            "border.hover"
+          ],
+          "parts": {
+            "container": {
+              "members": 4,
+              "where": {
+                "state": [
+                  "hover"
+                ]
+              }
+            }
+          }
+        },
         "password-field": {
           "keys": [
             "border.hover"
@@ -3602,6 +3699,22 @@
                 ],
                 "status": [
                   "default"
+                ]
+              }
+            }
+          }
+        },
+        "code-input-cell": {
+          "keys": [
+            "border"
+          ],
+          "parts": {
+            "container": {
+              "members": 8,
+              "where": {
+                "state": [
+                  "filled",
+                  "rest"
                 ]
               }
             }
@@ -3777,6 +3890,25 @@
     "color.field.fill": {
       "type": "color",
       "components": {
+        "code-input-cell": {
+          "keys": [
+            "fill"
+          ],
+          "parts": {
+            "container": {
+              "members": 20,
+              "where": {
+                "state": [
+                  "error",
+                  "filled",
+                  "focus-visible",
+                  "focus-visible-filled",
+                  "rest"
+                ]
+              }
+            }
+          }
+        },
         "counter": {
           "keys": [
             "outline.fill"
@@ -7220,6 +7352,21 @@
                 ],
                 "surface": [
                   "default"
+                ]
+              }
+            }
+          }
+        },
+        "code-input-cell": {
+          "keys": [
+            "overlay.hover"
+          ],
+          "parts": {
+            "container": {
+              "members": 4,
+              "where": {
+                "state": [
+                  "hover"
                 ]
               }
             }
@@ -13720,6 +13867,32 @@
             }
           }
         },
+        "code-input-cell": {
+          "keys": [
+            "caret",
+            "label"
+          ],
+          "parts": {
+            "caret": {
+              "members": 4,
+              "where": {
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            },
+            "digit": {
+              "members": 12,
+              "where": {
+                "state": [
+                  "error",
+                  "filled",
+                  "focus-visible-filled"
+                ]
+              }
+            }
+          }
+        },
         "counter": {
           "keys": [
             "ghost.label",
@@ -16194,6 +16367,22 @@
             }
           }
         },
+        "code-input-cell": {
+          "keys": [
+            "ring-offset"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 8,
+              "where": {
+                "state": [
+                  "focus-visible",
+                  "focus-visible-filled"
+                ]
+              }
+            }
+          }
+        },
         "counter": {
           "keys": [
             "outline.ring-offset"
@@ -16384,6 +16573,22 @@
               "where": {
                 "state": [
                   "focus-visible"
+                ]
+              }
+            }
+          }
+        },
+        "code-input-cell": {
+          "keys": [
+            "ring-width"
+          ],
+          "parts": {
+            "focusRing": {
+              "members": 8,
+              "where": {
+                "state": [
+                  "focus-visible",
+                  "focus-visible-filled"
                 ]
               }
             }
@@ -17082,6 +17287,24 @@
             }
           }
         },
+        "code-input-cell": {
+          "keys": [
+            "size.large.caret-height"
+          ],
+          "parts": {
+            "caret": {
+              "members": 1,
+              "where": {
+                "size": [
+                  "large"
+                ],
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            }
+          }
+        },
         "flush-icon-button": {
           "keys": [
             "size.large.flush",
@@ -17672,6 +17895,24 @@
             }
           }
         },
+        "code-input-cell": {
+          "keys": [
+            "size.medium.caret-height"
+          ],
+          "parts": {
+            "caret": {
+              "members": 1,
+              "where": {
+                "size": [
+                  "medium"
+                ],
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            }
+          }
+        },
         "flush-icon-button": {
           "keys": [
             "size.medium.flush",
@@ -18078,6 +18319,24 @@
     "icon.size.xl": {
       "type": "dimension",
       "components": {
+        "code-input-cell": {
+          "keys": [
+            "size.xlarge.caret-height"
+          ],
+          "parts": {
+            "caret": {
+              "members": 1,
+              "where": {
+                "size": [
+                  "xlarge"
+                ],
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            }
+          }
+        },
         "progress": {
           "keys": [
             "size.medium"
@@ -18401,6 +18660,24 @@
             }
           }
         },
+        "code-input-cell": {
+          "keys": [
+            "size.small.caret-height"
+          ],
+          "parts": {
+            "caret": {
+              "members": 1,
+              "where": {
+                "size": [
+                  "small"
+                ],
+                "state": [
+                  "focus-visible"
+                ]
+              }
+            }
+          }
+        },
         "field-message": {
           "keys": [
             "glyph-size"
@@ -18621,6 +18898,26 @@
                 ],
                 "size": [
                   "medium"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "radius.lg": {
+      "type": "dimension",
+      "components": {
+        "code-input-cell": {
+          "keys": [
+            "size.xlarge.radius"
+          ],
+          "parts": {
+            "container": {
+              "members": 7,
+              "where": {
+                "size": [
+                  "xlarge"
                 ]
               }
             }
@@ -19048,6 +19345,25 @@
               "where": {
                 "type": [
                   "status"
+                ]
+              }
+            }
+          }
+        },
+        "code-input-cell": {
+          "keys": [
+            "size.large.radius",
+            "size.medium.radius",
+            "size.small.radius"
+          ],
+          "parts": {
+            "container": {
+              "members": 21,
+              "where": {
+                "size": [
+                  "large",
+                  "medium",
+                  "small"
                 ]
               }
             }
@@ -20295,6 +20611,17 @@
             }
           }
         },
+        "code-input-cell": {
+          "keys": [
+            "pad"
+          ],
+          "parts": {
+            "content": {
+              "members": 28,
+              "where": {}
+            }
+          }
+        },
         "counter": {
           "keys": [
             "ghost.size.large.pad-x",
@@ -21178,6 +21505,22 @@
                   "medium"
                 ]
               }
+            }
+          }
+        },
+        "code-input": {
+          "keys": [
+            "cell-gap",
+            "root-gap"
+          ],
+          "parts": {
+            "container": {
+              "members": 48,
+              "where": {}
+            },
+            "items": {
+              "members": 48,
+              "where": {}
             }
           }
         },
@@ -23036,6 +23379,26 @@
               "where": {
                 "size": [
                   "medium"
+                ]
+              }
+            }
+          }
+        },
+        "code-input-cell": {
+          "keys": [
+            "size.small.type"
+          ],
+          "parts": {
+            "digit": {
+              "members": 3,
+              "where": {
+                "size": [
+                  "small"
+                ],
+                "state": [
+                  "error",
+                  "filled",
+                  "focus-visible-filled"
                 ]
               }
             }
@@ -25022,6 +25385,81 @@
           }
         }
       }
+    },
+    "type.title.2xl.strong": {
+      "type": "typography",
+      "components": {
+        "code-input-cell": {
+          "keys": [
+            "size.xlarge.type"
+          ],
+          "parts": {
+            "digit": {
+              "members": 3,
+              "where": {
+                "size": [
+                  "xlarge"
+                ],
+                "state": [
+                  "error",
+                  "filled",
+                  "focus-visible-filled"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "type.title.md.strong": {
+      "type": "typography",
+      "components": {
+        "code-input-cell": {
+          "keys": [
+            "size.large.type"
+          ],
+          "parts": {
+            "digit": {
+              "members": 3,
+              "where": {
+                "size": [
+                  "large"
+                ],
+                "state": [
+                  "error",
+                  "filled",
+                  "focus-visible-filled"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "type.title.sm.strong": {
+      "type": "typography",
+      "components": {
+        "code-input-cell": {
+          "keys": [
+            "size.medium.type"
+          ],
+          "parts": {
+            "digit": {
+              "members": 3,
+              "where": {
+                "size": [
+                  "medium"
+                ],
+                "state": [
+                  "error",
+                  "filled",
+                  "focus-visible-filled"
+                ]
+              }
+            }
+          }
+        }
+      }
     }
   },
   "byComponent": {
@@ -25812,6 +26250,81 @@
       "declaredNotDrawn": [
         "color.disabled.text"
       ],
+      "drawnNotDeclared": []
+    },
+    "code-input": {
+      "members": 48,
+      "axes": {
+        "size": [
+          "large",
+          "medium",
+          "small",
+          "xlarge"
+        ],
+        "state": [
+          "disabled",
+          "filled",
+          "focus-visible",
+          "focus-visible-filled",
+          "hover",
+          "rest"
+        ],
+        "status": [
+          "default",
+          "error"
+        ]
+      },
+      "tokens": [
+        "space.100"
+      ],
+      "declaredNotDrawn": [],
+      "drawnNotDeclared": []
+    },
+    "code-input-cell": {
+      "members": 28,
+      "axes": {
+        "size": [
+          "large",
+          "medium",
+          "small",
+          "xlarge"
+        ],
+        "state": [
+          "disabled",
+          "error",
+          "filled",
+          "focus-visible",
+          "focus-visible-filled",
+          "hover",
+          "rest"
+        ]
+      },
+      "tokens": [
+        "border-width.hairline",
+        "color.border.danger",
+        "color.border.focus",
+        "color.disabled.border",
+        "color.disabled.fill",
+        "color.field.border.hover",
+        "color.field.border.rest",
+        "color.field.fill",
+        "color.interactive.neutral.overlay.hover",
+        "color.text.primary",
+        "focus.ring.offset-field",
+        "focus.ring.width",
+        "icon.size.md",
+        "icon.size.sm",
+        "icon.size.xl",
+        "icon.size.xs",
+        "radius.lg",
+        "radius.sm",
+        "space.0",
+        "type.body.md.default",
+        "type.title.2xl.strong",
+        "type.title.md.strong",
+        "type.title.sm.strong"
+      ],
+      "declaredNotDrawn": [],
       "drawnNotDeclared": []
     },
     "counter": {
@@ -27808,7 +28321,6 @@
       "opacity.90",
       "radius.3xl",
       "radius.hairline",
-      "radius.lg",
       "shadow.2xl",
       "shadow.inset",
       "shadow.md",
@@ -27871,13 +28383,10 @@
       "type.label.sm.default-link",
       "type.label.sm.line-box",
       "type.title.2xl.emphasis",
-      "type.title.2xl.strong",
       "type.title.lg.emphasis",
       "type.title.lg.strong",
       "type.title.md.emphasis",
-      "type.title.md.strong",
       "type.title.sm.emphasis",
-      "type.title.sm.strong",
       "type.title.xl.emphasis",
       "type.title.xl.strong",
       "type.title.xs.emphasis",

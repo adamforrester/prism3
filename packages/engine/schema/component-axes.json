@@ -367,6 +367,56 @@
       "label": "TEXT"
     }
   },
+  "code-input": {
+    "axes": {
+      "size": [
+        "large",
+        "medium",
+        "small",
+        "xlarge"
+      ],
+      "state": [
+        "disabled",
+        "filled",
+        "focus-visible",
+        "focus-visible-filled",
+        "hover",
+        "rest"
+      ],
+      "status": [
+        "default",
+        "error"
+      ]
+    },
+    "members": 48,
+    "properties": {
+      "items": "SLOT",
+      "message": "BOOLEAN"
+    }
+  },
+  "code-input-cell": {
+    "axes": {
+      "size": [
+        "large",
+        "medium",
+        "small",
+        "xlarge"
+      ],
+      "state": [
+        "disabled",
+        "error",
+        "filled",
+        "focus-visible",
+        "focus-visible-filled",
+        "hover",
+        "rest"
+      ]
+    },
+    "members": 28,
+    "properties": {
+      "digit": "TEXT"
+    }
+  },
   "counter": {
     "axes": {
       "appearance": [

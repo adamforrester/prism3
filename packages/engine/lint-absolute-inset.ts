@@ -225,6 +225,8 @@ const ZERO_OK: Record<string, string> = {
   // `test.ts` holds the ghost offset against a literal, since a ghost member rebound to the field offset would be
   // admitted here.
   'counter.focusRing': `on appearance=outline only: ${FIELD_RING}`,
+  // #2428: the Code cell is a field box too, ringed at the field offset as TextField is.
+  'code-input-cell.focusRing': FIELD_RING,
 };
 
 /**
@@ -241,6 +243,8 @@ const MUST_COVER = [
   'checkbox-control.focusRing', 'radio-control.focusRing', 'switch-control.focusRing',
   'tag.focusRing', 'tab-item.focusRing', 'accordion.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing',
   'counter.focusRing', '_slider-thumb.focusRing',
+  'counter.focusRing',
+  'code-input-cell.focusRing',
 ];
 
 /**
@@ -259,6 +263,8 @@ const MUST_CLEAR_STROKE = [
   'checkbox-control.focusRing', 'radio-control.focusRing', 'switch-control.focusRing',
   'tag.focusRing', 'tab-item.focusRing', 'segmented-control-segment.focusRing', 'link.focusRing',
   'counter.focusRing', '_slider-thumb.focusRing',
+  'counter.focusRing',
+  'code-input-cell.focusRing',
 ];
 
 /**

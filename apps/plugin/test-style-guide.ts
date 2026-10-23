@@ -122,6 +122,10 @@
  *      wrapping below, grows to its widest row (never the one-row sum), its height its rows; one #2827's one-row sum
  *      widened is put back; a width wider than its rows need that is not that sum is kept; a rerun is stable. Expected
  *      widths from the layout rule (padding + widest child), typed here; the shim lays wrapped rows out by its own rule.
+ *  42. GROUP PAINTS (#2953): a first run fills every group frame by `color/foreground/primary` and strokes it 1px inside by
+ *      `color/border/secondary`, radius 2 (role names typed in the test, from the issue); a standalone guide stays
+ *      unstyled; a rerun keeps a designer's fill or stroke byte-identical; a bare Prism3 group from before the fix is
+ *      painted; an adopted hand-made group never is; a missing role leaves groups bare and is named.
  *
  * INDEPENDENCE (docs/34): expected values are literals written here. The ratios (19.42, 18.13, 21) and the
  * failing 3.27 (neutral/400 on white, computed by hand from the WCAG formula), 6.44 (foreground.brand on
@@ -4516,6 +4520,71 @@ const main = async (): Promise<void> => {
     let threw = '';
     try { await draw(refused.api, contract, {}, { beforeWrite: async () => { throw new Error('no version'); } }); } catch (e) { threw = (e as Error).message; }
     ok(threw === 'no version' && tablesOn(refused.sem).length + tablesOn(refused.prim).length === 0, `41: a version that cannot be saved ends the run with nothing drawn (${threw})`);
+  }
+
+  console.log('42. group paints (#2953): every group Prism3 draws is filled and stroked by role, a standalone guide is not, a designer\'s paints are kept');
+  {
+    // Typed from the issue (the owner's reference file), never read off style-guide.ts.
+    const FILL_ROLE = 'color/foreground/primary', STROKE_ROLE = 'color/border/secondary';
+    const pf = await fullFile();
+    pf.effectStyles.push({ id: 'S:effect:41,', name: 'elevation/1', description: '', effects: [{ type: 'DROP_SHADOW', visible: true, color: { r: 0, g: 0, b: 0, a: 0.2 }, offset: { x: 0, y: 2 }, radius: 4, spread: 0 }] });
+    const idOf = (role: string): string => pf.vars.find((v) => v.name === `pds3/${role}`)!.id;
+    const groupsOf = (): N[] => [pf.prim, pf.sem].flatMap((p) => pageFrames(p).filter((n) => n.name.startsWith('Style guides — ')));
+    const painted = (g: N): boolean => Array.isArray(g.fills) && (g.fills as unknown[]).length === 1 && boundId(g.fills) === idOf(FILL_ROLE)
+      && Array.isArray(g.strokes) && (g.strokes as unknown[]).length === 1 && boundId(g.strokes) === idOf(STROKE_ROLE)
+      && g.strokeWeight === 1 && g.strokeAlign === 'INSIDE' && g.cornerRadius === 2;
+    const paintsOf = (g: N): string => JSON.stringify([g.fills, g.strokes, g.strokeWeight, g.strokeAlign, g.cornerRadius]);
+
+    // (1) A FIRST RUN paints every group frame, on both pages.
+    const first = await draw(pf.api, contract);
+    const groups = groupsOf();
+    ok(JSON.stringify(groups.map((g) => g.name)) === JSON.stringify(['Style guides — Palettes', 'Style guides — Semantic colors', 'Style guides — Inverse colors']) && groups.every(painted),
+      `42: a first run paints all 3 group frames (Palettes, Semantic colors, Inverse colors): fill bound to ${FILL_ROLE}, a 1px inside stroke bound to ${STROKE_ROLE}, radius 2 (not: ${groups.filter((g) => !painted(g)).map((g) => `${g.name} ${paintsOf(g)}`).join('; ') || 'none'})`);
+    ok(!first.misses.some((m) => m.includes('Style guide groups')), `42: with both roles in the file, no note about group paints (${first.misses.join('; ')})`);
+
+    // (2) A STANDALONE GUIDE (Effect styles, in no group) is not painted as a group.
+    const eff = tableFrame(pf.sem, 'Effect styles')!;
+    ok(eff.parent === pf.sem && boundId(eff.fills) !== idOf(FILL_ROLE) && !(eff.strokes as unknown[]).length && eff.cornerRadius !== 2,
+      `42: the standalone Effect styles guide stays unstyled (${paintsOf(eff)})`);
+
+    // (3) A SECOND RUN keeps what it painted, and never touches a designer's paints: a fill alone, a stroke alone.
+    const [byFill, byStroke, kept] = [groupFrame(pf.prim, 'Palettes')!, groupFrame(pf.sem, 'Inverse colors')!, groupFrame(pf.sem, 'Semantic colors')!];
+    byFill.fills = [{ type: 'SOLID', visible: true, opacity: 1, blendMode: 'NORMAL', color: { r: 0.9, g: 0.1, b: 0.1 } }]; byFill.strokes = []; byFill.cornerRadius = 12;
+    byStroke.fills = []; byStroke.strokes = [{ type: 'SOLID', visible: true, opacity: 1, blendMode: 'NORMAL', color: { r: 0.1, g: 0.1, b: 0.9 } }]; byStroke.strokeWeight = 4; byStroke.cornerRadius = 0;
+    const before = [byFill, byStroke, kept].map(paintsOf);
+    await draw(pf.api, contract);
+    const after = [byFill, byStroke, kept].map(paintsOf);
+    ok(JSON.stringify(after) === JSON.stringify(before), `42: a second run leaves a designer's fill, a designer's stroke and its own paints byte-identical (${before.map((b, i) => (b === after[i] ? 'same' : `${b} → ${after[i]}`)).join(' | ')})`);
+
+    // (4) A PRISM3 GROUP WITH NO PAINTS (every file drawn before #2953) is painted by the next run, a filtered one too.
+    const old = groupFrame(pf.sem, 'Semantic colors')!;
+    old.fills = []; old.strokes = []; old.cornerRadius = 0;
+    await draw(pf.api, contract, { collections: ['color'] });
+    ok(painted(old), `42: a run over a Prism3 group with no paints paints it (${paintsOf(old)})`);
+
+    // (4b) A BARE PRISM3 GROUP WITH A DESIGNER'S RADIUS is painted, and its corner is left as the designer set it.
+    const rounded = groupFrame(pf.sem, 'Inverse colors')!;
+    rounded.fills = []; rounded.strokes = []; rounded.cornerRadius = 8;
+    await draw(pf.api, contract);
+    ok(boundId(rounded.fills) === idOf(FILL_ROLE) && boundId(rounded.strokes) === idOf(STROKE_ROLE) && rounded.cornerRadius === 8,
+      `42: a bare group with a designer's radius of 8 is painted, its radius kept at 8 (${paintsOf(rounded)})`);
+
+    // (5) A HAND-MADE GROUP ADOPTED AS A HOME is never painted: a Prism3 group whose mark no longer names it is a copy.
+    const hand = groupFrame(pf.prim, 'Palettes')!;
+    hand.pluginData['prism3-style-guide-group-mark'] = 'not-this-frame';
+    hand.fills = []; hand.strokes = []; hand.cornerRadius = 0;
+    await draw(pf.api, contract);
+    ok(!(hand.fills as unknown[]).length && !(hand.strokes as unknown[]).length && hand.cornerRadius === 0 && pageFrames(pf.prim).filter((n) => n.name === 'Style guides — Palettes').length === 1,
+      `42: a hand-made group adopted as a home is never painted, and no second group is drawn for it (${paintsOf(hand)})`);
+
+    // (6) A FILE WITHOUT ONE OF THE ROLES: groups stay bare, and the run says why.
+    const nf = await fullFile();
+    nf.vars.splice(nf.vars.findIndex((v) => v.name === `pds3/${STROKE_ROLE}`), 1);
+    const r6 = await draw(nf.api, contract);
+    const bareGroups = [nf.prim, nf.sem].flatMap((p) => pageFrames(p).filter((n) => n.name.startsWith('Style guides — ')));
+    ok(bareGroups.length > 0 && bareGroups.every((g) => !(g.fills as unknown[]).length && !(g.strokes as unknown[]).length)
+      && r6.misses.includes(`Style guide groups are drawn without a fill or stroke: the file has no ${STROKE_ROLE} variable`),
+      `42: with ${STROKE_ROLE} missing, groups stay bare and the run names the missing role (${r6.misses.filter((m) => m.includes('group')).join('; ')})`);
   }
 
   if (failures) { console.error(`\n${failures} style-guide check(s) failed`); process.exit(1); }

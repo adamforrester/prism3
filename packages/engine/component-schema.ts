@@ -1374,6 +1374,15 @@ export type FigmaProperties = {
    *  available rather than whichever axis sorts last. Validated against the def's own axis names, so
    *  a `gridAxis` naming an axis this def does not project is an error rather than a silent fallback. */
   gridAxis?: string;
+  /** WHERE "While pressing" GOES on a set that has no `pressed` look (#2428, owner decision Q344). The prototype
+   *  reactions (`apps/plugin/src/reactions.ts`, #2466) are planned for a set whose state axis holds rest, hover and
+   *  pressed. Code input's cell holds rest and hover but no pressed: pressing a cell focuses the code input, so its
+   *  press changes the cell to the active one. This names that state; Rest and Hover then carry While pressing to it,
+   *  and Rest carries While hovering to Hover, as on every interactive set. Absent, the destination is `pressed`.
+   *
+   *  Carried onto the plan only where declared, so every other plan (and its `planStamp`) is byte-identical. Refused
+   *  when the state axis lacks rest or hover, holds `pressed` (the plan's own destination), or does not hold it. */
+  pressState?: string;
   /** COORDINATES THE SET DOES NOT HAVE — a sparse variant grid (owner decision, 2026-09-28, first used by
    *  `badge`). Every other field here multiplies: the set is the full cross product of its axes. This is
    *  the one field that subtracts, for a def where one axis value has no meaning at some value of another —
@@ -1765,6 +1774,15 @@ export type ComponentDef = {
    *  `bold` and `default` as `regular`. Without it, the axis values must themselves be intents. */
   weightIntent?: { axis: VariantAxis; group: TypeGroup; intents?: Record<string, WeightIntent> };
 
+  /** A FIXED WEIGHT INTENT (#2428) — every `type.<group>.*` ref in `tokens` names a weight by INTENT, with no axis to
+   *  carry it. Code input's cell binds the title steps for its 20, 24 and 40px characters (owner decision Q330 A), and
+   *  the title weights a brand ships differ (the default `strong`; prism3 `emphasis` and `strong`; a light serif brand
+   *  `subtle` only), so a hard role misses on some brand (#1601). `applyWeightIntent` repoints each such ref's role to
+   *  the brand's resolution of `intent` (`resolveWeightIntent`), the rule `weightIntent` uses. The authored role is the
+   *  DEFAULT-brand resolution, so a themeless projection is unchanged. Validated: `group` names at least one bound ref,
+   *  and it is not the `weightIntent` group as well (one category resolved two ways). */
+  typeWeight?: { group: TypeGroup; intent: WeightIntent };
+
   /** THE SPACING THAT FOLLOWS DENSITY (the spacing model, 2026-09-29: "size is for size, space is for
    *  space"). The `tokens` keys whose `space.*` step is this def's COMFORTABLE padding or gap. Before
    *  projection, `applySpacingDensity` moves each one step down the space ladder at compact and one step up
@@ -2113,6 +2131,15 @@ export const validateComponentDef = (
   // checks are RELATIONAL — the axis must be declared, its values must be known intents, and every type
   // token keyed under it must sit in the declared category — so a def that hard-binds a role NB never
   // emits (the #1601 shape) is caught here rather than resolving to nothing at paste time.
+  if (def.typeWeight) {
+    const { group, intent } = def.typeWeight;
+    if (!(WEIGHT_INTENTS as readonly string[]).includes(intent))
+      errors.push(`typeWeight.intent '${intent}' is not a weight intent [${WEIGHT_INTENTS.join(', ')}]`);
+    if (!Object.values(def.tokens ?? {}).some((ref) => typeof ref === 'string' && ref.startsWith(`type.${group}.`)))
+      errors.push(`typeWeight.group '${group}': no \`type.${group}.*\` token is bound — the intent resolves nothing`);
+    if (def.weightIntent?.group === group)
+      errors.push(`typeWeight.group '${group}' is also the weightIntent group — one category's weight resolved two ways`);
+  }
   if (def.weightIntent) {
     const { axis, group } = def.weightIntent;
     const axisValues = variantsOf(def)[axis];
@@ -2394,6 +2421,15 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
   // value of the field: a typo'd or renamed axis would otherwise leave the grid looking chosen while
   // it was inherited again — exactly the #656 failure, restored by a rename nobody ran a gate over.
   // Placed after the three axis blocks because it needs the complete name list they build.
+  if (fp.pressState !== undefined) {
+    const sv: string[] = fp.stateAxis?.values ?? [];
+    if (!sv.includes('rest') || !sv.includes('hover'))
+      e.push(`figmaProperties.pressState: '${fp.pressState}' needs a state axis holding rest and hover — they are the reactions' sources`);
+    if (sv.includes('pressed'))
+      e.push(`figmaProperties.pressState: the state axis holds 'pressed', which is already where While pressing goes`);
+    if (!sv.includes(fp.pressState))
+      e.push(`figmaProperties.pressState: '${fp.pressState}' is not a value of the state axis [${sv.join(', ')}] — no member sits at it`);
+  }
   if (fp.gridAxis !== undefined) {
     const names = figmaAxisNames(def);
     if (!names.includes(fp.gridAxis))

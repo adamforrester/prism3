@@ -332,6 +332,11 @@ const EXCLUDED: Record<string, string> = {
   'radio-group': 'a group container — its interactive tap targets are the nested radio-rows, which are gated',
   'tabs': 'a tab list container — its interactive tap targets are the nested tabs, which are gated as tab',
   'link': 'one text line tall in Figma by owner decision (Q289.4 A), so its box is the line, not a control height: code expands the hit area to at least 24px (SC 2.5.8, codeOnly), and an inline link in a sentence is exempt under the inline exception',
+  // #2428: Code input's target is its row of cells, one target over the one input, built at the owner's literal cell
+  // heights (Q330 A: 44, 56, 64, 72px; `builtSize`, no token), so there is no binding here to read. test.ts holds those
+  // heights against the 44px floor as literals (`#2428 code-input: the row of cells is a target of at least 44px`).
+  'code-input': 'its pointer target is the row of cells over its one input, built at literal cell heights (owner decision Q330 A, no token), so no binding to measure here; test.ts holds every size at 44px or taller',
+  'code-input-cell': 'an aria-hidden drawing of one character inside a code input, never focusable and never a target of its own; the row of cells is the code input\'s one target',
   // #2666: neither is a control of its own. The targets are the nested Link (one text line, its code-side 24px area
   // stated under `link`) and the nested FlushIconButton.Neutral (measured under its own name, 44×44 in code).
   'breadcrumbs': 'a navigation container — its targets are the nested items\' links and overflow button, and the parent path\'s Link, each a control of its own',
