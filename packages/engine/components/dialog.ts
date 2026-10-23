@@ -102,6 +102,7 @@ export const dialog: ComponentDef = {
     // The title in the large label's emphasis weight, which every brand emits: the proposal drafted `type.title.sm.strong`,
     // which a brand with a single title weight (the nb-redesign example, `subtle` only) does not emit, so it would miss
     // at build time. The accordion's title met the same gap the same way (owner decision, 2026-10-11). Held on #2609.
+    // The brand's Dialog title size (#2958) moves the rung, never the role: `applyDialogTitleSize` binds md or sm here.
     'title-type': 'type.label.lg.emphasis',
     'description-type': 'type.body.md.default',
     'body-type': 'type.body.md.default',
@@ -300,6 +301,8 @@ export const dialog: ComponentDef = {
       'the backdrop — `color.scrim.default` on `::backdrop`, at every placement but full, an end panel included. It is not part of the component: the Figma page draws it behind each example as canvas furniture.',
       'stacking — a modal `<dialog>` renders in the top layer, so it needs no z-index. Avoid opening a dialog from a dialog: replace the content or close the first.',
       'right-to-left — the layout mirrors through logical properties: the close button moves to the start edge and the footer order mirrors. An end panel sits at the left edge and slides in from it (`inset-inline-end: 0`).',
+      // #2958 (owner Q588, Q588b A): one title style per brand, from the brand's dialogTitleSize setting.
+      'Dialog title size (the brand\'s dialogTitleSize setting) — the title binds `type.label.lg.emphasis` at Large, the default; `type.label.md.emphasis` at Medium; `type.label.sm.emphasis` at Small. One value for every dialog the brand ships, at every placement: emit the one title style, never a prop. A single dialog that needs another size is a hand override.',
       'code delivery pending: behavior layer (#2454) — initial focus placement, backdrop-click dismissal and focus return wait on that decision. The contract above holds under any answer to it.',
     ],
   },

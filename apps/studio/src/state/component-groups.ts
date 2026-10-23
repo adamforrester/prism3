@@ -47,7 +47,7 @@ export type GroupRow = {
 };
 
 /** A section: one with settings (`SETTING_SECTIONS`), or Other components, or Subcomponents. */
-export type SectionKind = 'buttons' | 'fields' | 'tags' | GroupKind;
+export type SectionKind = 'buttons' | 'fields' | 'tags' | 'dialogs' | GroupKind;
 
 export type GroupSection = {
   readonly kind: SectionKind;
@@ -62,17 +62,20 @@ export type GroupSection = {
  *  `anatomy-figma.ts`, typed here so no definition reaches the web bundle; `test-component-groups.ts` holds the two
  *  together). Search field (#2888) is in Fields (Q5 A), with its own Search options block (`SECTION_BLOCKS`). Code input
  *  (#2428) is in Fields because Field style draws its cell, a subcomponent the field nests (owner decision Q-2789.3 A).
- *  Tag holds the sets Tag style draws (`TAG_STYLE_PARTS`, held the same way). */
-export const SETTING_SECTIONS: readonly { readonly kind: 'buttons' | 'fields' | 'tags'; readonly pages: readonly string[]; readonly ids: readonly string[] }[] = [
+ *  Tag holds the sets Tag style draws (`TAG_STYLE_PARTS`, held the same way). Dialog holds the sets Dialog title size
+ *  reaches (`DIALOG_TITLE_TYPE_KEYS`, #2958, held the same way). */
+export const SETTING_SECTIONS: readonly { readonly kind: 'buttons' | 'fields' | 'tags' | 'dialogs'; readonly pages: readonly string[]; readonly ids: readonly string[] }[] = [
   { kind: 'buttons', pages: ['Buttons'], ids: [] },
   // #2888 shipped Search field; Q5 A on #2905 puts it inside Fields, with its own Search options block (#2952).
   // #2428: Code input joins Fields, as the component that nests the cell Field style draws (Q-2789.3 A).
   { kind: 'fields', pages: [], ids: ['code-input', 'password-field', 'search-field', 'select', 'text-field', 'textarea'] },
   { kind: 'tags', pages: [], ids: ['tag'] },
+  // #2958: Dialog title size's home (Q578: component settings live with their components), built as Tag's is (Q579 A).
+  { kind: 'dialogs', pages: [], ids: ['dialog'] },
 ];
 
 /** A settings block on the page: its key names its disclosure line (`opts=<key>`) and its open state. */
-export type BlockKey = 'buttons' | 'fields' | 'search' | 'tags';
+export type BlockKey = 'buttons' | 'fields' | 'search' | 'tags' | 'dialogs';
 
 /** Each section's settings blocks, in the order they draw after its sets (#2952): a section holds a LIST, not one
  *  block, because Fields holds two, Field options and then Search options below it (#2905 Q5 A). Each block has its own
@@ -82,13 +85,14 @@ export const SECTION_BLOCKS: Readonly<Partial<Record<SectionKind, readonly Block
   buttons: ['buttons'],
   fields: ['fields', 'search'],
   tags: ['tags'],
+  dialogs: ['dialogs'],
 };
 
 /** The page's copy. DRAFT: the approved wireframe's own words (#2700), pending the owner's copy sign-off. */
 export const GROUPS_COPY = {
   intro: (n: number): string => `The ${n} component sets the engine defines, in families. A build places each on its page in this file.`,
   /** Q10 A on #2905: the section titles as drafted in wireframe v2, Tag's included (placed by #2931 Q579 A). */
-  sections: { buttons: 'Buttons', fields: 'Fields', tags: 'Tag', components: 'Other components', subcomponents: 'Subcomponents' } as Record<SectionKind, string>,
+  sections: { buttons: 'Buttons', fields: 'Fields', tags: 'Tag', dialogs: 'Dialog', components: 'Other components', subcomponents: 'Subcomponents' } as Record<SectionKind, string>,
   sectionCount: (kind: SectionKind, rows: number, sets: number): string =>
     kind !== 'components' && kind !== 'subcomponents' ? plural(sets, 'set')
       : `${rows} ${kind === 'components' ? 'families and sets' : rows === 1 ? 'entry' : 'entries'} · ${plural(sets, 'set')}`,
