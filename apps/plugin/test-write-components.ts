@@ -5156,6 +5156,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     ['searchFieldStyle', 'outline'], ['searchFieldStyle', 'underline'],
     // #2887 (Q513.1 A): "Tag style: Underline" adds no token; it moves only the materialized Tag def.
     ['tagStyle', 'underline'],
+    // #2958 (Q588b A): "Dialog title size" adds no token; Medium and Small move only the materialized Dialog def.
+    ['dialogTitleSize', 'medium'], ['dialogTitleSize', 'small'],
   ];
   const getIn = (o: any, key: string): unknown => key.split('.').reduce((a, p) => a?.[p], o);
   const setIn = (o: any, key: string, v: unknown): any => {
@@ -5274,6 +5276,41 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   });
   ok(followBad.length === 0 && edgeOf('search-field', at({ fieldStyle: 'underline' })) === 'underline',
     `#2888 Follow keeps search identical to fieldStyle: unset and Follow field style build the search field byte-identical to its brand's own Field style, outline and underline (differs under: ${followBad.join(', ') || 'none'})`);
+}
+
+// =============================================================================================
+// #2958 — DIALOG TITLE SIZE, built through `materializeForBrand` and read back from the host shim
+// =============================================================================================
+// One brand-wide title size for every dialog (owner Q588, Q588b A). A brand on Small builds every one of Dialog's 24
+// members with its title on `label/sm/emphasis`, Medium on `label/md/emphasis`, and an unset brand on
+// `label/lg/emphasis`. The host holds only the brand's EMITTED text styles (`buildFigmaTextStyles`, the emitter's side),
+// and the expected names are typed here from the decision, never read off the materializer's table (docs/34).
+{
+  const aurora = exampleBrands().aurora as BrandInput;
+  const titles = async (input: BrandInput): Promise<{ read: number; styles: string[]; misses: string[] }> => {
+    const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, input), { swapTarget: SWAP });
+    const all = componentDefs.flatMap((d) => { try { return project(d); } catch { return []; } });
+    const f = fullFor(all);
+    const def = componentDefs.find((d) => d.id === 'dialog')!;
+    const page: Page = { children: [] };
+    const shim = makeShim({ vars: f.vars, styles: buildFigmaTextStyles(brandTheme(input)).styles.map((st) => st.name), effects: f.effects, comps: [], liveRoot: true, page });
+    const build = (d: ComponentDef) => applyComponentPlan(project(d), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents });
+    await prebuildDependencies(def, { defs: componentDefs, project, host: shim as any, build });
+    const run = await build(def);
+    const set = page.children.find((c) => c.type === 'COMPONENT_SET' && c.name === project(def)[0].component) as Node | undefined;
+    const members = (set?.children ?? []) as Node[];
+    const titleOf = (m: Node): Node | undefined => ((m.findAll as ((p: (n: Node) => boolean) => Node[]) | undefined)?.((n) => n.type === 'TEXT' && n.name === 'title') ?? [])[0];
+    return {
+      read: members.length,
+      styles: [...new Set(members.map((m) => String(titleOf(m)?._textStyleId ?? '').replace(/^S:/, '')))],
+      misses: run.misses.filter((m) => /textStyle/.test(m)),
+    };
+  };
+  for (const [size, want] of [[undefined, 'label/lg/emphasis'], ['medium', 'label/md/emphasis'], ['small', 'label/sm/emphasis']] as const) {
+    const got = await titles(size ? { ...aurora, dialogTitleSize: size } as BrandInput : aurora);
+    ok(got.read === 24 && JSON.stringify(got.styles) === JSON.stringify([want]) && got.misses.length === 0,
+      `#2958 dialog title reads back: at ${size ?? 'unset (Large)'}, all ${got.read} of 24 members bind the title to ${want}, a style the brand emits (${got.styles.join(', ')}; misses: ${got.misses.slice(0, 2).join('; ') || 'none'})`);
+  }
 }
 
 // =============================================================================================

@@ -305,6 +305,29 @@
       "description": "The shape of every tag. Pill draws a rounded outline; Underline draws one line under the tag, 2px when selected or under the pointer. Either way the line clears 3:1."
     },
     {
+      "key": "dialogTitleSize",
+      "group": "form",
+      "kind": "value",
+      "label": "Dialog title size",
+      "control": "enum",
+      "default": "large",
+      "options": [
+        {
+          "value": "large",
+          "label": "Large"
+        },
+        {
+          "value": "medium",
+          "label": "Medium"
+        },
+        {
+          "value": "small",
+          "label": "Small"
+        }
+      ],
+      "description": "The title of every dialog and sheet: the large, medium or small label style, at Emphasis weight. One dialog can still be changed by hand in Figma."
+    },
+    {
       "key": "buttonIcons",
       "group": "form",
       "kind": "structural",
