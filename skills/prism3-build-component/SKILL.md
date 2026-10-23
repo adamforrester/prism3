@@ -10,6 +10,7 @@ description: >-
   and the verification discipline a shipped def owes — including the mutation that
   must fail a surface gate by name. For an agent working ON the engine, not with
   its output.
+classifies: levers
 when_to_use: >-
   When adding or reshaping a component definition under
   `packages/engine/components/` — a new control, a new media component, or a new
@@ -601,6 +602,81 @@ below is yours, and read the field's comment in `packages/engine/component-schem
 
 `variantWhen` is not a `figmaProperties` field: it sits on a nesting relation (§3).
 
+## Brand settings — every setting is VALUE or STRUCTURAL
+
+A component build often wants a new brand setting (a lever in `packages/engine/levers.ts`), and every
+setting adds work to the coded components. So every lever declares its `kind` (owner decision on #2959):
+
+- **VALUE** — the setting resolves to token values at generation time: a size, color, radius, weight or
+  type step. The coded component has one shape and reads a token, so the setting costs no code.
+- **STRUCTURAL** — the setting changes a component's anatomy or behavior: pill vs underline, outline vs
+  underline, icons attached to the label vs locked to the edges. The shared coded component must implement
+  every option, and each option multiplies what that component must test. **A structural setting needs the
+  owner's explicit OK in its wireframe** — show each option's anatomy there, not only the default.
+- **Prefer a brand-wide setting over a per-instance prop.** A per-instance prop becomes permanent API in
+  every brand's code; a brand-wide value setting costs nothing at the component.
+
+When you add a lever, set `kind` on it. `packages/engine/test.ts` fails a lever with no `kind`, by name,
+and pins the structural set as `STRUCTURAL_LEVERS` in `packages/engine/test.ts`, so a new structural lever
+is a second edit there, made after the owner's OK. This table classifies every live lever; `lint-skills`
+fails if a row is missing or disagrees with the manifest. A retired lever is left out.
+
+| Lever | Kind | Why (where not obvious) |
+|---|---|---|
+| `primary` | value |  |
+| `neutral.hue` | value |  |
+| `neutral.chroma` | value |  |
+| `neutral.anchor` | value |  |
+| `brandColors` | value |  |
+| `actionPalette` | value |  |
+| `linkPalette` | value |  |
+| `status.success` | value |  |
+| `status.warning` | value |  |
+| `status.danger` | value |  |
+| `status.info` | value |  |
+| `surfaces` | value |  |
+| `strictInteractiveContrast` | value | swaps the inverse label ink token |
+| `linkStateRungs` | value |  |
+| `radiusScale` | value |  |
+| `density` | value |  |
+| `controlShape` | value | a corner radius per control; pill rounds button ends fully, still a radius value |
+| `fieldStyle` | structural | outline draws a box, underline one line with no side padding: two field anatomies |
+| `searchFieldStyle` | structural | the same two anatomies, for the search field on its own |
+| `tagStyle` | structural | pill outline or underline: two tag anatomies, with a 2px selected line |
+| `buttonIcons` | structural | icons beside the label, or pinned to the edges with the label centered between: two layouts |
+| `buttonContentSize` | value | a medium button reads the small label style and icon size |
+| `buttonLabelWeight` | value |  |
+| `buttonTextHover` | structural | a text button either stays unfilled or fills on hover and pressed: two behaviors |
+| `buttonMinWidthMultiplier` | value |  |
+| `baseMd` | value |  |
+| `typography.typeScale` | value |  |
+| `typography.families` | value |  |
+| `typography.weightRoles` | value |  |
+| `typography.displayCeiling` | value |  |
+| `typography.titleFloor` | value |  |
+| `typography.captionFloor` | value |  |
+| `typography.sizeFloor` | value |  |
+| `typography.responsive` | value |  |
+| `typography.weights` | value |  |
+| `typography.links` | value |  |
+| `typography.italics` | value |  |
+| `typography.italicDefault` | value |  |
+| `motionPersonality.tempo` | value |  |
+| `shadow.softness` | value |  |
+| `shadow.tint` | value |  |
+| `layout.breakpoints` | value |  |
+| `layout.columns` | value |  |
+| `layout.containerMax` | value |  |
+| `layout.containerNarrow` | value |  |
+| `iconContrast` | value |  |
+| `disabledStrategy` | value |  |
+| `disabledMin` | value |  |
+| `outlineInteraction` | structural | which fill family, if any, carries an outline or text hover: three hover behaviors |
+| `neutralEmphasis` | value |  |
+| `interactivePalettes` | value | adds token columns; a component offers them only through its own axis |
+| `gradients` | value |  |
+
+
 ## 7. Verification — the gate lists, the whole run, and the mutation that names your gate
 
 **A new def joins these lists by hand.** Each is authored in its gate, never derived from the registry,
@@ -715,7 +791,8 @@ one until that arc builds it.
 
 ## Before you finish
 
-1. The owner has seen a wireframe of the component as it will be built, before the build started.
+1. The owner has seen a wireframe of the component as it will be built, before the build started. A new
+   brand setting declares its `kind`, and a structural one has the owner's explicit OK in that wireframe.
 2. The def is authored from its KB brief: the header cites it exactly once, `category` is the brief's,
    and every brief section has landed in its field (§0) or is recorded as an omission in `notes`.
 3. Shipped fields are written for people — no brief sections, issue numbers, "def", all-caps, code spans or Prism 2 —

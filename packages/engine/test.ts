@@ -9868,6 +9868,19 @@ arm: {
   const badGC = leverManifest.filter((l) => !groups.has(l.group) || !controls.has(l.control)).map((l) => l.key);
   ok(badGC.length === 0, 'lever manifest: every group + control is from the allowed set' + (badGC.length ? ` — BAD: ${badGC.join(', ')}` : ''));
 
+  // #2959 (owner Q599 A) — EVERY LEVER DECLARES WHAT IT COSTS THE CODED COMPONENTS. A lever with no
+  // `kind` fails here by name, so a new lever cannot ship unclassified (tsx runs without a typecheck, so
+  // the required field on `Lever` alone would not stop it). STRUCTURAL_LEVERS is the owner-approved
+  // structural set, restated here on purpose: it is the oracle, the manifest the subject, so marking a new
+  // lever structural, or quietly downgrading one to `value`, is a second edit a reviewer sees.
+  const STRUCTURAL_LEVERS = ['fieldStyle', 'searchFieldStyle', 'tagStyle', 'buttonIcons', 'buttonTextHover', 'outlineInteraction'];
+  const noKind = leverManifest.filter((l) => !['value', 'structural'].includes((l as { kind?: unknown }).kind as string)).map((l) => l.key);
+  ok(noKind.length === 0, 'lever manifest: every lever declares kind value or structural (#2959)' + (noKind.length ? ` — MISSING: ${noKind.join(', ')}` : ''));
+  const structural = leverManifest.filter((l) => l.kind === 'structural').map((l) => l.key);
+  ok(setEq(structural, STRUCTURAL_LEVERS),
+    'lever manifest: the structural levers are exactly the owner-approved set (#2959)' +
+    (setEq(structural, STRUCTURAL_LEVERS) ? '' : ` — manifest: ${structural.join(', ')}; approved: ${STRUCTURAL_LEVERS.join(', ')}`));
+
   // Enum parity, two-sided but asymmetric. The hard invariant: the UI may never offer a value the
   // schema would REJECT (options ⊆ enum). The other direction is softer, because the schema can
   // legitimately accept more than the UI offers — a retired value kept as a back-compat alias
