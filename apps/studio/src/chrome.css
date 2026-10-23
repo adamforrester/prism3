@@ -923,9 +923,9 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-space-150
 .p3-cp-nobox, .p3-cp-fold-space { flex: none; width: var(--p3-ctl-h-xs); }
 .p3-cp-fold { flex: none; min-height: var(--p3-ctl-h-xs); min-width: var(--p3-ctl-h-xs); }
 .p3-cp-fold[aria-expanded="true"] > .p3-ico { transform: rotate(90deg); }
-/* A family's settings disclosure (#2844, Q439 A): one ghost line under the family's sets, aligned with them, its chevron
-   turning as the fold's does. The block under it is hidden while the line is closed. */
-.p3-cp-optsline { padding-left: var(--p3-space-400); }
+/* A section's settings disclosure (#2844, Q439 A): one ghost line after the section's sets, its chevron turning as the
+   fold's does. The block under it is hidden while the line is closed. Line, block and rows share the section's one edge
+   (#2905, Q1 A and Q8 A), so neither the line nor the block is indented. */
 .p3-cp-optstoggle { min-height: var(--p3-ctl-h-xs); max-width: 100%; justify-content: flex-start; }
 .p3-cp-optstoggle[aria-expanded="true"] > .p3-ico { transform: rotate(90deg); }
 .p3-icol.p3-cp-optsec[hidden] { display: none; }
