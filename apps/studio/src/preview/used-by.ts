@@ -15,6 +15,9 @@ export const USED_BY = {
       "radius.capsule": [
         "Progress"
       ],
+      "radius.lg": [
+        "CodeInput"
+      ],
       "radius.md": [
         "Button",
         "IconButton",
@@ -44,7 +47,8 @@ export const USED_BY = {
         "SegmentedControl",
         "PasswordField",
         "Counter",
-        "SearchField"
+        "SearchField",
+        "CodeInput"
       ],
       "radius.xl": [
         "Toast"
@@ -59,6 +63,9 @@ export const USED_BY = {
         "IconButton",
         "Progress"
       ],
+      "radius.lg": [
+        "CodeInput"
+      ],
       "radius.md": [
         "SegmentedControl",
         "Pagination",
@@ -86,7 +93,8 @@ export const USED_BY = {
         "SegmentedControl",
         "PasswordField",
         "Counter",
-        "SearchField"
+        "SearchField",
+        "CodeInput"
       ],
       "radius.xl": [
         "Toast"
@@ -98,6 +106,9 @@ export const USED_BY = {
       ],
       "radius.capsule": [
         "Progress"
+      ],
+      "radius.lg": [
+        "CodeInput"
       ],
       "radius.md": [
         "SegmentedControl",
@@ -129,7 +140,8 @@ export const USED_BY = {
         "Badge",
         "SegmentedControl",
         "PasswordField",
-        "Counter"
+        "Counter",
+        "CodeInput"
       ],
       "radius.xl": [
         "Toast"
@@ -150,6 +162,9 @@ export const USED_BY = {
         "Checkbox.Control",
         "Select",
         "SearchField"
+      ],
+      "radius.lg": [
+        "CodeInput"
       ],
       "radius.md": [
         "SegmentedControl",
@@ -174,7 +189,8 @@ export const USED_BY = {
         "Badge",
         "SegmentedControl",
         "PasswordField",
-        "Counter"
+        "Counter",
+        "CodeInput"
       ],
       "radius.xl": [
         "Toast"

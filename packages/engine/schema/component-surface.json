@@ -840,6 +840,35 @@
         "title text:TEXT",
         "title:BOOLEAN"
       ]
+    },
+    "code-input-cell": {
+      "members": 28,
+      "sha256": "d0857df733826ea6e1f2a9e869c212c47b475d9613bc2582cef9bcbc95120a9c",
+      "properties": [
+        "digit:TEXT"
+      ]
+    },
+    "code-input-cell@outline-solid-tint": {
+      "members": 28,
+      "sha256": "dc1ce53587bb028f5fb6acf512a779b0e019ef50c4c52ce8abc55e54a6654cce",
+      "properties": [
+        "digit:TEXT"
+      ]
+    },
+    "code-input-cell@outline-none": {
+      "members": 28,
+      "sha256": "10273a351aca9f6670b859ae4f5999eafe21050f105f91e44c44654d6cbeede6",
+      "properties": [
+        "digit:TEXT"
+      ]
+    },
+    "code-input": {
+      "members": 48,
+      "sha256": "925bf5a057b85e4036d3e53ce41a78c816e60f868895d83f8ab915e41216f7dc",
+      "properties": [
+        "items:SLOT",
+        "message:BOOLEAN"
+      ]
     }
   }
 }

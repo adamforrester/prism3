@@ -1060,6 +1060,9 @@ export const makeShim = (opts: ShimOpts = {}) => {
         }
         node._textStyleId = id;
         node.textStyleId = id;
+        // #2428 — A STYLE CARRIES ITS OWN VERTICAL TRIM, and applying it writes that trim to the node (every
+        // emitted style's is `NONE`). Through the backing field, so applying a style does not detach it again.
+        (node as Record<string, unknown>)._leadingTrim = 'NONE';
       },
       // #1007 — WRITTEN UNDER FIGMA'S OWN PROPERTY NAMES as well as the private ones.
       //
