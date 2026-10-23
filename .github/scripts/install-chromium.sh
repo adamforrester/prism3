@@ -15,6 +15,14 @@
 #      `dpkg --configure -a` finishes whatever it left half-configured.
 #   3. Three failures still fail the job, with the same named error. Never advisory.
 #
+# THE SLOW MIRROR #2951 FOUND. The browser comes from the cache, but its system packages (about 26 MB,
+# mostly CJK and Thai fonts) were fetched from Ubuntu's mirror on every run. A mirror that is slow but
+# not stalled trips none of the apt timeouts above, so all three attempts ran past the bound. So apt
+# keeps the packages it downloads in a directory the runner user owns (ARCHIVES), and ci.yml caches the
+# `.deb` files in it, next to the browser cache. On a warm cache apt downloads nothing, and on a cold one
+# each attempt keeps what the attempt before finished downloading. apt downloads as root here, not as
+# `_apt`, because `_apt` cannot reach a directory under the runner's home.
+#
 # Tested by `.github/scripts/test-install-chromium.sh`, with a stand-in install that leaves a lock-holding
 # child behind. The PRISM3_* variables exist for that test; CI sets none of them.
 set -u
@@ -23,18 +31,31 @@ INSTALL=${PRISM3_INSTALL:-npx playwright install --with-deps chromium}
 BOUND=${PRISM3_INSTALL_BOUND:-240}
 SUDO=${PRISM3_SUDO-sudo}
 APT_CONF=${PRISM3_APT_CONF:-/etc/apt/apt.conf.d/99prism3-ci}
+ARCHIVES=${PRISM3_APT_ARCHIVES:-$HOME/.cache/prism3-apt}
 CLEAR=${PRISM3_APT_CLEAR:-"$SUDO pkill -x apt-get; $SUDO pkill -x apt"}
 REPAIR=${PRISM3_DPKG_REPAIR:-"$SUDO dpkg --configure -a"}
 
+# The archive directory is created by the runner user, so ci.yml's cache can restore into it and save it.
+if ! mkdir -p "$ARCHIVES/partial"; then
+  echo "::error::could not create the apt archive directory $ARCHIVES; the browser gates cannot run"
+  exit 1
+fi
+
 # 30 s per fetch, three retries, and up to 120 s waiting for a held lock: all inside one attempt's bound.
+# Then the archive directory ci.yml caches (#2951).
 if ! printf '%s\n' \
   'Acquire::http::Timeout "30";' \
   'Acquire::https::Timeout "30";' \
   'Acquire::Retries "3";' \
-  'DPkg::Lock::Timeout "120";' | $SUDO tee "$APT_CONF" > /dev/null; then
+  'DPkg::Lock::Timeout "120";' \
+  "Dir::Cache::Archives \"$ARCHIVES/\";" \
+  'APT::Sandbox::User "root";' | $SUDO tee "$APT_CONF" > /dev/null; then
   echo "::error::could not write the apt config $APT_CONF; the browser gates cannot run"
   exit 1
 fi
+
+# What the cache restored, so a run's log shows whether the mirror is needed at all.
+echo "apt archive $ARCHIVES: $(find "$ARCHIVES" -maxdepth 1 -name '*.deb' | wc -l | tr -d ' ') cached .deb files"
 
 for attempt in 1 2 3; do
   if [ "$attempt" -gt 1 ]; then
