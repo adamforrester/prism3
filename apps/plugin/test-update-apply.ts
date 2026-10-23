@@ -872,6 +872,39 @@ section('accordion side padding — a file built at the old large 24px updates i
   ok(post?.counts.current === 24, `accordion pad-x/current: every member reads current after (${JSON.stringify(post?.counts)})`);
 }
 
+section('min/max — a member built under one Tag style and updated under the other has a fresh build\'s min and max sizes (#2976)');
+{
+  // Owner QA 2026-10-23: a file built as Pill and updated to Underline kept the pill's height and 1.5x width as plain
+  // floors, so the underline tag did not hug. Both directions: Pill writes a literal `minWidth` on the container,
+  // Underline binds the label row's `minHeight`, and the host leaves either behind when the plan stops setting it.
+  const tagPlans = (tagStyle: string) => figmaAnatomySet(materializeForBrand(componentDefs.find((x) => x.id === TAG)!, { tagStyle } as Parameters<typeof materializeForBrand>[1]), { swapTarget: SWAP_TARGET });
+  const varsOf = (plans: AnatomyPlan[]) => [...new Set(plans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]))];
+  const SIZES = ['minWidth', 'maxWidth', 'minHeight', 'maxHeight'] as const;
+  const sizesUnder = (n: Node, path = '.', out = new Map<string, string>()): Map<string, string> => {
+    out.set(path, SIZES.map((k) => { const v = (n as Record<string, unknown>)[k]; const bound = (n.boundVariables as Record<string, unknown> | undefined)?.[k] ? ' bound' : ''; return `${k}=${typeof v === 'number' ? Math.round(v * 100) / 100 : 'none'}${bound}`; }).join(' '));
+    if (n.type !== 'INSTANCE') ((n.children ?? []) as Node[]).forEach((c) => sizesUnder(c, `${path}/${c.name}`, out));
+    return out;
+  };
+  const differs = (a: Node, b: Node) => {
+    const x = sizesUnder(a), y = sizesUnder(b);
+    return [...new Set([...x.keys(), ...y.keys()])].filter((k) => x.get(k) !== y.get(k)).map((k) => `${a.name} ${k}: ${x.get(k)}, fresh ${y.get(k)}`);
+  };
+  for (const [from, to] of [['pill', 'underline'], ['underline', 'pill']] as const) {
+    const fromPlans = tagPlans(from), toPlans = tagPlans(to);
+    const w = await world(TAG, fromPlans, { extraVars: varsOf(toPlans), extraStyles: [...new Set(toPlans.flatMap((p) => planTextStyles(p.root)))] });
+    const fresh = await world(TAG, toPlans, { extraVars: varsOf(fromPlans) });
+    const freshOf = (m: Node) => membersOf(fresh.set()).find((f) => f.name === m.name);
+    const premise = membersOf(w.set()).flatMap((m) => { const f = freshOf(m); return f ? differs(m, f) : []; });
+    ok(premise.length > 0, `premise: built as ${from}, the tag's min and max sizes differ from a fresh ${to} build (${premise.length} nodes, e.g. ${premise[0]})`);
+    const { res } = await confirm(w, [{ def: TAG, plans: toPlans }]);
+    const off = membersOf(w.set()).flatMap((m) => { const f = freshOf(m); return f ? differs(m, f) : [`${m.name}: not in a fresh build`]; });
+    ok(applyVerdict(res).ok && membersOf(w.set()).length === membersOf(fresh.set()).length && off.length === 0,
+      `#2976 min/max ${from} → ${to}: every node of every member updated in place has a fresh ${to} build's minWidth, maxWidth, minHeight and maxHeight (${applyVerdict(res).headline}; ${off.length} off — ${off.slice(0, 3).join('; ') || 'none'})`);
+    const post = (await previewUpdate(w.host, [{ def: TAG, plans: toPlans }])).sets[0];
+    ok(post?.counts.current === membersOf(w.set()).length, `#2976 min/max ${from} → ${to}/current: a second dry run reads every member current (${JSON.stringify(post?.counts)})`);
+  }
+}
+
 /* ── single ──────────────────────────────────────────────────────────────────────────────────────────── */
 section('single — the icons, updated in place as single components (#2296)');
 const singleWorld = async (plans: AnatomyPlan[], extraVars: string[] = [], o: { keyPrefix?: string; styleIdPrefix?: string } = {}) => {
