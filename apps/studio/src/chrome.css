@@ -1382,7 +1382,8 @@ h1.p3-sr { margin: 0; font-family: var(--p3-font-ui); font-size: var(--p3-fs-14)
 .p3-home-agenttext { display: grid; gap: var(--p3-space-025); min-width: 0; }
 .p3-home-agenttitle { color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-14); font-weight: var(--p3-fw-strong); }
 .p3-home-agentstatus { color: var(--p3-text-2); font-family: var(--p3-font-ui); font-size: var(--p3-fs-12); line-height: var(--p3-lh-cozy); overflow-wrap: anywhere; }
-/* The bar's name for a home, in place of the brand switcher: text, then the "Library file" badge. */
+/* The bar's name for a home, in place of the brand switcher: text, then the "Library file" badge. The badge inks in the
+   primary text color: the secondary one measured 4.16:1 on the dark bar, under the 4.5:1 floor (`test:chrome` §28b). */
 .p3-homename { display: flex; align-items: center; gap: var(--p3-space-100); min-width: 0; flex: 0 1 auto; }
 .p3-homename-text {
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; color: var(--p3-text);
@@ -1390,7 +1391,7 @@ h1.p3-sr { margin: 0; font-family: var(--p3-font-ui); font-size: var(--p3-fs-14)
 }
 .p3-homename-badge {
   flex: none; padding: 0 var(--p3-space-100); border: var(--p3-bw-hairline) solid var(--p3-line-2); border-radius: var(--p3-radius-pill);
-  color: var(--p3-text-2); font-family: var(--p3-font-ui); font-size: var(--p3-fs-12); line-height: var(--p3-lh-cozy); white-space: nowrap;
+  color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-12); line-height: var(--p3-lh-cozy); white-space: nowrap;
 }
 .p3-homename-badge[hidden] { display: none; }
 .p3-frame[data-w="narrow"]:has(> .p3-drawer[data-open="true"]) .p3-sgpage { display: none; }

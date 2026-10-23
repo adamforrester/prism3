@@ -48,7 +48,7 @@ const plain = (s: HostSession): unknown => ({ ...s, hostFontStyles: [...s.hostFo
 /** Every kind the UI's handler receives, written out here rather than read from the code under test. */
 const KINDS = [
   'apply-result', 'component-result', 'component-update-result', 'file-setup-result', 'style-guide-result', 'component-progress', 'style-guide-progress',
-  'prune-result', 'seed-info', 'restore-input', 'restore-input-empty', 'restore-input-error', 'font-list',
+  'prune-result', 'seed-info', 'restore-input', 'restore-input-empty', 'restore-input-reading', 'restore-input-library', 'restore-input-error', 'font-list',
   'agent-started', 'agent-progress', 'agent-finished', 'refused',
   'style-guide-catalog', 'style-guide-tables', 'style-guide-table', 'style-guide-cleanup-result',
 ] as const;
@@ -219,6 +219,11 @@ ok(refuses, 'premise: the engine refuses an empty object as a BrandInput');
 {
   const empty = step(init, { kind: 'restore-input-empty' });
   ok(empty.next === init && empty.effect === 'startFresh' && empty.topics.length === 0, 'restore-input-empty: no host state; asks for the fresh-file start');
+  // #2879: the two new answers act on the brand session only, like the empty one.
+  const reading = step(init, { kind: 'restore-input-reading' });
+  ok(reading.next === init && reading.effect === 'readFile' && reading.topics.length === 0, 'restore-input-reading: no host state; asks for "Reading this file"');
+  const lib = step(init, { kind: 'restore-input-library', library: { name: 'Product Library', versions: ['0.237.0'], instances: 3, bindings: 0 } });
+  ok(lib.next === init && lib.effect === 'libraryHome' && lib.topics.length === 0, 'restore-input-library: no host state; asks for the library home');
   const err = step(init, { kind: 'restore-input-error', message: 'unknown schema 9' });
   ok(err.next.restoreError === 'unknown schema 9' && same(err.topics, ['host']), 'restore-input-error: records the message and invalidates host (the bar)');
   const fonts = step(init, { kind: 'font-list', families: ['Inter', 'Roboto', 'Mystery'], styles: [18, 36] });

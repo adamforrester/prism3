@@ -101,6 +101,15 @@ accepts('seed-info with a malformed failed count', { type: 'seed-info', ok: fals
 accepts('restore-input', { type: 'restore-input', input: { name: 'b' } },
   { kind: 'restore-input', input: { name: 'b' } });
 accepts('restore-input-empty', { type: 'restore-input-empty' }, { kind: 'restore-input-empty' });
+// #2879: the file check's two messages. The library answer is validated at the boundary: counts are whole and not
+// negative, versions are semvers, a blank name is no name, and one that states no evidence is dropped.
+accepts('restore-input-reading', { type: 'restore-input-reading' }, { kind: 'restore-input-reading' });
+accepts('restore-input-library', { type: 'restore-input-library', library: { name: ' Product Library ', versions: ['0.231.0', 'x', 7, '0.237.0'], instances: 12, bindings: 3.5 } },
+  { kind: 'restore-input-library', library: { name: 'Product Library', versions: ['0.231.0', '0.237.0'], instances: 12, bindings: 0 } });
+accepts('restore-input-library with no name', { type: 'restore-input-library', library: { name: '  ', versions: [], instances: 0, bindings: 4 } },
+  { kind: 'restore-input-library', library: { name: null, versions: [], instances: 0, bindings: 4 } });
+drops('restore-input-library with no evidence', { pluginMessage: { type: 'restore-input-library', library: { name: 'Product Library', versions: ['0.237.0'], instances: 0, bindings: -2 } } });
+drops('restore-input-library with no library', { pluginMessage: { type: 'restore-input-library' } });
 accepts('restore-input-error', { type: 'restore-input-error', message: 'old shape' },
   { kind: 'restore-input-error', message: 'old shape' });
 accepts('font-list, with a non-string family dropped together with its count', { type: 'font-list', families: ['Inter', 7, 'Roboto'], styles: [9, 3, 36] },

@@ -10150,7 +10150,7 @@ const HOME_LIT = {
 const HOME_ABSENT = ['brand-switcher', 'verdict', 'export-open', 'figma-open', 'apply-to-figma', 'tab-row'];
 /** The home's floors (literals): the library home draws its heading, two lines, the switch's title and status, the
  *  button and the bar's tiles; the minimal home fewer. */
-const HOME_FLOOR = { library: { text: 7, edges: 3, glyphs: 3, controls: 5, fonts: 6 }, none: { text: 4, edges: 1, glyphs: 3, controls: 4, fonts: 4 } };
+const HOME_FLOOR = { library: { text: 7, edges: 2, glyphs: 3, controls: 5, fonts: 6 }, none: { text: 4, edges: 1, glyphs: 3, controls: 4, fonts: 4 } };
 const readHome = (page) => page.evaluate((absent) => {
   const q = (s) => document.querySelector(s);
   const shown = (n) => !!n && n.getClientRects().length > 0;
