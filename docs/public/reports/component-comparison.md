@@ -10,7 +10,7 @@ Peers come from three groupings, each derived from the definitions:
 
 Generated from the component definitions and the emission by `packages/engine/emit-analysis-reports.ts`; `regen.ts --check` fails when this page is stale. The same data for agents: [component-comparison.json](component-comparison.json). All reports: [index](index.md).
 
-## Findings (89)
+## Findings (92)
 
 ### axis values
 
@@ -22,9 +22,10 @@ Generated from the component definitions and the emission by `packages/engine/em
 - **axis size** — the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, tab-item, tabs, tag, text-field, textarea; [medium, small] in breadcrumb-item, breadcrumbs, switch-control, switch-row; [large, medium, small, x-small] in spinner
 - **axis status** — the status axis takes 2 value sets — [default, error] in checkbox-control, checkbox-group, checkbox-row, radio-control, radio-group, radio-row, switch-control, switch-row; [default, error, success, warning] in field-message, password-field, search-field, select, text-field, textarea
 - **axis style** — the style axis takes 2 value sets — [outline] in password-field, search-field, text-field, textarea; [inline, standalone] in link
-- **axis tone** — the tone axis takes 2 value sets — [brand, danger, info, inherit, primary, secondary, success, tertiary, warning] in icon; [danger, info, neutral, success, warning] in badge
+- **axis tone** — the tone axis takes 3 value sets — [brand, danger, info, inherit, primary, secondary, success, tertiary, warning] in icon; [danger, info, neutral, success, warning] in badge; [danger, info, success, warning] in banner
 - **axis type** — the type axis takes 4 value sets — [icon, ordered, unordered] in list, list-item; [chevron, slash] in _breadcrumb-separator; [count, dot, status] in badge; [dismissible, select] in tag
 - **axis weight** — the weight axis takes 2 value sets — [bold, regular] in field-label; [default, emphasis] in link
+- **axis width** — the width axis takes 2 value sets — [auto, full] in button, button-destructive, button-neutral; [contained, full] in banner
 
 ### axis without prop
 
@@ -53,6 +54,8 @@ Generated from the component definitions and the emission by `packages/engine/em
 
 ### prop default
 
+- **prop dismissible** — dismissible defaults differ over the same values — false in banner; true in toast
+- **prop headingLevel** — headingLevel defaults differ over the same values — 2 in banner; 3 in accordion
 - **prop label** — label defaults differ over the same values — Breadcrumb in breadcrumbs; Loading in spinner
 
 ### size default
@@ -146,6 +149,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | _breadcrumb-separator | navigation | — | — |
 | accordion | navigation | rest, focus-visible | rest, focus-visible |
 | badge | foundations | — | — |
+| banner | feedback | — | — |
 | breadcrumb-item | navigation | — | — |
 | breadcrumbs | navigation | — | — |
 | button | form | rest, hover, pressed, pending, focus-visible, disabled, inactive | rest, hover, pressed, pending, focus-visible, disabled |
@@ -250,6 +254,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | surface | default, inverse | button, button-destructive, button-neutral, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, focus-ring, icon-button, icon-button-destructive, icon-button-neutral, link |
 | tone | brand, danger, info, inherit, primary, secondary, success, tertiary, warning | icon |
 |  | danger, info, neutral, success, warning | badge |
+|  | danger, info, success, warning | banner |
 | type | icon, ordered, unordered | list, list-item |
 |  | chevron, slash | _breadcrumb-separator |
 |  | count, dot, status | badge |
@@ -258,6 +263,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | weight | bold, regular | field-label |
 |  | default, emphasis | link |
 | width | auto, full | button, button-destructive, button-neutral |
+|  | contained, full | banner |
 
 Icon's `name` axis is the icon set itself and is covered by the [icon usage](icon-usage.md) report.
 
@@ -308,6 +314,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 
 | Prop | Component | Default | Values |
 |---|---|---|---|
+| actions | banner | — | — |
+|  | dialog | — | — |
 | appearance | button | filled | filled, outline, text |
 |  | button-destructive | filled | filled, outline, text |
 |  | button-neutral | filled | filled, outline, text |
@@ -336,6 +344,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | switch-control | — | — |
 |  | switch-row | — | — |
 | children | accordion | — | — |
+|  | banner | — | — |
 |  | dialog | — | — |
 |  | list-item | — | — |
 | defaultValue | checkbox-group | — | — |
@@ -377,11 +386,15 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | tag | false | — |
 |  | text-field | false | — |
 |  | textarea | false | — |
+| dismissible | banner | false | — |
+|  | toast | true | — |
 | emphasis | badge | subtle | subtle, bold |
 |  | field-label | secondary | secondary, primary |
 | fullWidth | button | false | — |
 |  | button-destructive | false | — |
 |  | button-neutral | false | — |
+| headingLevel | accordion | 3 | 2, 3, 4, 5, 6 |
+|  | banner | 2 | 2, 3, 4, 5, 6 |
 | helpText | password-field | — | — |
 |  | search-field | — | — |
 |  | select | — | — |
@@ -392,7 +405,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | button-destructive | — | — |
 |  | button-neutral | — | — |
 |  | link | — | — |
-| icon | field-message | — | — |
+| icon | banner | — | — |
+|  | field-message | — | — |
 |  | flush-icon-button | — | — |
 |  | flush-icon-button-destructive | — | — |
 |  | flush-icon-button-neutral | — | — |
@@ -511,6 +525,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | icon-button-destructive | — | — |
 |  | icon-button-neutral | — | — |
 |  | tag | — | — |
+| onDismiss | banner | — | — |
+|  | toast | — | — |
 | placeholder | password-field | — | — |
 |  | search-field | — | — |
 |  | select | — | — |
@@ -603,8 +619,10 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | icon-button-neutral | default | default, inverse |
 |  | link | default | default, inverse |
 | title | accordion | — | — |
+|  | banner | — | — |
 |  | dialog | — | — |
 | tone | badge | neutral | neutral, info, success, warning, danger |
+|  | banner | info | info, success, warning, danger |
 |  | icon | inherit | 9 values |
 | trailingIcon | link | — | — |
 |  | search-field | — | — |
@@ -667,3 +685,5 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | veil | dark | dark, light |
 | weight | field-label | regular | regular, bold |
 |  | link | emphasis | emphasis, default |
+| width | banner | contained | contained, full |
+|  | segmented-control | auto | auto, full |

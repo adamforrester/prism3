@@ -268,7 +268,9 @@ const makeShim = (plans: AnatomyPlan[], page: { children: any[] }) => {
 //
 // One row per property a created node carries a value for before anything writes to it, restricted to
 // those that change what a designer SEES. `claimedBy` names the writes that count as a decision — a
-// bound variable and a direct assignment both count, and a method call is written with parentheses.
+// bound variable and a direct assignment both count, and a method call is written with parentheses. A `+`
+// joins writes that count only TOGETHER: the four per-side stroke weights (#2695, `strokeEdges`; Banner's full-width
+// bar, #2786) decide the border thickness only when all four are written, for the reason the corners below are four rows.
 //
 // THE FOUR CORNERS ARE FOUR ROWS, not one `cornerRadius` row with five aliases. A def that binds only
 // `topLeftRadius` has claimed one corner; a row satisfied by any of the five would call the other three
@@ -306,7 +308,7 @@ const VISUALLY_SIGNIFICANT: readonly Row[] = [
   // by `glyphSvg` on an imported node, whose outline `[]` would erase.
   { prop: 'fills', types: ALL, deflt: 'one opaque white SOLID on a frame · [] on a set (probed live 2026-09-27)', seen: 'an opaque white box behind the content — the defect QA found four times', claimedBy: ['fills'], arm: 'ink' },
   { prop: 'strokes', types: ALL, deflt: '[] — on a set from combineAsVariants too: it sets the dash and radius, not the paint (probed live 2026-09-27)', seen: 'the variant-set border', claimedBy: ['strokes'], arm: 'ink' },
-  { prop: 'strokeWeight', types: ALL, deflt: '1', seen: 'border thickness, once there is a stroke to draw', claimedBy: ['strokeWeight'], arm: 'ink' },
+  { prop: 'strokeWeight', types: ALL, deflt: '1', seen: 'border thickness, once there is a stroke to draw', claimedBy: ['strokeWeight', 'strokeTopWeight+strokeRightWeight+strokeBottomWeight+strokeLeftWeight'], arm: 'ink' },
   { prop: 'strokeAlign', types: ALL, deflt: "'INSIDE'", seen: 'which side of the edge the border sits on', claimedBy: ['strokeAlign'], arm: 'ink' },
   { prop: 'dashPattern', types: ALL, deflt: '[] on a frame · dashed on a set', seen: 'the dash rhythm of that border', claimedBy: ['dashPattern'], arm: 'ink' },
   { prop: 'constraints', types: ALL, deflt: '{ horizontal: MIN, vertical: MIN }', seen: 'how the node moves and scales when its parent resizes', claimedBy: ['constraints'], arm: 'ink' },
@@ -366,7 +368,7 @@ type Miss = { def: string; type: string; name: string; prop: string; deflt: stri
 const PRINT_CAP = 40;
 
 const claimed = (n: Rec, r: Row): boolean =>
-  r.claimedBy.some((c) => n.props.has(c) || n.bound.has(c) || n.calls.has(c));
+  r.claimedBy.some((c) => c.split('+').every((w) => n.props.has(w) || n.bound.has(w) || n.calls.has(w)));
 
 const main = async (): Promise<void> => {
   const misses: Miss[] = [];

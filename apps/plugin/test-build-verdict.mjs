@@ -1165,14 +1165,14 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   for (const id of ['tag', 'badge']) await hooks.click(page.locator(`[data-p3="cp-box"][data-key="set=${id}"]`));
   // Q391 A: under a search, the section's box acts on the rows shown. "badge" matches Badge, and Tag, whose summary says
   // "A static label is a badge."; Tag is in the Tag section now (#2931 Q579 A), so Other components shows Badge alone,
-  // and its box reaches neither its other 26 sets nor Tag.
+  // and its box reaches neither its other 27 sets nor Tag.
   await hooks.click(page.locator('[data-p3="search-open"]'));
   await page.locator('[data-p3="search-input"]').fill('badge');
   await page.waitForFunction(() => document.querySelectorAll('[data-p3="cp-section"][data-kind="components"] [data-p3="cp-row"]').length === 1, null, { timeout: 4000 }).catch(() => {});
   await hooks.click(page.locator('[data-p3="cp-box"][data-key="sec=components"]'));
   const scoped = await readSurfaces(page);
   ok(scoped.picker === 'badge' && scoped.button === 'Build 1 set' && (await aria('sec=components')) === 'true',
-    `#2812 Q391 under a search for "badge" the Components box selects the one row shown, not the section's 27 sets nor Tag in its own section, and reads checked over it — selected ${scoped.picker}, read "${scoped.button}", box ${await aria('sec=components')}`);
+    `#2812 Q391 under a search for "badge" the Components box selects the one row shown, not the section's 28 sets nor Tag in its own section, and reads checked over it — selected ${scoped.picker}, read "${scoped.button}", box ${await aria('sec=components')}`);
   await hooks.click(page.locator('[data-p3="cp-box"][data-key="sec=components"]'));
   // Call 7: a search opens the families a match sits in. A fresh page, so every family starts closed.
   await page.close();

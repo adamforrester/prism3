@@ -3839,6 +3839,75 @@
           "reason": "not in the schema yet"
         }
       ]
+    },
+    "banner": {
+      "codeOnly": [
+        "static or inserted — a banner present when the page loads is a `<section aria-labelledby>` pointing at the title, read in document order, with no live region: `role=\"alert\"` on it would announce it twice or at the wrong time. A banner inserted after an action is announced through the page's shared live region, which exists before the text is inserted: assertive (`role=\"alert\"`) for danger, polite (`role=\"status\"`) for the other tones. `announce=\"none\"` turns that off.",
+        "the heading level — the title renders as the `<h*>` that `headingLevel` names (default 2), never a hard-coded level. Figma has no heading level.",
+        "dismissal — the dismiss button renders only when `dismissible` and `onDismiss` are both set. Its accessible name says what it dismisses (\"Dismiss error message\"), not a bare \"Close\". The dismissal is stored against an id and a version, so a dismissed notice does not return on reload. A banner about a condition that still blocks the user is not dismissible, or comes back only while the condition holds.",
+        "focus after a dismiss — focus moves to a surviving element that makes sense (the control that caused the banner, or the page heading), never to the page body.",
+        "the dismiss target — the small flush FlushIconButton is a 20px glyph; its hit area extends to at least 44×44px in code, as FlushIconButton's does. The banner's padding (at least 12px at compact) and its gap to the content leave that room, and the action sits below the first line, so the dismiss's 24px target circle touches no other target (2.5.8).",
+        "one banner at a time — show only the most serious banner in a region; route lower-priority messages to a notification list rather than stacking banners.",
+        "motion — appears with an opacity fade; a dismiss collapses the height (about 150 to 200ms) and fades, on `motion.transition.exit`, so the content below does not jump. Under `prefers-reduced-motion` both are instant. A banner inserted at the top of a page later reserves its space. Figma shows the banner at rest.",
+        "RTL — logical properties throughout: the glyph and the dismiss button swap edges. No glyph mirrors (the four tone glyphs and the close glyph are symmetric).",
+        "text expansion — never a fixed height. The text wraps, and so does the action's label.",
+        "forced colors — the edge is a border, so it stays in the system border color when the browser removes the fill.",
+        "the full width — a bar across the page: square corners, and the edge on the top and bottom only (`border-block`, no `border-inline`), spanning its container with no side margin. Figma builds it at 960 so it reads wider than the 480 contained member."
+      ],
+      "notes": {
+        "contested": [
+          "HELD FOR THE OWNER (#2579): the glyph per tone follows FieldMessage (danger: the exclamation in a triangle; warning: in a circle), where the proposal listed the glyph names in tone order; the title text property reads \"title text\" beside the \"title\" toggle, as Dialog's description does; the action row offset (space.150); the page under Components rather than a new feedback section.",
+          "HELD FOR THE OWNER (Q533.4): the full width is built on the recommended answer, a 960 bar, square, edged top and bottom only (the proposal's own top and bottom edge, now that the stroke binds per side, #2695). The alternatives are on #2786.",
+          "The brief's bold (high-contrast) emphasis, a neutral tone and the promotional genre are not built (Q327.1 A, Q327.2 A); each can follow."
+        ],
+        "unverified": [
+          "That the native slot keeps a designer's body content across a tone or width switch, as it does across the accordion's expansion switch.",
+          "Whether the nested buttons' Rest, Hover and Pressed prototype reactions fire inside a nested instance (the open nesting item on #2466)."
+        ],
+        "evolution": [
+          "Q386 (#2808): no component requires the Neutral button families, so the dismiss nests FlushIconButton.Neutral with the close glyph fixed and no swap, as Dialog's close does (Q385), and the action nests the primary Button, preferring Button.Neutral only when the file has it.",
+          "Owner QA Q533 (2026-10-22): one text action only, with no second action, no outline action and no Button group (Q533.1), which supersedes Q327.6's two actions; the full width made visibly different (Q533.4).",
+          "Owner decisions: the proposal on #2579 and Q327 (2026-10-16): tones info, success, warning and danger; subtle emphasis only; placement on a width axis, contained or full; title and body in text.primary; the body a native content slot; up to two actions, outline then text, off by default; the name Banner with the aliases alert, callout and inline-alert; a full 1px border in the tone color. Q346: the edge binds the border role, never an icon or text role."
+        ],
+        "projection": []
+      },
+      "docGaps": [
+        {
+          "section": "styles",
+          "field": "states",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
     }
   }
 }

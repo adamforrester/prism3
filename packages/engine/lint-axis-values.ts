@@ -580,6 +580,17 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'ink, and it is the default, which is why this axis is not projected to Figma at all.',
   },
   {
+    axis: 'tone',
+    values: ['info', 'success', 'warning', 'danger'],
+    defs: ['banner'],
+    relation: 'subset',
+    reason:
+      'How serious a banner\'s message is (#2579, owner decision Q327.1 A): the four status roles, spelled as the token '
+      + 'tier spells them, so a value names the same role as in `icon` and `badge`. No `neutral` (Q327.1 declined it) and no '
+      + 'rank words or `inherit`: a banner paints a tinted surface and an edge, which only a status role has. `info` LEADS '
+      + 'because it is the code default and Figma\'s default member (Q347).',
+  },
+  {
     axis: 'status',
     values: ['default', 'error', 'warning', 'success'],
     defs: ['field-message', 'select', 'text-field', 'textarea', 'password-field', 'search-field'],
@@ -614,11 +625,24 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
     axis: 'width',
     values: ['auto', 'full'],
     defs: ['button', 'button-destructive', 'button-neutral'],
-    relation: 'sole',
+    relation: 'canonical',
     reason:
-      'Whether the button takes its content\'s width or its container\'s — two values because there is no '
+      'CANONICAL since the banner took the axis name (#2579): the set its `contained | full` is described against. '
+      + 'Whether the button takes its content\'s width or its container\'s — two values because there is no '
       + 'third that is not a layout concern belonging to the container. Named for the BEHAVIOR rather than '
       + 'a measurement, so it survives a brand re-deriving its dimensions.',
+  },
+  {
+    axis: 'width',
+    values: ['contained', 'full'],
+    defs: ['banner'],
+    relation: 'overlapping',
+    reason:
+      'Where a banner sits (#2579, owner decision Q327.3 A): a rounded box inside a section, or square-cornered across the '
+      + 'page. OVERLAPPING, argued: `full` means the same thing in both sets, the container\'s whole width, and that is why '
+      + 'the name is shared rather than a new `placement` (a schema change Q327.3 declined). `contained` replaces `auto` '
+      + 'because a banner never hugs its content; it fills its section either way. `contained` LEADS because it is the '
+      + 'code default and Figma\'s default member (Q347).',
   },
   {
     axis: 'weight',
