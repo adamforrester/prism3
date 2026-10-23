@@ -2653,20 +2653,36 @@ export const DEFAULT_BUTTON_LAYOUT: ButtonLayout = { icons: 'attached', content:
  *  (the spinner reads the icon key too, so it shrinks with the icon it stands in for). */
 export const CONTENT_OFFSET = { size: 'medium', from: 'small', keys: ['type', 'icon'] } as const;
 
-/** "Button label weight" (#1752): the per-size key whose ref names the label's text style, one per appearance since
- *  #2324 (`size.<size>.<appearance>.type`). Its ref is `type.label.<rung>.<role>`, the text appearance's with a
- *  `-link` tail (its underlined twin), and under `labelWeight: 'default'` the role becomes `default`, the tail kept. */
+/** "Control label weight" (#1752; widened to tags by #2945, owner Q591 A): the per-size key whose ref names the label's
+ *  text style. A button has one per appearance since #2324 (`size.<size>.<appearance>.type`), a tag one per size
+ *  (`size.<size>.type`). Its ref is `type.label.<rung>.<role>`, the text appearance's with a `-link` tail (its
+ *  underlined twin), and under `labelWeight: 'default'` the role becomes `default`, the tail kept. */
 export const LABEL_TYPE_KEY = 'type';
-/** The def's per-size, per-appearance label type keys (#2324): `size.<size>.<appearance>.type`. */
+/** The def's per-size label type keys: per appearance on a button (#2324), the one per-size key on a tag (#2945). */
 const labelTypeKeys = (def: ComponentDef, size: string): string[] =>
-  (def.variants?.appearance ?? []).map((ap) => `size.${size}.${ap}.${LABEL_TYPE_KEY}`);
+  isButtonFamily(def) ? (def.variants?.appearance ?? []).map((ap) => `size.${size}.${ap}.${LABEL_TYPE_KEY}`) : [`size.${size}.${LABEL_TYPE_KEY}`];
+/** Every size's label type key rebound to the `default` role of its label rung (#1752, #2945). THROWS on a key that
+ *  does not hold a `type.label.<rung>.<role>` ref, the silent-loss shape. */
+const withDefaultLabels = (def: ComponentDef, from: Record<string, string>): Record<string, string> => {
+  const tokens = { ...from };
+  for (const v of def.variants?.size ?? []) for (const key of labelTypeKeys(def, v)) {
+    const segs = tokens[key]?.split('.') ?? [];
+    if (segs.length !== 4 || segs[0] !== 'type' || segs[1] !== 'label')
+      throw new Error(`${def.id}: "Control label weight" rebinds ${key} to type.label.<rung>.${BUTTON_LABEL_DEFAULT_ROLE}, and the def binds ${tokens[key] ?? 'nothing'} there`);
+    // The role `brandTheme` unions into the label category for this setting, so the style is emitted; the text
+    // appearance's underline tail (#2324) is kept, and `brandTheme` mints that twin too (labels always link).
+    segs[3] = `${BUTTON_LABEL_DEFAULT_ROLE}${segs[3].endsWith('-link') ? '-link' : ''}`;
+    tokens[key] = segs.join('.');
+  }
+  return tokens;
+};
 /** "Text button hover: Fill" (#2324): the text appearance's hover and pressed wash, copied from the outline
  *  appearance's keys, which already carry the brand's outline method (`applyOutlineInteraction` runs first). */
 export const TEXT_FILL_STATES = ['hover', 'pressed'] as const;
 
 /**
  * Materialize a button-family def for a brand's button settings (#1667, #1752). Identity for any def outside
- * the family. For a button:
+ * the family, except a tag under "Control label weight: Default" (step 4). For a button:
  *
  *   1. MINIMUM WIDTH, in BOTH icon placements. The root's floor becomes a per-size map, each entry
  *      `buttonMinWidth(height, multiplier)` — the size's height in px (via `px`, which the caller resolves
@@ -2685,10 +2701,11 @@ export const TEXT_FILL_STATES = ['hover', 'pressed'] as const;
  *      (`CONTENT_OFFSET`). Height, padding, gap and the other two sizes are untouched, and no token moves —
  *      this is a button-only rebinding, never a change to the shared type or icon ladders. With "Locked to
  *      edges" the reserve reads the icon AFTER this rebinding, so it holds the smaller icon.
- *   4. "Button label weight" (`labelWeight: 'default'`, #1752). Every size's label type binds the
+ *   4. "Control label weight" (`labelWeight: 'default'`, #1752). Every size's label type binds the
  *      `default` role of its label rung (`type.label.md.emphasis` → `type.label.md.default`), after step 3,
- *      so a medium button at "One step smaller" binds `type.label.sm.default`. Button family only — `tag`
- *      and `badge` bind the same label styles and are outside the set. `brandTheme` makes the brand ship
+ *      so a medium button at "One step smaller" binds `type.label.sm.default`. The one setting that also reaches
+ *      the tag family (#2945, owner Q591 A): a tag's `size.<size>.type` moves the same way, in both tag styles, and
+ *      the other four settings leave it alone. `badge` binds the same label styles and is outside the set. `brandTheme` makes the brand ship
  *      the role (`BUTTON_LABEL_DEFAULT_ROLE`). `emphasis`, the default, is today's binding. Each appearance's key
  *      moves (#2324), and the text appearance keeps its underline: `emphasis-link` becomes `default-link`.
  *   5. "Text button hover" (`textHover: 'fill'`, #2324). The text appearance takes the outline appearance's hover
@@ -2698,7 +2715,10 @@ export const TEXT_FILL_STATES = ['hover', 'pressed'] as const;
  * at one size is the silent-loss shape, and the caller always has the brand's numbers in hand.
  */
 export const applyButtonLayout = (def: ComponentDef, layout: ButtonLayout, px: (ref: string) => number | undefined): ComponentDef => {
-  if (!isButtonFamily(def)) return def;
+  // "Control label weight" reaches the tag family too (#2945, Q591 A); the other button settings do not. Badge and
+  // every other def that binds a label style keep their own.
+  if (!isButtonFamily(def))
+    return layout.labelWeight === 'default' && TAG_STYLE_PARTS[def.id] ? { ...def, tokens: withDefaultLabels(def, def.tokens) } : def;
   const a = def.anatomy!;
   const root = a.parts[a.root];
   if (!root.layout || !root.height)
@@ -2719,20 +2739,9 @@ export const applyButtonLayout = (def: ComponentDef, layout: ButtonLayout, px: (
   }
 
   const sizes = def.variants?.size ?? [];
-  // 4. "Button label weight" (#1752). AFTER the medium offset, so the two compose: a medium button at "One
+  // 4. "Control label weight" (#1752). AFTER the medium offset, so the two compose: a medium button at "One
   //    step smaller" already holds small's label ref here, and its role tail moves with the others.
-  if (layout.labelWeight === 'default') {
-    tokens = { ...tokens };
-    for (const v of sizes) for (const key of labelTypeKeys(def, v)) {
-      const segs = tokens[key]?.split('.') ?? [];
-      if (segs.length !== 4 || segs[0] !== 'type' || segs[1] !== 'label')
-        throw new Error(`${def.id}: "Button label weight" rebinds ${key} to type.label.<rung>.${BUTTON_LABEL_DEFAULT_ROLE}, and the def binds ${tokens[key] ?? 'nothing'} there`);
-      // The role `brandTheme` unions into the label category for this setting, so the style is emitted; the text
-      // appearance's underline tail (#2324) is kept, and `brandTheme` mints that twin too (labels always link).
-      segs[3] = `${BUTTON_LABEL_DEFAULT_ROLE}${segs[3].endsWith('-link') ? '-link' : ''}`;
-      tokens[key] = segs.join('.');
-    }
-  }
+  if (layout.labelWeight === 'default') tokens = withDefaultLabels(def, tokens);
   // 5. "Text button hover" (#2324). The def's text appearance keys no wash (the default, "Text & icon only"); under
   //    "Fill" it takes the outline appearance's hover and pressed wash, never a rest one: a text button is never
   //    filled at rest. A brand whose outline method keys no wash (`outlineInteraction: 'none'`) has none to give.
@@ -2821,12 +2830,12 @@ export const applyMinWidthRatio = (def: ComponentDef, px: (ref: string) => numbe
   for (const [name, p] of Object.entries(a.parts)) {
     if (p.minWidthRatio === undefined) { parts[name] = p; continue; }
     const minWidth = Object.fromEntries(sizes.map((v) => {
-      const ref = def.tokens[(p.height ?? p.minHeight ?? p.minWidthBase)!.replace('{size}', v)];
+      const ref = def.tokens[(p.height ?? p.minHeight)!.replace('{size}', v)];
       const h = ref === undefined ? undefined : px(ref);
       if (h === undefined) throw new Error(`${def.id}: part '${name}' at size '${v}' floors at ${p.minWidthRatio} × its height, and the height ${ref ?? '(unbound)'} does not resolve`);
       return [v, ratioMinWidth(h, p.minWidthRatio!)];
     }));
-    const { minWidthRatio: _r, minWidthBase: _b, ...rest } = p;
+    const { minWidthRatio: _r, ...rest } = p;
     parts[name] = { ...rest, minWidth };
   }
   return { ...def, anatomy: { ...a, parts } };
