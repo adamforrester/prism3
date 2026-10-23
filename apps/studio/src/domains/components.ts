@@ -4,7 +4,7 @@
  * WHAT IT DRAWS: the list of component sets, the shown family's settings under its row, and the one action bar (call 9 A:
  * the list and the action where the choosing happens; the focused family's preview is the preview pane's,
  * `preview/components.ts`).
- *   · Its sections (see SECTIONS WITH SETTINGS below for the first two): Buttons, Fields, Other components and
+ *   · Its sections (see SECTIONS WITH SETTINGS below for the first three): Buttons, Fields, Tag, Other components and
  *     Subcomponents (note 4, call 11 A; #2905). Outside the sections with settings, each row is a family (several sets on one Figma page,
  *     closed until one of its sets is selected or the row is focused, call 15 A) or a set of its own, alphabetical
  *     (note 2), labeled by page or by component name (call 14 A), with its members and the page it lands on (idea 12).
@@ -21,8 +21,10 @@
  *
  * SECTIONS WITH SETTINGS (#2905 phase 1, owner decisions Q538 and Q548 on wireframe v2, every call A). The components
  * that share settings are grouped, one section per group, its settings set once: **Buttons** (its sets, then Button
- * options, `domains/button-options.ts`) and **Fields** (Password field, Select, Text field and Textarea, then Field
- * options, `domains/field-options.ts`). The section title stands in for the family row (Q8 A), so a section's sets are
+ * options, `domains/button-options.ts`), **Fields** (Password field, Search field, Select, Text field and Textarea, then
+ * Field options, `domains/field-options.ts`, and below it Search options, `domains/search-options.ts`, #2952) and
+ * **Tag** (Tag, then Tag options, `domains/tag-options.ts`). A section holds an ordered list of blocks
+ * (`SECTION_BLOCKS`), each with its own disclosure line (Q7 A). The section title stands in for the family row (Q8 A), so a section's sets are
  * rows at its edge, and its settings start at that same edge (Q1 A: one edge for rows and blocks). Every other row is
  * drawn as before, in Other components (Q6 A); the grouping is `state/component-groups.ts`'s.
  *
@@ -30,7 +32,7 @@
  * section's settings come AFTER its sets, behind one disclosure line that is closed on open: the sets are what the page
  * is for, so they come first. Opening the line also focuses the section's first set, unless one of its sets already has
  * focus, so the preview shows what the settings change; the open state lasts the session (`state/components-page.ts`).
- * Each block is mounted once per section and moved, not rebuilt, when the list redraws (hidden while closed), so a
+ * Each block is mounted once and moved, not rebuilt, when the list redraws (hidden while closed), so a
  * selection or a verdict never resets it.
  *
  * SEARCH (the Studio's search, Q3) filters the rows: a family stays while any of its sets matches (#2700's edge state).
@@ -50,7 +52,7 @@ import { componentCatalog, type Catalog } from '../state/component-catalog';
 import { componentsPage, setComponentsPage, watchComponentsPage } from '../state/components-page';
 import {
   alsoBuilds, boxOfSets, buildableOf, costOf, entryOf, familiesToOpen, fmt, groupsOf, GROUPS_COPY, inListOrder, rowMatches, rowOfFocus,
-  setFocusKey, toggleSets, type BoxState, type GroupRow, type GroupSection, type SectionKind,
+  SECTION_BLOCKS, setFocusKey, toggleSets, type BlockKey, type BoxState, type GroupRow, type GroupSection,
 } from '../state/component-groups';
 import { currentOf, positionOf, RUN_COPY } from '../state/build-queue';
 import { glyph, h, hook, pendingLabel, setBusy } from '../shell/dom';
@@ -61,16 +63,18 @@ import { BUTTON_DESC } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { mountButtonOptions, BUTTON_OPTIONS_COPY } from './button-options';
 import { mountFieldOptions, FIELD_OPTIONS_COPY } from './field-options';
+import { mountSearchOptions, SEARCH_OPTIONS_COPY } from './search-options';
 import { mountTagOptions, TAG_OPTIONS_COPY } from './tag-options';
 
-/** Each section's settings block (#2905): its hook prefix, its title and description (Q10 A: wireframe v2's words), and
- *  its builder. A section with none has no entry. */
-const SECTION_SETTINGS: Partial<Record<SectionKind, {
+/** Each settings block (#2905): its hook prefix, its title and description (Q10 A: wireframe v2's words), and its
+ *  builder. Which blocks a section draws, and in what order, is `SECTION_BLOCKS` (#2952: Fields draws two). */
+const SECTION_SETTINGS: Record<BlockKey, {
   readonly hook: string; readonly title: string; readonly desc: string;
   readonly mount: (el: HTMLElement, cleanups: (() => void)[], modeName: (m: string) => string) => void;
-}>> = {
+}> = {
   buttons: { hook: 'button-options', title: BUTTON_OPTIONS_COPY.title, desc: BUTTON_DESC, mount: mountButtonOptions },
   fields: { hook: 'field-options', title: FIELD_OPTIONS_COPY.title, desc: FIELD_OPTIONS_COPY.desc, mount: mountFieldOptions },
+  search: { hook: 'search-options', title: SEARCH_OPTIONS_COPY.title, desc: SEARCH_OPTIONS_COPY.desc, mount: mountSearchOptions },
   tags: { hook: 'tag-options', title: TAG_OPTIONS_COPY.title, desc: TAG_OPTIONS_COPY.desc, mount: mountTagOptions },
 };
 
@@ -83,16 +87,15 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
   root.append(list);
   if (bar) root.append(bar);
   hostEl.replaceChildren(root);
-  /** Each section's settings (see the header), by section: the block, and the subscriptions its controls hold. */
-  const settings = new Map<SectionKind, { el: HTMLElement; own: (() => void)[] }>();
-  const dropSettings = (keep: ReadonlySet<SectionKind> = new Set()): void => {
+  /** Each settings block (see the header), by block: the block, and the subscriptions its controls hold. */
+  const settings = new Map<BlockKey, { el: HTMLElement; own: (() => void)[] }>();
+  const dropSettings = (keep: ReadonlySet<BlockKey> = new Set()): void => {
     for (const [k, v] of settings) if (!keep.has(k)) { for (const fn of v.own) fn(); settings.delete(k); }
   };
-  const optsId = (kind: SectionKind): string => `p3-cp-opts-${kind}`;
-  /** The settings block for a section, mounted once and kept while the section is shown; null for a section with none. */
-  const settingsOf = (kind: SectionKind): HTMLElement | null => {
+  const optsId = (kind: BlockKey): string => `p3-cp-opts-${kind}`;
+  /** A settings block, mounted once and kept while its section is shown. */
+  const settingsOf = (kind: BlockKey): HTMLElement => {
     const def = SECTION_SETTINGS[kind];
-    if (!def) return null;
     const had = settings.get(kind);
     if (had) return had.el;
     const own: (() => void)[] = [];
@@ -204,19 +207,19 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     return r;
   };
 
-  /** The disclosure line for a section's settings: a standard disclosure (`aria-expanded`, `aria-controls`), one job. */
-  const optsToggle = (catalog: Catalog, sec: GroupSection, title: string, open: boolean): HTMLElement => {
+  /** The disclosure line for one settings block: a standard disclosure (`aria-expanded`, `aria-controls`), one job. */
+  const optsToggle = (catalog: Catalog, sec: GroupSection, kind: BlockKey, open: boolean): HTMLElement => {
     const b = hook(h('button', 'p3-btn p3-btn-ghost p3-cp-optstoggle'), 'cp-opts-toggle');
     b.type = 'button';
-    b.dataset.key = `opts=${sec.kind}`;
+    b.dataset.key = `opts=${kind}`;
     b.setAttribute('aria-expanded', String(open));
-    b.setAttribute('aria-controls', optsId(sec.kind));
-    b.append(glyph('chevr'), h('span', 'p3-btn-label', title));
+    b.setAttribute('aria-controls', optsId(kind));
+    b.append(glyph('chevr'), h('span', 'p3-btn-label', SECTION_SETTINGS[kind].title));
     b.onclick = () => {
       const s = componentsPage();
       const o = new Set(s.optsOpen);
-      if (o.has(sec.kind)) { o.delete(sec.kind); setComponentsPage({ optsOpen: o }); return; }
-      o.add(sec.kind);
+      if (o.has(kind)) { o.delete(kind); setComponentsPage({ optsOpen: o }); return; }
+      o.add(kind);
       // Opening also focuses the section's first set, unless one of its sets has focus, so the preview shows what the
       // settings change (#2844, small call 2; wireframe v2 on #2905).
       const mine = rowOfFocus(catalog, s.focus);
@@ -287,19 +290,20 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
       ul.append(li);
     }
     el.append(ul);
-    const set = settingsOf(sec.kind);
-    if (set) {
-      // After the section's sets, never before them (Q9 A): the disclosure, then its block, hidden while closed.
-      const open = s.optsOpen.has(sec.kind);
-      el.append(optsToggle(catalog, sec, SECTION_SETTINGS[sec.kind]!.title, open), set);
+    for (const kind of SECTION_BLOCKS[sec.kind] ?? []) {
+      // After the section's sets, never before them (Q9 A), in `SECTION_BLOCKS`' order (#2952): each block's own
+      // disclosure (Q7 A), then the block, hidden while closed.
+      const set = settingsOf(kind);
+      const open = s.optsOpen.has(kind);
+      el.append(optsToggle(catalog, sec, kind, open), set);
       set.hidden = !open;
-      shownHere.add(sec.kind);
+      shownHere.add(kind);
     }
     return el;
   };
 
-  /** The sections whose settings this draw placed (a search can hide a section's rows, and its block with them). */
-  const shownHere = new Set<SectionKind>();
+  /** The blocks this draw placed (a search can hide a section's rows, and its blocks with them). */
+  const shownHere = new Set<BlockKey>();
   const paintList = (): void => {
     const had = document.activeElement as HTMLElement | null;
     const key = had && root.contains(had) ? had.dataset.key ?? null : null;

@@ -23,6 +23,8 @@
  *     `#2905 Q6 A: … Other components …` (Textarea back in Other components).
  *   · Tag dropped from Tag's `SETTING_SECTIONS` ids → `#2931 Q579 A: Tag holds the sets Tag style draws …` (and the
  *     five-section and Other components checks).
+ *   · Fields' blocks reversed (`SECTION_BLOCKS.fields` = ['search', 'fields']) → `#2952 Q5 A: each section's settings
+ *     blocks, in order …`.
  *   · a set focus key resolving to no row (`rowOfFocus` keying on row keys only) → `#2905 Q8 A: a set in a flat section
  *     focuses as itself …`.
  *
@@ -34,7 +36,7 @@
  */
 import { COMPONENT_CATALOG_DATA as catalog } from './src/state/component-catalog-data';
 import type { Catalog, CatalogEntry } from './src/state/component-catalog';
-import { alsoBuilds, boxOfSets, costOf, displayNameOf, familiesToOpen, groupsOf, inListOrder, rowMatches, rowOfFocus, sentenceCase, setFocusKey, toggleSets, GROUPS_COPY } from './src/state/component-groups';
+import { alsoBuilds, boxOfSets, costOf, displayNameOf, familiesToOpen, groupsOf, inListOrder, rowMatches, rowOfFocus, sentenceCase, setFocusKey, toggleSets, GROUPS_COPY, SECTION_BLOCKS } from './src/state/component-groups';
 import { FIELD_FRAME_PARTS, TAG_STYLE_PARTS } from '@prism3/engine/anatomy-figma';
 import { currentOf, positionOf, record, runVerdict, startRun, stopRun, RUN_COPY } from './src/state/build-queue';
 
@@ -86,6 +88,15 @@ ok(JSON.stringify(drawn('fields')) === JSON.stringify(WIRE_FIELDS) && JSON.strin
 const tagIds = (groups.find((g) => g.kind === 'tags')?.rows ?? []).flatMap((r) => r.ids).sort();
 ok(JSON.stringify(drawn('tags')) === JSON.stringify(WIRE_TAGS) && JSON.stringify(tagIds) === JSON.stringify(Object.keys(TAG_STYLE_PARTS).sort()),
   `#2931 Q579 A: Tag holds the sets Tag style draws, the engine's TAG_STYLE_PARTS (${Object.keys(TAG_STYLE_PARTS).sort().join(', ')}), as the wireframe lists them (${JSON.stringify(drawn('tags'))})`);
+// #2952 (#2905 Q5 A, Q7 A): a section holds an ordered LIST of settings blocks, not one. Typed from the decisions: Fields
+// draws Field options, then Search options below it; Buttons and Tag one each; Other components and Subcomponents none.
+const WIRE_BLOCKS: Record<string, string[]> = { buttons: ['buttons'], fields: ['fields', 'search'], tags: ['tags'], components: [], subcomponents: [] };
+const blocksOf = Object.fromEntries(groups.map((g) => [g.kind, [...(SECTION_BLOCKS[g.kind] ?? [])]]));
+ok(JSON.stringify(blocksOf) === JSON.stringify(WIRE_BLOCKS),
+  `#2952 Q5 A: each section's settings blocks, in order: Fields draws Field options then Search options below it (${JSON.stringify(blocksOf)})`);
+const allBlocks = Object.values(SECTION_BLOCKS).flat();
+ok(new Set(allBlocks).size === allBlocks.length && groups.every((g) => !(SECTION_BLOCKS[g.kind] ?? []).length || g.flat),
+  `#2952: a block sits in one section only, and only a flat section with settings draws blocks (${allBlocks.join(', ')})`);
 ok(JSON.stringify(drawn('components').map((r) => r[0])) === JSON.stringify(WIRE_COMPONENTS.map((r) => r[0])),
   `notes 2, 3, #2905 Q6 A: Other components holds every other component row, Banner (#2579), Breadcrumbs (#2666) and Progress (#2670) among them, alphabetical, families grouped by page (${drawn('components').map((r) => r[0]).join(', ')})`);
 ok(JSON.stringify(drawn('subcomponents').map((r) => r[0])) === JSON.stringify(WIRE_SUBS.map((r) => r[0])),
