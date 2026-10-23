@@ -2809,6 +2809,11 @@
           "$value": "800ms",
           "$description": "duration primitive — 800ms (literal; the semantic tier names the use)"
         },
+        "1600": {
+          "$type": "duration",
+          "$value": "1600ms",
+          "$description": "duration primitive — 1600ms (literal; the semantic tier names the use)"
+        },
         "2600": {
           "$type": "duration",
           "$value": "2600ms",
@@ -2850,6 +2855,11 @@
           "$type": "duration",
           "$value": "{nbds.motion.duration-ms.800}",
           "$description": "motion duration spin — 800ms per full turn of a spinner, linear, the same at every tempo"
+        },
+        "sweep": {
+          "$type": "duration",
+          "$value": "{nbds.motion.duration-ms.1600}",
+          "$description": "motion duration sweep — 1600ms per pass of an indeterminate progress bar's segment across its track, the same at every tempo"
         }
       },
       "duration-reduced": {
@@ -2887,6 +2897,11 @@
           "$type": "duration",
           "$value": "{nbds.motion.duration-ms.2600}",
           "$description": "reduce-motion spin — 2600ms per full turn: a slow turn, kept rather than removed, because the spinner is how a sighted user sees work continuing"
+        },
+        "sweep": {
+          "$type": "duration",
+          "$value": "{nbds.motion.duration-ms.2600}",
+          "$description": "reduce-motion sweep — 2600ms per pass: a slow sweep, kept rather than removed, because the moving segment is how a sighted user sees the work continuing"
         }
       },
       "easing": {
