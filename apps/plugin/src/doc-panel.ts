@@ -485,6 +485,7 @@ const writtenTexts = (api: Pick<PanelApi, 'root'>, defId: string): Set<string> |
   strings(plan);
   if (plan.family) out.add(plan.family.join(', '));
   for (const b of plan.sections.flatMap((s) => s.blocks)) if (b.type === 'Chips' && b.chips.length > CHIP_SLOTS) out.add(`+${b.chips.length - CHIP_SLOTS + 1} more`);
+  for (const b of plan.sections.flatMap((s) => s.blocks)) if (b.type === 'Links') out.add(b.items.map((x) => x.name).join('\n'));
   for (const s of docSections(def, { modes: PANEL_MODES }).sections as DocSection[]) {
     // A further specimen's caption names what its member changes (`markSpecimens`): each pair, joined by commas.
     if (s.id === 'styles') for (const pair of [...s.axes.flatMap((a) => a.values.map((v) => `${a.axis} ${v}`)), ...s.states.map((v) => `state ${v}`)]) out.add(`${SHOWN_ON}${pair}`);
