@@ -10,7 +10,7 @@ Peers come from three groupings, each derived from the definitions:
 
 Generated from the component definitions and the emission by `packages/engine/emit-analysis-reports.ts`; `regen.ts --check` fails when this page is stale. The same data for agents: [component-comparison.json](component-comparison.json). All reports: [index](index.md).
 
-## Findings (94)
+## Findings (100)
 
 ### axis values
 
@@ -19,8 +19,8 @@ Generated from the component definitions and the emission by `packages/engine/em
 - **axis inset** — the inset axis takes 2 value sets — [default, flush] in button, button-destructive, button-neutral; [inset, middle-inset, none] in divider
 - **axis selection** — the selection axis takes 4 value sets — [selected, unselected] in link, segmented-control-segment, tab-item, tag; [checked, indeterminate, unchecked] in checkbox-control; [checked, unchecked] in radio-control; [off, on] in switch-control
 - **axis shape** — the shape axis takes 3 value sets — [circular, square] in icon-button, icon-button-destructive, icon-button-neutral; [flush, round] in flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral; [circular, linear] in progress
-- **axis size** — the size axis takes 3 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, tab-item, tabs, tag, text-field, textarea; [medium, small] in breadcrumb-item, breadcrumbs, progress, switch-control, switch-row; [large, medium, small, x-small] in spinner
-- **axis status** — the status axis takes 3 value sets — [default, error] in checkbox-control, checkbox-group, checkbox-row, radio-control, radio-group, radio-row, switch-control, switch-row; [default, error, success, warning] in field-message, password-field, search-field, select, text-field, textarea; [active, complete, error] in progress
+- **axis size** — the size axis takes 4 value sets — [large, medium, small] in _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, tab-item, tabs, tag, text-field, textarea; [medium, small] in breadcrumb-item, breadcrumbs, progress, switch-control, switch-row; [large, medium, small, xlarge] in code-input, code-input-cell; [large, medium, small, x-small] in spinner
+- **axis status** — the status axis takes 3 value sets — [default, error] in checkbox-control, checkbox-group, checkbox-row, code-input, radio-control, radio-group, radio-row, switch-control, switch-row; [default, error, success, warning] in field-message, password-field, search-field, select, text-field, textarea; [active, complete, error] in progress
 - **axis style** — the style axis takes 2 value sets — [outline] in password-field, search-field, text-field, textarea; [inline, standalone] in link
 - **axis tone** — the tone axis takes 3 value sets — [brand, danger, info, inherit, primary, secondary, success, tertiary, warning] in icon; [danger, info, neutral, success, warning] in badge; [danger, info, success, warning] in banner
 - **axis type** — the type axis takes 5 value sets — [icon, ordered, unordered] in list, list-item; [chevron, slash] in _breadcrumb-separator; [count, dot, status] in badge; [determinate, indeterminate] in progress; [dismissible, select] in tag
@@ -37,6 +37,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 - **checkbox-control** — checkbox-control has the variant axes selection and status and no props of those names
 - **checkbox-group** — checkbox-group has the variant axis status and no prop of that name
 - **checkbox-row** — checkbox-row has the variant axis status and no prop of that name
+- **code-input** — code-input has the variant axis status and no prop of that name
 - **link** — link has the variant axis selection and no prop of that name
 - **password-field** — password-field has the variant axes style and status and no props of those names
 - **radio-control** — radio-control has the variant axes selection and status and no props of those names
@@ -61,7 +62,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 
 ### size default
 
-- **field-label** — field-label defaults size to small; 38 of 39 sized components default to medium
+- **field-label** — field-label defaults size to small; 40 of 41 sized components default to medium
 
 ### size order
 
@@ -75,6 +76,8 @@ Generated from the component definitions and the emission by `packages/engine/em
 - **checkbox-control** — checkbox-control declares its sizes as [medium, small, large], not smallest first
 - **checkbox-group** — checkbox-group declares its sizes as [medium, small, large], not smallest first
 - **checkbox-row** — checkbox-row declares its sizes as [medium, small, large], not smallest first
+- **code-input** — code-input declares its sizes as [medium, small, large, xlarge], not smallest first
+- **code-input-cell** — code-input-cell declares its sizes as [medium, small, large, xlarge], not smallest first
 - **counter** — counter declares its sizes as [medium, small, large], not smallest first
 - **dialog** — dialog declares its sizes as [medium, small, large], not smallest first
 - **flush-icon-button** — flush-icon-button declares its sizes as [medium, small, large], not smallest first
@@ -108,6 +111,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 - **button** — button declares the state inactive, which the design-file state axis does not draw
 - **button-destructive** — button-destructive declares the state inactive, which the design-file state axis does not draw
 - **button-neutral** — button-neutral declares the state inactive, which the design-file state axis does not draw
+- **code-input** — code-input declares the state pending, which the design-file state axis does not draw
 - **icon-button** — icon-button declares the state inactive, which the design-file state axis does not draw
 - **icon-button-destructive** — icon-button-destructive declares the state inactive, which the design-file state axis does not draw
 - **icon-button-neutral** — icon-button-neutral declares the state inactive, which the design-file state axis does not draw
@@ -120,6 +124,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 
 ### state set
 
+- **variant family: CodeInput** — no state set is shared by most of the group — code-input [rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled]; code-input-cell [rest, hover, filled, focus-visible, focus-visible-filled, disabled, error]
 - **role peers: *.Row** — switch-row differs from the group's common set [disabled, focus-visible, hover, pressed, read-only, rest] — adds pending
 - **role peers: *.Item** — no state set is shared by most of the group — list-item []; tab-item [rest, hover, pressed, focus-visible, disabled]
 - **substrate: button** — flush-icon-button differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks inactive, pending
@@ -127,11 +132,16 @@ Generated from the component definitions and the emission by `packages/engine/em
 - **substrate: button-neutral** — flush-icon-button-neutral differs from the group's common set [disabled, focus-visible, hover, inactive, pending, pressed, rest] — lacks inactive, pending
 - **substrate: text-field** — no state set is shared by most of the group — checkbox-row [rest, hover, pressed, focus-visible, disabled, read-only]; radio-row [rest, hover, pressed, focus-visible, disabled, read-only]; switch-row [rest, hover, pressed, pending, focus-visible, disabled, read-only]; text-field [rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled, read-only, empty]; textarea [rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled, read-only, empty]
 
+### variant axes
+
+- **variant family: CodeInput** — code-input-cell's variant axes differ from the family's common set
+
 ## Peer groups
 
 | Grouping | Name | Members |
 |---|---|---|
 | variant family | Button | button, button-destructive, button-neutral |
+| variant family | CodeInput | code-input, code-input-cell |
 | variant family | FlushIconButton | flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral |
 | variant family | IconButton | icon-button, icon-button-destructive, icon-button-neutral |
 | role peers | *.Control | checkbox-control, radio-control, switch-control |
@@ -161,6 +171,8 @@ Generated from the component definitions and the emission by `packages/engine/em
 | checkbox-control | form | rest, hover, pressed, focus-visible, disabled | rest, hover, pressed, focus-visible, disabled |
 | checkbox-group | form | — | — |
 | checkbox-row | form | rest, hover, pressed, focus-visible, disabled, read-only | — |
+| code-input | form | rest, hover, pending, filled, focus-visible, focus-visible-filled, disabled | rest, hover, filled, focus-visible, focus-visible-filled, disabled |
+| code-input-cell | form | rest, hover, filled, focus-visible, focus-visible-filled, disabled, error | rest, hover, filled, focus-visible, focus-visible-filled, disabled, error |
 | counter | form | rest, focus-visible, disabled | rest, focus-visible, disabled |
 | dialog | overlay | — | — |
 | divider | foundations | — | — |
@@ -202,17 +214,18 @@ Generated from the component definitions and the emission by `packages/engine/em
 
 | State | Components |
 |---|---|
-| disabled | button, button-destructive, button-neutral, checkbox-control, checkbox-row, counter, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, password-field, radio-control, radio-row, search-field, segmented-control-segment, select, switch-control, switch-row, tab-item, tag, text-field, textarea |
+| disabled | button, button-destructive, button-neutral, checkbox-control, checkbox-row, code-input, code-input-cell, counter, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, password-field, radio-control, radio-row, search-field, segmented-control-segment, select, switch-control, switch-row, tab-item, tag, text-field, textarea |
 | empty | password-field, search-field, select, text-field, textarea |
-| filled | password-field, search-field, select, text-field, textarea |
-| focus-visible | accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-row, counter, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, password-field, radio-control, radio-row, search-field, segmented-control-segment, select, switch-control, switch-row, tab-item, tag, text-field, textarea |
-| focus-visible-filled | password-field, search-field, select, text-field, textarea |
-| hover | button, button-destructive, button-neutral, checkbox-control, checkbox-row, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, password-field, radio-control, radio-row, search-field, segmented-control-segment, select, switch-control, switch-row, tab-item, tag, text-field, textarea |
+| error | code-input-cell |
+| filled | code-input, code-input-cell, password-field, search-field, select, text-field, textarea |
+| focus-visible | accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-row, code-input, code-input-cell, counter, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, password-field, radio-control, radio-row, search-field, segmented-control-segment, select, switch-control, switch-row, tab-item, tag, text-field, textarea |
+| focus-visible-filled | code-input, code-input-cell, password-field, search-field, select, text-field, textarea |
+| hover | button, button-destructive, button-neutral, checkbox-control, checkbox-row, code-input, code-input-cell, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, password-field, radio-control, radio-row, search-field, segmented-control-segment, select, switch-control, switch-row, tab-item, tag, text-field, textarea |
 | inactive | button, button-destructive, button-neutral, icon-button, icon-button-destructive, icon-button-neutral |
-| pending | button, button-destructive, button-neutral, icon-button, icon-button-destructive, icon-button-neutral, password-field, search-field, select, switch-row, text-field, textarea |
+| pending | button, button-destructive, button-neutral, code-input, icon-button, icon-button-destructive, icon-button-neutral, password-field, search-field, select, switch-row, text-field, textarea |
 | pressed | button, button-destructive, button-neutral, checkbox-control, checkbox-row, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, radio-control, radio-row, segmented-control-segment, switch-control, switch-row, tab-item, tag |
 | read-only | checkbox-row, password-field, radio-row, search-field, select, switch-row, tag, text-field, textarea |
-| rest | accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-row, counter, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, password-field, radio-control, radio-row, search-field, segmented-control-segment, select, switch-control, switch-row, tab-item, tag, text-field, textarea |
+| rest | accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-row, code-input, code-input-cell, counter, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, password-field, radio-control, radio-row, search-field, segmented-control-segment, select, switch-control, switch-row, tab-item, tag, text-field, textarea |
 
 ## Variant axes
 
@@ -250,8 +263,9 @@ Generated from the component definitions and the emission by `packages/engine/em
 |  | circular, linear | progress |
 | size | large, medium, small | _accordion-indicator, accordion, button, button-destructive, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, field-label, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, list, list-item, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, tab-item, tabs, tag, text-field, textarea |
 |  | medium, small | breadcrumb-item, breadcrumbs, progress, switch-control, switch-row |
+|  | large, medium, small, xlarge | code-input, code-input-cell |
 |  | large, medium, small, x-small | spinner |
-| status | default, error | checkbox-control, checkbox-group, checkbox-row, radio-control, radio-group, radio-row, switch-control, switch-row |
+| status | default, error | checkbox-control, checkbox-group, checkbox-row, code-input, radio-control, radio-group, radio-row, switch-control, switch-row |
 |  | default, error, success, warning | field-message, password-field, search-field, select, text-field, textarea |
 |  | active, complete, error | progress |
 | style | outline | password-field, search-field, text-field, textarea |
@@ -287,6 +301,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 | checkbox-control | medium, small, large | medium |
 | checkbox-group | medium, small, large | medium |
 | checkbox-row | medium, small, large | medium |
+| code-input | medium, small, large, xlarge | medium |
+| code-input-cell | medium, small, large, xlarge | medium |
 | counter | medium, small, large | medium |
 | dialog | medium, small, large | medium |
 | field-label | small, medium, large | small |
@@ -344,7 +360,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | icon-button-neutral | — | — |
 |  | radio-control | — | — |
 |  | switch-control | — | — |
-| autoComplete | password-field | — | current-password, new-password |
+| autoComplete | code-input | one-time-code | — |
+|  | password-field | — | current-password, new-password |
 |  | search-field | — | — |
 |  | text-field | — | — |
 | checked | checkbox-control | — | — |
@@ -357,6 +374,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | dialog | — | — |
 |  | list-item | — | — |
 | defaultValue | checkbox-group | — | — |
+|  | code-input | — | — |
 |  | counter | — | — |
 |  | password-field | — | — |
 |  | radio-group | — | — |
@@ -374,6 +392,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | checkbox-control | false | — |
 |  | checkbox-group | false | — |
 |  | checkbox-row | false | — |
+|  | code-input | false | — |
+|  | code-input-cell | false | — |
 |  | counter | false | — |
 |  | flush-icon-button | false | — |
 |  | flush-icon-button-destructive | false | — |
@@ -404,7 +424,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | button-neutral | false | — |
 | headingLevel | accordion | 3 | 2, 3, 4, 5, 6 |
 |  | banner | 2 | 2, 3, 4, 5, 6 |
-| helpText | password-field | — | — |
+| helpText | code-input | — | — |
+|  | password-field | — | — |
 |  | search-field | — | — |
 |  | select | — | — |
 |  | text-field | — | — |
@@ -423,7 +444,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | icon-button-destructive | — | — |
 |  | icon-button-neutral | — | — |
 |  | list-item | — | — |
-| id | field-message | — | — |
+| id | code-input | — | — |
+|  | field-message | — | — |
 |  | password-field | — | — |
 |  | search-field | — | — |
 |  | select | — | — |
@@ -433,6 +455,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | checkbox-row | false | — |
 | indicator | _accordion-indicator | chevron | chevron, plus-minus |
 |  | accordion | chevron | chevron, plus-minus |
+| inputMode | code-input | numeric | numeric, text |
+|  | text-field | — | text, numeric, decimal, tel, email, url, search |
 | inset | button | default | default, flush |
 |  | button-destructive | default | default, flush |
 |  | button-neutral | default | default, flush |
@@ -446,6 +470,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 | isPending | button | false | — |
 |  | button-destructive | false | — |
 |  | button-neutral | false | — |
+|  | code-input | false | — |
 |  | icon-button | false | — |
 |  | icon-button-destructive | false | — |
 |  | icon-button-neutral | false | — |
@@ -470,6 +495,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | button-neutral | — | — |
 |  | checkbox-group | — | — |
 |  | checkbox-row | — | — |
+|  | code-input | — | — |
 |  | counter | — | — |
 |  | field-label | — | — |
 |  | icon | — | — |
@@ -509,6 +535,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 | min | counter | 0 | — |
 |  | progress | 0 | — |
 | name | checkbox-group | — | — |
+|  | code-input | — | — |
 |  | counter | — | — |
 |  | icon | — | 46 values |
 |  | password-field | — | — |
@@ -520,6 +547,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | textarea | — | — |
 | onChange | checkbox-group | — | — |
 |  | checkbox-row | — | — |
+|  | code-input | — | — |
 |  | counter | — | — |
 |  | password-field | — | — |
 |  | radio-group | — | — |
@@ -575,7 +603,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | icon-button-destructive | square | square, circular |
 |  | icon-button-neutral | square | square, circular |
 |  | progress | linear | linear, circular |
-| showMessage | counter | false | — |
+| showMessage | code-input | false | — |
+|  | counter | false | — |
 |  | password-field | false | — |
 |  | search-field | false | — |
 |  | select | false | — |
@@ -593,6 +622,8 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | checkbox-control | medium | small, medium, large |
 |  | checkbox-group | medium | small, medium, large |
 |  | checkbox-row | medium | small, medium, large |
+|  | code-input | medium | small, medium, large, xlarge |
+|  | code-input-cell | medium | small, medium, large, xlarge |
 |  | counter | medium | small, medium, large |
 |  | dialog | medium | small, medium, large |
 |  | field-label | small | small, medium, large |
@@ -667,6 +698,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 | validation | checkbox-control | default | default, error |
 |  | checkbox-group | default | default, error |
 |  | checkbox-row | default | default, error |
+|  | code-input | default | default, error |
 |  | password-field | default | default, error, warning, success |
 |  | radio-control | default | default, error |
 |  | radio-group | default | default, error |
@@ -678,6 +710,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | text-field | default | default, error, warning, success |
 |  | textarea | default | default, error, warning, success |
 | validationMessage | checkbox-group | — | — |
+|  | code-input | — | — |
 |  | password-field | — | — |
 |  | radio-group | — | — |
 |  | search-field | — | — |
@@ -688,6 +721,7 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 |  | badge | — | — |
 |  | checkbox-group | — | — |
 |  | checkbox-row | — | — |
+|  | code-input | — | — |
 |  | counter | — | — |
 |  | list-item | — | — |
 |  | password-field | — | — |
@@ -706,4 +740,5 @@ Icon's `name` axis is the icon set itself and is covered by the [icon usage](ico
 | weight | field-label | regular | regular, bold |
 |  | link | emphasis | emphasis, default |
 | width | banner | contained | contained, full |
+|  | code-input | auto | auto, full |
 |  | segmented-control | auto | auto, full |

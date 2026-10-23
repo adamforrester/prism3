@@ -1,6 +1,6 @@
 # Token usage
 
-Where each token is bound: by which component, on which part, and at which variants and states. 256 of 790 emitted tokens are bound by at least one component.
+Where each token is bound: by which component, on which part, and at which variants and states. 260 of 790 emitted tokens are bound by at least one component.
 
 Two sources feed each entry. **Keys** are the binding keys in the component definition. **Parts** are where the design-file projection draws the token; "where" lists the axis values a part is bound at, leaves out any axis bound at every value, and counts the members.
 
@@ -16,7 +16,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 
 ### `border-width.hairline`
 
-Type: dimension. Bound by 20 component(s).
+Type: dimension. Bound by 21 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -25,6 +25,8 @@ Type: dimension. Bound by 20 component(s).
 | button | `border-width` | container | every member (576 of 576) |
 | button-destructive | `border-width` | container | every member (576 of 576) |
 | button-neutral | `border-width` | container | every member (576 of 576) |
+| code-input-cell | `border-width`, `caret-width` | caret | state: focus-visible (4 of 28) |
+|  |  | container | every member (28 of 28) |
 | counter | `border-width` | control | every member (18 of 18) |
 | divider | `horizontal.height`, `vertical.width` | container | every member (5 of 5) |
 | flush-icon-button | `border-width` | container | every member (60 of 60) |
@@ -109,13 +111,14 @@ Type: color. Bound by 2 component(s).
 
 ### `color.border.danger`
 
-Type: color. Bound by 10 component(s).
+Type: color. Bound by 11 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `danger.status.subtle.border` | surface | emphasis: subtle · tone: danger · type: status (1 of 20) |
 | banner | `danger.border` | container | tone: danger (2 of 8) |
 | checkbox-control | `error.checked.border.focus-visible`, `error.checked.border.hover`, `error.checked.border.pressed`, `error.checked.border.rest`, `error.indeterminate.border.focus-visible`, `error.indeterminate.border.hover`, `error.indeterminate.border.pressed`, `error.indeterminate.border.rest`, `error.unchecked.border.focus-visible`, `error.unchecked.border.hover`, `error.unchecked.border.pressed`, `error.unchecked.border.rest` | control | state: focus-visible, hover, pressed, rest · status: error (36 of 90) |
+| code-input-cell | `border.error` | container | state: error (4 of 28) |
 | password-field | `error.border.empty`, `error.border.filled`, `error.border.focus-visible`, `error.border.focus-visible-filled`, `error.border.hover`, `error.border.read-only`, `error.border.rest` | control | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest · status: error (18 of 84) |
 | radio-control | `error.checked.border.focus-visible`, `error.checked.border.hover`, `error.checked.border.pressed`, `error.checked.border.rest`, `error.unchecked.border.focus-visible`, `error.unchecked.border.hover`, `error.unchecked.border.pressed`, `error.unchecked.border.rest` | control | state: focus-visible, hover, pressed, rest · status: error (24 of 60) |
 | search-field | `error.border.empty`, `error.border.filled`, `error.border.focus-visible`, `error.border.focus-visible-filled`, `error.border.hover`, `error.border.read-only`, `error.border.rest` | control | state: filled, focus-visible, focus-visible-filled, hover, read-only, rest · status: error (18 of 84) |
@@ -126,7 +129,7 @@ Type: color. Bound by 10 component(s).
 
 ### `color.border.focus`
 
-Type: color. Bound by 18 component(s).
+Type: color. Bound by 19 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -134,6 +137,7 @@ Type: color. Bound by 18 component(s).
 | button-destructive | `focus-ring` | (not drawn) | — |
 | button-neutral | `focus-ring` | (not drawn) | — |
 | checkbox-control | `focus-ring` | (not drawn) | — |
+| code-input-cell | `border.focus-visible`, `border.focus-visible-filled` | container | state: focus-visible, focus-visible-filled (8 of 28) |
 | focus-ring | `border` | ring | surface: default (1 of 2) |
 | icon-button | `focus-ring` | (not drawn) | — |
 | icon-button-destructive | `focus-ring` | (not drawn) | — |
@@ -217,7 +221,7 @@ Type: color. Bound by 7 component(s).
 
 ### `color.disabled.border`
 
-Type: color. Bound by 20 component(s).
+Type: color. Bound by 21 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -225,6 +229,7 @@ Type: color. Bound by 20 component(s).
 | button-destructive | `disabled.border` | container | appearance: outline · inset: default · state: disabled · surface: default (12 of 576) |
 | button-neutral | `disabled.border` | container | appearance: outline · inset: default · state: disabled · surface: default (12 of 576) |
 | checkbox-control | `disabled.border` | control | selection: unchecked · state: disabled (6 of 90) |
+| code-input-cell | `disabled.border` | container | state: disabled (4 of 28) |
 | counter | `disabled.border` | control | appearance: outline · state: disabled (3 of 18) |
 | flush-icon-button | `disabled.border` | container | shape: round · state: disabled · surface: default (3 of 60) |
 | flush-icon-button-destructive | `disabled.border` | container | shape: round · state: disabled · surface: default (3 of 60) |
@@ -246,7 +251,7 @@ Type: color. Bound by 20 component(s).
 
 ### `color.disabled.fill`
 
-Type: color. Bound by 14 component(s).
+Type: color. Bound by 15 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -254,6 +259,7 @@ Type: color. Bound by 14 component(s).
 | button-destructive | `disabled.fill` | container | appearance: filled · inset: default · state: disabled · surface: default (12 of 576) |
 | button-neutral | `disabled.fill` | container | appearance: filled · inset: default · state: disabled · surface: default (12 of 576) |
 | checkbox-control | `disabled.fill` | control | selection: checked, indeterminate · state: disabled (12 of 90) |
+| code-input-cell | `disabled.fill` | container | state: disabled (4 of 28) |
 | icon-button | `disabled.fill` | container | appearance: filled · state: disabled · surface: default (6 of 216) |
 | icon-button-destructive | `disabled.fill` | container | appearance: filled · state: disabled · surface: default (6 of 216) |
 | icon-button-neutral | `disabled.fill` | container | appearance: filled · state: disabled · surface: default (6 of 216) |
@@ -344,11 +350,12 @@ Type: color. Bound by 12 component(s).
 
 ### `color.field.border.hover`
 
-Type: color. Bound by 7 component(s).
+Type: color. Bound by 8 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | checkbox-control | `unchecked.border.hover` | control | selection: unchecked · state: hover · status: default (3 of 90) |
+| code-input-cell | `border.hover` | container | state: hover (4 of 28) |
 | password-field | `border.hover` | control | state: hover · status: default (3 of 84) |
 | radio-control | `unchecked.border.hover` | control | selection: unchecked · state: hover · status: default (3 of 60) |
 | search-field | `border.hover` | control | state: hover · status: default (3 of 84) |
@@ -358,11 +365,12 @@ Type: color. Bound by 7 component(s).
 
 ### `color.field.border.rest`
 
-Type: color. Bound by 8 component(s).
+Type: color. Bound by 9 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | checkbox-control | `unchecked.border` | control | selection: unchecked · state: focus-visible, pressed, rest · status: default (9 of 90) |
+| code-input-cell | `border` | container | state: filled, rest (8 of 28) |
 | counter | `outline.border` | control | appearance: outline · state: focus-visible, rest (6 of 18) |
 | password-field | `border`, `border.read-only` | control | state: filled, read-only, rest · status: default (9 of 84) |
 | radio-control | `unchecked.border` | control | selection: unchecked · state: focus-visible, pressed, rest · status: default (9 of 60) |
@@ -373,10 +381,11 @@ Type: color. Bound by 8 component(s).
 
 ### `color.field.fill`
 
-Type: color. Bound by 6 component(s).
+Type: color. Bound by 7 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| code-input-cell | `fill` | container | state: error, filled, focus-visible, focus-visible-filled, rest (20 of 28) |
 | counter | `outline.fill` | control | appearance: outline · state: focus-visible, rest (6 of 18) |
 | password-field | `fill` | control | state: filled, focus-visible, focus-visible-filled, read-only, rest (60 of 84) |
 | search-field | `fill` | control | state: filled, focus-visible, focus-visible-filled, read-only, rest (60 of 84) |
@@ -876,11 +885,12 @@ Type: color. Bound by 2 component(s).
 
 ### `color.interactive.neutral.overlay.hover`
 
-Type: color. Bound by 10 component(s).
+Type: color. Bound by 11 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | button-neutral | `outline.overlay.hover` | container | appearance: outline · inset: default · state: hover · surface: default (12 of 576) |
+| code-input-cell | `overlay.hover` | container | state: hover (4 of 28) |
 | flush-icon-button-neutral | `round.overlay.hover` | container | shape: round · state: hover · surface: default (3 of 60) |
 | icon-button-neutral | `ghost.overlay.hover`, `outline.overlay.hover` | container | appearance: ghost, outline · state: hover · surface: default (12 of 216) |
 | password-field | `overlay.hover` | control | state: hover (12 of 84) |
@@ -1851,7 +1861,7 @@ Type: color. Bound by 1 component(s).
 
 ### `color.text.primary`
 
-Type: color. Bound by 17 component(s).
+Type: color. Bound by 18 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -1861,6 +1871,8 @@ Type: color. Bound by 17 component(s).
 |  |  | title | every member (8 of 8) |
 | breadcrumb-item | `label` | current | kind: current · separator: chevron (2 of 10) |
 | checkbox-row | `label` | label | every member (6 of 6) |
+| code-input-cell | `caret`, `label` | caret | state: focus-visible (4 of 28) |
+|  |  | digit | state: error, filled, focus-visible-filled (12 of 28) |
 | counter | `ghost.label`, `outline.label` | value | state: focus-visible, rest (12 of 18) |
 | dialog | `body`, `label` | placeholder | every member (24 of 24) |
 |  |  | title | every member (24 of 24) |
@@ -2238,11 +2250,12 @@ Type: dimension. Bound by 18 component(s).
 
 ### `focus.ring.offset-field`
 
-Type: dimension. Bound by 8 component(s).
+Type: dimension. Bound by 9 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | accordion | `ring-offset` | focusRing | state: focus-visible (12 of 24) |
+| code-input-cell | `ring-offset` | focusRing | state: focus-visible, focus-visible-filled (8 of 28) |
 | counter | `outline.ring-offset` | focusRing | appearance: outline · state: focus-visible (3 of 18) |
 | focus-ring | `offset.field` | (not drawn) | — |
 | password-field | `ring-offset` | focusRing | state: focus-visible, focus-visible-filled (24 of 84) |
@@ -2261,7 +2274,7 @@ Type: strokeStyle. Bound by 1 component(s).
 
 ### `focus.ring.width`
 
-Type: dimension. Bound by 23 component(s).
+Type: dimension. Bound by 24 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2269,6 +2282,7 @@ Type: dimension. Bound by 23 component(s).
 | button-destructive | `ring-width` | focusRing | state: focus-visible (96 of 576) |
 | button-neutral | `ring-width` | focusRing | state: focus-visible (96 of 576) |
 | checkbox-control | `ring-width` | focusRing | state: focus-visible (18 of 90) |
+| code-input-cell | `ring-width` | focusRing | state: focus-visible, focus-visible-filled (8 of 28) |
 | counter | `ring-width` | focusRing | state: focus-visible (6 of 18) |
 | flush-icon-button | `ring-width` | focusRing | state: focus-visible (12 of 60) |
 | flush-icon-button-destructive | `ring-width` | focusRing | state: focus-visible (12 of 60) |
@@ -2308,7 +2322,7 @@ Type: dimension. Bound by 6 component(s).
 
 ### `icon.size.md`
 
-Type: dimension. Bound by 18 component(s).
+Type: dimension. Bound by 19 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2330,6 +2344,7 @@ Type: dimension. Bound by 18 component(s).
 | button-neutral | `size.large.icon` | leadingVisual | leading: true · size: large · state: disabled, focus-visible, hover, pressed, rest (80 of 576) |
 |  |  | spinner | size: large · state: pending (32 of 576) |
 |  |  | trailingVisual | size: large · trailing: true (88 of 576) |
+| code-input-cell | `size.large.caret-height` | caret | size: large · state: focus-visible (1 of 28) |
 | flush-icon-button | `size.large.flush`, `size.large.icon` | container | shape: flush · size: large (10 of 60) |
 |  |  | icon | size: large (20 of 60) |
 | flush-icon-button-destructive | `size.large.flush`, `size.large.icon` | container | shape: flush · size: large (10 of 60) |
@@ -2359,7 +2374,7 @@ Type: dimension. Bound by 18 component(s).
 
 ### `icon.size.sm`
 
-Type: dimension. Bound by 22 component(s).
+Type: dimension. Bound by 23 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2377,6 +2392,7 @@ Type: dimension. Bound by 22 component(s).
 | button-neutral | `size.medium.icon` | leadingVisual | leading: true · size: medium · state: disabled, focus-visible, hover, pressed, rest (80 of 576) |
 |  |  | spinner | size: medium · state: pending (32 of 576) |
 |  |  | trailingVisual | size: medium · trailing: true (88 of 576) |
+| code-input-cell | `size.medium.caret-height` | caret | size: medium · state: focus-visible (1 of 28) |
 | flush-icon-button | `size.medium.flush`, `size.medium.icon`, `size.small.flush`, `size.small.icon` | container | shape: flush · size: medium, small (20 of 60) |
 |  |  | icon | size: medium, small (40 of 60) |
 | flush-icon-button-destructive | `size.medium.flush`, `size.medium.icon`, `size.small.flush`, `size.small.icon` | container | shape: flush · size: medium, small (20 of 60) |
@@ -2410,10 +2426,11 @@ Type: dimension. Bound by 22 component(s).
 
 ### `icon.size.xl`
 
-Type: dimension. Bound by 1 component(s).
+Type: dimension. Bound by 2 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
+| code-input-cell | `size.xlarge.caret-height` | caret | size: xlarge · state: focus-visible (1 of 28) |
 | progress | `size.medium` | arcGlyph | shape: circular · size: medium · status: active, error (3 of 12) |
 |  |  | fullRingGlyph | shape: circular · size: medium · status: complete · type: determinate (1 of 12) |
 |  |  | ring | shape: circular · size: medium (4 of 12) |
@@ -2421,7 +2438,7 @@ Type: dimension. Bound by 1 component(s).
 
 ### `icon.size.xs`
 
-Type: dimension. Bound by 14 component(s).
+Type: dimension. Bound by 15 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2443,6 +2460,7 @@ Type: dimension. Bound by 14 component(s).
 | button-neutral | `size.small.icon` | leadingVisual | leading: true · size: small · state: disabled, focus-visible, hover, pressed, rest (80 of 576) |
 |  |  | spinner | size: small · state: pending (32 of 576) |
 |  |  | trailingVisual | size: small · trailing: true (88 of 576) |
+| code-input-cell | `size.small.caret-height` | caret | size: small · state: focus-visible (1 of 28) |
 | field-message | `glyph-size` | errorGlyph | status: error (1 of 4) |
 |  |  | message | every member (4 of 4) |
 |  |  | successGlyph | status: success (1 of 4) |
@@ -2474,6 +2492,14 @@ Type: dimension. Bound by 1 component(s).
 |---|---|---|---|
 | progress | `radius` | fill | shape: linear · size: medium (4 of 12) |
 |  |  | track | shape: linear · size: medium (4 of 12) |
+
+### `radius.lg`
+
+Type: dimension. Bound by 1 component(s).
+
+| Component | Keys | Part | Where |
+|---|---|---|---|
+| code-input-cell | `size.xlarge.radius` | container | size: xlarge (7 of 28) |
 
 ### `radius.md`
 
@@ -2524,11 +2550,12 @@ Type: dimension. Bound by 11 component(s).
 
 ### `radius.sm`
 
-Type: dimension. Bound by 8 component(s).
+Type: dimension. Bound by 9 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
 | badge | `status.radius` | surface | type: status (10 of 20) |
+| code-input-cell | `size.large.radius`, `size.medium.radius`, `size.small.radius` | container | size: large, medium, small (21 of 28) |
 | counter | `radius` | control | every member (18 of 18) |
 | password-field | `radius` | control | every member (84 of 84) |
 | search-field | `radius` | control | every member (84 of 84) |
@@ -2653,7 +2680,7 @@ Type: dimension. Bound by 16 component(s).
 
 ### `space.0`
 
-Type: dimension. Bound by 19 component(s).
+Type: dimension. Bound by 20 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2665,6 +2692,7 @@ Type: dimension. Bound by 19 component(s).
 | checkbox-group | `gap`, `pad-x` | container | every member (6 of 6) |
 |  |  | items | every member (6 of 6) |
 | checkbox-row | `pad-x` | row | every member (6 of 6) |
+| code-input-cell | `pad` | content | every member (28 of 28) |
 | counter | `ghost.size.large.pad-x`, `ghost.size.medium.pad-x`, `ghost.size.small.pad-x`, `pad-y` | control | every member (18 of 18) |
 |  |  | entry | every member (18 of 18) |
 | dialog | `pad-none` | body | every member (24 of 24) |
@@ -2744,7 +2772,7 @@ Type: dimension. Bound by 17 component(s).
 
 ### `space.100`
 
-Type: dimension. Bound by 29 component(s).
+Type: dimension. Bound by 30 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2760,6 +2788,8 @@ Type: dimension. Bound by 29 component(s).
 | checkbox-group | `pad-y` | container | every member (6 of 6) |
 | checkbox-row | `size.medium.gap`, `size.medium.pad-y`, `size.small.gap` | content | size: medium, small (4 of 6) |
 |  |  | row | size: medium (2 of 6) |
+| code-input | `cell-gap`, `root-gap` | container | every member (48 of 48) |
+|  |  | items | every member (48 of 48) |
 | counter | `root-gap`, `size.large.value-pad` | container | every member (18 of 18) |
 |  |  | entry | size: large (6 of 18) |
 | dialog | `title-gap` | titleBox | every member (24 of 24) |
@@ -2957,7 +2987,7 @@ Type: typography. Bound by 1 component(s).
 
 ### `type.body.md.default`
 
-Type: typography. Bound by 17 component(s).
+Type: typography. Bound by 18 component(s).
 
 | Component | Keys | Part | Where |
 |---|---|---|---|
@@ -2965,6 +2995,7 @@ Type: typography. Bound by 17 component(s).
 | banner | `body-type` | placeholder | every member (8 of 8) |
 | breadcrumb-item | `size.medium.type` | current | kind: current · separator: chevron · size: medium (1 of 10) |
 | checkbox-row | `size.medium.text` | label | size: medium (2 of 6) |
+| code-input-cell | `size.small.type` | digit | size: small · state: error, filled, focus-visible-filled (3 of 28) |
 | counter | `size.medium.type` | value | size: medium (6 of 18) |
 | dialog | `body-type`, `description-type` | description | every member (24 of 24) |
 |  |  | placeholder | every member (24 of 24) |
@@ -3208,6 +3239,30 @@ Type: typography. Bound by 3 component(s).
 | button-destructive | `size.small.text.type` | label | appearance: text · size: small (96 of 576) |
 | button-neutral | `size.small.text.type` | label | appearance: text · size: small (96 of 576) |
 
+### `type.title.2xl.strong`
+
+Type: typography. Bound by 1 component(s).
+
+| Component | Keys | Part | Where |
+|---|---|---|---|
+| code-input-cell | `size.xlarge.type` | digit | size: xlarge · state: error, filled, focus-visible-filled (3 of 28) |
+
+### `type.title.md.strong`
+
+Type: typography. Bound by 1 component(s).
+
+| Component | Keys | Part | Where |
+|---|---|---|---|
+| code-input-cell | `size.large.type` | digit | size: large · state: error, filled, focus-visible-filled (3 of 28) |
+
+### `type.title.sm.strong`
+
+Type: typography. Bound by 1 component(s).
+
+| Component | Keys | Part | Where |
+|---|---|---|---|
+| code-input-cell | `size.medium.type` | digit | size: medium · state: error, filled, focus-visible-filled (3 of 28) |
+
 ## By component
 
 Every token each component uses. "Declared, not drawn" names tokens the definition binds that no design-file part draws; "drawn, not declared" names tokens the projection binds that the definition does not list (a value the projection derives, such as an inverse-surface twin or a corner rung).
@@ -3311,6 +3366,18 @@ Declared, not drawn: `color.border.focus`
 `color.disabled.text`, `color.text.primary`, `control.size.lg.height`, `control.size.lg.line-box`, `control.size.md.height`, `control.size.md.line-box`, `control.size.sm.height`, `control.size.sm.line-box`, `size.lg.height`, `size.md.height`, `size.sm.height`, `space.0`, `space.075`, `space.100`, `space.150`, `type.body.lg.default`, `type.body.md.default`, `type.body.sm.default`
 
 Declared, not drawn: `color.disabled.text`
+
+### code-input
+
+1 token(s); 48 design-file member(s).
+
+`space.100`
+
+### code-input-cell
+
+23 token(s); 28 design-file member(s).
+
+`border-width.hairline`, `color.border.danger`, `color.border.focus`, `color.disabled.border`, `color.disabled.fill`, `color.field.border.hover`, `color.field.border.rest`, `color.field.fill`, `color.interactive.neutral.overlay.hover`, `color.text.primary`, `focus.ring.offset-field`, `focus.ring.width`, `icon.size.md`, `icon.size.sm`, `icon.size.xl`, `icon.size.xs`, `radius.lg`, `radius.sm`, `space.0`, `type.body.md.default`, `type.title.2xl.strong`, `type.title.md.strong`, `type.title.sm.strong`
 
 ### counter
 
@@ -3574,7 +3641,7 @@ Declared, not drawn: `color.border.focus`
 
 ## Tokens no component binds
 
-254 semantic token(s) and 280 primitive(s). Primitives (`core.*`) are listed apart — components bind semantic roles, which alias the primitives, so an unbound primitive is expected.
+250 semantic token(s) and 280 primitive(s). Primitives (`core.*`) are listed apart — components bind semantic roles, which alias the primitives, so an unbound primitive is expected.
 
 ### Semantic
 
@@ -3593,11 +3660,11 @@ Declared, not drawn: `color.border.focus`
 - **grid** — `grid.2xl.columns`, `grid.2xl.gutter`, `grid.2xl.margin`, `grid.lg.columns`, `grid.lg.gutter`, `grid.lg.margin`, `grid.md.columns`, `grid.md.gutter`, `grid.md.margin`, `grid.sm.columns`, `grid.sm.gutter`, `grid.sm.margin`, `grid.xl.columns`, `grid.xl.gutter`, `grid.xl.margin`
 - **motion** — `motion.duration-ms.0`, `motion.duration-ms.100`, `motion.duration-ms.1600`, `motion.duration-ms.200`, `motion.duration-ms.2600`, `motion.duration-ms.300`, `motion.duration-ms.40`, `motion.duration-ms.50`, `motion.duration-ms.500`, `motion.duration-ms.800`, `motion.duration-reduced.fast`, `motion.duration-reduced.instant`, `motion.duration-reduced.moderate`, `motion.duration-reduced.normal`, `motion.duration-reduced.slow`, `motion.duration-reduced.slower`, `motion.duration-reduced.spin`, `motion.duration-reduced.sweep`, `motion.duration.fast`, `motion.duration.instant`, `motion.duration.moderate`, `motion.duration.normal`, `motion.duration.slow`, `motion.duration.slower`, `motion.duration.spin`, `motion.duration.sweep`, `motion.easing-role.default`, `motion.easing-role.emphasized`, `motion.easing-role.enter`, `motion.easing-role.exit`, `motion.easing.accelerate`, `motion.easing.calm`, `motion.easing.decelerate`, `motion.easing.expressive`, `motion.easing.linear`, `motion.easing.standard`, `motion.spring.bouncy`, `motion.spring.gentle`, `motion.spring.snappy`, `motion.stagger`, `motion.transition.default`, `motion.transition.emphasized`, `motion.transition.enter`, `motion.transition.exit`
 - **opacity** — `opacity.0`, `opacity.10`, `opacity.100`, `opacity.20`, `opacity.30`, `opacity.40`, `opacity.5`, `opacity.50`, `opacity.60`, `opacity.70`, `opacity.80`, `opacity.90`
-- **radius** — `radius.3xl`, `radius.hairline`, `radius.lg`
+- **radius** — `radius.3xl`, `radius.hairline`
 - **shadow** — `shadow.2xl`, `shadow.inset`, `shadow.md`, `shadow.sm`, `shadow.xs`
 - **size** — `size.xl.height`, `size.xs.height`
 - **space** — `space.1000`, `space.1100`, `space.1200`, `space.600`, `space.700`, `space.800`, `space.900`
-- **type** — `type.body.lg.default-italic`, `type.body.lg.default-italic-link`, `type.body.lg.strong-italic`, `type.body.lg.strong-italic-link`, `type.body.md.default-italic`, `type.body.md.default-italic-link`, `type.body.md.strong-italic`, `type.body.md.strong-italic-link`, `type.body.sm.default-italic`, `type.body.sm.default-italic-link`, `type.body.sm.strong-italic`, `type.body.sm.strong-italic-link`, `type.body.xs.default-italic`, `type.body.xs.default-italic-link`, `type.body.xs.default-link`, `type.body.xs.strong-italic`, `type.body.xs.strong-italic-link`, `type.body.xs.strong-link`, `type.caption.lg.default`, `type.caption.lg.default-link`, `type.caption.lg.strong`, `type.caption.lg.strong-link`, `type.caption.md.default-link`, `type.caption.md.strong`, `type.caption.md.strong-link`, `type.code.inline.default`, `type.display.2xl.emphasis`, `type.display.2xl.strong`, `type.display.3xl.emphasis`, `type.display.3xl.strong`, `type.display.lg.emphasis`, `type.display.lg.strong`, `type.display.md.emphasis`, `type.display.md.strong`, `type.display.sm.emphasis`, `type.display.sm.strong`, `type.display.xl.emphasis`, `type.display.xl.strong`, `type.eyebrow.lg.emphasis`, `type.eyebrow.md.emphasis`, `type.eyebrow.sm.emphasis`, `type.label.lg.default-link`, `type.label.lg.line-box`, `type.label.md.default-link`, `type.label.md.line-box`, `type.label.sm.default-link`, `type.label.sm.line-box`, `type.title.2xl.emphasis`, `type.title.2xl.strong`, `type.title.lg.emphasis`, `type.title.lg.strong`, `type.title.md.emphasis`, `type.title.md.strong`, `type.title.sm.emphasis`, `type.title.sm.strong`, `type.title.xl.emphasis`, `type.title.xl.strong`, `type.title.xs.emphasis`, `type.title.xs.strong`
+- **type** — `type.body.lg.default-italic`, `type.body.lg.default-italic-link`, `type.body.lg.strong-italic`, `type.body.lg.strong-italic-link`, `type.body.md.default-italic`, `type.body.md.default-italic-link`, `type.body.md.strong-italic`, `type.body.md.strong-italic-link`, `type.body.sm.default-italic`, `type.body.sm.default-italic-link`, `type.body.sm.strong-italic`, `type.body.sm.strong-italic-link`, `type.body.xs.default-italic`, `type.body.xs.default-italic-link`, `type.body.xs.default-link`, `type.body.xs.strong-italic`, `type.body.xs.strong-italic-link`, `type.body.xs.strong-link`, `type.caption.lg.default`, `type.caption.lg.default-link`, `type.caption.lg.strong`, `type.caption.lg.strong-link`, `type.caption.md.default-link`, `type.caption.md.strong`, `type.caption.md.strong-link`, `type.code.inline.default`, `type.display.2xl.emphasis`, `type.display.2xl.strong`, `type.display.3xl.emphasis`, `type.display.3xl.strong`, `type.display.lg.emphasis`, `type.display.lg.strong`, `type.display.md.emphasis`, `type.display.md.strong`, `type.display.sm.emphasis`, `type.display.sm.strong`, `type.display.xl.emphasis`, `type.display.xl.strong`, `type.eyebrow.lg.emphasis`, `type.eyebrow.md.emphasis`, `type.eyebrow.sm.emphasis`, `type.label.lg.default-link`, `type.label.lg.line-box`, `type.label.md.default-link`, `type.label.md.line-box`, `type.label.sm.default-link`, `type.label.sm.line-box`, `type.title.2xl.emphasis`, `type.title.lg.emphasis`, `type.title.lg.strong`, `type.title.md.emphasis`, `type.title.sm.emphasis`, `type.title.xl.emphasis`, `type.title.xl.strong`, `type.title.xs.emphasis`, `type.title.xs.strong`
 
 ### Primitive
 

@@ -5281,9 +5281,10 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 // =============================================================================================
 // A brand on "Tag style: Underline" builds the Tag set with its four stroke sides bound apart (top, end and start to
 // `border-width/none`; the bottom to `border-width/hairline` at an unselected rest, focus-visible or disabled member and
-// `border-width/thick` on hover, pressed and every selected member), a bound `minHeight` in place of the height, the
-// frame aligned to the end, and the content row on its block-end inset. Read back off the host's own nodes. Expected
-// names typed from the decisions (Q513, Q540). The first host-side read-back of `minHeight` plus end alignment on Tag.
+// `border-width/thick` on hover, pressed and every selected member), no bound height and no `minHeight` (#2945, owner
+// Q585 A: the tag hugs its content), the frame aligned to the end, and the content row on its block-end inset. The × slot
+// binds its width to the rung height and hugs its height (Q585.1 A). Read back off the host's own nodes. Expected names
+// typed from the decisions (Q513, Q540, Q585).
 {
   const input = { ...parseDesignMd(readFileSync(new URL('../../packages/engine/examples/nb-redesign.design.md', import.meta.url), 'utf8')).input, tagStyle: 'underline' } as BrandInput;
   const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, input), { swapTarget: SWAP });
@@ -5309,13 +5310,16 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     const bv = (m.boundVariables ?? {}) as Record<string, unknown>;
     const content = ((m.children as Node[]) ?? []).find((n) => n.name === 'content');
     read++;
-    const got = [id(bv.strokeTopWeight), id(bv.strokeRightWeight), id(bv.strokeBottomWeight), id(bv.strokeLeftWeight), id(bv.minHeight), id(bv.height), m.counterAxisAlignItems,
-      id(((content?.boundVariables ?? {}) as Record<string, unknown>).paddingBottom)];
-    const want = ['border-width/none', 'border-width/none', thick ? 'border-width/thick' : 'border-width/hairline', 'border-width/none', `size/${RUNG[size]}/height`, null, 'MAX', INSET[size]];
+    const slot = ((m.children as Node[]) ?? []).find((n) => n.name === 'dismiss');
+    const sv = (slot?.boundVariables ?? {}) as Record<string, unknown>;
+    const got = [id(bv.strokeTopWeight), id(bv.strokeRightWeight), id(bv.strokeBottomWeight), id(bv.strokeLeftWeight), id(bv.minHeight), id(bv.height), m.counterAxisSizingMode, m.counterAxisAlignItems,
+      id(((content?.boundVariables ?? {}) as Record<string, unknown>).paddingBottom), ...(/type=dismissible/.test(name) ? [id(sv.width), id(sv.height), slot?.counterAxisSizingMode] : [])];
+    const want = ['border-width/none', 'border-width/none', thick ? 'border-width/thick' : 'border-width/hairline', 'border-width/none', null, null, 'AUTO', 'MAX', INSET[size],
+      ...(/type=dismissible/.test(name) ? [`size/${RUNG[size]}/height`, null, 'AUTO'] : [])];
     if (JSON.stringify(got) !== JSON.stringify(want)) wrong.push(`${name}: ${got.join(' / ')}`);
   }
   ok(read === 45 && wrong.length === 0,
-    `#2887 underline tag reads back: per-side weights none / none / hairline (thick on hover, pressed and selected) / none, minHeight at the height rung and no bound height, the frame at the end and the content on its inset, on all ${read} of 45 members (${wrong.slice(0, 2).join('; ') || 'ok'})`);
+    `#2887 underline tag reads back: per-side weights none / none / hairline (thick on hover, pressed and selected) / none, no minHeight and no bound height (the tag hugs, #2945), the × slot as wide as the rung and hugging its height, the frame at the end and the content on its inset, on all ${read} of 45 members (${wrong.slice(0, 2).join('; ') || 'ok'})`);
   ok(misses.length === 0, `#2887 underline tag: no stroke, minHeight or padding binding is reported discarded (${misses.slice(0, 3).join('; ') || 'none'})`);
 }
 
@@ -5436,6 +5440,30 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   }
   ok(members.length === 3 && wrong.length === 0,
     `segmented control equal widths (Q269.6): at every size the items slot grows along the track and its three options grow along it (layoutGrow 1 on the host) and measure the same width, their shares filling the track (${members.length} members${wrong.length ? ` — WRONG: ${wrong.join(' | ')}` : ''})`);
+}
+
+// ── #2428: CODE INPUT'S CHARACTER CARRIES ITS SIZE'S TEXT STYLE ON THE HOST ─────────────────────────────────────────
+// Owner QA Q534 on #2789: the character had no text style, so in a brand's file it kept the build's own font (the
+// default brand's display serif). Each built character must read its size's style back, untrimmed: a trim written
+// after the style detaches it (#1567), which the shim models. The style names are typed here, not read from the plan.
+{
+  const cell = componentDefs.find((d) => d.id === 'code-input-cell')!;
+  const STYLE: Record<string, string> = { small: 'body/md/default', medium: 'title/sm/strong', large: 'title/md/strong', xlarge: 'title/2xl/strong' };
+  const plans = figmaAnatomySet(cell, { swapTarget: SWAP });
+  const page: Page = { children: [] };
+  const r = await applyComponentPlan(plans, makeShim({ ...fullFor(plans), page }) as any);
+  const set = page.children[0];
+  const digits = ((set?.findAll as (() => Node[]) | undefined)?.() ?? []).filter((n) => n.type === 'TEXT' && n.name === 'digit');
+  const wantDigits = plans.filter((p) => JSON.stringify(p.root).includes('"name":"digit"')).length;
+  const off = digits.flatMap((d) => {
+    const member = String((d.parent as Node | undefined)?.parent?.name);
+    const size = /size=(\w+)/.exec(member)?.[1] ?? '';
+    const style = String(d._textStyleId ?? '').replace(/^S:/, '');
+    return style === STYLE[size] && d.leadingTrim === 'NONE' ? [] : [`${member}: ${style || 'no style'}, trim ${String(d.leadingTrim)}`];
+  });
+  const styleMisses = (r.misses ?? []).filter((m: string) => /digit\.(leadingTrim|textStyle)/.test(m));
+  ok(digits.length === wantDigits && wantDigits === 12 && off.length === 0 && styleMisses.length === 0,
+    `#2428 code-input-cell: every built character (${digits.length} of ${wantDigits}) carries its size's text style (body md, title sm, md, 2xl), untrimmed, and the executor reports no style miss for it (off: ${[...off, ...styleMisses].slice(0, 4).join(' | ') || 'none'})`);
 }
 
 // ── #2872: LINK'S CURRENT-PAGE BAR, PINNED ACROSS THE FOOT (owner decisions Q507) ──────────────────────────────────

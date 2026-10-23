@@ -2460,6 +2460,11 @@ const writeComponentSet = async (
     // This parent's DIRECT children by part name (#848) — the sibling boxes `absoluteCenterOn` measures
     // against. Sibling-scoped on purpose; see the centering loop for why the wider `parts` map is wrong.
     const byPart = new Map<string, Wr>();
+    // A CHILD KEPT AS A HAND EDIT (#2943): it keeps every field, the ones its PARENT writes too. Every pass below
+    // that places, sizes or re-corners a child from this node (the ring's concentric radius, a pin, an inset icon,
+    // a stretch) is a write to the child, and the node's own `kept` guard never sees it. Under `keep` the designer's
+    // unbound, square ring came back concentric on every member whose root the update rewrote.
+    const held = new Set<Wr>();
     // IN PLACE (#2265 PR 2): the node's existing children, each paired at most once with the plan child of its name.
     // A GLYPH's are the fresh import's, never the plan's, so they are not paired; an INSTANCE's are its main's.
     // A FRESH FRAME THE PLAN INSERTS under an in-place node (#2595) is offered that node's children it is to hold
@@ -2479,6 +2484,7 @@ const writeComponentSet = async (
       if (!kid) continue;   // a missing shared component — one precise miss, the rest still builds
       // Moved in: its in-place parent no longer removes it.
       if (adopt && cand && fits) adopt.take(cand);
+      if (fits && keep?.has(at$(c.name))) held.add(kid);
       if (ex) {
         // A TYPE CHANGE IS A REPLACEMENT, the one way an update changes a child's id; the dry run lists each one.
         if (cand && !fits) wr(cand).remove?.();
@@ -2506,6 +2512,7 @@ const writeComponentSet = async (
       // executor to save a few dozen map entries per member.
       parts?.set(c.name, kid);
       byPart.set(c.name, kid);
+      if (held.has(kid)) continue;
       if (c.absoluteInset) absolutes.push([c, kid]);
       if (c.absoluteCenter) centered.push([c, kid]);
       // A PINNED child (#1667) leaves the flow the moment it is appended, so it never counts in the hug and
@@ -2608,7 +2615,7 @@ const writeComponentSet = async (
     for (const c of n.children) {
       if (!c.cornerInset) continue;
       const kid = byPart.get(c.name);
-      if (!kid) continue;
+      if (!kid || held.has(kid)) continue;
       const v = byName.get(c.cornerInset);
       if (!v) { misses.push(`${c.name}.cornerInset -> ${c.cornerInset}`); continue; }
       const at = v.resolveForConsumer(kid).value;
@@ -2634,7 +2641,7 @@ const writeComponentSet = async (
     for (const c of n.children) {
       if (!c.footPin) continue;
       const kid = byPart.get(c.name);
-      if (!kid) continue;
+      if (!kid || held.has(kid)) continue;
       kid.layoutPositioning = 'ABSOLUTE';
       feet.push([c, kid]);
       // READ BACK: a bar left in the flow takes a cell and widens the link by its own width, the one thing the pin
@@ -4046,7 +4053,7 @@ const writeComponentSet = async (
   // not written (a write costs ~12.5ms on the host, measured), nor is one whose reactions an update keeps as a
   // hand edit. Read back, as everything here is. Yields on the chunk boundary, as the loops above do.
   const reactionMiss: string[] = [];
-  const plannedReactions = reactionMap(plans.map((p) => planComponentName(p)));
+  const plannedReactions = reactionMap(plans.map((p) => planComponentName(p)), plans[0]?.pressState);
   if (plannedReactions.size) {
     const kids = (liveSet().children ?? []) as CompNode[];
     const byMember = new Map(kids.map((c) => [String(c.name), c] as const));
