@@ -316,6 +316,8 @@
           "dialog",
           "password-field",
           "counter",
+          "pagination-item",
+          "pagination",
           "progress",
           "search-field",
           "banner",

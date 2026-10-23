@@ -851,6 +851,69 @@
       "text": "TEXT"
     }
   },
+  "pagination": {
+    "axes": {
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "style": [
+        "border",
+        "underline"
+      ],
+      "type": [
+        "compact",
+        "numbered",
+        "simple"
+      ]
+    },
+    "members": 12,
+    "properties": {
+      "items": "SLOT",
+      "status text": "TEXT"
+    }
+  },
+  "pagination-item": {
+    "axes": {
+      "labeled": [
+        "false",
+        "true"
+      ],
+      "selection": [
+        "selected",
+        "unselected"
+      ],
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "state": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "pressed",
+        "rest"
+      ],
+      "style": [
+        "border",
+        "underline"
+      ],
+      "type": [
+        "ellipsis",
+        "next",
+        "page",
+        "previous"
+      ]
+    },
+    "members": 87,
+    "properties": {
+      "label": "TEXT",
+      "next label": "TEXT",
+      "previous label": "TEXT"
+    }
+  },
   "password-field": {
     "axes": {
       "size": [

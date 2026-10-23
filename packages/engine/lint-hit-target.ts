@@ -171,6 +171,8 @@ const INTERACTIVE: Record<string, Binding> = {
   // #2427: the Counter's row, the height of the value it centers (the spinbutton, its one Tab stop). Its two buttons
   // are code-side targets nested in it, measured under FLUSH_NESTS below.
   'counter': { key: (s) => `size.${s}.height`, why: 'the Counter row height, on Button\'s height rung' },
+  // #2665: each page cell is its own target, on IconButton's height rung (owner call 8).
+  'pagination-item': { key: (s) => `size.${s}.height`, why: 'the page cell height' },
 };
 
 // ── TARGETS INSIDE A CONTROL (#1741): `<def>.<part>` → the tokens KEY of the part's side at a size ─────────
@@ -287,7 +289,7 @@ const ruleGap = (entries: readonly string[], rule: readonly RegExp[]): string[] 
 /** The defs carved out as a size-level exception: a small button (owner, #1443) and a small tag (owner,
  *  2026-09-27, "as for Button") sit below the floor on purpose. Kept as data so the walk asserts each is
  *  ACTUALLY below the floor. */
-const SMALL_SIZE = new Set(['button', 'button-destructive', 'button-neutral', 'tag', 'tab-item', 'segmented-control-segment']);
+const SMALL_SIZE = new Set(['button', 'button-destructive', 'button-neutral', 'tag', 'tab-item', 'segmented-control-segment', 'pagination-item']);
 
 // ── EXCLUDED: represented, with a stated reason (docs/34 — a hand-enumerated legitimate exclusion) ──
 const EXCLUDED: Record<string, string> = {
@@ -314,6 +316,7 @@ const EXCLUDED: Record<string, string> = {
   'switch-control': 'a nested-only atom — the tap target is the labelled row (switch), gated here; its bare 24–32px track fails SC 2.5.8 in isolation by its own codeOnly',
   'checkbox-group': 'a group container — its interactive tap targets are the nested checkbox-rows, which are gated',
   'radio-group': 'a group container — its interactive tap targets are the nested radio-rows, which are gated',
+  'pagination': 'a navigation row — its tap targets are the nested page cells, gated as pagination-item, and the previous and next IconButton.Neutral and Button.Neutral, each measured under its own name (#2665)',
   'tabs': 'a tab list container — its interactive tap targets are the nested tabs, which are gated as tab',
   'link': 'one text line tall in Figma by owner decision (Q289.4 A), so its box is the line, not a control height: code expands the hit area to at least 24px (SC 2.5.8, codeOnly), and an inline link in a sentence is exempt under the inline exception',
   // #2428: Code input's target is its row of cells, one target over the one input, built at the owner's literal cell

@@ -37036,6 +37036,1965 @@
         }
       ]
     },
+    "pagination-item": {
+      "id": "pagination-item",
+      "name": "Pagination.Item",
+      "members": 87,
+      "axes": [
+        {
+          "name": "type",
+          "figmaName": "type",
+          "values": [
+            "page",
+            "ellipsis",
+            "previous",
+            "next"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "selection",
+          "figmaName": "selection",
+          "values": [
+            "unselected",
+            "selected"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "style",
+          "figmaName": "style",
+          "values": [
+            "border",
+            "underline"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "labeled",
+          "figmaName": "labeled",
+          "values": [
+            "false",
+            "true"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "size",
+          "figmaName": "size",
+          "values": [
+            "medium",
+            "small",
+            "large"
+          ],
+          "kind": "size"
+        },
+        {
+          "name": "state",
+          "figmaName": "state",
+          "values": [
+            "rest",
+            "hover",
+            "pressed",
+            "focus-visible",
+            "disabled"
+          ],
+          "kind": "state"
+        }
+      ],
+      "codeOnlyStates": [],
+      "anatomy": [
+        {
+          "part": "container",
+          "kind": "frame",
+          "members": 87
+        },
+        {
+          "part": "container/labelBox",
+          "kind": "frame",
+          "members": 24,
+          "when": {
+            "type": [
+              "page"
+            ]
+          }
+        },
+        {
+          "part": "container/labelBox/reserve",
+          "kind": "frame",
+          "members": 24,
+          "when": {
+            "type": [
+              "page"
+            ]
+          }
+        },
+        {
+          "part": "container/labelBox/reserve/labelReserve",
+          "kind": "text",
+          "members": 24,
+          "when": {
+            "type": [
+              "page"
+            ]
+          }
+        },
+        {
+          "part": "container/labelBox/label",
+          "kind": "text",
+          "members": 24,
+          "when": {
+            "type": [
+              "page"
+            ]
+          }
+        },
+        {
+          "part": "container/focusRing",
+          "kind": "instance",
+          "members": 21,
+          "when": {
+            "state": [
+              "focus-visible"
+            ]
+          }
+        },
+        {
+          "part": "container/labelBox/balance",
+          "kind": "frame",
+          "members": 6,
+          "when": {
+            "style": [
+              "underline"
+            ]
+          }
+        },
+        {
+          "part": "container/labelBox/underline",
+          "kind": "frame",
+          "members": 6,
+          "when": {
+            "style": [
+              "underline"
+            ]
+          }
+        },
+        {
+          "part": "container/labelBox/underline/underlineReserve",
+          "kind": "frame",
+          "members": 6,
+          "when": {
+            "style": [
+              "underline"
+            ]
+          }
+        },
+        {
+          "part": "container/labelBox/underline/underlineReserve/underlineLabel",
+          "kind": "text",
+          "members": 6,
+          "when": {
+            "style": [
+              "underline"
+            ]
+          }
+        },
+        {
+          "part": "container/gapGlyph",
+          "kind": "instance",
+          "members": 3,
+          "when": {
+            "type": [
+              "ellipsis"
+            ]
+          }
+        },
+        {
+          "part": "container/previousGlyph",
+          "kind": "instance",
+          "members": 30,
+          "when": {
+            "type": [
+              "previous"
+            ]
+          }
+        },
+        {
+          "part": "container/previousText",
+          "kind": "text",
+          "members": 15
+        },
+        {
+          "part": "container/nextGlyph",
+          "kind": "instance",
+          "members": 30,
+          "when": {
+            "type": [
+              "next"
+            ]
+          }
+        },
+        {
+          "part": "container/nextText",
+          "kind": "text",
+          "members": 15
+        }
+      ],
+      "redlineKey": [
+        "size"
+      ],
+      "redlines": [
+        {
+          "where": {
+            "size": "medium"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "paddingTop": {
+                  "token": "space.0"
+                },
+                "paddingRight": {
+                  "token": "space.100"
+                },
+                "paddingBottom": {
+                  "token": "space.0"
+                },
+                "paddingLeft": {
+                  "token": "space.100"
+                },
+                "gap": {
+                  "token": "space.050"
+                },
+                "height": {
+                  "token": "size.md.height"
+                },
+                "minWidth": {
+                  "token": "size.md.height"
+                }
+              }
+            },
+            {
+              "part": "container/labelBox/reserve",
+              "values": {
+                "height": {
+                  "token": "space.0"
+                }
+              }
+            },
+            {
+              "part": "container/labelBox/balance",
+              "values": {
+                "height": {
+                  "token": "border-width.thick"
+                },
+                "width": {
+                  "token": "space.0"
+                }
+              }
+            },
+            {
+              "part": "container/labelBox/underline",
+              "values": {
+                "height": {
+                  "token": "border-width.thick"
+                }
+              }
+            },
+            {
+              "part": "container/labelBox/underline/underlineReserve",
+              "values": {
+                "height": {
+                  "token": "space.0"
+                }
+              }
+            },
+            {
+              "part": "container/gapGlyph",
+              "values": {
+                "height": {
+                  "token": "icon.size.sm"
+                },
+                "width": {
+                  "token": "icon.size.sm"
+                }
+              }
+            },
+            {
+              "part": "container/previousGlyph",
+              "values": {
+                "height": {
+                  "token": "icon.size.sm"
+                },
+                "width": {
+                  "token": "icon.size.sm"
+                }
+              }
+            },
+            {
+              "part": "container/nextGlyph",
+              "values": {
+                "height": {
+                  "token": "icon.size.sm"
+                },
+                "width": {
+                  "token": "icon.size.sm"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "paddingTop": {
+                  "token": "space.0"
+                },
+                "paddingRight": {
+                  "token": "space.100"
+                },
+                "paddingBottom": {
+                  "token": "space.0"
+                },
+                "paddingLeft": {
+                  "token": "space.100"
+                },
+                "gap": {
+                  "token": "space.050"
+                },
+                "height": {
+                  "token": "size.sm.height"
+                },
+                "minWidth": {
+                  "token": "size.sm.height"
+                }
+              }
+            },
+            {
+              "part": "container/labelBox/reserve",
+              "values": {
+                "height": {
+                  "token": "space.0"
+                }
+              }
+            },
+            {
+              "part": "container/labelBox/balance",
+              "values": {
+                "height": {
+                  "token": "border-width.thick"
+                },
+                "width": {
+                  "token": "space.0"
+                }
+              }
+            },
+            {
+              "part": "container/labelBox/underline",
+              "values": {
+                "height": {
+                  "token": "border-width.thick"
+                }
+              }
+            },
+            {
+              "part": "container/labelBox/underline/underlineReserve",
+              "values": {
+                "height": {
+                  "token": "space.0"
+                }
+              }
+            },
+            {
+              "part": "container/gapGlyph",
+              "values": {
+                "height": {
+                  "token": "icon.size.xs"
+                },
+                "width": {
+                  "token": "icon.size.xs"
+                }
+              }
+            },
+            {
+              "part": "container/previousGlyph",
+              "values": {
+                "height": {
+                  "token": "icon.size.xs"
+                },
+                "width": {
+                  "token": "icon.size.xs"
+                }
+              }
+            },
+            {
+              "part": "container/nextGlyph",
+              "values": {
+                "height": {
+                  "token": "icon.size.xs"
+                },
+                "width": {
+                  "token": "icon.size.xs"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "paddingTop": {
+                  "token": "space.0"
+                },
+                "paddingRight": {
+                  "token": "space.100"
+                },
+                "paddingBottom": {
+                  "token": "space.0"
+                },
+                "paddingLeft": {
+                  "token": "space.100"
+                },
+                "gap": {
+                  "token": "space.050"
+                },
+                "height": {
+                  "token": "size.lg.height"
+                },
+                "minWidth": {
+                  "token": "size.lg.height"
+                }
+              }
+            },
+            {
+              "part": "container/labelBox/reserve",
+              "values": {
+                "height": {
+                  "token": "space.0"
+                }
+              }
+            },
+            {
+              "part": "container/labelBox/balance",
+              "values": {
+                "height": {
+                  "token": "border-width.thick"
+                },
+                "width": {
+                  "token": "space.0"
+                }
+              }
+            },
+            {
+              "part": "container/labelBox/underline",
+              "values": {
+                "height": {
+                  "token": "border-width.thick"
+                }
+              }
+            },
+            {
+              "part": "container/labelBox/underline/underlineReserve",
+              "values": {
+                "height": {
+                  "token": "space.0"
+                }
+              }
+            },
+            {
+              "part": "container/gapGlyph",
+              "values": {
+                "height": {
+                  "token": "icon.size.md"
+                },
+                "width": {
+                  "token": "icon.size.md"
+                }
+              }
+            },
+            {
+              "part": "container/previousGlyph",
+              "values": {
+                "height": {
+                  "token": "icon.size.md"
+                },
+                "width": {
+                  "token": "icon.size.md"
+                }
+              }
+            },
+            {
+              "part": "container/nextGlyph",
+              "values": {
+                "height": {
+                  "token": "icon.size.md"
+                },
+                "width": {
+                  "token": "icon.size.md"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "typeKey": [
+        "size",
+        "selection"
+      ],
+      "type": [
+        {
+          "where": {
+            "size": "medium",
+            "selection": "unselected"
+          },
+          "parts": [
+            {
+              "part": "container/labelBox/reserve/labelReserve",
+              "textStyle": "type.label.md.emphasis"
+            },
+            {
+              "part": "container/labelBox/label",
+              "textStyle": "type.label.md.default"
+            },
+            {
+              "part": "container/previousText",
+              "textStyle": "type.label.md.default"
+            },
+            {
+              "part": "container/nextText",
+              "textStyle": "type.label.md.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small",
+            "selection": "unselected"
+          },
+          "parts": [
+            {
+              "part": "container/labelBox/reserve/labelReserve",
+              "textStyle": "type.label.sm.emphasis"
+            },
+            {
+              "part": "container/labelBox/label",
+              "textStyle": "type.label.sm.default"
+            },
+            {
+              "part": "container/previousText",
+              "textStyle": "type.label.sm.default"
+            },
+            {
+              "part": "container/nextText",
+              "textStyle": "type.label.sm.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large",
+            "selection": "unselected"
+          },
+          "parts": [
+            {
+              "part": "container/labelBox/reserve/labelReserve",
+              "textStyle": "type.label.lg.emphasis"
+            },
+            {
+              "part": "container/labelBox/label",
+              "textStyle": "type.label.lg.default"
+            },
+            {
+              "part": "container/previousText",
+              "textStyle": "type.label.lg.default"
+            },
+            {
+              "part": "container/nextText",
+              "textStyle": "type.label.lg.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "medium",
+            "selection": "selected"
+          },
+          "parts": [
+            {
+              "part": "container/labelBox/reserve/labelReserve",
+              "textStyle": "type.label.md.emphasis"
+            },
+            {
+              "part": "container/labelBox/label",
+              "textStyle": "type.label.md.emphasis"
+            },
+            {
+              "part": "container/labelBox/underline/underlineReserve/underlineLabel",
+              "textStyle": "type.label.md.emphasis"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small",
+            "selection": "selected"
+          },
+          "parts": [
+            {
+              "part": "container/labelBox/reserve/labelReserve",
+              "textStyle": "type.label.sm.emphasis"
+            },
+            {
+              "part": "container/labelBox/label",
+              "textStyle": "type.label.sm.emphasis"
+            },
+            {
+              "part": "container/labelBox/underline/underlineReserve/underlineLabel",
+              "textStyle": "type.label.sm.emphasis"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large",
+            "selection": "selected"
+          },
+          "parts": [
+            {
+              "part": "container/labelBox/reserve/labelReserve",
+              "textStyle": "type.label.lg.emphasis"
+            },
+            {
+              "part": "container/labelBox/label",
+              "textStyle": "type.label.lg.emphasis"
+            },
+            {
+              "part": "container/labelBox/underline/underlineReserve/underlineLabel",
+              "textStyle": "type.label.lg.emphasis"
+            }
+          ]
+        }
+      ],
+      "colorKey": [
+        "type",
+        "selection",
+        "style",
+        "labeled",
+        "state"
+      ],
+      "colors": [
+        {
+          "where": {
+            "type": "page",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/labelBox/reserve/labelReserve",
+              "ink": "color.interactive.neutral.text.rest"
+            },
+            {
+              "part": "container/labelBox/label",
+              "ink": "color.interactive.neutral.text.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "page",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.interactive.neutral.overlay.hover"
+            },
+            {
+              "part": "container/labelBox/reserve/labelReserve",
+              "ink": "color.interactive.neutral.text.hover"
+            },
+            {
+              "part": "container/labelBox/label",
+              "ink": "color.interactive.neutral.text.hover"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "page",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.interactive.neutral.overlay.pressed"
+            },
+            {
+              "part": "container/labelBox/reserve/labelReserve",
+              "ink": "color.interactive.neutral.text.pressed"
+            },
+            {
+              "part": "container/labelBox/label",
+              "ink": "color.interactive.neutral.text.pressed"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "page",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/labelBox/reserve/labelReserve",
+              "ink": "color.interactive.neutral.text.rest"
+            },
+            {
+              "part": "container/labelBox/label",
+              "ink": "color.interactive.neutral.text.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "page",
+            "selection": "selected",
+            "style": "border",
+            "labeled": "false",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "stroke": "color.border.secondary"
+            },
+            {
+              "part": "container/labelBox/reserve/labelReserve",
+              "ink": "color.interactive.neutral.text.rest"
+            },
+            {
+              "part": "container/labelBox/label",
+              "ink": "color.interactive.neutral.text.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "page",
+            "selection": "selected",
+            "style": "border",
+            "labeled": "false",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "stroke": "color.border.secondary"
+            },
+            {
+              "part": "container/labelBox/reserve/labelReserve",
+              "ink": "color.interactive.neutral.text.rest"
+            },
+            {
+              "part": "container/labelBox/label",
+              "ink": "color.interactive.neutral.text.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "page",
+            "selection": "selected",
+            "style": "underline",
+            "labeled": "false",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/labelBox/reserve/labelReserve",
+              "ink": "color.interactive.neutral.text.rest"
+            },
+            {
+              "part": "container/labelBox/label",
+              "ink": "color.interactive.neutral.text.rest"
+            },
+            {
+              "part": "container/labelBox/underline",
+              "fill": "color.border.tertiary"
+            },
+            {
+              "part": "container/labelBox/underline/underlineReserve/underlineLabel",
+              "ink": "color.interactive.neutral.text.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "page",
+            "selection": "selected",
+            "style": "underline",
+            "labeled": "false",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/labelBox/reserve/labelReserve",
+              "ink": "color.interactive.neutral.text.rest"
+            },
+            {
+              "part": "container/labelBox/label",
+              "ink": "color.interactive.neutral.text.rest"
+            },
+            {
+              "part": "container/labelBox/underline",
+              "fill": "color.border.tertiary"
+            },
+            {
+              "part": "container/labelBox/underline/underlineReserve/underlineLabel",
+              "ink": "color.interactive.neutral.text.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "ellipsis",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/gapGlyph",
+              "icon": "color.icon.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "previous",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/previousGlyph",
+              "icon": "color.interactive.neutral.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "previous",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.interactive.neutral.overlay.hover"
+            },
+            {
+              "part": "container/previousGlyph",
+              "icon": "color.interactive.neutral.icon.hover"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "previous",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.interactive.neutral.overlay.pressed"
+            },
+            {
+              "part": "container/previousGlyph",
+              "icon": "color.interactive.neutral.icon.pressed"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "previous",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/previousGlyph",
+              "icon": "color.interactive.neutral.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "previous",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "container/previousGlyph",
+              "icon": "color.disabled.icon"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "previous",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "true",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/previousGlyph",
+              "icon": "color.interactive.neutral.icon.rest"
+            },
+            {
+              "part": "container/previousText",
+              "ink": "color.interactive.neutral.text.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "previous",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "true",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container/previousGlyph",
+              "icon": "color.interactive.neutral.icon.hover"
+            },
+            {
+              "part": "container/previousText",
+              "ink": "color.interactive.neutral.text.hover"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "previous",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "true",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container/previousGlyph",
+              "icon": "color.interactive.neutral.icon.pressed"
+            },
+            {
+              "part": "container/previousText",
+              "ink": "color.interactive.neutral.text.pressed"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "previous",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "true",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/previousGlyph",
+              "icon": "color.interactive.neutral.icon.rest"
+            },
+            {
+              "part": "container/previousText",
+              "ink": "color.interactive.neutral.text.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "previous",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "true",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "container/previousGlyph",
+              "icon": "color.disabled.icon"
+            },
+            {
+              "part": "container/previousText",
+              "ink": "color.disabled.text"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "next",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/nextGlyph",
+              "icon": "color.interactive.neutral.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "next",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.interactive.neutral.overlay.hover"
+            },
+            {
+              "part": "container/nextGlyph",
+              "icon": "color.interactive.neutral.icon.hover"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "next",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "fill": "color.interactive.neutral.overlay.pressed"
+            },
+            {
+              "part": "container/nextGlyph",
+              "icon": "color.interactive.neutral.icon.pressed"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "next",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/nextGlyph",
+              "icon": "color.interactive.neutral.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "next",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "container/nextGlyph",
+              "icon": "color.disabled.icon"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "next",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "true",
+            "state": "rest"
+          },
+          "parts": [
+            {
+              "part": "container/nextText",
+              "ink": "color.interactive.neutral.text.rest"
+            },
+            {
+              "part": "container/nextGlyph",
+              "icon": "color.interactive.neutral.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "next",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "true",
+            "state": "hover"
+          },
+          "parts": [
+            {
+              "part": "container/nextText",
+              "ink": "color.interactive.neutral.text.hover"
+            },
+            {
+              "part": "container/nextGlyph",
+              "icon": "color.interactive.neutral.icon.hover"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "next",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "true",
+            "state": "pressed"
+          },
+          "parts": [
+            {
+              "part": "container/nextText",
+              "ink": "color.interactive.neutral.text.pressed"
+            },
+            {
+              "part": "container/nextGlyph",
+              "icon": "color.interactive.neutral.icon.pressed"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "next",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "true",
+            "state": "focus-visible"
+          },
+          "parts": [
+            {
+              "part": "container/nextText",
+              "ink": "color.interactive.neutral.text.rest"
+            },
+            {
+              "part": "container/nextGlyph",
+              "icon": "color.interactive.neutral.icon.rest"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "next",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "true",
+            "state": "disabled"
+          },
+          "parts": [
+            {
+              "part": "container/nextText",
+              "ink": "color.disabled.text"
+            },
+            {
+              "part": "container/nextGlyph",
+              "icon": "color.disabled.icon"
+            }
+          ]
+        }
+      ],
+      "nesting": [
+        {
+          "part": "container/focusRing",
+          "kind": "instance",
+          "component": "focus-ring",
+          "variant": {
+            "surface": "default"
+          },
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "container/gapGlyph",
+          "kind": "instance",
+          "component": "icon/more-horizontal-filled",
+          "variant": {},
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "container/previousGlyph",
+          "kind": "instance",
+          "component": "icon/chevron-left",
+          "variant": {},
+          "follows": [],
+          "exposes": []
+        },
+        {
+          "part": "container/nextGlyph",
+          "kind": "instance",
+          "component": "icon/chevron-right",
+          "variant": {},
+          "follows": [],
+          "exposes": []
+        }
+      ],
+      "properties": [
+        {
+          "name": "label",
+          "type": "TEXT",
+          "default": "1"
+        },
+        {
+          "name": "previous label",
+          "type": "TEXT",
+          "default": "Previous"
+        },
+        {
+          "name": "next label",
+          "type": "TEXT",
+          "default": "Next"
+        }
+      ]
+    },
+    "pagination": {
+      "id": "pagination",
+      "name": "Pagination",
+      "members": 12,
+      "axes": [
+        {
+          "name": "type",
+          "figmaName": "type",
+          "values": [
+            "numbered",
+            "compact",
+            "simple"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "style",
+          "figmaName": "style",
+          "values": [
+            "border",
+            "underline"
+          ],
+          "kind": "variant"
+        },
+        {
+          "name": "size",
+          "figmaName": "size",
+          "values": [
+            "medium",
+            "small",
+            "large"
+          ],
+          "kind": "size"
+        }
+      ],
+      "codeOnlyStates": [],
+      "anatomy": [
+        {
+          "part": "container",
+          "kind": "frame",
+          "members": 12
+        },
+        {
+          "part": "container/row",
+          "kind": "frame",
+          "members": 9,
+          "when": {
+            "type": [
+              "numbered",
+              "compact"
+            ]
+          }
+        },
+        {
+          "part": "container/row/previous",
+          "kind": "instance",
+          "members": 9,
+          "when": {
+            "type": [
+              "numbered",
+              "compact"
+            ]
+          }
+        },
+        {
+          "part": "container/row/items",
+          "kind": "slot",
+          "members": 6,
+          "when": {
+            "type": [
+              "numbered"
+            ]
+          }
+        },
+        {
+          "part": "container/row/items/item1",
+          "kind": "instance",
+          "members": 6,
+          "when": {
+            "type": [
+              "numbered"
+            ]
+          }
+        },
+        {
+          "part": "container/row/items/item2",
+          "kind": "instance",
+          "members": 6,
+          "when": {
+            "type": [
+              "numbered"
+            ]
+          }
+        },
+        {
+          "part": "container/row/items/item3",
+          "kind": "instance",
+          "members": 6,
+          "when": {
+            "type": [
+              "numbered"
+            ]
+          }
+        },
+        {
+          "part": "container/row/items/item4",
+          "kind": "instance",
+          "members": 6,
+          "when": {
+            "type": [
+              "numbered"
+            ]
+          }
+        },
+        {
+          "part": "container/row/items/item5",
+          "kind": "instance",
+          "members": 6,
+          "when": {
+            "type": [
+              "numbered"
+            ]
+          }
+        },
+        {
+          "part": "container/row/items/item6",
+          "kind": "instance",
+          "members": 6,
+          "when": {
+            "type": [
+              "numbered"
+            ]
+          }
+        },
+        {
+          "part": "container/row/items/item7",
+          "kind": "instance",
+          "members": 6,
+          "when": {
+            "type": [
+              "numbered"
+            ]
+          }
+        },
+        {
+          "part": "container/row/next",
+          "kind": "instance",
+          "members": 9,
+          "when": {
+            "type": [
+              "numbered",
+              "compact"
+            ]
+          }
+        },
+        {
+          "part": "container/row/status",
+          "kind": "text",
+          "members": 3,
+          "when": {
+            "type": [
+              "compact"
+            ]
+          }
+        },
+        {
+          "part": "container/simpleRow",
+          "kind": "frame",
+          "members": 3,
+          "when": {
+            "type": [
+              "simple"
+            ]
+          }
+        },
+        {
+          "part": "container/simpleRow/previousButton",
+          "kind": "instance",
+          "members": 3,
+          "when": {
+            "type": [
+              "simple"
+            ]
+          }
+        },
+        {
+          "part": "container/simpleRow/nextButton",
+          "kind": "instance",
+          "members": 3,
+          "when": {
+            "type": [
+              "simple"
+            ]
+          }
+        }
+      ],
+      "redlineKey": [
+        "size",
+        "type"
+      ],
+      "redlines": [
+        {
+          "where": {
+            "size": "medium",
+            "type": "numbered"
+          },
+          "parts": [
+            {
+              "part": "container/row",
+              "values": {
+                "gap": {
+                  "token": "space.050"
+                }
+              }
+            },
+            {
+              "part": "container/row/items",
+              "values": {
+                "gap": {
+                  "token": "space.050"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small",
+            "type": "numbered"
+          },
+          "parts": [
+            {
+              "part": "container/row",
+              "values": {
+                "gap": {
+                  "token": "space.050"
+                }
+              }
+            },
+            {
+              "part": "container/row/items",
+              "values": {
+                "gap": {
+                  "token": "space.050"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large",
+            "type": "numbered"
+          },
+          "parts": [
+            {
+              "part": "container/row",
+              "values": {
+                "gap": {
+                  "token": "space.050"
+                }
+              }
+            },
+            {
+              "part": "container/row/items",
+              "values": {
+                "gap": {
+                  "token": "space.050"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "medium",
+            "type": "compact"
+          },
+          "parts": [
+            {
+              "part": "container/row",
+              "values": {
+                "gap": {
+                  "token": "space.050"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small",
+            "type": "compact"
+          },
+          "parts": [
+            {
+              "part": "container/row",
+              "values": {
+                "gap": {
+                  "token": "space.050"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large",
+            "type": "compact"
+          },
+          "parts": [
+            {
+              "part": "container/row",
+              "values": {
+                "gap": {
+                  "token": "space.050"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "medium",
+            "type": "simple"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "buildWidth": {
+                  "px": 428,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/simpleRow",
+              "values": {
+                "gap": {
+                  "token": "space.050"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small",
+            "type": "simple"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "buildWidth": {
+                  "px": 428,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/simpleRow",
+              "values": {
+                "gap": {
+                  "token": "space.050"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large",
+            "type": "simple"
+          },
+          "parts": [
+            {
+              "part": "container",
+              "values": {
+                "buildWidth": {
+                  "px": 428,
+                  "source": "literal"
+                }
+              }
+            },
+            {
+              "part": "container/simpleRow",
+              "values": {
+                "gap": {
+                  "token": "space.050"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "typeKey": [
+        "size"
+      ],
+      "type": [
+        {
+          "where": {
+            "size": "medium"
+          },
+          "parts": [
+            {
+              "part": "container/row/status",
+              "textStyle": "type.label.md.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "small"
+          },
+          "parts": [
+            {
+              "part": "container/row/status",
+              "textStyle": "type.label.sm.default"
+            }
+          ]
+        },
+        {
+          "where": {
+            "size": "large"
+          },
+          "parts": [
+            {
+              "part": "container/row/status",
+              "textStyle": "type.label.lg.default"
+            }
+          ]
+        }
+      ],
+      "colorKey": [
+        "type",
+        "style"
+      ],
+      "colors": [
+        {
+          "where": {
+            "type": "numbered",
+            "style": "border"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "type": "numbered",
+            "style": "underline"
+          },
+          "parts": []
+        },
+        {
+          "where": {
+            "type": "compact",
+            "style": "border"
+          },
+          "parts": [
+            {
+              "part": "container/row/status",
+              "ink": "color.text.primary"
+            }
+          ]
+        },
+        {
+          "where": {
+            "type": "simple",
+            "style": "border"
+          },
+          "parts": []
+        }
+      ],
+      "nesting": [
+        {
+          "part": "container/row/previous",
+          "kind": "instance",
+          "component": "pagination-item",
+          "variant": {
+            "type": "previous",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "size": "medium",
+            "state": "rest"
+          },
+          "follows": [
+            "size"
+          ],
+          "exposes": [
+            "state"
+          ]
+        },
+        {
+          "part": "container/row/items",
+          "kind": "slot",
+          "preferred": [
+            "pagination-item"
+          ]
+        },
+        {
+          "part": "container/row/items/item1",
+          "kind": "instance",
+          "component": "pagination-item",
+          "variant": {
+            "type": "page",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "size": "medium",
+            "state": "rest"
+          },
+          "follows": [
+            "size"
+          ],
+          "exposes": []
+        },
+        {
+          "part": "container/row/items/item2",
+          "kind": "instance",
+          "component": "pagination-item",
+          "variant": {
+            "type": "ellipsis",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "size": "medium",
+            "state": "rest"
+          },
+          "follows": [
+            "size"
+          ],
+          "exposes": []
+        },
+        {
+          "part": "container/row/items/item3",
+          "kind": "instance",
+          "component": "pagination-item",
+          "variant": {
+            "type": "page",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "size": "medium",
+            "state": "rest"
+          },
+          "follows": [
+            "size"
+          ],
+          "exposes": []
+        },
+        {
+          "part": "container/row/items/item4",
+          "kind": "instance",
+          "component": "pagination-item",
+          "variant": {
+            "type": "page",
+            "selection": "selected",
+            "style": "border",
+            "labeled": "false",
+            "size": "medium",
+            "state": "rest"
+          },
+          "follows": [
+            "style",
+            "size"
+          ],
+          "exposes": []
+        },
+        {
+          "part": "container/row/items/item5",
+          "kind": "instance",
+          "component": "pagination-item",
+          "variant": {
+            "type": "page",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "size": "medium",
+            "state": "rest"
+          },
+          "follows": [
+            "size"
+          ],
+          "exposes": []
+        },
+        {
+          "part": "container/row/items/item6",
+          "kind": "instance",
+          "component": "pagination-item",
+          "variant": {
+            "type": "ellipsis",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "size": "medium",
+            "state": "rest"
+          },
+          "follows": [
+            "size"
+          ],
+          "exposes": []
+        },
+        {
+          "part": "container/row/items/item7",
+          "kind": "instance",
+          "component": "pagination-item",
+          "variant": {
+            "type": "page",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "size": "medium",
+            "state": "rest"
+          },
+          "follows": [
+            "size"
+          ],
+          "exposes": []
+        },
+        {
+          "part": "container/row/next",
+          "kind": "instance",
+          "component": "pagination-item",
+          "variant": {
+            "type": "next",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "false",
+            "size": "medium",
+            "state": "rest"
+          },
+          "follows": [
+            "size"
+          ],
+          "exposes": [
+            "state"
+          ]
+        },
+        {
+          "part": "container/simpleRow/previousButton",
+          "kind": "instance",
+          "component": "pagination-item",
+          "variant": {
+            "type": "previous",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "true",
+            "size": "medium",
+            "state": "rest"
+          },
+          "follows": [
+            "size"
+          ],
+          "exposes": [
+            "state"
+          ]
+        },
+        {
+          "part": "container/simpleRow/nextButton",
+          "kind": "instance",
+          "component": "pagination-item",
+          "variant": {
+            "type": "next",
+            "selection": "unselected",
+            "style": "border",
+            "labeled": "true",
+            "size": "medium",
+            "state": "rest"
+          },
+          "follows": [
+            "size"
+          ],
+          "exposes": [
+            "state"
+          ]
+        }
+      ],
+      "properties": [
+        {
+          "name": "status text",
+          "type": "TEXT",
+          "default": "Page 5 of 10"
+        },
+        {
+          "name": "items",
+          "type": "SLOT"
+        }
+      ]
+    },
     "progress": {
       "id": "progress",
       "name": "Progress",
