@@ -143,6 +143,15 @@ the word on from the row). Each word has its own TEXT property ("previous label"
   the underline's edges against the number's at every size and state. The glyph parts are renamed `previousGlyph`,
   `gapGlyph` and `nextGlyph` (Q350).
 
+### After the Code input merge: the anatomy markers read a repeat by its settings, not its place
+
+Code input (#2428) changed `test-doc-panel.ts` to read a merged repeat (`Item ×4`) as the next N parts of that name, in
+order. The panel merges repeats by their settings, not by place (Q551 A on Q4), and Pagination's pages and gaps
+alternate (item1, 3, 5, 7 are pages, item2 and item6 gaps), so the marker check sent the gaps' entry to item6 and item7
+and failed. The check no longer guesses a run's members. A merged entry's marker must reach a part of its name that no
+earlier entry reached, one name's entries reach their parts in part order, and their counts cover those parts exactly.
+Which parts merge is pinned by hand in `marks/`, for Pagination and for Code input's two runs of two.
+
 ### Held for the owner (also in the PR)
 
 The `labeled` axis name and its false/true values; the two words' TEXT properties and their props `previousLabel`
