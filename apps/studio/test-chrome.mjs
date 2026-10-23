@@ -654,7 +654,8 @@ const FIT_ORACLE = () => {
 const FIT_SEEN = () => {
   const bm = document.querySelector('[data-p3="bar-main"]');
   const drawn = (n) => !!n && n.getClientRects().length > 0 && n.getBoundingClientRect().width > 0 && getComputedStyle(n).display !== 'none';
-  const labels = [...bm.querySelectorAll('.p3-tile-label')].map(drawn);
+  // The labels of the tiles drawn: a tile not drawn at all (Minimize while the link is off, #2949) has no label to show.
+  const labels = [...bm.querySelectorAll('.p3-tile-label')].filter((l) => drawn(l.closest('.p3-tile'))).map(drawn);
   const name = drawn(bm.querySelector('.p3-mark-name'));
   const bn = bm.querySelector('[data-p3="brand-switcher"] .p3-brand-name');
   const textW = (n) => {
