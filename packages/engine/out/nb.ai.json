@@ -8191,6 +8191,12 @@
       "when_to_use": "The period of a spinner's rotation, run linear and infinite. Under reduced motion, use `motion.duration-reduced.spin`, a slower turn.",
       "resolves_to": "{nbds.motion.duration-ms.800}"
     },
+    "motion.duration.sweep": {
+      "$description": "motion duration sweep — 1600ms per pass of an indeterminate progress bar's segment across its track, the same at every tempo",
+      "meaning": "Motion duration role — one pass of an indeterminate progress bar",
+      "when_to_use": "The period of the moving segment on an indeterminate progress bar, one pass across the track, repeated. Under reduced motion, use `motion.duration-reduced.sweep`, a slower pass.",
+      "resolves_to": "{nbds.motion.duration-ms.1600}"
+    },
     "motion.duration-reduced.instant": {
       "$description": "reduce-motion instant — 50ms",
       "meaning": "Reduced-motion duration role — instant",
@@ -8231,6 +8237,12 @@
       "$description": "reduce-motion spin — 2600ms per full turn: a slow turn, kept rather than removed, because the spinner is how a sighted user sees work continuing",
       "meaning": "Reduced-motion duration role — one slow turn of a spinner",
       "when_to_use": "The period of a spinner's rotation when the user prefers reduced motion: slower, never stopped, because the turn is what shows work continuing.",
+      "resolves_to": "{nbds.motion.duration-ms.2600}"
+    },
+    "motion.duration-reduced.sweep": {
+      "$description": "reduce-motion sweep — 2600ms per pass: a slow sweep, kept rather than removed, because the moving segment is how a sighted user sees the work continuing",
+      "meaning": "Reduced-motion duration role — one slow pass of an indeterminate progress bar",
+      "when_to_use": "The period of an indeterminate progress bar's sweep when the user prefers reduced motion: slower, never stopped, because the moving segment is the only sign the work is continuing.",
       "resolves_to": "{nbds.motion.duration-ms.2600}"
     },
     "motion.easing-role.default": {
@@ -11357,13 +11369,23 @@
         "motion.duration.spin"
       ]
     },
+    "motion.duration-ms.1600": {
+      "$description": "duration primitive — 1600ms (literal; the semantic tier names the use)",
+      "meaning": "Motion duration primitive",
+      "tier": "primitive",
+      "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
+      "aliased_by": [
+        "motion.duration.sweep"
+      ]
+    },
     "motion.duration-ms.2600": {
       "$description": "duration primitive — 2600ms (literal; the semantic tier names the use)",
       "meaning": "Motion duration primitive",
       "tier": "primitive",
       "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
       "aliased_by": [
-        "motion.duration-reduced.spin"
+        "motion.duration-reduced.spin",
+        "motion.duration-reduced.sweep"
       ]
     },
     "motion.easing.linear": {

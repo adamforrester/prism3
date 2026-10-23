@@ -142,6 +142,9 @@ export const TAXONOMY: Taxonomy = {
         // Counter (#2427, owner decision Q283.14 A) — its own page, alphabetical under Components (between Checkbox and
         // Divider). It nests FlushIconButton.Neutral, whose page is under Subcomponents.
         { page: 'Counter', defs: ['counter'] },
+        // Progress (#2670, owner call 10 A) — its own page under Components. It nests the Field Message, which the build
+        // places first wherever its page sorts. The Spinner stays under Subcomponents (#1670).
+        { page: 'Progress', defs: ['progress'] },
         // Slider (#2669, owner call 9 A) — its own page under Components, sorted alphabetically (Q260 A). Its thumb builds
         // first, so the slider's two nested thumbs resolve against it on the same page, as Tabs' do.
         { page: 'Slider', defs: ['_slider-thumb', 'slider'], lead: 'slider' },

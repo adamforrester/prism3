@@ -15,7 +15,7 @@
 import { bandPhrase } from './figma-description';
 import { RGB, contrast, hex, hexToRgb, emittedAlpha } from './color';
 import { Step } from './ramp';
-import { Theme, ShadowStep, ShadowLayer, ResolvedGradient, FacePin, typefaceSlug, lineHeightStepKey, letterSpacingStepKey, CORE_TIER, SPIN_ROLE, BODY_XS_DESCRIPTION } from './theme';
+import { Theme, ShadowStep, ShadowLayer, ResolvedGradient, FacePin, typefaceSlug, lineHeightStepKey, letterSpacingStepKey, CORE_TIER, SPIN_ROLE, SWEEP_ROLE, BODY_XS_DESCRIPTION } from './theme';
 import { SizeStep, ControlSizeStep, controlRadius, AAA_TARGET_PX } from './scale';
 import { resolveAllModes, ModeResult, OPACITY_STEPS } from './modes';
 import { orderedRoleKeys } from './color-order';
@@ -920,8 +920,8 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     return leaf;
   };
 
-  for (const [k, v] of Object.entries(m.duration)) motion.duration[k] = durSemantic(v as number, k === SPIN_ROLE ? `motion duration spin — ${v}ms per full turn of a spinner, linear, the same at every tempo` : `motion duration ${k} — ${v}ms (tempo: ${m.tempo})`, (mm) => mm.duration[k]);
-  for (const [k, v] of Object.entries(m.durationReduced)) motion['duration-reduced'][k] = durSemantic(v as number, k === SPIN_ROLE ? `reduce-motion spin — ${v}ms per full turn: a slow turn, kept rather than removed, because the spinner is how a sighted user sees work continuing` : `reduce-motion ${k} — ${v}ms${v === 0 ? ' (eliminated — substitute a cross-fade)' : ''}`, (mm) => mm.durationReduced[k]);
+  for (const [k, v] of Object.entries(m.duration)) motion.duration[k] = durSemantic(v as number, k === SPIN_ROLE ? `motion duration spin — ${v}ms per full turn of a spinner, linear, the same at every tempo` : k === SWEEP_ROLE ? `motion duration sweep — ${v}ms per pass of an indeterminate progress bar's segment across its track, the same at every tempo` : `motion duration ${k} — ${v}ms (tempo: ${m.tempo})`, (mm) => mm.duration[k]);
+  for (const [k, v] of Object.entries(m.durationReduced)) motion['duration-reduced'][k] = durSemantic(v as number, k === SPIN_ROLE ? `reduce-motion spin — ${v}ms per full turn: a slow turn, kept rather than removed, because the spinner is how a sighted user sees work continuing` : k === SWEEP_ROLE ? `reduce-motion sweep — ${v}ms per pass: a slow sweep, kept rather than removed, because the moving segment is how a sighted user sees the work continuing` : `reduce-motion ${k} — ${v}ms${v === 0 ? ' (eliminated — substitute a cross-fade)' : ''}`, (mm) => mm.durationReduced[k]);
   for (const [k, v] of Object.entries(m.easing)) motion.easing[k] = bezierLeaf(v, `easing ${k}${EASING_NOTE[k] ? ` — ${EASING_NOTE[k]}` : ''}`);
   for (const [k, v] of Object.entries(m.spring)) motion.spring[k] = springLeaf(v, `spring ${k} — damping ${v.damping}, stiffness ${v.stiffness}`);
   // The ROLE tier (#522) — `easing-role.<role> → {motion.easing.<curve>}`. It exists so a mode can

@@ -271,6 +271,18 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   },
   {
     axis: 'type',
+    values: ['determinate', 'indeterminate'],
+    defs: ['progress'],
+    relation: 'disjoint',
+    reason:
+      'Whether the work has a value (#2670, the brief\'s defining fork): a known amount, or a sweep while the amount is '
+      + 'unknown. The field\'s own words and ARIA\'s distinction (`aria-valuenow` present or absent). DISJOINT from '
+      + 'Badge\'s canonical set: a badge type is a content kind and a progress type a value contract, and no value would '
+      + 'mean the same thing on both. `determinate` LEADS because it is the default member; in code the type follows '
+      + 'from whether a value is given.',
+  },
+  {
+    axis: 'type',
     values: ['select', 'dismissible'],
     defs: ['tag'],
     relation: 'disjoint',
@@ -473,7 +485,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
     // to the nested `switch-control` by `follow`; the atom declares the same two-rung ladder (#1354).
     // Breadcrumbs and its item join it (#2666, owner call 7 A): one line of 14 or 16px body text, and an 18px trail
     // stops reading as secondary wayfinding.
-    defs: ['switch-row', 'switch-control', 'breadcrumbs', 'breadcrumb-item'],
+    defs: ['switch-row', 'switch-control', 'breadcrumbs', 'breadcrumb-item', 'progress'],
     relation: 'subset',
     reason:
       'The ladder minus its top rung, for a def with no large form, led by medium as canonical is (#2752 Q1 B): a switch above medium stops reading '
@@ -481,7 +493,8 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'in canonical, which is what makes this weighable instead of a second ladder. `field-label` shared '
       + 'this entry until #872 and now takes the full three: the reason given for its shortness ("a label '
       + 'tracks the field it labels rather than setting its own scale") turned out to be the argument FOR '
-      + 'three, since `text-field` and `textarea` have declared three rungs since tranche 1.',
+      + 'three, since `text-field` and `textarea` have declared three rungs since tranche 1. `progress` (#2670) joins for its '
+      + 'RING: 40px and 24px on the icon ladder, with no large form; a linear bar has one thickness and is built at `medium` only.',
   },
   {
     axis: 'shape',
@@ -515,6 +528,20 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'so the two sets are not one ladder; the owner kept `round` (Q295.5 A). Shared by the three flush icon-button '
       + 'components BY DESIGN (Q295.2 B, one anatomy through `makeFlushIconButton`), so this one entry records all three. '
       + '`flush` LEADS because it is the code default and the shape built first, so Figma\'s inserted member is flush.',
+  },
+  {
+    axis: 'shape',
+    values: ['linear', 'circular'],
+    defs: ['progress'],
+    relation: 'overlapping',
+    reason:
+      'Progress\'s two drawings (#2670, owner calls 1 and 10 A): a bar that fills its container, or a ring for a small '
+      + 'space. OVERLAPPING with the canonical set on `circular`, and that shared word is the near-overlap this register '
+      + 'exists to flag: on IconButton `circular` is a corner silhouette (a disc at `radius.round`), here it is a whole '
+      + 'drawing, a ring with an arc. The two never meet on one def and no paint key crosses either axis, so the word '
+      + 'reads the same to a designer (round) without the sets being one ladder. `circular` is the brief\'s own word '
+      + '(`variant: linear | circular`), the approved proposal\'s axis table, and MUI\'s `CircularProgress`. `linear` '
+      + 'LEADS because it is the code default and Figma\'s default member (owner Q347).',
   },
   {
     axis: 'style',
@@ -632,6 +659,20 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'so it carries the canonical set\'s first two values. A shared value means exactly what it means on a '
       + 'field, which is what lets a group follow its `status` into its rows and its nested `field-message` by '
       + 'name. The canonical set became `canonical` (from `sole`) when this one joined.',
+  },
+  {
+    axis: 'status',
+    values: ['active', 'complete', 'error'],
+    defs: ['progress'],
+    relation: 'overlapping',
+    reason:
+      'Progress\'s END STATE (#2670, owner call 4 A): the work is running, finished, or failed. OVERLAPPING with the '
+      + 'canonical validation set on `error` only, and the shared value means the same thing on both: a failure, '
+      + 'shown with FieldMessage\'s error glyph and caption (Progress nests it at `error`), so an error looks one way '
+      + 'across components (owner Q352/Q354). The other two differ because they name a different thing: `active` is '
+      + 'work in progress, which a field has no word for, and `complete` maps to the nested message\'s `success`, '
+      + 'which a progress bar does not say ("Upload complete" is an outcome, not a validation). `active` LEADS because '
+      + 'it is the code default and Figma\'s default member.',
   },
   {
     axis: 'width',
