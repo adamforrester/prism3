@@ -9731,6 +9731,31 @@ const DESTRUCTIVE = (() => {
 })();
 ok(Object.values(DESTRUCTIVE).every((d) => /^#[0-9a-f]{6}$/.test(d.fill ?? '') && /^#[0-9a-f]{6}$/.test(d.on ?? '')),
   `S5: the oracle resolved Prism3's destructive fill and on-fill from the emission (${JSON.stringify(DESTRUCTIVE)})`);
+/** #2560 (the owner's Q486 A, Q613 8 A): the start window's scrim is Stance's modal scrim, `color.scrim.default`, per theme,
+ *  walked from the committed emission and its dark overlay to the palette step it aliases, as computed style writes it.
+ *  Never from the chrome's variable map, which is what the CSS reads. */
+const START_SCRIM = (() => {
+  const out = join(REPO, 'packages/engine/out');
+  const base = JSON.parse(readFileSync(join(out, 'prism3.tokens.json'), 'utf8'));
+  const root = Object.keys(base).find((k) => !k.startsWith('$'));
+  const ov = JSON.parse(readFileSync(join(out, 'prism3.dark.overlay.tokens.json'), 'utf8'));
+  const at = (tree, path) => path.split('.').reduce((n, k) => n?.[k], tree);
+  const res = (theme, path, depth = 0) => {
+    const v = (theme === 'dark' ? at(ov, path)?.$value : undefined) ?? at(base, path)?.$value;
+    if (typeof v !== 'string' || depth > 20) return null;
+    const m = /^\{(.+)\}$/.exec(v);
+    return m ? res(theme, m[1], depth + 1) : v.toLowerCase();
+  };
+  const rgba = (hx) => {
+    const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/.exec(hx ?? '');
+    if (!m) return null;
+    const [r, g, b] = [m[1], m[2], m[3]].map((x) => parseInt(x, 16));
+    return `rgba(${r}, ${g}, ${b}, ${Math.round((parseInt(m[4], 16) / 255) * 100) / 100})`;
+  };
+  return Object.fromEntries(['light', 'dark'].map((t) => [t, rgba(res(t, `${root}.color.scrim.default`))]));
+})();
+ok(START_SCRIM.light === 'rgba(0, 0, 0, 0.4)' && START_SCRIM.dark === 'rgba(0, 0, 0, 0.6)',
+  `#2560: the oracle resolved scrim.default from the emission as black 40% light and black 60% dark, the wireframe's scrim A (${JSON.stringify(START_SCRIM)})`);
 const startRgb = (hx) => `rgb(${parseInt(hx.slice(1, 3), 16)}, ${parseInt(hx.slice(3, 5), 16)}, ${parseInt(hx.slice(5, 7), 16)})`;
 const START_SIZES = [{ w: 1280, h: 900 }, { w: 380, h: 420 }];
 /** A first run on `host`: the web with nothing saved, the plugin in a file with no brand. Waits for the frame's width
@@ -9772,6 +9797,8 @@ const readStartWindow = (page) => page.evaluate(() => {
     startInert: !!dlg?.closest('[inert]'),
     frameInert: !!q('[data-p3="frame-head"]')?.closest('[inert]'),
     guard: !!guard,
+    scrim: (() => { const sc = q('[data-p3="start-screen-scrim"]'); return sc ? getComputedStyle(sc).backgroundColor : null; })(),
+    guardScrim: (() => { const sc = q('[data-p3="start-guard-scrim"]'); return sc ? getComputedStyle(sc).backgroundColor : null; })(),
     guardTitle: q('[data-p3="start-guard-title"]')?.textContent ?? null,
     guardBody: q('[data-p3="start-guard-body"]')?.textContent ?? null,
     discard: q('[data-p3="start-guard-discard"]')?.textContent ?? null,
@@ -9815,6 +9842,9 @@ for (const { w, h } of START_SIZES) {
         ok(s.open && s.role === 'dialog' && s.modal === 'true' && s.labelled, `${where}: the start is a modal window over the studio, named by its heading (G10 A)`);
         ok(s.heading === START.heading[host], `${where}: the heading reads "${START.heading[host]}" (G17) — reads "${s.heading}"`);
         ok(s.close === null, `${where}: the first run offers no Close (G15 A, S9) — found "${s.close}"`);
+        // #2560 (Q486 A): the scrim behind the window is scrim.default. Its name says which theme failed, so putting the
+        // hover wash back (white 20% in dark) fails "start scrim is scrim.default (dark)".
+        ok(s.scrim === START_SCRIM[theme], `${where}: start scrim is scrim.default (${theme}) — ${START_SCRIM[theme]}, painted ${s.scrim}`);
         ok(JSON.stringify(s.order) === JSON.stringify(START.order), `${where}: the cards run color (with Blank), examples, import (S8, N1 A) — ${JSON.stringify(s.order)}`);
         // The owner's review of #2142: one edge for all four cards; Upload on the import card's heading row; X1's words.
         ok(s.cardEdges.length === 3 && new Set(s.cardEdges).size === 1, `${where}: every card draws the same border — ${JSON.stringify(s.cardEdges)}`);
@@ -9929,6 +9959,7 @@ for (const { w, h } of START_SIZES) {
         if (!s.guard) throw new Error('no guard to measure');
         ok(s.guard && s.open && s.startInert && s.guardOnTop, `${where}: the guard opens on top of the start window, which stays open behind it (S4) — start ${s.open ? 'open' : 'closed'}, inert ${s.startInert}, on top ${s.guardOnTop}`);
         ok(s.focus === 'start-guard-cancel', `${where}: focus starts on Cancel (S5) — on ${s.focus}`);
+        ok(s.guardScrim === START_SCRIM[theme], `${where}: the guard's scrim is scrim.default (${theme}) too — ${START_SCRIM[theme]}, painted ${s.guardScrim}`);
         ok(s.guardTitle === 'Replace harbor-edited with the aurora example?', `${where}: the guard's title is "Replace ‹brand› with ‹choice›?" (S10) — "${s.guardTitle}"`);
         ok(s.guardBody === '3 edits to harbor-edited are not saved to a file. Export or apply first to keep them.', `${where}: the guard's body names the 3 edits (S10) — "${s.guardBody}"`);
         const want = DESTRUCTIVE[theme];

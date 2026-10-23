@@ -1270,11 +1270,13 @@ h1.p3-sr { margin: 0; font-family: var(--p3-font-ui); font-size: var(--p3-fs-14)
 
 /* ── the start window and its guard (UI redesign S12) ──────────────────────────────────────────────── */
 /* A window over the studio (G10 A): the scrim covers the frame, the window sits centered on it, and at 380 the start
-   takes the whole pane. Its head stays put while its body scrolls. */
+   takes the whole pane. Its head stays put while its body scrolls. The scrim is Stance's modal scrim, `scrim.default`
+   (#2560, the owner's Q486 A and Q613 8 A): the one the export and prune dialogs sit on, so every chrome dialog shares
+   it. Until then it was the pressed hover wash, white 20% in dark, which lightened the studio behind the window. */
 .p3-layer:empty { display: none; }
 .p3-scrim {
   position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
-  padding: var(--p3-space-300); background: var(--p3-overlay-pressed);
+  padding: var(--p3-space-300); background: var(--p3-scrim);
 }
 .p3-dialog {
   display: flex; flex-direction: column; width: min(100%, calc(var(--p3-dlg-unit) * 5)); max-height: 100%; min-height: 0;
