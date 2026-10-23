@@ -6436,6 +6436,16 @@ arm: {
     }
     ok(wrong.length === 0,
       `banner members: each paints foreground.<tone>-subtle with a 1px border.<tone> edge, its tone's glyph in icon.<tone>, text.primary ink, radius md contained and none full, built 480 contained and 960 full with no side edges at full, and nests ONE primary text action (Button.Neutral preferred when built, never required: Q386) and a flush close dismiss, both off${wrong.length ? ` — ${wrong.join('; ')}` : ''}`);
+    // #2971: one width floor on every member, contained and full alike, bound to `container/min` (never a literal).
+    const floors = set.map((m) => `${planComponentName(m)}: ${m.root.bound?.minWidth ?? '-'}/${m.root.minWidth ?? '-'}`);
+    ok(set.length === 8 && set.every((m) => m.root.bound?.minWidth === 'container/min' && m.root.minWidth === undefined),
+      `banner #2971: all 8 members bind the root's minWidth to container/min, with no literal floor (got ${floors.join(' | ')})`);
+    // And the token it binds resolves to 320px in every committed example brand (read off the emission, not the builder).
+    const outDir = join(HERE, 'out');
+    const mins = readdirSync(outDir).filter((f) => /^[a-z0-9-]+\.tokens\.json$/.test(f) && !f.includes('.base.'))
+      .map((f) => { const t = JSON.parse(readFileSync(join(outDir, f), 'utf8')); const r = Object.keys(t).find((k) => !k.startsWith('$'))!; return [f, t[r]?.container?.min?.$value] as const; });
+    ok(mins.length >= 5 && mins.every(([, v]) => v === '320px'),
+      `banner #2971: container.min is 320px in every committed brand (${mins.map(([f, v]) => `${f.replace('.tokens.json', '')} ${v}`).join(', ')})`);
     // Q346: an edge never binds an icon or text role. Read off the TOKENS too, so a border key on any coordinate counts.
     const badEdge = Object.entries(bannerDef.tokens).filter(([k, ref]) => /(^|\.)border$/.test(k) && !String(ref).startsWith('color.border.'));
     ok(badEdge.length === 0, `banner edge: every border key binds a color.border.* role (Q346)${badEdge.length ? ` — ${badEdge.map(([k, r]) => `${k} → ${r}`).join('; ')}` : ''}`);
@@ -12958,13 +12968,24 @@ arm: {
   // nothing in any mode, `vals` was five `undefined`s, `distinct.size` was 1, and "invariant across
   // modes" passed on a variable that was not there at all. Absence is now the first thing reported.
   const invariantBad: string[] = [];
-  for (const name of ['container/max', 'container/narrow', 'breakpoint/sm', 'breakpoint/md', 'breakpoint/lg', 'breakpoint/xl', 'breakpoint/2xl'].map(nbVar)) {
+  for (const name of ['container/max', 'container/narrow', 'container/min', 'breakpoint/sm', 'breakpoint/md', 'breakpoint/lg', 'breakpoint/xl', 'breakpoint/2xl'].map(nbVar)) {
     const vals = layout.map((l) => l.variables.find((v) => v.name === name)?.value);
     if (vals.some((x) => x === undefined)) { invariantBad.push(`${name} is absent from ${vals.filter((x) => x === undefined).length}/${layout.length} modes`); continue; }
     const distinct = new Set(vals);
     if (distinct.size !== 1) invariantBad.push(`${name} varies across modes: ${[...distinct].join(',')}`);
   }
   ok(invariantBad.length === 0, 'figma layout: container/* + breakpoint/* are viewport-invariant (same value in every mode)' + (invariantBad.length ? ` — ${invariantBad.slice(0, 3).join('; ')}` : ''));
+
+  // (g2) #2971: `container/min` is 320 in every mode, a WIDTH_HEIGHT float, and the DTCG leaf it mirrors is 320px.
+  // Literals, not read back from `CONTAINER_MIN_PX`, so a moved constant fails here by value.
+  const minBad: string[] = [];
+  for (const l of layout) {
+    const v = l.variables.find((x) => x.name === nbVar('container/min'));
+    if (!v) { minBad.push(`${l.$mode}: absent`); continue; }
+    if (v.value !== 320 || v.alias !== null || JSON.stringify(v.scopes) !== '["WIDTH_HEIGHT"]') minBad.push(`${l.$mode}: ${v.value} alias ${JSON.stringify(v.alias)} scopes ${JSON.stringify(v.scopes)}`);
+  }
+  ok(minBad.length === 0 && brand.container?.min?.$value === '320px',
+    `figma layout (#2971): container/min is a plain 320 WIDTH_HEIGHT float in every mode, mirroring DTCG container.min = 320px (DTCG ${brand.container?.min?.$value})${minBad.length ? ` — ${minBad.join('; ')}` : ''}`);
 
   // (h) container/fluid is INTENTIONALLY SKIPPED — Figma has no FLOAT primitive
   // for `100%` (percentage-of-parent). Same class of "no Figma primitive" skip
@@ -12977,8 +12998,8 @@ arm: {
   ok(!hasFluid, `figma layout: container/fluid (100%) is intentionally skipped (no Figma primitive for percentage-of-parent; stays code-side)`);
 
   // (i) A variable count sanity — the exact shape a Figma-MCP materialiser
-  // will import: 10 vars × 5 modes (5 breakpoint + 3 grid + 2 container).
-  ok(layout[0].variables.length === 10, `figma layout: 10 vars per mode (5 breakpoint + 3 grid + 2 container) — got ${layout[0].variables.length}`);
+  // will import: 11 vars × 5 modes (5 breakpoint + 3 grid + 3 container: max, narrow, min since #2971).
+  ok(layout[0].variables.length === 11, `figma layout: 11 vars per mode (5 breakpoint + 3 grid + 3 container) — got ${layout[0].variables.length}`);
 }
 
 // (19b) CR-08 (#65) — the layout axis must follow the brand's ACTUAL breakpoints, not a hardcoded
@@ -13007,7 +13028,7 @@ arm: {
   const spaceNames = new Set(dims.space.variables.map((v) => v.name));
   const dangling = layout.flatMap((l) => l.variables.filter((v) => v.alias && !spaceNames.has(v.alias.name)).map((v) => `${l.$mode}:${v.name}`));
   ok(dangling.length === 0, `CR-08: every aurora layout alias resolves into space/* across all 6 modes (${dangling.length} dangling)`);
-  ok(layout[0].variables.length === 11, `CR-08: aurora emits 11 vars per mode (6 breakpoint + 3 grid + 2 container), got ${layout[0].variables.length}`);
+  ok(layout[0].variables.length === 12, `CR-08: aurora emits 12 vars per mode (6 breakpoint + 3 grid + 3 container), got ${layout[0].variables.length}`);
 }
 
 // (19c) #1479 — BREAKPOINT-COUNT FLEX. The breakpoint count is a per-brand lever (`layout.breakpoints`)
