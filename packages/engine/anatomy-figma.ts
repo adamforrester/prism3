@@ -678,6 +678,9 @@ export type AnatomyPlan = {
    *  and a layout decision the def made has to travel with the artifact it describes. Absent when the
    *  def declares no preference, which `planSetLayout` resolves by cardinality. */
   gridAxis?: string;
+  /** Where While pressing goes on a set with no `pressed` look (#2428, `figmaProperties.pressState`), on the plan for
+   *  `gridAxis`'s reason: the reactions are planned from plans, never the def. OMITTED where the def declares none. */
+  pressState?: string;
   /** Axes on which this def's box legitimately moves (#1010) — `figmaProperties.footprintVaries`, on the
    *  plan for `gridAxis`'s reason and read by `planSetLayout` when it builds the footprint cohort key.
    *  Always an array, empty for the defs that make no such claim, because the cohort key concatenates it
@@ -1160,7 +1163,9 @@ const builtSizeAt = (def: ComponentDef, size: string | undefined, slots: PlanSlo
   const a = def.anatomy;
   const root = a?.parts[a.root];
   const b = root?.kind === 'box' ? root.builtSize : undefined;
-  const value = b ? slots[b.axis] : undefined;
+  // `size` is not among the plan's slots: it travels as its own argument (#795), so a `builtSize` over the size axis
+  // (Code input's cell, #2428) reads it there.
+  const value = b ? (b.axis === 'size' ? size : slots[b.axis]) : undefined;
   if (!a || !root || !b || !root.layout || typeof value !== 'string' || !(value in b.widths)) return def;
   const w = b.widths[value];
   const width = typeof w === 'number' ? w : size !== undefined ? w[size] : undefined;
@@ -2288,6 +2293,7 @@ export const figmaAnatomyPlan = (
     codeOnly: [...a.codeOnly],
     derived: { ...(a.derived ?? {}) },
     ...(def.figmaProperties?.gridAxis ? { gridAxis: def.figmaProperties.gridAxis } : {}),
+    ...(def.figmaProperties?.pressState ? { pressState: def.figmaProperties.pressState } : {}),
     footprintVaries: [...(def.figmaProperties?.footprintVaries ?? [])],
     axisKinds: Object.fromEntries(
       [...(def.figmaProperties?.variantAxes ?? []), ...(def.figmaProperties?.stateAxis ? [def.figmaProperties.stateAxis.name] : [])]
@@ -2447,6 +2453,9 @@ export const FIELD_FRAME_PARTS: Readonly<Record<string, string>> = {
   'password-field': 'control',
   select: 'control',
   textarea: 'control',
+  // #2719 (Q332 A names Code input a field; Q12 A on #2695): each cell is a field box, so each draws its own line.
+  // The row's gaps belong to `code-input`, which binds no field chrome and stays as authored.
+  'code-input-cell': 'container',
   // #2888: drawn in the Search field style, which may differ from the other fields' (`fieldStyleFor`).
   'search-field': 'control',
 };
@@ -2500,7 +2509,11 @@ export const applyFieldStyle = (def: ComponentDef, style: FieldStyle): Component
     if (onFill) { tokens[`disabled.${onFill[1]}`] = onFill[1] === 'icon' ? 'color.disabled.icon' : 'color.disabled.text'; continue; }
     tokens[k] = ref;
   }
-  if (frame.radius) tokens[frame.radius] = 'radius.none';
+  // A per-size corner (`size.{size}.radius`, the Code cell's) squares every size's key, not a literal template key.
+  if (frame.radius?.includes('{')) {
+    const key = new RegExp(`^${frame.radius.replace(/\./g, '\\.').replace(/\{[a-z-]+\}/g, '[^.]+')}$`);
+    for (const k of Object.keys(tokens)) if (key.test(k)) tokens[k] = 'radius.none';
+  } else if (frame.radius) tokens[frame.radius] = 'radius.none';
   tokens['underline.pad-x'] = 'space.0';
   tokens['underline.side'] = 'border-width.none';
   for (const st of statesOf(def)) tokens[`underline.line.${st}`] = st.startsWith('focus-visible') ? 'border-width.thick' : 'border-width.hairline';
@@ -2866,6 +2879,24 @@ export const resolveWeightIntent = (intent: string, avail: readonly WeightRoleNa
   throw new Error(`unknown weight intent '${intent}' — the declared intents are [${WEIGHT_INTENTS.join(', ')}]`);
 };
 
+/** THE FIXED WEIGHT INTENT (#2428, `ComponentDef.typeWeight`): every `type.<group>.*` ref's role tail repointed to the
+ *  brand's resolution of the def's one intent. Identity for a def without it, and for a brand whose resolution is the
+ *  authored role. */
+const applyTypeWeight = (def: ComponentDef, avail: WeightAvailability): ComponentDef => {
+  const tw = def.typeWeight;
+  if (!tw) return def;
+  const groupAvail = avail[tw.group];
+  if (!groupAvail || !groupAvail.length)
+    throw new Error(`${def.id}: typeWeight.group '${tw.group}' has no emitted weight roles for this brand — a weight intent cannot resolve against a category the brand does not ship`);
+  const role = resolveWeightIntent(tw.intent, groupAvail);
+  const tokens: Record<string, string> = {};
+  for (const [k, ref] of Object.entries(def.tokens)) {
+    const segs = ref.split('.');
+    if (segs[0] === 'type' && segs[1] === tw.group) { segs[segs.length - 1] = role; tokens[k] = segs.join('.'); } else tokens[k] = ref;
+  }
+  return { ...def, tokens };
+};
+
 /**
  * Materialize a def for a brand's weight availability (#1602), BEFORE projection — the same mechanism
  * `applyControlShape` uses for a corner, and for the same reason: the projector stays a pure function of
@@ -2891,7 +2922,8 @@ export const resolveWeightIntent = (intent: string, avail: readonly WeightRoleNa
  * (`type.<group>.…`) and checked against `weightIntent.group`, so a def that mixed categories under one
  * weight axis fails loudly rather than resolving against the wrong availability.
  */
-export const applyWeightIntent = (def: ComponentDef, avail: WeightAvailability): ComponentDef => {
+export const applyWeightIntent = (authored: ComponentDef, avail: WeightAvailability): ComponentDef => {
+  const def = applyTypeWeight(authored, avail);
   const wi = def.weightIntent;
   if (!wi) return def;
   const groupAvail = avail[wi.group];
@@ -4000,6 +4032,11 @@ return {component:comp.name,id:comp.id,parts:${JSON.stringify(planPartNames(plan
  * Blank lines go too: the comments are what the blank lines separated, so leaving them behind emits
  * the blank paragraph breaks of prose that is no longer there.
  *
+ * LEADING INDENTATION goes too (#2428 meeting #2661: about 1 KB of every chunk's shell, which had grown to within
+ * 76 B of #1798's unit ceiling). Safe on the same ground as the comment pass: indentation is significant only inside
+ * a literal that spans lines, a multi-line template literal or a string continued by a trailing backslash, and the
+ * gate asserts the payload has neither.
+ *
  * EXPORTED for the gate, and for a reason worth recording: gating it through its OUTPUT is not enough.
  * A greedier stripper — `!l.includes('//')`, which reads like a *better* comment stripper — deletes
  * `if(!id)continue; // ...`, a real guard, and every one of the 1,684 assertions stayed green. The
@@ -4010,6 +4047,7 @@ export const stripPayloadComments = (js: string): string =>
   js
     .split('\n')
     .filter((l) => l.trim() !== '' && !l.trimStart().startsWith('//'))
+    .map((l) => l.trimStart())
     .join('\n') + '\n';
 
 /**
@@ -5124,6 +5162,8 @@ export const CANVAS_FURNITURE: ReadonlySet<string> = new Set([
   'divider', '_accordion-indicator', 'accordion', 'flush-icon-button', 'flush-icon-button-destructive', 'flush-icon-button-neutral', 'list-item',
   'list', 'segmented-control-segment', 'segmented-control', 'link',
   'button-group', 'dialog', 'password-field', 'counter', 'progress', 'search-field', 'banner', 'toast', '_breadcrumb-separator', 'breadcrumb-item', 'breadcrumbs',
+  // #2428: Code input and its cell, each a set with headers like every field's.
+  'code-input-cell', 'code-input',
 ]);
 
 export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {

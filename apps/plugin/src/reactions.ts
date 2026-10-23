@@ -10,6 +10,11 @@
  *
  * ── WHY REST CARRIES WHILE PRESSING TOO (owner decision Q344, #2733; reverts #2702/#2703) ─────────────────────
  *
+ * A SET WITH NO PRESSED LOOK (#2428, owner decision Q344): Code input's cell holds rest and hover but no pressed, and
+ * pressing it focuses the code input, so its def names the active state as the press destination
+ * (`figmaProperties.pressState`, carried on its plans). `reactionMap`'s `pressTo` is that state; every other set
+ * passes nothing and keeps `pressed`.
+ *
  * Rest's own press reaction looks redundant, and it is on a desktop: the pointer hovers first, the member has already
  * changed to Hover, and Hover's press reaction is the one that fires. It is NOT redundant on a touch prototype (Figma
  * Mirror on a phone, or any touch preview): there is no hover, so Rest's press reaction is the ONLY route to Pressed.
@@ -56,12 +61,12 @@ export type PlannedReaction = { trigger: Trigger; to: string };
  * (empty for a member that is no source). A set out of scope has no entry at all, so nothing about its reactions
  * is read, written or compared. A destination the plan does not have is left out (the reaction with it).
  */
-export const reactionMap = (names: readonly string[]): Map<string, PlannedReaction[]> => {
+export const reactionMap = (names: readonly string[], pressTo: string = PRESSED): Map<string, PlannedReaction[]> => {
   const out = new Map<string, PlannedReaction[]>();
   const parsed = names.map((name) => ({ name, key: coordKey(name) })).filter((x): x is { name: string; key: string } => x.key !== null);
   const stateOf = (key: string): string | undefined => coordPairs(key).find(([a]) => a === STATE_AXIS)?.[1];
   const values = new Set(parsed.map((x) => stateOf(x.key)));
-  if (![REST, HOVER, PRESSED].every((v) => values.has(v))) return out;
+  if (![REST, HOVER, pressTo].every((v) => values.has(v))) return out;
   // Each member by every OTHER axis, then by state: the sibling matched on every other axis is one lookup away.
   const others = (key: string): string => coordPairs(key).filter(([a]) => a !== STATE_AXIS).map(([a, v]) => `${a}=${v}`).join(', ');
   const byOthers = new Map<string, Map<string, string>>();
@@ -75,7 +80,7 @@ export const reactionMap = (names: readonly string[]): Map<string, PlannedReacti
     const sib = byOthers.get(others(key))!;
     const list: PlannedReaction[] = [];
     if (state === REST && sib.has(HOVER)) list.push({ trigger: 'ON_HOVER', to: sib.get(HOVER)! });
-    if ((state === REST || state === HOVER) && sib.has(PRESSED)) list.push({ trigger: 'ON_PRESS', to: sib.get(PRESSED)! });
+    if ((state === REST || state === HOVER) && sib.has(pressTo)) list.push({ trigger: 'ON_PRESS', to: sib.get(pressTo)! });
     out.set(name, list);
   }
   return out;

@@ -5442,6 +5442,30 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     `segmented control equal widths (Q269.6): at every size the items slot grows along the track and its three options grow along it (layoutGrow 1 on the host) and measure the same width, their shares filling the track (${members.length} members${wrong.length ? ` — WRONG: ${wrong.join(' | ')}` : ''})`);
 }
 
+// ── #2428: CODE INPUT'S CHARACTER CARRIES ITS SIZE'S TEXT STYLE ON THE HOST ─────────────────────────────────────────
+// Owner QA Q534 on #2789: the character had no text style, so in a brand's file it kept the build's own font (the
+// default brand's display serif). Each built character must read its size's style back, untrimmed: a trim written
+// after the style detaches it (#1567), which the shim models. The style names are typed here, not read from the plan.
+{
+  const cell = componentDefs.find((d) => d.id === 'code-input-cell')!;
+  const STYLE: Record<string, string> = { small: 'body/md/default', medium: 'title/sm/strong', large: 'title/md/strong', xlarge: 'title/2xl/strong' };
+  const plans = figmaAnatomySet(cell, { swapTarget: SWAP });
+  const page: Page = { children: [] };
+  const r = await applyComponentPlan(plans, makeShim({ ...fullFor(plans), page }) as any);
+  const set = page.children[0];
+  const digits = ((set?.findAll as (() => Node[]) | undefined)?.() ?? []).filter((n) => n.type === 'TEXT' && n.name === 'digit');
+  const wantDigits = plans.filter((p) => JSON.stringify(p.root).includes('"name":"digit"')).length;
+  const off = digits.flatMap((d) => {
+    const member = String((d.parent as Node | undefined)?.parent?.name);
+    const size = /size=(\w+)/.exec(member)?.[1] ?? '';
+    const style = String(d._textStyleId ?? '').replace(/^S:/, '');
+    return style === STYLE[size] && d.leadingTrim === 'NONE' ? [] : [`${member}: ${style || 'no style'}, trim ${String(d.leadingTrim)}`];
+  });
+  const styleMisses = (r.misses ?? []).filter((m: string) => /digit\.(leadingTrim|textStyle)/.test(m));
+  ok(digits.length === wantDigits && wantDigits === 12 && off.length === 0 && styleMisses.length === 0,
+    `#2428 code-input-cell: every built character (${digits.length} of ${wantDigits}) carries its size's text style (body md, title sm, md, 2xl), untrimmed, and the executor reports no style miss for it (off: ${[...off, ...styleMisses].slice(0, 4).join(' | ') || 'none'})`);
+}
+
 // ── #2872: LINK'S CURRENT-PAGE BAR, PINNED ACROSS THE FOOT (owner decisions Q507) ──────────────────────────────────
 // Driven through the REAL executor with the shim's `layoutModel`. On every current member the `bar` is a frame lifted
 // out of the flow (ABSOLUTE), constrained STRETCH/MAX, as wide as the link box, flush with its bottom, at the 2px of its
