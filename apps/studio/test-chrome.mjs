@@ -2571,6 +2571,9 @@ for (const host of ['web', 'figma']) {
         hooks.absent(ok, { seen: a2.pressed === 'false', state: 'the Agent tile off' }, !m2.shown, `#2949 ${where}: with the link off, Minimize is not drawn (${JSON.stringify(m2)})`);
 
         // ── the Figma menu: by keyboard, then each item's action ──────────────────────────────────
+        // The pointer leaves the Agent tile it just clicked: a tip drawn on hover can drop between the in-page probe
+        // and the CDP font read, which then reports it drew nothing (#2962's CI, figma light 380).
+        await page.mouse.move(0, h - 1);
         await page.locator('[data-p3="figma-open"]').focus();
         await page.keyboard.press('ArrowDown');
         const k0 = await menuState(page);
