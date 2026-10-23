@@ -21,7 +21,7 @@ Generated from the component definitions and the emission by `packages/engine/em
 | code-input-cell | code-input | code-input |
 | divider | accordion, dialog | accordion, dialog |
 | field-label | checkbox-group, code-input, counter, password-field, radio-group, search-field, segmented-control, select, text-field, textarea | checkbox-group, code-input, counter, password-field, radio-group, search-field, segmented-control, select, text-field, textarea |
-| field-message | checkbox-group, code-input, counter, password-field, radio-group, search-field, select, text-field, textarea | checkbox-group, code-input, counter, password-field, radio-group, search-field, select, text-field, textarea |
+| field-message | checkbox-group, code-input, counter, password-field, progress, radio-group, search-field, select, text-field, textarea | checkbox-group, code-input, counter, password-field, progress, radio-group, search-field, select, text-field, textarea |
 | flush-icon-button-neutral | banner, breadcrumb-item, counter, dialog, toast | banner, breadcrumb-item, breadcrumbs, counter, dialog, toast |
 | focus-ring | accordion, button, button-destructive, button-neutral, checkbox-control, code-input-cell, counter, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, password-field, radio-control, search-field, segmented-control-segment, select, switch-control, tab-item, tag, text-field, textarea | accordion, banner, breadcrumb-item, breadcrumbs, button, button-destructive, button-group, button-neutral, checkbox-control, checkbox-group, checkbox-row, code-input, code-input-cell, counter, dialog, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, switch-control, switch-row, tab-item, tabs, tag, text-field, textarea, toast |
 | link | breadcrumb-item, breadcrumbs | breadcrumb-item, breadcrumbs |
@@ -73,6 +73,7 @@ A component not in this table is nested by nothing; a change to it reaches only 
 | list | 1 | list-item | list-item |
 | list-item | 0 | — | — |
 | password-field | 2 | button, field-label, field-message, focus-ring | button, field-label, field-message, focus-ring, spinner |
+| progress | 1 | field-message | field-message |
 | radio-control | 1 | focus-ring | focus-ring |
 | radio-group | 3 | field-label, field-message, radio-row | field-label, field-message, focus-ring, radio-control, radio-row |
 | radio-row | 2 | radio-control | focus-ring, radio-control |
@@ -167,6 +168,8 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | password-field | label | nest | field-label | nest-exposed | size=medium, emphasis=secondary, weight=regular, state=rest | size | emphasis, weight |
 | password-field | message | nest | field-message | nest-fixed | status=default | status | — |
 | password-field | toggle | nest | button | nest-exposed | appearance=text, size=small, surface=default, inset=flush, state=rest, leading icon=false, trailing icon=false | — | label |
+| progress | messageComplete | nest | field-message | nest-fixed | status=success | — | — |
+| progress | messageError | nest | field-message | nest-fixed | status=error | — | — |
 | radio-control | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | radio-group | label | nest | field-label | nest-exposed | size=medium, emphasis=secondary, weight=bold, state=rest | size | emphasis, weight |
 | radio-group | message | nest | field-message | nest-fixed | status=error | status | — |

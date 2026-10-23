@@ -205,6 +205,12 @@
             "components": [
               "counter"
             ]
+          },
+          {
+            "name": "↳ Progress",
+            "components": [
+              "progress"
+            ]
           }
         ]
       },
@@ -2494,6 +2500,73 @@
         "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/counter.md"
       },
       {
+        "id": "progress",
+        "name": "Progress",
+        "figmaName": "progress",
+        "kind": "component set",
+        "page": "↳ Progress",
+        "section": "Components",
+        "members": 12,
+        "variantProperties": [
+          {
+            "name": "shape",
+            "values": [
+              "linear",
+              "circular"
+            ]
+          },
+          {
+            "name": "type",
+            "values": [
+              "determinate",
+              "indeterminate"
+            ]
+          },
+          {
+            "name": "status",
+            "values": [
+              "active",
+              "complete",
+              "error"
+            ]
+          },
+          {
+            "name": "size",
+            "values": [
+              "medium",
+              "small"
+            ]
+          }
+        ],
+        "properties": [
+          {
+            "name": "label text",
+            "type": "TEXT"
+          },
+          {
+            "name": "value text",
+            "type": "TEXT"
+          },
+          {
+            "name": "complete value text",
+            "type": "TEXT"
+          },
+          {
+            "name": "label",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "value",
+            "type": "BOOLEAN"
+          },
+          {
+            "name": "message",
+            "type": "BOOLEAN"
+          }
+        ],
+        "doc": "https://github.com/adamforrester/prism3/blob/main/packages/engine/out/components/progress.md"
+      },
+      {
         "id": "search-field",
         "name": "SearchField",
         "figmaName": "search-field",
@@ -3041,6 +3114,7 @@
       "dialog",
       "password-field",
       "counter",
+      "progress",
       "search-field",
       "banner",
       "toast",

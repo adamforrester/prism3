@@ -100,3 +100,6 @@ Built on #2660's items-slot pattern (merged), with current `main` merged in.
 - **Owner decision Q-2789.3 A (2026-10-23):** Code input joins the studio's Fields section (`SETTING_SECTIONS`), and
   `test-component-groups`' rule is now "each `FIELD_FRAME_PARTS` def, or for a subcomponent the component that nests
   it, is a Fields row", the nester read from the catalog's `nests`.
+- Main's Progress (#2791): the registry lists take the union, `lint-rung-names` keeps both the pinned ladder and the
+  ring offset, and the artifact count is 212. The studio's Fields section opens Field options on Code input, now its
+  first set.

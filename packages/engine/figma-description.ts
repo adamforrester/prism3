@@ -245,6 +245,7 @@ const msWithModes = (ms: number, byMode: Array<[string, number]>): string =>
 export const figmaDurationPrimitiveDescription = (ms: number): string => `${ms}ms — duration primitive`;
 export const figmaDurationDescription = (role: string, ms: number, byMode: Array<[string, number]>, reduced: boolean): string => {
   const t = msWithModes(ms, byMode);
+  if (role === 'sweep') return reduced ? `${t} per progress sweep with reduce motion on` : `${t} per progress sweep, at every tempo`;
   if (role === 'spin') return reduced ? `${t} per spinner turn with reduce motion on` : `${t} per spinner turn, at every tempo`;
   return reduced ? `${t} — ${role} duration with reduce motion on` : `${t} — ${role} duration`;
 };
