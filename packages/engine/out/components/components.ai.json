@@ -5827,7 +5827,7 @@
             "medium",
             "large"
           ],
-          "description": "Tag height, padding and label type. The height is Button's: medium clears 44px on comfortable and spacious density, and is 36px at compact. A tag is never narrower than 1.5 times its height, rounded to the nearest 8px (64px for a medium tag on comfortable density)."
+          "description": "Tag height, padding and label type. Under Tag style Pill the height is Button's: medium clears 44px on comfortable and spacious density, and is 36px at compact. Under Underline the tag hugs its content: 20px, 26px and 32px tall. A tag is never narrower than 1.5 times the Pill height, rounded to the nearest 8px (64px for a medium tag on comfortable density), under either style."
         },
         {
           "name": "disabled",
@@ -5886,8 +5886,8 @@
           "2.1.1 Keyboard (every tag can be toggled or removed from the keyboard)",
           "2.4.3 Focus Order (after a removal, focus moves to the next tag, the previous one or the group, never to the top of the page)",
           "2.4.7 Focus Visible (a focus ring around the tag on keyboard focus)",
-          "2.5.8 Target Size (Minimum) (24×24 — a small tag and its × slot are 36px on comfortable density and 28px at compact)",
-          "2.5.5 Target Size (Enhanced) (44×44, as intent — a medium tag and its × slot clear 44px on comfortable and spacious density and miss it at compact (36px); a small tag reaches 44 only at spacious density, and elsewhere through a code-side hit area)",
+          "2.5.8 Target Size (Minimum) (24×24 — a small tag and its × slot are 36px on comfortable density and 28px at compact; under Tag style Underline a small tag is 20px tall and reaches 24px through a code-side hit area)",
+          "2.5.5 Target Size (Enhanced) (44×44, as intent — under Tag style Pill a medium tag and its × slot clear 44px on comfortable and spacious density and miss it at compact (36px), and a small tag reaches 44 only at spacious density; elsewhere, and at every size under Underline, a code-side hit area reaches it)",
           "1.1.1 Non-text Content / 4.1.2 Name, Role, Value (the remove control is named \"Remove\" followed by the label, and a select tag exposes its state)"
         ],
         "keyboard": "Select: Space or Enter toggles. In a single-choice group, arrows move and select, as radios do. Dismissible: Enter or Space on the remove control removes the tag; in a group, one tab stop enters the group, Left and Right arrows move between tags, and Delete or Backspace removes the focused tag.",
