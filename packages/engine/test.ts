@@ -15248,7 +15248,8 @@ arm: {
       const GLYPH: Record<string, string> = { small: 'xs', medium: 'sm', large: 'md' };
       const INSET: Record<string, string> = { small: 'space/050', medium: 'space/075', large: 'space/100' };
       const LINE_COLOR: Record<string, Record<string, string>> = {
-        unselected: { rest: 'color/interactive/neutral/border/rest', hover: 'color/interactive/neutral/border/hover', pressed: 'color/interactive/neutral/border/pressed', 'focus-visible': 'color/interactive/neutral/border/rest', disabled: 'color/disabled/border' },
+        // #2945 (owner Q589, Q589.1 A): the unselected line is the primary border too, stepping on hover and pressed.
+        unselected: { rest: 'color/interactive/primary/border/rest', hover: 'color/interactive/primary/border/hover', pressed: 'color/interactive/primary/border/pressed', 'focus-visible': 'color/interactive/primary/border/rest', disabled: 'color/disabled/border' },
         selected: { rest: 'color/interactive/primary/border/rest', hover: 'color/interactive/primary/border/hover', pressed: 'color/interactive/primary/border/pressed', 'focus-visible': 'color/interactive/primary/border/rest', disabled: 'color/disabled/border' },
       };
       const pill = figmaAnatomySet(tag, { swapTarget: 'FPO-default-icon' });
@@ -15275,8 +15276,8 @@ arm: {
         if (find(r, 'content')?.bound?.paddingBottom !== INSET[p.size!] || find(r, 'content')?.bound?.paddingTop !== 'space/0') bad.inset.push(`${at}: ${find(r, 'content')?.bound?.paddingTop}/${find(r, 'content')?.bound?.paddingBottom}`);
         if (find(r, 'labelCheck')?.bound?.minHeight !== `icon/size/${GLYPH[p.size!]}`) bad.labelRow.push(`${at}: ${find(r, 'labelCheck')?.bound?.minHeight}`);
         const slot = find(r, 'dismiss');
-        // #2945 (Q585.1 A): the slot keeps the rung height as its width and hugs its height (the counter axis of its row).
-        if (p.coord.type === 'dismissible' && (slot?.bound?.width !== `size/${RUNG[p.size!]}/height` || 'height' in (slot?.bound ?? {}) || slot?.counterAxisSizingMode !== 'AUTO'
+        // #2945 (Q592 A): the slot is only as wide as its glyph and hugs its height (the counter axis of its row).
+        if (p.coord.type === 'dismissible' && (slot?.bound?.width !== `icon/size/${GLYPH[p.size!]}` || 'height' in (slot?.bound ?? {}) || slot?.counterAxisSizingMode !== 'AUTO'
           || slot?.bound?.paddingBottom !== INSET[p.size!] || slot?.counterAxisAlignItems !== 'MAX'))
           bad.slot.push(`${at}: ${slot?.bound?.width}×${slot?.bound?.height ?? slot?.counterAxisSizingMode}, inset ${slot?.bound?.paddingBottom}, ${slot?.counterAxisAlignItems}`);
       }
@@ -15288,18 +15289,27 @@ arm: {
       ok(bad.focus.length === 0, `tag underline: focus-visible keeps the line weight of its rest member, the ring alone marks focus (Q513.4) (${bad.focus.slice(0, 3).join('; ') || 'ok'})`);
       ok(bad.sides.length === 0, `tag underline: top, end and start bind border-width/none, and no scalar weight is bound (${bad.sides.slice(0, 3).join('; ') || 'ok'})`);
       ok(bad.corner.length === 0, `tag underline: every corner is radius/none (${bad.corner.slice(0, 3).join('; ') || 'ok'})`);
-      ok(bad.color.length === 0, `tag underline: the line takes the interactive neutral border unselected and the primary border selected, stepping on hover and pressed (Q513.2, Q513.7) (${bad.color.slice(0, 3).join('; ') || 'ok'})`);
+      ok(bad.color.length === 0, `tag underline: the line takes the interactive primary border, unselected and selected, stepping on hover and pressed (Q513.2, #2945 Q589, Q589.1 A) (${bad.color.slice(0, 3).join('; ') || 'ok'})`);
       ok(bad.fill.length === 0, `tag underline: no interactive state binds a fill — no wash, no tint (Q513.2, Q513.3) (${bad.fill.slice(0, 3).join('; ') || 'ok'})`);
       ok(bad.height.length === 0, `tag underline hug (#2945, Q585 A): the tag hugs its content, with no minHeight and no fixed height (${bad.height.slice(0, 3).join('; ') || 'ok'})`);
       ok(bad.align.length === 0 && bad.inset.length === 0 && bad.labelRow.length === 0,
         `tag underline: the content row sits at the end on space/050 / 075 / 100 (Q540 Q9), its label row as tall as the glyph (${[...bad.align, ...bad.inset, ...bad.labelRow].slice(0, 3).join('; ') || 'ok'})`);
-      ok(bad.slot.length === 0, `tag underline: the × slot keeps the rung height as its width, hugs its height, and sits its glyph on the same inset (Q513.6, #2945 Q585.1 A) (${bad.slot.slice(0, 3).join('; ') || 'ok'})`);
+      ok(bad.slot.length === 0, `tag underline: the × slot is as wide as its glyph, hugs its height, and sits its glyph on the same inset (Q513.6, #2945 Q592 A) (${bad.slot.slice(0, 3).join('; ') || 'ok'})`);
       // Q10 A: the inset does not follow density; the height does, through the minimum.
       const densInset: string[] = [];
       for (const density of ['compact', 'spacious'] as const) for (const size of ['small', 'medium', 'large']) {
         const p = figmaAnatomyPlan(applySpacingDensity(applyTagStyle(applyControlShape(tag, 'pill'), 'underline'), density), size, { type: 'select', selection: 'unselected', state: 'rest' } as never);
         if (find(p.root, 'content')?.bound?.paddingBottom !== INSET[size] || p.root.bound?.topLeftRadius !== 'radius/none') densInset.push(`${density} ${size}: ${find(p.root, 'content')?.bound?.paddingBottom}, ${p.root.bound?.topLeftRadius}`);
       }
+      // #2945 (Q592.2 A): with the label row's inset gone, the dismissible icon → label layer gap IS the visible distance at
+      // every density (recomputed by `visibleGaps` from a 0 inset), and the label → × gap on the frame is the same step.
+      const densGap: string[] = [];
+      for (const density of ['compact', 'comfortable', 'spacious'] as const) for (const size of ['small', 'medium', 'large']) {
+        const p = figmaAnatomyPlan(applySpacingDensity(applyTagStyle(tag, 'underline'), density), size, { type: 'dismissible', selection: 'unselected', state: 'rest' } as never);
+        const ig = find(p.root, 'content')?.bound?.itemSpacing, xg = p.root.bound?.itemSpacing, li = find(p.root, 'labelCheck')?.bound?.paddingLeft;
+        if (!ig || ig !== xg || li !== 'space/0') densGap.push(`${density} ${size}: icon → label ${ig}, label → × ${xg}, label inset ${li}`);
+      }
+      ok(densGap.length === 0, `tag underline (#2945, Q592.2 A): a dismissible tag's icon → label and label → × are one space step at every density, with no label inset (${densGap.slice(0, 3).join('; ') || 'ok'})`);
       ok(densInset.length === 0, `tag underline (Q540 Q10): the inset is space/050 / 075 / 100 at every density, and the corner square under Control shape pill (${densInset.slice(0, 3).join('; ') || 'ok'})`);
 
       // #2887 THE GAP TO THE LINE, measured in px in every example brand at every size. The layout is walked off the plan
@@ -15310,8 +15320,12 @@ arm: {
       // #2945 (owner Q585 A): the hug height per size, the glyph row (16 / 20 / 24, taller than every example brand's label
       // line box) plus the inset. Literals from the decision and the wireframe, never read off the def or the plan.
       const HUG_PX: Record<string, number> = { small: 20, medium: 26, large: 32 };
-      // Q585.2 A: the width floor stays 1.5 × the rung height (36 / 44 / 56 → 56 / 64 / 88), as the pill's.
-      const MIN_W_PX: Record<string, number> = { small: 56, medium: 64, large: 88 };
+      // #2945 (owner Q592 A, Q592.1 A, Q592.2 A): the line spans the content. No inline padding anywhere on the path from
+      // the frame's edge to the first and last glyph, no width floor, the × slot as wide as its glyph, and icon → label
+      // and label → × both the dismissible visible distance. Literals from the decisions and the wireframe, in px.
+      const SLOT_W_PX: Record<string, number> = { small: 16, medium: 20, large: 24 };
+      const DISMISS_GAP_PX: Record<string, number> = { small: 6, medium: 8, large: 8 };
+      const SELECT_GAP_PX: Record<string, number> = { small: 6, medium: 8, large: 12 };
       const gap: string[] = [];
       let measured = 0;
       const exampleThemes: [string, Theme][] = [];
@@ -15354,12 +15368,23 @@ arm: {
           if (!(Math.abs(labelBottom - want) <= 0.01)) gap.push(`${f} ${size} ${type} ${selection}: label bottom ${labelBottom} (want ${want})`);
           if (frameH !== HUG_PX[size]) gap.push(`${f} ${size} ${type} ${selection}: height ${frameH} (want ${HUG_PX[size]}; the pill's rung is ${H})`);
           const minW = figmaAnatomyPlan(applyMinWidthRatio(uDef, (ref) => px(ref)), size, { type, selection, state: 'rest' } as never).root.minWidth;
-          if (minW !== MIN_W_PX[size]) gap.push(`${f} ${size} ${type} ${selection}: min width ${minW} (want ${MIN_W_PX[size]})`);
+          if (minW !== undefined) gap.push(`${f} ${size} ${type} ${selection}: min width ${minW} (want none, Q592.1 A)`);
+          // Every inline inset between the frame's edges and the outermost glyphs, in px: the frame, the content row, the
+          // label row's start (its end is 0 on the pill too), and the slot.
+          const insets = [r.bound?.paddingLeft, r.bound?.paddingRight, content?.bound?.paddingLeft, content?.bound?.paddingRight, lc?.bound?.paddingLeft, lc?.bound?.paddingRight,
+            ...(slot ? [slot.bound?.paddingLeft, slot.bound?.paddingRight] : [])].map(pxVar);
+          if (insets.some((x) => x !== 0)) gap.push(`${f} ${size} ${type} ${selection}: inline insets ${insets.join('/')} (want all 0, Q592 A)`);
+          const iconGap = pxVar(content?.bound?.itemSpacing);
+          if (iconGap !== (type === 'dismissible' ? DISMISS_GAP_PX : SELECT_GAP_PX)[size]) gap.push(`${f} ${size} ${type}: icon → label ${iconGap} (want ${(type === 'dismissible' ? DISMISS_GAP_PX : SELECT_GAP_PX)[size]})`);
+          if (slot) {
+            if (pxVar(slot.bound?.width) !== SLOT_W_PX[size]) gap.push(`${f} ${size}: × slot ${pxVar(slot.bound?.width)}px wide (want ${SLOT_W_PX[size]})`);
+            if (pxVar(r.bound?.itemSpacing) !== DISMISS_GAP_PX[size]) gap.push(`${f} ${size}: label → × ${pxVar(r.bound?.itemSpacing)} (want ${DISMISS_GAP_PX[size]}, Q592.2 A)`);
+          }
           if (checkBottom !== undefined && !(checkBottom - 2 >= 2)) gap.push(`${f} ${size}: the check sits ${checkBottom - 2}px above a 2px line`);
         }
       }
       ok(exampleThemes.length === 5 && measured === 5 * 9 && gap.length === 0,
-        `#2887 underline label sits on its inset: in every example brand at every size, the label's line box ends inset + (glyph − line box) ÷ 2 above the frame's bottom, the tag hugs at 20 / 26 / 32px (#2945, Q585 A) above a 56 / 64 / 88px width floor (Q585.2 A), and the check clears a 2px line by ≥ 2px (${exampleThemes.length} brands, ${measured} members; ${gap.slice(0, 3).join('; ') || 'ok'})`);
+        `#2887 underline label sits on its inset: in every example brand at every size, the label's line box ends inset + (glyph − line box) ÷ 2 above the frame's bottom, the tag hugs at 20 / 26 / 32px (#2945, Q585 A) with no width floor and no inline inset, the × slot 16 / 20 / 24px wide and icon → label and label → × 6 / 8 / 8px on a dismissible tag (Q592 A, Q592.1 A, Q592.2 A), and the check clears a 2px line by ≥ 2px (${exampleThemes.length} brands, ${measured} members; ${gap.slice(0, 3).join('; ') || 'ok'})`);
 
       // CONTRAST (SC 1.4.11): the line is the tag's only boundary, so every line that marks a state clears 3:1 against the
       // page in every mode of every example brand, plus the focus ring. Recomputed from the roles' own colors.
@@ -15757,24 +15782,36 @@ arm: {
         `#1752 identity: ${def.id} at Emphasis binds type.label.{sm,md,lg}.emphasis, as authored`);
     }
 
-    // (4) SCOPE: buttons only. Tag, badge and select bind label and body styles too, and none moves: each is
-    // the same object back from the materializer, and its type refs are the literal authored ones.
+    // (4) SCOPE: buttons and, since #2945 (owner Q591 A, "Control label weight"), tags. Badge and select bind label and
+    // body styles too, and neither moves: each is the same object back from the materializer, and its type refs are the
+    // literal authored ones. The tag moves its three label refs and nothing else, in both content settings (the medium
+    // offset is a button setting and does not reach it), and in both tag styles.
     {
       const badge = componentDefs.find((d) => d.id === 'badge')!;
+      const TAG_DEFAULT: [string, string][] = [['size.small.type', 'type.label.sm.default'], ['size.medium.type', 'type.label.md.default'], ['size.large.type', 'type.label.lg.default']];
+      for (const style of ['pill', 'underline'] as const) for (const content of ['match', 'smaller'] as const) {
+        const base = applyTagStyle(tag, style);
+        const m = applyButtonLayout(base, { ...DEFAULT_BUTTON_LAYOUT, content, labelWeight: 'default' }, () => 44);
+        const changed = Object.keys(m.tokens).filter((k) => m.tokens[k] !== base.tokens[k]).sort();
+        ok(TAG_DEFAULT.every(([k, r]) => m.tokens[k] === r) && JSON.stringify(changed) === JSON.stringify(TAG_DEFAULT.map(([k]) => k).sort())
+          && JSON.stringify(m.anatomy) === JSON.stringify(base.anatomy),
+          `#2945 Control label weight (Q591 A): a ${style} tag at Default (${content}) binds type.label.{sm,md,lg}.default and moves nothing else (moved: ${changed.join(', ') || 'none'})`);
+        ok(applyButtonLayout(base, { ...DEFAULT_BUTTON_LAYOUT, content }, () => 44) === base,
+          `#2945 Control label weight: a ${style} tag at Emphasis (${content}) is the same def back`);
+      }
       const OTHERS: [ComponentDef, [string, string][]][] = [
-        [tag, [['size.small.type', 'type.label.sm.emphasis'], ['size.medium.type', 'type.label.md.emphasis'], ['size.large.type', 'type.label.lg.emphasis']]],
         [badge, [['type', 'type.label.sm.emphasis']]],
         [select, Object.entries(select.tokens).filter(([, r]) => r.startsWith('type.'))],
       ];
       const moved = componentDefs.filter((d) => JSON.stringify(applyButtonLayout(d, { ...DEFAULT_BUTTON_LAYOUT, labelWeight: 'default' }, () => 44))
         !== JSON.stringify(applyButtonLayout(d, DEFAULT_BUTTON_LAYOUT, () => 44))).map((d) => d.id).sort().join(',');
-      ok(moved === 'button,button-destructive,button-neutral',
-        `#1752 scope: across all ${componentDefs.length} defs, Default moves exactly button, button-destructive and button-neutral (got ${moved})`);
-      ok(OTHERS.every(([, refs]) => refs.length > 0), '#1752 scope: tag, badge and select each bind at least one type ref (a scope over nothing is not a pass)');
+      ok(moved === 'button,button-destructive,button-neutral,tag',
+        `#1752 scope (#2945): across all ${componentDefs.length} defs, Default moves exactly button, button-destructive, button-neutral and tag (got ${moved})`);
+      ok(OTHERS.every(([, refs]) => refs.length > 0), '#1752 scope: badge and select each bind at least one type ref (a scope over nothing is not a pass)');
       for (const [def, refs] of OTHERS) for (const content of ['match', 'smaller'] as const) {
         const m = applyButtonLayout(def, { ...DEFAULT_BUTTON_LAYOUT, content, labelWeight: 'default' }, () => 44);
         ok(m === def && refs.every(([k, r]) => m.tokens[k] === r),
-          `#1752 scope: ${def.id} is untouched by Button label weight: Default (${content}) — got ${refs.map(([k]) => `${k}=${m.tokens[k]}`).join(', ')}`);
+          `#1752 scope: ${def.id} is untouched by Control label weight: Default (${content}) — got ${refs.map(([k]) => `${k}=${m.tokens[k]}`).join(', ')}`);
       }
     }
   }

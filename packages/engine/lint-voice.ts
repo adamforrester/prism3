@@ -756,7 +756,7 @@ const PRODUCERS: Producer[] = [
   { id: 'gradient', re: /^gradient: \d+ brand gradient/, kind: 'site' },
   { id: 'gradient: none', re: /^gradient: none — /, kind: 'site' },
   { id: 'layout', re: /^layout: \d+ breakpoints \([^)]*\); \d+-column grid/, kind: 'site' },
-  { id: 'button label weight', re: /^button label weight: /, kind: 'site' },
+  { id: 'control label weight', re: /^control label weight: /, kind: 'site' },
   { id: 'typography', re: /^typography: \d+-step size ladder \([^)]+\), a fixed set rather than a ratio/, kind: 'site' },
   { id: 'typography: title.2xs included', re: /^typography: .*title\.2xs is included/, kind: 'fragment' },
   { id: 'typography: caption tier', re: /^typography: .*caption adds caption\.xs \(8px\) and caption\.sm \(10px\)/, kind: 'fragment' },
