@@ -84,6 +84,7 @@ import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, 
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { isDeepStrictEqual } from 'node:util';
+import { createHash } from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { resolve, dirname, join, relative } from 'node:path';
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -97,7 +98,7 @@ const planIconComps = (n: { nestTarget?: string; children?: readonly unknown[] }
 ];
 
 import { Session as InspectorSession } from 'node:inspector/promises';
-import { componentSpec } from './component-specs';
+import { componentSpec, specMaterialize } from './component-specs';
 
 // ---- #1268 EVERY ASSERTION SITE RAN — a section going quiet is a failure, not a smaller pass ----------
 //
@@ -15175,6 +15176,25 @@ arm: {
       const notIdentity = componentDefs.filter((d) => applyTagStyle(d, 'pill') !== d || (d.id !== 'tag' && applyTagStyle(d, 'underline') !== d)).map((d) => d.id);
       ok(notIdentity.length === 0, `#2887 identity: pill returns every def unchanged, and underline every def but Tag (moved: ${notIdentity.join(', ') || 'none'})`);
       ok(applyTagStyle(tag, 'underline') !== tag, '#2887 reach: underline rewrites the Tag def');
+      // #2945: the pill is untouched by the hug. ORACLE = the sha256 of the pill set as Apply builds it at the null brand
+      // (`specMaterialize`), computed on main BEFORE #2945 (0221419e) and pinned here as a literal, so a change that reaches
+      // the pill through the schema, `applyMinWidthRatio` or the projector fails this line by name. Every plan field but
+      // `codeOnly` is hashed: that is the def's code-tier prose, copied onto each plan, and #2945 rewrites its underline line.
+      const pillHash = createHash('sha256').update(JSON.stringify(figmaAnatomySet(specMaterialize(tag), { swapTarget: 'FPO-default-icon' }).map(({ codeOnly: _prose, ...p }) => p))).digest('hex');
+      ok(pillHash === '85641a65e850c037a5607e96ad12f41bbf26690d9de84b7e135036fbc1bebdc4',
+        `tag pill unchanged (#2945): the 45 pill members, materialized at the null brand, are byte-identical to main before the underline hug, its code-tier prose aside (sha256 ${pillHash.slice(0, 12)}…)`);
+      // #2946 review: after the hug the rung heights (28 / 36 / 44 / 56px) and "1.5 times its height" hold under Pill only, so
+      // every shipped Tag string (everything but the maintainer-only `notes`) that states one names the style it is true of.
+      {
+        const { notes: _maint, ...shipped } = tag;
+        const unscoped: string[] = [];
+        const walk = (v: unknown): void => {
+          if (typeof v === 'string') { if (/\b(28|36|44|56)px\b|times (its|the tag's) height/.test(v) && !/Pill|Underline/.test(v)) unscoped.push(v.slice(0, 80)); }
+          else if (v && typeof v === 'object') Object.values(v).forEach(walk);
+        };
+        walk(shipped);
+        ok(unscoped.length === 0, `tag prose scoped by style (#2945): every shipped line stating a rung height names Pill or Underline (${unscoped.slice(0, 2).join(' | ') || 'ok'})`);
+      }
       ok(validateBrandInput({ ...MINIMAL_BRAND, tagStyle: 'underline' } as any).length === 0 && validateBrandInput({ ...MINIMAL_BRAND, tagStyle: 'outline' } as any).length > 0,
         '#2887 input: tagStyle accepts underline and rejects a value the lever does not offer (outline is a field style)');
       const lever = leverManifest.find((l) => l.key === 'tagStyle');
@@ -15188,7 +15208,7 @@ arm: {
         `#2887 lever (Q513.1, Q540 Q8): "Tag style", Pill / Underline, default Pill, not advanced, the owner's description, in Form after Field style and Search field style (form order: ${order.join(', ')})`);
       const uDef = applyTagStyle(tag, 'underline');
       const errs = (validateComponentDef(uDef) as { errors: string[] }).errors;
-      ok(errs.length === 0, `#2887 schema: the underline Tag validates, its {selection}/{state}-keyed bottom weight and its minHeight-based ratio floor admitted (${errs.slice(0, 2).join('; ') || 'clean'})`);
+      ok(errs.length === 0, `#2887 schema: the underline Tag validates, its {selection}/{state}-keyed bottom weight and its minWidthBase ratio floor admitted (${errs.slice(0, 2).join('; ') || 'clean'})`);
 
       // THE PROJECTION. Every member of the 45, read off the plan.
       const RUNG: Record<string, string> = { small: 'sm', medium: 'md', large: 'lg' };
@@ -15216,14 +15236,16 @@ arm: {
         if (r.paints?.strokes !== LINE_COLOR[sel]?.[st]) bad.color.push(`${at}: ${r.paints?.strokes} (want ${LINE_COLOR[sel]?.[st]})`);
         const filled = all(r).filter((n) => n.type !== 'TEXT' && n.paints?.fills !== undefined).map((n) => `${n.name} ${n.paints.fills}`);
         if (filled.length) bad.fill.push(`${at}: ${filled.join(', ')}`);
-        if (b.minHeight !== `size/${RUNG[p.size!]}/height` || 'height' in b || r.counterAxisSizingMode !== 'AUTO') bad.height.push(`${at}: minHeight ${b.minHeight}, height ${b.height}, ${r.counterAxisSizingMode}`);
+        // #2945 (owner Q585 A): no height floor at all, so the frame hugs the label row and the inset.
+        if ('minHeight' in b || 'height' in b || r.counterAxisSizingMode !== 'AUTO') bad.height.push(`${at}: minHeight ${b.minHeight}, height ${b.height}, ${r.counterAxisSizingMode}`);
         if (r.counterAxisAlignItems !== 'MAX') bad.align.push(`${at}: ${r.counterAxisAlignItems}`);
         if (find(r, 'content')?.bound?.paddingBottom !== INSET[p.size!] || find(r, 'content')?.bound?.paddingTop !== 'space/0') bad.inset.push(`${at}: ${find(r, 'content')?.bound?.paddingTop}/${find(r, 'content')?.bound?.paddingBottom}`);
         if (find(r, 'labelCheck')?.bound?.minHeight !== `icon/size/${GLYPH[p.size!]}`) bad.labelRow.push(`${at}: ${find(r, 'labelCheck')?.bound?.minHeight}`);
         const slot = find(r, 'dismiss');
-        if (p.coord.type === 'dismissible' && (slot?.bound?.width !== `size/${RUNG[p.size!]}/height` || slot?.bound?.height !== `size/${RUNG[p.size!]}/height`
+        // #2945 (Q585.1 A): the slot keeps the rung height as its width and hugs its height (the counter axis of its row).
+        if (p.coord.type === 'dismissible' && (slot?.bound?.width !== `size/${RUNG[p.size!]}/height` || 'height' in (slot?.bound ?? {}) || slot?.counterAxisSizingMode !== 'AUTO'
           || slot?.bound?.paddingBottom !== INSET[p.size!] || slot?.counterAxisAlignItems !== 'MAX'))
-          bad.slot.push(`${at}: ${slot?.bound?.width}×${slot?.bound?.height}, inset ${slot?.bound?.paddingBottom}, ${slot?.counterAxisAlignItems}`);
+          bad.slot.push(`${at}: ${slot?.bound?.width}×${slot?.bound?.height ?? slot?.counterAxisSizingMode}, inset ${slot?.bound?.paddingBottom}, ${slot?.counterAxisAlignItems}`);
       }
       const namesOf = (ps: AnatomyPlan[]) => JSON.stringify(ps.map((p) => [planComponentName(p), planPartNames(p.root)]));
       if (namesOf(pill) !== namesOf(under)) bad.names.push('the member names or layer names differ from the pill');
@@ -15235,10 +15257,10 @@ arm: {
       ok(bad.corner.length === 0, `tag underline: every corner is radius/none (${bad.corner.slice(0, 3).join('; ') || 'ok'})`);
       ok(bad.color.length === 0, `tag underline: the line takes the interactive neutral border unselected and the primary border selected, stepping on hover and pressed (Q513.2, Q513.7) (${bad.color.slice(0, 3).join('; ') || 'ok'})`);
       ok(bad.fill.length === 0, `tag underline: no interactive state binds a fill — no wash, no tint (Q513.2, Q513.3) (${bad.fill.slice(0, 3).join('; ') || 'ok'})`);
-      ok(bad.height.length === 0, `tag underline: the tag hugs above a minHeight at Button's height rung, never a fixed height (the #2894 route) (${bad.height.slice(0, 3).join('; ') || 'ok'})`);
+      ok(bad.height.length === 0, `tag underline hug (#2945, Q585 A): the tag hugs its content, with no minHeight and no fixed height (${bad.height.slice(0, 3).join('; ') || 'ok'})`);
       ok(bad.align.length === 0 && bad.inset.length === 0 && bad.labelRow.length === 0,
         `tag underline: the content row sits at the end on space/050 / 075 / 100 (Q540 Q9), its label row as tall as the glyph (${[...bad.align, ...bad.inset, ...bad.labelRow].slice(0, 3).join('; ') || 'ok'})`);
-      ok(bad.slot.length === 0, `tag underline: the × slot stays a square as tall as the tag and sits its glyph on the same inset (Q513.6) (${bad.slot.slice(0, 3).join('; ') || 'ok'})`);
+      ok(bad.slot.length === 0, `tag underline: the × slot keeps the rung height as its width, hugs its height, and sits its glyph on the same inset (Q513.6, #2945 Q585.1 A) (${bad.slot.slice(0, 3).join('; ') || 'ok'})`);
       // Q10 A: the inset does not follow density; the height does, through the minimum.
       const densInset: string[] = [];
       for (const density of ['compact', 'spacious'] as const) for (const size of ['small', 'medium', 'large']) {
@@ -15252,6 +15274,11 @@ arm: {
       // expected numbers come from the decision (the inset, typed above as px) and the brand's own emitted glyph size and
       // label line box (`type.label.{rung}.line-box`), never off the plan.
       const INSET_PX: Record<string, number> = { small: 4, medium: 6, large: 8 };
+      // #2945 (owner Q585 A): the hug height per size, the glyph row (16 / 20 / 24, taller than every example brand's label
+      // line box) plus the inset. Literals from the decision and the wireframe, never read off the def or the plan.
+      const HUG_PX: Record<string, number> = { small: 20, medium: 26, large: 32 };
+      // Q585.2 A: the width floor stays 1.5 × the rung height (36 / 44 / 56 → 56 / 64 / 88), as the pill's.
+      const MIN_W_PX: Record<string, number> = { small: 56, medium: 64, large: 88 };
       const gap: string[] = [];
       let measured = 0;
       const exampleThemes: [string, Theme][] = [];
@@ -15284,17 +15311,22 @@ arm: {
           const lcH = Math.max(pxVar(lc?.bound?.minHeight), lineBox, check ? pxVar(check.bound?.height) : 0);
           const inset = r.counterAxisAlignItems === 'MAX' ? pxVar(content?.bound?.paddingBottom) : NaN;
           const labelBottom = inset + (lcH - lineBox) / 2;
-          const frameH = Math.max(pxVar(r.bound?.minHeight), pxVar(r.bound?.height), lcH + pxVar(content?.bound?.paddingTop) + pxVar(content?.bound?.paddingBottom), slot ? pxVar(slot.bound?.height) : 0);
+          // The × slot hugs too (#2945): its glyph plus its own block paddings, unless it binds a height.
+          const slotGlyph = slot ? find(slot, 'dismissGlyph') : undefined;
+          const slotH = !slot ? 0 : slot.bound?.height ? pxVar(slot.bound.height) : pxVar(slotGlyph?.bound?.height) + pxVar(slot.bound?.paddingTop) + pxVar(slot.bound?.paddingBottom);
+          const frameH = Math.max(pxVar(r.bound?.minHeight), pxVar(r.bound?.height), lcH + pxVar(content?.bound?.paddingTop) + pxVar(content?.bound?.paddingBottom), slotH);
           const checkBottom = check ? inset + (lcH - pxVar(check.bound?.height)) / 2 : undefined;
           const want = INSET_PX[size] + (icon - lineBox) / 2;
           measured++;
           if (!(Math.abs(labelBottom - want) <= 0.01)) gap.push(`${f} ${size} ${type} ${selection}: label bottom ${labelBottom} (want ${want})`);
-          if (frameH !== H) gap.push(`${f} ${size} ${type} ${selection}: height ${frameH} (want ${H})`);
+          if (frameH !== HUG_PX[size]) gap.push(`${f} ${size} ${type} ${selection}: height ${frameH} (want ${HUG_PX[size]}; the pill's rung is ${H})`);
+          const minW = figmaAnatomyPlan(applyMinWidthRatio(uDef, (ref) => px(ref)), size, { type, selection, state: 'rest' } as never).root.minWidth;
+          if (minW !== MIN_W_PX[size]) gap.push(`${f} ${size} ${type} ${selection}: min width ${minW} (want ${MIN_W_PX[size]})`);
           if (checkBottom !== undefined && !(checkBottom - 2 >= 2)) gap.push(`${f} ${size}: the check sits ${checkBottom - 2}px above a 2px line`);
         }
       }
       ok(exampleThemes.length === 5 && measured === 5 * 9 && gap.length === 0,
-        `#2887 underline label sits on its inset: in every example brand at every size, the label's line box ends inset + (glyph − line box) ÷ 2 above the frame's bottom, the height is size.{size}.height, and the check clears a 2px line by ≥ 2px (${exampleThemes.length} brands, ${measured} members; ${gap.slice(0, 3).join('; ') || 'ok'})`);
+        `#2887 underline label sits on its inset: in every example brand at every size, the label's line box ends inset + (glyph − line box) ÷ 2 above the frame's bottom, the tag hugs at 20 / 26 / 32px (#2945, Q585 A) above a 56 / 64 / 88px width floor (Q585.2 A), and the check clears a 2px line by ≥ 2px (${exampleThemes.length} brands, ${measured} members; ${gap.slice(0, 3).join('; ') || 'ok'})`);
 
       // CONTRAST (SC 1.4.11): the line is the tag's only boundary, so every line that marks a state clears 3:1 against the
       // page in every mode of every example brand, plus the focus ring. Recomputed from the roles' own colors.

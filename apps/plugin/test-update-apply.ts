@@ -423,6 +423,61 @@ for (const choice of ['overwrite', 'accept'] as const) {
       `hand/accept: the edit stays and is no longer listed (${held}; ${post.handEdits.length} listed; ${applyVerdict(res).lines[0]})`);
 }
 
+/* ── keep, every path (#2943) ───────────────────────────────────────────────────────────────────────── */
+section('keep — every hand-edited path survives an update that rewrites its member\'s root (#2943, #2956)');
+{
+  // A checked, focus-visible checkbox: its root takes a new fill in the plan, so the member is written in place, and a
+  // designer has edited three of its nodes. The ring's corners (unbound, then 0 — the reported loss) are the parent's
+  // derived write: the ring pass sized, placed and re-cornered it from the host whether or not it was kept. Every
+  // expected value below is typed here, never read from the plan.
+  const plans = plansOf('checkbox-control');
+  const w = await world('checkbox-control', plans, { extraVars: ['color/keep/changed', 'space/0', 'size/keep/glyph'] });
+  const EDITED = 'selection=checked, status=default, size=medium, state=focus-visible';
+  const PLAIN = 'selection=checked, status=default, size=large, state=focus-visible';
+  const member = (name: string): Node => membersOf(w.set()).find((m) => m.name === name)!;
+  const m = member(EDITED);
+  const ring = childNamed(m, 'focusRing');
+  const mark = childNamed(m, 'checkGlyph');
+  const glyph = childNamed(mark, 'glyph');
+  const CORNERS = ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'] as const;
+  const RED = [{ type: 'SOLID', visible: true, opacity: 1, blendMode: 'NORMAL', color: { r: 1, g: 0, b: 0 } }];
+  const zero = await varIdOf(w, 'space/0');
+  for (const c of CORNERS) { (ring.setBoundVariable as (f: string, v: null) => void)(c, null); (ring as Record<string, unknown>)[c] = 0; }
+  mark.fills = JSON.parse(JSON.stringify(RED));
+  (mark.setBoundVariable as (f: string, v: { id: string }) => void)('itemSpacing', { id: zero });
+  // The size as a BINDING: an unbound width or height is outside the as-built record (`member-baseline.ts`), so a
+  // resize by hand alone is never seen as an edit, kept or not.
+  const seven = await varIdOf(w, 'size/keep/glyph');
+  for (const f of ['width', 'height']) (glyph.setBoundVariable as (f: string, v: { id: string }) => void)(f, { id: seven });
+  const edits = (): string => JSON.stringify({
+    ring: CORNERS.map((c) => [ring[c], (ring.boundVariables as Record<string, unknown> | undefined)?.[c] ?? null]),
+    fills: mark.fills,
+    gap: (mark.boundVariables as Record<string, { id: string }>).itemSpacing?.id,
+    size: [(glyph.boundVariables as Record<string, { id: string }>).width?.id, (glyph.boundVariables as Record<string, { id: string }>).height?.id],
+  });
+  const was = edits();
+  ok(was === JSON.stringify({ ring: [[0, null], [0, null], [0, null], [0, null]], fills: RED, gap: zero, size: [seven, seven] }), `premise: the four hand edits are in place (${was})`);
+  const plainRing = (): number[] => CORNERS.map((c) => childNamed(member(PLAIN), 'focusRing')[c] as number);
+  const plainCorners = plainRing();
+  ok(plainCorners.every((r) => r > 0), `premise: an unedited member's ring has round corners (${JSON.stringify(plainCorners)})`);
+  const next = plans.map((p) => {
+    const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
+    q.root.paints = { ...(q.root.paints ?? {}), fills: 'color/keep/changed' };
+    return q;
+  });
+  const { pre, res } = await confirm(w, [{ def: 'checkbox-control', plans: next }]);
+  const listed = pre.sets[0].handEdits.filter((h) => h.member === EDITED).map((h) => h.path).sort();
+  ok(JSON.stringify(listed) === JSON.stringify(['checkGlyph', 'checkGlyph/glyph', 'focusRing']), `keep/listed: the dry run lists the three edited paths (${JSON.stringify(pre.sets[0].handEdits.filter((h) => h.member === EDITED))})`);
+  const o = res.outcomes[0];
+  ok(o.updated.includes(EDITED), `keep/rewritten: the edited member is updated in place (${o.updated.length} updated)`);
+  ok(edits() === was, `keep/byte-identical: the ring's corners, the mark's paint and binding, and the glyph's bound size are as the designer left them (${edits()})`);
+  const fillVar = async (n: Node): Promise<string | undefined> => ((n.fills as { boundVariables?: { color?: { id: string } } }[])?.[0]?.boundVariables?.color?.id);
+  const changed = await varIdOf(w, 'color/keep/changed');
+  ok(await fillVar(m) === changed, `keep/root written: the edited member's root still takes the plan's new fill (${await fillVar(m)})`);
+  ok(await fillVar(member(PLAIN)) === changed && JSON.stringify(plainRing()) === JSON.stringify(plainCorners),
+    `keep/plain updated: a member with no hand edits takes the new fill, and its ring is re-cornered from its host as before (${await fillVar(member(PLAIN))}; ${JSON.stringify(plainRing())})`);
+}
+
 /* ── drop ────────────────────────────────────────────────────────────────────────────────────────────── */
 section('drop — a member the plan no longer has is kept and marked deprecated, never deleted');
 {
