@@ -1019,7 +1019,15 @@ export const makeShim = (opts: ShimOpts = {}) => {
         // NULL UNBINDS (#1388) — Figma's overload for removing a binding, which the focus ring uses to
         // clear its inherited `width`/`height` before the host resizes it. Delete the key so the gate on
         // the clear (`boundVariables.width` absent) can tell "cleared" from "still bound".
-        if (v === null) { delete bv[prop]; return; }
+        // AN UNBOUND MIN OR MAX SIZE KEEPS ITS VALUE (#2976, owner QA 2026-10-23): the host leaves the number the
+        // binding wrote behind as a plain one, so a tag updated from Pill to Underline kept the pill's floor. Modelled
+        // for these four only, the fields the update clears; a dimension the host resizes on its own is not.
+        if (v === null) {
+          const was = (bv[prop] as { value?: unknown } | undefined)?.value;
+          delete bv[prop];
+          if (typeof was === 'number' && ['minWidth', 'maxWidth', 'minHeight', 'maxHeight'].includes(prop)) (node as Record<string, unknown>)[prop] = was;
+          return;
+        }
         if (node._aspectLocked && (prop === 'width' || prop === 'height')) {
           delete bv[prop === 'width' ? 'height' : 'width'];
         }
