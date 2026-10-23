@@ -94,3 +94,6 @@ and the thumbs carry it.
 - Owner QA item 1 (2026-10-19): the readout sat outside the 320 box because the nested label is built at its own 320 and
   hugged, filling the header. The label now grows, so the readout sits at the header's end; `test.ts` measures it. The
   state mapping moved from `atState` to `variantWhen` with main's fold (#2427). Item 2 (state styling) was answered by Q550 f.
+- No gate pinned a `border-width` step's pixel value, so a regenerated 5px `x-heavy` passed everything. `test.ts` now
+  pins the three Slider track rungs at 2 / 4 / 6px in every corpus brand (Q550 e). The other steps (`none`,
+  `hairline`) are still unpinned.
