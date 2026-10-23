@@ -78,6 +78,7 @@ import { segmentedControlSegment, segmentedControl } from './segmented-control';
 import { link } from './link';
 import { buttonGroup } from './button-group';
 import { dialog } from './dialog';
+import { banner } from './banner';
 import { passwordField } from './password-field';
 import { searchField } from './search-field';
 import { toast } from './toast';
@@ -92,7 +93,7 @@ import { counter } from './counter';
  *  be a worse call site, not a better one — a lookup that can return `undefined` standing in for a
  *  binding that cannot. The set is for iteration; these are for the assertions that are ABOUT one
  *  component. */
-export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tab, tabs, divider, accordionIndicator, accordion, listItem, list, segmentedControlSegment, segmentedControl, link, buttonGroup, dialog, passwordField, counter, searchField, breadcrumbSeparator, breadcrumbItem, breadcrumbs };
+export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, flushIconButton, flushIconButtonDestructive, flushIconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, tab, tabs, divider, accordionIndicator, accordion, listItem, list, segmentedControlSegment, segmentedControl, link, buttonGroup, dialog, passwordField, counter, searchField, breadcrumbSeparator, breadcrumbItem, breadcrumbs, banner };
 
 /** Every component def the engine defines. The one thing a projection should iterate. */
 export const componentDefs: readonly ComponentDef[] = [
@@ -235,4 +236,7 @@ export const componentDefs: readonly ComponentDef[] = [
   // `search-field` (#2888) — TextField's second specialization, from the shared field factory. Nests `field-label`,
   // `field-message` and `focus-ring`, all above, and starts its glyph slots at `search` and `close-filled`.
   searchField,
+  // `banner` (#2579, owner Q327) — a persistent message in the page flow. Nests the neutral Button (actions) and the
+  // flush neutral icon button (dismiss), so it comes after both.
+  banner,
 ];
