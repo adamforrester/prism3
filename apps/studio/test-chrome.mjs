@@ -2571,6 +2571,9 @@ for (const host of ['web', 'figma']) {
         hooks.absent(ok, { seen: a2.pressed === 'false', state: 'the Agent tile off' }, !m2.shown, `#2949 ${where}: with the link off, Minimize is not drawn (${JSON.stringify(m2)})`);
 
         // ── the Figma menu: by keyboard, then each item's action ──────────────────────────────────
+        // The pointer leaves the Agent tile it just clicked: a tip drawn on hover can drop between the in-page probe
+        // and the CDP font read, which then reports it drew nothing (#2962's CI, figma light 380).
+        await page.mouse.move(0, h - 1);
         await page.locator('[data-p3="figma-open"]').focus();
         await page.keyboard.press('ArrowDown');
         const k0 = await menuState(page);
@@ -8215,12 +8218,14 @@ const COMPONENTS_LEVERS = ['lever-button-icons', 'lever-button-content-size', 'l
   // #2905 (Q3 B, Q578 B): Field options draws Field style, its one control; its home is Components › Field. Tag options
   // draws Tag style the same way (#2931 Q579 A), its home Components › Tag, and Search options Search field style (#2952,
   // #2905 Q5 A), its home Components › Search.
-  'lever-field-style', 'lever-search-field-style', 'lever-tag-style'];
+  'lever-field-style', 'lever-search-field-style', 'lever-tag-style',
+  // #2958: Dialog options draws Dialog title size the same way, its home Components › Dialog.
+  'lever-dialog-title-size'];
 /** #2700 (call 9 A): the levers pane holds the list, in its two sections; the preview pane the focused family, Buttons by
  *  default, in three sections. Literal. Q23's heading pairs (a lever section headed as its preview section) ended with
  *  the move: the levers pane no longer has a section per preview section. */
 // #2905 (Q548, Q10 A): the sections with settings first, then every other component, then Subcomponents.
-const COMPONENTS_LIST_SECTIONS = ['Buttons', 'Fields', 'Tag', 'Other components', 'Subcomponents'];
+const COMPONENTS_LIST_SECTIONS = ['Buttons', 'Fields', 'Tag', 'Dialog', 'Other components', 'Subcomponents'];
 // The specimen sections, each on the brand's page; Button options sit between them on the card, in the chrome's inks.
 const COMPONENTS_PREVIEW_SECTIONS = ['Preview', 'Sets in this family'];
 /** The page's copy, verbatim: approved by the owner (2026-10-05), or #2700's wireframe draft. */
@@ -8379,6 +8384,7 @@ for (const host of ['web', 'figma']) {
     // #2905: Fields first, since opening a block focuses its section's first set; Buttons last, so the preview shows Buttons.
     await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=tags"]'));
     await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=search"]'));
+    await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=dialogs"]'));
     await hooks.click(page.locator('[data-p3="cp-opts-toggle"][data-key="opts=fields"]'));
     await openButtonOptions(page);
     for (const [mode, label] of [['hc-light', 'HC light'], ['hc-dark', 'HC dark'], ['wireframe', 'Wireframe']]) {
@@ -8394,8 +8400,8 @@ for (const host of ['web', 'figma']) {
           frameLine: !!document.querySelector('[data-p3="levers-derived-note"]'),
           // #2815 step 1: the Button options sit in the list now, and hold themselves (above); #2905: so do the Field
           // options (below). The list is the rest.
-          listHeld: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"], [data-p3="field-options"], [data-p3="search-options"], [data-p3="tag-options"]') && (b.matches(':disabled') || b.getAttribute('aria-disabled') === 'true')).length,
-          listN: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"], [data-p3="field-options"], [data-p3="search-options"], [data-p3="tag-options"]')).length,
+          listHeld: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"], [data-p3="field-options"], [data-p3="search-options"], [data-p3="tag-options"], [data-p3="dialog-options"]') && (b.matches(':disabled') || b.getAttribute('aria-disabled') === 'true')).length,
+          listN: [...(list?.querySelectorAll('button') ?? [])].filter((b) => !b.closest('[data-p3="button-options"], [data-p3="field-options"], [data-p3="search-options"], [data-p3="tag-options"], [data-p3="dialog-options"]')).length,
           search: {
             line: document.querySelector('[data-p3="search-options-derived"]')?.textContent ?? null,
             chips: [...document.querySelectorAll('[data-p3="search-options"] [data-p3^="search-field-style-choice-"]')].map((n) => n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true'),
@@ -8403,6 +8409,10 @@ for (const host of ['web', 'figma']) {
           tag: {
             line: document.querySelector('[data-p3="tag-options-derived"]')?.textContent ?? null,
             chips: [...document.querySelectorAll('[data-p3="tag-options"] [data-p3^="tag-style-choice-"]')].map((n) => n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true'),
+          },
+          dialog: {
+            line: document.querySelector('[data-p3="dialog-options-derived"]')?.textContent ?? null,
+            chips: [...document.querySelectorAll('[data-p3="dialog-options"] [data-p3^="dialog-title-size-choice-"]')].map((n) => n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true'),
           },
           field: {
             line: document.querySelector('[data-p3="field-options-derived"]')?.textContent ?? null,
@@ -8421,6 +8431,8 @@ for (const host of ['web', 'figma']) {
         `#2931 Q59: previewing ${label}, Tag options carry the derived line and hold Tag style's chips (${JSON.stringify(d.tag)})`);
       ok(d.search.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.` && d.search.chips.length === 3 && d.search.chips.every(Boolean),
         `#2952 Q59: previewing ${label}, Search options carry the derived line and hold Search field style's chips (${JSON.stringify(d.search)})`);
+      ok(d.dialog.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.` && d.dialog.chips.length === 3 && d.dialog.chips.every(Boolean),
+        `#2958 Q59: previewing ${label}, Dialog options carry the derived line and hold Dialog title size's chips (${JSON.stringify(d.dialog)})`);
       ok(!d.frameLine && d.listN > 20 && d.listHeld === 0, `#2700: previewing ${label}, the list stays usable (selecting edits no brand setting), with no frame hold over it (${d.listHeld} of ${d.listN} held, frame line ${d.frameLine})`);
       ok(JSON.stringify(d.preview) === JSON.stringify(COMPONENTS_PREVIEW_SECTIONS) && d.buttons === 9, `Q59: previewing ${label}, the Components preview is still drawn (${d.preview.join(', ')}; ${d.buttons} buttons)`);
       // #2096: the write itself is refused, not only the DOM's disabled flag. A scripted `input` on the disabled
@@ -8524,8 +8536,8 @@ for (const host of ['web', 'figma']) {
         };
       });
       const r0 = await read();
-      ok(JSON.stringify(r0.toggles) === JSON.stringify(['Button options', 'Field options', 'Search options', 'Tag options']) && r0.section === 'Buttons' && r0.label === 'Button options' && r0.inPane && !r0.inPreview,
-        `#2844: ${host} ${w}: one "Button options" line in the Buttons section and one "Field options", one "Search options" (#2952) and one "Tag options" line, in the list, and not in the preview (${JSON.stringify(r0)})`);
+      ok(JSON.stringify(r0.toggles) === JSON.stringify(['Button options', 'Field options', 'Search options', 'Tag options', 'Dialog options']) && r0.section === 'Buttons' && r0.label === 'Button options' && r0.inPane && !r0.inPreview,
+        `#2844: ${host} ${w}: one "Button options" line in the Buttons section and one "Field options", one "Search options" (#2952), one "Tag options" and one "Dialog options" line (#2958), in the list, and not in the preview (${JSON.stringify(r0)})`);
       ok(r0.expanded === 'false' && !r0.shown,
         `#2844: ${host} ${w}: the settings are closed when the page opens (aria-expanded=${r0.expanded}, block shown=${r0.shown})`);
       ok(r0.rows === 4 && r0.lineBelowSets,
@@ -8555,7 +8567,7 @@ for (const host of ['web', 'figma']) {
       await hooks.click(page.locator('[data-p3="cp-name"]').filter({ hasText: /^Badge$/ }).first());
       await page.waitForFunction(() => document.querySelector('[data-p3="components-detail-title"]')?.textContent === 'Badge', null, { timeout: 5000 }).catch(() => {});
       const r3 = await read();
-      ok(r3.toggles.length === 4 && r3.expanded === 'true' && r3.title === 'Badge' && r3.shown,
+      ok(r3.toggles.length === 5 && r3.expanded === 'true' && r3.title === 'Badge' && r3.shown,
         `#2844: ${host} ${w}: focusing Badge leaves the Buttons settings line and its open state where they were (${JSON.stringify(r3)})`);
       // Opening the line focuses its section's first set (wireframe v2's rule, #2905): with Badge (Other components) in
       // the preview, close and reopen it, and the preview shows Buttons. (Buttons is the preview's default, so the check
@@ -8625,8 +8637,8 @@ for (const host of ['web', 'figma']) {
       await goPlace(page, 'components');
       await hooks.need(page, '[data-p3="components-levers"]');
       // Tag first (#2931 Q579 A): opening a block focuses its section's first set, and the Fields case reads Password field.
-      for (const k of ['tags', 'buttons', 'search', 'fields']) await hooks.click(page.locator(`[data-p3="cp-opts-toggle"][data-key="opts=${k}"]`));
-      await page.waitForFunction(() => ['button-options-section', 'field-options-section', 'search-options-section', 'tag-options-section'].every((x) => !!document.querySelector(`[data-p3="${x}"]`)?.getClientRects().length), null, { timeout: 5000 });
+      for (const k of ['tags', 'dialogs', 'buttons', 'search', 'fields']) await hooks.click(page.locator(`[data-p3="cp-opts-toggle"][data-key="opts=${k}"]`));
+      await page.waitForFunction(() => ['button-options-section', 'field-options-section', 'search-options-section', 'tag-options-section', 'dialog-options-section'].every((x) => !!document.querySelector(`[data-p3="${x}"]`)?.getClientRects().length), null, { timeout: 5000 });
       const r = await page.evaluate(() => {
         const secs = [...document.querySelectorAll('[data-p3="cp-section"]')];
         const by = (name) => secs.find((s) => s.querySelector('[data-p3="cp-section-title"]')?.dataset.name === name);
@@ -8646,12 +8658,14 @@ for (const host of ['web', 'figma']) {
         };
         const fo = document.querySelector('[data-p3="field-options-section"]');
         const to = document.querySelector('[data-p3="tag-options-section"]');
+        const dO = document.querySelector('[data-p3="dialog-options-section"]');
         const so = document.querySelector('[data-p3="search-options-section"]');
         const soLine = document.querySelector('[data-p3="cp-opts-toggle"][data-key="opts=search"]');
         const ro = so?.querySelector('[data-p3="lever-search-field-style"] .p3-readout');
         return {
           titles: secs.map((s) => s.querySelector('[data-p3="cp-section-title"]')?.dataset.name ?? null),
           buttons: edges('Buttons', 'button-options-section'), fields: edges('Fields', 'field-options-section'), tags: edges('Tag', 'tag-options-section'),
+          dialogs: edges('Dialog', 'dialog-options-section'),
           other: [...(by('Other components')?.querySelectorAll('[data-p3="cp-name"]') ?? [])].map((n) => n.textContent),
           fo: fo ? {
             title: fo.querySelector('[data-p3="field-options-title"]')?.textContent ?? null, desc: fo.querySelector('[data-p3="field-options-desc"]')?.textContent ?? null,
@@ -8663,6 +8677,10 @@ for (const host of ['web', 'figma']) {
           to: to ? {
             title: to.querySelector('[data-p3="tag-options-title"]')?.textContent ?? null, desc: to.querySelector('[data-p3="tag-options-desc"]')?.textContent ?? null,
             chips: [...to.querySelectorAll('[data-p3^="tag-style-choice-"]')].map((n) => n.textContent),
+          } : null,
+          dO: dO ? {
+            title: dO.querySelector('[data-p3="dialog-options-title"]')?.textContent ?? null, desc: dO.querySelector('[data-p3="dialog-options-desc"]')?.textContent ?? null,
+            chips: [...dO.querySelectorAll('[data-p3^="dialog-title-size-choice-"]')].map((n) => n.textContent),
           } : null,
           so: so ? {
             title: so.querySelector('[data-p3="search-options-title"]')?.textContent ?? null, desc: so.querySelector('[data-p3="search-options-desc"]')?.textContent ?? null,
@@ -8676,8 +8694,14 @@ for (const host of ['web', 'figma']) {
           title: document.querySelector('[data-p3="components-detail-title"]')?.textContent ?? null,
         };
       });
-      ok(JSON.stringify(r.titles) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Other components', 'Subcomponents']),
-        `#2905 Q548, #2931 Q579 A: ${host} ${w}: the sections are Buttons, Fields, Tag, Other components, Subcomponents (${JSON.stringify(r.titles)})`);
+      ok(JSON.stringify(r.titles) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Dialog', 'Other components', 'Subcomponents']),
+        `#2905 Q548, #2931 Q579 A, #2958: ${host} ${w}: the sections are Buttons, Fields, Tag, Dialog, Other components, Subcomponents (${JSON.stringify(r.titles)})`);
+      const D = r.dialogs;
+      ok(!!D && JSON.stringify(D.ids) === JSON.stringify(['dialog']) && D.folds + D.families === 0,
+        `#2958: ${host} ${w}: the Dialog section lists Dialog as a row, with no family row and no fold (${JSON.stringify({ ids: D?.ids, folds: D?.folds, families: D?.families })})`);
+      // The copy is the DRAFT posted on #2958 (Q1), held here as literals so a change to it is a decision, not drift.
+      ok(!!r.dO && r.dO.title === 'Dialog options' && r.dO.desc === 'How dialogs size their title.' && JSON.stringify(r.dO.chips) === JSON.stringify(['Large', 'Medium', 'Small']),
+        `#2958: ${host} ${w}: Dialog options: its drafted title and description, and Dialog title size's chips (${JSON.stringify(r.dO)})`);
       const T = r.tags;
       ok(!!T && JSON.stringify(T.ids) === JSON.stringify(['tag']) && T.folds + T.families === 0,
         `#2931 Q579 A: ${host} ${w}: the Tag section lists Tag as a row, with no family row and no fold (${JSON.stringify({ ids: T?.ids, folds: T?.folds, families: T?.families })})`);
@@ -8687,9 +8711,9 @@ for (const host of ['web', 'figma']) {
       ok(!!B && !!F && JSON.stringify(B.ids) === JSON.stringify(['button', 'button-destructive', 'button-group', 'button-neutral'])
         && JSON.stringify(F.ids) === JSON.stringify(['code-input', 'password-field', 'search-field', 'select', 'text-field', 'textarea']) && B.folds + B.families + F.folds + F.families === 0,
         `#2905 Q8 A: ${host} ${w}: Buttons lists its four sets and Fields its six fields (Code input since Q-2789.3 A), each a row, with no family row and no fold (${JSON.stringify({ b: B?.ids, f: F?.ids, folds: [B?.folds, F?.folds], families: [B?.families, F?.families] })})`);
-      ok(!r.other.some((t) => /^(Buttons|Button|Code input|Text field|Password field|Search field|Select|Textarea|Tag)$/.test(t)) && r.other.includes('Badge') && r.other.includes('Toast'),
+      ok(!r.other.some((t) => /^(Buttons|Button|Code input|Text field|Password field|Search field|Select|Textarea|Tag|Dialog)$/.test(t)) && r.other.includes('Badge') && r.other.includes('Toast'),
         `#2905 Q6 A: ${host} ${w}: every other component is in Other components, and none of the grouped ones (${r.other.join(', ')})`);
-      for (const [name, e] of [['Buttons', B], ['Fields', F], ['Tag', T]]) {
+      for (const [name, e] of [['Buttons', B], ['Fields', F], ['Tag', T], ['Dialog', D]]) {
         const xs = e ? [e.head, ...e.rows, e.line, e.block] : [];
         const one = xs.length > 2 && xs.every((v) => v !== null && Math.abs(v - xs[0]) <= 0.5);
         ok(one && e.inBlock && e.after, `#2905 Q1 A: ${host} ${w}: ${name}: rows, line and block start at one edge, the section head's, and the block follows the sets (${JSON.stringify(e)})`);
@@ -8750,6 +8774,15 @@ for (const host of ['web', 'figma']) {
         await hooks.click(page.locator('[data-p3="search-options"] [data-p3="search-field-style-choice-follow"]'));
         await page.waitForFunction(() => document.querySelector('[data-p3="search-options"] [data-p3="search-field-style-choice-follow"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
         ok((await persisted(page))?.searchFieldStyle === 'follow', `#2888: Search options' Follow field style writes searchFieldStyle: follow (${(await persisted(page))?.searchFieldStyle})`);
+        // #2958: Dialog title size is brand-wide too: Small from Dark writes the brand value, Large restores it.
+        await hooks.click(page.locator('[data-p3="dialog-options"] [data-p3="dialog-title-size-choice-small"]'));
+        await page.waitForFunction(() => document.querySelector('[data-p3="dialog-options"] [data-p3="dialog-title-size-choice-small"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
+        const dlgS = await persisted(page);
+        ok(dlgS?.dialogTitleSize === 'small' && JSON.stringify(dlgS?.modeLevers) === JSON.stringify(before?.modeLevers),
+          `#2958 Q54: previewing Dark, Dialog options' Small writes dialogTitleSize: small and no per-mode value (${dlgS?.dialogTitleSize}, ${JSON.stringify(dlgS?.modeLevers)})`);
+        await hooks.click(page.locator('[data-p3="dialog-options"] [data-p3="dialog-title-size-choice-large"]'));
+        await page.waitForFunction(() => document.querySelector('[data-p3="dialog-options"] [data-p3="dialog-title-size-choice-large"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
+        ok((await persisted(page))?.dialogTitleSize === 'large', `#2958: Dialog options' Large writes dialogTitleSize: large (${(await persisted(page))?.dialogTitleSize})`);
       }
       ok(errors.length === 0, `#2905 ${host} ${w}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
@@ -8788,8 +8821,8 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 760 }]) {
       ok(Math.abs(hd.off - m.rowOff) <= 1, `#2825: figma ${w}: the ${hd.name} head's box is centered on its title's first line, as a row's is on its name (${hd.off.toFixed(2)}px off the line, the row's ${m.rowOff.toFixed(2)}px; the title is ${hd.lines} line${hd.lines === 1 ? '' : 's'})`);
       if (hd.allOff !== null) ok(Math.abs(hd.allOff) <= 1, `#2825: figma ${w}: ${hd.name}' Build all is centered on the title's first line (${hd.allOff.toFixed(2)}px)`);
     }
-    // #2905: five sections now (Buttons, Fields, Tag, Other components, Subcomponents; #2931 Q579 A), each head measured.
-    ok(m.heads.length === 5 && m.heads.some((x) => x.allOff !== null), `#2825: figma ${w}: every section head measured, Build all among them (${m.heads.length})`);
+    // #2905: six sections now (Buttons, Fields, Tag, Dialog, Other components, Subcomponents; #2931 Q579 A, #2958), each head measured.
+    ok(m.heads.length === 6 && m.heads.some((x) => x.allOff !== null), `#2825: figma ${w}: every section head measured, Build all among them (${m.heads.length})`);
     if (w === 380) ok(m.heads.some((x) => x.lines >= 2), `#2825: figma 380: a head's title wraps, so the first-line rule is tested where it differs from centering on the head (${JSON.stringify(m.heads.map((x) => x.lines))})`);
     ok(errors.length === 0, `#2825 figma ${w}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
@@ -10835,10 +10868,11 @@ const EXPECT_HEADINGS = {
     // group (L2) after its sets; Field options' one lever, Field style, is L3 as the Button options are.
     // #2931 Q579 A: Tag, its Tag options (L2) and Tag style (L3), Field options' way.
     // #2945 Q591 A: Button label weight is now Control label weight (buttons and tags), still in the Button options.
-    L1: ['Buttons', 'Fields', 'Tag', 'Other components', 'Subcomponents'],
+    // #2958: Dialog, its Dialog options (L2) and Dialog title size (L3), Tag options' way.
+    L1: ['Buttons', 'Fields', 'Tag', 'Dialog', 'Other components', 'Subcomponents'],
     // #2952: Fields' second block, Search options (L2), below Field options, with Search field style (L3).
-    L2: ['Button options', 'Field options', 'Search options', 'Tag options'],
-    L3: ['Button icons', 'Medium button label & icon', 'Control label weight', 'Text button hover', 'Button minimum width', 'Field style', 'Search field style', 'Tag style'],
+    L2: ['Button options', 'Field options', 'Search options', 'Tag options', 'Dialog options'],
+    L3: ['Button icons', 'Medium button label & icon', 'Control label weight', 'Text button hover', 'Button minimum width', 'Field style', 'Search field style', 'Tag style', 'Dialog title size'],
   },
   // #2215: the plugin's Build style guides page, with SG_RING_CATALOG posted (every kind selected, so every option group
   // draws). Its page title is not a level (HEADING_EXEMPT).
@@ -10855,7 +10889,8 @@ const HEADING_ADVANCED = {
   'color-palettes': ['[data-p3="palettes-advanced"]'], type: ['[data-p3="scale-advanced"]', '[data-p3="type-sections-advanced"]'],
   shape: ['[data-p3="shape-advanced"]'], depth: ['[data-p3="depth-tint-advanced"]'],
   // #2844: a family's settings are closed behind their line; the audit reads them open.
-  components: ['[data-p3="cp-opts-toggle"][data-key="opts=buttons"]', '[data-p3="cp-opts-toggle"][data-key="opts=fields"]', '[data-p3="cp-opts-toggle"][data-key="opts=search"]', '[data-p3="cp-opts-toggle"][data-key="opts=tags"]'],
+  components: ['[data-p3="cp-opts-toggle"][data-key="opts=buttons"]', '[data-p3="cp-opts-toggle"][data-key="opts=fields"]', '[data-p3="cp-opts-toggle"][data-key="opts=search"]', '[data-p3="cp-opts-toggle"][data-key="opts=tags"]',
+    '[data-p3="cp-opts-toggle"][data-key="opts=dialogs"]'],
 };
 /** Literal floors, under the counts measured when this landed (per host and theme, all nine pages): headings found, the
  *  ⓘ buttons measured, the token labels (`.p3-fill-label`) typed, and the hint lines read in Light and High contrast light. */

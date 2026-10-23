@@ -37,7 +37,7 @@
 import { COMPONENT_CATALOG_DATA as catalog } from './src/state/component-catalog-data';
 import type { Catalog, CatalogEntry } from './src/state/component-catalog';
 import { alsoBuilds, boxOfSets, costOf, displayNameOf, familiesToOpen, groupsOf, inListOrder, rowMatches, rowOfFocus, sentenceCase, setFocusKey, toggleSets, GROUPS_COPY, SECTION_BLOCKS } from './src/state/component-groups';
-import { FIELD_FRAME_PARTS, TAG_STYLE_PARTS } from '@prism3/engine/anatomy-figma';
+import { FIELD_FRAME_PARTS, TAG_STYLE_PARTS, DIALOG_TITLE_TYPE_KEYS } from '@prism3/engine/anatomy-figma';
 import { currentOf, positionOf, record, runVerdict, startRun, stopRun, RUN_COPY } from './src/state/build-queue';
 
 let failed = 0;
@@ -57,9 +57,11 @@ const WIRE_BUTTONS: [string, string[]][] = [['Buttons', ['Button', 'Button.Destr
 const WIRE_FIELDS: [string, string[]][] = [['Code input', ['CodeInput']], ['Password field', ['PasswordField']], ['Search field', ['SearchField']], ['Select', ['Select']], ['Text field', ['TextField']], ['Textarea', ['Textarea']]];
 // Q578 part 2 (A on #2931's wireframe): Tag leaves Other components for its own Tag section.
 const WIRE_TAGS: [string, string[]][] = [['Tag', ['Tag']]];
+// #2958: Dialog leaves Other components for its own section, as Tag did (the wireframe on #2958).
+const WIRE_DIALOGS: [string, string[]][] = [['Dialog', ['Dialog']]];
 const WIRE_COMPONENTS: [string, string[]][] = [
   ['Accordion', ['Accordion', 'Accordion.Indicator']], ['Badge', ['Badge']], ['Banner', ['Banner']], ['Breadcrumbs', ['Breadcrumbs']],
-  ['Checkbox', ['Checkbox.Control', 'Checkbox.Group', 'Checkbox.Row']], ['Counter', ['Counter']], ['Dialog', ['Dialog']], ['Divider', ['Divider']],
+  ['Checkbox', ['Checkbox.Control', 'Checkbox.Group', 'Checkbox.Row']], ['Counter', ['Counter']], ['Divider', ['Divider']],
   ['Icon button', ['IconButton', 'IconButton.Destructive', 'IconButton.Neutral']], ['Link', ['Link']], ['List', ['List', 'List.Item']],
   // Pagination (#2665) joins after the wireframe: its own page, the row and its item, a family.
   ['Pagination', ['Pagination', 'Pagination.Item']],
@@ -73,9 +75,9 @@ const WIRE_SUBS: [string, string[]][] = [
 ];
 const groups = groupsOf(catalog);
 const drawn = (kind: string) => (groups.find((g) => g.kind === kind)?.rows ?? []).map((r) => [r.label, r.ids.map(name)] as [string, string[]]);
-ok(JSON.stringify(groups.map((g) => g.title)) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Other components', 'Subcomponents']),
-  `#2905 Q548, Q10 A, #2931 Q579 A: five sections, Buttons, Fields, Tag, Other components, Subcomponents (${groups.map((g) => g.title).join(', ')})`);
-ok(JSON.stringify(groups.map((g) => g.flat)) === JSON.stringify([true, true, true, false, false]),
+ok(JSON.stringify(groups.map((g) => g.title)) === JSON.stringify(['Buttons', 'Fields', 'Tag', 'Dialog', 'Other components', 'Subcomponents']),
+  `#2905 Q548, Q10 A, #2931 Q579 A, #2958: six sections, Buttons, Fields, Tag, Dialog, Other components, Subcomponents (${groups.map((g) => g.title).join(', ')})`);
+ok(JSON.stringify(groups.map((g) => g.flat)) === JSON.stringify([true, true, true, true, false, false]),
   `#2905 Q8 A: the sections with settings list their sets flat; Other components and Subcomponents keep their family rows (${JSON.stringify(groups.map((g) => g.flat))})`);
 ok(JSON.stringify(drawn('buttons')) === JSON.stringify(WIRE_BUTTONS), `#2905 Q548: Buttons holds the Buttons family's four sets (${JSON.stringify(drawn('buttons'))})`);
 const fieldIds = (groups.find((g) => g.kind === 'fields')?.rows ?? []).flatMap((r) => r.ids).sort();
@@ -90,9 +92,12 @@ ok(JSON.stringify(drawn('fields')) === JSON.stringify(WIRE_FIELDS) && JSON.strin
 const tagIds = (groups.find((g) => g.kind === 'tags')?.rows ?? []).flatMap((r) => r.ids).sort();
 ok(JSON.stringify(drawn('tags')) === JSON.stringify(WIRE_TAGS) && JSON.stringify(tagIds) === JSON.stringify(Object.keys(TAG_STYLE_PARTS).sort()),
   `#2931 Q579 A: Tag holds the sets Tag style draws, the engine's TAG_STYLE_PARTS (${Object.keys(TAG_STYLE_PARTS).sort().join(', ')}), as the wireframe lists them (${JSON.stringify(drawn('tags'))})`);
+const dialogIds = (groups.find((g) => g.kind === 'dialogs')?.rows ?? []).flatMap((r) => r.ids).sort();
+ok(JSON.stringify(drawn('dialogs')) === JSON.stringify(WIRE_DIALOGS) && JSON.stringify(dialogIds) === JSON.stringify(Object.keys(DIALOG_TITLE_TYPE_KEYS).sort()),
+  `#2958: Dialog holds the sets Dialog title size reaches, the engine's DIALOG_TITLE_TYPE_KEYS (${Object.keys(DIALOG_TITLE_TYPE_KEYS).sort().join(', ')}), as the wireframe lists them (${JSON.stringify(drawn('dialogs'))})`);
 // #2952 (#2905 Q5 A, Q7 A): a section holds an ordered LIST of settings blocks, not one. Typed from the decisions: Fields
-// draws Field options, then Search options below it; Buttons and Tag one each; Other components and Subcomponents none.
-const WIRE_BLOCKS: Record<string, string[]> = { buttons: ['buttons'], fields: ['fields', 'search'], tags: ['tags'], components: [], subcomponents: [] };
+// draws Field options, then Search options below it; Buttons, Tag and Dialog one each; Other components and Subcomponents none.
+const WIRE_BLOCKS: Record<string, string[]> = { buttons: ['buttons'], fields: ['fields', 'search'], tags: ['tags'], dialogs: ['dialogs'], components: [], subcomponents: [] };
 const blocksOf = Object.fromEntries(groups.map((g) => [g.kind, [...(SECTION_BLOCKS[g.kind] ?? [])]]));
 ok(JSON.stringify(blocksOf) === JSON.stringify(WIRE_BLOCKS),
   `#2952 Q5 A: each section's settings blocks, in order: Fields draws Field options then Search options below it (${JSON.stringify(blocksOf)})`);

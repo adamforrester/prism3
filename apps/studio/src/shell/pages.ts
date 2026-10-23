@@ -89,6 +89,8 @@ export const FIELD_DESC = 'How Text field, Password field, Select and Textarea d
 export const SEARCH_DESC = 'How Search field draws its edge, apart from the other fields.';
 // #2905 Q10 A: wireframe v2's words, as Field options' and Button options' are.
 export const TAG_DESC = 'How tags draw their shape.';
+// #2958: DRAFT for the owner (Q1 on #2958), in Tag's pattern.
+export const DIALOG_DESC = 'How dialogs size their title.';
 export const SETS_DESC = 'Every component set the engine defines, with what each contains and its spacing at your density.';
 
 /** Which host a legacy page list applies to. Components mapped to a different legacy page per host until S8.2 (§4). */
@@ -356,6 +358,8 @@ export const DOMAINS = [
       { title: 'Search', desc: SEARCH_DESC, rows: [{ ctl: 'chips', keys: ['searchFieldStyle'], drive: 'search' }] },
       // Q578 part 2 (A): Tag style's one home, drawn in the Tag section's Tag options block (`domains/tag-options.ts`).
       { title: 'Tag', desc: TAG_DESC, rows: [{ ctl: 'chips', keys: ['tagStyle'], drive: 'tag' }] },
+      // #2958: Dialog title size's one home, drawn in the Dialog section's Dialog options block (`domains/dialog-options.ts`).
+      { title: 'Dialog', desc: DIALOG_DESC, rows: [{ ctl: 'chips', keys: ['dialogTitleSize'], drive: 'dialog' }] },
       { title: 'Component sets', desc: SETS_DESC, rows: [{ ctl: 'sets' }] },
     ],
     status: 'new',
