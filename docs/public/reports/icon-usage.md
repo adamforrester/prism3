@@ -27,6 +27,10 @@ Generated from the component definitions and the emission by `packages/engine/em
 | icon | glyph | `{name}` | any (prop) | drawn | always |
 | image-placeholder | markerGlyph | `image` | icon set | drawn | always |
 | list-item | icon | `check` | icon set | swap default | type: icon |
+| progress | arcGlyph | `progress-arc-{type}-{size}` | component-owned | drawn | shape: circular; status: active, error |
+|  | dotGlyph | `progress-stop` | component-owned | drawn | shape: linear; type: determinate |
+|  | fullRingGlyph | `progress-ring-{size}` | component-owned | drawn | shape: circular; status: complete |
+|  | ringGlyph | `progress-ring-{size}` | component-owned | drawn | shape: circular |
 | search-field | leadingVisual | `search` | icon set | swap default | always |
 |  | trailingVisual | `close-filled` | icon set | swap default | always |
 | select | chevronGlyph | `chevron-down` | icon set | drawn | always |
@@ -80,6 +84,7 @@ Parts that take any icon from the set. The file nominates the default unless the
 | `info-circle` | banner |
 | `minus` | _accordion-indicator, checkbox-control |
 | `plus` | _accordion-indicator |
+| `progress-stop` | progress |
 | `resize-grip` | textarea |
 | `search` | search-field |
 | `slash` | _breadcrumb-separator |
