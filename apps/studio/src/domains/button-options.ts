@@ -1,6 +1,6 @@
 /**
  * Button options (UI redesign S8.2; moved by #2700). The way to Shape › Density, then Button icons, Button label & icon,
- * Button label weight and text-button hover as chips, and Button minimum width as a slider.
+ * Control label weight (the `buttonLabelWeight` key, #2945) and text-button hover as chips, and Button minimum width as a slider.
  *
  * WHERE THEY ARE DRAWN (#2700, call 9 A). They used to be the Components levers panel's Button section. With the list in
  * the levers pane, the options sit with the family they shape: the preview pane's Buttons block, and at the narrow tier
