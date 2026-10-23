@@ -35,7 +35,7 @@ Shown on the default member: type `select`, selection `unselected`, size `medium
 | --- | --- | --- | --- |
 | `type` | `select`, `dismissible` | once, when authored | Which interaction the tag carries. select = toggles on and off, and shows its selected state. dismissible = carries a remove control and has no selected state. This is the component's own prop, not the HTML type attribute, and it is never passed to the element. |
 | `selection` | `unselected`, `selected` | at runtime | — |
-| `size` | `medium`, `small`, `large` | once, when authored | Tag height, padding and label type. The height is Button's: medium clears 44px on comfortable and spacious density, and is 36px at compact. A tag is never narrower than 1.5 times its height, rounded to the nearest 8px (64px for a medium tag on comfortable density). |
+| `size` | `medium`, `small`, `large` | once, when authored | Tag height, padding and label type. Under Tag style Pill the height is Button's: medium clears 44px on comfortable and spacious density, and is 36px at compact. Under Underline the tag hugs its content: 20px, 26px and 32px tall. A tag is never narrower than 1.5 times its height, rounded to the nearest 8px (64px for a medium tag on comfortable density). |
 
 ### States
 
@@ -80,7 +80,7 @@ Use a tag for something a user acts on in place. Use a select tag for a lightwei
 - 2.4.3 Focus Order (after a removal, focus moves to the next tag, the previous one or the group, never to the top of the page)
 - 2.4.7 Focus Visible (a focus ring around the tag on keyboard focus)
 - 2.5.8 Target Size (Minimum) (24×24 — a small tag and its × slot are 36px on comfortable density and 28px at compact; under Tag style Underline a small tag is 20px tall and reaches 24px through a code-side hit area)
-- 2.5.5 Target Size (Enhanced) (44×44, as intent — a medium tag and its × slot clear 44px on comfortable and spacious density and miss it at compact (36px); a small tag reaches 44 only at spacious density, and elsewhere through a code-side hit area)
+- 2.5.5 Target Size (Enhanced) (44×44, as intent — under Tag style Pill a medium tag and its × slot clear 44px on comfortable and spacious density and miss it at compact (36px), and a small tag reaches 44 only at spacious density; elsewhere, and at every size under Underline, a code-side hit area reaches it)
 - 1.1.1 Non-text Content / 4.1.2 Name, Role, Value (the remove control is named "Remove" followed by the label, and a select tag exposes its state)
 
 ### Motion
@@ -118,7 +118,7 @@ Keep the label to one word where possible. Use the words the data or the user su
 | `onClick` | function | — | no | The toggle a select tag fires. Suppressed while disabled or read-only. |
 | `onRemove` | function | — | no | Called when a dismissible tag's remove control is pressed, or when Delete or Backspace is pressed on the focused tag. |
 | `leadingIcon` | slot | — | no | An icon or avatar before the label, for recognition at a glance. Decorative: the label carries the name. |
-| `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | Tag height, padding and label type. The height is Button's: medium clears 44px on comfortable and spacious density, and is 36px at compact. A tag is never narrower than 1.5 times its height, rounded to the nearest 8px (64px for a medium tag on comfortable density). |
+| `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | Tag height, padding and label type. Under Tag style Pill the height is Button's: medium clears 44px on comfortable and spacious density, and is 36px at compact. Under Underline the tag hugs its content: 20px, 26px and 32px tall. A tag is never narrower than 1.5 times its height, rounded to the nearest 8px (64px for a medium tag on comfortable density). |
 | `disabled` | boolean | `false` | no | Removes the tag from interaction and dims it. Don't disable every tag in a group; hide the group instead. |
 | `readOnly` | boolean | `false` | no | Keeps full visual weight but accepts no interaction, such as a filter the user cannot change. Distinct from disabled, which dims. |
 
