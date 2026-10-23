@@ -939,7 +939,7 @@ section('strip — minimizing resizes the window and never touches the link or i
   ok(JSON.stringify(sizes) === '[[900,700]]' && kept.length === 1 && kept[0][0] === 'prism3:ui-size', `strip/drag: a committed drag resizes to 900×700 and keeps it (${JSON.stringify({ sizes, kept })})`);
 
   await toUi({ type: 'minimize-ui', minimized: true });
-  ok(JSON.stringify(sizes.at(-1)) === '[440,40]', `strip/size: Minimize resizes to the strip, 440×40, under the 380×420 floor (${JSON.stringify(sizes.at(-1))})`);
+  ok(JSON.stringify(sizes.at(-1)) === '[480,40]', `strip/size: Minimize resizes to the strip, 480×40, under the 380×420 floor (${JSON.stringify(sizes.at(-1))})`);
   ok(JSON.stringify(minimizedPosts()) === '[true]', `strip/answer: the main thread answers ui-minimized true (${JSON.stringify(minimizedPosts())})`);
   ok(main.agentLink.state().on === true && isOn() === true, 'strip/link: minimizing leaves the link on, in the state and in the link record');
   ok(timers.size === 1, `strip/poll: the poll stays armed while minimized (${timers.size} timer)`);
@@ -950,8 +950,8 @@ section('strip — minimizing resizes the window and never touches the link or i
   ok(r.ok === true && calls.includes('seedFromFile') && timers.size === 1, `strip/claims: a command sent while minimized is claimed and run, and the poll re-arms (${r.ok}, ${timers.size} timer)`);
 
   await toUi({ type: 'resize-ui', width: 600, height: 500, commit: true });
-  ok(JSON.stringify(sizes.at(-1)) === '[440,40]' && kept.length === 1, `strip/late-drag: a drag message while minimized neither resizes nor keeps a size (${JSON.stringify({ last: sizes.at(-1), kept: kept.length })})`);
-  ok(!kept.some(([, v]) => JSON.stringify(v) === '{"width":440,"height":40}'), 'strip/never-kept: the strip size is never kept as the window size');
+  ok(JSON.stringify(sizes.at(-1)) === '[480,40]' && kept.length === 1, `strip/late-drag: a drag message while minimized neither resizes nor keeps a size (${JSON.stringify({ last: sizes.at(-1), kept: kept.length })})`);
+  ok(!kept.some(([, v]) => JSON.stringify(v) === '{"width":480,"height":40}'), 'strip/never-kept: the strip size is never kept as the window size');
 
   await toUi({ type: 'minimize-ui', minimized: true });
   ok(sizes.length === 2 && JSON.stringify(minimizedPosts()) === '[true]', `strip/repeat: a second Minimize does nothing (${sizes.length} resizes)`);

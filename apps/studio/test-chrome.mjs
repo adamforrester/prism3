@@ -2439,8 +2439,10 @@ for (const host of ['web', 'figma']) {
         });
         const chip = await page.evaluate(() => {
           const frame = document.querySelector('[data-p3="frame"]');
-          // Anything outside the frame that names an agent or holds a control: where the old chip was mounted.
-          const outside = [...document.body.querySelectorAll('*')].filter((e) => !frame.contains(e) && !e.contains(frame) && !['SCRIPT', 'STYLE'].includes(e.tagName));
+          // Anything outside the frame that names an agent or holds a control: where the old chip was mounted. The link
+          // strip (#2949) is the one exception, by its hook: it lives on <body> by design and is checked in its own block.
+          const strip = document.querySelector('[data-p3="agent-strip"]');
+          const outside = [...document.body.querySelectorAll('*')].filter((e) => !frame.contains(e) && !e.contains(frame) && !strip?.contains(e) && !['SCRIPT', 'STYLE'].includes(e.tagName));
           return {
             inBar: !!document.querySelector('[data-p3="top-bar"] [data-p3="bar-agent"] [data-p3="agent-toggle"]'),
             old: !!document.querySelector('#p3-agent-link'), popover: !!document.querySelector('.p3-agent-chip, .p3-agent-pop'),
@@ -2478,7 +2480,7 @@ for (const host of ['web', 'figma']) {
         // ── the link strip (#2949; the owner's Q1 A, Q2 A, Q3 A and Q600 A) ──────────────────────────
         // EXPECTED is written here: Minimize beside the Agent tile only while the link is on; minimized, the document
         // draws the strip alone, its line in the Activity drawer's words plus the command and its age, whole at the
-        // strip's size (440×40, the size `main.ts` resizes to), with Restore and Turn off; restored, the same frame node
+        // strip's size (480×40, the size `main.ts` resizes to), with Restore and Turn off; restored, the same frame node
         // is drawn again. The window's size is the main thread's (`test-agent-link.ts` strip/*); here the viewport stands in.
         const minTile = () => page.evaluate(() => {
           const slot = document.querySelector('[data-p3="top-bar"] [data-p3="bar-agent"]');
@@ -2499,7 +2501,7 @@ for (const host of ['web', 'figma']) {
         await postMsg(page, { type: 'agent-link-state', state: { ...AGENT_ON, lastCommand: { id: 'x', cmd: 'update-components', ok: true, headline: '✓ done',
           finishedAt: await page.evaluate(() => new Date(Date.now() - 59 * 60000 - 30000).toISOString()) } } });
         await postMsg(page, { type: 'ui-minimized', minimized: true });
-        await page.setViewportSize({ width: 440, height: 40 });
+        await page.setViewportSize({ width: 480, height: 40 });
         await page.waitForFunction(() => !document.querySelector('[data-p3="agent-strip"]')?.hidden, null, { timeout: 5000 }).catch(() => {});
         const stripState = () => page.evaluate(() => {
           const st = document.querySelector('[data-p3="agent-strip"]');
@@ -2512,11 +2514,11 @@ for (const host of ['web', 'figma']) {
           return { drawn: !!st && !st.hidden && getComputedStyle(st).display !== 'none', rect: r ? [Math.round(r.width), Math.round(r.height)] : null,
             appDrawn: !!app && getComputedStyle(app).display !== 'none', text: t?.textContent ?? null, whole: !!t && t.scrollWidth <= t.clientWidth,
             restore: rs?.getAttribute('aria-label') ?? null, off: off?.textContent ?? null, focus: document.activeElement?.getAttribute('data-p3') ?? null,
-            inside: [box(t), box(rs), box(off)].every((b) => b && b[0] >= 0 && b[1] >= 0 && b[2] <= 440 && b[3] <= 40) };
+            inside: [box(t), box(rs), box(off)].every((b) => b && b[0] >= 0 && b[1] >= 0 && b[2] <= 480 && b[3] <= 40) };
         });
         const s1 = await stripState();
-        ok(s1.drawn && !s1.appDrawn && JSON.stringify(s1.rect) === '[440,40]',
-          `#2949 ${where}: minimized, the strip fills the 440×40 window and the panel is not drawn (${JSON.stringify({ drawn: s1.drawn, app: s1.appDrawn, rect: s1.rect })})`);
+        ok(s1.drawn && !s1.appDrawn && JSON.stringify(s1.rect) === '[480,40]',
+          `#2949 ${where}: minimized, the strip fills the 480×40 window and the panel is not drawn (${JSON.stringify({ drawn: s1.drawn, app: s1.appDrawn, rect: s1.rect })})`);
         ok(s1.text === LONGEST && s1.whole && s1.inside,
           `#2949 ${where}: the strip reads "${LONGEST}", whole, every part inside the strip (${JSON.stringify({ text: s1.text, whole: s1.whole, inside: s1.inside })})`);
         ok(s1.restore === 'Restore' && s1.off === 'Turn off' && s1.focus === 'agent-strip-restore',

@@ -142,7 +142,7 @@ let uiSize: { width: number; height: number } = { ...DEFAULT_SIZE };
  *   · it minimizes only while the link is on, and turning the link off restores the full window.
  * The strip's width fits the longest listening line the strip can show (`agentStripText`), measured by `test:chrome`.
  */
-const STRIP_SIZE = { width: 440, height: 40 };
+const STRIP_SIZE = { width: 480, height: 40 };
 let beforeStrip: { width: number; height: number } | null = null;
 const setMinimized = (minimized: boolean): void => {
   if (minimized === (beforeStrip !== null)) return;
