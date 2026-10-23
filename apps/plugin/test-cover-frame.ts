@@ -414,7 +414,7 @@ section('update — through a real Update in the component shim');
   const pageOf = (name: string): Pg => { const p: Pg = { name, children: [], appendChild(c: Node) { const was = c.parent as { children?: Node[] } | undefined; if (was?.children) was.children.splice(was.children.indexOf(c), 1); c.parent = p; p.children.push(c); } }; return p; };
   const page = pageOf('↳ Tag');
   const api = makeShim({
-    vars: [...new Set([...plans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), 'space/0'])],
+    vars: [...new Set([...plans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), 'space/0', 'space/999'])],
     styles: [...new Set(plans.flatMap((p) => planTextStyles(p.root)))],
     effects: [...new Set(plans.flatMap((p) => planEffectStyles(p.root)))],
     comps: [...new Set([SWAP_TARGET, 'focus-ring', ...plans.flatMap((p) => planComps(p.root))])],
@@ -462,6 +462,19 @@ section('update — through a real Update in the component shim');
     `update/cover only: renamed, no version (${v3.headline} | ${v3.lines.join(' | ')})`);
   const again = await previewUpdate(host, targets);
   ok(again.cover?.state === 'current' && previewVerdict(again).headline === '✓ All sets up to date', `update/converges (${previewVerdict(again).headline})`);
+  // A SET CHANGE WHILE THE COVER IS DUE saves the one version (#2828): the set's display name in the title, the cover
+  // in the description, never the title. Mutations: the Update save drops `cover` → no " Cover."; drops `nameOf` →
+  // "updated tag".
+  blob.set('prism3/brandInput', serializeBrandInput({ ...(exampleBrands as Record<string, BrandInput>).harbor, name: 'Harbor Line' }));
+  const moved = plans.map((p) => { const q = JSON.parse(JSON.stringify(p)); (q.root.children.find((c: { name: string }) => c.name === 'content').bound as Record<string, string>).itemSpacing = 'space/999'; return q; });
+  const t4 = [{ def: id, plans: moved }];
+  const pre4 = await previewUpdate(host, t4);
+  ok(pre4.cover?.state === 'stale' && pre4.sets.some((s) => s.counts.update > 0), `update/premise: a set change and the cover due (${pre4.cover?.state})`);
+  const res4 = await applyUpdate(host, api as never, t4, previewHashOf(pre4), { today: '2026-10-23', nameOf: () => 'Tag' });
+  ok(eq(api._versions, ['Saved before Prism3 updated Tag']) && res4.version === 'Saved before Prism3 updated Tag',
+    `update/set change and cover due: the title names the set by its display name (${JSON.stringify(api._versions)}; ${res4.version})`);
+  ok(/ Cover\.$/.test(String(api._versionNotes[0])) && part(fr, 'brand')?.characters === 'Harbor Line',
+    `update/set change and cover due: the description names the cover (${JSON.stringify(api._versionNotes)}; ${part(fr, 'brand')?.characters})`);
 }
 
 console.log(failed ? `\n✗ ${failed} of ${executed} failed` : `\n✓ all passed — ${executed} assertions executed`);

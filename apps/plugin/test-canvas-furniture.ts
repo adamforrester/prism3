@@ -861,6 +861,21 @@ section('columns — the Radio page with a stale member: the update writes it, t
     `columns/stale settle version: ONE named version, saved before the member's rewrite and before any move, the one the result names (${JSON.stringify(versions)}; at each save ${JSON.stringify(atSave)}; ${res.version})`);
 }
 
+section('columns — the Radio page, one set settles: the version names it by its display name (#2828, Q442 A)');
+{
+  // A ONE-SET RE-SPACE reads the set's display name, as the main Update's one-set title does, never its id: `settle`
+  // passes `nameOf` to the builder. radio-group starts far clear of radio-row, so only radio-row moves.
+  // Mutation: `settle` drops `nameOf` → "updated radio-row" here.
+  const { page, api, sets, host, targets, furnish } = await radioPage();
+  sets[2].x = Number(sets[2].x) + 4000;
+  for (const f of furnitureOn(page).filter((g) => tagOf(g).def === 'radio-group')) f.x = Number(f.x) + 4000;
+  const nameOf = (def: string) => ({ 'radio-control': 'Radio', 'radio-row': 'Radio row', 'radio-group': 'Radio group' } as Record<string, string>)[def];
+  const res = await applyUpdate(host as never, api as never, targets, previewHashOf(await previewUpdate(host, targets)), { furnish, nameOf });
+  const settled = res.outcomes.filter((o) => o.setMoved).map((o) => o.set);
+  ok(JSON.stringify(settled) === JSON.stringify(['radio-row']) && res.version === 'Saved before Prism3 updated Radio row' && JSON.stringify(api._versions) === JSON.stringify([res.version]),
+    `columns/one-set settle name: the re-space saves ONE version titled with the moved set's display name (${JSON.stringify(settled)}; ${JSON.stringify(api._versions)}; ${res.version})`);
+}
+
 section('columns — the Radio page, an update that stops: no set settles after the stop');
 {
   // A STOP HOLDS THE PAGE STILL (as `respaceLive` does): the stale member's stamp write is refused once, so the run
