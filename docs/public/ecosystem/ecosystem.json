@@ -322,7 +322,9 @@
           "toast",
           "_breadcrumb-separator",
           "breadcrumb-item",
-          "breadcrumbs"
+          "breadcrumbs",
+          "code-input-cell",
+          "code-input"
         ]
       }
     },

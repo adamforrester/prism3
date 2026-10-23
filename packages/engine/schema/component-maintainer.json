@@ -2333,7 +2333,7 @@
         "read-only — not projected: a read-only tag keeps the rest paint at full weight and only refuses interaction, so a member would be byte-identical to rest. In code (readOnly) it is not dimmed and is not disabled; it keeps its place in the tab order so its label stays reachable.",
         "The Tag prop named type — the component's own prop (select | dismissible), the same values as the Figma type axis. It is NOT the HTML type attribute and is never forwarded to the element: a select tag rendered as a <button> sets type=\"button\" itself, so a tag inside a form never submits it. In React, destructure type out of the props before spreading the rest onto the element.",
         "The select tag in code — a <button> with aria-pressed, or a role=\"checkbox\" or listbox option when a group owns the selection (a radiogroup for single choice). The label weight is the same selected and unselected. The check mark follows showCheck; with it off, the tint and the 2px outline carry the state.",
-        "The dismissible tag's hit target is not decided yet, and both options build from the same Figma structure. (1) The whole tag is one <button> named \"Remove\" followed by the label, and pressing anywhere on it removes the tag. (2) Only the × slot is the button, named the same, and the body is not interactive; the tag is then a row in a role=\"grid\" group, the label one gridcell and the × slot a second. Either way the × slot is a square as tall as the tag under Pill, 44px at medium on comfortable density (under Underline it is as wide and hugs its height), and its click does not reach any handler on the tag body.",
+        "The dismissible tag's hit target is not decided yet, and both options build from the same Figma structure. (1) The whole tag is one <button> named \"Remove\" followed by the label, and pressing anywhere on it removes the tag. (2) Only the × slot is the button, named the same, and the body is not interactive; the tag is then a row in a role=\"grid\" group, the label one gridcell and the × slot a second. Either way the × slot is a square as tall as the tag under Pill, 44px at medium on comfortable density (under Underline it is as wide as its glyph and hugs its height), and its click does not reach any handler on the tag body.",
         "The selected tint — `interactive.primary.subtle-fill.selected`, the primary fill at an opacity step, over the page ground. A brand whose outline interaction is none has no tint, and a selected tag there shows the 2px outline and the check mark only. The outline is `interactive.primary.border` at 2px, drawn inside the box (an inset outline, outline-offset: -2px, or an inset box-shadow), never a border that would grow the tag. In forced-colors mode the tint drops out and the 2px outline and the check mark carry the state.",
         "The group contract (the tag group is not built yet) — the group owns the selection model (multiple: a listbox with aria-multiselectable, or pressed buttons; single: a radiogroup), and it lays tags out as a wrapping flex row with the `group-gap` binding (space.100, 8px) between tags on both axes. A dismissible group is role=\"grid\" when the × slot alone is the target: each tag is a row, its label a gridcell and its remove control a second gridcell; the row and gridcell wrappers take display: contents so the tags wrap in the flex layout. One tab stop enters the group, Left and Right arrows move between tags (Up and Down across wrapped lines), and Delete or Backspace removes the focused tag. Never a listbox for dismissible tags: ARIA does not allow an interactive child inside role=\"option\".",
         "Focus after removal — capture the removed tag's index before it goes; after the list updates, focus the next tag, else the previous one, else the group or the input that owns it. Never let focus fall to <body>.",
@@ -2341,10 +2341,11 @@
         "Combobox composition — a multi-select combobox renders its values as a group of dismissible tags inside the field. At an empty caret, Backspace focuses the last tag and a second Backspace removes it.",
         "RTL — logical properties (padding-inline, gap) mirror the row, so the leading icon moves to the right edge and the check mark and the × slot to the left. No physical directions, and no script.",
         "text expansion — the tag has no fixed width and never truncates: a long label WRAPS onto more lines and the tag grows taller, and the full text stays visible at 200% zoom. Truncation would need the full text reachable by keyboard, touch and screen reader, and a title attribute is none of those. Translations run 30–50% longer. Figma holds one line of placeholder text.",
-        "Minimum width — min-inline-size is 1.5 times the Pill tag's height (under Underline too, where the tag itself is shorter), rounded to the nearest 8px: 56px small, 64px medium and 88px large on comfortable density, following the height at compact and spacious. A short label centers inside it (justify-content: center). Figma holds the same floor as a number per size, written when the component is built, so a brand change reaches it on a rebuild.",
-        "Spacing — the row is padding-inline, then the leading icon, a gap, and the label and check mark in their own inline group with a smaller gap: at medium on comfortable density, 12px padding, 8px from icon to label and 6px from label to check mark. A dismissible tag has no inline-end padding on that row, so the label runs straight to the × slot. Its label group takes padding-inline-start: 4px at every density, and the gap before it is 4px less than the icon-to-label distance (6px small, 8px medium, 8px large on comfortable density), never below 0; with no leading icon the label sits the padding plus 4px from the edge. Every value is a space token. A compact or spacious brand moves the padding, the label-to-check gap, a select tag's icon-to-label gap and a dismissible tag's icon-to-label distance one step along the space scale, and never takes a gap or that distance under 4px. The dismissible gap is not stepped: it is recomputed as that distance less 4px, so at spacious density it goes from 4px to 8px on a medium or large tag.",
-        "Tag style (the brand's tagStyle setting) — Pill, the default, is everything above: a rounded outline, 1px unselected and 2px selected, with the selected tint. Underline draws one line under the tag and no other edge: square corners, no fill in any state, the line 1px at rest and 2px when selected or on hover and pressed, in interactive.neutral.border unselected and interactive.primary.border selected; focus adds the ring and keeps the line weight. In CSS draw the line as an inset bottom box-shadow (box-shadow: inset 0 -1px 0, or -2px), so the box does not grow; set no block size at all, so the tag hugs its content: align-items: end, padding-block-end to the underline inset (4px small, 6px medium, 8px large, at every density), and the label row a min-block-size of the icon size (16px, 20px, 24px), so the label does not move when the check mark appears. The tag is then 20px tall at small, 26px at medium and 32px at large, and keeps the side padding and the minimum width. The × slot is as wide as the pill tag is tall (36px, 44px, 56px on comfortable density) and hugs its glyph and the inset, and the line runs under it. The setting is brand-wide, never a prop.",
-        "The hit-target expansion, Underline — the tag is one label row tall, so where it is under 24px (a small tag, 20px), a code-side hit area (padding with a matching negative margin, or a pseudo-element) reaches 24px without moving the line or the tags around it. Medium (26px) and large (32px) clear 24px as drawn. The × slot takes the same expansion when only the slot is the button.",
+        "Minimum width — under Tag style Pill, min-inline-size is 1.5 times the tag's height, rounded to the nearest 8px: 56px small, 64px medium and 88px large on comfortable density, following the height at compact and spacious. A short label centers inside it (justify-content: center). Figma holds the same floor as a number per size, written when the component is built, so a brand change reaches it on a rebuild. Under Underline there is no minimum width, so the line spans exactly the content.",
+        "Spacing, under Tag style Pill (Underline differs, below) — the row is padding-inline, then the leading icon, a gap, and the label and check mark in their own inline group with a smaller gap: at medium on comfortable density, 12px padding, 8px from icon to label and 6px from label to check mark. A dismissible tag has no inline-end padding on that row, so the label runs straight to the × slot. Its label group takes padding-inline-start: 4px at every density, and the gap before it is 4px less than the icon-to-label distance (6px small, 8px medium, 8px large on comfortable density), never below 0; with no leading icon the label sits the padding plus 4px from the edge. Every value is a space token. A compact or spacious brand moves the padding, the label-to-check gap, a select tag's icon-to-label gap and a dismissible tag's icon-to-label distance one step along the space scale, and never takes a gap or that distance under 4px. The dismissible gap is not stepped: it is recomputed as that distance less 4px, so at spacious density it goes from 4px to 8px on a medium or large tag.",
+        "Tag style (the brand's tagStyle setting) — Pill, the default, is everything above: a rounded outline, 1px unselected and 2px selected, with the selected tint. Underline draws one line under the tag and no other edge: square corners, no fill in any state, and the line in interactive.primary.border whether or not the tag is selected, 1px at rest and 2px when selected or on hover and pressed, taking the hover and pressed colors there; focus adds the ring and keeps the line weight. In CSS draw the line as an inset bottom box-shadow (box-shadow: inset 0 -1px 0, or -2px), so the box does not grow; set no block size at all, so the tag hugs its content: align-items: end, padding-block-end to the underline inset (4px small, 6px medium, 8px large, at every density), and the label row a min-block-size of the icon size (16px, 20px, 24px), so the label does not move when the check mark appears. The tag is then 20px tall at small, 26px at medium and 32px at large. It has no padding-inline and no minimum width, so the line runs exactly from the first glyph to the last, the leading icon, the label and the ×, and the group gap separates the tags. On a dismissible tag the label group has no padding-inline-start, the × slot is as wide as its glyph and hugs its height on the same inset, and the label sits the icon-to-label distance from both the icon and the × (6px small, 8px medium, 8px large on comfortable density, following density as the pill's distance does). The setting is brand-wide, never a prop.",
+        "The check mark under Tag style Underline — keep showCheck on. The rest line and the selected line share one color, so with the check off the only cue for selection is the line going from 1px to 2px.",
+        "The hit-target expansion, Underline — the tag is one label row tall, so where it is under 24px (a small tag, 20px), a code-side hit area (padding with a matching negative margin, or a pseudo-element) reaches 24px without moving the line or the tags around it. Medium (26px) and large (32px) clear 24px as drawn. The × slot is only as wide as its glyph (16px, 20px, 24px), so when only the slot is the button its hit area reaches 24px on both axes: 4px past the glyph at small and 2px at medium on each side, inside the gap to the label.",
         "The hit-target expansion, Pill — a small tag is 36px tall on comfortable density and 28px at compact, and a medium tag is 36px at compact. Reaching 44px there is a code-side hit area larger than the visible box, which Figma cannot hold."
       ],
       "notes": {
@@ -2381,7 +2382,8 @@
           "The label wraps rather than truncating (#1758): the earlier guidance, an ellipsis paired with a title or tooltip, left the full text unreachable by keyboard, touch and screen reader.",
           "The brief's `Token` alias is not carried as a bare alias: in this repo \"token\" means a design token, and an agent asked for one would land here. \"recipient token\" is kept as a trigger phrase.",
           "The glyph rung moved one below the control rung, as Button's did (#1350): 16 / 20 / 24px, where the 1:1 rung was 20 / 24 / 32px (owner Q337 A, #2725). The one rung sizes the leading icon, the check and the ×, so all three step down together; the × keeps its 44px slot at medium (owner Q356 A).",
-          "Owner, 2026-10-22 (#2945, Q585 A, from QA on a real library file): under Tag style Underline the tag hugs its content. It was held at the rung height (44px at medium), which left 18px of empty frame above a 26px tag. It is now the label row plus the inset, 20 / 26 / 32px at small / medium / large, and the 24px target moves to code, as Link's does. The × slot keeps the rung height as its width and hugs its height, and the minimum width stays 1.5 times the rung height. The pill is unchanged."
+          "Owner, 2026-10-22 (#2945, Q585 A, from QA on a real library file): under Tag style Underline the tag hugs its content. It was held at the rung height (44px at medium), which left 18px of empty frame above a 26px tag. It is now the label row plus the inset, 20 / 26 / 32px at small / medium / large, and the 24px target moves to code, as Link's does. The × slot keeps the rung height as its width and hugs its height, and the minimum width stays 1.5 times the rung height. The pill is unchanged.",
+          "Owner, 2026-10-22/23 (#2945, Q589, Q590 A, Q591 A, Q592 A, from the reference brand's master library): under Tag style Underline the unselected line takes interactive.primary.border, the selected line's color, stepping on hover and pressed, where it took interactive.neutral.border. The tag lost its side padding and its minimum width, and the × slot shrank from the rung height to its glyph, so the line spans exactly icon + label + ×. The dismissible label row lost its 4px leading inset, and the label sits 6 / 8 / 8px from both the icon and the ×. \"Button label weight\" became \"Control label weight\" and reaches tag labels in both styles. The pill is unchanged."
         ],
         "projection": []
       },
@@ -3960,6 +3962,143 @@
           "section": "content",
           "field": "content.emptyPattern",
           "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
+    },
+    "code-input-cell": {
+      "codeOnly": [
+        "the cell in code — an aria-hidden element the code input draws; it is never focusable and has no role. The one input under the cells takes focus, the name and the value.",
+        "the active cell — the cell at the input's caret, or the last cell once the code is complete, carries the ring while the input has focus from any pointer or the keyboard (an input matches :focus-visible on a mouse focus too). It is the code input's caret position, never a DOM focus move.",
+        "the caret — Figma draws a static bar; code draws a blinking bar on the active empty cell, or hides the native caret and draws none, and stops blinking under prefers-reduced-motion.",
+        "tabular figures — the character sets `font-variant-numeric: tabular-nums`, so every digit is one width and the code does not shimmer as it fills.",
+        "the character's optical centering — in code its box is trimmed to the cap height and the baseline (`text-box: trim-both cap alphabetic`), so the cell centers the figure itself, whatever the brand font's ascender and descender. Where `text-box` is unsupported, the box falls back to the line box, centered. Figma keeps vertical trim inside a text style, so the Figma character carries its size's text style untrimmed and centers its line box.",
+        "fill width — Figma keeps each cell at its size until a designer sets it to fill; code's `width=\"full\"` makes every cell `flex: 1 1 0` with `min-inline-size: 32px`, and the height stays the size's.",
+        "style — the cell's edge is the brand's Field style setting, not a prop or a Figma variant: `outline` draws a box around each cell, `underline` one line under each cell. The brand sets it once, every field takes it, and the cell set is built in that style (#2695, #2719).",
+        "forced-colors — the borders become system-color borders and the active cell's ring a system-color outline, so the active cell still shows."
+      ],
+      "notes": {
+        "contested": [
+          "The state names: the approved cell states say active and active filled; the closed state vocabulary has no `active`, so the cell spells them focus-visible and focus-visible-filled, Text field's names for the same ring and caret. Renaming them is a schema change held for the owner.",
+          "The character weight: no guaranteed type role is above 18px, so the medium, large and xlarge characters take the title steps in the brand's bold title weight (strong on most brands), and the small one Text field's body step in the default weight. A brand's own title ladder sets the exact size."
+        ],
+        "unverified": [
+          "An empty cell in error: the approved states draw error with a character only. A field in error with a short code shows its empty cells at rest in Figma; code draws the danger border on every cell.",
+          "The character's centering in Figma: the styled character centers its line box, so a brand font whose descender is deeper than the room above its figures sets the figure slightly high. Code trims to the cap height and centers the figure itself."
+        ],
+        "evolution": [
+          "2026-10-15 (#2428): owner decision Q329 A, the cell as a part in the code input's native items slot, its character edited on the cell; Q330 A, the four sizes.",
+          "2026-10-17 (#2789): the character is trimmed to its cap height and baseline, so the cell centers the figure (owner QA 2026-10-16: the digit sat too high at medium and large; option A of the owner question on #2789).",
+          "2026-10-22 (#2789): owner QA Q534, the character carries its size's text style in Figma, so it follows the brand's type. Figma keeps vertical trim inside the style, so the Figma character is no longer trimmed; code still trims."
+        ],
+        "projection": []
+      },
+      "docGaps": [
+        {
+          "section": "content",
+          "field": "content.labelPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.errorPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.emptyPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.dialogPattern",
+          "reason": "empty"
+        },
+        {
+          "section": "content",
+          "field": "content.metaphorRules",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.alternativeTo",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersedes",
+          "reason": "empty"
+        },
+        {
+          "section": "related",
+          "field": "composition.supersededBy",
+          "reason": "empty"
+        },
+        {
+          "section": "code",
+          "field": "docs.implementation",
+          "reason": "not in the schema yet"
+        }
+      ]
+    },
+    "code-input": {
+      "codeOnly": [
+        "code delivery pending: behavior layer (#2454). The entries below are a framework-neutral behavior contract.",
+        "ONE INPUT — `<input type=\"text\" inputmode=\"numeric\" autocomplete=\"one-time-code\" pattern=\"[0-9]*\" spellcheck=\"false\">` lies over the cells, which are aria-hidden. Assistive technology meets one textbox with one name and one value. A code with letters sets inputMode text, autocapitalize characters, and drops the pattern. Never one input per cell: paste and the phone's code suggestion then fill one cell (W3C Understanding SC 3.3.8).",
+        "NORMALIZE, THEN FILL — spaces, hyphens and dashes are removed before counting, and characters past `length` are dropped without an error. The input carries no native `maxlength`: a browser cuts pasted text to it before any handler runs, so `123-456` would arrive as `123-45` and a valid code would read as incomplete. The handler strips first, then caps at `length`. A pasted or suggested code fills every cell. Paste is never blocked.",
+        "onComplete — fires once when the value reaches `length`, again only after the value changes and reaches it again. No auto-submit: the page decides, so a typo never locks a user out (SC 3.2.2).",
+        "the drawn caret and the active cell — DOM focus never moves. Typing advances the active cell; Backspace removes the last character and moves the ring back; arrow keys, Home and End move the native caret and the ring follows. A click on any cell focuses the input with the caret at the end.",
+        "AFTER AN ERROR — the value stays, with the caret at the end and the text selected: the next keystroke replaces the code and Backspace edits it. The field never clears itself.",
+        "pending — not projected: a real state in code (the code is being checked: aria-busy and a polite \"Checking code\" status, the input still editable) whose look is the rest look, so it has no Figma variant.",
+        "the field's status and state in Figma — a placed field's cells are the designer's (owner decision Q329 A): switching the field to error or disabled changes its label and message, not its cells, and the designer sets each cell. Each member's default cells show that member's state, as a fresh insert's starting point. In code the input drives every cell.",
+        "fill width — `width=\"full\"` makes the row `inline-size: 100%` and every cell `flex: 1 1 0` with `min-inline-size: 32px`, the gap held. In Figma a designer sets the field and each cell to fill.",
+        "RTL — the cell row is `dir=\"ltr\"` in every locale, because a code reads left to right; the label and the message follow the text direction.",
+        "the SMALL size on a COARSE POINTER — the small cell's character is 16px, so iOS does not zoom on focus; the input under the cells is set to 16px at every size.",
+        "the password-manager badge — the row keeps clear space after the last cell, so a manager's icon does not cover it.",
+        "the label / describedby WIRING — the host ties the FieldLabel to the input, stitches the helper and the error into aria-describedby and sets aria-invalid on error. The error is not a live region while the field has focus; a result from the server goes to a polite role=\"status\"."
+      ],
+      "notes": {
+        "contested": [
+          "The label size: one FieldLabel size at every cell size, because FieldLabel has no xlarge. Text field's label follows its size one step down.",
+          "The default cells per member: each member's six cells show its state (filled, active, disabled). Status has no mechanism to reach a nested coordinate, so an error member's default cells are not in error."
+        ],
+        "unverified": [
+          "The nested cells' characters are set by an override inside a native slot, as List's item numbers are. Writing them through the plugin is unmeasured on a real host until the first Build."
+        ],
+        "evolution": [
+          "2026-10-15 (#2428): owner decisions Q321 A (all but cell count), Q329 A (a native items slot of cells, 6 by default, 4 to 8; the cells do not follow the field's status or state in Figma), Q330 A (four sizes and fill width). As-built wireframe approved 2026-10-16."
+        ],
+        "projection": []
+      },
+      "docGaps": [
+        {
+          "section": "anatomy",
+          "field": "anatomy.parts.message.note",
+          "reason": "maintainer register"
         },
         {
           "section": "content",

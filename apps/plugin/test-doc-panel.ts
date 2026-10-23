@@ -438,14 +438,21 @@ section('markers/… — every listed number on a specimen, on its part, by a le
     const wrong: string[] = [];
     const nums = listedNumbers(panel);
     const taken = new Set<string>();
+    const labelOf = (num: string): string => String(walk(sec).find((c) => c.name === 'label' && String(c.characters).startsWith(`${num}  `))!.characters).slice(`${num}  `.length).replace(/ \(optional\)$/, '');
+    // The names listed as themselves: a merged repeat never stands for one of them.
+    const ownNamed = new Set(nums.map(labelOf).filter((l) => !/ ×\d+$/.test(l)));
     for (const num of nums) {
-      const text = walk(sec).find((c) => c.name === 'label' && String(c.characters).startsWith(`${num}  `))!;
-      const nm = String(text.characters).slice(`${num}  `.length).replace(/ \(optional\)$/, '').replace(/ ×\d+$/, '');
-      // By its name, else (a merged repeat) the first part of that name and a number not listed by its own name.
-      const part = parts.find((pt) => pt.name === nm) ?? parts.find((pt) => !taken.has(pt.id) && pt.name.replace(/\s*\d+$/, '') === nm)!;
-      taken.add(part.id);
+      const label = labelOf(num);
+      const runOf = Number(/ ×(\d+)$/.exec(label)?.[1] ?? 1);
+      const nm = label.replace(/ ×\d+$/, '');
+      // By its name, else (a merged repeat, ×N) the next N parts of that name not listed by their own name: a ×N entry
+      // stands for every part in its run, so a later run is not read as an earlier run's second part (#2428).
+      const run = parts.find((pt) => pt.name === nm && runOf === 1) ? [parts.find((pt) => pt.name === nm)!]
+        : parts.filter((pt) => !taken.has(pt.id) && !ownNamed.has(pt.name) && pt.name.replace(/\s*\d+$/, '') === nm).slice(0, runOf);
+      const part = run[0]!;
+      for (const pt of run) taken.add(pt.id);
       const isRoot = part.id === def.anatomy?.root;
-      const targets = specs.flatMap((sp) => (isRoot ? [sp] : walk(sp).filter((c) => c.name === part.id && shown(c, sp))));
+      const targets = specs.flatMap((sp) => (isRoot ? [sp] : walk(sp).filter((c) => run.some((pt) => c.name === pt.id) && shown(c, sp))));
       const group = panel.children.find((c) => c.name === `part ${num}`);
       if (!group) { wrong.push(`${num} ${part.id}: no marker`); continue; }
       const box = group.absoluteBoundingBox!;

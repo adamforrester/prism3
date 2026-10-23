@@ -18,11 +18,12 @@ Generated from the component definitions and the emission by `packages/engine/em
 | button-group | dialog | dialog |
 | checkbox-control | checkbox-row | checkbox-group, checkbox-row |
 | checkbox-row | checkbox-group | checkbox-group |
+| code-input-cell | code-input | code-input |
 | divider | accordion, dialog | accordion, dialog |
-| field-label | checkbox-group, counter, password-field, radio-group, search-field, segmented-control, select, text-field, textarea | checkbox-group, counter, password-field, radio-group, search-field, segmented-control, select, text-field, textarea |
-| field-message | checkbox-group, counter, password-field, progress, radio-group, search-field, select, text-field, textarea | checkbox-group, counter, password-field, progress, radio-group, search-field, select, text-field, textarea |
+| field-label | checkbox-group, code-input, counter, password-field, radio-group, search-field, segmented-control, select, text-field, textarea | checkbox-group, code-input, counter, password-field, radio-group, search-field, segmented-control, select, text-field, textarea |
+| field-message | checkbox-group, code-input, counter, password-field, progress, radio-group, search-field, select, text-field, textarea | checkbox-group, code-input, counter, password-field, progress, radio-group, search-field, select, text-field, textarea |
 | flush-icon-button-neutral | banner, breadcrumb-item, counter, dialog, toast | banner, breadcrumb-item, breadcrumbs, counter, dialog, toast |
-| focus-ring | accordion, button, button-destructive, button-neutral, checkbox-control, counter, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, password-field, radio-control, search-field, segmented-control-segment, select, switch-control, tab-item, tag, text-field, textarea | accordion, banner, breadcrumb-item, breadcrumbs, button, button-destructive, button-group, button-neutral, checkbox-control, checkbox-group, checkbox-row, counter, dialog, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, switch-control, switch-row, tab-item, tabs, tag, text-field, textarea, toast |
+| focus-ring | accordion, button, button-destructive, button-neutral, checkbox-control, code-input-cell, counter, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, password-field, radio-control, search-field, segmented-control-segment, select, switch-control, tab-item, tag, text-field, textarea | accordion, banner, breadcrumb-item, breadcrumbs, button, button-destructive, button-group, button-neutral, checkbox-control, checkbox-group, checkbox-row, code-input, code-input-cell, counter, dialog, flush-icon-button, flush-icon-button-destructive, flush-icon-button-neutral, icon-button, icon-button-destructive, icon-button-neutral, link, password-field, radio-control, radio-group, radio-row, search-field, segmented-control, segmented-control-segment, select, switch-control, switch-row, tab-item, tabs, tag, text-field, textarea, toast |
 | link | breadcrumb-item, breadcrumbs | breadcrumb-item, breadcrumbs |
 | list-item | list | list |
 | radio-control | radio-row | radio-group, radio-row |
@@ -52,6 +53,8 @@ A component not in this table is nested by nothing; a change to it reaches only 
 | checkbox-control | 1 | focus-ring | focus-ring |
 | checkbox-group | 3 | checkbox-row, field-label, field-message | checkbox-control, checkbox-row, field-label, field-message, focus-ring |
 | checkbox-row | 2 | checkbox-control | checkbox-control, focus-ring |
+| code-input | 2 | code-input-cell, field-label, field-message | code-input-cell, field-label, field-message, focus-ring |
+| code-input-cell | 1 | focus-ring | focus-ring |
 | counter | 2 | field-label, field-message, flush-icon-button-neutral, focus-ring | field-label, field-message, flush-icon-button-neutral, focus-ring |
 | dialog | 3 | button-group, divider, flush-icon-button-neutral | button, button-group, divider, flush-icon-button-neutral, focus-ring, spinner |
 | divider | 0 | — | — |
@@ -128,6 +131,15 @@ Depth is 0 for a component that nests nothing, and one more than its deepest chi
 | checkbox-group | row2 | nest | checkbox-row | nest-fixed | size=medium, status=default | size, status | — |
 | checkbox-group | row3 | nest | checkbox-row | nest-fixed | size=medium, status=default | size, status | — |
 | checkbox-row | control | nest | checkbox-control | nest-exposed | selection=unchecked, state=rest, status=default | size, status | selection, state |
+| code-input | cell1 | nest | code-input-cell | nest-fixed | size=medium, state=rest | size | — |
+| code-input | cell2 | nest | code-input-cell | nest-fixed | size=medium, state=rest | size | — |
+| code-input | cell3 | nest | code-input-cell | nest-fixed | size=medium, state=rest | size | — |
+| code-input | cell4 | nest | code-input-cell | nest-fixed | size=medium, state=rest | size | — |
+| code-input | cell5 | nest | code-input-cell | nest-fixed | size=medium, state=rest | size | — |
+| code-input | cell6 | nest | code-input-cell | nest-fixed | size=medium, state=rest | size | — |
+| code-input | label | nest | field-label | nest-exposed | size=medium, emphasis=secondary, weight=regular, state=rest | — | emphasis, weight |
+| code-input | message | nest | field-message | nest-fixed | status=default | status | — |
+| code-input-cell | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | counter | decrement | nest | flush-icon-button-neutral | nest-exposed | shape=flush, size=medium, surface=default, state=rest | size | state |
 | counter | focusRing | absolute | focus-ring | nest-fixed | surface=default | — | — |
 | counter | increment | nest | flush-icon-button-neutral | nest-exposed | shape=flush, size=medium, surface=default, state=rest | size | state |
