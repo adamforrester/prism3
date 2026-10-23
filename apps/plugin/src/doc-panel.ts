@@ -458,7 +458,7 @@ const writtenTexts = (api: Pick<PanelApi, 'root'>, defId: string): Set<string> |
   for (const s of docSections(def, { modes: PANEL_MODES }).sections as DocSection[]) {
     // A further specimen's caption names what its member changes (`markSpecimens`): each pair, joined by commas.
     if (s.id === 'styles') for (const pair of [...s.axes.flatMap((a) => a.values.map((v) => `${a.axis} ${v}`)), ...s.states.map((v) => `state ${v}`)]) out.add(`${SHOWN_ON}${pair}`);
-    if (s.id === 'anatomy') s.parts.forEach((p, i) => out.add(`${i + 1}  ${p.name}${p.optional ? ' (optional)' : ''}`));
+    if (s.id === 'anatomy') s.parts.forEach((p, i) => { out.add(`${i + 1}  ${p.name}${p.optional ? ' (optional)' : ''}`); out.add(firstSentences(p.caption ?? '', 1)); });
     if (s.id === 'usage') {
       [...s.do, ...s.dont].forEach((t) => out.add(plain(t)));
       out.add(`Showing ${Math.min(s.do.length, PANEL_DO_ITEMS)} of ${s.do.length} Do items and ${Math.min(s.dont.length, PANEL_DO_ITEMS)} of ${s.dont.length} Don't items.`);
