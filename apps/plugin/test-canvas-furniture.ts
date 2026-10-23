@@ -974,16 +974,21 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
   // The three flush icon buttons (#2668, Q386): 12 rows of 5 states, shape (2) × surface (2) × size (3). The earlier row
   // order is shape × surface × size, the grouped one surface × shape × size, so a row stays only where 6h + 3u = 6u + 3h,
   // that is h = u: (flush, default) and (round, inverse). Six rows stay, 6 rows × 5 = 30 move.
+  // Badge (#2983): tone is the column axis, and the rows are type × emphasis × surface, 5 of them, sparse. The earlier
+  // order is the plan's, status subtle default, status subtle media, status bold, count, dot; the grouped one puts the
+  // media row last. Only the first row keeps its place: 4 rows × 5 tones = 20 move.
   // Every other def: none, its layout is the one it had.
   const MOVES_BY_DEF: Record<string, number> = {
     button: 360, 'button-destructive': 360, 'button-neutral': 360,
     'icon-button': 180, 'icon-button-destructive': 180, 'icon-button-neutral': 180,
     link: 108,
     'flush-icon-button': 30, 'flush-icon-button-destructive': 30, 'flush-icon-button-neutral': 30,
+    badge: 20,
   };
-  // THE DEFS WITH A BACKDROP: the ten above, the only ones whose rows split by `surface`. Focus ring has `surface`
-  // too, but as its grid axis (two columns), so it gets two column labels and no backdrop (held for the owner, #2502).
-  const BACKDROP = new Set(Object.keys(MOVES_BY_DEF));
+  // THE DEFS WITH A BACKDROP: the ten above other than badge, the only ones with `surface=inverse` rows. Badge's rows
+  // split by `surface` too, but its second value is `media`, which has no backdrop. Focus ring has `surface` too, but as
+  // its grid axis (two columns), so it gets two column labels and no backdrop (held for the owner, #2502).
+  const BACKDROP = new Set(Object.keys(MOVES_BY_DEF).filter((id) => id !== 'badge'));
   for (const id of withSet) {
     const { plans, page, api, set } = await buildOnPage(id);
     const members = set.children as FNode[];
@@ -1022,7 +1027,7 @@ section('rollout — every def that builds a set: drawn, converged, and clear of
     ok(o.columns + o.rows > 0 && o.skipped.length === 0 && furn.length === o.columns + o.rows + o.backdrops + o.scrims,
       `rollout/${id} drawn: ${o.columns} column and ${o.rows} row labels, nothing skipped (${JSON.stringify(o.skipped)})`);
     ok(BACKDROP.has(id) ? o.backdrops === 1 && surfaces.has('inverse') : o.backdrops === 0,
-      `rollout/${id} backdrop: ${BACKDROP.has(id) ? 'one, behind the inverse block' : surfaces.size ? 'none: surface is its grid axis' : 'none: no surface axis'} (${o.backdrops})`);
+      `rollout/${id} backdrop: ${BACKDROP.has(id) ? 'one, behind the inverse block' : surfaces.has('inverse') ? 'none: surface is its grid axis' : surfaces.size ? 'none: no inverse rows' : 'none: no surface axis'} (${o.backdrops})`);
     // INSIDE THE SET'S BOX, NOTHING: every label sits outside it.
     const sb = { x: Number(set.x), y: Number(set.y), w: Number(set.width), h: Number(set.height) };
     const inside = furn.filter((n) => tagOf(n).kind === 'label' && Number(n.x) < sb.x + sb.w && Number(n.x) + Number(n.width) > sb.x && Number(n.y) < sb.y + sb.h && Number(n.y) + Number(n.height) > sb.y);

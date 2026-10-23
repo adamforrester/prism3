@@ -26980,7 +26980,8 @@
           "variant": {
             "type": "count",
             "emphasis": "bold",
-            "tone": "neutral"
+            "tone": "neutral",
+            "surface": "default"
           },
           "follows": [],
           "exposes": []

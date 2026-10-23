@@ -7,3 +7,4 @@ with no edge, in the tone's text role (`text.primary` for neutral), padded `spac
 The Figma set grows from 20 to 25 members: media × count|dot and media × bold are excluded, and every existing member
 gains `surface=default`. The paint grammar carries the surface second (`{tone}.default.{type}.{emphasis}.{slot}` and
 `{tone}.media.{slot}`), so a media member can never reach a default key. No token path is added, so CONTRACT is unchanged.
+Tab Item's nested count badge now pins `surface: 'default'`, so its coordinate still names one badge member.

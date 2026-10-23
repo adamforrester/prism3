@@ -274,7 +274,7 @@ Keyed by `selection`, `state`.
 ### Nesting and properties
 
 - `container/content/leadingVisual` is a swap slot, property `↳ swap leading icon`, shown by `leading icon`
-- `container/content/count` nests `badge` at `type=count, emphasis=bold, tone=neutral`
+- `container/content/count` nests `badge` at `type=count, emphasis=bold, tone=neutral, surface=default`
 - `container/focusRing` nests `focus-ring` at `surface=default`
 
 | Property | Type | Default |

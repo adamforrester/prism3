@@ -177,7 +177,8 @@ export const tab: ComponentDef = {
         kind: 'nest',
         nests: 'badge',
         optional: true,
-        nesting: { kind: 'nest-fixed', variant: { type: 'count', emphasis: 'bold', tone: 'neutral' } },
+        // `surface: 'default'` since badge gained the axis (#2983): a tab's count sits on the page, never on media.
+        nesting: { kind: 'nest-fixed', variant: { type: 'count', emphasis: 'bold', tone: 'neutral', surface: 'default' } },
         note: 'An optional count after the label, the shared count badge.',
       },
       indicator: {
