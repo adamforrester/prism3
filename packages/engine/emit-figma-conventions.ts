@@ -97,6 +97,7 @@ const pages = () => ({
     pages: s.leaves.map((l) => ({
       name: leafPageName(l),
       ...(l.defs.length ? { components: [...l.defs] } : {}),
+      ...(l.lead ? { usagePanelLead: l.lead } : {}),
       ...(l.fileComponents ? { holds: 'the file\'s own template components' } : {}),
     })),
   })),
@@ -247,7 +248,7 @@ const furniture = () => ({
     source: src(COVER_SRC, 'export const COVER_KEY'),
   },
   usagePanel: {
-    rule: `A usage panel is a frame drawn beside each component set, right of it, from the component's usage docs, and is never part of the set. It carries shared plugin data under namespace "${DOC_PANEL_NS}", key "${DOC_PANEL_KEY}": state "live" for the panel the plugin redraws, "kept" for one a designer edited, which the plugin keeps aside and never removes.`,
+    rule: `A usage panel is a frame drawn beside a component set, right of it, from the component's usage docs, and is never part of the set. Each component page has one, beside the set of the page's lead component (the page's "usagePanelLead", or its one component), covering every set on the page. It carries shared plugin data under namespace "${DOC_PANEL_NS}", key "${DOC_PANEL_KEY}": state "live" for the panel the plugin redraws, "kept" for one a designer edited, which the plugin keeps aside and never removes.`,
     source: src(DOC_PANEL_SRC, 'export const DOC_PANEL_KEY'),
     tag: { namespace: DOC_PANEL_NS, key: DOC_PANEL_KEY },
     template: {

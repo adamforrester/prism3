@@ -412,7 +412,7 @@ section('all three — reactions, set moves and page reorders in one run: one ve
   // THE RUN: one named version, then every set's reactions, every set's place, and the page order.
   const go = await previewUpdate(host, targets);
   const res = await applyUpdate(host, api, targets, previewHashOf(go));
-  ok(JSON.stringify(api._versions) === JSON.stringify(['Before Prism3 updated tag, tab-item, switch-control, the page order']),
+  ok(JSON.stringify(api._versions) === JSON.stringify(['Saved before Prism3 updated 3 sets']),
     `all three/version: one named version, naming the sets and the page order (${JSON.stringify(api._versions)})`);
   const byName = (s: Node, n: Node): string[] => {
     const ids = new Map(kids(s).map((m) => [String(m.id), String(m.name)] as const));

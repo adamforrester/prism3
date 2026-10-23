@@ -81,7 +81,11 @@ export const LAYOUT_LABELS = { columns: 'Columns', gutter: 'Gutter', margin: 'Ma
 
 /** The Components sections' copy (S8.2), each shared by the levers section and the preview section it pairs with
  *  (owner decision Q23). DRAFT, pending the owner's approval (the S8.2 PR's "Copy for owner approval" block). */
-export const BUTTON_DESC = 'How buttons place their icons, size their label and set their minimum width. Applies to buttons, not icon buttons.';
+// #2905 Q10 A: wireframe v2's words, now that the Buttons section lists which buttons the options change.
+export const BUTTON_DESC = 'How buttons place their icons, size and weight their label, and set their minimum width. Icon buttons are not affected.';
+export const FIELD_DESC = 'How Text field, Password field, Select and Textarea draw their edge.';
+// #2905 Q10 A: wireframe v2's words, as Field options' and Button options' are.
+export const TAG_DESC = 'How tags draw their shape.';
 export const SETS_DESC = 'Every component set the engine defines, with what each contains and its spacing at your density.';
 
 /** Which host a legacy page list applies to. Components mapped to a different legacy page per host until S8.2 (§4). */
@@ -280,13 +284,14 @@ export const DOMAINS = [
     // S7: the owner's names (E2, 2026-10-04: "Radius" in names and headings, overriding D16's swap to "corner"); the
     // intro, Density's and Radius' descriptions are APPROVED, Base radius' is DRAFT. `radiusHairline` has no row: the
     // engine retired it (#2053, `Lever.deprecated` in the manifest), and `test-pages.ts` holds that a deprecated
-    // lever has no home rather than reading a hand list. Field style (#2695) sits right after Control shape, in the
-    // Radius section, as the owner placed it in the Form group (Q333). Search field style (#2888) right after it (Q?2 A),
-    // then Tag style (#2887, Q513.1 A).
+    // lever has no home rather than reading a hand list. Field style (#2695) is not here: it is a component setting, and
+    // its home is Components › Field (owner decision Q578, #2905), with no line pointing to it. Tag style (#2887) left
+    // the same way, for Components › Tag (Q578 part 2, A on #2931's wireframe). Search field style (#2888) stays after
+    // Control shape until its Search options block ships (#2905 Q5 A).
     id: 'shape', label: 'Shape', home: 'shape', intro: 'Control heights and corners. Padding is set per component.',
     sections: [
       { title: 'Density', desc: DENSITY_DESC, rows: [{ ctl: 'chips', keys: ['density'], drive: 'size' }] },
-      { title: 'Radius', desc: RADIUS_DESC, rows: [{ ctl: 'slider', keys: ['radiusScale'], drive: 'radius' }, { ctl: 'chips', keys: ['controlShape'], drive: 'shape' }, { ctl: 'chips', keys: ['fieldStyle'], drive: 'shape' }, { ctl: 'chips', keys: ['searchFieldStyle'], drive: 'shape' }, { ctl: 'chips', keys: ['tagStyle'], drive: 'shape' }] },
+      { title: 'Radius', desc: RADIUS_DESC, rows: [{ ctl: 'slider', keys: ['radiusScale'], drive: 'radius' }, { ctl: 'chips', keys: ['controlShape'], drive: 'shape' }, { ctl: 'chips', keys: ['searchFieldStyle'], drive: 'shape' }] },
       { title: 'Base radius', desc: BASE_RADIUS_DESC, advanced: true, rows: [{ ctl: 'valuePicker', keys: ['baseMd'], drive: 'radius' }] },
     ],
     // S7: moved. Its levers are `domains/shape.ts`, its preview `preview/shape.ts`.
@@ -324,9 +329,10 @@ export const DOMAINS = [
     // S8.2: moved, one page on both hosts (owner decisions G2, G5, G6 A). Redrawn by #2700 (the owner's approved
     // wireframe, every call A): the levers pane draws the list of sets, grouped by Figma page, and the action bar
     // (`domains/components.ts`, its intro `GROUPS_COPY.intro`); the preview pane draws the focused family, where the
-    // Button options now sit with the Buttons family (`preview/components.ts`, `domains/button-options.ts`). The two
+    // Button options now sit with the Buttons family (`preview/components.ts`, `domains/button-options.ts`). The
     // sections stay in this data so every lever keeps one home (`test-pages.ts`): Button's keys are drawn in the preview
-    // pane's Buttons block, the sets by the list.
+    // pane's Buttons block, Field's in the Fields section's block and Tag's in the
+    // Tag section's (#2905), the sets by the list.
     id: 'components', label: 'Components', home: 'comps', intro: 'The component sets the engine defines, in families. A build places each on its page in this file.',
     sections: [
       {
@@ -339,6 +345,11 @@ export const DOMAINS = [
           { ctl: 'slider', keys: ['buttonMinWidthMultiplier'], drive: 'button' },
         ],
       },
+      // #2905 Q578 B: Field style's one home. It is drawn in the Fields section's Field options block
+      // (`domains/field-options.ts`), and nowhere else.
+      { title: 'Field', desc: FIELD_DESC, rows: [{ ctl: 'chips', keys: ['fieldStyle'], drive: 'field' }] },
+      // Q578 part 2 (A): Tag style's one home, drawn in the Tag section's Tag options block (`domains/tag-options.ts`).
+      { title: 'Tag', desc: TAG_DESC, rows: [{ ctl: 'chips', keys: ['tagStyle'], drive: 'tag' }] },
       { title: 'Component sets', desc: SETS_DESC, rows: [{ ctl: 'sets' }] },
     ],
     status: 'new',

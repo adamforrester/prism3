@@ -537,6 +537,12 @@ console.log('4. taxonomy coverage of componentDefs');
   // And a stale mapping (an id in the config that the registry does not have) is reported too.
   const short = assertCoverage(ids.filter((id) => id !== 'veil'));
   ok(short.some((p) => p.includes("'veil'")), 'a mapping whose def left the registry is reported by name');
+  // #2927: a page of several defs names its usage panel's lead, one of its own defs. Two synthetic taxonomies, each
+  // with the one defect, reported by the page's name.
+  const leaf = (lead?: string) => ({ ...TAXONOMY, sections: [{ header: 'Components', leaves: [{ page: 'Pair', defs: ['badge', 'tag'], ...(lead ? { lead } : {}) }] }] });
+  ok(assertCoverage(['badge', 'tag'], leaf()).some((p) => p.includes("'Pair'") && p.includes('lead')), 'lead/missing: a page of two defs with no lead is reported by name');
+  ok(assertCoverage(['badge', 'tag'], leaf('veil')).some((p) => p.includes("'Pair'") && p.includes("'veil'")), 'lead/foreign: a lead that is not one of the page\'s defs is reported by name');
+  ok(assertCoverage(['badge', 'tag'], leaf('tag')).length === 0, 'lead/named: a page whose lead is one of its defs is clean');
 }
 
 // ── 5. targetPage routes placement off currentPage ───────────────────────────────────────────────
